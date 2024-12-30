@@ -45,8 +45,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	const startTestRun = (request: vscode.TestRunRequest) => {
 		const queue: { test: vscode.TestItem; data: TestFile }[] = [];
 		const run = ctrl.createTestRun(request);
-		// map of file uris to statements on each line:
-		const coveredLines = new Map</* file uri */ string, (vscode.StatementCoverage | undefined)[]>();
 
 		const discoverTests = async (tests: Iterable<vscode.TestItem>) => {
 			for (const test of tests) {
@@ -55,8 +53,12 @@ export async function activate(context: vscode.ExtensionContext) {
 				}
 
 				const data = testData.get(test);
-				if (data instanceof TestFile && !data.didResolve) {
-					await data.updateFromDisk(ctrl, test);
+				if (data instanceof TestFile) {
+					if (!data.didResolve) {
+						await data.updateFromDisk(ctrl, test);
+					}
+					run.enqueued(test);
+					queue.push({ test, data });
 				}
 
 				await discoverTests(gatherTestItems(test.children));
