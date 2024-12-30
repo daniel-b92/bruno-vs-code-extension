@@ -1,0 +1,19 @@
+meta {
+  name: Get_example_page1-1
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://example.com/
+  body: none
+  auth: none
+}
+
+tests {
+  test("should be able to login", function() {
+    const data = res.getBody();
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody()).to.contain("example");
+  });
+}
