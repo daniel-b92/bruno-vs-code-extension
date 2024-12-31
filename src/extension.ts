@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { testData, TestFile } from './testTree';
+import { getTestId, getTestLabel, testData, TestFile } from './testTree';
 
 export async function activate(context: vscode.ExtensionContext) {
 	const ctrl = vscode.tests.createTestController('brunoCliTestController', 'Bruno CLI Test');
@@ -111,8 +111,8 @@ export async function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 
-		const { file, data } = getOrCreateFile(ctrl, e.uri);
-		data.updateFromContents(ctrl, file);
+		const { testItem, testFile } = getOrCreateFile(ctrl, e.uri);
+		testFile.updateFromContents(ctrl, testItem);
 	}
 
 	for (const document of vscode.workspace.textDocuments) {
@@ -128,17 +128,17 @@ export async function activate(context: vscode.ExtensionContext) {
 function getOrCreateFile(controller: vscode.TestController, uri: vscode.Uri) {
 	const existing = controller.items.get(uri.toString());
 	if (existing) {
-		return { file: existing, data: testData.get(existing) as TestFile };
+		return { testItem: existing, testFile: testData.get(existing) as TestFile };
 	}
 
-	const file = controller.createTestItem(uri.toString(), uri.path.split('/').pop()!, uri);
-	controller.items.add(file);
+	const testItem = controller.createTestItem(getTestId(uri), getTestLabel(uri), uri);
+	controller.items.add(testItem);
 
-	const data = new TestFile();
-	testData.set(file, data);
+	const testFile = new TestFile(testItem.uri?.fsPath!);
+	testData.set(testItem, testFile);
 
-	file.canResolveChildren = true;
-	return { file, data };
+	testItem.canResolveChildren = false;
+	return { testItem, testFile };
 }
 
 function gatherTestItems(collection: vscode.TestItemCollection) {
@@ -173,9 +173,9 @@ function startWatchingWorkspace(controller: vscode.TestController, fileChangedEm
 			fileChangedEmitter.fire(uri);
 		});
 		watcher.onDidChange(async uri => {
-			const { file, data } = getOrCreateFile(controller, uri);
-			if (data.didResolve) {
-				await data.updateFromDisk(controller, file);
+			const { testItem, testFile } = getOrCreateFile(controller, uri);
+			if (testFile.didResolve) {
+				await testFile.updateFromDisk(controller, testItem);
 			}
 			fileChangedEmitter.fire(uri);
 		});
