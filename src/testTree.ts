@@ -1,5 +1,7 @@
+import { exec } from 'child_process';
 import { readdirSync } from 'fs';
-import { dirname, extname } from 'path';
+import { dirname, extname, resolve } from 'path';
+import { promisify } from 'util';
 import * as vscode from 'vscode';
 
 export const globPatternForTestfiles = "**/*.bru";
@@ -12,6 +14,16 @@ export const getTestId = (uri: vscode.Uri) => uri.toString();
 export const getTestLabel = (uri: vscode.Uri) => uri.path.split('/').pop()!;
 
 export const isCollectionRootDir = (path: string) => extname(path) == '' && readdirSync(path).some((file) => file.endsWith('bruno.json'));
+
+export const getCollectionRootDir = (testFilePath: string) => {
+	let currentPath = testFilePath;
+
+	while (!isCollectionRootDir(currentPath)) {
+		currentPath = dirname(currentPath);
+	}
+
+	return currentPath;
+}
 
 export const getAncestors = (testFileOrDir: BrunoTestData) => {
 	const result: {ancestorUri: vscode.Uri, childUri: vscode.Uri}[] = [];
@@ -78,15 +90,20 @@ export class TestFile {
 	}
 
 	async run(item: vscode.TestItem, options: vscode.TestRun): Promise<void> {
+		const execPromise = promisify(exec);
+		const collectionRootDir = getCollectionRootDir(item.uri?.fsPath!);
+		const htmlReportPath = resolve(collectionRootDir, "results.html");
 		const start = Date.now();
-		await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
-		const duration = Date.now() - start;
-
-		if (2 === 2) {
+		try {
+			const {stdout, stderr} = await execPromise(`cd ${collectionRootDir} && npx --package=@usebruno/cli bru run ${item.uri?.fsPath!} --reporter-html ${htmlReportPath}`);
+			const duration = Date.now() - start;
+			options.appendOutput(stdout);
+			options.appendOutput(stderr);
+			options.appendOutput(`Results can be found here: ${htmlReportPath}\n`);
 			options.passed(item, duration);
-		} else {
-			const message = vscode.TestMessage.diff(`Expected ${item.label}`, String(6), String(2 + 3));
-			options.failed(item, message, duration);
+		} catch (err: any) {
+			options.appendOutput(`Results can be found here: ${htmlReportPath}\n`);
+			options.failed(item, [new vscode.TestMessage(err.message)]);
 		}
 	}
 }
