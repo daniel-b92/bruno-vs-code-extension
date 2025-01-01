@@ -141,24 +141,32 @@ function getOrCreateFile(controller: vscode.TestController, uri: vscode.Uri) {
 	return { testItem, testFile };
 }
 
-function getOrCreateAncestorDirectoriesForFile(controller: vscode.TestController, fileTestItem: vscode.TestItem) {
+function getOrCreateAncestorDirectoriesForFile(controller: vscode.TestController, testFileUri: vscode.Uri) {
 	const addChildItemForAncestor = (ancestorTestItem: vscode.TestItem, childUri: vscode.Uri) => {
-		if (fileTestItem.uri?.fsPath == childUri.fsPath ) {
-			ancestorTestItem.children.add(fileTestItem)
-		} else {
-			ancestorTestItem.children.add(controller.createTestItem(getTestId(childUri), getTestLabel(childUri), childUri))
+		if (!controller.items.get(getTestId(childUri))) {
+			console.log(`Did not find child URI '${childUri}' in existing items. Will create new item and add it to controller.`)
 		}
+		const childItem = controller.items.get(getTestId(childUri)) ?? controller.createTestItem(getTestId(childUri), getTestLabel(childUri), childUri);
+		ancestorTestItem.children.add(childItem);
 	}
 
-	const ancestors = getAncestors(new TestFile(fileTestItem.uri!.fsPath));
+	const ancestors = getAncestors(new TestFile(testFileUri.fsPath));
 	const result: {testItem: vscode.TestItem, testDirectory: TestDirectory}[] = [];
 
 	ancestors.forEach((ancestor) => {
+		// ToDo: Remove logging after fixing issue with missing testcases when using all ancestors
+		console.log("------------------------------------------------")
+		console.log(`current testFileUri URI: '${testFileUri}'`);
+		console.log(`current ancestor URI: '${ancestor.ancestorUri}'`);
+		console.log(`current child URI: '${ancestor.childUri}'`);
+		console.log(`current controller items size: ${controller.items.size}`);
+		controller.items.forEach((item) => console.log(`found controller item: '${item.uri}'`));
+
 		const existing = controller.items.get(getTestId(ancestor.ancestorUri));
 		if (existing) {
 			addChildItemForAncestor(existing, ancestor.childUri);
 			result.push({ testItem: existing, testDirectory: testData.get(existing) as TestDirectory });
-		} else {	
+		} else {
 			const ancestorTestItem = controller.createTestItem(getTestId(ancestor.ancestorUri), getTestLabel(ancestor.ancestorUri), ancestor.ancestorUri);
 			controller.items.add(ancestorTestItem);
 
@@ -191,9 +199,11 @@ function getWorkspaceTestPatterns() {
 
 async function findInitialFilesAndDirectories(controller: vscode.TestController, pattern: vscode.GlobPattern) {
 	const relevantFiles = await vscode.workspace.findFiles(pattern);
+	// ToDo: Remove logging after fixing issue with missing testcases when using all ancestors
+	console.clear();
 	for (const file of relevantFiles) {
-		const {testItem, testFile} = getOrCreateFile(controller, file);
-		getOrCreateAncestorDirectoriesForFile(controller, testItem);
+		getOrCreateFile(controller, file);
+		getOrCreateAncestorDirectoriesForFile(controller, file);
 	}
 }
 
@@ -202,8 +212,8 @@ function startWatchingWorkspace(controller: vscode.TestController, fileChangedEm
 		const watcher = vscode.workspace.createFileSystemWatcher(pattern);
 
 		watcher.onDidCreate(uri => {
-			const {testItem, testFile} = getOrCreateFile(controller, uri);
-			getOrCreateAncestorDirectoriesForFile(controller, testItem);
+			getOrCreateFile(controller, uri);
+			getOrCreateAncestorDirectoriesForFile(controller, uri);
 			fileChangedEmitter.fire(uri);
 		});
 		watcher.onDidChange(async uri => {
