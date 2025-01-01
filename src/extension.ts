@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getTestId, getTestLabel, testData, TestFile } from './testTree';
+import { getAncestors, getTestId, getTestLabel, globPatternForTestfiles, testData, TestDirectory, TestFile } from './testTree';
 
 export async function activate(context: vscode.ExtensionContext) {
 	const ctrl = vscode.tests.createTestController('brunoCliTestController', 'Bruno CLI Test');
@@ -85,7 +85,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	};
 
 	ctrl.refreshHandler = async () => {
-		await Promise.all(getWorkspaceTestPatterns().map(({ pattern }) => findInitialFiles(ctrl, pattern)));
+		await Promise.all(getWorkspaceTestPatterns().map((pattern) => findInitialFilesAndDirectories(ctrl, pattern)));
 	};
 
 	ctrl.createRunProfile('Run Tests', vscode.TestRunProfileKind.Run, runHandler, true, undefined, true);
@@ -126,7 +126,7 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 function getOrCreateFile(controller: vscode.TestController, uri: vscode.Uri) {
-	const existing = controller.items.get(uri.toString());
+	const existing = controller.items.get(getTestId(uri));
 	if (existing) {
 		return { testItem: existing, testFile: testData.get(existing) as TestFile };
 	}
@@ -141,6 +141,40 @@ function getOrCreateFile(controller: vscode.TestController, uri: vscode.Uri) {
 	return { testItem, testFile };
 }
 
+function getOrCreateAncestorDirectoriesForFile(controller: vscode.TestController, fileTestItem: vscode.TestItem) {
+	const addChildItemForAncestor = (ancestorTestItem: vscode.TestItem, childUri: vscode.Uri) => {
+		if (fileTestItem.uri?.fsPath == childUri.fsPath ) {
+			ancestorTestItem.children.add(fileTestItem)
+		} else {
+			ancestorTestItem.children.add(controller.createTestItem(getTestId(childUri), getTestLabel(childUri), childUri))
+		}
+	}
+
+	const ancestors = getAncestors(new TestFile(fileTestItem.uri!.fsPath));
+	const result: {testItem: vscode.TestItem, testDirectory: TestDirectory}[] = [];
+
+	ancestors.forEach((ancestor) => {
+		const existing = controller.items.get(getTestId(ancestor.ancestorUri));
+		if (existing) {
+			addChildItemForAncestor(existing, ancestor.childUri);
+			result.push({ testItem: existing, testDirectory: testData.get(existing) as TestDirectory });
+		} else {	
+			const ancestorTestItem = controller.createTestItem(getTestId(ancestor.ancestorUri), getTestLabel(ancestor.ancestorUri), ancestor.ancestorUri);
+			controller.items.add(ancestorTestItem);
+
+			addChildItemForAncestor(ancestorTestItem, ancestor.childUri);
+		
+			const testDirectory = new TestDirectory(ancestorTestItem.uri?.fsPath!);
+			testData.set(ancestorTestItem, testDirectory);
+			ancestorTestItem.canResolveChildren = true;
+	
+			result.push({testItem: ancestorTestItem, testDirectory});
+		}
+	})
+	
+	return result;
+}
+
 function gatherTestItems(collection: vscode.TestItemCollection) {
 	const items: vscode.TestItem[] = [];
 	collection.forEach(item => items.push(item));
@@ -152,24 +186,24 @@ function getWorkspaceTestPatterns() {
 		return [];
 	}
 
-	return vscode.workspace.workspaceFolders.map(workspaceFolder => ({
-		workspaceFolder,
-		pattern: new vscode.RelativePattern(workspaceFolder, '**/*.bru'),
-	}));
+	return vscode.workspace.workspaceFolders.map(workspaceFolder => new vscode.RelativePattern(workspaceFolder, globPatternForTestfiles));
 }
 
-async function findInitialFiles(controller: vscode.TestController, pattern: vscode.GlobPattern) {
-	for (const file of await vscode.workspace.findFiles(pattern)) {
-		getOrCreateFile(controller, file);
+async function findInitialFilesAndDirectories(controller: vscode.TestController, pattern: vscode.GlobPattern) {
+	const relevantFiles = await vscode.workspace.findFiles(pattern);
+	for (const file of relevantFiles) {
+		const {testItem, testFile} = getOrCreateFile(controller, file);
+		getOrCreateAncestorDirectoriesForFile(controller, testItem);
 	}
 }
 
 function startWatchingWorkspace(controller: vscode.TestController, fileChangedEmitter: vscode.EventEmitter<vscode.Uri>) {
-	return getWorkspaceTestPatterns().map(({ pattern }) => {
+	return getWorkspaceTestPatterns().map((pattern) => {
 		const watcher = vscode.workspace.createFileSystemWatcher(pattern);
 
 		watcher.onDidCreate(uri => {
-			getOrCreateFile(controller, uri);
+			const {testItem, testFile} = getOrCreateFile(controller, uri);
+			getOrCreateAncestorDirectoriesForFile(controller, testItem);
 			fileChangedEmitter.fire(uri);
 		});
 		watcher.onDidChange(async uri => {
@@ -181,7 +215,7 @@ function startWatchingWorkspace(controller: vscode.TestController, fileChangedEm
 		});
 		watcher.onDidDelete(uri => controller.items.delete(uri.toString()));
 
-		findInitialFiles(controller, pattern);
+		findInitialFilesAndDirectories(controller, pattern);
 
 		return watcher;
 	});

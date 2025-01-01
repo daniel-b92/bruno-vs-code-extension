@@ -1,53 +1,49 @@
+import { readdirSync } from 'fs';
+import { dirname, extname } from 'path';
 import * as vscode from 'vscode';
 
+export const globPatternForTestfiles = "**/*.bru";
 export type BrunoTestData = TestDirectory | TestFile;
 
 export const testData = new WeakMap<vscode.TestItem, BrunoTestData>();
 
-export const getChildItemsFromFilesystem = async (directoryItem: vscode.TestItem) => {
-	try {
-		const files = await vscode.workspace.fs.readDirectory(directoryItem.uri!);
-		return files.filter((file) => file[1] == vscode.FileType.File && file[0].endsWith(".bru"))
-				.map((file) => new TestFile(file[0]));
-	} catch (e) {
-		console.warn(`Error providing tests for directory ${directoryItem.uri!.fsPath}`, e);
-		return [];
+export const getTestId = (uri: vscode.Uri) => uri.toString();
+
+export const getTestLabel = (uri: vscode.Uri) => uri.path.split('/').pop()!;
+
+export const getAncestors = (testData: BrunoTestData) => {
+	const isCollectionRootDir = (path: string) => extname(path) == '' && readdirSync(path).some((file) => file.endsWith('bruno.json'));
+
+	const result: {ancestorUri: vscode.Uri, childUri: vscode.Uri}[] = [];
+	let currentPath = testData.path;
+
+	while (!isCollectionRootDir(currentPath)) {
+		const parentPath = dirname(currentPath);
+
+		result.push({ancestorUri: vscode.Uri.file(parentPath), childUri: vscode.Uri.file(currentPath)});
+		currentPath = parentPath;
 	}
-};
 
-export const getTestId = (testElementUri: vscode.Uri) => testElementUri.toString();
-
-export const getTestLabel = (testElementUri: vscode.Uri) => testElementUri.path.split('/').pop()!;
+	return result;
+}
 
 export class TestDirectory {
-	constructor(public path: string, public childItems: BrunoTestData[]) { }
+	constructor(public path: string) { }
 	public didResolve = false;
 
 	public async updateFromDisk(controller: vscode.TestController, directoryItem: vscode.TestItem) {
 		try {
-			const testFiles = await getChildItemsFromFilesystem(directoryItem);
 			directoryItem.error = undefined;
-			this.childItems = testFiles;
-			this.updateFromContents(controller, directoryItem, testFiles);
+			this.updateFromContents(controller, directoryItem);
 		} catch (e) {
 			directoryItem.error = (e as Error).stack;
 		}
 	}
 
-	public updateFromContents(controller: vscode.TestController, item: vscode.TestItem, testFiles: TestFile[]) {
+	public updateFromContents(controller: vscode.TestController, item: vscode.TestItem) {
 		this.didResolve = true;
 
 		const testDirectory = controller.createTestItem(getTestId(item.uri!), getTestLabel(item.uri!), item.uri);
-
-		testFiles.forEach((testFile) => {
-			const testFileItem = controller.items.get(testFile.getTestId())!;
-
-			testFile.updateFromDisk(controller, testFileItem);
-			testFile.updateFromContents(controller, testFileItem);
-
-			testDirectory.children.add(testFileItem);
-		});
-
 		testData.set(testDirectory, this);
 	}
 }
