@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { getAncestors, getTestId, getTestLabel, globPatternForTestfiles, testData, TestDirectory, TestFile } from './testTree';
+import { getCollectionRootDir, getTestfilesForCollection, getTestId, getTestLabel, globPatternForTestfiles, testData, TestDirectory, TestFile } from './testTree';
+import { dirname } from 'path';
 
 export async function activate(context: vscode.ExtensionContext) {
 	const ctrl = vscode.tests.createTestController('brunoCliTestController', 'Bruno CLI Test');
@@ -141,46 +142,64 @@ function getOrCreateFile(controller: vscode.TestController, uri: vscode.Uri) {
 	return { testItem, testFile };
 }
 
-function getOrCreateAncestorDirectoriesForFile(controller: vscode.TestController, testFileUri: vscode.Uri) {
-	const addChildItemForAncestor = (ancestorTestItem: vscode.TestItem, childUri: vscode.Uri) => {
-		if (!controller.items.get(getTestId(childUri))) {
-			console.log(`Did not find child URI '${childUri}' in existing items. Will create new item and add it to controller.`)
-		}
-		const childItem = controller.items.get(getTestId(childUri)) ?? controller.createTestItem(getTestId(childUri), getTestLabel(childUri), childUri);
-		ancestorTestItem.children.add(childItem);
+async function createAllTestitemsForCollection(controller: vscode.TestController, collectionRootDir: string) {
+	type PathWithChildren = {
+		path: string,
+		childItems: vscode.TestItem[]
 	}
 
-	const ancestors = getAncestors(new TestFile(testFileUri.fsPath));
-	const result: {testItem: vscode.TestItem, testDirectory: TestDirectory}[] = [];
+	const getUniquePaths = (arr: PathWithChildren[]) => {
+		let result: PathWithChildren[] = [];
 
-	ancestors.forEach((ancestor) => {
-		// ToDo: Remove logging after fixing issue with missing testcases when using all ancestors
-		console.log("------------------------------------------------")
-		console.log(`current testFileUri URI: '${testFileUri}'`);
-		console.log(`current ancestor URI: '${ancestor.ancestorUri}'`);
-		console.log(`current child URI: '${ancestor.childUri}'`);
-		console.log(`current controller items size: ${controller.items.size}`);
-		controller.items.forEach((item) => console.log(`found controller item: '${item.uri}'`));
+		arr.forEach(({path, childItems}) => {
+			if (!result.some((val) => val.path == path)) {
+				result.push({path, childItems});
+			} else {
+				const arrayIndex = result.findIndex((val) => val.path == path);
+				result[arrayIndex] = {path, childItems: result[arrayIndex].childItems.concat(childItems)};
+			}
+		});
 
-		const existing = controller.items.get(getTestId(ancestor.ancestorUri));
-		if (existing) {
-			addChildItemForAncestor(existing, ancestor.childUri);
-			result.push({ testItem: existing, testDirectory: testData.get(existing) as TestDirectory });
-		} else {
-			const ancestorTestItem = controller.createTestItem(getTestId(ancestor.ancestorUri), getTestLabel(ancestor.ancestorUri), ancestor.ancestorUri);
-			controller.items.add(ancestorTestItem);
+		return result;
+	}
 
-			addChildItemForAncestor(ancestorTestItem, ancestor.childUri);
+	const switchToParentDirectory = (pathsWithChildren: PathWithChildren[], currentTestItems: vscode.TestItem[]) => {
+		const parentsWithDuplicatePaths: PathWithChildren[] = pathsWithChildren.map(({path}) => {
+			const parentPath = dirname(path);
+			const childTestItem = currentTestItems.find((item) => item.uri?.fsPath == path);
+			return {path: parentPath, childItems: childTestItem ? [childTestItem]: []};
+		}).filter(({path}) => path.includes(collectionRootDir));
 		
-			const testDirectory = new TestDirectory(ancestorTestItem.uri?.fsPath!);
-			testData.set(ancestorTestItem, testDirectory);
-			ancestorTestItem.canResolveChildren = true;
-	
-			result.push({testItem: ancestorTestItem, testDirectory});
-		}
-	})
-	
-	return result;
+		return getUniquePaths(parentsWithDuplicatePaths);
+	}
+
+	const relevantFiles = await getTestfilesForCollection(collectionRootDir);
+	let currentPaths: PathWithChildren[];
+	currentPaths = relevantFiles.map((path) => ({path: path.fsPath, childItems: []}));
+	let currentTestItems: vscode.TestItem[];
+
+	while (currentPaths.length > 0) {
+		currentTestItems = [];
+
+		currentPaths.forEach(({path, childItems}) => {
+			const uri = vscode.Uri.file(path);
+			const testItem = controller.createTestItem(getTestId(uri), getTestLabel(uri), uri);
+
+			controller.items.add(testItem);
+			childItems.forEach((childItem) => testItem.children.add(childItem));
+			currentTestItems.push(testItem);
+
+			if (childItems.length > 0) {
+				testItem.canResolveChildren = true;
+				testData.set(testItem, new TestDirectory(path));
+			} else {
+				testItem.canResolveChildren = false;
+				testData.set(testItem, new TestFile(path));
+			}
+		});
+
+		currentPaths = switchToParentDirectory(currentPaths, currentTestItems);
+	}
 }
 
 function gatherTestItems(collection: vscode.TestItemCollection) {
@@ -199,12 +218,10 @@ function getWorkspaceTestPatterns() {
 
 async function findInitialFilesAndDirectories(controller: vscode.TestController, pattern: vscode.GlobPattern) {
 	const relevantFiles = await vscode.workspace.findFiles(pattern);
-	// ToDo: Remove logging after fixing issue with missing testcases when using all ancestors
-	console.clear();
 	for (const file of relevantFiles) {
 		getOrCreateFile(controller, file);
-		getOrCreateAncestorDirectoriesForFile(controller, file);
 	}
+	createAllTestitemsForCollection(controller, getCollectionRootDir(relevantFiles[0].fsPath));
 }
 
 function startWatchingWorkspace(controller: vscode.TestController, fileChangedEmitter: vscode.EventEmitter<vscode.Uri>) {
@@ -213,7 +230,6 @@ function startWatchingWorkspace(controller: vscode.TestController, fileChangedEm
 
 		watcher.onDidCreate(uri => {
 			getOrCreateFile(controller, uri);
-			getOrCreateAncestorDirectoriesForFile(controller, uri);
 			fileChangedEmitter.fire(uri);
 		});
 		watcher.onDidChange(async uri => {

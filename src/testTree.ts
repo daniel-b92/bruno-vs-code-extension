@@ -9,6 +9,10 @@ export type BrunoTestData = TestDirectory | TestFile;
 
 export const testData = new WeakMap<vscode.TestItem, BrunoTestData>();
 
+export const getTestfilesForCollection = async (collectionRootDir: string) => {
+	return await vscode.workspace.findFiles(new vscode.RelativePattern(collectionRootDir,globPatternForTestfiles));
+}
+
 export const getTestId = (uri: vscode.Uri) => uri.toString();
 
 export const getTestLabel = (uri: vscode.Uri) => uri.path.split('/').pop()!;
@@ -23,21 +27,6 @@ export const getCollectionRootDir = (testFilePath: string) => {
 	}
 
 	return currentPath;
-}
-
-export const getAncestors = (testFileOrDir: BrunoTestData) => {
-	const result: {ancestorUri: vscode.Uri, childUri: vscode.Uri}[] = [];
-	let currentPath = testFileOrDir.path;
-
-	// ToDo: Fix issue with missing testcases when using all ancestors
-	//while (!isCollectionRootDir(currentPath)) {
-		const parentPath = dirname(currentPath);
-
-		result.push({ancestorUri: vscode.Uri.file(parentPath), childUri: vscode.Uri.file(currentPath)});
-		currentPath = parentPath;
-	//}
-
-	return result;
 }
 
 export class TestDirectory {
