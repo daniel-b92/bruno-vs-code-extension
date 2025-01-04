@@ -92,12 +92,12 @@ export class TestFile {
 	async run(item: vscode.TestItem, options: vscode.TestRun): Promise<void> {
 		const execPromise = promisify(exec);
 		const collectionRootDir = getCollectionRootDir(item.uri?.fsPath!);
-		const htmlReportPath = resolve(collectionRootDir, "results.html");
+		const htmlReportPath = resolve(dirname(collectionRootDir), "results.html");
 		const start = Date.now();
 		try {
 			const {stdout, stderr} = await execPromise(`cd ${collectionRootDir} && npx --package=@usebruno/cli bru run ${item.uri?.fsPath!} --reporter-html ${htmlReportPath}`);
 			const duration = Date.now() - start;
-			options.appendOutput(stdout);
+			options.appendOutput(stdout.split("\n").join("\r\n"));
 			options.appendOutput(stderr);
 			options.appendOutput(`Results can be found here: ${htmlReportPath}\n`);
 			options.passed(item, duration);
