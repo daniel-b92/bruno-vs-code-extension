@@ -33,6 +33,70 @@ export const getCollectionRootDir = (testFilePath: string) => {
     return currentPath;
 };
 
+export async function runTestStructure(
+    item: vscode.TestItem,
+    data: BrunoTestData,
+    options: vscode.TestRun
+): Promise<void> {
+    const execPromise = promisify(exec);
+    const collectionRootDir = getCollectionRootDir(data.path);
+    const htmlReportPath = resolve(dirname(collectionRootDir), "results.html");
+    const jsonReportPath = resolve(dirname(collectionRootDir), "results.json");
+    if (existsSync(htmlReportPath)) {
+        unlinkSync(htmlReportPath);
+    }
+
+    if (data instanceof TestDirectory) {
+        item.children.forEach((child) => (child.busy = true));
+    }
+
+    const start = Date.now();
+    try {
+        const { stdout, stderr } = await execPromise(
+            `cd ${collectionRootDir} && npx --package=@usebruno/cli bru run ${data.path} --reporter-html ${htmlReportPath} --reporter-json ${jsonReportPath}`
+        );
+        const duration = Date.now() - start;
+        options.appendOutput(stdout.replace(/\n/g, "\r\n"));
+        options.appendOutput(stderr.replace(/\n/g, "\r\n"));
+
+        if (existsSync(htmlReportPath)) {
+            options.appendOutput(
+                `Results can be found here: ${htmlReportPath}\r\n`
+            );
+        }
+        options.passed(item, duration);
+
+        if (data instanceof TestDirectory) {
+            item.children.forEach((child) => {
+                child.busy = false;
+                options.passed(child);
+            });
+        }
+    } catch (err: any) {
+        if (existsSync(htmlReportPath)) {
+            options.appendOutput(
+                `Results can be found here: ${htmlReportPath}\r\n`
+            );
+        }
+
+        const testMessage = new vscode.TestMessage(
+            `${err.stdout}\n${err.stderr}`
+        );
+        options.failed(item, [testMessage]);
+
+        if (data instanceof TestDirectory) {
+            item.children.forEach((child) => {
+                child.busy = false;
+				options.skipped(child);
+            });
+        }
+    } finally {
+        if (existsSync(jsonReportPath)) {
+            unlinkSync(jsonReportPath);
+        }
+    }
+}
+
 export class TestDirectory {
     constructor(public path: string) {}
     public didResolve = false;
@@ -100,42 +164,5 @@ export class TestFile {
             item.uri
         );
         testData.set(tcase, this);
-    }
-
-    async run(item: vscode.TestItem, options: vscode.TestRun): Promise<void> {
-        const execPromise = promisify(exec);
-        const collectionRootDir = getCollectionRootDir(item.uri?.fsPath!);
-        const htmlReportPath = resolve(
-            dirname(collectionRootDir),
-            "results.html"
-        );
-        if (existsSync(htmlReportPath)) {
-            unlinkSync(htmlReportPath);
-        }
-
-        const start = Date.now();
-        try {
-            const { stdout, stderr } = await execPromise(
-                `cd ${collectionRootDir} && npx --package=@usebruno/cli bru run ${item
-                    .uri?.fsPath!} --reporter-html ${htmlReportPath}`
-            );
-            const duration = Date.now() - start;
-            options.appendOutput(stdout.replace(/\n/g, "\r\n"));
-            options.appendOutput(stderr.replace(/\n/g, "\r\n"));
-
-            if (existsSync(htmlReportPath)) {
-                options.appendOutput(
-                    `Results can be found here: ${htmlReportPath}\r\n`
-                );
-            }
-            options.passed(item, duration);
-        } catch (err: any) {
-            if (existsSync(htmlReportPath)) {
-                options.appendOutput(
-                    `Results can be found here: ${htmlReportPath}\r\n`
-                );
-            }
-            options.failed(item, [new vscode.TestMessage(err.message)]);
-        }
     }
 }

@@ -1,10 +1,12 @@
 import * as vscode from "vscode";
 import {
+    BrunoTestData,
     getCollectionRootDir,
     getTestfilesForCollection,
     getTestId,
     getTestLabel,
     globPatternForTestfiles,
+    runTestStructure,
     testData,
     TestDirectory,
     TestFile,
@@ -77,7 +79,7 @@ export async function activate(context: vscode.ExtensionContext) {
     };
 
     const startTestRun = (request: vscode.TestRunRequest) => {
-        const queue: { test: vscode.TestItem; data: TestFile }[] = [];
+        const queue: { test: vscode.TestItem; data: BrunoTestData }[] = [];
         const run = ctrl.createTestRun(request);
 
         const discoverTests = async (tests: Iterable<vscode.TestItem>) => {
@@ -86,16 +88,12 @@ export async function activate(context: vscode.ExtensionContext) {
                     continue;
                 }
 
-                const data = testData.get(test);
-                if (data instanceof TestFile) {
-                    if (!data.didResolve) {
-                        await data.updateFromDisk(ctrl, test);
-                    }
-                    run.enqueued(test);
-                    queue.push({ test, data });
+                const data = testData.get(test)!;
+                if (!data.didResolve) {
+                    await data.updateFromDisk(ctrl, test);
                 }
-
-                await discoverTests(gatherTestItems(test.children));
+                run.enqueued(test);
+                queue.push({ test, data });
             }
         };
 
@@ -106,7 +104,7 @@ export async function activate(context: vscode.ExtensionContext) {
                     run.skipped(test);
                 } else {
                     run.started(test);
-                    await data.run(test, run);
+                    await runTestStructure(test, data, run);
                 }
 
                 run.appendOutput(`Completed ${test.id}\r\n`);
@@ -259,11 +257,13 @@ async function createAllTestitemsForCollection(
 
         currentPaths.forEach(({ path, childItems }) => {
             const uri = vscode.Uri.file(path);
-            const testItem = controller.items.get(getTestId(uri)) ?? controller.createTestItem(
-                getTestId(uri),
-                getTestLabel(uri),
-                uri
-            );
+            const testItem =
+                controller.items.get(getTestId(uri)) ??
+                controller.createTestItem(
+                    getTestId(uri),
+                    getTestLabel(uri),
+                    uri
+                );
 
             controller.items.add(testItem);
             childItems.forEach((childItem) => testItem.children.add(childItem));
@@ -304,9 +304,6 @@ async function findInitialFilesAndDirectories(
     pattern: vscode.GlobPattern
 ) {
     const relevantFiles = await vscode.workspace.findFiles(pattern);
-    for (const file of relevantFiles) {
-        getOrCreateFile(controller, file);
-    }
     createAllTestitemsForCollection(
         controller,
         getCollectionRootDir(relevantFiles[0].fsPath)
