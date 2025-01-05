@@ -38,6 +38,42 @@ export async function runTestStructure(
     data: BrunoTestData,
     options: vscode.TestRun
 ): Promise<void> {
+    const getAllDescendants = (testItem: vscode.TestItem) => {
+        let result: vscode.TestItem[] = [];
+        let currentChildItems = Array.from(testItem.children).map(
+            (item) => item[1]
+        );
+
+        while (currentChildItems.length > 0) {
+            result = result.concat(currentChildItems);
+            const nextDepthLevelDescendants: vscode.TestItem[] = [];
+
+            currentChildItems.forEach((item) =>
+                item.children.forEach((child) => {
+                    nextDepthLevelDescendants.push(child);
+                })
+            );
+
+            currentChildItems = nextDepthLevelDescendants;
+        }
+
+        return result;
+    };
+
+    const getCommandToExecute = (
+        testPathToExecute: string,
+        htmlReportPath: string,
+        jsonReportPath: string
+    ) => {
+        const collectionRootDir = getCollectionRootDir(testPathToExecute);
+
+        if (testPathToExecute == collectionRootDir) {
+            return `cd ${collectionRootDir} && npx --package=@usebruno/cli bru run --reporter-html ${htmlReportPath} --reporter-json ${jsonReportPath}`;
+        } else {
+            return `cd ${collectionRootDir} && npx --package=@usebruno/cli bru run ${testPathToExecute} --reporter-html ${htmlReportPath} --reporter-json ${jsonReportPath}`;
+        }
+    };
+
     const execPromise = promisify(exec);
     const collectionRootDir = getCollectionRootDir(data.path);
     const htmlReportPath = resolve(dirname(collectionRootDir), "results.html");
@@ -47,13 +83,15 @@ export async function runTestStructure(
     }
 
     if (data instanceof TestDirectory) {
-        item.children.forEach((child) => (child.busy = true));
+        getAllDescendants(item).forEach(
+            (descendant) => (descendant.busy = true)
+        );
     }
 
     const start = Date.now();
     try {
         const { stdout, stderr } = await execPromise(
-            `cd ${collectionRootDir} && npx --package=@usebruno/cli bru run ${data.path} --reporter-html ${htmlReportPath} --reporter-json ${jsonReportPath}`
+            getCommandToExecute(data.path, htmlReportPath, jsonReportPath)
         );
         const duration = Date.now() - start;
         options.appendOutput(stdout.replace(/\n/g, "\r\n"));
@@ -67,7 +105,7 @@ export async function runTestStructure(
         options.passed(item, duration);
 
         if (data instanceof TestDirectory) {
-            item.children.forEach((child) => {
+            getAllDescendants(item).forEach((child) => {
                 child.busy = false;
                 options.passed(child);
             });
@@ -85,9 +123,9 @@ export async function runTestStructure(
         options.failed(item, [testMessage]);
 
         if (data instanceof TestDirectory) {
-            item.children.forEach((child) => {
+            getAllDescendants(item).forEach((child) => {
                 child.busy = false;
-				options.skipped(child);
+                options.skipped(child);
             });
         }
     } finally {
