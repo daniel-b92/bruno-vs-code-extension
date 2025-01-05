@@ -248,8 +248,7 @@ async function createAllTestitemsForCollection(
     };
 
     const relevantFiles = await getTestfilesForCollection(collectionRootDir);
-    let currentPaths: PathWithChildren[];
-    currentPaths = relevantFiles.map((path) => ({
+    let currentPaths: PathWithChildren[] = relevantFiles.map((path) => ({
         path: path.fsPath,
         childItems: [],
     }));
@@ -260,7 +259,7 @@ async function createAllTestitemsForCollection(
 
         currentPaths.forEach(({ path, childItems }) => {
             const uri = vscode.Uri.file(path);
-            const testItem = controller.createTestItem(
+            const testItem = controller.items.get(getTestId(uri)) ?? controller.createTestItem(
                 getTestId(uri),
                 getTestLabel(uri),
                 uri

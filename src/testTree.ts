@@ -120,8 +120,8 @@ export class TestFile {
                     .uri?.fsPath!} --reporter-html ${htmlReportPath}`
             );
             const duration = Date.now() - start;
-            options.appendOutput(stdout.replace("\n", "\r\n"));
-            options.appendOutput(stderr.replace("\n", "\r\n"));
+            options.appendOutput(stdout.replace(/\n/g, "\r\n"));
+            options.appendOutput(stderr.replace(/\n/g, "\r\n"));
 
             if (existsSync(htmlReportPath)) {
                 options.appendOutput(
@@ -132,7 +132,7 @@ export class TestFile {
         } catch (err: any) {
             if (existsSync(htmlReportPath)) {
                 options.appendOutput(
-                    `Results can be found here: ${htmlReportPath}\r                              \n`
+                    `Results can be found here: ${htmlReportPath}\r\n`
                 );
             }
             options.failed(item, [new vscode.TestMessage(err.message)]);
