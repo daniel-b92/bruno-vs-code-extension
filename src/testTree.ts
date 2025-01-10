@@ -167,7 +167,7 @@ export class TestDirectory {
 }
 
 export class TestFile {
-    constructor(public path: string) {}
+    constructor(public path: string, public sequence: number) {}
     public didResolve = false;
 
     public getTestId() {

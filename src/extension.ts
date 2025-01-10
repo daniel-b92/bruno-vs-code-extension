@@ -12,6 +12,7 @@ import {
     TestFile,
 } from "./testTree";
 import { dirname } from "path";
+import { getSequence } from "./parser";
 
 export async function activate(context: vscode.ExtensionContext) {
     const ctrl = vscode.tests.createTestController(
@@ -190,7 +191,8 @@ function getOrCreateFile(controller: vscode.TestController, uri: vscode.Uri) {
     );
     controller.items.add(testItem);
 
-    const testFile = new TestFile(testItem.uri?.fsPath!);
+    const filePath = testItem.uri?.fsPath!;
+    const testFile = new TestFile(filePath, getSequence(filePath));
     testData.set(testItem, testFile);
 
     testItem.canResolveChildren = false;
@@ -274,7 +276,9 @@ async function createAllTestitemsForCollection(
                 testData.set(testItem, new TestDirectory(path));
             } else {
                 testItem.canResolveChildren = false;
-                testData.set(testItem, new TestFile(path));
+                const sequence = getSequence(path);
+                testItem.sortText = sequence.toString();
+                testData.set(testItem, new TestFile(path, getSequence(path)));
             }
         });
 
