@@ -1,10 +1,11 @@
 import { exec } from "child_process";
 import { existsSync, unlinkSync } from "fs";
-import { dirname, extname, resolve } from "path";
+import { dirname, resolve } from "path";
 import { promisify } from "util";
 import * as vscode from "vscode";
 import { TestDirectory } from "./model/testDirectory";
 import { BrunoTestData, getCollectionRootDir } from "./testTreeHelper";
+import { getHtmlReportPath } from "./htmlReportHelper";
 
 export async function runTestStructure(
     item: vscode.TestItem,
@@ -49,7 +50,7 @@ export async function runTestStructure(
 
     const execPromise = promisify(exec);
     const collectionRootDir = getCollectionRootDir(data.path);
-    const htmlReportPath = resolve(dirname(collectionRootDir), "results.html");
+    const htmlReportPath = getHtmlReportPath(collectionRootDir);
     const jsonReportPath = resolve(dirname(collectionRootDir), "results.json");
     if (existsSync(htmlReportPath)) {
         unlinkSync(htmlReportPath);

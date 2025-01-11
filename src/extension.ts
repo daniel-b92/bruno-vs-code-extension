@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import * as testTree from "./testTreeHelper";
 import { TestFile } from "./model/testFile";
 import { runTestStructure } from "./runTestStructure";
+import { getHtmlReportPath, showHtmlReport } from "./htmlReportHelper";
 
 export async function activate(context: vscode.ExtensionContext) {
     const ctrl = vscode.tests.createTestController(
@@ -94,6 +95,12 @@ export async function activate(context: vscode.ExtensionContext) {
                 } else {
                     run.started(test);
                     await runTestStructure(test, data, run);
+                    showHtmlReport(
+                        getHtmlReportPath(
+                            testTree.getCollectionRootDir(data.path)
+                        ),
+                        data
+                    );
                 }
 
                 run.appendOutput(`Completed ${test.label}\r\n`);
