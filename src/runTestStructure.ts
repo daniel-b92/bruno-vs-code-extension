@@ -10,7 +10,8 @@ import { getHtmlReportPath } from "./htmlReportHelper";
 export async function runTestStructure(
     item: vscode.TestItem,
     data: BrunoTestData,
-    options: vscode.TestRun
+    options: vscode.TestRun,
+    testEnvironment?: string    
 ): Promise<void> {
     const getAllDescendants = (testItem: vscode.TestItem) => {
         let result: vscode.TestItem[] = [];
@@ -40,12 +41,19 @@ export async function runTestStructure(
         jsonReportPath: string
     ) => {
         const collectionRootDir = getCollectionRootDir(testPathToExecute);
+        let result: string;
 
         if (testPathToExecute == collectionRootDir) {
-            return `cd ${collectionRootDir} && npx --package=@usebruno/cli bru run --reporter-html ${htmlReportPath} --reporter-json ${jsonReportPath}`;
+            result = `cd ${collectionRootDir} && npx --package=@usebruno/cli bru run --reporter-html ${htmlReportPath} --reporter-json ${jsonReportPath}`;
         } else {
-            return `cd ${collectionRootDir} && npx --package=@usebruno/cli bru run ${testPathToExecute} --reporter-html ${htmlReportPath} --reporter-json ${jsonReportPath}`;
+            result = `cd ${collectionRootDir} && npx --package=@usebruno/cli bru run ${testPathToExecute} --reporter-html ${htmlReportPath} --reporter-json ${jsonReportPath}`;
         }
+
+        if(testEnvironment) {
+            result = result.concat(` --env ${testEnvironment}`);
+        }
+
+        return result;
     };
 
     const execPromise = promisify(exec);

@@ -94,7 +94,14 @@ export async function activate(context: vscode.ExtensionContext) {
                     run.skipped(test);
                 } else {
                     run.started(test);
-                    await runTestStructure(test, data, run);
+                    await runTestStructure(
+                        test,
+                        data,
+                        run,
+                        vscode.workspace
+                            .getConfiguration()
+                            .get("brunoTestExtension.testRunEnvironment")
+                    );
                     showHtmlReport(
                         getHtmlReportPath(
                             testTree.getCollectionRootDir(data.path)
