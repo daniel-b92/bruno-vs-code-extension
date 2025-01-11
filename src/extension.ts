@@ -6,14 +6,14 @@ import {
     getTestId,
     getTestLabel,
     globPatternForTestfiles,
-    runTestStructure,
-    testData,
-    TestDirectory,
-    TestFile,
-} from "./testTree";
+    testData
+} from "./testTreeHelper";
 import { dirname } from "path";
 import { getSequence } from "./parser";
 import { lstatSync } from "fs";
+import { TestFile } from "./model/testFile";
+import { TestDirectory } from "./model/testDirectory";
+import { runTestStructure } from "./runTestStructure";
 
 export async function activate(context: vscode.ExtensionContext) {
     const ctrl = vscode.tests.createTestController(

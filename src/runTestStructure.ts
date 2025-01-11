@@ -1,0 +1,109 @@
+import { exec } from "child_process";
+import { existsSync, unlinkSync } from "fs";
+import { dirname, extname, resolve } from "path";
+import { promisify } from "util";
+import * as vscode from "vscode";
+import { TestDirectory } from "./model/testDirectory";
+import { BrunoTestData, getCollectionRootDir } from "./testTreeHelper";
+
+export async function runTestStructure(
+    item: vscode.TestItem,
+    data: BrunoTestData,
+    options: vscode.TestRun
+): Promise<void> {
+    const getAllDescendants = (testItem: vscode.TestItem) => {
+        let result: vscode.TestItem[] = [];
+        let currentChildItems = Array.from(testItem.children).map(
+            (item) => item[1]
+        );
+
+        while (currentChildItems.length > 0) {
+            result = result.concat(currentChildItems);
+            const nextDepthLevelDescendants: vscode.TestItem[] = [];
+
+            currentChildItems.forEach((item) =>
+                item.children.forEach((child) => {
+                    nextDepthLevelDescendants.push(child);
+                })
+            );
+
+            currentChildItems = nextDepthLevelDescendants;
+        }
+
+        return result;
+    };
+
+    const getCommandToExecute = (
+        testPathToExecute: string,
+        htmlReportPath: string,
+        jsonReportPath: string
+    ) => {
+        const collectionRootDir = getCollectionRootDir(testPathToExecute);
+
+        if (testPathToExecute == collectionRootDir) {
+            return `cd ${collectionRootDir} && npx --package=@usebruno/cli bru run --reporter-html ${htmlReportPath} --reporter-json ${jsonReportPath}`;
+        } else {
+            return `cd ${collectionRootDir} && npx --package=@usebruno/cli bru run ${testPathToExecute} --reporter-html ${htmlReportPath} --reporter-json ${jsonReportPath}`;
+        }
+    };
+
+    const execPromise = promisify(exec);
+    const collectionRootDir = getCollectionRootDir(data.path);
+    const htmlReportPath = resolve(dirname(collectionRootDir), "results.html");
+    const jsonReportPath = resolve(dirname(collectionRootDir), "results.json");
+    if (existsSync(htmlReportPath)) {
+        unlinkSync(htmlReportPath);
+    }
+
+    if (data instanceof TestDirectory) {
+        getAllDescendants(item).forEach(
+            (descendant) => (descendant.busy = true)
+        );
+    }
+
+    const start = Date.now();
+    try {
+        const { stdout, stderr } = await execPromise(
+            getCommandToExecute(data.path, htmlReportPath, jsonReportPath)
+        );
+        const duration = Date.now() - start;
+        options.appendOutput(stdout.replace(/\n/g, "\r\n"));
+        options.appendOutput(stderr.replace(/\n/g, "\r\n"));
+
+        if (existsSync(htmlReportPath)) {
+            options.appendOutput(
+                `Results can be found here: ${htmlReportPath}\r\n`
+            );
+        }
+        options.passed(item, duration);
+
+        if (data instanceof TestDirectory) {
+            getAllDescendants(item).forEach((child) => {
+                child.busy = false;
+                options.passed(child);
+            });
+        }
+    } catch (err: any) {
+        if (existsSync(htmlReportPath)) {
+            options.appendOutput(
+                `Results can be found here: ${htmlReportPath}\r\n`
+            );
+        }
+
+        const testMessage = new vscode.TestMessage(
+            `${err.stdout}\n${err.stderr}`
+        );
+        options.failed(item, [testMessage]);
+
+        if (data instanceof TestDirectory) {
+            getAllDescendants(item).forEach((child) => {
+                child.busy = false;
+                options.skipped(child);
+            });
+        }
+    } finally {
+        if (existsSync(jsonReportPath)) {
+            unlinkSync(jsonReportPath);
+        }
+    }
+}
