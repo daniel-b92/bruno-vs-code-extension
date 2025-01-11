@@ -15,6 +15,8 @@ export const getTestfilesForCollection = async (collectionRootDir: string) => {
     );
 };
 
+export const getSortText = (testFile: TestFile) => new Array(testFile.sequence + 1).join("a");
+
 export const getTestId = (uri: vscode.Uri) => uri.toString();
 
 export const getTestLabel = (uri: vscode.Uri) => uri.path.split("/").pop()!;

@@ -2,11 +2,12 @@ import * as vscode from "vscode";
 import {
     BrunoTestData,
     getCollectionRootDir,
+    getSortText,
     getTestfilesForCollection,
     getTestId,
     getTestLabel,
     globPatternForTestfiles,
-    testData
+    testData,
 } from "./testTreeHelper";
 import { dirname } from "path";
 import { getSequence } from "./parser";
@@ -179,7 +180,9 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 function getOrCreateFile(controller: vscode.TestController, uri: vscode.Uri) {
-    const existing = Array.from(testData.keys()).find((item) => item.uri?.fsPath == uri.fsPath);
+    const existing = Array.from(testData.keys()).find(
+        (item) => item.uri?.fsPath == uri.fsPath
+    );
     if (existing) {
         return {
             testItem: existing,
@@ -192,13 +195,21 @@ function getOrCreateFile(controller: vscode.TestController, uri: vscode.Uri) {
         getTestLabel(uri),
         uri
     );
-    controller.items.add(testItem);
 
     const filePath = testItem.uri?.fsPath!;
     const testFile = new TestFile(filePath, getSequence(filePath));
-    testData.set(testItem, testFile);
 
     testItem.canResolveChildren = false;
+    testItem.sortText = getSortText(testFile);
+    controller.items.add(testItem);
+    const parentItem = Array.from(testData.keys()).find(
+        (item) => dirname(filePath) == item.uri?.fsPath
+    );
+    if (parentItem) {
+        parentItem.children.add(testItem);
+    }
+
+    testData.set(testItem, testFile);
     return { testItem, testFile };
 }
 
@@ -266,7 +277,9 @@ async function createAllTestitemsForCollection(
             let testItem: vscode.TestItem | undefined;
 
             if (!isFile) {
-                testItem = Array.from(testData.keys()).find((item) => item.uri?.fsPath == path);
+                testItem = Array.from(testData.keys()).find(
+                    (item) => item.uri?.fsPath == path
+                );
 
                 if (!testItem) {
                     testItem = controller.createTestItem(
@@ -289,9 +302,10 @@ async function createAllTestitemsForCollection(
                     getTestLabel(uri),
                     uri
                 );
-                testItem.sortText = new Array(getSequence(path) + 1).join("a");
+                const testFile = new TestFile(path, getSequence(path));
+                testItem.sortText = getSortText(testFile);
                 controller.items.add(testItem);
-                testData.set(testItem, new TestFile(path, getSequence(path)));
+                testData.set(testItem, testFile);
             }
             currentTestItems.push(testItem);
         });
