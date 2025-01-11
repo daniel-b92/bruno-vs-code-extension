@@ -15,7 +15,8 @@ export const getTestfileDescendants = async (directoryPath: string) => {
     );
 };
 
-export const getSortText = (testFile: TestFile) => new Array(testFile.sequence + 1).join("a");
+export const getSortText = (testFile: TestFile) =>
+    new Array(testFile.sequence + 1).join("a");
 
 export const getTestId = (uri: vscode.Uri) => uri.toString();
 
@@ -41,7 +42,30 @@ export const updateParentItem = (childItem: vscode.TestItem) => {
         parentItem.children.add(childItem);
     }
     return parentItem;
-}
+};
 
-export const getParentItem = (uri: vscode.Uri) => Array.from(testData.keys()).find(
-        (item) => item.uri?.fsPath == dirname(uri.fsPath));
+export const getParentItem = (uri: vscode.Uri) =>
+    Array.from(testData.keys()).find(
+        (item) => item.uri?.fsPath == dirname(uri.fsPath)
+    );
+
+export const removeTestFile = (
+    controller: vscode.TestController,
+    fileChangedEmitter: vscode.EventEmitter<vscode.Uri>,
+    uri: vscode.Uri
+) => {
+    controller.items.delete(getTestId(uri));
+    fileChangedEmitter.fire(uri);
+
+    const parentItem = getParentItem(uri);
+    if (parentItem) {
+        parentItem.children.delete(getTestId(uri));
+        fileChangedEmitter.fire(parentItem.uri!);
+    }
+    const keyToDelete = Array.from(testData.keys()).find(
+        (item) => item.uri == uri
+    );
+    if (keyToDelete) {
+        testData.delete(keyToDelete);
+    }
+};

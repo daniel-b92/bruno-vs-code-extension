@@ -8,6 +8,7 @@ import {
     getTestId,
     getTestLabel,
     globPatternForTestfiles,
+    removeTestFile,
     testData,
     updateParentItem,
 } from "./testTreeHelper";
@@ -21,7 +22,7 @@ import { runTestStructure } from "./runTestStructure";
 export async function activate(context: vscode.ExtensionContext) {
     const ctrl = vscode.tests.createTestController(
         "brunoCliTestController",
-        "Bruno CLI Test"
+        "Bruno CLI Tests"
     );
     context.subscriptions.push(ctrl);
 
@@ -149,7 +150,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         const data = testData.get(item);
         if (data instanceof TestFile) {
-            data.updateFromDisk(ctrl, item);
+            data.updateFromDisk(item);
         }
     };
 
@@ -162,8 +163,12 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        const { testItem, testFile } = getOrCreateFile(ctrl, e.uri);
-        testFile.updateFromDisk(ctrl, testItem);
+        const maybeFile = getOrCreateFile(ctrl, e.uri);
+        if (maybeFile) {
+            maybeFile.testFile.updateFromDisk(maybeFile.testItem);
+        } else {
+            removeTestFile(ctrl, fileChangedEmitter, e.uri);
+        }
     }
 
     for (const document of vscode.workspace.textDocuments) {
@@ -179,6 +184,13 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 function getOrCreateFile(controller: vscode.TestController, uri: vscode.Uri) {
+    const filePath = uri.fsPath!;
+    const sequence = getSequence(filePath);
+
+    if (!sequence) {
+        return undefined;
+    }
+    
     const existing = Array.from(testData.keys()).find(
         (item) => item.uri?.fsPath == uri.fsPath
     );
@@ -195,8 +207,7 @@ function getOrCreateFile(controller: vscode.TestController, uri: vscode.Uri) {
         uri
     );
 
-    const filePath = testItem.uri?.fsPath!;
-    const testFile = new TestFile(filePath, getSequence(filePath));
+    const testFile = new TestFile(filePath, sequence);
 
     testItem.canResolveChildren = false;
     testItem.sortText = getSortText(testFile);
@@ -296,17 +307,22 @@ async function createAllTestitemsForCollection(
                     testItem!.children.add(childItem)
                 );
             } else {
-                testItem = controller.createTestItem(
-                    getTestId(uri),
-                    getTestLabel(uri),
-                    uri
-                );
-                const testFile = new TestFile(path, getSequence(path));
-                testItem.sortText = getSortText(testFile);
-                controller.items.add(testItem);
-                testData.set(testItem, testFile);
+                const sequence = getSequence(path);
+                if (sequence) {
+                    testItem = controller.createTestItem(
+                        getTestId(uri),
+                        getTestLabel(uri),
+                        uri
+                    );
+                    const testFile = new TestFile(path, sequence);
+                    testItem.sortText = getSortText(testFile);
+                    controller.items.add(testItem);
+                    testData.set(testItem, testFile);
+                }
             }
-            currentTestItems.push(testItem);
+            if (testItem) {
+                currentTestItems.push(testItem);
+            }
         });
 
         currentPaths = switchToParentDirectory(currentPaths, currentTestItems);
@@ -353,30 +369,21 @@ function startWatchingWorkspace(
             fileChangedEmitter.fire(uri);
         });
         watcher.onDidChange(async (uri) => {
-            const { testItem, testFile } = getOrCreateFile(controller, uri);
-            testFile.updateFromDisk(controller, testItem);
+            const maybeFile = getOrCreateFile(controller, uri);
+            if (!maybeFile) {
+                removeTestFile(controller, fileChangedEmitter, uri);
+            } else {
+                maybeFile.testFile.updateFromDisk(maybeFile.testItem);
 
-            const parentItem = updateParentItem(testItem);
-            fileChangedEmitter.fire(uri);
-            if (parentItem) {
-                fileChangedEmitter.fire(parentItem.uri!);
+                const parentItem = updateParentItem(maybeFile.testItem);
+                fileChangedEmitter.fire(uri);
+                if (parentItem) {
+                    fileChangedEmitter.fire(parentItem.uri!);
+                }
             }
         });
         watcher.onDidDelete((uri) => {
-            controller.items.delete(getTestId(uri));
-            fileChangedEmitter.fire(uri);
-
-            const parentItem = getParentItem(uri);
-            if (parentItem) {
-                parentItem.children.delete(getTestId(uri));
-                fileChangedEmitter.fire(parentItem.uri!);
-            }
-            const keyToDelete = Array.from(testData.keys()).find(
-                (item) => item.uri == uri
-            );
-            if (keyToDelete) {
-                testData.delete(keyToDelete);
-            }
+            removeTestFile(controller, fileChangedEmitter, uri);
         });
 
         findInitialFilesAndDirectories(controller, pattern);
