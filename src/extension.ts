@@ -101,15 +101,16 @@ export async function activate(context: vscode.ExtensionContext) {
 
         const runTestQueue = async () => {
             for (const { test, data } of queue) {
-                run.appendOutput(`Running ${test.id}\r\n`);
+                run.appendOutput(`Running ${test.label}\r\n`);
                 if (run.token.isCancellationRequested) {
+                    run.appendOutput(`Canceled ${test.label}\r\n`);
                     run.skipped(test);
                 } else {
                     run.started(test);
                     await runTestStructure(test, data, run);
                 }
 
-                run.appendOutput(`Completed ${test.id}\r\n`);
+                run.appendOutput(`Completed ${test.label}\r\n`);
             }
 
             run.end();
@@ -128,14 +129,15 @@ export async function activate(context: vscode.ExtensionContext) {
         );
     };
 
-    ctrl.createRunProfile(
-        "Run Tests",
+    const runProfile = ctrl.createRunProfile(
+        "Run Bruno Tests",
         vscode.TestRunProfileKind.Run,
         runHandler,
         true,
         undefined,
         true
     );
+    runProfile.configureHandler = () => {};
 
     ctrl.resolveHandler = async (item) => {
         if (!item) {
