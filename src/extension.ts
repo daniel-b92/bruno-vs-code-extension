@@ -13,6 +13,7 @@ import {
 } from "./testTree";
 import { dirname } from "path";
 import { getSequence } from "./parser";
+import { lstatSync } from "fs";
 
 export async function activate(context: vscode.ExtensionContext) {
     const ctrl = vscode.tests.createTestController(
@@ -247,6 +248,7 @@ async function createAllTestitemsForCollection(
         return getUniquePaths(parentsWithDuplicatePaths);
     };
 
+    let addedItems: vscode.TestItem[] = [];
     const relevantFiles = await getTestfilesForCollection(collectionRootDir);
     let currentPaths: PathWithChildren[] = relevantFiles.map((path) => ({
         path: path.fsPath,
@@ -259,29 +261,41 @@ async function createAllTestitemsForCollection(
 
         currentPaths.forEach(({ path, childItems }) => {
             const uri = vscode.Uri.file(path);
-            const testItem =
-                controller.items.get(getTestId(uri)) ??
-                controller.createTestItem(
+            const isFile = lstatSync(path).isFile();
+            let testItem: vscode.TestItem | undefined;
+
+            if (!isFile) {
+                testItem = addedItems.find((item) => item.uri?.fsPath == path);
+
+                if (!testItem) {
+                    testItem = controller.createTestItem(
+                        getTestId(uri),
+                        getTestLabel(uri),
+                        uri
+                    );
+                    controller.items.add(testItem);
+                    testItem.canResolveChildren = true;
+                    const testDir = new TestDirectory(path);
+                    testData.set(testItem, testDir);
+                }
+
+                childItems.forEach((childItem) =>
+                    testItem!.children.add(childItem)
+                );
+            } else {
+                testItem = controller.createTestItem(
                     getTestId(uri),
                     getTestLabel(uri),
                     uri
                 );
-
-            controller.items.add(testItem);
-            childItems.forEach((childItem) => testItem.children.add(childItem));
-            currentTestItems.push(testItem);
-
-            if (childItems.length > 0) {
-                testItem.canResolveChildren = true;
-                testData.set(testItem, new TestDirectory(path));
-            } else {
-                testItem.canResolveChildren = false;
-                const sequence = getSequence(path);
-                testItem.sortText = sequence.toString();
+                testItem.sortText = new Array(getSequence(path) + 1).join("a");
+                controller.items.add(testItem);
                 testData.set(testItem, new TestFile(path, getSequence(path)));
             }
+            currentTestItems.push(testItem);
         });
 
+        addedItems = addedItems.concat(currentTestItems);
         currentPaths = switchToParentDirectory(currentPaths, currentTestItems);
     }
 }
