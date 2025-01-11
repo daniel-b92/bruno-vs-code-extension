@@ -2,12 +2,14 @@ import * as vscode from "vscode";
 import {
     BrunoTestData,
     getCollectionRootDir,
+    getParentItem,
     getSortText,
-    getTestfilesForCollection,
+    getTestfileDescendants,
     getTestId,
     getTestLabel,
     globPatternForTestfiles,
     testData,
+    updateParentItem,
 } from "./testTreeHelper";
 import { dirname } from "path";
 import { getSequence } from "./parser";
@@ -92,9 +94,6 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
 
                 const data = testData.get(test)!;
-                if (!data.didResolve) {
-                    await data.updateFromDisk(ctrl, test);
-                }
                 run.enqueued(test);
                 queue.push({ test, data });
             }
@@ -150,7 +149,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
         const data = testData.get(item);
         if (data instanceof TestFile) {
-            await data.updateFromDisk(ctrl, item);
+            data.updateFromDisk(ctrl, item);
         }
     };
 
@@ -164,7 +163,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
 
         const { testItem, testFile } = getOrCreateFile(ctrl, e.uri);
-        testFile.updateFromContents(ctrl, testItem);
+        testFile.updateFromDisk(ctrl, testItem);
     }
 
     for (const document of vscode.workspace.textDocuments) {
@@ -261,7 +260,7 @@ async function createAllTestitemsForCollection(
         return getUniquePaths(parentsWithDuplicatePaths);
     };
 
-    const relevantFiles = await getTestfilesForCollection(collectionRootDir);
+    const relevantFiles = await getTestfileDescendants(collectionRootDir);
     let currentPaths: PathWithChildren[] = relevantFiles.map((path) => ({
         path: path.fsPath,
         childItems: [],
@@ -355,12 +354,30 @@ function startWatchingWorkspace(
         });
         watcher.onDidChange(async (uri) => {
             const { testItem, testFile } = getOrCreateFile(controller, uri);
-            if (testFile.didResolve) {
-                await testFile.updateFromDisk(controller, testItem);
-            }
+            testFile.updateFromDisk(controller, testItem);
+
+            const parentItem = updateParentItem(testItem);
             fileChangedEmitter.fire(uri);
+            if (parentItem) {
+                fileChangedEmitter.fire(parentItem.uri!);
+            }
         });
-        watcher.onDidDelete((uri) => controller.items.delete(getTestId(uri)));
+        watcher.onDidDelete((uri) => {
+            controller.items.delete(getTestId(uri));
+            fileChangedEmitter.fire(uri);
+
+            const parentItem = getParentItem(uri);
+            if (parentItem) {
+                parentItem.children.delete(getTestId(uri));
+                fileChangedEmitter.fire(parentItem.uri!);
+            }
+            const keyToDelete = Array.from(testData.keys()).find(
+                (item) => item.uri == uri
+            );
+            if (keyToDelete) {
+                testData.delete(keyToDelete);
+            }
+        });
 
         findInitialFilesAndDirectories(controller, pattern);
 

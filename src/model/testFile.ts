@@ -1,41 +1,23 @@
 import * as vscode from "vscode";
-import { getTestId, getTestLabel, testData } from "../testTreeHelper";
+import { getSortText, getTestId, getTestLabel, testData } from "../testTreeHelper";
+import { getSequence } from "../parser";
 
 export class TestFile {
     constructor(public path: string, public sequence: number) {}
-    public didResolve = false;
 
     public getTestId() {
         return getTestId(vscode.Uri.file(this.path));
     }
 
-    public async updateFromDisk(
-        controller: vscode.TestController,
-        item: vscode.TestItem
-    ) {
-        try {
-            item.error = undefined;
-            this.updateFromContents(controller, item);
-        } catch (e) {
-            item.error = (e as Error).stack;
-        }
-    }
-
     /**
-     * Parses the tests from the input text, and updates the tests contained
-     * by this file to be those from the text,
+     * Updates the data for an existing test file.
      */
-    public updateFromContents(
+    public updateFromDisk(
         controller: vscode.TestController,
         item: vscode.TestItem
     ) {
-        this.didResolve = true;
-
-        const tcase = controller.createTestItem(
-            getTestId(item.uri!),
-            getTestLabel(item.uri!),
-            item.uri
-        );
-        testData.set(tcase, this);
+        this.sequence = getSequence(this.path);
+        item.sortText = getSortText(this);
+        testData.set(item, this);
     }
 }

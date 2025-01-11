@@ -9,9 +9,9 @@ export type BrunoTestData = TestDirectory | TestFile;
 
 export const testData = new Map<vscode.TestItem, BrunoTestData>();
 
-export const getTestfilesForCollection = async (collectionRootDir: string) => {
+export const getTestfileDescendants = async (directoryPath: string) => {
     return await vscode.workspace.findFiles(
-        new vscode.RelativePattern(collectionRootDir, globPatternForTestfiles)
+        new vscode.RelativePattern(directoryPath, globPatternForTestfiles)
     );
 };
 
@@ -34,3 +34,14 @@ export const getCollectionRootDir = (testFilePath: string) => {
 
     return currentPath;
 };
+
+export const updateParentItem = (childItem: vscode.TestItem) => {
+    const parentItem = getParentItem(childItem.uri!);
+    if (parentItem) {
+        parentItem.children.add(childItem);
+    }
+    return parentItem;
+}
+
+export const getParentItem = (uri: vscode.Uri) => Array.from(testData.keys()).find(
+        (item) => item.uri?.fsPath == dirname(uri.fsPath));
