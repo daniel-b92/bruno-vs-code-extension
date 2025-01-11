@@ -7,7 +7,7 @@ import { TestFile } from "./model/testFile";
 export const globPatternForTestfiles = "**/*.bru";
 export type BrunoTestData = TestDirectory | TestFile;
 
-export const testData = new WeakMap<vscode.TestItem, BrunoTestData>();
+export const testData = new Map<vscode.TestItem, BrunoTestData>();
 
 export const getTestfilesForCollection = async (collectionRootDir: string) => {
     return await vscode.workspace.findFiles(

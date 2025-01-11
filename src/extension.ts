@@ -179,7 +179,7 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 function getOrCreateFile(controller: vscode.TestController, uri: vscode.Uri) {
-    const existing = controller.items.get(getTestId(uri));
+    const existing = Array.from(testData.keys()).find((item) => item.uri?.fsPath == uri.fsPath);
     if (existing) {
         return {
             testItem: existing,
@@ -250,7 +250,6 @@ async function createAllTestitemsForCollection(
         return getUniquePaths(parentsWithDuplicatePaths);
     };
 
-    let addedItems: vscode.TestItem[] = [];
     const relevantFiles = await getTestfilesForCollection(collectionRootDir);
     let currentPaths: PathWithChildren[] = relevantFiles.map((path) => ({
         path: path.fsPath,
@@ -267,7 +266,7 @@ async function createAllTestitemsForCollection(
             let testItem: vscode.TestItem | undefined;
 
             if (!isFile) {
-                testItem = addedItems.find((item) => item.uri?.fsPath == path);
+                testItem = Array.from(testData.keys()).find((item) => item.uri?.fsPath == path);
 
                 if (!testItem) {
                     testItem = controller.createTestItem(
@@ -297,7 +296,6 @@ async function createAllTestitemsForCollection(
             currentTestItems.push(testItem);
         });
 
-        addedItems = addedItems.concat(currentTestItems);
         currentPaths = switchToParentDirectory(currentPaths, currentTestItems);
     }
 }
@@ -348,7 +346,7 @@ function startWatchingWorkspace(
             }
             fileChangedEmitter.fire(uri);
         });
-        watcher.onDidDelete((uri) => controller.items.delete(uri.toString()));
+        watcher.onDidDelete((uri) => controller.items.delete(getTestId(uri)));
 
         findInitialFilesAndDirectories(controller, pattern);
 
