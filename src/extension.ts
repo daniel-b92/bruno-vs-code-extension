@@ -137,11 +137,7 @@ export async function activate(context: vscode.ExtensionContext) {
     };
 
     ctrl.refreshHandler = async () => {
-        await Promise.all(
-            getWorkspaceTestPatterns().map((pattern) =>
-                findInitialFilesAndDirectories(ctrl, pattern)
-            )
-        );
+        await findInitialFilesAndDirectories(ctrl, testCollections);
     };
 
     ctrl.createRunProfile(
@@ -218,13 +214,14 @@ function getWorkspaceTestPatterns() {
 
 async function findInitialFilesAndDirectories(
     controller: vscode.TestController,
-    pattern: vscode.GlobPattern
+    testCollections: TestCollection[]
 ) {
-    const relevantFiles = await vscode.workspace.findFiles(pattern);
-    await testTree.createDescendantTestitems(
-        controller,
-        testTree.getCollectionRootDir(relevantFiles[0].fsPath)
-    );
+    for (const collection of testCollections) {
+        await testTree.addAllTestitemsToTestTree(
+            controller,
+            collection
+        );
+    }
 }
 
 function startWatchingWorkspace(
@@ -289,7 +286,7 @@ function startWatchingWorkspace(
             );
         });
 
-        findInitialFilesAndDirectories(controller, pattern);
+        findInitialFilesAndDirectories(controller, testCollections);
 
         return watcher;
     });

@@ -143,9 +143,9 @@ export function getOrCreateFile(
     return { testItem, testFile };
 }
 
-export async function createDescendantTestitems(
+export async function addAllTestitemsToTestTree(
     controller: vscode.TestController,
-    collectionRootDir: string
+    collection: TestCollection
 ) {
     type PathWithChildren = {
         path: string;
@@ -186,36 +186,12 @@ export async function createDescendantTestitems(
                     childItems: childTestItem ? [childTestItem] : [],
                 };
             })
-            .filter(
-                ({ path }) =>
-                    path.includes(collectionRootDir) &&
-                    path.length > collectionRootDir.length
-            );
+            .filter(({ path }) => path.includes(collection.rootDirectory));
 
         return getUniquePaths(parentsWithDuplicatePaths);
     };
 
-    const getOrCreateCollectionObject = () => {
-        const existing = controller.items.get(
-            getTestId(vscode.Uri.file(collectionRootDir))
-        );
-        if (existing) {
-            return new TestCollection(collectionRootDir, existing);
-        } else {
-            const uri = vscode.Uri.file(collectionRootDir);
-            const collectionItem = controller.createTestItem(
-                getTestId(uri),
-                getTestLabel(uri),
-                uri
-            );
-            controller.items.add(collectionItem);
-            collectionItem.canResolveChildren = true;
-            return new TestCollection(collectionRootDir, collectionItem);
-        }
-    };
-
-    const collection = getOrCreateCollectionObject();
-    const relevantFiles = await getTestfileDescendants(collectionRootDir);
+    const relevantFiles = await getTestfileDescendants(collection.rootDirectory);
     let currentPaths: PathWithChildren[] = relevantFiles.map((path) => ({
         path: path.fsPath,
         childItems: [],
