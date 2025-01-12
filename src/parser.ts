@@ -11,7 +11,7 @@ export const getSequence = (testFilePath: string) => {
             .match(/\s*seq:\s*\d*\s*(\r\n|\n)/)?.[0]
             .replace(/\s*seq:\s*/, "")
             .trimEnd();
-        return Number.parseInt(sequence!);
+        return sequence ? Number.parseInt(sequence): undefined;
     } catch (err) {
         console.log(`Could not determine sequence for test file '${testFilePath}'`)
         return undefined;
