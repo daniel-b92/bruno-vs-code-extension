@@ -3,6 +3,7 @@ import * as testTree from "./testTreeHelper";
 import { TestFile } from "./model/testFile";
 import { environmentConfigKey, runTestStructure } from "./runTestStructure";
 import { getHtmlReportPath, showHtmlReport } from "./htmlReportHelper";
+import { TestCollection } from "./model/testCollection";
 
 export async function activate(context: vscode.ExtensionContext) {
     const ctrl = vscode.tests.createTestController(
@@ -16,6 +17,7 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.TestItem | "ALL",
         vscode.TestRunProfile | undefined
     >();
+    let testCollections: TestCollection[] = await getInitialCollections(ctrl);
     fileChangedEmitter.event((uri) => {
         if (watchingTests.has("ALL")) {
             startTestRun(
@@ -80,7 +82,11 @@ export async function activate(context: vscode.ExtensionContext) {
                     continue;
                 }
 
-                const data = testTree.testData.get(test)!;
+                const collection = testTree.getCollectionForTest(
+                    test.uri!,
+                    testCollections
+                );
+                const data = collection.testData.get(test)!;
                 run.enqueued(test);
                 queue.push({ test, data });
             }
@@ -138,7 +144,7 @@ export async function activate(context: vscode.ExtensionContext) {
         );
     };
 
-    const runProfile = ctrl.createRunProfile(
+    ctrl.createRunProfile(
         "Run Bruno Tests",
         vscode.TestRunProfileKind.Run,
         runHandler,
@@ -150,19 +156,32 @@ export async function activate(context: vscode.ExtensionContext) {
     ctrl.resolveHandler = async (item) => {
         if (!item) {
             context.subscriptions.push(
-                ...startWatchingWorkspace(ctrl, fileChangedEmitter)
+                ...startWatchingWorkspace(
+                    ctrl,
+                    fileChangedEmitter,
+                    testCollections
+                )
             );
             return;
         }
 
-        const data = testTree.testData.get(item);
+        const collection = testTree.getCollectionForTest(
+            item.uri!,
+            testCollections
+        );
+        const data = collection.testData.get(item);
         if (data instanceof TestFile) {
-            data.updateFromDisk(item);
+            data.updateFromDisk(item, collection);
         }
     };
 
     function updateNodeForDocument(e: vscode.TextDocument) {
-        testTree.updateNodeForDocument(ctrl, fileChangedEmitter, e);
+        testTree.updateNodeForDocument(
+            ctrl,
+            fileChangedEmitter,
+            e,
+            testCollections
+        );
     }
 
     for (const document of vscode.workspace.textDocuments) {
@@ -202,7 +221,7 @@ async function findInitialFilesAndDirectories(
     pattern: vscode.GlobPattern
 ) {
     const relevantFiles = await vscode.workspace.findFiles(pattern);
-    await testTree.createAllTestitemsForCollection(
+    await testTree.createDescendantTestitems(
         controller,
         testTree.getCollectionRootDir(relevantFiles[0].fsPath)
     );
@@ -210,24 +229,46 @@ async function findInitialFilesAndDirectories(
 
 function startWatchingWorkspace(
     controller: vscode.TestController,
-    fileChangedEmitter: vscode.EventEmitter<vscode.Uri>
+    fileChangedEmitter: vscode.EventEmitter<vscode.Uri>,
+    testCollections: TestCollection[]
 ) {
     return getWorkspaceTestPatterns().map((pattern) => {
         const watcher = vscode.workspace.createFileSystemWatcher(pattern);
 
         watcher.onDidCreate((uri) => {
-            testTree.getOrCreateFile(controller, uri);
+            const collection = testTree.getCollectionForTest(
+                uri,
+                testCollections
+            );
+            testTree.getOrCreateFile(controller, uri, collection);
             fileChangedEmitter.fire(uri);
         });
         watcher.onDidChange(async (uri) => {
-            const maybeFile = testTree.getOrCreateFile(controller, uri);
+            const collection = testTree.getCollectionForTest(
+                uri,
+                testCollections
+            );
+            const maybeFile = testTree.getOrCreateFile(
+                controller,
+                uri,
+                collection
+            );
             if (!maybeFile) {
-                testTree.removeTestFile(controller, fileChangedEmitter, uri);
+                testTree.removeTestFile(
+                    controller,
+                    fileChangedEmitter,
+                    uri,
+                    collection
+                );
             } else {
-                maybeFile.testFile.updateFromDisk(maybeFile.testItem);
+                maybeFile.testFile.updateFromDisk(
+                    maybeFile.testItem,
+                    collection
+                );
 
                 const parentItem = testTree.updateParentItem(
-                    maybeFile.testItem
+                    maybeFile.testItem,
+                    collection
                 );
                 fileChangedEmitter.fire(uri);
                 if (parentItem) {
@@ -236,11 +277,41 @@ function startWatchingWorkspace(
             }
         });
         watcher.onDidDelete((uri) => {
-            testTree.removeTestFile(controller, fileChangedEmitter, uri);
+            const collection = testTree.getCollectionForTest(
+                uri,
+                testCollections
+            );
+            testTree.removeTestFile(
+                controller,
+                fileChangedEmitter,
+                uri,
+                collection
+            );
         });
 
         findInitialFilesAndDirectories(controller, pattern);
 
         return watcher;
     });
+}
+
+async function getInitialCollections(controller: vscode.TestController) {
+    const collectionRootDirs = await testTree.getAllCollectionRootDirectories();
+    const result: TestCollection[] = [];
+
+    for (const collectionRoot of collectionRootDirs) {
+        const uri = vscode.Uri.file(collectionRoot);
+        const collectionItem = controller.createTestItem(
+            testTree.getTestId(uri),
+            testTree.getTestLabel(uri),
+            uri
+        );
+
+        const collection = new TestCollection(collectionRoot, collectionItem);
+        collectionItem.canResolveChildren = true;
+        controller.items.add(collectionItem);
+        result.push(collection);
+    }
+
+    return result;
 }

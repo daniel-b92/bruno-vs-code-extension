@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
-import { getTestId, getTestLabel, testData } from "../testTreeHelper";
+import { getTestId, getTestLabel } from "../testTreeHelper";
+import { TestCollection } from "./testCollection";
 
 export class TestDirectory {
     constructor(public path: string) {}
@@ -7,11 +8,12 @@ export class TestDirectory {
 
     public async updateFromDisk(
         controller: vscode.TestController,
-        directoryItem: vscode.TestItem
+        directoryItem: vscode.TestItem,
+        collection: TestCollection
     ) {
         try {
             directoryItem.error = undefined;
-            this.updateFromContents(controller, directoryItem);
+            this.updateFromContents(controller, directoryItem, collection);
         } catch (e) {
             directoryItem.error = (e as Error).stack;
         }
@@ -19,15 +21,16 @@ export class TestDirectory {
 
     public updateFromContents(
         controller: vscode.TestController,
-        item: vscode.TestItem
+        directoryItem: vscode.TestItem,
+        collection: TestCollection
     ) {
         this.didResolve = true;
 
         const testDirectory = controller.createTestItem(
-            getTestId(item.uri!),
-            getTestLabel(item.uri!),
-            item.uri
+            getTestId(directoryItem.uri!),
+            getTestLabel(directoryItem.uri!),
+            directoryItem.uri
         );
-        testData.set(testDirectory, this);
+        collection.testData.set(testDirectory, this);
     }
 }

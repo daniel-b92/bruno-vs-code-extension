@@ -4,16 +4,16 @@ import * as vscode from "vscode";
 import { TestDirectory } from "./model/testDirectory";
 import { TestFile } from "./model/testFile";
 import { getSequence } from "./parser";
+import { TestCollection } from "./model/testCollection";
 
 export const globPatternForTestfiles = "**/*.bru";
 export type BrunoTestData = TestDirectory | TestFile;
 
-export const testData = new Map<vscode.TestItem, BrunoTestData>();
-
 export const getTestfileDescendants = async (directoryPath: string) => {
-    return await vscode.workspace.findFiles(
+    const bruFileUris = await vscode.workspace.findFiles(
         new vscode.RelativePattern(directoryPath, globPatternForTestfiles)
     );
+    return bruFileUris.filter((uri) => getSequence(uri.fsPath) != undefined);
 };
 
 export const getSortText = (testFile: TestFile) =>
@@ -23,9 +23,36 @@ export const getTestId = (uri: vscode.Uri) => uri.toString();
 
 export const getTestLabel = (uri: vscode.Uri) => uri.path.split("/").pop()!;
 
-export const isCollectionRootDir = (path: string) =>
-    extname(path) == "" &&
-    readdirSync(path).some((file) => file.endsWith("bruno.json"));
+export const getCollectionForTest = (
+    testUri: vscode.Uri,
+    testCollections: TestCollection[]
+) => {
+    const collection = testCollections.find((collection) =>
+        testUri.fsPath.includes(collection.rootDirectory)
+    );
+    if (collection == undefined) {
+        throw new Error(
+            `Could not find collection for test URI ${JSON.stringify(
+                testUri,
+                null,
+                2
+            )}`
+        );
+    }
+    return collection;
+};
+
+export const getAllCollectionRootDirectories = async () =>
+    (await vscode.workspace.findFiles("**/bruno.json"))
+        .map((uri) => dirname(uri.fsPath))
+        .filter((path) => isCollectionRootDir(path));
+
+export const isCollectionRootDir = async (path: string) =>
+    lstatSync(path).isDirectory() &&
+    readdirSync(path).some((file) => file.endsWith("bruno.json")) &&
+    (await getTestfileDescendants(path).then(
+        (descendants) => descendants.length > 0
+    ));
 
 export const getCollectionRootDir = (testFilePath: string) => {
     let currentPath = testFilePath;
@@ -37,39 +64,45 @@ export const getCollectionRootDir = (testFilePath: string) => {
     return currentPath;
 };
 
-export const updateParentItem = (childItem: vscode.TestItem) => {
-    const parentItem = getParentItem(childItem.uri!);
+export const updateParentItem = (
+    childItem: vscode.TestItem,
+    collection: TestCollection
+) => {
+    const parentItem = getParentItem(childItem.uri!, collection);
     if (parentItem) {
         parentItem.children.add(childItem);
     }
     return parentItem;
 };
 
-export const getParentItem = (uri: vscode.Uri) =>
-    Array.from(testData.keys()).find(
+export const getParentItem = (uri: vscode.Uri, collection: TestCollection) =>
+    Array.from(collection.testData.keys()).find(
         (item) => item.uri?.fsPath == dirname(uri.fsPath)
     );
 
 export function updateNodeForDocument(
     ctrl: vscode.TestController,
     fileChangedEmitter: vscode.EventEmitter<vscode.Uri>,
-    e: vscode.TextDocument
+    e: vscode.TextDocument,
+    allCollections: TestCollection[]
 ) {
     if (e.uri.scheme !== "file" || !e.uri.path.endsWith(".bru")) {
         return;
     }
 
-    const maybeFile = getOrCreateFile(ctrl, e.uri);
+    const collection = getCollectionForTest(e.uri, allCollections);
+    const maybeFile = getOrCreateFile(ctrl, e.uri, collection);
     if (maybeFile) {
-        maybeFile.testFile.updateFromDisk(maybeFile.testItem);
+        maybeFile.testFile.updateFromDisk(maybeFile.testItem, collection);
     } else {
-        removeTestFile(ctrl, fileChangedEmitter, e.uri);
+        removeTestFile(ctrl, fileChangedEmitter, e.uri, collection);
     }
 }
 
 export function getOrCreateFile(
     controller: vscode.TestController,
-    uri: vscode.Uri
+    uri: vscode.Uri,
+    collection: TestCollection
 ) {
     const filePath = uri.fsPath!;
     const sequence = getSequence(filePath);
@@ -78,13 +111,13 @@ export function getOrCreateFile(
         return undefined;
     }
 
-    const existing = Array.from(testData.keys()).find(
+    const existing = Array.from(collection.testData.keys()).find(
         (item) => item.uri?.fsPath == uri.fsPath
     );
     if (existing) {
         return {
             testItem: existing,
-            testFile: testData.get(existing) as TestFile,
+            testFile: collection.testData.get(existing) as TestFile,
         };
     }
 
@@ -99,18 +132,18 @@ export function getOrCreateFile(
     testItem.canResolveChildren = false;
     testItem.sortText = getSortText(testFile);
     controller.items.add(testItem);
-    const parentItem = Array.from(testData.keys()).find(
+    const parentItem = Array.from(collection.testData.keys()).find(
         (item) => dirname(filePath) == item.uri?.fsPath
     );
     if (parentItem) {
         parentItem.children.add(testItem);
     }
 
-    testData.set(testItem, testFile);
+    collection.testData.set(testItem, testFile);
     return { testItem, testFile };
 }
 
-export async function createAllTestitemsForCollection(
+export async function createDescendantTestitems(
     controller: vscode.TestController,
     collectionRootDir: string
 ) {
@@ -153,14 +186,36 @@ export async function createAllTestitemsForCollection(
                     childItems: childTestItem ? [childTestItem] : [],
                 };
             })
-            .filter(({ path }) => path.includes(collectionRootDir));
+            .filter(
+                ({ path }) =>
+                    path.includes(collectionRootDir) &&
+                    path.length > collectionRootDir.length
+            );
 
         return getUniquePaths(parentsWithDuplicatePaths);
     };
 
-    const relevantFiles = await getTestfileDescendants(
-        collectionRootDir
-    );
+    const getOrCreateCollectionObject = () => {
+        const existing = controller.items.get(
+            getTestId(vscode.Uri.file(collectionRootDir))
+        );
+        if (existing) {
+            return new TestCollection(collectionRootDir, existing);
+        } else {
+            const uri = vscode.Uri.file(collectionRootDir);
+            const collectionItem = controller.createTestItem(
+                getTestId(uri),
+                getTestLabel(uri),
+                uri
+            );
+            controller.items.add(collectionItem);
+            collectionItem.canResolveChildren = true;
+            return new TestCollection(collectionRootDir, collectionItem);
+        }
+    };
+
+    const collection = getOrCreateCollectionObject();
+    const relevantFiles = await getTestfileDescendants(collectionRootDir);
     let currentPaths: PathWithChildren[] = relevantFiles.map((path) => ({
         path: path.fsPath,
         childItems: [],
@@ -176,7 +231,7 @@ export async function createAllTestitemsForCollection(
             let testItem: vscode.TestItem | undefined;
 
             if (!isFile) {
-                testItem = Array.from(testData.keys()).find(
+                testItem = Array.from(collection.testData.keys()).find(
                     (item) => item.uri?.fsPath == path
                 );
 
@@ -189,7 +244,7 @@ export async function createAllTestitemsForCollection(
                     controller.items.add(testItem);
                     testItem.canResolveChildren = true;
                     const testDir = new TestDirectory(path);
-                    testData.set(testItem, testDir);
+                    collection.testData.set(testItem, testDir);
                 }
 
                 childItems.forEach((childItem) =>
@@ -206,7 +261,7 @@ export async function createAllTestitemsForCollection(
                     const testFile = new TestFile(path, sequence);
                     testItem.sortText = getSortText(testFile);
                     controller.items.add(testItem);
-                    testData.set(testItem, testFile);
+                    collection.testData.set(testItem, testFile);
                 }
             }
             if (testItem) {
@@ -221,20 +276,21 @@ export async function createAllTestitemsForCollection(
 export const removeTestFile = (
     controller: vscode.TestController,
     fileChangedEmitter: vscode.EventEmitter<vscode.Uri>,
-    uri: vscode.Uri
+    uri: vscode.Uri,
+    collection: TestCollection
 ) => {
     controller.items.delete(getTestId(uri));
     fileChangedEmitter.fire(uri);
 
-    const parentItem = getParentItem(uri);
+    const parentItem = getParentItem(uri, collection);
     if (parentItem) {
         parentItem.children.delete(getTestId(uri));
         fileChangedEmitter.fire(parentItem.uri!);
     }
-    const keyToDelete = Array.from(testData.keys()).find(
+    const keyToDelete = Array.from(collection.testData.keys()).find(
         (item) => item.uri == uri
     );
     if (keyToDelete) {
-        testData.delete(keyToDelete);
+        collection.testData.delete(keyToDelete);
     }
 };
