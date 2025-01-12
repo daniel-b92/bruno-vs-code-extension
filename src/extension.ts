@@ -4,6 +4,7 @@ import { TestFile } from "./model/testFile";
 import { environmentConfigKey, runTestStructure } from "./runTestStructure";
 import { getHtmlReportPath, showHtmlReport } from "./htmlReportHelper";
 import { TestCollection } from "./model/testCollection";
+import { existsSync } from "fs";
 
 export async function activate(context: vscode.ExtensionContext) {
     const ctrl = vscode.tests.createTestController(
@@ -104,7 +105,7 @@ export async function activate(context: vscode.ExtensionContext) {
                         .getConfiguration()
                         .get(environmentConfigKey) as string | undefined;
                     const htmlReportPath = getHtmlReportPath(
-                        testTree.getCollectionRootDir(data.path)
+                        await testTree.getCollectionRootDir(data.path)
                     );
                     if (!testEnvironment) {
                         run.appendOutput(
@@ -122,7 +123,9 @@ export async function activate(context: vscode.ExtensionContext) {
                         `Saving the HTML test report to file '${htmlReportPath}'.\r\n`
                     );
                     await runTestStructure(test, data, run, testEnvironment);
-                    showHtmlReport(htmlReportPath, data);
+                    if (existsSync(htmlReportPath)) {
+                        showHtmlReport(htmlReportPath, data);
+                    }
                 }
 
                 run.appendOutput(`Completed ${test.label}\r\n`);
@@ -217,10 +220,7 @@ async function findInitialFilesAndDirectories(
     testCollections: TestCollection[]
 ) {
     for (const collection of testCollections) {
-        await testTree.addAllTestitemsToTestTree(
-            controller,
-            collection
-        );
+        await testTree.addAllTestitemsToTestTree(controller, collection);
     }
 }
 

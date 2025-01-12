@@ -37,12 +37,12 @@ export async function runTestStructure(
         return result;
     };
 
-    const getCommandToExecute = (
+    const getCommandToExecute = async (
         testPathToExecute: string,
         htmlReportPath: string,
         jsonReportPath: string
     ) => {
-        const collectionRootDir = getCollectionRootDir(testPathToExecute);
+        const collectionRootDir = await getCollectionRootDir(testPathToExecute);
         let result: string;
 
         if (testPathToExecute == collectionRootDir) {
@@ -59,7 +59,7 @@ export async function runTestStructure(
     };
 
     const execPromise = promisify(exec);
-    const collectionRootDir = getCollectionRootDir(data.path);
+    const collectionRootDir = await getCollectionRootDir(data.path);
     const htmlReportPath = getHtmlReportPath(collectionRootDir);
     const jsonReportPath = resolve(dirname(collectionRootDir), "results.json");
     if (existsSync(htmlReportPath)) {
@@ -74,9 +74,12 @@ export async function runTestStructure(
 
     const start = Date.now();
     try {
-        const { stdout, stderr } = await execPromise(
-            getCommandToExecute(data.path, htmlReportPath, jsonReportPath)
+        const command = await getCommandToExecute(
+            data.path,
+            htmlReportPath,
+            jsonReportPath
         );
+        const { stdout, stderr } = await execPromise(command);
         const duration = Date.now() - start;
         options.appendOutput(stdout.replace(/\n/g, "\r\n"));
         options.appendOutput(stderr.replace(/\n/g, "\r\n"));

@@ -42,26 +42,43 @@ export const getCollectionForTest = (
     return collection;
 };
 
-export const getAllCollectionRootDirectories = async () =>
-    (await vscode.workspace.findFiles("**/bruno.json"))
-        .map((uri) => dirname(uri.fsPath))
-        .filter((path) => isCollectionRootDir(path));
+export const getAllCollectionRootDirectories = async () => {
+    const maybeFilesInCollectionRootDirs = await vscode.workspace.findFiles(
+        "**/bruno.json"
+    );
+    const result: string[] = [];
 
-export const isCollectionRootDir = async (path: string) =>
-    lstatSync(path).isDirectory() &&
-    readdirSync(path).some((file) => file.endsWith("bruno.json")) &&
-    (await getTestfileDescendants(path).then(
-        (descendants) => descendants.length > 0
-    ));
-
-export const getCollectionRootDir = (testFilePath: string) => {
-    let currentPath = testFilePath;
-
-    while (!isCollectionRootDir(currentPath)) {
-        currentPath = dirname(currentPath);
+    for (const maybeCollectionRoot of maybeFilesInCollectionRootDirs.map(
+        (uri) => dirname(uri.fsPath)
+    )) {
+        const isCollectionRoot = await isCollectionRootDir(maybeCollectionRoot);
+        if (isCollectionRoot) {
+            result.push(maybeCollectionRoot);
+        }
     }
 
-    return currentPath;
+    return result;
+};
+
+export const isCollectionRootDir = async (path: string) => {
+    const containsBrunoJsonFile =
+        lstatSync(path).isDirectory() &&
+        readdirSync(path).some((file) => file.endsWith("bruno.json"));
+    const testfileDescendants = await getTestfileDescendants(path);
+    return containsBrunoJsonFile && testfileDescendants.length > 0;
+};
+
+export const getCollectionRootDir = async (testFilePath: string) => {
+    const allCollectionRootDirs = await getAllCollectionRootDirectories();
+    const collectionRootDir = allCollectionRootDirs.find((rootDir) =>
+        testFilePath.includes(rootDir)
+    );
+    if (!collectionRootDir) {
+        throw new Error(
+            `Could not find collection root directory for test item path '${testFilePath}'`
+        );
+    }
+    return collectionRootDir;
 };
 
 export const updateParentItem = (
@@ -191,7 +208,9 @@ export async function addAllTestitemsToTestTree(
         return getUniquePaths(parentsWithDuplicatePaths);
     };
 
-    const relevantFiles = await getTestfileDescendants(collection.rootDirectory);
+    const relevantFiles = await getTestfileDescendants(
+        collection.rootDirectory
+    );
     let currentPaths: PathWithChildren[] = relevantFiles.map((path) => ({
         path: path.fsPath,
         childItems: [],
