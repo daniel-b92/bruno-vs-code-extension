@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as testTree from "./testTreeHelper";
 import { TestFile } from "./model/testFile";
-import { runTestStructure } from "./runTestStructure";
+import { environmentConfigKey, runTestStructure } from "./runTestStructure";
 import { getHtmlReportPath, showHtmlReport } from "./htmlReportHelper";
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -94,20 +94,29 @@ export async function activate(context: vscode.ExtensionContext) {
                     run.skipped(test);
                 } else {
                     run.started(test);
-                    await runTestStructure(
-                        test,
-                        data,
-                        run,
-                        vscode.workspace
-                            .getConfiguration()
-                            .get("brunoTestExtension.testRunEnvironment")
+                    const testEnvironment = vscode.workspace
+                        .getConfiguration()
+                        .get(environmentConfigKey) as string | undefined;
+                    const htmlReportPath = getHtmlReportPath(
+                        testTree.getCollectionRootDir(data.path)
                     );
-                    showHtmlReport(
-                        getHtmlReportPath(
-                            testTree.getCollectionRootDir(data.path)
-                        ),
-                        data
+                    if (!testEnvironment) {
+                        run.appendOutput(
+                            `Not using any environment for the test run.\r\n`
+                        );
+                        run.appendOutput(
+                            `You can configure an environment to use via the setting '${environmentConfigKey}'.\r\n`
+                        );
+                    } else {
+                        run.appendOutput(
+                            `Using the test environment '${testEnvironment}'.\r\n`
+                        );
+                    }
+                    run.appendOutput(
+                        `Saving the HTML test report to file '${htmlReportPath}'.\r\n`
                     );
+                    await runTestStructure(test, data, run, testEnvironment);
+                    showHtmlReport(htmlReportPath, data);
                 }
 
                 run.appendOutput(`Completed ${test.label}\r\n`);

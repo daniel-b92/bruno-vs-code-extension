@@ -7,11 +7,13 @@ import { TestDirectory } from "./model/testDirectory";
 import { BrunoTestData, getCollectionRootDir } from "./testTreeHelper";
 import { getHtmlReportPath } from "./htmlReportHelper";
 
+export const environmentConfigKey = "brunoTestExtension.testRunEnvironment";
+
 export async function runTestStructure(
     item: vscode.TestItem,
     data: BrunoTestData,
     options: vscode.TestRun,
-    testEnvironment?: string    
+    testEnvironment?: string
 ): Promise<void> {
     const getAllDescendants = (testItem: vscode.TestItem) => {
         let result: vscode.TestItem[] = [];
@@ -49,7 +51,7 @@ export async function runTestStructure(
             result = `cd ${collectionRootDir} && npx --package=@usebruno/cli bru run ${testPathToExecute} --reporter-html ${htmlReportPath} --reporter-json ${jsonReportPath}`;
         }
 
-        if(testEnvironment) {
+        if (testEnvironment) {
             result = result.concat(` --env ${testEnvironment}`);
         }
 
@@ -81,7 +83,7 @@ export async function runTestStructure(
 
         if (existsSync(htmlReportPath)) {
             options.appendOutput(
-                `Results can be found here: ${htmlReportPath}\r\n`
+                `HTML report has been saved in file: '${htmlReportPath}'\r\n`
             );
         }
         options.passed(item, duration);
