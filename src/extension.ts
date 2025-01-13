@@ -175,11 +175,15 @@ export async function activate(context: vscode.ExtensionContext) {
     };
 
     function updateNodeForDocument(e: vscode.TextDocument) {
-        testTree.updateNodeForDocument(
+        if (e.uri.scheme !== "file" || !e.uri.path.endsWith(".bru")) {
+            return;
+        }
+
+        testTree.handleTestFileCreationOrUpdate(
             ctrl,
             fileChangedEmitter,
-            e,
-            testCollections
+            testTree.getCollectionForTest(e.uri, testCollections),
+            e.uri
         );
     }
 
@@ -237,48 +241,31 @@ function startWatchingWorkspace(
                 uri,
                 testCollections
             );
-            testTree.getOrCreateFile(controller, uri, collection);
-            fileChangedEmitter.fire(uri);
+            testTree.handleTestFileCreationOrUpdate(
+                controller,
+                fileChangedEmitter,
+                collection,
+                uri
+            );
         });
-        watcher.onDidChange(async (uri) => {
+        watcher.onDidChange((uri) => {
             const collection = testTree.getCollectionForTest(
                 uri,
                 testCollections
             );
-            const maybeFile = testTree.getOrCreateFile(
+            testTree.handleTestFileCreationOrUpdate(
                 controller,
-                uri,
-                collection
+                fileChangedEmitter,
+                collection,
+                uri
             );
-            if (!maybeFile) {
-                testTree.removeTestFile(
-                    controller,
-                    fileChangedEmitter,
-                    uri,
-                    collection
-                );
-            } else {
-                maybeFile.testFile.updateFromDisk(
-                    maybeFile.testItem,
-                    collection
-                );
-
-                const parentItem = testTree.updateParentItem(
-                    maybeFile.testItem,
-                    collection
-                );
-                fileChangedEmitter.fire(uri);
-                if (parentItem) {
-                    fileChangedEmitter.fire(parentItem.uri!);
-                }
-            }
         });
         watcher.onDidDelete((uri) => {
             const collection = testTree.getCollectionForTest(
                 uri,
                 testCollections
             );
-            testTree.removeTestFile(
+            testTree.handleTestFileDeletion(
                 controller,
                 fileChangedEmitter,
                 uri,
