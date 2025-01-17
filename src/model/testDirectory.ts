@@ -4,7 +4,6 @@ import { TestCollection } from "./testCollection";
 
 export class TestDirectory {
     constructor(public path: string) {}
-    public didResolve = false;
 
     public async updateFromDisk(
         controller: vscode.TestController,
@@ -24,8 +23,6 @@ export class TestDirectory {
         directoryItem: vscode.TestItem,
         collection: TestCollection
     ) {
-        this.didResolve = true;
-
         const testDirectory = controller.createTestItem(
             getTestId(directoryItem.uri!),
             getTestLabel(directoryItem.uri!),

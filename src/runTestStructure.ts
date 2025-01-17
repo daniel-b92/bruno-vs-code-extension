@@ -4,8 +4,9 @@ import { dirname, resolve } from "path";
 import { promisify } from "util";
 import * as vscode from "vscode";
 import { TestDirectory } from "./model/testDirectory";
-import { BrunoTestData, getCollectionRootDir } from "./testTreeHelper";
+import { BrunoTestData } from "./testTreeHelper";
 import { getHtmlReportPath } from "./htmlReportHelper";
+import { getCollectionRootDir } from "./fileSystem/collectionRootFolderHelper";
 
 export const environmentConfigKey = "brunoTestExtension.testRunEnvironment";
 

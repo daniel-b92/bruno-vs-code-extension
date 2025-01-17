@@ -5,6 +5,12 @@ import { environmentConfigKey, runTestStructure } from "./runTestStructure";
 import { getHtmlReportPath, showHtmlReport } from "./htmlReportHelper";
 import { TestCollection } from "./model/testCollection";
 import { existsSync } from "fs";
+import { addTestCollection } from "./vsCodeTestTree/addTestCollection";
+import {
+    handleTestFileCreationOrUpdate,
+    handleTestFileDeletion,
+} from "./vsCodeTestTree/testFileUpdater";
+import { getAllCollectionRootDirectories, getCollectionRootDir } from "./fileSystem/collectionRootFolderHelper";
 
 export async function activate(context: vscode.ExtensionContext) {
     const ctrl = vscode.tests.createTestController(
@@ -105,7 +111,7 @@ export async function activate(context: vscode.ExtensionContext) {
                         .getConfiguration()
                         .get(environmentConfigKey) as string | undefined;
                     const htmlReportPath = getHtmlReportPath(
-                        await testTree.getCollectionRootDir(data.path)
+                        await getCollectionRootDir(data.path)
                     );
                     if (!testEnvironment) {
                         run.appendOutput(
@@ -179,7 +185,7 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        testTree.handleTestFileCreationOrUpdate(
+        handleTestFileCreationOrUpdate(
             ctrl,
             fileChangedEmitter,
             testTree.getCollectionForTest(e.uri, testCollections),
@@ -241,7 +247,7 @@ function startWatchingWorkspace(
                 uri,
                 testCollections
             );
-            testTree.handleTestFileCreationOrUpdate(
+            handleTestFileCreationOrUpdate(
                 controller,
                 fileChangedEmitter,
                 collection,
@@ -253,7 +259,7 @@ function startWatchingWorkspace(
                 uri,
                 testCollections
             );
-            testTree.handleTestFileCreationOrUpdate(
+            handleTestFileCreationOrUpdate(
                 controller,
                 fileChangedEmitter,
                 collection,
@@ -265,7 +271,7 @@ function startWatchingWorkspace(
                 uri,
                 testCollections
             );
-            testTree.handleTestFileDeletion(
+            handleTestFileDeletion(
                 controller,
                 fileChangedEmitter,
                 uri,
@@ -280,21 +286,11 @@ function startWatchingWorkspace(
 }
 
 async function getInitialCollections(controller: vscode.TestController) {
-    const collectionRootDirs = await testTree.getAllCollectionRootDirectories();
+    const collectionRootDirs = await getAllCollectionRootDirectories();
     const result: TestCollection[] = [];
 
     for (const collectionRoot of collectionRootDirs) {
-        const uri = vscode.Uri.file(collectionRoot);
-        const collectionItem = controller.createTestItem(
-            testTree.getTestId(uri),
-            testTree.getTestLabel(uri),
-            uri
-        );
-
-        const collection = new TestCollection(collectionRoot, collectionItem);
-        collectionItem.canResolveChildren = true;
-        controller.items.add(collectionItem);
-        result.push(collection);
+        result.push(addTestCollection(controller, collectionRoot));
     }
 
     return result;
