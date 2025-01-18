@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import * as testTreeHelper from "../testTreeHelper";
 import { TestCollection } from "../model/testCollection";
+import { getTestId, getTestLabel } from "../testTreeHelper";
 
 export const addTestCollection = (
     controller: vscode.TestController,
@@ -9,8 +9,8 @@ export const addTestCollection = (
     const uri = vscode.Uri.file(collectionRootDir);
 
     const vsCodeItem = controller.createTestItem(
-        testTreeHelper.getTestId(uri),
-        testTreeHelper.getTestLabel(uri),
+        getTestId(uri),
+        getTestLabel(uri),
         uri
     );
 

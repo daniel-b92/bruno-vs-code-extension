@@ -1,16 +1,90 @@
-import { exec } from "child_process";
-import { existsSync, unlinkSync } from "fs";
-import { dirname, resolve } from "path";
-import { promisify } from "util";
 import * as vscode from "vscode";
-import { TestDirectory } from "./model/testDirectory";
-import { BrunoTestData } from "./testTreeHelper";
-import { getHtmlReportPath } from "./htmlReportHelper";
-import { getCollectionRootDir } from "./fileSystem/collectionRootFolderHelper";
+import { TestCollection } from "../model/testCollection";
+import { BrunoTestData, getCollectionForTest } from "../testTreeHelper";
+import { showHtmlReport } from "./showHtmlReport";
+import { getCollectionRootDir } from "../fileSystem/collectionRootFolderHelper";
+import { existsSync, unlinkSync } from "fs";
+import { promisify } from "util";
+import { exec } from "child_process";
+import { dirname, resolve } from "path";
+import { TestDirectory } from "../model/testDirectory";
 
-export const environmentConfigKey = "brunoTestExtension.testRunEnvironment";
+const environmentConfigKey = "brunoTestExtension.testRunEnvironment";
 
-export async function runTestStructure(
+export const startTestRun = (
+    ctrl: vscode.TestController,
+    request: vscode.TestRunRequest,
+    testCollections: TestCollection[]
+) => {
+    const queue: { test: vscode.TestItem; data: BrunoTestData }[] = [];
+    const run = ctrl.createTestRun(request);
+
+    const discoverTests = async (tests: Iterable<vscode.TestItem>) => {
+        for (const test of tests) {
+            if (request.exclude?.includes(test)) {
+                continue;
+            }
+
+            const collection = getCollectionForTest(test.uri!, testCollections);
+            const data = collection.testData.get(test)!;
+            run.enqueued(test);
+            queue.push({ test, data });
+        }
+    };
+
+    const runTestQueue = async () => {
+        for (const { test, data } of queue) {
+            run.appendOutput(`Running ${test.label}\r\n`);
+            if (run.token.isCancellationRequested) {
+                run.appendOutput(`Canceled ${test.label}\r\n`);
+                run.skipped(test);
+            } else {
+                run.started(test);
+                const testEnvironment = vscode.workspace
+                    .getConfiguration()
+                    .get(environmentConfigKey) as string | undefined;
+                const htmlReportPath = getHtmlReportPath(
+                    await getCollectionRootDir(data.path)
+                );
+                if (!testEnvironment) {
+                    run.appendOutput(
+                        `Not using any environment for the test run.\r\n`
+                    );
+                    run.appendOutput(
+                        `You can configure an environment to use via the setting '${environmentConfigKey}'.\r\n`
+                    );
+                } else {
+                    run.appendOutput(
+                        `Using the test environment '${testEnvironment}'.\r\n`
+                    );
+                }
+                run.appendOutput(
+                    `Saving the HTML test report to file '${htmlReportPath}'.\r\n`
+                );
+                await runTestStructure(test, data, run, testEnvironment);
+                if (existsSync(htmlReportPath)) {
+                    showHtmlReport(htmlReportPath, data);
+                }
+            }
+
+            run.appendOutput(`Completed ${test.label}\r\n`);
+        }
+
+        run.end();
+    };
+
+    discoverTests(request.include ?? gatherTestItems(ctrl.items)).then(
+        runTestQueue
+    );
+};
+
+function gatherTestItems(collection: vscode.TestItemCollection) {
+    const items: vscode.TestItem[] = [];
+    collection.forEach((item) => items.push(item));
+    return items;
+}
+
+async function runTestStructure(
     item: vscode.TestItem,
     data: BrunoTestData,
     options: vscode.TestRun,
@@ -122,3 +196,6 @@ export async function runTestStructure(
         }
     }
 }
+
+const getHtmlReportPath = (collectionRootDir: string) =>
+    resolve(dirname(collectionRootDir), "results.html");

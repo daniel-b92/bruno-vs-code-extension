@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import {
     getSortText,
 } from "../testTreeHelper";
-import { getSequence } from "../parser";
+import { getSequence } from "../fileSystem/parser";
 import { TestCollection } from "./testCollection";
 
 export class TestFile {

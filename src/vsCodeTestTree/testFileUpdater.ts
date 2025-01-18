@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { TestCollection } from "../model/testCollection";
 import { getTestId } from "../testTreeHelper";
-import { getSequence } from "../parser";
+import { getSequence } from "../fileSystem/parser";
 import { TestFile } from "../model/testFile";
 import { addTestItem } from "./addTestItem";
 import { createOrUpdateParentItem, getParentItem } from "./parentItemHelper";

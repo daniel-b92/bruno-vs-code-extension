@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
 import { dirname, resolve } from "path";
 import * as vscode from "vscode";
-import { BrunoTestData, getTestLabel } from "./testTreeHelper";
+import { BrunoTestData, getTestLabel } from "../testTreeHelper";
 
 export function showHtmlReport(
     htmlReportPath: string,
@@ -20,6 +20,3 @@ export function showHtmlReport(
 
     panel.webview.html = readFileSync(htmlReportPath).toString();
 }
-
-export const getHtmlReportPath = (collectionRootDir: string) =>
-    resolve(dirname(collectionRootDir), "results.html");
