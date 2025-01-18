@@ -111,6 +111,7 @@ async function runTestStructure(
     const commandArgs = await getCommandArgs(
         item,
         htmlReportPath,
+        getJsonReportPath(collectionRootDir),
         testEnvironment
     );
 
@@ -194,9 +195,13 @@ async function runTestStructure(
 const getHtmlReportPath = (collectionRootDir: string) =>
     resolve(dirname(collectionRootDir), "results.html");
 
+const getJsonReportPath = (collectionRootDir: string) =>
+    resolve(dirname(collectionRootDir), "results.json");
+
 const getCommandArgs = async (
     testItemToExecute: vscodeTestItem,
     htmlReportPath: string,
+    jsonReportPath: string,
     testEnvironment?: string
 ) => {
     const testDataPath = testItemToExecute.uri?.fsPath!;
@@ -212,6 +217,8 @@ const getCommandArgs = async (
             argForRunCommand,
             "--reporter-html",
             htmlReportPath,
+            "--reporter-json",
+            jsonReportPath,
         ]
     );
 
