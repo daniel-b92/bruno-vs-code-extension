@@ -3,8 +3,7 @@ import { BrunoTestData, getCollectionForTest } from "../testTreeHelper";
 import { showHtmlReport } from "./showHtmlReport";
 import { getCollectionRootDir } from "../fileSystem/collectionRootFolderHelper";
 import { existsSync, unlinkSync } from "fs";
-import { promisify } from "util";
-import { exec } from "child_process";
+import { spawn } from "child_process";
 import { dirname, resolve } from "path";
 import { TestDirectory } from "../model/testDirectory";
 import {
@@ -98,53 +97,8 @@ async function runTestStructure(
     options: TestRun,
     testEnvironment?: string
 ): Promise<void> {
-    const getAllDescendants = (testItem: vscodeTestItem) => {
-        let result: vscodeTestItem[] = [];
-        let currentChildItems = Array.from(testItem.children).map(
-            (item) => item[1]
-        );
-
-        while (currentChildItems.length > 0) {
-            result = result.concat(currentChildItems);
-            const nextDepthLevelDescendants: vscodeTestItem[] = [];
-
-            currentChildItems.forEach((item) =>
-                item.children.forEach((child) => {
-                    nextDepthLevelDescendants.push(child);
-                })
-            );
-
-            currentChildItems = nextDepthLevelDescendants;
-        }
-
-        return result;
-    };
-
-    const getCommandToExecute = async (
-        testPathToExecute: string,
-        htmlReportPath: string,
-        jsonReportPath: string
-    ) => {
-        const collectionRootDir = await getCollectionRootDir(testPathToExecute);
-        let result: string;
-
-        if (testPathToExecute == collectionRootDir) {
-            result = `cd ${collectionRootDir} && npx --package=@usebruno/cli bru run --reporter-html ${htmlReportPath} --reporter-json ${jsonReportPath}`;
-        } else {
-            result = `cd ${collectionRootDir} && npx --package=@usebruno/cli bru run ${testPathToExecute} --reporter-html ${htmlReportPath} --reporter-json ${jsonReportPath}`;
-        }
-
-        if (testEnvironment) {
-            result = result.concat(` --env ${testEnvironment}`);
-        }
-
-        return result;
-    };
-
-    const execPromise = promisify(exec);
     const collectionRootDir = await getCollectionRootDir(data.path);
     const htmlReportPath = getHtmlReportPath(collectionRootDir);
-    const jsonReportPath = resolve(dirname(collectionRootDir), "results.json");
     if (existsSync(htmlReportPath)) {
         unlinkSync(htmlReportPath);
     }
@@ -154,54 +108,138 @@ async function runTestStructure(
             (descendant) => (descendant.busy = true)
         );
     }
+    const commandArgs = await getCommandArgs(
+        item,
+        htmlReportPath,
+        testEnvironment
+    );
 
-    const start = Date.now();
-    try {
-        const command = await getCommandToExecute(
-            data.path,
-            htmlReportPath,
-            jsonReportPath
-        );
-        const { stdout, stderr } = await execPromise(command);
-        const duration = Date.now() - start;
-        options.appendOutput(stdout.replace(/\n/g, "\r\n"));
-        options.appendOutput(stderr.replace(/\n/g, "\r\n"));
+    return new Promise((resolve) => {
+        let duration = 0;
+        const start = Date.now();
+        const childProcess = spawn(`npx`, commandArgs, {
+            cwd: collectionRootDir,
+        });
 
-        if (existsSync(htmlReportPath)) {
+        childProcess.on("error", (err) => {
+            console.error("Failed to start subprocess.", err);
+            if (existsSync(htmlReportPath)) {
+                options.appendOutput(
+                    `Results can be found here: ${htmlReportPath}\r\n`
+                );
+            }
+
+            options.appendOutput(err.message.replace(/\n/g, "\r\n"));
+            options.skipped(item);
+
+            if (data instanceof TestDirectory) {
+                getAllDescendants(item).forEach((child) => {
+                    child.busy = false;
+                    options.skipped(child);
+                });
+            }
+            resolve();
+        });
+
+        childProcess.stdout.on("data", (data) => {
             options.appendOutput(
-                `HTML report has been saved in file: '${htmlReportPath}'\r\n`
+                (data.toString() as string).replace(/\n/g, "\r\n")
             );
-        }
-        options.passed(item, duration);
+        });
 
-        if (data instanceof TestDirectory) {
-            getAllDescendants(item).forEach((child) => {
-                child.busy = false;
-                options.passed(child);
-            });
-        }
-    } catch (err: any) {
-        if (existsSync(htmlReportPath)) {
+        childProcess.stderr.on("data", (data) => {
             options.appendOutput(
-                `Results can be found here: ${htmlReportPath}\r\n`
+                (data.toString() as string).replace(/\n/g, "\r\n")
             );
-        }
+        });
 
-        const testMessage = new TestMessage(`${err.stdout}\n${err.stderr}`);
-        options.failed(item, [testMessage]);
+        childProcess.on("close", (code) => {
+            console.log(`child process exited with code ${code}`);
+            duration = Date.now() - start;
+            if (existsSync(htmlReportPath)) {
+                options.appendOutput(
+                    `HTML report has been saved in file: '${htmlReportPath}'\r\n`
+                );
+            }
+            if (code == 0) {
+                options.passed(item, duration);
 
-        if (data instanceof TestDirectory) {
-            getAllDescendants(item).forEach((child) => {
-                child.busy = false;
-                options.skipped(child);
-            });
-        }
-    } finally {
-        if (existsSync(jsonReportPath)) {
-            unlinkSync(jsonReportPath);
-        }
-    }
+                if (data instanceof TestDirectory) {
+                    getAllDescendants(item).forEach((child) => {
+                        child.busy = false;
+                        options.passed(child);
+                    });
+                }
+            } else {
+                options.failed(item, [new TestMessage("Testrun failed")]);
+
+                if (data instanceof TestDirectory) {
+                    getAllDescendants(item).forEach((child) => {
+                        child.busy = false;
+                        options.failed(
+                            child,
+                            new TestMessage(
+                                `Testrun process exited with code '${code}'.`
+                            )
+                        );
+                    });
+                }
+            }
+
+            resolve();
+        });
+    });
 }
 
 const getHtmlReportPath = (collectionRootDir: string) =>
     resolve(dirname(collectionRootDir), "results.html");
+
+const getCommandArgs = async (
+    testItemToExecute: vscodeTestItem,
+    htmlReportPath: string,
+    testEnvironment?: string
+) => {
+    const testDataPath = testItemToExecute.uri?.fsPath!;
+    const collectionRootDir = await getCollectionRootDir(testDataPath);
+    const result: string[] = [];
+    const argForRunCommand =
+        testDataPath == collectionRootDir
+            ? "bru run"
+            : `bru run ${testDataPath}`;
+    result.push(
+        ...[
+            "--package=@usebruno/cli",
+            argForRunCommand,
+            "--reporter-html",
+            htmlReportPath,
+        ]
+    );
+
+    if (testEnvironment) {
+        result.push(...["--env", testEnvironment]);
+    }
+
+    return result;
+};
+
+const getAllDescendants = (testItem: vscodeTestItem) => {
+    let result: vscodeTestItem[] = [];
+    let currentChildItems = Array.from(testItem.children).map(
+        (item) => item[1]
+    );
+
+    while (currentChildItems.length > 0) {
+        result = result.concat(currentChildItems);
+        const nextDepthLevelDescendants: vscodeTestItem[] = [];
+
+        currentChildItems.forEach((item) =>
+            item.children.forEach((child) => {
+                nextDepthLevelDescendants.push(child);
+            })
+        );
+
+        currentChildItems = nextDepthLevelDescendants;
+    }
+
+    return result;
+};
