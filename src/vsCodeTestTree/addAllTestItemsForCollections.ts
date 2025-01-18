@@ -48,7 +48,7 @@ async function addTestItemsForCollection(
                 );
 
                 if (!testItem) {
-                    addTestItem(
+                    testItem = addTestItem(
                         controller,
                         collection,
                         new TestDirectory(path)
@@ -61,7 +61,7 @@ async function addTestItemsForCollection(
             } else {
                 const sequence = getSequence(path);
                 if (sequence) {
-                    addTestItem(
+                    testItem = addTestItem(
                         controller,
                         collection,
                         new TestFile(path, sequence)
