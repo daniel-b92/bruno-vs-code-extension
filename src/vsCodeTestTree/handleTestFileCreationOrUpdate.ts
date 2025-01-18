@@ -1,6 +1,6 @@
 import { EventEmitter, TestController, Uri } from "vscode";
 import { TestCollection } from "../model/testCollection";
-import { getSequence } from "../fileSystem/parser";
+import { getName, getSequence } from "../fileSystem/testFileParser";
 import { TestFile } from "../model/testFile";
 import { addTestItem } from "./addTestItem";
 import { createOrUpdateParentItem } from "./parentItemHelper";
@@ -41,8 +41,9 @@ function getOrCreateFile(
 ) {
     const filePath = uri.fsPath!;
     const sequence = getSequence(filePath);
+    const name = getName(filePath);
 
-    if (!sequence) {
+    if (!sequence || !name) {
         return undefined;
     }
 
@@ -56,7 +57,7 @@ function getOrCreateFile(
         };
     }
 
-    const testFile = new TestFile(filePath, sequence);
+    const testFile = new TestFile(filePath, sequence, name);
     const testItem = addTestItem(controller, collection, testFile);
 
     const parentItem = Array.from(collection.testData.keys()).find(
