@@ -1,16 +1,16 @@
-import * as vscode from "vscode";
 import { TestFile } from "../model/testFile";
 import { TestDirectory } from "../model/testDirectory";
 import { TestCollection } from "../model/testCollection";
 import { dirname } from "path";
 import { getSortText, getTestId, getTestLabel } from "../testTreeHelper";
+import { TestController, Uri } from "vscode";
 
 export const addTestItem = (
-    controller: vscode.TestController,
+    controller: TestController,
     collection: TestCollection,
     item: TestFile | TestDirectory
 ) => {
-    const uri = vscode.Uri.file(item.path);
+    const uri = Uri.file(item.path);
     const vsCodeItem = controller.createTestItem(
         getTestId(uri),
         getTestLabel(uri),

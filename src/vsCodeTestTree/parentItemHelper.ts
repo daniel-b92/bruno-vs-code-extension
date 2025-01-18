@@ -1,12 +1,12 @@
-import * as vscode from "vscode";
+import { TestController, Uri, TestItem as vscodeTestItem } from "vscode";
 import { TestCollection } from "../model/testCollection";
 import { addTestItem } from "./addTestItem";
 import { TestDirectory } from "../model/testDirectory";
 import { dirname } from "path";
 
 export const createOrUpdateParentItem = (
-    controller: vscode.TestController,
-    childItem: vscode.TestItem,
+    controller: TestController,
+    childItem: vscodeTestItem,
     collection: TestCollection
 ) => {
     const existingParentItem = getParentItem(childItem.uri!, collection);
@@ -25,7 +25,7 @@ export const createOrUpdateParentItem = (
     return newParentItem;
 };
 
-export const getParentItem = (uri: vscode.Uri, collection: TestCollection) =>
+export const getParentItem = (uri: Uri, collection: TestCollection) =>
     Array.from(collection.testData.keys()).find(
         (item) => item.uri?.fsPath == dirname(uri.fsPath)
     );

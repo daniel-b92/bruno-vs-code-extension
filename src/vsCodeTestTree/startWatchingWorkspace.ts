@@ -1,4 +1,10 @@
-import * as vscode from "vscode";
+import {
+    EventEmitter,
+    RelativePattern,
+    TestController,
+    Uri,
+    workspace,
+} from "vscode";
 import { TestCollection } from "../model/testCollection";
 import {
     getCollectionForTest,
@@ -11,12 +17,12 @@ import {
 import { addAllTestItemsForCollections } from "./addAllTestItemsForCollections";
 
 export function startWatchingWorkspace(
-    controller: vscode.TestController,
-    fileChangedEmitter: vscode.EventEmitter<vscode.Uri>,
+    controller: TestController,
+    fileChangedEmitter: EventEmitter<Uri>,
     testCollections: TestCollection[]
 ) {
     return getWorkspaceTestPatterns().map((pattern) => {
-        const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+        const watcher = workspace.createFileSystemWatcher(pattern);
 
         watcher.onDidCreate((uri) => {
             const collection = getCollectionForTest(uri, testCollections);
@@ -53,12 +59,12 @@ export function startWatchingWorkspace(
 }
 
 function getWorkspaceTestPatterns() {
-    if (!vscode.workspace.workspaceFolders) {
+    if (!workspace.workspaceFolders) {
         return [];
     }
 
-    return vscode.workspace.workspaceFolders.map(
+    return workspace.workspaceFolders.map(
         (workspaceFolder) =>
-            new vscode.RelativePattern(workspaceFolder, globPatternForTestfiles)
+            new RelativePattern(workspaceFolder, globPatternForTestfiles)
     );
 }

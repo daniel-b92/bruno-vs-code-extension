@@ -1,10 +1,10 @@
 import { lstatSync, readdirSync } from "fs";
 import { dirname } from "path";
-import * as vscode from "vscode";
 import { getTestfileDescendants } from "./getTestfileDescendants";
+import { workspace } from "vscode";
 
 export const getAllCollectionRootDirectories = async () => {
-    const maybeFilesInCollectionRootDirs = await vscode.workspace.findFiles(
+    const maybeFilesInCollectionRootDirs = await workspace.findFiles(
         "**/bruno.json"
     );
     const result: string[] = [];

@@ -1,4 +1,4 @@
-import * as vscode from "vscode";
+import { Uri as vsCodeUri } from "vscode";
 import { TestDirectory } from "./model/testDirectory";
 import { TestFile } from "./model/testFile";
 import { TestCollection } from "./model/testCollection";
@@ -9,12 +9,12 @@ export type BrunoTestData = TestDirectory | TestFile;
 export const getSortText = (testFile: TestFile) =>
     new Array(testFile.sequence + 1).join("a");
 
-export const getTestId = (uri: vscode.Uri) => uri.toString();
+export const getTestId = (uri: vsCodeUri) => uri.toString();
 
-export const getTestLabel = (uri: vscode.Uri) => uri.path.split("/").pop()!;
+export const getTestLabel = (uri: vsCodeUri) => uri.path.split("/").pop()!;
 
 export const getCollectionForTest = (
-    testUri: vscode.Uri,
+    testUri: vsCodeUri,
     testCollections: TestCollection[]
 ) => {
     const collection = testCollections.find((collection) =>

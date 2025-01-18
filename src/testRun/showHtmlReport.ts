@@ -1,20 +1,19 @@
 import { readFileSync } from "fs";
-import { dirname, resolve } from "path";
-import * as vscode from "vscode";
 import { BrunoTestData, getTestLabel } from "../testTreeHelper";
+import { Uri, ViewColumn, window } from "vscode";
 
 export function showHtmlReport(
     htmlReportPath: string,
     testData: BrunoTestData
 ) {
-    const column = vscode.window.activeTextEditor
-        ? vscode.window.activeTextEditor.viewColumn
+    const column = window.activeTextEditor
+        ? window.activeTextEditor.viewColumn
         : undefined;
 
-    const panel = vscode.window.createWebviewPanel(
+    const panel = window.createWebviewPanel(
         "bruno HTML report",
-        `bruno HTML report - ${getTestLabel(vscode.Uri.file(testData.path))}`,
-        column || vscode.ViewColumn.One,
+        `bruno HTML report - ${getTestLabel(Uri.file(testData.path))}`,
+        column || ViewColumn.One,
         { enableCommandUris: true, enableFindWidget: true, enableScripts: true }
     );
 

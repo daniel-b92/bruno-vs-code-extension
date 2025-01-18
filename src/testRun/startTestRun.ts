@@ -1,4 +1,3 @@
-import * as vscode from "vscode";
 import { TestCollection } from "../model/testCollection";
 import { BrunoTestData, getCollectionForTest } from "../testTreeHelper";
 import { showHtmlReport } from "./showHtmlReport";
@@ -8,18 +7,27 @@ import { promisify } from "util";
 import { exec } from "child_process";
 import { dirname, resolve } from "path";
 import { TestDirectory } from "../model/testDirectory";
+import {
+    TestController,
+    TestMessage,
+    TestRun,
+    TestRunRequest,
+    TestItem as vscodeTestItem,
+    TestItemCollection as vscodeTestItemCollection,
+    workspace,
+} from "vscode";
 
 const environmentConfigKey = "brunoTestExtension.testRunEnvironment";
 
 export const startTestRun = (
-    ctrl: vscode.TestController,
-    request: vscode.TestRunRequest,
+    ctrl: TestController,
+    request: TestRunRequest,
     testCollections: TestCollection[]
 ) => {
-    const queue: { test: vscode.TestItem; data: BrunoTestData }[] = [];
+    const queue: { test: vscodeTestItem; data: BrunoTestData }[] = [];
     const run = ctrl.createTestRun(request);
 
-    const discoverTests = async (tests: Iterable<vscode.TestItem>) => {
+    const discoverTests = async (tests: Iterable<vscodeTestItem>) => {
         for (const test of tests) {
             if (request.exclude?.includes(test)) {
                 continue;
@@ -40,7 +48,7 @@ export const startTestRun = (
                 run.skipped(test);
             } else {
                 run.started(test);
-                const testEnvironment = vscode.workspace
+                const testEnvironment = workspace
                     .getConfiguration()
                     .get(environmentConfigKey) as string | undefined;
                 const htmlReportPath = getHtmlReportPath(
@@ -78,27 +86,27 @@ export const startTestRun = (
     );
 };
 
-function gatherTestItems(collection: vscode.TestItemCollection) {
-    const items: vscode.TestItem[] = [];
+function gatherTestItems(collection: vscodeTestItemCollection) {
+    const items: vscodeTestItem[] = [];
     collection.forEach((item) => items.push(item));
     return items;
 }
 
 async function runTestStructure(
-    item: vscode.TestItem,
+    item: vscodeTestItem,
     data: BrunoTestData,
-    options: vscode.TestRun,
+    options: TestRun,
     testEnvironment?: string
 ): Promise<void> {
-    const getAllDescendants = (testItem: vscode.TestItem) => {
-        let result: vscode.TestItem[] = [];
+    const getAllDescendants = (testItem: vscodeTestItem) => {
+        let result: vscodeTestItem[] = [];
         let currentChildItems = Array.from(testItem.children).map(
             (item) => item[1]
         );
 
         while (currentChildItems.length > 0) {
             result = result.concat(currentChildItems);
-            const nextDepthLevelDescendants: vscode.TestItem[] = [];
+            const nextDepthLevelDescendants: vscodeTestItem[] = [];
 
             currentChildItems.forEach((item) =>
                 item.children.forEach((child) => {
@@ -179,9 +187,7 @@ async function runTestStructure(
             );
         }
 
-        const testMessage = new vscode.TestMessage(
-            `${err.stdout}\n${err.stderr}`
-        );
+        const testMessage = new TestMessage(`${err.stdout}\n${err.stderr}`);
         options.failed(item, [testMessage]);
 
         if (data instanceof TestDirectory) {

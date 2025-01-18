@@ -1,12 +1,12 @@
-import * as vscode from "vscode";
+import { TestController, Uri } from "vscode";
 import { TestCollection } from "../model/testCollection";
 import { getTestId, getTestLabel } from "../testTreeHelper";
 
 export const addTestCollection = (
-    controller: vscode.TestController,
+    controller: TestController,
     collectionRootDir: string
 ) => {
-    const uri = vscode.Uri.file(collectionRootDir);
+    const uri = Uri.file(collectionRootDir);
 
     const vsCodeItem = controller.createTestItem(
         getTestId(uri),

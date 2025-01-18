@@ -1,7 +1,5 @@
-import * as vscode from "vscode";
-import {
-    getSortText,
-} from "../testTreeHelper";
+import { TestItem as vscodeTestItem } from "vscode";
+import { getSortText } from "../testTreeHelper";
 import { getSequence } from "../fileSystem/parser";
 import { TestCollection } from "./testCollection";
 
@@ -11,7 +9,10 @@ export class TestFile {
     /**
      * Updates the data for an existing test file.
      */
-    public updateFromDisk(fileItem: vscode.TestItem, collection: TestCollection) {
+    public updateFromDisk(
+        fileItem: vscodeTestItem,
+        collection: TestCollection
+    ) {
         const sequence = getSequence(this.path);
 
         if (sequence) {

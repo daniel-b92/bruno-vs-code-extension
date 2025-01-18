@@ -1,4 +1,4 @@
-import * as vscode from "vscode";
+import { EventEmitter, TestController, Uri } from "vscode";
 import { TestCollection } from "../model/testCollection";
 import { getTestId } from "../testTreeHelper";
 import { getSequence } from "../fileSystem/parser";
@@ -8,9 +8,9 @@ import { createOrUpdateParentItem, getParentItem } from "./parentItemHelper";
 import { dirname } from "path";
 
 export const handleTestFileDeletion = (
-    controller: vscode.TestController,
-    fileChangedEmitter: vscode.EventEmitter<vscode.Uri>,
-    uri: vscode.Uri,
+    controller: TestController,
+    fileChangedEmitter: EventEmitter<Uri>,
+    uri: Uri,
     collection: TestCollection
 ) => {
     controller.items.delete(getTestId(uri));
@@ -30,10 +30,10 @@ export const handleTestFileDeletion = (
 };
 
 export function handleTestFileCreationOrUpdate(
-    ctrl: vscode.TestController,
-    fileChangedEmitter: vscode.EventEmitter<vscode.Uri>,
+    ctrl: TestController,
+    fileChangedEmitter: EventEmitter<Uri>,
     collection: TestCollection,
-    uri: vscode.Uri
+    uri: Uri
 ) {
     const maybeFile = getOrCreateFile(ctrl, uri, collection);
 
@@ -57,8 +57,8 @@ export function handleTestFileCreationOrUpdate(
 }
 
 export function getOrCreateFile(
-    controller: vscode.TestController,
-    uri: vscode.Uri,
+    controller: TestController,
+    uri: Uri,
     collection: TestCollection
 ) {
     const filePath = uri.fsPath!;

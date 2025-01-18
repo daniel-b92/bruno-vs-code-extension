@@ -1,4 +1,7 @@
-import * as vscode from "vscode";
+import {
+    TestItem as vscodeTestItem,
+    TestController as vscodeTestController,
+} from "vscode";
 import { getTestId, getTestLabel } from "../testTreeHelper";
 import { TestCollection } from "./testCollection";
 
@@ -6,8 +9,8 @@ export class TestDirectory {
     constructor(public path: string) {}
 
     public async updateFromDisk(
-        controller: vscode.TestController,
-        directoryItem: vscode.TestItem,
+        controller: vscodeTestController,
+        directoryItem: vscodeTestItem,
         collection: TestCollection
     ) {
         try {
@@ -19,8 +22,8 @@ export class TestDirectory {
     }
 
     public updateFromContents(
-        controller: vscode.TestController,
-        directoryItem: vscode.TestItem,
+        controller: vscodeTestController,
+        directoryItem: vscodeTestItem,
         collection: TestCollection
     ) {
         const testDirectory = controller.createTestItem(

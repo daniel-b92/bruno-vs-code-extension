@@ -1,4 +1,3 @@
-import * as vscode from "vscode";
 import { TestCollection } from "../model/testCollection";
 import { dirname } from "path";
 import { lstatSync } from "fs";
@@ -7,14 +6,15 @@ import { TestDirectory } from "../model/testDirectory";
 import { getSequence } from "../fileSystem/parser";
 import { TestFile } from "../model/testFile";
 import { getTestfileDescendants } from "../fileSystem/getTestfileDescendants";
+import { TestController, Uri, TestItem as vscodeTestItem } from "vscode";
 
 type PathWithChildren = {
     path: string;
-    childItems: vscode.TestItem[];
+    childItems: vscodeTestItem[];
 };
 
 export async function addAllTestItemsForCollections(
-    controller: vscode.TestController,
+    controller: TestController,
     testCollections: TestCollection[]
 ) {
     for (const collection of testCollections) {
@@ -23,7 +23,7 @@ export async function addAllTestItemsForCollections(
 }
 
 async function addTestItemsForCollection(
-    controller: vscode.TestController,
+    controller: TestController,
     collection: TestCollection
 ) {
     const relevantFiles = await getTestfileDescendants(
@@ -33,15 +33,15 @@ async function addTestItemsForCollection(
         path: path.fsPath,
         childItems: [],
     }));
-    let currentTestItems: vscode.TestItem[];
+    let currentTestItems: vscodeTestItem[];
 
     while (currentPaths.length > 0) {
         currentTestItems = [];
 
         currentPaths.forEach(({ path, childItems }) => {
-            const uri = vscode.Uri.file(path);
+            const uri = Uri.file(path);
             const isFile = lstatSync(path).isFile();
-            let testItem: vscode.TestItem | undefined;
+            let testItem: vscodeTestItem | undefined;
 
             if (!isFile) {
                 testItem = Array.from(collection.testData.keys()).find(
@@ -103,7 +103,7 @@ const getUniquePaths = (arr: PathWithChildren[]) => {
 const switchToParentDirectory = (
     collection: TestCollection,
     pathsWithChildren: PathWithChildren[],
-    currentTestItems: vscode.TestItem[]
+    currentTestItems: vscodeTestItem[]
 ) => {
     const parentsWithDuplicatePaths: PathWithChildren[] = pathsWithChildren
         .map(({ path }) => {

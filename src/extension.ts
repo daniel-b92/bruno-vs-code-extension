@@ -1,4 +1,17 @@
-import * as vscode from "vscode";
+import {
+    EventEmitter,
+    ExtensionContext,
+    TestController,
+    tests,
+    Uri,
+    workspace,
+    TestItem as vscodeTestItem,
+    TestRunProfile,
+    TestRunRequest,
+    CancellationToken,
+    TestRunProfileKind,
+    TextDocument,
+} from "vscode";
 import { TestFile } from "./model/testFile";
 import { TestCollection } from "./model/testCollection";
 import { addTestCollection } from "./vsCodeTestTree/addTestCollection";
@@ -9,24 +22,24 @@ import { startWatchingWorkspace } from "./vsCodeTestTree/startWatchingWorkspace"
 import { addAllTestItemsForCollections } from "./vsCodeTestTree/addAllTestItemsForCollections";
 import { startTestRun } from "./testRun/startTestRun";
 
-export async function activate(context: vscode.ExtensionContext) {
-    const ctrl = vscode.tests.createTestController(
+export async function activate(context: ExtensionContext) {
+    const ctrl = tests.createTestController(
         "brunoCliTestController",
         "Bruno CLI Tests"
     );
     context.subscriptions.push(ctrl);
 
-    const fileChangedEmitter = new vscode.EventEmitter<vscode.Uri>();
+    const fileChangedEmitter = new EventEmitter<Uri>();
     const watchingTests = new Map<
-        vscode.TestItem | "ALL",
-        vscode.TestRunProfile | undefined
+        vscodeTestItem | "ALL",
+        TestRunProfile | undefined
     >();
     let testCollections: TestCollection[] = await getInitialCollections(ctrl);
     fileChangedEmitter.event((uri) => {
         if (watchingTests.has("ALL")) {
             startTestRun(
                 ctrl,
-                new vscode.TestRunRequest(
+                new TestRunRequest(
                     undefined,
                     undefined,
                     watchingTests.get("ALL"),
@@ -37,10 +50,10 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        const include: vscode.TestItem[] = [];
-        let profile: vscode.TestRunProfile | undefined;
+        const include: vscodeTestItem[] = [];
+        let profile: TestRunProfile | undefined;
         for (const [item, thisProfile] of watchingTests) {
-            const cast = item as vscode.TestItem;
+            const cast = item as vscodeTestItem;
             if (cast.uri?.toString() == uri.toString()) {
                 include.push(cast);
                 profile = thisProfile;
@@ -50,15 +63,15 @@ export async function activate(context: vscode.ExtensionContext) {
         if (include.length) {
             startTestRun(
                 ctrl,
-                new vscode.TestRunRequest(include, undefined, profile, true),
+                new TestRunRequest(include, undefined, profile, true),
                 testCollections
             );
         }
     });
 
     const runHandler = (
-        request: vscode.TestRunRequest,
-        cancellation: vscode.CancellationToken
+        request: TestRunRequest,
+        cancellation: CancellationToken
     ) => {
         if (!request.continuous) {
             return startTestRun(ctrl, request, testCollections);
@@ -85,7 +98,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     ctrl.createRunProfile(
         "Run Bruno Tests",
-        vscode.TestRunProfileKind.Run,
+        TestRunProfileKind.Run,
         runHandler,
         true,
         undefined,
@@ -111,7 +124,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     };
 
-    function updateNodeForDocument(e: vscode.TextDocument) {
+    function updateNodeForDocument(e: TextDocument) {
         if (e.uri.scheme !== "file" || !e.uri.path.endsWith(".bru")) {
             return;
         }
@@ -124,19 +137,19 @@ export async function activate(context: vscode.ExtensionContext) {
         );
     }
 
-    for (const document of vscode.workspace.textDocuments) {
+    for (const document of workspace.textDocuments) {
         updateNodeForDocument(document);
     }
 
     context.subscriptions.push(
-        vscode.workspace.onDidOpenTextDocument(updateNodeForDocument),
-        vscode.workspace.onDidChangeTextDocument((e) =>
+        workspace.onDidOpenTextDocument(updateNodeForDocument),
+        workspace.onDidChangeTextDocument((e) =>
             updateNodeForDocument(e.document)
         )
     );
 }
 
-async function getInitialCollections(controller: vscode.TestController) {
+async function getInitialCollections(controller: TestController) {
     const collectionRootDirs = await getAllCollectionRootDirectories();
     const result: TestCollection[] = [];
 
