@@ -1,33 +1,11 @@
 import { EventEmitter, TestController, Uri } from "vscode";
 import { TestCollection } from "../model/testCollection";
-import { getTestId } from "../testTreeHelper";
 import { getSequence } from "../fileSystem/parser";
 import { TestFile } from "../model/testFile";
 import { addTestItem } from "./addTestItem";
-import { createOrUpdateParentItem, getParentItem } from "./parentItemHelper";
+import { createOrUpdateParentItem } from "./parentItemHelper";
 import { dirname } from "path";
-
-export const handleTestFileDeletion = (
-    controller: TestController,
-    collection: TestCollection,
-    fileChangedEmitter: EventEmitter<Uri>,
-    uri: Uri
-) => {
-    controller.items.delete(getTestId(uri));
-    fileChangedEmitter.fire(uri);
-
-    const parentItem = getParentItem(uri, collection);
-    if (parentItem) {
-        parentItem.children.delete(getTestId(uri));
-        fileChangedEmitter.fire(parentItem.uri!);
-    }
-    const keyToDelete = Array.from(collection.testData.keys()).find(
-        (item) => item.uri == uri
-    );
-    if (keyToDelete) {
-        collection.testData.delete(keyToDelete);
-    }
-};
+import { handleTestItemDeletion } from "./handleTestItemDeletion";
 
 export function handleTestFileCreationOrUpdate(
     ctrl: TestController,
@@ -38,7 +16,7 @@ export function handleTestFileCreationOrUpdate(
     const maybeFile = getOrCreateFile(ctrl, uri, collection);
 
     if (!maybeFile) {
-        handleTestFileDeletion(ctrl, collection, fileChangedEmitter, uri);
+        handleTestItemDeletion(ctrl, collection, fileChangedEmitter, uri);
     } else {
         maybeFile.testFile.updateFromDisk(maybeFile.testItem, collection);
         let currentItem = maybeFile.testItem;

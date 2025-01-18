@@ -10,11 +10,9 @@ import {
     getCollectionForTest,
     globPatternForTestfiles,
 } from "../testTreeHelper";
-import {
-    handleTestFileCreationOrUpdate,
-    handleTestFileDeletion,
-} from "./testFileUpdater";
+import { handleTestFileCreationOrUpdate } from "./testFileUpdater";
 import { addAllTestItemsForCollections } from "./addAllTestItemsForCollections";
+import { handleTestItemDeletion } from "./handleTestItemDeletion";
 
 export function startWatchingWorkspace(
     controller: TestController,
@@ -44,7 +42,7 @@ export function startWatchingWorkspace(
         });
         watcher.onDidDelete((uri) => {
             const collection = getCollectionForTest(uri, testCollections);
-            handleTestFileDeletion(
+            handleTestItemDeletion(
                 controller,
                 collection,
                 fileChangedEmitter,

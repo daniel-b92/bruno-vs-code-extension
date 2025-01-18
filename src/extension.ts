@@ -21,6 +21,8 @@ import { getCollectionForTest } from "./testTreeHelper";
 import { startWatchingWorkspace } from "./vsCodeTestTree/startWatchingWorkspace";
 import { addAllTestItemsForCollections } from "./vsCodeTestTree/addAllTestItemsForCollections";
 import { startTestRun } from "./testRun/startTestRun";
+import { existsSync } from "fs";
+import { handleTestItemDeletion } from "./vsCodeTestTree/handleTestItemDeletion";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
@@ -94,6 +96,18 @@ export async function activate(context: ExtensionContext) {
     };
 
     ctrl.refreshHandler = async () => {
+        testCollections.forEach((collection) => {
+            Array.from(collection.testData.keys()).forEach((testItem) => {
+                if (!existsSync(testItem.uri?.fsPath!)) {
+                    handleTestItemDeletion(
+                        ctrl,
+                        collection,
+                        fileChangedEmitter,
+                        testItem.uri!
+                    );
+                }
+            });
+        });
         await addAllTestItemsForCollections(ctrl, testCollections);
     };
 
