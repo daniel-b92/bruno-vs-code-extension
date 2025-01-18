@@ -215,6 +215,7 @@ const getCommandArgs = async (
         ...[
             "--package=@usebruno/cli",
             argForRunCommand,
+            "-r",
             "--reporter-html",
             htmlReportPath,
             "--reporter-json",
