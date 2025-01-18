@@ -14,7 +14,7 @@ import {
 } from "vscode";
 import { TestFile } from "./model/testFile";
 import { TestCollection } from "./model/testCollection";
-import { addTestCollection } from "./vsCodeTestTree/addTestCollection";
+import { addTestCollectionToTestTree } from "./vsCodeTestTree/addTestCollection";
 import { handleTestFileCreationOrUpdate } from "./vsCodeTestTree/testFileUpdater";
 import { getAllCollectionRootDirectories } from "./fileSystem/collectionRootFolderHelper";
 import { getCollectionForTest } from "./testTreeHelper";
@@ -34,7 +34,8 @@ export async function activate(context: ExtensionContext) {
         vscodeTestItem | "ALL",
         TestRunProfile | undefined
     >();
-    let testCollections: TestCollection[] = await getInitialCollections(ctrl);
+    const testCollections: TestCollection[] =
+        await addTestCollectionsToTestTree(ctrl);
     fileChangedEmitter.event((uri) => {
         if (watchingTests.has("ALL")) {
             startTestRun(
@@ -118,7 +119,7 @@ export async function activate(context: ExtensionContext) {
         }
 
         const collection = getCollectionForTest(item.uri!, testCollections);
-        const data = collection.testData.get(item);
+        const data = collection.testDescendants.get(item);
         if (data instanceof TestFile) {
             data.updateFromDisk(item, collection);
         }
@@ -149,12 +150,12 @@ export async function activate(context: ExtensionContext) {
     );
 }
 
-async function getInitialCollections(controller: TestController) {
+async function addTestCollectionsToTestTree(controller: TestController) {
     const collectionRootDirs = await getAllCollectionRootDirectories();
     const result: TestCollection[] = [];
 
     for (const collectionRoot of collectionRootDirs) {
-        result.push(addTestCollection(controller, collectionRoot));
+        result.push(addTestCollectionToTestTree(controller, collectionRoot));
     }
 
     return result;

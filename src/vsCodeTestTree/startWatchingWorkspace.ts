@@ -46,9 +46,9 @@ export function startWatchingWorkspace(
             const collection = getCollectionForTest(uri, testCollections);
             handleTestFileDeletion(
                 controller,
+                collection,
                 fileChangedEmitter,
-                uri,
-                collection
+                uri
             );
         });
 

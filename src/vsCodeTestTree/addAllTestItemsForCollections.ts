@@ -39,12 +39,11 @@ async function addTestItemsForCollection(
         currentTestItems = [];
 
         currentPaths.forEach(({ path, childItems }) => {
-            const uri = Uri.file(path);
             const isFile = lstatSync(path).isFile();
             let testItem: vscodeTestItem | undefined;
 
             if (!isFile) {
-                testItem = Array.from(collection.testData.keys()).find(
+                testItem = Array.from(collection.testDescendants.keys()).find(
                     (item) => item.uri?.fsPath == path
                 );
 

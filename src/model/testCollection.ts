@@ -1,11 +1,9 @@
 import { TestItem as vscodeTestItem } from "vscode";
 import { BrunoTestData } from "../testTreeHelper";
-import { TestDirectory } from "./testDirectory";
 
 export class TestCollection {
-    constructor(public rootDirectory: string, testItem: vscodeTestItem) {
-        this.testData.set(testItem, new TestDirectory(rootDirectory));
+    constructor(public rootDirectory: string, public testItem: vscodeTestItem) {
     }
 
-    public testData = new Map<vscodeTestItem, BrunoTestData>();
+    public testDescendants = new Map<vscodeTestItem, BrunoTestData>();
 }

@@ -2,7 +2,7 @@ import { TestController, Uri } from "vscode";
 import { TestCollection } from "../model/testCollection";
 import { getTestId, getTestLabel } from "../testTreeHelper";
 
-export const addTestCollection = (
+export const addTestCollectionToTestTree = (
     controller: TestController,
     collectionRootDir: string
 ) => {

@@ -9,9 +9,9 @@ import { dirname } from "path";
 
 export const handleTestFileDeletion = (
     controller: TestController,
+    collection: TestCollection,
     fileChangedEmitter: EventEmitter<Uri>,
-    uri: Uri,
-    collection: TestCollection
+    uri: Uri
 ) => {
     controller.items.delete(getTestId(uri));
     fileChangedEmitter.fire(uri);
@@ -21,11 +21,11 @@ export const handleTestFileDeletion = (
         parentItem.children.delete(getTestId(uri));
         fileChangedEmitter.fire(parentItem.uri!);
     }
-    const keyToDelete = Array.from(collection.testData.keys()).find(
+    const keyToDelete = Array.from(collection.testDescendants.keys()).find(
         (item) => item.uri == uri
     );
     if (keyToDelete) {
-        collection.testData.delete(keyToDelete);
+        collection.testDescendants.delete(keyToDelete);
     }
 };
 
@@ -38,7 +38,7 @@ export function handleTestFileCreationOrUpdate(
     const maybeFile = getOrCreateFile(ctrl, uri, collection);
 
     if (!maybeFile) {
-        handleTestFileDeletion(ctrl, fileChangedEmitter, uri, collection);
+        handleTestFileDeletion(ctrl, collection, fileChangedEmitter, uri);
     } else {
         maybeFile.testFile.updateFromDisk(maybeFile.testItem, collection);
         let currentItem = maybeFile.testItem;
@@ -68,20 +68,20 @@ export function getOrCreateFile(
         return undefined;
     }
 
-    const existing = Array.from(collection.testData.keys()).find(
+    const existing = Array.from(collection.testDescendants.keys()).find(
         (item) => item.uri?.fsPath == uri.fsPath
     );
     if (existing) {
         return {
             testItem: existing,
-            testFile: collection.testData.get(existing) as TestFile,
+            testFile: collection.testDescendants.get(existing) as TestFile,
         };
     }
 
     const testFile = new TestFile(filePath, sequence);
     const testItem = addTestItem(controller, collection, testFile);
 
-    const parentItem = Array.from(collection.testData.keys()).find(
+    const parentItem = Array.from(collection.testDescendants.keys()).find(
         (item) => dirname(filePath) == item.uri?.fsPath
     );
     if (parentItem) {
