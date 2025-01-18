@@ -10,7 +10,7 @@ import {
     getCollectionForTest,
     globPatternForTestfiles,
 } from "../testTreeHelper";
-import { handleTestFileCreationOrUpdate } from "./testFileUpdater";
+import { handleTestFileCreationOrUpdate } from "./handleTestFileCreationOrUpdate";
 import { addAllTestItemsForCollections } from "./addAllTestItemsForCollections";
 import { handleTestItemDeletion } from "./handleTestItemDeletion";
 

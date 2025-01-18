@@ -34,7 +34,7 @@ export function handleTestFileCreationOrUpdate(
     }
 }
 
-export function getOrCreateFile(
+function getOrCreateFile(
     controller: TestController,
     uri: Uri,
     collection: TestCollection
