@@ -43,7 +43,7 @@ async function addTestItemsForCollection(
             let testItem: vscodeTestItem | undefined;
 
             if (!isFile) {
-                testItem = Array.from(collection.testDescendants.keys()).find(
+                testItem = Array.from(collection.testData.keys()).find(
                     (item) => item.uri?.fsPath == path
                 );
 

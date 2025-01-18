@@ -119,7 +119,7 @@ export async function activate(context: ExtensionContext) {
         }
 
         const collection = getCollectionForTest(item.uri!, testCollections);
-        const data = collection.testDescendants.get(item);
+        const data = collection.testData.get(item);
         if (data instanceof TestFile) {
             data.updateFromDisk(item, collection);
         }

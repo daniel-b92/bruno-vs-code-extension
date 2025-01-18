@@ -25,13 +25,13 @@ export const addTestItem = (
     }
 
     controller.items.add(vsCodeItem);
-    const parentItem = Array.from(collection.testDescendants.keys()).find(
+    const parentItem = Array.from(collection.testData.keys()).find(
         (existingItem) => dirname(item.path) == existingItem.uri?.fsPath
     );
     if (parentItem) {
         parentItem.children.add(vsCodeItem);
     }
 
-    collection.testDescendants.set(vsCodeItem, item);
+    collection.testData.set(vsCodeItem, item);
     return vsCodeItem;
 };

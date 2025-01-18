@@ -19,6 +19,6 @@ export class TestFile {
             this.sequence = sequence;
         }
         fileItem.sortText = getSortText(this);
-        collection.testDescendants.set(fileItem, this);
+        collection.testData.set(fileItem, this);
     }
 }

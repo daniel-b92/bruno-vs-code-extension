@@ -31,6 +31,6 @@ export class TestDirectory {
             getTestLabel(directoryItem.uri!),
             directoryItem.uri
         );
-        collection.testDescendants.set(testDirectory, this);
+        collection.testData.set(testDirectory, this);
     }
 }

@@ -26,6 +26,6 @@ export const createOrUpdateParentItem = (
 };
 
 export const getParentItem = (uri: Uri, collection: TestCollection) =>
-    Array.from(collection.testDescendants.keys()).find(
+    Array.from(collection.testData.keys()).find(
         (item) => item.uri?.fsPath == dirname(uri.fsPath)
     );

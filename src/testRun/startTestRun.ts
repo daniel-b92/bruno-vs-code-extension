@@ -34,7 +34,7 @@ export const startTestRun = (
             }
 
             const collection = getCollectionForTest(test.uri!, testCollections);
-            const data = collection.testDescendants.get(test)!;
+            const data = collection.testData.get(test)!;
             run.enqueued(test);
             queue.push({ test, data });
         }

@@ -21,11 +21,11 @@ export const handleTestFileDeletion = (
         parentItem.children.delete(getTestId(uri));
         fileChangedEmitter.fire(parentItem.uri!);
     }
-    const keyToDelete = Array.from(collection.testDescendants.keys()).find(
+    const keyToDelete = Array.from(collection.testData.keys()).find(
         (item) => item.uri == uri
     );
     if (keyToDelete) {
-        collection.testDescendants.delete(keyToDelete);
+        collection.testData.delete(keyToDelete);
     }
 };
 
@@ -68,20 +68,20 @@ export function getOrCreateFile(
         return undefined;
     }
 
-    const existing = Array.from(collection.testDescendants.keys()).find(
+    const existing = Array.from(collection.testData.keys()).find(
         (item) => item.uri?.fsPath == uri.fsPath
     );
     if (existing) {
         return {
             testItem: existing,
-            testFile: collection.testDescendants.get(existing) as TestFile,
+            testFile: collection.testData.get(existing) as TestFile,
         };
     }
 
     const testFile = new TestFile(filePath, sequence);
     const testItem = addTestItem(controller, collection, testFile);
 
-    const parentItem = Array.from(collection.testDescendants.keys()).find(
+    const parentItem = Array.from(collection.testData.keys()).find(
         (item) => dirname(filePath) == item.uri?.fsPath
     );
     if (parentItem) {
