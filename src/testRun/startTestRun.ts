@@ -1,5 +1,9 @@
 import { TestCollection } from "../model/testCollection";
-import { BrunoTestData, getCollectionForTest } from "../testTreeHelper";
+import {
+    BrunoTestData,
+    getCollectionForTest,
+    getFullNameForTestReport,
+} from "../testTreeHelper";
 import { showHtmlReport } from "./showHtmlReport";
 import { getCollectionRootDir } from "../fileSystem/collectionRootFolderHelper";
 import { existsSync, unlinkSync } from "fs";
@@ -15,6 +19,8 @@ import {
     TestItemCollection as vscodeTestItemCollection,
     workspace,
 } from "vscode";
+import { TestFile } from "../model/testFile";
+import { getTestfileDescendants } from "../fileSystem/getTestfileDescendants";
 
 const environmentConfigKey = "brunoTestExtension.testRunEnvironment";
 
@@ -41,6 +47,8 @@ export const startTestRun = (
 
     const runTestQueue = async () => {
         for (const { test, data } of queue) {
+            const collection = getCollectionForTest(test.uri!, testCollections);
+
             run.appendOutput(`Running ${test.label}\r\n`);
             if (run.token.isCancellationRequested) {
                 run.appendOutput(`Canceled ${test.label}\r\n`);
@@ -68,7 +76,13 @@ export const startTestRun = (
                 run.appendOutput(
                     `Saving the HTML test report to file '${htmlReportPath}'.\r\n`
                 );
-                await runTestStructure(test, data, run, testEnvironment);
+                await runTestStructure(
+                    test,
+                    data,
+                    run,
+                    collection,
+                    testEnvironment
+                );
                 if (existsSync(htmlReportPath)) {
                     showHtmlReport(htmlReportPath, data);
                 }
@@ -95,6 +109,7 @@ async function runTestStructure(
     item: vscodeTestItem,
     data: BrunoTestData,
     options: TestRun,
+    collection: TestCollection,
     testEnvironment?: string
 ): Promise<void> {
     const collectionRootDir = await getCollectionRootDir(data.path);
@@ -102,6 +117,13 @@ async function runTestStructure(
     if (existsSync(htmlReportPath)) {
         unlinkSync(htmlReportPath);
     }
+
+    const testFileDescendantUris = await getTestfileDescendants(data.path);
+    const testFileDescendants = Array.from(collection.testData.entries())
+        .filter((item) =>
+            testFileDescendantUris.some((uri) => uri == item[0].uri)
+        )
+        .map((item) => ({ testItem: item[0], testData: item[1] as TestFile }));
 
     if (data instanceof TestDirectory) {
         getAllDescendants(item).forEach(
@@ -146,6 +168,21 @@ async function runTestStructure(
             options.appendOutput(
                 (data.toString() as string).replace(/\n/g, "\r\n")
             );
+            const testFileDescendantFromReport = testFileDescendants.find(
+                (item) =>
+                    (data as string).includes(
+                        getFullNameForTestReport(item.testData)
+                    )
+            );
+            if (testFileDescendantFromReport) {
+                options.appendOutput(
+                    `Found testFileDescendant in report data: ${JSON.stringify(
+                        testFileDescendantFromReport,
+                        null,
+                        2
+                    ).replace(/\n/, "\r\n")}`
+                );
+            }
         });
 
         childProcess.stderr.on("data", (data) => {
