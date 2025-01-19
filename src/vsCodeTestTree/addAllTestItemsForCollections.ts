@@ -3,7 +3,7 @@ import { dirname } from "path";
 import { lstatSync } from "fs";
 import { addTestItem } from "./addTestItem";
 import { TestDirectory } from "../model/testDirectory";
-import { getName, getSequence } from "../fileSystem/testFileParser";
+import { getSequence } from "../fileSystem/parser";
 import { TestFile } from "../model/testFile";
 import { getTestfileDescendants } from "../fileSystem/getTestfileDescendants";
 import { TestController, Uri, TestItem as vscodeTestItem } from "vscode";
@@ -60,12 +60,11 @@ async function addTestItemsForCollection(
                 );
             } else {
                 const sequence = getSequence(path);
-                const name = getName(path);
-                if (sequence && name) {
+                if (sequence) {
                     testItem = addTestItem(
                         controller,
                         collection,
-                        new TestFile(path, sequence, name)
+                        new TestFile(path, sequence)
                     );
                 }
             }

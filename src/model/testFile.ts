@@ -1,10 +1,10 @@
 import { TestItem as vscodeTestItem } from "vscode";
 import { getSortText } from "../testTreeHelper";
-import { getSequence } from "../fileSystem/testFileParser";
+import { getSequence } from "../fileSystem/parser";
 import { TestCollection } from "./testCollection";
 
 export class TestFile {
-    constructor(public path: string, public sequence: number, public name: string) {}
+    constructor(public path: string, public sequence: number) {}
 
     /**
      * Updates the data for an existing test file.
