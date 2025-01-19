@@ -1,6 +1,6 @@
 import { EventEmitter, TestController, Uri } from "vscode";
 import { TestCollection } from "../model/testCollection";
-import { getSequence } from "../fileSystem/parser";
+import { getSequence } from "../fileSystem/testFileParser";
 import { TestFile } from "../model/testFile";
 import { addTestItem } from "./addTestItem";
 import { createOrUpdateParentItem } from "./parentItemHelper";

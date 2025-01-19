@@ -3,7 +3,7 @@ import { dirname } from "path";
 import { lstatSync } from "fs";
 import { addTestItem } from "./addTestItem";
 import { TestDirectory } from "../model/testDirectory";
-import { getSequence } from "../fileSystem/parser";
+import { getSequence } from "../fileSystem/testFileParser";
 import { TestFile } from "../model/testFile";
 import { getTestfileDescendants } from "../fileSystem/getTestfileDescendants";
 import { TestController, Uri, TestItem as vscodeTestItem } from "vscode";

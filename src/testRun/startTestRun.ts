@@ -2,7 +2,7 @@ import { TestCollection } from "../model/testCollection";
 import { BrunoTestData, getCollectionForTest } from "../testTreeHelper";
 import { showHtmlReport } from "./showHtmlReport";
 import { getCollectionRootDir } from "../fileSystem/collectionRootFolderHelper";
-import { existsSync, unlinkSync } from "fs";
+import { existsSync, lstatSync, unlinkSync } from "fs";
 import { spawn } from "child_process";
 import { dirname, resolve } from "path";
 import { TestDirectory } from "../model/testDirectory";
@@ -15,6 +15,7 @@ import {
     TestItemCollection as vscodeTestItemCollection,
     workspace,
 } from "vscode";
+import { getTestFilesWithFailures } from "./jsonReportParser";
 
 const environmentConfigKey = "brunoTestExtension.testRunEnvironment";
 
@@ -103,6 +104,11 @@ async function runTestStructure(
         unlinkSync(htmlReportPath);
     }
 
+    const jsonReportPath = getJsonReportPath(collectionRootDir);
+    if (existsSync(jsonReportPath)) {
+        unlinkSync(jsonReportPath);
+    }
+
     if (data instanceof TestDirectory) {
         getAllDescendants(item).forEach(
             (descendant) => (descendant.busy = true)
@@ -111,7 +117,7 @@ async function runTestStructure(
     const commandArgs = await getCommandArgs(
         item,
         htmlReportPath,
-        getJsonReportPath(collectionRootDir),
+        jsonReportPath,
         testEnvironment
     );
 
@@ -173,20 +179,36 @@ async function runTestStructure(
                 }
             } else {
                 options.failed(item, [new TestMessage("Testrun failed")]);
-
                 if (data instanceof TestDirectory) {
+                    const failedTestFiles =
+                        getTestFilesWithFailures(jsonReportPath);
+
                     getAllDescendants(item).forEach((child) => {
+                        const childPath = child.uri?.fsPath!;
                         child.busy = false;
-                        options.failed(
-                            child,
-                            new TestMessage(
-                                `Testrun process exited with code '${code}'.`
-                            )
-                        );
+
+                        if (lstatSync(childPath).isFile()) {
+                            if (
+                                failedTestFiles.some((failed) =>
+                                    childPath.includes(failed)
+                                )
+                            ) {
+                                options.failed(
+                                    child,
+                                    new TestMessage("test failed")
+                                );
+                            } else {
+                                options.passed(child);
+                            }
+                        } else {
+                            options.skipped(child);
+                        }
                     });
                 }
             }
-
+            if (existsSync(jsonReportPath)) {
+                unlinkSync(jsonReportPath);
+            }
             resolve();
         });
     });

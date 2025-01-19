@@ -1,6 +1,6 @@
 import { TestItem as vscodeTestItem } from "vscode";
 import { getSortText } from "../testTreeHelper";
-import { getSequence } from "../fileSystem/parser";
+import { getSequence } from "../fileSystem/testFileParser";
 import { TestCollection } from "./testCollection";
 
 export class TestFile {
