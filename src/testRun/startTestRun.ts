@@ -180,30 +180,7 @@ async function runTestStructure(
             } else {
                 options.failed(item, [new TestMessage("Testrun failed")]);
                 if (data instanceof TestDirectory) {
-                    const failedTestFiles =
-                        getTestFilesWithFailures(jsonReportPath);
-
-                    getAllDescendants(item).forEach((child) => {
-                        const childPath = child.uri?.fsPath!;
-                        child.busy = false;
-
-                        if (lstatSync(childPath).isFile()) {
-                            if (
-                                failedTestFiles.some((failed) =>
-                                    childPath.includes(failed)
-                                )
-                            ) {
-                                options.failed(
-                                    child,
-                                    new TestMessage("test failed")
-                                );
-                            } else {
-                                options.passed(child);
-                            }
-                        } else {
-                            options.skipped(child);
-                        }
-                    });
+                    setStatusForDescendantItems(item, jsonReportPath, options);
                 }
             }
             if (existsSync(jsonReportPath)) {
@@ -213,6 +190,53 @@ async function runTestStructure(
         });
     });
 }
+
+const setStatusForDescendantItems = (
+    item: vscodeTestItem,
+    jsonReportPath: string,
+    options: TestRun
+) => {
+    const failedTestFiles = getTestFilesWithFailures(jsonReportPath);
+
+    getAllDescendants(item).forEach((child) => {
+        const childPath = child.uri?.fsPath!;
+        child.busy = false;
+
+        if (lstatSync(childPath).isFile()) {
+            const maybeTestFailure = failedTestFiles.find((failed) =>
+                childPath.includes(failed.file)
+            );
+
+            if (maybeTestFailure) {
+                options.failed(
+                    child,
+                    getTestMessageForFailedTest(
+                        maybeTestFailure.testResults,
+                        maybeTestFailure.request,
+                        maybeTestFailure.response
+                    )
+                );
+            } else {
+                options.passed(child);
+            }
+        } else {
+            options.skipped(child);
+        }
+    });
+};
+
+const getTestMessageForFailedTest = (
+    testResults: string,
+    request: string,
+    response: string
+) =>
+    new TestMessage(
+        `testResults:${testResults}
+request:
+${request}
+response:
+${response}`
+    );
 
 const getHtmlReportPath = (collectionRootDir: string) =>
     resolve(dirname(collectionRootDir), "results.html");
