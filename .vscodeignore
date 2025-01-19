@@ -1,6 +1,8 @@
-**/*.ts
-**/tsconfig.json
-samples
+.vscode
+node_modules
+out/
+src/
 
-**/results.html
-**/*results.json
+tsconfig.json
+samples/
+webpack.config.js
