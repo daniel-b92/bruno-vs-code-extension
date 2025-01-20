@@ -17,7 +17,7 @@ import { TestCollection } from "./model/testCollection";
 import { addTestCollectionToTestTree } from "./vsCodeTestTree/addTestCollection";
 import { handleTestFileCreationOrUpdate } from "./vsCodeTestTree/handleTestFileCreationOrUpdate";
 import { getAllCollectionRootDirectories } from "./fileSystem/collectionRootFolderHelper";
-import { getCollectionForTest } from "./testTreeHelper";
+import { getCollectionForTest, getTestId } from "./testTreeHelper";
 import { startWatchingWorkspace } from "./vsCodeTestTree/startWatchingWorkspace";
 import { addAllTestItemsForCollections } from "./vsCodeTestTree/addAllTestItemsForCollections";
 import { startTestRun } from "./testRun/startTestRun";
@@ -36,8 +36,8 @@ export async function activate(context: ExtensionContext) {
         vscodeTestItem | "ALL",
         TestRunProfile | undefined
     >();
-    const testCollections: TestCollection[] =
-        await addTestCollectionsToTestTree(ctrl);
+    const testCollections: TestCollection[] = [];
+    await addMissingTestCollectionsToTestTree(ctrl, testCollections);
     fileChangedEmitter.event((uri) => {
         if (watchingTests.has("ALL")) {
             startTestRun(
@@ -97,17 +97,25 @@ export async function activate(context: ExtensionContext) {
 
     ctrl.refreshHandler = async () => {
         testCollections.forEach((collection) => {
-            Array.from(collection.testData.keys()).forEach((testItem) => {
-                if (!existsSync(testItem.uri?.fsPath!)) {
-                    handleTestItemDeletion(
-                        ctrl,
-                        collection,
-                        fileChangedEmitter,
-                        testItem.uri!
-                    );
-                }
-            });
+            if (existsSync(collection.rootDirectory)) {
+                Array.from(collection.testData.keys()).forEach((testItem) => {
+                    if (!existsSync(testItem.uri?.fsPath!)) {
+                        handleTestItemDeletion(
+                            ctrl,
+                            collection,
+                            fileChangedEmitter,
+                            testItem.uri!
+                        );
+                    }
+                });
+            } else {
+                const collectionUri = Uri.file(collection.rootDirectory);
+                testCollections.splice(testCollections.indexOf(collection), 1);
+                ctrl.items.delete(getTestId(collectionUri));
+                fileChangedEmitter.fire(collectionUri);
+            }
         });
+        await addMissingTestCollectionsToTestTree(ctrl, testCollections);
         await addAllTestItemsForCollections(ctrl, testCollections);
     };
 
@@ -164,13 +172,22 @@ export async function activate(context: ExtensionContext) {
     );
 }
 
-async function addTestCollectionsToTestTree(controller: TestController) {
+async function addMissingTestCollectionsToTestTree(
+    controller: TestController,
+    currentCollections: TestCollection[]
+) {
     const collectionRootDirs = await getAllCollectionRootDirectories();
-    const result: TestCollection[] = [];
 
-    for (const collectionRoot of collectionRootDirs) {
-        result.push(addTestCollectionToTestTree(controller, collectionRoot));
-    }
-
-    return result;
+    collectionRootDirs
+        .filter(
+            (dir) =>
+                !currentCollections.some(
+                    (collection) => collection.rootDirectory == dir
+                )
+        )
+        .forEach((toAdd) =>
+            currentCollections.push(
+                addTestCollectionToTestTree(controller, toAdd)
+            )
+        );
 }
