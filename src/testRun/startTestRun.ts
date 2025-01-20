@@ -15,7 +15,7 @@ import {
     TestItemCollection as vscodeTestItemCollection,
     workspace,
 } from "vscode";
-import { getTestFilesWithFailures } from "./jsonReportParser";
+import { getTestFilesWithFailures as getFailedTests } from "./jsonReportParser";
 
 const environmentConfigKey = "brunoTestExtension.testRunEnvironment";
 
@@ -196,14 +196,14 @@ const setStatusForDescendantItems = (
     jsonReportPath: string,
     options: TestRun
 ) => {
-    const failedTestFiles = getTestFilesWithFailures(jsonReportPath);
+    const failedTests = getFailedTests(jsonReportPath);
 
     getAllDescendants(item).forEach((child) => {
         const childPath = child.uri?.fsPath!;
         child.busy = false;
 
         if (lstatSync(childPath).isFile()) {
-            const maybeTestFailure = failedTestFiles.find((failed) =>
+            const maybeTestFailure = failedTests.find((failed) =>
                 childPath.includes(failed.file)
             );
 
