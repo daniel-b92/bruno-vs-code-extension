@@ -1,11 +1,10 @@
 import { TestCollection } from "../model/testCollection";
 import { dirname } from "path";
-import { lstatSync } from "fs";
 import { addTestItem } from "./addTestItem";
 import { TestDirectory } from "../model/testDirectory";
 import { getSequence } from "../fileSystem/testFileParser";
 import { TestFile } from "../model/testFile";
-import { getTestfileDescendants } from "../fileSystem/getTestfileDescendants";
+import { getTestFileDescendants } from "../fileSystem/getTestFileDescendants";
 import { TestController, Uri, TestItem as vscodeTestItem } from "vscode";
 
 type PathWithChildren = {
@@ -26,51 +25,44 @@ async function addTestItemsForCollection(
     controller: TestController,
     collection: TestCollection
 ) {
-    const relevantFiles = await getTestfileDescendants(
+    const relevantFiles = await getTestFileDescendants(
         collection.rootDirectory
     );
-    let currentPaths: PathWithChildren[] = relevantFiles.map((path) => ({
-        path: path.fsPath,
-        childItems: [],
-    }));
-    let currentTestItems: vscodeTestItem[];
+    const testFileItems = addItemsForTestFiles(
+        controller,
+        collection,
+        relevantFiles
+    );
+
+    let currentPaths = switchToParentDirectory(
+        collection,
+        relevantFiles.map((path) => ({
+            path: path.fsPath,
+            childItems: [],
+        })),
+        testFileItems
+    );
 
     while (currentPaths.length > 0) {
-        currentTestItems = [];
+        const currentTestItems: vscodeTestItem[] = [];
 
         currentPaths.forEach(({ path, childItems }) => {
-            const isFile = lstatSync(path).isFile();
-            let testItem: vscodeTestItem | undefined;
+            const maybeExistingTestItem = Array.from(
+                collection.testData.keys()
+            ).find((item) => item.uri?.fsPath == path);
 
-            if (!isFile) {
-                testItem = Array.from(collection.testData.keys()).find(
-                    (item) => item.uri?.fsPath == path
-                );
+            const testItem = maybeExistingTestItem
+                ? maybeExistingTestItem
+                : addTestItem(
+                      controller,
+                      collection,
+                      new TestDirectory(path) // test files should not be relevant after switching to the parent directory at least once
+                  );
 
-                if (!testItem) {
-                    testItem = addTestItem(
-                        controller,
-                        collection,
-                        new TestDirectory(path)
-                    );
-                }
-
-                childItems.forEach((childItem) =>
-                    testItem!.children.add(childItem)
-                );
-            } else {
-                const sequence = getSequence(path);
-                if (sequence) {
-                    testItem = addTestItem(
-                        controller,
-                        collection,
-                        new TestFile(path, sequence)
-                    );
-                }
-            }
-            if (testItem) {
-                currentTestItems.push(testItem);
-            }
+            childItems.forEach((childItem) =>
+                testItem!.children.add(childItem)
+            );
+            currentTestItems.push(testItem);
         });
 
         currentPaths = switchToParentDirectory(
@@ -81,21 +73,29 @@ async function addTestItemsForCollection(
     }
 }
 
-const getUniquePaths = (arr: PathWithChildren[]) => {
-    let result: PathWithChildren[] = [];
+const addItemsForTestFiles = (
+    controller: TestController,
+    collection: TestCollection,
+    testFiles: Uri[]
+) => {
+    const result: vscodeTestItem[] = [];
 
-    arr.forEach(({ path, childItems }) => {
-        if (!result.some((val) => val.path == path)) {
-            result.push({ path, childItems });
-        } else {
-            const arrayIndex = result.findIndex((val) => val.path == path);
-            result[arrayIndex] = {
-                path,
-                childItems: result[arrayIndex].childItems.concat(childItems),
-            };
-        }
-    });
-
+    testFiles
+        .map((uri) => ({
+            path: uri.fsPath,
+            childItems: [],
+        }))
+        .forEach(({ path }) => {
+            const sequence = getSequence(path);
+            if (sequence) {
+                const testItem = addTestItem(
+                    controller,
+                    collection,
+                    new TestFile(path, sequence)
+                );
+                result.push(testItem);
+            }
+        });
     return result;
 };
 
@@ -118,4 +118,22 @@ const switchToParentDirectory = (
         .filter(({ path }) => path.includes(collection.rootDirectory));
 
     return getUniquePaths(parentsWithDuplicatePaths);
+};
+
+const getUniquePaths = (arr: PathWithChildren[]) => {
+    let result: PathWithChildren[] = [];
+
+    arr.forEach(({ path, childItems }) => {
+        if (!result.some((val) => val.path == path)) {
+            result.push({ path, childItems });
+        } else {
+            const arrayIndex = result.findIndex((val) => val.path == path);
+            result[arrayIndex] = {
+                path,
+                childItems: result[arrayIndex].childItems.concat(childItems),
+            };
+        }
+    });
+
+    return result;
 };
