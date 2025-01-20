@@ -117,16 +117,21 @@ const setStatusForDescendantItems = async (
         testDirectoryItem
     ).filter((descendant) => lstatSync(descendant.uri!.fsPath).isFile());
     // 'testfile' field from the JSON report does not always match the absolute file path
-    const failedTests = getFailedTests(jsonReportPath).map(
-        ({ file, request, response, testResults }) => ({
+    const failedTests = getFailedTests(jsonReportPath)
+        .map(({ file, request, response, testResults }) => ({
             item: testFileDescendants.find((descendant) =>
                 descendant.uri!.fsPath.includes(file)
-            ) as vscodeTestItem,
+            ),
             request,
             response,
             testResults,
-        })
-    );
+        }))
+        .filter((failed) => failed.item != undefined) as {
+        item: vscodeTestItem;
+        request: string;
+        response: string;
+        testResults: string;
+    }[];
 
     getTestItemDescendants(testDirectoryItem).forEach((child) => {
         const childPath = child.uri?.fsPath!;
