@@ -7,6 +7,7 @@ import { TestDirectory } from "../model/testDirectory";
 import { TestMessage, TestRun, TestItem as vscodeTestItem } from "vscode";
 import { getTestFilesWithFailures as getFailedTests } from "./jsonReportParser";
 import { getHtmlReportPath } from "./startTestRun";
+import { getTestItemDescendants } from "../vsCodeTestTree/getTestItemDescendants";
 
 export async function runTestStructure(
     item: vscodeTestItem,
@@ -26,7 +27,7 @@ export async function runTestStructure(
     }
 
     if (data instanceof TestDirectory) {
-        getAllDescendants(item).forEach(
+        getTestItemDescendants(item).forEach(
             (descendant) => (descendant.busy = true)
         );
     }
@@ -56,7 +57,7 @@ export async function runTestStructure(
             options.skipped(item);
 
             if (data instanceof TestDirectory) {
-                getAllDescendants(item).forEach((child) => {
+                getTestItemDescendants(item).forEach((child) => {
                     child.busy = false;
                     options.skipped(child);
                 });
@@ -88,7 +89,7 @@ export async function runTestStructure(
                 options.passed(item, duration);
 
                 if (data instanceof TestDirectory) {
-                    getAllDescendants(item).forEach((child) => {
+                    getTestItemDescendants(item).forEach((child) => {
                         child.busy = false;
                         options.passed(child);
                     });
@@ -112,9 +113,9 @@ const setStatusForDescendantItems = async (
     jsonReportPath: string,
     options: TestRun
 ) => {
-    const testFileDescendants = getAllDescendants(testDirectoryItem).filter(
-        (descendant) => lstatSync(descendant.uri!.fsPath).isFile()
-    );
+    const testFileDescendants = getTestItemDescendants(
+        testDirectoryItem
+    ).filter((descendant) => lstatSync(descendant.uri!.fsPath).isFile());
     // 'testfile' field from the JSON report does not always match the absolute file path
     const failedTests = getFailedTests(jsonReportPath).map(
         ({ file, request, response, testResults }) => ({
@@ -127,7 +128,7 @@ const setStatusForDescendantItems = async (
         })
     );
 
-    getAllDescendants(testDirectoryItem).forEach((child) => {
+    getTestItemDescendants(testDirectoryItem).forEach((child) => {
         const childPath = child.uri?.fsPath!;
         child.busy = false;
 
@@ -201,28 +202,6 @@ const getCommandArgs = async (
 
     if (testEnvironment) {
         result.push(...["--env", testEnvironment]);
-    }
-
-    return result;
-};
-
-const getAllDescendants = (testItem: vscodeTestItem) => {
-    let result: vscodeTestItem[] = [];
-    let currentChildItems = Array.from(testItem.children).map(
-        (item) => item[1]
-    );
-
-    while (currentChildItems.length > 0) {
-        result = result.concat(currentChildItems);
-        const nextDepthLevelDescendants: vscodeTestItem[] = [];
-
-        currentChildItems.forEach((item) =>
-            item.children.forEach((child) => {
-                nextDepthLevelDescendants.push(child);
-            })
-        );
-
-        currentChildItems = nextDepthLevelDescendants;
     }
 
     return result;
