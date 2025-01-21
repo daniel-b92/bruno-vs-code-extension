@@ -13,6 +13,7 @@ import {
 import { handleTestFileCreationOrUpdate } from "./handleTestFileCreationOrUpdate";
 import { addAllTestItemsForCollections } from "./addAllTestItemsForCollections";
 import { handleTestItemDeletion } from "./handleTestItemDeletion";
+import { isValidTestFileFromCollections } from "./isFileValidTestFile";
 
 export function startWatchingWorkspace(
     controller: TestController,
@@ -23,31 +24,37 @@ export function startWatchingWorkspace(
         const watcher = workspace.createFileSystemWatcher(pattern);
 
         watcher.onDidCreate((uri) => {
-            const collection = getCollectionForTest(uri, testCollections);
-            handleTestFileCreationOrUpdate(
-                controller,
-                fileChangedEmitter,
-                collection,
-                uri
-            );
+            if (isValidTestFileFromCollections(uri, testCollections)) {
+                const collection = getCollectionForTest(uri, testCollections);
+                handleTestFileCreationOrUpdate(
+                    controller,
+                    fileChangedEmitter,
+                    collection,
+                    uri
+                );
+            }
         });
         watcher.onDidChange((uri) => {
-            const collection = getCollectionForTest(uri, testCollections);
-            handleTestFileCreationOrUpdate(
-                controller,
-                fileChangedEmitter,
-                collection,
-                uri
-            );
+            if (isValidTestFileFromCollections(uri, testCollections)) {
+                const collection = getCollectionForTest(uri, testCollections);
+                handleTestFileCreationOrUpdate(
+                    controller,
+                    fileChangedEmitter,
+                    collection,
+                    uri
+                );
+            }
         });
         watcher.onDidDelete((uri) => {
-            const collection = getCollectionForTest(uri, testCollections);
-            handleTestItemDeletion(
-                controller,
-                collection,
-                fileChangedEmitter,
-                uri
-            );
+            if (isValidTestFileFromCollections(uri, testCollections)) {
+                const collection = getCollectionForTest(uri, testCollections);
+                handleTestItemDeletion(
+                    controller,
+                    collection,
+                    fileChangedEmitter,
+                    uri
+                );
+            }
         });
 
         addAllTestItemsForCollections(controller, testCollections);

@@ -23,6 +23,7 @@ import { addAllTestItemsForCollections } from "./vsCodeTestTree/addAllTestItemsF
 import { startTestRun } from "./testRun/startTestRun";
 import { existsSync } from "fs";
 import { handleTestItemDeletion } from "./vsCodeTestTree/handleTestItemDeletion";
+import { isValidTestFileFromCollections } from "./vsCodeTestTree/isFileValidTestFile";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
@@ -148,7 +149,7 @@ export async function activate(context: ExtensionContext) {
     };
 
     function updateNodeForDocument(e: TextDocument) {
-        if (e.uri.scheme !== "file" || !e.uri.path.endsWith(".bru")) {
+        if (!isValidTestFileFromCollections(e.uri, testCollections)) {
             return;
         }
 
