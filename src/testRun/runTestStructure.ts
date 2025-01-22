@@ -5,7 +5,7 @@ import { spawn } from "child_process";
 import { dirname, resolve } from "path";
 import { TestDirectory } from "../model/testDirectory";
 import { TestMessage, TestRun, TestItem as vscodeTestItem } from "vscode";
-import { getTestFilesWithFailures as getFailedTests } from "./jsonReportParser";
+import { getTestFilesWithFailures } from "./jsonReportParser";
 import { getHtmlReportPath } from "./startTestRun";
 import { getTestItemDescendants } from "../vsCodeTestTree/getTestItemDescendants";
 
@@ -108,17 +108,30 @@ export async function runTestStructure(
     });
 }
 
-const setStatusForDescendantItems = async (
+const setStatusForDescendantItems = (
     testDirectoryItem: vscodeTestItem,
     jsonReportPath: string,
     options: TestRun
 ) => {
+    if (!existsSync(jsonReportPath)) {
+        options.appendOutput(
+            "Could not find JSON report file.\r\n"
+        );
+        options.appendOutput("Therefore cannot determine which child test items actually failed. Will status skipped for all.\r\n")
+        getTestItemDescendants(testDirectoryItem).forEach((child) => {
+            child.busy = false;
+            options.skipped(child);
+        });
+        return;
+    }
+
     const testFileDescendants = getTestItemDescendants(
         testDirectoryItem
     ).filter((descendant) => lstatSync(descendant.uri!.fsPath).isFile());
-    // 'testfile' field from the JSON report does not always match the absolute file path
-    const failedTests = getFailedTests(jsonReportPath)
+
+    const failedTests = getTestFilesWithFailures(jsonReportPath)
         .map(({ file, request, response, testResults }) => ({
+            // 'testfile' field from the JSON report does not always match the absolute file path
             item: testFileDescendants.find((descendant) =>
                 descendant.uri!.fsPath.includes(file)
             ),
