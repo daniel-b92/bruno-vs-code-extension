@@ -43,6 +43,7 @@ export async function runTestStructure(
         const start = Date.now();
         const childProcess = spawn(`npx`, commandArgs, {
             cwd: collectionRootDir,
+            shell: true,
         });
 
         childProcess.on("error", (err) => {
@@ -114,10 +115,10 @@ const setStatusForDescendantItems = (
     options: TestRun
 ) => {
     if (!existsSync(jsonReportPath)) {
+        options.appendOutput("Could not find JSON report file.\r\n");
         options.appendOutput(
-            "Could not find JSON report file.\r\n"
+            "Therefore cannot determine which child test items actually failed. Will status skipped for all.\r\n"
         );
-        options.appendOutput("Therefore cannot determine which child test items actually failed. Will status skipped for all.\r\n")
         getTestItemDescendants(testDirectoryItem).forEach((child) => {
             child.busy = false;
             options.skipped(child);
@@ -147,7 +148,16 @@ const setStatusForDescendantItems = (
     }[];
 
     getTestItemDescendants(testDirectoryItem).forEach((child) => {
-        const childPath = child.uri?.fsPath!;
+        if (!child.uri) {
+            throw new Error(
+                `Child directory item to run does not have a URI! Item: ${JSON.stringify(
+                    child,
+                    null,
+                    2
+                )}`
+            );
+        }
+        const childPath = child.uri.fsPath!;
         child.busy = false;
 
         const maybeTestFailure = failedTests.find((failed) =>
@@ -199,7 +209,16 @@ const getCommandArgs = async (
     jsonReportPath: string,
     testEnvironment?: string
 ) => {
-    const testDataPath = testItemToExecute.uri?.fsPath!;
+    if (!testItemToExecute.uri) {
+        throw new Error(
+            `Test item did not have a URI: ${JSON.stringify(
+                testItemToExecute,
+                null,
+                2
+            )}`
+        );
+    }
+    const testDataPath = testItemToExecute.uri.fsPath;
     const collectionRootDir = await getCollectionRootDir(testDataPath);
     const result: string[] = [];
     const argForRunCommand =
