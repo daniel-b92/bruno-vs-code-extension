@@ -18,12 +18,12 @@ import { addTestCollectionToTestTree } from "./vsCodeTestTree/addTestCollection"
 import { handleTestFileCreationOrUpdate } from "./vsCodeTestTree/handleTestFileCreationOrUpdate";
 import { getAllCollectionRootDirectories } from "./fileSystem/collectionRootFolderHelper";
 import { getCollectionForTest, getTestId } from "./testTreeHelper";
-import { startWatchingWorkspace } from "./vsCodeTestTree/startWatchingWorkspace";
+import { startWatchingWorkspaceCollections } from "./vsCodeTestTree/startWatchingWorkspace";
 import { addAllTestItemsForCollections } from "./vsCodeTestTree/addAllTestItemsForCollections";
 import { startTestRun } from "./testRun/startTestRun";
 import { existsSync } from "fs";
 import { handleTestItemDeletion } from "./vsCodeTestTree/handleTestItemDeletion";
-import { isValidTestFileFromCollections } from "./vsCodeTestTree/isFileValidTestFile";
+import { isValidTestFileFromCollections } from "./vsCodeTestTree/isValidTestFileFromCollections";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
@@ -132,7 +132,7 @@ export async function activate(context: ExtensionContext) {
     ctrl.resolveHandler = async (item) => {
         if (!item) {
             context.subscriptions.push(
-                ...startWatchingWorkspace(
+                ...startWatchingWorkspaceCollections(
                     ctrl,
                     fileChangedEmitter,
                     testCollections

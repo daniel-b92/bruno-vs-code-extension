@@ -2,6 +2,7 @@ import { lstatSync, readdirSync } from "fs";
 import { dirname } from "path";
 import { getTestFileDescendants } from "./getTestFileDescendants";
 import { workspace } from "vscode";
+import { BrunoTestData } from "../testTreeHelper";
 
 export const getAllCollectionRootDirectories = async () => {
     const maybeFilesInCollectionRootDirs = await workspace.findFiles(
@@ -29,14 +30,14 @@ export const isCollectionRootDir = async (path: string) => {
     return containsBrunoJsonFile && testfileDescendants.length > 0;
 };
 
-export const getCollectionRootDir = async (testFilePath: string) => {
+export const getCollectionRootDir = async (testData: BrunoTestData) => {
     const allCollectionRootDirs = await getAllCollectionRootDirectories();
     const collectionRootDir = allCollectionRootDirs.find((rootDir) =>
-        testFilePath.includes(rootDir)
+        testData.path.includes(rootDir)
     );
     if (!collectionRootDir) {
         throw new Error(
-            `Could not find collection root directory for test item path '${testFilePath}'`
+            `Could not find collection root directory for test item path '${testData.path}'`
         );
     }
     return collectionRootDir;

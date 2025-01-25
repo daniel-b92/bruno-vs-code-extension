@@ -48,7 +48,7 @@ export const startTestRun = (
                     .getConfiguration()
                     .get(environmentConfigKey) as string | undefined;
                 const htmlReportPath = getHtmlReportPath(
-                    await getCollectionRootDir(data.path)
+                    await getCollectionRootDir(data)
                 );
                 if (!testEnvironment) {
                     run.appendOutput(

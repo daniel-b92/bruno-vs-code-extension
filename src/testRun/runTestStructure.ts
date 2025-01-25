@@ -15,7 +15,7 @@ export async function runTestStructure(
     options: TestRun,
     testEnvironment?: string
 ): Promise<void> {
-    const collectionRootDir = await getCollectionRootDir(data.path);
+    const collectionRootDir = await getCollectionRootDir(data);
     const htmlReportPath = getHtmlReportPath(collectionRootDir);
     if (existsSync(htmlReportPath)) {
         unlinkSync(htmlReportPath);
@@ -32,7 +32,7 @@ export async function runTestStructure(
         );
     }
     const commandArgs = await getCommandArgs(
-        item,
+        data,
         htmlReportPath,
         jsonReportPath,
         testEnvironment
@@ -204,22 +204,13 @@ const getJsonReportPath = (collectionRootDir: string) =>
     resolve(dirname(collectionRootDir), "results.json");
 
 const getCommandArgs = async (
-    testItemToExecute: vscodeTestItem,
+    testData: BrunoTestData,
     htmlReportPath: string,
     jsonReportPath: string,
     testEnvironment?: string
 ) => {
-    if (!testItemToExecute.uri) {
-        throw new Error(
-            `Test item did not have a URI: ${JSON.stringify(
-                testItemToExecute,
-                null,
-                2
-            )}`
-        );
-    }
-    const testDataPath = testItemToExecute.uri.fsPath;
-    const collectionRootDir = await getCollectionRootDir(testDataPath);
+    const testDataPath = testData.path;
+    const collectionRootDir = await getCollectionRootDir(testData);
     const result: string[] = [];
     const argForRunCommand =
         testDataPath == collectionRootDir
