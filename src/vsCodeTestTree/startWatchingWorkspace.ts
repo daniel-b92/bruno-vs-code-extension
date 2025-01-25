@@ -12,6 +12,8 @@ import { addAllTestItemsForCollections } from "./testItemAdding/addAllTestItemsF
 import { handleTestItemDeletion } from "./handlers/handleTestItemDeletion";
 import { isValidTestFileFromCollections } from "./utils/isValidTestFileFromCollections";
 import { getTestFileDescendants } from "../fileSystem/getTestFileDescendants";
+import { addTestDirectoryAndAllDescendants } from "./testItemAdding/addTestDirectoryAndAllDescendants";
+import { TestDirectory } from "../model/testDirectory";
 
 export function startWatchingWorkspaceCollections(
     controller: TestController,
@@ -33,7 +35,11 @@ export function startWatchingWorkspaceCollections(
                 )
             ) {
                 const collection = getCollectionForTest(uri, testCollections);
-                // To Do: handle test directory creation
+                addTestDirectoryAndAllDescendants(
+                    controller,
+                    collection,
+                    new TestDirectory(uri.fsPath)
+                );
             }
             fileChangedEmitter.fire(uri);
         });
