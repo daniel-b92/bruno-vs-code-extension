@@ -24,6 +24,7 @@ import { startTestRun } from "./testRun/startTestRun";
 import { existsSync } from "fs";
 import { handleTestItemDeletion } from "./vsCodeTestTree/handlers/handleTestItemDeletion";
 import { isValidTestFileFromCollections } from "./vsCodeTestTree/utils/isValidTestFileFromCollections";
+import { CollectionRegister } from "./model/collectionRegister";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
@@ -37,8 +38,8 @@ export async function activate(context: ExtensionContext) {
         vscodeTestItem | "ALL",
         TestRunProfile | undefined
     >();
-    const testCollections: TestCollection[] = [];
-    await addMissingTestCollectionsToTestTree(ctrl, testCollections);
+    const collectionRegister = new CollectionRegister([]);
+    await addMissingTestCollectionsToTestTree(ctrl, collectionRegister);
     fileChangedEmitter.event((uri) => {
         if (watchingTests.has("ALL")) {
             startTestRun(
@@ -49,7 +50,7 @@ export async function activate(context: ExtensionContext) {
                     watchingTests.get("ALL"),
                     true
                 ),
-                testCollections
+                collectionRegister.getCurrentCollections()
             );
             return;
         }
@@ -68,7 +69,7 @@ export async function activate(context: ExtensionContext) {
             startTestRun(
                 ctrl,
                 new TestRunRequest(include, undefined, profile, true),
-                testCollections
+                collectionRegister.getCurrentCollections()
             );
         }
     });
@@ -78,7 +79,11 @@ export async function activate(context: ExtensionContext) {
         cancellation: CancellationToken
     ) => {
         if (!request.continuous) {
-            return startTestRun(ctrl, request, testCollections);
+            return startTestRun(
+                ctrl,
+                request,
+                collectionRegister.getCurrentCollections()
+            );
         }
 
         if (request.include === undefined) {
@@ -97,7 +102,7 @@ export async function activate(context: ExtensionContext) {
     };
 
     ctrl.refreshHandler = async () => {
-        testCollections.forEach((collection) => {
+        collectionRegister.getCurrentCollections().forEach((collection) => {
             if (existsSync(collection.rootDirectory)) {
                 Array.from(collection.testData.keys()).forEach((testItem) => {
                     if (!existsSync(testItem.uri?.fsPath!)) {
@@ -105,13 +110,17 @@ export async function activate(context: ExtensionContext) {
                     }
                 });
             } else {
-                const collectionUri = Uri.file(collection.rootDirectory);
-                testCollections.splice(testCollections.indexOf(collection), 1);
-                ctrl.items.delete(getTestId(collectionUri));
+                collectionRegister.unregisterCollection(collection);
+                ctrl.items.delete(
+                    getTestId(Uri.file(collection.rootDirectory))
+                );
             }
         });
-        await addMissingTestCollectionsToTestTree(ctrl, testCollections);
-        await addAllTestItemsForCollections(ctrl, testCollections);
+        await addMissingTestCollectionsToTestTree(ctrl, collectionRegister);
+        await addAllTestItemsForCollections(
+            ctrl,
+            collectionRegister.getCurrentCollections()
+        );
     };
 
     ctrl.createRunProfile(
@@ -129,13 +138,16 @@ export async function activate(context: ExtensionContext) {
                 ...startWatchingWorkspaceCollections(
                     ctrl,
                     fileChangedEmitter,
-                    testCollections
+                    collectionRegister.getCurrentCollections()
                 )
             );
             return;
         }
 
-        const collection = getCollectionForTest(item.uri!, testCollections);
+        const collection = getCollectionForTest(
+            item.uri!,
+            collectionRegister.getCurrentCollections()
+        );
         const data = collection.testData.get(item);
         if (data instanceof TestFile) {
             data.updateFromDisk(item, collection);
@@ -143,13 +155,21 @@ export async function activate(context: ExtensionContext) {
     };
 
     function updateNodeForDocument(e: TextDocument) {
-        if (!isValidTestFileFromCollections(e.uri, testCollections)) {
+        if (
+            !isValidTestFileFromCollections(
+                e.uri,
+                collectionRegister.getCurrentCollections()
+            )
+        ) {
             return;
         }
 
         handleTestFileCreationOrUpdate(
             ctrl,
-            getCollectionForTest(e.uri, testCollections),
+            getCollectionForTest(
+                e.uri,
+                collectionRegister.getCurrentCollections()
+            ),
             e.uri
         );
         fileChangedEmitter.fire(e.uri);
@@ -169,19 +189,19 @@ export async function activate(context: ExtensionContext) {
 
 async function addMissingTestCollectionsToTestTree(
     controller: TestController,
-    currentCollections: TestCollection[]
+    register: CollectionRegister
 ) {
     const collectionRootDirs = await getAllCollectionRootDirectories();
 
     collectionRootDirs
         .filter(
             (dir) =>
-                !currentCollections.some(
-                    (collection) => collection.rootDirectory == dir
-                )
+                !register
+                    .getCurrentCollections()
+                    .some((collection) => collection.rootDirectory == dir)
         )
         .forEach((toAdd) =>
-            currentCollections.push(
+            register.registerCollection(
                 addTestCollectionToTestTree(controller, toAdd)
             )
         );
