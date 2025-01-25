@@ -9,14 +9,13 @@ import { handleTestItemDeletion } from "./handleTestItemDeletion";
 
 export function handleTestFileCreationOrUpdate(
     ctrl: TestController,
-    fileChangedEmitter: EventEmitter<Uri>,
     collection: TestCollection,
     uri: Uri
 ) {
     const maybeFile = getOrCreateFile(ctrl, uri, collection);
 
     if (!maybeFile) {
-        handleTestItemDeletion(ctrl, collection, fileChangedEmitter, uri);
+        handleTestItemDeletion(ctrl, collection, uri);
     } else {
         maybeFile.testFile.updateFromDisk(maybeFile.testItem, collection);
         let currentItem = maybeFile.testItem;
@@ -27,10 +26,7 @@ export function handleTestFileCreationOrUpdate(
                 currentItem,
                 collection
             );
-            fileChangedEmitter.fire(currentItem.uri!);
         }
-
-        fileChangedEmitter.fire(uri);
     }
 }
 

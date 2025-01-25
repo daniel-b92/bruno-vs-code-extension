@@ -24,12 +24,8 @@ export function startWatchingWorkspaceCollections(
         watcher.onDidCreate(async (uri) => {
             if (isValidTestFileFromCollections(uri, testCollections)) {
                 const collection = getCollectionForTest(uri, testCollections);
-                handleTestFileCreationOrUpdate(
-                    controller,
-                    fileChangedEmitter,
-                    collection,
-                    uri
-                );
+                handleTestFileCreationOrUpdate(controller, collection, uri);
+                fileChangedEmitter.fire(uri);
             } else if (
                 await hasValidTestFileDescendantsFromCollections(
                     uri,
@@ -39,6 +35,7 @@ export function startWatchingWorkspaceCollections(
                 const collection = getCollectionForTest(uri, testCollections);
                 // To Do: handle test directory creation
             }
+            fileChangedEmitter.fire(uri);
         });
         watcher.onDidChange((uri) => {
             /* For directories, no changes are ever registered because renaming a directory is seen as a creation of a new directory with the 
@@ -46,38 +43,22 @@ export function startWatchingWorkspaceCollections(
             'onDidDelete' functions.*/
             if (isValidTestFileFromCollections(uri, testCollections)) {
                 const collection = getCollectionForTest(uri, testCollections);
-                handleTestFileCreationOrUpdate(
-                    controller,
-                    fileChangedEmitter,
-                    collection,
-                    uri
-                );
+                handleTestFileCreationOrUpdate(controller, collection, uri);
+                fileChangedEmitter.fire(uri);
             }
         });
         watcher.onDidDelete(async (uri) => {
-            if (isValidTestFileFromCollections(uri, testCollections)) {
-                const collection = getCollectionForTest(uri, testCollections);
-                handleTestItemDeletion(
-                    controller,
-                    collection,
-                    fileChangedEmitter,
-                    uri
-                );
-            } else if (
-                !uri.fsPath.endsWith(".bru") &&
-                testCollections.some((collection) =>
-                    Array.from(collection.testData.keys()).some(
-                        (item) => item.uri?.fsPath == uri.fsPath
-                    )
-                )
+            if (
+                isValidTestFileFromCollections(uri, testCollections) ||
+                (!uri.fsPath.endsWith(".bru") &&
+                    testCollections.some((collection) =>
+                        Array.from(collection.testData.keys()).some(
+                            (item) => item.uri?.fsPath == uri.fsPath
+                        )
+                    ))
             ) {
                 const collection = getCollectionForTest(uri, testCollections);
-                handleTestItemDeletion(
-                    controller,
-                    collection,
-                    fileChangedEmitter,
-                    uri
-                );
+                handleTestItemDeletion(controller, collection, uri);
             }
         });
 

@@ -101,19 +101,13 @@ export async function activate(context: ExtensionContext) {
             if (existsSync(collection.rootDirectory)) {
                 Array.from(collection.testData.keys()).forEach((testItem) => {
                     if (!existsSync(testItem.uri?.fsPath!)) {
-                        handleTestItemDeletion(
-                            ctrl,
-                            collection,
-                            fileChangedEmitter,
-                            testItem.uri!
-                        );
+                        handleTestItemDeletion(ctrl, collection, testItem.uri!);
                     }
                 });
             } else {
                 const collectionUri = Uri.file(collection.rootDirectory);
                 testCollections.splice(testCollections.indexOf(collection), 1);
                 ctrl.items.delete(getTestId(collectionUri));
-                fileChangedEmitter.fire(collectionUri);
             }
         });
         await addMissingTestCollectionsToTestTree(ctrl, testCollections);
@@ -155,10 +149,10 @@ export async function activate(context: ExtensionContext) {
 
         handleTestFileCreationOrUpdate(
             ctrl,
-            fileChangedEmitter,
             getCollectionForTest(e.uri, testCollections),
             e.uri
         );
+        fileChangedEmitter.fire(e.uri);
     }
 
     for (const document of workspace.textDocuments) {
