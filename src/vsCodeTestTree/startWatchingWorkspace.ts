@@ -12,7 +12,6 @@ import { addAllTestItemsForCollections } from "./addAllTestItemsForCollections";
 import { handleTestItemDeletion } from "./handleTestItemDeletion";
 import { isValidTestFileFromCollections } from "./isValidTestFileFromCollections";
 import { getTestFileDescendants } from "../fileSystem/getTestFileDescendants";
-import { lstat, lstatSync } from "fs";
 
 export function startWatchingWorkspaceCollections(
     controller: TestController,
