@@ -7,7 +7,7 @@ import { TestDirectory } from "../model/testDirectory";
 import { TestMessage, TestRun, TestItem as vscodeTestItem } from "vscode";
 import { getTestFilesWithFailures } from "./jsonReportParser";
 import { getHtmlReportPath } from "./startTestRun";
-import { getTestItemDescendants } from "../vsCodeTestTree/getTestItemDescendants";
+import { getTestItemDescendants } from "../vsCodeTestTree/utils/getTestItemDescendants";
 
 export async function runTestStructure(
     item: vscodeTestItem,

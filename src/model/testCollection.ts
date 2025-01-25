@@ -8,4 +8,9 @@ export class TestCollection {
     }
 
     public testData = new Map<vscodeTestItem, BrunoTestData>();
+
+    public getTestItemForPath = (path: string) =>
+        Array.from(this.testData.keys()).find(
+            (item) => item.uri?.fsPath == path
+        );
 }

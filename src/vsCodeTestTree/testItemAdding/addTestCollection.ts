@@ -1,6 +1,6 @@
 import { TestController, Uri } from "vscode";
-import { TestCollection } from "../model/testCollection";
-import { getTestId, getTestLabel } from "../testTreeHelper";
+import { TestCollection } from "../../model/testCollection";
+import { getTestId, getTestLabel } from "../../testTreeHelper";
 
 export const addTestCollectionToTestTree = (
     controller: TestController,

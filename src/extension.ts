@@ -14,16 +14,16 @@ import {
 } from "vscode";
 import { TestFile } from "./model/testFile";
 import { TestCollection } from "./model/testCollection";
-import { addTestCollectionToTestTree } from "./vsCodeTestTree/addTestCollection";
-import { handleTestFileCreationOrUpdate } from "./vsCodeTestTree/handleTestFileCreationOrUpdate";
+import { addTestCollectionToTestTree } from "./vsCodeTestTree/testItemAdding/addTestCollection";
+import { handleTestFileCreationOrUpdate } from "./vsCodeTestTree/handlers/handleTestFileCreationOrUpdate";
 import { getAllCollectionRootDirectories } from "./fileSystem/collectionRootFolderHelper";
 import { getCollectionForTest, getTestId } from "./testTreeHelper";
 import { startWatchingWorkspaceCollections } from "./vsCodeTestTree/startWatchingWorkspace";
-import { addAllTestItemsForCollections } from "./vsCodeTestTree/addAllTestItemsForCollections";
+import { addAllTestItemsForCollections } from "./vsCodeTestTree/testItemAdding/addAllTestItemsForCollections";
 import { startTestRun } from "./testRun/startTestRun";
 import { existsSync } from "fs";
-import { handleTestItemDeletion } from "./vsCodeTestTree/handleTestItemDeletion";
-import { isValidTestFileFromCollections } from "./vsCodeTestTree/isValidTestFileFromCollections";
+import { handleTestItemDeletion } from "./vsCodeTestTree/handlers/handleTestItemDeletion";
+import { isValidTestFileFromCollections } from "./vsCodeTestTree/utils/isValidTestFileFromCollections";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(

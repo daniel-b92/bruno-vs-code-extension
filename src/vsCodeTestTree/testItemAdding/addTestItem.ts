@@ -1,8 +1,8 @@
-import { TestFile } from "../model/testFile";
-import { TestDirectory } from "../model/testDirectory";
-import { TestCollection } from "../model/testCollection";
+import { TestFile } from "../../model/testFile";
+import { TestDirectory } from "../../model/testDirectory";
+import { TestCollection } from "../../model/testCollection";
 import { dirname } from "path";
-import { getSortText, getTestId, getTestLabel } from "../testTreeHelper";
+import { getSortText, getTestId, getTestLabel } from "../../testTreeHelper";
 import { TestController, Uri } from "vscode";
 
 export const addTestItem = (
@@ -25,9 +25,7 @@ export const addTestItem = (
     }
 
     controller.items.add(vsCodeItem);
-    const parentItem = Array.from(collection.testData.keys()).find(
-        (existingItem) => dirname(item.path) == existingItem.uri?.fsPath
-    );
+    const parentItem = collection.getTestItemForPath(dirname(item.path));
     if (parentItem) {
         parentItem.children.add(vsCodeItem);
     }

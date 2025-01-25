@@ -1,10 +1,10 @@
-import { TestCollection } from "../model/testCollection";
+import { TestCollection } from "../../model/testCollection";
 import { dirname } from "path";
 import { addTestItem } from "./addTestItem";
-import { TestDirectory } from "../model/testDirectory";
-import { getSequence } from "../fileSystem/testFileParser";
-import { TestFile } from "../model/testFile";
-import { getTestFileDescendants } from "../fileSystem/getTestFileDescendants";
+import { TestDirectory } from "../../model/testDirectory";
+import { getSequence } from "../../fileSystem/testFileParser";
+import { TestFile } from "../../model/testFile";
+import { getTestFileDescendants } from "../../fileSystem/getTestFileDescendants";
 import { TestController, Uri, TestItem as vscodeTestItem } from "vscode";
 
 type PathWithChildren = {
@@ -12,35 +12,25 @@ type PathWithChildren = {
     childItems: vscodeTestItem[];
 };
 
-export async function addAllTestItemsForCollections(
+export async function addTestDirectoryAndAllDescendants(
     controller: TestController,
-    testCollections: TestCollection[]
+    collection: TestCollection,
+    testDirectory: TestDirectory
 ) {
-    for (const collection of testCollections) {
-        await addTestItemsForCollection(controller, collection);
-    }
-}
-
-async function addTestItemsForCollection(
-    controller: TestController,
-    collection: TestCollection
-) {
-    const relevantFiles = await getTestFileDescendants(
-        collection.rootDirectory
-    );
+    const relevantFiles = await getTestFileDescendants(testDirectory.path);
     const testFileItems = addItemsForTestFiles(
         controller,
         collection,
         relevantFiles
     );
 
-    let currentPaths = switchToParentDirectory(
-        collection,
+    let currentPaths = switchToParentDirsContainingAncestorPath(
         relevantFiles.map((path) => ({
             path: path.fsPath,
             childItems: [],
         })),
-        testFileItems
+        testFileItems,
+        testDirectory
     );
 
     while (currentPaths.length > 0) {
@@ -65,10 +55,10 @@ async function addTestItemsForCollection(
             currentTestItems.push(testItem);
         });
 
-        currentPaths = switchToParentDirectory(
-            collection,
+        currentPaths = switchToParentDirsContainingAncestorPath(
             currentPaths,
-            currentTestItems
+            currentTestItems,
+            testDirectory
         );
     }
 }
@@ -99,10 +89,10 @@ const addItemsForTestFiles = (
     return result;
 };
 
-const switchToParentDirectory = (
-    collection: TestCollection,
+const switchToParentDirsContainingAncestorPath = (
     pathsWithChildren: PathWithChildren[],
-    currentTestItems: vscodeTestItem[]
+    currentTestItems: vscodeTestItem[],
+    ancestorDirectory: TestDirectory
 ) => {
     const parentsWithDuplicatePaths: PathWithChildren[] = pathsWithChildren
         .map(({ path }) => {
@@ -115,7 +105,7 @@ const switchToParentDirectory = (
                 childItems: childTestItem ? [childTestItem] : [],
             };
         })
-        .filter(({ path }) => path.includes(collection.rootDirectory));
+        .filter(({ path }) => path.includes(ancestorDirectory.path));
 
     return getUniquePaths(parentsWithDuplicatePaths);
 };

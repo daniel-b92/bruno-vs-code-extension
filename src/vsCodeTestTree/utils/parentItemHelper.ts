@@ -1,7 +1,7 @@
 import { TestController, Uri, TestItem as vscodeTestItem } from "vscode";
-import { TestCollection } from "../model/testCollection";
-import { addTestItem } from "./addTestItem";
-import { TestDirectory } from "../model/testDirectory";
+import { TestCollection } from "../../model/testCollection";
+import { addTestItem } from "../testItemAdding/addTestItem";
+import { TestDirectory } from "../../model/testDirectory";
 import { dirname } from "path";
 
 export const createOrUpdateParentItem = (
@@ -26,6 +26,4 @@ export const createOrUpdateParentItem = (
 };
 
 export const getParentItem = (uri: Uri, collection: TestCollection) =>
-    Array.from(collection.testData.keys()).find(
-        (item) => item.uri?.fsPath == dirname(uri.fsPath)
-    );
+    collection.getTestItemForPath(dirname(uri.fsPath));

@@ -7,10 +7,10 @@ import {
 } from "vscode";
 import { TestCollection } from "../model/testCollection";
 import { getCollectionForTest } from "../testTreeHelper";
-import { handleTestFileCreationOrUpdate } from "./handleTestFileCreationOrUpdate";
-import { addAllTestItemsForCollections } from "./addAllTestItemsForCollections";
-import { handleTestItemDeletion } from "./handleTestItemDeletion";
-import { isValidTestFileFromCollections } from "./isValidTestFileFromCollections";
+import { handleTestFileCreationOrUpdate } from "./handlers/handleTestFileCreationOrUpdate";
+import { addAllTestItemsForCollections } from "./testItemAdding/addAllTestItemsForCollections";
+import { handleTestItemDeletion } from "./handlers/handleTestItemDeletion";
+import { isValidTestFileFromCollections } from "./utils/isValidTestFileFromCollections";
 import { getTestFileDescendants } from "../fileSystem/getTestFileDescendants";
 
 export function startWatchingWorkspaceCollections(
@@ -52,9 +52,7 @@ export function startWatchingWorkspaceCollections(
                 isValidTestFileFromCollections(uri, testCollections) ||
                 (!uri.fsPath.endsWith(".bru") &&
                     testCollections.some((collection) =>
-                        Array.from(collection.testData.keys()).some(
-                            (item) => item.uri?.fsPath == uri.fsPath
-                        )
+                        collection.getTestItemForPath(uri.fsPath)
                     ))
             ) {
                 const collection = getCollectionForTest(uri, testCollections);

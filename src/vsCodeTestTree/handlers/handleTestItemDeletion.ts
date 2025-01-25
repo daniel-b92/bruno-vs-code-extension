@@ -1,7 +1,7 @@
 import { TestController, Uri } from "vscode";
-import { TestCollection } from "../model/testCollection";
-import { getTestId } from "../testTreeHelper";
-import { getParentItem } from "./parentItemHelper";
+import { TestCollection } from "../../model/testCollection";
+import { getTestId } from "../../testTreeHelper";
+import { getParentItem } from "../utils/parentItemHelper";
 import { dirname } from "path";
 import { existsSync } from "fs";
 
@@ -30,9 +30,7 @@ const deleteSingleTestItem = (
 ) => {
     controller.items.delete(getTestId(uri));
 
-    const keyToDelete = Array.from(collection.testData.keys()).find(
-        (item) => item.uri?.fsPath == uri.fsPath
-    );
+    const keyToDelete = collection.getTestItemForPath(uri.fsPath);
     if (keyToDelete) {
         collection.testData.delete(keyToDelete);
     }

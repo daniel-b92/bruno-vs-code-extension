@@ -1,6 +1,6 @@
 import { Uri } from "vscode";
-import { TestCollection } from "../model/testCollection";
-import { getSequence } from "../fileSystem/testFileParser";
+import { TestCollection } from "../../model/testCollection";
+import { getSequence } from "../../fileSystem/testFileParser";
 
 export const isValidTestFileFromCollections = (
     uri: Uri,
