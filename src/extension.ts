@@ -13,12 +13,11 @@ import {
     TextDocument,
 } from "vscode";
 import { TestFile } from "./model/testFile";
-import { TestCollection } from "./model/testCollection";
 import { addTestCollectionToTestTree } from "./vsCodeTestTree/testItemAdding/addTestCollection";
 import { handleTestFileCreationOrUpdate } from "./vsCodeTestTree/handlers/handleTestFileCreationOrUpdate";
 import { getAllCollectionRootDirectories } from "./fileSystem/collectionRootFolderHelper";
 import { getCollectionForTest, getTestId } from "./testTreeHelper";
-import { startWatchingWorkspaceCollections } from "./vsCodeTestTree/startWatchingWorkspace";
+import { startWatchingRegisteredCollections } from "./watchers/startWatchingRegisteredCollections";
 import { addAllTestItemsForCollections } from "./vsCodeTestTree/testItemAdding/addAllTestItemsForCollections";
 import { startTestRun } from "./testRun/startTestRun";
 import { existsSync } from "fs";
@@ -135,10 +134,10 @@ export async function activate(context: ExtensionContext) {
     ctrl.resolveHandler = async (item) => {
         if (!item) {
             context.subscriptions.push(
-                ...startWatchingWorkspaceCollections(
+                ...startWatchingRegisteredCollections(
                     ctrl,
                     fileChangedEmitter,
-                    collectionRegister.getCurrentCollections()
+                    collectionRegister
                 )
             );
             return;

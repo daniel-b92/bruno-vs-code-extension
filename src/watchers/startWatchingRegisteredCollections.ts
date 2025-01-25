@@ -7,34 +7,43 @@ import {
 } from "vscode";
 import { TestCollection } from "../model/testCollection";
 import { getCollectionForTest } from "../testTreeHelper";
-import { handleTestFileCreationOrUpdate } from "./handlers/handleTestFileCreationOrUpdate";
-import { addAllTestItemsForCollections } from "./testItemAdding/addAllTestItemsForCollections";
-import { handleTestItemDeletion } from "./handlers/handleTestItemDeletion";
-import { isValidTestFileFromCollections } from "./utils/isValidTestFileFromCollections";
+import { handleTestFileCreationOrUpdate } from "../vsCodeTestTree/handlers/handleTestFileCreationOrUpdate";
+import { addAllTestItemsForCollections } from "../vsCodeTestTree/testItemAdding/addAllTestItemsForCollections";
+import { handleTestItemDeletion } from "../vsCodeTestTree/handlers/handleTestItemDeletion";
+import { isValidTestFileFromCollections } from "../vsCodeTestTree/utils/isValidTestFileFromCollections";
 import { getTestFileDescendants } from "../fileSystem/getTestFileDescendants";
-import { addTestDirectoryAndAllDescendants } from "./testItemAdding/addTestDirectoryAndAllDescendants";
+import { addTestDirectoryAndAllDescendants } from "../vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
 import { TestDirectory } from "../model/testDirectory";
+import { CollectionRegister } from "../model/collectionRegister";
 
-export function startWatchingWorkspaceCollections(
+export function startWatchingRegisteredCollections(
     controller: TestController,
     fileChangedEmitter: EventEmitter<Uri>,
-    testCollections: TestCollection[]
+    collectionRegister: CollectionRegister
 ) {
-    return getWorkspaceTestPatterns(testCollections).map((pattern) => {
+    const registeredCollections = collectionRegister.getCurrentCollections();
+
+    return getWorkspaceTestPatterns(registeredCollections).map((pattern) => {
         const watcher = workspace.createFileSystemWatcher(pattern);
 
         watcher.onDidCreate(async (uri) => {
-            if (isValidTestFileFromCollections(uri, testCollections)) {
-                const collection = getCollectionForTest(uri, testCollections);
+            if (isValidTestFileFromCollections(uri, registeredCollections)) {
+                const collection = getCollectionForTest(
+                    uri,
+                    registeredCollections
+                );
                 handleTestFileCreationOrUpdate(controller, collection, uri);
                 fileChangedEmitter.fire(uri);
             } else if (
                 await hasValidTestFileDescendantsFromCollections(
                     uri,
-                    testCollections
+                    registeredCollections
                 )
             ) {
-                const collection = getCollectionForTest(uri, testCollections);
+                const collection = getCollectionForTest(
+                    uri,
+                    registeredCollections
+                );
                 addTestDirectoryAndAllDescendants(
                     controller,
                     collection,
@@ -47,26 +56,35 @@ export function startWatchingWorkspaceCollections(
             /* For directories, no changes are ever registered because renaming a directory is seen as a creation of a new directory with the 
             new name and a deletion of the directory with the old name. Creating or deleting a directory will be handled by the  'onDidCreate' or 
             'onDidDelete' functions.*/
-            if (isValidTestFileFromCollections(uri, testCollections)) {
-                const collection = getCollectionForTest(uri, testCollections);
+            if (isValidTestFileFromCollections(uri, registeredCollections)) {
+                const collection = getCollectionForTest(
+                    uri,
+                    registeredCollections
+                );
                 handleTestFileCreationOrUpdate(controller, collection, uri);
                 fileChangedEmitter.fire(uri);
             }
         });
         watcher.onDidDelete(async (uri) => {
             if (
-                isValidTestFileFromCollections(uri, testCollections) ||
+                isValidTestFileFromCollections(uri, registeredCollections) ||
                 (!uri.fsPath.endsWith(".bru") &&
-                    testCollections.some((collection) =>
+                    registeredCollections.some((collection) =>
                         collection.getTestItemForPath(uri.fsPath)
                     ))
             ) {
-                const collection = getCollectionForTest(uri, testCollections);
+                const collection = getCollectionForTest(
+                    uri,
+                    registeredCollections
+                );
                 handleTestItemDeletion(controller, collection, uri);
+                if (uri.fsPath == collection.rootDirectory) {
+                    collectionRegister.unregisterCollection(collection);
+                }
             }
         });
 
-        addAllTestItemsForCollections(controller, testCollections);
+        addAllTestItemsForCollections(controller, registeredCollections);
 
         return watcher;
     });
