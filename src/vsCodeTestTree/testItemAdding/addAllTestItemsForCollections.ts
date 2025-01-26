@@ -1,6 +1,6 @@
 import { TestCollection } from "../../model/testCollection";
 import { TestDirectory } from "../../model/testDirectory";
-import { TestController, TestItem as vscodeTestItem } from "vscode";
+import { TestController } from "vscode";
 import { addTestDirectoryAndAllDescendants } from "./addTestDirectoryAndAllDescendants";
 
 export async function addAllTestItemsForCollections(

@@ -135,13 +135,12 @@ export async function activate(context: ExtensionContext) {
 
     ctrl.resolveHandler = async (item) => {
         if (!item) {
-            context.subscriptions.push(
-                ...startWatchingRegisteredCollections(
-                    ctrl,
-                    fileChangedEmitter,
-                    collectionRegister
-                )
+            const watchers = await startWatchingRegisteredCollections(
+                ctrl,
+                fileChangedEmitter,
+                collectionRegister
             );
+            context.subscriptions.push(...watchers);
             return;
         }
 
@@ -151,7 +150,7 @@ export async function activate(context: ExtensionContext) {
         );
         const data = collection.testData.get(item);
         if (data instanceof TestDirectory) {
-            addTestDirectoryAndAllDescendants(ctrl, collection, data);
+            await addTestDirectoryAndAllDescendants(ctrl, collection, data);
         }
     };
 

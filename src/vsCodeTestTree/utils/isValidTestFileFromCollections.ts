@@ -8,7 +8,7 @@ export const isValidTestFileFromCollections = (
 ) =>
     uri.scheme == "file" &&
     uri.fsPath.endsWith(".bru") &&
-    getSequence(uri.fsPath) &&
+    getSequence(uri.fsPath) != undefined &&
     collections.some((collection) =>
         uri.fsPath.includes(collection.rootDirectory)
     );

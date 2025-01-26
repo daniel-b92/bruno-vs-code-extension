@@ -1,5 +1,6 @@
 import {
     EventEmitter,
+    FileSystemWatcher,
     RelativePattern,
     TestController,
     Uri,
@@ -16,16 +17,19 @@ import { addTestDirectoryAndAllDescendants } from "../vsCodeTestTree/testItemAdd
 import { TestDirectory } from "../model/testDirectory";
 import { CollectionRegister } from "../model/collectionRegister";
 
-export function startWatchingRegisteredCollections(
+export async function startWatchingRegisteredCollections(
     controller: TestController,
     fileChangedEmitter: EventEmitter<Uri>,
     collectionRegister: CollectionRegister
 ) {
     const registeredCollections = collectionRegister.getCurrentCollections();
 
-    return getWorkspaceTestPatterns(registeredCollections).map((pattern) => {
-        const watcher = workspace.createFileSystemWatcher(pattern);
+    const watchers: FileSystemWatcher[] = [];
+    for (const pattern of getWorkspaceTestPatterns(registeredCollections)) {
+        watchers.push(workspace.createFileSystemWatcher(pattern));
+    }
 
+    for (const watcher of watchers) {
         watcher.onDidCreate(async (uri) => {
             if (isValidTestFileFromCollections(uri, registeredCollections)) {
                 const collection = getCollectionForTest(
@@ -44,7 +48,7 @@ export function startWatchingRegisteredCollections(
                     uri,
                     registeredCollections
                 );
-                addTestDirectoryAndAllDescendants(
+                await addTestDirectoryAndAllDescendants(
                     controller,
                     collection,
                     new TestDirectory(uri.fsPath)
@@ -84,10 +88,9 @@ export function startWatchingRegisteredCollections(
             }
         });
 
-        addAllTestItemsForCollections(controller, registeredCollections);
-
-        return watcher;
-    });
+        await addAllTestItemsForCollections(controller, registeredCollections);
+    }
+    return watchers;
 }
 
 function getWorkspaceTestPatterns(testCollections: TestCollection[]) {
