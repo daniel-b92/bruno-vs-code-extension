@@ -24,6 +24,8 @@ import { existsSync } from "fs";
 import { handleTestItemDeletion } from "./vsCodeTestTree/handlers/handleTestItemDeletion";
 import { isValidTestFileFromCollections } from "./vsCodeTestTree/utils/isValidTestFileFromCollections";
 import { CollectionRegister } from "./model/collectionRegister";
+import { TestDirectory } from "./model/testDirectory";
+import { addTestDirectoryAndAllDescendants } from "./vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
@@ -148,8 +150,8 @@ export async function activate(context: ExtensionContext) {
             collectionRegister.getCurrentCollections()
         );
         const data = collection.testData.get(item);
-        if (data instanceof TestFile) {
-            data.updateFromDisk(item, collection);
+        if (data instanceof TestDirectory) {
+            addTestDirectoryAndAllDescendants(ctrl, collection, data);
         }
     };
 
