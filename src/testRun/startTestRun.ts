@@ -5,6 +5,7 @@ import { getCollectionRootDir } from "../fileSystem/collectionRootFolderHelper";
 import { existsSync } from "fs";
 import {
     TestController,
+    TestRun,
     TestRunRequest,
     TestItem as vscodeTestItem,
     TestItemCollection as vscodeTestItemCollection,
@@ -18,7 +19,7 @@ const environmentConfigKey = "brunoTestExtension.testRunEnvironment";
 export const startTestRun = (
     ctrl: TestController,
     request: TestRunRequest,
-    testCollections: TestCollection[]
+    registeredCollections: TestCollection[]
 ) => {
     const queue: { test: vscodeTestItem; data: BrunoTestData }[] = [];
     const run = ctrl.createTestRun(request);
@@ -28,8 +29,7 @@ export const startTestRun = (
             if (request.exclude?.includes(test)) {
                 continue;
             }
-
-            const collection = getCollectionForTest(test.uri!, testCollections);
+            const collection = getCollectionForTest(test.uri!, registeredCollections);
             const data = collection.testData.get(test)!;
             run.enqueued(test);
             queue.push({ test, data });
@@ -50,21 +50,8 @@ export const startTestRun = (
                 const htmlReportPath = getHtmlReportPath(
                     await getCollectionRootDir(data)
                 );
-                if (!testEnvironment) {
-                    run.appendOutput(
-                        `Not using any environment for the test run.\r\n`
-                    );
-                    run.appendOutput(
-                        `You can configure an environment to use via the setting '${environmentConfigKey}'.\r\n`
-                    );
-                } else {
-                    run.appendOutput(
-                        `Using the test environment '${testEnvironment}'.\r\n`
-                    );
-                }
-                run.appendOutput(
-                    `Saving the HTML test report to file '${htmlReportPath}'.\r\n`
-                );
+                printInfosOnTestRunStart(run, htmlReportPath, testEnvironment);
+
                 await runTestStructure(test, data, run, testEnvironment);
                 if (existsSync(htmlReportPath)) {
                     showHtmlReport(htmlReportPath, data);
@@ -79,6 +66,26 @@ export const startTestRun = (
 
     discoverTests(request.include ?? gatherTestItems(ctrl.items)).then(
         runTestQueue
+    );
+};
+
+const printInfosOnTestRunStart = (
+    run: TestRun,
+    htmlReportPath: string,
+    testEnvironment?: string
+) => {
+    if (!testEnvironment) {
+        run.appendOutput(`Not using any environment for the test run.\r\n`);
+        run.appendOutput(
+            `You can configure an environment to use via the setting '${environmentConfigKey}'.\r\n`
+        );
+    } else {
+        run.appendOutput(
+            `Using the test environment '${testEnvironment}'.\r\n`
+        );
+    }
+    run.appendOutput(
+        `Saving the HTML test report to file '${htmlReportPath}'.\r\n`
     );
 };
 
