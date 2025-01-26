@@ -26,6 +26,7 @@ import { isValidTestFileFromCollections } from "./vsCodeTestTree/utils/isValidTe
 import { CollectionRegister } from "./model/collectionRegister";
 import { TestDirectory } from "./model/testDirectory";
 import { addTestDirectoryAndAllDescendants } from "./vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
+import { QueuedTestRun, TestRunQueue } from "./model/testRunQueue";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
@@ -40,6 +41,8 @@ export async function activate(context: ExtensionContext) {
         TestRunProfile | undefined
     >();
     const collectionRegister = new CollectionRegister([]);
+    const oldestItemInQueueChangedEmitter = new EventEmitter<QueuedTestRun>();
+    const queue = new TestRunQueue(oldestItemInQueueChangedEmitter);
     await addMissingTestCollectionsToTestTree(ctrl, collectionRegister);
     fileChangedEmitter.event((uri) => {
         if (watchingTests.has("ALL")) {
@@ -51,7 +54,9 @@ export async function activate(context: ExtensionContext) {
                     watchingTests.get("ALL"),
                     true
                 ),
-                collectionRegister.getCurrentCollections()
+                collectionRegister.getCurrentCollections(),
+                queue,
+                oldestItemInQueueChangedEmitter
             );
             return;
         }
@@ -70,7 +75,9 @@ export async function activate(context: ExtensionContext) {
             startTestRun(
                 ctrl,
                 new TestRunRequest(include, undefined, profile, true),
-                collectionRegister.getCurrentCollections()
+                collectionRegister.getCurrentCollections(),
+                queue,
+                oldestItemInQueueChangedEmitter
             );
         }
     });
@@ -83,7 +90,9 @@ export async function activate(context: ExtensionContext) {
             return startTestRun(
                 ctrl,
                 request,
-                collectionRegister.getCurrentCollections()
+                collectionRegister.getCurrentCollections(),
+                queue,
+                oldestItemInQueueChangedEmitter
             );
         }
 
