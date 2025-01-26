@@ -2,7 +2,7 @@
     "name": "bruno-cli-test-runner-experiment",
     "displayName": "bruno-cli-test-runner-experiment",
     "description": "Bruno test runner via Bruno CLI",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "publisher": "dbe",
     "private": true,
     "license": "MIT",
