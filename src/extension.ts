@@ -41,12 +41,12 @@ export async function activate(context: ExtensionContext) {
         TestRunProfile | undefined
     >();
     const collectionRegister = new CollectionRegister([]);
-    const oldestItemInQueueChangedEmitter = new EventEmitter<QueuedTestRun>();
-    const queue = new TestRunQueue(oldestItemInQueueChangedEmitter);
+    const canStartTestRunEmitter = new EventEmitter<QueuedTestRun>();
+    const queue = new TestRunQueue(canStartTestRunEmitter);
     await addMissingTestCollectionsToTestTree(ctrl, collectionRegister);
-    fileChangedEmitter.event((uri) => {
+    fileChangedEmitter.event(async (uri) => {
         if (watchingTests.has("ALL")) {
-            startTestRun(
+            await startTestRun(
                 ctrl,
                 new TestRunRequest(
                     undefined,
@@ -56,7 +56,7 @@ export async function activate(context: ExtensionContext) {
                 ),
                 collectionRegister.getCurrentCollections(),
                 queue,
-                oldestItemInQueueChangedEmitter
+                canStartTestRunEmitter
             );
             return;
         }
@@ -72,27 +72,27 @@ export async function activate(context: ExtensionContext) {
         }
 
         if (include.length) {
-            startTestRun(
+            await startTestRun(
                 ctrl,
                 new TestRunRequest(include, undefined, profile, true),
                 collectionRegister.getCurrentCollections(),
                 queue,
-                oldestItemInQueueChangedEmitter
+                canStartTestRunEmitter
             );
         }
     });
 
-    const runHandler = (
+    const runHandler = async (
         request: TestRunRequest,
         cancellation: CancellationToken
     ) => {
         if (!request.continuous) {
-            return startTestRun(
+            return await startTestRun(
                 ctrl,
                 request,
                 collectionRegister.getCurrentCollections(),
                 queue,
-                oldestItemInQueueChangedEmitter
+                canStartTestRunEmitter
             );
         }
 

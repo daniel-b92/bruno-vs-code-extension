@@ -5,11 +5,11 @@ export type QueuedTestRun = {
     testRun: TestRun;
     test: vscodeTestItem;
     data: BrunoTestData;
-    id: string
+    id: string;
 };
 
 export class TestRunQueue {
-    constructor(private oldestItemChangedEmitter: EventEmitter<QueuedTestRun>) {
+    constructor(private canStartRunningEmitter: EventEmitter<QueuedTestRun>) {
         this.queue = [];
     }
 
@@ -17,6 +17,9 @@ export class TestRunQueue {
 
     public addToQueue(run: QueuedTestRun) {
         this.queue.push(run);
+        if (this.queue.length == 1) {
+            this.canStartRunningEmitter.fire(run);
+        }
     }
 
     public removeItemFromQueue(queuedRun: QueuedTestRun) {
@@ -27,7 +30,7 @@ export class TestRunQueue {
         );
         this.queue.splice(index, 1);
         if (this.queue.length > 0) {
-            this.oldestItemChangedEmitter.fire(this.getOldestItemFromQueue()!);
+            this.canStartRunningEmitter.fire(this.getOldestItemFromQueue()!);
         }
     }
 
