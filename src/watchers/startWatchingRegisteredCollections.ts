@@ -53,8 +53,8 @@ export async function startWatchingRegisteredCollections(
                     collection,
                     new TestDirectory(uri.fsPath)
                 );
+                fileChangedEmitter.fire(uri);
             }
-            fileChangedEmitter.fire(uri);
         });
         watcher.onDidChange((uri) => {
             /* For directories, no changes are ever registered because renaming a directory is seen as a creation of a new directory with the 
@@ -67,15 +67,26 @@ export async function startWatchingRegisteredCollections(
                 );
                 handleTestFileCreationOrUpdate(controller, collection, uri);
                 fileChangedEmitter.fire(uri);
+            } else if (
+                registeredCollections.find(
+                    (collection) =>
+                        collection.getTestItemForPath(uri.fsPath) != undefined
+                ) != undefined
+            ) {
+                // This case can e.g. happen if the sequence in the a .bru file is changed to an invalid value
+                handleTestItemDeletion(
+                    controller,
+                    getCollectionForTest(uri, registeredCollections),
+                    uri
+                );
             }
         });
         watcher.onDidDelete(async (uri) => {
             if (
-                isValidTestFileFromCollections(uri, registeredCollections) ||
-                (!uri.fsPath.endsWith(".bru") &&
-                    registeredCollections.some((collection) =>
-                        collection.getTestItemForPath(uri.fsPath)
-                    ))
+                registeredCollections.some(
+                    (collection) =>
+                        collection.getTestItemForPath(uri.fsPath) != undefined
+                )
             ) {
                 const collection = getCollectionForTest(
                     uri,

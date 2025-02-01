@@ -4,17 +4,13 @@ import {
     TestController,
     tests,
     Uri,
-    workspace,
     TestItem as vscodeTestItem,
     TestRunProfile,
     TestRunRequest,
     CancellationToken,
     TestRunProfileKind,
-    TextDocument,
 } from "vscode";
-import { TestFile } from "./model/testFile";
 import { addTestCollectionToTestTree } from "./vsCodeTestTree/testItemAdding/addTestCollection";
-import { handleTestFileCreationOrUpdate } from "./vsCodeTestTree/handlers/handleTestFileCreationOrUpdate";
 import { getAllCollectionRootDirectories } from "./fileSystem/collectionRootFolderHelper";
 import { getCollectionForTest, getTestId } from "./testTreeHelper";
 import { startWatchingRegisteredCollections } from "./watchers/startWatchingRegisteredCollections";
@@ -22,7 +18,6 @@ import { addAllTestItemsForCollections } from "./vsCodeTestTree/testItemAdding/a
 import { startTestRun } from "./testRun/startTestRun";
 import { existsSync } from "fs";
 import { handleTestItemDeletion } from "./vsCodeTestTree/handlers/handleTestItemDeletion";
-import { isValidTestFileFromCollections } from "./vsCodeTestTree/utils/isValidTestFileFromCollections";
 import { CollectionRegister } from "./model/collectionRegister";
 import { TestDirectory } from "./model/testDirectory";
 import { addTestDirectoryAndAllDescendants } from "./vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
@@ -162,38 +157,6 @@ export async function activate(context: ExtensionContext) {
             await addTestDirectoryAndAllDescendants(ctrl, collection, data);
         }
     };
-
-    function updateNodeForDocument(e: TextDocument) {
-        if (
-            !isValidTestFileFromCollections(
-                e.uri,
-                collectionRegister.getCurrentCollections()
-            )
-        ) {
-            return;
-        }
-
-        handleTestFileCreationOrUpdate(
-            ctrl,
-            getCollectionForTest(
-                e.uri,
-                collectionRegister.getCurrentCollections()
-            ),
-            e.uri
-        );
-        fileChangedEmitter.fire(e.uri);
-    }
-
-    for (const document of workspace.textDocuments) {
-        updateNodeForDocument(document);
-    }
-
-    context.subscriptions.push(
-        workspace.onDidOpenTextDocument(updateNodeForDocument),
-        workspace.onDidChangeTextDocument((e) =>
-            updateNodeForDocument(e.document)
-        )
-    );
 }
 
 async function addMissingTestCollectionsToTestTree(
