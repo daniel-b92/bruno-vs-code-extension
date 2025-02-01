@@ -39,6 +39,7 @@ export async function activate(context: ExtensionContext) {
     const canStartTestRunEmitter = new EventEmitter<QueuedTestRun>();
     const queue = new TestRunQueue(canStartTestRunEmitter);
     await addMissingTestCollectionsToTestTree(ctrl, collectionRegister);
+
     fileChangedEmitter.event(async (uri) => {
         if (watchingTests.has("ALL")) {
             await startTestRun(
@@ -58,9 +59,14 @@ export async function activate(context: ExtensionContext) {
 
         const include: vscodeTestItem[] = [];
         let profile: TestRunProfile | undefined;
+
         for (const [item, thisProfile] of watchingTests) {
             const cast = item as vscodeTestItem;
-            if (cast.uri?.toString() == uri.toString()) {
+
+            // If the modified item is a descendant of a watched item, trigger a testrun for that watched item.
+            if (
+                cast.uri?.fsPath ? uri.fsPath.includes(cast.uri?.fsPath) : false
+            ) {
                 include.push(cast);
                 profile = thisProfile;
             }
