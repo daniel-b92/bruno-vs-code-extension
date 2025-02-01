@@ -16,6 +16,7 @@ import { getTestFileDescendants } from "../fileSystem/getTestFileDescendants";
 import { addTestDirectoryAndAllDescendants } from "../vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
 import { TestDirectory } from "../model/testDirectory";
 import { CollectionRegister } from "../model/collectionRegister";
+import { dirname } from "path";
 
 export async function startWatchingRegisteredCollections(
     controller: TestController,
@@ -68,10 +69,10 @@ export async function startWatchingRegisteredCollections(
                 handleTestFileCreationOrUpdate(controller, collection, uri);
                 fileChangedEmitter.fire(uri);
             } else if (
-                registeredCollections.find(
+                registeredCollections.some(
                     (collection) =>
                         collection.getTestItemForPath(uri.fsPath) != undefined
-                ) != undefined
+                )
             ) {
                 // This case can e.g. happen if the sequence in the a .bru file is changed to an invalid value
                 handleTestItemDeletion(
@@ -122,9 +123,18 @@ async function hasValidTestFileDescendantsFromCollections(
     uri: Uri,
     knownCollections: TestCollection[]
 ) {
-    const collection = knownCollections.find((collection) =>
-        uri.fsPath.includes(collection.rootDirectory)
-    );
+    const collection = knownCollections.find((collection) => {
+        let currentPath = uri.fsPath;
+
+        while (
+            currentPath != collection.rootDirectory &&
+            currentPath.length >= collection.rootDirectory.length
+        ) {
+            currentPath = dirname(currentPath);
+        }
+
+        return currentPath == collection.rootDirectory;
+    });
 
     if (!collection) {
         return false;
