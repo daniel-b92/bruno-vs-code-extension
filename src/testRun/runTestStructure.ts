@@ -131,7 +131,7 @@ const setStatusForDescendantItems = (
     ).filter((descendant) => lstatSync(descendant.uri!.fsPath).isFile());
 
     const failedTests = getTestFilesWithFailures(jsonReportPath)
-        .map(({ file, request, response, testResults }) => ({
+        .map(({ file, request, response, testResults, error }) => ({
             // 'testfile' field from the JSON report does not always match the absolute file path
             item: testFileDescendants.find((descendant) =>
                 descendant.uri!.fsPath.includes(file)
@@ -139,12 +139,14 @@ const setStatusForDescendantItems = (
             request,
             response,
             testResults,
+            error,
         }))
         .filter((failed) => failed.item != undefined) as {
         item: vscodeTestItem;
         request: string;
         response: string;
         testResults: string;
+        error?: string;
     }[];
 
     getTestItemDescendants(testDirectoryItem).forEach((child) => {
@@ -173,7 +175,8 @@ const setStatusForDescendantItems = (
                 getTestMessageForFailedTest(
                     maybeTestFailure.testResults,
                     maybeTestFailure.request,
-                    maybeTestFailure.response
+                    maybeTestFailure.response,
+                    maybeTestFailure.error
                 )
             );
         } else {
@@ -189,16 +192,27 @@ const setStatusForDescendantItems = (
 const getTestMessageForFailedTest = (
     testResults: string,
     request: string,
-    response: string
+    response: string,
+    error?: string
 ) =>
-    new TestMessage(
-        `testResults:
+    error
+        ? new TestMessage(
+              `testResults:
+${testResults}
+error: "${error}"
+request:
+${request}
+response:
+${response}`
+          )
+        : new TestMessage(
+              `testResults:
 ${testResults}
 request:
 ${request}
 response:
 ${response}`
-    );
+          );
 
 const getJsonReportPath = (collectionRootDir: string) =>
     resolve(dirname(collectionRootDir), "results.json");
