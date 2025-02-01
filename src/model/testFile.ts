@@ -1,24 +1,22 @@
-import { TestItem as vscodeTestItem } from "vscode";
-import { getSortText } from "../testTreeHelper";
 import { getSequence } from "../fileSystem/testFileParser";
-import { TestCollection } from "./testCollection";
 
 export class TestFile {
-    constructor(public path: string, public sequence: number) {}
+    constructor(public path: string, private sequence: number) {}
+
+    public getSequence() {
+        return this.sequence;
+    }
 
     /**
-     * Updates the data for an existing test file.
+     * Updates the sequence for an existing test file.
      */
-    public updateFromDisk(
-        fileItem: vscodeTestItem,
-        collection: TestCollection
-    ) {
+    public updateSequenceFromDisk() {
         const sequence = getSequence(this.path);
 
         if (sequence) {
             this.sequence = sequence;
         }
-        fileItem.sortText = getSortText(this);
-        collection.testData.set(fileItem, this);
+
+        return this;
     }
 }

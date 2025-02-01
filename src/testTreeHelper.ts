@@ -7,7 +7,7 @@ export const globPatternForTestfiles = "**/*.bru";
 export type BrunoTestData = TestDirectory | TestFile;
 
 export const getSortText = (testFile: TestFile) =>
-    new Array(testFile.sequence + 1).join("a");
+    new Array(testFile.getSequence() + 1).join("a");
 
 export const getTestId = (uri: vsCodeUri) => uri.toString();
 
