@@ -6,6 +6,7 @@ export type QueuedTestRun = {
     test: vscodeTestItem;
     data: BrunoTestData;
     id: string;
+    abortEmitter: EventEmitter<void>;
 };
 
 export class TestRunQueue {

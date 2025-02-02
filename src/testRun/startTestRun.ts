@@ -42,7 +42,13 @@ export const startTestRun = async (
             const id = getIdForQueuedRun(data, creationTime);
             run.enqueued(test);
 
-            result.push({ testRun: run, test, data, id });
+            result.push({
+                testRun: run,
+                test,
+                data,
+                id,
+                abortEmitter: new EventEmitter<void>(),
+            });
         }
         return result;
     };
@@ -54,34 +60,52 @@ export const startTestRun = async (
         }
 
         while (toRun.length > 0) {
-            const { test, data, id } = await nextItemToRun;
+            const { test, data, id, abortEmitter } = await nextItemToRun;
+
+            run.token.onCancellationRequested(() => {
+                abortEmitter.fire();
+                run.appendOutput(`Canceled ${test.label}\r\n`);
+                run.skipped(test);
+                queue.removeItemFromQueue({
+                    testRun: run,
+                    test,
+                    data,
+                    id,
+                    abortEmitter,
+                });
+            });
 
             run.appendOutput(`Running ${test.label}\r\n`);
 
-            if (run.token.isCancellationRequested) {
-                run.appendOutput(`Canceled ${test.label}\r\n`);
-                run.skipped(test);
-                queue.removeItemFromQueue({ testRun: run, test, data, id });
-            } else {
-                run.started(test);
-                const testEnvironment = workspace
-                    .getConfiguration()
-                    .get(environmentConfigKey) as string | undefined;
-                const htmlReportPath = getHtmlReportPath(
-                    await getCollectionRootDir(data)
-                );
-                printInfosOnTestRunStart(run, htmlReportPath, testEnvironment);
+            run.started(test);
+            const testEnvironment = workspace
+                .getConfiguration()
+                .get(environmentConfigKey) as string | undefined;
+            const htmlReportPath = getHtmlReportPath(
+                await getCollectionRootDir(data)
+            );
+            printInfosOnTestRunStart(run, htmlReportPath, testEnvironment);
 
-                await runTestStructure(test, data, run, testEnvironment);
-                if (existsSync(htmlReportPath)) {
-                    showHtmlReport(htmlReportPath, data);
-                }
+            await runTestStructure(
+                test,
+                data,
+                run,
+                abortEmitter,
+                testEnvironment
+            );
+            if (existsSync(htmlReportPath)) {
+                showHtmlReport(htmlReportPath, data);
             }
 
             nextItemToRun = getNextTestThatCanStartRunning(toRun);
 
-            run.appendOutput(`Completed ${test.label}\r\n`);
-            queue.removeItemFromQueue({ testRun: run, test, data, id });
+            queue.removeItemFromQueue({
+                testRun: run,
+                test,
+                data,
+                id,
+                abortEmitter,
+            });
             toRun.splice(
                 toRun.findIndex(({ id: idForMatching }) => idForMatching == id),
                 1

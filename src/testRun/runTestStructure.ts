@@ -4,7 +4,12 @@ import { existsSync, lstatSync, unlinkSync } from "fs";
 import { spawn } from "child_process";
 import { dirname, resolve } from "path";
 import { TestDirectory } from "../model/testDirectory";
-import { TestMessage, TestRun, TestItem as vscodeTestItem } from "vscode";
+import {
+    EventEmitter,
+    TestMessage,
+    TestRun,
+    TestItem as vscodeTestItem,
+} from "vscode";
 import { getTestFilesWithFailures } from "./jsonReportParser";
 import { getHtmlReportPath } from "./startTestRun";
 import { getTestItemDescendants } from "../vsCodeTestTree/utils/getTestItemDescendants";
@@ -13,6 +18,7 @@ export async function runTestStructure(
     item: vscodeTestItem,
     data: BrunoTestData,
     options: TestRun,
+    abortEmitter: EventEmitter<void>,
     testEnvironment?: string
 ): Promise<void> {
     const collectionRootDir = await getCollectionRootDir(data);
@@ -40,11 +46,14 @@ export async function runTestStructure(
 
     return new Promise((resolve) => {
         let duration = 0;
+
         const start = Date.now();
         const childProcess = spawn(`npx`, commandArgs, {
             cwd: collectionRootDir,
             shell: true,
         });
+
+        abortEmitter.event(() => childProcess.kill("SIGINT"));
 
         childProcess.on("error", (err) => {
             console.error("Failed to start subprocess.", err);
@@ -95,6 +104,11 @@ export async function runTestStructure(
                         options.passed(child);
                     });
                 }
+            } else if (code == null) {
+                options.skipped(item);
+                if (data instanceof TestDirectory) {
+                    setStatusForDescendantItems(item, jsonReportPath, options);
+                }
             } else {
                 options.failed(item, [new TestMessage("Testrun failed")]);
                 if (data instanceof TestDirectory) {
@@ -117,7 +131,7 @@ const setStatusForDescendantItems = (
     if (!existsSync(jsonReportPath)) {
         options.appendOutput("Could not find JSON report file.\r\n");
         options.appendOutput(
-            "Therefore cannot determine which child test items actually failed. Will status skipped for all.\r\n"
+            "Therefore cannot determine status of descendant test items. Will set status 'skipped' for all.\r\n"
         );
         getTestItemDescendants(testDirectoryItem).forEach((child) => {
             child.busy = false;

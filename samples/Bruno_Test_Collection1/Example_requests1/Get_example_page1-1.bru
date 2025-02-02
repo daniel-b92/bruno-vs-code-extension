@@ -10,6 +10,10 @@ get {
   auth: none
 }
 
+script:pre-request {
+  await bru.sleep(15000);
+}
+
 tests {
   test("should be able to login", function() {
     const data = res.getBody();

@@ -38,6 +38,7 @@ export async function activate(context: ExtensionContext) {
     const collectionRegister = new CollectionRegister([]);
     const canStartTestRunEmitter = new EventEmitter<QueuedTestRun>();
     const queue = new TestRunQueue(canStartTestRunEmitter);
+
     await addMissingTestCollectionsToTestTree(ctrl, collectionRegister);
 
     fileChangedEmitter.event(async (uri) => {
