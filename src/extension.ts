@@ -9,6 +9,7 @@ import {
     TestRunRequest,
     CancellationToken,
     TestRunProfileKind,
+    FileSystemWatcher,
 } from "vscode";
 import { addTestCollectionToTestTree } from "./vsCodeTestTree/testItemAdding/addTestCollection";
 import { getAllCollectionRootDirectories } from "./fileSystem/collectionRootFolderHelper";
@@ -22,6 +23,8 @@ import { CollectionRegister } from "./model/collectionRegister";
 import { TestDirectory } from "./model/testDirectory";
 import { addTestDirectoryAndAllDescendants } from "./vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
 import { QueuedTestRun, TestRunQueue } from "./model/testRunQueue";
+import { TestCollection } from "./model/testCollection";
+import { handleTestCollectionDeletion } from "./vsCodeTestTree/handlers/handleTestCollectionDeletion";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
@@ -36,6 +39,10 @@ export async function activate(context: ExtensionContext) {
         TestRunProfile | undefined
     >();
     const collectionRegister = new CollectionRegister([]);
+    let collectionWatchers: {
+        collection: TestCollection;
+        watcher: FileSystemWatcher;
+    }[] = [];
     const canStartTestRunEmitter = new EventEmitter<QueuedTestRun>();
     const queue = new TestRunQueue(canStartTestRunEmitter);
 
@@ -122,9 +129,11 @@ export async function activate(context: ExtensionContext) {
                     }
                 });
             } else {
-                collectionRegister.unregisterCollection(collection);
-                ctrl.items.delete(
-                    getTestId(Uri.file(collection.rootDirectory))
+                handleTestCollectionDeletion(
+                    ctrl,
+                    collectionRegister,
+                    collectionWatchers,
+                    collection
                 );
             }
         });
@@ -146,12 +155,16 @@ export async function activate(context: ExtensionContext) {
 
     ctrl.resolveHandler = async (item) => {
         if (!item) {
-            const watchers = await startWatchingRegisteredCollections(
-                ctrl,
-                fileChangedEmitter,
-                collectionRegister
+            collectionWatchers.push(
+                ...(await startWatchingRegisteredCollections(
+                    ctrl,
+                    fileChangedEmitter,
+                    collectionRegister
+                ))
             );
-            context.subscriptions.push(...watchers);
+            context.subscriptions.push(
+                ...collectionWatchers.map(({ watcher }) => watcher)
+            );
             return;
         }
 

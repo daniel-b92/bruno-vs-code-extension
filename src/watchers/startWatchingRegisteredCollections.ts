@@ -5,6 +5,7 @@ import {
     TestController,
     Uri,
     workspace,
+    WorkspaceFolder,
 } from "vscode";
 import { TestCollection } from "../model/testCollection";
 import { getCollectionForTest } from "../testTreeHelper";
@@ -16,7 +17,8 @@ import { getTestFileDescendants } from "../fileSystem/getTestFileDescendants";
 import { addTestDirectoryAndAllDescendants } from "../vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
 import { TestDirectory } from "../model/testDirectory";
 import { CollectionRegister } from "../model/collectionRegister";
-import { dirname } from "path";
+import { basename, dirname } from "path";
+import { handleTestCollectionDeletion } from "../vsCodeTestTree/handlers/handleTestCollectionDeletion";
 
 export async function startWatchingRegisteredCollections(
     controller: TestController,
@@ -25,12 +27,14 @@ export async function startWatchingRegisteredCollections(
 ) {
     const registeredCollections = collectionRegister.getCurrentCollections();
 
-    const watchers: FileSystemWatcher[] = [];
-    for (const pattern of getWorkspaceTestPatterns(registeredCollections)) {
-        watchers.push(workspace.createFileSystemWatcher(pattern));
-    }
+    const collectionWatchers = getWorkspaceTestPatterns(
+        registeredCollections
+    ).map(({ collection, pattern }) => ({
+        collection,
+        watcher: workspace.createFileSystemWatcher(pattern),
+    }));
 
-    for (const watcher of watchers) {
+    for (const { watcher } of collectionWatchers) {
         watcher.onDidCreate(async (uri) => {
             if (isValidTestFileFromCollections(uri, registeredCollections)) {
                 const collection = getCollectionForTest(
@@ -93,16 +97,24 @@ export async function startWatchingRegisteredCollections(
                     uri,
                     registeredCollections
                 );
-                handleTestItemDeletion(controller, collection, uri);
+
                 if (uri.fsPath == collection.rootDirectory) {
-                    collectionRegister.unregisterCollection(collection);
+                    handleTestCollectionDeletion(
+                        controller,
+                        collectionRegister,
+                        collectionWatchers,
+                        collection
+                    );
+                    return;
                 }
+
+                handleTestItemDeletion(controller, collection, uri);
             }
         });
 
         await addAllTestItemsForCollections(controller, registeredCollections);
     }
-    return watchers;
+    return collectionWatchers;
 }
 
 function getWorkspaceTestPatterns(testCollections: TestCollection[]) {
@@ -110,13 +122,21 @@ function getWorkspaceTestPatterns(testCollections: TestCollection[]) {
         return [];
     }
 
-    return workspace.workspaceFolders
-        .filter((workspaceFolder) =>
-            testCollections.some((collection) =>
-                collection.rootDirectory.includes(workspaceFolder.uri.fsPath)
-            )
-        )
-        .map((workspaceFolder) => new RelativePattern(workspaceFolder, "**/*"));
+    return testCollections
+        .map((collection) => {
+            const maybeWorkspaceFolder = workspace.workspaceFolders!.find(
+                (folder) => collection.rootDirectory.includes(folder.uri.fsPath)
+            );
+            return { workspaceFolder: maybeWorkspaceFolder, collection };
+        })
+        .filter((item) => item.workspaceFolder != undefined)
+        .map((item) => ({
+            collection: item.collection,
+            pattern: new RelativePattern(
+                item.workspaceFolder as WorkspaceFolder,
+                `**/${basename(item.collection?.rootDirectory as string)}/**` // ToDo: find pattern that matches both collection root folder and all descendants
+            ),
+        }));
 }
 
 async function hasValidTestFileDescendantsFromCollections(
