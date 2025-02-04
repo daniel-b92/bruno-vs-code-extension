@@ -9,12 +9,10 @@ import {
     TestRunRequest,
     CancellationToken,
     TestRunProfileKind,
-    FileSystemWatcher,
 } from "vscode";
 import { addTestCollectionToTestTree } from "./vsCodeTestTree/testItemAdding/addTestCollection";
 import { getAllCollectionRootDirectories } from "./fileSystem/collectionRootFolderHelper";
-import { getCollectionForTest, getTestId } from "./testTreeHelper";
-import { startWatchingRegisteredCollections } from "./watchers/startWatchingRegisteredCollections";
+import { getCollectionForTest } from "./testTreeHelper";
 import { addAllTestItemsForCollections } from "./vsCodeTestTree/testItemAdding/addAllTestItemsForCollections";
 import { startTestRun } from "./testRun/startTestRun";
 import { existsSync } from "fs";
@@ -23,8 +21,6 @@ import { CollectionRegister } from "./model/collectionRegister";
 import { TestDirectory } from "./model/testDirectory";
 import { addTestDirectoryAndAllDescendants } from "./vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
 import { QueuedTestRun, TestRunQueue } from "./model/testRunQueue";
-import { TestCollection } from "./model/testCollection";
-import { handleTestCollectionDeletion } from "./vsCodeTestTree/handlers/handleTestCollectionDeletion";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
@@ -38,11 +34,11 @@ export async function activate(context: ExtensionContext) {
         vscodeTestItem | "ALL",
         TestRunProfile | undefined
     >();
-    const collectionRegister = new CollectionRegister([]);
-    let collectionWatchers: {
-        collection: TestCollection;
-        watcher: FileSystemWatcher;
-    }[] = [];
+    const collectionRegister = new CollectionRegister(
+        ctrl,
+        context,
+        fileChangedEmitter
+    );
     const canStartTestRunEmitter = new EventEmitter<QueuedTestRun>();
     const queue = new TestRunQueue(canStartTestRunEmitter);
 
@@ -129,12 +125,7 @@ export async function activate(context: ExtensionContext) {
                     }
                 });
             } else {
-                handleTestCollectionDeletion(
-                    ctrl,
-                    collectionRegister,
-                    collectionWatchers,
-                    collection
-                );
+                collectionRegister.unregisterCollection(collection);
             }
         });
         await addMissingTestCollectionsToTestTree(ctrl, collectionRegister);
@@ -155,15 +146,9 @@ export async function activate(context: ExtensionContext) {
 
     ctrl.resolveHandler = async (item) => {
         if (!item) {
-            collectionWatchers.push(
-                ...(await startWatchingRegisteredCollections(
-                    ctrl,
-                    fileChangedEmitter,
-                    collectionRegister
-                ))
-            );
-            context.subscriptions.push(
-                ...collectionWatchers.map(({ watcher }) => watcher)
+            await addAllTestItemsForCollections(
+                ctrl,
+                collectionRegister.getCurrentCollections()
             );
             return;
         }
