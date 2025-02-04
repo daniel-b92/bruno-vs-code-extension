@@ -134,7 +134,9 @@ function getWorkspaceTestPatterns(testCollections: TestCollection[]) {
             collection: item.collection,
             pattern: new RelativePattern(
                 item.workspaceFolder as WorkspaceFolder,
-                `**/${basename(item.collection?.rootDirectory as string)}/**` // ToDo: find pattern that matches both collection root folder and all descendants
+                `{**/${basename(item.collection.rootDirectory)},**/${basename(
+                    item.collection.rootDirectory
+                )}/**/*}`
             ),
         }));
 }
