@@ -1,7 +1,7 @@
 import { Uri as vsCodeUri } from "vscode";
-import { TestDirectory } from "./model/testDirectory";
-import { TestFile } from "./model/testFile";
-import { TestCollection } from "./model/testCollection";
+import { TestDirectory } from "./testData/testDirectory";
+import { TestFile } from "./testData/testFile";
+import { TestCollection } from "./testData/testCollection";
 
 export const globPatternForTestfiles = "**/*.bru";
 export type BrunoTestData = TestDirectory | TestFile;

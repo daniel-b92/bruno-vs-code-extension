@@ -1,6 +1,6 @@
-import { TestFile } from "../../model/testFile";
-import { TestDirectory } from "../../model/testDirectory";
-import { TestCollection } from "../../model/testCollection";
+import { TestFile } from "../../testData/testFile";
+import { TestDirectory } from "../../testData/testDirectory";
+import { TestCollection } from "../../testData/testCollection";
 import { dirname } from "path";
 import { getSortText, getTestId, getTestLabel } from "../../testTreeHelper";
 import { TestController, Uri } from "vscode";

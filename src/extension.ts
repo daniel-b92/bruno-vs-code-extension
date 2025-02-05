@@ -17,10 +17,10 @@ import { addAllTestItemsForCollections } from "./vsCodeTestTree/testItemAdding/a
 import { startTestRun } from "./testRun/startTestRun";
 import { existsSync } from "fs";
 import { handleTestItemDeletion } from "./vsCodeTestTree/handlers/handleTestItemDeletion";
-import { CollectionRegister } from "./model/collectionRegister";
-import { TestDirectory } from "./model/testDirectory";
+import { CollectionRegister } from "./vsCodeTestTree/collectionRegister";
+import { TestDirectory } from "./testData/testDirectory";
 import { addTestDirectoryAndAllDescendants } from "./vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
-import { QueuedTestRun, TestRunQueue } from "./model/testRunQueue";
+import { QueuedTestRun, TestRunQueue } from "./testRun/testRunQueue";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(

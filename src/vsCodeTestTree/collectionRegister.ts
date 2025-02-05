@@ -1,4 +1,4 @@
-import { TestCollection } from "./testCollection";
+import { TestCollection } from "../testData/testCollection";
 import {
     EventEmitter,
     ExtensionContext,
@@ -10,13 +10,13 @@ import {
     WorkspaceFolder,
 } from "vscode";
 import { getCollectionForTest, getTestId } from "../testTreeHelper";
-import { handleTestFileCreationOrUpdate } from "../vsCodeTestTree/handlers/handleTestFileCreationOrUpdate";
-import { addAllTestItemsForCollections } from "../vsCodeTestTree/testItemAdding/addAllTestItemsForCollections";
-import { handleTestItemDeletion } from "../vsCodeTestTree/handlers/handleTestItemDeletion";
-import { isValidTestFileFromCollections } from "../vsCodeTestTree/utils/isValidTestFileFromCollections";
+import { handleTestFileCreationOrUpdate } from "./handlers/handleTestFileCreationOrUpdate";
+import { addAllTestItemsForCollections } from "./testItemAdding/addAllTestItemsForCollections";
+import { handleTestItemDeletion } from "./handlers/handleTestItemDeletion";
+import { isValidTestFileFromCollections } from "./utils/isValidTestFileFromCollections";
 import { getTestFileDescendants } from "../fileSystem/getTestFileDescendants";
-import { addTestDirectoryAndAllDescendants } from "../vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
-import { TestDirectory } from "../model/testDirectory";
+import { addTestDirectoryAndAllDescendants } from "./testItemAdding/addTestDirectoryAndAllDescendants";
+import { TestDirectory } from "../testData/testDirectory";
 import { basename, dirname } from "path";
 
 export class CollectionRegister {

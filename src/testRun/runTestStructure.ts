@@ -3,7 +3,7 @@ import { getCollectionRootDir } from "../fileSystem/collectionRootFolderHelper";
 import { existsSync, lstatSync, unlinkSync } from "fs";
 import { spawn } from "child_process";
 import { dirname, resolve } from "path";
-import { TestDirectory } from "../model/testDirectory";
+import { TestDirectory } from "../testData/testDirectory";
 import {
     EventEmitter,
     TestMessage,

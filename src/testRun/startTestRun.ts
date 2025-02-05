@@ -1,4 +1,4 @@
-import { TestCollection } from "../model/testCollection";
+import { TestCollection } from "../testData/testCollection";
 import { BrunoTestData, getCollectionForTest } from "../testTreeHelper";
 import { showHtmlReport } from "./showHtmlReport";
 import { getCollectionRootDir } from "../fileSystem/collectionRootFolderHelper";
@@ -14,7 +14,7 @@ import {
 } from "vscode";
 import { dirname, resolve } from "path";
 import { runTestStructure } from "./runTestStructure";
-import { QueuedTestRun, TestRunQueue } from "../model/testRunQueue";
+import { QueuedTestRun, TestRunQueue } from "./testRunQueue";
 
 const environmentConfigKey = "brunoTestExtension.testRunEnvironment";
 

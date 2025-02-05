@@ -1,9 +1,9 @@
-import { TestCollection } from "../../model/testCollection";
+import { TestCollection } from "../../testData/testCollection";
 import { dirname } from "path";
 import { addTestItem } from "./addTestItem";
-import { TestDirectory } from "../../model/testDirectory";
+import { TestDirectory } from "../../testData/testDirectory";
 import { getSequence } from "../../fileSystem/testFileParser";
-import { TestFile } from "../../model/testFile";
+import { TestFile } from "../../testData/testFile";
 import { getTestFileDescendants } from "../../fileSystem/getTestFileDescendants";
 import { TestController, Uri, TestItem as vscodeTestItem } from "vscode";
 

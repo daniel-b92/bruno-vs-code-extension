@@ -1,5 +1,5 @@
 import { TestController, Uri } from "vscode";
-import { TestCollection } from "../../model/testCollection";
+import { TestCollection } from "../../testData/testCollection";
 import { getTestId, getTestLabel } from "../../testTreeHelper";
 
 export const addTestCollectionToTestTree = (

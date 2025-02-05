@@ -1,5 +1,5 @@
-import { TestCollection } from "../../model/testCollection";
-import { TestDirectory } from "../../model/testDirectory";
+import { TestCollection } from "../../testData/testCollection";
+import { TestDirectory } from "../../testData/testDirectory";
 import { TestController } from "vscode";
 import { addTestDirectoryAndAllDescendants } from "./addTestDirectoryAndAllDescendants";
 

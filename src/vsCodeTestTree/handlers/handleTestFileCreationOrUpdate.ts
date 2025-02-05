@@ -1,7 +1,7 @@
 import { TestController, Uri, TestItem as vscodeTestItem } from "vscode";
-import { TestCollection } from "../../model/testCollection";
+import { TestCollection } from "../../testData/testCollection";
 import { getSequence } from "../../fileSystem/testFileParser";
-import { TestFile } from "../../model/testFile";
+import { TestFile } from "../../testData/testFile";
 import { addTestItem } from "../testItemAdding/addTestItem";
 import { createOrUpdateParentItem } from "../utils/parentItemHelper";
 import { handleTestItemDeletion } from "./handleTestItemDeletion";

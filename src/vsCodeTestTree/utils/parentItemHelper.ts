@@ -1,7 +1,7 @@
 import { TestController, Uri, TestItem as vscodeTestItem } from "vscode";
-import { TestCollection } from "../../model/testCollection";
+import { TestCollection } from "../../testData/testCollection";
 import { addTestItem } from "../testItemAdding/addTestItem";
-import { TestDirectory } from "../../model/testDirectory";
+import { TestDirectory } from "../../testData/testDirectory";
 import { dirname } from "path";
 
 export const createOrUpdateParentItem = (
