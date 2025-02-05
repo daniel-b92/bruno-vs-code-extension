@@ -20,7 +20,7 @@ import { handleTestItemDeletion } from "./vsCodeTestTree/handlers/handleTestItem
 import { CollectionRegister } from "./vsCodeTestTree/collectionRegister";
 import { TestDirectory } from "./testData/testDirectory";
 import { addTestDirectoryAndAllDescendants } from "./vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
-import { QueuedTestRun, TestRunQueue } from "./testRun/testRunQueue";
+import { TestRunQueue } from "./testRun/testRunQueue";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
@@ -39,7 +39,7 @@ export async function activate(context: ExtensionContext) {
         context,
         fileChangedEmitter
     );
-    const queue = new TestRunQueue();
+    const queue = new TestRunQueue(ctrl);
 
     await addMissingTestCollectionsToTestTree(ctrl, collectionRegister);
 

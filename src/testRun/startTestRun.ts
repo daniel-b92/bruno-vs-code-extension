@@ -14,7 +14,7 @@ import {
 } from "vscode";
 import { dirname, resolve } from "path";
 import { runTestStructure } from "./runTestStructure";
-import { QueuedTestRun, TestRunQueue } from "./testRunQueue";
+import { QueuedTest, TestRunQueue } from "./testRunQueue";
 
 const environmentConfigKey = "brunoTestExtension.testRunEnvironment";
 
@@ -24,11 +24,8 @@ export const startTestRun = async (
     registeredCollections: TestCollection[],
     queue: TestRunQueue
 ) => {
-    const run = ctrl.createTestRun(request);
-    const creationTime = new Date();
-
     const discoverTests = (tests: Iterable<vscodeTestItem>) => {
-        const result: QueuedTestRun[] = [];
+        const result: QueuedTest[] = [];
         for (const test of tests) {
             if (request.exclude?.includes(test)) {
                 continue;
@@ -38,10 +35,10 @@ export const startTestRun = async (
                 registeredCollections
             );
             const data = collection.testData.get(test)!;
-            const id = getIdForQueuedRun(data, creationTime);
-            run.enqueued(test);
+            const id = getIdForQueuedRun(data, new Date());
 
             result.push({
+                request,
                 test,
                 data,
                 id,
@@ -51,20 +48,24 @@ export const startTestRun = async (
         return result;
     };
 
-    const runTestQueue = async (toRun: QueuedTestRun[]) => {
+    const runTestQueue = async (toRun: QueuedTest[]) => {
         let nextItemToRun = getNextTestThatCanStartRunning(toRun);
         for (const item of toRun) {
             queue.addToQueue(item);
         }
 
         while (toRun.length > 0) {
-            const { test, data, id, abortEmitter } = await nextItemToRun;
+            const {
+                run,
+                queuedTest: { id, data, test, abortEmitter },
+            } = await nextItemToRun;
 
             run.token.onCancellationRequested(() => {
                 abortEmitter.fire();
                 run.appendOutput(`Canceled ${test.label}\r\n`);
                 run.skipped(test);
                 queue.removeItemFromQueue({
+                    request,
                     test,
                     data,
                     id,
@@ -97,6 +98,7 @@ export const startTestRun = async (
             nextItemToRun = getNextTestThatCanStartRunning(toRun);
 
             queue.removeItemFromQueue({
+                request,
                 test,
                 data,
                 id,
@@ -106,15 +108,15 @@ export const startTestRun = async (
                 toRun.findIndex(({ id: idForMatching }) => idForMatching == id),
                 1
             );
+            run.end();
         }
-        run.end();
     };
 
-    const getNextTestThatCanStartRunning = (queuedItems: QueuedTestRun[]) =>
-        new Promise<QueuedTestRun>((resolve) => {
+    const getNextTestThatCanStartRunning = (queuedItems: QueuedTest[]) =>
+        new Promise<{ queuedTest: QueuedTest; run: TestRun }>((resolve) => {
             canStartRunningEmitter.event((item) => {
                 for (const queuedItem of queuedItems) {
-                    if (item.id == queuedItem.id) {
+                    if (item.queuedTest.id == queuedItem.id) {
                         resolve(item);
                     }
                 }

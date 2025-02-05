@@ -1,7 +1,14 @@
 import { BrunoTestData } from "../testTreeHelper";
-import { EventEmitter, TestRun, TestItem as vscodeTestItem } from "vscode";
+import {
+    EventEmitter,
+    TestController,
+    TestRun,
+    TestRunRequest,
+    TestItem as vscodeTestItem,
+} from "vscode";
 
-export type QueuedTestRun = {
+export type QueuedTest = {
+    request: TestRunRequest;
     test: vscodeTestItem;
     data: BrunoTestData;
     id: string;
@@ -9,32 +16,44 @@ export type QueuedTestRun = {
 };
 
 export class TestRunQueue {
-    constructor() {
-        this.canStartRunningEmitter = new EventEmitter<QueuedTestRun>;
+    constructor(private controller: TestController) {
+        this.canStartRunningEmitter = new EventEmitter<{
+            queuedTest: QueuedTest;
+            run: TestRun;
+        }>();
         this.queue = [];
     }
 
-    private canStartRunningEmitter: EventEmitter<QueuedTestRun>;
+    private canStartRunningEmitter: EventEmitter<{
+        queuedTest: QueuedTest;
+        run: TestRun;
+    }>;
 
-    private queue: QueuedTestRun[];
+    private queue: QueuedTest[];
 
     public getRunStartableEmitter() {
         return this.canStartRunningEmitter;
     }
 
-    public addToQueue(run: QueuedTestRun) {
-        this.queue.push(run);
+    public addToQueue(queuedTest: QueuedTest) {
+        this.queue.push(queuedTest);
         if (this.queue.length == 1) {
-            this.canStartRunningEmitter.fire(run);
+            this.canStartRunningEmitter.fire({
+                queuedTest,
+                run: this.controller.createTestRun(queuedTest.request),
+            });
         }
     }
 
-    public removeItemFromQueue(queuedRun: QueuedTestRun) {
-        const index = this.queue.findIndex((val) => val.id == queuedRun.id);
+    public removeItemFromQueue(queuedTest: QueuedTest) {
+        const index = this.queue.findIndex((val) => val.id == queuedTest.id);
         this.queue.splice(index, 1);
 
         if (this.queue.length > 0) {
-            this.canStartRunningEmitter.fire(this.getOldestItemFromQueue()!);
+            this.canStartRunningEmitter.fire({
+                queuedTest: this.getOldestItemFromQueue()!,
+                run: this.controller.createTestRun( queuedTest.request),
+            });
         }
     }
 
