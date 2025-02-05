@@ -2,7 +2,6 @@ import { BrunoTestData } from "../testTreeHelper";
 import { EventEmitter, TestRun, TestItem as vscodeTestItem } from "vscode";
 
 export type QueuedTestRun = {
-    testRun: TestRun;
     test: vscodeTestItem;
     data: BrunoTestData;
     id: string;
@@ -10,11 +9,18 @@ export type QueuedTestRun = {
 };
 
 export class TestRunQueue {
-    constructor(private canStartRunningEmitter: EventEmitter<QueuedTestRun>) {
+    constructor() {
+        this.canStartRunningEmitter = new EventEmitter<QueuedTestRun>;
         this.queue = [];
     }
 
+    private canStartRunningEmitter: EventEmitter<QueuedTestRun>;
+
     private queue: QueuedTestRun[];
+
+    public getRunStartableEmitter() {
+        return this.canStartRunningEmitter;
+    }
 
     public addToQueue(run: QueuedTestRun) {
         this.queue.push(run);
@@ -24,12 +30,9 @@ export class TestRunQueue {
     }
 
     public removeItemFromQueue(queuedRun: QueuedTestRun) {
-        const index = this.queue.findIndex(
-            (val) =>
-                val.data.path == queuedRun.data.path &&
-                JSON.stringify(val.testRun) == JSON.stringify(queuedRun.testRun)
-        );
+        const index = this.queue.findIndex((val) => val.id == queuedRun.id);
         this.queue.splice(index, 1);
+
         if (this.queue.length > 0) {
             this.canStartRunningEmitter.fire(this.getOldestItemFromQueue()!);
         }

@@ -39,8 +39,7 @@ export async function activate(context: ExtensionContext) {
         context,
         fileChangedEmitter
     );
-    const canStartTestRunEmitter = new EventEmitter<QueuedTestRun>();
-    const queue = new TestRunQueue(canStartTestRunEmitter);
+    const queue = new TestRunQueue();
 
     await addMissingTestCollectionsToTestTree(ctrl, collectionRegister);
 
@@ -55,8 +54,7 @@ export async function activate(context: ExtensionContext) {
                     true
                 ),
                 collectionRegister.getCurrentCollections(),
-                queue,
-                canStartTestRunEmitter
+                queue
             );
             return;
         }
@@ -81,8 +79,7 @@ export async function activate(context: ExtensionContext) {
                 ctrl,
                 new TestRunRequest(include, undefined, profile, true),
                 collectionRegister.getCurrentCollections(),
-                queue,
-                canStartTestRunEmitter
+                queue
             );
         }
     });
@@ -96,8 +93,7 @@ export async function activate(context: ExtensionContext) {
                 ctrl,
                 request,
                 collectionRegister.getCurrentCollections(),
-                queue,
-                canStartTestRunEmitter
+                queue
             );
         }
 

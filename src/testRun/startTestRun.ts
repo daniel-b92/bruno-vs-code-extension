@@ -22,8 +22,7 @@ export const startTestRun = async (
     ctrl: TestController,
     request: TestRunRequest,
     registeredCollections: TestCollection[],
-    queue: TestRunQueue,
-    canStartRunningEmitter: EventEmitter<QueuedTestRun>
+    queue: TestRunQueue
 ) => {
     const run = ctrl.createTestRun(request);
     const creationTime = new Date();
@@ -43,7 +42,6 @@ export const startTestRun = async (
             run.enqueued(test);
 
             result.push({
-                testRun: run,
                 test,
                 data,
                 id,
@@ -67,7 +65,6 @@ export const startTestRun = async (
                 run.appendOutput(`Canceled ${test.label}\r\n`);
                 run.skipped(test);
                 queue.removeItemFromQueue({
-                    testRun: run,
                     test,
                     data,
                     id,
@@ -100,7 +97,6 @@ export const startTestRun = async (
             nextItemToRun = getNextTestThatCanStartRunning(toRun);
 
             queue.removeItemFromQueue({
-                testRun: run,
                 test,
                 data,
                 id,
@@ -125,6 +121,7 @@ export const startTestRun = async (
             });
         });
 
+    const canStartRunningEmitter = queue.getRunStartableEmitter();
     const toRun = discoverTests(request.include ?? gatherTestItems(ctrl.items));
     await runTestQueue(toRun);
 };
