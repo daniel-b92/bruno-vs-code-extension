@@ -53,7 +53,7 @@ export async function runTestStructure(
             shell: true,
         });
 
-        abortEmitter.event(() => childProcess.kill("SIGKILL"));
+        abortEmitter.event(() => childProcess.kill());
 
         childProcess.on("error", (err) => {
             console.error("Failed to start subprocess.", err);
