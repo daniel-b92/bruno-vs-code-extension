@@ -57,11 +57,7 @@ export class TestRunQueue {
         }
     }
 
-    public getOldestItemFromQueue() {
+    private getOldestItemFromQueue() {
         return this.queue.length > 0 ? this.queue[0] : undefined;
-    }
-
-    public getNumberOfItemsInQueue() {
-        return this.queue.length;
     }
 }
