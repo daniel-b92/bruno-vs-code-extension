@@ -22,6 +22,7 @@ export class TestRunQueue {
             run: TestRun;
         }>();
         this.queue = [];
+        this.activeRun = undefined;
     }
 
     private canStartRunningEmitter: EventEmitter<{
@@ -30,9 +31,11 @@ export class TestRunQueue {
     }>;
 
     private queue: QueuedTest[];
+    private activeRun: TestRun | undefined;
 
-    public getNextTestThatCanStartRunning(queuedItemsToAwait: QueuedTest[]){
-            return new Promise<{ queuedTest: QueuedTest; run: TestRun }>((resolve) => {
+    public getNextTestThatCanStartRunning(queuedItemsToAwait: QueuedTest[]) {
+        return new Promise<{ queuedTest: QueuedTest; run: TestRun }>(
+            (resolve) => {
                 this.canStartRunningEmitter.event((item) => {
                     for (const queuedItem of queuedItemsToAwait) {
                         if (item.queuedTest.id == queuedItem.id) {
@@ -40,27 +43,39 @@ export class TestRunQueue {
                         }
                     }
                 });
-            });
-        }
+            }
+        );
+    }
 
     public addToQueue(queuedTest: QueuedTest) {
         this.queue.push(queuedTest);
-        if (this.queue.length == 1) {
-            this.canStartRunningEmitter.fire({
-                queuedTest,
-                run: this.controller.createTestRun(queuedTest.request),
-            });
+
+        if (this.queue.length > 1) {
+            this.activeRun?.enqueued(queuedTest.test);
+            return;
         }
+
+        this.activeRun = this.controller.createTestRun(queuedTest.request);
+        this.canStartRunningEmitter.fire({
+            queuedTest,
+            run: this.activeRun,
+        });
     }
 
     public removeItemFromQueue(queuedTest: QueuedTest) {
         const index = this.queue.findIndex((val) => val.id == queuedTest.id);
         this.queue.splice(index, 1);
 
-        if (this.queue.length > 0) {
+        if (this.getOldestItemFromQueue() != undefined) {
+            this.activeRun = this.controller.createTestRun(queuedTest.request);
+
+            for (const enqueued of this.queue.slice(1)) {
+                this.activeRun.enqueued(enqueued.test);
+            }
+
             this.canStartRunningEmitter.fire({
                 queuedTest: this.getOldestItemFromQueue()!,
-                run: this.controller.createTestRun( queuedTest.request),
+                run: this.activeRun,
             });
         }
     }
