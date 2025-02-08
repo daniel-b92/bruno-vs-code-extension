@@ -31,9 +31,17 @@ export class TestRunQueue {
 
     private queue: QueuedTest[];
 
-    public getRunStartableEmitter() {
-        return this.canStartRunningEmitter;
-    }
+    public getNextTestThatCanStartRunning(queuedItemsToAwait: QueuedTest[]){
+            return new Promise<{ queuedTest: QueuedTest; run: TestRun }>((resolve) => {
+                this.canStartRunningEmitter.event((item) => {
+                    for (const queuedItem of queuedItemsToAwait) {
+                        if (item.queuedTest.id == queuedItem.id) {
+                            resolve(item);
+                        }
+                    }
+                });
+            });
+        }
 
     public addToQueue(queuedTest: QueuedTest) {
         this.queue.push(queuedTest);

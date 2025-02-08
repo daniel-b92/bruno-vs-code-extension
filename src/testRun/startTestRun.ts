@@ -49,7 +49,7 @@ export const startTestRun = async (
     };
 
     const runTestQueue = async (toRun: QueuedTest[]) => {
-        let nextItemToRun = getNextTestThatCanStartRunning(toRun);
+        let nextItemToRun = queue.getNextTestThatCanStartRunning(toRun);
         for (const item of toRun) {
             queue.addToQueue(item);
         }
@@ -95,7 +95,7 @@ export const startTestRun = async (
                 showHtmlReport(htmlReportPath, data);
             }
 
-            nextItemToRun = getNextTestThatCanStartRunning(toRun);
+            nextItemToRun = queue.getNextTestThatCanStartRunning(toRun);
 
             queue.removeItemFromQueue({
                 request,
@@ -112,18 +112,6 @@ export const startTestRun = async (
         }
     };
 
-    const getNextTestThatCanStartRunning = (queuedItems: QueuedTest[]) =>
-        new Promise<{ queuedTest: QueuedTest; run: TestRun }>((resolve) => {
-            canStartRunningEmitter.event((item) => {
-                for (const queuedItem of queuedItems) {
-                    if (item.queuedTest.id == queuedItem.id) {
-                        resolve(item);
-                    }
-                }
-            });
-        });
-
-    const canStartRunningEmitter = queue.getRunStartableEmitter();
     const toRun = discoverTests(request.include ?? gatherTestItems(ctrl.items));
     await runTestQueue(toRun);
 };
