@@ -62,19 +62,47 @@ export class TestRunQueue {
         });
     }
 
-    public removeItemFromQueue(queuedTest: QueuedTest) {
-        const index = this.queue.findIndex((val) => val.id == queuedTest.id);
-        this.queue.splice(index, 1);
+    public removeItemsFromQueue(queuedTests: QueuedTest[]) {
+        const oldestItemBeforeRemoval = this.getOldestItemFromQueue();
 
-        if (this.getOldestItemFromQueue() != undefined) {
-            this.activeRun = this.controller.createTestRun(queuedTest.request);
+        for (const toBeRemoved of queuedTests) {
+            const indexForRemoval = this.queue.findIndex(
+                (val) => val.id == toBeRemoved.id
+            );
+
+            if (indexForRemoval >= 0) {
+                this.queue.splice(indexForRemoval, 1);
+
+                if (indexForRemoval == 0) {
+                    // If the oldest item is removed, no run is active anymore
+                    this.activeRun = undefined;
+                }
+            } else {
+                console.warn(
+                    `Item with ID '${toBeRemoved.id}' to be removed from TestRun queue not found in queue.`
+                );
+            }
+        }
+
+        if (
+            this.queue.length > 0 &&
+            oldestItemBeforeRemoval &&
+            !this.queue.some(
+                (queued) => queued.id == oldestItemBeforeRemoval.id
+            )
+        ) {
+            // If the oldest item in the queue is a different item than before we can start running this test
+            const nextTestToRun = this.getOldestItemFromQueue() as QueuedTest;
+            this.activeRun = this.controller.createTestRun(
+                nextTestToRun.request
+            );
 
             for (const enqueued of this.queue.slice(1)) {
                 this.activeRun.enqueued(enqueued.test);
             }
 
             this.canStartRunningEmitter.fire({
-                queuedTest: this.getOldestItemFromQueue()!,
+                queuedTest: nextTestToRun,
                 run: this.activeRun,
             });
         }

@@ -64,13 +64,8 @@ export const startTestRun = async (
                 abortEmitter.fire();
                 run.appendOutput(`Canceled ${test.label}\r\n`);
                 run.skipped(test);
-                queue.removeItemFromQueue({
-                    request,
-                    test,
-                    data,
-                    id,
-                    abortEmitter,
-                });
+
+                queue.removeItemsFromQueue(toRun.splice(0));
             });
 
             run.appendOutput(`Running ${test.label}\r\n`);
@@ -97,13 +92,15 @@ export const startTestRun = async (
 
             nextItemToRun = queue.getNextTestThatCanStartRunning(toRun);
 
-            queue.removeItemFromQueue({
-                request,
-                test,
-                data,
-                id,
-                abortEmitter,
-            });
+            queue.removeItemsFromQueue([
+                {
+                    request,
+                    test,
+                    data,
+                    id,
+                    abortEmitter,
+                },
+            ]);
             toRun.splice(
                 toRun.findIndex(({ id: idForMatching }) => idForMatching == id),
                 1
