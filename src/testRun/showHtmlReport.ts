@@ -14,7 +14,12 @@ export function showHtmlReport(
         "bruno HTML report",
         `bruno HTML report - ${getTestLabel(Uri.file(testData.path))}`,
         column || ViewColumn.One,
-        { enableCommandUris: true, enableFindWidget: true, enableScripts: true }
+        {
+            enableCommandUris: true,
+            enableFindWidget: true,
+            enableScripts: true,
+            retainContextWhenHidden: true,
+        }
     );
 
     panel.webview.html = readFileSync(htmlReportPath).toString();

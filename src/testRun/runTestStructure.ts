@@ -145,15 +145,15 @@ const setStatusForDescendantItems = (
     ).filter((descendant) => lstatSync(descendant.uri!.fsPath).isFile());
 
     const failedTests = getTestFilesWithFailures(jsonReportPath)
-        .map(({ file, request, response, testResults, error }) => ({
+        .map((failedTest) => ({
             // 'testfile' field from the JSON report does not always match the absolute file path
             item: testFileDescendants.find((descendant) =>
-                descendant.uri!.fsPath.includes(file)
+                descendant.uri!.fsPath.includes(failedTest.file)
             ),
-            request,
-            response,
-            testResults,
-            error,
+            request: failedTest.request,
+            response: failedTest.response,
+            testResults: failedTest.testResults,
+            error: failedTest.error,
         }))
         .filter((failed) => failed.item != undefined) as {
         item: vscodeTestItem;
