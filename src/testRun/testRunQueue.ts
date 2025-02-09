@@ -1,3 +1,4 @@
+import { basename } from "path";
 import { BrunoTestData } from "../testTreeHelper";
 import {
     EventEmitter,
@@ -100,7 +101,10 @@ export class TestRunQueue {
             return;
         }
         const testToRun = this.getOldestItemFromQueue() as QueuedTest;
-        this.activeRun = this.controller.createTestRun(testToRun.request);
+        this.activeRun = this.controller.createTestRun(
+            testToRun.request,
+            basename(testToRun.data.path)
+        );
 
         for (const enqueued of this.queue.slice(1)) {
             this.activeRun.enqueued(enqueued.test);
