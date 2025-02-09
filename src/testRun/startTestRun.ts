@@ -68,40 +68,20 @@ export const startTestRun = async (
                 queue.removeItemsFromQueue(toRun.splice(0));
             });
 
-            if (checkForRequestedCancellation(run)) {
-                run.end();
+            if (
+                !(await prepareAndRunTest(
+                    { test, data, abortEmitter, id, request },
+                    run
+                ))
+            ) {
                 break;
             }
+            
+            run.end();
 
-            run.appendOutput(`Running ${test.label}\r\n`);
-
-            run.started(test);
-            const testEnvironment = workspace
-                .getConfiguration()
-                .get(environmentConfigKey) as string | undefined;
             const htmlReportPath = getHtmlReportPath(
                 await getCollectionRootDir(data)
             );
-            printInfosOnTestRunStart(run, htmlReportPath, testEnvironment);
-
-            if (checkForRequestedCancellation(run)) {
-                run.end();
-                break;
-            }
-
-            await runTestStructure(
-                test,
-                data,
-                run,
-                abortEmitter,
-                testEnvironment
-            );
-
-            if (checkForRequestedCancellation(run)) {
-                run.end()
-                break;
-            }
-
             if (existsSync(htmlReportPath)) {
                 showHtmlReport(htmlReportPath, data);
             }
@@ -121,12 +101,49 @@ export const startTestRun = async (
                 toRun.findIndex(({ id: idForMatching }) => idForMatching == id),
                 1
             );
-            run.end();
         }
     };
 
     const toRun = discoverTests(request.include ?? gatherTestItems(ctrl.items));
     await runTestQueue(toRun);
+};
+
+const prepareAndRunTest = async (
+    { test, data, abortEmitter }: QueuedTest,
+    run: TestRun
+) => {
+    if (checkForRequestedCancellation(run)) {
+        run.end();
+        return false;
+    }
+
+    run.appendOutput(`Running ${test.label}\r\n`);
+
+    run.started(test);
+
+    const testEnvironment = workspace
+        .getConfiguration()
+        .get(environmentConfigKey) as string | undefined;
+
+    printInfosOnTestRunStart(
+        run,
+        getHtmlReportPath(await getCollectionRootDir(data)),
+        testEnvironment
+    );
+
+    if (checkForRequestedCancellation(run)) {
+        run.end();
+        return false;
+    }
+
+    await runTestStructure(test, data, run, abortEmitter, testEnvironment);
+
+    if (checkForRequestedCancellation(run)) {
+        run.end();
+        return false;
+    }
+
+    return true;
 };
 
 const checkForRequestedCancellation = (run: TestRun) =>
