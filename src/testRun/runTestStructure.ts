@@ -157,9 +157,9 @@ const setStatusForDescendantItems = (
         }))
         .filter((failed) => failed.item != undefined) as {
         item: vscodeTestItem;
-        request: string;
-        response: string;
-        testResults: string;
+        request: { [index: string]: string | object };
+        response: { [index: string]: string | number | object };
+        testResults: { [index: string]: string }[];
         error?: string;
     }[];
 
@@ -204,29 +204,49 @@ const setStatusForDescendantItems = (
 };
 
 const getTestMessageForFailedTest = (
-    testResults: string,
-    request: string,
-    response: string,
+    testResults: { [index: string]: string }[],
+    request: { [index: string]: string | object },
+    response: { [index: string]: string | number | object },
     error?: string
-) =>
-    error
+) => {
+    const linebreak = "\r\n";
+
+    const formattedTestResults = testResults
+        .map((res) => {
+            const toConcat = Object.keys(res).map(
+                (key) => `${key}: ${res[key].replace(/\n/g, linebreak)}`
+            );
+            return toConcat.join(linebreak);
+        })
+        .join(linebreak);
+
+    const stringifyField = (reportField: {
+        [index: string]: string | number | object;
+    }) =>
+        Object.keys(reportField)
+            .map((key) =>
+                typeof reportField[key] == "string"
+                    ? `${key}: ${reportField[key].replace(/\n/g, linebreak)}`
+                    : `${key}: ${JSON.stringify(
+                          reportField[key],
+                          null,
+                          2
+                      ).replace(/\n/g, linebreak)}`
+            )
+            .join(linebreak);
+
+    const formattedRequest = stringifyField(request);
+    const formattedResponse = stringifyField(response);
+    const dividerAndLinebreak = `---------------------------------------------${linebreak}`;
+
+    return error
         ? new TestMessage(
-              `testResults:
-${testResults}
-error: "${error}"
-request:
-${request}
-response:
-${response}`
+              `testResults:${linebreak}${formattedTestResults}${linebreak}${dividerAndLinebreak}$error: ${error}${linebreak}${dividerAndLinebreak}request:${linebreak}${formattedRequest}${linebreak}${dividerAndLinebreak}response:${linebreak}${formattedResponse}`
           )
         : new TestMessage(
-              `testResults:
-${testResults}
-request:
-${request}
-response:
-${response}`
+              `testResults:${linebreak}${formattedTestResults}${linebreak}${dividerAndLinebreak}request:${linebreak}${formattedRequest}${linebreak}${dividerAndLinebreak}response:${linebreak}${formattedResponse}`
           );
+};
 
 const getJsonReportPath = (collectionRootDir: string) =>
     resolve(dirname(collectionRootDir), "results.json");

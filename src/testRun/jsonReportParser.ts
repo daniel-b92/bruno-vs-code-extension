@@ -25,9 +25,9 @@ export const getTestFilesWithFailures = (jsonReportPath: string) => {
 
     return resultsWithFailures.map((res) => ({
         file: res.test.filename,
-        testResults: JSON.stringify(res.testResults, null, 2),
+        testResults: res.testResults,
         error: res.error,
-        request: JSON.stringify(res.request, null, 2),
-        response: JSON.stringify(res.response, null, 2),
+        request: res.request,
+        response: res.response,
     }));
 };
