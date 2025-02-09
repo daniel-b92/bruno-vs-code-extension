@@ -68,6 +68,11 @@ export const startTestRun = async (
                 queue.removeItemsFromQueue(toRun.splice(0));
             });
 
+            if (checkForRequestedCancellation(run)) {
+                run.end();
+                break;
+            }
+
             run.appendOutput(`Running ${test.label}\r\n`);
 
             run.started(test);
@@ -79,6 +84,11 @@ export const startTestRun = async (
             );
             printInfosOnTestRunStart(run, htmlReportPath, testEnvironment);
 
+            if (checkForRequestedCancellation(run)) {
+                run.end();
+                break;
+            }
+
             await runTestStructure(
                 test,
                 data,
@@ -86,6 +96,12 @@ export const startTestRun = async (
                 abortEmitter,
                 testEnvironment
             );
+
+            if (checkForRequestedCancellation(run)) {
+                run.end()
+                break;
+            }
+
             if (existsSync(htmlReportPath)) {
                 showHtmlReport(htmlReportPath, data);
             }
@@ -112,6 +128,9 @@ export const startTestRun = async (
     const toRun = discoverTests(request.include ?? gatherTestItems(ctrl.items));
     await runTestQueue(toRun);
 };
+
+const checkForRequestedCancellation = (run: TestRun) =>
+    run.token.isCancellationRequested;
 
 const getIdForQueuedRun = (data: BrunoTestData, creationTime: Date) =>
     `${data.path}@${creationTime.toISOString()}`;
