@@ -55,11 +55,7 @@ export class TestRunQueue {
             return;
         }
 
-        this.activeRun = this.controller.createTestRun(queuedTest.request);
-        this.canStartRunningEmitter.fire({
-            queuedTest,
-            run: this.activeRun,
-        });
+        this.prepareTestRunForOldestItem();
     }
 
     public removeItemsFromQueue(queuedTests: QueuedTest[]) {
@@ -92,20 +88,28 @@ export class TestRunQueue {
             )
         ) {
             // If the oldest item in the queue is a different item than before we can start running this test
-            const nextTestToRun = this.getOldestItemFromQueue() as QueuedTest;
-            this.activeRun = this.controller.createTestRun(
-                nextTestToRun.request
-            );
-
-            for (const enqueued of this.queue.slice(1)) {
-                this.activeRun.enqueued(enqueued.test);
-            }
-
-            this.canStartRunningEmitter.fire({
-                queuedTest: nextTestToRun,
-                run: this.activeRun,
-            });
+            this.prepareTestRunForOldestItem();
         }
+    }
+
+    private prepareTestRunForOldestItem() {
+        if (this.queue.length == 0) {
+            console.warn(
+                `Requested to prepare testrun for oldest queued item but no items were found in the queue.`
+            );
+            return;
+        }
+        const testToRun = this.getOldestItemFromQueue() as QueuedTest;
+        this.activeRun = this.controller.createTestRun(testToRun.request);
+
+        for (const enqueued of this.queue.slice(1)) {
+            this.activeRun.enqueued(enqueued.test);
+        }
+
+        this.canStartRunningEmitter.fire({
+            queuedTest: testToRun,
+            run: this.activeRun,
+        });
     }
 
     private getOldestItemFromQueue() {
