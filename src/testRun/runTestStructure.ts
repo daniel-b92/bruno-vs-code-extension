@@ -110,9 +110,22 @@ export async function runTestStructure(
                     setStatusForDescendantItems(item, jsonReportPath, options);
                 }
             } else {
-                options.failed(item, [new TestMessage("Testrun failed")]);
                 if (data instanceof TestDirectory) {
+                    options.failed(item, [new TestMessage("Testrun failed")]);
                     setStatusForDescendantItems(item, jsonReportPath, options);
+                } else {
+                    if (existsSync(jsonReportPath)) {
+                        const { testResults, request, response, error } =
+                            getTestFilesWithFailures(jsonReportPath)[0];
+                        options.failed(item, [
+                            getTestMessageForFailedTest(
+                                testResults,
+                                request,
+                                response,
+                                error
+                            ),
+                        ]);
+                    }
                 }
             }
             if (existsSync(jsonReportPath)) {
