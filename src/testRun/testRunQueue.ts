@@ -1,5 +1,5 @@
 import { basename } from "path";
-import { BrunoTestData } from "../testTreeHelper";
+import { BrunoTestData } from "../testData/testDataDefinitions";
 import {
     EventEmitter,
     TestController,

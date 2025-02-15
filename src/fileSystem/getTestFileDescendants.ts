@@ -1,10 +1,9 @@
 import { RelativePattern, workspace } from "vscode";
-import { globPatternForTestfiles } from "../testTreeHelper";
 import { getSequence } from "./testFileParser";
 
 export const getTestFileDescendants = async (directoryPath: string) => {
     const bruFileUris = await workspace.findFiles(
-        new RelativePattern(directoryPath, globPatternForTestfiles)
+        new RelativePattern(directoryPath, "**/*.bru")
     );
     return bruFileUris.filter((uri) => getSequence(uri.fsPath) != undefined);
 };

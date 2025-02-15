@@ -1,6 +1,6 @@
 import { TestController, Uri } from "vscode";
 import { TestCollection } from "../../testData/testCollection";
-import { getTestId } from "../../testTreeHelper";
+import { getTestId } from "../utils/testTreeHelper";
 import { getParentItem } from "../utils/parentItemHelper";
 
 export const handleTestItemDeletion = (

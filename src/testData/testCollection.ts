@@ -1,5 +1,5 @@
 import { TestItem as vscodeTestItem } from "vscode";
-import { BrunoTestData } from "../testTreeHelper";
+import { BrunoTestData } from "../testData/testDataDefinitions";
 import { TestDirectory } from "./testDirectory";
 
 export class TestCollection {

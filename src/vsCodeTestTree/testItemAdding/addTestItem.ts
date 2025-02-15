@@ -2,7 +2,7 @@ import { TestFile } from "../../testData/testFile";
 import { TestDirectory } from "../../testData/testDirectory";
 import { TestCollection } from "../../testData/testCollection";
 import { dirname } from "path";
-import { getSortText, getTestId, getTestLabel } from "../../testTreeHelper";
+import { getTestId, getTestLabel } from "../utils/testTreeHelper";
 import { TestController, Uri } from "vscode";
 
 export const addTestItem = (
@@ -33,3 +33,6 @@ export const addTestItem = (
     collection.testData.set(vsCodeItem, item);
     return vsCodeItem;
 };
+
+const getSortText = (testFile: TestFile) =>
+    new Array(testFile.getSequence() + 1).join("a");

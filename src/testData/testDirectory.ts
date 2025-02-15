@@ -2,7 +2,7 @@ import {
     TestItem as vscodeTestItem,
     TestController as vscodeTestController,
 } from "vscode";
-import { getTestId, getTestLabel } from "../testTreeHelper";
+import { getTestId, getTestLabel } from "../vsCodeTestTree/utils/testTreeHelper";
 import { TestCollection } from "./testCollection";
 
 export class TestDirectory {

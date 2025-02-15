@@ -2,7 +2,7 @@ import { lstatSync, readdirSync } from "fs";
 import { dirname } from "path";
 import { getTestFileDescendants } from "./getTestFileDescendants";
 import { workspace } from "vscode";
-import { BrunoTestData } from "../testTreeHelper";
+import { BrunoTestData } from "../testData/testDataDefinitions";
 
 export const getAllCollectionRootDirectories = async () => {
     const maybeFilesInCollectionRootDirs = await workspace.findFiles(

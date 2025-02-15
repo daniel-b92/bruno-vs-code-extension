@@ -12,12 +12,12 @@ import {
 } from "vscode";
 import { addTestCollectionToTestTree } from "./vsCodeTestTree/testItemAdding/addTestCollection";
 import { getAllCollectionRootDirectories } from "./fileSystem/collectionRootFolderHelper";
-import { getCollectionForTest } from "./testTreeHelper";
+import { getCollectionForTest } from "./vsCodeTestTree/utils/testTreeHelper";
 import { addAllTestItemsForCollections } from "./vsCodeTestTree/testItemAdding/addAllTestItemsForCollections";
 import { startTestRun } from "./testRun/startTestRun";
 import { existsSync } from "fs";
 import { handleTestItemDeletion } from "./vsCodeTestTree/handlers/handleTestItemDeletion";
-import { CollectionRegister } from "./vsCodeTestTree/collectionRegister";
+import { CollectionRegistry } from "./vsCodeTestTree/collectionRegistry";
 import { TestDirectory } from "./testData/testDirectory";
 import { addTestDirectoryAndAllDescendants } from "./vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
 import { TestRunQueue } from "./testRun/testRunQueue";
@@ -34,14 +34,14 @@ export async function activate(context: ExtensionContext) {
         vscodeTestItem | "ALL",
         TestRunProfile | undefined
     >();
-    const collectionRegister = new CollectionRegister(
+    const collectionRegistry = new CollectionRegistry(
         ctrl,
         context,
         fileChangedEmitter
     );
     const queue = new TestRunQueue(ctrl);
 
-    await addMissingTestCollectionsToTestTree(ctrl, collectionRegister);
+    await addMissingTestCollectionsToTestTree(ctrl, collectionRegistry);
 
     fileChangedEmitter.event(async (uri) => {
         if (watchingTests.has("ALL")) {
@@ -53,7 +53,7 @@ export async function activate(context: ExtensionContext) {
                     watchingTests.get("ALL"),
                     true
                 ),
-                collectionRegister.getCurrentCollections(),
+                collectionRegistry.getCurrentCollections(),
                 queue
             );
             return;
@@ -78,7 +78,7 @@ export async function activate(context: ExtensionContext) {
             await startTestRun(
                 ctrl,
                 new TestRunRequest(include, undefined, profile, true),
-                collectionRegister.getCurrentCollections(),
+                collectionRegistry.getCurrentCollections(),
                 queue
             );
         }
@@ -92,7 +92,7 @@ export async function activate(context: ExtensionContext) {
             return await startTestRun(
                 ctrl,
                 request,
-                collectionRegister.getCurrentCollections(),
+                collectionRegistry.getCurrentCollections(),
                 queue
             );
         }
@@ -113,7 +113,7 @@ export async function activate(context: ExtensionContext) {
     };
 
     ctrl.refreshHandler = async () => {
-        collectionRegister.getCurrentCollections().forEach((collection) => {
+        collectionRegistry.getCurrentCollections().forEach((collection) => {
             if (existsSync(collection.rootDirectory)) {
                 Array.from(collection.testData.keys()).forEach((testItem) => {
                     if (!existsSync(testItem.uri?.fsPath!)) {
@@ -121,13 +121,13 @@ export async function activate(context: ExtensionContext) {
                     }
                 });
             } else {
-                collectionRegister.unregisterCollection(collection);
+                collectionRegistry.unregisterCollection(collection);
             }
         });
-        await addMissingTestCollectionsToTestTree(ctrl, collectionRegister);
+        await addMissingTestCollectionsToTestTree(ctrl, collectionRegistry);
         await addAllTestItemsForCollections(
             ctrl,
-            collectionRegister.getCurrentCollections()
+            collectionRegistry.getCurrentCollections()
         );
     };
 
@@ -144,14 +144,14 @@ export async function activate(context: ExtensionContext) {
         if (!item) {
             await addAllTestItemsForCollections(
                 ctrl,
-                collectionRegister.getCurrentCollections()
+                collectionRegistry.getCurrentCollections()
             );
             return;
         }
 
         const collection = getCollectionForTest(
             item.uri!,
-            collectionRegister.getCurrentCollections()
+            collectionRegistry.getCurrentCollections()
         );
         const data = collection.testData.get(item);
         if (data instanceof TestDirectory) {
@@ -162,7 +162,7 @@ export async function activate(context: ExtensionContext) {
 
 async function addMissingTestCollectionsToTestTree(
     controller: TestController,
-    register: CollectionRegister
+    register: CollectionRegistry
 ) {
     const collectionRootDirs = await getAllCollectionRootDirectories();
 

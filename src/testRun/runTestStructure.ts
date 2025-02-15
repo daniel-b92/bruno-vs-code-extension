@@ -1,4 +1,4 @@
-import { BrunoTestData } from "../testTreeHelper";
+import { BrunoTestData } from "../testData/testDataDefinitions";
 import { getCollectionRootDir } from "../fileSystem/collectionRootFolderHelper";
 import { existsSync, lstatSync, unlinkSync } from "fs";
 import { spawn } from "child_process";

@@ -9,7 +9,7 @@ import {
     workspace,
     WorkspaceFolder,
 } from "vscode";
-import { getCollectionForTest, getTestId } from "../testTreeHelper";
+import { getCollectionForTest, getTestId } from "./utils/testTreeHelper";
 import { handleTestFileCreationOrUpdate } from "./handlers/handleTestFileCreationOrUpdate";
 import { addAllTestItemsForCollections } from "./testItemAdding/addAllTestItemsForCollections";
 import { handleTestItemDeletion } from "./handlers/handleTestItemDeletion";
@@ -19,7 +19,7 @@ import { addTestDirectoryAndAllDescendants } from "./testItemAdding/addTestDirec
 import { TestDirectory } from "../testData/testDirectory";
 import { basename, dirname } from "path";
 
-export class CollectionRegister {
+export class CollectionRegistry {
     constructor(
         private controller: TestController,
         private context: ExtensionContext,

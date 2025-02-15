@@ -1,6 +1,7 @@
 import { readFileSync } from "fs";
-import { BrunoTestData, getTestLabel } from "../testTreeHelper";
+import { getTestLabel } from "../vsCodeTestTree/utils/testTreeHelper";
 import { Uri, ViewColumn, window } from "vscode";
+import { BrunoTestData } from "../testData/testDataDefinitions";
 
 export function showHtmlReport(
     htmlReportPath: string,

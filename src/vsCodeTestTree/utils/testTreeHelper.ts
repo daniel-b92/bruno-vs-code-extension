@@ -1,17 +1,10 @@
 import { Uri as vsCodeUri } from "vscode";
-import { TestDirectory } from "./testData/testDirectory";
-import { TestFile } from "./testData/testFile";
-import { TestCollection } from "./testData/testCollection";
-
-export const globPatternForTestfiles = "**/*.bru";
-export type BrunoTestData = TestDirectory | TestFile;
-
-export const getSortText = (testFile: TestFile) =>
-    new Array(testFile.getSequence() + 1).join("a");
+import { TestCollection } from "../../testData/testCollection";
+import { basename } from "path";
 
 export const getTestId = (uri: vsCodeUri) => uri.toString();
 
-export const getTestLabel = (uri: vsCodeUri) => uri.path.split("/").pop()!;
+export const getTestLabel = (uri: vsCodeUri) => basename(uri.fsPath);
 
 export const getCollectionForTest = (
     testUri: vsCodeUri,
