@@ -7,10 +7,10 @@ import { TestFile } from "../../testData/testFile";
 import { getTestFileDescendants } from "../../fileSystem/getTestFileDescendants";
 import { TestController, Uri, TestItem as vscodeTestItem } from "vscode";
 
-type PathWithChildren = {
+interface PathWithChildren {
     path: string;
     childItems: vscodeTestItem[];
-};
+}
 
 export async function addTestDirectoryAndAllDescendants(
     controller: TestController,
@@ -111,7 +111,7 @@ const switchToParentDirsContainingAncestorPath = (
 };
 
 const getUniquePaths = (arr: PathWithChildren[]) => {
-    let result: PathWithChildren[] = [];
+    const result: PathWithChildren[] = [];
 
     arr.forEach(({ path, childItems }) => {
         if (!result.some((val) => val.path == path)) {

@@ -120,8 +120,8 @@ export async function runTestStructure(
                         options.failed(item, [
                             getTestMessageForFailedTest(
                                 testResults,
-                                request,
-                                response,
+                                request as Record<string, string | object>,
+                                response as Record<string, string | object>,
                                 error
                             ),
                         ]);
@@ -170,9 +170,9 @@ const setStatusForDescendantItems = (
         }))
         .filter((failed) => failed.item != undefined) as {
         item: vscodeTestItem;
-        request: { [index: string]: string | object };
-        response: { [index: string]: string | number | object };
-        testResults: { [index: string]: string }[];
+        request: Record<string, string | object>;
+        response: Record<string, string | number | object>;
+        testResults: Record<string, string>[];
         error?: string;
     }[];
 
@@ -217,9 +217,9 @@ const setStatusForDescendantItems = (
 };
 
 const getTestMessageForFailedTest = (
-    testResults: { [index: string]: string }[],
-    request: { [index: string]: string | object },
-    response: { [index: string]: string | number | object },
+    testResults: Record<string, string>[],
+    request: Record<string, string | object>,
+    response: Record<string, string | number | object>,
     error?: string
 ) => {
     const linebreak = "\r\n";
@@ -233,9 +233,7 @@ const getTestMessageForFailedTest = (
         })
         .join(linebreak);
 
-    const stringifyField = (reportField: {
-        [index: string]: string | number | object;
-    }) =>
+    const stringifyField = (reportField: Record<string, string | number | object>) =>
         Object.keys(reportField)
             .map((key) =>
                 typeof reportField[key] == "string"

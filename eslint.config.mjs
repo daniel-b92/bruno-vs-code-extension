@@ -13,6 +13,8 @@ export default tseslint.config(
 		ignores: [
 			'.vscode-test',
 			'out',
+			'webpack.config.js',
+			'dist'
 		]
 	},
 	js.configs.recommended,

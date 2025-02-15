@@ -8,13 +8,13 @@ import {
     TestItem as vscodeTestItem,
 } from "vscode";
 
-export type QueuedTest = {
+export interface QueuedTest {
     request: TestRunRequest;
     test: vscodeTestItem;
     data: BrunoTestData;
     id: string;
     abortEmitter: EventEmitter<void>;
-};
+}
 
 export class TestRunQueue {
     constructor(private controller: TestController) {

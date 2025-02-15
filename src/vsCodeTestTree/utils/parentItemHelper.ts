@@ -15,10 +15,19 @@ export const createOrUpdateParentItem = (
         return existingParentItem;
     }
 
+    if (childItem.uri == undefined) {
+        throw new Error(
+            `Provided child item does not have a URI: ${JSON.stringify(
+                childItem,
+                null,
+                2
+            )}`
+        );
+    }
     const newParentItem = addTestItem(
         controller,
         collection,
-        new TestDirectory(dirname(childItem.uri?.fsPath!))
+        new TestDirectory(dirname(childItem.uri.fsPath))
     );
     newParentItem.children.add(childItem);
 

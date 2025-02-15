@@ -116,7 +116,7 @@ export async function activate(context: ExtensionContext) {
         collectionRegistry.getCurrentCollections().forEach((collection) => {
             if (existsSync(collection.rootDirectory)) {
                 Array.from(collection.testData.keys()).forEach((testItem) => {
-                    if (!existsSync(testItem.uri?.fsPath!)) {
+                    if (testItem.uri && !existsSync(testItem.uri.fsPath)) {
                         handleTestItemDeletion(ctrl, collection, testItem.uri!);
                     }
                 });

@@ -5,8 +5,8 @@ type JsonReportData = {
         test: {
             filename: string;
         };
-        request: any;
-        response: any;
+        request: unknown;
+        response: unknown;
         error?: string;
         testResults: { status: "pass" | "fail" }[];
     }[];
