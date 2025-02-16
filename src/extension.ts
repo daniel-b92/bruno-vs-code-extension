@@ -10,17 +10,17 @@ import {
     CancellationToken,
     TestRunProfileKind,
 } from "vscode";
-import { addTestCollectionToTestTree } from "./vsCodeTestTree/testItemAdding/addTestCollection";
-import { getAllCollectionRootDirectories } from "./fileSystem/collectionRootFolderHelper";
-import { getCollectionForTest } from "./vsCodeTestTree/utils/testTreeHelper";
-import { addAllTestItemsForCollections } from "./vsCodeTestTree/testItemAdding/addAllTestItemsForCollections";
-import { startTestRun } from "./testRun/startTestRun";
+import { addTestCollectionToTestTree } from "./testRunner/vsCodeTestTree/testItemAdding/addTestCollection";
+import { getAllCollectionRootDirectories } from "./testRunner/fileSystem/collectionRootFolderHelper";
+import { getCollectionForTest } from "./testRunner/vsCodeTestTree/utils/testTreeHelper";
+import { addAllTestItemsForCollections } from "./testRunner/vsCodeTestTree/testItemAdding/addAllTestItemsForCollections";
+import { startTestRun } from "./testRunner/testRun/startTestRun";
 import { existsSync } from "fs";
-import { handleTestItemDeletion } from "./vsCodeTestTree/handlers/handleTestItemDeletion";
-import { CollectionRegistry } from "./vsCodeTestTree/collectionRegistry";
-import { TestDirectory } from "./testData/testDirectory";
-import { addTestDirectoryAndAllDescendants } from "./vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
-import { TestRunQueue } from "./testRun/testRunQueue";
+import { handleTestItemDeletion } from "./testRunner/vsCodeTestTree/handlers/handleTestItemDeletion";
+import { CollectionRegistry } from "./testRunner/vsCodeTestTree/collectionRegistry";
+import { TestDirectory } from "./testRunner/testData/testDirectory";
+import { addTestDirectoryAndAllDescendants } from "./testRunner/vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
+import { TestRunQueue } from "./testRunner/testRun/testRunQueue";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
