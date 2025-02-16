@@ -1,5 +1,5 @@
 import { BrunoTestData } from "../testData/testDataDefinitions";
-import { getCollectionRootDir } from "../fileSystem/collectionRootFolderHelper";
+import { getCollectionRootDir } from "../../shared/fileSystem/collectionRootFolderHelper";
 import { existsSync, lstatSync, unlinkSync } from "fs";
 import { spawn } from "child_process";
 import { dirname, resolve } from "path";
@@ -21,7 +21,7 @@ export async function runTestStructure(
     abortEmitter: EventEmitter<void>,
     testEnvironment?: string
 ): Promise<void> {
-    const collectionRootDir = await getCollectionRootDir(data);
+    const collectionRootDir = await getCollectionRootDir(data.path);
     const htmlReportPath = getHtmlReportPath(collectionRootDir);
     if (existsSync(htmlReportPath)) {
         unlinkSync(htmlReportPath);
@@ -233,7 +233,9 @@ const getTestMessageForFailedTest = (
         })
         .join(linebreak);
 
-    const stringifyField = (reportField: Record<string, string | number | object>) =>
+    const stringifyField = (
+        reportField: Record<string, string | number | object>
+    ) =>
         Object.keys(reportField)
             .map((key) =>
                 typeof reportField[key] == "string"
@@ -269,7 +271,7 @@ const getCommandArgs = async (
     testEnvironment?: string
 ) => {
     const testDataPath = testData.path;
-    const collectionRootDir = await getCollectionRootDir(testData);
+    const collectionRootDir = await getCollectionRootDir(testData.path);
     const result: string[] = [];
     const argForRunCommand =
         testDataPath == collectionRootDir

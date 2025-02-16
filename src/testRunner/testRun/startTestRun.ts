@@ -1,7 +1,7 @@
 import { TestCollection } from "../testData/testCollection";
 import { getCollectionForTest } from "../vsCodeTestTree/utils/testTreeHelper";
 import { showHtmlReport } from "./showHtmlReport";
-import { getCollectionRootDir } from "../fileSystem/collectionRootFolderHelper";
+import { getCollectionRootDir } from "../../shared/fileSystem/collectionRootFolderHelper";
 import { existsSync } from "fs";
 import {
     EventEmitter,
@@ -77,11 +77,11 @@ export const startTestRun = async (
             ) {
                 break;
             }
-            
+
             run.end();
 
             const htmlReportPath = getHtmlReportPath(
-                await getCollectionRootDir(data)
+                await getCollectionRootDir(data.path)
             );
             if (existsSync(htmlReportPath)) {
                 showHtmlReport(htmlReportPath, data);
@@ -128,7 +128,7 @@ const prepareAndRunTest = async (
 
     printInfosOnTestRunStart(
         run,
-        getHtmlReportPath(await getCollectionRootDir(data)),
+        getHtmlReportPath(await getCollectionRootDir(data.path)),
         testEnvironment
     );
 

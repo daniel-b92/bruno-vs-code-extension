@@ -14,7 +14,7 @@ import { handleTestFileCreationOrUpdate } from "./handlers/handleTestFileCreatio
 import { addAllTestItemsForCollections } from "./testItemAdding/addAllTestItemsForCollections";
 import { handleTestItemDeletion } from "./handlers/handleTestItemDeletion";
 import { isValidTestFileFromCollections } from "./utils/isValidTestFileFromCollections";
-import { getTestFileDescendants } from "../fileSystem/getTestFileDescendants";
+import { getTestFileDescendants } from "../../shared/fileSystem/getTestFileDescendants";
 import { addTestDirectoryAndAllDescendants } from "./testItemAdding/addTestDirectoryAndAllDescendants";
 import { TestDirectory } from "../testData/testDirectory";
 import { basename, dirname } from "path";

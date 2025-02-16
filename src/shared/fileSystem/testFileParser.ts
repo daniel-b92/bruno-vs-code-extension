@@ -1,6 +1,9 @@
-import { readFileSync } from "fs";
+import { existsSync, lstatSync, readFileSync } from "fs";
 
 export const getSequence = (testFilePath: string) => {
+    if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {
+        return undefined;
+    }
     const metaSectionContent = getMetaSectionContent(testFilePath);
     const sequence = metaSectionContent
         ? getSequenceFromMetaSectionContent(testFilePath, metaSectionContent)

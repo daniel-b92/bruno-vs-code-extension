@@ -1,4 +1,4 @@
-import { getSequence } from "../fileSystem/testFileParser";
+import { getSequence } from "../../shared/fileSystem/testFileParser";
 
 export class TestFile {
     constructor(public path: string, private sequence: number) {}

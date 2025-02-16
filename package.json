@@ -27,6 +27,14 @@
                     "description": "The name of the environment to use for running Bruno tests with."
                 }
             }
+        },
+        "views": {
+            "explorer": [
+                {
+                    "id": "brunoTestData",
+                    "name": "Bruno Test Data"
+                }
+            ]
         }
     },
     "scripts": {

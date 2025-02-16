@@ -9,9 +9,11 @@ import {
     TestRunRequest,
     CancellationToken,
     TestRunProfileKind,
+    workspace,
+    window,
 } from "vscode";
 import { addTestCollectionToTestTree } from "./testRunner/vsCodeTestTree/testItemAdding/addTestCollection";
-import { getAllCollectionRootDirectories } from "./testRunner/fileSystem/collectionRootFolderHelper";
+import { getAllCollectionRootDirectories } from "./shared/fileSystem/collectionRootFolderHelper";
 import { getCollectionForTest } from "./testRunner/vsCodeTestTree/utils/testTreeHelper";
 import { addAllTestItemsForCollections } from "./testRunner/vsCodeTestTree/testItemAdding/addAllTestItemsForCollections";
 import { startTestRun } from "./testRunner/testRun/startTestRun";
@@ -21,6 +23,7 @@ import { CollectionRegistry } from "./testRunner/vsCodeTestTree/collectionRegist
 import { TestDirectory } from "./testRunner/testData/testDirectory";
 import { addTestDirectoryAndAllDescendants } from "./testRunner/vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
 import { TestRunQueue } from "./testRunner/testRun/testRunQueue";
+import { BrunoTestDataProvider } from "./treeView/brunoTestDataProvider";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
@@ -158,6 +161,13 @@ export async function activate(context: ExtensionContext) {
             await addTestDirectoryAndAllDescendants(ctrl, collection, data);
         }
     };
+
+    if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
+        window.registerTreeDataProvider(
+            "brunoTestData",
+            new BrunoTestDataProvider(workspace.workspaceFolders[0].uri.fsPath)
+        );
+    }
 }
 
 async function addMissingTestCollectionsToTestTree(
