@@ -217,21 +217,12 @@ const setStatusForDescendantItems = (
 };
 
 const getTestMessageForFailedTest = (
-    testResults: Record<string, string>[],
-    request: Record<string, string | object>,
+    testResults: Record<string, string | number | object>[],
+    request: Record<string, string | number | object>,
     response: Record<string, string | number | object>,
     error?: string
 ) => {
     const linebreak = "\r\n";
-
-    const formattedTestResults = testResults
-        .map((res) => {
-            const toConcat = Object.keys(res).map(
-                (key) => `${key}: ${res[key].replace(/\n/g, linebreak)}`
-            );
-            return toConcat.join(linebreak);
-        })
-        .join(linebreak);
 
     const stringifyField = (
         reportField: Record<string, string | number | object>
@@ -250,6 +241,9 @@ const getTestMessageForFailedTest = (
 
     const formattedRequest = stringifyField(request);
     const formattedResponse = stringifyField(response);
+    const formattedTestResults = testResults
+        .map((result) => stringifyField(result))
+        .join(linebreak);
     const dividerAndLinebreak = `---------------------------------------------${linebreak}`;
 
     return error
