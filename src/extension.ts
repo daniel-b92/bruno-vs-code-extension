@@ -11,6 +11,9 @@ import {
     TestRunProfileKind,
     workspace,
     window,
+    languages,
+    CompletionItem,
+    CompletionItemKind,
 } from "vscode";
 import { addTestCollectionToTestTree } from "./testRunner/vsCodeTestTree/testItemAdding/addTestCollection";
 import { getAllCollectionRootDirectories } from "./shared/fileSystem/collectionRootFolderHelper";
@@ -168,6 +171,28 @@ export async function activate(context: ExtensionContext) {
             new BrunoTestDataProvider(workspace.workspaceFolders[0].uri.fsPath)
         );
     }
+
+    languages.registerCompletionItemProvider(
+        { scheme: "file", pattern: "**/*.bru" },
+        {
+            provideCompletionItems() {
+                return {
+                    items: [
+                        new CompletionItem(
+                            `meta {
+}`,
+                            CompletionItemKind.Field
+                        ),
+                        new CompletionItem(
+                            `tests {
+}`,
+                            CompletionItemKind.Field
+                        ),
+                    ],
+                };
+            },
+        }
+    );
 }
 
 async function addMissingTestCollectionsToTestTree(
