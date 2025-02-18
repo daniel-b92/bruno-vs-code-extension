@@ -31,8 +31,8 @@
         "views": {
             "explorer": [
                 {
-                    "id": "brunoTestData",
-                    "name": "Bruno Test Data"
+                    "id": "brunoCollections",
+                    "name": "Bruno Collections"
                 }
             ]
         }

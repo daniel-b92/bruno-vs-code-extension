@@ -164,7 +164,7 @@ export async function activate(context: ExtensionContext) {
 
     if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
         window.registerTreeDataProvider(
-            "brunoTestData",
+            "brunoCollections",
             new BrunoTestDataProvider(workspace.workspaceFolders[0].uri.fsPath)
         );
     }

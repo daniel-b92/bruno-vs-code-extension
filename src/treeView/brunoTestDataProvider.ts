@@ -23,11 +23,7 @@ export class BrunoTestDataProvider
 
         if (!element) {
             return (await getAllCollectionRootDirectories()).map(
-                (path) =>
-                    new TestData(
-                        path,
-                        vscode.TreeItemCollapsibleState.Collapsed
-                    )
+                (path) => new TestData(path, false)
             );
         } else {
             return Promise.resolve(
@@ -38,13 +34,10 @@ export class BrunoTestDataProvider
                         return lstatSync(fullPath).isFile()
                             ? new TestData(
                                   fullPath,
-                                  vscode.TreeItemCollapsibleState.None,
+                                  true,
                                   getSequence(fullPath)
                               )
-                            : new TestData(
-                                  fullPath,
-                                  vscode.TreeItemCollapsibleState.Collapsed
-                              );
+                            : new TestData(fullPath, false);
                     })
                     .sort((a, b) =>
                         a.getSequence() != undefined &&
@@ -61,14 +54,29 @@ export class BrunoTestDataProvider
 class TestData extends vscode.TreeItem {
     constructor(
         public readonly path: string,
-        public readonly collapsibleState: vscode.TreeItemCollapsibleState,
+        public readonly isFile: boolean,
         private sequence?: number
     ) {
-        super(basename(path), collapsibleState);
+        super(
+            basename(path),
+            isFile
+                ? vscode.TreeItemCollapsibleState.None
+                : vscode.TreeItemCollapsibleState.Collapsed
+        );
+
         this.tooltip = sequence
-            ? `${this.label}-sequence_${this.sequence}`
+            ? `${this.label} (sequence: ${this.sequence})`
             : `${this.label}`;
+
         this.description = sequence ? `sequence: ${this.sequence}` : undefined;
+
+        if (isFile) {
+            this.command = {
+                title: "open",
+                command: "vscode.open",
+                arguments: [vscode.Uri.file(path)],
+            };
+        }
     }
 
     public getSequence() {
