@@ -54,18 +54,33 @@ export class CollectionRegistry {
     }
 
     public unregisterCollection(collection: TestCollection) {
-        const { watcher } = this.collectionsAndWatchers.splice(
-            this.collectionsAndWatchers.findIndex(
-                ({ collection: col }) =>
-                    col.rootDirectory == collection.rootDirectory
-            ),
-            1
-        )[0];
+        if (
+            !this.collectionsAndWatchers.some(
+                ({ collection: { rootDirectory } }) =>
+                    rootDirectory == collection.rootDirectory
+            )
+        ) {
+            console.warn(
+                `Collection to unregister not found in collection registry: '${JSON.stringify(
+                    collection,
+                    null,
+                    2
+                )}'`
+            );
+        } else {
+            const { watcher } = this.collectionsAndWatchers.splice(
+                this.collectionsAndWatchers.findIndex(
+                    ({ collection: col }) =>
+                        col.rootDirectory == collection.rootDirectory
+                ),
+                1
+            )[0];
 
-        watcher.dispose();
-        this.controller.items.delete(
-            getTestId(Uri.file(collection.rootDirectory))
-        );
+            watcher.dispose();
+            this.controller.items.delete(
+                getTestId(Uri.file(collection.rootDirectory))
+            );
+        }
     }
 
     private async startWatchingCollection(collection: TestCollection) {

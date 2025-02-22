@@ -28,7 +28,7 @@ const getSequenceFromMetaSectionContent = (
 ) => {
     const maybeMatches = metaSectionContent.match(/\s*seq:\s*\d*\s*(\r\n|\n)/);
     if (maybeMatches == null) {
-        console.log(
+        console.warn(
             `Could not determine sequence for test file '${testFilePath}'`
         );
         return undefined;

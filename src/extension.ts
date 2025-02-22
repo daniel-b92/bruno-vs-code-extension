@@ -26,7 +26,7 @@ import { CollectionRegistry } from "./testRunner/vsCodeTestTree/collectionRegist
 import { TestDirectory } from "./testRunner/testData/testDirectory";
 import { addTestDirectoryAndAllDescendants } from "./testRunner/vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
 import { TestRunQueue } from "./testRunner/testRun/testRunQueue";
-import { BrunoTestDataProvider } from "./treeView/brunoTestDataProvider";
+import { BrunoTreeItemProvider } from "./treeView/brunoTreeItemProvider";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
@@ -168,7 +168,10 @@ export async function activate(context: ExtensionContext) {
     if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
         window.registerTreeDataProvider(
             "brunoCollections",
-            new BrunoTestDataProvider(workspace.workspaceFolders[0].uri.fsPath)
+            new BrunoTreeItemProvider(
+                workspace.workspaceFolders[0].uri.fsPath,
+                fileChangedEmitter
+            )
         );
     }
 
