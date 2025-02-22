@@ -18,6 +18,7 @@ import { getTestFileDescendants } from "../../shared/fileSystem/getTestFileDesce
 import { addTestDirectoryAndAllDescendants } from "./testItemAdding/addTestDirectoryAndAllDescendants";
 import { TestDirectory } from "../testData/testDirectory";
 import { basename, dirname } from "path";
+import { lstatSync } from "fs";
 
 export class CollectionRegistry {
     constructor(
@@ -153,6 +154,10 @@ export class CollectionRegistry {
         uri: Uri,
         knownCollections: TestCollection[]
     ) {
+        if (!lstatSync(uri.fsPath).isDirectory()) {
+            return false;
+        }
+
         const collection = knownCollections.find((collection) => {
             let currentPath = uri.fsPath;
 
