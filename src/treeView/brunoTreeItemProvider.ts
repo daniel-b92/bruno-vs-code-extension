@@ -24,9 +24,15 @@ export class BrunoTreeItemProvider
                         getSequence(uri.fsPath))
             ) {
                 this.itemRegistry.unregisterItem(uri.fsPath);
-                this.triggerEventForUpdatingParentItem(
+
+                const refreshTriggered = this.triggerEventForUpdatingParentItem(
                     maybeRegisteredItem.getPath()
                 );
+
+                if (!refreshTriggered) {
+                    // If no parent element was found, trigger update for all items (e.g. if item is collection root directory).
+                    this._onDidChangeTreeData.fire(undefined);
+                }
             } else if (!maybeRegisteredItem) {
                 this.triggerEventForUpdatingParentItem(uri.fsPath);
             }
@@ -106,9 +112,10 @@ export class BrunoTreeItemProvider
         }
     }
 
-    private _onDidChangeTreeData: vscode.EventEmitter<BrunoTreeItem> =
-        new vscode.EventEmitter<BrunoTreeItem>();
-    readonly onDidChangeTreeData: vscode.Event<BrunoTreeItem> =
+    private _onDidChangeTreeData: vscode.EventEmitter<
+        BrunoTreeItem | undefined
+    > = new vscode.EventEmitter<BrunoTreeItem>();
+    readonly onDidChangeTreeData: vscode.Event<BrunoTreeItem | undefined> =
         this._onDidChangeTreeData.event;
 
     private triggerEventForUpdatingParentItem(path: string) {
@@ -116,8 +123,9 @@ export class BrunoTreeItemProvider
 
         if (maybeParentItem) {
             this._onDidChangeTreeData.fire(maybeParentItem);
+            return true;
         } else {
-            console.warn(`No registered parent item found for path '${path}'`);
+            return false;
         }
     }
 }
