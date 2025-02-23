@@ -1,5 +1,5 @@
-import { lstatSync, readdirSync } from "fs";
-import { basename, resolve } from "path";
+import { existsSync, lstatSync, readdirSync } from "fs";
+import { dirname, resolve } from "path";
 import * as vscode from "vscode";
 import { getAllCollectionRootDirectories } from "../shared/fileSystem/collectionRootFolderHelper";
 import { getSequence } from "../shared/fileSystem/testFileParser";
@@ -18,18 +18,17 @@ export class BrunoTreeItemProvider
             const maybeRegisteredItem = this.itemRegistry.getItem(uri.fsPath);
 
             if (
-                !maybeRegisteredItem ||
-                (maybeRegisteredItem &&
+                maybeRegisteredItem &&
+                (!existsSync(uri.fsPath) ||
                     maybeRegisteredItem.getSequence() !=
                         getSequence(uri.fsPath))
             ) {
-                // If the changed item is a bruno request file with a sequence we need to update all items in the same folder.
-                // Otherwise the sequences may not be up to date anymore.
-                this._onDidChangeTreeData.fire(
-                    this.itemRegistry.getItem(
-                        basename(uri.fsPath)
-                    ) as BrunoTreeItem
+                this.itemRegistry.unregisterItem(uri.fsPath);
+                this.triggerEventForUpdatingParentItem(
+                    maybeRegisteredItem.getPath()
                 );
+            } else if (!maybeRegisteredItem) {
+                this.triggerEventForUpdatingParentItem(uri.fsPath);
             }
         });
     }
@@ -111,4 +110,14 @@ export class BrunoTreeItemProvider
         new vscode.EventEmitter<BrunoTreeItem>();
     readonly onDidChangeTreeData: vscode.Event<BrunoTreeItem> =
         this._onDidChangeTreeData.event;
+
+    private triggerEventForUpdatingParentItem(path: string) {
+        const maybeParentItem = this.itemRegistry.getItem(dirname(path));
+
+        if (maybeParentItem) {
+            this._onDidChangeTreeData.fire(maybeParentItem);
+        } else {
+            console.warn(`No registered parent item found for path '${path}'`);
+        }
+    }
 }
