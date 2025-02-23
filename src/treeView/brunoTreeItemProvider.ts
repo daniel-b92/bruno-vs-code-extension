@@ -13,7 +13,7 @@ export class BrunoTreeItemProvider
         private workspaceRoot: string,
         fileChangedEmitter: vscode.EventEmitter<vscode.Uri>
     ) {
-        this.itemRegistry = new BrunoTestItemRegistry();
+        this.itemRegistry = new BrunoTestItemRegistry(fileChangedEmitter);
         fileChangedEmitter.event((uri) => {
             const maybeRegisteredItem = this.itemRegistry.getItem(uri.fsPath);
 
@@ -36,9 +36,9 @@ export class BrunoTreeItemProvider
 
     private itemRegistry: BrunoTestItemRegistry;
 
-    getTreeItem(element: BrunoTreeItem): vscode.TreeItem {
+    async getTreeItem(element: BrunoTreeItem): Promise<vscode.TreeItem> {
         if (!this.itemRegistry.getItem(element.getPath())) {
-            this.itemRegistry.registerItem(element);
+            await this.itemRegistry.registerItem(element);
         }
         return element as unknown as vscode.TreeItem;
     }
@@ -52,52 +52,57 @@ export class BrunoTreeItemProvider
         }
 
         if (!element) {
-            return (await getAllCollectionRootDirectories()).map((path) => {
-                const collectionItem = new BrunoTreeItem(path, false);
+            return await Promise.all(
+                (
+                    await getAllCollectionRootDirectories()
+                ).map(async (path) => {
+                    const collectionItem = new BrunoTreeItem(path, false);
 
-                if (!this.itemRegistry.getItem(collectionItem.getPath())) {
-                    this.itemRegistry.registerItem(collectionItem);
-                }
+                    if (!this.itemRegistry.getItem(collectionItem.getPath())) {
+                        await this.itemRegistry.registerItem(collectionItem);
+                    }
 
-                return collectionItem;
-            });
+                    return collectionItem;
+                })
+            );
         } else {
             return Promise.resolve(
-                readdirSync(element.path)
-                    .map((childPath) => {
-                        const fullPath = resolve(element.path, childPath);
-                        const maybeRegisteredItem =
-                            this.itemRegistry.getItem(fullPath);
+                (
+                    await Promise.all(
+                        readdirSync(element.path).map(async (childPath) => {
+                            const fullPath = resolve(element.path, childPath);
+                            const maybeRegisteredItem =
+                                this.itemRegistry.getItem(fullPath);
 
-                        if (
-                            maybeRegisteredItem &&
-                            maybeRegisteredItem.getSequence() ==
-                                getSequence(fullPath)
-                        ) {
-                            return maybeRegisteredItem;
-                        } else if (maybeRegisteredItem) {
-                            // Case where only the sequence of an existing request file was changed.
-                            this.itemRegistry.unregisterItem(fullPath);
-                        }
+                            if (
+                                maybeRegisteredItem &&
+                                maybeRegisteredItem.getSequence() ==
+                                    getSequence(fullPath)
+                            ) {
+                                return maybeRegisteredItem;
+                            } else if (maybeRegisteredItem) {
+                                // Case where only the sequence of an existing request file was changed.
+                                this.itemRegistry.unregisterItem(fullPath);
+                            }
 
-                        const item = lstatSync(fullPath).isFile()
-                            ? new BrunoTreeItem(
-                                  fullPath,
-                                  true,
-                                  getSequence(fullPath)
-                              )
-                            : new BrunoTreeItem(fullPath, false);
+                            const item = lstatSync(fullPath).isFile()
+                                ? new BrunoTreeItem(
+                                      fullPath,
+                                      true,
+                                      getSequence(fullPath)
+                                  )
+                                : new BrunoTreeItem(fullPath, false);
 
-                        this.itemRegistry.registerItem(item);
-                        return item;
-                    })
-                    .sort((a, b) =>
-                        a.getSequence() != undefined &&
-                        b.getSequence() != undefined
-                            ? (a.getSequence() as number) -
-                              (b.getSequence() as number)
-                            : 0
+                            await this.itemRegistry.registerItem(item);
+                            return item;
+                        })
                     )
+                ).sort((a, b) =>
+                    a.getSequence() != undefined && b.getSequence() != undefined
+                        ? (a.getSequence() as number) -
+                          (b.getSequence() as number)
+                        : 0
+                )
             );
         }
     }

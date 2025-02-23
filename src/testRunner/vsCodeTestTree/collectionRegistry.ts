@@ -3,11 +3,9 @@ import {
     EventEmitter,
     ExtensionContext,
     FileSystemWatcher,
-    RelativePattern,
     TestController,
     Uri,
     workspace,
-    WorkspaceFolder,
 } from "vscode";
 import { getCollectionForTest, getTestId } from "./utils/testTreeHelper";
 import { handleTestFileCreationOrUpdate } from "./handlers/handleTestFileCreationOrUpdate";
@@ -17,8 +15,9 @@ import { isValidTestFileFromCollections } from "./utils/isValidTestFileFromColle
 import { getTestFileDescendants } from "../../shared/fileSystem/getTestFileDescendants";
 import { addTestDirectoryAndAllDescendants } from "./testItemAdding/addTestDirectoryAndAllDescendants";
 import { TestDirectory } from "../testData/testDirectory";
-import { basename, dirname } from "path";
+import { dirname } from "path";
 import { lstatSync } from "fs";
+import { getPatternForTestitemsInCollection } from "../../shared/fileSystem/getPatternForTestitemsInCollection";
 
 export class CollectionRegistry {
     constructor(
@@ -84,7 +83,9 @@ export class CollectionRegistry {
     }
 
     private async startWatchingCollection(collection: TestCollection) {
-        const testPattern = this.getWorkspaceTestPattern(collection);
+        const testPattern = getPatternForTestitemsInCollection(
+            collection.rootDirectory
+        );
 
         if (!testPattern) {
             return undefined;
@@ -145,24 +146,6 @@ export class CollectionRegistry {
 
         await addAllTestItemsForCollections(this.controller, [collection]);
         return watcher;
-    }
-
-    private getWorkspaceTestPattern(collection: TestCollection) {
-        if (!workspace.workspaceFolders) {
-            return undefined;
-        }
-
-        const maybeWorkspaceFolder = workspace.workspaceFolders!.find(
-            (folder) => collection.rootDirectory.includes(folder.uri.fsPath)
-        );
-        return maybeWorkspaceFolder
-            ? new RelativePattern(
-                  maybeWorkspaceFolder as WorkspaceFolder,
-                  `{**/${basename(collection.rootDirectory)},**/${basename(
-                      collection.rootDirectory
-                  )}/**/*}`
-              )
-            : undefined;
     }
 
     private async hasValidTestFileDescendantsFromCollections(

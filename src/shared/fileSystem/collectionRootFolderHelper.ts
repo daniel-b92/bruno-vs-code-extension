@@ -25,8 +25,13 @@ export const isCollectionRootDir = async (path: string) => {
     const containsBrunoJsonFile =
         lstatSync(path).isDirectory() &&
         readdirSync(path).some((file) => file.endsWith("bruno.json"));
+
+    if (!containsBrunoJsonFile) {
+        return false;
+    }
+    
     const testfileDescendants = await getTestFileDescendants(path);
-    return containsBrunoJsonFile && testfileDescendants.length > 0;
+    return testfileDescendants.length > 0;
 };
 
 export const getCollectionRootDir = async (testDataPath: string) => {
