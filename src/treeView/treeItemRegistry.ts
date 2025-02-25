@@ -1,10 +1,12 @@
-import { EventEmitter, FileSystemWatcher, Uri, workspace } from "vscode";
+import { EventEmitter, FileSystemWatcher, workspace } from "vscode";
 import { isCollectionRootDir } from "../shared/fileSystem/collectionRootFolderHelper";
 import { BrunoTreeItem } from "./brunoTreeItem";
 import { getPatternForTestitemsInCollection } from "../shared/fileSystem/getPatternForTestitemsInCollection";
+import { FileChangedEvent, FileChangeType } from "./typeDefinitions";
+import { extname } from "path";
 
-export class BrunoTestItemRegistry {
-    constructor(private fileChangedEmitter: EventEmitter<Uri>) {}
+export class TreeItemRegistry {
+    constructor(private fileChangedEmitter: EventEmitter<FileChangedEvent>) {}
 
     private brunoTreeItems: BrunoTreeItem[] = [];
 
@@ -64,6 +66,43 @@ export class BrunoTestItemRegistry {
         }
     }
 
+    public unregisterAllDescendants(directoryPath: string) {
+        const normalizePath = () => {
+            const usesSlashes = directoryPath.includes("/");
+
+            if (usesSlashes) {
+                return directoryPath.endsWith("/")
+                    ? directoryPath
+                    : `${directoryPath}/`;
+            } else {
+                return directoryPath.endsWith("\\")
+                    ? directoryPath
+                    : `${directoryPath}\\`;
+            }
+        };
+
+        if (extname(directoryPath) != "") {
+            // If the given path is for a file, abort.
+            return;
+        }
+
+        const normalizedDirPath = normalizePath();
+        const descendants = this.brunoTreeItems.filter(
+            (item) =>
+                item.getPath().startsWith(normalizedDirPath) &&
+                item.getPath().length > normalizedDirPath.length
+        );
+
+        for (const descendant of descendants) {
+            this.brunoTreeItems.splice(
+                this.brunoTreeItems.findIndex(
+                    (item) => item.getPath() == descendant.getPath()
+                ),
+                1
+            );
+        }
+    }
+
     private getWatcherForCollection(collectionRootDir: string) {
         const testPattern =
             getPatternForTestitemsInCollection(collectionRootDir);
@@ -74,13 +113,22 @@ export class BrunoTestItemRegistry {
         const watcher = workspace.createFileSystemWatcher(testPattern);
 
         watcher.onDidCreate((uri) => {
-            this.fileChangedEmitter.fire(uri);
+            this.fileChangedEmitter.fire({
+                uri,
+                changeType: FileChangeType.Created,
+            });
         });
         watcher.onDidChange((uri) => {
-            this.fileChangedEmitter.fire(uri);
+            this.fileChangedEmitter.fire({
+                uri,
+                changeType: FileChangeType.Modified,
+            });
         });
         watcher.onDidDelete((uri) => {
-            this.fileChangedEmitter.fire(uri);
+            this.fileChangedEmitter.fire({
+                uri,
+                changeType: FileChangeType.Deleted,
+            });
         });
 
         return watcher;

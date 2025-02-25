@@ -5,12 +5,12 @@ import {
     CompletionItem,
     CompletionItemKind,
     EventEmitter,
-    Uri,
 } from "vscode";
 import { BrunoTreeItemProvider } from "../treeView/brunoTreeItemProvider";
+import { FileChangedEvent } from "./typeDefinitions";
 
 export function activateTreeView() {
-    const fileChangedEmitter = new EventEmitter<Uri>();
+    const fileChangedEmitter = new EventEmitter<FileChangedEvent>();
 
     if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
         window.registerTreeDataProvider(

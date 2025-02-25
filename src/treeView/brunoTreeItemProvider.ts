@@ -1,45 +1,60 @@
-import { existsSync, lstatSync, readdirSync } from "fs";
+import { lstatSync, readdirSync } from "fs";
 import { dirname, resolve } from "path";
 import * as vscode from "vscode";
 import { getAllCollectionRootDirectories } from "../shared/fileSystem/collectionRootFolderHelper";
 import { getSequence } from "../shared/fileSystem/testFileParser";
 import { BrunoTreeItem } from "./brunoTreeItem";
-import { BrunoTestItemRegistry } from "./brunoTestItemRegistry";
+import { TreeItemRegistry } from "./treeItemRegistry";
+import { FileChangedEvent, FileChangeType } from "./typeDefinitions";
 
 export class BrunoTreeItemProvider
     implements vscode.TreeDataProvider<BrunoTreeItem>
 {
     constructor(
         private workspaceRoot: string,
-        fileChangedEmitter: vscode.EventEmitter<vscode.Uri>
+        fileChangedEmitter: vscode.EventEmitter<FileChangedEvent>
     ) {
-        this.itemRegistry = new BrunoTestItemRegistry(fileChangedEmitter);
-        fileChangedEmitter.event((uri) => {
+        this.itemRegistry = new TreeItemRegistry(fileChangedEmitter);
+        fileChangedEmitter.event(({ uri, changeType }) => {
             const maybeRegisteredItem = this.itemRegistry.getItem(uri.fsPath);
 
             if (
                 maybeRegisteredItem &&
-                (!existsSync(uri.fsPath) ||
-                    maybeRegisteredItem.getSequence() !=
-                        getSequence(uri.fsPath))
+                (changeType == FileChangeType.Deleted ||
+                    (changeType == FileChangeType.Modified &&
+                        maybeRegisteredItem.getSequence() !=
+                            getSequence(uri.fsPath)))
             ) {
                 this.itemRegistry.unregisterItem(uri.fsPath);
+                this.itemRegistry.unregisterAllDescendants(uri.fsPath);
 
-                const refreshTriggered = this.triggerEventForUpdatingParentItem(
+                const maybeParent = this.tryToFindRegisteredParentItem(
                     maybeRegisteredItem.getPath()
                 );
 
-                if (!refreshTriggered) {
-                    // If no parent element was found, trigger update for all items (e.g. if item is collection root directory).
+                if (!maybeParent) {
+                    // If no parent item was found, trigger update for all items (e.g. if item is collection root directory).
                     this._onDidChangeTreeData.fire(undefined);
                 }
-            } else if (!maybeRegisteredItem) {
-                this.triggerEventForUpdatingParentItem(uri.fsPath);
+            } else if (
+                !maybeRegisteredItem &&
+                changeType == FileChangeType.Created
+            ) {
+                const maybeParentItem = this.tryToFindRegisteredParentItem(
+                    uri.fsPath
+                );
+
+                if (maybeParentItem) {
+                    this._onDidChangeTreeData.fire(maybeParentItem);
+                } else {
+                    // If no parent item was found, trigger update for all items (e.g. if item is collection root directory).
+                    this._onDidChangeTreeData.fire(undefined);
+                }
             }
         });
     }
 
-    private itemRegistry: BrunoTestItemRegistry;
+    private itemRegistry: TreeItemRegistry;
 
     async getTreeItem(element: BrunoTreeItem): Promise<vscode.TreeItem> {
         if (!this.itemRegistry.getItem(element.getPath())) {
@@ -85,9 +100,6 @@ export class BrunoTreeItemProvider
                                     getSequence(fullPath)
                             ) {
                                 return maybeRegisteredItem;
-                            } else if (maybeRegisteredItem) {
-                                // Case where only the sequence of an existing request file was changed.
-                                this.itemRegistry.unregisterItem(fullPath);
                             }
 
                             const item = lstatSync(fullPath).isFile()
@@ -118,14 +130,7 @@ export class BrunoTreeItemProvider
     readonly onDidChangeTreeData: vscode.Event<BrunoTreeItem | undefined> =
         this._onDidChangeTreeData.event;
 
-    private triggerEventForUpdatingParentItem(path: string) {
-        const maybeParentItem = this.itemRegistry.getItem(dirname(path));
-
-        if (maybeParentItem) {
-            this._onDidChangeTreeData.fire(maybeParentItem);
-            return true;
-        } else {
-            return false;
-        }
+    private tryToFindRegisteredParentItem(path: string) {
+        return this.itemRegistry.getItem(dirname(path));
     }
 }
