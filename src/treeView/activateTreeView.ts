@@ -1,25 +1,14 @@
 import {
-    workspace,
-    window,
     languages,
     CompletionItem,
     CompletionItemKind,
     EventEmitter,
 } from "vscode";
-import { BrunoTreeItemProvider } from "./treeItems/brunoTreeItemProvider";
 import { FileChangedEvent } from "./shared/definitions";
+import { CollectionExplorer } from "./collectionExplorer";
 
 export function activateTreeView() {
-    const fileChangedEmitter = new EventEmitter<FileChangedEvent>();
-
-    if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
-        window.createTreeView("brunoCollections", {
-            treeDataProvider: new BrunoTreeItemProvider(
-                workspace.workspaceFolders[0].uri.fsPath,
-                fileChangedEmitter
-            ),
-        });
-    }
+    new CollectionExplorer(new EventEmitter<FileChangedEvent>());
 
     languages.registerCompletionItemProvider(
         { scheme: "file", pattern: "**/*.bru" },

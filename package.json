@@ -28,11 +28,37 @@
                 }
             }
         },
+        "commands": [
+            {
+                "command": "brunoCollections.refresh",
+                "title": "Refresh"
+            },
+            {
+                "command": "brunoCollections.deleteItem",
+                "title": "Delete"
+            }
+        ],
         "views": {
             "explorer": [
                 {
                     "id": "brunoCollections",
                     "name": "Bruno Collections"
+                }
+            ]
+        },
+        "menus": {
+            "view/title": [
+                {
+                    "command": "brunoCollections.refresh",
+                    "when": "view == brunoCollections",
+                    "group": "navigation"
+                }
+            ],
+            "view/item/context": [
+                {
+                    "command": "brunoCollections.deleteItem",
+                    "when": "view == brunoCollections",
+                    "group": "inline"
                 }
             ]
         }

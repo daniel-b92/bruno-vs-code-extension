@@ -32,7 +32,9 @@ export class BrunoTreeItemProvider
                     maybeRegisteredItem.getPath()
                 );
 
-                if (!maybeParent) {
+                if (maybeParent) {
+                    this._onDidChangeTreeData.fire(maybeParent);
+                } else {
                     // If no parent item was found, trigger update for all items (e.g. if item is collection root directory).
                     this._onDidChangeTreeData.fire(undefined);
                 }
@@ -61,6 +63,14 @@ export class BrunoTreeItemProvider
             await this.itemRegistry.registerItem(element);
         }
         return element as unknown as vscode.TreeItem;
+    }
+
+    async getParent(element: BrunoTreeItem) {
+        return this.itemRegistry.getItem(dirname(element.getPath()));
+    }
+
+    public refresh() {
+        this._onDidChangeTreeData.fire(undefined);
     }
 
     async getChildren(element?: BrunoTreeItem): Promise<BrunoTreeItem[]> {
