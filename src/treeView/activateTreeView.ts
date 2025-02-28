@@ -7,7 +7,7 @@ import {
     EventEmitter,
 } from "vscode";
 import { BrunoTreeItemProvider } from "../treeView/brunoTreeItemProvider";
-import { FileChangedEvent } from "./typeDefinitions";
+import { FileChangedEvent } from "./definitions";
 
 export function activateTreeView() {
     const fileChangedEmitter = new EventEmitter<FileChangedEvent>();

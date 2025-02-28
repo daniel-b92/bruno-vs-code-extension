@@ -5,7 +5,7 @@ import { getAllCollectionRootDirectories } from "../shared/fileSystem/collection
 import { getSequence } from "../shared/fileSystem/testFileParser";
 import { BrunoTreeItem } from "./brunoTreeItem";
 import { TreeItemRegistry } from "./treeItemRegistry";
-import { FileChangedEvent, FileChangeType } from "./typeDefinitions";
+import { FileChangedEvent, FileChangeType } from "./definitions";
 
 export class BrunoTreeItemProvider
     implements vscode.TreeDataProvider<BrunoTreeItem>
