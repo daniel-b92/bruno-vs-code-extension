@@ -6,20 +6,19 @@ import {
     CompletionItemKind,
     EventEmitter,
 } from "vscode";
-import { BrunoTreeItemProvider } from "../treeView/brunoTreeItemProvider";
-import { FileChangedEvent } from "./definitions";
+import { BrunoTreeItemProvider } from "./treeItems/brunoTreeItemProvider";
+import { FileChangedEvent } from "./shared/definitions";
 
 export function activateTreeView() {
     const fileChangedEmitter = new EventEmitter<FileChangedEvent>();
 
     if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
-        window.registerTreeDataProvider(
-            "brunoCollections",
-            new BrunoTreeItemProvider(
+        window.createTreeView("brunoCollections", {
+            treeDataProvider: new BrunoTreeItemProvider(
                 workspace.workspaceFolders[0].uri.fsPath,
                 fileChangedEmitter
-            )
-        );
+            ),
+        });
     }
 
     languages.registerCompletionItemProvider(

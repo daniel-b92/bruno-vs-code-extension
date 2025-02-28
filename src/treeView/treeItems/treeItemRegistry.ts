@@ -1,8 +1,8 @@
 import { EventEmitter, FileSystemWatcher, workspace } from "vscode";
-import { isCollectionRootDir } from "../shared/fileSystem/collectionRootFolderHelper";
+import { isCollectionRootDir } from "../../shared/fileSystem/collectionRootFolderHelper";
 import { BrunoTreeItem } from "./brunoTreeItem";
-import { getPatternForTestitemsInCollection } from "../shared/fileSystem/getPatternForTestitemsInCollection";
-import { FileChangedEvent, FileChangeType } from "./definitions";
+import { getPatternForTestitemsInCollection } from "../../shared/fileSystem/getPatternForTestitemsInCollection";
+import { FileChangedEvent, FileChangeType } from "../shared/definitions";
 import { extname } from "path";
 
 export class TreeItemRegistry {
