@@ -12,7 +12,6 @@ import {
 } from "fs";
 import { dirname, extname, resolve } from "path";
 import { getSequence } from "../shared/fileSystem/testFileParser";
-import { getTestFilesExtension } from "../shared/util/getTestFilesExtension";
 
 export class CollectionExplorer {
     constructor(fileChangedEmitter: vscode.EventEmitter<FileChangedEvent>) {
@@ -43,7 +42,7 @@ export class CollectionExplorer {
                 const path = item.getPath();
                 rmSync(path, { recursive: true, force: true });
 
-                if (extname(path) == getTestFilesExtension() && existsSync(dirname(path))) {
+                if (existsSync(dirname(path))) {
                     this.updateSequencesForRequestFiles(dirname(path));
                 }
             }
@@ -58,7 +57,7 @@ export class CollectionExplorer {
 
             if (
                 lstatSync(fullPath).isFile() &&
-                extname(fullPath) == getTestFilesExtension() &&
+                extname(fullPath) == ".bru" &&
                 getSequence(fullPath) != undefined
             ) {
                 initialSequences.push({
