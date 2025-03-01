@@ -6,12 +6,13 @@ import {
 } from "vscode";
 import { FileChangedEvent } from "./shared/definitions";
 import { CollectionExplorer } from "./collectionExplorer";
+import { getTestFilesExtension } from "../shared/util/getTestFilesExtension";
 
 export function activateTreeView() {
     new CollectionExplorer(new EventEmitter<FileChangedEvent>());
 
     languages.registerCompletionItemProvider(
-        { scheme: "file", pattern: "**/*.bru" },
+        { scheme: "file", pattern: `**/*${getTestFilesExtension()}` },
         {
             provideCompletionItems() {
                 return {
