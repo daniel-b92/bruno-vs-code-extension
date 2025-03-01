@@ -65,7 +65,7 @@
                 },
                 {
                     "command": "brunoCollections.duplicateFile",
-                    "when": "view == brunoCollections && !treeElementHasChild"
+                    "when": "view == brunoCollections && !treeElementCanExpand && !treeElementCanCollapse"
                 }
             ]
         }
