@@ -20,69 +20,6 @@ export class CollectionExplorer
     dragMimeTypes = ["text/uri-list"];
     dropMimeTypes = ["application/vnd.code.tree.brunocollectionsview"];
 
-    handleDrag(
-        source: readonly BrunoTreeItem[],
-        dataTransfer: vscode.DataTransfer,
-        _token: vscode.CancellationToken
-    ) {
-        dataTransfer.set("text/uri-list", {
-            async asString() {
-                return Promise.resolve(source[0].getPath());
-            },
-            asFile() {
-                return undefined;
-            },
-            value: source[0],
-        });
-    }
-
-    async handleDrop(
-        target: BrunoTreeItem | undefined,
-        dataTransfer: vscode.DataTransfer,
-        _token: vscode.CancellationToken
-    ) {
-        const item = dataTransfer.get(
-            "text/uri-list"
-        ) as vscode.DataTransferItem;
-        const sourcePath = await item.asString();
-
-        if (!target || !existsSync(target.getPath())) {
-            return;
-        }
-
-        if (lstatSync(target.getPath()).isFile()) {
-            const targetDirectory = dirname(target.getPath());
-
-            const newPath = resolve(targetDirectory, basename(sourcePath));
-            renameSync(sourcePath, newPath);
-
-            const newSequence = target.getSequence()
-                ? (target.getSequence() as number) + 1
-                : this.getMaxSequenceForRequests(targetDirectory) + 1;
-            replaceSequenceForRequest(newPath, newSequence);
-
-            getExistingSequencesForRequests(targetDirectory)
-                .filter(
-                    ({ path, sequence }) =>
-                        path != newPath && sequence >= newSequence
-                )
-                .forEach(({ path, sequence: initialSequence }) => {
-                    replaceSequenceForRequest(path, initialSequence + 1);
-                });
-        } else {
-            // In this case the target is a directory
-            const targetDirectory = target.getPath();
-
-            const newPath = resolve(targetDirectory, basename(sourcePath));
-            renameSync(sourcePath, newPath);
-
-            replaceSequenceForRequest(
-                newPath,
-                this.getMaxSequenceForRequests(targetDirectory) + 1
-            );
-        }
-    }
-
     constructor(fileChangedEmitter: vscode.EventEmitter<FileChangedEvent>) {
         if (
             !vscode.workspace.workspaceFolders ||
@@ -139,10 +76,74 @@ export class CollectionExplorer
                 rmSync(path, { recursive: true, force: true });
 
                 if (extname(path) == ".bru" && existsSync(dirname(path))) {
-                    this.updateSequencesForRequestFiles(dirname(path));
+                    this.normalizeSequencesForRequestFiles(dirname(path));
                 }
             }
         );
+    }
+
+    handleDrag(
+        source: readonly BrunoTreeItem[],
+        dataTransfer: vscode.DataTransfer,
+        _token: vscode.CancellationToken
+    ) {
+        if (lstatSync(source[0].getPath()).isFile()) {
+            dataTransfer.set("text/uri-list", {
+                async asString() {
+                    return Promise.resolve(source[0].getPath());
+                },
+                asFile() {
+                    return undefined;
+                },
+                value: source[0],
+            });
+        }
+    }
+
+    async handleDrop(
+        target: BrunoTreeItem | undefined,
+        dataTransfer: vscode.DataTransfer,
+        _token: vscode.CancellationToken
+    ) {
+        const item = dataTransfer.get("text/uri-list");
+
+        if (!item) {
+            return;
+        }
+        const sourcePath = await item.asString();
+
+        if (!target || !existsSync(target.getPath())) {
+            return;
+        }
+        const targetIsFile = lstatSync(target.getPath()).isFile();
+
+        const targetDirectory = targetIsFile
+            ? dirname(target.getPath())
+            : target.getPath();
+
+        const newPath = resolve(targetDirectory, basename(sourcePath));
+        renameSync(sourcePath, newPath);
+
+        const newSequence = targetIsFile
+            ? target.getSequence()
+                ? (target.getSequence() as number) + 1
+                : this.getMaxSequenceForRequests(targetDirectory) + 1
+            : this.getMaxSequenceForRequests(targetDirectory) + 1;
+
+        replaceSequenceForRequest(newPath, newSequence);
+
+        if (targetIsFile) {
+            getExistingSequencesForRequests(targetDirectory)
+                .filter(
+                    ({ path, sequence }) =>
+                        path != newPath && sequence >= newSequence
+                )
+                .forEach(({ path, sequence: initialSequence }) => {
+                    replaceSequenceForRequest(path, initialSequence + 1);
+                });
+        }
+
+        this.normalizeSequencesForRequestFiles(targetDirectory);
     }
 
     private getMaxSequenceForRequests(directory: string) {
@@ -181,7 +182,7 @@ export class CollectionExplorer
         return newPath;
     }
 
-    private updateSequencesForRequestFiles(parentDirectoryPath: string) {
+    private normalizeSequencesForRequestFiles(parentDirectoryPath: string) {
         const initialSequences =
             getExistingSequencesForRequests(parentDirectoryPath);
 
