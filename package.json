@@ -30,22 +30,22 @@
         },
         "commands": [
             {
-                "command": "brunoCollections.refresh",
+                "command": "brunoCollectionsView.refresh",
                 "title": "Refresh"
             },
             {
-                "command": "brunoCollections.deleteItem",
+                "command": "brunoCollectionsView.deleteItem",
                 "title": "Delete"
             },
             {
-                "command": "brunoCollections.duplicateFile",
+                "command": "brunoCollectionsView.duplicateFile",
                 "title": "Clone"
             }
         ],
         "views": {
             "explorer": [
                 {
-                    "id": "brunoCollections",
+                    "id": "brunoCollectionsView",
                     "name": "Bruno Collections"
                 }
             ]
@@ -53,19 +53,19 @@
         "menus": {
             "view/title": [
                 {
-                    "command": "brunoCollections.refresh",
-                    "when": "view == brunoCollections",
+                    "command": "brunoCollectionsView.refresh",
+                    "when": "view == brunoCollectionsView",
                     "group": "navigation"
                 }
             ],
             "view/item/context": [
                 {
-                    "command": "brunoCollections.deleteItem",
-                    "when": "view == brunoCollections"
+                    "command": "brunoCollectionsView.deleteItem",
+                    "when": "view == brunoCollectionsView"
                 },
                 {
-                    "command": "brunoCollections.duplicateFile",
-                    "when": "view == brunoCollections && !treeElementCanExpand && !treeElementCanCollapse"
+                    "command": "brunoCollectionsView.duplicateFile",
+                    "when": "view == brunoCollectionsView && !treeElementCanExpand && !treeElementCanCollapse"
                 }
             ]
         }

@@ -7,13 +7,82 @@ import {
     lstatSync,
     readdirSync,
     readFileSync,
+    renameSync,
     rmSync,
     writeFileSync,
 } from "fs";
 import { basename, dirname, extname, resolve } from "path";
 import { getSequence } from "../shared/fileSystem/testFileParser";
 
-export class CollectionExplorer {
+export class CollectionExplorer
+    implements vscode.TreeDragAndDropController<BrunoTreeItem>
+{
+    dragMimeTypes = ["text/uri-list"];
+    dropMimeTypes = ["application/vnd.code.tree.brunocollectionsview"];
+
+    handleDrag(
+        source: readonly BrunoTreeItem[],
+        dataTransfer: vscode.DataTransfer,
+        _token: vscode.CancellationToken
+    ) {
+        dataTransfer.set("text/uri-list", {
+            async asString() {
+                return Promise.resolve(source[0].getPath());
+            },
+            asFile() {
+                return undefined;
+            },
+            value: source[0],
+        });
+    }
+
+    async handleDrop(
+        target: BrunoTreeItem | undefined,
+        dataTransfer: vscode.DataTransfer,
+        _token: vscode.CancellationToken
+    ) {
+        const item = dataTransfer.get(
+            "text/uri-list"
+        ) as vscode.DataTransferItem;
+        const sourcePath = await item.asString();
+
+        if (!target || !existsSync(target.getPath())) {
+            return;
+        }
+
+        if (lstatSync(target.getPath()).isFile()) {
+            const targetDirectory = dirname(target.getPath());
+
+            const newPath = resolve(targetDirectory, basename(sourcePath));
+            renameSync(sourcePath, newPath);
+
+            const newSequence = target.getSequence()
+                ? (target.getSequence() as number) + 1
+                : this.getMaxSequenceForRequests(targetDirectory) + 1;
+            replaceSequenceForRequest(newPath, newSequence);
+
+            getExistingSequencesForRequests(targetDirectory)
+                .filter(
+                    ({ path, sequence }) =>
+                        path != newPath && sequence >= newSequence
+                )
+                .forEach(({ path, sequence: initialSequence }) => {
+                    replaceSequenceForRequest(path, initialSequence + 1);
+                });
+        } else {
+            // In this case the target is a directory
+            const targetDirectory = target.getPath();
+
+            const newPath = resolve(targetDirectory, basename(sourcePath));
+            renameSync(sourcePath, newPath);
+
+            replaceSequenceForRequest(
+                newPath,
+                this.getMaxSequenceForRequests(targetDirectory) + 1
+            );
+        }
+    }
+
     constructor(fileChangedEmitter: vscode.EventEmitter<FileChangedEvent>) {
         if (
             !vscode.workspace.workspaceFolders ||
@@ -28,16 +97,17 @@ export class CollectionExplorer {
             fileChangedEmitter
         );
 
-        vscode.window.createTreeView("brunoCollections", {
+        vscode.window.createTreeView("brunoCollectionsView", {
             treeDataProvider,
+            dragAndDropController: this,
         });
 
-        vscode.commands.registerCommand("brunoCollections.refresh", () =>
+        vscode.commands.registerCommand("brunoCollectionsView.refresh", () =>
             treeDataProvider.refresh()
         );
 
         vscode.commands.registerCommand(
-            "brunoCollections.duplicateFile",
+            "brunoCollectionsView.duplicateFile",
             (item: BrunoTreeItem) => {
                 const originalPath = item.getPath();
                 const newPath = this.getPathForDuplicatedFile(originalPath);
@@ -63,7 +133,7 @@ export class CollectionExplorer {
         );
 
         vscode.commands.registerCommand(
-            "brunoCollections.deleteItem",
+            "brunoCollectionsView.deleteItem",
             (item: BrunoTreeItem) => {
                 const path = item.getPath();
                 rmSync(path, { recursive: true, force: true });
