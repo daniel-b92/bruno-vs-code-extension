@@ -44,6 +44,34 @@ export class CollectionExplorer
         );
 
         vscode.commands.registerCommand(
+            "brunoCollectionsView.renameItem",
+            async (item: BrunoTreeItem) => {
+                const originalPath = item.getPath();
+                const originalName = basename(originalPath);
+
+                const newName = await vscode.window.showInputBox({
+                    title: `Rename '${originalName}'`,
+                    value: originalName,
+                    valueSelection: [
+                        0,
+                        originalName.includes(".")
+                            ? originalName.indexOf(".")
+                            : originalName.length,
+                    ],
+                });
+
+                if (newName == undefined) {
+                    return;
+                }
+
+                renameSync(
+                    originalPath,
+                    resolve(dirname(originalPath), newName)
+                );
+            }
+        );
+
+        vscode.commands.registerCommand(
             "brunoCollectionsView.duplicateFile",
             (item: BrunoTreeItem) => {
                 const originalPath = item.getPath();

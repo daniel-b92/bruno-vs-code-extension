@@ -40,6 +40,10 @@
             {
                 "command": "brunoCollectionsView.duplicateFile",
                 "title": "Clone"
+            },
+            {
+                "command": "brunoCollectionsView.renameItem",
+                "title": "Rename"
             }
         ],
         "views": {
@@ -66,6 +70,10 @@
                 {
                     "command": "brunoCollectionsView.duplicateFile",
                     "when": "view == brunoCollectionsView && !treeElementCanExpand && !treeElementCanCollapse"
+                },
+                {
+                    "command": "brunoCollectionsView.renameItem",
+                    "when": "view == brunoCollectionsView"
                 }
             ]
         }
