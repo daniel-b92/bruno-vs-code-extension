@@ -3,6 +3,8 @@ import { BrunoTreeItemProvider } from "./treeItems/brunoTreeItemProvider";
 import { FileChangedEvent } from "./shared/definitions";
 import { BrunoTreeItem } from "./treeItems/brunoTreeItem";
 import {
+    copyFileSync,
+    cpSync,
     existsSync,
     lstatSync,
     readdirSync,
@@ -72,26 +74,34 @@ export class CollectionExplorer
         );
 
         vscode.commands.registerCommand(
+            "brunoCollectionsView.duplicateFolder",
+            (item: BrunoTreeItem) => {
+                const originalPath = item.getPath();
+
+                cpSync(
+                    item.getPath(),
+                    this.getPathForDuplicatedItem(originalPath),
+                    { recursive: true }
+                );
+            }
+        );
+
+        vscode.commands.registerCommand(
             "brunoCollectionsView.duplicateFile",
             (item: BrunoTreeItem) => {
                 const originalPath = item.getPath();
-                const newPath = this.getPathForDuplicatedFile(originalPath);
-                const originalContent = readFileSync(originalPath);
+                const newPath = this.getPathForDuplicatedItem(originalPath);
+
+                copyFileSync(originalPath, newPath);
 
                 if (
                     extname(originalPath) == ".bru" &&
                     getSequence(originalPath) != undefined
                 ) {
-                    writeFileSync(newPath, originalContent);
                     replaceSequenceForRequest(
                         newPath,
                         this.getMaxSequenceForRequests(dirname(originalPath)) +
                             1
-                    );
-                } else {
-                    writeFileSync(
-                        this.getPathForDuplicatedFile(originalPath),
-                        originalContent
                     );
                 }
             }
@@ -182,29 +192,31 @@ export class CollectionExplorer
         );
     }
 
-    private getPathForDuplicatedFile(originalFile: string) {
-        const appendToFileName = (path: string, toAppend: string) =>
-            path.replace(
-                basename(path),
-                `${basename(path).replace(
-                    extname(path),
-                    ""
-                )}${toAppend}${extname(path)}`
-            );
+    private getPathForDuplicatedItem(originalPath: string) {
+        const getBasePathForNewItem = (path: string, toAppend: string) =>
+            lstatSync(path).isDirectory()
+                ? `${path}${toAppend}`
+                : path.replace(
+                      basename(path),
+                      `${basename(path).replace(
+                          extname(path),
+                          ""
+                      )}${toAppend}${extname(path)}`
+                  );
 
         const maxAttempts = 100;
-        const basePath = appendToFileName(originalFile, "_Copy");
+        const basePath = getBasePathForNewItem(originalPath, "_Copy");
         let newPath = basePath;
         let attempts = 1;
 
         while (existsSync(newPath) && attempts < maxAttempts) {
-            newPath = appendToFileName(basePath, attempts.toString());
+            newPath = getBasePathForNewItem(basePath, attempts.toString());
             attempts++;
         }
 
         if (existsSync(newPath)) {
             throw new Error(
-                `Did not manage to find new path for duplicated file withtin ${maxAttempts} attempts!`
+                `Did not manage to find new path for item path '${originalPath}' to duplicate within ${maxAttempts} attempts!`
             );
         }
         return newPath;

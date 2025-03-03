@@ -39,7 +39,11 @@
             },
             {
                 "command": "brunoCollectionsView.duplicateFile",
-                "title": "Clone"
+                "title": "Duplicate"
+            },
+            {
+                "command": "brunoCollectionsView.duplicateFolder",
+                "title": "Duplicate"
             },
             {
                 "command": "brunoCollectionsView.renameItem",
@@ -70,6 +74,10 @@
                 {
                     "command": "brunoCollectionsView.duplicateFile",
                     "when": "view == brunoCollectionsView && !treeElementCanExpand && !treeElementCanCollapse"
+                },
+                {
+                    "command": "brunoCollectionsView.duplicateFolder",
+                    "when": "view == brunoCollectionsView && (treeElementCanExpand || treeElementCanCollapse)"
                 },
                 {
                     "command": "brunoCollectionsView.renameItem",
