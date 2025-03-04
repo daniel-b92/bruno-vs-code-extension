@@ -143,22 +143,23 @@ export class CollectionExplorer
     ) {
         const item = dataTransfer.get("text/uri-list");
 
-        if (!item) {
+        if (!item || !target || !existsSync(target.getPath())) {
             return;
         }
-        const sourcePath = await item.asString();
 
-        if (!target || !existsSync(target.getPath())) {
-            return;
-        }
         const targetIsFile = lstatSync(target.getPath()).isFile();
-
         const targetDirectory = targetIsFile
             ? dirname(target.getPath())
             : target.getPath();
 
+        const sourcePath = await item.asString();
         const newPath = resolve(targetDirectory, basename(sourcePath));
         renameSync(sourcePath, newPath);
+
+        if (!(item.value as BrunoTreeItem).isFile) {
+            // When moving a directory, no sequences of requests need to be adjusted
+            return;
+        }
 
         const newSequence = targetIsFile
             ? target.getSequence()
