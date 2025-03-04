@@ -82,18 +82,26 @@ export class BrunoTreeItemProvider
         }
 
         if (!element) {
-            return await Promise.all(
-                (
-                    await getAllCollectionRootDirectories()
-                ).map(async (path) => {
-                    const collectionItem = new BrunoTreeItem(path, false);
+            return (
+                await Promise.all(
+                    (
+                        await getAllCollectionRootDirectories()
+                    ).map(async (path) => {
+                        const collectionItem = new BrunoTreeItem(path, false);
 
-                    if (!this.itemRegistry.getItem(collectionItem.getPath())) {
-                        await this.itemRegistry.registerItem(collectionItem);
-                    }
+                        if (
+                            !this.itemRegistry.getItem(collectionItem.getPath())
+                        ) {
+                            await this.itemRegistry.registerItem(
+                                collectionItem
+                            );
+                        }
 
-                    return collectionItem;
-                })
+                        return collectionItem;
+                    })
+                )
+            ).sort((a, b) =>
+                (a.label as string) > (b.label as string) ? 1 : -1
             );
         } else {
             return Promise.resolve(
