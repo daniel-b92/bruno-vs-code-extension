@@ -31,7 +31,8 @@
         "commands": [
             {
                 "command": "brunoCollectionsView.refresh",
-                "title": "Refresh"
+                "title": "Refresh",
+                "icon": "$(extensions-refresh)"
             },
             {
                 "command": "brunoCollectionsView.deleteItem",
@@ -69,19 +70,23 @@
             "view/item/context": [
                 {
                     "command": "brunoCollectionsView.deleteItem",
-                    "when": "view == brunoCollectionsView"
+                    "when": "view == brunoCollectionsView",
+                    "group": "navigation@3"
                 },
                 {
                     "command": "brunoCollectionsView.duplicateFile",
-                    "when": "view == brunoCollectionsView && !treeElementCanExpand && !treeElementCanCollapse"
+                    "when": "view == brunoCollectionsView && !treeElementCanExpand && !treeElementCanCollapse",
+                    "group": "navigation@2"
                 },
                 {
                     "command": "brunoCollectionsView.duplicateFolder",
-                    "when": "view == brunoCollectionsView && (treeElementCanExpand || treeElementCanCollapse)"
+                    "when": "view == brunoCollectionsView && (treeElementCanExpand || treeElementCanCollapse)",
+                    "group": "navigation@2"
                 },
                 {
                     "command": "brunoCollectionsView.renameItem",
-                    "when": "view == brunoCollectionsView"
+                    "when": "view == brunoCollectionsView",
+                    "group": "navigation@1"
                 }
             ]
         }
