@@ -125,17 +125,15 @@ export class CollectionExplorer
         dataTransfer: vscode.DataTransfer,
         _token: vscode.CancellationToken
     ) {
-        if (lstatSync(source[0].getPath()).isFile()) {
-            dataTransfer.set("text/uri-list", {
-                async asString() {
-                    return Promise.resolve(source[0].getPath());
-                },
-                asFile() {
-                    return undefined;
-                },
-                value: source[0],
-            });
-        }
+        dataTransfer.set("text/uri-list", {
+            async asString() {
+                return Promise.resolve(source[0].getPath());
+            },
+            asFile() {
+                return undefined;
+            },
+            value: source[0],
+        });
     }
 
     async handleDrop(
