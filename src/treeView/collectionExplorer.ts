@@ -7,6 +7,7 @@ import {
     cpSync,
     existsSync,
     lstatSync,
+    mkdirSync,
     readdirSync,
     readFileSync,
     renameSync,
@@ -36,13 +37,76 @@ export class CollectionExplorer
             fileChangedEmitter
         );
 
-        vscode.window.createTreeView("brunoCollectionsView", {
+        const treeView = vscode.window.createTreeView("brunoCollectionsView", {
             treeDataProvider,
             dragAndDropController: this,
         });
 
         vscode.commands.registerCommand("brunoCollectionsView.refresh", () =>
             treeDataProvider.refresh()
+        );
+
+        vscode.commands.registerCommand(
+            "brunoCollectionsView.createFile",
+            async (item: BrunoTreeItem) => {
+                const parentFolderPath = item.getPath();
+
+                const fileName = await vscode.window.showInputBox({
+                    title: `Create file in '${basename(parentFolderPath)}'`,
+                });
+
+                if (fileName == undefined) {
+                    return;
+                }
+
+                const filePath = resolve(parentFolderPath, fileName);
+                writeFileSync(filePath, "");
+
+                const maybeItem = await new Promise<BrunoTreeItem | undefined>(
+                    (resolve) => {
+                        let remainingTries = 10;
+                        const delayBetweenAttempts = 500;
+                        let registeredItem =
+                            treeDataProvider.getItemByPath(filePath);
+
+                        while (!registeredItem && remainingTries > 0) {
+                            setTimeout(() => {}, delayBetweenAttempts);
+                            registeredItem =
+                                treeDataProvider.getItemByPath(filePath);
+                            remainingTries--;
+                        }
+
+                        resolve(registeredItem);
+                    }
+                );
+
+                if (maybeItem) {
+                    setTimeout(() => {}, 3_000);
+                    treeView.reveal(maybeItem, { focus: true });
+                }
+
+                vscode.commands.executeCommand(
+                    "vscode.open",
+                    vscode.Uri.file(filePath)
+                );
+            }
+        );
+
+        vscode.commands.registerCommand(
+            "brunoCollectionsView.createFolder",
+            async (item: BrunoTreeItem) => {
+                const parentFolderPath = item.getPath();
+
+                const folderName = await vscode.window.showInputBox({
+                    title: `Create folder in '${basename(parentFolderPath)}'`,
+                });
+
+                if (folderName == undefined) {
+                    return;
+                }
+
+                mkdirSync(resolve(parentFolderPath, folderName));
+            }
         );
 
         vscode.commands.registerCommand(

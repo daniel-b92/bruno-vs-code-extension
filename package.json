@@ -49,6 +49,14 @@
             {
                 "command": "brunoCollectionsView.renameItem",
                 "title": "Rename"
+            },
+            {
+                "command": "brunoCollectionsView.createFile",
+                "title": "Create file"
+            },
+            {
+                "command": "brunoCollectionsView.createFolder",
+                "title": "Create folder"
             }
         ],
         "views": {
@@ -69,24 +77,34 @@
             ],
             "view/item/context": [
                 {
-                    "command": "brunoCollectionsView.deleteItem",
-                    "when": "view == brunoCollectionsView",
-                    "group": "navigation@3"
+                    "command": "brunoCollectionsView.createFile",
+                    "when": "view == brunoCollectionsView && (treeElementCanExpand || treeElementCanCollapse)",
+                    "group": "navigation@1"
                 },
                 {
-                    "command": "brunoCollectionsView.duplicateFile",
-                    "when": "view == brunoCollectionsView && !treeElementCanExpand && !treeElementCanCollapse",
-                    "group": "navigation@2"
-                },
-                {
-                    "command": "brunoCollectionsView.duplicateFolder",
+                    "command": "brunoCollectionsView.createFolder",
                     "when": "view == brunoCollectionsView && (treeElementCanExpand || treeElementCanCollapse)",
                     "group": "navigation@2"
                 },
                 {
                     "command": "brunoCollectionsView.renameItem",
                     "when": "view == brunoCollectionsView",
-                    "group": "navigation@1"
+                    "group": "navigation@3"
+                },
+                {
+                    "command": "brunoCollectionsView.duplicateFile",
+                    "when": "view == brunoCollectionsView && !treeElementCanExpand && !treeElementCanCollapse",
+                    "group": "navigation@4"
+                },
+                {
+                    "command": "brunoCollectionsView.duplicateFolder",
+                    "when": "view == brunoCollectionsView && (treeElementCanExpand || treeElementCanCollapse)",
+                    "group": "navigation@4"
+                },
+                {
+                    "command": "brunoCollectionsView.deleteItem",
+                    "when": "view == brunoCollectionsView",
+                    "group": "navigation@5"
                 }
             ]
         }
