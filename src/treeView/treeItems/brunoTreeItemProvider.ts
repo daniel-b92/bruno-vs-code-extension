@@ -72,10 +72,6 @@ export class BrunoTreeItemProvider
         return element as unknown as vscode.TreeItem;
     }
 
-    getItemByPath(path: string) {
-        return this.itemRegistry.getItem(path);
-    }
-
     async getParent(element: BrunoTreeItem) {
         return this.itemRegistry.getItem(dirname(element.getPath()));
     }

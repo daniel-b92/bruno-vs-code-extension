@@ -37,7 +37,7 @@ export class CollectionExplorer
             fileChangedEmitter
         );
 
-        const treeView = vscode.window.createTreeView("brunoCollectionsView", {
+        vscode.window.createTreeView("brunoCollectionsView", {
             treeDataProvider,
             dragAndDropController: this,
         });
@@ -62,33 +62,12 @@ export class CollectionExplorer
                 const filePath = resolve(parentFolderPath, fileName);
                 writeFileSync(filePath, "");
 
-                const maybeItem = await new Promise<BrunoTreeItem | undefined>(
-                    (resolve) => {
-                        let remainingTries = 10;
-                        const delayBetweenAttempts = 500;
-                        let registeredItem =
-                            treeDataProvider.getItemByPath(filePath);
-
-                        while (!registeredItem && remainingTries > 0) {
-                            setTimeout(() => {}, delayBetweenAttempts);
-                            registeredItem =
-                                treeDataProvider.getItemByPath(filePath);
-                            remainingTries--;
-                        }
-
-                        resolve(registeredItem);
-                    }
-                );
-
-                if (maybeItem) {
-                    setTimeout(() => {}, 3_000);
-                    treeView.reveal(maybeItem, { focus: true });
-                }
-
                 vscode.commands.executeCommand(
                     "vscode.open",
                     vscode.Uri.file(filePath)
                 );
+
+                // ToDo: Reveal file in collection explorer after it has been added to tree
             }
         );
 
