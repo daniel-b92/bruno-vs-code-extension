@@ -29,16 +29,9 @@ export class BrunoTreeItemProvider
                 this.itemRegistry.unregisterItem(uri.fsPath);
                 this.itemRegistry.unregisterAllDescendants(uri.fsPath);
 
-                const maybeParent = this.tryToFindRegisteredParentItem(
-                    maybeRegisteredItem.getPath()
-                );
-
-                if (maybeParent) {
-                    this._onDidChangeTreeData.fire(maybeParent);
-                } else {
-                    // If no parent item was found, trigger update for all items (e.g. if item is collection root directory).
-                    this._onDidChangeTreeData.fire(undefined);
-                }
+                // Always update all items when items have to be deleted from tree view.
+                // When only triggering an update for the parent item, there were issues with the refresh mechanism.
+                this._onDidChangeTreeData.fire(undefined);
             } else if (
                 !maybeRegisteredItem &&
                 changeType == FileChangeType.Created
