@@ -6,7 +6,6 @@ import { getSequence } from "../../shared/fileSystem/testFileParser";
 import { BrunoTreeItem } from "./brunoTreeItem";
 import { TreeItemRegistry } from "./treeItemRegistry";
 import { FileChangedEvent, FileChangeType } from "../shared/definitions";
-import { ItemDeletionHandler } from "./itemDeletionHandler";
 
 export class BrunoTreeItemProvider
     implements vscode.TreeDataProvider<BrunoTreeItem>
@@ -16,20 +15,16 @@ export class BrunoTreeItemProvider
         fileChangedEmitter: vscode.EventEmitter<FileChangedEvent>
     ) {
         this.itemRegistry = new TreeItemRegistry(fileChangedEmitter);
-        this.deletionHandler = new ItemDeletionHandler(
-            this.itemRegistry,
-            this._onDidChangeTreeData
-        );
 
         fileChangedEmitter.event(({ uri, changeType }) => {
             const maybeRegisteredItem = this.itemRegistry.getItem(uri.fsPath);
 
-            if (changeType == FileChangeType.Deleted) {
-                this.deletionHandler.handleItemDeletion(uri.fsPath);
-            } else if (
+            if (
                 maybeRegisteredItem &&
-                changeType == FileChangeType.Modified &&
-                maybeRegisteredItem.getSequence() != getSequence(uri.fsPath)
+                (FileChangeType.Deleted ||
+                    (changeType == FileChangeType.Modified &&
+                        maybeRegisteredItem.getSequence() !=
+                            getSequence(uri.fsPath)))
             ) {
                 this.itemRegistry.unregisterItem(uri.fsPath);
                 this.itemRegistry.unregisterAllDescendants(uri.fsPath);
@@ -48,6 +43,7 @@ export class BrunoTreeItemProvider
                 !maybeRegisteredItem &&
                 changeType == FileChangeType.Created
             ) {
+                // Registration of the new item occurs in the `getTreeItem` or `getChildren` function
                 const maybeParentItem = this.tryToFindRegisteredParentItem(
                     uri.fsPath
                 );
@@ -63,7 +59,6 @@ export class BrunoTreeItemProvider
     }
 
     private itemRegistry: TreeItemRegistry;
-    private deletionHandler: ItemDeletionHandler;
 
     async getTreeItem(element: BrunoTreeItem): Promise<vscode.TreeItem> {
         if (!this.itemRegistry.getItem(element.getPath())) {
