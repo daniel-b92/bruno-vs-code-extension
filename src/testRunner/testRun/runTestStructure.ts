@@ -264,6 +264,7 @@ const getCommandArgs = async (
     jsonReportPath: string,
     testEnvironment?: string
 ) => {
+    const npmPackage = "@usebruno/cli@1.39.0";
     const testDataPath = testData.path;
     const collectionRootDir = await getCollectionRootDir(testData.path);
     const result: string[] = [];
@@ -273,7 +274,7 @@ const getCommandArgs = async (
             : `bru run ${testDataPath}`;
     result.push(
         ...[
-            "--package=@usebruno/cli",
+            `--package=${npmPackage}`,
             argForRunCommand,
             "-r",
             "--reporter-html",
