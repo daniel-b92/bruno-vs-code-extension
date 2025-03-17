@@ -4,7 +4,7 @@ import { addTestItem } from "./addTestItem";
 import { TestDirectory } from "../../testData/testDirectory";
 import { getSequence } from "../../../shared/fileSystem/testFileParser";
 import { TestFile } from "../../testData/testFile";
-import { getTestFileDescendants } from "../../../shared/fileSystem/getTestFileDescendants";
+import { getTestFileDescendants } from "../../../shared/fileSystem/util/getTestFileDescendants";
 import { TestController, Uri, TestItem as vscodeTestItem } from "vscode";
 
 interface PathWithChildren {

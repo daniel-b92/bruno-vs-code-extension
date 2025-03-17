@@ -7,7 +7,7 @@ import {
     TestRunProfileKind,
 } from "vscode";
 import { addTestCollectionToTestTree } from "../testRunner/vsCodeTestTree/testItemAdding/addTestCollection";
-import { getAllCollectionRootDirectories } from "../shared/fileSystem/collectionRootFolderHelper";
+import { getAllCollectionRootDirectories } from "../shared/fileSystem/util/collectionRootFolderHelper";
 import { getCollectionForTest } from "../testRunner/vsCodeTestTree/utils/testTreeHelper";
 import { addAllTestItemsForCollections } from "../testRunner/vsCodeTestTree/testItemAdding/addAllTestItemsForCollections";
 import { startTestRun } from "../testRunner/testRun/startTestRun";

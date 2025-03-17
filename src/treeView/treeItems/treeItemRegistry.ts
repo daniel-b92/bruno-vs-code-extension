@@ -1,8 +1,8 @@
-import { isCollectionRootDir } from "../../shared/fileSystem/collectionRootFolderHelper";
+import { isCollectionRootDir } from "../../shared/fileSystem/util/collectionRootFolderHelper";
 import { BrunoTreeItem } from "./brunoTreeItem";
 import { extname } from "path";
 import { CollectionWatcher } from "../../shared/fileSystem/collectionWatcher";
-import { normalizeDirectoryPath } from "../../shared/fileSystem/normalizeDirectoryPath";
+import { normalizeDirectoryPath } from "../../shared/fileSystem/util/normalizeDirectoryPath";
 
 export class TreeItemRegistry {
     constructor(private collectionWatcher: CollectionWatcher) {}

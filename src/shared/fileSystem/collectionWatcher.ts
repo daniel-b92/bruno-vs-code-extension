@@ -7,7 +7,7 @@ import {
 } from "vscode";
 import { FileChangedEvent, FileChangeType } from "../definitions";
 import { basename } from "path";
-import { normalizeDirectoryPath } from "./normalizeDirectoryPath";
+import { normalizeDirectoryPath } from "./util/normalizeDirectoryPath";
 
 export class CollectionWatcher {
     constructor(

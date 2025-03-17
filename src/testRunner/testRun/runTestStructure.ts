@@ -1,5 +1,5 @@
 import { BrunoTestData } from "../testData/testDataDefinitions";
-import { getCollectionRootDir } from "../../shared/fileSystem/collectionRootFolderHelper";
+import { getCollectionRootDir } from "../../shared/fileSystem/util/collectionRootFolderHelper";
 import { existsSync, lstatSync, unlinkSync } from "fs";
 import { spawn } from "child_process";
 import { dirname, resolve } from "path";

@@ -5,14 +5,14 @@ import { handleTestFileCreationOrUpdate } from "./handlers/handleTestFileCreatio
 import { addAllTestItemsForCollections } from "./testItemAdding/addAllTestItemsForCollections";
 import { handleTestItemDeletion } from "./handlers/handleTestItemDeletion";
 import { isValidTestFileFromCollections } from "./utils/isValidTestFileFromCollections";
-import { getTestFileDescendants } from "../../shared/fileSystem/getTestFileDescendants";
+import { getTestFileDescendants } from "../../shared/fileSystem/util/getTestFileDescendants";
 import { addTestDirectoryAndAllDescendants } from "./testItemAdding/addTestDirectoryAndAllDescendants";
 import { TestDirectory } from "../testData/testDirectory";
 import { dirname } from "path";
 import { lstatSync } from "fs";
 import { CollectionWatcher } from "../../shared/fileSystem/collectionWatcher";
 import { FileChangeType } from "../../shared/definitions";
-import { normalizeDirectoryPath } from "../../shared/fileSystem/normalizeDirectoryPath";
+import { normalizeDirectoryPath } from "../../shared/fileSystem/util/normalizeDirectoryPath";
 
 export class CollectionRegistry {
     constructor(

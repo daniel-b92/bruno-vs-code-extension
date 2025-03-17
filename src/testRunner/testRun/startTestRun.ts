@@ -1,7 +1,7 @@
 import { TestCollection } from "../testData/testCollection";
 import { getCollectionForTest } from "../vsCodeTestTree/utils/testTreeHelper";
 import { showHtmlReport } from "./showHtmlReport";
-import { getCollectionRootDir } from "../../shared/fileSystem/collectionRootFolderHelper";
+import { getCollectionRootDir } from "../../shared/fileSystem/util/collectionRootFolderHelper";
 import { existsSync } from "fs";
 import {
     EventEmitter,
