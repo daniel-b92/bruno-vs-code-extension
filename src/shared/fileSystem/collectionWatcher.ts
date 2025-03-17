@@ -7,6 +7,7 @@ import {
 } from "vscode";
 import { FileChangedEvent, FileChangeType } from "../definitions";
 import { basename } from "path";
+import { normalizeDirectoryPath } from "./normalizeDirectoryPath";
 
 export class CollectionWatcher {
     constructor(
@@ -23,8 +24,15 @@ export class CollectionWatcher {
         const testPattern =
             this.getPatternForTestitemsInCollection(rootDirectory);
 
-        if (!testPattern) {
-            return undefined;
+        if (
+            this.watchers.some(
+                ({ rootDirectory: watched }) =>
+                    normalizeDirectoryPath(watched) ==
+                    normalizeDirectoryPath(rootDirectory)
+            ) ||
+            !testPattern
+        ) {
+            return;
         }
         const watcher = workspace.createFileSystemWatcher(testPattern);
 
