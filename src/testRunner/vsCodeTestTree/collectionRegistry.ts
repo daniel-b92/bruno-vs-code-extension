@@ -26,7 +26,7 @@ export class CollectionRegistry {
                     (collection) =>
                         uri.fsPath.startsWith(
                             normalizeDirectoryPath(collection.rootDirectory)
-                        )
+                        ) || uri.fsPath == collection.rootDirectory
                 );
 
                 if (!registeredCollection) {
