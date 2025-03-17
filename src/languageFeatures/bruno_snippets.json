@@ -11,16 +11,88 @@
         "description": "Add meta section"
     },
 
-    "http method section": {
-        "prefix": ["get", "post", "put", "delete", "options"],
+    "get section": {
+        "prefix": "get",
         "body": [
-            "${1|get,post,put,delete,options|} {",
+            "get {",
             "\turl: ${2:http://}",
             "\tbody: ${3|none,json,xml|}",
             "\tauth: ${4|none,basic,bearer|}",
             "}"
         ],
-        "description": "Add HTTP method section"
+        "description": "Add GET method section"
+    },
+
+    "post section": {
+        "prefix": "post",
+        "body": [
+            "post {",
+            "\turl: ${2:http://}",
+            "\tbody: ${3|none,json,xml|}",
+            "\tauth: ${4|none,basic,bearer|}",
+            "}"
+        ],
+        "description": "Add POST method section"
+    },
+
+    "put section": {
+        "prefix": "put",
+        "body": [
+            "put {",
+            "\turl: ${2:http://}",
+            "\tbody: ${3|none,json,xml|}",
+            "\tauth: ${4|none,basic,bearer|}",
+            "}"
+        ],
+        "description": "Add PUT method section"
+    },
+
+    "delete section": {
+        "prefix": "delete",
+        "body": [
+            "delete {",
+            "\turl: ${2:http://}",
+            "\tbody: ${3|none,json,xml|}",
+            "\tauth: ${4|none,basic,bearer|}",
+            "}"
+        ],
+        "description": "Add DELETE method section"
+    },
+
+    "options section": {
+        "prefix": "options",
+        "body": [
+            "options {",
+            "\turl: ${2:http://}",
+            "\tbody: ${3|none,json,xml|}",
+            "\tauth: ${4|none,basic,bearer|}",
+            "}"
+        ],
+        "description": "Add OPTIONS method section"
+    },
+
+    "patch section": {
+        "prefix": "patch",
+        "body": [
+            "patch {",
+            "\turl: ${2:http://}",
+            "\tbody: ${3|none,json,xml|}",
+            "\tauth: ${4|none,basic,bearer|}",
+            "}"
+        ],
+        "description": "Add PATCH method section"
+    },
+
+    "head section": {
+        "prefix": "head",
+        "body": [
+            "head {",
+            "\turl: ${2:http://}",
+            "\tbody: ${3|none,json,xml|}",
+            "\tauth: ${4|none,basic,bearer|}",
+            "}"
+        ],
+        "description": "Add HEAD method section"
     },
 
     "basic auth section": {
