@@ -3,6 +3,7 @@ import { activateRunner } from "./testRunner/activateRunner";
 import { activateTreeView } from "./treeView/activateTreeView";
 import { FileChangedEvent } from "./shared/definitions";
 import { CollectionWatcher } from "./shared/fileSystem/collectionWatcher";
+import { activateLanguageFeatures } from "./languageFeatures/activateLanguageFeatures";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
@@ -18,6 +19,6 @@ export async function activate(context: ExtensionContext) {
     );
 
     await activateRunner(ctrl, collectionWatcher);
-
     activateTreeView(collectionWatcher);
+    activateLanguageFeatures();
 }

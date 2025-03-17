@@ -7,15 +7,16 @@ import {
     existsSync,
     lstatSync,
     mkdirSync,
-    readdirSync,
     readFileSync,
     renameSync,
     rmSync,
     writeFileSync,
 } from "fs";
 import { basename, dirname, extname, resolve } from "path";
-import { getSequence } from "../shared/fileSystem/testFileParser";
+import { getSequence } from "../shared/fileSystem/testFileParsing/testFileParser";
 import { CollectionWatcher } from "../shared/fileSystem/collectionWatcher";
+import { getSequencesForRequests } from "../shared/fileSystem/testFileParsing/getSequencesForRequests";
+import { getMaxSequenceForRequests } from "../shared/fileSystem/testFileParsing/getMaxSequenceForRequests";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>
@@ -143,8 +144,7 @@ export class CollectionExplorer
                 ) {
                     replaceSequenceForRequest(
                         newPath,
-                        this.getMaxSequenceForRequests(dirname(originalPath)) +
-                            1
+                        getMaxSequenceForRequests(dirname(originalPath)) + 1
                     );
                 }
             }
@@ -207,13 +207,13 @@ export class CollectionExplorer
         const newSequence = targetIsFile
             ? target.getSequence()
                 ? (target.getSequence() as number) + 1
-                : this.getMaxSequenceForRequests(targetDirectory) + 1
-            : this.getMaxSequenceForRequests(targetDirectory) + 1;
+                : getMaxSequenceForRequests(targetDirectory) + 1
+            : getMaxSequenceForRequests(targetDirectory) + 1;
 
         replaceSequenceForRequest(newPath, newSequence);
 
         if (targetIsFile) {
-            getExistingSequencesForRequests(targetDirectory)
+            getSequencesForRequests(targetDirectory)
                 .filter(
                     ({ path, sequence }) =>
                         path != newPath && sequence >= newSequence
@@ -224,14 +224,6 @@ export class CollectionExplorer
         }
 
         this.normalizeSequencesForRequestFiles(targetDirectory);
-    }
-
-    private getMaxSequenceForRequests(directory: string) {
-        return Math.max(
-            ...getExistingSequencesForRequests(directory).map(
-                ({ sequence }) => sequence
-            )
-        );
     }
 
     private getPathForDuplicatedItem(originalPath: string) {
@@ -265,8 +257,7 @@ export class CollectionExplorer
     }
 
     private normalizeSequencesForRequestFiles(parentDirectoryPath: string) {
-        const initialSequences =
-            getExistingSequencesForRequests(parentDirectoryPath);
+        const initialSequences = getSequencesForRequests(parentDirectoryPath);
 
         initialSequences.sort(
             ({ sequence: seq1 }, { sequence: seq2 }) => seq1 - seq2
@@ -297,25 +288,4 @@ const replaceSequenceForRequest = (filePath: string, newSequence: number) => {
                 )
         );
     }
-};
-
-const getExistingSequencesForRequests = (directory: string) => {
-    const result: { path: string; sequence: number }[] = [];
-
-    readdirSync(directory).map((childName) => {
-        const fullPath = resolve(directory, childName);
-
-        if (
-            lstatSync(fullPath).isFile() &&
-            extname(fullPath) == ".bru" &&
-            getSequence(fullPath) != undefined
-        ) {
-            result.push({
-                path: fullPath,
-                sequence: getSequence(fullPath) as number,
-            });
-        }
-    });
-
-    return result;
 };

@@ -1,0 +1,13 @@
+{
+    "meta section": {
+        "prefix": "meta",
+        "body": [
+            "meta {",
+            "\tname: ${1:${TM_FILENAME/(.*)\\..+$/$1/}}",
+            "\ttype: ${2|http,graphql|}",
+            "\tseq:${3: }${0}",
+            "}"
+        ],
+        "description": "Add meta section"
+    }
+}

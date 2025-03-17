@@ -28,6 +28,12 @@
                 }
             }
         },
+        "snippets": [
+            {
+                "language": "bruno",
+                "path": "./src/languageFeatures/bruno_snippets.json"
+            }
+        ],
         "commands": [
             {
                 "command": "brunoCollectionsView.refresh",
@@ -63,7 +69,8 @@
             "explorer": [
                 {
                     "id": "brunoCollectionsView",
-                    "name": "Bruno Collections"
+                    "name": "Bruno Collections",
+                    "icon": ""
                 }
             ]
         },

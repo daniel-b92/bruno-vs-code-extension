@@ -2,7 +2,7 @@ import { lstatSync, readdirSync } from "fs";
 import { dirname, resolve } from "path";
 import * as vscode from "vscode";
 import { getAllCollectionRootDirectories } from "../../shared/fileSystem/util/collectionRootFolderHelper";
-import { getSequence } from "../../shared/fileSystem/testFileParser";
+import { getSequence } from "../../shared/fileSystem/testFileParsing/testFileParser";
 import { BrunoTreeItem } from "./brunoTreeItem";
 import { TreeItemRegistry } from "./treeItemRegistry";
 import { FileChangeType } from "../../shared/definitions";

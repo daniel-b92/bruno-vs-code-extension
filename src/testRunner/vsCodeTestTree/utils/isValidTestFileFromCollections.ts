@@ -1,6 +1,6 @@
 import { Uri } from "vscode";
 import { TestCollection } from "../../testData/testCollection";
-import { getSequence } from "../../../shared/fileSystem/testFileParser";
+import { getSequence } from "../../../shared/fileSystem/testFileParsing/testFileParser";
 import { normalizeDirectoryPath } from "../../../shared/fileSystem/util/normalizeDirectoryPath";
 
 export const isValidTestFileFromCollections = (

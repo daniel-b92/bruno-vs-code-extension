@@ -2,7 +2,7 @@ import { TestCollection } from "../../testData/testCollection";
 import { dirname } from "path";
 import { addTestItem } from "./addTestItem";
 import { TestDirectory } from "../../testData/testDirectory";
-import { getSequence } from "../../../shared/fileSystem/testFileParser";
+import { getSequence } from "../../../shared/fileSystem/testFileParsing/testFileParser";
 import { TestFile } from "../../testData/testFile";
 import { getTestFileDescendants } from "../../../shared/fileSystem/util/getTestFileDescendants";
 import { TestController, Uri, TestItem as vscodeTestItem } from "vscode";
