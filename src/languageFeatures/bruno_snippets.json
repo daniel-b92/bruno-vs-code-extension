@@ -9,5 +9,52 @@
             "}"
         ],
         "description": "Add meta section"
+    },
+
+    "http method section": {
+        "prefix": ["get", "post", "put", "delete", "options"],
+        "body": [
+            "${1|get,post,put,delete,options|} {",
+            "\turl: ${2:http://}",
+            "\tbody: ${3|none,json,xml|}",
+            "\tauth: ${4|none,basic,bearer|}",
+            "}"
+        ],
+        "description": "Add HTTP method section"
+    },
+
+    "basic auth section": {
+        "prefix": "auth:basic",
+        "body": [
+            "auth:basic {",
+            "\tusername: ${1:name}",
+            "\tpassword: ${2:password}",
+            "}"
+        ],
+        "description": "Add section for basic auth"
+    },
+
+    "bearer auth section": {
+        "prefix": "auth:bearer",
+        "body": ["auth:bearer {", "\ttoken: ${1:token}", "}"],
+        "description": "Add section for bearer auth"
+    },
+
+    "body section": {
+        "prefix": ["body"],
+        "body": ["${1|body:json,body:xml|} {", "\t${0}", "}"],
+        "description": "Add section for request body"
+    },
+
+    "tests section": {
+        "prefix": ["tests"],
+        "body": ["tests {", "\t${0}", "}"],
+        "description": "Add section for tests"
+    },
+
+    "testcase within tests section": {
+        "prefix": ["test"],
+        "body": ["test(\"${1:description}\", function() {", "\t${0}", "});"],
+        "description": "Add testcase within section for tests"
     }
 }
