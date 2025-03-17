@@ -1,9 +1,8 @@
-import {
-    ExtensionContext,
-    tests,
-} from "vscode";
+import { EventEmitter, ExtensionContext, tests } from "vscode";
 import { activateRunner } from "./testRunner/activateRunner";
 import { activateTreeView } from "./treeView/activateTreeView";
+import { FileChangedEvent } from "./shared/definitions";
+import { CollectionWatcher } from "./shared/fileSystem/collectionWatcher";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
@@ -12,7 +11,13 @@ export async function activate(context: ExtensionContext) {
     );
     context.subscriptions.push(ctrl);
 
-    await activateRunner(context, ctrl);
+    const fileChangedEmitter = new EventEmitter<FileChangedEvent>();
+    const collectionWatcher = new CollectionWatcher(
+        context,
+        fileChangedEmitter
+    );
 
-    activateTreeView();
+    await activateRunner(ctrl, collectionWatcher);
+
+    activateTreeView(collectionWatcher);
 }

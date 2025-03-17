@@ -1,14 +1,9 @@
-import {
-    languages,
-    CompletionItem,
-    CompletionItemKind,
-    EventEmitter,
-} from "vscode";
-import { FileChangedEvent } from "./shared/definitions";
+import { languages, CompletionItem, CompletionItemKind } from "vscode";
 import { CollectionExplorer } from "./collectionExplorer";
+import { CollectionWatcher } from "../shared/fileSystem/collectionWatcher";
 
-export function activateTreeView() {
-    new CollectionExplorer(new EventEmitter<FileChangedEvent>());
+export function activateTreeView(collectionWatcher: CollectionWatcher) {
+    new CollectionExplorer(collectionWatcher);
 
     languages.registerCompletionItemProvider(
         { scheme: "file", pattern: "**/*.bru" },

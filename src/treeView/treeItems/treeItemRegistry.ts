@@ -1,18 +1,16 @@
-import { EventEmitter, FileSystemWatcher, workspace } from "vscode";
 import { isCollectionRootDir } from "../../shared/fileSystem/collectionRootFolderHelper";
 import { BrunoTreeItem } from "./brunoTreeItem";
-import { getPatternForTestitemsInCollection } from "../../shared/fileSystem/getPatternForTestitemsInCollection";
-import { FileChangedEvent, FileChangeType } from "../shared/definitions";
 import { extname } from "path";
+import { CollectionWatcher } from "../../shared/fileSystem/collectionWatcher";
+import { normalizeDirectoryPath } from "../../shared/fileSystem/normalizeDirectoryPath";
 
 export class TreeItemRegistry {
-    constructor(private fileChangedEmitter: EventEmitter<FileChangedEvent>) {}
+    constructor(private collectionWatcher: CollectionWatcher) {}
 
     private brunoTreeItems: BrunoTreeItem[] = [];
 
-    private collectionWatchers: {
+    private registeredCollections: {
         rootDirectory: string;
-        watcher: FileSystemWatcher;
     }[] = [];
 
     public getItem(path: string) {
@@ -24,18 +22,15 @@ export class TreeItemRegistry {
 
         if (
             (await isCollectionRootDir(item.getPath())) &&
-            !this.collectionWatchers.some(
+            !this.registeredCollections.some(
                 ({ rootDirectory }) => item.getPath() == rootDirectory
             )
         ) {
-            const watcher = this.getWatcherForCollection(item.getPath());
+            this.collectionWatcher.startWatchingCollection(item.getPath());
 
-            if (watcher) {
-                this.collectionWatchers.push({
-                    rootDirectory: item.getPath(),
-                    watcher,
-                });
-            }
+            this.registeredCollections.push({
+                rootDirectory: item.getPath(),
+            });
         }
     }
 
@@ -51,42 +46,29 @@ export class TreeItemRegistry {
             );
 
             if (
-                this.collectionWatchers.some(
+                this.registeredCollections.some(
                     ({ rootDirectory }) => path == rootDirectory
                 )
             ) {
-                const { watcher } = this.collectionWatchers.splice(
-                    this.collectionWatchers.findIndex(
-                        ({ rootDirectory }) => rootDirectory == path
+                this.registeredCollections.splice(
+                    this.registeredCollections.findIndex(
+                        (collection) => collection.rootDirectory == path
                     ),
                     1
-                )[0];
-                watcher.dispose();
+                );
+
+                this.collectionWatcher.stopWatchingCollection(path);
             }
         }
     }
 
     public unregisterAllDescendants(directoryPath: string) {
-        const normalizePath = () => {
-            const usesSlashes = directoryPath.includes("/");
-
-            if (usesSlashes) {
-                return directoryPath.endsWith("/")
-                    ? directoryPath
-                    : `${directoryPath}/`;
-            } else {
-                return directoryPath.endsWith("\\")
-                    ? directoryPath
-                    : `${directoryPath}\\`;
-            }
-        };
-
         if (extname(directoryPath) != "") {
             // If the given path is for a file, abort.
             return;
         }
 
-        const normalizedDirPath = normalizePath();
+        const normalizedDirPath = normalizeDirectoryPath(directoryPath);
         const descendants = this.brunoTreeItems.filter(
             (item) =>
                 item.getPath().startsWith(normalizedDirPath) &&
@@ -101,36 +83,5 @@ export class TreeItemRegistry {
                 1
             );
         }
-    }
-
-    private getWatcherForCollection(collectionRootDir: string) {
-        const testPattern =
-            getPatternForTestitemsInCollection(collectionRootDir);
-
-        if (!testPattern) {
-            return undefined;
-        }
-        const watcher = workspace.createFileSystemWatcher(testPattern);
-
-        watcher.onDidCreate((uri) => {
-            this.fileChangedEmitter.fire({
-                uri,
-                changeType: FileChangeType.Created,
-            });
-        });
-        watcher.onDidChange((uri) => {
-            this.fileChangedEmitter.fire({
-                uri,
-                changeType: FileChangeType.Modified,
-            });
-        });
-        watcher.onDidDelete((uri) => {
-            this.fileChangedEmitter.fire({
-                uri,
-                changeType: FileChangeType.Deleted,
-            });
-        });
-
-        return watcher;
     }
 }

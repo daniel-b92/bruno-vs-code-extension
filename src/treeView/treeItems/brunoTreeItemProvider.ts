@@ -5,18 +5,19 @@ import { getAllCollectionRootDirectories } from "../../shared/fileSystem/collect
 import { getSequence } from "../../shared/fileSystem/testFileParser";
 import { BrunoTreeItem } from "./brunoTreeItem";
 import { TreeItemRegistry } from "./treeItemRegistry";
-import { FileChangedEvent, FileChangeType } from "../shared/definitions";
+import { FileChangeType } from "../../shared/definitions";
+import { CollectionWatcher } from "../../shared/fileSystem/collectionWatcher";
 
 export class BrunoTreeItemProvider
     implements vscode.TreeDataProvider<BrunoTreeItem>
 {
     constructor(
         private workspaceRoot: string,
-        fileChangedEmitter: vscode.EventEmitter<FileChangedEvent>
+        collectionWatcher: CollectionWatcher
     ) {
-        this.itemRegistry = new TreeItemRegistry(fileChangedEmitter);
+        this.itemRegistry = new TreeItemRegistry(collectionWatcher);
 
-        fileChangedEmitter.event(({ uri, changeType }) => {
+        collectionWatcher.subscribeToUpdates().event(({ uri, changeType }) => {
             const maybeRegisteredItem = this.itemRegistry.getItem(uri.fsPath);
 
             if (

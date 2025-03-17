@@ -1,8 +1,5 @@
 import {
-    EventEmitter,
-    ExtensionContext,
     TestController,
-    Uri,
     TestItem as vscodeTestItem,
     TestRunProfile,
     TestRunRequest,
@@ -20,26 +17,22 @@ import { CollectionRegistry } from "../testRunner/vsCodeTestTree/collectionRegis
 import { TestDirectory } from "../testRunner/testData/testDirectory";
 import { addTestDirectoryAndAllDescendants } from "../testRunner/vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
 import { TestRunQueue } from "../testRunner/testRun/testRunQueue";
+import { CollectionWatcher } from "../shared/fileSystem/collectionWatcher";
 
 export async function activateRunner(
-    context: ExtensionContext,
-    ctrl: TestController
+    ctrl: TestController,
+    collectionWatcher: CollectionWatcher
 ) {
-    const fileChangedEmitter = new EventEmitter<Uri>();
     const watchingTests = new Map<
         vscodeTestItem | "ALL",
         TestRunProfile | undefined
     >();
-    const collectionRegistry = new CollectionRegistry(
-        ctrl,
-        context,
-        fileChangedEmitter
-    );
+    const collectionRegistry = new CollectionRegistry(ctrl, collectionWatcher);
     const queue = new TestRunQueue(ctrl);
 
     await addMissingTestCollectionsToTestTree(ctrl, collectionRegistry);
 
-    fileChangedEmitter.event(async (uri) => {
+    collectionWatcher.subscribeToUpdates().event(async ({ uri }) => {
         if (watchingTests.has("ALL")) {
             await startTestRun(
                 ctrl,

@@ -1,13 +1,6 @@
 import { TestCollection } from "../testData/testCollection";
-import {
-    EventEmitter,
-    ExtensionContext,
-    FileSystemWatcher,
-    TestController,
-    Uri,
-    workspace,
-} from "vscode";
-import { getCollectionForTest, getTestId } from "./utils/testTreeHelper";
+import { TestController, Uri } from "vscode";
+import { getTestId } from "./utils/testTreeHelper";
 import { handleTestFileCreationOrUpdate } from "./handlers/handleTestFileCreationOrUpdate";
 import { addAllTestItemsForCollections } from "./testItemAdding/addAllTestItemsForCollections";
 import { handleTestItemDeletion } from "./handlers/handleTestItemDeletion";
@@ -17,46 +10,110 @@ import { addTestDirectoryAndAllDescendants } from "./testItemAdding/addTestDirec
 import { TestDirectory } from "../testData/testDirectory";
 import { dirname } from "path";
 import { lstatSync } from "fs";
-import { getPatternForTestitemsInCollection } from "../../shared/fileSystem/getPatternForTestitemsInCollection";
+import { CollectionWatcher } from "../../shared/fileSystem/collectionWatcher";
+import { FileChangeType } from "../../shared/definitions";
+import { normalizeDirectoryPath } from "../../shared/fileSystem/normalizeDirectoryPath";
 
 export class CollectionRegistry {
     constructor(
         private controller: TestController,
-        private context: ExtensionContext,
-        private fileChangedEmitter: EventEmitter<Uri>
-    ) {}
+        private collectionWatcher: CollectionWatcher
+    ) {
+        collectionWatcher
+            .subscribeToUpdates()
+            .event(async ({ uri, changeType }) => {
+                const registeredCollection = this.getCurrentCollections().find(
+                    (collection) =>
+                        uri.fsPath.startsWith(
+                            normalizeDirectoryPath(collection.rootDirectory)
+                        )
+                );
 
-    private collectionsAndWatchers: {
-        collection: TestCollection;
-        watcher: FileSystemWatcher;
-    }[] = [];
+                if (!registeredCollection) {
+                    return;
+                }
+
+                if (changeType == FileChangeType.Created) {
+                    if (
+                        isValidTestFileFromCollections(
+                            uri,
+                            this.getCurrentCollections()
+                        )
+                    ) {
+                        handleTestFileCreationOrUpdate(
+                            this.controller,
+                            registeredCollection,
+                            uri
+                        );
+                    } else if (
+                        await this.hasValidTestFileDescendantsFromCollections(
+                            uri,
+                            this.getCurrentCollections()
+                        )
+                    ) {
+                        await addTestDirectoryAndAllDescendants(
+                            this.controller,
+                            registeredCollection,
+                            new TestDirectory(uri.fsPath)
+                        );
+                    }
+                } else if (changeType == FileChangeType.Modified) {
+                    /* For directories, no changes are ever registered because renaming a directory is seen as a creation of a new directory with the
+                new name and a deletion of the directory with the old name. Creating or deleting a directory will be handled by the  'onDidCreate' or
+                'onDidDelete' functions.*/
+                    if (
+                        isValidTestFileFromCollections(
+                            uri,
+                            this.getCurrentCollections()
+                        )
+                    ) {
+                        handleTestFileCreationOrUpdate(
+                            this.controller,
+                            registeredCollection,
+                            uri
+                        );
+                    } else {
+                        // This case can e.g. happen if the sequence in the a .bru file is changed to an invalid value
+                        handleTestItemDeletion(
+                            this.controller,
+                            registeredCollection,
+                            uri
+                        );
+                    }
+                } else if (changeType == FileChangeType.Deleted) {
+                    if (uri.fsPath == registeredCollection.rootDirectory) {
+                        this.unregisterCollection(registeredCollection);
+                        return;
+                    }
+
+                    handleTestItemDeletion(
+                        this.controller,
+                        registeredCollection,
+                        uri
+                    );
+                }
+            });
+    }
+
+    private registeredCollections: TestCollection[] = [];
 
     public getCurrentCollections() {
-        return this.collectionsAndWatchers.map(({ collection }) => collection);
+        return this.registeredCollections;
     }
 
     public async registerCollection(collection: TestCollection) {
-        if (
-            this.collectionsAndWatchers.some(
-                ({ collection: col }) =>
-                    col.rootDirectory == collection.rootDirectory
-            )
-        ) {
-            return;
-        }
-
-        const watcher = await this.startWatchingCollection(collection);
-        if (watcher) {
-            this.collectionsAndWatchers.push({ collection, watcher });
-            this.context.subscriptions.push(watcher);
-        }
+        this.collectionWatcher.startWatchingCollection(
+            collection.rootDirectory
+        );
+        this.registeredCollections.push(collection);
+        await addAllTestItemsForCollections(this.controller, [collection]);
     }
 
     public unregisterCollection(collection: TestCollection) {
         if (
-            !this.collectionsAndWatchers.some(
-                ({ collection: { rootDirectory } }) =>
-                    rootDirectory == collection.rootDirectory
+            !this.registeredCollections.some(
+                (registered) =>
+                    registered.rootDirectory == collection.rootDirectory
             )
         ) {
             console.warn(
@@ -67,85 +124,20 @@ export class CollectionRegistry {
                 )}'`
             );
         } else {
-            const { watcher } = this.collectionsAndWatchers.splice(
-                this.collectionsAndWatchers.findIndex(
-                    ({ collection: col }) =>
-                        col.rootDirectory == collection.rootDirectory
+            this.registeredCollections.splice(
+                this.registeredCollections.findIndex(
+                    (col) => col.rootDirectory == collection.rootDirectory
                 ),
                 1
-            )[0];
+            );
 
-            watcher.dispose();
+            this.collectionWatcher.stopWatchingCollection(
+                collection.rootDirectory
+            );
             this.controller.items.delete(
                 getTestId(Uri.file(collection.rootDirectory))
             );
         }
-    }
-
-    private async startWatchingCollection(collection: TestCollection) {
-        const testPattern = getPatternForTestitemsInCollection(
-            collection.rootDirectory
-        );
-
-        if (!testPattern) {
-            return undefined;
-        }
-        const watcher = workspace.createFileSystemWatcher(testPattern);
-
-        watcher.onDidCreate(async (uri) => {
-            if (isValidTestFileFromCollections(uri, [collection])) {
-                handleTestFileCreationOrUpdate(
-                    this.controller,
-                    collection,
-                    uri
-                );
-                this.fileChangedEmitter.fire(uri);
-            } else if (
-                await this.hasValidTestFileDescendantsFromCollections(uri, [
-                    collection,
-                ])
-            ) {
-                await addTestDirectoryAndAllDescendants(
-                    this.controller,
-                    collection,
-                    new TestDirectory(uri.fsPath)
-                );
-                this.fileChangedEmitter.fire(uri);
-            }
-        });
-        watcher.onDidChange((uri) => {
-            /* For directories, no changes are ever registered because renaming a directory is seen as a creation of a new directory with the 
-                new name and a deletion of the directory with the old name. Creating or deleting a directory will be handled by the  'onDidCreate' or 
-                'onDidDelete' functions.*/
-            if (isValidTestFileFromCollections(uri, [collection])) {
-                handleTestFileCreationOrUpdate(
-                    this.controller,
-                    collection,
-                    uri
-                );
-                this.fileChangedEmitter.fire(uri);
-            } else if (collection.getTestItemForPath(uri.fsPath) != undefined) {
-                // This case can e.g. happen if the sequence in the a .bru file is changed to an invalid value
-                handleTestItemDeletion(
-                    this.controller,
-                    getCollectionForTest(uri, [collection]),
-                    uri
-                );
-            }
-        });
-        watcher.onDidDelete(async (uri) => {
-            if (collection.getTestItemForPath(uri.fsPath) != undefined) {
-                if (uri.fsPath == collection.rootDirectory) {
-                    this.unregisterCollection(collection);
-                    return;
-                }
-
-                handleTestItemDeletion(this.controller, collection, uri);
-            }
-        });
-
-        await addAllTestItemsForCollections(this.controller, [collection]);
-        return watcher;
     }
 
     private async hasValidTestFileDescendantsFromCollections(
@@ -166,7 +158,10 @@ export class CollectionRegistry {
                 currentPath = dirname(currentPath);
             }
 
-            return currentPath == collection.rootDirectory;
+            return (
+                normalizeDirectoryPath(currentPath) ==
+                normalizeDirectoryPath(collection.rootDirectory)
+            );
         });
 
         if (!collection) {

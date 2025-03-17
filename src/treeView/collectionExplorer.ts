@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { BrunoTreeItemProvider } from "./treeItems/brunoTreeItemProvider";
-import { FileChangedEvent } from "./shared/definitions";
 import { BrunoTreeItem } from "./treeItems/brunoTreeItem";
 import {
     copyFileSync,
@@ -16,6 +15,7 @@ import {
 } from "fs";
 import { basename, dirname, extname, resolve } from "path";
 import { getSequence } from "../shared/fileSystem/testFileParser";
+import { CollectionWatcher } from "../shared/fileSystem/collectionWatcher";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>
@@ -23,7 +23,7 @@ export class CollectionExplorer
     dragMimeTypes = ["text/uri-list"];
     dropMimeTypes = ["application/vnd.code.tree.brunocollectionsview"];
 
-    constructor(fileChangedEmitter: vscode.EventEmitter<FileChangedEvent>) {
+    constructor(collectionWatcher: CollectionWatcher) {
         if (
             !vscode.workspace.workspaceFolders ||
             vscode.workspace.workspaceFolders.length == 0
@@ -34,7 +34,7 @@ export class CollectionExplorer
         }
         const treeDataProvider = new BrunoTreeItemProvider(
             vscode.workspace.workspaceFolders[0].uri.fsPath,
-            fileChangedEmitter
+            collectionWatcher
         );
 
         vscode.window.createTreeView("brunoCollectionsView", {

@@ -1,6 +1,7 @@
 import { Uri } from "vscode";
 import { TestCollection } from "../../testData/testCollection";
 import { getSequence } from "../../../shared/fileSystem/testFileParser";
+import { normalizeDirectoryPath } from "../../../shared/fileSystem/normalizeDirectoryPath";
 
 export const isValidTestFileFromCollections = (
     uri: Uri,
@@ -10,5 +11,5 @@ export const isValidTestFileFromCollections = (
     uri.fsPath.endsWith(".bru") &&
     getSequence(uri.fsPath) != undefined &&
     collections.some((collection) =>
-        uri.fsPath.includes(collection.rootDirectory)
+        uri.fsPath.startsWith(normalizeDirectoryPath(collection.rootDirectory))
     );
