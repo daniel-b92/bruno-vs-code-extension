@@ -23,7 +23,6 @@
             "properties": {
                 "brunoTestExtension.testRunEnvironment": {
                     "type": "string",
-                    "default": "Prod",
                     "description": "The name of the environment to use for running Bruno tests with."
                 }
             }
@@ -63,6 +62,10 @@
             {
                 "command": "brunoCollectionsView.createFolder",
                 "title": "Create folder"
+            },
+            {
+                "command": "brunoCollectionsView.startTestRun",
+                "title": "Start test run"
             }
         ],
         "views": {
@@ -84,34 +87,39 @@
             ],
             "view/item/context": [
                 {
+                    "command": "brunoCollectionsView.startTestRun",
+                    "when": "view == brunoCollectionsView",
+                    "group": "navigation@1"
+                },
+                {
                     "command": "brunoCollectionsView.createFile",
                     "when": "view == brunoCollectionsView && (treeElementCanExpand || treeElementCanCollapse)",
-                    "group": "navigation@1"
+                    "group": "navigation@10"
                 },
                 {
                     "command": "brunoCollectionsView.createFolder",
                     "when": "view == brunoCollectionsView && (treeElementCanExpand || treeElementCanCollapse)",
-                    "group": "navigation@2"
+                    "group": "navigation@11"
                 },
                 {
                     "command": "brunoCollectionsView.renameItem",
                     "when": "view == brunoCollectionsView",
-                    "group": "navigation@3"
+                    "group": "navigation@20"
                 },
                 {
                     "command": "brunoCollectionsView.duplicateFile",
                     "when": "view == brunoCollectionsView && !treeElementCanExpand && !treeElementCanCollapse",
-                    "group": "navigation@4"
+                    "group": "navigation@21"
                 },
                 {
                     "command": "brunoCollectionsView.duplicateFolder",
                     "when": "view == brunoCollectionsView && (treeElementCanExpand || treeElementCanCollapse)",
-                    "group": "navigation@4"
+                    "group": "navigation@22"
                 },
                 {
                     "command": "brunoCollectionsView.deleteItem",
                     "when": "view == brunoCollectionsView",
-                    "group": "navigation@5"
+                    "group": "navigation@30"
                 }
             ]
         }

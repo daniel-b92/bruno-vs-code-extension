@@ -24,7 +24,10 @@ export class CollectionExplorer
     dragMimeTypes = ["text/uri-list"];
     dropMimeTypes = ["application/vnd.code.tree.brunocollectionsview"];
 
-    constructor(collectionWatcher: CollectionWatcher) {
+    constructor(
+        collectionWatcher: CollectionWatcher,
+        startTestRunEmitter: vscode.EventEmitter<vscode.Uri>
+    ) {
         if (
             !vscode.workspace.workspaceFolders ||
             vscode.workspace.workspaceFolders.length == 0
@@ -159,6 +162,13 @@ export class CollectionExplorer
                 if (extname(path) == ".bru" && existsSync(dirname(path))) {
                     this.normalizeSequencesForRequestFiles(dirname(path));
                 }
+            }
+        );
+
+        vscode.commands.registerCommand(
+            "brunoCollectionsView.startTestRun",
+            (item: BrunoTreeItem) => {
+                startTestRunEmitter.fire(vscode.Uri.file(item.getPath()));
             }
         );
     }

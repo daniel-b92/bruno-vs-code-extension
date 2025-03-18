@@ -1,10 +1,13 @@
 import {
     TestController,
-    TestItem as vscodeTestItem,
+    TestItem as VscodeTestItem,
     TestRunProfile,
     TestRunRequest,
     CancellationToken,
     TestRunProfileKind,
+    Event as VscodeEvent,
+    Uri,
+    window,
 } from "vscode";
 import { addTestCollectionToTestTree } from "../testRunner/vsCodeTestTree/testItemAdding/addTestCollection";
 import { getAllCollectionRootDirectories } from "../shared/fileSystem/util/collectionRootFolderHelper";
@@ -21,10 +24,11 @@ import { CollectionWatcher } from "../shared/fileSystem/collectionWatcher";
 
 export async function activateRunner(
     ctrl: TestController,
-    collectionWatcher: CollectionWatcher
+    collectionWatcher: CollectionWatcher,
+    startTestRunEvent: VscodeEvent<Uri>
 ) {
     const watchingTests = new Map<
-        vscodeTestItem | "ALL",
+        VscodeTestItem | "ALL",
         TestRunProfile | undefined
     >();
     const collectionRegistry = new CollectionRegistry(ctrl, collectionWatcher);
@@ -48,11 +52,11 @@ export async function activateRunner(
             return;
         }
 
-        const include: vscodeTestItem[] = [];
+        const include: VscodeTestItem[] = [];
         let profile: TestRunProfile | undefined;
 
         for (const [item, thisProfile] of watchingTests) {
-            const cast = item as vscodeTestItem;
+            const cast = item as VscodeTestItem;
 
             // If the modified item is a descendant of a watched item, trigger a testrun for that watched item.
             if (
@@ -120,7 +124,7 @@ export async function activateRunner(
         );
     };
 
-    ctrl.createRunProfile(
+    const defaultProfile = ctrl.createRunProfile(
         "Run Bruno Tests",
         TestRunProfileKind.Run,
         runHandler,
@@ -147,6 +151,38 @@ export async function activateRunner(
             await addTestDirectoryAndAllDescendants(ctrl, collection, data);
         }
     };
+
+    startTestRunEvent(async (uri) => {
+        const currentCollections = collectionRegistry.getCurrentCollections();
+        let testItem: VscodeTestItem | undefined;
+
+        const found = currentCollections.some((collection) => {
+            const maybeItem = collection.getTestItemForPath(uri.fsPath);
+
+            if (maybeItem) {
+                testItem = maybeItem;
+                return true;
+            }
+        });
+
+        if (found) {
+            await startTestRun(
+                ctrl,
+                new TestRunRequest(
+                    [testItem as VscodeTestItem],
+                    undefined,
+                    defaultProfile,
+                    false
+                ),
+                currentCollections,
+                queue
+            );
+        } else {
+            window.showInformationMessage(
+                "No bruno tests found for selected item."
+            );
+        }
+    });
 }
 
 async function addMissingTestCollectionsToTestTree(

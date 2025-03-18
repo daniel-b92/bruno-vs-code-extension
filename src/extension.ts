@@ -1,4 +1,4 @@
-import { EventEmitter, ExtensionContext, tests } from "vscode";
+import { EventEmitter, ExtensionContext, tests, Uri } from "vscode";
 import { activateRunner } from "./testRunner/activateRunner";
 import { activateTreeView } from "./treeView/activateTreeView";
 import { FileChangedEvent } from "./shared/definitions";
@@ -18,7 +18,8 @@ export async function activate(context: ExtensionContext) {
         fileChangedEmitter
     );
 
-    await activateRunner(ctrl, collectionWatcher);
-    activateTreeView(collectionWatcher);
+    const startTestRunEmitter = new EventEmitter<Uri>();
+    await activateRunner(ctrl, collectionWatcher, startTestRunEmitter.event);
+    activateTreeView(collectionWatcher, startTestRunEmitter);
     activateLanguageFeatures();
 }
