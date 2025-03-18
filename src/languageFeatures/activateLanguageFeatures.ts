@@ -1,6 +1,6 @@
 import { ExtensionContext, languages, workspace } from "vscode";
 import { provideBrunoLangCompletionItems } from "./brunoLanguage/provideBrunoLangCompletionItems";
-import { provideBrunoLangDiagnostics } from "./brunoLanguage/provideBrunoLangDiagnostics";
+import { provideBrunoLangDiagnostics } from "./brunoLanguage/diagnostics/provideBrunoLangDiagnostics";
 import { dirname, extname } from "path";
 
 export function activateLanguageFeatures(context: ExtensionContext) {
