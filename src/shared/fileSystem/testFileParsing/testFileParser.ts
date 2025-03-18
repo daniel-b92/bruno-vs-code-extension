@@ -1,6 +1,6 @@
 import { existsSync, lstatSync, readFileSync } from "fs";
 import { TextDocument } from "vscode";
-import { RequestFileSection } from "../../definitions";
+import { RequestFileSection } from "../../requestFileSectionsEnum";
 
 export const getSequence = (testFilePath: string) => {
     if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {
@@ -14,9 +14,10 @@ export const getSequence = (testFilePath: string) => {
     return sequence && !isNaN(Number(sequence)) ? Number(sequence) : undefined;
 };
 
-export const hasMetaSection = (document: TextDocument) =>
-    document.getText().match(getSectionStartPattern(RequestFileSection.Meta)) !=
-    null;
+export const hasSection = (
+    document: TextDocument,
+    section: RequestFileSection
+) => document.getText().match(getSectionStartPattern(section)) != null;
 
 const getMetaSectionContent = (testFilePath: string) => {
     const fileContent = readFileSync(testFilePath).toString();

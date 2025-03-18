@@ -5,7 +5,7 @@ import {
     RelativePattern,
     workspace,
 } from "vscode";
-import { FileChangedEvent, FileChangeType } from "../definitions";
+import { FileChangedEvent, FileChangeType } from "../fileChangesDefinitions";
 import { basename } from "path";
 import { normalizeDirectoryPath } from "./util/normalizeDirectoryPath";
 

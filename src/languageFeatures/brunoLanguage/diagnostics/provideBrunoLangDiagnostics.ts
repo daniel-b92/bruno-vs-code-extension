@@ -3,13 +3,14 @@ import { addDiagnosticForDocument } from "./util/addDiagnosticForDocument";
 import { removeDiagnosticsForDocument } from "./util/removeDiagnosticsForDocument";
 import { getDiagnosticForMissingMetaSection } from "./providers/getDiagnosticForMissingMetaSection";
 import { getDiagnosticForMetaSectionNotInFirstLine } from "./providers/getDiagnosticForMetaSectionNotInFirstLine";
-import { hasMetaSection } from "../../../shared/fileSystem/testFileParsing/testFileParser";
+import { hasSection } from "../../../shared/fileSystem/testFileParsing/testFileParser";
+import { RequestFileSection } from "../../../shared/requestFileSectionsEnum";
 
 export function provideBrunoLangDiagnostics(
     diagnosticCollection: DiagnosticCollection,
     document: TextDocument
 ) {
-    if (!hasMetaSection(document)) {
+    if (!hasSection(document, RequestFileSection.Meta)) {
         addDiagnosticForDocument(
             document.uri,
             diagnosticCollection,

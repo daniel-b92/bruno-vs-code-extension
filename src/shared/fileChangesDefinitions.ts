@@ -10,7 +10,3 @@ export interface FileChangedEvent {
     uri: Uri;
     changeType: FileChangeType;
 }
-
-export enum RequestFileSection {
-    Meta = "meta",
-}

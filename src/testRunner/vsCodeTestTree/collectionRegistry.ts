@@ -11,7 +11,7 @@ import { TestDirectory } from "../testData/testDirectory";
 import { dirname } from "path";
 import { lstatSync } from "fs";
 import { CollectionWatcher } from "../../shared/fileSystem/collectionWatcher";
-import { FileChangeType } from "../../shared/definitions";
+import { FileChangeType } from "../../shared/fileChangesDefinitions";
 import { normalizeDirectoryPath } from "../../shared/fileSystem/util/normalizeDirectoryPath";
 
 export class CollectionRegistry {
