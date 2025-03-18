@@ -3,6 +3,7 @@ import { addDiagnosticForDocument } from "./util/addDiagnosticForDocument";
 import { removeDiagnosticsForDocument } from "./util/removeDiagnosticsForDocument";
 import { getDiagnosticForMissingMetaSection } from "./providers/getDiagnosticForMissingMetaSection";
 import { getDiagnosticForMetaSectionNotInFirstLine } from "./providers/getDiagnosticForMetaSectionNotInFirstLine";
+import { hasMetaSection } from "../../../shared/fileSystem/testFileParsing/testFileParser";
 
 export function provideBrunoLangDiagnostics(
     diagnosticCollection: DiagnosticCollection,
@@ -33,11 +34,4 @@ export function provideBrunoLangDiagnostics(
             getDiagnosticForMetaSectionNotInFirstLine(document)
         );
     }
-}
-
-function hasMetaSection(document: TextDocument) {
-    return document
-        .getText()
-        .split(/\n/)
-        .some((line) => line.match(/^\s*meta\s*{\s*$/));
 }
