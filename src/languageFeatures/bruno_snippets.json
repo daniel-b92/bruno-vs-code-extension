@@ -118,6 +118,18 @@
         "description": "Add section for request body"
     },
 
+    "pre-request script section": {
+        "prefix": ["script:pre-request"],
+        "body": ["script:pre-request {", "\t${0}", "}"],
+        "description": "Add pre-request script section"
+    },
+
+    "post-response script section": {
+        "prefix": ["script:post-response"],
+        "body": ["script:post-response {", "\t${0}", "}"],
+        "description": "Add post-response script section"
+    },
+
     "tests section": {
         "prefix": ["tests"],
         "body": ["tests {", "\t${0}", "}"],
