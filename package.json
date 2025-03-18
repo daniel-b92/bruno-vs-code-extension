@@ -144,6 +144,7 @@
         "webpack-cli": "^6.0.1"
     },
     "dependencies": {
-        "@usebruno/cli": "^1.39.0"
+        "@usebruno/cli": "^1.39.0",
+        "tree-kill": "^1.2.2"
     }
 }

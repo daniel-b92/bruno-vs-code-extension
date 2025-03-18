@@ -13,6 +13,8 @@ import {
 import { getTestFilesWithFailures } from "./jsonReportParser";
 import { getHtmlReportPath } from "./startTestRun";
 import { getTestItemDescendants } from "../vsCodeTestTree/utils/getTestItemDescendants";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+import treeKill = require("tree-kill");
 
 export async function runTestStructure(
     item: vscodeTestItem,
@@ -53,7 +55,12 @@ export async function runTestStructure(
             shell: true,
         });
 
-        abortEmitter.event(() => childProcess.kill());
+        abortEmitter.event(() => {
+            while (!childProcess.pid) {
+                console.error("Could not get PID of child process to kill");
+            }
+            treeKill(childProcess.pid);
+        });
 
         childProcess.on("error", (err) => {
             console.error("Failed to start subprocess.", err);
