@@ -140,5 +140,11 @@
         "prefix": ["test"],
         "body": ["test(\"${1:description}\", function() {", "\t${0}", "});"],
         "description": "Add testcase within section for tests"
+    },
+
+    "docs section": {
+        "prefix": ["docs"],
+        "body": ["docs {", "\t${0}", "}"],
+        "description": "Add section for docs"
     }
 }
