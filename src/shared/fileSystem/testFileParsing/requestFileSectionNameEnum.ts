@@ -1,4 +1,4 @@
-export enum RequestFileSection {
+export enum RequestFileSectionName {
     // Meta
     Meta = "meta",
 
