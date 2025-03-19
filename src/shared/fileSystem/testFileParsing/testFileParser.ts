@@ -58,16 +58,16 @@ export const parseTestFile = (document: TextDocument) => {
     const result: RequestFileBlock[] = [];
 
     let currentBlock: { type: string; startingBracket: Position } | undefined;
-    let i = 0;
+    let lineIndex = 0;
 
-    while (i < document.lineCount) {
-        const line = document.lineAt(i);
+    while (lineIndex < document.lineCount) {
+        const line = document.lineAt(lineIndex);
         const matches = blockStartPattern.exec(line.text);
 
         if (matches && matches.length > 0) {
             currentBlock = {
                 type: matches[1],
-                startingBracket: new Position(i, matches.index),
+                startingBracket: new Position(lineIndex, matches.index),
             };
 
             const { content, range } = getBlockContent(
@@ -80,9 +80,9 @@ export const parseTestFile = (document: TextDocument) => {
                 content,
             });
 
-            i = range.end.line + 1;
+            lineIndex = range.end.line + 1;
         } else {
-            i++;
+            lineIndex++;
         }
     }
 
