@@ -1,6 +1,6 @@
 import { Diagnostic, DiagnosticSeverity, Range, TextDocument } from "vscode";
 
-export function getDiagnosticForMissingMetaSection(
+export function getDiagnosticForMissingMetaBlock(
     document: TextDocument
 ): Diagnostic {
     return {

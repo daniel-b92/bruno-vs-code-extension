@@ -1,6 +1,6 @@
 import { Diagnostic, DiagnosticSeverity, TextDocument } from "vscode";
 
-export function getDiagnosticForMetaSectionNotInFirstLine(
+export function getDiagnosticForMetaBlockNotInFirstLine(
     document: TextDocument
 ): Diagnostic {
     return {

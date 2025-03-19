@@ -1,12 +1,12 @@
 import { Range } from "vscode";
 
-export interface RequestFileSection {
+export interface RequestFileBlock {
     type: string;
     range: Range;
-    content: string | RequestFileSectionField[];
+    content: string | DictionaryBlockField[];
 }
 
-export interface RequestFileSectionField {
+export interface DictionaryBlockField {
     name: string;
     value: string;
     range: Range;

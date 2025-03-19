@@ -1,25 +1,26 @@
 import { existsSync, lstatSync, readFileSync } from "fs";
 import { EndOfLine, Position, Range, TextDocument } from "vscode";
-import { RequestFileSectionName } from "./requestFileSectionNameEnum";
-import { RequestFileSection } from "./interfaces";
+import { RequestFileBlockName } from "./requestFileBlockNameEnum";
+import { RequestFileBlock } from "./interfaces";
 
 export const getSequence = (testFilePath: string) => {
     if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {
         return undefined;
     }
-    const metaSectionContent = getMetaSectionContent(testFilePath);
+    const metaSectionContent = getMetaBlockContent(testFilePath);
     const sequence = metaSectionContent
-        ? getSequenceFromMetaSectionContent(testFilePath, metaSectionContent)
+        ? getSequenceFromMetaBlockContent(testFilePath, metaSectionContent)
         : undefined;
 
     return sequence && !isNaN(Number(sequence)) ? Number(sequence) : undefined;
 };
 
 export const parseTestFile = (document: TextDocument) => {
-    const getSectionContent = (firstLineIndex: number) => {
-        const result: string[] = [];
+    const getSectionContent = (sectionStartPosition: Position) => {
+        const lines: string[] = [];
         let openCurlyBrackets = 1;
-        let lineIndex = firstLineIndex;
+        // the section content is exclusive of the section's opening curly bracket line
+        let lineIndex = sectionStartPosition.line + 1;
 
         while (openCurlyBrackets > 0 && lineIndex < document.lineCount) {
             const lineText = document.lineAt(lineIndex).text;
@@ -31,24 +32,27 @@ export const parseTestFile = (document: TextDocument) => {
                 (openingBracketsMatches ? openingBracketsMatches.length : 0) -
                 (closingBracketsMatches ? closingBracketsMatches.length : 0);
 
+            // the section content is exclusive of the section's closing curly bracket line
             if (openCurlyBrackets > 0) {
-                result.push(lineText);
+                lines.push(lineText);
             }
             lineIndex++;
         }
 
         return {
-            content: result,
-            lastPositionForSection: new Position(
-                lineIndex - 1,
-                document.lineAt(lineIndex - 1).text.lastIndexOf("}") + 1
+            content: lines.join(document.eol == EndOfLine.LF ? "\n" : "\r\n"),
+            range: new Range(
+                sectionStartPosition,
+                new Position(
+                    lineIndex - 1,
+                    document.lineAt(lineIndex - 1).text.lastIndexOf("}")
+                )
             ),
-            remainingLinesStartIndex: lineIndex,
         };
     };
 
     const sectionStartPattern = /^\s*(\S+)\s*{\s*$/;
-    const result: RequestFileSection[] = [];
+    const result: RequestFileBlock[] = [];
 
     let currentSection: { type: string; startPosition: Position } | undefined;
     let i = 0;
@@ -63,24 +67,17 @@ export const parseTestFile = (document: TextDocument) => {
                 startPosition: new Position(i, matches.index),
             };
 
-            const {
-                content: sectionContent,
-                lastPositionForSection,
-                remainingLinesStartIndex,
-            } = getSectionContent(i + 1);
+            const { content, range } = getSectionContent(
+                currentSection.startPosition
+            );
 
             result.push({
                 type: currentSection.type,
-                range: new Range(
-                    currentSection.startPosition,
-                    lastPositionForSection
-                ),
-                content: sectionContent.join(
-                    document.eol == EndOfLine.LF ? "\n" : "\r\n"
-                ),
+                range,
+                content,
             });
 
-            i = remainingLinesStartIndex;
+            i = range.end.line + 1;
         } else {
             i++;
         }
@@ -89,9 +86,9 @@ export const parseTestFile = (document: TextDocument) => {
     return result;
 };
 
-const getMetaSectionContent = (testFilePath: string) => {
+const getMetaBlockContent = (testFilePath: string) => {
     const fileContent = readFileSync(testFilePath).toString();
-    const startPattern = getSectionStartPattern(RequestFileSectionName.Meta);
+    const startPattern = getSectionStartPattern(RequestFileBlockName.Meta);
 
     const maybeMatches = fileContent.match(startPattern)
         ? fileContent.replace(startPattern, "").match(/[^}]*}/)
@@ -99,7 +96,7 @@ const getMetaSectionContent = (testFilePath: string) => {
     return maybeMatches ? maybeMatches[0].replace(/}.*/, "") : undefined;
 };
 
-const getSequenceFromMetaSectionContent = (
+const getSequenceFromMetaBlockContent = (
     testFilePath: string,
     metaSectionContent: string
 ) => {
@@ -113,5 +110,5 @@ const getSequenceFromMetaSectionContent = (
     return maybeMatches[0].replace(/\s*seq:\s*/, "").trimEnd();
 };
 
-const getSectionStartPattern = (sectionName: RequestFileSectionName) =>
+const getSectionStartPattern = (sectionName: RequestFileBlockName) =>
     new RegExp(`\\s*${sectionName}\\s*{\\s*(\\r\\n|\\n)`);
