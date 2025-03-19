@@ -11,16 +11,16 @@ export function provideBrunoLangDiagnostics(
     document: TextDocument
 ) {
     const blocks = parseTestFile(document);
-    
+
     // The 'meta' block is always mandatory
-    if (!blocks.some(({ type }) => type == RequestFileBlockName.Meta)) {
+    if (!blocks.some(({ name }) => name == RequestFileBlockName.Meta)) {
         addDiagnosticForDocument(
             document.uri,
             diagnosticCollection,
             getDiagnosticForMissingMetaBlock(document)
         );
     } else if (
-        blocks.find(({ type }) => type == RequestFileBlockName.Meta)?.range
+        blocks.find(({ name }) => name == RequestFileBlockName.Meta)?.range
             .start.line != 0
     ) {
         removeDiagnosticsForDocument(

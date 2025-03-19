@@ -1,7 +1,7 @@
 import { Range } from "vscode";
 
 export interface RequestFileBlock {
-    type: string;
+    name: string;
     range: Range;
     content: string | DictionaryBlockField[];
 }
@@ -9,5 +9,6 @@ export interface RequestFileBlock {
 export interface DictionaryBlockField {
     name: string;
     value: string;
-    range: Range;
+    nameRange: Range;
+    valueRange: Range;
 }

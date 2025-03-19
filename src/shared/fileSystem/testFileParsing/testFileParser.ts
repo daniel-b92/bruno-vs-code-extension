@@ -1,7 +1,8 @@
 import { existsSync, lstatSync, readFileSync } from "fs";
-import { Position, Range, TextDocument } from "vscode";
+import { Position, TextDocument } from "vscode";
 import { RequestFileBlockName } from "./requestFileBlockNameEnum";
 import { RequestFileBlock } from "./interfaces";
+import { getBlockContent } from "./blockParsing/getBlockContent";
 
 export const getSequence = (testFilePath: string) => {
     if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {
@@ -16,48 +17,9 @@ export const getSequence = (testFilePath: string) => {
 };
 
 export const parseTestFile = (document: TextDocument) => {
-    const getBlockContent = (startingBracket: Position) => {
-        const lines: string[] = [];
-        let openCurlyBrackets = 1;
-        // the block content is exclusive of the block's opening curly bracket line
-        const firstLine = startingBracket.line + 1;
-        let lineIndex = firstLine;
-
-        while (openCurlyBrackets > 0 && lineIndex < document.lineCount) {
-            const lineText = document.lineAt(lineIndex).text;
-            const openingBracketsMatches = lineText.match(/{/);
-            const closingBracketsMatches = lineText.match(/}/);
-
-            openCurlyBrackets =
-                openCurlyBrackets +
-                (openingBracketsMatches ? openingBracketsMatches.length : 0) -
-                (closingBracketsMatches ? closingBracketsMatches.length : 0);
-
-            // the block content is exclusive of the block's closing curly bracket line
-            if (openCurlyBrackets > 0) {
-                lines.push(lineText);
-                lineIndex++;
-            }
-        }
-
-        const range = new Range(
-            new Position(firstLine, 0),
-            new Position(
-                lineIndex,
-                document.lineAt(lineIndex).text.lastIndexOf("}")
-            )
-        );
-
-        return {
-            content: document.getText(range),
-            range,
-        };
-    };
-
     const blockStartPattern = /^\s*(\S+)\s*{\s*$/;
     const result: RequestFileBlock[] = [];
 
-    let currentBlock: { type: string; startingBracket: Position } | undefined;
     let lineIndex = 0;
 
     while (lineIndex < document.lineCount) {
@@ -65,21 +27,25 @@ export const parseTestFile = (document: TextDocument) => {
         const matches = blockStartPattern.exec(line.text);
 
         if (matches && matches.length > 0) {
-            currentBlock = {
-                type: matches[1],
-                startingBracket: new Position(lineIndex, matches.index),
-            };
+            const blockName = matches[1];
+            const startingBracket = new Position(
+                lineIndex,
+                matches[0].length + matches.index
+            );
 
-            const { content, range } = getBlockContent(
-                currentBlock.startingBracket
+            const { range, content } = getBlockContent(
+                document,
+                startingBracket,
+                blockName
             );
 
             result.push({
-                type: currentBlock.type,
+                name: blockName,
                 range,
                 content,
             });
 
+            // Skip the rest of the already parsed block
             lineIndex = range.end.line + 1;
         } else {
             lineIndex++;

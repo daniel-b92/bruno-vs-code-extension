@@ -1,0 +1,93 @@
+import { Position, Range, TextDocument } from "vscode";
+import { DictionaryBlockField, RequestFileBlock } from "../interfaces";
+
+export const getBlockContent = (
+    document: TextDocument,
+    startingBracket: Position,
+    blockName: string
+): RequestFileBlock => {
+    const lines: { content: string | DictionaryBlockField }[] = [];
+    let openCurlyBrackets = 1;
+    // the block content is exclusive of the block's opening curly bracket line
+    const firstLine = startingBracket.line + 1;
+    let lineIndex = firstLine;
+
+    while (openCurlyBrackets > 0 && lineIndex < document.lineCount) {
+        const lineText = document.lineAt(lineIndex).text;
+        const openingBracketsMatches = lineText.match(/{/);
+        const closingBracketsMatches = lineText.match(/}/);
+
+        openCurlyBrackets =
+            openCurlyBrackets +
+            (openingBracketsMatches ? openingBracketsMatches.length : 0) -
+            (closingBracketsMatches ? closingBracketsMatches.length : 0);
+
+        // the block content is exclusive of the block's closing curly bracket line
+        if (openCurlyBrackets > 0) {
+            lines.push(
+                isKeyValuePair(lineText)
+                    ? {
+                          content:
+                              getKeyAndValueFromLine(lineIndex, lineText) ??
+                              lineText,
+                      }
+                    : { content: lineText }
+            );
+            lineIndex++;
+        }
+    }
+
+    const range = new Range(
+        new Position(firstLine, 0),
+        new Position(
+            lineIndex,
+            document.lineAt(lineIndex).text.lastIndexOf("}")
+        )
+    );
+
+    return {
+        name: blockName,
+        content: lines.some((line) => typeof line.content == "string")
+            ? document.getText(range)
+            : (lines as { content: DictionaryBlockField }[]).map(
+                  ({ content }) => content
+              ),
+        range,
+    };
+};
+
+const isKeyValuePair = (lineText: string) =>
+    getKeyValuePairLinePattern().test(lineText);
+
+const getKeyAndValueFromLine = (
+    lineIndex: number,
+    lineText: string
+): DictionaryBlockField | undefined => {
+    const matches = getKeyValuePairLinePattern().exec(lineText);
+
+    if (matches && matches.length > 2) {
+        const name = matches[1];
+        const value = matches[2];
+        const nameStartIndex = lineText.indexOf(name);
+        const nameEndIndex = lineText.indexOf(name);
+        const valueStartIndex =
+            nameEndIndex + lineText.substring(nameEndIndex).indexOf(value);
+
+        return {
+            name,
+            value,
+            nameRange: new Range(
+                new Position(lineIndex, nameStartIndex),
+                new Position(lineIndex, nameEndIndex)
+            ),
+            valueRange: new Range(
+                new Position(lineIndex, valueStartIndex),
+                new Position(lineIndex, valueStartIndex + value.length)
+            ),
+        };
+    } else {
+        return undefined;
+    }
+};
+
+const getKeyValuePairLinePattern = () => /^\s*(\S+)\s*:\s*(\S+.*?)\s*$/;
