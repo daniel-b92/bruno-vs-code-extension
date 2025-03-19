@@ -3,7 +3,7 @@ import { getMaxSequenceForRequests } from "../../shared/fileSystem/testFileParsi
 import { dirname } from "path";
 
 export function provideBrunoLangCompletionItems() {
-    // meta section
+    // meta block
     registerFixedCompletionItems(/^\s*type:\s*$/, "http", "graphql");
 
     languages.registerCompletionItemProvider(
@@ -33,7 +33,7 @@ export function provideBrunoLangCompletionItems() {
         getTriggerChar()
     );
 
-    // HTTP method section
+    // HTTP method block
     registerFixedCompletionItems(/^\s*body:\s*$/, "none", "json", "xml");
     registerFixedCompletionItems(/^\s*auth:\s*$/, "none", "basic", "bearer");
 }

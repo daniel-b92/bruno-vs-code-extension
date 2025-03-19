@@ -4,12 +4,12 @@ export function getDiagnosticForMissingMetaBlock(
     document: TextDocument
 ): Diagnostic {
     return {
-        message: "No 'meta' section defined.",
+        message: "No 'meta' block defined.",
         range: new Range(
             document.positionAt(0),
             document.lineAt(document.lineCount - 1).range.end
         ),
         severity: DiagnosticSeverity.Error,
-        code: "bruLang_MissingMetaSection",
+        code: "bruLang_MissingMetaBlock",
     };
 }

@@ -7,20 +7,20 @@ export const getSequence = (testFilePath: string) => {
     if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {
         return undefined;
     }
-    const metaSectionContent = getMetaBlockContent(testFilePath);
-    const sequence = metaSectionContent
-        ? getSequenceFromMetaBlockContent(testFilePath, metaSectionContent)
+    const metaBlockContent = getMetaBlockContent(testFilePath);
+    const sequence = metaBlockContent
+        ? getSequenceFromMetaBlockContent(testFilePath, metaBlockContent)
         : undefined;
 
     return sequence && !isNaN(Number(sequence)) ? Number(sequence) : undefined;
 };
 
 export const parseTestFile = (document: TextDocument) => {
-    const getSectionContent = (sectionStartPosition: Position) => {
+    const getBlockContent = (blockStartPosition: Position) => {
         const lines: string[] = [];
         let openCurlyBrackets = 1;
-        // the section content is exclusive of the section's opening curly bracket line
-        let lineIndex = sectionStartPosition.line + 1;
+        // the block content is exclusive of the block's opening curly bracket line
+        let lineIndex = blockStartPosition.line + 1;
 
         while (openCurlyBrackets > 0 && lineIndex < document.lineCount) {
             const lineText = document.lineAt(lineIndex).text;
@@ -32,7 +32,7 @@ export const parseTestFile = (document: TextDocument) => {
                 (openingBracketsMatches ? openingBracketsMatches.length : 0) -
                 (closingBracketsMatches ? closingBracketsMatches.length : 0);
 
-            // the section content is exclusive of the section's closing curly bracket line
+            // the block content is exclusive of the block's closing curly bracket line
             if (openCurlyBrackets > 0) {
                 lines.push(lineText);
             }
@@ -42,7 +42,7 @@ export const parseTestFile = (document: TextDocument) => {
         return {
             content: lines.join(document.eol == EndOfLine.LF ? "\n" : "\r\n"),
             range: new Range(
-                sectionStartPosition,
+                blockStartPosition,
                 new Position(
                     lineIndex - 1,
                     document.lineAt(lineIndex - 1).text.lastIndexOf("}")
@@ -51,28 +51,28 @@ export const parseTestFile = (document: TextDocument) => {
         };
     };
 
-    const sectionStartPattern = /^\s*(\S+)\s*{\s*$/;
+    const blockStartPattern = /^\s*(\S+)\s*{\s*$/;
     const result: RequestFileBlock[] = [];
 
-    let currentSection: { type: string; startPosition: Position } | undefined;
+    let currentBlock: { type: string; startPosition: Position } | undefined;
     let i = 0;
 
     while (i < document.lineCount) {
         const line = document.lineAt(i);
-        const matches = sectionStartPattern.exec(line.text);
+        const matches = blockStartPattern.exec(line.text);
 
         if (matches && matches.length > 0) {
-            currentSection = {
+            currentBlock = {
                 type: matches[1],
                 startPosition: new Position(i, matches.index),
             };
 
-            const { content, range } = getSectionContent(
-                currentSection.startPosition
+            const { content, range } = getBlockContent(
+                currentBlock.startPosition
             );
 
             result.push({
-                type: currentSection.type,
+                type: currentBlock.type,
                 range,
                 content,
             });
@@ -88,7 +88,7 @@ export const parseTestFile = (document: TextDocument) => {
 
 const getMetaBlockContent = (testFilePath: string) => {
     const fileContent = readFileSync(testFilePath).toString();
-    const startPattern = getSectionStartPattern(RequestFileBlockName.Meta);
+    const startPattern = getBlockStartPattern(RequestFileBlockName.Meta);
 
     const maybeMatches = fileContent.match(startPattern)
         ? fileContent.replace(startPattern, "").match(/[^}]*}/)
@@ -98,9 +98,9 @@ const getMetaBlockContent = (testFilePath: string) => {
 
 const getSequenceFromMetaBlockContent = (
     testFilePath: string,
-    metaSectionContent: string
+    metaBlockContent: string
 ) => {
-    const maybeMatches = metaSectionContent.match(/\s*seq:\s*\d*\s*(\r\n|\n)/);
+    const maybeMatches = metaBlockContent.match(/\s*seq:\s*\d*\s*(\r\n|\n)/);
     if (maybeMatches == null) {
         console.warn(
             `Could not determine sequence for test file '${testFilePath}'`
@@ -110,5 +110,5 @@ const getSequenceFromMetaBlockContent = (
     return maybeMatches[0].replace(/\s*seq:\s*/, "").trimEnd();
 };
 
-const getSectionStartPattern = (sectionName: RequestFileBlockName) =>
-    new RegExp(`\\s*${sectionName}\\s*{\\s*(\\r\\n|\\n)`);
+const getBlockStartPattern = (blockName: RequestFileBlockName) =>
+    new RegExp(`\\s*${blockName}\\s*{\\s*(\\r\\n|\\n)`);
