@@ -155,12 +155,22 @@ export class CollectionExplorer
 
         vscode.commands.registerCommand(
             "brunoCollectionsView.deleteItem",
-            (item: BrunoTreeItem) => {
-                const path = item.getPath();
-                rmSync(path, { recursive: true, force: true });
+            async (item: BrunoTreeItem) => {
+                const confirmationOption = "Confirm";
 
-                if (extname(path) == ".bru" && existsSync(dirname(path))) {
-                    this.normalizeSequencesForRequestFiles(dirname(path));
+                const picked = await vscode.window.showInformationMessage(
+                    `Delete '${item.label}'?`,
+                    { modal: true },
+                    confirmationOption,
+                );
+
+                if (picked == confirmationOption) {
+                    const path = item.getPath();
+                    rmSync(path, { recursive: true, force: true });
+
+                    if (extname(path) == ".bru" && existsSync(dirname(path))) {
+                        this.normalizeSequencesForRequestFiles(dirname(path));
+                    }
                 }
             }
         );
