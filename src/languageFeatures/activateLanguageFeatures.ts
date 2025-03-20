@@ -1,5 +1,5 @@
 import { ExtensionContext, languages, workspace } from "vscode";
-import { provideBrunoLangCompletionItems } from "./brunoLanguage/provideBrunoLangCompletionItems";
+import { provideBrunoLangCompletionItems } from "./brunoLanguage/completionItems/provideBrunoLangCompletionItems";
 import { provideBrunoLangDiagnostics } from "./brunoLanguage/diagnostics/provideBrunoLangDiagnostics";
 import { dirname, extname } from "path";
 

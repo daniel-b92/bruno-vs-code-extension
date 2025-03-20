@@ -1,5 +1,5 @@
 import { CompletionItem, DocumentSelector, languages } from "vscode";
-import { getMaxSequenceForRequests } from "../../shared/fileSystem/testFileParsing/getMaxSequenceForRequests";
+import { getMaxSequenceForRequests } from "../../../shared/fileSystem/testFileParsing/getMaxSequenceForRequests";
 import { dirname } from "path";
 
 export function provideBrunoLangCompletionItems() {
