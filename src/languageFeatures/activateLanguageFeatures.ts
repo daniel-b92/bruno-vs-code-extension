@@ -15,7 +15,11 @@ export function activateLanguageFeatures(context: ExtensionContext) {
                 !dirname(e.document.uri.fsPath).match(/environments(\/|\\)?/);
 
             if (isBrunoRequest) {
-                provideBrunoLangDiagnostics(diagnosticCollection, e.document);
+                provideBrunoLangDiagnostics(
+                    diagnosticCollection,
+                    e.document.getText(),
+                    e.document.uri
+                );
             }
         })
     );

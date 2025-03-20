@@ -2,8 +2,9 @@ import { Range } from "vscode";
 
 export interface RequestFileBlock {
     name: string;
-    range: Range;
+    nameRange: Range;
     content: string | DictionaryBlockField[];
+    contentRange: Range;
 }
 
 export interface DictionaryBlockField {
@@ -11,4 +12,10 @@ export interface DictionaryBlockField {
     value: string;
     nameRange: Range;
     valueRange: Range;
+}
+
+export interface TextLineSplitterUtility {
+    getText: (range?: Range) => string;
+    getLineCount: () => number;
+    getLineByIndex: (index: number) => string;
 }

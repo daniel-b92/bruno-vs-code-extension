@@ -1,7 +1,10 @@
 import { existsSync, lstatSync, readFileSync } from "fs";
-import { Position, TextDocument } from "vscode";
-import { RequestFileBlockName } from "./requestFileBlockNameEnum";
-import { RequestFileBlock } from "./interfaces";
+import { Position, Range } from "vscode";
+import { RequestFileBlockName } from "./definitions/requestFileBlockNameEnum";
+import {
+    RequestFileBlock,
+    TextLineSplitterUtility,
+} from "./definitions/interfaces";
 import { getBlockContent } from "./blockParsing/getBlockContent";
 
 export const getSequence = (testFilePath: string) => {
@@ -17,15 +20,15 @@ export const getSequence = (testFilePath: string) => {
     return sequence && !isNaN(Number(sequence)) ? Number(sequence) : undefined;
 };
 
-export const parseTestFile = (document: TextDocument) => {
+export const parseTestFile = (document: TextLineSplitterUtility) => {
     const blockStartPattern = /^\s*(\S+)\s*{\s*$/;
     const result: RequestFileBlock[] = [];
 
     let lineIndex = 0;
 
-    while (lineIndex < document.lineCount) {
-        const line = document.lineAt(lineIndex);
-        const matches = blockStartPattern.exec(line.text);
+    while (lineIndex < document.getLineCount()) {
+        const line = document.getLineByIndex(lineIndex);
+        const matches = blockStartPattern.exec(line);
 
         if (matches && matches.length > 0) {
             const blockName = matches[1];
@@ -34,20 +37,26 @@ export const parseTestFile = (document: TextDocument) => {
                 matches[0].length + matches.index
             );
 
-            const { range, content } = getBlockContent(
+            const { contentRange, content } = getBlockContent(
                 document,
-                startingBracket,
-                blockName
+                startingBracket
             );
 
             result.push({
                 name: blockName,
-                range,
+                nameRange: new Range(
+                    new Position(lineIndex, line.indexOf(blockName)),
+                    new Position(
+                        lineIndex,
+                        line.indexOf(blockName) + blockName.length
+                    )
+                ),
                 content,
+                contentRange,
             });
 
             // Skip the rest of the already parsed block
-            lineIndex = range.end.line + 1;
+            lineIndex = contentRange.end.line + 1;
         } else {
             lineIndex++;
         }

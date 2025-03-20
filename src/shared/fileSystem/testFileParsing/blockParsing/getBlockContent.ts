@@ -1,21 +1,23 @@
-import { Position, Range, TextDocument } from "vscode";
-import { DictionaryBlockField, RequestFileBlock } from "../interfaces";
+import { Position, Range } from "vscode";
+import {
+    DictionaryBlockField,
+    TextLineSplitterUtility,
+} from "../definitions/interfaces";
 
 export const getBlockContent = (
-    document: TextDocument,
-    startingBracket: Position,
-    blockName: string
-): RequestFileBlock => {
+    document: TextLineSplitterUtility,
+    startingBracket: Position
+): { content: string | DictionaryBlockField[]; contentRange: Range } => {
     const lines: { content: string | DictionaryBlockField }[] = [];
     let openCurlyBrackets = 1;
     // the block content is exclusive of the block's opening curly bracket line
     const firstLine = startingBracket.line + 1;
     let lineIndex = firstLine;
 
-    while (openCurlyBrackets > 0 && lineIndex < document.lineCount) {
-        const lineText = document.lineAt(lineIndex).text;
-        const openingBracketsMatches = lineText.match(/{/);
-        const closingBracketsMatches = lineText.match(/}/);
+    while (openCurlyBrackets > 0 && lineIndex < document.getLineCount()) {
+        const line = document.getLineByIndex(lineIndex);
+        const openingBracketsMatches = line.match(/{/);
+        const closingBracketsMatches = line.match(/}/);
 
         openCurlyBrackets =
             openCurlyBrackets +
@@ -25,13 +27,12 @@ export const getBlockContent = (
         // the block content is exclusive of the block's closing curly bracket line
         if (openCurlyBrackets > 0) {
             lines.push(
-                isKeyValuePair(lineText)
+                isKeyValuePair(line)
                     ? {
                           content:
-                              getKeyAndValueFromLine(lineIndex, lineText) ??
-                              lineText,
+                              getKeyAndValueFromLine(lineIndex, line) ?? line,
                       }
-                    : { content: lineText }
+                    : { content: line }
             );
             lineIndex++;
         }
@@ -41,18 +42,17 @@ export const getBlockContent = (
         new Position(firstLine, 0),
         new Position(
             lineIndex,
-            document.lineAt(lineIndex).text.lastIndexOf("}")
+            document.getLineByIndex(lineIndex).lastIndexOf("}")
         )
     );
 
     return {
-        name: blockName,
         content: lines.some((line) => typeof line.content == "string")
             ? document.getText(range)
             : (lines as { content: DictionaryBlockField }[]).map(
                   ({ content }) => content
               ),
-        range,
+        contentRange: range,
     };
 };
 
