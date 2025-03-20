@@ -145,6 +145,7 @@
     },
     "dependencies": {
         "@usebruno/cli": "^1.39.0",
+        "npm": "^11.2.0",
         "tree-kill": "^1.2.2"
     }
 }
