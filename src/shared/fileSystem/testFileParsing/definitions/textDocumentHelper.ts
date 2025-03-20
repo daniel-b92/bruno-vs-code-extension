@@ -1,7 +1,6 @@
 import { Range } from "vscode";
-import { TextLineSplitterUtility } from "./interfaces";
 
-export class TextDocumentHelper implements TextLineSplitterUtility {
+export class TextDocumentHelper {
     constructor(private text: string) {
         let remainingText = text;
 

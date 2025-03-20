@@ -1,11 +1,9 @@
 import { existsSync, lstatSync, readFileSync } from "fs";
 import { Position, Range } from "vscode";
 import { RequestFileBlockName } from "./definitions/requestFileBlockNameEnum";
-import {
-    RequestFileBlock,
-    TextLineSplitterUtility,
-} from "./definitions/interfaces";
+import { RequestFileBlock } from "./definitions/interfaces";
 import { getBlockContent } from "./blockParsing/getBlockContent";
+import { TextDocumentHelper } from "./definitions/textDocumentHelper";
 
 export const getSequence = (testFilePath: string) => {
     if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {
@@ -20,7 +18,7 @@ export const getSequence = (testFilePath: string) => {
     return sequence && !isNaN(Number(sequence)) ? Number(sequence) : undefined;
 };
 
-export const parseTestFile = (document: TextLineSplitterUtility) => {
+export const parseTestFile = (document: TextDocumentHelper) => {
     const blockStartPattern = /^\s*(\S+)\s*{\s*$/;
     const result: RequestFileBlock[] = [];
 

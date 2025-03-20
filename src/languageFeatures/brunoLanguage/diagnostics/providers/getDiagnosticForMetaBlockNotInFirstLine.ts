@@ -1,8 +1,8 @@
 import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode";
-import { TextLineSplitterUtility } from "../../../../shared/fileSystem/testFileParsing/definitions/interfaces";
+import { TextDocumentHelper } from "../../../../shared/fileSystem/testFileParsing/definitions/textDocumentHelper";
 
 export function getDiagnosticForMetaBlockNotInFirstLine(
-    document: TextLineSplitterUtility
+    document: TextDocumentHelper
 ): Diagnostic {
     return {
         message: "Should start with the 'meta' block",

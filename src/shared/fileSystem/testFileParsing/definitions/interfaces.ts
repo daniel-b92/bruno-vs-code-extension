@@ -13,9 +13,3 @@ export interface DictionaryBlockField {
     nameRange: Range;
     valueRange: Range;
 }
-
-export interface TextLineSplitterUtility {
-    getText: (range?: Range) => string;
-    getLineCount: () => number;
-    getLineByIndex: (index: number) => string;
-}

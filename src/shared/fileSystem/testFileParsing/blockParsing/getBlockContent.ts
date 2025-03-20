@@ -1,11 +1,9 @@
 import { Position, Range } from "vscode";
-import {
-    DictionaryBlockField,
-    TextLineSplitterUtility,
-} from "../definitions/interfaces";
+import { DictionaryBlockField } from "../definitions/interfaces";
+import { TextDocumentHelper } from "../definitions/textDocumentHelper";
 
 export const getBlockContent = (
-    document: TextLineSplitterUtility,
+    document: TextDocumentHelper,
     startingBracket: Position
 ): { content: string | DictionaryBlockField[]; contentRange: Range } => {
     const lines: { content: string | DictionaryBlockField }[] = [];
