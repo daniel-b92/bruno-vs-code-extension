@@ -1,4 +1,10 @@
-import { ExtensionContext, languages, workspace } from "vscode";
+import {
+    DiagnosticCollection,
+    ExtensionContext,
+    languages,
+    TextDocument,
+    workspace,
+} from "vscode";
 import { provideBrunoLangCompletionItems } from "./brunoLanguage/completionItems/provideBrunoLangCompletionItems";
 import { provideBrunoLangDiagnostics } from "./brunoLanguage/diagnostics/provideBrunoLangDiagnostics";
 import { dirname, extname } from "path";
@@ -8,19 +14,33 @@ export function activateLanguageFeatures(context: ExtensionContext) {
 
     const diagnosticCollection = languages.createDiagnosticCollection("bruno");
     context.subscriptions.push(diagnosticCollection);
-    context.subscriptions.push(
-        workspace.onDidChangeTextDocument((e) => {
-            const isBrunoRequest =
-                extname(e.document.uri.fsPath) == ".bru" &&
-                !dirname(e.document.uri.fsPath).match(/environments(\/|\\)?/);
 
-            if (isBrunoRequest) {
-                provideBrunoLangDiagnostics(
-                    diagnosticCollection,
-                    e.document.getText(),
-                    e.document.uri
-                );
-            }
+    context.subscriptions.push(
+        workspace.onDidOpenTextDocument((e) => {
+            fetchDiagnostics(e, diagnosticCollection);
         })
     );
+
+    context.subscriptions.push(
+        workspace.onDidChangeTextDocument((e) => {
+            fetchDiagnostics(e.document, diagnosticCollection);
+        })
+    );
+}
+
+function fetchDiagnostics(
+    document: TextDocument,
+    knownDiagnostics: DiagnosticCollection
+) {
+    const isBrunoRequest =
+        extname(document.uri.fsPath) == ".bru" &&
+        !dirname(document.uri.fsPath).match(/environments(\/|\\)?/);
+
+    if (isBrunoRequest) {
+        provideBrunoLangDiagnostics(
+            knownDiagnostics,
+            document.getText(),
+            document.uri
+        );
+    }
 }
