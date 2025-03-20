@@ -8,6 +8,7 @@ export const getSequence = (testFilePath: string) => {
     if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {
         return undefined;
     }
+    // ToDo: Unify with parser for parsing entire testfile
     const metaBlockContent = getMetaBlockContent(testFilePath);
     const sequence = metaBlockContent
         ? getSequenceFromMetaBlockContent(testFilePath, metaBlockContent)
