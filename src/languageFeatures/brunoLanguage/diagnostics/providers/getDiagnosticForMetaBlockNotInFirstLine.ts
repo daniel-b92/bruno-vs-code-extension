@@ -1,5 +1,6 @@
 import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode";
 import { TextDocumentHelper } from "../../../../shared/fileSystem/testFileParsing/definitions/textDocumentHelper";
+import { DiagnosticCode } from "../diagnosticCodeEnum";
 
 export function getDiagnosticForMetaBlockNotInFirstLine(
     document: TextDocumentHelper
@@ -11,6 +12,6 @@ export function getDiagnosticForMetaBlockNotInFirstLine(
             new Position(0, document.getLineByIndex(0).length)
         ),
         severity: DiagnosticSeverity.Warning,
-        code: "bruLang_MetaBlockNotInFirstLine",
+        code: DiagnosticCode.MetaBlockNotInFirstLine,
     };
 }

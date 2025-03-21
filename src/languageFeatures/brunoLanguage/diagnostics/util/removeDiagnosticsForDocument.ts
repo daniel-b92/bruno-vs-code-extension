@@ -1,9 +1,10 @@
-import { Diagnostic, DiagnosticCollection, Uri } from "vscode";
+import { DiagnosticCollection, Uri } from "vscode";
+import { DiagnosticCode } from "../diagnosticCodeEnum";
 
 export function removeDiagnosticsForDocument(
     documentUri: Uri,
     collection: DiagnosticCollection,
-    ...toRemove: Diagnostic[]
+    ...toRemove: DiagnosticCode[]
 ) {
     const documentDiagnostics = collection.get(documentUri);
 
@@ -11,7 +12,7 @@ export function removeDiagnosticsForDocument(
         collection.set(
             documentUri,
             documentDiagnostics.filter(
-                (existing) => !toRemove.some((r) => existing.code == r.code)
+                (existing) => !toRemove.some((r) => existing.code == r)
             )
         );
     }

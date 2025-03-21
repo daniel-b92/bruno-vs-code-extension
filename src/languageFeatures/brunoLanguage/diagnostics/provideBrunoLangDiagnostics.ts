@@ -6,6 +6,8 @@ import { parseTestFile } from "../../../shared/fileSystem/testFileParsing/testFi
 import { RequestFileBlockName } from "../../../shared/fileSystem/testFileParsing/definitions/requestFileBlockNameEnum";
 import { TextDocumentHelper } from "../../../shared/fileSystem/testFileParsing/definitions/textDocumentHelper";
 import { checkOccurencesOfMandatoryBlocks } from "./providers/checkOccurencesOfMandatoryBlocks";
+import { checkThatNoBlocksAreDefinedMultipleTimes } from "./providers/checkThatNoBlocksAreDefinedMultipleTimes";
+import { DiagnosticCode } from "./diagnosticCodeEnum";
 
 export function provideBrunoLangDiagnostics(
     diagnosticCollection: DiagnosticCollection,
@@ -22,6 +24,8 @@ export function provideBrunoLangDiagnostics(
         diagnosticCollection
     );
 
+    checkThatNoBlocksAreDefinedMultipleTimes(uri, blocks, diagnosticCollection);
+
     if (
         blocks.find(({ name }) => name == RequestFileBlockName.Meta)?.nameRange
             .start.line != 0
@@ -35,7 +39,7 @@ export function provideBrunoLangDiagnostics(
         removeDiagnosticsForDocument(
             uri,
             diagnosticCollection,
-            getDiagnosticForMetaBlockNotInFirstLine(document)
+            DiagnosticCode.MetaBlockNotInFirstLine
         );
     }
 }

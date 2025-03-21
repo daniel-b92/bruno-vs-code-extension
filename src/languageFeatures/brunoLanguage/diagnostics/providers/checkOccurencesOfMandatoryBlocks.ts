@@ -9,7 +9,7 @@ import {
 import { TextDocumentHelper } from "../../../../shared/fileSystem/testFileParsing/definitions/textDocumentHelper";
 import { addDiagnosticForDocument } from "../util/addDiagnosticForDocument";
 import { RequestFileBlock } from "../../../../shared/fileSystem/testFileParsing/definitions/interfaces";
-import { DiagnosticCode } from "./diagnosticCodeEnum";
+import { DiagnosticCode } from "../diagnosticCodeEnum";
 import { RequestFileBlockName } from "../../../../shared/fileSystem/testFileParsing/definitions/requestFileBlockNameEnum";
 import { removeDiagnosticsForDocument } from "../util/removeDiagnosticsForDocument";
 
@@ -45,7 +45,7 @@ export function checkOccurencesOfMandatoryBlocks(
         removeDiagnosticsForDocument(
             documentUri,
             diagnostics,
-            missingMetaBlockDiagnostic
+            DiagnosticCode.MissingMetaBlock
         );
     }
 
@@ -84,7 +84,7 @@ export function checkOccurencesOfMandatoryBlocks(
         removeDiagnosticsForDocument(
             documentUri,
             diagnostics,
-            incorrectNumberOfHttpMethodsDiagnostic
+            DiagnosticCode.IncorrectNumberofHttpMethodBlocks
         );
     }
 }
