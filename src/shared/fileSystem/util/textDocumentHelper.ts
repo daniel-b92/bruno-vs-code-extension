@@ -73,7 +73,7 @@ export class TextDocumentHelper {
                   );
         const linesBetween = this.lines.fullLines.slice(
             range.start.line + 1,
-            range.end.line - 1
+            range.end.line
         );
 
         return linesBetween

@@ -1,7 +1,10 @@
 import { existsSync, lstatSync, readFileSync } from "fs";
 import { Position, Range } from "vscode";
 import { RequestFileBlockName } from "./definitions/requestFileBlockNameEnum";
-import { RequestFileBlock } from "./definitions/interfaces";
+import {
+    RequestFileBlock,
+    TextOutsideOfBlocks,
+} from "./definitions/interfaces";
 import { getBlockContent } from "./blockParsing/getBlockContent";
 import { TextDocumentHelper } from "../util/textDocumentHelper";
 
@@ -20,15 +23,33 @@ export const getSequence = (testFilePath: string) => {
 
 export const parseTestFile = (document: TextDocumentHelper) => {
     const blockStartPattern = /^\s*(\S+)\s*{\s*$/;
-    const result: RequestFileBlock[] = [];
+    const result: {
+        blocks: RequestFileBlock[];
+        textOutsideOfBlocks: TextOutsideOfBlocks[];
+    } = { blocks: [], textOutsideOfBlocks: [] };
 
     let lineIndex = 0;
+    let currentTextOutsideOfBlocksStartLine: number | undefined;
 
     while (lineIndex < document.getLineCount()) {
         const line = document.getLineByIndex(lineIndex);
         const matches = blockStartPattern.exec(line);
 
         if (matches && matches.length > 0) {
+            if (currentTextOutsideOfBlocksStartLine != undefined) {
+                const range = new Range(
+                    new Position(currentTextOutsideOfBlocksStartLine, 0),
+                    new Position(lineIndex, matches.index)
+                );
+
+                result.textOutsideOfBlocks.push({
+                    text: document.getText(range),
+                    range,
+                });
+
+                currentTextOutsideOfBlocksStartLine = undefined;
+            }
+
             const blockName = matches[1];
             const startingBracket = new Position(
                 lineIndex,
@@ -40,7 +61,7 @@ export const parseTestFile = (document: TextDocumentHelper) => {
                 startingBracket
             );
 
-            result.push({
+            result.blocks.push({
                 name: blockName,
                 nameRange: new Range(
                     new Position(lineIndex, line.indexOf(blockName)),
@@ -56,6 +77,9 @@ export const parseTestFile = (document: TextDocumentHelper) => {
             // Skip the rest of the already parsed block
             lineIndex = contentRange.end.line + 1;
         } else {
+            if (currentTextOutsideOfBlocksStartLine == undefined) {
+                currentTextOutsideOfBlocksStartLine = lineIndex;
+            }
             lineIndex++;
         }
     }

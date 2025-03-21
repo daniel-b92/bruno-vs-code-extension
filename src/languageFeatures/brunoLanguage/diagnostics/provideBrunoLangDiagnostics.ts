@@ -15,7 +15,7 @@ export function provideBrunoLangDiagnostics(
     uri: Uri
 ) {
     const document = new TextDocumentHelper(documentText);
-    const blocks = parseTestFile(document);
+    const { blocks } = parseTestFile(document);
 
     checkOccurencesOfMandatoryBlocks(
         uri,

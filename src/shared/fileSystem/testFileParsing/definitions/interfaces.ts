@@ -13,3 +13,8 @@ export interface DictionaryBlockField {
     nameRange: Range;
     valueRange: Range;
 }
+
+export interface TextOutsideOfBlocks {
+    text: string;
+    range: Range;
+}
