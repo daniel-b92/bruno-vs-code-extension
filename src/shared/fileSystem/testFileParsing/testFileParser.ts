@@ -29,7 +29,7 @@ export const getSequence = (testFilePath: string) => {
 };
 
 export const parseTestFile = (document: TextDocumentHelper) => {
-    const blockStartPattern = /^\s*(\S+)\s*{\s*$/;
+    const blockStartPattern = /^\s*(\S+)\s*{\s*$/m;
     const result: {
         blocks: RequestFileBlock[];
         textOutsideOfBlocks: TextOutsideOfBlocks[];
@@ -44,15 +44,13 @@ export const parseTestFile = (document: TextDocumentHelper) => {
 
         if (matches && matches.length > 0) {
             if (currentTextOutsideOfBlocksStartLine != undefined) {
-                const range = new Range(
-                    new Position(currentTextOutsideOfBlocksStartLine, 0),
-                    new Position(lineIndex, matches.index)
+                result.textOutsideOfBlocks.push(
+                    getCurrentTextOutsideOfBlocks(
+                        currentTextOutsideOfBlocksStartLine,
+                        new Position(lineIndex, matches.index),
+                        document
+                    )
                 );
-
-                result.textOutsideOfBlocks.push({
-                    text: document.getText(range),
-                    range,
-                });
 
                 currentTextOutsideOfBlocksStartLine = undefined;
             }
@@ -87,9 +85,36 @@ export const parseTestFile = (document: TextDocumentHelper) => {
             if (currentTextOutsideOfBlocksStartLine == undefined) {
                 currentTextOutsideOfBlocksStartLine = lineIndex;
             }
+
+            if (lineIndex == document.getLineCount() - 1) {
+                result.textOutsideOfBlocks.push(
+                    getCurrentTextOutsideOfBlocks(
+                        currentTextOutsideOfBlocksStartLine,
+                        new Position(
+                            lineIndex,
+                            document.getLineByIndex(lineIndex).length
+                        ),
+                        document
+                    )
+                );
+            }
+
             lineIndex++;
         }
     }
 
     return result;
+};
+
+const getCurrentTextOutsideOfBlocks = (
+    startLineIndex: number,
+    lastPosition: Position,
+    document: TextDocumentHelper
+): TextOutsideOfBlocks => {
+    const range = new Range(new Position(startLineIndex, 0), lastPosition);
+
+    return {
+        text: document.getText(range),
+        range,
+    };
 };

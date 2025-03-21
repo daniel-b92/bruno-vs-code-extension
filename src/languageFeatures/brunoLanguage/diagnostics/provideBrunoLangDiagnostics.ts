@@ -8,6 +8,7 @@ import { TextDocumentHelper } from "../../../shared/fileSystem/util/textDocument
 import { checkOccurencesOfMandatoryBlocks } from "./providers/checkOccurencesOfMandatoryBlocks";
 import { checkThatNoBlocksAreDefinedMultipleTimes } from "./providers/checkThatNoBlocksAreDefinedMultipleTimes";
 import { DiagnosticCode } from "./diagnosticCodeEnum";
+import { checkThatNoTextExistsOutsideOfBlocks } from "./providers/checkThatNoTextExistsOutsideOfBlocks";
 
 export function provideBrunoLangDiagnostics(
     diagnosticCollection: DiagnosticCollection,
@@ -15,7 +16,7 @@ export function provideBrunoLangDiagnostics(
     uri: Uri
 ) {
     const document = new TextDocumentHelper(documentText);
-    const { blocks } = parseTestFile(document);
+    const { blocks, textOutsideOfBlocks } = parseTestFile(document);
 
     checkOccurencesOfMandatoryBlocks(
         uri,
@@ -25,6 +26,11 @@ export function provideBrunoLangDiagnostics(
     );
 
     checkThatNoBlocksAreDefinedMultipleTimes(uri, blocks, diagnosticCollection);
+    checkThatNoTextExistsOutsideOfBlocks(
+        uri,
+        textOutsideOfBlocks,
+        diagnosticCollection
+    );
 
     if (
         blocks.find(({ name }) => name == RequestFileBlockName.Meta)?.nameRange

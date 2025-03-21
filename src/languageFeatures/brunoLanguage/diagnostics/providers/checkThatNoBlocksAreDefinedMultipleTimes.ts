@@ -32,7 +32,6 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
     const duplicates = findDuplicateBlocks(blocks);
 
     if (duplicates.length > 0) {
-        // Use full text of file as range for diagnostics
         const allDuplicateBlocks: RequestFileBlock[] = [];
 
         for (const { blocks } of duplicates) {
@@ -64,6 +63,9 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
                 .join("', '")}'`}`,
             range,
             relatedInformation: duplicates.reduce((prev, { name, blocks }) => {
+                const toReturn = prev.slice();
+
+                // ToDo: Avoid sorting array positions a second time and instead find a way to combine with the sorting above
                 blocks
                     .slice()
                     .sort(
@@ -71,7 +73,7 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
                             a.nameRange.start.line - b.nameRange.start.line
                     )
                     .forEach(({ nameRange }, index) =>
-                        prev.push({
+                        toReturn.push({
                             message: `Block '${name}' definition no. ${
                                 index + 1
                             }`,
@@ -79,7 +81,7 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
                         })
                     );
 
-                return prev;
+                return toReturn;
             }, [] as DiagnosticRelatedInformation[]),
             severity: DiagnosticSeverity.Error,
             code: DiagnosticCode.MultipleDefinitionsForSameBlocks,
