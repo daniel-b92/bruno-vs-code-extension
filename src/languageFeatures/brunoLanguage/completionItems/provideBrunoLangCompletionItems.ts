@@ -11,7 +11,7 @@ export function provideBrunoLangCompletionItems() {
         {
             provideCompletionItems(document, position) {
                 const currentText = document.lineAt(position.line).text;
-                const sequencePattern = /^\s*seq:\s*$/;
+                const sequencePattern = /^\s*seq:\s*$/m;
 
                 if (currentText.match(sequencePattern)) {
                     return {
@@ -34,8 +34,8 @@ export function provideBrunoLangCompletionItems() {
     );
 
     // HTTP method block
-    registerFixedCompletionItems(/^\s*body:\s*$/, "none", "json", "xml");
-    registerFixedCompletionItems(/^\s*auth:\s*$/, "none", "basic", "bearer");
+    registerFixedCompletionItems(/^\s*body:\s*$/m, "none", "json", "xml");
+    registerFixedCompletionItems(/^\s*auth:\s*$/m, "none", "basic", "bearer");
 }
 
 function registerFixedCompletionItems(
