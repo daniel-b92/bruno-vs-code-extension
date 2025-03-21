@@ -12,13 +12,20 @@ export const getSequence = (testFilePath: string) => {
     if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {
         return undefined;
     }
-    // ToDo: Unify with parser for parsing entire testfile
-    const metaBlockContent = getMetaBlockContent(testFilePath);
-    const sequence = metaBlockContent
-        ? getSequenceFromMetaBlockContent(testFilePath, metaBlockContent)
-        : undefined;
+    const sequenceKeyName = "seq";
 
-    return sequence && !isNaN(Number(sequence)) ? Number(sequence) : undefined;
+    const metaBlock = parseTestFile(
+        new TextDocumentHelper(readFileSync(testFilePath).toString())
+    ).blocks.find(({ name }) => name == RequestFileBlockName.Meta);
+
+    const sequence =
+        metaBlock && Array.isArray(metaBlock.content)
+            ? metaBlock.content.find(({ name }) => name == sequenceKeyName)
+            : undefined;
+
+    return sequence && !isNaN(Number(sequence.value))
+        ? Number(sequence.value)
+        : undefined;
 };
 
 export const parseTestFile = (document: TextDocumentHelper) => {
@@ -86,30 +93,3 @@ export const parseTestFile = (document: TextDocumentHelper) => {
 
     return result;
 };
-
-const getMetaBlockContent = (testFilePath: string) => {
-    const fileContent = readFileSync(testFilePath).toString();
-    const startPattern = getBlockStartPattern(RequestFileBlockName.Meta);
-
-    const maybeMatches = fileContent.match(startPattern)
-        ? fileContent.replace(startPattern, "").match(/[^}]*}/)
-        : undefined;
-    return maybeMatches ? maybeMatches[0].replace(/}.*/, "") : undefined;
-};
-
-const getSequenceFromMetaBlockContent = (
-    testFilePath: string,
-    metaBlockContent: string
-) => {
-    const maybeMatches = metaBlockContent.match(/\s*seq:\s*\d*\s*(\r\n|\n)/);
-    if (maybeMatches == null) {
-        console.warn(
-            `Could not determine sequence for test file '${testFilePath}'`
-        );
-        return undefined;
-    }
-    return maybeMatches[0].replace(/\s*seq:\s*/, "").trimEnd();
-};
-
-const getBlockStartPattern = (blockName: RequestFileBlockName) =>
-    new RegExp(`\\s*${blockName}\\s*{\\s*(\\r\\n|\\n)`);
