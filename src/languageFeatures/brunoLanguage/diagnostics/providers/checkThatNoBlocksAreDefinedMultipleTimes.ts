@@ -17,21 +17,19 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
     blocks: RequestFileBlock[],
     diagnostics: DiagnosticCollection
 ) {
-    // Always remove diagnostic before trying to add it, to handle cases where changes are made in the document that cause more duplicate blocks than before.
-    // Otherwise ,the 'addDiagnosticForDocument' would just skip re-adding it since it already has been added.
-    removeDiagnosticsForDocument(
-        documentUri,
-        diagnostics,
-        DiagnosticCode.MultipleDefinitionsForSameBlocks
-    );
-
     if (blocks.length == 0) {
         return;
     }
 
     const duplicates = findDuplicateBlocks(blocks);
 
-    if (duplicates.length > 0) {
+    if (duplicates.length == 0) {
+        removeDiagnosticsForDocument(
+            documentUri,
+            diagnostics,
+            DiagnosticCode.MultipleDefinitionsForSameBlocks
+        );
+    } else {
         const allDuplicateBlocks: RequestFileBlock[] = [];
 
         for (const { blocks } of duplicates) {
@@ -89,7 +87,8 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
         addDiagnosticForDocument(
             documentUri,
             diagnostics,
-            multipleDefinitionsForSameBlocksDiagnostic
+            multipleDefinitionsForSameBlocksDiagnostic,
+            true
         );
     }
 }

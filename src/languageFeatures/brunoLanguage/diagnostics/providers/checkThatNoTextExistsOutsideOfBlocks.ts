@@ -15,19 +15,17 @@ export function checkThatNoTextExistsOutsideOfBlocks(
     allTextOutsideOfBlocks: TextOutsideOfBlocks[],
     diagnostics: DiagnosticCollection
 ) {
-    // Always remove diagnostic before trying to add it, to handle cases where changes are made in the document that cause more duplicate blocks than before.
-    // Otherwise, the 'addDiagnosticForDocument' would just skip re-adding it since it already has been added.
-    removeDiagnosticsForDocument(
-        documentUri,
-        diagnostics,
-        DiagnosticCode.TextOutsideOfBlocks
-    );
-
     const relevantTextOutsideOfBlocks = allTextOutsideOfBlocks.filter(
         ({ text }) => !/^\s*$/.test(text)
     );
 
-    if (relevantTextOutsideOfBlocks.length > 0) {
+    if (relevantTextOutsideOfBlocks.length == 0) {
+        removeDiagnosticsForDocument(
+            documentUri,
+            diagnostics,
+            DiagnosticCode.TextOutsideOfBlocks
+        );
+    } else {
         relevantTextOutsideOfBlocks.sort(
             (
                 {
@@ -65,6 +63,6 @@ export function checkThatNoTextExistsOutsideOfBlocks(
             severity: DiagnosticSeverity.Error,
             code: DiagnosticCode.MultipleDefinitionsForSameBlocks,
         };
-        addDiagnosticForDocument(documentUri, diagnostics, diagnostic);
+        addDiagnosticForDocument(documentUri, diagnostics, diagnostic, true);
     }
 }
