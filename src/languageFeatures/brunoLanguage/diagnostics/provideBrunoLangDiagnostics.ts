@@ -4,7 +4,7 @@ import { removeDiagnosticsForDocument } from "./util/removeDiagnosticsForDocumen
 import { getDiagnosticForMetaBlockNotInFirstLine } from "./providers/getDiagnosticForMetaBlockNotInFirstLine";
 import { parseTestFile } from "../../../shared/fileSystem/testFileParsing/testFileParser";
 import { RequestFileBlockName } from "../../../shared/fileSystem/testFileParsing/definitions/requestFileBlockNameEnum";
-import { TextDocumentHelper } from "../../../shared/fileSystem/testFileParsing/definitions/textDocumentHelper";
+import { TextDocumentHelper } from "../../../shared/fileSystem/util/textDocumentHelper";
 import { checkOccurencesOfMandatoryBlocks } from "./providers/checkOccurencesOfMandatoryBlocks";
 import { checkThatNoBlocksAreDefinedMultipleTimes } from "./providers/checkThatNoBlocksAreDefinedMultipleTimes";
 import { DiagnosticCode } from "./diagnosticCodeEnum";

@@ -1,5 +1,5 @@
 import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode";
-import { TextDocumentHelper } from "../../../../shared/fileSystem/testFileParsing/definitions/textDocumentHelper";
+import { TextDocumentHelper } from "../../../../shared/fileSystem/util/textDocumentHelper";
 import { DiagnosticCode } from "../diagnosticCodeEnum";
 
 export function getDiagnosticForMetaBlockNotInFirstLine(

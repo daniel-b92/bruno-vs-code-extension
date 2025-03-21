@@ -6,7 +6,7 @@ import {
     Range,
     Uri,
 } from "vscode";
-import { TextDocumentHelper } from "../../../../shared/fileSystem/testFileParsing/definitions/textDocumentHelper";
+import { TextDocumentHelper } from "../../../../shared/fileSystem/util/textDocumentHelper";
 import { addDiagnosticForDocument } from "../util/addDiagnosticForDocument";
 import { RequestFileBlock } from "../../../../shared/fileSystem/testFileParsing/definitions/interfaces";
 import { DiagnosticCode } from "../diagnosticCodeEnum";

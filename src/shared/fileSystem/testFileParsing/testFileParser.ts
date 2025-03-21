@@ -3,7 +3,7 @@ import { Position, Range } from "vscode";
 import { RequestFileBlockName } from "./definitions/requestFileBlockNameEnum";
 import { RequestFileBlock } from "./definitions/interfaces";
 import { getBlockContent } from "./blockParsing/getBlockContent";
-import { TextDocumentHelper } from "./definitions/textDocumentHelper";
+import { TextDocumentHelper } from "../util/textDocumentHelper";
 
 export const getSequence = (testFilePath: string) => {
     if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {
