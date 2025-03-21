@@ -121,12 +121,24 @@ export async function runTestStructure(
                     options.failed(item, [new TestMessage("Testrun failed")]);
                     setStatusForDescendantItems(item, jsonReportPath, options);
                 } else {
-                    if (existsSync(jsonReportPath)) {
-                        const { testResults, request, response, error } =
-                            getTestFilesWithFailures(jsonReportPath)[0];
+                    const testFilesWithFailures =
+                        getTestFilesWithFailures(jsonReportPath);
+
+                    if (
+                        existsSync(jsonReportPath) &&
+                        testFilesWithFailures.length > 0
+                    ) {
+                        const {
+                            testResults,
+                            assertionResults,
+                            request,
+                            response,
+                            error,
+                        } = testFilesWithFailures[0];
                         options.failed(item, [
                             getTestMessageForFailedTest(
                                 testResults,
+                                assertionResults,
                                 request as Record<string, string | object>,
                                 response as Record<string, string | object>,
                                 error
@@ -173,6 +185,7 @@ const setStatusForDescendantItems = (
             request: failedTest.request,
             response: failedTest.response,
             testResults: failedTest.testResults,
+            assertionResults: failedTest.assertionResults,
             error: failedTest.error,
         }))
         .filter((failed) => failed.item != undefined) as {
@@ -180,6 +193,7 @@ const setStatusForDescendantItems = (
         request: Record<string, string | object>;
         response: Record<string, string | number | object>;
         testResults: Record<string, string>[];
+        assertionResults: Record<string, string>[];
         error?: string;
     }[];
 
@@ -208,6 +222,7 @@ const setStatusForDescendantItems = (
                 child,
                 getTestMessageForFailedTest(
                     maybeTestFailure.testResults,
+                    maybeTestFailure.assertionResults,
                     maybeTestFailure.request,
                     maybeTestFailure.response,
                     maybeTestFailure.error
@@ -225,6 +240,7 @@ const setStatusForDescendantItems = (
 
 const getTestMessageForFailedTest = (
     testResults: Record<string, string | number | object>[],
+    assertionResults: Record<string, string | number | object>[],
     request: Record<string, string | number | object>,
     response: Record<string, string | number | object>,
     error?: string
@@ -251,15 +267,24 @@ const getTestMessageForFailedTest = (
     const formattedTestResults = testResults
         .map((result) => stringifyField(result))
         .join(linebreak);
+    const formattedAssertionResults = assertionResults
+        .map((result) => stringifyField(result))
+        .join(linebreak);
     const dividerAndLinebreak = `---------------------------------------------${linebreak}`;
 
-    return error
-        ? new TestMessage(
-              `testResults:${linebreak}${formattedTestResults}${linebreak}${dividerAndLinebreak}$error: ${error}${linebreak}${dividerAndLinebreak}request:${linebreak}${formattedRequest}${linebreak}${dividerAndLinebreak}response:${linebreak}${formattedResponse}`
-          )
-        : new TestMessage(
-              `testResults:${linebreak}${formattedTestResults}${linebreak}${dividerAndLinebreak}request:${linebreak}${formattedRequest}${linebreak}${dividerAndLinebreak}response:${linebreak}${formattedResponse}`
-          );
+    return new TestMessage(
+        `testResults:${linebreak}${formattedTestResults}${linebreak}${dividerAndLinebreak}`
+            .concat(
+                `assertionResults:${linebreak}${formattedAssertionResults}${linebreak}${dividerAndLinebreak}`
+            )
+            .concat(
+                error ? `error: ${error}${linebreak}${dividerAndLinebreak}` : ""
+            )
+            .concat(
+                `request:${linebreak}${formattedRequest}${linebreak}${dividerAndLinebreak}`
+            )
+            .concat(`response:${linebreak}${formattedResponse}`)
+    );
 };
 
 const getJsonReportPath = (collectionRootDir: string) =>
