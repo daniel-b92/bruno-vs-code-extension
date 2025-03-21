@@ -18,10 +18,8 @@ export function checkOccurencesOfMandatoryBlocks(
     document: TextDocumentHelper,
     blocks: RequestFileBlock[],
     diagnostics: DiagnosticCollection
-): RequestFileBlockName[] {
-    const allMissingBlocks: RequestFileBlockName[] = [];
-
-    // Always use full text of file as range for diagnostics
+) {
+    // Use full text of file as range for diagnostics
     const range = new Range(
         new Position(0, 0),
         new Position(
@@ -38,8 +36,6 @@ export function checkOccurencesOfMandatoryBlocks(
     };
 
     if (!blocks.some(({ name }) => name == RequestFileBlockName.Meta)) {
-        allMissingBlocks.push(RequestFileBlockName.Meta);
-
         addDiagnosticForDocument(
             documentUri,
             diagnostics,
@@ -68,7 +64,6 @@ export function checkOccurencesOfMandatoryBlocks(
         (possibleName) =>
             !blocks.some(({ name: actualName }) => actualName == possibleName)
     );
-    allMissingBlocks.push(...missingHttpMethodBlocks);
 
     const incorrectNumberOfHttpMethodsDiagnostic: Diagnostic = {
         message: `Too many or too few HTTP method blocks defined. Exactly one of the following blocks needs to be present: '${possibleHttpMethodBlocks.join(
@@ -92,6 +87,4 @@ export function checkOccurencesOfMandatoryBlocks(
             incorrectNumberOfHttpMethodsDiagnostic
         );
     }
-
-    return allMissingBlocks;
 }

@@ -15,7 +15,7 @@ export function provideBrunoLangDiagnostics(
     const document = new TextDocumentHelper(documentText);
     const blocks = parseTestFile(document);
 
-    const missingBlocks = checkOccurencesOfMandatoryBlocks(
+    checkOccurencesOfMandatoryBlocks(
         uri,
         document,
         blocks,
@@ -23,7 +23,6 @@ export function provideBrunoLangDiagnostics(
     );
 
     if (
-        !missingBlocks.includes(RequestFileBlockName.Meta) &&
         blocks.find(({ name }) => name == RequestFileBlockName.Meta)?.nameRange
             .start.line != 0
     ) {
