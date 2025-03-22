@@ -5,7 +5,7 @@ import { getAllCollectionRootDirectories } from "../../shared/fileSystem/util/co
 import { getSequence } from "../../shared/fileSystem/testFileParsing/testFileParser";
 import { BrunoTreeItem } from "./brunoTreeItem";
 import { TreeItemRegistry } from "./treeItemRegistry";
-import { FileChangeType } from "../../shared/fileChangesDefinitions";
+import { FileChangeType } from "../../shared/fileSystem/fileChangesDefinitions";
 import { CollectionWatcher } from "../../shared/fileSystem/collectionWatcher";
 
 export class BrunoTreeItemProvider
@@ -17,7 +17,7 @@ export class BrunoTreeItemProvider
     ) {
         this.itemRegistry = new TreeItemRegistry(collectionWatcher);
 
-        collectionWatcher.subscribeToUpdates().event(({ uri, changeType }) => {
+        collectionWatcher.subscribeToUpdates()(({ uri, changeType }) => {
             const maybeRegisteredItem = this.itemRegistry.getItem(uri.fsPath);
 
             if (

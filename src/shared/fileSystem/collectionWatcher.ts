@@ -5,7 +5,7 @@ import {
     RelativePattern,
     workspace,
 } from "vscode";
-import { FileChangedEvent, FileChangeType } from "../fileChangesDefinitions";
+import { FileChangedEvent, FileChangeType } from "./fileChangesDefinitions";
 import { basename } from "path";
 import { normalizeDirectoryPath } from "./util/normalizeDirectoryPath";
 
@@ -72,7 +72,7 @@ export class CollectionWatcher {
     }
 
     public subscribeToUpdates() {
-        return this.fileChangedEmitter;
+        return this.fileChangedEmitter.event;
     }
 
     private getPatternForTestitemsInCollection(collectionRootDir: string) {

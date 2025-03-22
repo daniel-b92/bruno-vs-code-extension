@@ -36,7 +36,7 @@ export async function activateRunner(
 
     await addMissingTestCollectionsToTestTree(ctrl, collectionRegistry);
 
-    collectionWatcher.subscribeToUpdates().event(async ({ uri }) => {
+    collectionWatcher.subscribeToUpdates()(async ({ uri }) => {
         if (watchingTests.has("ALL")) {
             await startTestRun(
                 ctrl,

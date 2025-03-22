@@ -1,7 +1,7 @@
 import { EventEmitter, ExtensionContext, tests, Uri } from "vscode";
 import { activateRunner } from "./testRunner/activateRunner";
 import { activateTreeView } from "./treeView/activateTreeView";
-import { FileChangedEvent } from "./shared/fileChangesDefinitions";
+import { FileChangedEvent } from "./shared/fileSystem/fileChangesDefinitions";
 import { CollectionWatcher } from "./shared/fileSystem/collectionWatcher";
 import { activateLanguageFeatures } from "./languageFeatures/activateLanguageFeatures";
 

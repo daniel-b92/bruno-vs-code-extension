@@ -11,7 +11,7 @@ import { TestDirectory } from "../testData/testDirectory";
 import { dirname } from "path";
 import { lstatSync } from "fs";
 import { CollectionWatcher } from "../../shared/fileSystem/collectionWatcher";
-import { FileChangeType } from "../../shared/fileChangesDefinitions";
+import { FileChangeType } from "../../shared/fileSystem/fileChangesDefinitions";
 import { normalizeDirectoryPath } from "../../shared/fileSystem/util/normalizeDirectoryPath";
 
 export class CollectionRegistry {
@@ -19,80 +19,78 @@ export class CollectionRegistry {
         private controller: TestController,
         private collectionWatcher: CollectionWatcher
     ) {
-        collectionWatcher
-            .subscribeToUpdates()
-            .event(async ({ uri, changeType }) => {
-                const registeredCollection = this.getCurrentCollections().find(
-                    (collection) =>
-                        uri.fsPath.startsWith(
-                            normalizeDirectoryPath(collection.rootDirectory)
-                        ) || uri.fsPath == collection.rootDirectory
-                );
+        collectionWatcher.subscribeToUpdates()(async ({ uri, changeType }) => {
+            const registeredCollection = this.getCurrentCollections().find(
+                (collection) =>
+                    uri.fsPath.startsWith(
+                        normalizeDirectoryPath(collection.rootDirectory)
+                    ) || uri.fsPath == collection.rootDirectory
+            );
 
-                if (!registeredCollection) {
-                    return;
+            if (!registeredCollection) {
+                return;
+            }
+
+            if (changeType == FileChangeType.Created) {
+                if (
+                    isValidTestFileFromCollections(
+                        uri,
+                        this.getCurrentCollections()
+                    )
+                ) {
+                    handleTestFileCreationOrUpdate(
+                        this.controller,
+                        registeredCollection,
+                        uri
+                    );
+                } else if (
+                    await this.hasValidTestFileDescendantsFromCollections(
+                        uri,
+                        this.getCurrentCollections()
+                    )
+                ) {
+                    await addTestDirectoryAndAllDescendants(
+                        this.controller,
+                        registeredCollection,
+                        new TestDirectory(uri.fsPath)
+                    );
                 }
-
-                if (changeType == FileChangeType.Created) {
-                    if (
-                        isValidTestFileFromCollections(
-                            uri,
-                            this.getCurrentCollections()
-                        )
-                    ) {
-                        handleTestFileCreationOrUpdate(
-                            this.controller,
-                            registeredCollection,
-                            uri
-                        );
-                    } else if (
-                        await this.hasValidTestFileDescendantsFromCollections(
-                            uri,
-                            this.getCurrentCollections()
-                        )
-                    ) {
-                        await addTestDirectoryAndAllDescendants(
-                            this.controller,
-                            registeredCollection,
-                            new TestDirectory(uri.fsPath)
-                        );
-                    }
-                } else if (changeType == FileChangeType.Modified) {
-                    /* For directories, no changes are ever registered because renaming a directory is seen as a creation of a new directory with the
+            } else if (changeType == FileChangeType.Modified) {
+                /* For directories, no changes are ever registered because renaming a directory is seen as a creation of a new directory with the
                 new name and a deletion of the directory with the old name. Creating or deleting a directory will be handled by the  'onDidCreate' or
                 'onDidDelete' functions.*/
-                    if (
-                        isValidTestFileFromCollections(
-                            uri,
-                            this.getCurrentCollections()
-                        )
-                    ) {
-                        handleTestFileCreationOrUpdate(
-                            this.controller,
-                            registeredCollection,
-                            uri
-                        );
-                    } else {
-                        // This case can e.g. happen if the sequence in the a .bru file is changed to an invalid value
-                        handleTestItemDeletion(
-                            this.controller,
-                            registeredCollection,
-                            uri
-                        );
-                    }
-                } else if (changeType == FileChangeType.Deleted) {
-                    if (uri.fsPath == registeredCollection.rootDirectory) {
-                        this.unregisterCollection(registeredCollection);
-                        return;
-                    }
-
+                if (
+                    isValidTestFileFromCollections(
+                        uri,
+                        this.getCurrentCollections()
+                    )
+                ) {
+                    handleTestFileCreationOrUpdate(
+                        this.controller,
+                        registeredCollection,
+                        uri
+                    );
+                } else {
+                    // This case can e.g. happen if the sequence in the a .bru file is changed to an invalid value
                     handleTestItemDeletion(
                         this.controller,
                         registeredCollection,
                         uri
                     );
                 }
-            });
+            } else if (changeType == FileChangeType.Deleted) {
+                if (uri.fsPath == registeredCollection.rootDirectory) {
+                    this.unregisterCollection(registeredCollection);
+                    return;
+                }
+
+                handleTestItemDeletion(
+                    this.controller,
+                    registeredCollection,
+                    uri
+                );
+            }
+        });
     }
 
     private registeredCollections: TestCollection[] = [];
