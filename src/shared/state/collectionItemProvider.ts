@@ -13,12 +13,13 @@ import { resolve } from "path";
 import { CollectionItem } from "./model/collectionItemInterface";
 
 export class CollectionItemProvider {
-    constructor(collectionWatcher: CollectionWatcher) {
+    constructor(private collectionWatcher: CollectionWatcher) {
         this.collectionRegistry = new CollectionRegistry(collectionWatcher);
         this.itemUpdateEmitter = new vscode.EventEmitter<{
             collection: Collection;
             item: CollectionItem;
-            updateType: "Created" | "Deleted";
+            updateType: FileChangeType;
+            changedData?: { sequence?: number };
         }>();
 
         collectionWatcher.subscribeToUpdates()(
@@ -55,7 +56,7 @@ export class CollectionItemProvider {
                             item: registeredCollection.getTestItemForPath(
                                 registeredCollection.getRootDirectory()
                             ) as CollectionItem,
-                            updateType: "Deleted",
+                            updateType: FileChangeType.Deleted,
                         });
                     }
                     return;
@@ -80,17 +81,13 @@ export class CollectionItemProvider {
                     this.itemUpdateEmitter.fire({
                         collection: registeredCollection,
                         item,
-                        updateType: "Created",
+                        updateType: FileChangeType.Created,
                     });
                 }
 
                 if (
                     maybeRegisteredItem &&
-                    (FileChangeType.Deleted ||
-                        (fileChangeType == FileChangeType.Modified &&
-                            maybeRegisteredItem instanceof CollectionFile &&
-                            maybeRegisteredItem.getSequence() !=
-                                getSequence(uri.fsPath)))
+                    fileChangeType == FileChangeType.Deleted
                 ) {
                     registeredCollection.removeTestItemAndDescendants(
                         maybeRegisteredItem
@@ -98,8 +95,31 @@ export class CollectionItemProvider {
                     this.itemUpdateEmitter.fire({
                         collection: registeredCollection,
                         item: maybeRegisteredItem,
-                        updateType: "Deleted",
+                        updateType: FileChangeType.Deleted,
                     });
+                } else if (
+                    maybeRegisteredItem &&
+                    fileChangeType == FileChangeType.Modified &&
+                    maybeRegisteredItem instanceof CollectionFile
+                ) {
+                    const newSequence = getSequence(uri.fsPath);
+
+                    if (maybeRegisteredItem.getSequence() != newSequence) {
+                        registeredCollection.removeTestItemAndDescendants(
+                            maybeRegisteredItem
+                        );
+
+                        registeredCollection.addTestItem(
+                            new CollectionFile(uri.fsPath, newSequence)
+                        );
+
+                        this.itemUpdateEmitter.fire({
+                            collection: registeredCollection,
+                            item: maybeRegisteredItem,
+                            updateType: FileChangeType.Modified,
+                            changedData: { sequence: newSequence },
+                        });
+                    }
                 }
             }
         );
@@ -109,11 +129,12 @@ export class CollectionItemProvider {
     private itemUpdateEmitter: vscode.EventEmitter<{
         collection: Collection;
         item: CollectionItem;
-        updateType: "Created" | "Deleted";
+        updateType: FileChangeType;
+        changedData?: { sequence?: number };
     }>;
 
     public subscribeToUpdates() {
-        return this.itemUpdateEmitter.event;
+        return this.itemUpdateEmitter;
     }
 
     public getRegisteredCollections() {
@@ -174,10 +195,8 @@ export class CollectionItemProvider {
     }
 
     private async registerAllExistingCollections() {
-        return await Promise.all(
-            (
-                await getAllCollectionRootDirectories()
-            ).map(async (rootDirectory) => {
+        return (await getAllCollectionRootDirectories()).map(
+            (rootDirectory) => {
                 const collection = new Collection(rootDirectory);
 
                 if (
@@ -191,10 +210,13 @@ export class CollectionItemProvider {
                         )
                 ) {
                     this.collectionRegistry.registerCollection(collection);
+                    this.collectionWatcher.startWatchingCollection(
+                        collection.getRootDirectory()
+                    );
                 }
 
                 return collection;
-            })
+            }
         );
     }
 }
