@@ -27,20 +27,22 @@ export class CollectionRegistry {
 
     public unregisterCollection(rootDirectory: string) {
         if (this.isCollectionRegistered(rootDirectory)) {
-            this.collections.splice(
+            const collection = this.collections.splice(
                 this.collections.findIndex(
                     (collection) =>
                         normalizeDirectoryPath(collection.getRootDirectory()) ==
                         normalizeDirectoryPath(rootDirectory)
                 ),
                 1
-            );
+            )[0];
 
             this.collectionWatcher.stopWatchingCollection(rootDirectory);
+            return collection;
         } else {
             console.warn(
                 `No registered collection with root directory '${rootDirectory}' found for unregistering.`
             );
+            return undefined;
         }
     }
 

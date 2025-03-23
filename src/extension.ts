@@ -26,10 +26,6 @@ export async function activate(context: ExtensionContext) {
     const startTestRunEmitter = new EventEmitter<Uri>();
 
     await activateRunner(ctrl, collectionWatcher, startTestRunEmitter.event);
-    activateTreeView(
-        collectionWatcher,
-        collectionItemProvider,
-        startTestRunEmitter
-    );
+    activateTreeView(collectionItemProvider, startTestRunEmitter);
     activateLanguageFeatures(context);
 }

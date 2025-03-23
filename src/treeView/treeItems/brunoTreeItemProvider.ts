@@ -1,70 +1,61 @@
 import { lstatSync, readdirSync } from "fs";
 import { dirname, resolve } from "path";
 import * as vscode from "vscode";
-import { getAllCollectionRootDirectories } from "../../shared/fileSystem/util/collectionRootFolderHelper";
 import { getSequence } from "../../shared/fileSystem/testFileParsing/testFileParser";
 import { BrunoTreeItem } from "./brunoTreeItem";
-import { TreeItemRegistry } from "./treeItemRegistry";
-import { FileChangeType } from "../../shared/fileSystem/fileChangesDefinitions";
-import { CollectionWatcher } from "../../shared/fileSystem/collectionWatcher";
 import { CollectionItemProvider } from "../../shared/state/collectionItemProvider";
+import { CollectionItem } from "../../shared/state/model/collectionItemInterface";
+import { CollectionFile } from "../../shared/state/model/collectionFile";
 
 export class BrunoTreeItemProvider
     implements vscode.TreeDataProvider<BrunoTreeItem>
 {
     constructor(
         private workspaceRoot: string,
-        collectionWatcher: CollectionWatcher,
-        collectionItemProvider: CollectionItemProvider
+        private collectionItemProvider: CollectionItemProvider
     ) {
-        this.itemRegistry = new TreeItemRegistry(collectionWatcher);
-
-        collectionItemProvider.subscribeToUpdates()(({ uri, changeType }) => {
-            const maybeRegisteredItem = this.itemRegistry.getItem(uri.fsPath);
-
-            if (
-                maybeRegisteredItem &&
-                (FileChangeType.Deleted ||
-                    (changeType == FileChangeType.Modified &&
-                        maybeRegisteredItem.getSequence() !=
-                            getSequence(uri.fsPath)))
-            ) {
-                this.itemRegistry.unregisterItem(uri.fsPath);
-                this.itemRegistry.unregisterAllDescendants(uri.fsPath);
-
-                // Always update all items when items have to be deleted from tree view.
-                // When only triggering an update for the parent item, there were issues with the refresh mechanism.
-                this._onDidChangeTreeData.fire(undefined);
-            } else if (
-                !maybeRegisteredItem &&
-                changeType == FileChangeType.Created
-            ) {
-                // Registration of the new item occurs in the `getTreeItem` or `getChildren` function
-                const maybeParentItem = this.tryToFindRegisteredParentItem(
-                    uri.fsPath
-                );
-
-                if (maybeParentItem) {
-                    this._onDidChangeTreeData.fire(maybeParentItem);
-                } else {
-                    // If no parent item was found, trigger update for all items (e.g. if item is collection root directory).
+        collectionItemProvider.subscribeToUpdates()(
+            ({ collection, item, updateType }) => {
+                if (updateType == "Deleted") {
+                    // Always update all items when items have to be deleted from tree view.
+                    // When only triggering an update for the parent item, there were issues with the refresh mechanism.
                     this._onDidChangeTreeData.fire(undefined);
+                } else if (updateType == "Created") {
+                    // Registration of the new item occurs in the `getTreeItem` or `getChildren` function
+                    const maybeParentItem =
+                        collectionItemProvider.getRegisteredItem(
+                            collection,
+                            dirname(item.getPath())
+                        );
+
+                    if (maybeParentItem) {
+                        this._onDidChangeTreeData.fire(
+                            this.mapCollectionItemToTreeItem(maybeParentItem)
+                        );
+                    } else {
+                        // If no parent item was found, trigger update for all items (e.g. if item is collection root directory).
+                        this._onDidChangeTreeData.fire(undefined);
+                    }
                 }
             }
-        });
+        );
     }
 
-    private itemRegistry: TreeItemRegistry;
-
     async getTreeItem(element: BrunoTreeItem): Promise<vscode.TreeItem> {
-        if (!this.itemRegistry.getItem(element.getPath())) {
-            await this.itemRegistry.registerItem(element);
-        }
         return element as unknown as vscode.TreeItem;
     }
 
-    async getParent(element: BrunoTreeItem) {
-        return this.itemRegistry.getItem(dirname(element.getPath()));
+    getParent(element: BrunoTreeItem) {
+        const { collection } = this.mapTreeItemToCollectionItem(element);
+
+        const registeredParent = this.collectionItemProvider.getRegisteredItem(
+            collection,
+            dirname(element.getPath())
+        );
+
+        return registeredParent
+            ? this.mapCollectionItemToTreeItem(registeredParent)
+            : undefined;
     }
 
     public refresh() {
@@ -80,42 +71,40 @@ export class BrunoTreeItemProvider
         }
 
         if (!element) {
-            return (
-                await Promise.all(
-                    (
-                        await getAllCollectionRootDirectories()
-                    ).map(async (path) => {
-                        const collectionItem = new BrunoTreeItem(path, false);
-
-                        if (
-                            !this.itemRegistry.getItem(collectionItem.getPath())
-                        ) {
-                            await this.itemRegistry.registerItem(
-                                collectionItem
-                            );
-                        }
-
-                        return collectionItem;
-                    })
+            return this.collectionItemProvider
+                .getRegisteredCollections()
+                .map((collection) =>
+                    this.mapCollectionItemToTreeItem(
+                        collection.getTestItemForPath(
+                            collection.getRootDirectory()
+                        ) as CollectionItem
+                    )
                 )
-            ).sort((a, b) =>
-                (a.label as string) > (b.label as string) ? 1 : -1
-            );
+                .sort((a, b) =>
+                    (a.label as string) > (b.label as string) ? 1 : -1
+                );
         } else {
             return Promise.resolve(
                 (
                     await Promise.all(
                         readdirSync(element.path).map(async (childPath) => {
                             const fullPath = resolve(element.path, childPath);
-                            const maybeRegisteredItem =
-                                this.itemRegistry.getItem(fullPath);
+                            const maybeCollection =
+                                this.collectionItemProvider.getRegisteredCollectionForItem(
+                                    fullPath
+                                );
 
-                            if (
-                                maybeRegisteredItem &&
-                                maybeRegisteredItem.getSequence() ==
-                                    getSequence(fullPath)
-                            ) {
-                                return maybeRegisteredItem;
+                            const maybeRegisteredItem = maybeCollection
+                                ? this.collectionItemProvider.getRegisteredItem(
+                                      maybeCollection,
+                                      fullPath
+                                  )
+                                : undefined;
+
+                            if (maybeRegisteredItem) {
+                                return this.mapCollectionItemToTreeItem(
+                                    maybeRegisteredItem
+                                );
                             }
 
                             const item = lstatSync(fullPath).isFile()
@@ -126,7 +115,6 @@ export class BrunoTreeItemProvider
                                   )
                                 : new BrunoTreeItem(fullPath, false);
 
-                            await this.itemRegistry.registerItem(item);
                             return item;
                         })
                     )
@@ -146,7 +134,34 @@ export class BrunoTreeItemProvider
     readonly onDidChangeTreeData: vscode.Event<BrunoTreeItem | undefined> =
         this._onDidChangeTreeData.event;
 
-    private tryToFindRegisteredParentItem(path: string) {
-        return this.itemRegistry.getItem(dirname(path));
+    private mapCollectionItemToTreeItem(item: CollectionItem) {
+        const isFile = item instanceof CollectionFile;
+
+        return new BrunoTreeItem(
+            item.getPath(),
+            isFile,
+            isFile ? item.getSequence() : undefined
+        );
+    }
+
+    private mapTreeItemToCollectionItem(item: BrunoTreeItem) {
+        const collection =
+            this.collectionItemProvider.getRegisteredCollectionForItem(
+                item.getPath()
+            );
+
+        if (!collection) {
+            throw new Error(
+                `No registered collection found for tree item with path '${item.getPath()}'.`
+            );
+        }
+
+        return {
+            collection,
+            item: this.collectionItemProvider.getRegisteredItem(
+                collection,
+                item.getPath()
+            ),
+        };
     }
 }

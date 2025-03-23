@@ -14,7 +14,6 @@ import {
 } from "fs";
 import { basename, dirname, extname, resolve } from "path";
 import { getSequence } from "../shared/fileSystem/testFileParsing/testFileParser";
-import { CollectionWatcher } from "../shared/fileSystem/collectionWatcher";
 import { getSequencesForRequests } from "../shared/fileSystem/testFileParsing/getSequencesForRequests";
 import { getMaxSequenceForRequests } from "../shared/fileSystem/testFileParsing/getMaxSequenceForRequests";
 import { CollectionItemProvider } from "../shared/state/collectionItemProvider";
@@ -26,7 +25,6 @@ export class CollectionExplorer
     dropMimeTypes = ["application/vnd.code.tree.brunocollectionsview"];
 
     constructor(
-        collectionWatcher: CollectionWatcher,
         itemProvider: CollectionItemProvider,
         startTestRunEmitter: vscode.EventEmitter<vscode.Uri>
     ) {
@@ -40,7 +38,6 @@ export class CollectionExplorer
         }
         const treeDataProvider = new BrunoTreeItemProvider(
             vscode.workspace.workspaceFolders[0].uri.fsPath,
-            collectionWatcher,
             itemProvider
         );
 
