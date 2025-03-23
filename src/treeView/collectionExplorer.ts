@@ -46,8 +46,9 @@ export class CollectionExplorer
             dragAndDropController: this,
         });
 
-        vscode.commands.registerCommand("brunoCollectionsView.refresh", () =>
-            treeDataProvider.refresh()
+        vscode.commands.registerCommand(
+            "brunoCollectionsView.refresh",
+            async () => await treeDataProvider.refresh()
         );
 
         vscode.commands.registerCommand(

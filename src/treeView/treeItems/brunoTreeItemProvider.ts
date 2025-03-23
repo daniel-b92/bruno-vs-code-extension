@@ -64,7 +64,8 @@ export class BrunoTreeItemProvider
             : undefined;
     }
 
-    public refresh() {
+    public async refresh() {
+        await this.collectionItemProvider.registerAllCollectionsAndTheirItems();
         this._onDidChangeTreeData.fire(undefined);
     }
 

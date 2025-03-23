@@ -13,7 +13,7 @@ import { resolve } from "path";
 import { CollectionItem } from "./model/collectionItemInterface";
 
 export class CollectionItemProvider {
-    constructor(private collectionWatcher: CollectionWatcher) {
+    constructor(collectionWatcher: CollectionWatcher) {
         this.collectionRegistry = new CollectionRegistry(collectionWatcher);
         this.itemUpdateEmitter = new vscode.EventEmitter<{
             collection: Collection;
@@ -27,7 +27,7 @@ export class CollectionItemProvider {
                 const registeredCollection = this.collectionRegistry
                     .getRegisteredCollections()
                     .find((collection) =>
-                        uri.fsPath.startsWith(
+                        normalizeDirectoryPath(uri.fsPath).startsWith(
                             normalizeDirectoryPath(
                                 collection.getRootDirectory()
                             )
@@ -210,9 +210,6 @@ export class CollectionItemProvider {
                         )
                 ) {
                     this.collectionRegistry.registerCollection(collection);
-                    this.collectionWatcher.startWatchingCollection(
-                        collection.getRootDirectory()
-                    );
                 }
 
                 return collection;
