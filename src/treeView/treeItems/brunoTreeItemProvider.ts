@@ -7,17 +7,19 @@ import { BrunoTreeItem } from "./brunoTreeItem";
 import { TreeItemRegistry } from "./treeItemRegistry";
 import { FileChangeType } from "../../shared/fileSystem/fileChangesDefinitions";
 import { CollectionWatcher } from "../../shared/fileSystem/collectionWatcher";
+import { CollectionItemProvider } from "../../shared/state/collectionItemProvider";
 
 export class BrunoTreeItemProvider
     implements vscode.TreeDataProvider<BrunoTreeItem>
 {
     constructor(
         private workspaceRoot: string,
-        collectionWatcher: CollectionWatcher
+        collectionWatcher: CollectionWatcher,
+        collectionItemProvider: CollectionItemProvider
     ) {
         this.itemRegistry = new TreeItemRegistry(collectionWatcher);
 
-        collectionWatcher.subscribeToUpdates()(({ uri, changeType }) => {
+        collectionItemProvider.subscribeToUpdates()(({ uri, changeType }) => {
             const maybeRegisteredItem = this.itemRegistry.getItem(uri.fsPath);
 
             if (

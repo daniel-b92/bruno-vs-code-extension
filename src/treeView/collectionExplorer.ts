@@ -17,6 +17,7 @@ import { getSequence } from "../shared/fileSystem/testFileParsing/testFileParser
 import { CollectionWatcher } from "../shared/fileSystem/collectionWatcher";
 import { getSequencesForRequests } from "../shared/fileSystem/testFileParsing/getSequencesForRequests";
 import { getMaxSequenceForRequests } from "../shared/fileSystem/testFileParsing/getMaxSequenceForRequests";
+import { CollectionItemProvider } from "../shared/state/collectionItemProvider";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>
@@ -26,6 +27,7 @@ export class CollectionExplorer
 
     constructor(
         collectionWatcher: CollectionWatcher,
+        itemProvider: CollectionItemProvider,
         startTestRunEmitter: vscode.EventEmitter<vscode.Uri>
     ) {
         if (
@@ -38,7 +40,8 @@ export class CollectionExplorer
         }
         const treeDataProvider = new BrunoTreeItemProvider(
             vscode.workspace.workspaceFolders[0].uri.fsPath,
-            collectionWatcher
+            collectionWatcher,
+            itemProvider
         );
 
         vscode.window.createTreeView("brunoCollectionsView", {
@@ -161,7 +164,7 @@ export class CollectionExplorer
                 const picked = await vscode.window.showInformationMessage(
                     `Delete '${item.label}'?`,
                     { modal: true },
-                    confirmationOption,
+                    confirmationOption
                 );
 
                 if (picked == confirmationOption) {

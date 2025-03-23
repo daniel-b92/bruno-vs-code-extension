@@ -1,4 +1,4 @@
-import { lstatSync } from "fs";
+import { lstatSync, readdirSync } from "fs";
 import * as vscode from "vscode";
 import { getSequence } from "../fileSystem/testFileParsing/testFileParser";
 import {
@@ -10,6 +10,9 @@ import { CollectionRegistry } from "./collectionRegistry";
 import { normalizeDirectoryPath } from "../fileSystem/util/normalizeDirectoryPath";
 import { CollectionFile } from "./model/collectionFile";
 import { CollectionDirectory } from "./model/collectionDirectory";
+import { getAllCollectionRootDirectories } from "../fileSystem/util/collectionRootFolderHelper";
+import { Collection } from "./model/collection";
+import { resolve } from "path";
 
 export class CollectionItemProvider {
     constructor(collectionWatcher: CollectionWatcher) {
@@ -76,5 +79,57 @@ export class CollectionItemProvider {
 
     public subscribeToUpdates() {
         return this.itemUpdateEmitter.event;
+    }
+
+    public async registerAllCollectionsAndTheirItems() {
+        const allCollections = await this.registerAllExistingCollections();
+
+        for (const collection of allCollections) {
+            const currentPaths = [collection.getRootDirectory()];
+
+            while (currentPaths.length > 0) {
+                const currentPath = currentPaths.splice(0, 1)[0];
+
+                for (const childItem of readdirSync(currentPath)) {
+                    const path = resolve(currentPath, childItem);
+                    const isDirectory = lstatSync(path).isDirectory();
+
+                    collection.addTestItem(
+                        isDirectory
+                            ? new CollectionDirectory(path)
+                            : new CollectionFile(path, getSequence(path))
+                    );
+
+                    if (isDirectory) {
+                        currentPaths.push(path);
+                    }
+                }
+            }
+        }
+    }
+
+    private async registerAllExistingCollections() {
+        return await Promise.all(
+            (
+                await getAllCollectionRootDirectories()
+            ).map(async (rootDirectory) => {
+                const collection = new Collection(rootDirectory);
+
+                if (
+                    !this.collectionRegistry
+                        .getRegisteredCollections()
+                        .some(
+                            (registered) =>
+                                normalizeDirectoryPath(
+                                    registered.getRootDirectory()
+                                ) == normalizeDirectoryPath(rootDirectory)
+                        )
+                ) {
+                    this.collectionRegistry.registerCollection(collection);
+                }
+
+                return collection;
+            })
+        );
     }
 }
