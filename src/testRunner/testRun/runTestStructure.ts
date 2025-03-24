@@ -273,17 +273,17 @@ const getTestMessageForFailedTest = (
     const dividerAndLinebreak = `---------------------------------------------${linebreak}`;
 
     return new TestMessage(
-        `testResults:${linebreak}${formattedTestResults}${linebreak}${dividerAndLinebreak}`
-            .concat(
-                `assertionResults:${linebreak}${formattedAssertionResults}${linebreak}${dividerAndLinebreak}`
-            )
-            .concat(
-                error ? `error: ${error}${linebreak}${dividerAndLinebreak}` : ""
-            )
-            .concat(
-                `request:${linebreak}${formattedRequest}${linebreak}${dividerAndLinebreak}`
-            )
-            .concat(`response:${linebreak}${formattedResponse}`)
+        (testResults.length > 0
+            ? `${dividerAndLinebreak}testResults:${linebreak}${formattedTestResults}${linebreak}${dividerAndLinebreak}`
+            : ""
+        ).concat(
+            assertionResults.length > 0
+                ? `assertionResults:${linebreak}${formattedAssertionResults}${linebreak}${dividerAndLinebreak}`
+                : "",
+            error ? `error: ${error}${linebreak}${dividerAndLinebreak}` : "",
+            `request:${linebreak}${formattedRequest}${linebreak}${dividerAndLinebreak}`,
+            `response:${linebreak}${formattedResponse}${linebreak}${dividerAndLinebreak}`
+        )
     );
 };
 
