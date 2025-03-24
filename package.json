@@ -11,7 +11,9 @@
         "vscode": "^1.98.0"
     },
     "categories": [
-        "Other"
+        "Testing",
+        "Snippets",
+        "Programming Languages"
     ],
     "activationEvents": [
         "workspaceContains:**/*.bru"
