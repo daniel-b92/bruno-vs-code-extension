@@ -1,24 +1,39 @@
+import { BrunoTreeItem } from "./brunoTreeItem";
 import { normalizeDirectoryPath } from "../../fileSystem/util/normalizeDirectoryPath";
 import { CollectionDirectory } from "./collectionDirectory";
 import { CollectionFile } from "./collectionFile";
+import { CollectionData } from "./interfaces";
 
 export class Collection {
     constructor(private rootDirectory: string) {
-        this.testData.push(new CollectionDirectory(rootDirectory));
+        this.testData.push({
+            item: new CollectionDirectory(rootDirectory),
+            treeItem: new BrunoTreeItem(rootDirectory, false),
+        });
     }
 
-    private testData: (CollectionDirectory | CollectionFile)[] = [];
+    private testData: CollectionData[] = [];
 
     public getRootDirectory() {
         return this.rootDirectory;
     }
 
-    public getTestItemForPath(path: string) {
-        return this.testData.find((item) => item.getPath() == path);
+    public getStoredDataForPath(path: string) {
+        return this.testData.find(({ item }) => item.getPath() == path);
     }
 
     public addTestItem(item: CollectionDirectory | CollectionFile) {
-        this.testData.push(item);
+        const data = {
+            item,
+            treeItem: new BrunoTreeItem(
+                item.getPath(),
+                item instanceof CollectionFile,
+                item instanceof CollectionFile ? item.getSequence() : undefined
+            ),
+        };
+
+        this.testData.push(data);
+        return data;
     }
 
     public removeTestItemAndDescendants(
@@ -34,12 +49,13 @@ export class Collection {
         }
 
         if (item instanceof CollectionDirectory) {
-            const descendantsToRemove = this.testData.filter((registered) =>
-                registered
-                    .getPath()
-                    .startsWith(normalizeDirectoryPath(item.getPath()))
+            const descendantsToRemove = this.testData.filter(
+                ({ item: registered }) =>
+                    registered
+                        .getPath()
+                        .startsWith(normalizeDirectoryPath(item.getPath()))
             );
-            for (const toRemove of descendantsToRemove) {
+            for (const { item: toRemove } of descendantsToRemove) {
                 this.removeTestItemIfRegistered(toRemove);
             }
         }
@@ -49,7 +65,7 @@ export class Collection {
         item: CollectionDirectory | CollectionFile
     ) {
         const itemIndex = this.testData.findIndex(
-            (registered) =>
+            ({ item: registered }) =>
                 normalizeDirectoryPath(registered.getPath()) ==
                 normalizeDirectoryPath(item.getPath())
         );

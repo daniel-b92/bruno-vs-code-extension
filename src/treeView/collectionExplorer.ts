@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { BrunoTreeItemProvider } from "./treeItems/brunoTreeItemProvider";
-import { BrunoTreeItem } from "./treeItems/brunoTreeItem";
+import { BrunoTreeItemProvider } from "./brunoTreeItemProvider";
+import { BrunoTreeItem } from "../shared/state/model/brunoTreeItem";
 import {
     copyFileSync,
     cpSync,

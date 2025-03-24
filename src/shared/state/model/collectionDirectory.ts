@@ -1,4 +1,4 @@
-import { CollectionItem } from "./collectionItemInterface";
+import { CollectionItem } from "./interfaces";
 
 export class CollectionDirectory implements CollectionItem {
     constructor(private path: string) {}

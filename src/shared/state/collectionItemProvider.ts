@@ -10,14 +10,14 @@ import { CollectionDirectory } from "./model/collectionDirectory";
 import { getAllCollectionRootDirectories } from "../fileSystem/util/collectionRootFolderHelper";
 import { Collection } from "./model/collection";
 import { resolve } from "path";
-import { CollectionItem } from "./model/collectionItemInterface";
+import { CollectionData } from "./model/interfaces";
 
 export class CollectionItemProvider {
     constructor(collectionWatcher: CollectionWatcher) {
         this.collectionRegistry = new CollectionRegistry(collectionWatcher);
         this.itemUpdateEmitter = new vscode.EventEmitter<{
             collection: Collection;
-            item: CollectionItem;
+            data: CollectionData;
             updateType: FileChangeType;
             changedData?: { sequence?: number };
         }>();
@@ -53,60 +53,60 @@ export class CollectionItemProvider {
                     if (registeredCollection) {
                         this.itemUpdateEmitter.fire({
                             collection: registeredCollection,
-                            item: registeredCollection.getTestItemForPath(
+                            data: registeredCollection.getStoredDataForPath(
                                 registeredCollection.getRootDirectory()
-                            ) as CollectionItem,
+                            ) as CollectionData,
                             updateType: FileChangeType.Deleted,
                         });
                     }
                     return;
                 }
 
-                const maybeRegisteredItem =
-                    registeredCollection.getTestItemForPath(uri.fsPath);
+                const maybeRegisteredItems =
+                    registeredCollection.getStoredDataForPath(uri.fsPath);
 
                 if (
-                    !maybeRegisteredItem &&
+                    !maybeRegisteredItems &&
                     fileChangeType == FileChangeType.Created
                 ) {
-                    const item = lstatSync(uri.fsPath).isDirectory()
-                        ? new CollectionDirectory(uri.fsPath)
-                        : new CollectionFile(
-                              uri.fsPath,
-                              getSequence(uri.fsPath)
-                          );
-
-                    registeredCollection.addTestItem(item);
+                    const item: CollectionFile | CollectionDirectory =
+                        lstatSync(uri.fsPath).isDirectory()
+                            ? new CollectionDirectory(uri.fsPath)
+                            : new CollectionFile(
+                                  uri.fsPath,
+                                  getSequence(uri.fsPath)
+                              );
 
                     this.itemUpdateEmitter.fire({
                         collection: registeredCollection,
-                        item,
+                        data: registeredCollection.addTestItem(item),
                         updateType: FileChangeType.Created,
                     });
+                    return;
                 }
 
                 if (
-                    maybeRegisteredItem &&
+                    maybeRegisteredItems &&
                     fileChangeType == FileChangeType.Deleted
                 ) {
                     registeredCollection.removeTestItemAndDescendants(
-                        maybeRegisteredItem
+                        maybeRegisteredItems.item
                     );
                     this.itemUpdateEmitter.fire({
                         collection: registeredCollection,
-                        item: maybeRegisteredItem,
+                        data: maybeRegisteredItems,
                         updateType: FileChangeType.Deleted,
                     });
                 } else if (
-                    maybeRegisteredItem &&
+                    maybeRegisteredItems &&
                     fileChangeType == FileChangeType.Modified &&
-                    maybeRegisteredItem instanceof CollectionFile
+                    maybeRegisteredItems instanceof CollectionFile
                 ) {
                     const newSequence = getSequence(uri.fsPath);
 
-                    if (maybeRegisteredItem.getSequence() != newSequence) {
+                    if (maybeRegisteredItems.getSequence() != newSequence) {
                         registeredCollection.removeTestItemAndDescendants(
-                            maybeRegisteredItem
+                            maybeRegisteredItems
                         );
 
                         registeredCollection.addTestItem(
@@ -115,7 +115,7 @@ export class CollectionItemProvider {
 
                         this.itemUpdateEmitter.fire({
                             collection: registeredCollection,
-                            item: maybeRegisteredItem,
+                            data: maybeRegisteredItems,
                             updateType: FileChangeType.Modified,
                             changedData: { sequence: newSequence },
                         });
@@ -128,13 +128,13 @@ export class CollectionItemProvider {
     private collectionRegistry: CollectionRegistry;
     private itemUpdateEmitter: vscode.EventEmitter<{
         collection: Collection;
-        item: CollectionItem;
+        data: CollectionData;
         updateType: FileChangeType;
         changedData?: { sequence?: number };
     }>;
 
     public subscribeToUpdates() {
-        return this.itemUpdateEmitter;
+        return this.itemUpdateEmitter.event;
     }
 
     public getRegisteredCollections() {
@@ -156,7 +156,7 @@ export class CollectionItemProvider {
             );
         }
 
-        return collection.getTestItemForPath(itemPath);
+        return collection.getStoredDataForPath(itemPath);
     }
 
     public getRegisteredCollectionForItem(itemPath: string) {

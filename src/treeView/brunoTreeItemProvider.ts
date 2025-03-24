@@ -1,12 +1,11 @@
 import { lstatSync, readdirSync } from "fs";
 import { dirname, resolve } from "path";
 import * as vscode from "vscode";
-import { getSequence } from "../../shared/fileSystem/testFileParsing/testFileParser";
-import { BrunoTreeItem } from "./brunoTreeItem";
-import { CollectionItemProvider } from "../../shared/state/collectionItemProvider";
-import { CollectionItem } from "../../shared/state/model/collectionItemInterface";
-import { CollectionFile } from "../../shared/state/model/collectionFile";
-import { FileChangeType } from "../../shared/fileSystem/fileChangesDefinitions";
+import { getSequence } from "../shared/fileSystem/testFileParsing/testFileParser";
+import { BrunoTreeItem } from "../shared/state/model/brunoTreeItem";
+import { CollectionItemProvider } from "../shared/state/collectionItemProvider";
+import { CollectionData } from "../shared/state/model/interfaces";
+import { FileChangeType } from "../shared/fileSystem/fileChangesDefinitions";
 
 export class BrunoTreeItemProvider
     implements vscode.TreeDataProvider<BrunoTreeItem>
@@ -15,9 +14,8 @@ export class BrunoTreeItemProvider
         private workspaceRoot: string,
         private collectionItemProvider: CollectionItemProvider
     ) {
-        collectionItemProvider
-            .subscribeToUpdates()
-            .event(({ collection, item, updateType, changedData }) => {
+        collectionItemProvider.subscribeToUpdates()(
+            ({ collection, data: { item }, updateType, changedData }) => {
                 if (
                     updateType == FileChangeType.Deleted ||
                     (updateType == FileChangeType.Modified &&
@@ -29,22 +27,21 @@ export class BrunoTreeItemProvider
                     this._onDidChangeTreeData.fire(undefined);
                 } else if (updateType == FileChangeType.Created) {
                     // Registration of the new item occurs in the `getTreeItem` or `getChildren` function
-                    const maybeParentItem =
+                    const maybeParent =
                         collectionItemProvider.getRegisteredItem(
                             collection,
                             dirname(item.getPath())
                         );
 
-                    if (maybeParentItem) {
-                        this._onDidChangeTreeData.fire(
-                            this.mapCollectionItemToTreeItem(maybeParentItem)
-                        );
+                    if (maybeParent) {
+                        this._onDidChangeTreeData.fire(maybeParent.treeItem);
                     } else {
                         // If no parent item was found, trigger update for all items (e.g. if item is collection root directory).
                         this._onDidChangeTreeData.fire(undefined);
                     }
                 }
-            });
+            }
+        );
     }
 
     async getTreeItem(element: BrunoTreeItem): Promise<vscode.TreeItem> {
@@ -59,9 +56,7 @@ export class BrunoTreeItemProvider
             dirname(element.getPath())
         );
 
-        return registeredParent
-            ? this.mapCollectionItemToTreeItem(registeredParent)
-            : undefined;
+        return registeredParent ? registeredParent.treeItem : undefined;
     }
 
     public async refresh() {
@@ -80,12 +75,13 @@ export class BrunoTreeItemProvider
         if (!element) {
             return this.collectionItemProvider
                 .getRegisteredCollections()
-                .map((collection) =>
-                    this.mapCollectionItemToTreeItem(
-                        collection.getTestItemForPath(
-                            collection.getRootDirectory()
-                        ) as CollectionItem
-                    )
+                .map(
+                    (collection) =>
+                        (
+                            collection.getStoredDataForPath(
+                                collection.getRootDirectory()
+                            ) as CollectionData
+                        ).treeItem
                 )
                 .sort((a, b) =>
                     (a.label as string) > (b.label as string) ? 1 : -1
@@ -99,17 +95,15 @@ export class BrunoTreeItemProvider
                             fullPath
                         );
 
-                    const maybeRegisteredItem = maybeCollection
+                    const maybeRegisteredData = maybeCollection
                         ? this.collectionItemProvider.getRegisteredItem(
                               maybeCollection,
                               fullPath
                           )
                         : undefined;
 
-                    if (maybeRegisteredItem) {
-                        return this.mapCollectionItemToTreeItem(
-                            maybeRegisteredItem
-                        );
+                    if (maybeRegisteredData) {
+                        return maybeRegisteredData.treeItem;
                     }
 
                     const item = lstatSync(fullPath).isFile()
@@ -136,16 +130,6 @@ export class BrunoTreeItemProvider
     > = new vscode.EventEmitter<BrunoTreeItem>();
     readonly onDidChangeTreeData: vscode.Event<BrunoTreeItem | undefined> =
         this._onDidChangeTreeData.event;
-
-    private mapCollectionItemToTreeItem(item: CollectionItem) {
-        const isFile = item instanceof CollectionFile;
-
-        return new BrunoTreeItem(
-            item.getPath(),
-            isFile,
-            isFile ? item.getSequence() : undefined
-        );
-    }
 
     private mapTreeItemToCollectionItem(item: BrunoTreeItem) {
         const collection =
