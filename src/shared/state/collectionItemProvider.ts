@@ -11,9 +11,13 @@ import { getAllCollectionRootDirectories } from "../fileSystem/util/collectionRo
 import { Collection } from "./model/collection";
 import { resolve } from "path";
 import { CollectionData } from "./model/interfaces";
+import { TestRunnerDataHelper } from "./testRunnerDataHelper";
 
 export class CollectionItemProvider {
-    constructor(collectionWatcher: CollectionWatcher) {
+    constructor(
+        collectionWatcher: CollectionWatcher,
+        private testRunnerDataHelper: TestRunnerDataHelper
+    ) {
         this.collectionRegistry = new CollectionRegistry(collectionWatcher);
         this.itemUpdateEmitter = new vscode.EventEmitter<{
             collection: Collection;
@@ -24,15 +28,8 @@ export class CollectionItemProvider {
 
         collectionWatcher.subscribeToUpdates()(
             ({ uri, changeType: fileChangeType }) => {
-                const registeredCollection = this.collectionRegistry
-                    .getRegisteredCollections()
-                    .find((collection) =>
-                        normalizeDirectoryPath(uri.fsPath).startsWith(
-                            normalizeDirectoryPath(
-                                collection.getRootDirectory()
-                            )
-                        )
-                    );
+                const registeredCollection =
+                    this.getRegisteredCollectionForItem(uri.fsPath);
 
                 if (!registeredCollection) {
                     return;
@@ -45,80 +42,35 @@ export class CollectionItemProvider {
                     );
 
                 if (isCollection && fileChangeType == FileChangeType.Deleted) {
-                    const registeredCollection =
-                        this.collectionRegistry.unregisterCollection(
-                            uri.fsPath
-                        );
-
-                    if (registeredCollection) {
-                        this.itemUpdateEmitter.fire({
-                            collection: registeredCollection,
-                            data: registeredCollection.getStoredDataForPath(
-                                registeredCollection.getRootDirectory()
-                            ) as CollectionData,
-                            updateType: FileChangeType.Deleted,
-                        });
-                    }
+                    this.handleCollectionDeletion(uri);
                     return;
                 }
 
-                const maybeRegisteredItems =
+                const maybeRegisteredData =
                     registeredCollection.getStoredDataForPath(uri.fsPath);
 
                 if (
-                    !maybeRegisteredItems &&
+                    !maybeRegisteredData &&
                     fileChangeType == FileChangeType.Created
                 ) {
-                    const item: CollectionFile | CollectionDirectory =
-                        lstatSync(uri.fsPath).isDirectory()
-                            ? new CollectionDirectory(uri.fsPath)
-                            : new CollectionFile(
-                                  uri.fsPath,
-                                  getSequence(uri.fsPath)
-                              );
-
-                    this.itemUpdateEmitter.fire({
-                        collection: registeredCollection,
-                        data: registeredCollection.addItem(item),
-                        updateType: FileChangeType.Created,
-                    });
+                    this.handleItemCreation(registeredCollection, uri.fsPath);
                     return;
-                }
-
-                if (
-                    maybeRegisteredItems &&
+                } else if (
+                    maybeRegisteredData &&
                     fileChangeType == FileChangeType.Deleted
                 ) {
-                    registeredCollection.removeTestItemAndDescendants(
-                        maybeRegisteredItems.item
+                    this.handleItemDeletion(
+                        registeredCollection,
+                        maybeRegisteredData
                     );
-                    this.itemUpdateEmitter.fire({
-                        collection: registeredCollection,
-                        data: maybeRegisteredItems,
-                        updateType: FileChangeType.Deleted,
-                    });
                 } else if (
-                    maybeRegisteredItems &&
-                    fileChangeType == FileChangeType.Modified &&
-                    maybeRegisteredItems.item instanceof CollectionFile
+                    maybeRegisteredData &&
+                    fileChangeType == FileChangeType.Modified
                 ) {
-                    const { item } = maybeRegisteredItems;
-                    const newSequence = getSequence(uri.fsPath);
-
-                    if (item.getSequence() != newSequence) {
-                        registeredCollection.removeTestItemAndDescendants(item);
-
-                        registeredCollection.addItem(
-                            new CollectionFile(uri.fsPath, newSequence)
-                        );
-
-                        this.itemUpdateEmitter.fire({
-                            collection: registeredCollection,
-                            data: maybeRegisteredItems,
-                            updateType: FileChangeType.Modified,
-                            changedData: { sequence: newSequence },
-                        });
-                    }
+                    this.handleModificationOfRegisteredItem(
+                        registeredCollection,
+                        maybeRegisteredData
+                    );
                 }
             }
         );
@@ -216,5 +168,75 @@ export class CollectionItemProvider {
                 return collection;
             }
         );
+    }
+
+    private handleCollectionDeletion(collectionUri: vscode.Uri) {
+        const registeredCollection =
+            this.collectionRegistry.unregisterCollection(collectionUri.fsPath);
+
+        if (registeredCollection) {
+            this.itemUpdateEmitter.fire({
+                collection: registeredCollection,
+                data: registeredCollection.getStoredDataForPath(
+                    registeredCollection.getRootDirectory()
+                ) as CollectionData,
+                updateType: FileChangeType.Deleted,
+            });
+        }
+    }
+
+    private handleItemCreation(
+        registeredCollection: Collection,
+        itemPath: string
+    ) {
+        const item: CollectionFile | CollectionDirectory = lstatSync(
+            itemPath
+        ).isDirectory()
+            ? new CollectionDirectory(itemPath)
+            : new CollectionFile(itemPath, getSequence(itemPath));
+
+        this.itemUpdateEmitter.fire({
+            collection: registeredCollection,
+            data: registeredCollection.addItem(item),
+            updateType: FileChangeType.Created,
+        });
+    }
+
+    private handleItemDeletion(
+        registeredCollectionForItem: Collection,
+        data: CollectionData
+    ) {
+        registeredCollectionForItem.removeTestItemAndDescendants(data.item);
+        this.itemUpdateEmitter.fire({
+            collection: registeredCollectionForItem,
+            data,
+            updateType: FileChangeType.Deleted,
+        });
+    }
+
+    private handleModificationOfRegisteredItem(
+        registeredCollectionForItem: Collection,
+        collectionData: CollectionData
+    ) {
+        const { item } = collectionData;
+        const newSequence = getSequence(item.getPath());
+
+        if (
+            item instanceof CollectionFile &&
+            item.getSequence() != newSequence
+        ) {
+            registeredCollectionForItem.removeTestItemAndDescendants(item);
+
+            registeredCollectionForItem.addItem(
+                new CollectionFile(item.getPath(), newSequence)
+            );
+
+            this.itemUpdateEmitter.fire({
+                collection: registeredCollectionForItem,
+                data: collectionData,
+                updateType: FileChangeType.Modified,
+                changedData: { sequence: newSequence },
+            });
+        }
     }
 }

@@ -5,6 +5,7 @@ import { FileChangedEvent } from "./shared/fileSystem/fileChangesDefinitions";
 import { CollectionWatcher } from "./shared/fileSystem/collectionWatcher";
 import { activateLanguageFeatures } from "./languageFeatures/activateLanguageFeatures";
 import { CollectionItemProvider } from "./shared/state/collectionItemProvider";
+import { TestRunnerDataHelper } from "./shared/state/testRunnerDataHelper";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
@@ -19,7 +20,8 @@ export async function activate(context: ExtensionContext) {
         fileChangedEmitter
     );
     const collectionItemProvider = new CollectionItemProvider(
-        collectionWatcher
+        collectionWatcher,
+        new TestRunnerDataHelper(ctrl)
     );
     await collectionItemProvider.registerMissingCollectionsAndTheirItems();
 

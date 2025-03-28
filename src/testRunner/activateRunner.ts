@@ -34,7 +34,7 @@ export async function activateRunner(
     const collectionRegistry = new CollectionRegistry(ctrl, collectionWatcher);
     const queue = new TestRunQueue(ctrl);
 
-    await addMissingTestCollectionsToTestTree(collectionItemProvider);
+    await addMissingTestCollectionsAndItemsToTestTree(collectionItemProvider);
 
     collectionWatcher.subscribeToUpdates()(async ({ uri }) => {
         if (watchingTests.has("ALL")) {
@@ -117,10 +117,8 @@ export async function activateRunner(
                 collectionRegistry.unregisterCollection(collection);
             }
         });
-        await addMissingTestCollectionsToTestTree(collectionItemProvider);
-        await addAllTestItemsForCollections(
-            ctrl,
-            collectionRegistry.getCurrentCollections()
+        await addMissingTestCollectionsAndItemsToTestTree(
+            collectionItemProvider
         );
     };
 
@@ -185,7 +183,7 @@ export async function activateRunner(
     });
 }
 
-async function addMissingTestCollectionsToTestTree(
+async function addMissingTestCollectionsAndItemsToTestTree(
     collectionItemProvider: CollectionItemProvider
 ) {
     await collectionItemProvider.registerMissingCollectionsAndTheirItems();
