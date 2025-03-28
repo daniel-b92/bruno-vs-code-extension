@@ -21,11 +21,16 @@ export async function activate(context: ExtensionContext) {
     const collectionItemProvider = new CollectionItemProvider(
         collectionWatcher
     );
-    await collectionItemProvider.registerAllCollectionsAndTheirItems();
+    await collectionItemProvider.registerMissingCollectionsAndTheirItems();
 
     const startTestRunEmitter = new EventEmitter<Uri>();
 
-    await activateRunner(ctrl, collectionWatcher, startTestRunEmitter.event);
+    await activateRunner(
+        ctrl,
+        collectionWatcher,
+        collectionItemProvider,
+        startTestRunEmitter.event
+    );
     activateTreeView(collectionItemProvider, startTestRunEmitter);
     activateLanguageFeatures(context);
 }

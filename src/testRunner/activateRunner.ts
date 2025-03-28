@@ -9,8 +9,6 @@ import {
     Uri,
     window,
 } from "vscode";
-import { addTestCollectionToTestTree } from "../testRunner/vsCodeTestTree/testItemAdding/addTestCollection";
-import { getAllCollectionRootDirectories } from "../shared/fileSystem/util/collectionRootFolderHelper";
 import { getCollectionForTest } from "../testRunner/vsCodeTestTree/utils/testTreeHelper";
 import { addAllTestItemsForCollections } from "../testRunner/vsCodeTestTree/testItemAdding/addAllTestItemsForCollections";
 import { startTestRun } from "../testRunner/testRun/startTestRun";
@@ -21,10 +19,12 @@ import { TestDirectory } from "../testRunner/testData/testDirectory";
 import { addTestDirectoryAndAllDescendants } from "../testRunner/vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
 import { TestRunQueue } from "../testRunner/testRun/testRunQueue";
 import { CollectionWatcher } from "../shared/fileSystem/collectionWatcher";
+import { CollectionItemProvider } from "../shared/state/collectionItemProvider";
 
 export async function activateRunner(
     ctrl: TestController,
     collectionWatcher: CollectionWatcher,
+    collectionItemProvider: CollectionItemProvider,
     startTestRunEvent: VscodeEvent<Uri>
 ) {
     const watchingTests = new Map<
@@ -34,7 +34,7 @@ export async function activateRunner(
     const collectionRegistry = new CollectionRegistry(ctrl, collectionWatcher);
     const queue = new TestRunQueue(ctrl);
 
-    await addMissingTestCollectionsToTestTree(ctrl, collectionRegistry);
+    await addMissingTestCollectionsToTestTree(collectionItemProvider);
 
     collectionWatcher.subscribeToUpdates()(async ({ uri }) => {
         if (watchingTests.has("ALL")) {
@@ -117,7 +117,7 @@ export async function activateRunner(
                 collectionRegistry.unregisterCollection(collection);
             }
         });
-        await addMissingTestCollectionsToTestTree(ctrl, collectionRegistry);
+        await addMissingTestCollectionsToTestTree(collectionItemProvider);
         await addAllTestItemsForCollections(
             ctrl,
             collectionRegistry.getCurrentCollections()
@@ -186,21 +186,7 @@ export async function activateRunner(
 }
 
 async function addMissingTestCollectionsToTestTree(
-    controller: TestController,
-    collectionRegistry: CollectionRegistry
+    collectionItemProvider: CollectionItemProvider
 ) {
-    const collectionRootDirs = await getAllCollectionRootDirectories();
-
-    collectionRootDirs
-        .filter(
-            (dir) =>
-                !collectionRegistry
-                    .getCurrentCollections()
-                    .some((collection) => collection.rootDirectory == dir)
-        )
-        .forEach((toAdd) =>
-            collectionRegistry.registerCollection(
-                addTestCollectionToTestTree(controller, toAdd)
-            )
-        );
+    await collectionItemProvider.registerMissingCollectionsAndTheirItems();
 }

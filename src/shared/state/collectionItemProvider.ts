@@ -79,7 +79,7 @@ export class CollectionItemProvider {
 
                     this.itemUpdateEmitter.fire({
                         collection: registeredCollection,
-                        data: registeredCollection.addTestItem(item),
+                        data: registeredCollection.addItem(item),
                         updateType: FileChangeType.Created,
                     });
                     return;
@@ -108,7 +108,7 @@ export class CollectionItemProvider {
                     if (item.getSequence() != newSequence) {
                         registeredCollection.removeTestItemAndDescendants(item);
 
-                        registeredCollection.addTestItem(
+                        registeredCollection.addItem(
                             new CollectionFile(uri.fsPath, newSequence)
                         );
 
@@ -166,7 +166,7 @@ export class CollectionItemProvider {
         );
     }
 
-    public async registerAllCollectionsAndTheirItems() {
+    public async registerMissingCollectionsAndTheirItems() {
         const allCollections = await this.registerAllExistingCollections();
 
         for (const collection of allCollections) {
@@ -179,11 +179,13 @@ export class CollectionItemProvider {
                     const path = resolve(currentPath, childItem);
                     const isDirectory = lstatSync(path).isDirectory();
 
-                    collection.addTestItem(
-                        isDirectory
-                            ? new CollectionDirectory(path)
-                            : new CollectionFile(path, getSequence(path))
-                    );
+                    if (!collection.getStoredDataForPath(path)) {
+                        collection.addItem(
+                            isDirectory
+                                ? new CollectionDirectory(path)
+                                : new CollectionFile(path, getSequence(path))
+                        );
+                    }
 
                     if (isDirectory) {
                         currentPaths.push(path);

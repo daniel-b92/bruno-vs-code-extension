@@ -22,7 +22,7 @@ export class Collection {
         return this.testData.find(({ item }) => item.getPath() == path);
     }
 
-    public addTestItem(item: CollectionDirectory | CollectionFile) {
+    public addItem(item: CollectionDirectory | CollectionFile) {
         const data = {
             item,
             treeItem: new BrunoTreeItem(

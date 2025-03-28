@@ -60,7 +60,7 @@ export class BrunoTreeItemProvider
     }
 
     public async refresh() {
-        await this.collectionItemProvider.registerAllCollectionsAndTheirItems();
+        await this.collectionItemProvider.registerMissingCollectionsAndTheirItems();
         this._onDidChangeTreeData.fire(undefined);
     }
 
