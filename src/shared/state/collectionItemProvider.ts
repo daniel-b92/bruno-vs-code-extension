@@ -100,14 +100,13 @@ export class CollectionItemProvider {
                 } else if (
                     maybeRegisteredItems &&
                     fileChangeType == FileChangeType.Modified &&
-                    maybeRegisteredItems instanceof CollectionFile
+                    maybeRegisteredItems.item instanceof CollectionFile
                 ) {
+                    const { item } = maybeRegisteredItems;
                     const newSequence = getSequence(uri.fsPath);
 
-                    if (maybeRegisteredItems.getSequence() != newSequence) {
-                        registeredCollection.removeTestItemAndDescendants(
-                            maybeRegisteredItems
-                        );
+                    if (item.getSequence() != newSequence) {
+                        registeredCollection.removeTestItemAndDescendants(item);
 
                         registeredCollection.addTestItem(
                             new CollectionFile(uri.fsPath, newSequence)
