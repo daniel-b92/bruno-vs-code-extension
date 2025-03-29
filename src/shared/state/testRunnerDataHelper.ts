@@ -18,38 +18,27 @@ interface PathWithChildren {
 export class TestRunnerDataHelper {
     constructor(private testController: vscode.TestController) {}
 
-    public createVsCodeTestItem = (
-        collection: Collection,
-        item: CollectionItem
-    ) => {
+    public createVsCodeTestItem = (item: CollectionItem) => {
         const getSortText = (file: CollectionFile) =>
             file.getSequence()
                 ? new Array((file.getSequence() as number) + 1).join("a")
                 : undefined;
 
         const uri = vscode.Uri.file(item.getPath());
-        const vsCodeItem = this.testController.createTestItem(
+        const testItem = this.testController.createTestItem(
             getTestId(uri),
             getTestLabel(uri),
             uri
         );
 
         if (item instanceof CollectionFile) {
-            vsCodeItem.canResolveChildren = false;
-            vsCodeItem.sortText = getSortText(item);
+            testItem.canResolveChildren = false;
+            testItem.sortText = getSortText(item);
         } else {
-            vsCodeItem.canResolveChildren = true;
+            testItem.canResolveChildren = true;
         }
 
-        const maybeRegisteredParent = collection.getStoredDataForPath(
-            dirname((vsCodeItem.uri as vscode.Uri).fsPath)
-        );
-
-        if (maybeRegisteredParent && maybeRegisteredParent.testItem) {
-            maybeRegisteredParent.testItem.children.add(vsCodeItem);
-        }
-
-        return vsCodeItem;
+        return testItem;
     };
 
     public addTestTreeItemsForCollection(collection: Collection) {
@@ -62,8 +51,9 @@ export class TestRunnerDataHelper {
         const relevantFiles = this.getRelevantFilesForTestTree(collection);
 
         const testFileItems = relevantFiles.map((data) => {
-            const testItem = this.createVsCodeTestItem(collection, data.item);
+            const testItem = this.createVsCodeTestItem(data.item);
             data.testItem = testItem;
+            this.addTestItemToTestTree(collection, testItem);
             return testItem;
         });
 
@@ -90,13 +80,11 @@ export class TestRunnerDataHelper {
 
                 const testItem: vscode.TestItem = registeredItem.testItem
                     ? registeredItem.testItem
-                    : this.createVsCodeTestItem(
-                          collection,
-                          registeredItem.item
-                      );
+                    : this.createVsCodeTestItem(registeredItem.item);
 
                 if (!registeredItem.testItem) {
                     registeredItem.testItem = testItem;
+                    this.addTestItemToTestTree(collection, testItem);
                 }
 
                 childItems.forEach((childItem) =>
@@ -110,6 +98,21 @@ export class TestRunnerDataHelper {
                 currentTestItems,
                 collectionDirectoryItem
             );
+        }
+    }
+
+    private addTestItemToTestTree(
+        collection: Collection,
+        testItem: vscode.TestItem
+    ) {
+        this.testController.items.add(testItem);
+
+        const maybeRegisteredParent = collection.getStoredDataForPath(
+            dirname((testItem.uri as vscode.Uri).fsPath)
+        );
+
+        if (maybeRegisteredParent && maybeRegisteredParent.testItem) {
+            maybeRegisteredParent.testItem.children.add(testItem);
         }
     }
 

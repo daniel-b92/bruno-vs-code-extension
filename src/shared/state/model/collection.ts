@@ -40,7 +40,7 @@ export class Collection {
                 item instanceof CollectionFile ? item.getSequence() : undefined
             ),
             testItem: withTestTreeItem
-                ? testRunnerDataHelper.createVsCodeTestItem(this, item)
+                ? testRunnerDataHelper.createVsCodeTestItem(item)
                 : undefined,
         };
 
