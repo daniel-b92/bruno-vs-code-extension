@@ -29,7 +29,6 @@ export async function activate(context: ExtensionContext) {
 
     await activateRunner(
         ctrl,
-        collectionWatcher,
         collectionItemProvider,
         startTestRunEmitter.event
     );

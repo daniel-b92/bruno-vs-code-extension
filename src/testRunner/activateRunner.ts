@@ -11,12 +11,11 @@ import {
 } from "vscode";
 import { startTestRun } from "../testRunner/testRun/startTestRun";
 import { TestRunQueue } from "../testRunner/testRun/testRunQueue";
-import { CollectionWatcher } from "../shared/fileSystem/collectionWatcher";
 import { CollectionItemProvider } from "../shared/state/collectionItemProvider";
+import { handleTestTreeUpdates } from "./vsCodeTestTree/utils/handleTestTreeUpdates";
 
 export async function activateRunner(
     ctrl: TestController,
-    collectionWatcher: CollectionWatcher,
     collectionItemProvider: CollectionItemProvider,
     startTestRunEvent: VscodeEvent<Uri>
 ) {
@@ -27,47 +26,52 @@ export async function activateRunner(
     const queue = new TestRunQueue(ctrl);
 
     await addMissingTestCollectionsAndItemsToTestTree(collectionItemProvider);
+    handleTestTreeUpdates(ctrl, collectionItemProvider);
 
-    collectionWatcher.subscribeToUpdates()(async ({ uri }) => {
-        if (watchingTests.has("ALL")) {
-            await startTestRun(
-                ctrl,
-                new TestRunRequest(
-                    undefined,
-                    undefined,
-                    watchingTests.get("ALL"),
-                    true
-                ),
-                collectionItemProvider,
-                queue
-            );
-            return;
-        }
+    collectionItemProvider.subscribeToUpdates()(
+        async ({ data: { item: changedItem } }) => {
+            if (watchingTests.has("ALL")) {
+                await startTestRun(
+                    ctrl,
+                    new TestRunRequest(
+                        undefined,
+                        undefined,
+                        watchingTests.get("ALL"),
+                        true
+                    ),
+                    collectionItemProvider,
+                    queue
+                );
+                return;
+            }
 
-        const include: VscodeTestItem[] = [];
-        let profile: TestRunProfile | undefined;
+            const include: VscodeTestItem[] = [];
+            let profile: TestRunProfile | undefined;
 
-        for (const [item, thisProfile] of watchingTests) {
-            const cast = item as VscodeTestItem;
+            for (const [watchedItem, thisProfile] of watchingTests) {
+                const cast = watchedItem as VscodeTestItem;
 
-            // If the modified item is a descendant of a watched item, trigger a testrun for that watched item.
-            if (
-                cast.uri?.fsPath ? uri.fsPath.includes(cast.uri?.fsPath) : false
-            ) {
-                include.push(cast);
-                profile = thisProfile;
+                // If the modified item is a descendant of a watched item, trigger a testrun for that watched item.
+                if (
+                    cast.uri?.fsPath
+                        ? changedItem.getPath().includes(cast.uri.fsPath)
+                        : false
+                ) {
+                    include.push(cast);
+                    profile = thisProfile;
+                }
+            }
+
+            if (include.length) {
+                await startTestRun(
+                    ctrl,
+                    new TestRunRequest(include, undefined, profile, true),
+                    collectionItemProvider,
+                    queue
+                );
             }
         }
-
-        if (include.length) {
-            await startTestRun(
-                ctrl,
-                new TestRunRequest(include, undefined, profile, true),
-                collectionItemProvider,
-                queue
-            );
-        }
-    });
+    );
 
     const runHandler = async (
         request: TestRunRequest,
