@@ -145,6 +145,7 @@ export class CollectionItemProvider {
                     }
                 }
             }
+            this.testRunnerDataHelper.addTestTreeItemsForCollection(collection);
         }
     }
 

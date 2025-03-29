@@ -25,7 +25,14 @@ export async function activateRunner(
     >();
     const queue = new TestRunQueue(ctrl);
 
-    await addMissingTestCollectionsAndItemsToTestTree(collectionItemProvider);
+    collectionItemProvider.getRegisteredCollections().forEach((collection) => {
+        collection.getAllStoredDataForCollection().forEach(({ testItem }) => {
+            if (testItem) {
+                ctrl.items.add(testItem);
+            }
+        });
+    });
+
     handleTestTreeUpdates(ctrl, collectionItemProvider);
 
     collectionItemProvider.subscribeToUpdates()(

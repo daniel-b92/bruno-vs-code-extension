@@ -61,9 +61,12 @@ export class TestRunnerDataHelper {
 
         const relevantFiles = this.getRelevantFilesForTestTree(collection);
 
-        const testFileItems = relevantFiles.map(({ item }) =>
-            this.createVsCodeTestItem(collection, item)
-        );
+        const testFileItems = relevantFiles.map((data) => {
+            const testItem = this.createVsCodeTestItem(collection, data.item);
+            data.testItem = testItem;
+            return testItem;
+        });
+
         let currentPaths = this.switchToParentDirsContainingAncestorPath(
             relevantFiles.map(({ item }) => ({
                 path: item.getPath(),
@@ -91,6 +94,10 @@ export class TestRunnerDataHelper {
                           collection,
                           registeredItem.item
                       );
+
+                if (!registeredItem.testItem) {
+                    registeredItem.testItem = testItem;
+                }
 
                 childItems.forEach((childItem) =>
                     testItem.children.add(childItem)

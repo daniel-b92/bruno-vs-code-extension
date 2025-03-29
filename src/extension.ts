@@ -23,6 +23,7 @@ export async function activate(context: ExtensionContext) {
         collectionWatcher,
         new TestRunnerDataHelper(ctrl)
     );
+    
     await collectionItemProvider.registerMissingCollectionsAndTheirItems();
 
     const startTestRunEmitter = new EventEmitter<Uri>();
