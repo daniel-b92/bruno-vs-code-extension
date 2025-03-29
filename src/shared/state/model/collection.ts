@@ -4,7 +4,6 @@ import { CollectionDirectory } from "./collectionDirectory";
 import { CollectionFile } from "./collectionFile";
 import { CollectionData } from "./interfaces";
 import { TestRunnerDataHelper } from "../testRunnerDataHelper";
-import { dirname } from "path";
 
 export class Collection {
     constructor(private rootDirectory: string) {
@@ -41,21 +40,9 @@ export class Collection {
                 item instanceof CollectionFile ? item.getSequence() : undefined
             ),
             testItem: withTestTreeItem
-                ? testRunnerDataHelper.createVsCodeTestItem(item)
+                ? testRunnerDataHelper.createVsCodeTestItem(this, item)
                 : undefined,
         };
-
-        const maybeRegisteredParent = this.getStoredDataForPath(
-            dirname(item.getPath())
-        );
-
-        if (
-            data.testItem &&
-            maybeRegisteredParent &&
-            maybeRegisteredParent.testItem
-        ) {
-            maybeRegisteredParent.testItem.children.add(data.testItem);
-        }
 
         this.testData.push(data);
         return data;
