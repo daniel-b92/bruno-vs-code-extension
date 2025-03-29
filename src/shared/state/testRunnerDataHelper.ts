@@ -9,6 +9,7 @@ import { Collection } from "./model/collection";
 import { CollectionDirectory } from "./model/collectionDirectory";
 import { dirname, extname } from "path";
 import { lstatSync } from "fs";
+import { addTestItemToTestTree } from "../../testRunner/vsCodeTestTree/utils/addTestItemToTestTree";
 
 interface PathWithChildren {
     path: string;
@@ -53,7 +54,7 @@ export class TestRunnerDataHelper {
         const testFileItems = relevantFiles.map((data) => {
             const testItem = this.createVsCodeTestItem(data.item);
             data.testItem = testItem;
-            this.addTestItemToTestTree(collection, testItem);
+            addTestItemToTestTree(this.testController, collection, testItem);
             return testItem;
         });
 
@@ -84,7 +85,11 @@ export class TestRunnerDataHelper {
 
                 if (!registeredItem.testItem) {
                     registeredItem.testItem = testItem;
-                    this.addTestItemToTestTree(collection, testItem);
+                    addTestItemToTestTree(
+                        this.testController,
+                        collection,
+                        testItem
+                    );
                 }
 
                 childItems.forEach((childItem) =>
@@ -98,21 +103,6 @@ export class TestRunnerDataHelper {
                 currentTestItems,
                 collectionDirectoryItem
             );
-        }
-    }
-
-    private addTestItemToTestTree(
-        collection: Collection,
-        testItem: vscode.TestItem
-    ) {
-        this.testController.items.add(testItem);
-
-        const maybeRegisteredParent = collection.getStoredDataForPath(
-            dirname((testItem.uri as vscode.Uri).fsPath)
-        );
-
-        if (maybeRegisteredParent && maybeRegisteredParent.testItem) {
-            maybeRegisteredParent.testItem.children.add(testItem);
         }
     }
 
