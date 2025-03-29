@@ -1,17 +1,16 @@
 import { basename } from "path";
-import { BrunoTestData } from "../testData/testDataDefinitions";
 import {
     EventEmitter,
     TestController,
     TestRun,
     TestRunRequest,
+    Uri,
     TestItem as vscodeTestItem,
 } from "vscode";
 
 export interface QueuedTest {
     request: TestRunRequest;
     test: vscodeTestItem;
-    data: BrunoTestData;
     id: string;
     abortEmitter: EventEmitter<void>;
 }
@@ -103,7 +102,7 @@ export class TestRunQueue {
         const testToRun = this.getOldestItemFromQueue() as QueuedTest;
         this.activeRun = this.controller.createTestRun(
             testToRun.request,
-            basename(testToRun.data.path)
+            basename((testToRun.test.uri as Uri).fsPath)
         );
 
         for (const enqueued of this.queue.slice(1)) {

@@ -1,5 +1,3 @@
-import { TestCollection } from "../testData/testCollection";
-import { getCollectionForTest } from "../vsCodeTestTree/utils/testTreeHelper";
 import { showHtmlReport } from "./showHtmlReport";
 import { getCollectionRootDir } from "../../shared/fileSystem/util/collectionRootFolderHelper";
 import { existsSync } from "fs";
@@ -8,6 +6,7 @@ import {
     TestController,
     TestRun,
     TestRunRequest,
+    Uri,
     TestItem as vscodeTestItem,
     TestItemCollection as vscodeTestItemCollection,
     workspace,
@@ -15,14 +14,14 @@ import {
 import { dirname, resolve } from "path";
 import { runTestStructure } from "./runTestStructure";
 import { QueuedTest, TestRunQueue } from "./testRunQueue";
-import { BrunoTestData } from "../testData/testDataDefinitions";
+import { CollectionItemProvider } from "../../shared/state/collectionItemProvider";
 
 const environmentConfigKey = "brunoTestExtension.testRunEnvironment";
 
 export const startTestRun = async (
     ctrl: TestController,
     request: TestRunRequest,
-    registeredCollections: TestCollection[],
+    collectionItemProvider: CollectionItemProvider,
     queue: TestRunQueue
 ) => {
     const discoverTests = (tests: Iterable<vscodeTestItem>) => {
@@ -31,17 +30,26 @@ export const startTestRun = async (
             if (request.exclude?.includes(test)) {
                 continue;
             }
-            const collection = getCollectionForTest(
-                test.uri!,
-                registeredCollections
-            );
-            const data = collection.testData.get(test)!;
-            const id = getIdForQueuedRun(data, new Date());
+
+            const path = (test.uri as Uri).fsPath;
+            const collection =
+                collectionItemProvider.getRegisteredCollectionForItem(path);
+
+            if (!collection) {
+                throw new Error(
+                    `Did not find registered collection for item with Uri '${JSON.stringify(
+                        test.uri,
+                        null,
+                        2
+                    )}'`
+                );
+            }
+
+            const id = getIdForQueuedRun(path, new Date());
 
             result.push({
                 request,
                 test,
-                data,
                 id,
                 abortEmitter: new EventEmitter<void>(),
             });
@@ -58,8 +66,9 @@ export const startTestRun = async (
         while (toRun.length > 0) {
             const {
                 run,
-                queuedTest: { id, data, test, abortEmitter },
+                queuedTest: { id, test, abortEmitter },
             } = await nextItemToRun;
+            const path = (test.uri as Uri).fsPath;
 
             run.token.onCancellationRequested(() => {
                 abortEmitter.fire();
@@ -71,7 +80,7 @@ export const startTestRun = async (
 
             if (
                 !(await prepareAndRunTest(
-                    { test, data, abortEmitter, id, request },
+                    { test, abortEmitter, id, request },
                     run
                 ))
             ) {
@@ -81,10 +90,10 @@ export const startTestRun = async (
             run.end();
 
             const htmlReportPath = getHtmlReportPath(
-                await getCollectionRootDir(data.path)
+                await getCollectionRootDir(path)
             );
             if (existsSync(htmlReportPath)) {
-                showHtmlReport(htmlReportPath, data);
+                showHtmlReport(htmlReportPath, path);
             }
 
             nextItemToRun = queue.getNextTestThatCanStartRunning(toRun);
@@ -93,7 +102,6 @@ export const startTestRun = async (
                 {
                     request,
                     test,
-                    data,
                     id,
                     abortEmitter,
                 },
@@ -110,7 +118,7 @@ export const startTestRun = async (
 };
 
 const prepareAndRunTest = async (
-    { test, data, abortEmitter }: QueuedTest,
+    { test, abortEmitter }: QueuedTest,
     run: TestRun
 ) => {
     if (checkForRequestedCancellation(run)) {
@@ -128,7 +136,7 @@ const prepareAndRunTest = async (
 
     printInfosOnTestRunStart(
         run,
-        getHtmlReportPath(await getCollectionRootDir(data.path)),
+        getHtmlReportPath(await getCollectionRootDir((test.uri as Uri).fsPath)),
         testEnvironment
     );
 
@@ -137,7 +145,13 @@ const prepareAndRunTest = async (
         return false;
     }
 
-    await runTestStructure(test, data, run, abortEmitter, testEnvironment);
+    await runTestStructure(
+        test,
+        run,
+        abortEmitter,
+        test.canResolveChildren,
+        testEnvironment
+    );
 
     if (checkForRequestedCancellation(run)) {
         run.end();
@@ -150,8 +164,8 @@ const prepareAndRunTest = async (
 const checkForRequestedCancellation = (run: TestRun) =>
     run.token.isCancellationRequested;
 
-const getIdForQueuedRun = (data: BrunoTestData, creationTime: Date) =>
-    `${data.path}@${creationTime.toISOString()}`;
+const getIdForQueuedRun = (itemPath: string, creationTime: Date) =>
+    `${itemPath}@${creationTime.toISOString()}`;
 
 const printInfosOnTestRunStart = (
     run: TestRun,

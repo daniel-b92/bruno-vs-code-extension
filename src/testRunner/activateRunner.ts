@@ -9,14 +9,7 @@ import {
     Uri,
     window,
 } from "vscode";
-import { getCollectionForTest } from "../testRunner/vsCodeTestTree/utils/testTreeHelper";
-import { addAllTestItemsForCollections } from "../testRunner/vsCodeTestTree/testItemAdding/addAllTestItemsForCollections";
 import { startTestRun } from "../testRunner/testRun/startTestRun";
-import { existsSync } from "fs";
-import { handleTestItemDeletion } from "../testRunner/vsCodeTestTree/handlers/handleTestItemDeletion";
-import { CollectionRegistry } from "../testRunner/vsCodeTestTree/collectionRegistry";
-import { TestDirectory } from "../testRunner/testData/testDirectory";
-import { addTestDirectoryAndAllDescendants } from "../testRunner/vsCodeTestTree/testItemAdding/addTestDirectoryAndAllDescendants";
 import { TestRunQueue } from "../testRunner/testRun/testRunQueue";
 import { CollectionWatcher } from "../shared/fileSystem/collectionWatcher";
 import { CollectionItemProvider } from "../shared/state/collectionItemProvider";
@@ -31,7 +24,6 @@ export async function activateRunner(
         VscodeTestItem | "ALL",
         TestRunProfile | undefined
     >();
-    const collectionRegistry = new CollectionRegistry(ctrl, collectionWatcher);
     const queue = new TestRunQueue(ctrl);
 
     await addMissingTestCollectionsAndItemsToTestTree(collectionItemProvider);
@@ -46,7 +38,7 @@ export async function activateRunner(
                     watchingTests.get("ALL"),
                     true
                 ),
-                collectionRegistry.getCurrentCollections(),
+                collectionItemProvider,
                 queue
             );
             return;
@@ -71,7 +63,7 @@ export async function activateRunner(
             await startTestRun(
                 ctrl,
                 new TestRunRequest(include, undefined, profile, true),
-                collectionRegistry.getCurrentCollections(),
+                collectionItemProvider,
                 queue
             );
         }
@@ -85,7 +77,7 @@ export async function activateRunner(
             return await startTestRun(
                 ctrl,
                 request,
-                collectionRegistry.getCurrentCollections(),
+                collectionItemProvider,
                 queue
             );
         }
@@ -106,17 +98,7 @@ export async function activateRunner(
     };
 
     ctrl.refreshHandler = async () => {
-        collectionRegistry.getCurrentCollections().forEach((collection) => {
-            if (existsSync(collection.rootDirectory)) {
-                Array.from(collection.testData.keys()).forEach((testItem) => {
-                    if (testItem.uri && !existsSync(testItem.uri.fsPath)) {
-                        handleTestItemDeletion(ctrl, collection, testItem.uri!);
-                    }
-                });
-            } else {
-                collectionRegistry.unregisterCollection(collection);
-            }
-        });
+        // ToDo: Remove cached items that are outdated
         await addMissingTestCollectionsAndItemsToTestTree(
             collectionItemProvider
         );
@@ -133,35 +115,28 @@ export async function activateRunner(
 
     ctrl.resolveHandler = async (item) => {
         if (!item) {
-            await addAllTestItemsForCollections(
-                ctrl,
-                collectionRegistry.getCurrentCollections()
+            await addMissingTestCollectionsAndItemsToTestTree(
+                collectionItemProvider
             );
             return;
         }
 
-        const collection = getCollectionForTest(
-            item.uri!,
-            collectionRegistry.getCurrentCollections()
-        );
-        const data = collection.testData.get(item);
-        if (data instanceof TestDirectory) {
-            await addTestDirectoryAndAllDescendants(ctrl, collection, data);
-        }
+        // ToDo: if 'item' is not undefined, go through all descendant files and folders of item and refresh state
     };
 
     startTestRunEvent(async (uri) => {
-        const currentCollections = collectionRegistry.getCurrentCollections();
         let testItem: VscodeTestItem | undefined;
 
-        const found = currentCollections.some((collection) => {
-            const maybeItem = collection.getTestItemForPath(uri.fsPath);
+        const found = collectionItemProvider
+            .getRegisteredCollections()
+            .some((collection) => {
+                const maybeItem = collection.getStoredDataForPath(uri.fsPath);
 
-            if (maybeItem) {
-                testItem = maybeItem;
-                return true;
-            }
-        });
+                if (maybeItem) {
+                    testItem = maybeItem.testItem;
+                    return true;
+                }
+            });
 
         if (found) {
             await startTestRun(
@@ -172,7 +147,7 @@ export async function activateRunner(
                     defaultProfile,
                     false
                 ),
-                currentCollections,
+                collectionItemProvider,
                 queue
             );
         } else {

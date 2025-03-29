@@ -1,13 +1,12 @@
-import { BrunoTestData } from "../testData/testDataDefinitions";
 import { getCollectionRootDir } from "../../shared/fileSystem/util/collectionRootFolderHelper";
 import { existsSync, lstatSync, unlinkSync } from "fs";
 import { spawn } from "child_process";
 import { dirname, resolve } from "path";
-import { TestDirectory } from "../testData/testDirectory";
 import {
     EventEmitter,
     TestMessage,
     TestRun,
+    Uri,
     TestItem as vscodeTestItem,
 } from "vscode";
 import { getTestFilesWithFailures } from "./jsonReportParser";
@@ -18,12 +17,13 @@ import treeKill = require("tree-kill");
 
 export async function runTestStructure(
     item: vscodeTestItem,
-    data: BrunoTestData,
     options: TestRun,
     abortEmitter: EventEmitter<void>,
+    isDirectory: boolean,
     testEnvironment?: string
 ): Promise<void> {
-    const collectionRootDir = await getCollectionRootDir(data.path);
+    const path = (item.uri as Uri).fsPath;
+    const collectionRootDir = await getCollectionRootDir(path);
     const htmlReportPath = getHtmlReportPath(collectionRootDir);
     if (existsSync(htmlReportPath)) {
         unlinkSync(htmlReportPath);
@@ -34,13 +34,13 @@ export async function runTestStructure(
         unlinkSync(jsonReportPath);
     }
 
-    if (data instanceof TestDirectory) {
+    if (isDirectory) {
         getTestItemDescendants(item).forEach(
             (descendant) => (descendant.busy = true)
         );
     }
     const commandArgs = await getCommandArgs(
-        data,
+        path,
         htmlReportPath,
         jsonReportPath,
         testEnvironment
@@ -73,7 +73,7 @@ export async function runTestStructure(
             options.appendOutput(err.message.replace(/\n/g, "\r\n"));
             options.skipped(item);
 
-            if (data instanceof TestDirectory) {
+            if (isDirectory) {
                 getTestItemDescendants(item).forEach((child) => {
                     child.busy = false;
                     options.skipped(child);
@@ -105,7 +105,7 @@ export async function runTestStructure(
             if (code == 0) {
                 options.passed(item, duration);
 
-                if (data instanceof TestDirectory) {
+                if (isDirectory) {
                     getTestItemDescendants(item).forEach((child) => {
                         child.busy = false;
                         options.passed(child);
@@ -113,11 +113,11 @@ export async function runTestStructure(
                 }
             } else if (code == null) {
                 options.skipped(item);
-                if (data instanceof TestDirectory) {
+                if (isDirectory) {
                     setStatusForDescendantItems(item, jsonReportPath, options);
                 }
             } else {
-                if (data instanceof TestDirectory) {
+                if (isDirectory) {
                     options.failed(item, [new TestMessage("Testrun failed")]);
                     setStatusForDescendantItems(item, jsonReportPath, options);
                 } else {
@@ -291,14 +291,14 @@ const getJsonReportPath = (collectionRootDir: string) =>
     resolve(dirname(collectionRootDir), "results.json");
 
 const getCommandArgs = async (
-    testData: BrunoTestData,
+    testPath: string,
     htmlReportPath: string,
     jsonReportPath: string,
     testEnvironment?: string
 ) => {
     const npmPackage = "@usebruno/cli@1.39.0";
-    const testDataPath = testData.path;
-    const collectionRootDir = await getCollectionRootDir(testData.path);
+    const testDataPath = testPath;
+    const collectionRootDir = await getCollectionRootDir(testPath);
     const result: string[] = [];
     const argForRunCommand =
         testDataPath == collectionRootDir
