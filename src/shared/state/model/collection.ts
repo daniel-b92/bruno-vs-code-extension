@@ -3,6 +3,7 @@ import { normalizeDirectoryPath } from "../../fileSystem/util/normalizeDirectory
 import { CollectionDirectory } from "./collectionDirectory";
 import { CollectionFile } from "./collectionFile";
 import { CollectionData } from "./interfaces";
+import { TestRunnerDataHelper } from "../testRunnerDataHelper";
 
 export class Collection {
     constructor(private rootDirectory: string) {
@@ -22,14 +23,25 @@ export class Collection {
         return this.testData.find(({ item }) => item.getPath() == path);
     }
 
-    public addItem(item: CollectionDirectory | CollectionFile) {
-        const data = {
+    public getAllStoredDataForCollection() {
+        return this.testData as readonly CollectionData[];
+    }
+
+    public addItem(
+        item: CollectionDirectory | CollectionFile,
+        testRunnerDataHelper: TestRunnerDataHelper,
+        withTestTreeItem = false
+    ) {
+        const data: CollectionData = {
             item,
             treeItem: new BrunoTreeItem(
                 item.getPath(),
                 item instanceof CollectionFile,
                 item instanceof CollectionFile ? item.getSequence() : undefined
             ),
+            testItem: withTestTreeItem
+                ? testRunnerDataHelper.createVsCodeTestItem(item)
+                : undefined,
         };
 
         this.testData.push(data);

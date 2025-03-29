@@ -135,7 +135,8 @@ export class CollectionItemProvider {
                         collection.addItem(
                             isDirectory
                                 ? new CollectionDirectory(path)
-                                : new CollectionFile(path, getSequence(path))
+                                : new CollectionFile(path, getSequence(path)),
+                            this.testRunnerDataHelper
                         );
                     }
 
@@ -197,7 +198,11 @@ export class CollectionItemProvider {
 
         this.itemUpdateEmitter.fire({
             collection: registeredCollection,
-            data: registeredCollection.addItem(item),
+            data: registeredCollection.addItem(
+                item,
+                this.testRunnerDataHelper,
+                this.isRunnable(registeredCollection, item)
+            ),
             updateType: FileChangeType.Created,
         });
     }
@@ -207,6 +212,7 @@ export class CollectionItemProvider {
         data: CollectionData
     ) {
         registeredCollectionForItem.removeTestItemAndDescendants(data.item);
+
         this.itemUpdateEmitter.fire({
             collection: registeredCollectionForItem,
             data,
@@ -228,7 +234,8 @@ export class CollectionItemProvider {
             registeredCollectionForItem.removeTestItemAndDescendants(item);
 
             registeredCollectionForItem.addItem(
-                new CollectionFile(item.getPath(), newSequence)
+                new CollectionFile(item.getPath(), newSequence),
+                this.testRunnerDataHelper
             );
 
             this.itemUpdateEmitter.fire({
@@ -238,5 +245,28 @@ export class CollectionItemProvider {
                 changedData: { sequence: newSequence },
             });
         }
+    }
+
+    private isRunnable(
+        registeredCollection: Collection,
+        item: CollectionFile | CollectionDirectory
+    ) {
+        return (
+            (item instanceof CollectionFile &&
+                item.getSequence() != undefined) ||
+            (item instanceof CollectionDirectory &&
+                registeredCollection
+                    .getAllStoredDataForCollection()
+                    .some(
+                        ({ item: registeredItem }) =>
+                            registeredItem
+                                .getPath()
+                                .startsWith(
+                                    normalizeDirectoryPath(item.getPath())
+                                ) &&
+                            registeredItem instanceof CollectionFile &&
+                            registeredItem.getSequence() != undefined
+                    ))
+        );
     }
 }
