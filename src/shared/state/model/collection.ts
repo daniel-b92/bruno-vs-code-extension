@@ -51,7 +51,7 @@ export class Collection {
     public removeTestItemAndDescendants(
         item: CollectionDirectory | CollectionFile
     ) {
-        if (!this.removeTestItemIfRegistered(item)) {
+        if (!this.removeTestItemIfRegistered(item.getPath())) {
             console.warn(
                 `Did not find collection item to be removed with path '${item.getPath()}' for collection root directory '${
                     this.rootDirectory
@@ -68,18 +68,16 @@ export class Collection {
                         .startsWith(normalizeDirectoryPath(item.getPath()))
             );
             for (const { item: toRemove } of descendantsToRemove) {
-                this.removeTestItemIfRegistered(toRemove);
+                this.removeTestItemIfRegistered(toRemove.getPath());
             }
         }
     }
 
-    private removeTestItemIfRegistered(
-        item: CollectionDirectory | CollectionFile
-    ) {
+    public removeTestItemIfRegistered(itemPath: string) {
         const itemIndex = this.testData.findIndex(
             ({ item: registered }) =>
                 normalizeDirectoryPath(registered.getPath()) ==
-                normalizeDirectoryPath(item.getPath())
+                normalizeDirectoryPath(itemPath)
         );
 
         if (itemIndex != -1) {

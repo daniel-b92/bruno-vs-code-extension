@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { CollectionFile } from "./model/collectionFile";
-import { CollectionData, CollectionItem } from "./model/interfaces";
+import { CollectionItem } from "./model/interfaces";
 import {
     getTestId,
     getTestLabel,
@@ -10,6 +10,7 @@ import { CollectionDirectory } from "./model/collectionDirectory";
 import { dirname, extname } from "path";
 import { lstatSync } from "fs";
 import { addTestItemToTestTree } from "../../testRunner/testTreeUtils/addTestItemToTestTree";
+import { normalizeDirectoryPath } from "../fileSystem/util/normalizeDirectoryPath";
 
 interface PathWithChildren {
     path: string;
@@ -42,20 +43,34 @@ export class TestRunnerDataHelper {
         return testItem;
     };
 
-    public addTestTreeItemsForCollection(collection: Collection) {
-        const collectionDirectoryItem = (
-            collection.getStoredDataForPath(
-                collection.getRootDirectory()
-            ) as CollectionData
-        ).item as CollectionDirectory;
+    public addTestTreeItemsForDirectoryAndDescendants(
+        collectionForDirectory: Collection,
+        directory: CollectionDirectory
+    ) {
+        const relevantFiles = this.getTestFileDescendants(
+            collectionForDirectory,
+            directory
+        );
 
-        const relevantFiles = this.getRelevantFilesForTestTree(collection);
+        const testFileItems = relevantFiles.map(({ item, testItem }) => {
+            if (testItem) {
+                return testItem;
+            }
 
-        const testFileItems = relevantFiles.map((data) => {
-            const testItem = this.createVsCodeTestItem(data.item);
-            data.testItem = testItem;
-            addTestItemToTestTree(this.testController, collection, testItem);
-            return testItem;
+            collectionForDirectory.removeTestItemIfRegistered(item.getPath());
+            const { testItem: newTestItem } = collectionForDirectory.addItem(
+                item,
+                this,
+                true
+            );
+
+            addTestItemToTestTree(
+                this.testController,
+                collectionForDirectory,
+                newTestItem as vscode.TestItem
+            );
+
+            return newTestItem as vscode.TestItem;
         });
 
         let currentPaths = this.switchToParentDirsContainingAncestorPath(
@@ -64,18 +79,19 @@ export class TestRunnerDataHelper {
                 childItems: [],
             })),
             testFileItems,
-            collectionDirectoryItem
+            directory
         );
 
         while (currentPaths.length > 0) {
             const currentTestItems: vscode.TestItem[] = [];
 
             currentPaths.forEach(({ path, childItems }) => {
-                const registeredItem = collection.getStoredDataForPath(path);
+                const registeredItem =
+                    collectionForDirectory.getStoredDataForPath(path);
 
                 if (!registeredItem) {
                     throw new Error(
-                        `No item registered for path '${path}'. Cannot add test tree item to an already existing tiem therefore.`
+                        `No item registered for path '${path}'. Cannot add test tree item to an already existing time therefore.`
                     );
                 }
 
@@ -87,7 +103,7 @@ export class TestRunnerDataHelper {
                     registeredItem.testItem = testItem;
                     addTestItemToTestTree(
                         this.testController,
-                        collection,
+                        collectionForDirectory,
                         testItem
                     );
                 }
@@ -101,17 +117,25 @@ export class TestRunnerDataHelper {
             currentPaths = this.switchToParentDirsContainingAncestorPath(
                 currentPaths,
                 currentTestItems,
-                collectionDirectoryItem
+                directory
             );
         }
     }
 
-    private getRelevantFilesForTestTree(collection: Collection) {
-        return collection
+    private getTestFileDescendants(
+        collectionForDirectory: Collection,
+        directory: CollectionDirectory
+    ) {
+        return collectionForDirectory
             .getAllStoredDataForCollection()
             .filter(
                 ({ item }) =>
                     lstatSync(item.getPath()).isFile() &&
+                    item
+                        .getPath()
+                        .startsWith(
+                            normalizeDirectoryPath(directory.getPath())
+                        ) &&
                     extname(item.getPath()) == ".bru" &&
                     item instanceof CollectionFile &&
                     item.getSequence() != undefined

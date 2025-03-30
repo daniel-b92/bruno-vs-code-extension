@@ -112,7 +112,7 @@ export class CollectionItemProvider {
 
     public getRegisteredCollectionForItem(itemPath: string) {
         return this.getRegisteredCollections().find((collection) =>
-            itemPath.startsWith(
+            normalizeDirectoryPath(itemPath).startsWith(
                 normalizeDirectoryPath(collection.getRootDirectory())
             )
         );
@@ -145,7 +145,14 @@ export class CollectionItemProvider {
                     }
                 }
             }
-            this.testRunnerDataHelper.addTestTreeItemsForCollection(collection);
+            this.testRunnerDataHelper.addTestTreeItemsForDirectoryAndDescendants(
+                collection,
+                (
+                    collection.getStoredDataForPath(
+                        collection.getRootDirectory()
+                    ) as CollectionData
+                ).item as CollectionDirectory
+            );
         }
     }
 

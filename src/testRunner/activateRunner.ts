@@ -16,6 +16,8 @@ import { FileChangeType } from "../shared/fileSystem/fileChangesDefinitions";
 import { addTestItemToTestTree } from "./testTreeUtils/addTestItemToTestTree";
 import { getTestId } from "./testTreeUtils/testTreeHelper";
 import { dirname } from "path";
+import { TestRunnerDataHelper } from "../shared/state/testRunnerDataHelper";
+import { CollectionDirectory } from "../shared/state/model/collectionDirectory";
 
 export async function activateRunner(
     ctrl: TestController,
@@ -126,8 +128,20 @@ export async function activateRunner(
             );
             return;
         }
+        const path = (item.uri as Uri).fsPath;
 
-        // ToDo: if 'item' is not undefined, go through all descendant files and folders of item and refresh state
+        const collection =
+            collectionItemProvider.getRegisteredCollectionForItem(path);
+        if (!collection) {
+            throw new Error(
+                `Did not find registered collection for item with path '${path}'`
+            );
+        }
+
+        const data = collection.getStoredDataForPath(path);
+        if (data && data.item && data.item instanceof CollectionDirectory) {
+            new TestRunnerDataHelper(ctrl).addTestTreeItemsForDirectoryAndDescendants(collection, data.item);
+        }
     };
 
     startTestRunEvent(async (uri) => {
