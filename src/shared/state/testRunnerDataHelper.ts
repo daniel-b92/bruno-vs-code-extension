@@ -4,12 +4,12 @@ import { CollectionData, CollectionItem } from "./model/interfaces";
 import {
     getTestId,
     getTestLabel,
-} from "../../testRunner/vsCodeTestTree/utils/testTreeHelper";
+} from "../../testRunner/testTreeUtils/testTreeHelper";
 import { Collection } from "./model/collection";
 import { CollectionDirectory } from "./model/collectionDirectory";
 import { dirname, extname } from "path";
 import { lstatSync } from "fs";
-import { addTestItemToTestTree } from "../../testRunner/vsCodeTestTree/utils/addTestItemToTestTree";
+import { addTestItemToTestTree } from "../../testRunner/testTreeUtils/addTestItemToTestTree";
 
 interface PathWithChildren {
     path: string;

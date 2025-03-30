@@ -11,7 +11,7 @@ import {
 } from "vscode";
 import { getTestFilesWithFailures } from "./jsonReportParser";
 import { getHtmlReportPath } from "./startTestRun";
-import { getTestItemDescendants } from "../vsCodeTestTree/utils/getTestItemDescendants";
+import { getTestItemDescendants } from "../testTreeUtils/getTestItemDescendants";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import treeKill = require("tree-kill");
 

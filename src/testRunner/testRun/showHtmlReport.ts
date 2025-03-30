@@ -1,5 +1,5 @@
 import { readFileSync } from "fs";
-import { getTestLabel } from "../vsCodeTestTree/utils/testTreeHelper";
+import { getTestLabel } from "../testTreeUtils/testTreeHelper";
 import { Uri, ViewColumn, window } from "vscode";
 
 export function showHtmlReport(htmlReportPath: string, testItemPath: string) {

@@ -1,5 +1,5 @@
 import { TestController, TestItem, Uri } from "vscode";
-import { Collection } from "../../../shared/state/model/collection";
+import { Collection } from "../../shared/state/model/collection";
 import { dirname } from "path";
 
 export function addTestItemToTestTree(
