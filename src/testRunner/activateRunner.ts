@@ -15,6 +15,7 @@ import { CollectionItemProvider } from "../shared/state/collectionItemProvider";
 import { FileChangeType } from "../shared/fileSystem/fileChangesDefinitions";
 import { addTestItemToTestTree } from "./testTreeUtils/addTestItemToTestTree";
 import { getTestId } from "./testTreeUtils/testTreeHelper";
+import { dirname } from "path";
 
 export async function activateRunner(
     ctrl: TestController,
@@ -174,7 +175,7 @@ function handleTestTreeUpdates(
     collectionItemProvider: CollectionItemProvider
 ) {
     collectionItemProvider.subscribeToUpdates()(
-        async ({ collection, data: { testItem }, updateType, changedData }) => {
+        ({ collection, data: { testItem }, updateType, changedData }) => {
             if (updateType == FileChangeType.Created && testItem) {
                 addTestItemToTestTree(controller, collection, testItem);
             } else if (
@@ -192,7 +193,16 @@ function handleTestTreeUpdates(
                     controller.items.delete(getTestId(testItem.uri as Uri));
                 }
             } else if (updateType == FileChangeType.Deleted && testItem) {
-                controller.items.delete(getTestId(testItem.uri as Uri));
+                const uri = testItem.uri as Uri;
+
+                controller.items.delete(getTestId(uri));
+
+                const parentItem = collection.getStoredDataForPath(
+                    dirname(uri.fsPath)
+                );
+                if (parentItem && parentItem.testItem) {
+                    parentItem.testItem.children.delete(getTestId(uri));
+                }
             }
         }
     );
