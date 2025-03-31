@@ -18,6 +18,7 @@ import { getTestId } from "./testTreeUtils/testTreeHelper";
 import { dirname } from "path";
 import { TestRunnerDataHelper } from "../shared/state/testRunnerDataHelper";
 import { CollectionDirectory } from "../shared/state/model/collectionDirectory";
+import { Collection } from "../shared/state/model/collection";
 
 export async function activateRunner(
     ctrl: TestController,
@@ -140,7 +141,9 @@ export async function activateRunner(
 
         const data = collection.getStoredDataForPath(path);
         if (data && data.item && data.item instanceof CollectionDirectory) {
-            new TestRunnerDataHelper(ctrl).addTestTreeItemsForDirectoryAndDescendants(collection, data.item);
+            new TestRunnerDataHelper(
+                ctrl
+            ).addTestTreeItemsForDirectoryAndDescendants(collection, data.item);
         }
     };
 
@@ -192,6 +195,7 @@ function handleTestTreeUpdates(
         ({ collection, data: { testItem }, updateType, changedData }) => {
             if (updateType == FileChangeType.Created && testItem) {
                 addTestItemToTestTree(controller, collection, testItem);
+                // ToDo: Fix handling of creation of Collection directories
             } else if (
                 updateType == FileChangeType.Modified &&
                 testItem &&
@@ -209,8 +213,6 @@ function handleTestTreeUpdates(
             } else if (updateType == FileChangeType.Deleted && testItem) {
                 const uri = testItem.uri as Uri;
 
-                controller.items.delete(getTestId(uri));
-
                 const parentItem = collection.getStoredDataForPath(
                     dirname(uri.fsPath)
                 );
@@ -218,6 +220,19 @@ function handleTestTreeUpdates(
                     parentItem.testItem.children.delete(getTestId(uri));
                 }
             }
+
+            // The test tree view is only updated correctly, if you re-add the collection on top level again
+            addCollectionTestItemToTestTree(controller, collection);
         }
+    );
+}
+
+function addCollectionTestItemToTestTree(
+    controller: TestController,
+    collection: Collection
+) {
+    controller.items.add(
+        collection.getStoredDataForPath(collection.getRootDirectory())
+            ?.testItem as VscodeTestItem
     );
 }
