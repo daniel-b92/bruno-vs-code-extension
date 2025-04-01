@@ -19,6 +19,8 @@ import { dirname } from "path";
 import { TestRunnerDataHelper } from "../shared/state/testRunnerDataHelper";
 import { CollectionDirectory } from "../shared/state/model/collectionDirectory";
 import { Collection } from "../shared/state/model/collection";
+import { CollectionFile } from "../shared/state/model/collectionFile";
+import { normalizeDirectoryPath } from "../shared/fileSystem/util/normalizeDirectoryPath";
 
 export async function activateRunner(
     ctrl: TestController,
@@ -192,37 +194,49 @@ function handleTestTreeUpdates(
     collectionItemProvider: CollectionItemProvider
 ) {
     collectionItemProvider.subscribeToUpdates()(
-        ({ collection, data: { testItem }, updateType, changedData }) => {
+        ({ collection, data: { item, testItem }, updateType, changedData }) => {
             if (updateType == FileChangeType.Created && testItem) {
                 addTestItemToTestTree(controller, collection, testItem);
                 // ToDo: Fix handling of creation of Collection directories
             } else if (
                 updateType == FileChangeType.Modified &&
                 testItem &&
-                changedData
+                item instanceof CollectionFile &&
+                changedData?.sequenceChanged
             ) {
                 /* For directories, no changes are ever registered because renaming a directory is seen as a creation of a new directory with the
                 new name and a deletion of the directory with the old name. */
-                if (changedData.sequence) {
-                    controller.items.delete(getTestId(testItem.uri as Uri));
+                if (item.getSequence() != undefined) {
+                    removeTestItemFromTree(
+                        controller,
+                        collection,
+                        testItem.uri as Uri
+                    );
                     addTestItemToTestTree(controller, collection, testItem);
-                } else {
+                } else if (item.getSequence() == undefined) {
                     // This case can e.g. happen if the sequence in the a .bru file is changed to an invalid value
-                    controller.items.delete(getTestId(testItem.uri as Uri));
+                    removeTestItemFromTree(
+                        controller,
+                        collection,
+                        testItem.uri as Uri
+                    );
                 }
             } else if (updateType == FileChangeType.Deleted && testItem) {
-                const uri = testItem.uri as Uri;
-
-                const parentItem = collection.getStoredDataForPath(
-                    dirname(uri.fsPath)
+                removeTestItemFromTree(
+                    controller,
+                    collection,
+                    testItem.uri as Uri
                 );
-                if (parentItem && parentItem.testItem) {
-                    parentItem.testItem.children.delete(getTestId(uri));
-                }
             }
 
             // The test tree view is only updated correctly, if you re-add the collection on top level again
-            addCollectionTestItemToTestTree(controller, collection);
+            if (
+                updateType != FileChangeType.Deleted ||
+                normalizeDirectoryPath(item.getPath()) !=
+                    normalizeDirectoryPath(collection.getRootDirectory())
+            ) {
+                addCollectionTestItemToTestTree(controller, collection);
+            }
         }
     );
 }
@@ -235,4 +249,18 @@ function addCollectionTestItemToTestTree(
         collection.getStoredDataForPath(collection.getRootDirectory())
             ?.testItem as VscodeTestItem
     );
+}
+
+function removeTestItemFromTree(
+    controller: TestController,
+    collection: Collection,
+    itemUri: Uri
+) {
+    const parentItem = collection.getStoredDataForPath(dirname(itemUri.fsPath));
+    
+    if (parentItem && parentItem.testItem) {
+        parentItem.testItem.children.delete(getTestId(itemUri));
+    } else {
+        controller.items.delete(getTestId(itemUri));
+    }
 }

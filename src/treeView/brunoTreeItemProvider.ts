@@ -19,8 +19,7 @@ export class BrunoTreeItemProvider
                 if (
                     updateType == FileChangeType.Deleted ||
                     (updateType == FileChangeType.Modified &&
-                        changedData &&
-                        changedData.sequence != undefined)
+                        changedData?.sequenceChanged)
                 ) {
                     // Always update all items when items have to be deleted from tree view.
                     // When only triggering an update for the parent item, there were issues with the refresh mechanism.

@@ -23,7 +23,7 @@ export class CollectionItemProvider {
             collection: Collection;
             data: CollectionData;
             updateType: FileChangeType;
-            changedData?: { sequence?: number };
+            changedData?: { sequenceChanged?: boolean };
         }>();
 
         collectionWatcher.subscribeToUpdates()(
@@ -81,7 +81,7 @@ export class CollectionItemProvider {
         collection: Collection;
         data: CollectionData;
         updateType: FileChangeType;
-        changedData?: { sequence?: number };
+        changedData?: { sequenceChanged?: boolean };
     }>;
 
     public subscribeToUpdates() {
@@ -232,25 +232,25 @@ export class CollectionItemProvider {
         registeredCollectionForItem: Collection,
         collectionData: CollectionData
     ) {
-        const { item } = collectionData;
-        const newSequence = getSequence(item.getPath());
+        const { item: oldItem, treeItem, testItem } = collectionData;
 
-        if (
-            item instanceof CollectionFile &&
-            item.getSequence() != newSequence
-        ) {
-            registeredCollectionForItem.removeTestItemAndDescendants(item);
+        if (oldItem instanceof CollectionFile) {
+            const oldSequence = oldItem.getSequence();
+            const newSequence = getSequence(oldItem.getPath());
+            const newItem = new CollectionFile(oldItem.getPath(), newSequence);
+
+            registeredCollectionForItem.removeTestItemAndDescendants(oldItem);
 
             registeredCollectionForItem.addItem(
-                new CollectionFile(item.getPath(), newSequence),
+                newItem,
                 this.testRunnerDataHelper
             );
 
             this.itemUpdateEmitter.fire({
                 collection: registeredCollectionForItem,
-                data: collectionData,
+                data: { item: newItem, treeItem, testItem },
                 updateType: FileChangeType.Modified,
-                changedData: { sequence: newSequence },
+                changedData: { sequenceChanged: oldSequence != newSequence },
             });
         }
     }
