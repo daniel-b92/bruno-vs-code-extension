@@ -9,7 +9,7 @@ import { CollectionFile } from "./model/collectionFile";
 import { CollectionDirectory } from "./model/collectionDirectory";
 import { getAllCollectionRootDirectories } from "../fileSystem/util/collectionRootFolderHelper";
 import { Collection } from "./model/collection";
-import { resolve } from "path";
+import { dirname, resolve } from "path";
 import { CollectionData } from "./model/interfaces";
 import { TestRunnerDataHelper } from "./testRunnerDataHelper";
 
@@ -204,6 +204,13 @@ export class CollectionItemProvider {
             ? new CollectionDirectory(itemPath)
             : new CollectionFile(itemPath, getSequence(itemPath));
 
+        if (item instanceof CollectionFile && item.getSequence() != undefined) {
+            this.addTestItemsForAllAncestorsIfNotExisting(
+                registeredCollection,
+                item as CollectionFile
+            );
+        }
+
         this.itemUpdateEmitter.fire({
             collection: registeredCollection,
             data: registeredCollection.addItem(
@@ -239,6 +246,13 @@ export class CollectionItemProvider {
             const newSequence = getSequence(oldItem.getPath());
             const newItem = new CollectionFile(oldItem.getPath(), newSequence);
 
+            if (oldSequence == undefined && newSequence != undefined) {
+                this.addTestItemsForAllAncestorsIfNotExisting(
+                    registeredCollectionForItem,
+                    newItem
+                );
+            }
+
             registeredCollectionForItem.removeTestItemAndDescendants(oldItem);
 
             registeredCollectionForItem.addItem(
@@ -252,6 +266,38 @@ export class CollectionItemProvider {
                 updateType: FileChangeType.Modified,
                 changedData: { sequenceChanged: oldSequence != newSequence },
             });
+        }
+    }
+
+    private addTestItemsForAllAncestorsIfNotExisting(
+        registeredCollectionForItem: Collection,
+        item: CollectionFile
+    ) {
+        const normalizedCollectionPath = normalizeDirectoryPath(
+            registeredCollectionForItem.getRootDirectory()
+        );
+
+        let currentPath = dirname(item.getPath());
+
+        while (
+            normalizeDirectoryPath(currentPath).length >
+            normalizedCollectionPath.length
+        ) {
+            const currentData =
+                registeredCollectionForItem.getStoredDataForPath(currentPath);
+
+            if (currentData && !currentData.testItem) {
+                registeredCollectionForItem.removeTestItemIfRegistered(
+                    currentPath
+                );
+                registeredCollectionForItem.addItem(
+                    currentData.item,
+                    this.testRunnerDataHelper,
+                    true
+                );
+            }
+
+            currentPath = dirname(currentPath);
         }
     }
 
