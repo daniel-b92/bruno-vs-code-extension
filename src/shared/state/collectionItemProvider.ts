@@ -35,13 +35,10 @@ export class CollectionItemProvider {
                     return;
                 }
 
-                const isCollection =
-                    normalizeDirectoryPath(uri.fsPath) ==
-                    normalizeDirectoryPath(
-                        registeredCollection.getRootDirectory()
-                    );
-
-                if (isCollection && fileChangeType == FileChangeType.Deleted) {
+                if (
+                    registeredCollection.isRootDirectory(uri.fsPath) &&
+                    fileChangeType == FileChangeType.Deleted
+                ) {
                     this.handleCollectionDeletion(uri);
                     return;
                 }

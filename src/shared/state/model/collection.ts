@@ -19,6 +19,13 @@ export class Collection {
         return this.rootDirectory;
     }
 
+    public isRootDirectory(path: string) {
+        return (
+            normalizeDirectoryPath(path) ==
+            normalizeDirectoryPath(this.getRootDirectory())
+        );
+    }
+
     public getStoredDataForPath(path: string) {
         return this.testData.find(({ item }) => item.getPath() == path);
     }
