@@ -9,9 +9,10 @@ import { CollectionFile } from "./model/collectionFile";
 import { CollectionDirectory } from "./model/collectionDirectory";
 import { getAllCollectionRootDirectories } from "../fileSystem/util/collectionRootFolderHelper";
 import { Collection } from "./model/collection";
-import { dirname, resolve } from "path";
+import { resolve } from "path";
 import { CollectionData } from "./model/interfaces";
 import { TestRunnerDataHelper } from "./testRunnerDataHelper";
+import { BrunoTreeItem } from "./model/brunoTreeItem";
 
 export class CollectionItemProvider {
     constructor(
@@ -129,12 +130,11 @@ export class CollectionItemProvider {
                     const isDirectory = lstatSync(path).isDirectory();
 
                     if (!collection.getStoredDataForPath(path)) {
-                        collection.addItem(
-                            isDirectory
-                                ? new CollectionDirectory(path)
-                                : new CollectionFile(path, getSequence(path)),
-                            this.testRunnerDataHelper
-                        );
+                        const item = isDirectory
+                            ? new CollectionDirectory(path)
+                            : new CollectionFile(path, getSequence(path));
+
+                        this.addItemToCollection(collection, item);
                     }
 
                     if (isDirectory) {
@@ -142,21 +142,16 @@ export class CollectionItemProvider {
                     }
                 }
             }
-            this.testRunnerDataHelper.addTestTreeItemsForDirectoryAndDescendants(
-                collection,
-                (
-                    collection.getStoredDataForPath(
-                        collection.getRootDirectory()
-                    ) as CollectionData
-                ).item as CollectionDirectory
-            );
         }
     }
 
     private async registerAllExistingCollections() {
         return (await getAllCollectionRootDirectories()).map(
             (rootDirectory) => {
-                const collection = new Collection(rootDirectory);
+                const collection = new Collection(
+                    rootDirectory,
+                    this.testRunnerDataHelper
+                );
 
                 if (
                     !this.collectionRegistry
@@ -201,20 +196,9 @@ export class CollectionItemProvider {
             ? new CollectionDirectory(itemPath)
             : new CollectionFile(itemPath, getSequence(itemPath));
 
-        if (item instanceof CollectionFile && item.getSequence() != undefined) {
-            this.addTestItemsForAllAncestorsIfNotExisting(
-                registeredCollection,
-                item as CollectionFile
-            );
-        }
-
         this.itemUpdateEmitter.fire({
             collection: registeredCollection,
-            data: registeredCollection.addItem(
-                item,
-                this.testRunnerDataHelper,
-                this.isRunnable(registeredCollection, item)
-            ),
+            data: this.addItemToCollection(registeredCollection, item),
             updateType: FileChangeType.Created,
         });
     }
@@ -243,19 +227,9 @@ export class CollectionItemProvider {
             const newSequence = getSequence(oldItem.getPath());
             const newItem = new CollectionFile(oldItem.getPath(), newSequence);
 
-            if (oldSequence == undefined && newSequence != undefined) {
-                this.addTestItemsForAllAncestorsIfNotExisting(
-                    registeredCollectionForItem,
-                    newItem
-                );
-            }
-
             registeredCollectionForItem.removeTestItemAndDescendants(oldItem);
 
-            registeredCollectionForItem.addItem(
-                newItem,
-                this.testRunnerDataHelper
-            );
+            this.addItemToCollection(registeredCollectionForItem, newItem);
 
             this.itemUpdateEmitter.fire({
                 collection: registeredCollectionForItem,
@@ -266,58 +240,24 @@ export class CollectionItemProvider {
         }
     }
 
-    private addTestItemsForAllAncestorsIfNotExisting(
-        registeredCollectionForItem: Collection,
-        item: CollectionFile
-    ) {
-        const normalizedCollectionPath = normalizeDirectoryPath(
-            registeredCollectionForItem.getRootDirectory()
-        );
-
-        let currentPath = dirname(item.getPath());
-
-        while (
-            normalizeDirectoryPath(currentPath).length >
-            normalizedCollectionPath.length
-        ) {
-            const currentData =
-                registeredCollectionForItem.getStoredDataForPath(currentPath);
-
-            if (currentData && !currentData.testItem) {
-                registeredCollectionForItem.removeTestItemIfRegistered(
-                    currentPath
-                );
-                registeredCollectionForItem.addItem(
-                    currentData.item,
-                    this.testRunnerDataHelper,
-                    true
-                );
-            }
-
-            currentPath = dirname(currentPath);
-        }
-    }
-
-    private isRunnable(
-        registeredCollection: Collection,
+    private addItemToCollection(
+        collection: Collection,
         item: CollectionFile | CollectionDirectory
     ) {
-        return (
-            (item instanceof CollectionFile &&
-                item.getSequence() != undefined) ||
-            (item instanceof CollectionDirectory &&
-                registeredCollection
-                    .getAllStoredDataForCollection()
-                    .some(
-                        ({ item: registeredItem }) =>
-                            registeredItem
-                                .getPath()
-                                .startsWith(
-                                    normalizeDirectoryPath(item.getPath())
-                                ) &&
-                            registeredItem instanceof CollectionFile &&
-                            registeredItem.getSequence() != undefined
-                    ))
-        );
+        const isFile = item instanceof CollectionFile;
+
+        const data: CollectionData = {
+            item,
+            treeItem: new BrunoTreeItem(
+                item.getPath(),
+                isFile,
+                isFile ? item.getSequence() : undefined
+            ),
+            testItem: this.testRunnerDataHelper.createVsCodeTestItem(item),
+        };
+
+        collection.addItem(data);
+
+        return data;
     }
 }

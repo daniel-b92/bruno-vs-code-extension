@@ -10,5 +10,5 @@ export interface CollectionItem {
 export interface CollectionData {
     item: CollectionFile | CollectionDirectory;
     treeItem: BrunoTreeItem;
-    testItem?: TestItem;
+    testItem: TestItem;
 }

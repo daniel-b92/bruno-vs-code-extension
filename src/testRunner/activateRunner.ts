@@ -13,7 +13,7 @@ import { startTestRun } from "../testRunner/testRun/startTestRun";
 import { TestRunQueue } from "../testRunner/testRun/testRunQueue";
 import { CollectionItemProvider } from "../shared/state/collectionItemProvider";
 import { FileChangeType } from "../shared/fileSystem/fileChangesDefinitions";
-import { addTestItemToTestTree } from "./testTreeUtils/addTestItemToTestTree";
+import { addTestItemAndAncestorsToTestTree } from "./testTreeUtils/addTestItemAndAncestorsToTestTree";
 import { getTestId } from "./testTreeUtils/testTreeHelper";
 import { dirname } from "path";
 import { TestRunnerDataHelper } from "../shared/state/testRunnerDataHelper";
@@ -32,6 +32,7 @@ export async function activateRunner(
         TestRunProfile | undefined
     >();
     const queue = new TestRunQueue(ctrl);
+    const testRunnerDataHelper = new TestRunnerDataHelper(ctrl);
 
     handleTestTreeUpdates(ctrl, collectionItemProvider);
 
@@ -111,7 +112,9 @@ export async function activateRunner(
     ctrl.refreshHandler = async () => {
         // ToDo: Remove cached items that are outdated
         await addMissingTestCollectionsAndItemsToTestTree(
-            collectionItemProvider
+            ctrl,
+            testRunnerDataHelper,
+            collectionItemProvider.getRegisteredCollections()
         );
     };
 
@@ -127,7 +130,9 @@ export async function activateRunner(
     ctrl.resolveHandler = async (item) => {
         if (!item) {
             await addMissingTestCollectionsAndItemsToTestTree(
-                collectionItemProvider
+                ctrl,
+                testRunnerDataHelper,
+                collectionItemProvider.getRegisteredCollections()
             );
             return;
         }
@@ -142,10 +147,14 @@ export async function activateRunner(
         }
 
         const data = collection.getStoredDataForPath(path);
-        if (data && data.item && data.item instanceof CollectionDirectory) {
-            new TestRunnerDataHelper(
-                ctrl
-            ).addTestTreeItemsForDirectoryAndDescendants(collection, data.item);
+        if (data && data.item instanceof CollectionDirectory) {
+            testRunnerDataHelper.addTestTreeItemsForDirectoryAndDescendants(
+                collection,
+                data.item
+            );
+
+            // The test tree view is only updated correctly, if you re-add the collection on top level again
+            addCollectionTestItemToTestTree(ctrl, collection);
         }
     };
 
@@ -184,9 +193,20 @@ export async function activateRunner(
 }
 
 async function addMissingTestCollectionsAndItemsToTestTree(
-    collectionItemProvider: CollectionItemProvider
+    controller: TestController,
+    testRunnerDataHelper: TestRunnerDataHelper,
+    registeredCollections: readonly Collection[]
 ) {
-    await collectionItemProvider.registerMissingCollectionsAndTheirItems();
+    for (const collection of registeredCollections) {
+        testRunnerDataHelper.addTestTreeItemsForDirectoryAndDescendants(
+            collection,
+            collection.getStoredDataForPath(collection.getRootDirectory())
+                ?.item as CollectionDirectory
+        );
+
+        // The test tree view is only updated correctly, if you re-add the collection on top level again
+        addCollectionTestItemToTestTree(controller, collection);
+    }
 }
 
 function handleTestTreeUpdates(
@@ -196,7 +216,7 @@ function handleTestTreeUpdates(
     collectionItemProvider.subscribeToUpdates()(
         ({ collection, data: { item, testItem }, updateType, changedData }) => {
             if (updateType == FileChangeType.Created && testItem) {
-                addTestItemToTestTree(controller, collection, testItem);
+                addTestItemAndAncestorsToTestTree(controller, collection, item);
                 // ToDo: Fix handling of creation of Collection directories
             } else if (
                 updateType == FileChangeType.Modified &&
@@ -212,7 +232,11 @@ function handleTestTreeUpdates(
                         collection,
                         testItem.uri as Uri
                     );
-                    addTestItemToTestTree(controller, collection, testItem);
+                    addTestItemAndAncestorsToTestTree(
+                        controller,
+                        collection,
+                        item
+                    );
                 } else if (item.getSequence() == undefined) {
                     // This case can e.g. happen if the sequence in the a .bru file is changed to an invalid value
                     removeTestItemFromTree(
@@ -257,7 +281,7 @@ function removeTestItemFromTree(
     itemUri: Uri
 ) {
     const parentItem = collection.getStoredDataForPath(dirname(itemUri.fsPath));
-    
+
     if (parentItem && parentItem.testItem) {
         parentItem.testItem.children.delete(getTestId(itemUri));
     } else {

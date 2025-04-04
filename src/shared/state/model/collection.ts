@@ -6,10 +6,16 @@ import { CollectionData } from "./interfaces";
 import { TestRunnerDataHelper } from "../testRunnerDataHelper";
 
 export class Collection {
-    constructor(private rootDirectory: string) {
+    constructor(
+        private rootDirectory: string,
+        testRunnerDataHelper: TestRunnerDataHelper
+    ) {
+        const item = new CollectionDirectory(rootDirectory);
+
         this.testData.push({
-            item: new CollectionDirectory(rootDirectory),
+            item,
             treeItem: new BrunoTreeItem(rootDirectory, false),
+            testItem: testRunnerDataHelper.createVsCodeTestItem(item),
         });
     }
 
@@ -34,25 +40,8 @@ export class Collection {
         return this.testData as readonly CollectionData[];
     }
 
-    public addItem(
-        item: CollectionDirectory | CollectionFile,
-        testRunnerDataHelper: TestRunnerDataHelper,
-        withTestTreeItem = false
-    ) {
-        const data: CollectionData = {
-            item,
-            treeItem: new BrunoTreeItem(
-                item.getPath(),
-                item instanceof CollectionFile,
-                item instanceof CollectionFile ? item.getSequence() : undefined
-            ),
-            testItem: withTestTreeItem
-                ? testRunnerDataHelper.createVsCodeTestItem(item)
-                : undefined,
-        };
-
+    public addItem(data: CollectionData) {
         this.testData.push(data);
-        return data;
     }
 
     public removeTestItemAndDescendants(
