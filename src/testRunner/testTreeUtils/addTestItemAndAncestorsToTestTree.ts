@@ -102,12 +102,15 @@ function addTestItemToListOfChildrenFromParent(
 
 function getAncestors(collection: Collection, item: CollectionItem) {
     return collection.getAllStoredDataForCollection().filter(({ item: i }) => {
-        const normalizedItemPath = normalizeDirectoryPath(item.getPath());
+        const normalizedDescendantItemPath = normalizeDirectoryPath(
+            item.getPath()
+        );
+        const normalizedStoredItemPath = normalizeDirectoryPath(i.getPath());
 
         return (
-            normalizedItemPath.startsWith(i.getPath()) &&
-            normalizeDirectoryPath(i.getPath()).length <
-                normalizedItemPath.length
+            normalizedDescendantItemPath.startsWith(normalizedStoredItemPath) &&
+            normalizedStoredItemPath.length <
+                normalizedDescendantItemPath.length
         );
     });
 }

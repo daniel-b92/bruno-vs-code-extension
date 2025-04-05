@@ -8,6 +8,7 @@ import {
 import { FileChangedEvent, FileChangeType } from "./fileChangesDefinitions";
 import { basename } from "path";
 import { normalizeDirectoryPath } from "./util/normalizeDirectoryPath";
+import { lstatSync } from "fs";
 
 export class CollectionWatcher {
     constructor(
@@ -36,11 +37,28 @@ export class CollectionWatcher {
         }
         const watcher = workspace.createFileSystemWatcher(testPattern);
 
-        watcher.onDidCreate((uri) => {
+        watcher.onDidCreate(async (uri) => {
             this.fileChangedEmitter.fire({
                 uri,
                 changeType: FileChangeType.Created,
             });
+
+            const path = uri.fsPath;
+
+            if (lstatSync(path).isDirectory()) {
+                const descendants = await workspace.findFiles(
+                    new RelativePattern(path, "**/*")
+                );
+
+                // When renaming a directory with descendant items, the file system watcher only sends a notification that a directory has been created.
+                // It shouldn't hurt to additionally send a notification for each descendant item here (even if it may in some cases be sent multiple times, then).
+                descendants.forEach((uri) => {
+                    this.fileChangedEmitter.fire({
+                        uri,
+                        changeType: FileChangeType.Created,
+                    });
+                });
+            }
         });
         watcher.onDidChange((uri) => {
             this.fileChangedEmitter.fire({
