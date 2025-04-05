@@ -5,8 +5,8 @@ import {
     TextDocument,
     workspace,
 } from "vscode";
-import { provideBrunoLangCompletionItems } from "./brunoLanguage/completionItems/provideBrunoLangCompletionItems";
-import { provideBrunoLangDiagnostics } from "./brunoLanguage/diagnostics/provideBrunoLangDiagnostics";
+import { provideBrunoLangCompletionItems } from "./internal/completionItems/provideBrunoLangCompletionItems";
+import { provideBrunoLangDiagnostics } from "./internal/diagnostics/provideBrunoLangDiagnostics";
 import { dirname, extname } from "path";
 
 export function activateLanguageFeatures(context: ExtensionContext) {

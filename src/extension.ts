@@ -7,7 +7,7 @@ import {
     CollectionItemProvider,
     TestRunnerDataHelper,
 } from "./shared";
-import { activateLanguageFeatures } from "./languageFeatures/activateLanguageFeatures";
+import { activateLanguageFeatures } from "./languageFeatures";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
