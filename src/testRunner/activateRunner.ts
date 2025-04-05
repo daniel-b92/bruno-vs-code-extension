@@ -17,9 +17,9 @@ import { addTestItemAndAncestorsToTestTree } from "./testTreeUtils/addTestItemAn
 import { getTestId } from "./testTreeUtils/testTreeHelper";
 import { dirname } from "path";
 import { TestRunnerDataHelper } from "../shared/state/externalHelpers/testRunnerDataHelper";
-import { CollectionDirectory } from "../shared/state/model/collectionDirectory";
-import { Collection } from "../shared/state/model/collection";
-import { CollectionFile } from "../shared/state/model/collectionFile";
+import { CollectionDirectory } from "../shared/model/collectionDirectory";
+import { Collection } from "../shared/model/collection";
+import { CollectionFile } from "../shared/model/collectionFile";
 import { normalizeDirectoryPath } from "../shared/fileSystem/util/normalizeDirectoryPath";
 
 export async function activateRunner(

@@ -1,9 +1,9 @@
 import { BrunoTreeItem } from "./brunoTreeItem";
-import { normalizeDirectoryPath } from "../../fileSystem/util/normalizeDirectoryPath";
+import { normalizeDirectoryPath } from "../fileSystem/util/normalizeDirectoryPath";
 import { CollectionDirectory } from "./collectionDirectory";
 import { CollectionFile } from "./collectionFile";
 import { CollectionData } from "./interfaces";
-import { TestRunnerDataHelper } from "../externalHelpers/testRunnerDataHelper";
+import { TestRunnerDataHelper } from "../state/externalHelpers/testRunnerDataHelper";
 
 export class Collection {
     constructor(

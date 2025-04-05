@@ -2,9 +2,9 @@ import { lstatSync, readdirSync } from "fs";
 import { dirname, resolve } from "path";
 import * as vscode from "vscode";
 import { getSequence } from "../shared/fileSystem/testFileParsing/testFileParser";
-import { BrunoTreeItem } from "../shared/state/model/brunoTreeItem";
+import { BrunoTreeItem } from "../shared/model/brunoTreeItem";
 import { CollectionItemProvider } from "../shared/state/externalHelpers/collectionItemProvider";
-import { CollectionData } from "../shared/state/model/interfaces";
+import { CollectionData } from "../shared/model/interfaces";
 import { FileChangeType } from "../shared/fileSystem/fileChangesDefinitions";
 
 export class BrunoTreeItemProvider

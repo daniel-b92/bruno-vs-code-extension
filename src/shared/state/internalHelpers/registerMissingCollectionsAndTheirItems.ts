@@ -2,11 +2,11 @@ import { lstatSync, readdirSync } from "fs";
 import { getAllCollectionRootDirectories } from "../../fileSystem/util/collectionRootFolderHelper";
 import { normalizeDirectoryPath } from "../../fileSystem/util/normalizeDirectoryPath";
 import { TestRunnerDataHelper } from "../externalHelpers/testRunnerDataHelper";
-import { Collection } from "../model/collection";
+import { Collection } from "../../model/collection";
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
-import { CollectionDirectory } from "../model/collectionDirectory";
-import { CollectionFile } from "../model/collectionFile";
+import { CollectionDirectory } from "../../model/collectionDirectory";
+import { CollectionFile } from "../../model/collectionFile";
 import { getSequence } from "../../fileSystem/testFileParsing/testFileParser";
 import { addItemToCollection } from "./addItemToCollection";
 

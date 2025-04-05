@@ -1,9 +1,9 @@
 import { TestRunnerDataHelper } from "../externalHelpers/testRunnerDataHelper";
-import { BrunoTreeItem } from "../model/brunoTreeItem";
-import { Collection } from "../model/collection";
-import { CollectionDirectory } from "../model/collectionDirectory";
-import { CollectionFile } from "../model/collectionFile";
-import { CollectionData } from "../model/interfaces";
+import { BrunoTreeItem } from "../../model/brunoTreeItem";
+import { Collection } from "../../model/collection";
+import { CollectionDirectory } from "../../model/collectionDirectory";
+import { CollectionFile } from "../../model/collectionFile";
+import { CollectionData } from "../../model/interfaces";
 
 export function addItemToCollection(
     testRunnerDataHelper: TestRunnerDataHelper,

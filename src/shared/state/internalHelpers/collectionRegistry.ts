@@ -1,6 +1,6 @@
 import { CollectionWatcher } from "../../fileSystem/collectionWatcher";
 import { normalizeDirectoryPath } from "../../fileSystem/util/normalizeDirectoryPath";
-import { Collection } from "../model/collection";
+import { Collection } from "../../model/collection";
 
 export class CollectionRegistry {
     constructor(private collectionWatcher: CollectionWatcher) {}
