@@ -1,4 +1,4 @@
-import { CollectionExplorer } from "./collectionExplorer";
+import { CollectionExplorer } from "./internal/collectionExplorer";
 import { EventEmitter, Uri } from "vscode";
 import { CollectionItemProvider } from "../shared/state";
 
