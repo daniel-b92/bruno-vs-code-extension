@@ -1,11 +1,11 @@
 import { TestController, TestItem, Uri } from "vscode";
-import { Collection } from "../../shared/model/collection";
-import { dirname } from "path";
-import { normalizeDirectoryPath } from "../../shared/fileSystem/util/normalizeDirectoryPath";
 import {
+    Collection,
+    normalizeDirectoryPath,
     CollectionData,
     CollectionItem,
-} from "../../shared/model/interfaces";
+} from "../../shared";
+import { dirname } from "path";
 import { getTestId } from "./testTreeHelper";
 
 export function addTestItemAndAncestorsToTestTree(

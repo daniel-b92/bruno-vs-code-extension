@@ -5,7 +5,7 @@ import {
     RequestFileBlock,
     TextOutsideOfBlocks,
 } from "./definitions/interfaces";
-import { getBlockContent } from "./blockParsing/getBlockContent";
+import { getBlockContent } from "./internal/getBlockContent";
 import { TextDocumentHelper } from "../util/textDocumentHelper";
 
 export const getSequence = (testFilePath: string) => {

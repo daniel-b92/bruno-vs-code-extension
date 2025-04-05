@@ -1,5 +1,4 @@
 import { showHtmlReport } from "./showHtmlReport";
-import { getCollectionRootDir } from "../../shared/fileSystem/util/collectionRootFolderHelper";
 import { existsSync } from "fs";
 import {
     EventEmitter,
@@ -14,7 +13,7 @@ import {
 import { dirname, resolve } from "path";
 import { runTestStructure } from "./runTestStructure";
 import { QueuedTest, TestRunQueue } from "./testRunQueue";
-import { CollectionItemProvider } from "../../shared/state";
+import { CollectionItemProvider, getCollectionRootDir } from "../../shared";
 
 const environmentConfigKey = "brunoTestExtension.testRunEnvironment";
 

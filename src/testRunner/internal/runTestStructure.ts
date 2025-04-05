@@ -1,4 +1,4 @@
-import { getCollectionRootDir } from "../../shared/fileSystem/util/collectionRootFolderHelper";
+import { getCollectionRootDir } from "../../shared";
 import { existsSync, lstatSync, unlinkSync } from "fs";
 import { spawn } from "child_process";
 import { dirname, resolve } from "path";

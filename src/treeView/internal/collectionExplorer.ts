@@ -1,6 +1,12 @@
 import * as vscode from "vscode";
 import { BrunoTreeItemProvider } from "./brunoTreeItemProvider";
-import { BrunoTreeItem } from "../../shared/model/brunoTreeItem";
+import {
+    BrunoTreeItem,
+    getSequence,
+    getSequencesForRequests,
+    getMaxSequenceForRequests,
+    CollectionItemProvider,
+} from "../../shared";
 import {
     copyFileSync,
     cpSync,
@@ -13,10 +19,6 @@ import {
     writeFileSync,
 } from "fs";
 import { basename, dirname, extname, resolve } from "path";
-import { getSequence } from "../../shared/fileSystem/testFileParsing/testFileParser";
-import { getSequencesForRequests } from "../../shared/fileSystem/testFileParsing/getSequencesForRequests";
-import { getMaxSequenceForRequests } from "../../shared/fileSystem/testFileParsing/getMaxSequenceForRequests";
-import { CollectionItemProvider } from "../../shared/state";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>

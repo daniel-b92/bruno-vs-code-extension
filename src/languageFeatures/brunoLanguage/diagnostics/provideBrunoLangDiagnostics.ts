@@ -2,9 +2,11 @@ import { DiagnosticCollection, Uri } from "vscode";
 import { addDiagnosticForDocument } from "./util/addDiagnosticForDocument";
 import { removeDiagnosticsForDocument } from "./util/removeDiagnosticsForDocument";
 import { getDiagnosticForMetaBlockNotInFirstLine } from "./providers/getDiagnosticForMetaBlockNotInFirstLine";
-import { parseTestFile } from "../../../shared/fileSystem/testFileParsing/testFileParser";
-import { RequestFileBlockName } from "../../../shared/fileSystem/testFileParsing/definitions/requestFileBlockNameEnum";
-import { TextDocumentHelper } from "../../../shared/fileSystem/util/textDocumentHelper";
+import {
+    parseTestFile,
+    RequestFileBlockName,
+    TextDocumentHelper,
+} from "../../../shared";
 import { checkOccurencesOfMandatoryBlocks } from "./providers/checkOccurencesOfMandatoryBlocks";
 import { checkThatNoBlocksAreDefinedMultipleTimes } from "./providers/checkThatNoBlocksAreDefinedMultipleTimes";
 import { DiagnosticCode } from "./diagnosticCodeEnum";

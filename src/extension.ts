@@ -1,11 +1,13 @@
 import { EventEmitter, ExtensionContext, tests, Uri } from "vscode";
 import { activateRunner } from "./testRunner";
 import { activateTreeView } from "./treeView";
-import { FileChangedEvent } from "./shared/fileSystem/fileChangesDefinitions";
-import { CollectionWatcher } from "./shared/fileSystem/collectionWatcher";
+import {
+    CollectionWatcher,
+    FileChangedEvent,
+    CollectionItemProvider,
+    TestRunnerDataHelper,
+} from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures/activateLanguageFeatures";
-import { CollectionItemProvider } from "./shared/state";
-import { TestRunnerDataHelper } from "./shared/state";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(

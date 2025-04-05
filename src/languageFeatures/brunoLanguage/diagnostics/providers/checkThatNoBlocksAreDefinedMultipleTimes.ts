@@ -7,9 +7,8 @@ import {
     Uri,
 } from "vscode";
 import { addDiagnosticForDocument } from "../util/addDiagnosticForDocument";
-import { RequestFileBlock } from "../../../../shared/fileSystem/testFileParsing/definitions/interfaces";
+import { RequestFileBlock, RequestFileBlockName } from "../../../../shared";
 import { DiagnosticCode } from "../diagnosticCodeEnum";
-import { RequestFileBlockName } from "../../../../shared/fileSystem/testFileParsing/definitions/requestFileBlockNameEnum";
 import { removeDiagnosticsForDocument } from "../util/removeDiagnosticsForDocument";
 
 export function checkThatNoBlocksAreDefinedMultipleTimes(

@@ -6,11 +6,13 @@ import {
     Range,
     Uri,
 } from "vscode";
-import { TextDocumentHelper } from "../../../../shared/fileSystem/util/textDocumentHelper";
+import {
+    TextDocumentHelper,
+    RequestFileBlock,
+    RequestFileBlockName,
+} from "../../../../shared";
 import { addDiagnosticForDocument } from "../util/addDiagnosticForDocument";
-import { RequestFileBlock } from "../../../../shared/fileSystem/testFileParsing/definitions/interfaces";
 import { DiagnosticCode } from "../diagnosticCodeEnum";
-import { RequestFileBlockName } from "../../../../shared/fileSystem/testFileParsing/definitions/requestFileBlockNameEnum";
 import { removeDiagnosticsForDocument } from "../util/removeDiagnosticsForDocument";
 
 export function checkOccurencesOfMandatoryBlocks(

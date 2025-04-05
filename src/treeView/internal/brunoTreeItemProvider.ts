@@ -1,11 +1,13 @@
 import { lstatSync, readdirSync } from "fs";
 import { dirname, resolve } from "path";
 import * as vscode from "vscode";
-import { getSequence } from "../../shared/fileSystem/testFileParsing/testFileParser";
-import { BrunoTreeItem } from "../../shared/model/brunoTreeItem";
-import { CollectionItemProvider } from "../../shared/state";
-import { CollectionData } from "../../shared/model/interfaces";
-import { FileChangeType } from "../../shared/fileSystem/fileChangesDefinitions";
+import {
+    getSequence,
+    BrunoTreeItem,
+    CollectionData,
+    FileChangeType,
+    CollectionItemProvider,
+} from "../../shared";
 
 export class BrunoTreeItemProvider
     implements vscode.TreeDataProvider<BrunoTreeItem>

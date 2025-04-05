@@ -1,6 +1,6 @@
 import { CollectionExplorer } from "./internal/collectionExplorer";
 import { EventEmitter, Uri } from "vscode";
-import { CollectionItemProvider } from "../shared/state";
+import { CollectionItemProvider } from "../shared";
 
 export function activateTreeView(
     itemProvider: CollectionItemProvider,

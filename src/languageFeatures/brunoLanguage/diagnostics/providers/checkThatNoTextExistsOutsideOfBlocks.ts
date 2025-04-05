@@ -6,7 +6,7 @@ import {
     Uri,
 } from "vscode";
 import { addDiagnosticForDocument } from "../util/addDiagnosticForDocument";
-import { TextOutsideOfBlocks } from "../../../../shared/fileSystem/testFileParsing/definitions/interfaces";
+import { TextOutsideOfBlocks } from "../../../../shared";
 import { DiagnosticCode } from "../diagnosticCodeEnum";
 import { removeDiagnosticsForDocument } from "../util/removeDiagnosticsForDocument";
 

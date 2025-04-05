@@ -11,16 +11,18 @@ import {
 } from "vscode";
 import { startTestRun } from "./internal/startTestRun";
 import { TestRunQueue } from "./internal/testRunQueue";
-import { CollectionItemProvider } from "../shared/state";
-import { FileChangeType } from "../shared/fileSystem/fileChangesDefinitions";
 import { addTestItemAndAncestorsToTestTree } from "./testTreeUtils/addTestItemAndAncestorsToTestTree";
 import { getTestId } from "./testTreeUtils/testTreeHelper";
 import { dirname } from "path";
-import { TestRunnerDataHelper } from "../shared/state";
-import { CollectionDirectory } from "../shared/model/collectionDirectory";
-import { Collection } from "../shared/model/collection";
-import { CollectionFile } from "../shared/model/collectionFile";
-import { normalizeDirectoryPath } from "../shared/fileSystem/util/normalizeDirectoryPath";
+import {
+    TestRunnerDataHelper,
+    CollectionDirectory,
+    Collection,
+    CollectionFile,
+    normalizeDirectoryPath,
+    CollectionItemProvider,
+    FileChangeType,
+} from "../shared";
 
 export async function activateRunner(
     ctrl: TestController,
