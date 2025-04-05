@@ -116,7 +116,14 @@ export class CollectionItemProvider {
     }
 
     public async refreshState() {
-        // ToDo: Remove cached items that are outdated
+        this.collectionRegistry
+            .getRegisteredCollections()
+            .forEach((collection) => {
+                this.collectionRegistry.unregisterCollection(
+                    collection.getRootDirectory()
+                );
+            });
+
         await registerMissingCollectionsAndTheirItems(
             this.testRunnerDataHelper,
             this.collectionRegistry

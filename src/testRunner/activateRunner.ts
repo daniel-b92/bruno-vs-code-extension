@@ -110,13 +110,21 @@ export async function activateRunner(
     };
 
     ctrl.refreshHandler = async () => {
-        // ToDo: Remove cached items that are outdated
+        ctrl.items.replace([]);
+
         await collectionItemProvider.refreshState();
+
+        const collections = collectionItemProvider.getRegisteredCollections();
 
         await addMissingTestCollectionsAndItemsToTestTree(
             ctrl,
             testRunnerDataHelper,
-            collectionItemProvider.getRegisteredCollections()
+            collections
+        );
+
+        // The displayed test tree view is only updated correctly, if you re-add the collection on top level again
+        collections.forEach((collection) =>
+            addCollectionTestItemToTestTree(ctrl, collection)
         );
     };
 
@@ -155,7 +163,7 @@ export async function activateRunner(
                 data.item
             );
 
-            // The test tree view is only updated correctly, if you re-add the collection on top level again
+            // The displayed test tree view is only updated correctly, if you re-add the collection on top level again
             addCollectionTestItemToTestTree(ctrl, collection);
         }
     };
