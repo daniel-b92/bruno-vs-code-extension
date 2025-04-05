@@ -11,12 +11,12 @@ import {
 } from "vscode";
 import { startTestRun } from "../testRunner/testRun/startTestRun";
 import { TestRunQueue } from "../testRunner/testRun/testRunQueue";
-import { CollectionItemProvider } from "../shared/state/collectionItemProvider";
+import { CollectionItemProvider } from "../shared/state/externalHelpers/collectionItemProvider";
 import { FileChangeType } from "../shared/fileSystem/fileChangesDefinitions";
 import { addTestItemAndAncestorsToTestTree } from "./testTreeUtils/addTestItemAndAncestorsToTestTree";
 import { getTestId } from "./testTreeUtils/testTreeHelper";
 import { dirname } from "path";
-import { TestRunnerDataHelper } from "../shared/state/testRunnerDataHelper";
+import { TestRunnerDataHelper } from "../shared/state/externalHelpers/testRunnerDataHelper";
 import { CollectionDirectory } from "../shared/state/model/collectionDirectory";
 import { Collection } from "../shared/state/model/collection";
 import { CollectionFile } from "../shared/state/model/collectionFile";
@@ -111,6 +111,8 @@ export async function activateRunner(
 
     ctrl.refreshHandler = async () => {
         // ToDo: Remove cached items that are outdated
+        await collectionItemProvider.refreshState();
+
         await addMissingTestCollectionsAndItemsToTestTree(
             ctrl,
             testRunnerDataHelper,

@@ -16,7 +16,7 @@ import { basename, dirname, extname, resolve } from "path";
 import { getSequence } from "../shared/fileSystem/testFileParsing/testFileParser";
 import { getSequencesForRequests } from "../shared/fileSystem/testFileParsing/getSequencesForRequests";
 import { getMaxSequenceForRequests } from "../shared/fileSystem/testFileParsing/getMaxSequenceForRequests";
-import { CollectionItemProvider } from "../shared/state/collectionItemProvider";
+import { CollectionItemProvider } from "../shared/state/externalHelpers/collectionItemProvider";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>
@@ -46,10 +46,9 @@ export class CollectionExplorer
             dragAndDropController: this,
         });
 
-        vscode.commands.registerCommand(
-            "brunoCollectionsView.refresh",
-            async () => await treeDataProvider.refresh()
-        );
+        vscode.commands.registerCommand("brunoCollectionsView.refresh", () => {
+            treeDataProvider.refresh();
+        });
 
         vscode.commands.registerCommand(
             "brunoCollectionsView.createFile",

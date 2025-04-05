@@ -14,7 +14,7 @@ import {
 import { dirname, resolve } from "path";
 import { runTestStructure } from "./runTestStructure";
 import { QueuedTest, TestRunQueue } from "./testRunQueue";
-import { CollectionItemProvider } from "../../shared/state/collectionItemProvider";
+import { CollectionItemProvider } from "../../shared/state/externalHelpers/collectionItemProvider";
 
 const environmentConfigKey = "brunoTestExtension.testRunEnvironment";
 

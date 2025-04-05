@@ -1,16 +1,16 @@
 import * as vscode from "vscode";
-import { CollectionFile } from "./model/collectionFile";
-import { CollectionItem } from "./model/interfaces";
+import { CollectionFile } from "../model/collectionFile";
+import { CollectionItem } from "../model/interfaces";
 import {
     getTestId,
     getTestLabel,
-} from "../../testRunner/testTreeUtils/testTreeHelper";
-import { Collection } from "./model/collection";
-import { CollectionDirectory } from "./model/collectionDirectory";
+} from "../../../testRunner/testTreeUtils/testTreeHelper";
+import { Collection } from "../model/collection";
+import { CollectionDirectory } from "../model/collectionDirectory";
 import { extname } from "path";
 import { lstatSync } from "fs";
-import { addTestItemAndAncestorsToTestTree } from "../../testRunner/testTreeUtils/addTestItemAndAncestorsToTestTree";
-import { normalizeDirectoryPath } from "../fileSystem/util/normalizeDirectoryPath";
+import { addTestItemAndAncestorsToTestTree } from "../../../testRunner/testTreeUtils/addTestItemAndAncestorsToTestTree";
+import { normalizeDirectoryPath } from "../../fileSystem/util/normalizeDirectoryPath";
 
 export class TestRunnerDataHelper {
     constructor(private testController: vscode.TestController) {}

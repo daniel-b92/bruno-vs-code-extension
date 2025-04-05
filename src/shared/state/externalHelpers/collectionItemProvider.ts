@@ -1,18 +1,17 @@
-import { lstatSync, readdirSync } from "fs";
+import { lstatSync } from "fs";
 import * as vscode from "vscode";
-import { getSequence } from "../fileSystem/testFileParsing/testFileParser";
-import { FileChangeType } from "../fileSystem/fileChangesDefinitions";
-import { CollectionWatcher } from "../fileSystem/collectionWatcher";
-import { CollectionRegistry } from "./collectionRegistry";
-import { normalizeDirectoryPath } from "../fileSystem/util/normalizeDirectoryPath";
-import { CollectionFile } from "./model/collectionFile";
-import { CollectionDirectory } from "./model/collectionDirectory";
-import { getAllCollectionRootDirectories } from "../fileSystem/util/collectionRootFolderHelper";
-import { Collection } from "./model/collection";
-import { resolve } from "path";
-import { CollectionData } from "./model/interfaces";
+import { getSequence } from "../../fileSystem/testFileParsing/testFileParser";
+import { FileChangeType } from "../../fileSystem/fileChangesDefinitions";
+import { CollectionWatcher } from "../../fileSystem/collectionWatcher";
+import { CollectionRegistry } from "../internalHelpers/collectionRegistry";
+import { normalizeDirectoryPath } from "../../fileSystem/util/normalizeDirectoryPath";
+import { CollectionFile } from "../model/collectionFile";
+import { CollectionDirectory } from "../model/collectionDirectory";
+import { Collection } from "../model/collection";
+import { CollectionData } from "../model/interfaces";
 import { TestRunnerDataHelper } from "./testRunnerDataHelper";
-import { BrunoTreeItem } from "./model/brunoTreeItem";
+import { addItemToCollection } from "../internalHelpers/addItemToCollection";
+import { registerMissingCollectionsAndTheirItems } from "../internalHelpers/registerMissingCollectionsAndTheirItems";
 
 export class CollectionItemProvider {
     constructor(
@@ -116,58 +115,11 @@ export class CollectionItemProvider {
         );
     }
 
-    public async registerMissingCollectionsAndTheirItems() {
-        const allCollections = await this.registerAllExistingCollections();
-
-        for (const collection of allCollections) {
-            const currentPaths = [collection.getRootDirectory()];
-
-            while (currentPaths.length > 0) {
-                const currentPath = currentPaths.splice(0, 1)[0];
-
-                for (const childItem of readdirSync(currentPath)) {
-                    const path = resolve(currentPath, childItem);
-                    const isDirectory = lstatSync(path).isDirectory();
-
-                    if (!collection.getStoredDataForPath(path)) {
-                        const item = isDirectory
-                            ? new CollectionDirectory(path)
-                            : new CollectionFile(path, getSequence(path));
-
-                        this.addItemToCollection(collection, item);
-                    }
-
-                    if (isDirectory) {
-                        currentPaths.push(path);
-                    }
-                }
-            }
-        }
-    }
-
-    private async registerAllExistingCollections() {
-        return (await getAllCollectionRootDirectories()).map(
-            (rootDirectory) => {
-                const collection = new Collection(
-                    rootDirectory,
-                    this.testRunnerDataHelper
-                );
-
-                if (
-                    !this.collectionRegistry
-                        .getRegisteredCollections()
-                        .some(
-                            (registered) =>
-                                normalizeDirectoryPath(
-                                    registered.getRootDirectory()
-                                ) == normalizeDirectoryPath(rootDirectory)
-                        )
-                ) {
-                    this.collectionRegistry.registerCollection(collection);
-                }
-
-                return collection;
-            }
+    public async refreshState() {
+        // ToDo: Remove cached items that are outdated
+        await registerMissingCollectionsAndTheirItems(
+            this.testRunnerDataHelper,
+            this.collectionRegistry
         );
     }
 
@@ -198,7 +150,11 @@ export class CollectionItemProvider {
 
         this.itemUpdateEmitter.fire({
             collection: registeredCollection,
-            data: this.addItemToCollection(registeredCollection, item),
+            data: addItemToCollection(
+                this.testRunnerDataHelper,
+                registeredCollection,
+                item
+            ),
             updateType: FileChangeType.Created,
         });
     }
@@ -229,7 +185,11 @@ export class CollectionItemProvider {
 
             registeredCollectionForItem.removeTestItemAndDescendants(oldItem);
 
-            this.addItemToCollection(registeredCollectionForItem, newItem);
+            addItemToCollection(
+                this.testRunnerDataHelper,
+                registeredCollectionForItem,
+                newItem
+            );
 
             this.itemUpdateEmitter.fire({
                 collection: registeredCollectionForItem,
@@ -238,26 +198,5 @@ export class CollectionItemProvider {
                 changedData: { sequenceChanged: oldSequence != newSequence },
             });
         }
-    }
-
-    private addItemToCollection(
-        collection: Collection,
-        item: CollectionFile | CollectionDirectory
-    ) {
-        const isFile = item instanceof CollectionFile;
-
-        const data: CollectionData = {
-            item,
-            treeItem: new BrunoTreeItem(
-                item.getPath(),
-                isFile,
-                isFile ? item.getSequence() : undefined
-            ),
-            testItem: this.testRunnerDataHelper.createVsCodeTestItem(item),
-        };
-
-        collection.addItem(data);
-
-        return data;
     }
 }
