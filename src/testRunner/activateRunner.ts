@@ -9,8 +9,8 @@ import {
     Uri,
     window,
 } from "vscode";
-import { startTestRun } from "../testRunner/testRun/startTestRun";
-import { TestRunQueue } from "../testRunner/testRun/testRunQueue";
+import { startTestRun } from "./internal/startTestRun";
+import { TestRunQueue } from "./internal/testRunQueue";
 import { CollectionItemProvider } from "../shared/state";
 import { FileChangeType } from "../shared/fileSystem/fileChangesDefinitions";
 import { addTestItemAndAncestorsToTestTree } from "./testTreeUtils/addTestItemAndAncestorsToTestTree";
