@@ -1,4 +1,4 @@
-import { TestRunnerDataHelper } from "../externalHelpers/testRunnerDataHelper";
+import { TestRunnerDataHelper } from "..";
 import { BrunoTreeItem } from "../../model/brunoTreeItem";
 import { Collection } from "../../model/collection";
 import { CollectionDirectory } from "../../model/collectionDirectory";

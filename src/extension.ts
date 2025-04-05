@@ -4,8 +4,8 @@ import { activateTreeView } from "./treeView/activateTreeView";
 import { FileChangedEvent } from "./shared/fileSystem/fileChangesDefinitions";
 import { CollectionWatcher } from "./shared/fileSystem/collectionWatcher";
 import { activateLanguageFeatures } from "./languageFeatures/activateLanguageFeatures";
-import { CollectionItemProvider } from "./shared/state/externalHelpers/collectionItemProvider";
-import { TestRunnerDataHelper } from "./shared/state/externalHelpers/testRunnerDataHelper";
+import { CollectionItemProvider } from "./shared/state";
+import { TestRunnerDataHelper } from "./shared/state";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(

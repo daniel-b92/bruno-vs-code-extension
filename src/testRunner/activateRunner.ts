@@ -11,12 +11,12 @@ import {
 } from "vscode";
 import { startTestRun } from "../testRunner/testRun/startTestRun";
 import { TestRunQueue } from "../testRunner/testRun/testRunQueue";
-import { CollectionItemProvider } from "../shared/state/externalHelpers/collectionItemProvider";
+import { CollectionItemProvider } from "../shared/state";
 import { FileChangeType } from "../shared/fileSystem/fileChangesDefinitions";
 import { addTestItemAndAncestorsToTestTree } from "./testTreeUtils/addTestItemAndAncestorsToTestTree";
 import { getTestId } from "./testTreeUtils/testTreeHelper";
 import { dirname } from "path";
-import { TestRunnerDataHelper } from "../shared/state/externalHelpers/testRunnerDataHelper";
+import { TestRunnerDataHelper } from "../shared/state";
 import { CollectionDirectory } from "../shared/model/collectionDirectory";
 import { Collection } from "../shared/model/collection";
 import { CollectionFile } from "../shared/model/collectionFile";

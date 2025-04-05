@@ -3,7 +3,7 @@ import { normalizeDirectoryPath } from "../fileSystem/util/normalizeDirectoryPat
 import { CollectionDirectory } from "./collectionDirectory";
 import { CollectionFile } from "./collectionFile";
 import { CollectionData } from "./interfaces";
-import { TestRunnerDataHelper } from "../state/externalHelpers/testRunnerDataHelper";
+import { TestRunnerDataHelper } from "../state";
 
 export class Collection {
     constructor(

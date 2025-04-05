@@ -1,7 +1,7 @@
 import { lstatSync, readdirSync } from "fs";
 import { getAllCollectionRootDirectories } from "../../fileSystem/util/collectionRootFolderHelper";
 import { normalizeDirectoryPath } from "../../fileSystem/util/normalizeDirectoryPath";
-import { TestRunnerDataHelper } from "../externalHelpers/testRunnerDataHelper";
+import { TestRunnerDataHelper } from "..";
 import { Collection } from "../../model/collection";
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";

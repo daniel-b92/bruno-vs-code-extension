@@ -16,7 +16,7 @@ import { basename, dirname, extname, resolve } from "path";
 import { getSequence } from "../shared/fileSystem/testFileParsing/testFileParser";
 import { getSequencesForRequests } from "../shared/fileSystem/testFileParsing/getSequencesForRequests";
 import { getMaxSequenceForRequests } from "../shared/fileSystem/testFileParsing/getMaxSequenceForRequests";
-import { CollectionItemProvider } from "../shared/state/externalHelpers/collectionItemProvider";
+import { CollectionItemProvider } from "../shared/state";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>
