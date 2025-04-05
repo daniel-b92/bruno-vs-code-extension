@@ -38,5 +38,5 @@ export async function activate(context: ExtensionContext) {
     );
     activateTreeView(collectionItemProvider, startTestRunEmitter);
 
-    activateLanguageFeatures(context);
+    activateLanguageFeatures(context, collectionItemProvider);
 }

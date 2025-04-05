@@ -7,46 +7,49 @@ import {
 } from "vscode";
 import { provideBrunoLangCompletionItems } from "./internal/completionItems/provideBrunoLangCompletionItems";
 import { provideBrunoLangDiagnostics } from "./internal/diagnostics/provideBrunoLangDiagnostics";
-import { basename, dirname, extname } from "path";
-import { isCollectionRootDir } from "../shared";
+import { OpenDocumentState } from "./internal/state/openDocumentState";
+import { CollectionItemProvider } from "../shared";
 
-export function activateLanguageFeatures(context: ExtensionContext) {
+export function activateLanguageFeatures(
+    context: ExtensionContext,
+    collectionItemProvider: CollectionItemProvider
+) {
     provideBrunoLangCompletionItems();
 
     const diagnosticCollection = languages.createDiagnosticCollection("bruno");
     context.subscriptions.push(diagnosticCollection);
 
+    const openDocumentState = new OpenDocumentState();
+
     context.subscriptions.push(
         workspace.onDidOpenTextDocument(async (e) => {
-            await fetchDiagnostics(e, diagnosticCollection);
+            if (
+                await openDocumentState.isDocumentBrunoRequestFile(
+                    collectionItemProvider.getRegisteredCollections(),
+                    e.uri
+                )
+            ) {
+                fetchDiagnostics(e, diagnosticCollection);
+            }
         })
     );
 
     context.subscriptions.push(
-        workspace.onDidChangeTextDocument(async (e) => {
-            await fetchDiagnostics(e.document, diagnosticCollection);
+        workspace.onDidChangeTextDocument((e) => {
+            if (openDocumentState.isCurrentDocumentRequestFile()) {
+                fetchDiagnostics(e.document, diagnosticCollection);
+            }
         })
     );
 }
 
-async function fetchDiagnostics(
+function fetchDiagnostics(
     document: TextDocument,
     knownDiagnostics: DiagnosticCollection
 ) {
-    const path = document.uri.fsPath;
-
-    const isBrunoRequest =
-        extname(path) == ".bru" &&
-        !dirname(path).match(/environments(\/|\\)?/) &&
-        basename(path) != "folder.bru" &&
-        (basename(path) != "collection.bru" ||
-            !(await isCollectionRootDir(dirname(path))));
-
-    if (isBrunoRequest) {
-        provideBrunoLangDiagnostics(
-            knownDiagnostics,
-            document.getText(),
-            document.uri
-        );
-    }
+    provideBrunoLangDiagnostics(
+        knownDiagnostics,
+        document.getText(),
+        document.uri
+    );
 }
