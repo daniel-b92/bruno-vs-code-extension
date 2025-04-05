@@ -7,7 +7,8 @@ import {
 } from "vscode";
 import { provideBrunoLangCompletionItems } from "./internal/completionItems/provideBrunoLangCompletionItems";
 import { provideBrunoLangDiagnostics } from "./internal/diagnostics/provideBrunoLangDiagnostics";
-import { dirname, extname } from "path";
+import { basename, dirname, extname } from "path";
+import { isCollectionRootDir } from "../shared";
 
 export function activateLanguageFeatures(context: ExtensionContext) {
     provideBrunoLangCompletionItems();
@@ -16,25 +17,30 @@ export function activateLanguageFeatures(context: ExtensionContext) {
     context.subscriptions.push(diagnosticCollection);
 
     context.subscriptions.push(
-        workspace.onDidOpenTextDocument((e) => {
-            fetchDiagnostics(e, diagnosticCollection);
+        workspace.onDidOpenTextDocument(async (e) => {
+            await fetchDiagnostics(e, diagnosticCollection);
         })
     );
 
     context.subscriptions.push(
-        workspace.onDidChangeTextDocument((e) => {
-            fetchDiagnostics(e.document, diagnosticCollection);
+        workspace.onDidChangeTextDocument(async (e) => {
+            await fetchDiagnostics(e.document, diagnosticCollection);
         })
     );
 }
 
-function fetchDiagnostics(
+async function fetchDiagnostics(
     document: TextDocument,
     knownDiagnostics: DiagnosticCollection
 ) {
+    const path = document.uri.fsPath;
+
     const isBrunoRequest =
-        extname(document.uri.fsPath) == ".bru" &&
-        !dirname(document.uri.fsPath).match(/environments(\/|\\)?/);
+        extname(path) == ".bru" &&
+        !dirname(path).match(/environments(\/|\\)?/) &&
+        basename(path) != "folder.bru" &&
+        (basename(path) != "collection.bru" ||
+            !(await isCollectionRootDir(dirname(path))));
 
     if (isBrunoRequest) {
         provideBrunoLangDiagnostics(
