@@ -1,15 +1,12 @@
 import * as vscode from "vscode";
 import { CollectionFile } from "../../model/collectionFile";
 import { CollectionItem } from "../../model/interfaces";
-import {
-    getTestId,
-    getTestLabel,
-} from "../../../testRunner/testTreeUtils/testTreeHelper";
+import { getTestId, getTestLabel } from "../../../testRunner";
 import { Collection } from "../../model/collection";
 import { CollectionDirectory } from "../../model/collectionDirectory";
 import { extname } from "path";
 import { lstatSync } from "fs";
-import { addTestItemAndAncestorsToTestTree } from "../../../testRunner/testTreeUtils/addTestItemAndAncestorsToTestTree";
+import { addTestItemAndAncestorsToTestTree } from "../../../testRunner";
 import { normalizeDirectoryPath } from "../../fileSystem/util/normalizeDirectoryPath";
 
 export class TestRunnerDataHelper {
