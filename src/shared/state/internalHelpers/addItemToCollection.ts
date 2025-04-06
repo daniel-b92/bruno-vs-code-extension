@@ -1,5 +1,5 @@
 import { TestRunnerDataHelper } from "../..";
-import { BrunoTreeItem } from "../../model/brunoTreeItem";
+import { BrunoTreeItem } from "../../../treeView/brunoTreeItem";
 import { Collection } from "../../model/collection";
 import { CollectionDirectory } from "../../model/collectionDirectory";
 import { CollectionFile } from "../../model/collectionFile";

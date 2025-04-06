@@ -1,4 +1,4 @@
-import { BrunoTreeItem } from "./brunoTreeItem";
+import { BrunoTreeItem } from "../../treeView/brunoTreeItem";
 import { normalizeDirectoryPath } from "../fileSystem/util/normalizeDirectoryPath";
 import { CollectionDirectory } from "./collectionDirectory";
 import { CollectionFile } from "./collectionFile";

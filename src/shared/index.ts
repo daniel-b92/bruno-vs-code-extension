@@ -13,8 +13,10 @@ export * from "./fileSystem/testFileParsing/testFileParser";
 export * from "./fileSystem/testFileParsing/definitions/interfaces";
 export * from "./fileSystem/testFileParsing/definitions/requestFileBlockNameEnum";
 
+export * from "./fileSystem/testFileWriting/addMetaBlock";
+
 // model
-export * from "./model/brunoTreeItem";
+export * from "../treeView/brunoTreeItem";
 export * from "./model/collection";
 export * from "./model/collectionDirectory";
 export * from "./model/collectionFile";

@@ -1,5 +1,5 @@
 import { TestItem } from "vscode";
-import { BrunoTreeItem } from "./brunoTreeItem";
+import { BrunoTreeItem } from "../../treeView/brunoTreeItem";
 import { CollectionDirectory } from "./collectionDirectory";
 import { CollectionFile } from "./collectionFile";
 
