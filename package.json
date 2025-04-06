@@ -58,8 +58,12 @@
                 "title": "Rename"
             },
             {
-                "command": "brunoCollectionsView.createFile",
-                "title": "Create file"
+                "command": "brunoCollectionsView.createRequestFile",
+                "title": "Create request file"
+            },
+            {
+                "command": "brunoCollectionsView.createEmptyFile",
+                "title": "Create empty file"
             },
             {
                 "command": "brunoCollectionsView.createFolder",
@@ -94,14 +98,19 @@
                     "group": "navigation@1"
                 },
                 {
-                    "command": "brunoCollectionsView.createFile",
+                    "command": "brunoCollectionsView.createRequestFile",
                     "when": "view == brunoCollectionsView && (treeElementCanExpand || treeElementCanCollapse)",
                     "group": "navigation@10"
                 },
                 {
+                    "command": "brunoCollectionsView.createEmptyFile",
+                    "when": "view == brunoCollectionsView && (treeElementCanExpand || treeElementCanCollapse)",
+                    "group": "navigation@12"
+                },
+                {
                     "command": "brunoCollectionsView.createFolder",
                     "when": "view == brunoCollectionsView && (treeElementCanExpand || treeElementCanCollapse)",
-                    "group": "navigation@11"
+                    "group": "navigation@15"
                 },
                 {
                     "command": "brunoCollectionsView.renameItem",

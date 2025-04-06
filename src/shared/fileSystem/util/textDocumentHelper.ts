@@ -41,7 +41,10 @@ export class TextDocumentHelper {
     }
 
     public getLineCount() {
-        return this.lines.fullLines.length + 1; // The last line needs to be counted separately
+        return (
+            this.lines.fullLines.length +
+            (this.lines.lastLine && this.lines.lastLine.length > 0 ? 1 : 0)
+        ); // The last line needs to be counted separately
     }
 
     public getText(range?: Range) {

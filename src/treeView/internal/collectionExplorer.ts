@@ -6,6 +6,7 @@ import {
     getSequencesForRequests,
     getMaxSequenceForRequests,
     CollectionItemProvider,
+    normalizeDirectoryPath,
 } from "../../shared";
 import {
     copyFileSync,
@@ -19,6 +20,7 @@ import {
     writeFileSync,
 } from "fs";
 import { basename, dirname, extname, resolve } from "path";
+import { addMetaBlock } from "../../shared/fileSystem/testFileWriting/addMetaBlock";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>
@@ -53,7 +55,7 @@ export class CollectionExplorer
         });
 
         vscode.commands.registerCommand(
-            "brunoCollectionsView.createFile",
+            "brunoCollectionsView.createEmptyFile",
             async (item: BrunoTreeItem) => {
                 const parentFolderPath = item.getPath();
 
@@ -67,6 +69,57 @@ export class CollectionExplorer
 
                 const filePath = resolve(parentFolderPath, fileName);
                 writeFileSync(filePath, "");
+
+                vscode.commands.executeCommand(
+                    "vscode.open",
+                    vscode.Uri.file(filePath)
+                );
+
+                // ToDo: Reveal file in collection explorer after it has been added to tree
+            }
+        );
+
+        vscode.commands.registerCommand(
+            "brunoCollectionsView.createRequestFile",
+            async (item: BrunoTreeItem) => {
+                const parentFolderPath = item.getPath();
+
+                const prefilledRequestName = "request";
+
+                const requestName = await vscode.window.showInputBox({
+                    title: `Create request file in '${basename(
+                        parentFolderPath
+                    )}'`,
+                    value: prefilledRequestName,
+                });
+
+                if (requestName == undefined) {
+                    return;
+                }
+
+                const filePath = resolve(
+                    parentFolderPath,
+                    `${requestName}.bru`
+                );
+                writeFileSync(filePath, "");
+
+                const collectionForFile = itemProvider
+                    .getRegisteredCollections()
+                    .find((collection) =>
+                        filePath.startsWith(
+                            normalizeDirectoryPath(
+                                collection.getRootDirectory()
+                            )
+                        )
+                    );
+
+                if (!collectionForFile) {
+                    throw new Error(
+                        `No registered collection found for newly created request file '${filePath}'`
+                    );
+                }
+
+                addMetaBlock(collectionForFile, filePath);
 
                 vscode.commands.executeCommand(
                     "vscode.open",
