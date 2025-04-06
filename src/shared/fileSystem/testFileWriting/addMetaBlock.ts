@@ -5,8 +5,18 @@ import { RequestFileBlockName } from "../testFileParsing/definitions/requestFile
 import { basename, dirname, extname } from "path";
 import { Collection } from "../../model/collection";
 import { CollectionFile } from "../../model/collectionFile";
+import { MetaBlockContent } from "./interfaces";
+import { RequestType } from "./internal/requestTypeEnum";
+import {
+    getLineBreak,
+    getNumberOfWhitespacesForIndentation,
+} from "./internal/util/writerUtils";
 
-export function addMetaBlock(collection: Collection, testFilePath: string) {
+export function addMetaBlock(
+    collection: Collection,
+    testFilePath: string,
+    requestType: RequestType
+) {
     if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {
         throw new Error(`No file found for given path '${testFilePath}'`);
     }
@@ -28,31 +38,59 @@ export function addMetaBlock(collection: Collection, testFilePath: string) {
     writeFileSync(
         testFilePath,
         documentHelper.getLineCount() == 0
-            ? getDefaultMetaBlock(collection, testFilePath)
-            : `${getDefaultMetaBlock(collection, testFilePath)}
+            ? mapContentToText(
+                  getContent(collection, testFilePath, requestType)
+              )
+            : `${mapContentToText(
+                  getContent(collection, testFilePath, requestType)
+              )}
         
 ${documentHelper.getText()}`
     );
 }
 
-function getDefaultMetaBlock(collection: Collection, filePath: string) {
-    // ToDo: Use linebreak configured in workspace of extension user
+function getContent(
+    collection: Collection,
+    testFilePath: string,
+    requestType: RequestType
+): MetaBlockContent {
     const existingSequences = collection
         .getAllStoredDataForCollection()
         .filter(
             ({ item }) =>
                 item instanceof CollectionFile &&
-                dirname(item.getPath()) == dirname(filePath) &&
+                dirname(item.getPath()) == dirname(testFilePath) &&
                 item.getSequence() != undefined
         )
         .map(({ item }) => (item as CollectionFile).getSequence() as number);
 
-    return `meta {
-  name: ${basename(filePath).substring(
-      0,
-      basename(filePath).indexOf(extname(filePath))
-  )}
-  type: http
-  seq: ${Math.max(...existingSequences) + 1}
-}`;
+    return {
+        name: basename(testFilePath).substring(
+            0,
+            basename(testFilePath).indexOf(extname(testFilePath))
+        ),
+        type: requestType,
+        sequence: Math.max(...existingSequences) + 1,
+    };
+}
+
+function mapContentToText({ name, type, sequence }: MetaBlockContent) {
+    // ToDo: Use linebreak configured in workspace of extension user
+
+    const lineBreak = getLineBreak();
+    const whitespacesForIndentation = getNumberOfWhitespacesForIndentation();
+
+    return `${RequestFileBlockName.Meta} {`
+        .concat(
+            `${lineBreak}${" ".repeat(whitespacesForIndentation)}name: ${name}`
+        )
+        .concat(
+            `${lineBreak}${" ".repeat(whitespacesForIndentation)}type: ${type}`
+        )
+        .concat(
+            `${lineBreak}${" ".repeat(
+                whitespacesForIndentation
+            )}seq: ${sequence}`
+        )
+        .concat(`${lineBreak}}`);
 }

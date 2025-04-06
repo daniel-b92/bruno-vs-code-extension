@@ -14,6 +14,10 @@ import {
 import { addDiagnosticForDocument } from "../util/addDiagnosticForDocument";
 import { DiagnosticCode } from "../diagnosticCodeEnum";
 import { removeDiagnosticsForDocument } from "../util/removeDiagnosticsForDocument";
+import {
+    getAllMethodBlocks,
+    getPossibleMethodBlocks,
+} from "../../../../shared/fileSystem/testFileParsing/internal/getAllMethodBlocks";
 
 export function checkOccurencesOfMandatoryBlocks(
     documentUri: Uri,
@@ -51,24 +55,11 @@ export function checkOccurencesOfMandatoryBlocks(
         );
     }
 
-    // Some HTTP method block is mandatory
-    const possibleHttpMethodBlocks: RequestFileBlockName[] = [
-        RequestFileBlockName.Get,
-        RequestFileBlockName.Put,
-        RequestFileBlockName.Post,
-        RequestFileBlockName.Delete,
-        RequestFileBlockName.Patch,
-        RequestFileBlockName.Head,
-        RequestFileBlockName.Options,
-    ];
-
-    const missingHttpMethodBlocks = possibleHttpMethodBlocks.filter(
-        (possibleName) =>
-            !blocks.some(({ name: actualName }) => actualName == possibleName)
-    );
+    // Exactly one method block needs to be defined
+    const methodBlocks = getAllMethodBlocks(blocks);
 
     const incorrectNumberOfHttpMethodsDiagnostic: Diagnostic = {
-        message: `Too many or too few HTTP method blocks defined. Exactly one of the following blocks needs to be present: '${possibleHttpMethodBlocks.join(
+        message: `Too many or too few HTTP method blocks defined. Exactly one of the following blocks needs to be present: '${getPossibleMethodBlocks().join(
             "', '"
         )}'`,
         range,
@@ -76,7 +67,7 @@ export function checkOccurencesOfMandatoryBlocks(
         code: DiagnosticCode.IncorrectNumberofHttpMethodBlocks,
     };
 
-    if (missingHttpMethodBlocks.length != possibleHttpMethodBlocks.length - 1) {
+    if (methodBlocks.length != 1) {
         addDiagnosticForDocument(
             documentUri,
             diagnostics,

@@ -2,7 +2,7 @@ export enum RequestFileBlockName {
     // Meta
     Meta = "meta",
 
-    // HTTP methods
+    // methods
     Get = "get",
     Post = "post",
     Put = "put",

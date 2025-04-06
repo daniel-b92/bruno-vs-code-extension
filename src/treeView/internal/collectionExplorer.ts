@@ -7,6 +7,7 @@ import {
     getMaxSequenceForRequests,
     CollectionItemProvider,
     normalizeDirectoryPath,
+    RequestFileBlockName,
 } from "../../shared";
 import {
     copyFileSync,
@@ -21,6 +22,8 @@ import {
 } from "fs";
 import { basename, dirname, extname, resolve } from "path";
 import { addMetaBlock } from "../../shared/fileSystem/testFileWriting/addMetaBlock";
+import { addendDefaultMethodBlock } from "../../shared/fileSystem/testFileWriting/addMethodBlock";
+import { RequestType } from "../../shared/fileSystem/testFileWriting/internal/requestTypeEnum";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>
@@ -84,49 +87,88 @@ export class CollectionExplorer
             async (item: BrunoTreeItem) => {
                 const parentFolderPath = item.getPath();
 
-                const prefilledRequestName = "request";
-
                 const requestName = await vscode.window.showInputBox({
                     title: `Create request file in '${basename(
                         parentFolderPath
                     )}'`,
-                    value: prefilledRequestName,
+                    value: "request_name",
                 });
 
                 if (requestName == undefined) {
                     return;
                 }
 
-                const filePath = resolve(
-                    parentFolderPath,
-                    `${requestName}.bru`
+                const quickPickStepOne = vscode.window.createQuickPick();
+
+                quickPickStepOne.totalSteps = 2;
+                quickPickStepOne.step = 1;
+                quickPickStepOne.title = "Select the request type";
+                quickPickStepOne.items = Object.values(RequestType).map(
+                    (type) => ({ label: type })
                 );
-                writeFileSync(filePath, "");
+                quickPickStepOne.show();
 
-                const collectionForFile = itemProvider
-                    .getRegisteredCollections()
-                    .find((collection) =>
-                        filePath.startsWith(
-                            normalizeDirectoryPath(
-                                collection.getRootDirectory()
-                            )
-                        )
-                    );
+                quickPickStepOne.onDidChangeSelection((itemsForType) => {
+                    quickPickStepOne.dispose();
+                    const quickPickStepTwo = vscode.window.createQuickPick();
 
-                if (!collectionForFile) {
-                    throw new Error(
-                        `No registered collection found for newly created request file '${filePath}'`
-                    );
-                }
+                    quickPickStepOne.totalSteps = 2;
+                    quickPickStepTwo.step = 2;
+                    quickPickStepTwo.title = "Select the method";
+                    quickPickStepTwo.items = [
+                        { label: RequestFileBlockName.Put },
+                        { label: RequestFileBlockName.Post },
+                        { label: RequestFileBlockName.Get },
+                        { label: RequestFileBlockName.Patch },
+                        { label: RequestFileBlockName.Options },
+                        { label: RequestFileBlockName.Head },
+                    ];
 
-                addMetaBlock(collectionForFile, filePath);
+                    quickPickStepTwo.show();
 
-                vscode.commands.executeCommand(
-                    "vscode.open",
-                    vscode.Uri.file(filePath)
-                );
+                    quickPickStepTwo.onDidChangeSelection((itemsForMethod) => {
+                        quickPickStepTwo.dispose();
 
-                // ToDo: Reveal file in collection explorer after it has been added to tree
+                        const filePath = resolve(
+                            parentFolderPath,
+                            `${requestName}.bru`
+                        );
+                        writeFileSync(filePath, "");
+
+                        const collectionForFile = itemProvider
+                            .getRegisteredCollections()
+                            .find((collection) =>
+                                filePath.startsWith(
+                                    normalizeDirectoryPath(
+                                        collection.getRootDirectory()
+                                    )
+                                )
+                            );
+
+                        if (!collectionForFile) {
+                            throw new Error(
+                                `No registered collection found for newly created request file '${filePath}'`
+                            );
+                        }
+
+                        addMetaBlock(
+                            collectionForFile,
+                            filePath,
+                            itemsForType[0].label as RequestType
+                        );
+
+                        addendDefaultMethodBlock(
+                            filePath,
+                            itemsForMethod[0].label as RequestFileBlockName
+                        );
+
+                        vscode.commands.executeCommand(
+                            "vscode.open",
+                            vscode.Uri.file(filePath)
+                        );
+                        // ToDo: Reveal file in collection explorer after it has been added to tree
+                    });
+                });
             }
         );
 
