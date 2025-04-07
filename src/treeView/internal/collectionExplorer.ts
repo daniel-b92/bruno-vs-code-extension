@@ -8,6 +8,8 @@ import {
     CollectionItemProvider,
     normalizeDirectoryPath,
     RequestFileBlockName,
+    parseTestFile,
+    TextDocumentHelper,
 } from "../../shared";
 import {
     copyFileSync,
@@ -24,6 +26,7 @@ import { basename, dirname, extname, resolve } from "path";
 import { addMetaBlock } from "../../shared/fileSystem/testFileWriting/addMetaBlock";
 import { appendDefaultMethodBlock } from "../../shared/fileSystem/testFileWriting/appendDefaultMethodBlock";
 import { RequestType } from "../../shared/fileSystem/testFileWriting/internal/requestTypeEnum";
+import { MetaBlockFieldName } from "../../shared/fileSystem/testFileParsing/definitions/metaBlockFieldNameEnum";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>
@@ -110,29 +113,37 @@ export class CollectionExplorer
             "brunoCollectionsView.renameItem",
             async (item: BrunoTreeItem) => {
                 const originalPath = item.getPath();
-                const originalName = basename(originalPath);
+                const isFile = lstatSync(originalPath).isFile();
+                const originalName =
+                    isFile && extname(originalPath) != ""
+                        ? basename(originalPath).substring(
+                              0,
+                              basename(originalPath).indexOf(
+                                  extname(originalPath)
+                              )
+                          )
+                        : basename(originalPath);
 
                 const newName = await vscode.window.showInputBox({
                     title: `Rename '${originalName}'`,
                     value: originalName,
-                    valueSelection: [
-                        0,
-                        originalName.includes(".")
-                            ? originalName.indexOf(".")
-                            : originalName.length,
-                    ],
                 });
 
                 if (newName == undefined) {
                     return;
                 }
 
-                renameSync(
-                    originalPath,
-                    resolve(dirname(originalPath), newName)
+                const newPath = resolve(
+                    dirname(originalPath),
+                    `${newName}${extname(originalPath)}`
                 );
 
-                this.closeOpenTabsForPath(item.getPath());
+                renameSync(originalPath, newPath);
+
+                if (isFile) {
+                    this.closeOpenTabsForPath(originalPath);
+                    this.replaceNameInRequestFile(newPath, newName);
+                }
             }
         );
 
@@ -355,6 +366,37 @@ export class CollectionExplorer
         });
 
         quickPick.show();
+    }
+
+    private replaceNameInRequestFile(path: string, newName: string) {
+        const documentHelper = new TextDocumentHelper(
+            readFileSync(path).toString()
+        );
+
+        const metaBlock = parseTestFile(documentHelper).blocks.find(
+            ({ name }) => name == RequestFileBlockName.Meta
+        );
+
+        if (metaBlock && Array.isArray(metaBlock.content)) {
+            const nameField = metaBlock.content.find(
+                ({ name }) => name == MetaBlockFieldName.Name
+            );
+
+            if (nameField) {
+                writeFileSync(
+                    path,
+                    documentHelper.getFullTextWithReplacement(
+                        {
+                            lineIndex: nameField.valueRange.start.line,
+                            startCharIndex:
+                                nameField.valueRange.start.character,
+                            endCharIndex: nameField.valueRange.end.character,
+                        },
+                        newName
+                    )
+                );
+            }
+        }
     }
 
     private closeOpenTabsForPath(path: string) {

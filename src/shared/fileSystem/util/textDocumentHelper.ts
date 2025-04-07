@@ -47,6 +47,49 @@ export class TextDocumentHelper {
         ); // The last line needs to be counted separately
     }
 
+    public getFullTextWithReplacement(
+        toReplace: {
+            lineIndex: number;
+            startCharIndex: number;
+            endCharIndex: number;
+        },
+        replacement: string
+    ) {
+        if (toReplace.lineIndex >= this.getLineCount()) {
+            throw new Error(
+                `Given range ${JSON.stringify(
+                    toReplace,
+                    null,
+                    2
+                )} outside of text range ${JSON.stringify(this.lines, null, 2)}`
+            );
+        } else if (toReplace.startCharIndex > toReplace.endCharIndex) {
+            throw new Error(
+                `Start char index for text replacement '${toReplace.startCharIndex}' is larger than end char index '${toReplace.endCharIndex}'`
+            );
+        }
+
+        const originalLine = this.getLineByIndex(toReplace.lineIndex);
+        const adjustedLine = `${originalLine.substring(
+            0,
+            toReplace.startCharIndex
+        )}${replacement}${originalLine.substring(toReplace.endCharIndex + 1)}`;
+
+        return this.lines.fullLines
+            .map(
+                ({ content, linebreak }, index) =>
+                    `${
+                        index == toReplace.lineIndex ? adjustedLine : content
+                    }${linebreak}`
+            )
+            .join("")
+            .concat(
+                toReplace.lineIndex == this.getLineCount() - 1
+                    ? adjustedLine
+                    : this.lines.lastLine ?? ""
+            );
+    }
+
     public getText(range?: Range) {
         if (!range) {
             return this.text;
