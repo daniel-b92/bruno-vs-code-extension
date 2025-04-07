@@ -141,8 +141,24 @@ export class CollectionExplorer
                 renameSync(originalPath, newPath);
 
                 if (isFile) {
-                    this.closeOpenTabsForPath(originalPath);
                     this.replaceNameInRequestFile(newPath, newName);
+
+                    for (const tab of this.getOpenTabsForPath(item.getPath())) {
+                        vscode.window.tabGroups.close(tab);
+
+                        vscode.workspace
+                            .openTextDocument(newPath)
+                            .then((document) =>
+                                vscode.window
+                                    .showTextDocument(
+                                        document,
+                                        tab.group.viewColumn
+                                    )
+                                    .then(() => {
+                                        return;
+                                    })
+                            );
+                    }
                 }
             }
         );
@@ -199,7 +215,9 @@ export class CollectionExplorer
                         this.normalizeSequencesForRequestFiles(dirname(path));
                     }
 
-                    this.closeOpenTabsForPath(item.getPath());
+                    for (const tab of this.getOpenTabsForPath(item.getPath())) {
+                        vscode.window.tabGroups.close(tab);
+                    }
                 }
             }
         );
@@ -399,8 +417,8 @@ export class CollectionExplorer
         }
     }
 
-    private closeOpenTabsForPath(path: string) {
-        const tabsToClose = vscode.window.tabGroups.all
+    private getOpenTabsForPath(path: string) {
+        return vscode.window.tabGroups.all
             .map(({ tabs }) => tabs)
             .flat()
             .filter(
@@ -408,10 +426,6 @@ export class CollectionExplorer
                     tab.input instanceof vscode.TabInputText &&
                     tab.input.uri.fsPath == path
             );
-
-        for (const tab of tabsToClose) {
-            vscode.window.tabGroups.close(tab);
-        }
     }
 
     private getPathForDuplicatedItem(originalPath: string) {
