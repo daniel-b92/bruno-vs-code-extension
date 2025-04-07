@@ -10,7 +10,7 @@ import {
 import { MethodBlockBody } from "./internal/methodBlockBodyEnum";
 import { MethodBlockAuth } from "./internal/methodBlockAuthEnum";
 
-export function addendDefaultMethodBlock(
+export function appendDefaultMethodBlock(
     testFilePath: string,
     blockName: RequestFileBlockName
 ) {

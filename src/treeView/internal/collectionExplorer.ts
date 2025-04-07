@@ -22,7 +22,7 @@ import {
 } from "fs";
 import { basename, dirname, extname, resolve } from "path";
 import { addMetaBlock } from "../../shared/fileSystem/testFileWriting/addMetaBlock";
-import { addendDefaultMethodBlock } from "../../shared/fileSystem/testFileWriting/addMethodBlock";
+import { appendDefaultMethodBlock } from "../../shared/fileSystem/testFileWriting/appendDefaultMethodBlock";
 import { RequestType } from "../../shared/fileSystem/testFileWriting/internal/requestTypeEnum";
 
 export class CollectionExplorer
@@ -98,77 +98,90 @@ export class CollectionExplorer
                     return;
                 }
 
-                const quickPickStepOne = vscode.window.createQuickPick();
+                const pickedLabels: string[] = [];
 
-                quickPickStepOne.totalSteps = 2;
-                quickPickStepOne.step = 1;
-                quickPickStepOne.title = "Select the request type";
-                quickPickStepOne.items = Object.values(RequestType).map(
-                    (type) => ({ label: type })
-                );
-                quickPickStepOne.show();
+                const quickPick = vscode.window.createQuickPick();
 
-                quickPickStepOne.onDidChangeSelection((itemsForType) => {
-                    quickPickStepOne.dispose();
-                    const quickPickStepTwo = vscode.window.createQuickPick();
+                quickPick.totalSteps = 2;
+                quickPick.step = 1;
+                quickPick.title = "Select the request type";
+                quickPick.items = Object.values(RequestType).map((type) => ({
+                    label: type,
+                }));
 
-                    quickPickStepOne.totalSteps = 2;
-                    quickPickStepTwo.step = 2;
-                    quickPickStepTwo.title = "Select the method";
-                    quickPickStepTwo.items = [
-                        { label: RequestFileBlockName.Put },
-                        { label: RequestFileBlockName.Post },
-                        { label: RequestFileBlockName.Get },
-                        { label: RequestFileBlockName.Patch },
-                        { label: RequestFileBlockName.Options },
-                        { label: RequestFileBlockName.Head },
-                    ];
+                quickPick.onDidChangeSelection((picks) => {
+                    pickedLabels.push(...picks.map(({ label }) => label));
 
-                    quickPickStepTwo.show();
+                    if (pickedLabels.length == 1) {
+                        quickPick.hide();
 
-                    quickPickStepTwo.onDidChangeSelection((itemsForMethod) => {
-                        quickPickStepTwo.dispose();
+                        quickPick.step = 2;
+                        quickPick.title = "Select the method";
+                        quickPick.items = [
+                            { label: RequestFileBlockName.Put },
+                            { label: RequestFileBlockName.Post },
+                            { label: RequestFileBlockName.Get },
+                            { label: RequestFileBlockName.Patch },
+                            { label: RequestFileBlockName.Options },
+                            { label: RequestFileBlockName.Head },
+                        ];
 
-                        const filePath = resolve(
-                            parentFolderPath,
-                            `${requestName}.bru`
-                        );
-                        writeFileSync(filePath, "");
+                        quickPick.show();
+                        return;
+                    }
 
-                        const collectionForFile = itemProvider
-                            .getRegisteredCollections()
-                            .find((collection) =>
-                                filePath.startsWith(
-                                    normalizeDirectoryPath(
-                                        collection.getRootDirectory()
-                                    )
+                    quickPick.dispose();
+
+                    const filePath = resolve(
+                        parentFolderPath,
+                        `${requestName}.bru`
+                    );
+                    writeFileSync(filePath, "");
+
+                    const collectionForFile = itemProvider
+                        .getRegisteredCollections()
+                        .find((collection) =>
+                            filePath.startsWith(
+                                normalizeDirectoryPath(
+                                    collection.getRootDirectory()
                                 )
-                            );
-
-                        if (!collectionForFile) {
-                            throw new Error(
-                                `No registered collection found for newly created request file '${filePath}'`
-                            );
-                        }
-
-                        addMetaBlock(
-                            collectionForFile,
-                            filePath,
-                            itemsForType[0].label as RequestType
+                            )
                         );
 
-                        addendDefaultMethodBlock(
-                            filePath,
-                            itemsForMethod[0].label as RequestFileBlockName
+                    if (!collectionForFile) {
+                        throw new Error(
+                            `No registered collection found for newly created request file '${filePath}'`
                         );
+                    }
+                    if (pickedLabels.length != 2) {
+                        throw new Error(
+                            `Did not find as many picked items as expected. Expected to get 2. Instead got '${JSON.stringify(
+                                pickedLabels,
+                                null,
+                                2
+                            )}'`
+                        );
+                    }
 
-                        vscode.commands.executeCommand(
-                            "vscode.open",
-                            vscode.Uri.file(filePath)
-                        );
-                        // ToDo: Reveal file in collection explorer after it has been added to tree
-                    });
+                    addMetaBlock(
+                        collectionForFile,
+                        filePath,
+                        pickedLabels[0] as RequestType
+                    );
+
+                    appendDefaultMethodBlock(
+                        filePath,
+                        pickedLabels[1] as RequestFileBlockName
+                    );
+
+                    vscode.commands.executeCommand(
+                        "vscode.open",
+                        vscode.Uri.file(filePath)
+                    );
+                    // ToDo: Reveal file in collection explorer after it has been added to tree
                 });
+
+                quickPick.show();
             }
         );
 
