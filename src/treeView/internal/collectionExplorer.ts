@@ -131,6 +131,8 @@ export class CollectionExplorer
                     originalPath,
                     resolve(dirname(originalPath), newName)
                 );
+
+                this.closeOpenTabsForPath(item.getPath());
             }
         );
 
@@ -185,6 +187,8 @@ export class CollectionExplorer
                     if (extname(path) == ".bru" && existsSync(dirname(path))) {
                         this.normalizeSequencesForRequestFiles(dirname(path));
                     }
+
+                    this.closeOpenTabsForPath(item.getPath());
                 }
             }
         );
@@ -351,6 +355,21 @@ export class CollectionExplorer
         });
 
         quickPick.show();
+    }
+
+    private closeOpenTabsForPath(path: string) {
+        const tabsToClose = vscode.window.tabGroups.all
+            .map(({ tabs }) => tabs)
+            .flat()
+            .filter(
+                (tab) =>
+                    tab.input instanceof vscode.TabInputText &&
+                    tab.input.uri.fsPath == path
+            );
+
+        for (const tab of tabsToClose) {
+            vscode.window.tabGroups.close(tab);
+        }
     }
 
     private getPathForDuplicatedItem(originalPath: string) {
