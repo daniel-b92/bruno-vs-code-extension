@@ -1,13 +1,14 @@
-import { CompletionItem, DocumentSelector, languages } from "vscode";
+import { CompletionItem, languages } from "vscode";
 import { getMaxSequenceForRequests } from "../../../shared";
 import { dirname } from "path";
+import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 
 export function provideBrunoLangCompletionItems() {
     // meta block
     registerFixedCompletionItems(/^\s*type:\s*$/, "http", "graphql");
 
     languages.registerCompletionItemProvider(
-        getDocumentSelector(),
+        getRequestFileDocumentSelector(),
         {
             provideCompletionItems(document, position) {
                 const currentText = document.lineAt(position.line).text;
@@ -43,7 +44,7 @@ function registerFixedCompletionItems(
     ...choices: string[]
 ) {
     languages.registerCompletionItemProvider(
-        getDocumentSelector(),
+        getRequestFileDocumentSelector(),
         {
             provideCompletionItems(document, position) {
                 const currentText = document.lineAt(position.line).text;
@@ -66,10 +67,6 @@ function registerFixedCompletionItems(
         },
         getTriggerChar()
     );
-}
-
-function getDocumentSelector(): DocumentSelector {
-    return { scheme: "file", pattern: "**/*.bru" };
 }
 
 function getTriggerChar() {
