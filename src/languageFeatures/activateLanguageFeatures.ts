@@ -7,8 +7,8 @@ import {
 } from "vscode";
 import { provideBrunoLangCompletionItems } from "./internal/completionItems/provideBrunoLangCompletionItems";
 import { provideBrunoLangDiagnostics } from "./internal/diagnostics/provideBrunoLangDiagnostics";
-import { OpenDocumentState } from "./internal/state/openDocumentState";
 import { CollectionItemProvider } from "../shared";
+import { isBrunoRequestFile } from "./internal/diagnostics/util/isBrunoRequestFile";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
@@ -19,14 +19,12 @@ export function activateLanguageFeatures(
     const diagnosticCollection = languages.createDiagnosticCollection("bruno");
     context.subscriptions.push(diagnosticCollection);
 
-    const openDocumentState = new OpenDocumentState();
-
     context.subscriptions.push(
-        workspace.onDidOpenTextDocument(async (e) => {
+        workspace.onDidOpenTextDocument((e) => {
             if (
-                await openDocumentState.isDocumentBrunoRequestFile(
-                    collectionItemProvider.getRegisteredCollections(),
-                    e.uri
+                isBrunoRequestFile(
+                    collectionItemProvider.getRegisteredCollections().slice(),
+                    e.uri.fsPath
                 )
             ) {
                 fetchDiagnostics(e, diagnosticCollection);
@@ -36,7 +34,12 @@ export function activateLanguageFeatures(
 
     context.subscriptions.push(
         workspace.onDidChangeTextDocument((e) => {
-            if (openDocumentState.isCurrentDocumentRequestFile()) {
+            if (
+                isBrunoRequestFile(
+                    collectionItemProvider.getRegisteredCollections().slice(),
+                    e.document.uri.fsPath
+                )
+            ) {
                 fetchDiagnostics(e.document, diagnosticCollection);
             }
         })
