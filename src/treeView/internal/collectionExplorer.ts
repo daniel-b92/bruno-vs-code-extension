@@ -10,6 +10,7 @@ import {
     RequestFileBlockName,
     parseTestFile,
     TextDocumentHelper,
+    CollectionData,
 } from "../../shared";
 import {
     copyFileSync,
@@ -35,6 +36,7 @@ export class CollectionExplorer
     dropMimeTypes = ["application/vnd.code.tree.brunocollectionsview"];
 
     constructor(
+        extensionContext: vscode.ExtensionContext,
         private itemProvider: CollectionItemProvider,
         startTestRunEmitter: vscode.EventEmitter<vscode.Uri>
     ) {
@@ -51,7 +53,7 @@ export class CollectionExplorer
             itemProvider
         );
 
-        vscode.window.createTreeView("brunoCollectionsView", {
+        const treeView = vscode.window.createTreeView("brunoCollectionsView", {
             treeDataProvider,
             dragAndDropController: this,
         });
@@ -227,6 +229,27 @@ export class CollectionExplorer
             (item: BrunoTreeItem) => {
                 startTestRunEmitter.fire(vscode.Uri.file(item.getPath()));
             }
+        );
+
+        extensionContext.subscriptions.push(
+            vscode.window.onDidChangeActiveTextEditor((e) => {
+                if (e) {
+                    const maybeCollection =
+                        this.itemProvider.getRegisteredCollectionForItem(
+                            e.document.uri.fsPath
+                        );
+
+                    if (maybeCollection) {
+                        treeView.reveal(
+                            (
+                                maybeCollection.getStoredDataForPath(
+                                    e.document.uri.fsPath
+                                ) as CollectionData
+                            ).treeItem
+                        );
+                    }
+                }
+            })
         );
     }
 

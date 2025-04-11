@@ -36,7 +36,7 @@ export async function activate(context: ExtensionContext) {
         collectionItemProvider,
         startTestRunEmitter.event
     );
-    activateTreeView(collectionItemProvider, startTestRunEmitter);
+    activateTreeView(context, collectionItemProvider, startTestRunEmitter);
 
     activateLanguageFeatures(context, collectionItemProvider);
 }
