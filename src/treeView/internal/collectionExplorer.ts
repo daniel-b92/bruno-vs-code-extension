@@ -32,8 +32,9 @@ import { MetaBlockFieldName } from "../../shared/fileSystem/testFileParsing/defi
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>
 {
+    private treeViewId = "brunoCollectionsView";
     dragMimeTypes = ["text/uri-list"];
-    dropMimeTypes = ["application/vnd.code.tree.brunocollectionsview"];
+    dropMimeTypes = [`application/vnd.code.tree.${this.treeViewId}`];
 
     constructor(
         extensionContext: vscode.ExtensionContext,
@@ -53,17 +54,22 @@ export class CollectionExplorer
             itemProvider
         );
 
-        const treeView = vscode.window.createTreeView("brunoCollectionsView", {
+        const treeView = vscode.window.createTreeView(this.treeViewId, {
             treeDataProvider,
             dragAndDropController: this,
         });
 
-        vscode.commands.registerCommand("brunoCollectionsView.refresh", () => {
-            treeDataProvider.refresh();
+        vscode.commands.registerCommand(`${this.treeViewId}.refresh`, () => {
+            vscode.window.withProgress(
+                { location: { viewId: this.treeViewId } },
+                () => {
+                    return treeDataProvider.refresh();
+                }
+            );
         });
 
         vscode.commands.registerCommand(
-            "brunoCollectionsView.createEmptyFile",
+            `${this.treeViewId}.createEmptyFile`,
             async (item: BrunoTreeItem) => {
                 const parentFolderPath = item.getPath();
 
@@ -88,14 +94,14 @@ export class CollectionExplorer
         );
 
         vscode.commands.registerCommand(
-            "brunoCollectionsView.createRequestFile",
+            `${this.treeViewId}.createRequestFile`,
             async (item: BrunoTreeItem) => {
                 this.createRequestFile(item);
             }
         );
 
         vscode.commands.registerCommand(
-            "brunoCollectionsView.createFolder",
+            `${this.treeViewId}.createFolder`,
             async (item: BrunoTreeItem) => {
                 const parentFolderPath = item.getPath();
 
@@ -112,7 +118,7 @@ export class CollectionExplorer
         );
 
         vscode.commands.registerCommand(
-            "brunoCollectionsView.renameItem",
+            `${this.treeViewId}.renameItem`,
             async (item: BrunoTreeItem) => {
                 const originalPath = item.getPath();
                 const isFile = lstatSync(originalPath).isFile();
@@ -166,7 +172,7 @@ export class CollectionExplorer
         );
 
         vscode.commands.registerCommand(
-            "brunoCollectionsView.duplicateFolder",
+            `${this.treeViewId}.duplicateFolder`,
             (item: BrunoTreeItem) => {
                 const originalPath = item.getPath();
 
@@ -179,7 +185,7 @@ export class CollectionExplorer
         );
 
         vscode.commands.registerCommand(
-            "brunoCollectionsView.duplicateFile",
+            `${this.treeViewId}.duplicateFile`,
             (item: BrunoTreeItem) => {
                 const originalPath = item.getPath();
                 const newPath = this.getPathForDuplicatedItem(originalPath);
@@ -199,7 +205,7 @@ export class CollectionExplorer
         );
 
         vscode.commands.registerCommand(
-            "brunoCollectionsView.deleteItem",
+            `${this.treeViewId}.deleteItem`,
             async (item: BrunoTreeItem) => {
                 const confirmationOption = "Confirm";
 
@@ -225,7 +231,7 @@ export class CollectionExplorer
         );
 
         vscode.commands.registerCommand(
-            "brunoCollectionsView.startTestRun",
+            `${this.treeViewId}.startTestRun`,
             (item: BrunoTreeItem) => {
                 startTestRunEmitter.fire(vscode.Uri.file(item.getPath()));
             }

@@ -60,9 +60,13 @@ export class BrunoTreeItemProvider
         return registeredParent ? registeredParent.treeItem : undefined;
     }
 
-    public async refresh() {
-        await this.collectionItemProvider.refreshState();
-        this._onDidChangeTreeData.fire(undefined);
+    public refresh() {
+        return new Promise<void>((resolve) => {
+            this.collectionItemProvider.refreshState().then(() => {
+                this._onDidChangeTreeData.fire(undefined);
+                resolve();
+            });
+        });
     }
 
     getChildren(element?: BrunoTreeItem): BrunoTreeItem[] {
