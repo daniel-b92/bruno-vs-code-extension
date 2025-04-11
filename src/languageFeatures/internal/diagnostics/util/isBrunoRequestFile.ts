@@ -12,6 +12,11 @@ export function isBrunoRequestFile(
 
     const isBrunoRequestFile =
         extname(path) == ".bru" &&
+        registeredCollections.some((collection) =>
+            path.startsWith(
+                normalizeDirectoryPath(collection.getRootDirectory())
+            )
+        ) &&
         !normalizeDirectoryPath(dirname(path)).match(
             /(\/|\\)environments(\/|\\)$/
         ) &&
