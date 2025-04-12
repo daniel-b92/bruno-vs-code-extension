@@ -11,6 +11,7 @@ import {
     TextDocumentHelper,
     CollectionData,
     normalizeDirectoryPath,
+    getExtensionForRequestFiles,
 } from "../../shared";
 import {
     copyFileSync,
@@ -125,7 +126,7 @@ export class CollectionExplorer
             `${this.treeViewId}.renameItem`,
             (item: BrunoTreeItem) => {
                 const originalPath = item.getPath();
-                const isFile = lstatSync(originalPath).isFile();
+                const isFile = item.isFile;
                 const originalName =
                     isFile && extname(originalPath) != ""
                         ? basename(originalPath).substring(
@@ -142,50 +143,30 @@ export class CollectionExplorer
                         value: basename(originalPath),
                         valueSelection: [0, originalName.length],
                     })
-                    .then((newFileName) => {
-                        if (newFileName == undefined) {
+                    .then((newItemName) => {
+                        if (newItemName == undefined) {
                             return;
                         }
 
                         const newPath = resolve(
                             dirname(originalPath),
-                            newFileName
+                            newItemName
                         );
 
                         renameSync(originalPath, newPath);
 
-                        if (isFile) {
-                            this.replaceNameInRequestFile(
-                                newPath,
-                                extname(newFileName).length > 0
-                                    ? newFileName.substring(
-                                          0,
-                                          newFileName.indexOf(
-                                              extname(newFileName)
-                                          )
-                                      )
-                                    : newFileName
-                            );
-
-                            for (const tab of this.getOpenTabsForPath(
-                                item.getPath()
-                            )) {
-                                vscode.window.tabGroups.close(tab);
-
-                                vscode.workspace
-                                    .openTextDocument(newPath)
-                                    .then((document) =>
-                                        vscode.window
-                                            .showTextDocument(
-                                                document,
-                                                tab.group.viewColumn
-                                            )
-                                            .then(() => {
-                                                return;
-                                            })
-                                    );
-                            }
+                        if (
+                            isFile &&
+                            extname(newPath) == getExtensionForRequestFiles()
+                        ) {
+                            this.replaceNameInRequestFile(newPath);
                         }
+
+                        this.updateTabsAfterRenamingItem(
+                            originalPath,
+                            newPath,
+                            isFile
+                        );
                     });
             }
         );
@@ -212,7 +193,7 @@ export class CollectionExplorer
                 copyFileSync(originalPath, newPath);
 
                 if (
-                    extname(originalPath) == ".bru" &&
+                    extname(originalPath) == getExtensionForRequestFiles() &&
                     getSequence(originalPath) != undefined
                 ) {
                     replaceSequenceForRequest(
@@ -235,12 +216,17 @@ export class CollectionExplorer
                         confirmationOption
                     )
                     .then((picked) => {
-                        if (picked == confirmationOption) {
+                        return new Promise<void>((resolve) => {
+                            if (picked != confirmationOption) {
+                                resolve();
+                            }
+
                             const path = item.getPath();
                             rmSync(path, { recursive: true, force: true });
 
                             if (
-                                extname(path) == ".bru" &&
+                                extname(path) ==
+                                    getExtensionForRequestFiles() &&
                                 existsSync(dirname(path))
                             ) {
                                 this.normalizeSequencesForRequestFiles(
@@ -248,12 +234,18 @@ export class CollectionExplorer
                                 );
                             }
 
-                            for (const tab of this.getOpenTabsForPath(
-                                item.getPath()
-                            )) {
-                                vscode.window.tabGroups.close(tab);
-                            }
-                        }
+                            vscode.window.tabGroups
+                                .close(
+                                    this.getOpenTabsStartingWithPath(
+                                        item.isFile
+                                            ? item.getPath()
+                                            : normalizeDirectoryPath(
+                                                  item.getPath()
+                                              )
+                                    ).map(({ tab }) => tab)
+                                )
+                                .then(() => resolve());
+                        });
                     });
             }
         );
@@ -396,7 +388,10 @@ export class CollectionExplorer
 
             quickPick.dispose();
 
-            const filePath = resolve(parentFolderPath, `${requestName}.bru`);
+            const filePath = resolve(
+                parentFolderPath,
+                `${requestName}${getExtensionForRequestFiles()}`
+            );
             writeFileSync(filePath, "");
 
             const collectionForFile =
@@ -437,9 +432,9 @@ export class CollectionExplorer
         quickPick.show();
     }
 
-    private replaceNameInRequestFile(path: string, newName: string) {
+    private replaceNameInRequestFile(filePath: string) {
         const documentHelper = new TextDocumentHelper(
-            readFileSync(path).toString()
+            readFileSync(filePath).toString()
         );
 
         const metaBlock = parseTestFile(documentHelper).blocks.find(
@@ -451,9 +446,19 @@ export class CollectionExplorer
                 ({ name }) => name == MetaBlockFieldName.Name
             );
 
+            const newName =
+                extname(filePath).length > 0
+                    ? basename(filePath).substring(
+                          0,
+                          basename(filePath).indexOf(
+                              extname(basename(filePath))
+                          )
+                      )
+                    : basename(filePath);
+
             if (nameField) {
                 writeFileSync(
-                    path,
+                    filePath,
                     documentHelper.getFullTextWithReplacement(
                         {
                             lineIndex: nameField.valueRange.start.line,
@@ -468,15 +473,49 @@ export class CollectionExplorer
         }
     }
 
-    private getOpenTabsForPath(path: string) {
+    private updateTabsAfterRenamingItem(
+        originalPath: string,
+        newPath: string,
+        isFile: boolean
+    ) {
+        const toClose = this.getOpenTabsStartingWithPath(
+            isFile ? originalPath : normalizeDirectoryPath(originalPath)
+        );
+
+        const toOpenInstead = toClose.map(({ tab, filePath }) => ({
+            viewColumn: tab.group.viewColumn,
+            filePath: isFile ? newPath : resolve(newPath, basename(filePath)),
+        }));
+
+        vscode.window.tabGroups
+            .close(toClose.map(({ tab }) => tab))
+            .then(() => {
+                for (const { filePath, viewColumn } of toOpenInstead) {
+                    vscode.workspace
+                        .openTextDocument(filePath)
+                        .then((document) => {
+                            vscode.window.showTextDocument(
+                                document,
+                                viewColumn
+                            );
+                        });
+                }
+            });
+    }
+
+    private getOpenTabsStartingWithPath(path: string) {
         return vscode.window.tabGroups.all
             .map(({ tabs }) => tabs)
             .flat()
             .filter(
                 (tab) =>
                     tab.input instanceof vscode.TabInputText &&
-                    tab.input.uri.fsPath == path
-            );
+                    tab.input.uri.fsPath.startsWith(path)
+            )
+            .map((tab) => ({
+                tab,
+                filePath: (tab.input as vscode.TabInputText).uri.fsPath,
+            }));
     }
 
     private getPathForDuplicatedItem(originalPath: string) {

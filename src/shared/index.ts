@@ -6,6 +6,7 @@ export * from "./fileSystem/util/collectionRootFolderHelper";
 export * from "./fileSystem/util/getTestFileDescendants";
 export * from "./fileSystem/util/normalizeDirectoryPath";
 export * from "./fileSystem/util/textDocumentHelper";
+export * from "./fileSystem/util/getExtensionForRequestFiles";
 
 export * from "./fileSystem/testFileParsing/getMaxSequenceForRequests";
 export * from "./fileSystem/testFileParsing/getSequencesForRequests";
