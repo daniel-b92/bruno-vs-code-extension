@@ -162,7 +162,7 @@ export class CollectionExplorer
                             this.replaceNameInRequestFile(newPath);
                         }
 
-                        this.updateTabsAfterRenamingItem(
+                        this.updateTabsAfterChangingItemPath(
                             originalPath,
                             newPath,
                             isFile
@@ -331,15 +331,19 @@ export class CollectionExplorer
             }
         }
 
-        if (!(item.value as BrunoTreeItem).isFile) {
-            cpSync(sourcePath, newPath, { recursive: true });
-            rmSync(sourcePath, { recursive: true, force: true });
-        } else {
+        const isFile = (item.value as BrunoTreeItem).isFile;
+
+        if (isFile) {
             renameSync(sourcePath, newPath);
 
             // Only when moving a file, sequences of requests may need to be adjusted
             this.updateSequencesAfterMovingFile(target, sourcePath);
+        } else {
+            cpSync(sourcePath, newPath, { recursive: true });
+            rmSync(sourcePath, { recursive: true, force: true });
         }
+
+        this.updateTabsAfterChangingItemPath(sourcePath, newPath, isFile);
     }
 
     private async createRequestFile(item: BrunoTreeItem) {
@@ -473,7 +477,7 @@ export class CollectionExplorer
         }
     }
 
-    private updateTabsAfterRenamingItem(
+    private updateTabsAfterChangingItemPath(
         originalPath: string,
         newPath: string,
         isFile: boolean
