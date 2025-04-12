@@ -88,8 +88,6 @@ export class CollectionExplorer
                             "vscode.open",
                             vscode.Uri.file(filePath)
                         );
-
-                        // ToDo: Reveal file in collection explorer after it has been added to tree
                     });
             }
         );
@@ -433,7 +431,6 @@ export class CollectionExplorer
                 "vscode.open",
                 vscode.Uri.file(filePath)
             );
-            // ToDo: Reveal file in collection explorer after it has been added to tree
         });
 
         quickPick.show();
