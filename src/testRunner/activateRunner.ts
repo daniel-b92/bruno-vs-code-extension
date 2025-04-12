@@ -115,8 +115,8 @@ export async function activateRunner(
     ctrl.refreshHandler = async () => {
         window.withProgress(
             {
-                location: ProgressLocation.Notification,
-                title: "Refreshing test tree...",
+                location: ProgressLocation.Window,
+                title: "Refreshing Bruno test tree...",
             },
             () => {
                 return new Promise<void>((resolve) => {

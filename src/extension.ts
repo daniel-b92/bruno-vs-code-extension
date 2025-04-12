@@ -1,4 +1,11 @@
-import { EventEmitter, ExtensionContext, tests, Uri } from "vscode";
+import {
+    EventEmitter,
+    ExtensionContext,
+    ProgressLocation,
+    tests,
+    Uri,
+    window,
+} from "vscode";
 import { activateRunner } from "./testRunner";
 import { activateTreeView } from "./treeView";
 import {
@@ -9,7 +16,7 @@ import {
 } from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures";
 
-export async function activate(context: ExtensionContext) {
+export function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
         "brunoCliTestController",
         "Bruno CLI Tests"
@@ -27,16 +34,35 @@ export async function activate(context: ExtensionContext) {
         new TestRunnerDataHelper(ctrl)
     );
 
-    await collectionItemProvider.refreshState();
-
     const startTestRunEmitter = new EventEmitter<Uri>();
 
-    await activateRunner(
-        ctrl,
-        collectionItemProvider,
-        startTestRunEmitter.event
-    );
-    activateTreeView(context, collectionItemProvider, startTestRunEmitter);
+    window.withProgress(
+        {
+            location: ProgressLocation.Window,
+            title: "Starting Bruno test extension...",
+        },
+        () => {
+            return new Promise<void>((resolve) => {
+                collectionItemProvider.refreshState().then(() => {
+                    activateRunner(
+                        ctrl,
+                        collectionItemProvider,
+                        startTestRunEmitter.event
+                    ).then(() => {
+                        activateTreeView(
+                            context,
+                            collectionItemProvider,
+                            startTestRunEmitter
+                        );
 
-    activateLanguageFeatures(context, collectionItemProvider);
+                        activateLanguageFeatures(
+                            context,
+                            collectionItemProvider
+                        );
+                        resolve();
+                    });
+                });
+            });
+        }
+    );
 }
