@@ -6,7 +6,6 @@ import {
     getSequencesForRequests,
     getMaxSequenceForRequests,
     CollectionItemProvider,
-    normalizeDirectoryPath,
     RequestFileBlockName,
     parseTestFile,
     TextDocumentHelper,
@@ -70,56 +69,62 @@ export class CollectionExplorer
 
         vscode.commands.registerCommand(
             `${this.treeViewId}.createEmptyFile`,
-            async (item: BrunoTreeItem) => {
+            (item: BrunoTreeItem) => {
                 const parentFolderPath = item.getPath();
 
-                const fileName = await vscode.window.showInputBox({
-                    title: `Create file in '${basename(parentFolderPath)}'`,
-                });
+                vscode.window
+                    .showInputBox({
+                        title: `Create file in '${basename(parentFolderPath)}'`,
+                    })
+                    .then((fileName) => {
+                        if (fileName == undefined) {
+                            return;
+                        }
 
-                if (fileName == undefined) {
-                    return;
-                }
+                        const filePath = resolve(parentFolderPath, fileName);
+                        writeFileSync(filePath, "");
 
-                const filePath = resolve(parentFolderPath, fileName);
-                writeFileSync(filePath, "");
+                        vscode.commands.executeCommand(
+                            "vscode.open",
+                            vscode.Uri.file(filePath)
+                        );
 
-                vscode.commands.executeCommand(
-                    "vscode.open",
-                    vscode.Uri.file(filePath)
-                );
-
-                // ToDo: Reveal file in collection explorer after it has been added to tree
+                        // ToDo: Reveal file in collection explorer after it has been added to tree
+                    });
             }
         );
 
         vscode.commands.registerCommand(
             `${this.treeViewId}.createRequestFile`,
-            async (item: BrunoTreeItem) => {
+            (item: BrunoTreeItem) => {
                 this.createRequestFile(item);
             }
         );
 
         vscode.commands.registerCommand(
             `${this.treeViewId}.createFolder`,
-            async (item: BrunoTreeItem) => {
+            (item: BrunoTreeItem) => {
                 const parentFolderPath = item.getPath();
 
-                const folderName = await vscode.window.showInputBox({
-                    title: `Create folder in '${basename(parentFolderPath)}'`,
-                });
+                vscode.window
+                    .showInputBox({
+                        title: `Create folder in '${basename(
+                            parentFolderPath
+                        )}'`,
+                    })
+                    .then((folderName) => {
+                        if (folderName == undefined) {
+                            return;
+                        }
 
-                if (folderName == undefined) {
-                    return;
-                }
-
-                mkdirSync(resolve(parentFolderPath, folderName));
+                        mkdirSync(resolve(parentFolderPath, folderName));
+                    });
             }
         );
 
         vscode.commands.registerCommand(
             `${this.treeViewId}.renameItem`,
-            async (item: BrunoTreeItem) => {
+            (item: BrunoTreeItem) => {
                 const originalPath = item.getPath();
                 const isFile = lstatSync(originalPath).isFile();
                 const originalName =
@@ -132,42 +137,46 @@ export class CollectionExplorer
                           )
                         : basename(originalPath);
 
-                const newName = await vscode.window.showInputBox({
-                    title: `Rename '${originalName}'`,
-                    value: originalName,
-                });
+                vscode.window
+                    .showInputBox({
+                        title: `Rename '${originalName}'`,
+                        value: originalName,
+                    })
+                    .then((newName) => {
+                        if (newName == undefined) {
+                            return;
+                        }
 
-                if (newName == undefined) {
-                    return;
-                }
+                        const newPath = resolve(
+                            dirname(originalPath),
+                            `${newName}${extname(originalPath)}`
+                        );
 
-                const newPath = resolve(
-                    dirname(originalPath),
-                    `${newName}${extname(originalPath)}`
-                );
+                        renameSync(originalPath, newPath);
 
-                renameSync(originalPath, newPath);
+                        if (isFile) {
+                            this.replaceNameInRequestFile(newPath, newName);
 
-                if (isFile) {
-                    this.replaceNameInRequestFile(newPath, newName);
+                            for (const tab of this.getOpenTabsForPath(
+                                item.getPath()
+                            )) {
+                                vscode.window.tabGroups.close(tab);
 
-                    for (const tab of this.getOpenTabsForPath(item.getPath())) {
-                        vscode.window.tabGroups.close(tab);
-
-                        vscode.workspace
-                            .openTextDocument(newPath)
-                            .then((document) =>
-                                vscode.window
-                                    .showTextDocument(
-                                        document,
-                                        tab.group.viewColumn
-                                    )
-                                    .then(() => {
-                                        return;
-                                    })
-                            );
-                    }
-                }
+                                vscode.workspace
+                                    .openTextDocument(newPath)
+                                    .then((document) =>
+                                        vscode.window
+                                            .showTextDocument(
+                                                document,
+                                                tab.group.viewColumn
+                                            )
+                                            .then(() => {
+                                                return;
+                                            })
+                                    );
+                            }
+                        }
+                    });
             }
         );
 
@@ -206,27 +215,36 @@ export class CollectionExplorer
 
         vscode.commands.registerCommand(
             `${this.treeViewId}.deleteItem`,
-            async (item: BrunoTreeItem) => {
+            (item: BrunoTreeItem) => {
                 const confirmationOption = "Confirm";
 
-                const picked = await vscode.window.showInformationMessage(
-                    `Delete '${item.label}'?`,
-                    { modal: true },
-                    confirmationOption
-                );
+                vscode.window
+                    .showInformationMessage(
+                        `Delete '${item.label}'?`,
+                        { modal: true },
+                        confirmationOption
+                    )
+                    .then((picked) => {
+                        if (picked == confirmationOption) {
+                            const path = item.getPath();
+                            rmSync(path, { recursive: true, force: true });
 
-                if (picked == confirmationOption) {
-                    const path = item.getPath();
-                    rmSync(path, { recursive: true, force: true });
+                            if (
+                                extname(path) == ".bru" &&
+                                existsSync(dirname(path))
+                            ) {
+                                this.normalizeSequencesForRequestFiles(
+                                    dirname(path)
+                                );
+                            }
 
-                    if (extname(path) == ".bru" && existsSync(dirname(path))) {
-                        this.normalizeSequencesForRequestFiles(dirname(path));
-                    }
-
-                    for (const tab of this.getOpenTabsForPath(item.getPath())) {
-                        vscode.window.tabGroups.close(tab);
-                    }
-                }
+                            for (const tab of this.getOpenTabsForPath(
+                                item.getPath()
+                            )) {
+                                vscode.window.tabGroups.close(tab);
+                            }
+                        }
+                    });
             }
         );
 
@@ -265,7 +283,7 @@ export class CollectionExplorer
         _token: vscode.CancellationToken
     ) {
         dataTransfer.set("text/uri-list", {
-            async asString() {
+            asString() {
                 return Promise.resolve(source[0].getPath());
             },
             asFile() {
@@ -371,13 +389,8 @@ export class CollectionExplorer
             const filePath = resolve(parentFolderPath, `${requestName}.bru`);
             writeFileSync(filePath, "");
 
-            const collectionForFile = this.itemProvider
-                .getRegisteredCollections()
-                .find((collection) =>
-                    filePath.startsWith(
-                        normalizeDirectoryPath(collection.getRootDirectory())
-                    )
-                );
+            const collectionForFile =
+                this.itemProvider.getRegisteredCollectionForItem(filePath);
 
             if (!collectionForFile) {
                 throw new Error(
