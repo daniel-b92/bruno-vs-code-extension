@@ -334,11 +334,11 @@ export class CollectionExplorer
         if (!(item.value as BrunoTreeItem).isFile) {
             cpSync(sourcePath, newPath, { recursive: true });
             rmSync(sourcePath, { recursive: true, force: true });
-
-            // When moving a directory, no sequences of requests need to be adjusted
-            this.updateSequencesAfterMovingFile(target, sourcePath);
         } else {
             renameSync(sourcePath, newPath);
+
+            // Only when moving a file, sequences of requests may need to be adjusted
+            this.updateSequencesAfterMovingFile(target, sourcePath);
         }
     }
 
