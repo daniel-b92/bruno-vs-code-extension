@@ -32,7 +32,7 @@ export const startTestRun = async (
 
             const path = (test.uri as Uri).fsPath;
             const collection =
-                collectionItemProvider.getRegisteredCollectionForItem(path);
+                collectionItemProvider.getAncestorCollectionForPath(path);
 
             if (!collection) {
                 throw new Error(

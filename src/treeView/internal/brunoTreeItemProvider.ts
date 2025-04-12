@@ -96,7 +96,7 @@ export class BrunoTreeItemProvider
                 .map((childPath) => {
                     const fullPath = resolve(element.path, childPath);
                     const maybeCollection =
-                        this.collectionItemProvider.getRegisteredCollectionForItem(
+                        this.collectionItemProvider.getAncestorCollectionForPath(
                             fullPath
                         );
 
@@ -138,7 +138,7 @@ export class BrunoTreeItemProvider
 
     private mapTreeItemToCollectionItem(item: BrunoTreeItem) {
         const collection =
-            this.collectionItemProvider.getRegisteredCollectionForItem(
+            this.collectionItemProvider.getAncestorCollectionForPath(
                 item.getPath()
             );
 

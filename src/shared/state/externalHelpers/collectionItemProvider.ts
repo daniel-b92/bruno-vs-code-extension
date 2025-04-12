@@ -29,7 +29,7 @@ export class CollectionItemProvider {
         collectionWatcher.subscribeToUpdates()(
             ({ uri, changeType: fileChangeType }) => {
                 const registeredCollection =
-                    this.getRegisteredCollectionForItem(uri.fsPath);
+                    this.getAncestorCollectionForPath(uri.fsPath);
 
                 if (!registeredCollection) {
                     return;
@@ -107,7 +107,7 @@ export class CollectionItemProvider {
         return collection.getStoredDataForPath(itemPath);
     }
 
-    public getRegisteredCollectionForItem(itemPath: string) {
+    public getAncestorCollectionForPath(itemPath: string) {
         return this.getRegisteredCollections().find((collection) =>
             normalizeDirectoryPath(itemPath).startsWith(
                 normalizeDirectoryPath(collection.getRootDirectory())

@@ -163,7 +163,7 @@ export async function activateRunner(
         const path = (item.uri as Uri).fsPath;
 
         const collection =
-            collectionItemProvider.getRegisteredCollectionForItem(path);
+            collectionItemProvider.getAncestorCollectionForPath(path);
         if (!collection) {
             throw new Error(
                 `Did not find registered collection for item with path '${path}'`

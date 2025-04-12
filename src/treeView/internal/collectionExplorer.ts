@@ -10,6 +10,7 @@ import {
     parseTestFile,
     TextDocumentHelper,
     CollectionData,
+    normalizeDirectoryPath,
 } from "../../shared";
 import {
     copyFileSync,
@@ -268,7 +269,7 @@ export class CollectionExplorer
             vscode.window.onDidChangeActiveTextEditor((e) => {
                 if (e) {
                     const maybeCollection =
-                        this.itemProvider.getRegisteredCollectionForItem(
+                        this.itemProvider.getAncestorCollectionForPath(
                             e.document.uri.fsPath
                         );
 
@@ -313,40 +314,40 @@ export class CollectionExplorer
             return;
         }
 
-        const targetIsFile = lstatSync(target.getPath()).isFile();
-        const targetDirectory = targetIsFile
-            ? dirname(target.getPath())
-            : target.getPath();
-
         const sourcePath = await item.asString();
-        const newPath = resolve(targetDirectory, basename(sourcePath));
-        renameSync(sourcePath, newPath);
+        const newPath = resolve(
+            this.getTargetDirectoryForDragAndDrop(target),
+            basename(sourcePath)
+        );
+        const newCollection =
+            this.itemProvider.getAncestorCollectionForPath(newPath);
+
+        if (
+            newCollection &&
+            this.itemProvider.getRegisteredItem(newCollection, newPath) &&
+            normalizeDirectoryPath(newPath) !=
+                normalizeDirectoryPath(sourcePath) // confirmation should not be required when moving a request within the same folder (e.g. to update the sequence)
+        ) {
+            if (
+                !(await vscode.window.showInformationMessage(
+                    `An item with the path '${newPath}' already exists. Do you want to overwrite it?`,
+                    { modal: true },
+                    "Confirm"
+                ))
+            ) {
+                return;
+            }
+        }
 
         if (!(item.value as BrunoTreeItem).isFile) {
+            cpSync(sourcePath, newPath, { recursive: true });
+            rmSync(sourcePath, { recursive: true, force: true });
+
             // When moving a directory, no sequences of requests need to be adjusted
-            return;
+            this.updateSequencesAfterMovingFile(target, sourcePath);
+        } else {
+            renameSync(sourcePath, newPath);
         }
-
-        const newSequence = targetIsFile
-            ? target.getSequence()
-                ? (target.getSequence() as number) + 1
-                : getMaxSequenceForRequests(targetDirectory) + 1
-            : getMaxSequenceForRequests(targetDirectory) + 1;
-
-        replaceSequenceForRequest(newPath, newSequence);
-
-        if (targetIsFile) {
-            getSequencesForRequests(targetDirectory)
-                .filter(
-                    ({ path, sequence }) =>
-                        path != newPath && sequence >= newSequence
-                )
-                .forEach(({ path, sequence: initialSequence }) => {
-                    replaceSequenceForRequest(path, initialSequence + 1);
-                });
-        }
-
-        this.normalizeSequencesForRequestFiles(targetDirectory);
     }
 
     private async createRequestFile(item: BrunoTreeItem) {
@@ -399,7 +400,7 @@ export class CollectionExplorer
             writeFileSync(filePath, "");
 
             const collectionForFile =
-                this.itemProvider.getRegisteredCollectionForItem(filePath);
+                this.itemProvider.getAncestorCollectionForPath(filePath);
 
             if (!collectionForFile) {
                 throw new Error(
@@ -506,6 +507,39 @@ export class CollectionExplorer
             );
         }
         return newPath;
+    }
+
+    private updateSequencesAfterMovingFile(
+        target: BrunoTreeItem,
+        sourcePath: string
+    ) {
+        const targetDirectory = this.getTargetDirectoryForDragAndDrop(target);
+        const newPath = resolve(targetDirectory, basename(sourcePath));
+
+        const newSequence = target.isFile
+            ? target.getSequence()
+                ? (target.getSequence() as number) + 1
+                : getMaxSequenceForRequests(targetDirectory) + 1
+            : getMaxSequenceForRequests(targetDirectory) + 1;
+
+        replaceSequenceForRequest(newPath, newSequence);
+
+        if (target.isFile) {
+            getSequencesForRequests(targetDirectory)
+                .filter(
+                    ({ path, sequence }) =>
+                        path != newPath && sequence >= newSequence
+                )
+                .forEach(({ path, sequence: initialSequence }) => {
+                    replaceSequenceForRequest(path, initialSequence + 1);
+                });
+        }
+
+        this.normalizeSequencesForRequestFiles(targetDirectory);
+    }
+
+    private getTargetDirectoryForDragAndDrop(target: BrunoTreeItem) {
+        return target.isFile ? dirname(target.getPath()) : target.getPath();
     }
 
     private normalizeSequencesForRequestFiles(parentDirectoryPath: string) {
