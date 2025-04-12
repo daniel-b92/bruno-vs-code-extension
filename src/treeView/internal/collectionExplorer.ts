@@ -139,23 +139,34 @@ export class CollectionExplorer
 
                 vscode.window
                     .showInputBox({
-                        title: `Rename '${originalName}'`,
-                        value: originalName,
+                        title: `Rename '${basename(originalPath)}'`,
+                        value: basename(originalPath),
+                        valueSelection: [0, originalName.length],
                     })
-                    .then((newName) => {
-                        if (newName == undefined) {
+                    .then((newFileName) => {
+                        if (newFileName == undefined) {
                             return;
                         }
 
                         const newPath = resolve(
                             dirname(originalPath),
-                            `${newName}${extname(originalPath)}`
+                            newFileName
                         );
 
                         renameSync(originalPath, newPath);
 
                         if (isFile) {
-                            this.replaceNameInRequestFile(newPath, newName);
+                            this.replaceNameInRequestFile(
+                                newPath,
+                                extname(newFileName).length > 0
+                                    ? newFileName.substring(
+                                          0,
+                                          newFileName.indexOf(
+                                              extname(newFileName)
+                                          )
+                                      )
+                                    : newFileName
+                            );
 
                             for (const tab of this.getOpenTabsForPath(
                                 item.getPath()
