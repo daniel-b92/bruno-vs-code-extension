@@ -5,7 +5,6 @@ import { getTestId, getTestLabel } from "../../../testRunner";
 import { Collection } from "../../model/collection";
 import { CollectionDirectory } from "../../model/collectionDirectory";
 import { extname } from "path";
-import { lstatSync } from "fs";
 import { addTestItemAndAncestorsToTestTree } from "../../../testRunner";
 import { normalizeDirectoryPath } from "../../fileSystem/util/normalizeDirectoryPath";
 
@@ -61,15 +60,12 @@ export class TestRunnerDataHelper {
             .getAllStoredDataForCollection()
             .filter(
                 ({ item }) =>
-                    lstatSync(item.getPath()).isFile() &&
+                    item instanceof CollectionFile &&
+                    item.getSequence() != undefined &&
+                    extname(item.getPath()) == ".bru" &&
                     item
                         .getPath()
-                        .startsWith(
-                            normalizeDirectoryPath(directory.getPath())
-                        ) &&
-                    extname(item.getPath()) == ".bru" &&
-                    item instanceof CollectionFile &&
-                    item.getSequence() != undefined
+                        .startsWith(normalizeDirectoryPath(directory.getPath()))
             );
     }
 }

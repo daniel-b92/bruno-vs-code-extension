@@ -112,7 +112,7 @@ export async function activateRunner(
         }
     };
 
-    ctrl.refreshHandler = async () => {
+    ctrl.refreshHandler = () => {
         window.withProgress(
             {
                 location: ProgressLocation.Window,
@@ -153,7 +153,7 @@ export async function activateRunner(
 
     ctrl.resolveHandler = async (item) => {
         if (!item) {
-            await addMissingTestCollectionsAndItemsToTestTree(
+            addMissingTestCollectionsAndItemsToTestTree(
                 ctrl,
                 testRunnerDataHelper,
                 collectionItemProvider.getRegisteredCollections()
