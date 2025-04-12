@@ -8,6 +8,7 @@ import {
     Event as VscodeEvent,
     Uri,
     window,
+    ProgressLocation,
 } from "vscode";
 import { startTestRun } from "./internal/startTestRun";
 import { TestRunQueue } from "./internal/testRunQueue";
@@ -112,21 +113,32 @@ export async function activateRunner(
     };
 
     ctrl.refreshHandler = async () => {
-        ctrl.items.replace([]);
+        window.withProgress(
+            {
+                location: ProgressLocation.Notification,
+                title: "Refreshing test tree...",
+            },
+            () => {
+                return new Promise<void>((resolve) => {
+                    ctrl.items.replace([]);
 
-        await collectionItemProvider.refreshState();
+                    collectionItemProvider.refreshState().then(() => {
+                        const collections =
+                            collectionItemProvider.getRegisteredCollections();
 
-        const collections = collectionItemProvider.getRegisteredCollections();
-
-        await addMissingTestCollectionsAndItemsToTestTree(
-            ctrl,
-            testRunnerDataHelper,
-            collections
-        );
-
-        // The displayed test tree view is only updated correctly, if you re-add the collection on top level again
-        collections.forEach((collection) =>
-            addCollectionTestItemToTestTree(ctrl, collection)
+                        addMissingTestCollectionsAndItemsToTestTree(
+                            ctrl,
+                            testRunnerDataHelper,
+                            collections
+                        );
+                        // The displayed test tree view is only updated correctly, if you re-add the collection on top level again
+                        collections.forEach((collection) =>
+                            addCollectionTestItemToTestTree(ctrl, collection)
+                        );
+                        resolve();
+                    });
+                });
+            }
         );
     };
 
@@ -204,7 +216,7 @@ export async function activateRunner(
     });
 }
 
-async function addMissingTestCollectionsAndItemsToTestTree(
+function addMissingTestCollectionsAndItemsToTestTree(
     controller: TestController,
     testRunnerDataHelper: TestRunnerDataHelper,
     registeredCollections: readonly Collection[]
