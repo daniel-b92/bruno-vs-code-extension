@@ -1,11 +1,11 @@
 import { DiagnosticCollection, Uri } from "vscode";
-import { checkMetaBlockStartsInFirstLine } from "./providers/checkMetaBlockStartsInFirstLine";
+import { checkMetaBlockStartsInFirstLine } from "./providers/checksForSingleBlocks/checkMetaBlockStartsInFirstLine";
 import { parseTestFile, TextDocumentHelper } from "../../../shared";
-import { checkOccurencesOfMandatoryBlocks } from "./providers/checkOccurencesOfMandatoryBlocks";
-import { checkThatNoBlocksAreDefinedMultipleTimes } from "./providers/checkThatNoBlocksAreDefinedMultipleTimes";
-import { checkThatNoTextExistsOutsideOfBlocks } from "./providers/checkThatNoTextExistsOutsideOfBlocks";
-import { checkAtMostOneAuthBlockExists } from "./providers/checkAtMostOneAuthBlockExists";
-import { checkAtMostOneBodyBlockExists } from "./providers/checkAtMostOneBodyBlockExists";
+import { checkOccurencesOfMandatoryBlocks } from "./providers/checksForMultipleBlocks/checkOccurencesOfMandatoryBlocks";
+import { checkThatNoBlocksAreDefinedMultipleTimes } from "./providers/checksForMultipleBlocks/checkThatNoBlocksAreDefinedMultipleTimes";
+import { checkThatNoTextExistsOutsideOfBlocks } from "./providers/checksForMultipleBlocks/checkThatNoTextExistsOutsideOfBlocks";
+import { checkAtMostOneAuthBlockExists } from "./providers/checksForMultipleBlocks/checkAtMostOneAuthBlockExists";
+import { checkAtMostOneBodyBlockExists } from "./providers/checksForMultipleBlocks/checkAtMostOneBodyBlockExists";
 
 export function provideBrunoLangDiagnostics(
     diagnosticCollection: DiagnosticCollection,

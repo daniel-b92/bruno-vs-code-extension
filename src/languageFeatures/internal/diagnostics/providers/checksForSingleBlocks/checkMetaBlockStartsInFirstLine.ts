@@ -9,10 +9,10 @@ import {
     RequestFileBlock,
     RequestFileBlockName,
     TextDocumentHelper,
-} from "../../../../shared";
-import { DiagnosticCode } from "../diagnosticCodeEnum";
-import { addDiagnosticForDocument } from "../util/addDiagnosticForDocument";
-import { removeDiagnosticsForDocument } from "../util/removeDiagnosticsForDocument";
+} from "../../../../../shared";
+import { DiagnosticCode } from "../../diagnosticCodeEnum";
+import { addDiagnosticForDocument } from "../../util/addDiagnosticForDocument";
+import { removeDiagnosticsForDocument } from "../../util/removeDiagnosticsForDocument";
 
 export function checkMetaBlockStartsInFirstLine(
     document: TextDocumentHelper,

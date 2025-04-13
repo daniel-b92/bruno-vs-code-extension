@@ -5,12 +5,12 @@ import {
     Range,
     Uri,
 } from "vscode";
-import { RequestFileBlock } from "../../../../shared";
-import { addDiagnosticForDocument } from "../util/addDiagnosticForDocument";
-import { DiagnosticCode } from "../diagnosticCodeEnum";
-import { removeDiagnosticsForDocument } from "../util/removeDiagnosticsForDocument";
-import { isAuthBlock } from "../../../../shared/fileSystem/testFileParsing/internal/isAuthBlock";
-import { getSortedBlocksByPosition } from "../util/getSortedBlocksByPosition";
+import { RequestFileBlock } from "../../../../../shared";
+import { addDiagnosticForDocument } from "../../util/addDiagnosticForDocument";
+import { DiagnosticCode } from "../../diagnosticCodeEnum";
+import { removeDiagnosticsForDocument } from "../../util/removeDiagnosticsForDocument";
+import { isAuthBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/isAuthBlock";
+import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 
 export function checkAtMostOneAuthBlockExists(
     documentUri: Uri,

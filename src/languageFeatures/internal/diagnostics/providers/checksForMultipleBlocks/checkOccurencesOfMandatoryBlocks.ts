@@ -10,14 +10,14 @@ import {
     TextDocumentHelper,
     RequestFileBlock,
     RequestFileBlockName,
-} from "../../../../shared";
-import { addDiagnosticForDocument } from "../util/addDiagnosticForDocument";
-import { DiagnosticCode } from "../diagnosticCodeEnum";
-import { removeDiagnosticsForDocument } from "../util/removeDiagnosticsForDocument";
+} from "../../../../../shared";
+import { addDiagnosticForDocument } from "../../util/addDiagnosticForDocument";
+import { DiagnosticCode } from "../../diagnosticCodeEnum";
+import { removeDiagnosticsForDocument } from "../../util/removeDiagnosticsForDocument";
 import {
     getAllMethodBlocks,
     getPossibleMethodBlocks,
-} from "../../../../shared/fileSystem/testFileParsing/internal/getAllMethodBlocks";
+} from "../../../../../shared/fileSystem/testFileParsing/internal/getAllMethodBlocks";
 
 export function checkOccurencesOfMandatoryBlocks(
     documentUri: Uri,

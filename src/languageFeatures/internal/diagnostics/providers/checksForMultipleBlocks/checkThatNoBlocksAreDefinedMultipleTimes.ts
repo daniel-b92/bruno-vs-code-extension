@@ -6,11 +6,11 @@ import {
     Range,
     Uri,
 } from "vscode";
-import { addDiagnosticForDocument } from "../util/addDiagnosticForDocument";
-import { RequestFileBlock, RequestFileBlockName } from "../../../../shared";
-import { DiagnosticCode } from "../diagnosticCodeEnum";
-import { removeDiagnosticsForDocument } from "../util/removeDiagnosticsForDocument";
-import { getSortedBlocksByPosition } from "../util/getSortedBlocksByPosition";
+import { addDiagnosticForDocument } from "../../util/addDiagnosticForDocument";
+import { RequestFileBlock, RequestFileBlockName } from "../../../../../shared";
+import { DiagnosticCode } from "../../diagnosticCodeEnum";
+import { removeDiagnosticsForDocument } from "../../util/removeDiagnosticsForDocument";
+import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 
 export function checkThatNoBlocksAreDefinedMultipleTimes(
     documentUri: Uri,

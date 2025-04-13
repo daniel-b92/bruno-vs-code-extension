@@ -5,12 +5,12 @@ import {
     Range,
     Uri,
 } from "vscode";
-import { RequestFileBlock } from "../../../../shared";
-import { addDiagnosticForDocument } from "../util/addDiagnosticForDocument";
-import { DiagnosticCode } from "../diagnosticCodeEnum";
-import { removeDiagnosticsForDocument } from "../util/removeDiagnosticsForDocument";
-import { getSortedBlocksByPosition } from "../util/getSortedBlocksByPosition";
-import { isBodyBlock } from "../../../../shared/fileSystem/testFileParsing/internal/isBodyBlock";
+import { RequestFileBlock } from "../../../../../shared";
+import { addDiagnosticForDocument } from "../../util/addDiagnosticForDocument";
+import { DiagnosticCode } from "../../diagnosticCodeEnum";
+import { removeDiagnosticsForDocument } from "../../util/removeDiagnosticsForDocument";
+import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
+import { isBodyBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/isBodyBlock";
 
 export function checkAtMostOneBodyBlockExists(
     documentUri: Uri,
