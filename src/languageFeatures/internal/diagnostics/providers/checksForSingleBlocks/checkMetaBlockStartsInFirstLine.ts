@@ -5,25 +5,18 @@ import {
     Range,
     Uri,
 } from "vscode";
-import {
-    RequestFileBlock,
-    RequestFileBlockName,
-    TextDocumentHelper,
-} from "../../../../../shared";
+import { RequestFileBlock, TextDocumentHelper } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { addDiagnosticForDocument } from "../../util/addDiagnosticForDocument";
 import { removeDiagnosticsForDocument } from "../../util/removeDiagnosticsForDocument";
 
 export function checkMetaBlockStartsInFirstLine(
     document: TextDocumentHelper,
-    blocks: RequestFileBlock[],
+    metaBlock: RequestFileBlock,
     documentUri: Uri,
     existingDiagnostics: DiagnosticCollection
 ) {
-    if (
-        blocks.find(({ name }) => name == RequestFileBlockName.Meta)?.nameRange
-            .start.line != 0
-    ) {
+    if (metaBlock.nameRange.start.line != 0) {
         addDiagnosticForDocument(
             documentUri,
             existingDiagnostics,

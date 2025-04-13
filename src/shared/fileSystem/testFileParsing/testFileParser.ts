@@ -7,6 +7,7 @@ import {
 } from "./definitions/interfaces";
 import { getBlockContent } from "./internal/getBlockContent";
 import { TextDocumentHelper } from "../util/textDocumentHelper";
+import { parseBlockFromTestFile } from "./internal/parseBlockFromTestFile";
 
 export const getSequence = (testFilePath: string) => {
     if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {
@@ -105,38 +106,6 @@ export const parseTestFile = (document: TextDocumentHelper) => {
     }
 
     return result;
-};
-
-const parseBlockFromTestFile = (
-    document: TextDocumentHelper,
-    blockName: RequestFileBlockName
-) => {
-    const blockStartPattern = new RegExp(`^\\s*${blockName}\\s*{\\s*$`, "m");
-
-    const maybeMatches = document.getText().match(blockStartPattern);
-
-    if (!maybeMatches || maybeMatches.length != 1) {
-        return undefined;
-    }
-
-    const subDocumentUntilBlockStart = new TextDocumentHelper(
-        document
-            .getText()
-            .substring(
-                0,
-                (maybeMatches.index as number) +
-                    maybeMatches[0].indexOf("{") +
-                    1
-            )
-    );
-    const lineIndex = subDocumentUntilBlockStart.getLineCount() - 1;
-
-    const startingBracket = new Position(
-        lineIndex,
-        subDocumentUntilBlockStart.getLineByIndex(lineIndex).lastIndexOf("{")
-    );
-
-    return getBlockContent(document, startingBracket).content;
 };
 
 const getCurrentTextOutsideOfBlocks = (

@@ -6,4 +6,5 @@ export enum DiagnosticCode {
     MultipleDefinitionsForSameBlocks = "bruLang_MultipleDefinitionsForSameBlocks",
     TextOutsideOfBlocks = "bruLang_TextOutsideOfBlocks",
     MetaBlockNotInFirstLine = "bruLang_MetaBlockNotInFirstLine",
+    SequenceNotUniqueWithinFolder = "bruLang_SequenceNotUniqueWithinFolder",
 }

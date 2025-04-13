@@ -1,14 +1,8 @@
-import {
-    DiagnosticCollection,
-    ExtensionContext,
-    languages,
-    TextDocument,
-    workspace,
-} from "vscode";
+import { ExtensionContext, languages, TextDocument, workspace } from "vscode";
 import { provideBrunoLangCompletionItems } from "./internal/completionItems/provideBrunoLangCompletionItems";
-import { provideBrunoLangDiagnostics } from "./internal/diagnostics/provideBrunoLangDiagnostics";
 import { CollectionItemProvider } from "../shared";
 import { isBrunoRequestFile } from "./internal/diagnostics/util/isBrunoRequestFile";
+import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDiagnosticsProvider";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
@@ -19,7 +13,13 @@ export function activateLanguageFeatures(
     const diagnosticCollection = languages.createDiagnosticCollection("bruno");
     context.subscriptions.push(diagnosticCollection);
 
+    const brunoLangDiagnosticsProvider = new BrunoLangDiagnosticsProvider(
+        diagnosticCollection,
+        collectionItemProvider
+    );
+
     context.subscriptions.push(
+        brunoLangDiagnosticsProvider,
         workspace.onDidOpenTextDocument((e) => {
             if (
                 isBrunoRequestFile(
@@ -27,12 +27,9 @@ export function activateLanguageFeatures(
                     e.uri.fsPath
                 )
             ) {
-                fetchDiagnostics(e, diagnosticCollection);
+                fetchDiagnostics(e, brunoLangDiagnosticsProvider);
             }
-        })
-    );
-
-    context.subscriptions.push(
+        }),
         workspace.onDidChangeTextDocument((e) => {
             if (
                 isBrunoRequestFile(
@@ -40,7 +37,7 @@ export function activateLanguageFeatures(
                     e.document.uri.fsPath
                 )
             ) {
-                fetchDiagnostics(e.document, diagnosticCollection);
+                fetchDiagnostics(e.document, brunoLangDiagnosticsProvider);
             }
         })
     );
@@ -48,11 +45,10 @@ export function activateLanguageFeatures(
 
 function fetchDiagnostics(
     document: TextDocument,
-    knownDiagnostics: DiagnosticCollection
+    brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider
 ) {
-    provideBrunoLangDiagnostics(
-        knownDiagnostics,
-        document.getText(),
-        document.uri
+    brunoLangDiagnosticsProvider.provideDiagnostics(
+        document.uri,
+        document.getText()
     );
 }
