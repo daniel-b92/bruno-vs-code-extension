@@ -9,16 +9,16 @@ import { RequestFileBlock } from "../../../../shared";
 import { addDiagnosticForDocument } from "../util/addDiagnosticForDocument";
 import { DiagnosticCode } from "../diagnosticCodeEnum";
 import { removeDiagnosticsForDocument } from "../util/removeDiagnosticsForDocument";
-import { isAnAuthBlock } from "../../../../shared/fileSystem/testFileParsing/internal/isAnAuthBlock";
+import { isAuthBlock } from "../../../../shared/fileSystem/testFileParsing/internal/isAuthBlock";
 import { getSortedBlocksByPosition } from "../util/getSortedBlocksByPosition";
 
-export function checkThatAtMostOneDefinitionForAuthBlockExists(
+export function checkAtMostOneAuthBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[],
     diagnostics: DiagnosticCollection
 ) {
     const sortedAuthBlocks = getSortedBlocksByPosition(
-        blocks.filter(({ name }) => isAnAuthBlock(name))
+        blocks.filter(({ name }) => isAuthBlock(name))
     );
 
     if (sortedAuthBlocks.length > 1) {
@@ -45,7 +45,7 @@ function getDiagnostic(
         range: getRange(sortedAuthBlocks),
         relatedInformation: sortedAuthBlocks.map(
             ({ name, nameRange }, index) => ({
-                message: `Auth Block definition no. ${
+                message: `Auth block definition no. ${
                     index + 1
                 } with name '${name}'`,
                 location: { uri: documentUri, range: nameRange },
@@ -56,11 +56,9 @@ function getDiagnostic(
     };
 }
 
-function getRange(authBlocks: RequestFileBlock[]): Range {
-    const sortedDuplicateBlocks = getSortedBlocksByPosition(authBlocks);
-
+function getRange(sortedAuthBlocks: RequestFileBlock[]): Range {
     return new Range(
-        sortedDuplicateBlocks[0].nameRange.start,
-        sortedDuplicateBlocks[sortedDuplicateBlocks.length - 1].nameRange.end
+        sortedAuthBlocks[0].nameRange.start,
+        sortedAuthBlocks[sortedAuthBlocks.length - 1].nameRange.end
     );
 }

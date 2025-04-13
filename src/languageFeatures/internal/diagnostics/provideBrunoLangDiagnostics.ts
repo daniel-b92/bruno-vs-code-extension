@@ -11,7 +11,8 @@ import { checkOccurencesOfMandatoryBlocks } from "./providers/checkOccurencesOfM
 import { checkThatNoBlocksAreDefinedMultipleTimes } from "./providers/checkThatNoBlocksAreDefinedMultipleTimes";
 import { DiagnosticCode } from "./diagnosticCodeEnum";
 import { checkThatNoTextExistsOutsideOfBlocks } from "./providers/checkThatNoTextExistsOutsideOfBlocks";
-import { checkThatAtMostOneDefinitionForAuthBlockExists } from "./providers/checkThatAtMostOneDefinitionForAuthBlockExists";
+import { checkAtMostOneAuthBlockExists } from "./providers/checkAtMostOneAuthBlockExists";
+import { checkAtMostOneBodyBlockExists } from "./providers/checkAtMostOneBodyBlockExists";
 
 export function provideBrunoLangDiagnostics(
     diagnosticCollection: DiagnosticCollection,
@@ -34,11 +35,8 @@ export function provideBrunoLangDiagnostics(
         textOutsideOfBlocks,
         diagnosticCollection
     );
-    checkThatAtMostOneDefinitionForAuthBlockExists(
-        uri,
-        blocks,
-        diagnosticCollection
-    );
+    checkAtMostOneAuthBlockExists(uri, blocks, diagnosticCollection);
+    checkAtMostOneBodyBlockExists(uri, blocks, diagnosticCollection);
 
     if (
         blocks.find(({ name }) => name == RequestFileBlockName.Meta)?.nameRange
