@@ -1,15 +1,8 @@
 import { DiagnosticCollection, Uri } from "vscode";
-import { addDiagnosticForDocument } from "./util/addDiagnosticForDocument";
-import { removeDiagnosticsForDocument } from "./util/removeDiagnosticsForDocument";
-import { getDiagnosticForMetaBlockNotInFirstLine } from "./providers/getDiagnosticForMetaBlockNotInFirstLine";
-import {
-    parseTestFile,
-    RequestFileBlockName,
-    TextDocumentHelper,
-} from "../../../shared";
+import { checkMetaBlockStartsInFirstLine } from "./providers/checkMetaBlockStartsInFirstLine";
+import { parseTestFile, TextDocumentHelper } from "../../../shared";
 import { checkOccurencesOfMandatoryBlocks } from "./providers/checkOccurencesOfMandatoryBlocks";
 import { checkThatNoBlocksAreDefinedMultipleTimes } from "./providers/checkThatNoBlocksAreDefinedMultipleTimes";
-import { DiagnosticCode } from "./diagnosticCodeEnum";
 import { checkThatNoTextExistsOutsideOfBlocks } from "./providers/checkThatNoTextExistsOutsideOfBlocks";
 import { checkAtMostOneAuthBlockExists } from "./providers/checkAtMostOneAuthBlockExists";
 import { checkAtMostOneBodyBlockExists } from "./providers/checkAtMostOneBodyBlockExists";
@@ -38,20 +31,10 @@ export function provideBrunoLangDiagnostics(
     checkAtMostOneAuthBlockExists(uri, blocks, diagnosticCollection);
     checkAtMostOneBodyBlockExists(uri, blocks, diagnosticCollection);
 
-    if (
-        blocks.find(({ name }) => name == RequestFileBlockName.Meta)?.nameRange
-            .start.line != 0
-    ) {
-        addDiagnosticForDocument(
-            uri,
-            diagnosticCollection,
-            getDiagnosticForMetaBlockNotInFirstLine(document)
-        );
-    } else {
-        removeDiagnosticsForDocument(
-            uri,
-            diagnosticCollection,
-            DiagnosticCode.MetaBlockNotInFirstLine
-        );
-    }
+    checkMetaBlockStartsInFirstLine(
+        document,
+        blocks,
+        uri,
+        diagnosticCollection
+    );
 }
