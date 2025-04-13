@@ -70,6 +70,17 @@ export class CollectionExplorer
         });
 
         vscode.commands.registerCommand(
+            `${this.treeViewId}.openInNewTabgroup`,
+            (item: BrunoTreeItem) => {
+                vscode.commands.executeCommand(
+                    "vscode.open",
+                    vscode.Uri.file(item.getPath()),
+                    vscode.ViewColumn.Beside
+                );
+            }
+        );
+
+        vscode.commands.registerCommand(
             `${this.treeViewId}.createEmptyFile`,
             (item: BrunoTreeItem) => {
                 const parentFolderPath = item.getPath();

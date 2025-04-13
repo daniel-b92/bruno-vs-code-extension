@@ -72,6 +72,10 @@
             {
                 "command": "brunoCollectionsView.startTestRun",
                 "title": "Start test run"
+            },
+            {
+                "command": "brunoCollectionsView.openInNewTabgroup",
+                "title": "Open to the side"
             }
         ],
         "views": {
@@ -96,6 +100,11 @@
                     "command": "brunoCollectionsView.startTestRun",
                     "when": "view == brunoCollectionsView",
                     "group": "navigation@1"
+                },
+                {
+                    "command": "brunoCollectionsView.openInNewTabgroup",
+                    "when": "view == brunoCollectionsView && !treeElementCanExpand && !treeElementCanCollapse",
+                    "group": "navigation@5"
                 },
                 {
                     "command": "brunoCollectionsView.createRequestFile",
