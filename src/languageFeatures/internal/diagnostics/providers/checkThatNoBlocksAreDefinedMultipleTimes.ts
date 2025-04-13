@@ -10,6 +10,7 @@ import { addDiagnosticForDocument } from "../util/addDiagnosticForDocument";
 import { RequestFileBlock, RequestFileBlockName } from "../../../../shared";
 import { DiagnosticCode } from "../diagnosticCodeEnum";
 import { removeDiagnosticsForDocument } from "../util/removeDiagnosticsForDocument";
+import { getSortedBlocksByPosition } from "../util/getSortedBlocksByPosition";
 
 export function checkThatNoBlocksAreDefinedMultipleTimes(
     documentUri: Uri,
@@ -34,24 +35,11 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
         for (const { blocks } of duplicates) {
             allDuplicateBlocks.push(...blocks);
         }
-        allDuplicateBlocks.sort(
-            (
-                {
-                    nameRange: {
-                        start: { line: line1 },
-                    },
-                },
-                {
-                    nameRange: {
-                        start: { line: line2 },
-                    },
-                }
-            ) => line1 - line2
-        );
+        const sortedDuplicates = getSortedBlocksByPosition(allDuplicateBlocks);
 
         const range = new Range(
-            allDuplicateBlocks[0].nameRange.start,
-            allDuplicateBlocks[allDuplicateBlocks.length - 1].contentRange.end
+            sortedDuplicates[0].nameRange.start,
+            sortedDuplicates[sortedDuplicates.length - 1].contentRange.end
         );
 
         const multipleDefinitionsForSameBlocksDiagnostic: Diagnostic = {
@@ -63,20 +51,15 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
                 const toReturn = prev.slice();
 
                 // ToDo: Avoid sorting array positions a second time and instead find a way to combine with the sorting above
-                blocks
-                    .slice()
-                    .sort(
-                        (a, b) =>
-                            a.nameRange.start.line - b.nameRange.start.line
-                    )
-                    .forEach(({ nameRange }, index) =>
+                getSortedBlocksByPosition(blocks).forEach(
+                    ({ nameRange }, index) =>
                         toReturn.push({
                             message: `Block '${name}' definition no. ${
                                 index + 1
                             }`,
                             location: { uri: documentUri, range: nameRange },
                         })
-                    );
+                );
 
                 return toReturn;
             }, [] as DiagnosticRelatedInformation[]),

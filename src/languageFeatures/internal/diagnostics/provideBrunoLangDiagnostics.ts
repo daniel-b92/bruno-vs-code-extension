@@ -11,6 +11,7 @@ import { checkOccurencesOfMandatoryBlocks } from "./providers/checkOccurencesOfM
 import { checkThatNoBlocksAreDefinedMultipleTimes } from "./providers/checkThatNoBlocksAreDefinedMultipleTimes";
 import { DiagnosticCode } from "./diagnosticCodeEnum";
 import { checkThatNoTextExistsOutsideOfBlocks } from "./providers/checkThatNoTextExistsOutsideOfBlocks";
+import { checkThatAtMostOneDefinitionForAuthBlockExists } from "./providers/checkThatAtMostOneDefinitionForAuthBlockExists";
 
 export function provideBrunoLangDiagnostics(
     diagnosticCollection: DiagnosticCollection,
@@ -31,6 +32,11 @@ export function provideBrunoLangDiagnostics(
     checkThatNoTextExistsOutsideOfBlocks(
         uri,
         textOutsideOfBlocks,
+        diagnosticCollection
+    );
+    checkThatAtMostOneDefinitionForAuthBlockExists(
+        uri,
+        blocks,
         diagnosticCollection
     );
 
