@@ -12,7 +12,7 @@ import { checkThatNoBlocksAreDefinedMultipleTimes } from "./providers/checksForM
 import { checkThatNoTextExistsOutsideOfBlocks } from "./providers/checksForMultipleBlocks/checkThatNoTextExistsOutsideOfBlocks";
 import { checkAtMostOneAuthBlockExists } from "./providers/checksForMultipleBlocks/checkAtMostOneAuthBlockExists";
 import { checkAtMostOneBodyBlockExists } from "./providers/checksForMultipleBlocks/checkAtMostOneBodyBlockExists";
-import { checkSequenceInMetaBlockIsUniqueWithinFolder } from "./providers/checksForSingleBlocks/checkSequenceInMetaBlockIsUniqueWithinFolder";
+import { checkSequenceInMetaBlockIsUniqueWithinFolder } from "./providers/checksForRelatedRequests/checkSequenceInMetaBlockIsUniqueWithinFolder";
 import { readFileSync } from "fs";
 
 export class BrunoLangDiagnosticsProvider {

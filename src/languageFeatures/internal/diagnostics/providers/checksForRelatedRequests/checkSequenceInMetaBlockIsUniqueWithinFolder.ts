@@ -63,7 +63,7 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
                 )
             );
         } else {
-            handleRemovealOfDiagnostic(
+            handleRemovalOfDiagnostic(
                 itemProvider,
                 documentUri,
                 existingDiagnostics,
@@ -71,7 +71,7 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
             );
         }
     } else {
-        handleRemovealOfDiagnostic(
+        handleRemovalOfDiagnostic(
             itemProvider,
             documentUri,
             existingDiagnostics,
@@ -80,7 +80,7 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
     }
 }
 
-function handleRemovealOfDiagnostic(
+function handleRemovalOfDiagnostic(
     itemProvider: CollectionItemProvider,
     documentUri: Uri,
     existingDiagnostics: DiagnosticCollection,
