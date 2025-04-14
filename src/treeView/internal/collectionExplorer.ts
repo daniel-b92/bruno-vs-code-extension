@@ -270,7 +270,7 @@ export class CollectionExplorer
 
         extensionContext.subscriptions.push(
             vscode.window.onDidChangeActiveTextEditor((e) => {
-                if (e) {
+                if (e && treeView.visible) {
                     const maybeCollection =
                         this.itemProvider.getAncestorCollectionForPath(
                             e.document.uri.fsPath
