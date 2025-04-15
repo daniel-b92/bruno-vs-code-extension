@@ -1,10 +1,4 @@
-import {
-    Diagnostic,
-    DiagnosticCollection,
-    DiagnosticSeverity,
-    EventEmitter,
-    Uri,
-} from "vscode";
+import { Diagnostic, DiagnosticSeverity, Uri } from "vscode";
 import {
     CollectionData,
     CollectionFile,
@@ -16,19 +10,17 @@ import {
     TextDocumentHelper,
 } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { addDiagnosticForDocument } from "../../util/addDiagnosticForDocument";
-import { removeDiagnosticsForDocument } from "../../util/removeDiagnosticsForDocument";
 import { MetaBlockFieldName } from "../../../../../shared/fileSystem/testFileParsing/definitions/metaBlockFieldNameEnum";
 import { dirname } from "path";
 import { parseBlockFromTestFile } from "../../../../../shared/fileSystem/testFileParsing/internal/parseBlockFromTestFile";
 import { readFileSync } from "fs";
+import { RelatedRequestsDiagnosticsHelper } from "../../util/relatedRequestsDiagnosticsHelper";
 
 export function checkSequenceInMetaBlockIsUniqueWithinFolder(
     itemProvider: CollectionItemProvider,
     metaBlock: RequestFileBlock,
     documentUri: Uri,
-    existingDiagnostics: DiagnosticCollection,
-    fetchDiagnosticsTrigger: EventEmitter<string[]>
+    relatedRequestsHelper: RelatedRequestsDiagnosticsHelper
 ) {
     if (
         Array.isArray(metaBlock.content) &&
@@ -48,64 +40,34 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
             dirname(documentUri.fsPath)
         );
 
-        const requestsWithSameSequence = otherRequestsInFolder.filter(
+        const otherRequestsWithSameSequence = otherRequestsInFolder.filter(
             ({ sequence: existingSequence }) =>
                 Number.parseInt(sequenceField.value) == existingSequence
         );
 
-        if (requestsWithSameSequence.length > 0) {
-            addDiagnosticForDocument(
-                documentUri,
-                existingDiagnostics,
-                getDiagnostic(
-                    sequenceField,
-                    requestsWithSameSequence.map(({ file }) => file)
-                )
+        if (otherRequestsWithSameSequence.length > 0) {
+            const affectedFiles = otherRequestsWithSameSequence
+                .map(({ file }) => file)
+                .concat(documentUri.fsPath);
+
+            relatedRequestsHelper.addDiagnostic(
+                {
+                    files: affectedFiles,
+                    diagnosticCode: getDiagnosticCode(),
+                },
+                documentUri.fsPath,
+                getDiagnostic(sequenceField, affectedFiles)
             );
         } else {
-            handleRemovalOfDiagnostic(
-                itemProvider,
-                documentUri,
-                existingDiagnostics,
-                fetchDiagnosticsTrigger
+            relatedRequestsHelper.removeDiagnostic(
+                documentUri.fsPath,
+                getDiagnosticCode()
             );
         }
     } else {
-        handleRemovalOfDiagnostic(
-            itemProvider,
-            documentUri,
-            existingDiagnostics,
-            fetchDiagnosticsTrigger
-        );
-    }
-}
-
-function handleRemovalOfDiagnostic(
-    itemProvider: CollectionItemProvider,
-    documentUri: Uri,
-    existingDiagnostics: DiagnosticCollection,
-    fetchDiagnosticsTrigger: EventEmitter<string[]>
-) {
-    const removedDiagnostics = removeDiagnosticsForDocument(
-        documentUri,
-        existingDiagnostics,
-        DiagnosticCode.SequenceNotUniqueWithinFolder
-    );
-
-    if (removedDiagnostics > 0) {
-        fetchDiagnosticsTrigger.fire(
-            getOtherRequestsInFolder(
-                itemProvider,
-                dirname(documentUri.fsPath),
-                documentUri
-            )
-                .filter(
-                    ({ item }) =>
-                        item instanceof CollectionFile &&
-                        existingDiagnostics.get(Uri.file(item.getPath())) !=
-                            undefined
-                )
-                .map(({ item }) => item.getPath())
+        relatedRequestsHelper.removeDiagnostic(
+            documentUri.fsPath,
+            getDiagnosticCode()
         );
     }
 }
@@ -119,7 +81,7 @@ function getDiagnostic(
             "Other requests with the same sequence already exists within this folder.",
         range: sequenceField.valueRange,
         severity: DiagnosticSeverity.Error,
-        code: DiagnosticCode.SequenceNotUniqueWithinFolder,
+        code: getDiagnosticCode(),
         relatedInformation: requestsWithSameSequence.map((path) => ({
             message: `Request with same sequence`,
             location: {
@@ -128,6 +90,10 @@ function getDiagnostic(
             },
         })),
     };
+}
+
+function getDiagnosticCode() {
+    return DiagnosticCode.SequenceNotUniqueWithinFolder;
 }
 
 function getRangeForSequence(filePath: string) {

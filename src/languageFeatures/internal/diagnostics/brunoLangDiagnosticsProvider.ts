@@ -1,4 +1,4 @@
-import { DiagnosticCollection, EventEmitter, Uri } from "vscode";
+import { DiagnosticCollection, Uri } from "vscode";
 import { checkMetaBlockStartsInFirstLine } from "./providers/checksForSingleBlocks/checkMetaBlockStartsInFirstLine";
 import {
     CollectionItemProvider,
@@ -13,30 +13,21 @@ import { checkThatNoTextExistsOutsideOfBlocks } from "./providers/checksForMulti
 import { checkAtMostOneAuthBlockExists } from "./providers/checksForMultipleBlocks/checkAtMostOneAuthBlockExists";
 import { checkAtMostOneBodyBlockExists } from "./providers/checksForMultipleBlocks/checkAtMostOneBodyBlockExists";
 import { checkSequenceInMetaBlockIsUniqueWithinFolder } from "./providers/checksForRelatedRequests/checkSequenceInMetaBlockIsUniqueWithinFolder";
-import { readFileSync } from "fs";
+import { RelatedRequestsDiagnosticsHelper } from "./util/relatedRequestsDiagnosticsHelper";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
         private diagnosticCollection: DiagnosticCollection,
         private itemProvider: CollectionItemProvider
     ) {
-        this.fetchDiagnosticsTrigger = new EventEmitter<string[]>();
-
-        this.fetchDiagnosticsTrigger.event((files) => {
-            for (const file of files) {
-                this.provideDiagnostics(
-                    Uri.file(file),
-                    readFileSync(file).toString()
-                );
-            }
-        });
+        this.relatedRequestsHelper = new RelatedRequestsDiagnosticsHelper(
+            diagnosticCollection
+        );
     }
 
-    private fetchDiagnosticsTrigger: EventEmitter<string[]>;
+    private relatedRequestsHelper: RelatedRequestsDiagnosticsHelper;
 
-    public dispose() {
-        this.fetchDiagnosticsTrigger.dispose();
-    }
+    public dispose() {}
 
     public provideDiagnostics(documentUri: Uri, documentText: string) {
         const document = new TextDocumentHelper(documentText);
@@ -81,7 +72,7 @@ export class BrunoLangDiagnosticsProvider {
                 metaBlocks[0],
                 documentUri,
                 this.diagnosticCollection,
-                this.fetchDiagnosticsTrigger
+                this.relatedRequestsHelper
             );
         }
     }
@@ -92,7 +83,7 @@ export class BrunoLangDiagnosticsProvider {
         metaBlock: RequestFileBlock,
         documentUri: Uri,
         collection: DiagnosticCollection,
-        fetchDiagnosticsTrigger: EventEmitter<string[]>
+        relatedRequestsHelper: RelatedRequestsDiagnosticsHelper
     ) {
         checkMetaBlockStartsInFirstLine(
             document,
@@ -104,8 +95,7 @@ export class BrunoLangDiagnosticsProvider {
             itemProvider,
             metaBlock,
             documentUri,
-            collection,
-            fetchDiagnosticsTrigger
+            relatedRequestsHelper
         );
     }
 }
