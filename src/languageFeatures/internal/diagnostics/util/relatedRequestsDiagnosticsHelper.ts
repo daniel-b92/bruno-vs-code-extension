@@ -46,7 +46,7 @@ export class RelatedRequestsDiagnosticsHelper {
             this.fullDiagnosticCollection,
             diagnosticCode
         );
-        
+
         const toAdjust = this.diagnosticsForRelatedRequests
             .map((val, index) => ({ diagnostic: val, index }))
             .filter(
@@ -74,14 +74,24 @@ export class RelatedRequestsDiagnosticsHelper {
 
         const { diagnostic, index } = toAdjust[0];
 
-        // For an entry with two files: if one file shopul dbe removed, only one would be left.
+        // For an entry with two files: if one file should be removed, only one would be left.
         // Therefore, there would not be multiple affected requests anymore. So the whole entry can be removed in this case.
         if (diagnostic.files.length > 2) {
             diagnostic.files = diagnostic.files.filter(
                 (registered) => registered != file
             );
         } else {
-            this.diagnosticsForRelatedRequests.splice(index, 1);
+            const removed = this.diagnosticsForRelatedRequests.splice(index, 1);
+            
+            removed[0].files
+                .filter((fileFromRemoval) => fileFromRemoval != file)
+                .forEach((toRemoveFromCollection) =>
+                    removeDiagnosticsForDocument(
+                        Uri.file(toRemoveFromCollection),
+                        this.fullDiagnosticCollection,
+                        diagnosticCode
+                    )
+                );
         }
     }
 }

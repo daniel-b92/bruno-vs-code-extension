@@ -66,24 +66,27 @@ export class BrunoLangDiagnosticsProvider {
         );
 
         if (metaBlocks.length == 1) {
-            this.provideMetaBlockSpecificDiagnostics(
-                this.itemProvider,
+            this.provideSingleBlockSpecificDiagnostics(
                 document,
                 metaBlocks[0],
                 documentUri,
-                this.diagnosticCollection,
+                this.diagnosticCollection
+            );
+
+            this.provideRelatedRequestsDiagnostics(
+                this.itemProvider,
+                metaBlocks[0],
+                documentUri,
                 this.relatedRequestsHelper
             );
         }
     }
 
-    private provideMetaBlockSpecificDiagnostics(
-        itemProvider: CollectionItemProvider,
+    private provideSingleBlockSpecificDiagnostics(
         document: TextDocumentHelper,
         metaBlock: RequestFileBlock,
         documentUri: Uri,
-        collection: DiagnosticCollection,
-        relatedRequestsHelper: RelatedRequestsDiagnosticsHelper
+        collection: DiagnosticCollection
     ) {
         checkMetaBlockStartsInFirstLine(
             document,
@@ -91,11 +94,31 @@ export class BrunoLangDiagnosticsProvider {
             documentUri,
             collection
         );
-        checkSequenceInMetaBlockIsUniqueWithinFolder(
+    }
+
+    private provideRelatedRequestsDiagnostics(
+        itemProvider: CollectionItemProvider,
+        metaBlock: RequestFileBlock,
+        documentUri: Uri,
+        relatedRequestsHelper: RelatedRequestsDiagnosticsHelper
+    ) {
+        const { code, toAdd } = checkSequenceInMetaBlockIsUniqueWithinFolder(
             itemProvider,
             metaBlock,
-            documentUri,
-            relatedRequestsHelper
+            documentUri
         );
+
+        if (toAdd) {
+            relatedRequestsHelper.addDiagnostic(
+                {
+                    files: toAdd.affectedFiles,
+                    diagnosticCode: code,
+                },
+                documentUri.fsPath,
+                toAdd.diagnosticCurrentFile
+            );
+        } else {
+            relatedRequestsHelper.removeDiagnostic(documentUri.fsPath, code);
+        }
     }
 }

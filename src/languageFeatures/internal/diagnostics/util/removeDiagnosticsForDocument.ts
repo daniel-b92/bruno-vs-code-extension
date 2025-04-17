@@ -1,4 +1,4 @@
-import { Diagnostic, DiagnosticCollection, Uri } from "vscode";
+import { DiagnosticCollection, Uri } from "vscode";
 import { DiagnosticCode } from "../diagnosticCodeEnum";
 
 export function removeDiagnosticsForDocument(
@@ -16,12 +16,4 @@ export function removeDiagnosticsForDocument(
             )
         );
     }
-
-    return documentDiagnostics
-        ? documentDiagnostics.length -
-              (collection.get(documentUri)
-                  ? (collection.get(documentUri) as readonly Diagnostic[])
-                        .length
-                  : 0)
-        : 0;
 }

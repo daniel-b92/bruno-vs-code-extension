@@ -14,14 +14,15 @@ import { MetaBlockFieldName } from "../../../../../shared/fileSystem/testFilePar
 import { dirname } from "path";
 import { parseBlockFromTestFile } from "../../../../../shared/fileSystem/testFileParsing/internal/parseBlockFromTestFile";
 import { readFileSync } from "fs";
-import { RelatedRequestsDiagnosticsHelper } from "../../util/relatedRequestsDiagnosticsHelper";
 
 export function checkSequenceInMetaBlockIsUniqueWithinFolder(
     itemProvider: CollectionItemProvider,
     metaBlock: RequestFileBlock,
-    documentUri: Uri,
-    relatedRequestsHelper: RelatedRequestsDiagnosticsHelper
-) {
+    documentUri: Uri
+): {
+    code: DiagnosticCode;
+    toAdd?: { affectedFiles: string[]; diagnosticCurrentFile: Diagnostic };
+} {
     if (
         Array.isArray(metaBlock.content) &&
         metaBlock.content.filter(
@@ -50,25 +51,21 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
                 .map(({ file }) => file)
                 .concat(documentUri.fsPath);
 
-            relatedRequestsHelper.addDiagnostic(
-                {
-                    files: affectedFiles,
-                    diagnosticCode: getDiagnosticCode(),
+            return {
+                code: getDiagnosticCode(),
+                toAdd: {
+                    affectedFiles,
+                    diagnosticCurrentFile: getDiagnostic(
+                        sequenceField,
+                        affectedFiles
+                    ),
                 },
-                documentUri.fsPath,
-                getDiagnostic(sequenceField, affectedFiles)
-            );
+            };
         } else {
-            relatedRequestsHelper.removeDiagnostic(
-                documentUri.fsPath,
-                getDiagnosticCode()
-            );
+            return { code: getDiagnosticCode() };
         }
     } else {
-        relatedRequestsHelper.removeDiagnostic(
-            documentUri.fsPath,
-            getDiagnosticCode()
-        );
+        return { code: getDiagnosticCode() };
     }
 }
 
