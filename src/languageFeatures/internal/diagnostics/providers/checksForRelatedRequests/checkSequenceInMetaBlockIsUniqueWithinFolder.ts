@@ -41,23 +41,25 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
             dirname(documentUri.fsPath)
         );
 
-        const otherRequestsWithSameSequence = otherRequestsInFolder.filter(
-            ({ sequence: existingSequence }) =>
-                Number.parseInt(sequenceField.value) == existingSequence
-        );
+        const otherRequestsWithSameSequence = otherRequestsInFolder
+            .filter(
+                ({ sequence: existingSequence }) =>
+                    Number.parseInt(sequenceField.value) == existingSequence
+            )
+            .map(({ file }) => file);
 
         if (otherRequestsWithSameSequence.length > 0) {
-            const affectedFiles = otherRequestsWithSameSequence
-                .map(({ file }) => file)
-                .concat(documentUri.fsPath);
+            const allAffectedFiles = otherRequestsWithSameSequence.concat(
+                documentUri.fsPath
+            );
 
             return {
                 code: getDiagnosticCode(),
                 toAdd: {
-                    affectedFiles,
+                    affectedFiles: allAffectedFiles,
                     diagnosticCurrentFile: getDiagnostic(
                         sequenceField,
-                        affectedFiles
+                        otherRequestsWithSameSequence
                     ),
                 },
             };
@@ -71,7 +73,7 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
 
 function getDiagnostic(
     sequenceField: DictionaryBlockField,
-    requestsWithSameSequence: string[]
+    otherRequestsWithSameSequence: string[]
 ): Diagnostic {
     return {
         message:
@@ -79,7 +81,7 @@ function getDiagnostic(
         range: sequenceField.valueRange,
         severity: DiagnosticSeverity.Error,
         code: getDiagnosticCode(),
-        relatedInformation: requestsWithSameSequence.map((path) => ({
+        relatedInformation: otherRequestsWithSameSequence.map((path) => ({
             message: `Request with same sequence`,
             location: {
                 uri: Uri.file(path),
