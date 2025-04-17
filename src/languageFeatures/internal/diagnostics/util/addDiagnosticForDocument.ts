@@ -6,7 +6,6 @@ export function addDiagnosticForDocument(
     documentUri: Uri,
     collection: DiagnosticCollection,
     toAdd: Diagnostic,
-    overwriteExistingDiagnosticWithSameCode = false
 ) {
     const initialDocumentDiagnostics = collection.get(documentUri);
 
@@ -22,7 +21,6 @@ export function addDiagnosticForDocument(
     if (!alreadyExists) {
         collection.set(documentUri, initialDocumentDiagnostics.concat([toAdd]));
     } else if (
-        overwriteExistingDiagnosticWithSameCode &&
         toAdd.code &&
         Object.values(DiagnosticCode).some(
             (knownCodes) => knownCodes == toAdd.code
@@ -34,6 +32,6 @@ export function addDiagnosticForDocument(
             toAdd.code as DiagnosticCode
         );
 
-        addDiagnosticForDocument(documentUri, collection, toAdd, false);
+        collection.set(documentUri, initialDocumentDiagnostics.concat([toAdd]));
     }
 }

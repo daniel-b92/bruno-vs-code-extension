@@ -1,22 +1,18 @@
 import {
     Diagnostic,
-    DiagnosticCollection,
     DiagnosticRelatedInformation,
     DiagnosticSeverity,
     Range,
     Uri,
 } from "vscode";
-import { addDiagnosticForDocument } from "../../util/addDiagnosticForDocument";
 import { RequestFileBlock, RequestFileBlockName } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { removeDiagnosticsForDocument } from "../../util/removeDiagnosticsForDocument";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 
 export function checkThatNoBlocksAreDefinedMultipleTimes(
     documentUri: Uri,
-    blocks: RequestFileBlock[],
-    diagnostics: DiagnosticCollection
-) {
+    blocks: RequestFileBlock[]
+): Diagnostic | DiagnosticCode | undefined {
     if (blocks.length == 0) {
         return;
     }
@@ -24,11 +20,7 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
     const duplicates = findDuplicateBlocks(blocks);
 
     if (duplicates.length == 0) {
-        removeDiagnosticsForDocument(
-            documentUri,
-            diagnostics,
-            DiagnosticCode.MultipleDefinitionsForSameBlocks
-        );
+        return DiagnosticCode.MultipleDefinitionsForSameBlocks;
     } else {
         const allDuplicateBlocks: RequestFileBlock[] = [];
 
@@ -66,12 +58,8 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
             severity: DiagnosticSeverity.Error,
             code: DiagnosticCode.MultipleDefinitionsForSameBlocks,
         };
-        addDiagnosticForDocument(
-            documentUri,
-            diagnostics,
-            multipleDefinitionsForSameBlocksDiagnostic,
-            true
-        );
+
+        return multipleDefinitionsForSameBlocksDiagnostic;
     }
 }
 

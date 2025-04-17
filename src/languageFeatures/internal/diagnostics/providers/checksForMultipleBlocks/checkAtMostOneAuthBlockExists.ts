@@ -1,38 +1,21 @@
-import {
-    Diagnostic,
-    DiagnosticCollection,
-    DiagnosticSeverity,
-    Range,
-    Uri,
-} from "vscode";
+import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
 import { RequestFileBlock } from "../../../../../shared";
-import { addDiagnosticForDocument } from "../../util/addDiagnosticForDocument";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { removeDiagnosticsForDocument } from "../../util/removeDiagnosticsForDocument";
 import { isAuthBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/isAuthBlock";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 
 export function checkAtMostOneAuthBlockExists(
     documentUri: Uri,
-    blocks: RequestFileBlock[],
-    diagnostics: DiagnosticCollection
-) {
+    blocks: RequestFileBlock[]
+): Diagnostic | DiagnosticCode {
     const sortedAuthBlocks = getSortedBlocksByPosition(
         blocks.filter(({ name }) => isAuthBlock(name))
     );
 
     if (sortedAuthBlocks.length > 1) {
-        addDiagnosticForDocument(
-            documentUri,
-            diagnostics,
-            getDiagnostic(documentUri, sortedAuthBlocks)
-        );
+        return getDiagnostic(documentUri, sortedAuthBlocks);
     } else {
-        removeDiagnosticsForDocument(
-            documentUri,
-            diagnostics,
-            DiagnosticCode.TooManyAuthBlocksDefined
-        );
+        return DiagnosticCode.TooManyAuthBlocksDefined;
     }
 }
 

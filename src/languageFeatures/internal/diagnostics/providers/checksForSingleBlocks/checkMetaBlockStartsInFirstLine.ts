@@ -1,33 +1,15 @@
-import {
-    DiagnosticCollection,
-    DiagnosticSeverity,
-    Position,
-    Range,
-    Uri,
-} from "vscode";
+import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode";
 import { RequestFileBlock, TextDocumentHelper } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { addDiagnosticForDocument } from "../../util/addDiagnosticForDocument";
-import { removeDiagnosticsForDocument } from "../../util/removeDiagnosticsForDocument";
 
 export function checkMetaBlockStartsInFirstLine(
     document: TextDocumentHelper,
-    metaBlock: RequestFileBlock,
-    documentUri: Uri,
-    existingDiagnostics: DiagnosticCollection
-) {
+    metaBlock: RequestFileBlock
+): Diagnostic | DiagnosticCode {
     if (metaBlock.nameRange.start.line != 0) {
-        addDiagnosticForDocument(
-            documentUri,
-            existingDiagnostics,
-            getDiagnostic(document)
-        );
+        return getDiagnostic(document);
     } else {
-        removeDiagnosticsForDocument(
-            documentUri,
-            existingDiagnostics,
-            DiagnosticCode.MetaBlockNotInFirstLine
-        );
+        return DiagnosticCode.MetaBlockNotInFirstLine;
     }
 }
 

@@ -1,4 +1,4 @@
-import { DiagnosticCollection, Uri } from "vscode";
+import { Diagnostic, DiagnosticCollection, Uri } from "vscode";
 import { checkMetaBlockStartsInFirstLine } from "./providers/checksForSingleBlocks/checkMetaBlockStartsInFirstLine";
 import {
     CollectionItemProvider,
@@ -14,15 +14,16 @@ import { checkAtMostOneAuthBlockExists } from "./providers/checksForMultipleBloc
 import { checkAtMostOneBodyBlockExists } from "./providers/checksForMultipleBlocks/checkAtMostOneBodyBlockExists";
 import { checkSequenceInMetaBlockIsUniqueWithinFolder } from "./providers/checksForRelatedRequests/checkSequenceInMetaBlockIsUniqueWithinFolder";
 import { RelatedRequestsDiagnosticsHelper } from "./util/relatedRequestsDiagnosticsHelper";
+import { addDiagnosticForDocument } from "./util/addDiagnosticForDocument";
+import { removeDiagnosticsForDocument } from "./util/removeDiagnosticsForDocument";
+import { DiagnosticCode } from "./diagnosticCodeEnum";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
         private diagnosticCollection: DiagnosticCollection,
         private itemProvider: CollectionItemProvider
     ) {
-        this.relatedRequestsHelper = new RelatedRequestsDiagnosticsHelper(
-            diagnosticCollection
-        );
+        this.relatedRequestsHelper = new RelatedRequestsDiagnosticsHelper();
     }
 
     private relatedRequestsHelper: RelatedRequestsDiagnosticsHelper;
@@ -33,75 +34,70 @@ export class BrunoLangDiagnosticsProvider {
         const document = new TextDocumentHelper(documentText);
         const { blocks, textOutsideOfBlocks } = parseTestFile(document);
 
-        checkOccurencesOfMandatoryBlocks(
-            documentUri,
+        const { toAdd, toRemove } = checkOccurencesOfMandatoryBlocks(
             document,
-            blocks,
-            this.diagnosticCollection
+            blocks
         );
 
-        checkThatNoBlocksAreDefinedMultipleTimes(
-            documentUri,
-            blocks,
-            this.diagnosticCollection
-        );
-        checkThatNoTextExistsOutsideOfBlocks(
-            documentUri,
-            textOutsideOfBlocks,
-            this.diagnosticCollection
-        );
-        checkAtMostOneAuthBlockExists(
-            documentUri,
-            blocks,
-            this.diagnosticCollection
-        );
-        checkAtMostOneBodyBlockExists(
-            documentUri,
-            blocks,
-            this.diagnosticCollection
-        );
+        this.handleResults(documentUri, [
+            ...toAdd,
+            ...toRemove,
+            checkThatNoBlocksAreDefinedMultipleTimes(documentUri, blocks),
+            checkThatNoTextExistsOutsideOfBlocks(
+                documentUri,
+                textOutsideOfBlocks
+            ),
+            checkAtMostOneAuthBlockExists(documentUri, blocks),
+            checkAtMostOneBodyBlockExists(documentUri, blocks),
+        ]);
 
         const metaBlocks = blocks.filter(
             ({ name }) => name == RequestFileBlockName.Meta
         );
 
         if (metaBlocks.length == 1) {
-            this.provideSingleBlockSpecificDiagnostics(
-                document,
-                metaBlocks[0],
-                documentUri,
-                this.diagnosticCollection
-            );
+            this.handleResults(documentUri, [
+                checkMetaBlockStartsInFirstLine(document, metaBlocks[0]),
+            ]);
 
-            this.provideRelatedRequestsDiagnostics(
+            for (const results of this.provideRelatedRequestsDiagnosticsForMetaBlock(
                 this.itemProvider,
                 metaBlocks[0],
                 documentUri,
                 this.relatedRequestsHelper
-            );
+            )) {
+                this.handleResults(results.uri, [results.result]);
+            }
         }
     }
 
-    private provideSingleBlockSpecificDiagnostics(
-        document: TextDocumentHelper,
-        metaBlock: RequestFileBlock,
+    private handleResults(
         documentUri: Uri,
-        collection: DiagnosticCollection
+        results: (Diagnostic | DiagnosticCode | undefined)[]
     ) {
-        checkMetaBlockStartsInFirstLine(
-            document,
-            metaBlock,
-            documentUri,
-            collection
-        );
+        for (const result of results) {
+            if (result && typeof result != "string") {
+                addDiagnosticForDocument(
+                    documentUri,
+                    this.diagnosticCollection,
+                    result
+                );
+            } else if (result != undefined) {
+                removeDiagnosticsForDocument(
+                    documentUri,
+                    this.diagnosticCollection,
+                    result
+                );
+            }
+        }
     }
 
-    private provideRelatedRequestsDiagnostics(
+    private provideRelatedRequestsDiagnosticsForMetaBlock(
         itemProvider: CollectionItemProvider,
         metaBlock: RequestFileBlock,
         documentUri: Uri,
         relatedRequestsHelper: RelatedRequestsDiagnosticsHelper
-    ) {
+    ): { uri: Uri; result: Diagnostic | DiagnosticCode }[] {
         const { code, toAdd } = checkSequenceInMetaBlockIsUniqueWithinFolder(
             itemProvider,
             metaBlock,
@@ -109,16 +105,19 @@ export class BrunoLangDiagnosticsProvider {
         );
 
         if (toAdd) {
-            relatedRequestsHelper.addDiagnostic(
-                {
-                    files: toAdd.affectedFiles,
-                    diagnosticCode: code,
-                },
-                documentUri.fsPath,
-                toAdd.diagnosticCurrentFile
-            );
+            relatedRequestsHelper.registerDiagnostic({
+                files: toAdd.affectedFiles,
+                diagnosticCode: code,
+            });
+
+            return [{ uri: documentUri, result: toAdd.diagnosticCurrentFile }];
         } else {
-            relatedRequestsHelper.removeDiagnostic(documentUri.fsPath, code);
+            return relatedRequestsHelper
+                .unregisterDiagnostic(documentUri.fsPath, code)
+                .map(({ file, code }) => ({
+                    uri: Uri.file(file),
+                    result: code,
+                }));
         }
     }
 }

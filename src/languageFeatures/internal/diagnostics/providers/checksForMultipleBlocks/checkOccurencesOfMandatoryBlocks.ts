@@ -1,30 +1,22 @@
-import {
-    Diagnostic,
-    DiagnosticCollection,
-    DiagnosticSeverity,
-    Position,
-    Range,
-    Uri,
-} from "vscode";
+import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode";
 import {
     TextDocumentHelper,
     RequestFileBlock,
     RequestFileBlockName,
 } from "../../../../../shared";
-import { addDiagnosticForDocument } from "../../util/addDiagnosticForDocument";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { removeDiagnosticsForDocument } from "../../util/removeDiagnosticsForDocument";
 import {
     getAllMethodBlocks,
     getPossibleMethodBlocks,
 } from "../../../../../shared/fileSystem/testFileParsing/internal/getAllMethodBlocks";
 
 export function checkOccurencesOfMandatoryBlocks(
-    documentUri: Uri,
     document: TextDocumentHelper,
-    blocks: RequestFileBlock[],
-    diagnostics: DiagnosticCollection
-) {
+    blocks: RequestFileBlock[]
+): { toAdd: Diagnostic[]; toRemove: DiagnosticCode[] } {
+    const toAdd: Diagnostic[] = [];
+    const toRemove: DiagnosticCode[] = [];
+
     // Use full text of file as range for diagnostics
     const range = new Range(
         new Position(0, 0),
@@ -42,17 +34,9 @@ export function checkOccurencesOfMandatoryBlocks(
     };
 
     if (!blocks.some(({ name }) => name == RequestFileBlockName.Meta)) {
-        addDiagnosticForDocument(
-            documentUri,
-            diagnostics,
-            missingMetaBlockDiagnostic
-        );
+        toAdd.push(missingMetaBlockDiagnostic);
     } else {
-        removeDiagnosticsForDocument(
-            documentUri,
-            diagnostics,
-            DiagnosticCode.MissingMetaBlock
-        );
+        toRemove.push(DiagnosticCode.MissingMetaBlock);
     }
 
     // Exactly one method block needs to be defined
@@ -68,16 +52,10 @@ export function checkOccurencesOfMandatoryBlocks(
     };
 
     if (methodBlocks.length != 1) {
-        addDiagnosticForDocument(
-            documentUri,
-            diagnostics,
-            incorrectNumberOfHttpMethodsDiagnostic
-        );
+        toAdd.push(incorrectNumberOfHttpMethodsDiagnostic);
     } else {
-        removeDiagnosticsForDocument(
-            documentUri,
-            diagnostics,
-            DiagnosticCode.IncorrectNumberofHttpMethodBlocks
-        );
+        toRemove.push(DiagnosticCode.IncorrectNumberofHttpMethodBlocks);
     }
+
+    return { toAdd, toRemove };
 }

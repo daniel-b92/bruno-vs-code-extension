@@ -1,30 +1,17 @@
-import {
-    Diagnostic,
-    DiagnosticCollection,
-    DiagnosticSeverity,
-    Range,
-    Uri,
-} from "vscode";
-import { addDiagnosticForDocument } from "../../util/addDiagnosticForDocument";
+import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
 import { TextOutsideOfBlocks } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { removeDiagnosticsForDocument } from "../../util/removeDiagnosticsForDocument";
 
 export function checkThatNoTextExistsOutsideOfBlocks(
     documentUri: Uri,
-    allTextOutsideOfBlocks: TextOutsideOfBlocks[],
-    diagnostics: DiagnosticCollection
-) {
+    allTextOutsideOfBlocks: TextOutsideOfBlocks[]
+): Diagnostic | DiagnosticCode {
     const relevantTextOutsideOfBlocks = allTextOutsideOfBlocks.filter(
         ({ text }) => !/^\s*$/.test(text)
     );
 
     if (relevantTextOutsideOfBlocks.length == 0) {
-        removeDiagnosticsForDocument(
-            documentUri,
-            diagnostics,
-            DiagnosticCode.TextOutsideOfBlocks
-        );
+        return DiagnosticCode.TextOutsideOfBlocks;
     } else {
         relevantTextOutsideOfBlocks.sort(
             (
@@ -63,6 +50,7 @@ export function checkThatNoTextExistsOutsideOfBlocks(
             severity: DiagnosticSeverity.Error,
             code: DiagnosticCode.MultipleDefinitionsForSameBlocks,
         };
-        addDiagnosticForDocument(documentUri, diagnostics, diagnostic, true);
+
+        return diagnostic;
     }
 }

@@ -1,38 +1,21 @@
-import {
-    Diagnostic,
-    DiagnosticCollection,
-    DiagnosticSeverity,
-    Range,
-    Uri,
-} from "vscode";
+import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
 import { RequestFileBlock } from "../../../../../shared";
-import { addDiagnosticForDocument } from "../../util/addDiagnosticForDocument";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { removeDiagnosticsForDocument } from "../../util/removeDiagnosticsForDocument";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { isBodyBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/isBodyBlock";
 
 export function checkAtMostOneBodyBlockExists(
     documentUri: Uri,
-    blocks: RequestFileBlock[],
-    diagnostics: DiagnosticCollection
-) {
+    blocks: RequestFileBlock[]
+): Diagnostic | DiagnosticCode {
     const sortedBodyBlocks = getSortedBlocksByPosition(
         blocks.filter(({ name }) => isBodyBlock(name))
     );
 
     if (sortedBodyBlocks.length > 1) {
-        addDiagnosticForDocument(
-            documentUri,
-            diagnostics,
-            getDiagnostic(documentUri, sortedBodyBlocks)
-        );
+        return getDiagnostic(documentUri, sortedBodyBlocks);
     } else {
-        removeDiagnosticsForDocument(
-            documentUri,
-            diagnostics,
-            DiagnosticCode.TooManyBodyBlocksDefined
-        );
+        return DiagnosticCode.TooManyBodyBlocksDefined;
     }
 }
 

@@ -1,27 +1,13 @@
-import { Diagnostic, DiagnosticCollection, Uri } from "vscode";
 import { DiagnosticCode } from "../diagnosticCodeEnum";
-import { removeDiagnosticsForDocument } from "./removeDiagnosticsForDocument";
-import { addDiagnosticForDocument } from "./addDiagnosticForDocument";
 
 export class RelatedRequestsDiagnosticsHelper {
-    constructor(private fullDiagnosticCollection: DiagnosticCollection) {
+    constructor() {
         this.diagnosticsForRelatedRequests = [];
     }
 
     private diagnosticsForRelatedRequests: RelatedRequestsDiagnostic[];
 
-    public addDiagnostic(
-        newDiagnostic: RelatedRequestsDiagnostic,
-        currentFile: string,
-        diagnosticToAdd: Diagnostic
-    ) {
-        addDiagnosticForDocument(
-            Uri.file(currentFile),
-            this.fullDiagnosticCollection,
-            diagnosticToAdd,
-            true
-        );
-
+    public registerDiagnostic(newDiagnostic: RelatedRequestsDiagnostic) {
         for (const { files: knownFiles, diagnosticCode: knownCode } of this
             .diagnosticsForRelatedRequests) {
             if (
@@ -40,13 +26,10 @@ export class RelatedRequestsDiagnosticsHelper {
         this.diagnosticsForRelatedRequests.push(newDiagnostic);
     }
 
-    public removeDiagnostic(file: string, diagnosticCode: DiagnosticCode) {
-        removeDiagnosticsForDocument(
-            Uri.file(file),
-            this.fullDiagnosticCollection,
-            diagnosticCode
-        );
-
+    public unregisterDiagnostic(
+        file: string,
+        diagnosticCode: DiagnosticCode
+    ): { file: string; code: DiagnosticCode }[] {
         const toAdjust = this.diagnosticsForRelatedRequests
             .map((val, index) => ({ diagnostic: val, index }))
             .filter(
@@ -69,7 +52,7 @@ export class RelatedRequestsDiagnosticsHelper {
                 )}`
             );
         } else if (toAdjust.length == 0) {
-            return;
+            return [];
         }
 
         const { diagnostic, index } = toAdjust[0];
@@ -80,18 +63,15 @@ export class RelatedRequestsDiagnosticsHelper {
             diagnostic.files = diagnostic.files.filter(
                 (registered) => registered != file
             );
+
+            return [{ file, code: diagnosticCode }];
         } else {
             const removed = this.diagnosticsForRelatedRequests.splice(index, 1);
-            
-            removed[0].files
-                .filter((fileFromRemoval) => fileFromRemoval != file)
-                .forEach((toRemoveFromCollection) =>
-                    removeDiagnosticsForDocument(
-                        Uri.file(toRemoveFromCollection),
-                        this.fullDiagnosticCollection,
-                        diagnosticCode
-                    )
-                );
+
+            return removed[0].files.map((file) => ({
+                file,
+                code: diagnosticCode,
+            }));
         }
     }
 }
