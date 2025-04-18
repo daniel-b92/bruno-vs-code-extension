@@ -7,6 +7,13 @@ export interface RequestFileBlock {
     contentRange: Range;
 }
 
+export interface DictionaryBlock {
+    name: string;
+    nameRange: Range;
+    content: DictionaryBlockField[];
+    contentRange: Range;
+}
+
 export interface DictionaryBlockField {
     name: string;
     value: string;

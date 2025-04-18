@@ -17,6 +17,7 @@ import { RelatedRequestsDiagnosticsHelper } from "./util/relatedRequestsDiagnost
 import { addDiagnosticForDocument } from "./util/addDiagnosticForDocument";
 import { removeDiagnosticsForDocument } from "./util/removeDiagnosticsForDocument";
 import { DiagnosticCode } from "./diagnosticCodeEnum";
+import { checkBodyBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks/checkBodyBlockTypeFromMethodBlockExists";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -49,6 +50,7 @@ export class BrunoLangDiagnosticsProvider {
             ),
             checkAtMostOneAuthBlockExists(documentUri, blocks),
             checkAtMostOneBodyBlockExists(documentUri, blocks),
+            checkBodyBlockTypeFromMethodBlockExists(documentUri, blocks),
         ]);
 
         const metaBlocks = blocks.filter(

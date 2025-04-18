@@ -14,6 +14,7 @@ import { MetaBlockFieldName } from "../../../../../shared/fileSystem/testFilePar
 import { dirname } from "path";
 import { parseBlockFromTestFile } from "../../../../../shared/fileSystem/testFileParsing/internal/parseBlockFromTestFile";
 import { readFileSync } from "fs";
+import { castBlockToDictionaryBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/castBlockToDictionaryBlock";
 
 export function checkSequenceInMetaBlockIsUniqueWithinFolder(
     itemProvider: CollectionItemProvider,
@@ -23,15 +24,17 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
     code: DiagnosticCode;
     toAdd?: { affectedFiles: string[]; diagnosticCurrentFile: Diagnostic };
 } {
+    const castedBlock = castBlockToDictionaryBlock(metaBlock);
+
     if (
-        Array.isArray(metaBlock.content) &&
-        metaBlock.content.filter(
+        castedBlock &&
+        castedBlock.content.filter(
             ({ name, value }) =>
                 name == MetaBlockFieldName.Sequence &&
                 !Number.isNaN(Number.parseInt(value))
         ).length == 1
     ) {
-        const sequenceField = metaBlock.content.find(
+        const sequenceField = castedBlock.content.find(
             ({ name }) => name == MetaBlockFieldName.Sequence
         ) as DictionaryBlockField;
 
@@ -96,27 +99,27 @@ function getDiagnosticCode() {
 }
 
 function getRangeForSequence(filePath: string) {
-    const metaBlock = parseBlockFromTestFile(
+    const metaBlockContent = parseBlockFromTestFile(
         new TextDocumentHelper(readFileSync(filePath).toString()),
         RequestFileBlockName.Meta
     );
 
     if (
-        !metaBlock ||
-        !Array.isArray(metaBlock) ||
-        !metaBlock.some(({ name }) => name == MetaBlockFieldName.Sequence)
+        !metaBlockContent ||
+        !Array.isArray(metaBlockContent) ||
+        !metaBlockContent.some(({ name }) => name == MetaBlockFieldName.Sequence)
     ) {
         throw new Error(
             `'${
                 RequestFileBlockName.Meta
             }' block did not have expected format for file '${filePath}'. Got '${
                 RequestFileBlockName.Meta
-            }': ${JSON.stringify(metaBlock, null, 2)}.`
+            }': ${JSON.stringify(metaBlockContent, null, 2)}.`
         );
     }
 
     return (
-        metaBlock.find(
+        metaBlockContent.find(
             ({ name }) => name == MetaBlockFieldName.Sequence
         ) as DictionaryBlockField
     ).valueRange;

@@ -1,10 +1,20 @@
 export enum DiagnosticCode {
+    // Meta block
     MissingMetaBlock = "bruLang_MissingMetaBlock",
-    IncorrectNumberofHttpMethodBlocks = "bruLang_IncorrectNumberofHttpMethodBlocks",
-    TooManyAuthBlocksDefined = "bruLang_TooManyAuthBlocksDefined",
-    TooManyBodyBlocksDefined = "bruLang_TooManyBodyBlocksDefined",
-    MultipleDefinitionsForSameBlocks = "bruLang_MultipleDefinitionsForSameBlocks",
-    TextOutsideOfBlocks = "bruLang_TextOutsideOfBlocks",
     MetaBlockNotInFirstLine = "bruLang_MetaBlockNotInFirstLine",
     SequenceNotUniqueWithinFolder = "bruLang_SequenceNotUniqueWithinFolder",
+
+    // Method block
+    IncorrectNumberofHttpMethodBlocks = "bruLang_IncorrectNumberofHttpMethodBlocks",
+
+    // Auth block
+    TooManyAuthBlocksDefined = "bruLang_TooManyAuthBlocksDefined",
+
+    // Body block
+    TooManyBodyBlocksDefined = "bruLang_TooManyBodyBlocksDefined",
+
+    // Other
+    MultipleDefinitionsForSameBlocks = "bruLang_MultipleDefinitionsForSameBlocks",
+    TextOutsideOfBlocks = "bruLang_TextOutsideOfBlocks",
+    BodyBlockNotMatchingTypeFromMethodBlock = "bruLang_BodyBlockNotMatchingTypeFromMethodBlock",
 }
