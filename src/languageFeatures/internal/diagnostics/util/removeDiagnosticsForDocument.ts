@@ -16,4 +16,6 @@ export function removeDiagnosticsForDocument(
             )
         );
     }
+
+    return collection.get(documentUri);
 }

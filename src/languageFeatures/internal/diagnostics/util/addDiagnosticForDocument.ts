@@ -5,7 +5,7 @@ import { DiagnosticCode } from "../diagnosticCodeEnum";
 export function addDiagnosticForDocument(
     documentUri: Uri,
     collection: DiagnosticCollection,
-    toAdd: Diagnostic,
+    toAdd: Diagnostic
 ) {
     const initialDocumentDiagnostics = collection.get(documentUri);
 
@@ -26,12 +26,17 @@ export function addDiagnosticForDocument(
             (knownCodes) => knownCodes == toAdd.code
         )
     ) {
-        removeDiagnosticsForDocument(
+        const remainingDocumentDiagnostics = removeDiagnosticsForDocument(
             documentUri,
             collection,
             toAdd.code as DiagnosticCode
         );
 
-        collection.set(documentUri, initialDocumentDiagnostics.concat([toAdd]));
+        collection.set(
+            documentUri,
+            remainingDocumentDiagnostics
+                ? remainingDocumentDiagnostics.concat([toAdd])
+                : [toAdd]
+        );
     }
 }
