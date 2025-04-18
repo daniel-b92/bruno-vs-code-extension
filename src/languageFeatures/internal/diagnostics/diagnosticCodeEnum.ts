@@ -19,4 +19,5 @@ export enum DiagnosticCode {
     AuthBlockNotMatchingTypeFromMethodBlock = "bruLang_AuthBlockNotMatchingTypeFromMethodBlock",
     BodyBlockNotMatchingTypeFromMethodBlock = "bruLang_BodyBlockNotMatchingTypeFromMethodBlock",
     BlocksWithUnknownNamesDefined = "bruLang_BlocksWithUnknownNamesDefined",
+    DictionaryBlocksNotStructuredCorrectly = "bruLang_DictionaryBlocksNotStructuredCorrectly",
 }
