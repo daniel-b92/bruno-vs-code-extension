@@ -6,8 +6,19 @@ meta {
 
 get {
   url: {{url}}
-  body: none
-  auth: none
+  body: json
+  auth: basic
+}
+
+auth:basic {
+  username: a
+  password: b
+}
+
+body:json {
+  {
+    "test": 3
+  }
 }
 
 tests {
