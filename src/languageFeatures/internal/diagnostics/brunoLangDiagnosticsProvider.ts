@@ -19,6 +19,7 @@ import { removeDiagnosticsForDocument } from "./util/removeDiagnosticsForDocumen
 import { DiagnosticCode } from "./diagnosticCodeEnum";
 import { checkBodyBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks/checkBodyBlockTypeFromMethodBlockExists";
 import { checkAuthBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks/checkAuthBlockTypeFromMethodBlockExists";
+import { checkNoBlocksHaveUnknownNames } from "./checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -53,6 +54,7 @@ export class BrunoLangDiagnosticsProvider {
             checkAtMostOneBodyBlockExists(documentUri, blocks),
             checkAuthBlockTypeFromMethodBlockExists(documentUri, blocks),
             checkBodyBlockTypeFromMethodBlockExists(documentUri, blocks),
+            checkNoBlocksHaveUnknownNames(documentUri, blocks),
         ]);
 
         const metaBlocks = blocks.filter(

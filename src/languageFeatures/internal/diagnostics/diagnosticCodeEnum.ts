@@ -18,4 +18,5 @@ export enum DiagnosticCode {
     TextOutsideOfBlocks = "bruLang_TextOutsideOfBlocks",
     AuthBlockNotMatchingTypeFromMethodBlock = "bruLang_AuthBlockNotMatchingTypeFromMethodBlock",
     BodyBlockNotMatchingTypeFromMethodBlock = "bruLang_BodyBlockNotMatchingTypeFromMethodBlock",
+    BlocksWithUnknownNamesDefined = "bruLang_BlocksWithUnknownNamesDefined",
 }
