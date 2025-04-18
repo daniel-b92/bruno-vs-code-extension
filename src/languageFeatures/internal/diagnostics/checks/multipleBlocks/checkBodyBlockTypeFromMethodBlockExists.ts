@@ -21,9 +21,17 @@ export function checkBodyBlockTypeFromMethodBlockExists(
         methodBlockField.value != getBodyBlockTypeForNoDefinedBodyBlock()
     ) {
         return getDiagnosticInCaseOfMissingBodyBlock(methodBlockField);
-    }
-
-    if (
+    } else if (
+        methodBlockField &&
+        bodyTypeNameFromBodyBlock &&
+        methodBlockField.value == getBodyBlockTypeForNoDefinedBodyBlock()
+    ) {
+        return getDiagnosticInCaseOfNonExpectedBodyBlock(
+            documentUri,
+            methodBlockField,
+            bodyTypeNameFromBodyBlock.bodyBlock
+        );
+    } else if (
         methodBlockField &&
         bodyTypeNameFromBodyBlock &&
         methodBlockField.value != bodyTypeNameFromBodyBlock.value
@@ -44,8 +52,7 @@ function getDiagnostic(
     bodyBlock: RequestFileBlock
 ): Diagnostic {
     return {
-        message:
-            "Body block type does not match defined type from method block.",
+        message: "Body type does not match name of body block.",
         range: methodBlockField.valueRange,
         relatedInformation: [
             {
@@ -70,6 +77,30 @@ function getDiagnosticInCaseOfMissingBodyBlock(
         message:
             "Missing body block despite definition of body type in method block.",
         range: methodBlockField.valueRange,
+        severity: DiagnosticSeverity.Error,
+        code: DiagnosticCode.BodyBlockNotMatchingTypeFromMethodBlock,
+    };
+}
+
+function getDiagnosticInCaseOfNonExpectedBodyBlock(
+    documentUri: Uri,
+    methodBlockField: DictionaryBlockField,
+    bodyBlock: RequestFileBlock
+): Diagnostic {
+    return {
+        message: `A body block is defined although the body type in the method block is '${getBodyBlockTypeForNoDefinedBodyBlock()}'.`,
+        range: methodBlockField.valueRange,
+        relatedInformation: [
+            {
+                message: `Defined body type in body block: '${getBodyTypeFromBlockName(
+                    bodyBlock.name
+                )}'`,
+                location: {
+                    uri: documentUri,
+                    range: bodyBlock.nameRange,
+                },
+            },
+        ],
         severity: DiagnosticSeverity.Error,
         code: DiagnosticCode.BodyBlockNotMatchingTypeFromMethodBlock,
     };

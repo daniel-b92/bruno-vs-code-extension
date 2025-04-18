@@ -21,12 +21,21 @@ export function checkAuthBlockTypeFromMethodBlockExists(
         methodBlockField.value != getAuthTypeForNoDefinedAuthBlock()
     ) {
         return getDiagnosticInCaseOfMissingAuthBlock(methodBlockField);
-    }
-
-    if (
+    } else if (
         methodBlockField &&
         authTypeFromAuthBlock &&
-        methodBlockField.value != authTypeFromAuthBlock.value
+        methodBlockField.value == getAuthTypeForNoDefinedAuthBlock()
+    ) {
+        return getDiagnosticInCaseOfNonExpectedAuthBlock(
+            documentUri,
+            methodBlockField,
+            authTypeFromAuthBlock.authBlock
+        );
+    } else if (
+        methodBlockField &&
+        authTypeFromAuthBlock &&
+        (methodBlockField.value != authTypeFromAuthBlock.value ||
+            methodBlockField.value == getAuthTypeForNoDefinedAuthBlock())
     ) {
         return getDiagnostic(
             documentUri,
@@ -44,8 +53,7 @@ function getDiagnostic(
     authBlock: RequestFileBlock
 ): Diagnostic {
     return {
-        message:
-            "Auth block type does not match defined type from method block.",
+        message: "Auth type does not match name of auth block.",
         range: methodBlockField.valueRange,
         relatedInformation: [
             {
@@ -70,6 +78,30 @@ function getDiagnosticInCaseOfMissingAuthBlock(
         message:
             "Missing auth block despite definition of auth type in method block.",
         range: methodBlockField.valueRange,
+        severity: DiagnosticSeverity.Error,
+        code: DiagnosticCode.AuthBlockNotMatchingTypeFromMethodBlock,
+    };
+}
+
+function getDiagnosticInCaseOfNonExpectedAuthBlock(
+    documentUri: Uri,
+    methodBlockField: DictionaryBlockField,
+    authBlock: RequestFileBlock
+): Diagnostic {
+    return {
+        message: `An auth block is defined although the auth type in the method block is '${getAuthTypeForNoDefinedAuthBlock()}'.`,
+        range: methodBlockField.valueRange,
+        relatedInformation: [
+            {
+                message: `Defined auth type in auth block: '${getAuthTypeFromBlockName(
+                    authBlock.name
+                )}'`,
+                location: {
+                    uri: documentUri,
+                    range: authBlock.nameRange,
+                },
+            },
+        ],
         severity: DiagnosticSeverity.Error,
         code: DiagnosticCode.AuthBlockNotMatchingTypeFromMethodBlock,
     };
