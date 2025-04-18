@@ -32,6 +32,7 @@ export function activateLanguageFeatures(
         }),
         workspace.onDidChangeTextDocument((e) => {
             if (
+                e.contentChanges.length > 0 &&
                 isBrunoRequestFile(
                     collectionItemProvider.getRegisteredCollections().slice(),
                     e.document.uri.fsPath
