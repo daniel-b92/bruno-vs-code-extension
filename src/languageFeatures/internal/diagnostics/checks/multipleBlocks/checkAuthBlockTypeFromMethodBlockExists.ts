@@ -18,13 +18,13 @@ export function checkAuthBlockTypeFromMethodBlockExists(
     if (
         methodBlockField &&
         !authTypeFromAuthBlock &&
-        methodBlockField.value != getAuthTypeForNoDefinedAuthBlock()
+        !getAuthTypesForNoDefinedAuthBlock().includes(methodBlockField.value)
     ) {
         return getDiagnosticInCaseOfMissingAuthBlock(methodBlockField);
     } else if (
         methodBlockField &&
         authTypeFromAuthBlock &&
-        methodBlockField.value == getAuthTypeForNoDefinedAuthBlock()
+        getAuthTypesForNoDefinedAuthBlock().includes(methodBlockField.value)
     ) {
         return getDiagnosticInCaseOfNonExpectedAuthBlock(
             documentUri,
@@ -34,8 +34,7 @@ export function checkAuthBlockTypeFromMethodBlockExists(
     } else if (
         methodBlockField &&
         authTypeFromAuthBlock &&
-        (methodBlockField.value != authTypeFromAuthBlock.value ||
-            methodBlockField.value == getAuthTypeForNoDefinedAuthBlock())
+        methodBlockField.value != authTypeFromAuthBlock.value
     ) {
         return getDiagnostic(
             documentUri,
@@ -89,7 +88,7 @@ function getDiagnosticInCaseOfNonExpectedAuthBlock(
     authBlock: RequestFileBlock
 ): Diagnostic {
     return {
-        message: `An auth block is defined although the auth type in the method block is '${getAuthTypeForNoDefinedAuthBlock()}'.`,
+        message: `An auth block is defined although the auth type in the method block is '${getAuthTypesForNoDefinedAuthBlock()}'.`,
         range: methodBlockField.valueRange,
         relatedInformation: [
             {
@@ -142,6 +141,6 @@ function getAuthTypeFromAuthBlock(allBlocks: RequestFileBlock[]) {
         : undefined;
 }
 
-function getAuthTypeForNoDefinedAuthBlock() {
-    return "none";
+function getAuthTypesForNoDefinedAuthBlock() {
+    return ["none", "inherit"];
 }
