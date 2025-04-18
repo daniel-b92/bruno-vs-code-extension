@@ -1,5 +1,9 @@
 import { Diagnostic, DiagnosticSeverity, Uri } from "vscode";
-import { DictionaryBlock, RequestFileBlock } from "../../../../../shared";
+import {
+    DictionaryBlock,
+    DictionaryBlockField,
+    RequestFileBlock,
+} from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getPossibleMethodBlocks } from "../../../../../shared/fileSystem/testFileParsing/internal/getAllMethodBlocks";
 import { castBlockToDictionaryBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/castBlockToDictionaryBlock";
@@ -11,20 +15,25 @@ export function checkBodyBlockTypeFromMethodBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[]
 ): Diagnostic | DiagnosticCode {
-    const bodyTypeAccordingToMethodBlock =
-        getBodyTypeFromMethodBlockField(blocks);
+    const methodBlockField = getBodyTypeFromMethodBlockField(blocks);
     const bodyTypeNameFromBodyBlock = getBodyTypeFromBodyBlockName(blocks);
 
-    // ToDo: handle case where no body is defined in method block (value: 'none')
+    if (
+        methodBlockField &&
+        !bodyTypeNameFromBodyBlock &&
+        methodBlockField.value != getBodyBlockTypeForNoDefinedBodyBlock()
+    ) {
+        return getDiagnosticInCaseOfMissingBodyBlock(methodBlockField);
+    }
 
     if (
-        bodyTypeAccordingToMethodBlock &&
+        methodBlockField &&
         bodyTypeNameFromBodyBlock &&
-        bodyTypeAccordingToMethodBlock.value != bodyTypeNameFromBodyBlock.value
+        methodBlockField.value != bodyTypeNameFromBodyBlock.value
     ) {
         return getDiagnostic(
             documentUri,
-            bodyTypeAccordingToMethodBlock.methodBlock,
+            methodBlockField,
             bodyTypeNameFromBodyBlock.bodyBlock
         );
     } else {
@@ -34,27 +43,36 @@ export function checkBodyBlockTypeFromMethodBlockExists(
 
 function getDiagnostic(
     documentUri: Uri,
-    methodBlock: DictionaryBlock,
+    methodBlockField: DictionaryBlockField,
     bodyBlock: RequestFileBlock
 ): Diagnostic {
-    const methodBlockField = getBodyFieldFromMethodBlock(methodBlock);
-
     return {
         message:
             "Body block type does not match defined type from method block.",
-        range: bodyBlock.nameRange,
-        relatedInformation: methodBlockField
-            ? [
-                  {
-                      message: `Defined body type in method block: '${methodBlockField.value}'`,
-                      location: {
-                          uri: documentUri,
-                          range: methodBlockField.valueRange,
-                      },
-                  },
-              ]
-            : undefined,
+        range: methodBlockField.valueRange,
+        relatedInformation: [
+            {
+                message: `Defined body type in body block: '${getBodyBlockType(
+                    bodyBlock.name
+                )}'`,
+                location: {
+                    uri: documentUri,
+                    range: bodyBlock.nameRange,
+                },
+            },
+        ],
+        severity: DiagnosticSeverity.Error,
+        code: DiagnosticCode.BodyBlockNotMatchingTypeFromMethodBlock,
+    };
+}
 
+function getDiagnosticInCaseOfMissingBodyBlock(
+    methodBlockField: DictionaryBlockField
+): Diagnostic {
+    return {
+        message:
+            "Missing body block despite definition of body type in method block.",
+        range: methodBlockField.valueRange,
         severity: DiagnosticSeverity.Error,
         code: DiagnosticCode.BodyBlockNotMatchingTypeFromMethodBlock,
     };
@@ -76,12 +94,7 @@ function getBodyTypeFromMethodBlockField(allBlocks: RequestFileBlock[]) {
 
     const bodyField = getBodyFieldFromMethodBlock(castedMethodBlock);
 
-    return bodyField != undefined
-        ? {
-              methodBlock: castedMethodBlock,
-              value: bodyField.value,
-          }
-        : undefined;
+    return bodyField ?? undefined;
 }
 
 function getBodyTypeFromBodyBlockName(allBlocks: RequestFileBlock[]) {
@@ -105,4 +118,8 @@ function getBodyFieldFromMethodBlock(methodBlock: DictionaryBlock) {
     return bodyFieldsInMethodBlock.length == 1
         ? bodyFieldsInMethodBlock[0]
         : undefined;
+}
+
+function getBodyBlockTypeForNoDefinedBodyBlock() {
+    return "none";
 }
