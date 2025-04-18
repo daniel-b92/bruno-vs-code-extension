@@ -4,78 +4,78 @@ import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getPossibleMethodBlocks } from "../../../../../shared/fileSystem/testFileParsing/internal/getAllMethodBlocks";
 import { castBlockToDictionaryBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/castBlockToDictionaryBlock";
 import { MethodBlockFieldName } from "../../../../../shared/fileSystem/testFileParsing/definitions/methodBlockFieldNameEnum";
-import { isBodyBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/isBodyBlock";
-import { getBodyTypeFromBlockName } from "../../../../../shared/fileSystem/testFileParsing/internal/getBodyTypeFromBlockName";
 import { getFieldFromMethodBlock } from "../../util/getFieldFromMethodBlock";
+import { isAuthBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/isAuthBlock";
+import { getAuthTypeFromBlockName } from "../../../../../shared/fileSystem/testFileParsing/internal/getAuthTypeFromBlockName";
 
-export function checkBodyBlockTypeFromMethodBlockExists(
+export function checkAuthBlockTypeFromMethodBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[]
 ): Diagnostic | DiagnosticCode {
-    const methodBlockField = getBodyTypeFromMethodBlockField(blocks);
-    const bodyTypeNameFromBodyBlock = getBodyTypeFromBodyBlockName(blocks);
+    const methodBlockField = getAuthTypeFromMethodBlock(blocks);
+    const authTypeFromAuthBlock = getAuthTypeFromAuthBlock(blocks);
 
     if (
         methodBlockField &&
-        !bodyTypeNameFromBodyBlock &&
-        methodBlockField.value != getBodyBlockTypeForNoDefinedBodyBlock()
+        !authTypeFromAuthBlock &&
+        methodBlockField.value != getAuthTypeForNoDefinedAuthBlock()
     ) {
-        return getDiagnosticInCaseOfMissingBodyBlock(methodBlockField);
+        return getDiagnosticInCaseOfMissingAuthBlock(methodBlockField);
     }
 
     if (
         methodBlockField &&
-        bodyTypeNameFromBodyBlock &&
-        methodBlockField.value != bodyTypeNameFromBodyBlock.value
+        authTypeFromAuthBlock &&
+        methodBlockField.value != authTypeFromAuthBlock.value
     ) {
         return getDiagnostic(
             documentUri,
             methodBlockField,
-            bodyTypeNameFromBodyBlock.bodyBlock
+            authTypeFromAuthBlock.authBlock
         );
     } else {
-        return DiagnosticCode.BodyBlockNotMatchingTypeFromMethodBlock;
+        return DiagnosticCode.AuthBlockNotMatchingTypeFromMethodBlock;
     }
 }
 
 function getDiagnostic(
     documentUri: Uri,
     methodBlockField: DictionaryBlockField,
-    bodyBlock: RequestFileBlock
+    authBlock: RequestFileBlock
 ): Diagnostic {
     return {
         message:
-            "Body block type does not match defined type from method block.",
+            "Auth block type does not match defined type from method block.",
         range: methodBlockField.valueRange,
         relatedInformation: [
             {
-                message: `Defined body type in body block: '${getBodyTypeFromBlockName(
-                    bodyBlock.name
+                message: `Defined auth type in auth block: '${getAuthTypeFromBlockName(
+                    authBlock.name
                 )}'`,
                 location: {
                     uri: documentUri,
-                    range: bodyBlock.nameRange,
+                    range: authBlock.nameRange,
                 },
             },
         ],
         severity: DiagnosticSeverity.Error,
-        code: DiagnosticCode.BodyBlockNotMatchingTypeFromMethodBlock,
+        code: DiagnosticCode.AuthBlockNotMatchingTypeFromMethodBlock,
     };
 }
 
-function getDiagnosticInCaseOfMissingBodyBlock(
+function getDiagnosticInCaseOfMissingAuthBlock(
     methodBlockField: DictionaryBlockField
 ): Diagnostic {
     return {
         message:
-            "Missing body block despite definition of body type in method block.",
+            "Missing auth block despite definition of auth type in method block.",
         range: methodBlockField.valueRange,
         severity: DiagnosticSeverity.Error,
-        code: DiagnosticCode.BodyBlockNotMatchingTypeFromMethodBlock,
+        code: DiagnosticCode.AuthBlockNotMatchingTypeFromMethodBlock,
     };
 }
 
-function getBodyTypeFromMethodBlockField(allBlocks: RequestFileBlock[]) {
+function getAuthTypeFromMethodBlock(allBlocks: RequestFileBlock[]) {
     const methodBlocks = allBlocks.filter(({ name }) =>
         (getPossibleMethodBlocks() as string[]).includes(name)
     );
@@ -89,27 +89,27 @@ function getBodyTypeFromMethodBlockField(allBlocks: RequestFileBlock[]) {
         return undefined;
     }
 
-    const bodyField = getFieldFromMethodBlock(
+    const authField = getFieldFromMethodBlock(
         castedMethodBlock,
-        MethodBlockFieldName.Body
+        MethodBlockFieldName.Auth
     );
 
-    return bodyField ?? undefined;
+    return authField ?? undefined;
 }
 
-function getBodyTypeFromBodyBlockName(allBlocks: RequestFileBlock[]) {
-    const existingBodyBlocks = allBlocks.filter(({ name }) =>
-        isBodyBlock(name)
+function getAuthTypeFromAuthBlock(allBlocks: RequestFileBlock[]) {
+    const existingAuthBlocks = allBlocks.filter(({ name }) =>
+        isAuthBlock(name)
     );
 
-    return existingBodyBlocks.length == 1
+    return existingAuthBlocks.length == 1
         ? {
-              bodyBlock: existingBodyBlocks[0],
-              value: getBodyTypeFromBlockName(existingBodyBlocks[0].name),
+              authBlock: existingAuthBlocks[0],
+              value: getAuthTypeFromBlockName(existingAuthBlocks[0].name),
           }
         : undefined;
 }
 
-function getBodyBlockTypeForNoDefinedBodyBlock() {
+function getAuthTypeForNoDefinedAuthBlock() {
     return "none";
 }

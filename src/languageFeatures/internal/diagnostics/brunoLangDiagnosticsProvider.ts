@@ -18,6 +18,7 @@ import { addDiagnosticForDocument } from "./util/addDiagnosticForDocument";
 import { removeDiagnosticsForDocument } from "./util/removeDiagnosticsForDocument";
 import { DiagnosticCode } from "./diagnosticCodeEnum";
 import { checkBodyBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks/checkBodyBlockTypeFromMethodBlockExists";
+import { checkAuthBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks/checkAuthBlockTypeFromMethodBlockExists";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -50,6 +51,7 @@ export class BrunoLangDiagnosticsProvider {
             ),
             checkAtMostOneAuthBlockExists(documentUri, blocks),
             checkAtMostOneBodyBlockExists(documentUri, blocks),
+            checkAuthBlockTypeFromMethodBlockExists(documentUri, blocks),
             checkBodyBlockTypeFromMethodBlockExists(documentUri, blocks),
         ]);
 

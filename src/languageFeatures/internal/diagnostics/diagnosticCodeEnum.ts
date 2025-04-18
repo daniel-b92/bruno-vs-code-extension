@@ -16,5 +16,6 @@ export enum DiagnosticCode {
     // Other
     MultipleDefinitionsForSameBlocks = "bruLang_MultipleDefinitionsForSameBlocks",
     TextOutsideOfBlocks = "bruLang_TextOutsideOfBlocks",
+    AuthBlockNotMatchingTypeFromMethodBlock = "bruLang_AuthBlockNotMatchingTypeFromMethodBlock",
     BodyBlockNotMatchingTypeFromMethodBlock = "bruLang_BodyBlockNotMatchingTypeFromMethodBlock",
 }
