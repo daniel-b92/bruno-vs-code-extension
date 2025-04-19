@@ -1,7 +1,7 @@
 import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
 import { RequestFileBlock, RequestFileBlockName } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
+import { getSortedBlocksOrFieldsByPosition } from "../../util/getSortedBlocksOrFieldsByPosition";
 
 export function checkNoBlocksHaveUnknownNames(
     documentUri: Uri,
@@ -9,7 +9,7 @@ export function checkNoBlocksHaveUnknownNames(
 ): Diagnostic | DiagnosticCode {
     const validNames = Object.values(RequestFileBlockName) as string[];
 
-    const blocksWithUnknownNames = getSortedBlocksByPosition(
+    const blocksWithUnknownNames = getSortedBlocksOrFieldsByPosition(
         blocks.filter(({ name }) => !validNames.includes(name))
     );
 

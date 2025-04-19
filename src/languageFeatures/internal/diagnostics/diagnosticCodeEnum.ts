@@ -4,6 +4,8 @@ export enum DiagnosticCode {
     MetaBlockNotInFirstLine = "bruLang_MetaBlockNotInFirstLine",
     SequenceNotUniqueWithinFolder = "bruLang_SequenceNotUniqueWithinFolder",
     SequenceNotNumeric = "bruLang_SequenceNotNumeric",
+    KeysMissingInMetaBlock = "bruLang_KeysMissingInMetaBlock",
+    UnknownKeysDefinedInMetaBlock = "bruLang_UnknownKeysDefinedInMetaBlock",
 
     // Method block
     IncorrectNumberofHttpMethodBlocks = "bruLang_IncorrectNumberofHttpMethodBlocks",

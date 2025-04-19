@@ -22,6 +22,8 @@ import { checkAuthBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks
 import { checkNoBlocksHaveUnknownNames } from "./checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
 import { checkDictionaryBlocksHaveDictionaryStructure } from "./checks/multipleBlocks/checkDictionaryBlocksHaveDictionaryStructure";
 import { checkSequenceInMetaBlockIsNumeric } from "./checks/singleBlocks/checkSequenceInMetaBlockIsNumeric";
+import { checkNoKeysAreMissingInMetaBlock } from "./checks/singleBlocks/checkNoKeysAreMissingInMetaBlock";
+import { checkNoUnknownKeysAreDefinedInMetaBlock } from "./checks/singleBlocks/checkNoUnknownKeysAreDefinedInMetaBlock";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -65,14 +67,18 @@ export class BrunoLangDiagnosticsProvider {
         );
 
         if (metaBlocks.length == 1) {
+            const metaBlock = metaBlocks[0];
+
             this.handleResults(documentUri, [
-                checkSequenceInMetaBlockIsNumeric(metaBlocks[0]),
-                checkMetaBlockStartsInFirstLine(document, metaBlocks[0]),
+                checkSequenceInMetaBlockIsNumeric(metaBlock),
+                checkNoKeysAreMissingInMetaBlock(metaBlock),
+                checkNoUnknownKeysAreDefinedInMetaBlock(metaBlock),
+                checkMetaBlockStartsInFirstLine(document, metaBlock),
             ]);
 
             for (const results of this.provideRelatedRequestsDiagnosticsForMetaBlock(
                 this.itemProvider,
-                metaBlocks[0],
+                metaBlock,
                 documentUri,
                 this.relatedRequestsHelper
             )) {

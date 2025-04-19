@@ -7,7 +7,7 @@ import {
 } from "vscode";
 import { RequestFileBlock, RequestFileBlockName } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
+import { getSortedBlocksOrFieldsByPosition } from "../../util/getSortedBlocksOrFieldsByPosition";
 
 export function checkThatNoBlocksAreDefinedMultipleTimes(
     documentUri: Uri,
@@ -27,7 +27,7 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
         for (const { blocks } of duplicates) {
             allDuplicateBlocks.push(...blocks);
         }
-        const sortedDuplicates = getSortedBlocksByPosition(allDuplicateBlocks);
+        const sortedDuplicates = getSortedBlocksOrFieldsByPosition(allDuplicateBlocks);
 
         const range = new Range(
             sortedDuplicates[0].nameRange.start,
@@ -43,7 +43,7 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
                 const toReturn = prev.slice();
 
                 // ToDo: Avoid sorting array positions a second time and instead find a way to combine with the sorting above
-                getSortedBlocksByPosition(blocks).forEach(
+                getSortedBlocksOrFieldsByPosition(blocks).forEach(
                     ({ nameRange }, index) =>
                         toReturn.push({
                             message: `Block '${name}' definition no. ${

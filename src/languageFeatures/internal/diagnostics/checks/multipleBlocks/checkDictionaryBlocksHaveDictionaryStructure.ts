@@ -1,7 +1,7 @@
 import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
 import { RequestFileBlock } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
+import { getSortedBlocksOrFieldsByPosition } from "../../util/getSortedBlocksOrFieldsByPosition";
 import { shouldBeDictionaryBlock } from "../../util/shouldBeDictionaryBlock";
 import { castBlockToDictionaryBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/castBlockToDictionaryBlock";
 
@@ -9,7 +9,7 @@ export function checkDictionaryBlocksHaveDictionaryStructure(
     documentUri: Uri,
     blocks: RequestFileBlock[]
 ): Diagnostic | DiagnosticCode {
-    const sortedBlocksWithoutCorrectStructure = getSortedBlocksByPosition(
+    const sortedBlocksWithoutCorrectStructure = getSortedBlocksOrFieldsByPosition(
         blocks.filter(
             (block) =>
                 shouldBeDictionaryBlock(block.name) &&
