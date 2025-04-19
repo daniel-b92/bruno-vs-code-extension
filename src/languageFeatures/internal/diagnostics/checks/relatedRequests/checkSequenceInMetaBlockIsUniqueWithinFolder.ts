@@ -31,7 +31,7 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
         castedBlock.content.filter(
             ({ name, value }) =>
                 name == MetaBlockFieldName.Sequence &&
-                !Number.isNaN(Number.parseInt(value))
+                !Number.isNaN(Number(value))
         ).length == 1
     ) {
         const sequenceField = castedBlock.content.find(
@@ -107,7 +107,9 @@ function getRangeForSequence(filePath: string) {
     if (
         !metaBlockContent ||
         !Array.isArray(metaBlockContent) ||
-        !metaBlockContent.some(({ name }) => name == MetaBlockFieldName.Sequence)
+        !metaBlockContent.some(
+            ({ name }) => name == MetaBlockFieldName.Sequence
+        )
     ) {
         throw new Error(
             `'${

@@ -4,7 +4,7 @@ import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getPossibleMethodBlocks } from "../../../../../shared/fileSystem/testFileParsing/internal/getAllMethodBlocks";
 import { castBlockToDictionaryBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/castBlockToDictionaryBlock";
 import { MethodBlockFieldName } from "../../../../../shared/fileSystem/testFileParsing/definitions/methodBlockFieldNameEnum";
-import { getFieldFromMethodBlock } from "../../util/getFieldFromMethodBlock";
+import { getFieldFromDictionaryBlock } from "../../util/getFieldFromDictionaryBlock";
 import { isAuthBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/isAuthBlock";
 import { getAuthTypeFromBlockName } from "../../../../../shared/fileSystem/testFileParsing/internal/getAuthTypeFromBlockName";
 
@@ -120,7 +120,7 @@ function getAuthTypeFromMethodBlock(allBlocks: RequestFileBlock[]) {
         return undefined;
     }
 
-    const authField = getFieldFromMethodBlock(
+    const authField = getFieldFromDictionaryBlock(
         castedMethodBlock,
         MethodBlockFieldName.Auth
     );

@@ -6,7 +6,7 @@ import { castBlockToDictionaryBlock } from "../../../../../shared/fileSystem/tes
 import { MethodBlockFieldName } from "../../../../../shared/fileSystem/testFileParsing/definitions/methodBlockFieldNameEnum";
 import { isBodyBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/isBodyBlock";
 import { getBodyTypeFromBlockName } from "../../../../../shared/fileSystem/testFileParsing/internal/getBodyTypeFromBlockName";
-import { getFieldFromMethodBlock } from "../../util/getFieldFromMethodBlock";
+import { getFieldFromDictionaryBlock } from "../../util/getFieldFromDictionaryBlock";
 
 export function checkBodyBlockTypeFromMethodBlockExists(
     documentUri: Uri,
@@ -120,7 +120,7 @@ function getBodyTypeFromMethodBlockField(allBlocks: RequestFileBlock[]) {
         return undefined;
     }
 
-    const bodyField = getFieldFromMethodBlock(
+    const bodyField = getFieldFromDictionaryBlock(
         castedMethodBlock,
         MethodBlockFieldName.Body
     );

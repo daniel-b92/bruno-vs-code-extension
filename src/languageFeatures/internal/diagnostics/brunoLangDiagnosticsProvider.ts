@@ -13,7 +13,7 @@ import { checkThatNoTextExistsOutsideOfBlocks } from "./checks/multipleBlocks/ch
 import { checkAtMostOneAuthBlockExists } from "./checks/multipleBlocks/checkAtMostOneAuthBlockExists";
 import { checkAtMostOneBodyBlockExists } from "./checks/multipleBlocks/checkAtMostOneBodyBlockExists";
 import { checkSequenceInMetaBlockIsUniqueWithinFolder } from "./checks/relatedRequests/checkSequenceInMetaBlockIsUniqueWithinFolder";
-import { RelatedRequestsDiagnosticsHelper } from "./util/relatedRequestsDiagnosticsHelper";
+import { RelatedRequestsDiagnosticsHelper } from "./helpers/relatedRequestsDiagnosticsHelper";
 import { addDiagnosticForDocument } from "./util/addDiagnosticForDocument";
 import { removeDiagnosticsForDocument } from "./util/removeDiagnosticsForDocument";
 import { DiagnosticCode } from "./diagnosticCodeEnum";
@@ -21,6 +21,7 @@ import { checkBodyBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks
 import { checkAuthBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks/checkAuthBlockTypeFromMethodBlockExists";
 import { checkNoBlocksHaveUnknownNames } from "./checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
 import { checkDictionaryBlocksHaveDictionaryStructure } from "./checks/multipleBlocks/checkDictionaryBlocksHaveDictionaryStructure";
+import { checkSequenceInMetaBlockIsNumeric } from "./checks/singleBlocks/checkSequenceInMetaBlockIsNumeric";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -65,6 +66,7 @@ export class BrunoLangDiagnosticsProvider {
 
         if (metaBlocks.length == 1) {
             this.handleResults(documentUri, [
+                checkSequenceInMetaBlockIsNumeric(metaBlocks[0]),
                 checkMetaBlockStartsInFirstLine(document, metaBlocks[0]),
             ]);
 
