@@ -4,10 +4,10 @@ import {
     RequestFileBlock,
     castBlockToDictionaryBlock,
     MetaBlockKey,
-} from "../../../../../shared";
-import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { getUnknownKeysFromDictionaryBlock } from "../../util/getUnknownKeysFromDictionaryBlock";
-import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
+} from "../../../../../../shared";
+import { DiagnosticCode } from "../../../diagnosticCodeEnum";
+import { getUnknownKeysFromDictionaryBlock } from "../../../util/getUnknownKeysFromDictionaryBlock";
+import { getSortedDictionaryBlockFieldsByPosition } from "../../../util/getSortedDictionaryBlockFieldsByPosition";
 
 export function checkNoUnknownKeysAreDefinedInMetaBlock(
     metaBlock: RequestFileBlock

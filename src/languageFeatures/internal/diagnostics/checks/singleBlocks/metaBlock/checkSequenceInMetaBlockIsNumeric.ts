@@ -4,9 +4,9 @@ import {
     RequestFileBlock,
     castBlockToDictionaryBlock,
     MetaBlockKey,
-} from "../../../../../shared";
-import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { getFieldFromDictionaryBlock } from "../../util/getFieldFromDictionaryBlock";
+} from "../../../../../../shared";
+import { DiagnosticCode } from "../../../diagnosticCodeEnum";
+import { getFieldFromDictionaryBlock } from "../../../util/getFieldFromDictionaryBlock";
 
 export function checkSequenceInMetaBlockIsNumeric(
     metaBlock: RequestFileBlock

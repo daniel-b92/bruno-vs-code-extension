@@ -1,7 +1,11 @@
 import { Diagnostic, DiagnosticCollection, Uri } from "vscode";
-import { checkMetaBlockStartsInFirstLine } from "./checks/singleBlocks/checkMetaBlockStartsInFirstLine";
+import { checkMetaBlockStartsInFirstLine } from "./checks/singleBlocks/metaBlock/checkMetaBlockStartsInFirstLine";
 import {
+    castBlockToDictionaryBlock,
     CollectionItemProvider,
+    getAllMethodBlocks,
+    MetaBlockKey,
+    MethodBlockKey,
     parseTestFile,
     RequestFileBlock,
     RequestFileBlockName,
@@ -21,10 +25,10 @@ import { checkBodyBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks
 import { checkAuthBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks/checkAuthBlockTypeFromMethodBlockExists";
 import { checkNoBlocksHaveUnknownNames } from "./checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
 import { checkDictionaryBlocksHaveDictionaryStructure } from "./checks/multipleBlocks/checkDictionaryBlocksHaveDictionaryStructure";
-import { checkSequenceInMetaBlockIsNumeric } from "./checks/singleBlocks/checkSequenceInMetaBlockIsNumeric";
-import { checkNoKeysAreMissingInMetaBlock } from "./checks/singleBlocks/checkNoKeysAreMissingInMetaBlock";
-import { checkNoUnknownKeysAreDefinedInMetaBlock } from "./checks/singleBlocks/checkNoUnknownKeysAreDefinedInMetaBlock";
-import { checkNoDuplicateKeysAreDefinedInMetaBlock } from "./checks/singleBlocks/checkNoDuplicateKeysAreDefinedInMetaBlock";
+import { checkSequenceInMetaBlockIsNumeric } from "./checks/singleBlocks/metaBlock/checkSequenceInMetaBlockIsNumeric";
+import { checkNoUnknownKeysAreDefinedInMetaBlock } from "./checks/singleBlocks/metaBlock/checkNoUnknownKeysAreDefinedInMetaBlock";
+import { checkNoDuplicateKeysAreDefinedInMetaBlock } from "./checks/singleBlocks/metaBlock/checkNoDuplicateKeysAreDefinedInMetaBlock";
+import { checkNoKeysAreMissingForDictionaryBlock } from "./checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -68,25 +72,69 @@ export class BrunoLangDiagnosticsProvider {
         );
 
         if (metaBlocks.length == 1) {
-            const metaBlock = metaBlocks[0];
-
-            this.handleResults(documentUri, [
-                checkSequenceInMetaBlockIsNumeric(metaBlock),
-                checkNoKeysAreMissingInMetaBlock(metaBlock),
-                checkNoUnknownKeysAreDefinedInMetaBlock(metaBlock),
-                checkNoDuplicateKeysAreDefinedInMetaBlock(metaBlock),
-                checkMetaBlockStartsInFirstLine(document, metaBlock),
-            ]);
-
-            for (const results of this.provideRelatedRequestsDiagnosticsForMetaBlock(
-                this.itemProvider,
-                metaBlock,
+            this.provideMetaBlockSpecificDiagnostics(
                 documentUri,
-                this.relatedRequestsHelper
-            )) {
-                this.handleResults(results.uri, [results.result]);
-            }
+                document,
+                metaBlocks[0]
+            );
         }
+
+        const methodBlocks = getAllMethodBlocks(blocks);
+
+        if (methodBlocks.length == 1) {
+            this.provideMethodBlockSpecificDiagnostics(
+                documentUri,
+                methodBlocks[0]
+            );
+        }
+    }
+
+    private provideMetaBlockSpecificDiagnostics(
+        documentUri: Uri,
+        documentHelper: TextDocumentHelper,
+        metaBlock: RequestFileBlock
+    ) {
+        const castedMetaBlock = castBlockToDictionaryBlock(metaBlock);
+
+        this.handleResults(documentUri, [
+            checkSequenceInMetaBlockIsNumeric(metaBlock),
+            castedMetaBlock
+                ? checkNoKeysAreMissingForDictionaryBlock(
+                      castedMetaBlock,
+                      Object.values(MetaBlockKey),
+                      DiagnosticCode.KeysMissingInMetaBlock
+                  )
+                : undefined,
+            checkNoUnknownKeysAreDefinedInMetaBlock(metaBlock),
+            checkNoDuplicateKeysAreDefinedInMetaBlock(metaBlock),
+            checkMetaBlockStartsInFirstLine(documentHelper, metaBlock),
+        ]);
+
+        for (const results of this.provideRelatedRequestsDiagnosticsForMetaBlock(
+            this.itemProvider,
+            metaBlock,
+            documentUri,
+            this.relatedRequestsHelper
+        )) {
+            this.handleResults(results.uri, [results.result]);
+        }
+    }
+
+    private provideMethodBlockSpecificDiagnostics(
+        documentUri: Uri,
+        methodBlock: RequestFileBlock
+    ) {
+        const castedMethodBlock = castBlockToDictionaryBlock(methodBlock);
+
+        this.handleResults(documentUri, [
+            castedMethodBlock
+                ? checkNoKeysAreMissingForDictionaryBlock(
+                      castedMethodBlock,
+                      Object.values(MethodBlockKey),
+                      DiagnosticCode.KeysMissingInMethodBlock
+                  )
+                : undefined,
+        ]);
     }
 
     private handleResults(

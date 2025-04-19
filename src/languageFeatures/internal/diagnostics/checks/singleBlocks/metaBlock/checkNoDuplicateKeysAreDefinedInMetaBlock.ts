@@ -4,13 +4,13 @@ import {
     RequestFileBlock,
     castBlockToDictionaryBlock,
     MetaBlockKey,
-} from "../../../../../shared";
-import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
+} from "../../../../../../shared";
+import { DiagnosticCode } from "../../../diagnosticCodeEnum";
+import { getSortedDictionaryBlockFieldsByPosition } from "../../../util/getSortedDictionaryBlockFieldsByPosition";
 import {
     FieldsWithSameKey,
     getValidDuplicateKeysFromDictionaryBlock,
-} from "../../util/getValidDuplicateKeysFromDictionaryBlock";
+} from "../../../util/getValidDuplicateKeysFromDictionaryBlock";
 
 export function checkNoDuplicateKeysAreDefinedInMetaBlock(
     metaBlock: RequestFileBlock

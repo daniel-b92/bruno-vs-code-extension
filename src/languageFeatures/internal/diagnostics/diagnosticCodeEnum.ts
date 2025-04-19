@@ -10,6 +10,7 @@ export enum DiagnosticCode {
 
     // Method block
     IncorrectNumberofHttpMethodBlocks = "bruLang_IncorrectNumberofHttpMethodBlocks",
+    KeysMissingInMethodBlock = "bruLang_KeysMissingInMethodBlock",
 
     // Auth block
     TooManyAuthBlocksDefined = "bruLang_TooManyAuthBlocksDefined",

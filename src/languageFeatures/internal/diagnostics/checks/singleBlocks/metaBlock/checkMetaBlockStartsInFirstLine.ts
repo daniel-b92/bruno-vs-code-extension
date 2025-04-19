@@ -1,6 +1,6 @@
 import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode";
-import { RequestFileBlock, TextDocumentHelper } from "../../../../../shared";
-import { DiagnosticCode } from "../../diagnosticCodeEnum";
+import { RequestFileBlock, TextDocumentHelper } from "../../../../../../shared";
+import { DiagnosticCode } from "../../../diagnosticCodeEnum";
 
 export function checkMetaBlockStartsInFirstLine(
     document: TextDocumentHelper,
