@@ -1,4 +1,4 @@
-import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
+import { Diagnostic, DiagnosticSeverity, Uri } from "vscode";
 import { RequestFileBlock } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { isAuthBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/isAuthBlock";
@@ -25,23 +25,14 @@ function getDiagnostic(
 ): Diagnostic {
     return {
         message: "Too many 'auth' blocks are defined.",
-        range: getRange(sortedAuthBlocks),
-        relatedInformation: sortedAuthBlocks.map(
-            ({ name, nameRange }, index) => ({
-                message: `Auth block definition no. ${
-                    index + 1
-                } with name '${name}'`,
+        range: sortedAuthBlocks[sortedAuthBlocks.length - 1].nameRange,
+        relatedInformation: sortedAuthBlocks
+            .slice(0, sortedAuthBlocks.length - 1)
+            .map(({ name, nameRange }) => ({
+                message: `Other auth block with name '${name}'`,
                 location: { uri: documentUri, range: nameRange },
-            })
-        ),
+            })),
         severity: DiagnosticSeverity.Error,
         code: DiagnosticCode.TooManyAuthBlocksDefined,
     };
-}
-
-function getRange(sortedAuthBlocks: RequestFileBlock[]): Range {
-    return new Range(
-        sortedAuthBlocks[0].nameRange.start,
-        sortedAuthBlocks[sortedAuthBlocks.length - 1].nameRange.end
-    );
 }

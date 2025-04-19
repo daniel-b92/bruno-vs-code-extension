@@ -88,7 +88,7 @@ function getDiagnosticInCaseOfNonExpectedBodyBlock(
     bodyBlock: RequestFileBlock
 ): Diagnostic {
     return {
-        message: `A body block is defined although the body type in the method block is '${getBodyBlockTypeForNoDefinedBodyBlock()}'.`,
+        message: `A body block is defined although the body type in the method block is '${methodBlockField.name}'.`,
         range: methodBlockField.valueRange,
         relatedInformation: [
             {

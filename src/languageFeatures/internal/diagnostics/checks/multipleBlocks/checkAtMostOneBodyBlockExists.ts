@@ -1,4 +1,4 @@
-import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
+import { Diagnostic, DiagnosticSeverity, Uri } from "vscode";
 import { RequestFileBlock } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
@@ -25,23 +25,14 @@ function getDiagnostic(
 ): Diagnostic {
     return {
         message: "Too many 'body' blocks are defined.",
-        range: getRange(sortedBodyBlocks),
-        relatedInformation: sortedBodyBlocks.map(
-            ({ name, nameRange }, index) => ({
-                message: `Body block definition no. ${
-                    index + 1
-                } with name '${name}'`,
+        range: sortedBodyBlocks[sortedBodyBlocks.length - 1].nameRange,
+        relatedInformation: sortedBodyBlocks
+            .slice(0, sortedBodyBlocks.length - 1)
+            .map(({ name, nameRange }) => ({
+                message: `Other body block with name '${name}'`,
                 location: { uri: documentUri, range: nameRange },
-            })
-        ),
+            })),
         severity: DiagnosticSeverity.Error,
         code: DiagnosticCode.TooManyBodyBlocksDefined,
     };
-}
-
-function getRange(sortedBodyBlocks: RequestFileBlock[]): Range {
-    return new Range(
-        sortedBodyBlocks[0].nameRange.start,
-        sortedBodyBlocks[sortedBodyBlocks.length - 1].nameRange.end
-    );
 }

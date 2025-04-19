@@ -20,7 +20,7 @@ export function checkDictionaryBlocksHaveDictionaryStructure(
     if (sortedBlocksWithoutCorrectStructure.length > 0) {
         return getDiagnostic(documentUri, sortedBlocksWithoutCorrectStructure);
     } else {
-        return DiagnosticCode.TooManyBodyBlocksDefined;
+        return DiagnosticCode.DictionaryBlocksNotStructuredCorrectly;
     }
 }
 
@@ -29,7 +29,8 @@ function getDiagnostic(
     sortedBlocksWithIncorrectStructure: RequestFileBlock[]
 ): Diagnostic {
     return {
-        message: "At least one dictionary block does not have the correct structure.",
+        message:
+            "At least one dictionary block does not have the correct structure.",
         range: getRange(sortedBlocksWithIncorrectStructure),
         relatedInformation:
             sortedBlocksWithIncorrectStructure.length > 1
