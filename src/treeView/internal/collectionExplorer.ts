@@ -12,6 +12,10 @@ import {
     CollectionData,
     normalizeDirectoryPath,
     getExtensionForRequestFiles,
+    addMetaBlock,
+    appendDefaultMethodBlock,
+    RequestType,
+    MetaBlockKey,
 } from "../../shared";
 import {
     copyFileSync,
@@ -25,10 +29,6 @@ import {
     writeFileSync,
 } from "fs";
 import { basename, dirname, extname, resolve } from "path";
-import { addMetaBlock } from "../../shared/fileSystem/testFileWriting/addMetaBlock";
-import { appendDefaultMethodBlock } from "../../shared/fileSystem/testFileWriting/appendDefaultMethodBlock";
-import { RequestType } from "../../shared/fileSystem/testFileWriting/internal/requestTypeEnum";
-import { MetaBlockKey } from "../../shared/fileSystem/testFileParsing/definitions/metaBlockKeyEnum";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>

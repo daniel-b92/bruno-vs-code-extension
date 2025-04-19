@@ -1,11 +1,13 @@
 import { Diagnostic, DiagnosticSeverity, Uri } from "vscode";
 import { DictionaryBlockField, RequestFileBlock } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { getPossibleMethodBlocks } from "../../../../../shared/fileSystem/testFileParsing/internal/getAllMethodBlocks";
-import { castBlockToDictionaryBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/castBlockToDictionaryBlock";
-import { MethodBlockKey } from "../../../../../shared/fileSystem/testFileParsing/definitions/methodBlockKeyEnum";
-import { isBodyBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/isBodyBlock";
-import { getBodyTypeFromBlockName } from "../../../../../shared/fileSystem/testFileParsing/internal/getBodyTypeFromBlockName";
+import {
+    getPossibleMethodBlocks,
+    castBlockToDictionaryBlock,
+    MethodBlockKey,
+    isBodyBlock,
+    getBodyTypeFromBlockName,
+} from "../../../../../shared";
 import { getFieldFromDictionaryBlock } from "../../util/getFieldFromDictionaryBlock";
 
 export function checkBodyBlockTypeFromMethodBlockExists(

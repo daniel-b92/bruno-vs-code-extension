@@ -1,7 +1,6 @@
 import { Diagnostic, DiagnosticSeverity, Uri } from "vscode";
-import { RequestFileBlock } from "../../../../../shared";
+import { isAuthBlock, RequestFileBlock } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { isAuthBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/isAuthBlock";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 
 export function checkAtMostOneAuthBlockExists(

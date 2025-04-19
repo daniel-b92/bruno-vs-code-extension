@@ -1,8 +1,8 @@
-import { RequestFileBlockName } from "../../../../shared";
-import { getPossibleMethodBlocks } from "../../../../shared/fileSystem/testFileParsing/internal/getAllMethodBlocks";
-import { isAuthBlock } from "../../../../shared/fileSystem/testFileParsing/internal/isAuthBlock";
-import { isParamsBlock } from "../../../../shared/fileSystem/testFileParsing/internal/isParamsBlock";
-import { isVarsBlock } from "../../../../shared/fileSystem/testFileParsing/internal/isVarsBlock";
+import {
+    getPossibleMethodBlocks,
+    RequestFileBlockName,
+} from "../../../../shared";
+import { isAuthBlock, isParamsBlock, isVarsBlock } from "../../../../shared";
 
 export function shouldBeDictionaryBlock(blockName: string) {
     const allBlockNames = Object.values(RequestFileBlockName);

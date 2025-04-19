@@ -1,12 +1,12 @@
 import { existsSync, lstatSync, readFileSync, writeFileSync } from "fs";
 import { parseTestFile } from "../testFileParsing/testFileParser";
 import { TextDocumentHelper } from "../util/textDocumentHelper";
-import { RequestFileBlockName } from "../testFileParsing/definitions/requestFileBlockNameEnum";
+import { RequestFileBlockName } from "../testFileParsing/external/definitions/requestFileBlockNameEnum";
 import { basename, dirname, extname } from "path";
 import { Collection } from "../../model/collection";
 import { CollectionFile } from "../../model/collectionFile";
 import { MetaBlockContent } from "./interfaces";
-import { RequestType } from "./internal/requestTypeEnum";
+import { RequestType } from "../testFileParsing/external/definitions/requestTypeEnum";
 import {
     getLineBreak,
     getNumberOfWhitespacesForIndentation,

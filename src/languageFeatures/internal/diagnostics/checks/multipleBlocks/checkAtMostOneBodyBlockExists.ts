@@ -1,8 +1,7 @@
 import { Diagnostic, DiagnosticSeverity, Uri } from "vscode";
-import { RequestFileBlock } from "../../../../../shared";
+import { RequestFileBlock, isBodyBlock } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
-import { isBodyBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/isBodyBlock";
 
 export function checkAtMostOneBodyBlockExists(
     documentUri: Uri,

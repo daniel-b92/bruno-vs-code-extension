@@ -1,8 +1,8 @@
 import { existsSync, lstatSync, readFileSync, writeFileSync } from "fs";
 import { parseTestFile } from "../testFileParsing/testFileParser";
 import { TextDocumentHelper } from "../util/textDocumentHelper";
-import { RequestFileBlockName } from "../testFileParsing/definitions/requestFileBlockNameEnum";
-import { getAllMethodBlocks } from "../testFileParsing/internal/getAllMethodBlocks";
+import { RequestFileBlockName } from "../testFileParsing/external/definitions/requestFileBlockNameEnum";
+import { getAllMethodBlocks } from "../testFileParsing/external/methodBlocks/getAllMethodBlocks";
 import {
     getLineBreak,
     getNumberOfWhitespacesForIndentation,

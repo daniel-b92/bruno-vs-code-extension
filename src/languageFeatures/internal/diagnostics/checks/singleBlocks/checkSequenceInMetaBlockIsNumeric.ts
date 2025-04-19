@@ -1,9 +1,12 @@
 import { Diagnostic, DiagnosticSeverity } from "vscode";
-import { DictionaryBlockField, RequestFileBlock } from "../../../../../shared";
+import {
+    DictionaryBlockField,
+    RequestFileBlock,
+    castBlockToDictionaryBlock,
+    MetaBlockKey,
+} from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { castBlockToDictionaryBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/castBlockToDictionaryBlock";
 import { getFieldFromDictionaryBlock } from "../../util/getFieldFromDictionaryBlock";
-import { MetaBlockKey } from "../../../../../shared/fileSystem/testFileParsing/definitions/metaBlockKeyEnum";
 
 export function checkSequenceInMetaBlockIsNumeric(
     metaBlock: RequestFileBlock

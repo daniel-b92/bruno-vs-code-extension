@@ -1,9 +1,11 @@
 import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
-import { RequestFileBlock } from "../../../../../shared";
+import {
+    RequestFileBlock,
+    castBlockToDictionaryBlock,
+} from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { shouldBeDictionaryBlock } from "../../util/shouldBeDictionaryBlock";
-import { castBlockToDictionaryBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/castBlockToDictionaryBlock";
 
 export function checkDictionaryBlocksHaveDictionaryStructure(
     documentUri: Uri,

@@ -1,13 +1,13 @@
 import { existsSync, lstatSync, readFileSync } from "fs";
 import { Position, Range } from "vscode";
-import { RequestFileBlockName } from "./definitions/requestFileBlockNameEnum";
+import { RequestFileBlockName } from "./external/definitions/requestFileBlockNameEnum";
 import {
     RequestFileBlock,
     TextOutsideOfBlocks,
-} from "./definitions/interfaces";
+} from "./external/definitions/interfaces";
 import { getBlockContent } from "./internal/getBlockContent";
 import { TextDocumentHelper } from "../util/textDocumentHelper";
-import { parseBlockFromTestFile } from "./internal/parseBlockFromTestFile";
+import { parseBlockFromTestFile } from "./external/parseBlockFromTestFile";
 
 export const getSequence = (testFilePath: string) => {
     if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {

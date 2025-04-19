@@ -1,8 +1,11 @@
 import { Diagnostic, DiagnosticSeverity, Range } from "vscode";
-import { DictionaryBlockField, RequestFileBlock } from "../../../../../shared";
+import {
+    DictionaryBlockField,
+    RequestFileBlock,
+    castBlockToDictionaryBlock,
+    MetaBlockKey,
+} from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { castBlockToDictionaryBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/castBlockToDictionaryBlock";
-import { MetaBlockKey } from "../../../../../shared/fileSystem/testFileParsing/definitions/metaBlockKeyEnum";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 import {
     FieldsWithSameKey,

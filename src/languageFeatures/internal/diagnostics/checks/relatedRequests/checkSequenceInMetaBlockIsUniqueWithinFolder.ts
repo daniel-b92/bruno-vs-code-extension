@@ -8,13 +8,13 @@ import {
     RequestFileBlock,
     RequestFileBlockName,
     TextDocumentHelper,
+    MetaBlockKey,
+    parseBlockFromTestFile,
+    castBlockToDictionaryBlock,
 } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { MetaBlockKey } from "../../../../../shared/fileSystem/testFileParsing/definitions/metaBlockKeyEnum";
 import { dirname } from "path";
-import { parseBlockFromTestFile } from "../../../../../shared/fileSystem/testFileParsing/internal/parseBlockFromTestFile";
 import { readFileSync } from "fs";
-import { castBlockToDictionaryBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/castBlockToDictionaryBlock";
 
 export function checkSequenceInMetaBlockIsUniqueWithinFolder(
     itemProvider: CollectionItemProvider,
@@ -30,8 +30,7 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
         castedBlock &&
         castedBlock.content.filter(
             ({ key, value }) =>
-                key == MetaBlockKey.Sequence &&
-                !Number.isNaN(Number(value))
+                key == MetaBlockKey.Sequence && !Number.isNaN(Number(value))
         ).length == 1
     ) {
         const sequenceField = castedBlock.content.find(

@@ -8,13 +8,37 @@ export * from "./fileSystem/util/normalizeDirectoryPath";
 export * from "./fileSystem/util/textDocumentHelper";
 export * from "./fileSystem/util/getExtensionForRequestFiles";
 
+// file system -> test file parsing
 export * from "./fileSystem/testFileParsing/getMaxSequenceForRequests";
 export * from "./fileSystem/testFileParsing/getSequencesForRequests";
 export * from "./fileSystem/testFileParsing/testFileParser";
-export * from "./fileSystem/testFileParsing/definitions/interfaces";
-export * from "./fileSystem/testFileParsing/definitions/requestFileBlockNameEnum";
 
+export * from "./fileSystem/testFileParsing/external/definitions/interfaces";
+export * from "./fileSystem/testFileParsing/external/definitions/requestFileBlockNameEnum";
+export * from "./fileSystem/testFileParsing/external/definitions/metaBlockKeyEnum";
+export * from "./fileSystem/testFileParsing/external/definitions/methodBlockKeyEnum";
+export * from "./fileSystem/testFileParsing/external/definitions/requestTypeEnum";
+
+export * from "./fileSystem/testFileParsing/external/authBlocks/getAuthTypeFromBlockName";
+export * from "./fileSystem/testFileParsing/external/authBlocks/isAuthBlock";
+
+export * from "./fileSystem/testFileParsing/external/bodyBlocks/getBodyTypeFromBlockName";
+export * from "./fileSystem/testFileParsing/external/bodyBlocks/isBodyBlock";
+
+export * from "./fileSystem/testFileParsing/external/methodBlocks/getAllMethodBlocks";
+export * from "./fileSystem/testFileParsing/external/methodBlocks/getPossibleMethodBlocks";
+
+export * from "./fileSystem/testFileParsing/external/paramsBlocks/isParamsBlock";
+
+export * from "./fileSystem/testFileParsing/external/varsBlocks/isVarsBlock";
+
+export * from "./fileSystem/testFileParsing/external/castBlockToDictionaryBlock";
+export * from "./fileSystem/testFileParsing/external/parseBlockFromTestFile";
+
+// file system -> test file writing
 export * from "./fileSystem/testFileWriting/addMetaBlock";
+export * from "./fileSystem/testFileWriting/appendDefaultMethodBlock";
+export * from "./fileSystem/testFileWriting/interfaces";
 
 // model
 export * from "../treeView/brunoTreeItem";

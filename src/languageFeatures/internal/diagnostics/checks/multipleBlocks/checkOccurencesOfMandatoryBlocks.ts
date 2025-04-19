@@ -3,12 +3,10 @@ import {
     TextDocumentHelper,
     RequestFileBlock,
     RequestFileBlockName,
-} from "../../../../../shared";
-import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import {
     getAllMethodBlocks,
     getPossibleMethodBlocks,
-} from "../../../../../shared/fileSystem/testFileParsing/internal/getAllMethodBlocks";
+} from "../../../../../shared";
+import { DiagnosticCode } from "../../diagnosticCodeEnum";
 
 export function checkOccurencesOfMandatoryBlocks(
     document: TextDocumentHelper,

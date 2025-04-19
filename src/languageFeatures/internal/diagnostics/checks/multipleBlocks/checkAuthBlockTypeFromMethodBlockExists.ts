@@ -1,12 +1,15 @@
 import { Diagnostic, DiagnosticSeverity, Uri } from "vscode";
-import { DictionaryBlockField, RequestFileBlock } from "../../../../../shared";
+import {
+    castBlockToDictionaryBlock,
+    DictionaryBlockField,
+    getAuthTypeFromBlockName,
+    getPossibleMethodBlocks,
+    isAuthBlock,
+    MethodBlockKey,
+    RequestFileBlock,
+} from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { getPossibleMethodBlocks } from "../../../../../shared/fileSystem/testFileParsing/internal/getAllMethodBlocks";
-import { castBlockToDictionaryBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/castBlockToDictionaryBlock";
-import { MethodBlockKey } from "../../../../../shared/fileSystem/testFileParsing/definitions/methodBlockKeyEnum";
 import { getFieldFromDictionaryBlock } from "../../util/getFieldFromDictionaryBlock";
-import { isAuthBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/isAuthBlock";
-import { getAuthTypeFromBlockName } from "../../../../../shared/fileSystem/testFileParsing/internal/getAuthTypeFromBlockName";
 
 export function checkAuthBlockTypeFromMethodBlockExists(
     documentUri: Uri,
