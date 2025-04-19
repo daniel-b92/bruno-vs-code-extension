@@ -26,9 +26,9 @@ import { checkAuthBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks
 import { checkNoBlocksHaveUnknownNames } from "./checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
 import { checkDictionaryBlocksHaveDictionaryStructure } from "./checks/multipleBlocks/checkDictionaryBlocksHaveDictionaryStructure";
 import { checkSequenceInMetaBlockIsNumeric } from "./checks/singleBlocks/metaBlock/checkSequenceInMetaBlockIsNumeric";
-import { checkNoUnknownKeysAreDefinedInMetaBlock } from "./checks/singleBlocks/metaBlock/checkNoUnknownKeysAreDefinedInMetaBlock";
-import { checkNoDuplicateKeysAreDefinedInMetaBlock } from "./checks/singleBlocks/metaBlock/checkNoDuplicateKeysAreDefinedInMetaBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "./checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
+import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "./checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
+import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "./checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -95,18 +95,31 @@ export class BrunoLangDiagnosticsProvider {
         metaBlock: RequestFileBlock
     ) {
         const castedMetaBlock = castBlockToDictionaryBlock(metaBlock);
+        const metaBlockKeys = Object.values(MetaBlockKey);
 
         this.handleResults(documentUri, [
             checkSequenceInMetaBlockIsNumeric(metaBlock),
             castedMetaBlock
                 ? checkNoKeysAreMissingForDictionaryBlock(
                       castedMetaBlock,
-                      Object.values(MetaBlockKey),
+                      metaBlockKeys,
                       DiagnosticCode.KeysMissingInMetaBlock
                   )
-                : undefined,
-            checkNoUnknownKeysAreDefinedInMetaBlock(metaBlock),
-            checkNoDuplicateKeysAreDefinedInMetaBlock(metaBlock),
+                : DiagnosticCode.KeysMissingInMetaBlock,
+            castedMetaBlock
+                ? checkNoUnknownKeysAreDefinedInDictionaryBlock(
+                      castedMetaBlock,
+                      metaBlockKeys,
+                      DiagnosticCode.UnknownKeysDefinedInMetaBlock
+                  )
+                : DiagnosticCode.UnknownKeysDefinedInMetaBlock,
+            castedMetaBlock
+                ? checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+                      castedMetaBlock,
+                      metaBlockKeys,
+                      DiagnosticCode.DuplicateKeysDefinedInMetaBlock
+                  )
+                : DiagnosticCode.DuplicateKeysDefinedInMetaBlock,
             checkMetaBlockStartsInFirstLine(documentHelper, metaBlock),
         ]);
 
@@ -125,15 +138,30 @@ export class BrunoLangDiagnosticsProvider {
         methodBlock: RequestFileBlock
     ) {
         const castedMethodBlock = castBlockToDictionaryBlock(methodBlock);
+        const methodBlockKeys = Object.values(MethodBlockKey);
 
         this.handleResults(documentUri, [
             castedMethodBlock
                 ? checkNoKeysAreMissingForDictionaryBlock(
                       castedMethodBlock,
-                      Object.values(MethodBlockKey),
+                      methodBlockKeys,
                       DiagnosticCode.KeysMissingInMethodBlock
                   )
-                : undefined,
+                : DiagnosticCode.KeysMissingInMethodBlock,
+            castedMethodBlock
+                ? checkNoUnknownKeysAreDefinedInDictionaryBlock(
+                      castedMethodBlock,
+                      methodBlockKeys,
+                      DiagnosticCode.UnknownKeysDefinedInMethodBlock
+                  )
+                : DiagnosticCode.UnknownKeysDefinedInMethodBlock,
+            castedMethodBlock
+                ? checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+                      castedMethodBlock,
+                      methodBlockKeys,
+                      DiagnosticCode.DuplicateKeysDefinedInMethodBlock
+                  )
+                : DiagnosticCode.DuplicateKeysDefinedInMethodBlock,
         ]);
     }
 
