@@ -15,13 +15,13 @@ export function checkNoUnknownKeysAreDefinedInMetaBlock(
         return DiagnosticCode.UnknownKeysDefinedInMetaBlock;
     }
 
-    const sortedUnknownKeys = getUnknownKeysFromDictionaryBlock(
+    const unknownKeys = getUnknownKeysFromDictionaryBlock(
         castedMetaBlock,
         Object.values(MetaBlockKey)
     );
 
-    if (sortedUnknownKeys.length > 0) {
-        return getDiagnostic(sortedUnknownKeys);
+    if (unknownKeys.length > 0) {
+        return getDiagnostic(unknownKeys);
     } else {
         return DiagnosticCode.UnknownKeysDefinedInMetaBlock;
     }
