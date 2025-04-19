@@ -6,6 +6,6 @@ export function getMissingKeysForDictionaryBlock(
 ) {
     return allExpectedKeys.filter(
         (expectedField) =>
-            !block.content.some(({ name }) => expectedField == name)
+            !block.content.some(({ key }) => expectedField == key)
     );
 }

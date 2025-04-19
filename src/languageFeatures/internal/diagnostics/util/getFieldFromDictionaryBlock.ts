@@ -5,7 +5,7 @@ export function getFieldFromDictionaryBlock(
     fieldName: string
 ) {
     const matchingFields = methodBlock.content.filter(
-        ({ name }) => name == fieldName
+        ({ key }) => key == fieldName
     );
 
     return matchingFields.length == 1 ? matchingFields[0] : undefined;

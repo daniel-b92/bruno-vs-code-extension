@@ -64,19 +64,19 @@ const getKeyAndValueFromLine = (
     const matches = getKeyValuePairLinePattern().exec(lineText);
 
     if (matches && matches.length > 2) {
-        const name = matches[1];
+        const key = matches[1];
         const value = matches[2];
-        const nameStartIndex = lineText.indexOf(name);
-        const nameEndIndex = lineText.indexOf(name);
+        const keyStartIndex = lineText.indexOf(key);
+        const keyEndIndex = keyStartIndex + key.length;
         const valueStartIndex =
-            nameEndIndex + lineText.substring(nameEndIndex).indexOf(value);
+            keyEndIndex + lineText.substring(keyEndIndex).indexOf(value);
 
         return {
-            name,
+            key,
             value,
-            nameRange: new Range(
-                new Position(lineIndex, nameStartIndex),
-                new Position(lineIndex, nameEndIndex)
+            keyRange: new Range(
+                new Position(lineIndex, keyStartIndex),
+                new Position(lineIndex, keyEndIndex)
             ),
             valueRange: new Range(
                 new Position(lineIndex, valueStartIndex),

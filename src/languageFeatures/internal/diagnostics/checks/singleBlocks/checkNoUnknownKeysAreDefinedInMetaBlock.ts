@@ -2,9 +2,9 @@ import { Diagnostic, DiagnosticSeverity, Range } from "vscode";
 import { DictionaryBlockField, RequestFileBlock } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { castBlockToDictionaryBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/castBlockToDictionaryBlock";
-import { MetaBlockFieldName } from "../../../../../shared/fileSystem/testFileParsing/definitions/metaBlockFieldNameEnum";
+import { MetaBlockKey } from "../../../../../shared/fileSystem/testFileParsing/definitions/metaBlockKeyEnum";
 import { getUnknownKeysFromDictionaryBlock } from "../../util/getUnknownKeysFromDictionaryBlock";
-import { getSortedBlocksOrFieldsByPosition } from "../../util/getSortedBlocksOrFieldsByPosition";
+import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 
 export function checkNoUnknownKeysAreDefinedInMetaBlock(
     metaBlock: RequestFileBlock
@@ -17,7 +17,7 @@ export function checkNoUnknownKeysAreDefinedInMetaBlock(
 
     const sortedUnknownKeys = getUnknownKeysFromDictionaryBlock(
         castedMetaBlock,
-        Object.values(MetaBlockFieldName)
+        Object.values(MetaBlockKey)
     );
 
     if (sortedUnknownKeys.length > 0) {
@@ -28,16 +28,15 @@ export function checkNoUnknownKeysAreDefinedInMetaBlock(
 }
 
 function getDiagnostic(unknownFields: DictionaryBlockField[]) {
-    const sortedFields = getSortedBlocksOrFieldsByPosition(
-        unknownFields
-    ) as DictionaryBlockField[];
+    const sortedFields =
+        getSortedDictionaryBlockFieldsByPosition(unknownFields);
 
     return {
         message:
             sortedFields.length == 1
-                ? `Unknown key with name '${sortedFields[0].name}'.`
+                ? `Unknown key '${sortedFields[0].key}'.`
                 : `Unknown keys are defined: '${sortedFields
-                      .map(({ name }) => name)
+                      .map(({ key }) => key)
                       .join("', '")}'.`,
         range: getRange(sortedFields),
         severity: DiagnosticSeverity.Error,
@@ -47,7 +46,7 @@ function getDiagnostic(unknownFields: DictionaryBlockField[]) {
 
 function getRange(sortedUnknownFields: DictionaryBlockField[]): Range {
     return new Range(
-        sortedUnknownFields[0].nameRange.start,
-        sortedUnknownFields[sortedUnknownFields.length - 1].nameRange.end
+        sortedUnknownFields[0].keyRange.start,
+        sortedUnknownFields[sortedUnknownFields.length - 1].keyRange.end
     );
 }

@@ -15,9 +15,9 @@ export interface DictionaryBlock {
 }
 
 export interface DictionaryBlockField {
-    name: string;
+    key: string;
     value: string;
-    nameRange: Range;
+    keyRange: Range;
     valueRange: Range;
 }
 

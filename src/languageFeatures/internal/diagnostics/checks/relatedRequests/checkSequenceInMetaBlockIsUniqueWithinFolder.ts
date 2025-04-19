@@ -10,7 +10,7 @@ import {
     TextDocumentHelper,
 } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { MetaBlockFieldName } from "../../../../../shared/fileSystem/testFileParsing/definitions/metaBlockFieldNameEnum";
+import { MetaBlockKey } from "../../../../../shared/fileSystem/testFileParsing/definitions/metaBlockKeyEnum";
 import { dirname } from "path";
 import { parseBlockFromTestFile } from "../../../../../shared/fileSystem/testFileParsing/internal/parseBlockFromTestFile";
 import { readFileSync } from "fs";
@@ -29,13 +29,13 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
     if (
         castedBlock &&
         castedBlock.content.filter(
-            ({ name, value }) =>
-                name == MetaBlockFieldName.Sequence &&
+            ({ key, value }) =>
+                key == MetaBlockKey.Sequence &&
                 !Number.isNaN(Number(value))
         ).length == 1
     ) {
         const sequenceField = castedBlock.content.find(
-            ({ name }) => name == MetaBlockFieldName.Sequence
+            ({ key }) => key == MetaBlockKey.Sequence
         ) as DictionaryBlockField;
 
         const otherRequestsInFolder = getSequencesForOtherRequestsInFolder(
@@ -107,9 +107,7 @@ function getRangeForSequence(filePath: string) {
     if (
         !metaBlockContent ||
         !Array.isArray(metaBlockContent) ||
-        !metaBlockContent.some(
-            ({ name }) => name == MetaBlockFieldName.Sequence
-        )
+        !metaBlockContent.some(({ key }) => key == MetaBlockKey.Sequence)
     ) {
         throw new Error(
             `'${
@@ -122,7 +120,7 @@ function getRangeForSequence(filePath: string) {
 
     return (
         metaBlockContent.find(
-            ({ name }) => name == MetaBlockFieldName.Sequence
+            ({ key }) => key == MetaBlockKey.Sequence
         ) as DictionaryBlockField
     ).valueRange;
 }

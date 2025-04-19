@@ -3,7 +3,7 @@ import { DictionaryBlockField, RequestFileBlock } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getPossibleMethodBlocks } from "../../../../../shared/fileSystem/testFileParsing/internal/getAllMethodBlocks";
 import { castBlockToDictionaryBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/castBlockToDictionaryBlock";
-import { MethodBlockFieldName } from "../../../../../shared/fileSystem/testFileParsing/definitions/methodBlockFieldNameEnum";
+import { MethodBlockKey } from "../../../../../shared/fileSystem/testFileParsing/definitions/methodBlockKeyEnum";
 import { isBodyBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/isBodyBlock";
 import { getBodyTypeFromBlockName } from "../../../../../shared/fileSystem/testFileParsing/internal/getBodyTypeFromBlockName";
 import { getFieldFromDictionaryBlock } from "../../util/getFieldFromDictionaryBlock";
@@ -88,7 +88,7 @@ function getDiagnosticInCaseOfNonExpectedBodyBlock(
     bodyBlock: RequestFileBlock
 ): Diagnostic {
     return {
-        message: `A body block is defined although the body type in the method block is '${methodBlockField.name}'.`,
+        message: `A body block is defined although the body type in the method block is '${methodBlockField.key}'.`,
         range: methodBlockField.valueRange,
         relatedInformation: [
             {
@@ -122,7 +122,7 @@ function getBodyTypeFromMethodBlockField(allBlocks: RequestFileBlock[]) {
 
     const bodyField = getFieldFromDictionaryBlock(
         castedMethodBlock,
-        MethodBlockFieldName.Body
+        MethodBlockKey.Body
     );
 
     return bodyField ?? undefined;

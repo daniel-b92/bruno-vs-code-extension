@@ -2,7 +2,7 @@ import { Diagnostic, DiagnosticSeverity } from "vscode";
 import { DictionaryBlock, RequestFileBlock } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { castBlockToDictionaryBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/castBlockToDictionaryBlock";
-import { MetaBlockFieldName } from "../../../../../shared/fileSystem/testFileParsing/definitions/metaBlockFieldNameEnum";
+import { MetaBlockKey } from "../../../../../shared/fileSystem/testFileParsing/definitions/metaBlockKeyEnum";
 import { getMissingKeysForDictionaryBlock } from "../../util/getMissingKeysForDictionaryBlock";
 
 export function checkNoKeysAreMissingInMetaBlock(
@@ -16,7 +16,7 @@ export function checkNoKeysAreMissingInMetaBlock(
 
     const missingKeys = getMissingKeysForDictionaryBlock(
         castedMetaBlock,
-        Object.values(MetaBlockFieldName)
+        Object.values(MetaBlockKey)
     );
 
     if (missingKeys.length > 0) {

@@ -28,7 +28,7 @@ import { basename, dirname, extname, resolve } from "path";
 import { addMetaBlock } from "../../shared/fileSystem/testFileWriting/addMetaBlock";
 import { appendDefaultMethodBlock } from "../../shared/fileSystem/testFileWriting/appendDefaultMethodBlock";
 import { RequestType } from "../../shared/fileSystem/testFileWriting/internal/requestTypeEnum";
-import { MetaBlockFieldName } from "../../shared/fileSystem/testFileParsing/definitions/metaBlockFieldNameEnum";
+import { MetaBlockKey } from "../../shared/fileSystem/testFileParsing/definitions/metaBlockKeyEnum";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>
@@ -458,7 +458,7 @@ export class CollectionExplorer
 
         if (metaBlock && Array.isArray(metaBlock.content)) {
             const nameField = metaBlock.content.find(
-                ({ name }) => name == MetaBlockFieldName.Name
+                ({ key }) => key == MetaBlockKey.Name
             );
 
             const newName =

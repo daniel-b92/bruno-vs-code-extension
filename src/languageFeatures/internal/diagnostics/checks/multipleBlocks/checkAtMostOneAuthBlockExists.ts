@@ -2,13 +2,13 @@ import { Diagnostic, DiagnosticSeverity, Uri } from "vscode";
 import { RequestFileBlock } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { isAuthBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/isAuthBlock";
-import { getSortedBlocksOrFieldsByPosition } from "../../util/getSortedBlocksOrFieldsByPosition";
+import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 
 export function checkAtMostOneAuthBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[]
 ): Diagnostic | DiagnosticCode {
-    const sortedAuthBlocks = getSortedBlocksOrFieldsByPosition(
+    const sortedAuthBlocks = getSortedBlocksByPosition(
         blocks.filter(({ name }) => isAuthBlock(name))
     );
 

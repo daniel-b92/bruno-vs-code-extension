@@ -3,7 +3,7 @@ import { DictionaryBlockField, RequestFileBlock } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { castBlockToDictionaryBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/castBlockToDictionaryBlock";
 import { getFieldFromDictionaryBlock } from "../../util/getFieldFromDictionaryBlock";
-import { MetaBlockFieldName } from "../../../../../shared/fileSystem/testFileParsing/definitions/metaBlockFieldNameEnum";
+import { MetaBlockKey } from "../../../../../shared/fileSystem/testFileParsing/definitions/metaBlockKeyEnum";
 
 export function checkSequenceInMetaBlockIsNumeric(
     metaBlock: RequestFileBlock
@@ -16,7 +16,7 @@ export function checkSequenceInMetaBlockIsNumeric(
 
     const sequenceField = getFieldFromDictionaryBlock(
         castedMetaBlock,
-        MetaBlockFieldName.Sequence
+        MetaBlockKey.Sequence
     );
 
     if (sequenceField && Number.isNaN(Number(sequenceField.value))) {

@@ -1,8 +1,6 @@
-import { Range } from "vscode";
+import { RequestFileBlock } from "../../../../shared";
 
-export function getSortedBlocksOrFieldsByPosition<
-    T extends { nameRange: Range }
->(unsorted: T[]) {
+export function getSortedBlocksByPosition(unsorted: RequestFileBlock[]) {
     return unsorted.slice().sort(
         (
             {

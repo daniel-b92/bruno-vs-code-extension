@@ -1,14 +1,14 @@
 import { Diagnostic, DiagnosticSeverity, Uri } from "vscode";
 import { RequestFileBlock } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
-import { getSortedBlocksOrFieldsByPosition } from "../../util/getSortedBlocksOrFieldsByPosition";
+import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { isBodyBlock } from "../../../../../shared/fileSystem/testFileParsing/internal/isBodyBlock";
 
 export function checkAtMostOneBodyBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[]
 ): Diagnostic | DiagnosticCode {
-    const sortedBodyBlocks = getSortedBlocksOrFieldsByPosition(
+    const sortedBodyBlocks = getSortedBlocksByPosition(
         blocks.filter(({ name }) => isBodyBlock(name))
     );
 

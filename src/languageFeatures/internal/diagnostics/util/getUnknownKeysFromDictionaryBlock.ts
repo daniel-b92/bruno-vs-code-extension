@@ -4,5 +4,5 @@ export function getUnknownKeysFromDictionaryBlock(
     block: DictionaryBlock,
     allExpectedKeys: string[]
 ) {
-    return block.content.filter(({ name }) => !allExpectedKeys.includes(name));
+    return block.content.filter(({ key }) => !allExpectedKeys.includes(key));
 }

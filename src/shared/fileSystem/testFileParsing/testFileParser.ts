@@ -22,7 +22,7 @@ export const getSequence = (testFilePath: string) => {
 
     const sequence =
         metaBlockContent && Array.isArray(metaBlockContent)
-            ? metaBlockContent.find(({ name }) => name == sequenceKeyName)
+            ? metaBlockContent.find(({ key }) => key == sequenceKeyName)
             : undefined;
 
     return sequence && !isNaN(Number(sequence.value))
