@@ -24,6 +24,7 @@ import { checkDictionaryBlocksHaveDictionaryStructure } from "./checks/multipleB
 import { checkSequenceInMetaBlockIsNumeric } from "./checks/singleBlocks/checkSequenceInMetaBlockIsNumeric";
 import { checkNoKeysAreMissingInMetaBlock } from "./checks/singleBlocks/checkNoKeysAreMissingInMetaBlock";
 import { checkNoUnknownKeysAreDefinedInMetaBlock } from "./checks/singleBlocks/checkNoUnknownKeysAreDefinedInMetaBlock";
+import { checkNoDuplicateKeysAreDefinedInMetaBlock } from "./checks/singleBlocks/checkNoDuplicateKeysAreDefinedInMetaBlock";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -73,6 +74,7 @@ export class BrunoLangDiagnosticsProvider {
                 checkSequenceInMetaBlockIsNumeric(metaBlock),
                 checkNoKeysAreMissingInMetaBlock(metaBlock),
                 checkNoUnknownKeysAreDefinedInMetaBlock(metaBlock),
+                checkNoDuplicateKeysAreDefinedInMetaBlock(metaBlock),
                 checkMetaBlockStartsInFirstLine(document, metaBlock),
             ]);
 

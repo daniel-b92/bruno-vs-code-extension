@@ -6,6 +6,7 @@ export enum DiagnosticCode {
     SequenceNotNumeric = "bruLang_SequenceNotNumeric",
     KeysMissingInMetaBlock = "bruLang_KeysMissingInMetaBlock",
     UnknownKeysDefinedInMetaBlock = "bruLang_UnknownKeysDefinedInMetaBlock",
+    DuplicateKeysDefinedInMetaBlock = "bruLang_DuplicateKeysDefinedInMetaBlock",
 
     // Method block
     IncorrectNumberofHttpMethodBlocks = "bruLang_IncorrectNumberofHttpMethodBlocks",
