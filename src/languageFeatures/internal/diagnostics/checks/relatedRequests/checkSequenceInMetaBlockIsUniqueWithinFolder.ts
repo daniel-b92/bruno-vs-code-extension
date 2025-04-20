@@ -12,17 +12,17 @@ import {
     parseBlockFromTestFile,
     castBlockToDictionaryBlock,
 } from "../../../../../shared";
-import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { dirname } from "path";
 import { readFileSync } from "fs";
 import { DiagnosticWithCode } from "../../definitions";
+import { MetaBlockSpecificDiagnosticCode } from "../../diagnosticCodes/metaBlockSpecificDiagnosticCodeEnum";
 
 export function checkSequenceInMetaBlockIsUniqueWithinFolder(
     itemProvider: CollectionItemProvider,
     metaBlock: RequestFileBlock,
     documentUri: Uri
 ): {
-    code: DiagnosticCode;
+    code: MetaBlockSpecificDiagnosticCode;
     toAdd?: {
         affectedFiles: string[];
         diagnosticCurrentFile: DiagnosticWithCode;
@@ -95,10 +95,6 @@ function getDiagnostic(
             },
         })),
     };
-}
-
-function getDiagnosticCode() {
-    return DiagnosticCode.SequenceNotUniqueWithinFolder;
 }
 
 function getRangeForSequence(filePath: string) {
@@ -177,4 +173,8 @@ function getOtherRequestsInFolder(
                 item.getSequence() != undefined &&
                 item.getPath() != documentUri.fsPath
         );
+}
+
+function getDiagnosticCode() {
+    return MetaBlockSpecificDiagnosticCode.SequenceNotUniqueWithinFolder;
 }

@@ -1,13 +1,13 @@
 import { DiagnosticSeverity, Uri } from "vscode";
 import { RequestFileBlock, isBodyBlock } from "../../../../../shared";
-import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../definitions";
+import { BodyBlockSpecificDiagnosticCode } from "../../diagnosticCodes/bodyBlockSpecificDiagnosticCodeEnum";
 
 export function checkAtMostOneBodyBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): DiagnosticWithCode | DiagnosticCode {
+): DiagnosticWithCode | BodyBlockSpecificDiagnosticCode {
     const sortedBodyBlocks = getSortedBlocksByPosition(
         blocks.filter(({ name }) => isBodyBlock(name))
     );
@@ -15,7 +15,7 @@ export function checkAtMostOneBodyBlockExists(
     if (sortedBodyBlocks.length > 1) {
         return getDiagnostic(documentUri, sortedBodyBlocks);
     } else {
-        return DiagnosticCode.TooManyBodyBlocksDefined;
+        return getCode();
     }
 }
 
@@ -33,6 +33,10 @@ function getDiagnostic(
                 location: { uri: documentUri, range: nameRange },
             })),
         severity: DiagnosticSeverity.Error,
-        code: DiagnosticCode.TooManyBodyBlocksDefined,
+        code: getCode(),
     };
+}
+
+function getCode() {
+    return BodyBlockSpecificDiagnosticCode.TooManyBodyBlocksDefined;
 }

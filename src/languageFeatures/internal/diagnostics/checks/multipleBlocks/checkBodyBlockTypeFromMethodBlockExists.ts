@@ -1,6 +1,5 @@
 import { DiagnosticSeverity, Uri } from "vscode";
 import { DictionaryBlockField, RequestFileBlock } from "../../../../../shared";
-import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import {
     getPossibleMethodBlocks,
     castBlockToDictionaryBlock,
@@ -10,11 +9,12 @@ import {
 } from "../../../../../shared";
 import { getFieldFromDictionaryBlock } from "../../util/getFieldFromDictionaryBlock";
 import { DiagnosticWithCode } from "../../definitions";
+import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkBodyBlockTypeFromMethodBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): DiagnosticWithCode | DiagnosticCode {
+): DiagnosticWithCode | NonBlockSpecificDiagnosticCode {
     const methodBlockField = getBodyTypeFromMethodBlockField(blocks);
     const bodyTypeNameFromBodyBlock = getBodyTypeFromBodyBlockName(blocks);
 
@@ -45,7 +45,7 @@ export function checkBodyBlockTypeFromMethodBlockExists(
             bodyTypeNameFromBodyBlock.bodyBlock
         );
     } else {
-        return DiagnosticCode.BodyBlockNotMatchingTypeFromMethodBlock;
+        return getCode();
     }
 }
 
@@ -69,7 +69,7 @@ function getDiagnostic(
             },
         ],
         severity: DiagnosticSeverity.Error,
-        code: DiagnosticCode.BodyBlockNotMatchingTypeFromMethodBlock,
+        code: getCode(),
     };
 }
 
@@ -81,7 +81,7 @@ function getDiagnosticInCaseOfMissingBodyBlock(
             "Missing body block despite definition of body type in method block.",
         range: methodBlockField.valueRange,
         severity: DiagnosticSeverity.Error,
-        code: DiagnosticCode.BodyBlockNotMatchingTypeFromMethodBlock,
+        code: getCode(),
     };
 }
 
@@ -105,7 +105,7 @@ function getDiagnosticInCaseOfNonExpectedBodyBlock(
             },
         ],
         severity: DiagnosticSeverity.Error,
-        code: DiagnosticCode.BodyBlockNotMatchingTypeFromMethodBlock,
+        code: getCode(),
     };
 }
 
@@ -146,4 +146,8 @@ function getBodyTypeFromBodyBlockName(allBlocks: RequestFileBlock[]) {
 
 function getBodyBlockTypeForNoDefinedBodyBlock() {
     return "none";
+}
+
+function getCode() {
+    return NonBlockSpecificDiagnosticCode.BodyBlockNotMatchingTypeFromMethodBlock;
 }

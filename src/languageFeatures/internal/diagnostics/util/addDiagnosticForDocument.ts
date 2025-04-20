@@ -1,6 +1,5 @@
 import { DiagnosticCollection, Uri } from "vscode";
 import { removeDiagnosticsForDocument } from "./removeDiagnosticsForDocument";
-import { DiagnosticCode } from "../diagnosticCodeEnum";
 import { DiagnosticWithCode } from "../definitions";
 
 export function addDiagnosticForDocument(
@@ -21,12 +20,7 @@ export function addDiagnosticForDocument(
 
     if (!alreadyExists) {
         collection.set(documentUri, initialDocumentDiagnostics.concat([toAdd]));
-    } else if (
-        toAdd.code &&
-        Object.values(DiagnosticCode).some(
-            (knownCodes) => knownCodes == toAdd.code
-        )
-    ) {
+    } else {
         const remainingDocumentDiagnostics = removeDiagnosticsForDocument(
             documentUri,
             collection,

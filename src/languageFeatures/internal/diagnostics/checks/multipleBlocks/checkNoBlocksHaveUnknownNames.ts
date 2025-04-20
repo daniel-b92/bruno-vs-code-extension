@@ -1,13 +1,13 @@
 import { DiagnosticSeverity, Range, Uri } from "vscode";
 import { RequestFileBlock, RequestFileBlockName } from "../../../../../shared";
-import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../definitions";
+import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkNoBlocksHaveUnknownNames(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): DiagnosticWithCode | DiagnosticCode {
+): DiagnosticWithCode | NonBlockSpecificDiagnosticCode {
     const validNames = Object.values(RequestFileBlockName) as string[];
 
     const blocksWithUnknownNames = getSortedBlocksByPosition(
@@ -17,7 +17,7 @@ export function checkNoBlocksHaveUnknownNames(
     if (blocksWithUnknownNames.length > 0) {
         return getDiagnostic(documentUri, blocksWithUnknownNames);
     } else {
-        return DiagnosticCode.BlocksWithUnknownNamesDefined;
+        return getCode();
     }
 }
 
@@ -39,7 +39,7 @@ function getDiagnostic(
             })
         ),
         severity: DiagnosticSeverity.Error,
-        code: DiagnosticCode.BlocksWithUnknownNamesDefined,
+        code: getCode(),
     };
 }
 
@@ -48,4 +48,8 @@ function getRange(blocksWithUnknownNames: RequestFileBlock[]): Range {
         blocksWithUnknownNames[0].nameRange.start,
         blocksWithUnknownNames[blocksWithUnknownNames.length - 1].nameRange.end
     );
+}
+
+function getCode() {
+    return NonBlockSpecificDiagnosticCode.BlocksWithUnknownNamesDefined;
 }

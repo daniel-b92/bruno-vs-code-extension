@@ -6,15 +6,17 @@ import {
     getAllMethodBlocks,
     getPossibleMethodBlocks,
 } from "../../../../../shared";
-import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { DiagnosticWithCode } from "../../definitions";
+import { MethodBlockSpecificDiagnosticCode } from "../../diagnosticCodes/methodBlockSpecificDiagnosticCodeEnum";
+import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeEnum";
+import { MetaBlockSpecificDiagnosticCode } from "../../diagnosticCodes/metaBlockSpecificDiagnosticCodeEnum";
 
 export function checkOccurencesOfMandatoryBlocks(
     document: TextDocumentHelper,
     blocks: RequestFileBlock[]
-): { toAdd: DiagnosticWithCode[]; toRemove: DiagnosticCode[] } {
+): { toAdd: DiagnosticWithCode[]; toRemove: KnownDiagnosticCode[] } {
     const toAdd: DiagnosticWithCode[] = [];
-    const toRemove: DiagnosticCode[] = [];
+    const toRemove: KnownDiagnosticCode[] = [];
 
     // Use full text of file as range for diagnostics
     const range = new Range(
@@ -29,13 +31,13 @@ export function checkOccurencesOfMandatoryBlocks(
         message: "No 'meta' block defined.",
         range,
         severity: DiagnosticSeverity.Error,
-        code: DiagnosticCode.MissingMetaBlock,
+        code: MetaBlockSpecificDiagnosticCode.MissingMetaBlock,
     };
 
     if (!blocks.some(({ name }) => name == RequestFileBlockName.Meta)) {
         toAdd.push(missingMetaBlockDiagnostic);
     } else {
-        toRemove.push(DiagnosticCode.MissingMetaBlock);
+        toRemove.push(MetaBlockSpecificDiagnosticCode.MissingMetaBlock);
     }
 
     // Exactly one method block needs to be defined
@@ -47,13 +49,15 @@ export function checkOccurencesOfMandatoryBlocks(
         )}'`,
         range,
         severity: DiagnosticSeverity.Error,
-        code: DiagnosticCode.IncorrectNumberofHttpMethodBlocks,
+        code: MethodBlockSpecificDiagnosticCode.IncorrectNumberofHttpMethodBlocks,
     };
 
     if (methodBlocks.length != 1) {
         toAdd.push(incorrectNumberOfHttpMethodsDiagnostic);
     } else {
-        toRemove.push(DiagnosticCode.IncorrectNumberofHttpMethodBlocks);
+        toRemove.push(
+            MethodBlockSpecificDiagnosticCode.IncorrectNumberofHttpMethodBlocks
+        );
     }
 
     return { toAdd, toRemove };

@@ -23,7 +23,6 @@ import { checkSequenceInMetaBlockIsUniqueWithinFolder } from "./checks/relatedRe
 import { RelatedRequestsDiagnosticsHelper } from "./helpers/relatedRequestsDiagnosticsHelper";
 import { addDiagnosticForDocument } from "./util/addDiagnosticForDocument";
 import { removeDiagnosticsForDocument } from "./util/removeDiagnosticsForDocument";
-import { DiagnosticCode } from "./diagnosticCodeEnum";
 import { checkBodyBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks/checkBodyBlockTypeFromMethodBlockExists";
 import { checkAuthBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks/checkAuthBlockTypeFromMethodBlockExists";
 import { checkNoBlocksHaveUnknownNames } from "./checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
@@ -33,6 +32,10 @@ import { checkNoKeysAreMissingForDictionaryBlock } from "./checks/singleBlocks/c
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "./checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "./checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
 import { DiagnosticWithCode } from "./definitions";
+import { MetaBlockSpecificDiagnosticCode } from "./diagnosticCodes/metaBlockSpecificDiagnosticCodeEnum";
+import { MethodBlockSpecificDiagnosticCode } from "./diagnosticCodes/methodBlockSpecificDiagnosticCodeEnum";
+import { AuthBlockSpecificDiagnosticCode } from "./diagnosticCodes/authBlockSpecificDiagnosticCodeEnum";
+import { KnownDiagnosticCode } from "./diagnosticCodes/knownDiagnosticCodeEnum";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -116,23 +119,23 @@ export class BrunoLangDiagnosticsProvider {
                 ? checkNoKeysAreMissingForDictionaryBlock(
                       castedMetaBlock,
                       metaBlockKeys,
-                      DiagnosticCode.KeysMissingInMetaBlock
+                      MetaBlockSpecificDiagnosticCode.KeysMissingInMetaBlock
                   )
-                : DiagnosticCode.KeysMissingInMetaBlock,
+                : MetaBlockSpecificDiagnosticCode.KeysMissingInMetaBlock,
             castedMetaBlock
                 ? checkNoUnknownKeysAreDefinedInDictionaryBlock(
                       castedMetaBlock,
                       metaBlockKeys,
-                      DiagnosticCode.UnknownKeysDefinedInMetaBlock
+                      MetaBlockSpecificDiagnosticCode.UnknownKeysDefinedInMetaBlock
                   )
-                : DiagnosticCode.UnknownKeysDefinedInMetaBlock,
+                : MetaBlockSpecificDiagnosticCode.UnknownKeysDefinedInMetaBlock,
             castedMetaBlock
                 ? checkNoDuplicateKeysAreDefinedForDictionaryBlock(
                       castedMetaBlock,
                       metaBlockKeys,
-                      DiagnosticCode.DuplicateKeysDefinedInMetaBlock
+                      MetaBlockSpecificDiagnosticCode.DuplicateKeysDefinedInMetaBlock
                   )
-                : DiagnosticCode.DuplicateKeysDefinedInMetaBlock,
+                : MetaBlockSpecificDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
             checkMetaBlockStartsInFirstLine(documentHelper, metaBlock),
         ]);
 
@@ -158,23 +161,23 @@ export class BrunoLangDiagnosticsProvider {
                 ? checkNoKeysAreMissingForDictionaryBlock(
                       castedMethodBlock,
                       methodBlockKeys,
-                      DiagnosticCode.KeysMissingInMethodBlock
+                      MethodBlockSpecificDiagnosticCode.KeysMissingInMethodBlock
                   )
-                : DiagnosticCode.KeysMissingInMethodBlock,
+                : MethodBlockSpecificDiagnosticCode.KeysMissingInMethodBlock,
             castedMethodBlock
                 ? checkNoUnknownKeysAreDefinedInDictionaryBlock(
                       castedMethodBlock,
                       methodBlockKeys,
-                      DiagnosticCode.UnknownKeysDefinedInMethodBlock
+                      MethodBlockSpecificDiagnosticCode.UnknownKeysDefinedInMethodBlock
                   )
-                : DiagnosticCode.UnknownKeysDefinedInMethodBlock,
+                : MethodBlockSpecificDiagnosticCode.UnknownKeysDefinedInMethodBlock,
             castedMethodBlock
                 ? checkNoDuplicateKeysAreDefinedForDictionaryBlock(
                       castedMethodBlock,
                       methodBlockKeys,
-                      DiagnosticCode.DuplicateKeysDefinedInMethodBlock
+                      MethodBlockSpecificDiagnosticCode.DuplicateKeysDefinedInMethodBlock
                   )
-                : DiagnosticCode.DuplicateKeysDefinedInMethodBlock,
+                : MethodBlockSpecificDiagnosticCode.DuplicateKeysDefinedInMethodBlock,
         ]);
     }
 
@@ -212,17 +215,17 @@ export class BrunoLangDiagnosticsProvider {
                 checkNoKeysAreMissingForDictionaryBlock(
                     castedAuthBlock,
                     mandatoryKeys,
-                    DiagnosticCode.KeysMissingInAuthBlock
+                    AuthBlockSpecificDiagnosticCode.KeysMissingInAuthBlock
                 ),
                 checkNoUnknownKeysAreDefinedInDictionaryBlock(
                     castedAuthBlock,
                     mandatoryKeys,
-                    DiagnosticCode.UnknownKeysDefinedInAuthBlock
+                    AuthBlockSpecificDiagnosticCode.UnknownKeysDefinedInAuthBlock
                 ),
                 checkNoDuplicateKeysAreDefinedForDictionaryBlock(
                     castedAuthBlock,
                     mandatoryKeys,
-                    DiagnosticCode.DuplicateKeysDefinedInAuthBlock
+                    AuthBlockSpecificDiagnosticCode.DuplicateKeysDefinedInAuthBlock
                 ),
             ]);
         }
@@ -230,7 +233,7 @@ export class BrunoLangDiagnosticsProvider {
 
     private handleResults(
         documentUri: Uri,
-        results: (DiagnosticWithCode | DiagnosticCode | undefined)[]
+        results: (DiagnosticWithCode | KnownDiagnosticCode | undefined)[]
     ) {
         for (const result of results) {
             if (result && typeof result != "string") {
@@ -254,7 +257,10 @@ export class BrunoLangDiagnosticsProvider {
         metaBlock: RequestFileBlock,
         documentUri: Uri,
         relatedRequestsHelper: RelatedRequestsDiagnosticsHelper
-    ): { uri: Uri; result: DiagnosticWithCode | DiagnosticCode }[] {
+    ): {
+        uri: Uri;
+        result: DiagnosticWithCode | KnownDiagnosticCode;
+    }[] {
         const { code, toAdd } = checkSequenceInMetaBlockIsUniqueWithinFolder(
             itemProvider,
             metaBlock,

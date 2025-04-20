@@ -1,16 +1,16 @@
 import { DiagnosticSeverity, Position, Range } from "vscode";
 import { RequestFileBlock, TextDocumentHelper } from "../../../../../../shared";
-import { DiagnosticCode } from "../../../diagnosticCodeEnum";
 import { DiagnosticWithCode } from "../../../definitions";
+import { MetaBlockSpecificDiagnosticCode } from "../../../diagnosticCodes/metaBlockSpecificDiagnosticCodeEnum";
 
 export function checkMetaBlockStartsInFirstLine(
     document: TextDocumentHelper,
     metaBlock: RequestFileBlock
-): DiagnosticWithCode | DiagnosticCode {
+): DiagnosticWithCode | MetaBlockSpecificDiagnosticCode {
     if (metaBlock.nameRange.start.line != 0) {
         return getDiagnostic(document);
     } else {
-        return DiagnosticCode.MetaBlockNotInFirstLine;
+        return getCode();
     }
 }
 
@@ -22,6 +22,10 @@ function getDiagnostic(document: TextDocumentHelper) {
             new Position(0, document.getLineByIndex(0).length)
         ),
         severity: DiagnosticSeverity.Warning,
-        code: DiagnosticCode.MetaBlockNotInFirstLine,
+        code: getCode(),
     };
+}
+
+function getCode() {
+    return MetaBlockSpecificDiagnosticCode.MetaBlockNotInFirstLine;
 }

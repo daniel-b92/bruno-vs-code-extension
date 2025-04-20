@@ -1,6 +1,6 @@
 import { DiagnosticSeverity, Range } from "vscode";
 import { DictionaryBlockField, DictionaryBlock } from "../../../../../shared";
-import { DiagnosticCode } from "../../diagnosticCodeEnum";
+import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeEnum";
 import { getUnknownKeysFromDictionaryBlock } from "../../util/getUnknownKeysFromDictionaryBlock";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 import { DiagnosticWithCode } from "../../definitions";
@@ -8,8 +8,8 @@ import { DiagnosticWithCode } from "../../definitions";
 export function checkNoUnknownKeysAreDefinedInDictionaryBlock(
     block: DictionaryBlock,
     expectedKeys: string[],
-    diagnosticCode: DiagnosticCode
-): DiagnosticWithCode | DiagnosticCode {
+    diagnosticCode: KnownDiagnosticCode
+): DiagnosticWithCode | KnownDiagnosticCode {
     const unknownKeys = getUnknownKeysFromDictionaryBlock(block, expectedKeys);
 
     if (unknownKeys.length > 0) {
@@ -21,7 +21,7 @@ export function checkNoUnknownKeysAreDefinedInDictionaryBlock(
 
 function getDiagnostic(
     unknownFields: DictionaryBlockField[],
-    diagnosticCode: DiagnosticCode,
+    diagnosticCode: KnownDiagnosticCode,
     expectedKeys: string[]
 ) {
     const sortedFields =

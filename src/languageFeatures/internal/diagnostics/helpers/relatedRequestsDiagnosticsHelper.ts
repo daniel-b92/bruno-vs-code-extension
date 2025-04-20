@@ -1,4 +1,4 @@
-import { DiagnosticCode } from "../diagnosticCodeEnum";
+import { KnownDiagnosticCode } from "../diagnosticCodes/knownDiagnosticCodeEnum";
 
 export class RelatedRequestsDiagnosticsHelper {
     constructor() {
@@ -28,8 +28,8 @@ export class RelatedRequestsDiagnosticsHelper {
 
     public unregisterDiagnostic(
         file: string,
-        diagnosticCode: DiagnosticCode
-    ): { file: string; code: DiagnosticCode }[] {
+        diagnosticCode: KnownDiagnosticCode
+    ): { file: string; code: KnownDiagnosticCode }[] {
         const toAdjust = this.diagnosticsForRelatedRequests
             .map((val, index) => ({ diagnostic: val, index }))
             .filter(
@@ -78,5 +78,5 @@ export class RelatedRequestsDiagnosticsHelper {
 
 interface RelatedRequestsDiagnostic {
     files: string[];
-    diagnosticCode: DiagnosticCode;
+    diagnosticCode: KnownDiagnosticCode;
 }

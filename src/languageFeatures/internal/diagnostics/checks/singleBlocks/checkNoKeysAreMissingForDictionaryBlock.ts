@@ -1,14 +1,14 @@
 import { DiagnosticSeverity } from "vscode";
 import { DictionaryBlock } from "../../../../../shared";
-import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getMissingKeysForDictionaryBlock } from "../../util/getMissingKeysForDictionaryBlock";
 import { DiagnosticWithCode } from "../../definitions";
+import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeEnum";
 
 export function checkNoKeysAreMissingForDictionaryBlock(
     block: DictionaryBlock,
     expectedKeys: string[],
-    diagnosticCode: DiagnosticCode
-): DiagnosticWithCode | DiagnosticCode {
+    diagnosticCode: KnownDiagnosticCode
+): DiagnosticWithCode | KnownDiagnosticCode {
     const missingKeys = getMissingKeysForDictionaryBlock(block, expectedKeys);
 
     if (missingKeys.length > 0) {
@@ -21,7 +21,7 @@ export function checkNoKeysAreMissingForDictionaryBlock(
 function getDiagnostic(
     block: DictionaryBlock,
     missingFields: string[],
-    diagnosticCode: DiagnosticCode
+    diagnosticCode: KnownDiagnosticCode
 ) {
     return {
         message:

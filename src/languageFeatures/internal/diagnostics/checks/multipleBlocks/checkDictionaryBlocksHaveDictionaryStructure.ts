@@ -3,15 +3,15 @@ import {
     RequestFileBlock,
     castBlockToDictionaryBlock,
 } from "../../../../../shared";
-import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { shouldBeDictionaryBlock } from "../../util/shouldBeDictionaryBlock";
 import { DiagnosticWithCode } from "../../definitions";
+import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkDictionaryBlocksHaveDictionaryStructure(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): DiagnosticWithCode | DiagnosticCode {
+): DiagnosticWithCode | NonBlockSpecificDiagnosticCode {
     const sortedBlocksWithoutCorrectStructure = getSortedBlocksByPosition(
         blocks.filter(
             (block) =>
@@ -23,7 +23,7 @@ export function checkDictionaryBlocksHaveDictionaryStructure(
     if (sortedBlocksWithoutCorrectStructure.length > 0) {
         return getDiagnostic(documentUri, sortedBlocksWithoutCorrectStructure);
     } else {
-        return DiagnosticCode.DictionaryBlocksNotStructuredCorrectly;
+        return getCode();
     }
 }
 
@@ -45,7 +45,7 @@ function getDiagnostic(
                   )
                 : undefined,
         severity: DiagnosticSeverity.Error,
-        code: DiagnosticCode.DictionaryBlocksNotStructuredCorrectly,
+        code: getCode(),
     };
 }
 
@@ -58,4 +58,8 @@ function getRange(
             sortedBlocksWithIncorrectStructure.length - 1
         ].contentRange.end
     );
+}
+
+function getCode() {
+    return NonBlockSpecificDiagnosticCode.DictionaryBlocksNotStructuredCorrectly;
 }

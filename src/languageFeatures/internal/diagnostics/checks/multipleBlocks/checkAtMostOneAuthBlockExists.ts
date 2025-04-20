@@ -1,13 +1,13 @@
 import { DiagnosticSeverity, Uri } from "vscode";
 import { isAuthBlock, RequestFileBlock } from "../../../../../shared";
-import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../definitions";
+import { AuthBlockSpecificDiagnosticCode } from "../../diagnosticCodes/authBlockSpecificDiagnosticCodeEnum";
 
 export function checkAtMostOneAuthBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): DiagnosticWithCode | DiagnosticCode {
+): DiagnosticWithCode | AuthBlockSpecificDiagnosticCode {
     const sortedAuthBlocks = getSortedBlocksByPosition(
         blocks.filter(({ name }) => isAuthBlock(name))
     );
@@ -15,7 +15,7 @@ export function checkAtMostOneAuthBlockExists(
     if (sortedAuthBlocks.length > 1) {
         return getDiagnostic(documentUri, sortedAuthBlocks);
     } else {
-        return DiagnosticCode.TooManyAuthBlocksDefined;
+        return getCode();
     }
 }
 
@@ -33,6 +33,10 @@ function getDiagnostic(
                 location: { uri: documentUri, range: nameRange },
             })),
         severity: DiagnosticSeverity.Error,
-        code: DiagnosticCode.TooManyAuthBlocksDefined,
+        code: getCode(),
     };
+}
+
+function getCode() {
+    return AuthBlockSpecificDiagnosticCode.TooManyAuthBlocksDefined;
 }

@@ -5,14 +5,14 @@ import {
     Uri,
 } from "vscode";
 import { RequestFileBlock, RequestFileBlockName } from "../../../../../shared";
-import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../definitions";
+import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkThatNoBlocksAreDefinedMultipleTimes(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): DiagnosticWithCode | DiagnosticCode | undefined {
+): DiagnosticWithCode | NonBlockSpecificDiagnosticCode | undefined {
     if (blocks.length == 0) {
         return;
     }
@@ -20,7 +20,7 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
     const duplicates = findDuplicateBlocks(blocks);
 
     if (duplicates.length == 0) {
-        return DiagnosticCode.MultipleDefinitionsForSameBlocks;
+        return getCode();
     } else {
         const allDuplicateBlocks: RequestFileBlock[] = [];
 
@@ -56,7 +56,7 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
                 return toReturn;
             }, [] as DiagnosticRelatedInformation[]),
             severity: DiagnosticSeverity.Error,
-            code: DiagnosticCode.MultipleDefinitionsForSameBlocks,
+            code: getCode(),
         };
 
         return multipleDefinitionsForSameBlocksDiagnostic;
@@ -98,4 +98,8 @@ function findDuplicateBlocks(blocks: RequestFileBlock[]) {
     }
 
     return duplicates;
+}
+
+function getCode() {
+    return NonBlockSpecificDiagnosticCode.MultipleDefinitionsForSameBlocks;
 }

@@ -1,18 +1,18 @@
 import { DiagnosticSeverity, Range } from "vscode";
 import { DictionaryBlockField, DictionaryBlock } from "../../../../../shared";
-import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 import {
     FieldsWithSameKey,
     getValidDuplicateKeysFromDictionaryBlock,
 } from "../../util/getValidDuplicateKeysFromDictionaryBlock";
 import { DiagnosticWithCode } from "../../definitions";
+import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeEnum";
 
 export function checkNoDuplicateKeysAreDefinedForDictionaryBlock(
     block: DictionaryBlock,
     expectedKeys: string[],
-    diagnosticCode: DiagnosticCode
-): DiagnosticWithCode | DiagnosticCode {
+    diagnosticCode: KnownDiagnosticCode
+): DiagnosticWithCode | KnownDiagnosticCode {
     const fieldsWithDuplicateKeys = getValidDuplicateKeysFromDictionaryBlock(
         block,
         expectedKeys
@@ -27,7 +27,7 @@ export function checkNoDuplicateKeysAreDefinedForDictionaryBlock(
 
 function getDiagnostic(
     fieldsWithDuplicateKeys: FieldsWithSameKey[],
-    diagnosticCode: DiagnosticCode
+    diagnosticCode: KnownDiagnosticCode
 ) {
     const sortedFieldsByPosition = getSortedDictionaryBlockFieldsByPosition(
         fieldsWithDuplicateKeys.map(({ fields }) => fields).flat()

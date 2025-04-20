@@ -8,14 +8,14 @@ import {
     MethodBlockKey,
     RequestFileBlock,
 } from "../../../../../shared";
-import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getFieldFromDictionaryBlock } from "../../util/getFieldFromDictionaryBlock";
 import { DiagnosticWithCode } from "../../definitions";
+import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkAuthBlockTypeFromMethodBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): DiagnosticWithCode | DiagnosticCode {
+): DiagnosticWithCode | NonBlockSpecificDiagnosticCode {
     const methodBlockField = getAuthTypeFromMethodBlock(blocks);
     const authTypeFromAuthBlock = getAuthTypeFromAuthBlock(blocks);
 
@@ -46,7 +46,7 @@ export function checkAuthBlockTypeFromMethodBlockExists(
             authTypeFromAuthBlock.authBlock
         );
     } else {
-        return DiagnosticCode.AuthBlockNotMatchingTypeFromMethodBlock;
+        return getCode();
     }
 }
 
@@ -70,7 +70,7 @@ function getDiagnostic(
             },
         ],
         severity: DiagnosticSeverity.Error,
-        code: DiagnosticCode.AuthBlockNotMatchingTypeFromMethodBlock,
+        code: getCode(),
     };
 }
 
@@ -82,7 +82,7 @@ function getDiagnosticInCaseOfMissingAuthBlock(
             "Missing auth block despite definition of auth type in method block.",
         range: methodBlockField.valueRange,
         severity: DiagnosticSeverity.Error,
-        code: DiagnosticCode.AuthBlockNotMatchingTypeFromMethodBlock,
+        code: getCode(),
     };
 }
 
@@ -106,7 +106,7 @@ function getDiagnosticInCaseOfNonExpectedAuthBlock(
             },
         ],
         severity: DiagnosticSeverity.Error,
-        code: DiagnosticCode.AuthBlockNotMatchingTypeFromMethodBlock,
+        code: getCode(),
     };
 }
 
@@ -147,4 +147,8 @@ function getAuthTypeFromAuthBlock(allBlocks: RequestFileBlock[]) {
 
 function getAuthTypesForNoDefinedAuthBlock() {
     return ["none", "inherit"];
+}
+
+function getCode() {
+    return NonBlockSpecificDiagnosticCode.AuthBlockNotMatchingTypeFromMethodBlock;
 }

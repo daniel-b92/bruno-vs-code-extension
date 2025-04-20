@@ -5,17 +5,17 @@ import {
     castBlockToDictionaryBlock,
     MetaBlockKey,
 } from "../../../../../../shared";
-import { DiagnosticCode } from "../../../diagnosticCodeEnum";
 import { getFieldFromDictionaryBlock } from "../../../util/getFieldFromDictionaryBlock";
 import { DiagnosticWithCode } from "../../../definitions";
+import { MetaBlockSpecificDiagnosticCode } from "../../../diagnosticCodes/metaBlockSpecificDiagnosticCodeEnum";
 
 export function checkSequenceInMetaBlockIsNumeric(
     metaBlock: RequestFileBlock
-): DiagnosticWithCode | DiagnosticCode {
+): DiagnosticWithCode | MetaBlockSpecificDiagnosticCode {
     const castedMetaBlock = castBlockToDictionaryBlock(metaBlock);
 
     if (!castedMetaBlock) {
-        return DiagnosticCode.SequenceNotNumeric;
+        return getCode();
     }
 
     const sequenceField = getFieldFromDictionaryBlock(
@@ -26,7 +26,7 @@ export function checkSequenceInMetaBlockIsNumeric(
     if (sequenceField && Number.isNaN(Number(sequenceField.value))) {
         return getDiagnostic(sequenceField);
     } else {
-        return DiagnosticCode.SequenceNotNumeric;
+        return getCode();
     }
 }
 
@@ -35,6 +35,10 @@ function getDiagnostic(sequenceField: DictionaryBlockField) {
         message: "Sequence is not numeric",
         range: sequenceField.valueRange,
         severity: DiagnosticSeverity.Error,
-        code: DiagnosticCode.SequenceNotNumeric,
+        code: getCode(),
     };
+}
+
+function getCode() {
+    return MetaBlockSpecificDiagnosticCode.SequenceNotNumeric;
 }

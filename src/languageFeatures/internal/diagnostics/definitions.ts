@@ -3,12 +3,12 @@ import {
     DiagnosticSeverity,
     Range,
 } from "vscode";
-import { DiagnosticCode } from "./diagnosticCodeEnum";
+import { KnownDiagnosticCode } from "./diagnosticCodes/knownDiagnosticCodeEnum";
 
 export interface DiagnosticWithCode {
     range: Range;
     message: string;
     severity: DiagnosticSeverity;
-    code: DiagnosticCode;
+    code: KnownDiagnosticCode;
     relatedInformation?: DiagnosticRelatedInformation[];
 }
