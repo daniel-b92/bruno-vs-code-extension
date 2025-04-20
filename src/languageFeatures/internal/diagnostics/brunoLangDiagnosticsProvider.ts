@@ -1,9 +1,12 @@
 import { Diagnostic, DiagnosticCollection, Uri } from "vscode";
 import { checkMetaBlockStartsInFirstLine } from "./checks/singleBlocks/metaBlock/checkMetaBlockStartsInFirstLine";
 import {
+    AuthBlockName,
     castBlockToDictionaryBlock,
     CollectionItemProvider,
     getAllMethodBlocks,
+    getMandatoryKeysForAuthBlock,
+    isAuthBlock,
     MetaBlockKey,
     MethodBlockKey,
     parseTestFile,
@@ -87,6 +90,15 @@ export class BrunoLangDiagnosticsProvider {
                 methodBlocks[0]
             );
         }
+
+        const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
+
+        if (authBlocks.length == 1) {
+            this.provideAuthBlockSpecificDiagnostics(
+                documentUri,
+                authBlocks[0]
+            );
+        }
     }
 
     private provideMetaBlockSpecificDiagnostics(
@@ -163,6 +175,56 @@ export class BrunoLangDiagnosticsProvider {
                   )
                 : DiagnosticCode.DuplicateKeysDefinedInMethodBlock,
         ]);
+    }
+
+    private provideAuthBlockSpecificDiagnostics(
+        documentUri: Uri,
+        authBlock: RequestFileBlock
+    ) {
+        const castedAuthBlock = castBlockToDictionaryBlock(authBlock);
+
+        // ToDo: Provide diagnostics for all auth types
+        const typesWhereDiagnosticsCanBeDetermined = [
+            RequestFileBlockName.BasicAuth,
+            RequestFileBlockName.BearerAuth,
+        ];
+
+        if (
+            !castedAuthBlock ||
+            !(typesWhereDiagnosticsCanBeDetermined as string[]).includes(
+                castedAuthBlock.name
+            )
+        ) {
+            return;
+        }
+
+        const mandatoryKeys = (
+            Object.values(AuthBlockName) as string[]
+        ).includes(castedAuthBlock.name)
+            ? getMandatoryKeysForAuthBlock(
+                  castedAuthBlock.name as AuthBlockName
+              )
+            : undefined;
+
+        if (mandatoryKeys != undefined) {
+            this.handleResults(documentUri, [
+                checkNoKeysAreMissingForDictionaryBlock(
+                    castedAuthBlock,
+                    mandatoryKeys,
+                    DiagnosticCode.KeysMissingInAuthBlock
+                ),
+                checkNoUnknownKeysAreDefinedInDictionaryBlock(
+                    castedAuthBlock,
+                    mandatoryKeys,
+                    DiagnosticCode.UnknownKeysDefinedInAuthBlock
+                ),
+                checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+                    castedAuthBlock,
+                    mandatoryKeys,
+                    DiagnosticCode.DuplicateKeysDefinedInAuthBlock
+                ),
+            ]);
+        }
     }
 
     private handleResults(

@@ -12,7 +12,7 @@ export function checkNoUnknownKeysAreDefinedInDictionaryBlock(
     const unknownKeys = getUnknownKeysFromDictionaryBlock(block, expectedKeys);
 
     if (unknownKeys.length > 0) {
-        return getDiagnostic(unknownKeys, diagnosticCode);
+        return getDiagnostic(unknownKeys, diagnosticCode, expectedKeys);
     } else {
         return diagnosticCode;
     }
@@ -20,18 +20,20 @@ export function checkNoUnknownKeysAreDefinedInDictionaryBlock(
 
 function getDiagnostic(
     unknownFields: DictionaryBlockField[],
-    diagnosticCode: DiagnosticCode
+    diagnosticCode: DiagnosticCode,
+    expectedKeys: string[]
 ) {
     const sortedFields =
         getSortedDictionaryBlockFieldsByPosition(unknownFields);
 
     return {
-        message:
+        message: `${
             sortedFields.length == 1
                 ? `Unknown key '${sortedFields[0].key}'.`
                 : `Unknown keys are defined: '${sortedFields
                       .map(({ key }) => key)
-                      .join("', '")}'.`,
+                      .join("', '")}'.`
+        } Allowed keys are ${JSON.stringify(expectedKeys, null, 2)}.`,
         range: getRange(sortedFields),
         severity: DiagnosticSeverity.Error,
         code: diagnosticCode,
