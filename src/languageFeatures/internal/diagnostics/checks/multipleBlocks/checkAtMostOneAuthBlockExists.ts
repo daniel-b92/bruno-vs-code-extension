@@ -2,12 +2,12 @@ import { DiagnosticSeverity, Uri } from "vscode";
 import { isAuthBlock, RequestFileBlock } from "../../../../../shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../definitions";
-import { AuthBlockSpecificDiagnosticCode } from "../../diagnosticCodes/authBlockSpecificDiagnosticCodeEnum";
+import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkAtMostOneAuthBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): DiagnosticWithCode | AuthBlockSpecificDiagnosticCode {
+): DiagnosticWithCode | NonBlockSpecificDiagnosticCode {
     const sortedAuthBlocks = getSortedBlocksByPosition(
         blocks.filter(({ name }) => isAuthBlock(name))
     );
@@ -38,5 +38,5 @@ function getDiagnostic(
 }
 
 function getCode() {
-    return AuthBlockSpecificDiagnosticCode.TooManyAuthBlocksDefined;
+    return NonBlockSpecificDiagnosticCode.TooManyAuthBlocksDefined;
 }

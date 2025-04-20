@@ -32,9 +32,9 @@ import { checkNoKeysAreMissingForDictionaryBlock } from "./checks/singleBlocks/c
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "./checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "./checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
 import { DiagnosticWithCode } from "./definitions";
-import { MetaBlockSpecificDiagnosticCode } from "./diagnosticCodes/metaBlockSpecificDiagnosticCodeEnum";
-import { MethodBlockSpecificDiagnosticCode } from "./diagnosticCodes/methodBlockSpecificDiagnosticCodeEnum";
-import { AuthBlockSpecificDiagnosticCode } from "./diagnosticCodes/authBlockSpecificDiagnosticCodeEnum";
+import { RelevantWithinMetaBlockDiagnosticCode } from "./diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
+import { RelevantWithinMethodBlockDiagnosticCode } from "./diagnosticCodes/relevantWithinMethodBlockDiagnosticCodeEnum";
+import { RelevantWithinAuthBlockDiagnosticCode } from "./diagnosticCodes/relevantWithinAuthBlockDiagnosticCodeEnum";
 import { KnownDiagnosticCode } from "./diagnosticCodes/knownDiagnosticCodeEnum";
 
 export class BrunoLangDiagnosticsProvider {
@@ -84,6 +84,12 @@ export class BrunoLangDiagnosticsProvider {
                 document,
                 metaBlocks[0]
             );
+        } else {
+            removeDiagnosticsForDocument(
+                documentUri,
+                this.diagnosticCollection,
+                ...Object.values(RelevantWithinMetaBlockDiagnosticCode)
+            );
         }
 
         const methodBlocks = getAllMethodBlocks(blocks);
@@ -93,6 +99,12 @@ export class BrunoLangDiagnosticsProvider {
                 documentUri,
                 methodBlocks[0]
             );
+        } else {
+            removeDiagnosticsForDocument(
+                documentUri,
+                this.diagnosticCollection,
+                ...Object.values(RelevantWithinMethodBlockDiagnosticCode)
+            );
         }
 
         const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
@@ -101,6 +113,12 @@ export class BrunoLangDiagnosticsProvider {
             this.provideAuthBlockSpecificDiagnostics(
                 documentUri,
                 authBlocks[0]
+            );
+        } else {
+            removeDiagnosticsForDocument(
+                documentUri,
+                this.diagnosticCollection,
+                ...Object.values(RelevantWithinAuthBlockDiagnosticCode)
             );
         }
     }
@@ -119,23 +137,23 @@ export class BrunoLangDiagnosticsProvider {
                 ? checkNoKeysAreMissingForDictionaryBlock(
                       castedMetaBlock,
                       metaBlockKeys,
-                      MetaBlockSpecificDiagnosticCode.KeysMissingInMetaBlock
+                      RelevantWithinMetaBlockDiagnosticCode.KeysMissingInMetaBlock
                   )
-                : MetaBlockSpecificDiagnosticCode.KeysMissingInMetaBlock,
+                : RelevantWithinMetaBlockDiagnosticCode.KeysMissingInMetaBlock,
             castedMetaBlock
                 ? checkNoUnknownKeysAreDefinedInDictionaryBlock(
                       castedMetaBlock,
                       metaBlockKeys,
-                      MetaBlockSpecificDiagnosticCode.UnknownKeysDefinedInMetaBlock
+                      RelevantWithinMetaBlockDiagnosticCode.UnknownKeysDefinedInMetaBlock
                   )
-                : MetaBlockSpecificDiagnosticCode.UnknownKeysDefinedInMetaBlock,
+                : RelevantWithinMetaBlockDiagnosticCode.UnknownKeysDefinedInMetaBlock,
             castedMetaBlock
                 ? checkNoDuplicateKeysAreDefinedForDictionaryBlock(
                       castedMetaBlock,
                       metaBlockKeys,
-                      MetaBlockSpecificDiagnosticCode.DuplicateKeysDefinedInMetaBlock
+                      RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock
                   )
-                : MetaBlockSpecificDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
+                : RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
             checkMetaBlockStartsInFirstLine(documentHelper, metaBlock),
         ]);
 
@@ -161,23 +179,23 @@ export class BrunoLangDiagnosticsProvider {
                 ? checkNoKeysAreMissingForDictionaryBlock(
                       castedMethodBlock,
                       methodBlockKeys,
-                      MethodBlockSpecificDiagnosticCode.KeysMissingInMethodBlock
+                      RelevantWithinMethodBlockDiagnosticCode.KeysMissingInMethodBlock
                   )
-                : MethodBlockSpecificDiagnosticCode.KeysMissingInMethodBlock,
+                : RelevantWithinMethodBlockDiagnosticCode.KeysMissingInMethodBlock,
             castedMethodBlock
                 ? checkNoUnknownKeysAreDefinedInDictionaryBlock(
                       castedMethodBlock,
                       methodBlockKeys,
-                      MethodBlockSpecificDiagnosticCode.UnknownKeysDefinedInMethodBlock
+                      RelevantWithinMethodBlockDiagnosticCode.UnknownKeysDefinedInMethodBlock
                   )
-                : MethodBlockSpecificDiagnosticCode.UnknownKeysDefinedInMethodBlock,
+                : RelevantWithinMethodBlockDiagnosticCode.UnknownKeysDefinedInMethodBlock,
             castedMethodBlock
                 ? checkNoDuplicateKeysAreDefinedForDictionaryBlock(
                       castedMethodBlock,
                       methodBlockKeys,
-                      MethodBlockSpecificDiagnosticCode.DuplicateKeysDefinedInMethodBlock
+                      RelevantWithinMethodBlockDiagnosticCode.DuplicateKeysDefinedInMethodBlock
                   )
-                : MethodBlockSpecificDiagnosticCode.DuplicateKeysDefinedInMethodBlock,
+                : RelevantWithinMethodBlockDiagnosticCode.DuplicateKeysDefinedInMethodBlock,
         ]);
     }
 
@@ -215,17 +233,17 @@ export class BrunoLangDiagnosticsProvider {
                 checkNoKeysAreMissingForDictionaryBlock(
                     castedAuthBlock,
                     mandatoryKeys,
-                    AuthBlockSpecificDiagnosticCode.KeysMissingInAuthBlock
+                    RelevantWithinAuthBlockDiagnosticCode.KeysMissingInAuthBlock
                 ),
                 checkNoUnknownKeysAreDefinedInDictionaryBlock(
                     castedAuthBlock,
                     mandatoryKeys,
-                    AuthBlockSpecificDiagnosticCode.UnknownKeysDefinedInAuthBlock
+                    RelevantWithinAuthBlockDiagnosticCode.UnknownKeysDefinedInAuthBlock
                 ),
                 checkNoDuplicateKeysAreDefinedForDictionaryBlock(
                     castedAuthBlock,
                     mandatoryKeys,
-                    AuthBlockSpecificDiagnosticCode.DuplicateKeysDefinedInAuthBlock
+                    RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock
                 ),
             ]);
         }

@@ -15,14 +15,14 @@ import {
 import { dirname } from "path";
 import { readFileSync } from "fs";
 import { DiagnosticWithCode } from "../../definitions";
-import { MetaBlockSpecificDiagnosticCode } from "../../diagnosticCodes/metaBlockSpecificDiagnosticCodeEnum";
+import { RelevantWithinMetaBlockDiagnosticCode } from "../../diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 
 export function checkSequenceInMetaBlockIsUniqueWithinFolder(
     itemProvider: CollectionItemProvider,
     metaBlock: RequestFileBlock,
     documentUri: Uri
 ): {
-    code: MetaBlockSpecificDiagnosticCode;
+    code: RelevantWithinMetaBlockDiagnosticCode;
     toAdd?: {
         affectedFiles: string[];
         diagnosticCurrentFile: DiagnosticWithCode;
@@ -176,5 +176,5 @@ function getOtherRequestsInFolder(
 }
 
 function getDiagnosticCode() {
-    return MetaBlockSpecificDiagnosticCode.SequenceNotUniqueWithinFolder;
+    return RelevantWithinMetaBlockDiagnosticCode.SequenceNotUniqueWithinFolder;
 }

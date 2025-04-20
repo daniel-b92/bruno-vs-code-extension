@@ -7,9 +7,8 @@ import {
     getPossibleMethodBlocks,
 } from "../../../../../shared";
 import { DiagnosticWithCode } from "../../definitions";
-import { MethodBlockSpecificDiagnosticCode } from "../../diagnosticCodes/methodBlockSpecificDiagnosticCodeEnum";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeEnum";
-import { MetaBlockSpecificDiagnosticCode } from "../../diagnosticCodes/metaBlockSpecificDiagnosticCodeEnum";
+import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkOccurencesOfMandatoryBlocks(
     document: TextDocumentHelper,
@@ -31,13 +30,13 @@ export function checkOccurencesOfMandatoryBlocks(
         message: "No 'meta' block defined.",
         range,
         severity: DiagnosticSeverity.Error,
-        code: MetaBlockSpecificDiagnosticCode.MissingMetaBlock,
+        code: NonBlockSpecificDiagnosticCode.MissingMetaBlock,
     };
 
     if (!blocks.some(({ name }) => name == RequestFileBlockName.Meta)) {
         toAdd.push(missingMetaBlockDiagnostic);
     } else {
-        toRemove.push(MetaBlockSpecificDiagnosticCode.MissingMetaBlock);
+        toRemove.push(NonBlockSpecificDiagnosticCode.MissingMetaBlock);
     }
 
     // Exactly one method block needs to be defined
@@ -49,14 +48,14 @@ export function checkOccurencesOfMandatoryBlocks(
         )}'`,
         range,
         severity: DiagnosticSeverity.Error,
-        code: MethodBlockSpecificDiagnosticCode.IncorrectNumberofHttpMethodBlocks,
+        code: NonBlockSpecificDiagnosticCode.IncorrectNumberofHttpMethodBlocks,
     };
 
     if (methodBlocks.length != 1) {
         toAdd.push(incorrectNumberOfHttpMethodsDiagnostic);
     } else {
         toRemove.push(
-            MethodBlockSpecificDiagnosticCode.IncorrectNumberofHttpMethodBlocks
+            NonBlockSpecificDiagnosticCode.IncorrectNumberofHttpMethodBlocks
         );
     }
 

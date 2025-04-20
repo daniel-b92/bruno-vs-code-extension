@@ -7,11 +7,11 @@ import {
 } from "../../../../../../shared";
 import { getFieldFromDictionaryBlock } from "../../../util/getFieldFromDictionaryBlock";
 import { DiagnosticWithCode } from "../../../definitions";
-import { MetaBlockSpecificDiagnosticCode } from "../../../diagnosticCodes/metaBlockSpecificDiagnosticCodeEnum";
+import { RelevantWithinMetaBlockDiagnosticCode } from "../../../diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 
 export function checkSequenceInMetaBlockIsNumeric(
     metaBlock: RequestFileBlock
-): DiagnosticWithCode | MetaBlockSpecificDiagnosticCode {
+): DiagnosticWithCode | RelevantWithinMetaBlockDiagnosticCode {
     const castedMetaBlock = castBlockToDictionaryBlock(metaBlock);
 
     if (!castedMetaBlock) {
@@ -40,5 +40,5 @@ function getDiagnostic(sequenceField: DictionaryBlockField) {
 }
 
 function getCode() {
-    return MetaBlockSpecificDiagnosticCode.SequenceNotNumeric;
+    return RelevantWithinMetaBlockDiagnosticCode.SequenceNotNumeric;
 }

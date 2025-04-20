@@ -1,12 +1,12 @@
 import { DiagnosticSeverity, Position, Range } from "vscode";
 import { RequestFileBlock, TextDocumentHelper } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
-import { MetaBlockSpecificDiagnosticCode } from "../../../diagnosticCodes/metaBlockSpecificDiagnosticCodeEnum";
+import { NonBlockSpecificDiagnosticCode } from "../../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkMetaBlockStartsInFirstLine(
     document: TextDocumentHelper,
     metaBlock: RequestFileBlock
-): DiagnosticWithCode | MetaBlockSpecificDiagnosticCode {
+): DiagnosticWithCode | NonBlockSpecificDiagnosticCode {
     if (metaBlock.nameRange.start.line != 0) {
         return getDiagnostic(document);
     } else {
@@ -27,5 +27,5 @@ function getDiagnostic(document: TextDocumentHelper) {
 }
 
 function getCode() {
-    return MetaBlockSpecificDiagnosticCode.MetaBlockNotInFirstLine;
+    return NonBlockSpecificDiagnosticCode.MetaBlockNotInFirstLine;
 }

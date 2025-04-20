@@ -1,6 +1,4 @@
-export enum MetaBlockSpecificDiagnosticCode {
-    MissingMetaBlock = "bruLang_MissingMetaBlock",
-    MetaBlockNotInFirstLine = "bruLang_MetaBlockNotInFirstLine",
+export enum RelevantWithinMetaBlockDiagnosticCode {
     SequenceNotUniqueWithinFolder = "bruLang_SequenceNotUniqueWithinFolder",
     SequenceNotNumeric = "bruLang_SequenceNotNumeric",
     KeysMissingInMetaBlock = "bruLang_KeysMissingInMetaBlock",

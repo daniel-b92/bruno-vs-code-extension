@@ -92,7 +92,7 @@ function getDiagnosticInCaseOfNonExpectedAuthBlock(
     authBlock: RequestFileBlock
 ): DiagnosticWithCode {
     return {
-        message: `An auth block is defined although the auth type in the method block is '${methodBlockField.key}'.`,
+        message: `An auth block is defined although the auth type is '${methodBlockField.value}'.`,
         range: methodBlockField.valueRange,
         relatedInformation: [
             {
