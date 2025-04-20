@@ -112,6 +112,137 @@
         "description": "Add section for bearer auth"
     },
 
+    "aws v4 auth section": {
+        "prefix": "auth:awsv4",
+        "body": [
+            "auth:awsv4 {",
+            "\taccessKeyId: ${1:accessKeyId}",
+            "\tsecretAccessKey: ${2:secretAccessKey}",
+            "\tsessionToken: ${3:sessionToken}",
+            "\tservice: ${4:service}",
+            "\tregion: ${5:region}",
+            "\tprofileName: ${6:profileName}",
+            "}"
+        ],
+        "description": "Add section for aws v4 auth"
+    },
+
+    "digest auth section": {
+        "prefix": "auth:digest",
+        "body": [
+            "auth:digest {",
+            "\tusername: ${1:name}",
+            "\tpassword: ${2:password}",
+            "}"
+        ],
+        "description": "Add section for digest auth"
+    },
+
+    "ntlm auth section": {
+        "prefix": "auth:ntlm",
+        "body": [
+            "auth:ntlm {",
+            "\tusername: ${1:name}",
+            "\tpassword: ${2:password}",
+            "\tdomain: ${3:domain}",
+            "}"
+        ],
+        "description": "Add section for ntlm auth"
+    },
+
+    "oauth2 section via auth code": {
+        "prefix": "auth:oauth2",
+        "body": [
+            "auth:oauth2 {",
+            "\tgrant_type: authorization_code",
+            "\tcallback_url: ${1:callback_url}",
+            "\tauthorization_url: ${2:authorization_url}",
+            "\taccess_token_url: ${3:access_token_url}",
+            "\trefresh_token_url: ${4:refresh_token_url}",
+            "\tclient_id: ${5:client_id}",
+            "\tclient_secret: ${6:client_secret}",
+            "\tscope: ${7:scope}",
+            "\tstate: ${8:state}",
+            "\tpkce: ${9|false,true|}",
+            "\tcredentials_placement: ${10|body,basic_auth_header|}",
+            "\tcredentials_id: ${11:credentials}",
+            "\ttoken_placement: ${12|header,url|}",
+            "\ttoken_query_key: ${13:access_token}",
+            "\tauto_fetch_token: ${14|true,false|}",
+            "\tauto_refresh_token: ${15|false,true|}",
+            "}"
+        ],
+        "description": "Add section for oauth2 auth section with grant type authorization code"
+    },
+
+    "oauth2 section via password": {
+        "prefix": "auth:oauth2",
+        "body": [
+            "auth:oauth2 {",
+            "\tgrant_type: password",
+            "\taccess_token_url: ${1:access_token_url}",
+            "\trefresh_token_url: ${2:refresh_token_url}",
+            "\tusername: ${3:username}",
+            "\tpassword: ${4:password}",
+            "\tclient_id: ${5:client_id}",
+            "\tclient_secret: ${6:client_secret}",
+            "\tscope: ${7:scope}",
+            "\tstate: ${8:state}",
+            "\tcredentials_placement: ${9|body,basic_auth_header|}",
+            "\tcredentials_id: ${10:credentials}",
+            "\ttoken_placement: ${11|header,url|}",
+            "\ttoken_query_key: ${12:access_token}",
+            "\tauto_fetch_token: ${13|true,false|}",
+            "\tauto_refresh_token: ${14|false,true|}",
+            "}"
+        ],
+        "description": "Add section for oauth2 auth section with grant type password credentials"
+    },
+
+    "oauth2 section via client credentials": {
+        "prefix": "auth:oauth2",
+        "body": [
+            "auth:oauth2 {",
+            "\tgrant_type: client_credentials",
+            "\taccess_token_url: ${1:access_token_url}",
+            "\trefresh_token_url: ${2:refresh_token_url}",
+            "\tclient_id: ${3:client_id}",
+            "\tclient_secret: ${4:client_secret}",
+            "\tscope: ${5:scope}",
+            "\tcredentials_placement: ${6|basic_auth_header,body|}",
+            "\tcredentials_id: ${7:credentials}",
+            "\ttoken_placement: ${8|url,header|}",
+            "\ttoken_query_key: ${9:access_token}",
+            "\tauto_fetch_token: ${10|true,false|}",
+            "\tauto_refresh_token: ${11|false,true|}",
+            "}"
+        ],
+        "description": "Add section for oauth2 auth section with grant type client credentials"
+    },
+
+    "wsse auth section": {
+        "prefix": "auth:wsse",
+        "body": [
+            "auth:wsse {",
+            "\tusername: ${1:name}",
+            "\tpassword: ${2:password}",
+            "}"
+        ],
+        "description": "Add section for wsse auth"
+    },
+
+    "api key auth section": {
+        "prefix": "auth:apikey",
+        "body": [
+            "auth:apikey {",
+            "\tkey: ${1:key}",
+            "\tvalue: ${2:value}",
+            "\tplacement: ${3|header,queryparams|}",
+            "}"
+        ],
+        "description": "Add section for auth via api key"
+    },
+
     "body section": {
         "prefix": ["body"],
         "body": ["${1|body:json,body:xml|} {", "\t${0}", "}"],
