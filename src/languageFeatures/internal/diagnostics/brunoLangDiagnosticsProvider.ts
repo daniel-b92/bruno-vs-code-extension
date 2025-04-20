@@ -205,10 +205,15 @@ export class BrunoLangDiagnosticsProvider {
     ) {
         const castedAuthBlock = castBlockToDictionaryBlock(authBlock);
 
-        // ToDo: Provide diagnostics for all auth types
         const typesWhereDiagnosticsCanBeDetermined = [
             RequestFileBlockName.BasicAuth,
             RequestFileBlockName.BearerAuth,
+            RequestFileBlockName.DigestAuth,
+            RequestFileBlockName.ApiKeyAuth,
+            RequestFileBlockName.AwsSigV4Auth,
+            RequestFileBlockName.NtlmAuth,
+            RequestFileBlockName.OAuth2Auth,
+            RequestFileBlockName.WsseAuth,
         ];
 
         if (
@@ -235,11 +240,15 @@ export class BrunoLangDiagnosticsProvider {
                     mandatoryKeys,
                     RelevantWithinAuthBlockDiagnosticCode.KeysMissingInAuthBlock
                 ),
-                checkNoUnknownKeysAreDefinedInDictionaryBlock(
-                    castedAuthBlock,
-                    mandatoryKeys,
-                    RelevantWithinAuthBlockDiagnosticCode.UnknownKeysDefinedInAuthBlock
-                ),
+                // ToDo: Determine valid keys for OAuth2 section depending on grant type.
+                // Then this validation could be enabled.
+                castedAuthBlock.name != RequestFileBlockName.OAuth2Auth
+                    ? checkNoUnknownKeysAreDefinedInDictionaryBlock(
+                          castedAuthBlock,
+                          mandatoryKeys,
+                          RelevantWithinAuthBlockDiagnosticCode.UnknownKeysDefinedInAuthBlock
+                      )
+                    : RelevantWithinAuthBlockDiagnosticCode.UnknownKeysDefinedInAuthBlock,
                 checkNoDuplicateKeysAreDefinedForDictionaryBlock(
                     castedAuthBlock,
                     mandatoryKeys,
