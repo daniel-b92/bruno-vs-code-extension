@@ -88,4 +88,4 @@ const getKeyAndValueFromLine = (
     }
 };
 
-const getKeyValuePairLinePattern = () => /^\s*(\S+)\s*:\s*(\S+.*?)\s*$/;
+const getKeyValuePairLinePattern = () => /^\s*(\S+)\s*:\s*(\S+.*?|.{0})\s*$/;
