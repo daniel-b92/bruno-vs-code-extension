@@ -20,10 +20,12 @@ export * from "./fileSystem/testFileParsing/external/definitions/methodBlockKeyE
 export * from "./fileSystem/testFileParsing/external/definitions/requestTypeEnum";
 export * from "./fileSystem/testFileParsing/external/definitions/authBlockNameEnum";
 export * from "./fileSystem/testFileParsing/external/definitions/authBlocksKeyEnums";
+export * from "./fileSystem/testFileParsing/external/definitions/oAuth2GrantTypeEnum";
 
 export * from "./fileSystem/testFileParsing/external/authBlocks/getAuthTypeFromBlockName";
 export * from "./fileSystem/testFileParsing/external/authBlocks/isAuthBlock";
-export * from "./fileSystem/testFileParsing/external/authBlocks/getMandatoryKeysForAuthBlock";
+export * from "./fileSystem/testFileParsing/external/authBlocks/getMandatoryKeysForNonOAuth2Block";
+export * from "./fileSystem/testFileParsing/external/authBlocks/getMandatoryKeysForOAuth2Block";
 
 export * from "./fileSystem/testFileParsing/external/bodyBlocks/getBodyTypeFromBlockName";
 export * from "./fileSystem/testFileParsing/external/bodyBlocks/isBodyBlock";

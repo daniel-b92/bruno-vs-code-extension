@@ -5,10 +5,13 @@ import {
     castBlockToDictionaryBlock,
     CollectionItemProvider,
     getAllMethodBlocks,
-    getMandatoryKeysForAuthBlock,
+    getMandatoryKeysForNonOAuth2Block,
+    getMandatoryKeysForOAuth2Block,
     isAuthBlock,
     MetaBlockKey,
     MethodBlockKey,
+    OAuth2GrantType,
+    OAuth2ViaAuthorizationCodeBlockKey,
     parseTestFile,
     RequestFileBlock,
     RequestFileBlockName,
@@ -205,50 +208,74 @@ export class BrunoLangDiagnosticsProvider {
     ) {
         const castedAuthBlock = castBlockToDictionaryBlock(authBlock);
 
-        const typesWhereDiagnosticsCanBeDetermined = [
-            RequestFileBlockName.BasicAuth,
-            RequestFileBlockName.BearerAuth,
-            RequestFileBlockName.DigestAuth,
-            RequestFileBlockName.ApiKeyAuth,
-            RequestFileBlockName.AwsSigV4Auth,
-            RequestFileBlockName.NtlmAuth,
-            RequestFileBlockName.OAuth2Auth,
-            RequestFileBlockName.WsseAuth,
-        ];
-
-        if (
-            !castedAuthBlock ||
-            !(typesWhereDiagnosticsCanBeDetermined as string[]).includes(
-                castedAuthBlock.name
-            )
-        ) {
+        if (!castedAuthBlock) {
             return;
         }
 
-        const mandatoryKeys = (
-            Object.values(AuthBlockName) as string[]
-        ).includes(castedAuthBlock.name)
-            ? getMandatoryKeysForAuthBlock(
-                  castedAuthBlock.name as AuthBlockName
-              )
-            : undefined;
+        const mandatoryKeys: string[] = [];
 
-        if (mandatoryKeys != undefined) {
+        if (
+            (Object.values(AuthBlockName) as string[]).includes(
+                castedAuthBlock.name
+            ) &&
+            castedAuthBlock.name != AuthBlockName.OAuth2Auth
+        ) {
+            mandatoryKeys.push(
+                ...getMandatoryKeysForNonOAuth2Block(
+                    castedAuthBlock.name as
+                        | AuthBlockName.ApiKeyAuth
+                        | AuthBlockName.AwsSigV4Auth
+                        | AuthBlockName.BasicAuth
+                        | AuthBlockName.BearerAuth
+                        | AuthBlockName.DigestAuth
+                        | AuthBlockName.NtlmAuth
+                        | AuthBlockName.WsseAuth
+                )
+            );
+        } else if (castedAuthBlock.name == AuthBlockName.OAuth2Auth) {
+            const grantTypeFields = castedAuthBlock.content.filter(
+                ({ key }) => key == OAuth2ViaAuthorizationCodeBlockKey.GrantType
+            );
+
+            if (
+                grantTypeFields.length == 1 &&
+                (Object.values(OAuth2GrantType) as string[]).includes(
+                    grantTypeFields[0].value
+                )
+            ) {
+                mandatoryKeys.push(
+                    ...getMandatoryKeysForOAuth2Block(
+                        grantTypeFields[0].value as OAuth2GrantType
+                    )
+                );
+            } else {
+                this.handleResults(documentUri, [
+                    checkNoKeysAreMissingForDictionaryBlock(
+                        castedAuthBlock,
+                        [OAuth2ViaAuthorizationCodeBlockKey.GrantType],
+                        RelevantWithinAuthBlockDiagnosticCode.KeysMissingInAuthBlock
+                    ),
+                    checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+                        castedAuthBlock,
+                        [OAuth2ViaAuthorizationCodeBlockKey.GrantType],
+                        RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock
+                    ),
+                ]);
+            }
+        }
+
+        if (mandatoryKeys.length > 0) {
             this.handleResults(documentUri, [
                 checkNoKeysAreMissingForDictionaryBlock(
                     castedAuthBlock,
                     mandatoryKeys,
                     RelevantWithinAuthBlockDiagnosticCode.KeysMissingInAuthBlock
                 ),
-                // ToDo: Determine valid keys for OAuth2 section depending on grant type.
-                // Then this validation could be enabled.
-                castedAuthBlock.name != RequestFileBlockName.OAuth2Auth
-                    ? checkNoUnknownKeysAreDefinedInDictionaryBlock(
-                          castedAuthBlock,
-                          mandatoryKeys,
-                          RelevantWithinAuthBlockDiagnosticCode.UnknownKeysDefinedInAuthBlock
-                      )
-                    : RelevantWithinAuthBlockDiagnosticCode.UnknownKeysDefinedInAuthBlock,
+                checkNoUnknownKeysAreDefinedInDictionaryBlock(
+                    castedAuthBlock,
+                    mandatoryKeys,
+                    RelevantWithinAuthBlockDiagnosticCode.UnknownKeysDefinedInAuthBlock
+                ),
                 checkNoDuplicateKeysAreDefinedForDictionaryBlock(
                     castedAuthBlock,
                     mandatoryKeys,
