@@ -1,4 +1,4 @@
-import { Diagnostic, DiagnosticCollection, Uri } from "vscode";
+import { DiagnosticCollection, Uri } from "vscode";
 import { checkMetaBlockStartsInFirstLine } from "./checks/singleBlocks/metaBlock/checkMetaBlockStartsInFirstLine";
 import {
     AuthBlockName,
@@ -32,6 +32,7 @@ import { checkSequenceInMetaBlockIsNumeric } from "./checks/singleBlocks/metaBlo
 import { checkNoKeysAreMissingForDictionaryBlock } from "./checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "./checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "./checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
+import { DiagnosticWithCode } from "./definitions";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -229,7 +230,7 @@ export class BrunoLangDiagnosticsProvider {
 
     private handleResults(
         documentUri: Uri,
-        results: (Diagnostic | DiagnosticCode | undefined)[]
+        results: (DiagnosticWithCode | DiagnosticCode | undefined)[]
     ) {
         for (const result of results) {
             if (result && typeof result != "string") {
@@ -253,7 +254,7 @@ export class BrunoLangDiagnosticsProvider {
         metaBlock: RequestFileBlock,
         documentUri: Uri,
         relatedRequestsHelper: RelatedRequestsDiagnosticsHelper
-    ): { uri: Uri; result: Diagnostic | DiagnosticCode }[] {
+    ): { uri: Uri; result: DiagnosticWithCode | DiagnosticCode }[] {
         const { code, toAdd } = checkSequenceInMetaBlockIsUniqueWithinFolder(
             itemProvider,
             metaBlock,

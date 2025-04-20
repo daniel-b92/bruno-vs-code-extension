@@ -1,4 +1,4 @@
-import { Diagnostic, DiagnosticSeverity, Uri } from "vscode";
+import { DiagnosticSeverity, Uri } from "vscode";
 import {
     CollectionData,
     CollectionFile,
@@ -15,6 +15,7 @@ import {
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { dirname } from "path";
 import { readFileSync } from "fs";
+import { DiagnosticWithCode } from "../../definitions";
 
 export function checkSequenceInMetaBlockIsUniqueWithinFolder(
     itemProvider: CollectionItemProvider,
@@ -22,7 +23,10 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
     documentUri: Uri
 ): {
     code: DiagnosticCode;
-    toAdd?: { affectedFiles: string[]; diagnosticCurrentFile: Diagnostic };
+    toAdd?: {
+        affectedFiles: string[];
+        diagnosticCurrentFile: DiagnosticWithCode;
+    };
 } {
     const castedBlock = castBlockToDictionaryBlock(metaBlock);
 
@@ -76,7 +80,7 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
 function getDiagnostic(
     sequenceField: DictionaryBlockField,
     otherRequestsWithSameSequence: string[]
-): Diagnostic {
+): DiagnosticWithCode {
     return {
         message:
             "Other requests with the same sequence already exists within this folder.",

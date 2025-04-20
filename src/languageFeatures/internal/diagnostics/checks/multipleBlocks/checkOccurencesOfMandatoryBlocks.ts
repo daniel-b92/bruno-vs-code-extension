@@ -1,4 +1,4 @@
-import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode";
+import { DiagnosticSeverity, Position, Range } from "vscode";
 import {
     TextDocumentHelper,
     RequestFileBlock,
@@ -7,12 +7,13 @@ import {
     getPossibleMethodBlocks,
 } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
+import { DiagnosticWithCode } from "../../definitions";
 
 export function checkOccurencesOfMandatoryBlocks(
     document: TextDocumentHelper,
     blocks: RequestFileBlock[]
-): { toAdd: Diagnostic[]; toRemove: DiagnosticCode[] } {
-    const toAdd: Diagnostic[] = [];
+): { toAdd: DiagnosticWithCode[]; toRemove: DiagnosticCode[] } {
+    const toAdd: DiagnosticWithCode[] = [];
     const toRemove: DiagnosticCode[] = [];
 
     // Use full text of file as range for diagnostics
@@ -24,7 +25,7 @@ export function checkOccurencesOfMandatoryBlocks(
         )
     );
 
-    const missingMetaBlockDiagnostic: Diagnostic = {
+    const missingMetaBlockDiagnostic: DiagnosticWithCode = {
         message: "No 'meta' block defined.",
         range,
         severity: DiagnosticSeverity.Error,
@@ -40,7 +41,7 @@ export function checkOccurencesOfMandatoryBlocks(
     // Exactly one method block needs to be defined
     const methodBlocks = getAllMethodBlocks(blocks);
 
-    const incorrectNumberOfHttpMethodsDiagnostic: Diagnostic = {
+    const incorrectNumberOfHttpMethodsDiagnostic: DiagnosticWithCode = {
         message: `Too many or too few HTTP method blocks defined. Exactly one of the following blocks needs to be present: '${getPossibleMethodBlocks().join(
             "', '"
         )}'`,

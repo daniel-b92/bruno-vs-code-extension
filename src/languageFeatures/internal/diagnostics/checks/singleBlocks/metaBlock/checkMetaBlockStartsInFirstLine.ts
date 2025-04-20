@@ -1,11 +1,12 @@
-import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode";
+import { DiagnosticSeverity, Position, Range } from "vscode";
 import { RequestFileBlock, TextDocumentHelper } from "../../../../../../shared";
 import { DiagnosticCode } from "../../../diagnosticCodeEnum";
+import { DiagnosticWithCode } from "../../../definitions";
 
 export function checkMetaBlockStartsInFirstLine(
     document: TextDocumentHelper,
     metaBlock: RequestFileBlock
-): Diagnostic | DiagnosticCode {
+): DiagnosticWithCode | DiagnosticCode {
     if (metaBlock.nameRange.start.line != 0) {
         return getDiagnostic(document);
     } else {

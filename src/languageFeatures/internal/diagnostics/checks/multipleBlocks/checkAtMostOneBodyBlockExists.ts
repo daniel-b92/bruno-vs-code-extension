@@ -1,12 +1,13 @@
-import { Diagnostic, DiagnosticSeverity, Uri } from "vscode";
+import { DiagnosticSeverity, Uri } from "vscode";
 import { RequestFileBlock, isBodyBlock } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
+import { DiagnosticWithCode } from "../../definitions";
 
 export function checkAtMostOneBodyBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): Diagnostic | DiagnosticCode {
+): DiagnosticWithCode | DiagnosticCode {
     const sortedBodyBlocks = getSortedBlocksByPosition(
         blocks.filter(({ name }) => isBodyBlock(name))
     );
@@ -21,7 +22,7 @@ export function checkAtMostOneBodyBlockExists(
 function getDiagnostic(
     documentUri: Uri,
     sortedBodyBlocks: RequestFileBlock[]
-): Diagnostic {
+): DiagnosticWithCode {
     return {
         message: "Too many 'body' blocks are defined.",
         range: sortedBodyBlocks[sortedBodyBlocks.length - 1].nameRange,

@@ -1,12 +1,13 @@
-import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
+import { DiagnosticSeverity, Range, Uri } from "vscode";
 import { RequestFileBlock, RequestFileBlockName } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
+import { DiagnosticWithCode } from "../../definitions";
 
 export function checkNoBlocksHaveUnknownNames(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): Diagnostic | DiagnosticCode {
+): DiagnosticWithCode | DiagnosticCode {
     const validNames = Object.values(RequestFileBlockName) as string[];
 
     const blocksWithUnknownNames = getSortedBlocksByPosition(
@@ -23,7 +24,7 @@ export function checkNoBlocksHaveUnknownNames(
 function getDiagnostic(
     documentUri: Uri,
     sortedBlocksWithUnknownNames: RequestFileBlock[]
-): Diagnostic {
+): DiagnosticWithCode {
     return {
         message: `Blocks with invalid names are defined. Valid names for blocks: ${JSON.stringify(
             Object.values(RequestFileBlockName).sort(),

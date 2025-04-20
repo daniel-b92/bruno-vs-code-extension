@@ -1,11 +1,12 @@
-import { Diagnostic, DiagnosticCollection, Uri } from "vscode";
+import { DiagnosticCollection, Uri } from "vscode";
 import { removeDiagnosticsForDocument } from "./removeDiagnosticsForDocument";
 import { DiagnosticCode } from "../diagnosticCodeEnum";
+import { DiagnosticWithCode } from "../definitions";
 
 export function addDiagnosticForDocument(
     documentUri: Uri,
     collection: DiagnosticCollection,
-    toAdd: Diagnostic
+    toAdd: DiagnosticWithCode
 ) {
     const initialDocumentDiagnostics = collection.get(documentUri);
 
@@ -29,7 +30,7 @@ export function addDiagnosticForDocument(
         const remainingDocumentDiagnostics = removeDiagnosticsForDocument(
             documentUri,
             collection,
-            toAdd.code as DiagnosticCode
+            toAdd.code
         );
 
         collection.set(

@@ -1,4 +1,4 @@
-import { Diagnostic, DiagnosticSeverity } from "vscode";
+import { DiagnosticSeverity } from "vscode";
 import {
     DictionaryBlockField,
     RequestFileBlock,
@@ -7,10 +7,11 @@ import {
 } from "../../../../../../shared";
 import { DiagnosticCode } from "../../../diagnosticCodeEnum";
 import { getFieldFromDictionaryBlock } from "../../../util/getFieldFromDictionaryBlock";
+import { DiagnosticWithCode } from "../../../definitions";
 
 export function checkSequenceInMetaBlockIsNumeric(
     metaBlock: RequestFileBlock
-): Diagnostic | DiagnosticCode {
+): DiagnosticWithCode | DiagnosticCode {
     const castedMetaBlock = castBlockToDictionaryBlock(metaBlock);
 
     if (!castedMetaBlock) {

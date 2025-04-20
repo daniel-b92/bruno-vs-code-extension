@@ -1,4 +1,4 @@
-import { Diagnostic, DiagnosticSeverity, Uri } from "vscode";
+import { DiagnosticSeverity, Uri } from "vscode";
 import {
     castBlockToDictionaryBlock,
     DictionaryBlockField,
@@ -10,11 +10,12 @@ import {
 } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getFieldFromDictionaryBlock } from "../../util/getFieldFromDictionaryBlock";
+import { DiagnosticWithCode } from "../../definitions";
 
 export function checkAuthBlockTypeFromMethodBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): Diagnostic | DiagnosticCode {
+): DiagnosticWithCode | DiagnosticCode {
     const methodBlockField = getAuthTypeFromMethodBlock(blocks);
     const authTypeFromAuthBlock = getAuthTypeFromAuthBlock(blocks);
 
@@ -53,7 +54,7 @@ function getDiagnostic(
     documentUri: Uri,
     methodBlockField: DictionaryBlockField,
     authBlock: RequestFileBlock
-): Diagnostic {
+): DiagnosticWithCode {
     return {
         message: "Auth type does not match name of auth block.",
         range: methodBlockField.valueRange,
@@ -75,7 +76,7 @@ function getDiagnostic(
 
 function getDiagnosticInCaseOfMissingAuthBlock(
     methodBlockField: DictionaryBlockField
-): Diagnostic {
+): DiagnosticWithCode {
     return {
         message:
             "Missing auth block despite definition of auth type in method block.",
@@ -89,7 +90,7 @@ function getDiagnosticInCaseOfNonExpectedAuthBlock(
     documentUri: Uri,
     methodBlockField: DictionaryBlockField,
     authBlock: RequestFileBlock
-): Diagnostic {
+): DiagnosticWithCode {
     return {
         message: `An auth block is defined although the auth type in the method block is '${methodBlockField.key}'.`,
         range: methodBlockField.valueRange,

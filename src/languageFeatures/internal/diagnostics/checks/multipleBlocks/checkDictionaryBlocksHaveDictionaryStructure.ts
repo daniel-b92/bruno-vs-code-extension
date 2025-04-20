@@ -1,4 +1,4 @@
-import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
+import { DiagnosticSeverity, Range, Uri } from "vscode";
 import {
     RequestFileBlock,
     castBlockToDictionaryBlock,
@@ -6,11 +6,12 @@ import {
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { shouldBeDictionaryBlock } from "../../util/shouldBeDictionaryBlock";
+import { DiagnosticWithCode } from "../../definitions";
 
 export function checkDictionaryBlocksHaveDictionaryStructure(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): Diagnostic | DiagnosticCode {
+): DiagnosticWithCode | DiagnosticCode {
     const sortedBlocksWithoutCorrectStructure = getSortedBlocksByPosition(
         blocks.filter(
             (block) =>
@@ -29,7 +30,7 @@ export function checkDictionaryBlocksHaveDictionaryStructure(
 function getDiagnostic(
     documentUri: Uri,
     sortedBlocksWithIncorrectStructure: RequestFileBlock[]
-): Diagnostic {
+): DiagnosticWithCode {
     return {
         message:
             "At least one dictionary block does not have the correct structure.",

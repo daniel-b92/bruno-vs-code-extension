@@ -1,11 +1,12 @@
-import { Diagnostic, DiagnosticSeverity, Range, Uri } from "vscode";
+import { DiagnosticSeverity, Range, Uri } from "vscode";
 import { TextOutsideOfBlocks } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
+import { DiagnosticWithCode } from "../../definitions";
 
 export function checkThatNoTextExistsOutsideOfBlocks(
     documentUri: Uri,
     allTextOutsideOfBlocks: TextOutsideOfBlocks[]
-): Diagnostic | DiagnosticCode {
+): DiagnosticWithCode | DiagnosticCode {
     const relevantTextOutsideOfBlocks = allTextOutsideOfBlocks.filter(
         ({ text }) => !/^\s*$/.test(text)
     );
@@ -35,7 +36,7 @@ export function checkThatNoTextExistsOutsideOfBlocks(
             ].range.end
         );
 
-        const diagnostic: Diagnostic = {
+        const diagnostic: DiagnosticWithCode = {
             message: "Text outside of blocks is not allowed.",
             range,
             relatedInformation: relevantTextOutsideOfBlocks.map(

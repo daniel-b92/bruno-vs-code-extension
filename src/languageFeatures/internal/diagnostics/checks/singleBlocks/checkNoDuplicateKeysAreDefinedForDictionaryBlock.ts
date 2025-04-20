@@ -1,4 +1,4 @@
-import { Diagnostic, DiagnosticSeverity, Range } from "vscode";
+import { DiagnosticSeverity, Range } from "vscode";
 import { DictionaryBlockField, DictionaryBlock } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
@@ -6,12 +6,13 @@ import {
     FieldsWithSameKey,
     getValidDuplicateKeysFromDictionaryBlock,
 } from "../../util/getValidDuplicateKeysFromDictionaryBlock";
+import { DiagnosticWithCode } from "../../definitions";
 
 export function checkNoDuplicateKeysAreDefinedForDictionaryBlock(
     block: DictionaryBlock,
     expectedKeys: string[],
     diagnosticCode: DiagnosticCode
-): Diagnostic | DiagnosticCode {
+): DiagnosticWithCode | DiagnosticCode {
     const fieldsWithDuplicateKeys = getValidDuplicateKeysFromDictionaryBlock(
         block,
         expectedKeys

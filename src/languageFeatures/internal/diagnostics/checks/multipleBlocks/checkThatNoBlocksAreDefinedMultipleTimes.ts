@@ -1,5 +1,4 @@
 import {
-    Diagnostic,
     DiagnosticRelatedInformation,
     DiagnosticSeverity,
     Range,
@@ -8,11 +7,12 @@ import {
 import { RequestFileBlock, RequestFileBlockName } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
+import { DiagnosticWithCode } from "../../definitions";
 
 export function checkThatNoBlocksAreDefinedMultipleTimes(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): Diagnostic | DiagnosticCode | undefined {
+): DiagnosticWithCode | DiagnosticCode | undefined {
     if (blocks.length == 0) {
         return;
     }
@@ -34,7 +34,7 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
             sortedDuplicates[sortedDuplicates.length - 1].contentRange.end
         );
 
-        const multipleDefinitionsForSameBlocksDiagnostic: Diagnostic = {
+        const multipleDefinitionsForSameBlocksDiagnostic: DiagnosticWithCode = {
             message: `Multiple blocks with the same name are defined. ${`Blocks with multiple definitions: '${duplicates
                 .map(({ name }) => name)
                 .join("', '")}'`}`,

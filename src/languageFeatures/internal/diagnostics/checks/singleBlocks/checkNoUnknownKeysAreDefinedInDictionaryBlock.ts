@@ -1,14 +1,15 @@
-import { Diagnostic, DiagnosticSeverity, Range } from "vscode";
+import { DiagnosticSeverity, Range } from "vscode";
 import { DictionaryBlockField, DictionaryBlock } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import { getUnknownKeysFromDictionaryBlock } from "../../util/getUnknownKeysFromDictionaryBlock";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
+import { DiagnosticWithCode } from "../../definitions";
 
 export function checkNoUnknownKeysAreDefinedInDictionaryBlock(
     block: DictionaryBlock,
     expectedKeys: string[],
     diagnosticCode: DiagnosticCode
-): Diagnostic | DiagnosticCode {
+): DiagnosticWithCode | DiagnosticCode {
     const unknownKeys = getUnknownKeysFromDictionaryBlock(block, expectedKeys);
 
     if (unknownKeys.length > 0) {

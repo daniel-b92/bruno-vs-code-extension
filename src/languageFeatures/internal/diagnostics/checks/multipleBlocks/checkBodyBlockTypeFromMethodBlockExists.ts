@@ -1,4 +1,4 @@
-import { Diagnostic, DiagnosticSeverity, Uri } from "vscode";
+import { DiagnosticSeverity, Uri } from "vscode";
 import { DictionaryBlockField, RequestFileBlock } from "../../../../../shared";
 import { DiagnosticCode } from "../../diagnosticCodeEnum";
 import {
@@ -9,11 +9,12 @@ import {
     getBodyTypeFromBlockName,
 } from "../../../../../shared";
 import { getFieldFromDictionaryBlock } from "../../util/getFieldFromDictionaryBlock";
+import { DiagnosticWithCode } from "../../definitions";
 
 export function checkBodyBlockTypeFromMethodBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): Diagnostic | DiagnosticCode {
+): DiagnosticWithCode | DiagnosticCode {
     const methodBlockField = getBodyTypeFromMethodBlockField(blocks);
     const bodyTypeNameFromBodyBlock = getBodyTypeFromBodyBlockName(blocks);
 
@@ -52,7 +53,7 @@ function getDiagnostic(
     documentUri: Uri,
     methodBlockField: DictionaryBlockField,
     bodyBlock: RequestFileBlock
-): Diagnostic {
+): DiagnosticWithCode {
     return {
         message: "Body type does not match name of body block.",
         range: methodBlockField.valueRange,
@@ -74,7 +75,7 @@ function getDiagnostic(
 
 function getDiagnosticInCaseOfMissingBodyBlock(
     methodBlockField: DictionaryBlockField
-): Diagnostic {
+): DiagnosticWithCode {
     return {
         message:
             "Missing body block despite definition of body type in method block.",
@@ -88,7 +89,7 @@ function getDiagnosticInCaseOfNonExpectedBodyBlock(
     documentUri: Uri,
     methodBlockField: DictionaryBlockField,
     bodyBlock: RequestFileBlock
-): Diagnostic {
+): DiagnosticWithCode {
     return {
         message: `A body block is defined although the body type in the method block is '${methodBlockField.key}'.`,
         range: methodBlockField.valueRange,
