@@ -4,6 +4,7 @@ import {
     AuthBlockName,
     castBlockToDictionaryBlock,
     CollectionItemProvider,
+    DictionaryBlock,
     getAllMethodBlocks,
     getMandatoryKeysForNonOAuth2Block,
     getMandatoryKeysForOAuth2Block,
@@ -36,6 +37,7 @@ import { DiagnosticWithCode } from "./definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "./diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { RelevantWithinMethodBlockDiagnosticCode } from "./diagnosticCodes/relevantWithinMethodBlockDiagnosticCodeEnum";
 import { RelevantWithinAuthBlockDiagnosticCode } from "./diagnosticCodes/relevantWithinAuthBlockDiagnosticCodeEnum";
+import { checkValueForDictionaryBlockFieldIsValid } from "./checks/singleBlocks/checkValueForDictionaryBlockFieldIsValid";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -230,40 +232,6 @@ export class BrunoLangDiagnosticsProvider {
                         | AuthBlockName.WsseAuth
                 )
             );
-        } else if (castedAuthBlock.name == AuthBlockName.OAuth2Auth) {
-            const grantTypeFields = castedAuthBlock.content.filter(
-                ({ key }) => key == OAuth2ViaAuthorizationCodeBlockKey.GrantType
-            );
-
-            if (
-                grantTypeFields.length == 1 &&
-                (Object.values(OAuth2GrantType) as string[]).includes(
-                    grantTypeFields[0].value
-                )
-            ) {
-                mandatoryKeys.push(
-                    ...getMandatoryKeysForOAuth2Block(
-                        grantTypeFields[0].value as OAuth2GrantType
-                    )
-                );
-            } else {
-                // ToDo: Add validation for defined grant type value
-                diagnostics.push(
-                    checkNoKeysAreMissingForDictionaryBlock(
-                        castedAuthBlock,
-                        [OAuth2ViaAuthorizationCodeBlockKey.GrantType],
-                        RelevantWithinAuthBlockDiagnosticCode.KeysMissingInAuthBlock
-                    ),
-                    checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-                        castedAuthBlock,
-                        [OAuth2ViaAuthorizationCodeBlockKey.GrantType],
-                        RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock
-                    )
-                );
-            }
-        }
-
-        if (mandatoryKeys.length > 0) {
             diagnostics.push(
                 checkNoKeysAreMissingForDictionaryBlock(
                     castedAuthBlock,
@@ -281,7 +249,78 @@ export class BrunoLangDiagnosticsProvider {
                     RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock
                 )
             );
+        } else if (castedAuthBlock.name == AuthBlockName.OAuth2Auth) {
+            diagnostics.push(
+                ...this.getDiagnosticsForOAuth2AuthBlock(castedAuthBlock)
+            );
         }
+
+        return diagnostics;
+    }
+
+    private getDiagnosticsForOAuth2AuthBlock(
+        authBlock: DictionaryBlock
+    ): (DiagnosticWithCode | undefined)[] {
+        const diagnostics: (DiagnosticWithCode | undefined)[] = [];
+
+        const grantTypeFields = authBlock.content.filter(
+            ({ key }) => key == OAuth2ViaAuthorizationCodeBlockKey.GrantType
+        );
+
+        const diagnosticsForGrantTypeField: (DiagnosticWithCode | undefined)[] =
+            [];
+
+        diagnosticsForGrantTypeField.push(
+            checkNoKeysAreMissingForDictionaryBlock(
+                authBlock,
+                [OAuth2ViaAuthorizationCodeBlockKey.GrantType],
+                RelevantWithinAuthBlockDiagnosticCode.KeysMissingInAuthBlock
+            ),
+            checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+                authBlock,
+                [OAuth2ViaAuthorizationCodeBlockKey.GrantType],
+                RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock
+            ),
+            grantTypeFields.length == 1
+                ? checkValueForDictionaryBlockFieldIsValid(
+                      grantTypeFields[0],
+                      Object.values(OAuth2GrantType),
+                      RelevantWithinAuthBlockDiagnosticCode.InvalidGrantType
+                  )
+                : undefined
+        );
+
+        diagnostics.push(...diagnosticsForGrantTypeField);
+
+        // For further validations, the grant type needs to be set a valid value (since it depends on the grant type, e.g. which keys are mandatory).
+        if (
+            diagnosticsForGrantTypeField.filter((val) => val != undefined)
+                .length > 0
+        ) {
+            return diagnostics;
+        }
+
+        const mandatoryKeys = getMandatoryKeysForOAuth2Block(
+            grantTypeFields[0].value as OAuth2GrantType
+        );
+
+        diagnostics.push(
+            checkNoKeysAreMissingForDictionaryBlock(
+                authBlock,
+                mandatoryKeys,
+                RelevantWithinAuthBlockDiagnosticCode.KeysMissingInAuthBlock
+            ),
+            checkNoUnknownKeysAreDefinedInDictionaryBlock(
+                authBlock,
+                mandatoryKeys,
+                RelevantWithinAuthBlockDiagnosticCode.UnknownKeysDefinedInAuthBlock
+            ),
+            checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+                authBlock,
+                mandatoryKeys,
+                RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock
+            )
+        );
 
         return diagnostics;
     }
