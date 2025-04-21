@@ -7,7 +7,7 @@ import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSp
 export function checkAtMostOneAuthBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): DiagnosticWithCode | NonBlockSpecificDiagnosticCode {
+): DiagnosticWithCode | undefined {
     const sortedAuthBlocks = getSortedBlocksByPosition(
         blocks.filter(({ name }) => isAuthBlock(name))
     );
@@ -15,7 +15,7 @@ export function checkAtMostOneAuthBlockExists(
     if (sortedAuthBlocks.length > 1) {
         return getDiagnostic(documentUri, sortedAuthBlocks);
     } else {
-        return getCode();
+        return undefined;
     }
 }
 

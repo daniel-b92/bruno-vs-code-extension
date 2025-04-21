@@ -14,7 +14,7 @@ import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSp
 export function checkBodyBlockTypeFromMethodBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): DiagnosticWithCode | NonBlockSpecificDiagnosticCode {
+): DiagnosticWithCode | undefined {
     const methodBlockField = getBodyTypeFromMethodBlockField(blocks);
     const bodyTypeNameFromBodyBlock = getBodyTypeFromBodyBlockName(blocks);
 
@@ -45,7 +45,7 @@ export function checkBodyBlockTypeFromMethodBlockExists(
             bodyTypeNameFromBodyBlock.bodyBlock
         );
     } else {
-        return getCode();
+        return undefined;
     }
 }
 

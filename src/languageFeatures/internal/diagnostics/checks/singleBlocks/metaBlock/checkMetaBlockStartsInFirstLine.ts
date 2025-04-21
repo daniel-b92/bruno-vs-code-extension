@@ -6,11 +6,11 @@ import { NonBlockSpecificDiagnosticCode } from "../../../diagnosticCodes/nonBloc
 export function checkMetaBlockStartsInFirstLine(
     document: TextDocumentHelper,
     metaBlock: RequestFileBlock
-): DiagnosticWithCode | NonBlockSpecificDiagnosticCode {
+): DiagnosticWithCode | undefined {
     if (metaBlock.nameRange.start.line != 0) {
         return getDiagnostic(document);
     } else {
-        return getCode();
+        return undefined;
     }
 }
 

@@ -12,7 +12,7 @@ export function checkNoDuplicateKeysAreDefinedForDictionaryBlock(
     block: DictionaryBlock,
     expectedKeys: string[],
     diagnosticCode: KnownDiagnosticCode
-): DiagnosticWithCode | KnownDiagnosticCode {
+): DiagnosticWithCode | undefined {
     const fieldsWithDuplicateKeys = getValidDuplicateKeysFromDictionaryBlock(
         block,
         expectedKeys
@@ -21,7 +21,7 @@ export function checkNoDuplicateKeysAreDefinedForDictionaryBlock(
     if (fieldsWithDuplicateKeys.length > 0) {
         return getDiagnostic(fieldsWithDuplicateKeys, diagnosticCode);
     } else {
-        return diagnosticCode;
+        return undefined;
     }
 }
 

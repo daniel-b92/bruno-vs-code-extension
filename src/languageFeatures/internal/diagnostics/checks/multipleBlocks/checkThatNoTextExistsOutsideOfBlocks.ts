@@ -6,13 +6,13 @@ import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSp
 export function checkThatNoTextExistsOutsideOfBlocks(
     documentUri: Uri,
     allTextOutsideOfBlocks: TextOutsideOfBlocks[]
-): DiagnosticWithCode | NonBlockSpecificDiagnosticCode {
+): DiagnosticWithCode | undefined {
     const relevantTextOutsideOfBlocks = allTextOutsideOfBlocks.filter(
         ({ text }) => !/^\s*$/.test(text)
     );
 
     if (relevantTextOutsideOfBlocks.length == 0) {
-        return getCode();
+        return undefined;
     } else {
         relevantTextOutsideOfBlocks.sort(
             (

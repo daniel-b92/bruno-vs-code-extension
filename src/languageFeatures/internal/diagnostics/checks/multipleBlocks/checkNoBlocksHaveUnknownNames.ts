@@ -7,7 +7,7 @@ import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSp
 export function checkNoBlocksHaveUnknownNames(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): DiagnosticWithCode | NonBlockSpecificDiagnosticCode {
+): DiagnosticWithCode | undefined {
     const validNames = Object.values(RequestFileBlockName) as string[];
 
     const blocksWithUnknownNames = getSortedBlocksByPosition(
@@ -17,7 +17,7 @@ export function checkNoBlocksHaveUnknownNames(
     if (blocksWithUnknownNames.length > 0) {
         return getDiagnostic(documentUri, blocksWithUnknownNames);
     } else {
-        return getCode();
+        return undefined;
     }
 }
 

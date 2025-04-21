@@ -24,8 +24,6 @@ import { checkAtMostOneAuthBlockExists } from "./checks/multipleBlocks/checkAtMo
 import { checkAtMostOneBodyBlockExists } from "./checks/multipleBlocks/checkAtMostOneBodyBlockExists";
 import { checkSequenceInMetaBlockIsUniqueWithinFolder } from "./checks/relatedRequests/checkSequenceInMetaBlockIsUniqueWithinFolder";
 import { RelatedRequestsDiagnosticsHelper } from "./helpers/relatedRequestsDiagnosticsHelper";
-import { addDiagnosticForDocument } from "./util/addDiagnosticForDocument";
-import { removeDiagnosticsForDocument } from "./util/removeDiagnosticsForDocument";
 import { checkBodyBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks/checkBodyBlockTypeFromMethodBlockExists";
 import { checkAuthBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks/checkAuthBlockTypeFromMethodBlockExists";
 import { checkNoBlocksHaveUnknownNames } from "./checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
@@ -38,7 +36,6 @@ import { DiagnosticWithCode } from "./definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "./diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { RelevantWithinMethodBlockDiagnosticCode } from "./diagnosticCodes/relevantWithinMethodBlockDiagnosticCodeEnum";
 import { RelevantWithinAuthBlockDiagnosticCode } from "./diagnosticCodes/relevantWithinAuthBlockDiagnosticCodeEnum";
-import { KnownDiagnosticCode } from "./diagnosticCodes/knownDiagnosticCodeEnum";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -50,20 +47,36 @@ export class BrunoLangDiagnosticsProvider {
 
     private relatedRequestsHelper: RelatedRequestsDiagnosticsHelper;
 
-    public dispose() {}
+    public dispose() {
+        this.diagnosticCollection.clear();
+        this.relatedRequestsHelper.dispose();
+    }
 
     public provideDiagnostics(documentUri: Uri, documentText: string) {
+        const newDiagnostics = this.determineDiagnostics(
+            documentUri,
+            documentText
+        );
+        this.diagnosticCollection.set(documentUri, newDiagnostics);
+    }
+
+    private determineDiagnostics(
+        documentUri: Uri,
+        documentText: string
+    ): DiagnosticWithCode[] {
         const document = new TextDocumentHelper(documentText);
         const { blocks, textOutsideOfBlocks } = parseTestFile(document);
 
-        const { toAdd, toRemove } = checkOccurencesOfMandatoryBlocks(
-            document,
-            blocks
-        );
+        const results: DiagnosticWithCode[] = [];
 
-        this.handleResults(documentUri, [
-            ...toAdd,
-            ...toRemove,
+        const addToResults = (
+            ...maybeDiagnostics: (DiagnosticWithCode | undefined)[]
+        ) => {
+            results.push(...maybeDiagnostics.filter((val) => val != undefined));
+        };
+
+        addToResults(
+            ...checkOccurencesOfMandatoryBlocks(document, blocks),
             checkThatNoBlocksAreDefinedMultipleTimes(documentUri, blocks),
             checkThatNoTextExistsOutsideOfBlocks(
                 documentUri,
@@ -74,67 +87,51 @@ export class BrunoLangDiagnosticsProvider {
             checkAuthBlockTypeFromMethodBlockExists(documentUri, blocks),
             checkBodyBlockTypeFromMethodBlockExists(documentUri, blocks),
             checkNoBlocksHaveUnknownNames(documentUri, blocks),
-            checkDictionaryBlocksHaveDictionaryStructure(documentUri, blocks),
-        ]);
+            checkDictionaryBlocksHaveDictionaryStructure(documentUri, blocks)
+        );
 
         const metaBlocks = blocks.filter(
             ({ name }) => name == RequestFileBlockName.Meta
         );
 
         if (metaBlocks.length == 1) {
-            this.provideMetaBlockSpecificDiagnostics(
-                documentUri,
-                document,
-                metaBlocks[0]
-            );
-        } else {
-            removeDiagnosticsForDocument(
-                documentUri,
-                this.diagnosticCollection,
-                ...Object.values(RelevantWithinMetaBlockDiagnosticCode)
+            addToResults(
+                ...this.getMetaBlockSpecificDiagnostics(
+                    documentUri,
+                    document,
+                    metaBlocks[0]
+                )
             );
         }
 
         const methodBlocks = getAllMethodBlocks(blocks);
 
         if (methodBlocks.length == 1) {
-            this.provideMethodBlockSpecificDiagnostics(
-                documentUri,
-                methodBlocks[0]
-            );
-        } else {
-            removeDiagnosticsForDocument(
-                documentUri,
-                this.diagnosticCollection,
-                ...Object.values(RelevantWithinMethodBlockDiagnosticCode)
+            addToResults(
+                ...this.provideMethodBlockSpecificDiagnostics(methodBlocks[0])
             );
         }
 
         const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
 
         if (authBlocks.length == 1) {
-            this.provideAuthBlockSpecificDiagnostics(
-                documentUri,
-                authBlocks[0]
-            );
-        } else {
-            removeDiagnosticsForDocument(
-                documentUri,
-                this.diagnosticCollection,
-                ...Object.values(RelevantWithinAuthBlockDiagnosticCode)
+            addToResults(
+                ...this.provideAuthBlockSpecificDiagnostics(authBlocks[0])
             );
         }
+
+        return results;
     }
 
-    private provideMetaBlockSpecificDiagnostics(
+    private getMetaBlockSpecificDiagnostics(
         documentUri: Uri,
         documentHelper: TextDocumentHelper,
         metaBlock: RequestFileBlock
-    ) {
+    ): (DiagnosticWithCode | undefined)[] {
         const castedMetaBlock = castBlockToDictionaryBlock(metaBlock);
         const metaBlockKeys = Object.values(MetaBlockKey);
 
-        this.handleResults(documentUri, [
+        const diagnostics = [
             checkSequenceInMetaBlockIsNumeric(metaBlock),
             castedMetaBlock
                 ? checkNoKeysAreMissingForDictionaryBlock(
@@ -142,23 +139,23 @@ export class BrunoLangDiagnosticsProvider {
                       metaBlockKeys,
                       RelevantWithinMetaBlockDiagnosticCode.KeysMissingInMetaBlock
                   )
-                : RelevantWithinMetaBlockDiagnosticCode.KeysMissingInMetaBlock,
+                : undefined,
             castedMetaBlock
                 ? checkNoUnknownKeysAreDefinedInDictionaryBlock(
                       castedMetaBlock,
                       metaBlockKeys,
                       RelevantWithinMetaBlockDiagnosticCode.UnknownKeysDefinedInMetaBlock
                   )
-                : RelevantWithinMetaBlockDiagnosticCode.UnknownKeysDefinedInMetaBlock,
+                : undefined,
             castedMetaBlock
                 ? checkNoDuplicateKeysAreDefinedForDictionaryBlock(
                       castedMetaBlock,
                       metaBlockKeys,
                       RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock
                   )
-                : RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
+                : undefined,
             checkMetaBlockStartsInFirstLine(documentHelper, metaBlock),
-        ]);
+        ];
 
         for (const results of this.provideRelatedRequestsDiagnosticsForMetaBlock(
             this.itemProvider,
@@ -166,53 +163,54 @@ export class BrunoLangDiagnosticsProvider {
             documentUri,
             this.relatedRequestsHelper
         )) {
-            this.handleResults(results.uri, [results.result]);
+            diagnostics.push(results.result);
         }
+
+        return diagnostics;
     }
 
     private provideMethodBlockSpecificDiagnostics(
-        documentUri: Uri,
         methodBlock: RequestFileBlock
-    ) {
+    ): (DiagnosticWithCode | undefined)[] {
         const castedMethodBlock = castBlockToDictionaryBlock(methodBlock);
         const methodBlockKeys = Object.values(MethodBlockKey);
 
-        this.handleResults(documentUri, [
+        return [
             castedMethodBlock
                 ? checkNoKeysAreMissingForDictionaryBlock(
                       castedMethodBlock,
                       methodBlockKeys,
                       RelevantWithinMethodBlockDiagnosticCode.KeysMissingInMethodBlock
                   )
-                : RelevantWithinMethodBlockDiagnosticCode.KeysMissingInMethodBlock,
+                : undefined,
             castedMethodBlock
                 ? checkNoUnknownKeysAreDefinedInDictionaryBlock(
                       castedMethodBlock,
                       methodBlockKeys,
                       RelevantWithinMethodBlockDiagnosticCode.UnknownKeysDefinedInMethodBlock
                   )
-                : RelevantWithinMethodBlockDiagnosticCode.UnknownKeysDefinedInMethodBlock,
+                : undefined,
             castedMethodBlock
                 ? checkNoDuplicateKeysAreDefinedForDictionaryBlock(
                       castedMethodBlock,
                       methodBlockKeys,
                       RelevantWithinMethodBlockDiagnosticCode.DuplicateKeysDefinedInMethodBlock
                   )
-                : RelevantWithinMethodBlockDiagnosticCode.DuplicateKeysDefinedInMethodBlock,
-        ]);
+                : undefined,
+        ];
     }
 
     private provideAuthBlockSpecificDiagnostics(
-        documentUri: Uri,
         authBlock: RequestFileBlock
-    ) {
+    ): (DiagnosticWithCode | undefined)[] {
         const castedAuthBlock = castBlockToDictionaryBlock(authBlock);
 
         if (!castedAuthBlock) {
-            return;
+            return [];
         }
 
         const mandatoryKeys: string[] = [];
+        const diagnostics: (DiagnosticWithCode | undefined)[] = [];
 
         if (
             (Object.values(AuthBlockName) as string[]).includes(
@@ -249,7 +247,8 @@ export class BrunoLangDiagnosticsProvider {
                     )
                 );
             } else {
-                this.handleResults(documentUri, [
+                // ToDo: Add validation for defined grant type value
+                diagnostics.push(
                     checkNoKeysAreMissingForDictionaryBlock(
                         castedAuthBlock,
                         [OAuth2ViaAuthorizationCodeBlockKey.GrantType],
@@ -259,13 +258,13 @@ export class BrunoLangDiagnosticsProvider {
                         castedAuthBlock,
                         [OAuth2ViaAuthorizationCodeBlockKey.GrantType],
                         RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock
-                    ),
-                ]);
+                    )
+                );
             }
         }
 
         if (mandatoryKeys.length > 0) {
-            this.handleResults(documentUri, [
+            diagnostics.push(
                 checkNoKeysAreMissingForDictionaryBlock(
                     castedAuthBlock,
                     mandatoryKeys,
@@ -280,30 +279,11 @@ export class BrunoLangDiagnosticsProvider {
                     castedAuthBlock,
                     mandatoryKeys,
                     RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock
-                ),
-            ]);
+                )
+            );
         }
-    }
 
-    private handleResults(
-        documentUri: Uri,
-        results: (DiagnosticWithCode | KnownDiagnosticCode | undefined)[]
-    ) {
-        for (const result of results) {
-            if (result && typeof result != "string") {
-                addDiagnosticForDocument(
-                    documentUri,
-                    this.diagnosticCollection,
-                    result
-                );
-            } else if (result != undefined) {
-                removeDiagnosticsForDocument(
-                    documentUri,
-                    this.diagnosticCollection,
-                    result
-                );
-            }
-        }
+        return diagnostics;
     }
 
     private provideRelatedRequestsDiagnosticsForMetaBlock(
@@ -313,7 +293,7 @@ export class BrunoLangDiagnosticsProvider {
         relatedRequestsHelper: RelatedRequestsDiagnosticsHelper
     ): {
         uri: Uri;
-        result: DiagnosticWithCode | KnownDiagnosticCode;
+        result: DiagnosticWithCode;
     }[] {
         const { code, toAdd } = checkSequenceInMetaBlockIsUniqueWithinFolder(
             itemProvider,
@@ -329,12 +309,11 @@ export class BrunoLangDiagnosticsProvider {
 
             return [{ uri: documentUri, result: toAdd.diagnosticCurrentFile }];
         } else {
-            return relatedRequestsHelper
-                .unregisterDiagnostic(documentUri.fsPath, code)
-                .map(({ file, code }) => ({
-                    uri: Uri.file(file),
-                    result: code,
-                }));
+            relatedRequestsHelper.unregisterDiagnostic(
+                documentUri.fsPath,
+                code
+            );
+            return [];
         }
     }
 }

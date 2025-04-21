@@ -9,13 +9,13 @@ export function checkNoUnknownKeysAreDefinedInDictionaryBlock(
     block: DictionaryBlock,
     expectedKeys: string[],
     diagnosticCode: KnownDiagnosticCode
-): DiagnosticWithCode | KnownDiagnosticCode {
+): DiagnosticWithCode | undefined {
     const unknownKeys = getUnknownKeysFromDictionaryBlock(block, expectedKeys);
 
     if (unknownKeys.length > 0) {
         return getDiagnostic(unknownKeys, diagnosticCode, expectedKeys);
     } else {
-        return diagnosticCode;
+        return undefined;
     }
 }
 

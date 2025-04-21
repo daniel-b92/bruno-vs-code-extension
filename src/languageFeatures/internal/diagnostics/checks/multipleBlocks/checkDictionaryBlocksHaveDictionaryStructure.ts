@@ -11,7 +11,7 @@ import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSp
 export function checkDictionaryBlocksHaveDictionaryStructure(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): DiagnosticWithCode | NonBlockSpecificDiagnosticCode {
+): DiagnosticWithCode | undefined {
     const sortedBlocksWithoutCorrectStructure = getSortedBlocksByPosition(
         blocks.filter(
             (block) =>
@@ -23,7 +23,7 @@ export function checkDictionaryBlocksHaveDictionaryStructure(
     if (sortedBlocksWithoutCorrectStructure.length > 0) {
         return getDiagnostic(documentUri, sortedBlocksWithoutCorrectStructure);
     } else {
-        return getCode();
+        return undefined;
     }
 }
 

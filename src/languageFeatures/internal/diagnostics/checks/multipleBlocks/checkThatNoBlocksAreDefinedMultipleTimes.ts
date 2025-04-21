@@ -12,7 +12,7 @@ import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSp
 export function checkThatNoBlocksAreDefinedMultipleTimes(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): DiagnosticWithCode | NonBlockSpecificDiagnosticCode | undefined {
+): DiagnosticWithCode | undefined {
     if (blocks.length == 0) {
         return;
     }
@@ -20,7 +20,7 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
     const duplicates = findDuplicateBlocks(blocks);
 
     if (duplicates.length == 0) {
-        return getCode();
+        return undefined;
     } else {
         const allDuplicateBlocks: RequestFileBlock[] = [];
 

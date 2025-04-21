@@ -11,11 +11,11 @@ import { RelevantWithinMetaBlockDiagnosticCode } from "../../../diagnosticCodes/
 
 export function checkSequenceInMetaBlockIsNumeric(
     metaBlock: RequestFileBlock
-): DiagnosticWithCode | RelevantWithinMetaBlockDiagnosticCode {
+): DiagnosticWithCode | undefined {
     const castedMetaBlock = castBlockToDictionaryBlock(metaBlock);
 
     if (!castedMetaBlock) {
-        return getCode();
+        return undefined;
     }
 
     const sequenceField = getFieldFromDictionaryBlock(
@@ -26,7 +26,7 @@ export function checkSequenceInMetaBlockIsNumeric(
     if (sequenceField && Number.isNaN(Number(sequenceField.value))) {
         return getDiagnostic(sequenceField);
     } else {
-        return getCode();
+        return undefined;
     }
 }
 

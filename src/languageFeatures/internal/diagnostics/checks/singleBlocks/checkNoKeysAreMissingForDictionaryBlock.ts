@@ -8,13 +8,13 @@ export function checkNoKeysAreMissingForDictionaryBlock(
     block: DictionaryBlock,
     expectedKeys: string[],
     diagnosticCode: KnownDiagnosticCode
-): DiagnosticWithCode | KnownDiagnosticCode {
+): DiagnosticWithCode | undefined {
     const missingKeys = getMissingKeysForDictionaryBlock(block, expectedKeys);
 
     if (missingKeys.length > 0) {
         return getDiagnostic(block, missingKeys, diagnosticCode);
     } else {
-        return diagnosticCode;
+        return undefined;
     }
 }
 

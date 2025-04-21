@@ -15,7 +15,7 @@ import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSp
 export function checkAuthBlockTypeFromMethodBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): DiagnosticWithCode | NonBlockSpecificDiagnosticCode {
+): DiagnosticWithCode | undefined {
     const methodBlockField = getAuthTypeFromMethodBlock(blocks);
     const authTypeFromAuthBlock = getAuthTypeFromAuthBlock(blocks);
 
@@ -46,7 +46,7 @@ export function checkAuthBlockTypeFromMethodBlockExists(
             authTypeFromAuthBlock.authBlock
         );
     } else {
-        return getCode();
+        return undefined;
     }
 }
 

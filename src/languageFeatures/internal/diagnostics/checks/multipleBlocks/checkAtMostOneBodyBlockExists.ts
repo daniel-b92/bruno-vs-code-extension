@@ -7,7 +7,7 @@ import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSp
 export function checkAtMostOneBodyBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[]
-): DiagnosticWithCode | NonBlockSpecificDiagnosticCode {
+): DiagnosticWithCode | undefined {
     const sortedBodyBlocks = getSortedBlocksByPosition(
         blocks.filter(({ name }) => isBodyBlock(name))
     );
@@ -15,7 +15,7 @@ export function checkAtMostOneBodyBlockExists(
     if (sortedBodyBlocks.length > 1) {
         return getDiagnostic(documentUri, sortedBodyBlocks);
     } else {
-        return getCode();
+        return undefined;
     }
 }
 
