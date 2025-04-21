@@ -4,6 +4,7 @@ import {
     ApiKeyAuthBlockKey,
     ApiKeyAuthBlockPlacementValue,
     AuthBlockName,
+    BooleanFieldValue,
     castBlockToDictionaryBlock,
     CollectionItemProvider,
     DictionaryBlock,
@@ -14,6 +15,8 @@ import {
     isAuthBlock,
     MetaBlockKey,
     MethodBlockKey,
+    OAuth2BlockCredentialsPlacementValue,
+    OAuth2BlockTokenPlacementValue,
     OAuth2GrantType,
     OAuth2ViaAuthorizationCodeBlockKey,
     parseTestFile,
@@ -310,19 +313,107 @@ export class BrunoLangDiagnosticsProvider {
                 : undefined
         );
 
-        diagnostics.push(...diagnosticsForGrantTypeField);
+        diagnostics.push(
+            ...diagnosticsForGrantTypeField,
+            ...this.checkValuesForOAuth2FieldsCommonForAllGrantTypes(authBlock)
+        );
 
-        // For further validations, the grant type needs to be set a valid value (since it depends on the grant type, e.g. which keys are mandatory).
         if (
             diagnosticsForGrantTypeField.filter((val) => val != undefined)
                 .length > 0
         ) {
+            // For further validations, the grant type needs to be set to a valid value
+            // (since it depends on the grant type, e.g. which keys are mandatory).
             return diagnostics;
         }
 
-        const mandatoryKeys = getMandatoryKeysForOAuth2Block(
-            grantTypeFields[0].value as OAuth2GrantType
+        const grantType = grantTypeFields[0].value as OAuth2GrantType;
+
+        diagnostics.push(
+            ...this.checkValuesForOAuth2FieldsDependingOnGrantType(
+                authBlock,
+                grantType
+            )
         );
+
+        return diagnostics;
+    }
+
+    private checkValuesForOAuth2FieldsCommonForAllGrantTypes(
+        authBlock: DictionaryBlock
+    ) {
+        const diagnostics: (DiagnosticWithCode | undefined)[] = [];
+
+        const credentialsPlacementFields = authBlock.content.filter(
+            ({ key }) =>
+                key == OAuth2ViaAuthorizationCodeBlockKey.CredentialsPlacement
+        );
+
+        diagnostics.push(
+            credentialsPlacementFields.length == 1
+                ? checkValueForDictionaryBlockFieldIsValid(
+                      credentialsPlacementFields[0],
+                      Object.values(OAuth2BlockCredentialsPlacementValue),
+                      RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForCredentialsPlacement
+                  )
+                : undefined
+        );
+
+        const tokenPlacementFields = authBlock.content.filter(
+            ({ key }) =>
+                key == OAuth2ViaAuthorizationCodeBlockKey.TokenPlacement
+        );
+
+        diagnostics.push(
+            tokenPlacementFields.length == 1
+                ? checkValueForDictionaryBlockFieldIsValid(
+                      tokenPlacementFields[0],
+                      Object.values(OAuth2BlockTokenPlacementValue),
+                      RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForTokenPlacement
+                  )
+                : undefined
+        );
+
+        const autoFetchTokenFields = authBlock.content.filter(
+            ({ key }) =>
+                key == OAuth2ViaAuthorizationCodeBlockKey.AutoFetchToken
+        );
+
+        diagnostics.push(
+            autoFetchTokenFields.length == 1
+                ? checkValueForDictionaryBlockFieldIsValid(
+                      autoFetchTokenFields[0],
+                      Object.values(BooleanFieldValue),
+                      RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForAutoFetchToken
+                  )
+                : undefined
+        );
+
+        const autoRefreshTokenFields = authBlock.content.filter(
+            ({ key }) =>
+                key == OAuth2ViaAuthorizationCodeBlockKey.AutoRefreshToken
+        );
+
+        diagnostics.push(
+            autoRefreshTokenFields.length == 1
+                ? checkValueForDictionaryBlockFieldIsValid(
+                      autoRefreshTokenFields[0],
+                      Object.values(BooleanFieldValue),
+                      RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForAutoRefreshToken
+                  )
+                : undefined
+        );
+
+        return diagnostics;
+    }
+
+    private checkValuesForOAuth2FieldsDependingOnGrantType(
+        authBlock: DictionaryBlock,
+        grantType: OAuth2GrantType
+    ) {
+        const diagnostics: (DiagnosticWithCode | undefined)[] = [];
+
+        const mandatoryKeys = getMandatoryKeysForOAuth2Block(grantType);
 
         diagnostics.push(
             checkNoKeysAreMissingForDictionaryBlock(
@@ -341,6 +432,22 @@ export class BrunoLangDiagnosticsProvider {
                 RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock
             )
         );
+
+        if (grantType == OAuth2GrantType.AuthorizationCode) {
+            const pkceFields = authBlock.content.filter(
+                ({ key }) => key == OAuth2ViaAuthorizationCodeBlockKey.Pkce
+            );
+
+            diagnostics.push(
+                pkceFields.length == 1
+                    ? checkValueForDictionaryBlockFieldIsValid(
+                          pkceFields[0],
+                          Object.values(BooleanFieldValue),
+                          RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForPkce
+                      )
+                    : undefined
+            );
+        }
 
         return diagnostics;
     }

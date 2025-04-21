@@ -14,6 +14,7 @@ export * from "./fileSystem/testFileParsing/getSequencesForRequests";
 export * from "./fileSystem/testFileParsing/testFileParser";
 
 export * from "./fileSystem/testFileParsing/external/definitions/interfaces";
+export * from "./fileSystem/testFileParsing/external/definitions/booleanFieldValueEnum";
 export * from "./fileSystem/testFileParsing/external/definitions/requestFileBlockNameEnum";
 export * from "./fileSystem/testFileParsing/external/definitions/metaBlock/metaBlockKeyEnum";
 export * from "./fileSystem/testFileParsing/external/definitions/methodBlocks/methodBlockKeyEnum";
@@ -22,6 +23,7 @@ export * from "./fileSystem/testFileParsing/external/definitions/authBlocks/auth
 export * from "./fileSystem/testFileParsing/external/definitions/authBlocks/authBlocksKeyEnums";
 export * from "./fileSystem/testFileParsing/external/definitions/authBlocks/oAuth2BlockValuesEnums";
 export * from "./fileSystem/testFileParsing/external/definitions/authBlocks/apiKeyAuthBlockValuesEnums";
+export * from "./fileSystem/testFileParsing/external/definitions/authBlocks/oAuth2BlockCommonFieldsValuesEnums";
 
 export * from "./fileSystem/testFileParsing/external/authBlocks/getAuthTypeFromBlockName";
 export * from "./fileSystem/testFileParsing/external/authBlocks/isAuthBlock";
