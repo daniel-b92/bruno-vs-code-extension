@@ -19,4 +19,5 @@ export enum NonBlockSpecificDiagnosticCode {
     BodyBlockNotMatchingTypeFromMethodBlock = "bruLang_BodyBlockNotMatchingTypeFromMethodBlock",
     BlocksWithUnknownNamesDefined = "bruLang_BlocksWithUnknownNamesDefined",
     DictionaryBlocksNotStructuredCorrectly = "bruLang_DictionaryBlocksNotStructuredCorrectly",
+    NoAssertOrTestsBlockDefined = "bruLang_NoAssertOrTestsBlockDefined",
 }
