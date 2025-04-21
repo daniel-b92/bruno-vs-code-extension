@@ -15,12 +15,13 @@ export * from "./fileSystem/testFileParsing/testFileParser";
 
 export * from "./fileSystem/testFileParsing/external/definitions/interfaces";
 export * from "./fileSystem/testFileParsing/external/definitions/requestFileBlockNameEnum";
-export * from "./fileSystem/testFileParsing/external/definitions/metaBlockKeyEnum";
-export * from "./fileSystem/testFileParsing/external/definitions/methodBlockKeyEnum";
-export * from "./fileSystem/testFileParsing/external/definitions/requestTypeEnum";
-export * from "./fileSystem/testFileParsing/external/definitions/authBlockNameEnum";
-export * from "./fileSystem/testFileParsing/external/definitions/authBlocksKeyEnums";
-export * from "./fileSystem/testFileParsing/external/definitions/oAuth2GrantTypeEnum";
+export * from "./fileSystem/testFileParsing/external/definitions/metaBlock/metaBlockKeyEnum";
+export * from "./fileSystem/testFileParsing/external/definitions/methodBlocks/methodBlockKeyEnum";
+export * from "./fileSystem/testFileParsing/external/definitions/metaBlock/requestTypeEnum";
+export * from "./fileSystem/testFileParsing/external/definitions/authBlocks/authBlockNameEnum";
+export * from "./fileSystem/testFileParsing/external/definitions/authBlocks/authBlocksKeyEnums";
+export * from "./fileSystem/testFileParsing/external/definitions/authBlocks/oAuth2BlockValuesEnums";
+export * from "./fileSystem/testFileParsing/external/definitions/authBlocks/apiKeyAuthBlockValuesEnums";
 
 export * from "./fileSystem/testFileParsing/external/authBlocks/getAuthTypeFromBlockName";
 export * from "./fileSystem/testFileParsing/external/authBlocks/isAuthBlock";

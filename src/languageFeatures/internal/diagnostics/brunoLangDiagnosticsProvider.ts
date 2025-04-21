@@ -1,10 +1,13 @@
 import { DiagnosticCollection, Uri } from "vscode";
 import { checkMetaBlockStartsInFirstLine } from "./checks/singleBlocks/metaBlock/checkMetaBlockStartsInFirstLine";
 import {
+    ApiKeyAuthBlockKey,
+    ApiKeyAuthBlockPlacementValue,
     AuthBlockName,
     castBlockToDictionaryBlock,
     CollectionItemProvider,
     DictionaryBlock,
+    DictionaryBlockField,
     getAllMethodBlocks,
     getMandatoryKeysForNonOAuth2Block,
     getMandatoryKeysForOAuth2Block,
@@ -249,6 +252,23 @@ export class BrunoLangDiagnosticsProvider {
                     RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock
                 )
             );
+
+            if (
+                castedAuthBlock.name == AuthBlockName.ApiKeyAuth &&
+                castedAuthBlock.content.some(
+                    ({ key }) => key == ApiKeyAuthBlockKey.Placement
+                )
+            ) {
+                diagnostics.push(
+                    checkValueForDictionaryBlockFieldIsValid(
+                        castedAuthBlock.content.find(
+                            ({ key }) => key == ApiKeyAuthBlockKey.Placement
+                        ) as DictionaryBlockField,
+                        Object.values(ApiKeyAuthBlockPlacementValue),
+                        RelevantWithinAuthBlockDiagnosticCode.InvalidApiKeyAuthValueForPlacement
+                    )
+                );
+            }
         } else if (castedAuthBlock.name == AuthBlockName.OAuth2Auth) {
             diagnostics.push(
                 ...this.getDiagnosticsForOAuth2AuthBlock(castedAuthBlock)

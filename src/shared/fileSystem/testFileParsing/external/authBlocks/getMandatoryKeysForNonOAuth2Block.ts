@@ -1,4 +1,4 @@
-import { AuthBlockName } from "../definitions/authBlockNameEnum";
+import { AuthBlockName } from "../definitions/authBlocks/authBlockNameEnum";
 import {
     ApiKeyAuthBlockKey,
     AwsV4AuthBlockKey,
@@ -7,7 +7,7 @@ import {
     DigestAuthBlockKey,
     NtlmAuthBlockKey,
     WsseAuthBlockKey,
-} from "../definitions/authBlocksKeyEnums";
+} from "../definitions/authBlocks/authBlocksKeyEnums";
 
 export function getMandatoryKeysForNonOAuth2Block(
     authBlockName:

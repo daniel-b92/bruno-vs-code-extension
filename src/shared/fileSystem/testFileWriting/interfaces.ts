@@ -1,6 +1,6 @@
 import { MethodBlockAuth } from "./internal/methodBlockAuthEnum";
 import { MethodBlockBody } from "./internal/methodBlockBodyEnum";
-import { RequestType } from "../testFileParsing/external/definitions/requestTypeEnum";
+import { RequestType } from "../testFileParsing/external/definitions/metaBlock/requestTypeEnum";
 
 export interface MetaBlockContent {
     name: string;

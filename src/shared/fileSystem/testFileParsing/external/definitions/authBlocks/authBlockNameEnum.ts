@@ -1,4 +1,4 @@
-import { RequestFileBlockName } from "./requestFileBlockNameEnum";
+import { RequestFileBlockName } from "../requestFileBlockNameEnum";
 
 export enum AuthBlockName {
     BasicAuth = RequestFileBlockName.BasicAuth,

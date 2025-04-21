@@ -6,7 +6,7 @@ import { basename, dirname, extname } from "path";
 import { Collection } from "../../model/collection";
 import { CollectionFile } from "../../model/collectionFile";
 import { MetaBlockContent } from "./interfaces";
-import { RequestType } from "../testFileParsing/external/definitions/requestTypeEnum";
+import { RequestType } from "../testFileParsing/external/definitions/metaBlock/requestTypeEnum";
 import {
     getLineBreak,
     getNumberOfWhitespacesForIndentation,

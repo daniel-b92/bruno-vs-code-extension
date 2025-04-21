@@ -3,4 +3,5 @@ export enum RelevantWithinAuthBlockDiagnosticCode {
     UnknownKeysDefinedInAuthBlock = "bruLang_UnknownKeysDefinedInAuthBlock",
     DuplicateKeysDefinedInAuthBlock = "bruLang_DuplicateKeysDefinedInAuthBlock",
     InvalidGrantType = "bruLang_InvalidGrantType",
+    InvalidApiKeyAuthValueForPlacement = "bruLang_InvalidApiKeyAuthValueForPlacement",
 }
