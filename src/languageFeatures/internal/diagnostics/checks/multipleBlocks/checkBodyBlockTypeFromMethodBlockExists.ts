@@ -1,7 +1,10 @@
 import { DiagnosticSeverity, Uri } from "vscode";
-import { DictionaryBlockField, RequestFileBlock } from "../../../../../shared";
 import {
-    getPossibleMethodBlocks,
+    DictionaryBlockField,
+    getAllMethodBlocks,
+    RequestFileBlock,
+} from "../../../../../shared";
+import {
     castBlockToDictionaryBlock,
     MethodBlockKey,
     isBodyBlock,
@@ -15,8 +18,16 @@ export function checkBodyBlockTypeFromMethodBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[]
 ): DiagnosticWithCode | undefined {
-    const methodBlockField = getBodyTypeFromMethodBlockField(blocks);
-    const bodyTypeNameFromBodyBlock = getBodyTypeFromBodyBlockName(blocks);
+    const methodBlocks = getAllMethodBlocks(blocks);
+    const bodyBlocks = blocks.filter(({ name }) => isBodyBlock(name));
+
+    if (methodBlocks.length != 1 || bodyBlocks.length != 1) {
+        return undefined;
+    }
+
+    const bodyBlock = bodyBlocks[0];
+    const methodBlockField = getBodyTypeFromMethodBlockField(methodBlocks[0]);
+    const bodyTypeNameFromBodyBlock = getBodyTypeFromBlockName(bodyBlock.name);
 
     if (
         methodBlockField &&
@@ -32,18 +43,14 @@ export function checkBodyBlockTypeFromMethodBlockExists(
         return getDiagnosticInCaseOfNonExpectedBodyBlock(
             documentUri,
             methodBlockField,
-            bodyTypeNameFromBodyBlock.bodyBlock
+            bodyBlock
         );
     } else if (
         methodBlockField &&
         bodyTypeNameFromBodyBlock &&
-        methodBlockField.value != bodyTypeNameFromBodyBlock.value
+        methodBlockField.value != bodyTypeNameFromBodyBlock
     ) {
-        return getDiagnostic(
-            documentUri,
-            methodBlockField,
-            bodyTypeNameFromBodyBlock.bodyBlock
-        );
+        return getDiagnostic(documentUri, methodBlockField, bodyBlock);
     } else {
         return undefined;
     }
@@ -109,15 +116,8 @@ function getDiagnosticInCaseOfNonExpectedBodyBlock(
     };
 }
 
-function getBodyTypeFromMethodBlockField(allBlocks: RequestFileBlock[]) {
-    const methodBlocks = allBlocks.filter(({ name }) =>
-        (getPossibleMethodBlocks() as string[]).includes(name)
-    );
-
-    const castedMethodBlock =
-        methodBlocks.length == 1
-            ? castBlockToDictionaryBlock(methodBlocks[0])
-            : undefined;
+function getBodyTypeFromMethodBlockField(methodBlock: RequestFileBlock) {
+    const castedMethodBlock = castBlockToDictionaryBlock(methodBlock);
 
     if (!castedMethodBlock) {
         return undefined;
@@ -129,19 +129,6 @@ function getBodyTypeFromMethodBlockField(allBlocks: RequestFileBlock[]) {
     );
 
     return bodyField ?? undefined;
-}
-
-function getBodyTypeFromBodyBlockName(allBlocks: RequestFileBlock[]) {
-    const existingBodyBlocks = allBlocks.filter(({ name }) =>
-        isBodyBlock(name)
-    );
-
-    return existingBodyBlocks.length == 1
-        ? {
-              bodyBlock: existingBodyBlocks[0],
-              value: getBodyTypeFromBlockName(existingBodyBlocks[0].name),
-          }
-        : undefined;
 }
 
 function getBodyBlockTypeForNoDefinedBodyBlock() {

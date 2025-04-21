@@ -2,8 +2,8 @@ import { DiagnosticSeverity, Uri } from "vscode";
 import {
     castBlockToDictionaryBlock,
     DictionaryBlockField,
+    getAllMethodBlocks,
     getAuthTypeFromBlockName,
-    getPossibleMethodBlocks,
     isAuthBlock,
     MethodBlockKey,
     RequestFileBlock,
@@ -16,8 +16,15 @@ export function checkAuthBlockTypeFromMethodBlockExists(
     documentUri: Uri,
     blocks: RequestFileBlock[]
 ): DiagnosticWithCode | undefined {
-    const methodBlockField = getAuthTypeFromMethodBlock(blocks);
-    const authTypeFromAuthBlock = getAuthTypeFromAuthBlock(blocks);
+    const methodBlocks = getAllMethodBlocks(blocks);
+    const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
+
+    if (methodBlocks.length != 1 || authBlocks.length != 1) {
+        return undefined;
+    }
+
+    const methodBlockField = getAuthTypeFromMethodBlock(methodBlocks[0]);
+    const authTypeFromAuthBlock = getAuthTypeFromAuthBlock(authBlocks[0]);
 
     if (
         methodBlockField &&
@@ -110,15 +117,8 @@ function getDiagnosticInCaseOfNonExpectedAuthBlock(
     };
 }
 
-function getAuthTypeFromMethodBlock(allBlocks: RequestFileBlock[]) {
-    const methodBlocks = allBlocks.filter(({ name }) =>
-        (getPossibleMethodBlocks() as string[]).includes(name)
-    );
-
-    const castedMethodBlock =
-        methodBlocks.length == 1
-            ? castBlockToDictionaryBlock(methodBlocks[0])
-            : undefined;
+function getAuthTypeFromMethodBlock(methodBlock: RequestFileBlock) {
+    const castedMethodBlock = castBlockToDictionaryBlock(methodBlock);
 
     if (!castedMethodBlock) {
         return undefined;
@@ -132,17 +132,11 @@ function getAuthTypeFromMethodBlock(allBlocks: RequestFileBlock[]) {
     return authField ?? undefined;
 }
 
-function getAuthTypeFromAuthBlock(allBlocks: RequestFileBlock[]) {
-    const existingAuthBlocks = allBlocks.filter(({ name }) =>
-        isAuthBlock(name)
-    );
-
-    return existingAuthBlocks.length == 1
-        ? {
-              authBlock: existingAuthBlocks[0],
-              value: getAuthTypeFromBlockName(existingAuthBlocks[0].name),
-          }
-        : undefined;
+function getAuthTypeFromAuthBlock(authBlock: RequestFileBlock) {
+    return {
+        authBlock,
+        value: getAuthTypeFromBlockName(authBlock.name),
+    };
 }
 
 function getAuthTypesForNoDefinedAuthBlock() {
