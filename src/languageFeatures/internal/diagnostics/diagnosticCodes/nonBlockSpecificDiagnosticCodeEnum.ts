@@ -20,4 +20,5 @@ export enum NonBlockSpecificDiagnosticCode {
     BlocksWithUnknownNamesDefined = "bruLang_BlocksWithUnknownNamesDefined",
     DictionaryBlocksNotStructuredCorrectly = "bruLang_DictionaryBlocksNotStructuredCorrectly",
     NoAssertOrTestsBlockDefined = "bruLang_NoAssertOrTestsBlockDefined",
+    BlocksNotAllSeparatedBySingleEmptyLine = "bruLang_BlocksNotAllSeparatedBySingleEmptyLine",
 }

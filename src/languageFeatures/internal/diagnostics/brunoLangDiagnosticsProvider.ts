@@ -45,6 +45,7 @@ import { RelevantWithinMethodBlockDiagnosticCode } from "./diagnosticCodes/relev
 import { RelevantWithinAuthBlockDiagnosticCode } from "./diagnosticCodes/relevantWithinAuthBlockDiagnosticCodeEnum";
 import { checkValueForDictionaryBlockFieldIsValid } from "./checks/singleBlocks/checkValueForDictionaryBlockFieldIsValid";
 import { checkEitherAssertOrTestsBlockExists } from "./checks/multipleBlocks/checkEitherAssertOrTestsBlockExists";
+import { checkBlocksAreSeparatedBySingleEmptyLine } from "./checks/multipleBlocks/checkBlocksAreSeparatedBySingleEmptyLine";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -97,7 +98,11 @@ export class BrunoLangDiagnosticsProvider {
             checkBodyBlockTypeFromMethodBlockExists(documentUri, blocks),
             checkNoBlocksHaveUnknownNames(documentUri, blocks),
             checkDictionaryBlocksHaveDictionaryStructure(documentUri, blocks),
-            checkEitherAssertOrTestsBlockExists(document, blocks)
+            checkEitherAssertOrTestsBlockExists(document, blocks),
+            checkBlocksAreSeparatedBySingleEmptyLine(
+                documentUri,
+                textOutsideOfBlocks
+            )
         );
 
         const metaBlocks = blocks.filter(
