@@ -10,7 +10,7 @@ import { RequestType } from "../testFileParsing/external/definitions/metaBlock/r
 import {
     getLineBreak,
     getNumberOfWhitespacesForIndentation,
-} from "./internal/util/writerUtils";
+} from "./internal/writerUtils";
 
 export function addMetaBlock(
     collection: Collection,

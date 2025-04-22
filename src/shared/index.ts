@@ -18,6 +18,8 @@ export * from "./fileSystem/testFileParsing/external/definitions/booleanFieldVal
 export * from "./fileSystem/testFileParsing/external/definitions/requestFileBlockNameEnum";
 export * from "./fileSystem/testFileParsing/external/definitions/metaBlock/metaBlockKeyEnum";
 export * from "./fileSystem/testFileParsing/external/definitions/methodBlocks/methodBlockKeyEnum";
+export * from "./fileSystem/testFileParsing/external/definitions/methodBlocks/methodBlockAuthEnum";
+export * from "./fileSystem/testFileParsing/external/definitions/methodBlocks/methodBlockBodyEnum";
 export * from "./fileSystem/testFileParsing/external/definitions/metaBlock/requestTypeEnum";
 export * from "./fileSystem/testFileParsing/external/definitions/authBlocks/authBlockNameEnum";
 export * from "./fileSystem/testFileParsing/external/definitions/authBlocks/authBlocksKeyEnums";

@@ -1,18 +1,31 @@
 import { CompletionItem, languages } from "vscode";
-import { getMaxSequenceForRequests } from "../../../shared";
+import {
+    getMaxSequenceForRequests,
+    MetaBlockKey,
+    MethodBlockAuth,
+    MethodBlockBody,
+    MethodBlockKey,
+    RequestType,
+} from "../../../shared";
 import { dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 
 export function provideBrunoLangCompletionItems() {
     // meta block
-    registerFixedCompletionItems(/^\s*type:\s*$/, "http", "graphql");
+    registerFixedCompletionItems(
+        new RegExp(`^\\s*${MetaBlockKey.Type}:\\s*$`),
+        ...Object.values(RequestType)
+    );
 
     languages.registerCompletionItemProvider(
         getRequestFileDocumentSelector(),
         {
             provideCompletionItems(document, position) {
                 const currentText = document.lineAt(position.line).text;
-                const sequencePattern = /^\s*seq:\s*$/m;
+                const sequencePattern = new RegExp(
+                    `^\\s*${MetaBlockKey.Sequence}:\\s*$`,
+                    "m"
+                );
 
                 if (currentText.match(sequencePattern)) {
                     return {
@@ -35,8 +48,14 @@ export function provideBrunoLangCompletionItems() {
     );
 
     // HTTP method block
-    registerFixedCompletionItems(/^\s*body:\s*$/m, "none", "json", "xml");
-    registerFixedCompletionItems(/^\s*auth:\s*$/m, "none", "basic", "bearer");
+    registerFixedCompletionItems(
+        new RegExp(`^\\s*${MethodBlockKey.Body}:\\s*$`),
+        ...Object.values(MethodBlockBody)
+    );
+    registerFixedCompletionItems(
+        new RegExp(`^\\s*${MethodBlockKey.Auth}:\\s*$`),
+        ...Object.values(MethodBlockAuth)
+    );
 }
 
 function registerFixedCompletionItems(

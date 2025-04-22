@@ -6,9 +6,8 @@ import { getAllMethodBlocks } from "../testFileParsing/external/methodBlocks/get
 import {
     getLineBreak,
     getNumberOfWhitespacesForIndentation,
-} from "./internal/util/writerUtils";
-import { MethodBlockBody } from "./internal/methodBlockBodyEnum";
-import { MethodBlockAuth } from "./internal/methodBlockAuthEnum";
+} from "./internal/writerUtils";
+import { MethodBlockAuth, MethodBlockBody } from "../..";
 
 export function appendDefaultMethodBlock(
     testFilePath: string,
