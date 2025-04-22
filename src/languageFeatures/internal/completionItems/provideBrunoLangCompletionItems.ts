@@ -11,7 +11,11 @@ import { dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 
 export function provideBrunoLangCompletionItems() {
-    // meta block
+    getCompletionItemsForFieldsInMetaBlock();
+    getCompletionItemsForFieldsInMethodBlock();
+}
+
+function getCompletionItemsForFieldsInMetaBlock() {
     registerFixedCompletionItems(
         new RegExp(`^\\s*${MetaBlockKey.Type}:\\s*$`),
         ...Object.values(RequestType)
@@ -46,8 +50,9 @@ export function provideBrunoLangCompletionItems() {
         },
         getTriggerChar()
     );
+}
 
-    // HTTP method block
+function getCompletionItemsForFieldsInMethodBlock() {
     registerFixedCompletionItems(
         new RegExp(`^\\s*${MethodBlockKey.Body}:\\s*$`),
         ...Object.values(MethodBlockBody)
