@@ -39,7 +39,7 @@ export enum OAuth2ViaPasswordBlockKey {
     CredentialsPlacement = "credentials_placement",
     CredentialsId = "credentials_id",
     TokenPlacement = "token_placement",
-    TokenQueryKey = "token_query_key",
+    TokenHeaderPrefix = "token_header_prefix",
     AutoFetchToken = "auto_fetch_token",
     AutoRefreshToken = "auto_refresh_token",
 }
@@ -58,7 +58,7 @@ export enum OAuth2ViaAuthorizationCodeBlockKey {
     CredentialsPlacement = "credentials_placement",
     CredentialsId = "credentials_id",
     TokenPlacement = "token_placement",
-    TokenQueryKey = "token_query_key",
+    TokenHeaderPrefix = "token_header_prefix",
     AutoFetchToken = "auto_fetch_token",
     AutoRefreshToken = "auto_refresh_token",
 }
@@ -73,7 +73,7 @@ export enum OAuth2ViaClientCredentialsBlockKey {
     CredentialsPlacement = "credentials_placement",
     CredentialsId = "credentials_id",
     TokenPlacement = "token_placement",
-    TokenQueryKey = "token_query_key",
+    TokenHeaderPrefix = "token_header_prefix",
     AutoFetchToken = "auto_fetch_token",
     AutoRefreshToken = "auto_refresh_token",
 }
