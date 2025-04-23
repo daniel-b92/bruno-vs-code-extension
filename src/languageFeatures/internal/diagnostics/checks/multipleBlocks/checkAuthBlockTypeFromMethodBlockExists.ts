@@ -19,12 +19,15 @@ export function checkAuthBlockTypeFromMethodBlockExists(
     const methodBlocks = getAllMethodBlocks(blocks);
     const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
 
-    if (methodBlocks.length != 1 || authBlocks.length != 1) {
+    if (methodBlocks.length != 1 || authBlocks.length > 1) {
         return undefined;
     }
 
     const methodBlockField = getAuthTypeFromMethodBlock(methodBlocks[0]);
-    const authTypeFromAuthBlock = getAuthTypeFromAuthBlock(authBlocks[0]);
+    const authTypeFromAuthBlock =
+        authBlocks.length > 0
+            ? getAuthTypeFromAuthBlock(authBlocks[0])
+            : undefined;
 
     if (
         methodBlockField &&

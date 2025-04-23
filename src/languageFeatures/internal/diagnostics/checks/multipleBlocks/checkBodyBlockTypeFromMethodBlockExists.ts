@@ -21,13 +21,15 @@ export function checkBodyBlockTypeFromMethodBlockExists(
     const methodBlocks = getAllMethodBlocks(blocks);
     const bodyBlocks = blocks.filter(({ name }) => isBodyBlock(name));
 
-    if (methodBlocks.length != 1 || bodyBlocks.length != 1) {
+    if (methodBlocks.length != 1 || bodyBlocks.length > 1) {
         return undefined;
     }
 
     const bodyBlock = bodyBlocks[0];
     const methodBlockField = getBodyTypeFromMethodBlockField(methodBlocks[0]);
-    const bodyTypeNameFromBodyBlock = getBodyTypeFromBlockName(bodyBlock.name);
+    const bodyTypeNameFromBodyBlock = bodyBlock
+        ? getBodyTypeFromBlockName(bodyBlock.name)
+        : undefined;
 
     if (
         methodBlockField &&
