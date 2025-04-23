@@ -99,16 +99,23 @@ export class CollectionWatcher {
         }
 
         const maybeWorkspaceFolder = workspace.workspaceFolders.find((folder) =>
-            collectionRootDir.includes(folder.uri.fsPath)
+            normalizeDirectoryPath(collectionRootDir).includes(
+                normalizeDirectoryPath(folder.uri.fsPath)
+            )
         );
 
-        return maybeWorkspaceFolder
-            ? new RelativePattern(
-                  maybeWorkspaceFolder,
+        if(!maybeWorkspaceFolder){
+            return undefined;
+        }
+
+        return new RelativePattern(
+                  maybeWorkspaceFolder, normalizeDirectoryPath(collectionRootDir) != (
+                    normalizeDirectoryPath(maybeWorkspaceFolder.uri.fsPath)
+                ) ? 
                   `{**/${basename(collectionRootDir)},**/${basename(
                       collectionRootDir
-                  )}/**/*}`
+                  )}/**/*}`: `{*/,**/*}`
               )
-            : undefined;
+            ;
     }
 }
