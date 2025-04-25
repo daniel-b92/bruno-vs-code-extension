@@ -81,7 +81,7 @@ function getDiagnostic(
     expectedMethodBlockFieldValue: MethodBlockBody
 ): DiagnosticWithCode {
     return {
-        message: `Body type does not match name of body block. Expected value: '${expectedMethodBlockFieldValue}'.`,
+        message: `Does not match name of body block. Expected value: '${expectedMethodBlockFieldValue}'.`,
         range: methodBlockField.valueRange,
         relatedInformation: [
             {
@@ -117,7 +117,7 @@ function getDiagnosticInCaseOfNonExpectedBodyBlock(
     bodyBlock: RequestFileBlock
 ): DiagnosticWithCode {
     return {
-        message: `A body block is defined although the body type in the method block is '${methodBlockField.key}'.`,
+        message: `A body block is defined although the body type in the method block is '${methodBlockField.value}'.`,
         range: methodBlockField.valueRange,
         relatedInformation: [
             {

@@ -242,15 +242,37 @@
         "description": "Add block for auth via api key"
     },
 
-    "body block - JSON, XML, SPARQL or text": {
+    "body block - JSON": {
         "prefix": ["body"],
-        "body": ["${1|body:json,body:xml,body:sparql,body:text|} {", "\t${0}", "}"],
-        "description": "Add block for request body with JSON, XML, SPARQL or plain text format"
+        "body": ["body:json {", "\t${0}", "}"],
+        "description": "Add block for request body with JSON format"
+    },
+
+    "body block - XML": {
+        "prefix": ["body"],
+        "body": ["body:xml {", "\t${0}", "}"],
+        "description": "Add block for request body with XML format"
+    },
+
+    "body block - SPARQL": {
+        "prefix": ["body"],
+        "body": ["body:sparql {", "\t${0}", "}"],
+        "description": "Add block for request body with SPARQL format"
+    },
+
+    "body block - plain text": {
+        "prefix": ["body"],
+        "body": ["body:text {", "\t${0}", "}"],
+        "description": "Add block for request body with plain text format"
     },
 
     "body block - multipart form": {
         "prefix": ["body"],
-        "body": ["body:multipart-form {", "\t${1:key}: ${2|value,@file()|}", "}"],
+        "body": [
+            "body:multipart-form {",
+            "\t${1:key}: ${2|value,@file()|}",
+            "}"
+        ],
         "description": "Add block for request body with multipart form format"
     },
 
@@ -262,7 +284,11 @@
 
     "body block - file": {
         "prefix": ["body"],
-        "body": ["body:file {", "\tfile: @file(${1:file_path}) @contentType(${2:content_type})", "}"],
+        "body": [
+            "body:file {",
+            "\tfile: @file(${1:file_path}) @contentType(${2:content_type})",
+            "}"
+        ],
         "description": "Add block for request body with file format"
     },
 
