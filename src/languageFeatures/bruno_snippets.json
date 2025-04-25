@@ -16,8 +16,8 @@
         "body": [
             "get {",
             "\turl: ${2:http://}",
-            "\tbody: ${3|none,json,xml|}",
-            "\tauth: ${4|none,basic,bearer|}",
+            "\tbody: ${3|none,json,xml,multipartForm,formUrlEncoded,text,sparql,file|}",
+            "\tauth: ${4|none,inherit,basic,bearer,awsv4,digest,ntlm,oauth2,wsse,apikey|}",
             "}"
         ],
         "description": "Add GET method block"
@@ -28,8 +28,8 @@
         "body": [
             "post {",
             "\turl: ${2:http://}",
-            "\tbody: ${3|none,json,xml|}",
-            "\tauth: ${4|none,basic,bearer|}",
+            "\tbody: ${3|none,json,xml,multipartForm,formUrlEncoded,text,sparql,file|}",
+            "\tauth: ${4|none,inherit,basic,bearer,awsv4,digest,ntlm,oauth2,wsse,apikey|}",
             "}"
         ],
         "description": "Add POST method block"
@@ -40,8 +40,8 @@
         "body": [
             "put {",
             "\turl: ${2:http://}",
-            "\tbody: ${3|none,json,xml|}",
-            "\tauth: ${4|none,basic,bearer|}",
+            "\tbody: ${3|none,json,xml,multipartForm,formUrlEncoded,text,sparql,file|}",
+            "\tauth: ${4|none,inherit,basic,bearer,awsv4,digest,ntlm,oauth2,wsse,apikey|}",
             "}"
         ],
         "description": "Add PUT method block"
@@ -52,8 +52,8 @@
         "body": [
             "delete {",
             "\turl: ${2:http://}",
-            "\tbody: ${3|none,json,xml|}",
-            "\tauth: ${4|none,basic,bearer|}",
+            "\tbody: ${3|none,json,xml,multipartForm,formUrlEncoded,text,sparql,file|}",
+            "\tauth: ${4|none,inherit,basic,bearer,awsv4,digest,ntlm,oauth2,wsse,apikey|}",
             "}"
         ],
         "description": "Add DELETE method block"
@@ -64,8 +64,8 @@
         "body": [
             "options {",
             "\turl: ${2:http://}",
-            "\tbody: ${3|none,json,xml|}",
-            "\tauth: ${4|none,basic,bearer|}",
+            "\tbody: ${3|none,json,xml,multipartForm,formUrlEncoded,text,sparql,file|}",
+            "\tauth: ${4|none,inherit,basic,bearer,awsv4,digest,ntlm,oauth2,wsse,apikey|}",
             "}"
         ],
         "description": "Add OPTIONS method block"
@@ -76,8 +76,8 @@
         "body": [
             "patch {",
             "\turl: ${2:http://}",
-            "\tbody: ${3|none,json,xml|}",
-            "\tauth: ${4|none,basic,bearer|}",
+            "\tbody: ${3|none,json,xml,multipartForm,formUrlEncoded,text,sparql,file|}",
+            "\tauth: ${4|none,inherit,basic,bearer,awsv4,digest,ntlm,oauth2,wsse,apikey|}",
             "}"
         ],
         "description": "Add PATCH method block"
@@ -88,8 +88,8 @@
         "body": [
             "head {",
             "\turl: ${2:http://}",
-            "\tbody: ${3|none,json,xml|}",
-            "\tauth: ${4|none,basic,bearer|}",
+            "\tbody: ${3|none,json,xml,multipartForm,formUrlEncoded,text,sparql,file|}",
+            "\tauth: ${4|none,inherit,basic,bearer,awsv4,digest,ntlm,oauth2,wsse,apikey|}",
             "}"
         ],
         "description": "Add HEAD method block"
