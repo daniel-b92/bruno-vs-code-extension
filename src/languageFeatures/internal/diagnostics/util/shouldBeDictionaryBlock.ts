@@ -17,6 +17,13 @@ export function shouldBeDictionaryBlock(blockName: string) {
         (getPossibleMethodBlocks() as string[]).includes(blockName) ||
         isAuthBlock(blockName) ||
         isParamsBlock(blockName) ||
-        isVarsBlock(blockName)
+        isVarsBlock(blockName) ||
+        (
+            [
+                RequestFileBlockName.MultipartFormBody,
+                RequestFileBlockName.FormUrlEncodedBody,
+                RequestFileBlockName.FileOrBinaryBody,
+            ] as string[]
+        ).includes(blockName)
     );
 }
