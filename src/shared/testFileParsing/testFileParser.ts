@@ -1,12 +1,12 @@
 import { existsSync, lstatSync, readFileSync } from "fs";
 import { Position, Range } from "vscode";
-import { RequestFileBlockName } from "./external/definitions/requestFileBlockNameEnum";
+import { RequestFileBlockName } from "../languageUtils/requestFileBlockNameEnum";
 import {
     RequestFileBlock,
     TextOutsideOfBlocks,
-} from "./external/definitions/interfaces";
+} from "./external/interfaces";
 import { getBlockContent } from "./internal/getBlockContent";
-import { TextDocumentHelper } from "../util/textDocumentHelper";
+import { TextDocumentHelper } from "../fileSystem/util/textDocumentHelper";
 import { parseBlockFromTestFile } from "./external/parseBlockFromTestFile";
 
 export const getSequence = (testFilePath: string) => {

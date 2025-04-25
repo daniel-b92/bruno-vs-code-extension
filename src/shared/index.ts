@@ -9,46 +9,46 @@ export * from "./fileSystem/util/textDocumentHelper";
 export * from "./fileSystem/util/getExtensionForRequestFiles";
 
 // file system -> test file parsing
-export * from "./fileSystem/testFileParsing/getMaxSequenceForRequests";
-export * from "./fileSystem/testFileParsing/getSequencesForRequests";
-export * from "./fileSystem/testFileParsing/testFileParser";
+export * from "./testFileParsing/getMaxSequenceForRequests";
+export * from "./testFileParsing/getSequencesForRequests";
+export * from "./testFileParsing/testFileParser";
 
-export * from "./fileSystem/testFileParsing/external/definitions/interfaces";
-export * from "./fileSystem/testFileParsing/external/definitions/booleanFieldValueEnum";
-export * from "./fileSystem/testFileParsing/external/definitions/requestFileBlockNameEnum";
-export * from "./fileSystem/testFileParsing/external/definitions/metaBlock/metaBlockKeyEnum";
-export * from "./fileSystem/testFileParsing/external/definitions/methodBlocks/methodBlockKeyEnum";
-export * from "./fileSystem/testFileParsing/external/definitions/methodBlocks/methodBlockAuthEnum";
-export * from "./fileSystem/testFileParsing/external/definitions/methodBlocks/methodBlockBodyEnum";
-export * from "./fileSystem/testFileParsing/external/definitions/metaBlock/requestTypeEnum";
-export * from "./fileSystem/testFileParsing/external/definitions/authBlocks/authBlockNameEnum";
-export * from "./fileSystem/testFileParsing/external/definitions/authBlocks/authBlocksKeyEnums";
-export * from "./fileSystem/testFileParsing/external/definitions/authBlocks/oAuth2BlockValuesEnums";
-export * from "./fileSystem/testFileParsing/external/definitions/authBlocks/apiKeyAuthBlockValuesEnums";
-export * from "./fileSystem/testFileParsing/external/definitions/authBlocks/oAuth2BlockCommonFieldsValuesEnums";
+export * from "./testFileParsing/external/interfaces";
+export * from "./languageUtils/booleanFieldValueEnum";
+export * from "./languageUtils/requestFileBlockNameEnum";
+export * from "./languageUtils/metaBlock/metaBlockKeyEnum";
+export * from "./languageUtils/methodBlocks/methodBlockKeyEnum";
+export * from "./languageUtils/methodBlocks/methodBlockAuthEnum";
+export * from "./languageUtils/methodBlocks/methodBlockBodyEnum";
+export * from "./languageUtils/metaBlock/requestTypeEnum";
+export * from "./languageUtils/authBlocks/authBlockNameEnum";
+export * from "./languageUtils/authBlocks/authBlocksKeyEnums";
+export * from "./languageUtils/authBlocks/oAuth2BlockValuesEnums";
+export * from "./languageUtils/authBlocks/apiKeyAuthBlockValuesEnums";
+export * from "./languageUtils/authBlocks/oAuth2BlockCommonFieldsValuesEnums";
 
-export * from "./fileSystem/testFileParsing/external/authBlocks/getAuthTypeFromBlockName";
-export * from "./fileSystem/testFileParsing/external/authBlocks/isAuthBlock";
-export * from "./fileSystem/testFileParsing/external/authBlocks/getMandatoryKeysForNonOAuth2Block";
-export * from "./fileSystem/testFileParsing/external/authBlocks/getMandatoryKeysForOAuth2Block";
+export * from "./testFileParsing/external/authBlocks/getAuthTypeFromBlockName";
+export * from "./testFileParsing/external/authBlocks/isAuthBlock";
+export * from "./testFileParsing/external/authBlocks/getMandatoryKeysForNonOAuth2Block";
+export * from "./testFileParsing/external/authBlocks/getMandatoryKeysForOAuth2Block";
 
-export * from "./fileSystem/testFileParsing/external/bodyBlocks/getBodyTypeFromBlockName";
-export * from "./fileSystem/testFileParsing/external/bodyBlocks/isBodyBlock";
+export * from "./testFileParsing/external/bodyBlocks/getBodyTypeFromBlockName";
+export * from "./testFileParsing/external/bodyBlocks/isBodyBlock";
 
-export * from "./fileSystem/testFileParsing/external/methodBlocks/getAllMethodBlocks";
-export * from "./fileSystem/testFileParsing/external/methodBlocks/getPossibleMethodBlocks";
+export * from "./testFileParsing/external/methodBlocks/getAllMethodBlocks";
+export * from "./testFileParsing/external/methodBlocks/getPossibleMethodBlocks";
 
-export * from "./fileSystem/testFileParsing/external/paramsBlocks/isParamsBlock";
+export * from "./testFileParsing/external/paramsBlocks/isParamsBlock";
 
-export * from "./fileSystem/testFileParsing/external/varsBlocks/isVarsBlock";
+export * from "./testFileParsing/external/varsBlocks/isVarsBlock";
 
-export * from "./fileSystem/testFileParsing/external/castBlockToDictionaryBlock";
-export * from "./fileSystem/testFileParsing/external/parseBlockFromTestFile";
+export * from "./testFileParsing/external/castBlockToDictionaryBlock";
+export * from "./testFileParsing/external/parseBlockFromTestFile";
 
 // file system -> test file writing
-export * from "./fileSystem/testFileWriting/addMetaBlock";
-export * from "./fileSystem/testFileWriting/appendDefaultMethodBlock";
-export * from "./fileSystem/testFileWriting/interfaces";
+export * from "./testFileWriting/addMetaBlock";
+export * from "./testFileWriting/appendDefaultMethodBlock";
+export * from "./testFileWriting/interfaces";
 
 // model
 export * from "../treeView/brunoTreeItem";

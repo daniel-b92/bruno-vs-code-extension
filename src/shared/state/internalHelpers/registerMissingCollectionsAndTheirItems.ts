@@ -7,7 +7,7 @@ import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
 import { CollectionDirectory } from "../../model/collectionDirectory";
 import { CollectionFile } from "../../model/collectionFile";
-import { getSequence } from "../../fileSystem/testFileParsing/testFileParser";
+import { getSequence } from "../../testFileParsing/testFileParser";
 import { addItemToCollection } from "./addItemToCollection";
 
 export async function registerMissingCollectionsAndTheirItems(

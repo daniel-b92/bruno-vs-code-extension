@@ -1,4 +1,4 @@
-import { DictionaryBlock, RequestFileBlock } from "./definitions/interfaces";
+import { DictionaryBlock, RequestFileBlock } from "./interfaces";
 
 export function castBlockToDictionaryBlock(block: RequestFileBlock) {
     return Array.isArray(block.content)

@@ -1,13 +1,13 @@
 import { existsSync, lstatSync, readFileSync, writeFileSync } from "fs";
 import { parseTestFile } from "../testFileParsing/testFileParser";
-import { TextDocumentHelper } from "../util/textDocumentHelper";
-import { RequestFileBlockName } from "../testFileParsing/external/definitions/requestFileBlockNameEnum";
+import { TextDocumentHelper } from "../fileSystem/util/textDocumentHelper";
+import { RequestFileBlockName } from "../languageUtils/requestFileBlockNameEnum";
 import { getAllMethodBlocks } from "../testFileParsing/external/methodBlocks/getAllMethodBlocks";
 import {
     getLineBreak,
     getNumberOfWhitespacesForIndentation,
 } from "./internal/writerUtils";
-import { MethodBlockAuth, MethodBlockBody } from "../..";
+import { MethodBlockAuth, MethodBlockBody } from "..";
 
 export function appendDefaultMethodBlock(
     testFilePath: string,

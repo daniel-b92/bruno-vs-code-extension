@@ -1,6 +1,6 @@
 import { Position } from "vscode";
-import { TextDocumentHelper } from "../../util/textDocumentHelper";
-import { RequestFileBlockName } from "./definitions/requestFileBlockNameEnum";
+import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
+import { RequestFileBlockName } from "../../languageUtils/requestFileBlockNameEnum";
 import { getBlockContent } from "../internal/getBlockContent";
 
 export const parseBlockFromTestFile = (

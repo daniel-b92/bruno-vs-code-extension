@@ -1,6 +1,6 @@
 import { Position, Range } from "vscode";
-import { DictionaryBlockField } from "../external/definitions/interfaces";
-import { TextDocumentHelper } from "../../util/textDocumentHelper";
+import { DictionaryBlockField } from "../external/interfaces";
+import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
 
 export const getBlockContent = (
     document: TextDocumentHelper,

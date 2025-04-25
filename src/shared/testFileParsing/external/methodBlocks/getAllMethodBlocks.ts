@@ -1,4 +1,4 @@
-import { RequestFileBlock } from "../definitions/interfaces";
+import { RequestFileBlock } from "../interfaces";
 import { getPossibleMethodBlocks } from "./getPossibleMethodBlocks";
 
 export function getAllMethodBlocks(parsedBlocks: RequestFileBlock[]) {
