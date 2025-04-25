@@ -1,5 +1,5 @@
 {
-    "meta section": {
+    "meta block": {
         "prefix": "meta",
         "body": [
             "meta {",
@@ -8,10 +8,10 @@
             "\tseq:${3: }${0}",
             "}"
         ],
-        "description": "Add meta section"
+        "description": "Add meta block"
     },
 
-    "get section": {
+    "get block": {
         "prefix": "get",
         "body": [
             "get {",
@@ -20,10 +20,10 @@
             "\tauth: ${4|none,basic,bearer|}",
             "}"
         ],
-        "description": "Add GET method section"
+        "description": "Add GET method block"
     },
 
-    "post section": {
+    "post block": {
         "prefix": "post",
         "body": [
             "post {",
@@ -32,10 +32,10 @@
             "\tauth: ${4|none,basic,bearer|}",
             "}"
         ],
-        "description": "Add POST method section"
+        "description": "Add POST method block"
     },
 
-    "put section": {
+    "put block": {
         "prefix": "put",
         "body": [
             "put {",
@@ -44,10 +44,10 @@
             "\tauth: ${4|none,basic,bearer|}",
             "}"
         ],
-        "description": "Add PUT method section"
+        "description": "Add PUT method block"
     },
 
-    "delete section": {
+    "delete block": {
         "prefix": "delete",
         "body": [
             "delete {",
@@ -56,10 +56,10 @@
             "\tauth: ${4|none,basic,bearer|}",
             "}"
         ],
-        "description": "Add DELETE method section"
+        "description": "Add DELETE method block"
     },
 
-    "options section": {
+    "options block": {
         "prefix": "options",
         "body": [
             "options {",
@@ -68,10 +68,10 @@
             "\tauth: ${4|none,basic,bearer|}",
             "}"
         ],
-        "description": "Add OPTIONS method section"
+        "description": "Add OPTIONS method block"
     },
 
-    "patch section": {
+    "patch block": {
         "prefix": "patch",
         "body": [
             "patch {",
@@ -80,10 +80,10 @@
             "\tauth: ${4|none,basic,bearer|}",
             "}"
         ],
-        "description": "Add PATCH method section"
+        "description": "Add PATCH method block"
     },
 
-    "head section": {
+    "head block": {
         "prefix": "head",
         "body": [
             "head {",
@@ -92,10 +92,10 @@
             "\tauth: ${4|none,basic,bearer|}",
             "}"
         ],
-        "description": "Add HEAD method section"
+        "description": "Add HEAD method block"
     },
 
-    "basic auth section": {
+    "basic auth block": {
         "prefix": "auth:basic",
         "body": [
             "auth:basic {",
@@ -103,16 +103,16 @@
             "\tpassword: ${2:password}",
             "}"
         ],
-        "description": "Add section for basic auth"
+        "description": "Add block for basic auth"
     },
 
-    "bearer auth section": {
+    "bearer auth block": {
         "prefix": "auth:bearer",
         "body": ["auth:bearer {", "\ttoken: ${1:token}", "}"],
-        "description": "Add section for bearer auth"
+        "description": "Add block for bearer auth"
     },
 
-    "aws v4 auth section": {
+    "aws v4 auth block": {
         "prefix": "auth:awsv4",
         "body": [
             "auth:awsv4 {",
@@ -124,10 +124,10 @@
             "\tprofileName: ${6:profileName}",
             "}"
         ],
-        "description": "Add section for aws v4 auth"
+        "description": "Add block for aws v4 auth"
     },
 
-    "digest auth section": {
+    "digest auth block": {
         "prefix": "auth:digest",
         "body": [
             "auth:digest {",
@@ -135,10 +135,10 @@
             "\tpassword: ${2:password}",
             "}"
         ],
-        "description": "Add section for digest auth"
+        "description": "Add block for digest auth"
     },
 
-    "ntlm auth section": {
+    "ntlm auth block": {
         "prefix": "auth:ntlm",
         "body": [
             "auth:ntlm {",
@@ -147,10 +147,10 @@
             "\tdomain: ${3:domain}",
             "}"
         ],
-        "description": "Add section for ntlm auth"
+        "description": "Add block for ntlm auth"
     },
 
-    "oauth2 section via auth code": {
+    "oauth2 block via auth code": {
         "prefix": "auth:oauth2",
         "body": [
             "auth:oauth2 {",
@@ -172,10 +172,10 @@
             "\tauto_refresh_token: ${13|false,true|}",
             "}"
         ],
-        "description": "Add section for oauth2 auth section with grant type authorization code"
+        "description": "Add block for oauth2 auth block with grant type authorization code"
     },
 
-    "oauth2 section via password": {
+    "oauth2 block via password": {
         "prefix": "auth:oauth2",
         "body": [
             "auth:oauth2 {",
@@ -195,10 +195,10 @@
             "\tauto_refresh_token: ${11|false,true|}",
             "}"
         ],
-        "description": "Add section for oauth2 auth section with grant type password credentials"
+        "description": "Add block for oauth2 auth block with grant type password credentials"
     },
 
-    "oauth2 section via client credentials": {
+    "oauth2 block via client credentials": {
         "prefix": "auth:oauth2",
         "body": [
             "auth:oauth2 {",
@@ -216,10 +216,10 @@
             "\tauto_refresh_token: ${9|false,true|}",
             "}"
         ],
-        "description": "Add section for oauth2 auth section with grant type client credentials"
+        "description": "Add block for oauth2 auth block with grant type client credentials"
     },
 
-    "wsse auth section": {
+    "wsse auth block": {
         "prefix": "auth:wsse",
         "body": [
             "auth:wsse {",
@@ -227,10 +227,10 @@
             "\tpassword: ${2:password}",
             "}"
         ],
-        "description": "Add section for wsse auth"
+        "description": "Add block for wsse auth"
     },
 
-    "api key auth section": {
+    "api key auth block": {
         "prefix": "auth:apikey",
         "body": [
             "auth:apikey {",
@@ -239,42 +239,60 @@
             "\tplacement: ${3|header,queryparams|}",
             "}"
         ],
-        "description": "Add section for auth via api key"
+        "description": "Add block for auth via api key"
     },
 
-    "body section": {
+    "body block - JSON, XML, SPARQL or text": {
         "prefix": ["body"],
-        "body": ["${1|body:json,body:xml|} {", "\t${0}", "}"],
-        "description": "Add section for request body"
+        "body": ["${1|body:json,body:xml,body:sparql,body:text|} {", "\t${0}", "}"],
+        "description": "Add block for request body with JSON, XML, SPARQL or plain text format"
     },
 
-    "pre-request script section": {
+    "body block - multipart form": {
+        "prefix": ["body"],
+        "body": ["body:multipart-form {", "\t${1:key}: ${2|value,@file()|}", "}"],
+        "description": "Add block for request body with multipart form format"
+    },
+
+    "body block - form URL encoded": {
+        "prefix": ["body"],
+        "body": ["body:form-urlencoded {", "\t${1:key}: ${2:value}", "}"],
+        "description": "Add block for request body with form URL encoded format"
+    },
+
+    "body block - file": {
+        "prefix": ["body"],
+        "body": ["body:file {", "\tfile: @file(${1:file_path}) @contentType(${2:content_type})", "}"],
+        "description": "Add block for request body with file format"
+    },
+
+    "pre-request script block": {
         "prefix": ["script:pre-request"],
         "body": ["script:pre-request {", "\t${0}", "}"],
-        "description": "Add pre-request script section"
+        "description": "Add pre-request script block"
     },
 
-    "post-response script section": {
+    "post-response script block": {
         "prefix": ["script:post-response"],
         "body": ["script:post-response {", "\t${0}", "}"],
-        "description": "Add post-response script section"
+        "description": "Add post-response script block"
     },
 
-    "tests section": {
+    "tests block": {
         "prefix": ["tests"],
         "body": ["tests {", "\t${0}", "}"],
-        "description": "Add section for tests"
+        "description": "Add block for tests"
     },
 
-    "testcase within tests section": {
+    "testcase within tests block": {
         "prefix": ["test"],
         "body": ["test(\"${1:description}\", function() {", "\t${0}", "});"],
-        "description": "Add testcase within section for tests"
+        "description": "Add testcase within block for tests"
     },
 
-    "docs section": {
+    "docs block": {
         "prefix": ["docs"],
         "body": ["docs {", "\t${0}", "}"],
-        "description": "Add section for docs"
+        "description": "Add block for docs"
     }
 }
