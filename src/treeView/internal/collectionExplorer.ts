@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import { BrunoTreeItemProvider } from "./brunoTreeItemProvider";
 import {
-    BrunoTreeItem,
     getSequence,
     getSequencesForRequests,
     getMaxSequenceForRequests,
@@ -29,6 +28,7 @@ import {
     writeFileSync,
 } from "fs";
 import { basename, dirname, extname, resolve } from "path";
+import { BrunoTreeItem } from "../brunoTreeItem";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>

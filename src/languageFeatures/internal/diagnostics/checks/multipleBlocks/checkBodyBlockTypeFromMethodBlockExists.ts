@@ -2,7 +2,10 @@ import { DiagnosticSeverity, Uri } from "vscode";
 import {
     DictionaryBlockField,
     getAllMethodBlocks,
+    getMethodBlockBodyFieldValueForBodyName,
+    MethodBlockBody,
     RequestFileBlock,
+    RequestFileBlockName,
 } from "../../../../../shared";
 import {
     castBlockToDictionaryBlock,
@@ -25,34 +28,47 @@ export function checkBodyBlockTypeFromMethodBlockExists(
         return undefined;
     }
 
-    const bodyBlock = bodyBlocks[0];
     const methodBlockField = getBodyTypeFromMethodBlockField(methodBlocks[0]);
-    const bodyTypeNameFromBodyBlock = bodyBlock
-        ? getBodyTypeFromBlockName(bodyBlock.name)
-        : undefined;
+
+    if (!methodBlockField) {
+        return undefined;
+    }
 
     if (
-        methodBlockField &&
-        !bodyTypeNameFromBodyBlock &&
+        bodyBlocks.length == 0 &&
         methodBlockField.value != getBodyBlockTypeForNoDefinedBodyBlock()
     ) {
         return getDiagnosticInCaseOfMissingBodyBlock(methodBlockField);
-    } else if (
-        methodBlockField &&
-        bodyTypeNameFromBodyBlock &&
-        methodBlockField.value == getBodyBlockTypeForNoDefinedBodyBlock()
-    ) {
+    } else if (bodyBlocks.length == 0) {
+        return undefined;
+    }
+
+    const bodyBlock = bodyBlocks[0];
+
+    if (methodBlockField.value == getBodyBlockTypeForNoDefinedBodyBlock()) {
         return getDiagnosticInCaseOfNonExpectedBodyBlock(
             documentUri,
             methodBlockField,
             bodyBlock
         );
     } else if (
-        methodBlockField &&
-        bodyTypeNameFromBodyBlock &&
-        methodBlockField.value != bodyTypeNameFromBodyBlock
+        (Object.values(RequestFileBlockName) as string[]).includes(
+            bodyBlock.name
+        )
     ) {
-        return getDiagnostic(documentUri, methodBlockField, bodyBlock);
+        const expectedMethodBlockFieldValue =
+            getMethodBlockBodyFieldValueForBodyName(
+                bodyBlock.name as RequestFileBlockName
+            );
+
+        return methodBlockField.value != expectedMethodBlockFieldValue
+            ? getDiagnostic(
+                  documentUri,
+                  methodBlockField,
+                  bodyBlock,
+                  expectedMethodBlockFieldValue
+              )
+            : undefined;
     } else {
         return undefined;
     }
@@ -61,10 +77,11 @@ export function checkBodyBlockTypeFromMethodBlockExists(
 function getDiagnostic(
     documentUri: Uri,
     methodBlockField: DictionaryBlockField,
-    bodyBlock: RequestFileBlock
+    bodyBlock: RequestFileBlock,
+    expectedMethodBlockFieldValue: MethodBlockBody
 ): DiagnosticWithCode {
     return {
-        message: "Body type does not match name of body block.",
+        message: `Body type does not match name of body block. Expected value: '${expectedMethodBlockFieldValue}'.`,
         range: methodBlockField.valueRange,
         relatedInformation: [
             {

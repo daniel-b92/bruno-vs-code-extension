@@ -3,11 +3,11 @@ import { dirname, resolve } from "path";
 import * as vscode from "vscode";
 import {
     getSequence,
-    BrunoTreeItem,
     CollectionData,
     FileChangeType,
     CollectionItemProvider,
 } from "../../shared";
+import { BrunoTreeItem } from "../brunoTreeItem";
 
 export class BrunoTreeItemProvider
     implements vscode.TreeDataProvider<BrunoTreeItem>
