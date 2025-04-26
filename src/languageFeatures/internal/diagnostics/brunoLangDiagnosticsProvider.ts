@@ -23,6 +23,8 @@ import { checkBlocksAreSeparatedBySingleEmptyLine } from "./checks/multipleBlock
 import { getMetaBlockSpecificDiagnostics } from "./getMetaBlockSpecificDiagnostics";
 import { getMethodBlockSpecificDiagnostics } from "./getMethodBlockSpecificDiagnostics";
 import { getAuthBlockSpecificDiagnostics } from "./getAuthBlockSpecificDiagnostics";
+import { checkUrlFromMethodBlockMatchesQueryParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesQueryParamsBlock";
+import { checkUrlFromMethodBlockMatchesPathParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesPathParamsBlock";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -75,6 +77,8 @@ export class BrunoLangDiagnosticsProvider {
             checkBodyBlockTypeFromMethodBlockExists(documentUri, blocks),
             checkNoBlocksHaveUnknownNames(documentUri, blocks),
             checkDictionaryBlocksHaveDictionaryStructure(documentUri, blocks),
+            checkUrlFromMethodBlockMatchesQueryParamsBlock(documentUri, blocks),
+            checkUrlFromMethodBlockMatchesPathParamsBlock(documentUri, blocks),
             checkEitherAssertOrTestsBlockExists(document, blocks),
             checkBlocksAreSeparatedBySingleEmptyLine(
                 documentUri,
