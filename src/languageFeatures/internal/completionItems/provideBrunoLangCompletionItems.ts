@@ -1,10 +1,16 @@
 import { CompletionItem, languages } from "vscode";
 import {
+    ApiKeyAuthBlockKey,
+    ApiKeyAuthBlockPlacementValue,
+    BooleanFieldValue,
     getMaxSequenceForRequests,
     MetaBlockKey,
     MethodBlockAuth,
     MethodBlockBody,
     MethodBlockKey,
+    OAuth2BlockCredentialsPlacementValue,
+    OAuth2BlockTokenPlacementValue,
+    OAuth2ViaAuthorizationCodeBlockKey,
     RequestType,
 } from "../../../shared";
 import { dirname } from "path";
@@ -13,13 +19,16 @@ import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocument
 export function provideBrunoLangCompletionItems() {
     getCompletionItemsForFieldsInMetaBlock();
     getCompletionItemsForFieldsInMethodBlock();
+    getCompletionItemsForFieldsInAuthBlock();
 }
 
 function getCompletionItemsForFieldsInMetaBlock() {
-    registerFixedCompletionItems(
-        new RegExp(`^\\s*${MetaBlockKey.Type}:\\s*$`),
-        ...Object.values(RequestType)
-    );
+    registerFixedCompletionItems([
+        {
+            linePattern: getLinePatternForDictionaryField(MetaBlockKey.Type),
+            choices: Object.values(RequestType),
+        },
+    ]);
 
     languages.registerCompletionItemProvider(
         getRequestFileDocumentSelector(),
@@ -53,19 +62,64 @@ function getCompletionItemsForFieldsInMetaBlock() {
 }
 
 function getCompletionItemsForFieldsInMethodBlock() {
-    registerFixedCompletionItems(
-        new RegExp(`^\\s*${MethodBlockKey.Body}:\\s*$`),
-        ...Object.values(MethodBlockBody)
-    );
-    registerFixedCompletionItems(
-        new RegExp(`^\\s*${MethodBlockKey.Auth}:\\s*$`),
-        ...Object.values(MethodBlockAuth)
-    );
+    registerFixedCompletionItems([
+        {
+            linePattern: getLinePatternForDictionaryField(MethodBlockKey.Body),
+            choices: Object.values(MethodBlockBody),
+        },
+        {
+            linePattern: getLinePatternForDictionaryField(MethodBlockKey.Auth),
+            choices: Object.values(MethodBlockAuth),
+        },
+    ]);
+}
+
+function getCompletionItemsForFieldsInAuthBlock() {
+    registerFixedCompletionItems([
+        {
+            linePattern: getLinePatternForDictionaryField(
+                ApiKeyAuthBlockKey.Placement
+            ),
+            choices: Object.values(ApiKeyAuthBlockPlacementValue),
+        },
+        {
+            linePattern: getLinePatternForDictionaryField(
+                OAuth2ViaAuthorizationCodeBlockKey.CredentialsPlacement
+            ),
+            choices: Object.values(OAuth2BlockCredentialsPlacementValue),
+        },
+        {
+            linePattern: getLinePatternForDictionaryField(
+                OAuth2ViaAuthorizationCodeBlockKey.Pkce
+            ),
+            choices: Object.values(BooleanFieldValue),
+        },
+        {
+            linePattern: getLinePatternForDictionaryField(
+                OAuth2ViaAuthorizationCodeBlockKey.TokenPlacement
+            ),
+            choices: Object.values(OAuth2BlockTokenPlacementValue),
+        },
+        {
+            linePattern: getLinePatternForDictionaryField(
+                OAuth2ViaAuthorizationCodeBlockKey.AutoFetchToken
+            ),
+            choices: Object.values(BooleanFieldValue),
+        },
+        {
+            linePattern: getLinePatternForDictionaryField(
+                OAuth2ViaAuthorizationCodeBlockKey.AutoRefreshToken
+            ),
+            choices: Object.values(BooleanFieldValue),
+        },
+    ]);
 }
 
 function registerFixedCompletionItems(
-    linePattern: RegExp,
-    ...choices: string[]
+    params: {
+        linePattern: RegExp;
+        choices: string[];
+    }[]
 ) {
     languages.registerCompletionItemProvider(
         getRequestFileDocumentSelector(),
@@ -73,20 +127,24 @@ function registerFixedCompletionItems(
             provideCompletionItems(document, position) {
                 const currentText = document.lineAt(position.line).text;
 
-                if (currentText.match(linePattern)) {
-                    return {
-                        items: choices.map(
-                            (choice) =>
-                                new CompletionItem(
-                                    `${
-                                        currentText.endsWith(" ") ? "" : " "
-                                    }${choice}`
-                                )
-                        ),
-                    };
-                } else {
-                    return undefined;
+                const items: CompletionItem[] = [];
+
+                for (const { linePattern, choices } of params) {
+                    if (currentText.match(linePattern)) {
+                        items.push(
+                            ...choices.map(
+                                (choice) =>
+                                    new CompletionItem(
+                                        `${
+                                            currentText.endsWith(" ") ? "" : " "
+                                        }${choice}`
+                                    )
+                            )
+                        );
+                    }
                 }
+
+                return items;
             },
         },
         ...getTriggerChars()
@@ -95,4 +153,8 @@ function registerFixedCompletionItems(
 
 function getTriggerChars() {
     return [":", " "];
+}
+
+function getLinePatternForDictionaryField(key: string) {
+    return new RegExp(`^\\s*${key}:\\s*$`);
 }
