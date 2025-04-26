@@ -8,8 +8,9 @@ import {
 import { getFieldFromDictionaryBlock } from "../../../util/getFieldFromDictionaryBlock";
 import { DiagnosticWithCode } from "../../../definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../../diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
+import { isSequenceValid } from "../../../util/isSequenceValid";
 
-export function checkSequenceInMetaBlockIsNumeric(
+export function checkSequenceInMetaBlockIsValid(
     metaBlock: RequestFileBlock
 ): DiagnosticWithCode | undefined {
     const castedMetaBlock = castBlockToDictionaryBlock(metaBlock);
@@ -23,7 +24,7 @@ export function checkSequenceInMetaBlockIsNumeric(
         MetaBlockKey.Sequence
     );
 
-    if (sequenceField && Number.isNaN(Number(sequenceField.value))) {
+    if (sequenceField && !isSequenceValid(sequenceField)) {
         return getDiagnostic(sequenceField);
     } else {
         return undefined;
@@ -32,13 +33,10 @@ export function checkSequenceInMetaBlockIsNumeric(
 
 function getDiagnostic(sequenceField: DictionaryBlockField) {
     return {
-        message: "Sequence is not numeric",
+        message:
+            "Sequence is not valid. It needs to be an integer with a value of at least 1.",
         range: sequenceField.valueRange,
         severity: DiagnosticSeverity.Error,
-        code: getCode(),
+        code: RelevantWithinMetaBlockDiagnosticCode.SequenceNotValid,
     };
-}
-
-function getCode() {
-    return RelevantWithinMetaBlockDiagnosticCode.SequenceNotNumeric;
 }

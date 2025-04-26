@@ -16,6 +16,7 @@ import { dirname } from "path";
 import { readFileSync } from "fs";
 import { DiagnosticWithCode } from "../../definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
+import { isSequenceValid } from "../../util/isSequenceValid";
 
 export function checkSequenceInMetaBlockIsUniqueWithinFolder(
     itemProvider: CollectionItemProvider,
@@ -31,47 +32,50 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
     const castedBlock = castBlockToDictionaryBlock(metaBlock);
 
     if (
-        castedBlock &&
-        castedBlock.content.filter(
-            ({ key, value }) =>
-                key == MetaBlockKey.Sequence && !Number.isNaN(Number(value))
-        ).length == 1
+        !castedBlock ||
+        castedBlock.content.filter(({ key }) => key == MetaBlockKey.Sequence)
+            .length != 1 ||
+        !isSequenceValid(
+            castedBlock.content.find(
+                ({ key }) => key == MetaBlockKey.Sequence
+            ) as DictionaryBlockField
+        )
     ) {
-        const sequenceField = castedBlock.content.find(
-            ({ key }) => key == MetaBlockKey.Sequence
-        ) as DictionaryBlockField;
+        return { code: getDiagnosticCode() };
+    }
 
-        const otherRequestsInFolder = getSequencesForOtherRequestsInFolder(
-            itemProvider,
-            documentUri,
-            dirname(documentUri.fsPath)
+    const sequenceField = castedBlock.content.find(
+        ({ key }) => key == MetaBlockKey.Sequence
+    ) as DictionaryBlockField;
+
+    const otherRequestsInFolder = getSequencesForOtherRequestsInFolder(
+        itemProvider,
+        documentUri,
+        dirname(documentUri.fsPath)
+    );
+
+    const otherRequestsWithSameSequence = otherRequestsInFolder
+        .filter(
+            ({ sequence: existingSequence }) =>
+                Number.parseInt(sequenceField.value) == existingSequence
+        )
+        .map(({ file }) => file);
+
+    if (otherRequestsWithSameSequence.length > 0) {
+        const allAffectedFiles = otherRequestsWithSameSequence.concat(
+            documentUri.fsPath
         );
 
-        const otherRequestsWithSameSequence = otherRequestsInFolder
-            .filter(
-                ({ sequence: existingSequence }) =>
-                    Number.parseInt(sequenceField.value) == existingSequence
-            )
-            .map(({ file }) => file);
-
-        if (otherRequestsWithSameSequence.length > 0) {
-            const allAffectedFiles = otherRequestsWithSameSequence.concat(
-                documentUri.fsPath
-            );
-
-            return {
-                code: getDiagnosticCode(),
-                toAdd: {
-                    affectedFiles: allAffectedFiles,
-                    diagnosticCurrentFile: getDiagnostic(
-                        sequenceField,
-                        otherRequestsWithSameSequence
-                    ),
-                },
-            };
-        } else {
-            return { code: getDiagnosticCode() };
-        }
+        return {
+            code: getDiagnosticCode(),
+            toAdd: {
+                affectedFiles: allAffectedFiles,
+                diagnosticCurrentFile: getDiagnostic(
+                    sequenceField,
+                    otherRequestsWithSameSequence
+                ),
+            },
+        };
     } else {
         return { code: getDiagnosticCode() };
     }

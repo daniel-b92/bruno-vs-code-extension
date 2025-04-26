@@ -35,7 +35,7 @@ import { checkBodyBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks
 import { checkAuthBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks/checkAuthBlockTypeFromMethodBlockExists";
 import { checkNoBlocksHaveUnknownNames } from "./checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
 import { checkDictionaryBlocksHaveDictionaryStructure } from "./checks/multipleBlocks/checkDictionaryBlocksHaveDictionaryStructure";
-import { checkSequenceInMetaBlockIsNumeric } from "./checks/singleBlocks/metaBlock/checkSequenceInMetaBlockIsNumeric";
+import { checkSequenceInMetaBlockIsValid } from "./checks/singleBlocks/metaBlock/checkSequenceInMetaBlockIsValid";
 import { checkNoKeysAreMissingForDictionaryBlock } from "./checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "./checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "./checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
@@ -147,7 +147,7 @@ export class BrunoLangDiagnosticsProvider {
         const metaBlockKeys = Object.values(MetaBlockKey);
 
         const diagnostics = [
-            checkSequenceInMetaBlockIsNumeric(metaBlock),
+            checkSequenceInMetaBlockIsValid(metaBlock),
             castedMetaBlock
                 ? checkNoKeysAreMissingForDictionaryBlock(
                       castedMetaBlock,
