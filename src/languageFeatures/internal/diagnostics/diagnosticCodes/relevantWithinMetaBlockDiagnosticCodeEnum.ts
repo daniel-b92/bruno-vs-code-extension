@@ -4,4 +4,5 @@ export enum RelevantWithinMetaBlockDiagnosticCode {
     KeysMissingInMetaBlock = "bruLang_KeysMissingInMetaBlock",
     UnknownKeysDefinedInMetaBlock = "bruLang_UnknownKeysDefinedInMetaBlock",
     DuplicateKeysDefinedInMetaBlock = "bruLang_DuplicateKeysDefinedInMetaBlock",
+    MandatoryValuesMissingInMetaBlock = "bruLang_MandatoryValuesMissingInMetaBlock",
 }

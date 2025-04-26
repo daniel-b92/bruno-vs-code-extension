@@ -46,6 +46,7 @@ import { RelevantWithinAuthBlockDiagnosticCode } from "./diagnosticCodes/relevan
 import { checkValueForDictionaryBlockFieldIsValid } from "./checks/singleBlocks/checkValueForDictionaryBlockFieldIsValid";
 import { checkEitherAssertOrTestsBlockExists } from "./checks/multipleBlocks/checkEitherAssertOrTestsBlockExists";
 import { checkBlocksAreSeparatedBySingleEmptyLine } from "./checks/multipleBlocks/checkBlocksAreSeparatedBySingleEmptyLine";
+import { checkNoMandatoryValuesAreMissingForDictionaryBlock } from "./checks/singleBlocks/checkNoMandatoryValuesAreMissingForDictionaryBlock";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -160,6 +161,13 @@ export class BrunoLangDiagnosticsProvider {
                       castedMetaBlock,
                       metaBlockKeys,
                       RelevantWithinMetaBlockDiagnosticCode.UnknownKeysDefinedInMetaBlock
+                  )
+                : undefined,
+            castedMetaBlock
+                ? checkNoMandatoryValuesAreMissingForDictionaryBlock(
+                      castedMetaBlock,
+                      [MetaBlockKey.Name],
+                      RelevantWithinMetaBlockDiagnosticCode.MandatoryValuesMissingInMetaBlock
                   )
                 : undefined,
             castedMetaBlock
