@@ -22,6 +22,7 @@ import {
     parseTestFile,
     RequestFileBlock,
     RequestFileBlockName,
+    RequestType,
     TextDocumentHelper,
 } from "../../../shared";
 import { checkOccurencesOfMandatoryBlocks } from "./checks/multipleBlocks/checkOccurencesOfMandatoryBlocks";
@@ -175,6 +176,18 @@ export class BrunoLangDiagnosticsProvider {
                       castedMetaBlock,
                       metaBlockKeys,
                       RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock
+                  )
+                : undefined,
+            castedMetaBlock &&
+            castedMetaBlock.content.filter(
+                ({ key }) => key == MetaBlockKey.Type
+            ).length == 1
+                ? checkValueForDictionaryBlockFieldIsValid(
+                      castedMetaBlock.content.find(
+                          ({ key }) => key == MetaBlockKey.Type
+                      ) as DictionaryBlockField,
+                      Object.values(RequestType),
+                      RelevantWithinMetaBlockDiagnosticCode.RequestTypeNotValid
                   )
                 : undefined,
             checkMetaBlockStartsInFirstLine(documentHelper, metaBlock),
