@@ -20,33 +20,35 @@ export function checkUrlFromMethodBlockMatchesQueryParamsBlock(
         ({ name }) => name == RequestFileBlockName.QueryParams
     );
 
-    const methodBlocks = getAllMethodBlocks(blocks);
+    const urlField = getUrlFieldFromMethodBlock(blocks);
 
-    if (queryParamsBlocks.length != 1 || methodBlocks.length != 1) {
+    if (queryParamsBlocks.length > 1 || !urlField) {
         return undefined;
+    } else if (queryParamsBlocks.length == 0 && urlField) {
+        const parsedUrl = new URL(urlField.value);
+        const expectedQueryParams = parsedUrl.searchParams;
+
+        return expectedQueryParams.size > 0
+            ? getDiagnosticForMissingQueryParamsBlock(
+                  urlField,
+                  expectedQueryParams
+              )
+            : undefined;
     }
 
-    const methodBlock = castBlockToDictionaryBlock(methodBlocks[0]);
     const queryParamsBlock = castBlockToDictionaryBlock(queryParamsBlocks[0]);
 
-    if (!methodBlock || !queryParamsBlock) {
+    if (!queryParamsBlock) {
         return undefined;
     }
-
-    const urlFieldsInMethodBlock = methodBlock.content.filter(
-        ({ key }) => key == MethodBlockKey.Url
-    );
 
     const expectedUrlEnding =
         getExpectedMethodBlockUrlEndingForQueryParamsBlock(queryParamsBlock);
 
-    if (
-        urlFieldsInMethodBlock.length == 1 &&
-        !urlFieldsInMethodBlock[0].value.endsWith(expectedUrlEnding)
-    ) {
-        return getDiagnostic(
+    if (!urlField.value.endsWith(expectedUrlEnding)) {
+        return getDiagnosticForUrlMissingQueryParams(
             documentUri,
-            urlFieldsInMethodBlock[0],
+            urlField,
             expectedUrlEnding,
             queryParamsBlock
         );
@@ -55,14 +57,36 @@ export function checkUrlFromMethodBlockMatchesQueryParamsBlock(
     }
 }
 
-function getDiagnostic(
+function getUrlFieldFromMethodBlock(allBlocks: RequestFileBlock[]) {
+    const methodBlocks = getAllMethodBlocks(allBlocks);
+
+    if (methodBlocks.length != 1) {
+        return undefined;
+    }
+
+    const methodBlock = castBlockToDictionaryBlock(methodBlocks[0]);
+
+    if (!methodBlock) {
+        return undefined;
+    }
+
+    const urlFieldsInMethodBlock = methodBlock.content.filter(
+        ({ key }) => key == MethodBlockKey.Url
+    );
+
+    return urlFieldsInMethodBlock.length == 1
+        ? urlFieldsInMethodBlock[0]
+        : undefined;
+}
+
+function getDiagnosticForUrlMissingQueryParams(
     documentUri: Uri,
     urlFieldInMethodBlock: DictionaryBlockField,
     expectedUrlEnding: string,
     queryParamsBlock: DictionaryBlock
 ): DiagnosticWithCode {
     return {
-        message: `URL does not match fields in '${RequestFileBlockName.QueryParams}' block. Expected URL to end with '${expectedUrlEnding}'.`,
+        message: `URL is missing query params from '${RequestFileBlockName.QueryParams}' block. Expected URL to end with '${expectedUrlEnding}'.`,
         range: urlFieldInMethodBlock.valueRange,
         severity: DiagnosticSeverity.Error,
         relatedInformation: [
@@ -74,6 +98,26 @@ function getDiagnostic(
                 },
             },
         ],
-        code: NonBlockSpecificDiagnosticCode.UrlFromMethodBlockNotMatchingQueryParamsBlock,
+        code: NonBlockSpecificDiagnosticCode.UrlFromMethodBlockMissingQueryParams,
+    };
+}
+
+function getDiagnosticForMissingQueryParamsBlock(
+    urlFieldInMethodBlock: DictionaryBlockField,
+    expectedQueryParams: URLSearchParams
+): DiagnosticWithCode {
+    return {
+        message: `Missing a '${
+            RequestFileBlockName.QueryParams
+        }' block with the following entries: ${JSON.stringify(
+            Array.from(expectedQueryParams.entries()).map(
+                (values) => `${values[0]}: ${values[1]}`
+            ),
+            null,
+            2
+        )}.`,
+        range: urlFieldInMethodBlock.valueRange,
+        severity: DiagnosticSeverity.Warning,
+        code: NonBlockSpecificDiagnosticCode.QueryParamsBlockMissing,
     };
 }

@@ -50,7 +50,7 @@ export function checkUrlFromMethodBlockMatchesPathParamsBlock(
         );
 
     if (missingUrlSubstrings.length > 0) {
-        return getDiagnostic(
+        return getDiagnosticForMissingPathParams(
             documentUri,
             urlFieldsInMethodBlock[0],
             missingUrlSubstrings,
@@ -61,16 +61,16 @@ export function checkUrlFromMethodBlockMatchesPathParamsBlock(
     }
 }
 
-function getDiagnostic(
+function getDiagnosticForMissingPathParams(
     documentUri: Uri,
     urlFieldInMethodBlock: DictionaryBlockField,
     missingUrlSubstrings: string[],
     pathParamsBlock: DictionaryBlock
 ): DiagnosticWithCode {
     return {
-        message: `URL does not match fields in '${
+        message: `URL is missing path params from '${
             RequestFileBlockName.PathParams
-        }' block. The URL is missing the substrings: ${
+        }' block. Expected the URL to contain the following substrings: ${
             missingUrlSubstrings.length == 1
                 ? `'${missingUrlSubstrings[0]}'`
                 : JSON.stringify(missingUrlSubstrings, undefined, 2)
@@ -86,6 +86,6 @@ function getDiagnostic(
                 },
             },
         ],
-        code: NonBlockSpecificDiagnosticCode.UrlFromMethodBlockNotMatchingPathParamsBlock,
+        code: NonBlockSpecificDiagnosticCode.UrlFromMethodBlockMissingPathParams,
     };
 }
