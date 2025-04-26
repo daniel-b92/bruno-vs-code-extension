@@ -48,7 +48,7 @@ function getCompletionItemsForFieldsInMetaBlock() {
                 }
             },
         },
-        getTriggerChar()
+        ...getTriggerChars()
     );
 }
 
@@ -89,10 +89,10 @@ function registerFixedCompletionItems(
                 }
             },
         },
-        getTriggerChar()
+        ...getTriggerChars()
     );
 }
 
-function getTriggerChar() {
-    return ":";
+function getTriggerChars() {
+    return [":", " "];
 }
