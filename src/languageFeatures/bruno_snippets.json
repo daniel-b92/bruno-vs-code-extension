@@ -95,6 +95,24 @@
         "description": "Add HEAD method block"
     },
 
+    "query params block": {
+        "prefix": "params:query",
+        "body": ["params:query {", "\t${1:name}: ${2:path}", "}"],
+        "description": "Add block for query params"
+    },
+
+    "path params block": {
+        "prefix": "params:path",
+        "body": ["params:path {", "\t${1:name}: ${2:value}", "}"],
+        "description": "Add block for path params"
+    },
+
+    "headers block": {
+        "prefix": "headers",
+        "body": ["headers {", "\t${1:key}: ${2:value}", "}"],
+        "description": "Add block for headers"
+    },
+
     "basic auth block": {
         "prefix": "auth:basic",
         "body": [
@@ -290,6 +308,28 @@
             "}"
         ],
         "description": "Add block for request body with file format"
+    },
+
+    "pre-request vars block": {
+        "prefix": ["vars:pre-request"],
+        "body": ["vars:pre-request {", "\t${1:name}: ${2:value}", "}"],
+        "description": "Add pre-request vars block"
+    },
+
+    "post-response vars block": {
+        "prefix": ["vars:post-response"],
+        "body": ["vars:post-response {", "\t${1:name}: ${2:expression}", "}"],
+        "description": "Add post-response vars block"
+    },
+
+    "assert block": {
+        "prefix": ["assert"],
+        "body": [
+            "assert {",
+            "\t${1:expression}: ${2|eq,neq,gt,gte,lt,lte,in,notIn,contains,notContains,length,matches,notMatches,startsWith,endsWith,between,isEmpty,isNotEmpty,isNull,isUndefined,isDefined,isTruthy,isFalsy,isJson,isNumber,isString,isBoolean,isArray|} ${3:value}",
+            "}"
+        ],
+        "description": "Add assert block"
     },
 
     "pre-request script block": {
