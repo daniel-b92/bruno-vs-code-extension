@@ -2,8 +2,8 @@ import {
     OAuth2ViaAuthorizationCodeBlockKey,
     OAuth2ViaClientCredentialsBlockKey,
     OAuth2ViaPasswordBlockKey,
-} from "../../../languageUtils/authBlocks/authBlocksKeyEnums";
-import { OAuth2GrantType } from "../../../languageUtils/authBlocks/oAuth2BlockValuesEnums";
+} from "./authBlocksKeyEnums";
+import { OAuth2GrantType } from "./oAuth2BlockValuesEnums";
 
 export function getMandatoryKeysForOAuth2Block(
     grantType: OAuth2GrantType
