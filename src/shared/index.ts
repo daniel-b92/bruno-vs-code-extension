@@ -40,7 +40,7 @@ export * from "./languageUtils/authBlocks/oAuth2BlockValuesEnums";
 export * from "./languageUtils/authBlocks/apiKeyAuthBlockValuesEnums";
 export * from "./languageUtils/authBlocks/oAuth2BlockCommonFieldsValuesEnums";
 export * from "./languageUtils/getMethodBlockBodyFieldValueForBodyName";
-export * from "./languageUtils/getExpectedMethodBlockUrlEndingForQueryParamsBlock";
+export * from "./languageUtils/getExpectedUrlQueryParamsForQueryParamsBlock";
 export * from "./languageUtils/getExpectedMethodBlockUrlSubstringsForPathParamsBlock";
 
 // test file writing

@@ -3,14 +3,13 @@ import {
     castBlockToDictionaryBlock,
     DictionaryBlock,
     DictionaryBlockField,
-    getAllMethodBlocks,
     getExpectedMethodBlockUrlSubstringsForPathParamsBlock,
-    MethodBlockKey,
     RequestFileBlock,
     RequestFileBlockName,
 } from "../../../../../shared";
 import { DiagnosticWithCode } from "../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import { getUrlFieldFromMethodBlock } from "../../util/getUrlFieldFromMethodBlock";
 
 export function checkUrlFromMethodBlockMatchesPathParamsBlock(
     documentUri: Uri,
@@ -20,39 +19,69 @@ export function checkUrlFromMethodBlockMatchesPathParamsBlock(
         ({ name }) => name == RequestFileBlockName.PathParams
     );
 
-    const methodBlocks = getAllMethodBlocks(blocks);
+    const urlField = getUrlFieldFromMethodBlock(blocks);
 
-    if (pathParamsBlocks.length != 1 || methodBlocks.length != 1) {
+    if (pathParamsBlocks.length > 1 || !urlField) {
         return undefined;
-    }
-
-    const methodBlock = castBlockToDictionaryBlock(methodBlocks[0]);
-    const pathParamsBlock = castBlockToDictionaryBlock(pathParamsBlocks[0]);
-
-    if (!methodBlock || !pathParamsBlock) {
-        return undefined;
-    }
-
-    const urlFieldsInMethodBlock = methodBlock.content.filter(
-        ({ key }) => key == MethodBlockKey.Url
-    );
-
-    if (urlFieldsInMethodBlock.length != 1) {
-        return undefined;
-    }
-
-    const missingUrlSubstrings =
-        getExpectedMethodBlockUrlSubstringsForPathParamsBlock(
-            pathParamsBlock
-        ).filter(
-            (expectedSubstring) =>
-                !urlFieldsInMethodBlock[0].value.includes(expectedSubstring)
+    } else if (pathParamsBlocks.length == 0 && urlField) {
+        const expectedPathParams = getPathParamsFromUrl(
+            new URL(urlField.value)
         );
 
-    if (missingUrlSubstrings.length > 0) {
-        return getDiagnosticForMissingPathParams(
+        return expectedPathParams.length > 0
+            ? getDiagnosticForMissingPathParamsBlock(
+                  urlField,
+                  expectedPathParams
+              )
+            : undefined;
+    }
+
+    const pathParamsBlock = castBlockToDictionaryBlock(pathParamsBlocks[0]);
+
+    if (!pathParamsBlock) {
+        return undefined;
+    }
+
+    const expectedPathsBasedOnPathParamsBlock =
+        getExpectedMethodBlockUrlSubstringsForPathParamsBlock(pathParamsBlock);
+    const pathParamsFromUrl = getPathParamsFromUrl(new URL(urlField.value));
+
+    const missingUrlSubstrings = expectedPathsBasedOnPathParamsBlock.filter(
+        (expectedSubstring) => !pathParamsFromUrl.includes(expectedSubstring)
+    );
+    const missingPathParamsStrings = pathParamsFromUrl.filter(
+        (expectedSubstring) =>
+            !expectedPathsBasedOnPathParamsBlock.includes(expectedSubstring)
+    );
+
+    if (
+        missingUrlSubstrings.length > 0 &&
+        missingPathParamsStrings.length == 0
+    ) {
+        return getDiagnosticForMissingPathParamsInUrl(
             documentUri,
-            urlFieldsInMethodBlock[0],
+            urlField,
+            missingUrlSubstrings,
+            pathParamsBlock
+        );
+    } else if (
+        missingUrlSubstrings.length == 0 &&
+        missingPathParamsStrings.length > 0
+    ) {
+        return getDiagnosticForMissingValuesInPathParamsBlock(
+            documentUri,
+            urlField,
+            missingPathParamsStrings,
+            pathParamsBlock
+        );
+    } else if (
+        missingUrlSubstrings.length > 0 &&
+        missingPathParamsStrings.length > 0
+    ) {
+        return getDiagnosticForUrlNotMatchingPathParamsBlockValues(
+            documentUri,
+            urlField,
+            missingPathParamsStrings,
             missingUrlSubstrings,
             pathParamsBlock
         );
@@ -61,7 +90,7 @@ export function checkUrlFromMethodBlockMatchesPathParamsBlock(
     }
 }
 
-function getDiagnosticForMissingPathParams(
+function getDiagnosticForMissingPathParamsInUrl(
     documentUri: Uri,
     urlFieldInMethodBlock: DictionaryBlockField,
     missingUrlSubstrings: string[],
@@ -88,4 +117,98 @@ function getDiagnosticForMissingPathParams(
         ],
         code: NonBlockSpecificDiagnosticCode.UrlFromMethodBlockMissingPathParams,
     };
+}
+
+function getDiagnosticForMissingValuesInPathParamsBlock(
+    documentUri: Uri,
+    urlFieldInMethodBlock: DictionaryBlockField,
+    missingPathParams: string[],
+    pathParamsBlock: DictionaryBlock
+): DiagnosticWithCode {
+    return {
+        message: `'${
+            RequestFileBlockName.PathParams
+        }' block is missing entries for the following path params from the URL: ${
+            missingPathParams.length == 1
+                ? `'${missingPathParams[0]}'`
+                : JSON.stringify(missingPathParams, undefined, 2)
+        }`,
+        range: pathParamsBlock.contentRange,
+        severity: DiagnosticSeverity.Error,
+        relatedInformation: [
+            {
+                message: `URL field from method block`,
+                location: {
+                    uri: documentUri,
+                    range: urlFieldInMethodBlock.valueRange,
+                },
+            },
+        ],
+        code: NonBlockSpecificDiagnosticCode.PathParamsBlockMissingValuesFromUrl,
+    };
+}
+
+function getDiagnosticForUrlNotMatchingPathParamsBlockValues(
+    documentUri: Uri,
+    urlFieldInMethodBlock: DictionaryBlockField,
+    missingPathParamsInPathParamsBlock: string[],
+    missingUrlSubstrings: string[],
+    pathParamsBlock: DictionaryBlock
+): DiagnosticWithCode {
+    return {
+        message: `Entries from '${
+            RequestFileBlockName.PathParams
+        }' missing in the URL: ${
+            missingUrlSubstrings.length == 1
+                ? `'${missingUrlSubstrings[0]}'`
+                : JSON.stringify(missingUrlSubstrings, undefined, 2)
+        }, Entries from the URL without a match in the '${
+            RequestFileBlockName.PathParams
+        }' block:${
+            missingPathParamsInPathParamsBlock.length == 1
+                ? `'${missingPathParamsInPathParamsBlock[0]}'`
+                : JSON.stringify(
+                      missingPathParamsInPathParamsBlock,
+                      undefined,
+                      2
+                  )
+        }`,
+        range: urlFieldInMethodBlock.valueRange,
+        severity: DiagnosticSeverity.Error,
+        relatedInformation: [
+            {
+                message: `'${RequestFileBlockName.PathParams}' block`,
+                location: {
+                    uri: documentUri,
+                    range: pathParamsBlock.contentRange,
+                },
+            },
+        ],
+        code: NonBlockSpecificDiagnosticCode.UrlFromMethodBlockNotMatchingPathParamsBlock,
+    };
+}
+
+function getDiagnosticForMissingPathParamsBlock(
+    urlFieldInMethodBlock: DictionaryBlockField,
+    expectedPathParams: string[]
+): DiagnosticWithCode {
+    return {
+        message: `Missing a '${
+            RequestFileBlockName.PathParams
+        }' block with the following keys: ${JSON.stringify(
+            expectedPathParams.map((value) => value.substring(2)),
+            null,
+            2
+        )}.`,
+        range: urlFieldInMethodBlock.valueRange,
+        severity: DiagnosticSeverity.Error,
+        code: NonBlockSpecificDiagnosticCode.PathParamsBlockMissing,
+    };
+}
+
+function getPathParamsFromUrl(url: URL) {
+    return url.pathname
+        .split("/")
+        .filter((subPath) => subPath.startsWith(":"))
+        .map((subPath) => `/${subPath}`);
 }

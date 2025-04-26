@@ -21,7 +21,10 @@ export enum NonBlockSpecificDiagnosticCode {
     DictionaryBlocksNotStructuredCorrectly = "bruLang_DictionaryBlocksNotStructuredCorrectly",
     NoAssertOrTestsBlockDefined = "bruLang_NoAssertOrTestsBlockDefined",
     BlocksNotAllSeparatedBySingleEmptyLine = "bruLang_BlocksNotAllSeparatedBySingleEmptyLine",
-    UrlFromMethodBlockMissingQueryParams = "bruLang_UrlFromMethodBlockMissingQueryParams",
+    UrlFromMethodBlockNotMatchingQueryParamsBlock = "bruLang_UrlFromMethodBlockNotMatchingQueryParamsBlock",
     UrlFromMethodBlockMissingPathParams = "bruLang_UrlFromMethodBlockMissingPathParams",
+    PathParamsBlockMissingValuesFromUrl = "bruLang_PathParamsBlockMissingValuesFromUrl",
+    UrlFromMethodBlockNotMatchingPathParamsBlock = "bruLang_UrlFromMethodBlockNotMatchingPathParamsBlock",
     QueryParamsBlockMissing = "bruLang_QueryParamsBlockMissing",
+    PathParamsBlockMissing = "bruLang_PathParamsBlockMissing",
 }

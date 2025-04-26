@@ -3,14 +3,13 @@ import {
     castBlockToDictionaryBlock,
     DictionaryBlock,
     DictionaryBlockField,
-    getAllMethodBlocks,
-    getExpectedMethodBlockUrlEndingForQueryParamsBlock,
-    MethodBlockKey,
+    getExpectedUrlQueryParamsForQueryParamsBlock,
     RequestFileBlock,
     RequestFileBlockName,
 } from "../../../../../shared";
 import { DiagnosticWithCode } from "../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import { getUrlFieldFromMethodBlock } from "../../util/getUrlFieldFromMethodBlock";
 
 export function checkUrlFromMethodBlockMatchesQueryParamsBlock(
     documentUri: Uri,
@@ -42,51 +41,32 @@ export function checkUrlFromMethodBlockMatchesQueryParamsBlock(
         return undefined;
     }
 
-    const expectedUrlEnding =
-        getExpectedMethodBlockUrlEndingForQueryParamsBlock(queryParamsBlock);
+    const queryParamsFromQueryParamsBlock =
+        getExpectedUrlQueryParamsForQueryParamsBlock(queryParamsBlock);
+    const queryParamsFromUrl = new URL(urlField.value).searchParams;
 
-    if (!urlField.value.endsWith(expectedUrlEnding)) {
-        return getDiagnosticForUrlMissingQueryParams(
+    if (queryParamsFromUrl != queryParamsFromQueryParamsBlock) {
+        return getDiagnosticForUrlNotMatchingQueryParamsBlock(
             documentUri,
             urlField,
-            expectedUrlEnding,
-            queryParamsBlock
+            queryParamsBlock,
+            queryParamsFromQueryParamsBlock,
+            queryParamsFromUrl
         );
     } else {
         return undefined;
     }
 }
 
-function getUrlFieldFromMethodBlock(allBlocks: RequestFileBlock[]) {
-    const methodBlocks = getAllMethodBlocks(allBlocks);
-
-    if (methodBlocks.length != 1) {
-        return undefined;
-    }
-
-    const methodBlock = castBlockToDictionaryBlock(methodBlocks[0]);
-
-    if (!methodBlock) {
-        return undefined;
-    }
-
-    const urlFieldsInMethodBlock = methodBlock.content.filter(
-        ({ key }) => key == MethodBlockKey.Url
-    );
-
-    return urlFieldsInMethodBlock.length == 1
-        ? urlFieldsInMethodBlock[0]
-        : undefined;
-}
-
-function getDiagnosticForUrlMissingQueryParams(
+function getDiagnosticForUrlNotMatchingQueryParamsBlock(
     documentUri: Uri,
     urlFieldInMethodBlock: DictionaryBlockField,
-    expectedUrlEnding: string,
-    queryParamsBlock: DictionaryBlock
+    queryParamsBlock: DictionaryBlock,
+    queryParamsFromQueryParamsBlock: URLSearchParams,
+    queryParamsFromUrl: URLSearchParams
 ): DiagnosticWithCode {
     return {
-        message: `URL is missing query params from '${RequestFileBlockName.QueryParams}' block. Expected URL to end with '${expectedUrlEnding}'.`,
+        message: `Query params from URL '${queryParamsFromUrl}' do not match query params from '${RequestFileBlockName.QueryParams}' block '${queryParamsFromQueryParamsBlock}'.`,
         range: urlFieldInMethodBlock.valueRange,
         severity: DiagnosticSeverity.Error,
         relatedInformation: [
@@ -98,7 +78,7 @@ function getDiagnosticForUrlMissingQueryParams(
                 },
             },
         ],
-        code: NonBlockSpecificDiagnosticCode.UrlFromMethodBlockMissingQueryParams,
+        code: NonBlockSpecificDiagnosticCode.UrlFromMethodBlockNotMatchingQueryParamsBlock,
     };
 }
 
