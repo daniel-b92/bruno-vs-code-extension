@@ -34,6 +34,7 @@ export * from "./languageUtils/methodBlocks/methodBlockAuthEnum";
 export * from "./languageUtils/methodBlocks/methodBlockBodyEnum";
 export * from "./languageUtils/methodBlocks/getPossibleMethodBlocks";
 export * from "./languageUtils/urls/getQueryParamsFromUrl";
+export * from "./languageUtils/urls/getPathParamsFromUrl";
 export * from "./languageUtils/urls/getUrlSubstringForQueryParams";
 export * from "./languageUtils/metaBlock/requestTypeEnum";
 export * from "./languageUtils/authBlocks/authBlockNameEnum";
@@ -46,6 +47,7 @@ export * from "./languageUtils/authBlocks/getMandatoryKeysForOAuth2Block";
 export * from "./languageUtils/getMethodBlockBodyFieldValueForBodyName";
 export * from "./languageUtils/getExpectedUrlQueryParamsForQueryParamsBlock";
 export * from "./languageUtils/getExpectedMethodBlockUrlSubstringsForPathParamsBlock";
+export * from "./languageUtils/getDefaultIndentationForDictionaryBlockFields";
 
 // test file writing
 export * from "./testFileWriting/addMetaBlock";
