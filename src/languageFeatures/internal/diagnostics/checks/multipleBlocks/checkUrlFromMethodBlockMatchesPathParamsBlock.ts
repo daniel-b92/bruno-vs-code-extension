@@ -104,7 +104,7 @@ function getDiagnosticForMissingPathParamsInUrl(
                 : JSON.stringify(missingUrlSubstrings, undefined, 2)
         }`,
         range: urlFieldInMethodBlock.valueRange,
-        severity: DiagnosticSeverity.Error,
+        severity: DiagnosticSeverity.Warning,
         relatedInformation: [
             {
                 message: `'${RequestFileBlockName.PathParams}' block`,
