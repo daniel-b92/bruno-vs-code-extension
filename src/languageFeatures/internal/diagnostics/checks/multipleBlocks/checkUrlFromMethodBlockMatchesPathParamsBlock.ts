@@ -4,12 +4,12 @@ import {
     DictionaryBlock,
     DictionaryBlockField,
     getExpectedMethodBlockUrlSubstringsForPathParamsBlock,
+    getUrlFieldFromMethodBlock,
     RequestFileBlock,
     RequestFileBlockName,
 } from "../../../../../shared";
 import { DiagnosticWithCode } from "../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
-import { getUrlFieldFromMethodBlock } from "../../util/getUrlFieldFromMethodBlock";
 
 export function checkUrlFromMethodBlockMatchesPathParamsBlock(
     documentUri: Uri,
@@ -24,16 +24,24 @@ export function checkUrlFromMethodBlockMatchesPathParamsBlock(
     if (pathParamsBlocks.length > 1 || !urlField) {
         return undefined;
     } else if (pathParamsBlocks.length == 0 && urlField) {
-        const expectedPathParams = getPathParamsFromUrl(
-            new URL(urlField.value)
-        );
+        try {
+            const expectedPathParams = getPathParamsFromUrl(
+                new URL(urlField.value)
+            );
 
-        return expectedPathParams.length > 0
-            ? getDiagnosticForMissingPathParamsBlock(
-                  urlField,
-                  expectedPathParams
-              )
-            : undefined;
+            return expectedPathParams.length > 0
+                ? getDiagnosticForMissingPathParamsBlock(
+                      urlField,
+                      expectedPathParams
+                  )
+                : undefined;
+        } catch (err) {
+            if (err instanceof TypeError) {
+                return undefined;
+            } else {
+                throw err;
+            }
+        }
     }
 
     const pathParamsBlock = castBlockToDictionaryBlock(pathParamsBlocks[0]);

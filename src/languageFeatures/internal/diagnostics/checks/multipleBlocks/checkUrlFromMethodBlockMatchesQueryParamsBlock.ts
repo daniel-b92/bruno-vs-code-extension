@@ -1,22 +1,25 @@
 import { DiagnosticSeverity, Uri } from "vscode";
 import {
-    castBlockToDictionaryBlock,
     DictionaryBlock,
     DictionaryBlockField,
     getExpectedUrlQueryParamsForQueryParamsBlock,
+    getQueryParamsFromUrl,
+    getUrlFieldFromMethodBlock,
+    getUrlSubstringForQueryParams,
+    getValidDictionaryBlocksWithName,
     RequestFileBlock,
     RequestFileBlockName,
 } from "../../../../../shared";
 import { DiagnosticWithCode } from "../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
-import { getUrlFieldFromMethodBlock } from "../../util/getUrlFieldFromMethodBlock";
 
 export function checkUrlFromMethodBlockMatchesQueryParamsBlock(
     documentUri: Uri,
     blocks: RequestFileBlock[]
 ): DiagnosticWithCode | undefined {
-    const queryParamsBlocks = blocks.filter(
-        ({ name }) => name == RequestFileBlockName.QueryParams
+    const queryParamsBlocks = getValidDictionaryBlocksWithName(
+        blocks,
+        RequestFileBlockName.QueryParams
     );
 
     const urlField = getUrlFieldFromMethodBlock(blocks);
@@ -35,17 +38,19 @@ export function checkUrlFromMethodBlockMatchesQueryParamsBlock(
             : undefined;
     }
 
-    const queryParamsBlock = castBlockToDictionaryBlock(queryParamsBlocks[0]);
-
-    if (!queryParamsBlock) {
-        return undefined;
-    }
+    const queryParamsBlock = queryParamsBlocks[0];
 
     const queryParamsFromQueryParamsBlock =
         getExpectedUrlQueryParamsForQueryParamsBlock(queryParamsBlock);
-    const queryParamsFromUrl = new URL(urlField.value).searchParams;
 
-    if (queryParamsFromUrl != queryParamsFromQueryParamsBlock) {
+    const queryParamsFromUrl = getQueryParamsFromUrl(urlField.value);
+
+    if (
+        (!queryParamsFromUrl && queryParamsFromQueryParamsBlock.size > 0) ||
+        (queryParamsFromUrl &&
+            queryParamsFromUrl.toString() !=
+                queryParamsFromQueryParamsBlock.toString())
+    ) {
         return getDiagnosticForUrlNotMatchingQueryParamsBlock(
             documentUri,
             urlField,
@@ -63,10 +68,16 @@ function getDiagnosticForUrlNotMatchingQueryParamsBlock(
     urlFieldInMethodBlock: DictionaryBlockField,
     queryParamsBlock: DictionaryBlock,
     queryParamsFromQueryParamsBlock: URLSearchParams,
-    queryParamsFromUrl: URLSearchParams
+    queryParamsFromUrl: URLSearchParams | undefined
 ): DiagnosticWithCode {
     return {
-        message: `Query params from URL '${queryParamsFromUrl}' do not match query params from '${RequestFileBlockName.QueryParams}' block '${queryParamsFromQueryParamsBlock}'.`,
+        message: `Query params from URL '${getUrlSubstringForQueryParams(
+            queryParamsFromUrl ?? new URLSearchParams("")
+        )}' do not match query params from '${
+            RequestFileBlockName.QueryParams
+        }' block '${getUrlSubstringForQueryParams(
+            queryParamsFromQueryParamsBlock
+        )}'.`,
         range: urlFieldInMethodBlock.valueRange,
         severity: DiagnosticSeverity.Error,
         relatedInformation: [
