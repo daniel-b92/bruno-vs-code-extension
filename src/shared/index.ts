@@ -1,12 +1,12 @@
 // file system
 export * from "./fileSystem/collectionWatcher";
 export * from "./fileSystem/fileChangesDefinitions";
-
 export * from "./fileSystem/util/collectionRootFolderHelper";
 export * from "./fileSystem/util/getTestFileDescendants";
 export * from "./fileSystem/util/normalizeDirectoryPath";
 export * from "./fileSystem/util/textDocumentHelper";
 export * from "./fileSystem/util/getExtensionForRequestFiles";
+export * from "./fileSystem/util/getLineBreakForDocument";
 
 // test file parsing
 export * from "./testFileParsing/getMaxSequenceForRequests";
@@ -20,6 +20,7 @@ export * from "./testFileParsing/external/bodyBlocks/getBodyTypeFromBlockName";
 export * from "./testFileParsing/external/bodyBlocks/isBodyBlock";
 export * from "./testFileParsing/external/methodBlocks/getAllMethodBlocks";
 export * from "./testFileParsing/external/methodBlocks/getUrlFieldFromMethodBlock";
+export * from "./testFileParsing/external/methodBlocks/getMethodBlockIfValid";
 export * from "./testFileParsing/external/paramsBlocks/isParamsBlock";
 export * from "./testFileParsing/external/varsBlocks/isVarsBlock";
 export * from "./testFileParsing/external/castBlockToDictionaryBlock";
@@ -46,7 +47,7 @@ export * from "./languageUtils/authBlocks/getMandatoryKeysForNonOAuth2Block";
 export * from "./languageUtils/authBlocks/getMandatoryKeysForOAuth2Block";
 export * from "./languageUtils/getMethodBlockBodyFieldValueForBodyName";
 export * from "./languageUtils/getExpectedUrlQueryParamsForQueryParamsBlock";
-export * from "./languageUtils/getExpectedMethodBlockUrlSubstringsForPathParamsBlock";
+export * from "./languageUtils/getPathParamsFromPathParamsBlock";
 export * from "./languageUtils/getDefaultIndentationForDictionaryBlockFields";
 
 // test file writing

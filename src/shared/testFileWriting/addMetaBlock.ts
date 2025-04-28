@@ -75,8 +75,6 @@ function getContent(
 }
 
 function mapContentToText({ name, type, sequence }: MetaBlockContent) {
-    // ToDo: Use linebreak configured in workspace of extension user
-
     const lineBreak = getLineBreak();
     const whitespacesForIndentation = getNumberOfWhitespacesForIndentation();
 

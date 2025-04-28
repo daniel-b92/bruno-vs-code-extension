@@ -3,7 +3,7 @@ import {
     castBlockToDictionaryBlock,
     DictionaryBlock,
     DictionaryBlockField,
-    getExpectedMethodBlockUrlSubstringsForPathParamsBlock,
+    getPathParamsFromPathParamsBlock,
     getPathParamsFromUrl,
     getUrlFieldFromMethodBlock,
     RequestFileBlock,
@@ -42,7 +42,7 @@ export function checkUrlFromMethodBlockMatchesPathParamsBlock(
     }
 
     const expectedPathsBasedOnPathParamsBlock =
-        getExpectedMethodBlockUrlSubstringsForPathParamsBlock(pathParamsBlock);
+        getPathParamsFromPathParamsBlock(pathParamsBlock);
     const pathParamsFromUrl = getPathParamsFromUrl(urlField.value);
 
     const missingUrlSubstrings = expectedPathsBasedOnPathParamsBlock.filter(

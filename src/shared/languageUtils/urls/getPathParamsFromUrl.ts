@@ -11,6 +11,6 @@ export function getPathParamsFromUrl(url: string) {
               .substring(urlWithoutQueryParams.indexOf("/"))
               .split("/")
               .filter((subPath) => subPath.startsWith(":"))
-              .map((subPath) => `/${subPath}`)
+              .map((subPath) => subPath.substring(1))
         : [];
 }

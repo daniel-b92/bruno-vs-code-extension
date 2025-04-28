@@ -14,7 +14,7 @@ import {
 import { isBrunoRequestFile } from "./internal/diagnostics/util/isBrunoRequestFile";
 import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/autoUpdates/updateUrlToMatchQueryParams";
-import { updatePathParamsToMatchUrl } from "./internal/autoUpdates/updatePathParamsToMatchUrl";
+import { updatePathParamsKeysToMatchUrl } from "./internal/autoUpdates/updatePathParamsKeysToMatchUrl";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
@@ -65,7 +65,7 @@ export function activateLanguageFeatures(
 
                 window.activeTextEditor.edit((editBuilder) => {
                     updateUrlToMatchQueryParams(editBuilder, parsedBlocks);
-                    updatePathParamsToMatchUrl(
+                    updatePathParamsKeysToMatchUrl(
                         e.document,
                         editBuilder,
                         parsedBlocks
