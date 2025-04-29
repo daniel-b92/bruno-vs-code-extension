@@ -25,6 +25,7 @@ export async function runTestStructure(
     const path = (item.uri as Uri).fsPath;
     const collectionRootDir = await getCollectionRootDir(path);
     const htmlReportPath = getHtmlReportPath(collectionRootDir);
+    const lineBreak = getLineBreakForTestRunOutput();
     if (existsSync(htmlReportPath)) {
         unlinkSync(htmlReportPath);
     }
@@ -66,11 +67,11 @@ export async function runTestStructure(
             console.error("Failed to start subprocess.", err);
             if (existsSync(htmlReportPath)) {
                 options.appendOutput(
-                    `Results can be found here: ${htmlReportPath}\r\n`
+                    `Results can be found here: ${htmlReportPath}${lineBreak}`
                 );
             }
 
-            options.appendOutput(err.message.replace(/\n/g, "\r\n"));
+            options.appendOutput(err.message.replace(/\n/g, lineBreak));
             options.skipped(item);
 
             if (isDirectory) {
@@ -84,13 +85,13 @@ export async function runTestStructure(
 
         childProcess.stdout.on("data", (data) => {
             options.appendOutput(
-                (data.toString() as string).replace(/\n/g, "\r\n")
+                (data.toString() as string).replace(/\n/g, lineBreak)
             );
         });
 
         childProcess.stderr.on("data", (data) => {
             options.appendOutput(
-                (data.toString() as string).replace(/\n/g, "\r\n")
+                (data.toString() as string).replace(/\n/g, lineBreak)
             );
         });
 
@@ -99,7 +100,7 @@ export async function runTestStructure(
             duration = Date.now() - start;
             if (existsSync(htmlReportPath)) {
                 options.appendOutput(
-                    `HTML report has been saved in file: '${htmlReportPath}'\r\n`
+                    `HTML report has been saved in file: '${htmlReportPath}'${lineBreak}`
                 );
             }
             if (code == 0) {
@@ -161,9 +162,11 @@ const setStatusForDescendantItems = (
     options: TestRun
 ) => {
     if (!existsSync(jsonReportPath)) {
-        options.appendOutput("Could not find JSON report file.\r\n");
         options.appendOutput(
-            "Therefore cannot determine status of descendant test items. Will set status 'skipped' for all.\r\n"
+            `Could not find JSON report file.${getLineBreakForTestRunOutput()}`
+        );
+        options.appendOutput(
+            `Therefore cannot determine status of descendant test items. Will set status 'skipped' for all.${getLineBreakForTestRunOutput()}`
         );
         getTestItemDescendants(testDirectoryItem).forEach((child) => {
             child.busy = false;
@@ -245,7 +248,7 @@ const getTestMessageForFailedTest = (
     response: Record<string, string | number | object>,
     error?: string
 ) => {
-    const linebreak = "\r\n";
+    const linebreak = getLineBreakForTestRunOutput();
 
     const stringifyField = (
         reportField: Record<string, string | number | object>
@@ -322,3 +325,5 @@ const getCommandArgs = async (
 
     return result;
 };
+
+const getLineBreakForTestRunOutput = () => "\r\n";
