@@ -27,10 +27,9 @@ export function checkUrlFromMethodBlockMatchesQueryParamsBlock(
     if (queryParamsBlocks.length > 1 || !urlField) {
         return undefined;
     } else if (queryParamsBlocks.length == 0 && urlField) {
-        const parsedUrl = new URL(urlField.value);
-        const expectedQueryParams = parsedUrl.searchParams;
+        const expectedQueryParams = getQueryParamsFromUrl(urlField.value);
 
-        return expectedQueryParams.size > 0
+        return expectedQueryParams && expectedQueryParams.size > 0
             ? getDiagnosticForMissingQueryParamsBlock(
                   urlField,
                   expectedQueryParams
