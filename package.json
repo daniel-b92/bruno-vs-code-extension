@@ -35,6 +35,18 @@
                 "path": "./src/languageFeatures/bruno_snippets.json"
             }
         ],
+        "languages": [
+            {
+                "id": "bruno",
+                "extensions": [
+                    ".bru"
+                ],
+                "aliases": [
+                    "bru"
+                ],
+                "configuration": "./src/languageFeatures/language-configuration.json"
+            }
+        ],
         "commands": [
             {
                 "command": "brunoCollectionsView.refresh",
