@@ -1,0 +1,66 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "bruno",
+    "scopeName": "source.bru",
+    "patterns": [
+        {
+            "include": "#dictionary-block"
+        },
+        {
+            "include": "#scripts-and-test-blocks"
+        },
+        {
+            "include": "#strings"
+        }
+    ],
+    "repository": {
+        "dictionary-block": {
+            "name": "meta.dictionary-block.bruno",
+            "begin": "^(meta|get|post|put|delete|options|patch|head|params:\\S+|headers|auth:\\S+|body:multipart-form|body:form-urlencoded|body:file|vars:\\S|assert)\\s*{$",
+            "end": "^}\\s*$",
+            "beginCaptures": { "0": { "name": "keyword.bruno" } },
+            "patterns": [{ "include": "#dictionary" }]
+        },
+        "scripts-and-test-blocks": {
+            "name": "meta.tests-block.bruno",
+            "begin": "^(tests|script:\\S+)\\s*{$",
+            "end": "^}\\s*$",
+            "beginCaptures": {
+                "0": {
+                    "name": "keyword.bruno"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "source.js"
+                }
+            ]
+        },
+        "dictionary": {
+            "patterns": [
+                {
+                    "match": "^\\s*([^\\:]+)[\\:]\\s+([^\\n]+)\\s*$",
+                    "captures": {
+                        "1": {
+                            "name": "entity.name.tag.bruno"
+                        },
+                        "2": {
+                            "name": "string.bruno"
+                        }
+                    }
+                }
+            ]
+        },
+        "strings": {
+            "name": "string.quoted.double.bruno",
+            "begin": "\"",
+            "end": "\"",
+            "patterns": [
+                {
+                    "name": "constant.character.escape.bruno",
+                    "match": "\\\\."
+                }
+            ]
+        }
+    }
+}

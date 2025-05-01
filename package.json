@@ -42,9 +42,17 @@
                     ".bru"
                 ],
                 "aliases": [
-                    "bru"
+                    "bruno",
+                    "bruno"
                 ],
                 "configuration": "./src/languageFeatures/language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "bruno",
+                "scopeName": "source.bru",
+                "path": "./syntaxes/bruno.tmLanguage.json"
             }
         ],
         "commands": [
