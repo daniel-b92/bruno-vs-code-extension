@@ -37,6 +37,8 @@ export enum RequestFileBlockName {
     FormUrlEncodedBody = "body:form-urlencoded",
     SparqlBody = "body:sparql",
     FileOrBinaryBody = "body:file",
+    GraphQlBody = "body:graphql",
+    GraphQlBodyVars = "body:graphql:vars",
 
     // Vars
     PreRequestVars = "vars:pre-request",

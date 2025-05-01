@@ -2,9 +2,10 @@ export enum MethodBlockBody {
     None = "none",
     Json = "json",
     Xml = "xml",
-    Text= "text",
+    Text = "text",
     Sparql = "sparql",
     File = "file",
     MultipartForm = "multipartForm",
-    FormUrlEncoded = "formUrlEncoded"
+    FormUrlEncoded = "formUrlEncoded",
+    GraphQl = "graphql",
 }

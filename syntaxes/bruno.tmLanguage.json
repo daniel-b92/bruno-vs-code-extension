@@ -11,13 +11,16 @@
         },
 
         {
-            "include": "#json-body-block"
+            "include": "#json-or-graphql-vars-body-block"
         },
         {
             "include": "#xml-body-block"
         },
         {
             "include": "#sparql-body-block"
+        },
+        {
+            "include": "#graphql-body-block"
         },
         {
             "include": "#text-body-or-docs-block"
@@ -29,7 +32,7 @@
     "repository": {
         "dictionary-block": {
             "name": "meta.dictionary-block.bruno",
-            "begin": "^(meta|get|post|put|delete|options|patch|head|params:\\S+|headers|auth:\\S+|body:multipart-form|body:form-urlencoded|body:file|vars:\\S|assert)\\s*{$",
+            "begin": "^(meta|get|post|put|delete|options|patch|head|params:\\S+|headers|auth:\\S+|body:multipart-form|body:form-urlencoded|body:file|vars:\\S+|assert)\\s*{$",
             "end": "^}\\s*$",
             "beginCaptures": { "0": { "name": "keyword.bruno" } },
             "patterns": [{ "include": "#dictionary" }]
@@ -49,9 +52,9 @@
                 }
             ]
         },
-        "json-body-block": {
-            "name": "meta.json-body-block.bruno",
-            "begin": "^body:json\\s*{$",
+        "json-or-graphql-vars-body-block": {
+            "name": "meta.json-or-graphql-vars-body-block.bruno",
+            "begin": "^(body:json|body:graphql:vars)\\s*{$",
             "end": "^}\\s*$",
             "beginCaptures": {
                 "0": {
@@ -94,8 +97,23 @@
                 }
             ]
         },
+        "graphql-body-block": {
+            "name": "meta.graphql-body-block.bruno",
+            "begin": "^body:graphql\\s*{$",
+            "end": "^}\\s*$",
+            "beginCaptures": {
+                "0": {
+                    "name": "keyword.bruno"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "source.graphql"
+                }
+            ]
+        },
         "text-body-or-docs-block": {
-            "name": "meta.text-body-block.bruno",
+            "name": "meta.text-body-or-docs-block.bruno",
             "begin": "^(body:text|docs)\\s*{$",
             "end": "^}\\s*$",
             "beginCaptures": {

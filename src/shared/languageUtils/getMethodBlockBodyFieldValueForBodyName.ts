@@ -16,6 +16,8 @@ export function getMethodBlockBodyFieldValueForBodyName(
         return MethodBlockBody.MultipartForm;
     } else if (bodyBlockName == RequestFileBlockName.FormUrlEncodedBody) {
         return MethodBlockBody.FormUrlEncoded;
+    } else if (bodyBlockName == RequestFileBlockName.GraphQlBody) {
+        return MethodBlockBody.GraphQl;
     } else {
         throw new Error(
             `Could not determine a matching value for the body field in the method block for the body block name '${bodyBlockName}'.`

@@ -1,3 +1,11 @@
+import { RequestFileBlockName } from "../../../languageUtils/requestFileBlockNameEnum";
+
 export function isBodyBlock(blockName: string) {
-    return blockName.startsWith("body:");
+    return (
+        Object.values(RequestFileBlockName).filter(
+            (name) =>
+                name.startsWith("body:") &&
+                name != RequestFileBlockName.GraphQlBodyVars
+        ) as string[]
+    ).includes(blockName);
 }
