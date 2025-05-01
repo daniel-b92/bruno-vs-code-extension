@@ -7,7 +7,20 @@
             "include": "#dictionary-block"
         },
         {
-            "include": "#scripts-and-test-blocks"
+            "include": "#script-or-test-block"
+        },
+
+        {
+            "include": "#json-body-block"
+        },
+        {
+            "include": "#xml-body-block"
+        },
+        {
+            "include": "#sparql-body-block"
+        },
+        {
+            "include": "#text-body-or-docs-block"
         },
         {
             "include": "#strings"
@@ -21,8 +34,8 @@
             "beginCaptures": { "0": { "name": "keyword.bruno" } },
             "patterns": [{ "include": "#dictionary" }]
         },
-        "scripts-and-test-blocks": {
-            "name": "meta.tests-block.bruno",
+        "script-or-test-block": {
+            "name": "meta.script-or-test-block.bruno",
             "begin": "^(tests|script:\\S+)\\s*{$",
             "end": "^}\\s*$",
             "beginCaptures": {
@@ -33,6 +46,66 @@
             "patterns": [
                 {
                     "include": "source.js"
+                }
+            ]
+        },
+        "json-body-block": {
+            "name": "meta.json-body-block.bruno",
+            "begin": "^body:json\\s*{$",
+            "end": "^}\\s*$",
+            "beginCaptures": {
+                "0": {
+                    "name": "keyword.bruno"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "source.json"
+                }
+            ]
+        },
+        "xml-body-block": {
+            "name": "meta.xml-body-block.bruno",
+            "begin": "^body:xml\\s*{$",
+            "end": "^}\\s*$",
+            "beginCaptures": {
+                "0": {
+                    "name": "keyword.bruno"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "text.xml"
+                }
+            ]
+        },
+        "sparql-body-block": {
+            "name": "meta.sparql-body-block.bruno",
+            "begin": "^body:sparql\\s*{$",
+            "end": "^}\\s*$",
+            "beginCaptures": {
+                "0": {
+                    "name": "keyword.bruno"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "source.sparql"
+                }
+            ]
+        },
+        "text-body-or-docs-block": {
+            "name": "meta.text-body-block.bruno",
+            "begin": "^(body:text|docs)\\s*{$",
+            "end": "^}\\s*$",
+            "beginCaptures": {
+                "0": {
+                    "name": "keyword.bruno"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "text.html.markdown"
                 }
             ]
         },
