@@ -278,6 +278,12 @@
         "description": "Add block for request body with SPARQL format"
     },
 
+    "body block - GraphQL": {
+        "prefix": ["body"],
+        "body": ["body:graphql {", "\t${0}", "}"],
+        "description": "Add block for request body with GraphQL format"
+    },
+
     "body block - plain text": {
         "prefix": ["body"],
         "body": ["body:text {", "\t${0}", "}"],
@@ -308,6 +314,12 @@
             "}"
         ],
         "description": "Add block for request body with file format"
+    },
+
+    "body block vars - GraphQL": {
+        "prefix": ["body"],
+        "body": ["body:graphql:vars {", "\t${0}", "}"],
+        "description": "Add body variables block for a GraphQL request"
     },
 
     "pre-request vars block": {
