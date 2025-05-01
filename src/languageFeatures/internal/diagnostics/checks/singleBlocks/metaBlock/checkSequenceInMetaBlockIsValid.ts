@@ -2,10 +2,9 @@ import { DiagnosticSeverity } from "vscode";
 import {
     DictionaryBlockField,
     RequestFileBlock,
-    castBlockToDictionaryBlock,
     MetaBlockKey,
+    getFieldFromMetaBlock,
 } from "../../../../../../shared";
-import { getFieldFromDictionaryBlock } from "../../../util/getFieldFromDictionaryBlock";
 import { DiagnosticWithCode } from "../../../definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../../diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { isSequenceValid } from "../../../util/isSequenceValid";
@@ -13,14 +12,8 @@ import { isSequenceValid } from "../../../util/isSequenceValid";
 export function checkSequenceInMetaBlockIsValid(
     metaBlock: RequestFileBlock
 ): DiagnosticWithCode | undefined {
-    const castedMetaBlock = castBlockToDictionaryBlock(metaBlock);
-
-    if (!castedMetaBlock) {
-        return undefined;
-    }
-
-    const sequenceField = getFieldFromDictionaryBlock(
-        castedMetaBlock,
+    const sequenceField = getFieldFromMetaBlock(
+        metaBlock,
         MetaBlockKey.Sequence
     );
 

@@ -30,14 +30,16 @@ export * from "./testFileParsing/external/parseBlockFromTestFile";
 export * from "./languageUtils/booleanFieldValueEnum";
 export * from "./languageUtils/requestFileBlockNameEnum";
 export * from "./languageUtils/metaBlock/metaBlockKeyEnum";
+export * from "./languageUtils/metaBlock/requestTypeEnum";
+export * from "./languageUtils/metaBlock/getFieldFromMetaBlock";
 export * from "./languageUtils/methodBlocks/methodBlockKeyEnum";
 export * from "./languageUtils/methodBlocks/methodBlockAuthEnum";
 export * from "./languageUtils/methodBlocks/methodBlockBodyEnum";
 export * from "./languageUtils/methodBlocks/getPossibleMethodBlocks";
+export * from "./languageUtils/methodBlocks/getFieldFromMethodBlock";
 export * from "./languageUtils/urls/getQueryParamsFromUrl";
 export * from "./languageUtils/urls/getPathParamsFromUrl";
 export * from "./languageUtils/urls/getUrlSubstringForQueryParams";
-export * from "./languageUtils/metaBlock/requestTypeEnum";
 export * from "./languageUtils/authBlocks/authBlockNameEnum";
 export * from "./languageUtils/authBlocks/authBlocksKeyEnums";
 export * from "./languageUtils/authBlocks/oAuth2BlockValuesEnums";
@@ -49,6 +51,7 @@ export * from "./languageUtils/getMethodBlockBodyFieldValueForBodyName";
 export * from "./languageUtils/getExpectedUrlQueryParamsForQueryParamsBlock";
 export * from "./languageUtils/getPathParamsFromPathParamsBlock";
 export * from "./languageUtils/getDefaultIndentationForDictionaryBlockFields";
+export * from "./languageUtils/getFieldFromDictionaryBlock";
 
 // test file writing
 export * from "./testFileWriting/addMetaBlock";

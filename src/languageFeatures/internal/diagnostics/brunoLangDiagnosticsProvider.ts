@@ -25,6 +25,7 @@ import { getMethodBlockSpecificDiagnostics } from "./getMethodBlockSpecificDiagn
 import { getAuthBlockSpecificDiagnostics } from "./getAuthBlockSpecificDiagnostics";
 import { checkUrlFromMethodBlockMatchesQueryParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesQueryParamsBlock";
 import { checkUrlFromMethodBlockMatchesPathParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesPathParamsBlock";
+import { checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests } from "./checks/multipleBlocks/checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -75,6 +76,10 @@ export class BrunoLangDiagnosticsProvider {
             checkAtMostOneBodyBlockExists(documentUri, blocks),
             checkAuthBlockTypeFromMethodBlockExists(documentUri, blocks),
             checkBodyBlockTypeFromMethodBlockExists(documentUri, blocks),
+            checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
+                documentUri,
+                blocks
+            ),
             checkNoBlocksHaveUnknownNames(documentUri, blocks),
             checkDictionaryBlocksHaveDictionaryStructure(documentUri, blocks),
             checkUrlFromMethodBlockMatchesQueryParamsBlock(documentUri, blocks),

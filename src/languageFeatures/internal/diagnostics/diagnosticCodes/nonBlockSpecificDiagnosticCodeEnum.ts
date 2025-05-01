@@ -27,4 +27,5 @@ export enum NonBlockSpecificDiagnosticCode {
     UrlFromMethodBlockNotMatchingPathParamsBlock = "bruLang_UrlFromMethodBlockNotMatchingPathParamsBlock",
     QueryParamsBlockMissing = "bruLang_QueryParamsBlockMissing",
     PathParamsBlockMissing = "bruLang_PathParamsBlockMissing",
+    GraphQlBlocksDefinedForNonGraphQlRequestType = "bruLang_GraphQlBlocksDefinedForNonGraphQlRequestType",
 }

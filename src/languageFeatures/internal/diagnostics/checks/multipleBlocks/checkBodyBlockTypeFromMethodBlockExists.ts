@@ -2,18 +2,15 @@ import { DiagnosticSeverity, Uri } from "vscode";
 import {
     DictionaryBlockField,
     getAllMethodBlocks,
+    getFieldFromMethodBlock,
     getMethodBlockBodyFieldValueForBodyName,
     MethodBlockBody,
     RequestFileBlock,
     RequestFileBlockName,
-} from "../../../../../shared";
-import {
-    castBlockToDictionaryBlock,
     MethodBlockKey,
     isBodyBlock,
     getBodyTypeFromBlockName,
 } from "../../../../../shared";
-import { getFieldFromDictionaryBlock } from "../../util/getFieldFromDictionaryBlock";
 import { DiagnosticWithCode } from "../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
@@ -28,7 +25,10 @@ export function checkBodyBlockTypeFromMethodBlockExists(
         return undefined;
     }
 
-    const methodBlockField = getBodyTypeFromMethodBlockField(methodBlocks[0]);
+    const methodBlockField = getFieldFromMethodBlock(
+        methodBlocks[0],
+        MethodBlockKey.Body
+    );
 
     if (!methodBlockField) {
         return undefined;
@@ -133,21 +133,6 @@ function getDiagnosticInCaseOfNonExpectedBodyBlock(
         severity: DiagnosticSeverity.Error,
         code: getCode(),
     };
-}
-
-function getBodyTypeFromMethodBlockField(methodBlock: RequestFileBlock) {
-    const castedMethodBlock = castBlockToDictionaryBlock(methodBlock);
-
-    if (!castedMethodBlock) {
-        return undefined;
-    }
-
-    const bodyField = getFieldFromDictionaryBlock(
-        castedMethodBlock,
-        MethodBlockKey.Body
-    );
-
-    return bodyField ?? undefined;
 }
 
 function getBodyBlockTypeForNoDefinedBodyBlock() {

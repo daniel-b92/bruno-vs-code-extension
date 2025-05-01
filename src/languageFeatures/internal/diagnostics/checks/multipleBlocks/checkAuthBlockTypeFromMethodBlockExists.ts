@@ -1,14 +1,13 @@
 import { DiagnosticSeverity, Uri } from "vscode";
 import {
-    castBlockToDictionaryBlock,
     DictionaryBlockField,
     getAllMethodBlocks,
     getAuthTypeFromBlockName,
+    getFieldFromMethodBlock,
     isAuthBlock,
     MethodBlockKey,
     RequestFileBlock,
 } from "../../../../../shared";
-import { getFieldFromDictionaryBlock } from "../../util/getFieldFromDictionaryBlock";
 import { DiagnosticWithCode } from "../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
@@ -23,7 +22,10 @@ export function checkAuthBlockTypeFromMethodBlockExists(
         return undefined;
     }
 
-    const methodBlockField = getAuthTypeFromMethodBlock(methodBlocks[0]);
+    const methodBlockField = getFieldFromMethodBlock(
+        methodBlocks[0],
+        MethodBlockKey.Auth
+    );
     const authTypeFromAuthBlock =
         authBlocks.length > 0
             ? getAuthTypeFromAuthBlock(authBlocks[0])
@@ -118,21 +120,6 @@ function getDiagnosticInCaseOfNonExpectedAuthBlock(
         severity: DiagnosticSeverity.Error,
         code: getCode(),
     };
-}
-
-function getAuthTypeFromMethodBlock(methodBlock: RequestFileBlock) {
-    const castedMethodBlock = castBlockToDictionaryBlock(methodBlock);
-
-    if (!castedMethodBlock) {
-        return undefined;
-    }
-
-    const authField = getFieldFromDictionaryBlock(
-        castedMethodBlock,
-        MethodBlockKey.Auth
-    );
-
-    return authField ?? undefined;
 }
 
 function getAuthTypeFromAuthBlock(authBlock: RequestFileBlock) {
