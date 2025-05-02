@@ -52,7 +52,7 @@ export class TestRunnerDataHelper {
         }
     }
 
-    private getTestFileDescendants(
+    public getTestFileDescendants(
         collectionForDirectory: Collection,
         directory: CollectionDirectory
     ) {

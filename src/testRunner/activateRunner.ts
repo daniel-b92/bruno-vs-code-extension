@@ -14,7 +14,7 @@ import { startTestRun } from "./internal/startTestRun";
 import { TestRunQueue } from "./internal/testRunQueue";
 import { addTestItemAndAncestorsToTestTree } from "./testTreeUtils/addTestItemAndAncestorsToTestTree";
 import { getTestId } from "./testTreeUtils/testTreeHelper";
-import { dirname } from "path";
+import { dirname, extname } from "path";
 import {
     TestRunnerDataHelper,
     CollectionDirectory,
@@ -23,6 +23,7 @@ import {
     normalizeDirectoryPath,
     CollectionItemProvider,
     FileChangeType,
+    getExtensionForRequestFiles,
 } from "../shared";
 
 export async function activateRunner(
@@ -185,18 +186,29 @@ export async function activateRunner(
     startTestRunEvent(async (uri) => {
         let testItem: VscodeTestItem | undefined;
 
-        const found = collectionItemProvider
+        const isRunnable = collectionItemProvider
             .getRegisteredCollections()
             .some((collection) => {
                 const maybeItem = collection.getStoredDataForPath(uri.fsPath);
 
-                if (maybeItem) {
+                if (
+                    maybeItem &&
+                    ((maybeItem.item instanceof CollectionFile &&
+                        extname(maybeItem.item.getPath()) ==
+                            getExtensionForRequestFiles() &&
+                        maybeItem.item.getSequence()) ||
+                        (maybeItem.item instanceof CollectionDirectory &&
+                            testRunnerDataHelper.getTestFileDescendants(
+                                collection,
+                                maybeItem.item
+                            ).length > 0))
+                ) {
                     testItem = maybeItem.testItem;
                     return true;
                 }
             });
 
-        if (found) {
+        if (isRunnable) {
             await startTestRun(
                 ctrl,
                 new TestRunRequest(
