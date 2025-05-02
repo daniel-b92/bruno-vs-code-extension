@@ -8,14 +8,15 @@ import {
     Uri,
     TestItem as vscodeTestItem,
     TestItemCollection as vscodeTestItemCollection,
+    window,
     workspace,
 } from "vscode";
-import { dirname, resolve } from "path";
+import { dirname, extname, isAbsolute, resolve } from "path";
 import { runTestStructure } from "./runTestStructure";
 import { QueuedTest, TestRunQueue } from "./testRunQueue";
 import { CollectionItemProvider, getCollectionRootDir } from "../../shared";
 
-const environmentConfigKey = "brunoTestExtension.testRunEnvironment";
+const environmentConfigKey = "bruno.testRunEnvironment";
 
 export const startTestRun = async (
     ctrl: TestController,
@@ -68,6 +69,9 @@ export const startTestRun = async (
                 queuedTest: { id, test, abortEmitter },
             } = await nextItemToRun;
             const path = (test.uri as Uri).fsPath;
+            const htmlReportPath = getHtmlReportPath(
+                await getCollectionRootDir(path)
+            );
 
             run.token.onCancellationRequested(() => {
                 abortEmitter.fire();
@@ -80,7 +84,8 @@ export const startTestRun = async (
             if (
                 !(await prepareAndRunTest(
                     { test, abortEmitter, id, request },
-                    run
+                    run,
+                    htmlReportPath
                 ))
             ) {
                 break;
@@ -88,9 +93,6 @@ export const startTestRun = async (
 
             run.end();
 
-            const htmlReportPath = getHtmlReportPath(
-                await getCollectionRootDir(path)
-            );
             if (existsSync(htmlReportPath)) {
                 showHtmlReport(htmlReportPath, path);
             }
@@ -118,7 +120,8 @@ export const startTestRun = async (
 
 const prepareAndRunTest = async (
     { test, abortEmitter }: QueuedTest,
-    run: TestRun
+    run: TestRun,
+    htmlReportPath: string
 ) => {
     if (checkForRequestedCancellation(run)) {
         run.end();
@@ -133,11 +136,7 @@ const prepareAndRunTest = async (
         .getConfiguration()
         .get(environmentConfigKey) as string | undefined;
 
-    printInfosOnTestRunStart(
-        run,
-        getHtmlReportPath(await getCollectionRootDir((test.uri as Uri).fsPath)),
-        testEnvironment
-    );
+    printInfosOnTestRunStart(run, htmlReportPath, testEnvironment);
 
     if (checkForRequestedCancellation(run)) {
         run.end();
@@ -149,6 +148,7 @@ const prepareAndRunTest = async (
         run,
         abortEmitter,
         test.canResolveChildren,
+        htmlReportPath,
         testEnvironment
     );
 
@@ -186,8 +186,48 @@ const printInfosOnTestRunStart = (
     );
 };
 
-export const getHtmlReportPath = (collectionRootDir: string) =>
-    resolve(dirname(collectionRootDir), "results.html");
+const getHtmlReportPath = (collectionRootDir: string) => {
+    const reportPathConfigKey = "bruno.htmlReportPath";
+    const defaultFileName = "results.html";
+    const fallbackAbsolutePath = resolve(
+        collectionRootDir,
+        `../${defaultFileName}`
+    );
+
+    const configValue = workspace
+        .getConfiguration()
+        .get<string>(reportPathConfigKey);
+
+    if (!configValue || extname(configValue) != ".html") {
+        showWarningForInvalidOrMissingHtmlReportPathConfig(
+            configValue,
+            fallbackAbsolutePath
+        );
+        return fallbackAbsolutePath;
+    } else if (isAbsolute(configValue) && existsSync(dirname(configValue))) {
+        return configValue;
+    } else if (
+        !isAbsolute(configValue) &&
+        existsSync(dirname(resolve(collectionRootDir, configValue)))
+    ) {
+        return resolve(collectionRootDir, configValue);
+    } else {
+        showWarningForInvalidOrMissingHtmlReportPathConfig(
+            configValue,
+            fallbackAbsolutePath
+        );
+        return fallbackAbsolutePath;
+    }
+};
+
+function showWarningForInvalidOrMissingHtmlReportPathConfig(
+    configValue: string | undefined,
+    fallbackPathThatWillBeUsed: string
+) {
+    window.showWarningMessage(
+        `Configured HTML report path '${configValue}' is invalid or missing. Will use the fallback path '${fallbackPathThatWillBeUsed}' instead.`
+    );
+}
 
 function gatherTestItems(collection: vscodeTestItemCollection) {
     const items: vscodeTestItem[] = [];

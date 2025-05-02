@@ -10,7 +10,6 @@ import {
     TestItem as vscodeTestItem,
 } from "vscode";
 import { getTestFilesWithFailures } from "./jsonReportParser";
-import { getHtmlReportPath } from "./startTestRun";
 import { getTestItemDescendants } from "../testTreeUtils/getTestItemDescendants";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import treeKill = require("tree-kill");
@@ -20,11 +19,11 @@ export async function runTestStructure(
     options: TestRun,
     abortEmitter: EventEmitter<void>,
     isDirectory: boolean,
+    htmlReportPath: string,
     testEnvironment?: string
 ): Promise<void> {
     const path = (item.uri as Uri).fsPath;
     const collectionRootDir = await getCollectionRootDir(path);
-    const htmlReportPath = getHtmlReportPath(collectionRootDir);
     const lineBreak = getLineBreakForTestRunOutput();
     if (existsSync(htmlReportPath)) {
         unlinkSync(htmlReportPath);

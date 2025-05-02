@@ -21,11 +21,16 @@
     "main": "./dist/extension",
     "contributes": {
         "configuration": {
-            "title": "BrunoTestExtension",
+            "title": "Bruno",
             "properties": {
-                "brunoTestExtension.testRunEnvironment": {
+                "bruno.testRunEnvironment": {
                     "type": "string",
                     "description": "The name of the environment to use for running Bruno tests with."
+                },
+                "bruno.htmlReportPath": {
+                    "type": "string",
+                    "default": "../results.html",
+                    "description": "The path for saving HTML test reports. Can either be defined as an absolute path or relative to the collection root directory."
                 }
             }
         },
