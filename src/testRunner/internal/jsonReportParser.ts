@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 
 type JsonReportData = {
     results: {
@@ -14,6 +14,10 @@ type JsonReportData = {
 }[];
 
 export const getTestFilesWithFailures = (jsonReportPath: string) => {
+    if (!existsSync(jsonReportPath)) {
+        return [];
+    }
+
     const reportData = JSON.parse(
         readFileSync(jsonReportPath).toString()
     ) as JsonReportData;
