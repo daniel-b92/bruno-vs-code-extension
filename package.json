@@ -36,6 +36,11 @@
                     "type": "boolean",
                     "default": true,
                     "markdownDescription": "Whether to always show the HTML test report after running tests. If set to *false*, the HTML report will only be shown for failed runs."
+                },
+                "bruno.allowInstallationOfBrunoCliViaNpx": {
+                    "type": "boolean",
+                    "default": false,
+                    "markdownDescription": "Allow the Bruno CLI npm package to be installed temporarily via npx, if it's not already installed globally. See [npm docs](https://docs.npmjs.com/cli/v11/commands/npx) for further infos on npx."
                 }
             }
         },

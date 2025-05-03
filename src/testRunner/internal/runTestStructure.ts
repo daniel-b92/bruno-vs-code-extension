@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, unlinkSync } from "fs";
-import { spawn } from "child_process";
+import { exec, spawn } from "child_process";
 import { dirname, resolve } from "path";
 import {
     EventEmitter,
@@ -7,11 +7,13 @@ import {
     TestRun,
     Uri,
     TestItem as vscodeTestItem,
+    workspace,
 } from "vscode";
 import { getTestFilesWithFailures } from "./jsonReportParser";
 import { getTestItemDescendants } from "../testTreeUtils/getTestItemDescendants";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import treeKill = require("tree-kill");
+import { getLinkToUserSetting } from "../../shared";
 
 export async function runTestStructure(
     item: vscodeTestItem,
@@ -39,22 +41,39 @@ export async function runTestStructure(
             (descendant) => (descendant.busy = true)
         );
     }
-    const commandArgs = getCommandArgs(
-        path,
-        collectionRootDirectory,
-        htmlReportPath,
-        jsonReportPath,
-        testEnvironment
-    );
 
     return new Promise<boolean>((resolve) => {
         let duration = 0;
 
         const start = Date.now();
-        const childProcess = spawn(`npx`, commandArgs, {
-            cwd: collectionRootDirectory,
-            shell: true,
-        });
+        const { childProcess, usingNpx } = spawnChildProcess(
+            path,
+            collectionRootDirectory,
+            htmlReportPath,
+            jsonReportPath,
+            testEnvironment
+        );
+
+        if (!canUseNpx()) {
+            options.appendOutput(lineBreak);
+            options.appendOutput(
+                `Temporarily installing the Bruno CLI npm package via npx is disabled (see ${getLinkToUserSetting(
+                    getConfigKeyForAllowingUsageOfNpx()
+                )})${lineBreak}`
+            );
+            options.appendOutput(
+                `Will continue with the assumption that the package is already installed globally.${lineBreak}`
+            );
+            options.appendOutput(lineBreak);
+        } else {
+            options.appendOutput(
+                `Using ${
+                    usingNpx
+                        ? "npx"
+                        : "the globally installed Bruno CLI package"
+                } for triggering the test run.${lineBreak}`
+            );
+        }
 
         abortEmitter.event(() => {
             while (!childProcess.pid) {
@@ -293,36 +312,81 @@ const getTestMessageForFailedTest = (
 const getJsonReportPath = (collectionRootDir: string) =>
     resolve(dirname(collectionRootDir), "results.json");
 
-const getCommandArgs = (
+const spawnChildProcess = (
     testPath: string,
     collectionRootDirectory: string,
     htmlReportPath: string,
     jsonReportPath: string,
     testEnvironment?: string
 ) => {
-    const npmPackage = "@usebruno/cli@2.2.2";
+    const npmPackageForUsingViaNpx = `${getNpmPackageNameWithoutSpecificVersion()}@2.2.2`;
 
-    const result: string[] = [];
+    const commandArguments: (string | undefined)[] = [];
+    const shouldUseNpxForTriggeringTests = shouldUseNpx();
+    const command = shouldUseNpxForTriggeringTests ? "npx" : "bru";
     const argForRunCommand =
-        testPath == collectionRootDirectory ? "bru run" : `bru run ${testPath}`;
+        testPath == collectionRootDirectory
+            ? `${shouldUseNpxForTriggeringTests ? "bru " : ""}run`
+            : `${shouldUseNpxForTriggeringTests ? "bru " : ""}run ${testPath}`;
 
-    result.push(
+    commandArguments.push(
         ...[
-            `--package=${npmPackage}`,
+            shouldUseNpxForTriggeringTests
+                ? `--package=${npmPackageForUsingViaNpx}`
+                : undefined,
             argForRunCommand,
             "-r",
             "--reporter-html",
             htmlReportPath,
             "--reporter-json",
             jsonReportPath,
-        ]
+        ].filter((entry) => entry != undefined)
     );
 
     if (testEnvironment) {
-        result.push(...["--env", testEnvironment]);
+        commandArguments.push(...["--env", testEnvironment]);
     }
 
-    return result;
+    const childProcess = spawn(command, commandArguments as string[], {
+        cwd: collectionRootDirectory,
+        shell: true,
+    });
+
+    return { childProcess, usingNpx: shouldUseNpxForTriggeringTests };
+};
+
+const shouldUseNpx = () => {
+    if (!canUseNpx()) {
+        return false;
+    }
+
+    let isPackageInstalledGlobally = false;
+
+    exec("npm list -g --depth=0", (err, stdOut) => {
+        if (err) {
+            console.warn(
+                `Got an unexpected error when trying to determine globally installed NPM packages: '${err.message}'`
+            );
+            isPackageInstalledGlobally = false;
+        } else {
+            isPackageInstalledGlobally = stdOut.includes(
+                getNpmPackageNameWithoutSpecificVersion()
+            );
+        }
+    });
+
+    return !isPackageInstalledGlobally;
+};
+
+const canUseNpx = () => {
+    return workspace
+        .getConfiguration()
+        .get<boolean>(getConfigKeyForAllowingUsageOfNpx(), false);
 };
 
 const getLineBreakForTestRunOutput = () => "\r\n";
+
+const getNpmPackageNameWithoutSpecificVersion = () => "@usebruno/cli";
+
+const getConfigKeyForAllowingUsageOfNpx = () =>
+    "bruno.allowInstallationOfBrunoCliViaNpx";

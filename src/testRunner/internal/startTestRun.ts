@@ -14,7 +14,11 @@ import {
 import { dirname, extname, isAbsolute, resolve } from "path";
 import { runTestStructure } from "./runTestStructure";
 import { QueuedTest, TestRunQueue } from "./testRunQueue";
-import { Collection, CollectionItemProvider } from "../../shared";
+import {
+    Collection,
+    CollectionItemProvider,
+    getLinkToUserSetting,
+} from "../../shared";
 
 const environmentConfigKey = "bruno.testRunEnvironment";
 
@@ -183,7 +187,9 @@ const printInfosOnTestRunStart = (
     if (!testEnvironment) {
         run.appendOutput(`Not using any environment for the test run.\r\n`);
         run.appendOutput(
-            `You can configure an environment to use via the setting '${environmentConfigKey}'.\r\n`
+            `You can configure an environment to use via the setting ${getLinkToUserSetting(
+                environmentConfigKey
+            )}\r\n`
         );
     } else {
         run.appendOutput(
@@ -245,12 +251,12 @@ function showWarningForInvalidOrMissingHtmlReportPathConfig(
 }
 
 const shouldShowHtmlReport = (testsPassed: boolean) => {
-    const showOnlyOnFailureConfigKey = "bruno.showHtmlReportOnlyOnFailure";
-    const fallbackValue = false;
+    const showOnlyOnFailureConfigKey = "bruno.alwaysShowHtmlReport";
+    const fallbackValue = true;
 
-    const configValue =
-        workspace.getConfiguration().get<boolean>(showOnlyOnFailureConfigKey) ??
-        fallbackValue;
+    const configValue = workspace
+        .getConfiguration()
+        .get<boolean>(showOnlyOnFailureConfigKey, fallbackValue);
 
-    return configValue ? !testsPassed : true;
+    return configValue ?? !testsPassed;
 };

@@ -67,3 +67,6 @@ export * from "./model/interfaces";
 // state
 export * from "./state/externalHelpers/collectionItemProvider";
 export * from "./state/externalHelpers/testRunnerDataHelper";
+
+// vsCodeSettings
+export * from "./vsCodeSettings/getLinkToUserSetting";
