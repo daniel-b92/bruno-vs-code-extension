@@ -21,7 +21,7 @@ export const getAllCollectionRootDirectories = async () => {
     return result;
 };
 
-export const isCollectionRootDir = async (path: string) => {
+const isCollectionRootDir = async (path: string) => {
     const containsBrunoJsonFile =
         lstatSync(path).isDirectory() &&
         readdirSync(path).some((file) => file.endsWith("bruno.json"));
@@ -29,20 +29,7 @@ export const isCollectionRootDir = async (path: string) => {
     if (!containsBrunoJsonFile) {
         return false;
     }
-    
+
     const testfileDescendants = await getTestFileDescendants(path);
     return testfileDescendants.length > 0;
-};
-
-export const getCollectionRootDir = async (testDataPath: string) => {
-    const allCollectionRootDirs = await getAllCollectionRootDirectories();
-    const collectionRootDir = allCollectionRootDirs.find((rootDir) =>
-        testDataPath.includes(rootDir)
-    );
-    if (!collectionRootDir) {
-        throw new Error(
-            `Could not find collection root directory for test item path '${testDataPath}'`
-        );
-    }
-    return collectionRootDir;
 };

@@ -1,4 +1,3 @@
-import { getCollectionRootDir } from "../../shared";
 import { existsSync, lstatSync, unlinkSync } from "fs";
 import { spawn } from "child_process";
 import { dirname, resolve } from "path";
@@ -18,18 +17,19 @@ export async function runTestStructure(
     item: vscodeTestItem,
     options: TestRun,
     abortEmitter: EventEmitter<void>,
-    isDirectory: boolean,
+    collectionRootDirectory: string,
     htmlReportPath: string,
     testEnvironment?: string
 ): Promise<boolean> {
     const path = (item.uri as Uri).fsPath;
-    const collectionRootDir = await getCollectionRootDir(path);
     const lineBreak = getLineBreakForTestRunOutput();
+    const isDirectory = item.canResolveChildren;
+
     if (existsSync(htmlReportPath)) {
         unlinkSync(htmlReportPath);
     }
 
-    const jsonReportPath = getJsonReportPath(collectionRootDir);
+    const jsonReportPath = getJsonReportPath(collectionRootDirectory);
     if (existsSync(jsonReportPath)) {
         unlinkSync(jsonReportPath);
     }
@@ -39,8 +39,9 @@ export async function runTestStructure(
             (descendant) => (descendant.busy = true)
         );
     }
-    const commandArgs = await getCommandArgs(
+    const commandArgs = getCommandArgs(
         path,
+        collectionRootDirectory,
         htmlReportPath,
         jsonReportPath,
         testEnvironment
@@ -51,7 +52,7 @@ export async function runTestStructure(
 
         const start = Date.now();
         const childProcess = spawn(`npx`, commandArgs, {
-            cwd: collectionRootDir,
+            cwd: collectionRootDirectory,
             shell: true,
         });
 
@@ -292,20 +293,19 @@ const getTestMessageForFailedTest = (
 const getJsonReportPath = (collectionRootDir: string) =>
     resolve(dirname(collectionRootDir), "results.json");
 
-const getCommandArgs = async (
+const getCommandArgs = (
     testPath: string,
+    collectionRootDirectory: string,
     htmlReportPath: string,
     jsonReportPath: string,
     testEnvironment?: string
 ) => {
     const npmPackage = "@usebruno/cli@2.2.2";
-    const testDataPath = testPath;
-    const collectionRootDir = await getCollectionRootDir(testPath);
+
     const result: string[] = [];
     const argForRunCommand =
-        testDataPath == collectionRootDir
-            ? "bru run"
-            : `bru run ${testDataPath}`;
+        testPath == collectionRootDirectory ? "bru run" : `bru run ${testPath}`;
+
     result.push(
         ...[
             `--package=${npmPackage}`,

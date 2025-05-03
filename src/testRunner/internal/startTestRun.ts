@@ -14,7 +14,7 @@ import {
 import { dirname, extname, isAbsolute, resolve } from "path";
 import { runTestStructure } from "./runTestStructure";
 import { QueuedTest, TestRunQueue } from "./testRunQueue";
-import { CollectionItemProvider, getCollectionRootDir } from "../../shared";
+import { Collection, CollectionItemProvider } from "../../shared";
 
 const environmentConfigKey = "bruno.testRunEnvironment";
 
@@ -26,6 +26,7 @@ export const startTestRun = async (
 ) => {
     const discoverTests = (tests: Iterable<vscodeTestItem>) => {
         const result: QueuedTest[] = [];
+
         for (const test of tests) {
             if (request.exclude?.includes(test)) {
                 continue;
@@ -54,6 +55,7 @@ export const startTestRun = async (
                 abortEmitter: new EventEmitter<void>(),
             });
         }
+
         return result;
     };
 
@@ -69,9 +71,14 @@ export const startTestRun = async (
                 queuedTest: { id, test, abortEmitter },
             } = await nextItemToRun;
             const path = (test.uri as Uri).fsPath;
-            const htmlReportPath = getHtmlReportPath(
-                await getCollectionRootDir(path)
-            );
+
+            const collectionRootDir = (
+                collectionItemProvider.getAncestorCollectionForPath(
+                    path
+                ) as Collection
+            ).getRootDirectory();
+
+            const htmlReportPath = getHtmlReportPath(collectionRootDir);
 
             run.token.onCancellationRequested(() => {
                 abortEmitter.fire();
@@ -84,6 +91,7 @@ export const startTestRun = async (
             const { didRun, passed } = await prepareAndRunTest(
                 { test, abortEmitter, id, request },
                 run,
+                collectionRootDir,
                 htmlReportPath
             );
 
@@ -126,6 +134,7 @@ export const startTestRun = async (
 const prepareAndRunTest = async (
     { test, abortEmitter }: QueuedTest,
     run: TestRun,
+    collectionRootDirectory: string,
     htmlReportPath: string
 ): Promise<{ didRun: boolean; passed?: boolean }> => {
     if (checkForRequestedCancellation(run)) {
@@ -152,7 +161,7 @@ const prepareAndRunTest = async (
         test,
         run,
         abortEmitter,
-        test.canResolveChildren,
+        collectionRootDirectory,
         htmlReportPath,
         testEnvironment
     );
