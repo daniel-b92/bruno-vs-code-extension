@@ -32,10 +32,10 @@
                     "default": "../results.html",
                     "description": "The path for saving HTML test reports. Can either be defined as an absolute path or relative to the collection root directory."
                 },
-                "bruno.showHtmlReportOnlyOnFailure": {
+                "bruno.alwaysShowHtmlReport": {
                     "type": "boolean",
-                    "default": false,
-                    "markdownDescription": "Whether to only show the HTML test report when there was a failure. If set to *false*, the HTML report will always be shown."
+                    "default": true,
+                    "markdownDescription": "Whether to always show the HTML test report after running tests. If set to *false*, the HTML report will only be shown for failed runs."
                 }
             }
         },
