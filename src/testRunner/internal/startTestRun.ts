@@ -81,23 +81,22 @@ export const startTestRun = async (
                 queue.removeItemsFromQueue(toRun.splice(0));
             });
 
-            const runResult = await prepareAndRunTest(
+            const { didRun, passed } = await prepareAndRunTest(
                 { test, abortEmitter, id, request },
                 run,
                 htmlReportPath
             );
 
-            if (Object.prototype.hasOwnProperty.call(runResult, "didNotRun")) {
+            if (!didRun) {
                 break;
             }
 
             run.end();
 
             if (
-                !Object.prototype.hasOwnProperty.call(runResult, "didNotRun") &&
-                shouldShowHtmlReport(
-                    (runResult as { passed: boolean }).passed
-                ) &&
+                didRun &&
+                passed != undefined &&
+                shouldShowHtmlReport(passed) &&
                 existsSync(htmlReportPath)
             ) {
                 showHtmlReport(htmlReportPath, path);
@@ -128,10 +127,10 @@ const prepareAndRunTest = async (
     { test, abortEmitter }: QueuedTest,
     run: TestRun,
     htmlReportPath: string
-): Promise<{ didNotRun: true } | { passed: boolean }> => {
+): Promise<{ didRun: boolean; passed?: boolean }> => {
     if (checkForRequestedCancellation(run)) {
         run.end();
-        return { didNotRun: true };
+        return { didRun: false };
     }
 
     run.appendOutput(`Running ${test.label}\r\n`);
@@ -146,7 +145,7 @@ const prepareAndRunTest = async (
 
     if (checkForRequestedCancellation(run)) {
         run.end();
-        return { didNotRun: true };
+        return { didRun: false };
     }
 
     const passed = await runTestStructure(
@@ -158,7 +157,7 @@ const prepareAndRunTest = async (
         testEnvironment
     );
 
-    return { passed };
+    return { didRun: true, passed };
 };
 
 const checkForRequestedCancellation = (run: TestRun) =>
