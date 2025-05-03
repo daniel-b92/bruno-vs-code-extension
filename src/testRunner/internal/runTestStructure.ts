@@ -298,7 +298,7 @@ const getCommandArgs = async (
     jsonReportPath: string,
     testEnvironment?: string
 ) => {
-    const npmPackage = "@usebruno/cli@1.39.0";
+    const npmPackage = "@usebruno/cli@2.2.2";
     const testDataPath = testPath;
     const collectionRootDir = await getCollectionRootDir(testPath);
     const result: string[] = [];
