@@ -81,19 +81,25 @@ export const startTestRun = async (
                 queue.removeItemsFromQueue(toRun.splice(0));
             });
 
-            if (
-                !(await prepareAndRunTest(
-                    { test, abortEmitter, id, request },
-                    run,
-                    htmlReportPath
-                ))
-            ) {
+            const runResult = await prepareAndRunTest(
+                { test, abortEmitter, id, request },
+                run,
+                htmlReportPath
+            );
+
+            if (Object.prototype.hasOwnProperty.call(runResult, "didNotRun")) {
                 break;
             }
 
             run.end();
 
-            if (existsSync(htmlReportPath)) {
+            if (
+                !Object.prototype.hasOwnProperty.call(runResult, "didNotRun") &&
+                shouldShowHtmlReport(
+                    (runResult as { passed: boolean }).passed
+                ) &&
+                existsSync(htmlReportPath)
+            ) {
                 showHtmlReport(htmlReportPath, path);
             }
 
@@ -122,10 +128,10 @@ const prepareAndRunTest = async (
     { test, abortEmitter }: QueuedTest,
     run: TestRun,
     htmlReportPath: string
-) => {
+): Promise<{ didNotRun: true } | { passed: boolean }> => {
     if (checkForRequestedCancellation(run)) {
         run.end();
-        return false;
+        return { didNotRun: true };
     }
 
     run.appendOutput(`Running ${test.label}\r\n`);
@@ -140,10 +146,10 @@ const prepareAndRunTest = async (
 
     if (checkForRequestedCancellation(run)) {
         run.end();
-        return false;
+        return { didNotRun: true };
     }
 
-    await runTestStructure(
+    const passed = await runTestStructure(
         test,
         run,
         abortEmitter,
@@ -152,12 +158,7 @@ const prepareAndRunTest = async (
         testEnvironment
     );
 
-    if (checkForRequestedCancellation(run)) {
-        run.end();
-        return false;
-    }
-
-    return true;
+    return { passed };
 };
 
 const checkForRequestedCancellation = (run: TestRun) =>
@@ -185,6 +186,12 @@ const printInfosOnTestRunStart = (
         `Saving the HTML test report to file '${htmlReportPath}'.\r\n`
     );
 };
+
+function gatherTestItems(collection: vscodeTestItemCollection) {
+    const items: vscodeTestItem[] = [];
+    collection.forEach((item) => items.push(item));
+    return items;
+}
 
 const getHtmlReportPath = (collectionRootDir: string) => {
     const reportPathConfigKey = "bruno.htmlReportPath";
@@ -229,8 +236,13 @@ function showWarningForInvalidOrMissingHtmlReportPathConfig(
     );
 }
 
-function gatherTestItems(collection: vscodeTestItemCollection) {
-    const items: vscodeTestItem[] = [];
-    collection.forEach((item) => items.push(item));
-    return items;
-}
+const shouldShowHtmlReport = (testsPassed: boolean) => {
+    const showOnlyOnFailureConfigKey = "bruno.showHtmlReportOnlyOnFailure";
+    const fallbackValue = false;
+
+    const configValue =
+        workspace.getConfiguration().get<boolean>(showOnlyOnFailureConfigKey) ??
+        fallbackValue;
+
+    return configValue ? !testsPassed : true;
+};

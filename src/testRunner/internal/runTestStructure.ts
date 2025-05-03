@@ -21,7 +21,7 @@ export async function runTestStructure(
     isDirectory: boolean,
     htmlReportPath: string,
     testEnvironment?: string
-): Promise<void> {
+): Promise<boolean> {
     const path = (item.uri as Uri).fsPath;
     const collectionRootDir = await getCollectionRootDir(path);
     const lineBreak = getLineBreakForTestRunOutput();
@@ -46,7 +46,7 @@ export async function runTestStructure(
         testEnvironment
     );
 
-    return new Promise((resolve) => {
+    return new Promise<boolean>((resolve) => {
         let duration = 0;
 
         const start = Date.now();
@@ -79,7 +79,7 @@ export async function runTestStructure(
                     options.skipped(child);
                 });
             }
-            resolve();
+            resolve(false);
         });
 
         childProcess.stdout.on("data", (data) => {
@@ -94,15 +94,15 @@ export async function runTestStructure(
             );
         });
 
-        childProcess.on("close", (code) => {
-            console.log(`child process exited with code ${code}`);
+        childProcess.on("close", (exitCode) => {
+            console.log(`child process exited with code ${exitCode}`);
             duration = Date.now() - start;
             if (existsSync(htmlReportPath)) {
                 options.appendOutput(
                     `HTML report has been saved in file: '${htmlReportPath}'${lineBreak}`
                 );
             }
-            if (code == 0) {
+            if (exitCode == 0) {
                 options.passed(item, duration);
 
                 if (isDirectory) {
@@ -111,7 +111,7 @@ export async function runTestStructure(
                         options.passed(child);
                     });
                 }
-            } else if (code == null) {
+            } else if (exitCode == null) {
                 options.skipped(item);
                 if (isDirectory) {
                     setStatusForDescendantItems(item, jsonReportPath, options);
@@ -150,7 +150,7 @@ export async function runTestStructure(
             if (existsSync(jsonReportPath)) {
                 unlinkSync(jsonReportPath);
             }
-            resolve();
+            resolve(exitCode == 0);
         });
     });
 }
