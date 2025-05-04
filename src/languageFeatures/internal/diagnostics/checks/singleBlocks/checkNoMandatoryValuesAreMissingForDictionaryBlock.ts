@@ -1,7 +1,7 @@
 import { DiagnosticSeverity, Range } from "vscode";
 import { DictionaryBlock, DictionaryBlockField } from "../../../../../shared";
 import { DiagnosticWithCode } from "../../definitions";
-import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeEnum";
+import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
 import { getFieldsWithEmptyValuesForDictionaryBlock } from "../../util/getFieldsWithEmptyValuesForDictionaryBlock";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 

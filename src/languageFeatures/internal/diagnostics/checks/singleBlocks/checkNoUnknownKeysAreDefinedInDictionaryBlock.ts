@@ -1,6 +1,6 @@
 import { DiagnosticSeverity, Range } from "vscode";
 import { DictionaryBlockField, DictionaryBlock } from "../../../../../shared";
-import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeEnum";
+import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
 import { getUnknownKeysFromDictionaryBlock } from "../../util/getUnknownKeysFromDictionaryBlock";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 import { DiagnosticWithCode } from "../../definitions";

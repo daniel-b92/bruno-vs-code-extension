@@ -1,4 +1,4 @@
-import { KnownDiagnosticCode } from "../diagnosticCodes/knownDiagnosticCodeEnum";
+import { KnownDiagnosticCode } from "../diagnosticCodes/knownDiagnosticCodeDefinition";
 
 export class RelatedRequestsDiagnosticsHelper {
     constructor() {

@@ -1,7 +1,7 @@
 import { DiagnosticSeverity } from "vscode";
 import { DictionaryBlockField } from "../../../../../shared";
 import { DiagnosticWithCode } from "../../definitions";
-import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeEnum";
+import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
 
 export function checkValueForDictionaryBlockFieldIsValid(
     field: DictionaryBlockField,
