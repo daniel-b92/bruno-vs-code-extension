@@ -1,6 +1,7 @@
 import { DiagnosticCollection, Uri } from "vscode";
 import {
     CollectionItemProvider,
+    EnvironmentFileBlockName,
     getAllMethodBlocks,
     isAuthBlock,
     parseTestFile,
@@ -43,15 +44,29 @@ export class BrunoLangDiagnosticsProvider {
         this.relatedRequestsHelper.dispose();
     }
 
-    public provideDiagnostics(documentUri: Uri, documentText: string) {
-        const newDiagnostics = this.determineDiagnostics(
+    public provideDiagnosticsForRequestFile(
+        documentUri: Uri,
+        documentText: string
+    ) {
+        const newDiagnostics = this.determineDiagnosticsForRequestFile(
             documentUri,
             documentText
         );
         this.diagnosticCollection.set(documentUri, newDiagnostics);
     }
 
-    private determineDiagnostics(
+    public provideDiagnosticsForEnvironmentFile(
+        documentUri: Uri,
+        documentText: string
+    ) {
+        const newDiagnostics = this.determineDiagnosticsForEnvironmentFile(
+            documentUri,
+            documentText
+        );
+        this.diagnosticCollection.set(documentUri, newDiagnostics);
+    }
+
+    private determineDiagnosticsForRequestFile(
         documentUri: Uri,
         documentText: string
     ): DiagnosticWithCode[] {
@@ -60,13 +75,8 @@ export class BrunoLangDiagnosticsProvider {
 
         const results: DiagnosticWithCode[] = [];
 
-        const addToResults = (
-            ...maybeDiagnostics: (DiagnosticWithCode | undefined)[]
-        ) => {
-            results.push(...maybeDiagnostics.filter((val) => val != undefined));
-        };
-
-        addToResults(
+        this.addToResults(
+            results,
             ...checkOccurencesOfMandatoryBlocks(document, blocks),
             checkThatNoBlocksAreDefinedMultipleTimes(documentUri, blocks),
             checkThatNoTextExistsOutsideOfBlocks(
@@ -81,7 +91,11 @@ export class BrunoLangDiagnosticsProvider {
                 documentUri,
                 blocks
             ),
-            checkNoBlocksHaveUnknownNames(documentUri, blocks),
+            checkNoBlocksHaveUnknownNames(
+                documentUri,
+                blocks,
+                Object.values(RequestFileBlockName) as string[]
+            ),
             checkDictionaryBlocksHaveDictionaryStructure(
                 documentUri,
                 blocks.filter(({ name }) => shouldBeDictionaryBlock(name))
@@ -100,7 +114,8 @@ export class BrunoLangDiagnosticsProvider {
         );
 
         if (metaBlocks.length == 1) {
-            addToResults(
+            this.addToResults(
+                results,
                 ...getMetaBlockSpecificDiagnostics(
                     this.itemProvider,
                     this.relatedRequestsHelper,
@@ -114,15 +129,63 @@ export class BrunoLangDiagnosticsProvider {
         const methodBlocks = getAllMethodBlocks(blocks);
 
         if (methodBlocks.length == 1) {
-            addToResults(...getMethodBlockSpecificDiagnostics(methodBlocks[0]));
+            this.addToResults(
+                results,
+                ...getMethodBlockSpecificDiagnostics(methodBlocks[0])
+            );
         }
 
         const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
 
         if (authBlocks.length == 1) {
-            addToResults(...getAuthBlockSpecificDiagnostics(authBlocks[0]));
+            this.addToResults(
+                results,
+                ...getAuthBlockSpecificDiagnostics(authBlocks[0])
+            );
         }
 
         return results;
+    }
+
+    private determineDiagnosticsForEnvironmentFile(
+        documentUri: Uri,
+        documentText: string
+    ): DiagnosticWithCode[] {
+        const document = new TextDocumentHelper(documentText);
+
+        // ToDo: Use different parsing function for environment files
+        const { blocks } = parseTestFile(document);
+
+        const results: DiagnosticWithCode[] = [];
+
+        this.addToResults(
+            results,
+            checkThatNoBlocksAreDefinedMultipleTimes(documentUri, blocks),
+            // ToDo: Use parsing function that recognizes array blocks correctly as valid blocks and adjust check
+            /*checkThatNoTextExistsOutsideOfBlocks(
+                documentUri,
+                textOutsideOfBlocks
+            ),*/
+            checkNoBlocksHaveUnknownNames(
+                documentUri,
+                blocks,
+                Object.values(EnvironmentFileBlockName)
+            ),
+            checkDictionaryBlocksHaveDictionaryStructure(
+                documentUri,
+                blocks.filter(
+                    ({ name }) => name == EnvironmentFileBlockName.Vars
+                )
+            )
+        );
+
+        return results;
+    }
+
+    private addToResults(
+        results: DiagnosticWithCode[],
+        ...maybeDiagnostics: (DiagnosticWithCode | undefined)[]
+    ) {
+        results.push(...maybeDiagnostics.filter((val) => val != undefined));
     }
 }

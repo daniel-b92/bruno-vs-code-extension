@@ -1,24 +1,20 @@
 import { DiagnosticSeverity, Range, Uri } from "vscode";
-import {
-    RequestFileBlock,
-    RequestFileBlockName,
-} from "../../../../../../shared";
+import { RequestFileBlock } from "../../../../../../shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkNoBlocksHaveUnknownNames(
     documentUri: Uri,
-    blocks: RequestFileBlock[]
+    blocks: RequestFileBlock[],
+    validNames: string[]
 ): DiagnosticWithCode | undefined {
-    const validNames = Object.values(RequestFileBlockName) as string[];
-
     const blocksWithUnknownNames = getSortedBlocksByPosition(
         blocks.filter(({ name }) => !validNames.includes(name))
     );
 
     if (blocksWithUnknownNames.length > 0) {
-        return getDiagnostic(documentUri, blocksWithUnknownNames);
+        return getDiagnostic(documentUri, blocksWithUnknownNames, validNames);
     } else {
         return undefined;
     }
@@ -26,11 +22,12 @@ export function checkNoBlocksHaveUnknownNames(
 
 function getDiagnostic(
     documentUri: Uri,
-    sortedBlocksWithUnknownNames: RequestFileBlock[]
+    sortedBlocksWithUnknownNames: RequestFileBlock[],
+    validNames: string[]
 ): DiagnosticWithCode {
     return {
         message: `Blocks with invalid names are defined. Valid names for blocks: ${JSON.stringify(
-            Object.values(RequestFileBlockName).sort(),
+            validNames.sort(),
             null,
             2
         )}`,

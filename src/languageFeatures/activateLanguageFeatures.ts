@@ -7,6 +7,7 @@ import {
 } from "vscode";
 import { provideBrunoLangCompletionItems } from "./internal/completionItems/provideBrunoLangCompletionItems";
 import {
+    Collection,
     CollectionItemProvider,
     parseTestFile,
     TextDocumentHelper,
@@ -15,6 +16,7 @@ import { isBrunoRequestFile } from "./internal/diagnostics/shared/util/isBrunoRe
 import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/autoUpdates/updateUrlToMatchQueryParams";
 import { updatePathParamsKeysToMatchUrl } from "./internal/autoUpdates/updatePathParamsKeysToMatchUrl";
+import { isBrunoEnvironmentFile } from "./internal/diagnostics/shared/util/isBrunoEnvironmentFile";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
@@ -33,28 +35,27 @@ export function activateLanguageFeatures(
     context.subscriptions.push(
         brunoLangDiagnosticsProvider,
         workspace.onDidOpenTextDocument((e) => {
-            if (
-                isBrunoRequestFile(
-                    collectionItemProvider.getRegisteredCollections().slice(),
-                    e.uri.fsPath
-                )
-            ) {
-                fetchDiagnostics(e, brunoLangDiagnosticsProvider);
-            }
+            fetchDiagnostics(
+                e,
+                brunoLangDiagnosticsProvider,
+                collectionItemProvider.getRegisteredCollections().slice()
+            );
         }),
         workspace.onDidChangeTextDocument((e) => {
-            if (
-                e.contentChanges.length > 0 &&
-                isBrunoRequestFile(
-                    collectionItemProvider.getRegisteredCollections().slice(),
-                    e.document.uri.fsPath
-                )
-            ) {
-                fetchDiagnostics(e.document, brunoLangDiagnosticsProvider);
+            if (e.contentChanges.length > 0) {
+                fetchDiagnostics(
+                    e.document,
+                    brunoLangDiagnosticsProvider,
+                    collectionItemProvider.getRegisteredCollections().slice()
+                );
             }
         }),
         workspace.onWillSaveTextDocument((e) => {
             if (
+                isBrunoRequestFile(
+                    collectionItemProvider.getRegisteredCollections().slice(),
+                    e.document.uri.fsPath
+                ) &&
                 window.activeTextEditor &&
                 window.activeTextEditor.document.uri.toString() ==
                     e.document.uri.toString()
@@ -78,10 +79,20 @@ export function activateLanguageFeatures(
 
 function fetchDiagnostics(
     document: TextDocument,
-    brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider
+    brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
+    registeredCollections: Collection[]
 ) {
-    brunoLangDiagnosticsProvider.provideDiagnostics(
-        document.uri,
-        document.getText()
-    );
+    if (isBrunoRequestFile(registeredCollections, document.uri.fsPath)) {
+        brunoLangDiagnosticsProvider.provideDiagnosticsForRequestFile(
+            document.uri,
+            document.getText()
+        );
+    } else if (
+        isBrunoEnvironmentFile(registeredCollections, document.uri.fsPath)
+    ) {
+        brunoLangDiagnosticsProvider.provideDiagnosticsForEnvironmentFile(
+            document.uri,
+            document.getText()
+        );
+    }
 }

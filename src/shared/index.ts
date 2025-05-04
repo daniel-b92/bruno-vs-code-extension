@@ -29,6 +29,7 @@ export * from "./testFileParsing/external/parseBlockFromTestFile";
 // language utils
 export * from "./languageUtils/booleanFieldValueEnum";
 export * from "./languageUtils/requestFileBlockNameEnum";
+export * from "./languageUtils/environmentFileBlockNameEnum";
 export * from "./languageUtils/metaBlock/metaBlockKeyEnum";
 export * from "./languageUtils/metaBlock/requestTypeEnum";
 export * from "./languageUtils/metaBlock/getFieldFromMetaBlock";
