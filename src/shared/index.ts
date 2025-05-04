@@ -9,22 +9,22 @@ export * from "./fileSystem/util/getExtensionForRequestFiles";
 export * from "./fileSystem/util/getLineBreakForDocument";
 
 // test file parsing
-export * from "./testFileParsing/getMaxSequenceForRequests";
-export * from "./testFileParsing/getSequencesForRequests";
-export * from "./testFileParsing/testFileParser";
-export * from "./testFileParsing/external/interfaces";
-export * from "./testFileParsing/external/getValidDictionaryBlocksWithName";
-export * from "./testFileParsing/external/authBlocks/getAuthTypeFromBlockName";
-export * from "./testFileParsing/external/authBlocks/isAuthBlock";
-export * from "./testFileParsing/external/bodyBlocks/getBodyTypeFromBlockName";
-export * from "./testFileParsing/external/bodyBlocks/isBodyBlock";
-export * from "./testFileParsing/external/methodBlocks/getAllMethodBlocks";
-export * from "./testFileParsing/external/methodBlocks/getUrlFieldFromMethodBlock";
-export * from "./testFileParsing/external/methodBlocks/getMethodBlockIfValid";
-export * from "./testFileParsing/external/paramsBlocks/isParamsBlock";
-export * from "./testFileParsing/external/varsBlocks/isVarsBlock";
-export * from "./testFileParsing/external/castBlockToDictionaryBlock";
-export * from "./testFileParsing/external/parseBlockFromTestFile";
+export * from "./fileParsing/getMaxSequenceForRequests";
+export * from "./fileParsing/getSequencesForRequests";
+export * from "./fileParsing/testFileParser";
+export * from "./fileParsing/external/interfaces";
+export * from "./fileParsing/external/getValidDictionaryBlocksWithName";
+export * from "./fileParsing/external/authBlocks/getAuthTypeFromBlockName";
+export * from "./fileParsing/external/authBlocks/isAuthBlock";
+export * from "./fileParsing/external/bodyBlocks/getBodyTypeFromBlockName";
+export * from "./fileParsing/external/bodyBlocks/isBodyBlock";
+export * from "./fileParsing/external/methodBlocks/getAllMethodBlocks";
+export * from "./fileParsing/external/methodBlocks/getUrlFieldFromMethodBlock";
+export * from "./fileParsing/external/methodBlocks/getMethodBlockIfValid";
+export * from "./fileParsing/external/paramsBlocks/isParamsBlock";
+export * from "./fileParsing/external/varsBlocks/isVarsBlock";
+export * from "./fileParsing/external/castBlockToDictionaryBlock";
+export * from "./fileParsing/external/parseBlockFromTestFile";
 
 // language utils
 export * from "./languageUtils/booleanFieldValueEnum";

@@ -1,5 +1,5 @@
 import { RelativePattern, workspace } from "vscode";
-import { getSequence } from "../../testFileParsing/testFileParser";
+import { getSequence } from "../../fileParsing/testFileParser";
 
 export const getTestFileDescendants = async (directoryPath: string) => {
     const bruFileUris = await workspace.findFiles(

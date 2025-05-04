@@ -1,4 +1,4 @@
-import { DictionaryBlock } from "../testFileParsing/external/interfaces";
+import { DictionaryBlock } from "../fileParsing/external/interfaces";
 
 export function getExpectedUrlQueryParamsForQueryParamsBlock(
     queryParamsBlock: DictionaryBlock

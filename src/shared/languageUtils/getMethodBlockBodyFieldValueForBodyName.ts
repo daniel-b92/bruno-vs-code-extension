@@ -1,4 +1,4 @@
-import { getBodyTypeFromBlockName } from "../testFileParsing/external/bodyBlocks/getBodyTypeFromBlockName";
+import { getBodyTypeFromBlockName } from "../fileParsing/external/bodyBlocks/getBodyTypeFromBlockName";
 import { MethodBlockBody } from "./methodBlocks/methodBlockBodyEnum";
 import { RequestFileBlockName } from "./requestFileBlockNameEnum";
 
