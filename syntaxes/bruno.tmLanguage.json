@@ -26,6 +26,9 @@
             "include": "#text-body-or-docs-block"
         },
         {
+            "include": "#array-block"
+        },
+        {
             "include": "#strings"
         }
     ],
@@ -124,6 +127,22 @@
             "patterns": [
                 {
                     "include": "text.html.markdown"
+                }
+            ]
+        },
+        "array-block": {
+            "name": "meta.array-block.bruno",
+            "begin": "^vars:secret\\s*\\[$",
+            "end": "^\\]\\s*$",
+            "beginCaptures": { "0": { "name": "keyword.bruno" } },
+            "patterns": [
+                {
+                    "match": "^\\s*([^,\\n\\]]+),?\\s*$",
+                    "captures": {
+                        "1": {
+                            "name": "entity.name.tag.bruno"
+                        }
+                    }
                 }
             ]
         },
