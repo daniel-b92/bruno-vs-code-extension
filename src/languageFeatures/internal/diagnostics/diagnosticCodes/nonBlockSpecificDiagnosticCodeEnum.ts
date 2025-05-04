@@ -1,31 +1,31 @@
 export enum NonBlockSpecificDiagnosticCode {
     // meta block
-    MissingMetaBlock = "bruLang_MissingMetaBlock",
-    MetaBlockNotInFirstLine = "bruLang_MetaBlockNotInFirstLine",
+    MissingMetaBlock = "bru1",
+    MetaBlockNotInFirstLine = "bru2",
 
     // method block
-    IncorrectNumberofHttpMethodBlocks = "bruLang_IncorrectNumberofHttpMethodBlocks",
+    IncorrectNumberofHttpMethodBlocks = "bru3",
 
     // auth block
-    TooManyAuthBlocksDefined = "bruLang_TooManyAuthBlocksDefined",
+    TooManyAuthBlocksDefined = "bru4",
 
     // body block
-    TooManyBodyBlocksDefined = "bruLang_TooManyBodyBlocksDefined",
+    TooManyBodyBlocksDefined = "bru5",
 
     // other
-    MultipleDefinitionsForSameBlocks = "bruLang_MultipleDefinitionsForSameBlocks",
-    TextOutsideOfBlocks = "bruLang_TextOutsideOfBlocks",
-    AuthBlockNotMatchingTypeFromMethodBlock = "bruLang_AuthBlockNotMatchingTypeFromMethodBlock",
-    BodyBlockNotMatchingTypeFromMethodBlock = "bruLang_BodyBlockNotMatchingTypeFromMethodBlock",
-    BlocksWithUnknownNamesDefined = "bruLang_BlocksWithUnknownNamesDefined",
-    DictionaryBlocksNotStructuredCorrectly = "bruLang_DictionaryBlocksNotStructuredCorrectly",
-    NoAssertOrTestsBlockDefined = "bruLang_NoAssertOrTestsBlockDefined",
-    BlocksNotAllSeparatedBySingleEmptyLine = "bruLang_BlocksNotAllSeparatedBySingleEmptyLine",
-    UrlFromMethodBlockNotMatchingQueryParamsBlock = "bruLang_UrlFromMethodBlockNotMatchingQueryParamsBlock",
-    UrlFromMethodBlockMissingPathParams = "bruLang_UrlFromMethodBlockMissingPathParams",
-    PathParamsBlockMissingValuesFromUrl = "bruLang_PathParamsBlockMissingValuesFromUrl",
-    UrlFromMethodBlockNotMatchingPathParamsBlock = "bruLang_UrlFromMethodBlockNotMatchingPathParamsBlock",
-    QueryParamsBlockMissing = "bruLang_QueryParamsBlockMissing",
-    PathParamsBlockMissing = "bruLang_PathParamsBlockMissing",
-    GraphQlBlocksDefinedForNonGraphQlRequestType = "bruLang_GraphQlBlocksDefinedForNonGraphQlRequestType",
+    MultipleDefinitionsForSameBlocks = "bru6",
+    TextOutsideOfBlocks = "bru7",
+    AuthBlockNotMatchingTypeFromMethodBlock = "bru8",
+    BodyBlockNotMatchingTypeFromMethodBlock = "bru9",
+    BlocksWithUnknownNamesDefined = "bru10",
+    DictionaryBlocksNotStructuredCorrectly = "bru11",
+    NoAssertOrTestsBlockDefined = "bru12",
+    BlocksNotAllSeparatedBySingleEmptyLine = "bru13",
+    UrlFromMethodBlockNotMatchingQueryParamsBlock = "bru14",
+    UrlFromMethodBlockMissingPathParams = "bru15",
+    PathParamsBlockMissingValuesFromUrl = "bru16",
+    UrlFromMethodBlockNotMatchingPathParamsBlock = "bru17",
+    QueryParamsBlockMissing = "bru18",
+    PathParamsBlockMissing = "bru19",
+    GraphQlBlocksDefinedForNonGraphQlRequestType = "bru20",
 }

@@ -1,9 +1,9 @@
 export enum RelevantWithinMetaBlockDiagnosticCode {
-    SequenceNotUniqueWithinFolder = "bruLang_SequenceNotUniqueWithinFolder",
-    SequenceNotValid = "bruLang_SequenceNotValid",
-    RequestTypeNotValid = "bruLang_RequestTypeNotValid",
-    KeysMissingInMetaBlock = "bruLang_KeysMissingInMetaBlock",
-    UnknownKeysDefinedInMetaBlock = "bruLang_UnknownKeysDefinedInMetaBlock",
-    DuplicateKeysDefinedInMetaBlock = "bruLang_DuplicateKeysDefinedInMetaBlock",
-    MandatoryValuesMissingInMetaBlock = "bruLang_MandatoryValuesMissingInMetaBlock",
+    SequenceNotUniqueWithinFolder = "bru100",
+    SequenceNotValid = "bru101",
+    RequestTypeNotValid = "bru102",
+    KeysMissingInMetaBlock = "bru103",
+    UnknownKeysDefinedInMetaBlock = "bru104",
+    DuplicateKeysDefinedInMetaBlock = "bru105",
+    MandatoryValuesMissingInMetaBlock = "bru106",
 }

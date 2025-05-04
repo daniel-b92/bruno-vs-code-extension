@@ -1,5 +1,5 @@
 export enum RelevantWithinMethodBlockDiagnosticCode {
-    KeysMissingInMethodBlock = "bruLang_KeysMissingInMethodBlock",
-    UnknownKeysDefinedInMethodBlock = "bruLang_UnknownKeysDefinedInMethodBlock",
-    DuplicateKeysDefinedInMethodBlock = "bruLang_DuplicateKeysDefinedInMethodBlock",
+    KeysMissingInMethodBlock = "bru200",
+    UnknownKeysDefinedInMethodBlock = "bru201",
+    DuplicateKeysDefinedInMethodBlock = "bru202",
 }
