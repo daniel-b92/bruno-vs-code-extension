@@ -11,7 +11,7 @@ import {
     DictionaryBlock,
     getLineBreakForDocument,
 } from "../../../shared";
-import { getSortedBlocksByPosition } from "../diagnostics/util/getSortedBlocksByPosition";
+import { getSortedBlocksByPosition } from "../diagnostics/shared/util/getSortedBlocksByPosition";
 
 export function updatePathParamsKeysToMatchUrl(
     document: TextDocument,

@@ -8,17 +8,17 @@ import {
     RequestType,
     CollectionItemProvider,
 } from "../../../shared";
-import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "./checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
-import { checkNoKeysAreMissingForDictionaryBlock } from "./checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
-import { checkNoMandatoryValuesAreMissingForDictionaryBlock } from "./checks/singleBlocks/checkNoMandatoryValuesAreMissingForDictionaryBlock";
-import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "./checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
-import { checkValueForDictionaryBlockFieldIsValid } from "./checks/singleBlocks/checkValueForDictionaryBlockFieldIsValid";
-import { checkMetaBlockStartsInFirstLine } from "./checks/singleBlocks/metaBlock/checkMetaBlockStartsInFirstLine";
-import { checkSequenceInMetaBlockIsValid } from "./checks/singleBlocks/metaBlock/checkSequenceInMetaBlockIsValid";
+import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
+import { checkNoKeysAreMissingForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
+import { checkNoMandatoryValuesAreMissingForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoMandatoryValuesAreMissingForDictionaryBlock";
+import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "./shared/checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
+import { checkValueForDictionaryBlockFieldIsValid } from "./shared/checks/singleBlocks/checkValueForDictionaryBlockFieldIsValid";
+import { checkMetaBlockStartsInFirstLine } from "./shared/checks/singleBlocks/checkMetaBlockStartsInFirstLine";
 import { DiagnosticWithCode } from "./definitions";
-import { RelevantWithinMetaBlockDiagnosticCode } from "./diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
-import { checkSequenceInMetaBlockIsUniqueWithinFolder } from "./checks/relatedRequests/checkSequenceInMetaBlockIsUniqueWithinFolder";
-import { RelatedRequestsDiagnosticsHelper } from "./helpers/relatedRequestsDiagnosticsHelper";
+import { RelevantWithinMetaBlockDiagnosticCode } from "./shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
+import { RelatedRequestsDiagnosticsHelper } from "./requestFiles/helpers/relatedRequestsDiagnosticsHelper";
+import { checkSequenceInMetaBlockIsValid } from "./requestFiles/checks/singleBlocks/checkSequenceInMetaBlockIsValid";
+import { checkSequenceInMetaBlockIsUniqueWithinFolder } from "./requestFiles/checks/relatedRequests/checkSequenceInMetaBlockIsUniqueWithinFolder";
 
 export function getMetaBlockSpecificDiagnostics(
     itemProvider: CollectionItemProvider,

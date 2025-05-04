@@ -3,7 +3,7 @@ import {
     DiagnosticSeverity,
     Range,
 } from "vscode";
-import { KnownDiagnosticCode } from "./diagnosticCodes/knownDiagnosticCodeDefinition";
+import { KnownDiagnosticCode } from "./shared/diagnosticCodes/knownDiagnosticCodeDefinition";
 
 export interface DiagnosticWithCode {
     range: Range;

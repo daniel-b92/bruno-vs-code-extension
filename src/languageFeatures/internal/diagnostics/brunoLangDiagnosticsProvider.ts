@@ -7,25 +7,26 @@ import {
     RequestFileBlockName,
     TextDocumentHelper,
 } from "../../../shared";
-import { checkOccurencesOfMandatoryBlocks } from "./checks/multipleBlocks/checkOccurencesOfMandatoryBlocks";
-import { checkThatNoBlocksAreDefinedMultipleTimes } from "./checks/multipleBlocks/checkThatNoBlocksAreDefinedMultipleTimes";
-import { checkThatNoTextExistsOutsideOfBlocks } from "./checks/multipleBlocks/checkThatNoTextExistsOutsideOfBlocks";
-import { checkAtMostOneAuthBlockExists } from "./checks/multipleBlocks/checkAtMostOneAuthBlockExists";
-import { checkAtMostOneBodyBlockExists } from "./checks/multipleBlocks/checkAtMostOneBodyBlockExists";
-import { RelatedRequestsDiagnosticsHelper } from "./helpers/relatedRequestsDiagnosticsHelper";
-import { checkBodyBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks/checkBodyBlockTypeFromMethodBlockExists";
-import { checkAuthBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks/checkAuthBlockTypeFromMethodBlockExists";
-import { checkNoBlocksHaveUnknownNames } from "./checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
-import { checkDictionaryBlocksHaveDictionaryStructure } from "./checks/multipleBlocks/checkDictionaryBlocksHaveDictionaryStructure";
+import { checkOccurencesOfMandatoryBlocks } from "./requestFiles/checks/multipleBlocks/checkOccurencesOfMandatoryBlocks";
+import { checkThatNoBlocksAreDefinedMultipleTimes } from "./shared/checks/multipleBlocks/checkThatNoBlocksAreDefinedMultipleTimes";
+import { checkThatNoTextExistsOutsideOfBlocks } from "./shared/checks/multipleBlocks/checkThatNoTextExistsOutsideOfBlocks";
+import { checkAtMostOneAuthBlockExists } from "./shared/checks/multipleBlocks/checkAtMostOneAuthBlockExists";
+import { checkAtMostOneBodyBlockExists } from "./requestFiles/checks/multipleBlocks/checkAtMostOneBodyBlockExists";
+import { RelatedRequestsDiagnosticsHelper } from "./requestFiles/helpers/relatedRequestsDiagnosticsHelper";
+import { checkBodyBlockTypeFromMethodBlockExists } from "./requestFiles/checks/multipleBlocks/checkBodyBlockTypeFromMethodBlockExists";
+import { checkAuthBlockTypeFromMethodBlockExists } from "./requestFiles/checks/multipleBlocks/checkAuthBlockTypeFromMethodBlockExists";
+import { checkNoBlocksHaveUnknownNames } from "./shared/checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
+import { checkDictionaryBlocksHaveDictionaryStructure } from "./shared/checks/multipleBlocks/checkDictionaryBlocksHaveDictionaryStructure";
 import { DiagnosticWithCode } from "./definitions";
-import { checkEitherAssertOrTestsBlockExists } from "./checks/multipleBlocks/checkEitherAssertOrTestsBlockExists";
-import { checkBlocksAreSeparatedBySingleEmptyLine } from "./checks/multipleBlocks/checkBlocksAreSeparatedBySingleEmptyLine";
+import { checkEitherAssertOrTestsBlockExists } from "./requestFiles/checks/multipleBlocks/checkEitherAssertOrTestsBlockExists";
+import { checkBlocksAreSeparatedBySingleEmptyLine } from "./shared/checks/multipleBlocks/checkBlocksAreSeparatedBySingleEmptyLine";
 import { getMetaBlockSpecificDiagnostics } from "./getMetaBlockSpecificDiagnostics";
 import { getMethodBlockSpecificDiagnostics } from "./getMethodBlockSpecificDiagnostics";
 import { getAuthBlockSpecificDiagnostics } from "./getAuthBlockSpecificDiagnostics";
-import { checkUrlFromMethodBlockMatchesQueryParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesQueryParamsBlock";
-import { checkUrlFromMethodBlockMatchesPathParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesPathParamsBlock";
-import { checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests } from "./checks/multipleBlocks/checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests";
+import { checkUrlFromMethodBlockMatchesQueryParamsBlock } from "./requestFiles/checks/multipleBlocks/checkUrlFromMethodBlockMatchesQueryParamsBlock";
+import { checkUrlFromMethodBlockMatchesPathParamsBlock } from "./requestFiles/checks/multipleBlocks/checkUrlFromMethodBlockMatchesPathParamsBlock";
+import { checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests } from "./requestFiles/checks/multipleBlocks/checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests";
+import { shouldBeDictionaryBlock } from "./requestFiles/util/shouldBeDictionaryBlock";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -81,7 +82,10 @@ export class BrunoLangDiagnosticsProvider {
                 blocks
             ),
             checkNoBlocksHaveUnknownNames(documentUri, blocks),
-            checkDictionaryBlocksHaveDictionaryStructure(documentUri, blocks),
+            checkDictionaryBlocksHaveDictionaryStructure(
+                documentUri,
+                blocks.filter(({ name }) => shouldBeDictionaryBlock(name))
+            ),
             checkUrlFromMethodBlockMatchesQueryParamsBlock(documentUri, blocks),
             checkUrlFromMethodBlockMatchesPathParamsBlock(documentUri, blocks),
             checkEitherAssertOrTestsBlockExists(document, blocks),

@@ -11,7 +11,7 @@ import {
     parseTestFile,
     TextDocumentHelper,
 } from "../shared";
-import { isBrunoRequestFile } from "./internal/diagnostics/util/isBrunoRequestFile";
+import { isBrunoRequestFile } from "./internal/diagnostics/shared/util/isBrunoRequestFile";
 import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/autoUpdates/updateUrlToMatchQueryParams";
 import { updatePathParamsKeysToMatchUrl } from "./internal/autoUpdates/updatePathParamsKeysToMatchUrl";
