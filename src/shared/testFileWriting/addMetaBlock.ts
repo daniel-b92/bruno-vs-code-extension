@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, readFileSync, writeFileSync } from "fs";
-import { parseTestFile } from "../fileParsing/testFileParser";
+import { parseRequestFile } from "../fileParsing/requestFileParser";
 import { TextDocumentHelper } from "../fileSystem/util/textDocumentHelper";
 import { RequestFileBlockName } from "../languageUtils/requestFileBlockNameEnum";
 import { basename, dirname, extname } from "path";
@@ -26,7 +26,7 @@ export function addMetaBlock(
     );
 
     if (
-        parseTestFile(documentHelper).blocks.some(
+        parseRequestFile(documentHelper).blocks.some(
             ({ name }) => name == RequestFileBlockName.Meta
         )
     ) {

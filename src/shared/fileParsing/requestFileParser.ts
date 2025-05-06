@@ -1,37 +1,30 @@
 import { existsSync, lstatSync, readFileSync } from "fs";
 import { Position, Range } from "vscode";
-import { RequestFileBlockName } from "../languageUtils/requestFileBlockNameEnum";
 import {
+    DictionaryBlockField,
     RequestFileBlock,
     TextOutsideOfBlocks,
 } from "./external/interfaces";
-import { getBlockContent } from "./internal/getBlockContent";
 import { TextDocumentHelper } from "../fileSystem/util/textDocumentHelper";
-import { parseBlockFromTestFile } from "./external/parseBlockFromTestFile";
+import { getBlockContent } from "./internal/getBlockContent";
+import { getNonBlockSpecificBlockStartPattern } from "./internal/util/getNonBlockSpecificBlockStartPattern";
+import { getSequenceFromMetaBlock } from "./external/metaBlock/getSequenceFromMetaBlock";
 
 export const getSequence = (testFilePath: string) => {
     if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {
         return undefined;
     }
-    const sequenceKeyName = "seq";
 
-    const metaBlockContent = parseBlockFromTestFile(
-        new TextDocumentHelper(readFileSync(testFilePath).toString()),
-        RequestFileBlockName.Meta
+    const sequence = getSequenceFromMetaBlock(
+        new TextDocumentHelper(readFileSync(testFilePath).toString())
     );
-
-    const sequence =
-        metaBlockContent && Array.isArray(metaBlockContent)
-            ? metaBlockContent.find(({ key }) => key == sequenceKeyName)
-            : undefined;
 
     return sequence && !isNaN(Number(sequence.value))
         ? Number(sequence.value)
         : undefined;
 };
 
-export const parseTestFile = (document: TextDocumentHelper) => {
-    const blockStartPattern = /^\s*(\S+)\s*{\s*$/m;
+export const parseRequestFile = (document: TextDocumentHelper) => {
     const result: {
         blocks: RequestFileBlock[];
         textOutsideOfBlocks: TextOutsideOfBlocks[];
@@ -42,7 +35,7 @@ export const parseTestFile = (document: TextDocumentHelper) => {
 
     while (lineIndex < document.getLineCount()) {
         const line = document.getLineByIndex(lineIndex);
-        const matches = blockStartPattern.exec(line);
+        const matches = getNonBlockSpecificBlockStartPattern().exec(line);
 
         if (matches && matches.length > 0) {
             if (currentTextOutsideOfBlocksStart != undefined) {
@@ -58,14 +51,15 @@ export const parseTestFile = (document: TextDocumentHelper) => {
             }
 
             const blockName = matches[1];
-            const startingBracket = new Position(
+            const startingPosition = new Position(
                 lineIndex,
                 matches[0].length + matches.index
             );
 
             const { contentRange, content } = getBlockContent(
                 document,
-                startingBracket
+                startingPosition,
+                false
             );
 
             result.blocks.push({
@@ -77,7 +71,7 @@ export const parseTestFile = (document: TextDocumentHelper) => {
                         line.indexOf(blockName) + blockName.length
                     )
                 ),
-                content,
+                content: content as string | DictionaryBlockField[],
                 contentRange,
             });
 

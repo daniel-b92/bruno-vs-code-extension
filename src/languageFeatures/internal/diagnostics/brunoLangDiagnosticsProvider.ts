@@ -4,7 +4,7 @@ import {
     EnvironmentFileBlockName,
     getAllMethodBlocks,
     isAuthBlock,
-    parseTestFile,
+    parseRequestFile,
     RequestFileBlockName,
     TextDocumentHelper,
 } from "../../../shared";
@@ -71,7 +71,7 @@ export class BrunoLangDiagnosticsProvider {
         documentText: string
     ): DiagnosticWithCode[] {
         const document = new TextDocumentHelper(documentText);
-        const { blocks, textOutsideOfBlocks } = parseTestFile(document);
+        const { blocks, textOutsideOfBlocks } = parseRequestFile(document);
 
         const results: DiagnosticWithCode[] = [];
 
@@ -154,7 +154,7 @@ export class BrunoLangDiagnosticsProvider {
         const document = new TextDocumentHelper(documentText);
 
         // ToDo: Use different parsing function for environment files
-        const { blocks } = parseTestFile(document);
+        const { blocks } = parseRequestFile(document);
 
         const results: DiagnosticWithCode[] = [];
 

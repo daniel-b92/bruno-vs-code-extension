@@ -1,6 +1,6 @@
 import { lstatSync, readdirSync } from "fs";
 import { extname, resolve } from "path";
-import { getSequence } from "./testFileParser";
+import { getSequence } from "./requestFileParser";
 
 export const getSequencesForRequests = (directory: string) => {
     const result: { path: string; sequence: number }[] = [];

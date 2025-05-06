@@ -9,8 +9,8 @@ import {
     RequestFileBlockName,
     TextDocumentHelper,
     MetaBlockKey,
-    parseBlockFromTestFile,
     castBlockToDictionaryBlock,
+    getSequenceFromMetaBlock,
 } from "../../../../../../shared";
 import { dirname } from "path";
 import { readFileSync } from "fs";
@@ -102,30 +102,21 @@ function getDiagnostic(
 }
 
 function getRangeForSequence(filePath: string) {
-    const metaBlockContent = parseBlockFromTestFile(
-        new TextDocumentHelper(readFileSync(filePath).toString()),
-        RequestFileBlockName.Meta
+    const sequenceField = getSequenceFromMetaBlock(
+        new TextDocumentHelper(readFileSync(filePath).toString())
     );
 
-    if (
-        !metaBlockContent ||
-        !Array.isArray(metaBlockContent) ||
-        !metaBlockContent.some(({ key }) => key == MetaBlockKey.Sequence)
-    ) {
+    if (!sequenceField) {
         throw new Error(
             `'${
                 RequestFileBlockName.Meta
-            }' block did not have expected format for file '${filePath}'. Got '${
-                RequestFileBlockName.Meta
-            }': ${JSON.stringify(metaBlockContent, null, 2)}.`
+            }' block did not have expected format for file '${filePath}'. Got field for '${
+                MetaBlockKey.Sequence
+            }': ${JSON.stringify(sequenceField, null, 2)}.`
         );
     }
 
-    return (
-        metaBlockContent.find(
-            ({ key }) => key == MetaBlockKey.Sequence
-        ) as DictionaryBlockField
-    ).valueRange;
+    return sequenceField.valueRange;
 }
 
 function getSequencesForOtherRequestsInFolder(

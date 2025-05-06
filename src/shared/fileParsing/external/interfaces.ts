@@ -7,6 +7,13 @@ export interface RequestFileBlock {
     contentRange: Range;
 }
 
+export interface EnvironmentFileBlock {
+    name: string;
+    nameRange: Range;
+    content: string | DictionaryBlockField[] | ArrayBlockField[];
+    contentRange: Range;
+}
+
 export interface DictionaryBlock {
     name: string;
     nameRange: Range;
@@ -19,6 +26,18 @@ export interface DictionaryBlockField {
     value: string;
     keyRange: Range;
     valueRange: Range;
+}
+
+export interface ArrayBlock {
+    name: string;
+    nameRange: Range;
+    content: ArrayBlockField[];
+    contentRange: Range;
+}
+
+export interface ArrayBlockField {
+    entry: string;
+    entryRange: Range;
 }
 
 export interface TextOutsideOfBlocks {

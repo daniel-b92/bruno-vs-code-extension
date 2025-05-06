@@ -8,23 +8,24 @@ export * from "./fileSystem/util/textDocumentHelper";
 export * from "./fileSystem/util/getExtensionForRequestFiles";
 export * from "./fileSystem/util/getLineBreakForDocument";
 
-// test file parsing
+// file parsing
 export * from "./fileParsing/getMaxSequenceForRequests";
 export * from "./fileParsing/getSequencesForRequests";
-export * from "./fileParsing/testFileParser";
+export * from "./fileParsing/requestFileParser";
 export * from "./fileParsing/external/interfaces";
 export * from "./fileParsing/external/getValidDictionaryBlocksWithName";
 export * from "./fileParsing/external/authBlocks/getAuthTypeFromBlockName";
 export * from "./fileParsing/external/authBlocks/isAuthBlock";
 export * from "./fileParsing/external/bodyBlocks/getBodyTypeFromBlockName";
 export * from "./fileParsing/external/bodyBlocks/isBodyBlock";
+export * from "./fileParsing/external/metaBlock/getSequenceFromMetaBlock";
 export * from "./fileParsing/external/methodBlocks/getAllMethodBlocks";
 export * from "./fileParsing/external/methodBlocks/getUrlFieldFromMethodBlock";
 export * from "./fileParsing/external/methodBlocks/getMethodBlockIfValid";
 export * from "./fileParsing/external/paramsBlocks/isParamsBlock";
 export * from "./fileParsing/external/varsBlocks/isVarsBlock";
 export * from "./fileParsing/external/castBlockToDictionaryBlock";
-export * from "./fileParsing/external/parseBlockFromTestFile";
+export * from "./fileParsing/external/parseBlockFromFile";
 
 // language utils
 export * from "./languageUtils/booleanFieldValueEnum";

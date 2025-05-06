@@ -1,6 +1,6 @@
 import { lstatSync } from "fs";
 import * as vscode from "vscode";
-import { getSequence } from "../../fileParsing/testFileParser";
+import { getSequence } from "../../fileParsing/requestFileParser";
 import { FileChangeType } from "../../fileSystem/fileChangesDefinitions";
 import { CollectionWatcher } from "../../fileSystem/collectionWatcher";
 import { CollectionRegistry } from "../internalHelpers/collectionRegistry";

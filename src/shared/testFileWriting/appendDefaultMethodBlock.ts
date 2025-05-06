@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, readFileSync, writeFileSync } from "fs";
-import { parseTestFile } from "../fileParsing/testFileParser";
+import { parseRequestFile } from "../fileParsing/requestFileParser";
 import { TextDocumentHelper } from "../fileSystem/util/textDocumentHelper";
 import { RequestFileBlockName } from "../languageUtils/requestFileBlockNameEnum";
 import { getAllMethodBlocks } from "../fileParsing/external/methodBlocks/getAllMethodBlocks";
@@ -21,7 +21,7 @@ export function appendDefaultMethodBlock(
         readFileSync(testFilePath).toString()
     );
 
-    const allExistingBlocks = parseTestFile(documentHelper).blocks;
+    const allExistingBlocks = parseRequestFile(documentHelper).blocks;
     const existingMethodBlocks = getAllMethodBlocks(allExistingBlocks);
     const metaBlock = allExistingBlocks.find(
         ({ name }) => name == RequestFileBlockName.Meta
