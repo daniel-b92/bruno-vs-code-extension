@@ -4,11 +4,11 @@ import {
     DictionaryBlockField,
     RequestFileBlock,
     TextOutsideOfBlocks,
-} from "./external/interfaces";
-import { TextDocumentHelper } from "../fileSystem/util/textDocumentHelper";
-import { getBlockContent } from "./internal/getBlockContent";
-import { getNonBlockSpecificBlockStartPattern } from "./internal/util/getNonBlockSpecificBlockStartPattern";
-import { getSequenceFromMetaBlock } from "./external/metaBlock/getSequenceFromMetaBlock";
+} from "./interfaces";
+import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
+import { getBlockContent } from "../internal/getBlockContent";
+import { getNonBlockSpecificBlockStartPattern } from "../internal/util/getNonBlockSpecificBlockStartPattern";
+import { getSequenceFromMetaBlock } from "./metaBlock/getSequenceFromMetaBlock";
 
 export const getSequence = (testFilePath: string) => {
     if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {

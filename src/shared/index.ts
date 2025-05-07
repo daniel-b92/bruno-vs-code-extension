@@ -9,9 +9,9 @@ export * from "./fileSystem/util/getExtensionForRequestFiles";
 export * from "./fileSystem/util/getLineBreakForDocument";
 
 // file parsing
-export * from "./fileParsing/getMaxSequenceForRequests";
-export * from "./fileParsing/getSequencesForRequests";
-export * from "./fileParsing/requestFileParser";
+export * from "./fileParsing/external/metaBlock/getMaxSequenceForRequests";
+export * from "./fileParsing/external/metaBlock/getSequencesForRequests";
+export * from "./fileParsing/external/requestFileParser";
 export * from "./fileParsing/external/interfaces";
 export * from "./fileParsing/external/getValidDictionaryBlocksWithName";
 export * from "./fileParsing/external/authBlocks/getAuthTypeFromBlockName";

@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, readFileSync, writeFileSync } from "fs";
-import { parseRequestFile } from "../fileParsing/requestFileParser";
+import { parseRequestFile } from "../fileParsing/external/requestFileParser";
 import { TextDocumentHelper } from "../fileSystem/util/textDocumentHelper";
 import { RequestFileBlockName } from "../languageUtils/requestFileBlockNameEnum";
 import { getAllMethodBlocks } from "../fileParsing/external/methodBlocks/getAllMethodBlocks";
