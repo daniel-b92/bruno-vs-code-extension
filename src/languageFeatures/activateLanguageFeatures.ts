@@ -9,7 +9,7 @@ import { provideBrunoLangCompletionItems } from "./internal/completionItems/prov
 import {
     Collection,
     CollectionItemProvider,
-    parseRequestFile,
+    parseBruFile,
     TextDocumentHelper,
 } from "../shared";
 import { isBrunoRequestFile } from "./internal/diagnostics/shared/util/isBrunoRequestFile";
@@ -60,7 +60,7 @@ export function activateLanguageFeatures(
                 window.activeTextEditor.document.uri.toString() ==
                     e.document.uri.toString()
             ) {
-                const { blocks: parsedBlocks } = parseRequestFile(
+                const { blocks: parsedBlocks } = parseBruFile(
                     new TextDocumentHelper(e.document.getText())
                 );
 

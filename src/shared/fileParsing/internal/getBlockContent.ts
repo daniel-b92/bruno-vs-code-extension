@@ -51,7 +51,7 @@ export const getBlockContent = (
                     isArrayBlockLine(line)
                         ? {
                               content:
-                                  getArrayKeyFromLine(lineIndex, line) ?? line,
+                                  getArrayEntryFromLine(lineIndex, line) ?? line,
                           }
                         : { content: line }
                 );
@@ -137,7 +137,7 @@ const getKeyValuePairLinePattern = () => /^\s*(\S+)\s*:\s*(\S+.*?|.{0})\s*$/;
 const isArrayBlockLine = (lineText: string) =>
     getArrayBlockLinePattern().test(lineText);
 
-const getArrayKeyFromLine = (
+const getArrayEntryFromLine = (
     lineIndex: number,
     lineText: string
 ): ArrayBlockField | undefined => {

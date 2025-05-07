@@ -4,7 +4,7 @@ import {
     EnvironmentFileBlockName,
     getAllMethodBlocks,
     isAuthBlock,
-    parseRequestFile,
+    parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
 } from "../../../shared";
@@ -28,6 +28,7 @@ import { checkUrlFromMethodBlockMatchesQueryParamsBlock } from "./requestFiles/c
 import { checkUrlFromMethodBlockMatchesPathParamsBlock } from "./requestFiles/checks/multipleBlocks/checkUrlFromMethodBlockMatchesPathParamsBlock";
 import { checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests } from "./requestFiles/checks/multipleBlocks/checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests";
 import { shouldBeDictionaryBlock } from "./requestFiles/util/shouldBeDictionaryBlock";
+import { checkArrayBlocksHaveArrayStructure } from "./shared/checks/multipleBlocks/checkArrayBlocksHaveArrayStructure";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -71,7 +72,7 @@ export class BrunoLangDiagnosticsProvider {
         documentText: string
     ): DiagnosticWithCode[] {
         const document = new TextDocumentHelper(documentText);
-        const { blocks, textOutsideOfBlocks } = parseRequestFile(document);
+        const { blocks, textOutsideOfBlocks } = parseBruFile(document);
 
         const results: DiagnosticWithCode[] = [];
 
@@ -153,28 +154,26 @@ export class BrunoLangDiagnosticsProvider {
     ): DiagnosticWithCode[] {
         const document = new TextDocumentHelper(documentText);
 
-        // ToDo: Use different parsing function for environment files
-        const { blocks } = parseRequestFile(document);
+        const { blocks, textOutsideOfBlocks } = parseBruFile(document);
 
         const results: DiagnosticWithCode[] = [];
 
         this.addToResults(
             results,
             checkThatNoBlocksAreDefinedMultipleTimes(documentUri, blocks),
-            // ToDo: Use parsing function that recognizes array blocks correctly as valid blocks and adjust check
-            /*checkThatNoTextExistsOutsideOfBlocks(
+            checkThatNoTextExistsOutsideOfBlocks(
                 documentUri,
                 textOutsideOfBlocks
-            ),*/
+            ),
             checkNoBlocksHaveUnknownNames(
                 documentUri,
                 blocks,
                 Object.values(EnvironmentFileBlockName)
             ),
-            checkDictionaryBlocksHaveDictionaryStructure(
+            checkArrayBlocksHaveArrayStructure(
                 documentUri,
                 blocks.filter(
-                    ({ name }) => name == EnvironmentFileBlockName.Vars
+                    ({ name }) => name == EnvironmentFileBlockName.SecretVars
                 )
             )
         );

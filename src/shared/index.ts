@@ -11,7 +11,7 @@ export * from "./fileSystem/util/getLineBreakForDocument";
 // file parsing
 export * from "./fileParsing/external/metaBlock/getMaxSequenceForRequests";
 export * from "./fileParsing/external/metaBlock/getSequencesForRequests";
-export * from "./fileParsing/external/requestFileParser";
+export * from "./fileParsing/external/parseBruFile";
 export * from "./fileParsing/external/interfaces";
 export * from "./fileParsing/external/getValidDictionaryBlocksWithName";
 export * from "./fileParsing/external/authBlocks/getAuthTypeFromBlockName";
@@ -26,6 +26,7 @@ export * from "./fileParsing/external/methodBlocks/getMethodBlockIfValid";
 export * from "./fileParsing/external/paramsBlocks/isParamsBlock";
 export * from "./fileParsing/external/varsBlocks/isVarsBlock";
 export * from "./fileParsing/external/castBlockToDictionaryBlock";
+export * from "./fileParsing/external/castBlockToArrayBlock";
 export * from "./fileParsing/external/parseBlockFromFile";
 
 // language utils

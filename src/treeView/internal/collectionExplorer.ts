@@ -6,7 +6,7 @@ import {
     getMaxSequenceForRequests,
     CollectionItemProvider,
     RequestFileBlockName,
-    parseRequestFile,
+    parseBruFile,
     TextDocumentHelper,
     CollectionData,
     normalizeDirectoryPath,
@@ -453,7 +453,7 @@ export class CollectionExplorer
             readFileSync(filePath).toString()
         );
 
-        const metaBlock = parseRequestFile(documentHelper).blocks.find(
+        const metaBlock = parseBruFile(documentHelper).blocks.find(
             ({ name }) => name == RequestFileBlockName.Meta
         );
 

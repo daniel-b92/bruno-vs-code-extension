@@ -3,12 +3,14 @@ import {
     DictionaryBlockField,
     Block,
     TextOutsideOfBlocks,
+    ArrayBlockField,
 } from "./interfaces";
 import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
 import { getBlockContent } from "../internal/getBlockContent";
 import { getNonBlockSpecificBlockStartPattern } from "../internal/util/getNonBlockSpecificBlockStartPattern";
+import { BlockBracket } from "../internal/util/blockBracketEnum";
 
-export const parseRequestFile = (document: TextDocumentHelper) => {
+export const parseBruFile = (document: TextDocumentHelper) => {
     const result: {
         blocks: Block[];
         textOutsideOfBlocks: TextOutsideOfBlocks[];
@@ -43,7 +45,9 @@ export const parseRequestFile = (document: TextDocumentHelper) => {
             const { contentRange, content } = getBlockContent(
                 document,
                 startingPosition,
-                false
+                matches[0].includes(BlockBracket.OpeningBracketForArrayBlock)
+                    ? true
+                    : false
             );
 
             result.blocks.push({
@@ -55,7 +59,10 @@ export const parseRequestFile = (document: TextDocumentHelper) => {
                         line.indexOf(blockName) + blockName.length
                     )
                 ),
-                content: content as string | DictionaryBlockField[],
+                content: content as
+                    | string
+                    | DictionaryBlockField[]
+                    | ArrayBlockField[],
                 contentRange,
             });
 
