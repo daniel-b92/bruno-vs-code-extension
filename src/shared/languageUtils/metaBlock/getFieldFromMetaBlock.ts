@@ -2,11 +2,11 @@ import {
     castBlockToDictionaryBlock,
     getFieldFromDictionaryBlock,
     MetaBlockKey,
-    RequestFileBlock,
+    Block,
 } from "../..";
 
 export function getFieldFromMetaBlock(
-    metaBlock: RequestFileBlock,
+    metaBlock: Block,
     key: MetaBlockKey
 ) {
     const castedMetaBlock = castBlockToDictionaryBlock(metaBlock);

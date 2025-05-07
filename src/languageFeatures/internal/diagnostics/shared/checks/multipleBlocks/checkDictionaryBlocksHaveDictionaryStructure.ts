@@ -1,6 +1,6 @@
 import { DiagnosticSeverity, Range, Uri } from "vscode";
 import {
-    RequestFileBlock,
+    Block,
     castBlockToDictionaryBlock,
 } from "../../../../../../shared";
 import { getSortedBlocksByPosition } from "../../../shared/util/getSortedBlocksByPosition";
@@ -9,7 +9,7 @@ import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSp
 
 export function checkDictionaryBlocksHaveDictionaryStructure(
     documentUri: Uri,
-    blocksToCheck: RequestFileBlock[]
+    blocksToCheck: Block[]
 ): DiagnosticWithCode | undefined {
     const sortedBlocksWithoutCorrectStructure = getSortedBlocksByPosition(
         blocksToCheck.filter((block) => !castBlockToDictionaryBlock(block))
@@ -24,7 +24,7 @@ export function checkDictionaryBlocksHaveDictionaryStructure(
 
 function getDiagnostic(
     documentUri: Uri,
-    sortedBlocksWithIncorrectStructure: RequestFileBlock[]
+    sortedBlocksWithIncorrectStructure: Block[]
 ): DiagnosticWithCode {
     return {
         message:
@@ -45,7 +45,7 @@ function getDiagnostic(
 }
 
 function getRange(
-    sortedBlocksWithIncorrectStructure: RequestFileBlock[]
+    sortedBlocksWithIncorrectStructure: Block[]
 ): Range {
     return new Range(
         sortedBlocksWithIncorrectStructure[0].contentRange.start,

@@ -1,7 +1,7 @@
-import { RequestFileBlock } from "../interfaces";
+import { Block } from "../interfaces";
 import { getPossibleMethodBlocks } from "../../..";
 
-export function getAllMethodBlocks(parsedBlocks: RequestFileBlock[]) {
+export function getAllMethodBlocks(parsedBlocks: Block[]) {
     const possibleMethodBlocks = getPossibleMethodBlocks() as string[];
 
     return parsedBlocks.filter(({ name }) =>

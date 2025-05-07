@@ -1,9 +1,9 @@
 import { castBlockToDictionaryBlock } from "../..";
 import { RequestFileBlockName } from "../../languageUtils/requestFileBlockNameEnum";
-import { DictionaryBlock, RequestFileBlock } from "./interfaces";
+import { DictionaryBlock, Block } from "./interfaces";
 
 export function getValidDictionaryBlocksWithName(
-    allBlocks: RequestFileBlock[],
+    allBlocks: Block[],
     dictionaryBlockName: RequestFileBlockName
 ): DictionaryBlock[] {
     const blocksWithName = allBlocks.filter(

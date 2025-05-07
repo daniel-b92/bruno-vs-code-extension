@@ -2,11 +2,11 @@ import {
     castBlockToDictionaryBlock,
     getFieldFromDictionaryBlock,
     MethodBlockKey,
-    RequestFileBlock,
+    Block,
 } from "../..";
 
 export function getFieldFromMethodBlock(
-    methodBlock: RequestFileBlock,
+    methodBlock: Block,
     key: MethodBlockKey
 ) {
     const castedMethodBlock = castBlockToDictionaryBlock(methodBlock);

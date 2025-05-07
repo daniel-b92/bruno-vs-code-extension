@@ -6,7 +6,7 @@ import {
     getPathParamsFromPathParamsBlock,
     getPathParamsFromUrl,
     getUrlFieldFromMethodBlock,
-    RequestFileBlock,
+    Block,
     RequestFileBlockName,
 } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
@@ -14,7 +14,7 @@ import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/
 
 export function checkUrlFromMethodBlockMatchesPathParamsBlock(
     documentUri: Uri,
-    blocks: RequestFileBlock[]
+    blocks: Block[]
 ): DiagnosticWithCode | undefined {
     const pathParamsBlocks = blocks.filter(
         ({ name }) => name == RequestFileBlockName.PathParams

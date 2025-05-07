@@ -5,7 +5,7 @@ import {
     CollectionItemProvider,
     DictionaryBlockField,
     normalizeDirectoryPath,
-    RequestFileBlock,
+    Block,
     RequestFileBlockName,
     TextDocumentHelper,
     MetaBlockKey,
@@ -20,7 +20,7 @@ import { isSequenceValid } from "../../util/isSequenceValid";
 
 export function checkSequenceInMetaBlockIsUniqueWithinFolder(
     itemProvider: CollectionItemProvider,
-    metaBlock: RequestFileBlock,
+    metaBlock: Block,
     documentUri: Uri
 ): {
     code: RelevantWithinMetaBlockDiagnosticCode;

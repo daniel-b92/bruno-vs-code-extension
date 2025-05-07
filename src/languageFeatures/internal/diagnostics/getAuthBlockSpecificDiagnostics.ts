@@ -1,5 +1,5 @@
 import {
-    RequestFileBlock,
+    Block,
     castBlockToDictionaryBlock,
     AuthBlockName,
     getMandatoryKeysForNonOAuth2Block,
@@ -22,7 +22,7 @@ import { DiagnosticWithCode } from "./definitions";
 import { RelevantWithinAuthBlockDiagnosticCode } from "./shared/diagnosticCodes/relevantWithinAuthBlockDiagnosticCodeEnum";
 
 export function getAuthBlockSpecificDiagnostics(
-    authBlock: RequestFileBlock
+    authBlock: Block
 ): (DiagnosticWithCode | undefined)[] {
     const castedAuthBlock = castBlockToDictionaryBlock(authBlock);
 

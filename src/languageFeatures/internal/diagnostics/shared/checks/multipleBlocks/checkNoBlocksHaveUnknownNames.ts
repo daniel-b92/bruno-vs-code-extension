@@ -1,12 +1,12 @@
 import { DiagnosticSeverity, Range, Uri } from "vscode";
-import { RequestFileBlock } from "../../../../../../shared";
+import { Block } from "../../../../../../shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkNoBlocksHaveUnknownNames(
     documentUri: Uri,
-    blocks: RequestFileBlock[],
+    blocks: Block[],
     validNames: string[]
 ): DiagnosticWithCode | undefined {
     const blocksWithUnknownNames = getSortedBlocksByPosition(
@@ -22,7 +22,7 @@ export function checkNoBlocksHaveUnknownNames(
 
 function getDiagnostic(
     documentUri: Uri,
-    sortedBlocksWithUnknownNames: RequestFileBlock[],
+    sortedBlocksWithUnknownNames: Block[],
     validNames: string[]
 ): DiagnosticWithCode {
     return {
@@ -43,7 +43,7 @@ function getDiagnostic(
     };
 }
 
-function getRange(blocksWithUnknownNames: RequestFileBlock[]): Range {
+function getRange(blocksWithUnknownNames: Block[]): Range {
     return new Range(
         blocksWithUnknownNames[0].nameRange.start,
         blocksWithUnknownNames[blocksWithUnknownNames.length - 1].nameRange.end

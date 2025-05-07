@@ -1,7 +1,7 @@
 import { Uri } from "vscode";
 import {
     TextDocumentHelper,
-    RequestFileBlock,
+    Block,
     castBlockToDictionaryBlock,
     MetaBlockKey,
     DictionaryBlockField,
@@ -25,7 +25,7 @@ export function getMetaBlockSpecificDiagnostics(
     relatedRequestsHelper: RelatedRequestsDiagnosticsHelper,
     documentUri: Uri,
     documentHelper: TextDocumentHelper,
-    metaBlock: RequestFileBlock
+    metaBlock: Block
 ): (DiagnosticWithCode | undefined)[] {
     const castedMetaBlock = castBlockToDictionaryBlock(metaBlock);
     const metaBlockKeys = Object.values(MetaBlockKey);
@@ -88,7 +88,7 @@ export function getMetaBlockSpecificDiagnostics(
 
 function provideRelatedRequestsDiagnosticsForMetaBlock(
     itemProvider: CollectionItemProvider,
-    metaBlock: RequestFileBlock,
+    metaBlock: Block,
     documentUri: Uri,
     relatedRequestsHelper: RelatedRequestsDiagnosticsHelper
 ): {

@@ -5,7 +5,7 @@ import {
     Uri,
 } from "vscode";
 import {
-    RequestFileBlock,
+    Block,
     RequestFileBlockName,
 } from "../../../../../../shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
@@ -14,7 +14,7 @@ import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSp
 
 export function checkThatNoBlocksAreDefinedMultipleTimes(
     documentUri: Uri,
-    blocks: RequestFileBlock[]
+    blocks: Block[]
 ): DiagnosticWithCode | undefined {
     if (blocks.length == 0) {
         return;
@@ -25,7 +25,7 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
     if (duplicates.length == 0) {
         return undefined;
     } else {
-        const allDuplicateBlocks: RequestFileBlock[] = [];
+        const allDuplicateBlocks: Block[] = [];
 
         for (const { blocks } of duplicates) {
             allDuplicateBlocks.push(...blocks);
@@ -66,10 +66,10 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
     }
 }
 
-function findDuplicateBlocks(blocks: RequestFileBlock[]) {
+function findDuplicateBlocks(blocks: Block[]) {
     const duplicates: {
         name: RequestFileBlockName;
-        blocks: RequestFileBlock[];
+        blocks: Block[];
     }[] = [];
 
     const sortedBlocks = blocks
@@ -92,7 +92,7 @@ function findDuplicateBlocks(blocks: RequestFileBlock[]) {
             (
                 duplicates.find(({ name }) => name == block.name) as {
                     name: RequestFileBlockName;
-                    blocks: RequestFileBlock[];
+                    blocks: Block[];
                 }
             ).blocks.push(block);
         }

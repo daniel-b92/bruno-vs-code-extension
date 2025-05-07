@@ -7,7 +7,7 @@ import {
     getUrlFieldFromMethodBlock,
     getUrlSubstringForQueryParams,
     getValidDictionaryBlocksWithName,
-    RequestFileBlock,
+    Block,
     RequestFileBlockName,
 } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
@@ -15,7 +15,7 @@ import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/
 
 export function checkUrlFromMethodBlockMatchesQueryParamsBlock(
     documentUri: Uri,
-    blocks: RequestFileBlock[]
+    blocks: Block[]
 ): DiagnosticWithCode | undefined {
     const queryParamsBlocks = getValidDictionaryBlocksWithName(
         blocks,

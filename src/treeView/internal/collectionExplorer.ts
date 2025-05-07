@@ -15,6 +15,7 @@ import {
     appendDefaultMethodBlock,
     RequestType,
     MetaBlockKey,
+    getFieldFromMetaBlock,
 } from "../../shared";
 import {
     copyFileSync,
@@ -456,9 +457,10 @@ export class CollectionExplorer
             ({ name }) => name == RequestFileBlockName.Meta
         );
 
-        if (metaBlock && Array.isArray(metaBlock.content)) {
-            const nameField = metaBlock.content.find(
-                ({ key }) => key == MetaBlockKey.Name
+        if (metaBlock) {
+            const nameField = getFieldFromMetaBlock(
+                metaBlock,
+                MetaBlockKey.Name
             );
 
             const newName =

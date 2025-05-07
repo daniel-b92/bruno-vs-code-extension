@@ -1,7 +1,7 @@
-import { RequestFileBlock, MethodBlockKey } from "../../../../shared";
+import { Block, MethodBlockKey } from "../../../../shared";
 import { getMethodBlockIfValid } from "./getMethodBlockIfValid";
 
-export function getUrlFieldFromMethodBlock(allBlocks: RequestFileBlock[]) {
+export function getUrlFieldFromMethodBlock(allBlocks: Block[]) {
     const methodBlock = getMethodBlockIfValid(allBlocks);
 
     if (!methodBlock) {

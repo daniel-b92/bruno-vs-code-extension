@@ -1,12 +1,12 @@
 import { DiagnosticSeverity, Uri } from "vscode";
-import { isAuthBlock, RequestFileBlock } from "../../../../../../shared";
+import { isAuthBlock, Block } from "../../../../../../shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkAtMostOneAuthBlockExists(
     documentUri: Uri,
-    blocks: RequestFileBlock[]
+    blocks: Block[]
 ): DiagnosticWithCode | undefined {
     const sortedAuthBlocks = getSortedBlocksByPosition(
         blocks.filter(({ name }) => isAuthBlock(name))
@@ -21,7 +21,7 @@ export function checkAtMostOneAuthBlockExists(
 
 function getDiagnostic(
     documentUri: Uri,
-    sortedAuthBlocks: RequestFileBlock[]
+    sortedAuthBlocks: Block[]
 ): DiagnosticWithCode {
     return {
         message: "Too many 'auth' blocks are defined.",

@@ -1,6 +1,6 @@
 import { DiagnosticSeverity, Position, Range } from "vscode";
 import {
-    RequestFileBlock,
+    Block,
     RequestFileBlockName,
     TextDocumentHelper,
 } from "../../../../../../shared";
@@ -9,7 +9,7 @@ import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/
 
 export function checkEitherAssertOrTestsBlockExists(
     documentHelper: TextDocumentHelper,
-    blocks: RequestFileBlock[]
+    blocks: Block[]
 ): DiagnosticWithCode | undefined {
     if (
         blocks.filter(

@@ -3,7 +3,7 @@ import {
     DictionaryBlockField,
     getFieldFromMetaBlock,
     MetaBlockKey,
-    RequestFileBlock,
+    Block,
     RequestFileBlockName,
     RequestType,
 } from "../../../../../../shared";
@@ -13,7 +13,7 @@ import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/
 
 export function checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
     documentUri: Uri,
-    blocks: RequestFileBlock[]
+    blocks: Block[]
 ): DiagnosticWithCode | undefined {
     const graphQlSpecificBlockNames = [
         RequestFileBlockName.GraphQlBody,
@@ -52,7 +52,7 @@ export function checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
 
 function getDiagnostic(
     documentUri: Uri,
-    sortedInvalidBlocks: RequestFileBlock[],
+    sortedInvalidBlocks: Block[],
     requestTypeField: DictionaryBlockField
 ): DiagnosticWithCode {
     return {

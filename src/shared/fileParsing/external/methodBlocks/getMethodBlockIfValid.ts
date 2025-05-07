@@ -1,7 +1,7 @@
 import { castBlockToDictionaryBlock, getAllMethodBlocks } from "../../..";
-import { RequestFileBlock } from "../interfaces";
+import { Block } from "../interfaces";
 
-export function getMethodBlockIfValid(allBlocks: RequestFileBlock[]) {
+export function getMethodBlockIfValid(allBlocks: Block[]) {
     const methodBlocks = getAllMethodBlocks(allBlocks);
 
     if (methodBlocks.length != 1) {

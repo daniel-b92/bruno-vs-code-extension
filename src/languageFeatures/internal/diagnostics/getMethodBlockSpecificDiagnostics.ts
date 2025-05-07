@@ -1,5 +1,5 @@
 import {
-    RequestFileBlock,
+    Block,
     castBlockToDictionaryBlock,
     MethodBlockKey,
 } from "../../../shared";
@@ -10,7 +10,7 @@ import { DiagnosticWithCode } from "./definitions";
 import { RelevantWithinMethodBlockDiagnosticCode } from "./shared/diagnosticCodes/relevantWithinMethodBlockDiagnosticCodeEnum";
 
 export function getMethodBlockSpecificDiagnostics(
-    methodBlock: RequestFileBlock
+    methodBlock: Block
 ): (DiagnosticWithCode | undefined)[] {
     const castedMethodBlock = castBlockToDictionaryBlock(methodBlock);
     const methodBlockKeys = Object.values(MethodBlockKey);

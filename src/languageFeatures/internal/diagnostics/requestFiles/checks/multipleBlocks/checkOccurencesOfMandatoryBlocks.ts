@@ -1,7 +1,7 @@
 import { DiagnosticSeverity, Position, Range } from "vscode";
 import {
     TextDocumentHelper,
-    RequestFileBlock,
+    Block,
     RequestFileBlockName,
     getAllMethodBlocks,
     getPossibleMethodBlocks,
@@ -11,7 +11,7 @@ import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/
 
 export function checkOccurencesOfMandatoryBlocks(
     document: TextDocumentHelper,
-    blocks: RequestFileBlock[]
+    blocks: Block[]
 ): DiagnosticWithCode[] {
     const result: DiagnosticWithCode[] = [];
 

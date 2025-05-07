@@ -6,12 +6,12 @@ import {
     getQueryParamsFromUrl,
     getExpectedUrlQueryParamsForQueryParamsBlock,
     getUrlSubstringForQueryParams,
-    RequestFileBlock,
+    Block,
 } from "../../../shared";
 
 export function updateUrlToMatchQueryParams(
     editBuilder: TextEditorEdit,
-    blocks: RequestFileBlock[]
+    blocks: Block[]
 ) {
     const urlField = getUrlFieldFromMethodBlock(blocks);
     const queryParamsBlocks = getValidDictionaryBlocksWithName(

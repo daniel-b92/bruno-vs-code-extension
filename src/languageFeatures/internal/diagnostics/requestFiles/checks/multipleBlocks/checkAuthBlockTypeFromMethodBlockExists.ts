@@ -6,14 +6,14 @@ import {
     getFieldFromMethodBlock,
     isAuthBlock,
     MethodBlockKey,
-    RequestFileBlock,
+    Block,
 } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkAuthBlockTypeFromMethodBlockExists(
     documentUri: Uri,
-    blocks: RequestFileBlock[]
+    blocks: Block[]
 ): DiagnosticWithCode | undefined {
     const methodBlocks = getAllMethodBlocks(blocks);
     const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
@@ -65,7 +65,7 @@ export function checkAuthBlockTypeFromMethodBlockExists(
 function getDiagnostic(
     documentUri: Uri,
     methodBlockField: DictionaryBlockField,
-    authBlock: RequestFileBlock
+    authBlock: Block
 ): DiagnosticWithCode {
     return {
         message: "Auth type does not match name of auth block.",
@@ -101,7 +101,7 @@ function getDiagnosticInCaseOfMissingAuthBlock(
 function getDiagnosticInCaseOfNonExpectedAuthBlock(
     documentUri: Uri,
     methodBlockField: DictionaryBlockField,
-    authBlock: RequestFileBlock
+    authBlock: Block
 ): DiagnosticWithCode {
     return {
         message: `An auth block is defined although the auth type is '${methodBlockField.value}'.`,
@@ -122,7 +122,7 @@ function getDiagnosticInCaseOfNonExpectedAuthBlock(
     };
 }
 
-function getAuthTypeFromAuthBlock(authBlock: RequestFileBlock) {
+function getAuthTypeFromAuthBlock(authBlock: Block) {
     return {
         authBlock,
         value: getAuthTypeFromBlockName(authBlock.name),

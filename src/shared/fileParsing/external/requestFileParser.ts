@@ -1,7 +1,7 @@
 import { Position, Range } from "vscode";
 import {
     DictionaryBlockField,
-    RequestFileBlock,
+    Block,
     TextOutsideOfBlocks,
 } from "./interfaces";
 import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
@@ -10,7 +10,7 @@ import { getNonBlockSpecificBlockStartPattern } from "../internal/util/getNonBlo
 
 export const parseRequestFile = (document: TextDocumentHelper) => {
     const result: {
-        blocks: RequestFileBlock[];
+        blocks: Block[];
         textOutsideOfBlocks: TextOutsideOfBlocks[];
     } = { blocks: [], textOutsideOfBlocks: [] };
 

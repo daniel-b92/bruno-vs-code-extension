@@ -3,7 +3,7 @@ import {
     getUrlFieldFromMethodBlock,
     getValidDictionaryBlocksWithName,
     RequestFileBlockName,
-    RequestFileBlock,
+    Block,
     getPathParamsFromUrl,
     getPathParamsFromPathParamsBlock,
     getDefaultIndentationForDictionaryBlockFields,
@@ -16,7 +16,7 @@ import { getSortedBlocksByPosition } from "../diagnostics/shared/util/getSortedB
 export function updatePathParamsKeysToMatchUrl(
     document: TextDocument,
     editBuilder: TextEditorEdit,
-    blocks: RequestFileBlock[]
+    blocks: Block[]
 ) {
     const urlField = getUrlFieldFromMethodBlock(blocks);
     const pathParamsBlocks = getValidDictionaryBlocksWithName(
@@ -93,7 +93,7 @@ function doesTheFirstListContainEntriesTheSecondDoesNot(
 
 function removeBlock(
     editBuilder: TextEditorEdit,
-    allBlocks: RequestFileBlock[],
+    allBlocks: Block[],
     pathParamsBlock: DictionaryBlock
 ) {
     const sortedBlocks = getSortedBlocksByPosition(allBlocks);
@@ -143,7 +143,7 @@ function addMissingEntriesInPathParamsBlock(
     document: TextDocument,
     editBuilder: TextEditorEdit,
     paramsToAdd: string[],
-    allParsedBlocks: RequestFileBlock[],
+    allParsedBlocks: Block[],
     parsedPathParamsBlocks: DictionaryBlock[]
 ) {
     const lineBreak = getLineBreakForDocument(document);

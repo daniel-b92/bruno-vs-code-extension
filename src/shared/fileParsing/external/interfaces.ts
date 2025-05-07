@@ -1,13 +1,6 @@
 import { Range } from "vscode";
 
-export interface RequestFileBlock {
-    name: string;
-    nameRange: Range;
-    content: string | DictionaryBlockField[];
-    contentRange: Range;
-}
-
-export interface EnvironmentFileBlock {
+export interface Block {
     name: string;
     nameRange: Range;
     content: string | DictionaryBlockField[] | ArrayBlockField[];

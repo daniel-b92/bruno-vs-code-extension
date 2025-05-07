@@ -1,6 +1,6 @@
-import { RequestFileBlock } from "../../../../../shared";
+import { Block } from "../../../../../shared";
 
-export function getSortedBlocksByPosition(unsorted: RequestFileBlock[]) {
+export function getSortedBlocksByPosition(unsorted: Block[]) {
     return unsorted.slice().sort(
         (
             {

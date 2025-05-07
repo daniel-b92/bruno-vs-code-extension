@@ -1,7 +1,7 @@
 import { DiagnosticSeverity } from "vscode";
 import {
     DictionaryBlockField,
-    RequestFileBlock,
+    Block,
     MetaBlockKey,
     getFieldFromMetaBlock,
 } from "../../../../../../shared";
@@ -10,7 +10,7 @@ import { isSequenceValid } from "../../util/isSequenceValid";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 
 export function checkSequenceInMetaBlockIsValid(
-    metaBlock: RequestFileBlock
+    metaBlock: Block
 ): DiagnosticWithCode | undefined {
     const sequenceField = getFieldFromMetaBlock(
         metaBlock,

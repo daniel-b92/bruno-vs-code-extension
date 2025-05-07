@@ -5,7 +5,7 @@ import {
     getFieldFromMethodBlock,
     getMethodBlockBodyFieldValueForBodyName,
     MethodBlockBody,
-    RequestFileBlock,
+    Block,
     RequestFileBlockName,
     MethodBlockKey,
     isBodyBlock,
@@ -16,7 +16,7 @@ import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/
 
 export function checkBodyBlockTypeFromMethodBlockExists(
     documentUri: Uri,
-    blocks: RequestFileBlock[]
+    blocks: Block[]
 ): DiagnosticWithCode | undefined {
     const methodBlocks = getAllMethodBlocks(blocks);
     const bodyBlocks = blocks.filter(({ name }) => isBodyBlock(name));
@@ -77,7 +77,7 @@ export function checkBodyBlockTypeFromMethodBlockExists(
 function getDiagnostic(
     documentUri: Uri,
     methodBlockField: DictionaryBlockField,
-    bodyBlock: RequestFileBlock,
+    bodyBlock: Block,
     expectedMethodBlockFieldValue: MethodBlockBody
 ): DiagnosticWithCode {
     return {
@@ -114,7 +114,7 @@ function getDiagnosticInCaseOfMissingBodyBlock(
 function getDiagnosticInCaseOfNonExpectedBodyBlock(
     documentUri: Uri,
     methodBlockField: DictionaryBlockField,
-    bodyBlock: RequestFileBlock
+    bodyBlock: Block
 ): DiagnosticWithCode {
     return {
         message: `A body block is defined although the body type in the method block is '${methodBlockField.value}'.`,

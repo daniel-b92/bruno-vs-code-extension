@@ -4,7 +4,7 @@ import {
 } from "../../external/interfaces";
 
 export function isDictionaryBlockField(
-    block: ArrayBlockField | DictionaryBlockField
-): block is DictionaryBlockField {
-    return (block as DictionaryBlockField) != undefined;
+    field: ArrayBlockField | DictionaryBlockField
+): field is DictionaryBlockField {
+    return (field as DictionaryBlockField) != undefined;
 }
