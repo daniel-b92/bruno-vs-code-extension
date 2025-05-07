@@ -1,13 +1,12 @@
 import { lstatSync, readdirSync } from "fs";
 import { getAllCollectionRootDirectories } from "../../fileSystem/util/collectionRootFolderHelper";
 import { normalizeDirectoryPath } from "../../fileSystem/util/normalizeDirectoryPath";
-import { TestRunnerDataHelper } from "../..";
+import { getSequenceFromMetaBlock, TestRunnerDataHelper } from "../..";
 import { Collection } from "../../model/collection";
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
 import { CollectionDirectory } from "../../model/collectionDirectory";
 import { CollectionFile } from "../../model/collectionFile";
-import { getSequence } from "../../fileParsing/external/requestFileParser";
 import { addItemToCollection } from "./addItemToCollection";
 
 export async function registerMissingCollectionsAndTheirItems(
@@ -32,7 +31,10 @@ export async function registerMissingCollectionsAndTheirItems(
                 if (!collection.getStoredDataForPath(path)) {
                     const item = isDirectory
                         ? new CollectionDirectory(path)
-                        : new CollectionFile(path, getSequence(path));
+                        : new CollectionFile(
+                              path,
+                              getSequenceFromMetaBlock(path)
+                          );
 
                     addItemToCollection(testRunnerDataHelper, collection, item);
                 }

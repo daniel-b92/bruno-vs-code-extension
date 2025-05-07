@@ -1,9 +1,11 @@
 import { RelativePattern, workspace } from "vscode";
-import { getSequence } from "../../fileParsing/external/requestFileParser";
+import { getSequenceFromMetaBlock } from "../..";
 
 export const getTestFileDescendants = async (directoryPath: string) => {
     const bruFileUris = await workspace.findFiles(
         new RelativePattern(directoryPath, "**/*.bru")
     );
-    return bruFileUris.filter((uri) => getSequence(uri.fsPath) != undefined);
+    return bruFileUris.filter(
+        (uri) => getSequenceFromMetaBlock(uri.fsPath) != undefined
+    );
 };

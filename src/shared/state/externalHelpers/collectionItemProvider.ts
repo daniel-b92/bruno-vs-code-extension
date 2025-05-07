@@ -1,6 +1,5 @@
 import { lstatSync } from "fs";
 import * as vscode from "vscode";
-import { getSequence } from "../../fileParsing/external/requestFileParser";
 import { FileChangeType } from "../../fileSystem/fileChangesDefinitions";
 import { CollectionWatcher } from "../../fileSystem/collectionWatcher";
 import { CollectionRegistry } from "../internalHelpers/collectionRegistry";
@@ -12,6 +11,7 @@ import { CollectionData } from "../../model/interfaces";
 import { TestRunnerDataHelper } from "./testRunnerDataHelper";
 import { addItemToCollection } from "../internalHelpers/addItemToCollection";
 import { registerMissingCollectionsAndTheirItems } from "../internalHelpers/registerMissingCollectionsAndTheirItems";
+import { getSequenceFromMetaBlock } from "../../fileParsing/external/metaBlock/getSequenceFromMetaBlock";
 
 export class CollectionItemProvider {
     constructor(
@@ -28,8 +28,9 @@ export class CollectionItemProvider {
 
         collectionWatcher.subscribeToUpdates()(
             ({ uri, changeType: fileChangeType }) => {
-                const registeredCollection =
-                    this.getAncestorCollectionForPath(uri.fsPath);
+                const registeredCollection = this.getAncestorCollectionForPath(
+                    uri.fsPath
+                );
 
                 if (!registeredCollection) {
                     return;
@@ -153,7 +154,7 @@ export class CollectionItemProvider {
             itemPath
         ).isDirectory()
             ? new CollectionDirectory(itemPath)
-            : new CollectionFile(itemPath, getSequence(itemPath));
+            : new CollectionFile(itemPath, getSequenceFromMetaBlock(itemPath));
 
         this.itemUpdateEmitter.fire({
             collection: registeredCollection,
@@ -187,7 +188,7 @@ export class CollectionItemProvider {
 
         if (oldItem instanceof CollectionFile) {
             const oldSequence = oldItem.getSequence();
-            const newSequence = getSequence(oldItem.getPath());
+            const newSequence = getSequenceFromMetaBlock(oldItem.getPath());
             const newItem = new CollectionFile(oldItem.getPath(), newSequence);
 
             registeredCollectionForItem.removeTestItemAndDescendants(oldItem);

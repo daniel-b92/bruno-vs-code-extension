@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { BrunoTreeItemProvider } from "./brunoTreeItemProvider";
 import {
-    getSequence,
+    getSequenceFromMetaBlock,
     getSequencesForRequests,
     getMaxSequenceForRequests,
     CollectionItemProvider,
@@ -205,7 +205,7 @@ export class CollectionExplorer
 
                 if (
                     extname(originalPath) == getExtensionForRequestFiles() &&
-                    getSequence(originalPath) != undefined
+                    getSequenceFromMetaBlock(originalPath) != undefined
                 ) {
                     replaceSequenceForRequest(
                         newPath,
@@ -615,7 +615,7 @@ export class CollectionExplorer
 }
 
 const replaceSequenceForRequest = (filePath: string, newSequence: number) => {
-    const originalSequence = getSequence(filePath);
+    const originalSequence = getSequenceFromMetaBlock(filePath);
 
     if (originalSequence != undefined) {
         writeFileSync(

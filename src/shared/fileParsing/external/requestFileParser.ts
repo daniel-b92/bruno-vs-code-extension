@@ -1,4 +1,3 @@
-import { existsSync, lstatSync, readFileSync } from "fs";
 import { Position, Range } from "vscode";
 import {
     DictionaryBlockField,
@@ -8,21 +7,6 @@ import {
 import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
 import { getBlockContent } from "../internal/getBlockContent";
 import { getNonBlockSpecificBlockStartPattern } from "../internal/util/getNonBlockSpecificBlockStartPattern";
-import { getSequenceFromMetaBlock } from "./metaBlock/getSequenceFromMetaBlock";
-
-export const getSequence = (testFilePath: string) => {
-    if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {
-        return undefined;
-    }
-
-    const sequence = getSequenceFromMetaBlock(
-        new TextDocumentHelper(readFileSync(testFilePath).toString())
-    );
-
-    return sequence && !isNaN(Number(sequence.value))
-        ? Number(sequence.value)
-        : undefined;
-};
 
 export const parseRequestFile = (document: TextDocumentHelper) => {
     const result: {

@@ -1,22 +1,16 @@
-import { TextDocumentHelper } from "../../../fileSystem/util/textDocumentHelper";
-import { MetaBlockKey } from "../../../languageUtils/metaBlock/metaBlockKeyEnum";
-import { RequestFileBlockName } from "../../../languageUtils/requestFileBlockNameEnum";
-import { isDictionaryBlockField } from "../../internal/util/isDictionaryBlockField";
-import { parseBlockFromFile } from "../parseBlockFromFile";
+import { existsSync, lstatSync, readFileSync } from "fs";
+import { getSequenceFieldFromMetaBlock, TextDocumentHelper } from "../../..";
 
-export function getSequenceFromMetaBlock(documentHelper: TextDocumentHelper) {
-    const metaBlockContent = parseBlockFromFile(
-        documentHelper,
-        RequestFileBlockName.Meta
+export function getSequenceFromMetaBlock(testFilePath: string) {
+    if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {
+        return undefined;
+    }
+
+    const sequence = getSequenceFieldFromMetaBlock(
+        new TextDocumentHelper(readFileSync(testFilePath).toString())
     );
 
-    const sequence =
-        metaBlockContent &&
-        Array.isArray(metaBlockContent) &&
-        metaBlockContent.length > 0 &&
-        metaBlockContent.every((content) => isDictionaryBlockField(content))
-            ? metaBlockContent.find(({ key }) => key == MetaBlockKey.Sequence)
-            : undefined;
-
-    return sequence;
+    return sequence && !isNaN(Number(sequence.value))
+        ? Number(sequence.value)
+        : undefined;
 }

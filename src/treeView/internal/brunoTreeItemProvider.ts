@@ -2,7 +2,7 @@ import { lstatSync, readdirSync } from "fs";
 import { dirname, resolve } from "path";
 import * as vscode from "vscode";
 import {
-    getSequence,
+    getSequenceFromMetaBlock,
     CollectionData,
     FileChangeType,
     CollectionItemProvider,
@@ -115,7 +115,7 @@ export class BrunoTreeItemProvider
                         ? new BrunoTreeItem(
                               fullPath,
                               true,
-                              getSequence(fullPath)
+                              getSequenceFromMetaBlock(fullPath)
                           )
                         : new BrunoTreeItem(fullPath, false);
 

@@ -18,6 +18,7 @@ export * from "./fileParsing/external/authBlocks/getAuthTypeFromBlockName";
 export * from "./fileParsing/external/authBlocks/isAuthBlock";
 export * from "./fileParsing/external/bodyBlocks/getBodyTypeFromBlockName";
 export * from "./fileParsing/external/bodyBlocks/isBodyBlock";
+export * from "./fileParsing/external/metaBlock/getSequenceFieldFromMetaBlock";
 export * from "./fileParsing/external/metaBlock/getSequenceFromMetaBlock";
 export * from "./fileParsing/external/methodBlocks/getAllMethodBlocks";
 export * from "./fileParsing/external/methodBlocks/getUrlFieldFromMethodBlock";

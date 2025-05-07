@@ -10,7 +10,7 @@ import {
     TextDocumentHelper,
     MetaBlockKey,
     castBlockToDictionaryBlock,
-    getSequenceFromMetaBlock,
+    getSequenceFieldFromMetaBlock,
 } from "../../../../../../shared";
 import { dirname } from "path";
 import { readFileSync } from "fs";
@@ -102,7 +102,7 @@ function getDiagnostic(
 }
 
 function getRangeForSequence(filePath: string) {
-    const sequenceField = getSequenceFromMetaBlock(
+    const sequenceField = getSequenceFieldFromMetaBlock(
         new TextDocumentHelper(readFileSync(filePath).toString())
     );
 
