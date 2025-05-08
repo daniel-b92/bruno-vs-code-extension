@@ -19,6 +19,83 @@ export const getBlockContent = (
     const firstLine = startingPosition.line + 1;
     let lineIndex = firstLine;
 
+    if (shouldBeArrayBlock) {
+        const allRemainingLines = document.getAllLines(lineIndex);
+
+        const lastLineForBlock = allRemainingLines.some(({ content }) =>
+            content.includes(BlockBracket.ClosingBracketForArrayBlock)
+        )
+            ? allRemainingLines.find(({ content }) =>
+                  content.includes(BlockBracket.ClosingBracketForArrayBlock)
+              )?.index
+            : undefined;
+
+        if (lastLineForBlock == undefined) {
+            // ToDo: return undefined (or something similar) if no closing block bracket exists and handle this case correctly in the calling function.
+            const range = new Range(
+                startingPosition,
+                new Position(
+                    document.getLineCount() - 1,
+                    document.getLineByIndex(document.getLineCount() - 1).length
+                )
+            );
+
+            return { content: document.getText(range), contentRange: range };
+        }
+
+        const linesWithBlockContent = allRemainingLines.slice(
+            0,
+            allRemainingLines.findIndex(
+                ({ index }) => index == lastLineForBlock
+            )
+        );
+
+        const nonFinalArrayBlockLines = linesWithBlockContent.slice(
+            0,
+            linesWithBlockContent.length - 1
+        );
+
+        const lastArrayBlockContentLine =
+            linesWithBlockContent[linesWithBlockContent.length - 1];
+
+        const range = new Range(
+            new Position(firstLine, 0),
+            new Position(
+                lastLineForBlock,
+                (
+                    allRemainingLines.find(
+                        ({ index }) => index == lastLineForBlock
+                    ) as { content: string }
+                ).content.lastIndexOf(BlockBracket.ClosingBracketForArrayBlock)
+            )
+        );
+
+        const allLinesMatchPattern =
+            nonFinalArrayBlockLines.every((line) =>
+                getNonFinalArrayBlockLinePattern().test(line.content)
+            ) &&
+            getLastArrayBlockLinePattern().test(
+                lastArrayBlockContentLine.content
+            );
+
+        return {
+            content: allLinesMatchPattern
+                ? nonFinalArrayBlockLines
+                      .map(({ content, index }) =>
+                          getArrayEntryFromLine(index, content, false)
+                      )
+                      .concat([
+                          getArrayEntryFromLine(
+                              lastArrayBlockContentLine.index,
+                              lastArrayBlockContentLine.content,
+                              true
+                          ),
+                      ])
+                : document.getText(range),
+            contentRange: range,
+        };
+    }
+
     while (
         openBracketsOnBlockLevel > 0 &&
         lineIndex < document.getLineCount()
@@ -26,16 +103,12 @@ export const getBlockContent = (
         const line = document.getLineByIndex(lineIndex);
         const openingBracketsMatches = line.match(
             new RegExp(
-                shouldBeArrayBlock
-                    ? `\\${BlockBracket.OpeningBracketForArrayBlock}`
-                    : `\\${BlockBracket.OpeningBracketForDictionaryOrTextBlock}`
+                `\\${BlockBracket.OpeningBracketForDictionaryOrTextBlock}`
             )
         );
         const closingBracketsMatches = line.match(
             new RegExp(
-                shouldBeArrayBlock
-                    ? `\\${BlockBracket.ClosingBracketForArrayBlock}`
-                    : `\\${BlockBracket.ClosingBracketForDictionaryOrTextBlock}`
+                `\\${BlockBracket.ClosingBracketForDictionaryOrTextBlock}`
             )
         );
 
@@ -46,26 +119,15 @@ export const getBlockContent = (
 
         // the block content is exclusive of the block's closing bracket line
         if (openBracketsOnBlockLevel > 0) {
-            if (shouldBeArrayBlock) {
-                lines.push(
-                    isArrayBlockLine(line)
-                        ? {
-                              content:
-                                  getArrayEntryFromLine(lineIndex, line) ?? line,
-                          }
-                        : { content: line }
-                );
-            } else {
-                lines.push(
-                    isKeyValuePair(line)
-                        ? {
-                              content:
-                                  getKeyAndValueFromLine(lineIndex, line) ??
-                                  line,
-                          }
-                        : { content: line }
-                );
-            }
+            lines.push(
+                isKeyValuePair(line)
+                    ? {
+                          content:
+                              getKeyAndValueFromLine(lineIndex, line) ?? line,
+                      }
+                    : { content: line }
+            );
+
             lineIndex++;
         }
     }
@@ -77,9 +139,7 @@ export const getBlockContent = (
             document
                 .getLineByIndex(lineIndex)
                 .lastIndexOf(
-                    shouldBeArrayBlock
-                        ? BlockBracket.ClosingBracketForArrayBlock
-                        : BlockBracket.ClosingBracketForDictionaryOrTextBlock
+                    BlockBracket.ClosingBracketForDictionaryOrTextBlock
                 )
         )
     );
@@ -134,30 +194,26 @@ const getKeyAndValueFromLine = (
 
 const getKeyValuePairLinePattern = () => /^\s*(\S+)\s*:\s*(\S+.*?|.{0})\s*$/;
 
-const isArrayBlockLine = (lineText: string) =>
-    getArrayBlockLinePattern().test(lineText);
-
 const getArrayEntryFromLine = (
     lineIndex: number,
-    lineText: string
-): ArrayBlockField | undefined => {
-    const matches = getArrayBlockLinePattern().exec(lineText);
+    lineText: string,
+    isLastArrayBlockLine: boolean
+): ArrayBlockField => {
+    const entry = isLastArrayBlockLine
+        ? lineText.replace(",", "").trim()
+        : lineText.trim();
 
-    if (!matches || matches.length <= 1) {
-        return undefined;
-    }
-
-    const key = matches[1];
-    const keyStartIndex = lineText.indexOf(key);
-    const keyEndIndex = keyStartIndex + key.length;
+    const entryStartIndex = lineText.indexOf(entry);
+    const entryEndIndex = entryStartIndex + entry.length;
 
     return {
-        entry: key,
+        entry,
         entryRange: new Range(
-            new Position(lineIndex, keyStartIndex),
-            new Position(lineIndex, keyEndIndex)
+            new Position(lineIndex, entryStartIndex),
+            new Position(lineIndex, entryEndIndex)
         ),
     };
 };
 
-const getArrayBlockLinePattern = () => /^\s*(\S.*?)?,?\s*$/;
+const getNonFinalArrayBlockLinePattern = () => /^\s*[a-zA-Z0-9-_\\.]*\s*,$/m;
+const getLastArrayBlockLinePattern = () => /^\s*[a-zA-Z0-9-_\\.]*\s*$/m;

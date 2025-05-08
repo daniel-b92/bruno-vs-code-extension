@@ -34,6 +34,33 @@ export class TextDocumentHelper {
         lastLine: string | undefined;
     } = { fullLines: [], lastLine: undefined };
 
+    public getAllLines(
+        startIndex: number
+    ): { index: number; content: string }[] {
+        if (startIndex >= this.getLineCount()) {
+            throw new Error(
+                `startIndex '${startIndex}' for document text is invalid. The document only has ${this.getLineCount()} lines.`
+            );
+        }
+
+        return this.lines.fullLines
+            .slice(startIndex)
+            .map(({ content }, i) => ({
+                index: i + startIndex,
+                content,
+            }))
+            .concat(
+                this.lines.lastLine
+                    ? [
+                          {
+                              index: this.lines.fullLines.length,
+                              content: this.lines.lastLine,
+                          },
+                      ]
+                    : []
+            );
+    }
+
     public getLineByIndex(index: number) {
         return index < this.lines.fullLines.length
             ? this.lines.fullLines[index].content
