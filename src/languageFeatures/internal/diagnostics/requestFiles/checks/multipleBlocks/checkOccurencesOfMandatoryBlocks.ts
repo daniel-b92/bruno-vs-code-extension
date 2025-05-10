@@ -1,4 +1,4 @@
-import { DiagnosticSeverity, Position, Range } from "vscode";
+import { DiagnosticSeverity } from "vscode";
 import {
     TextDocumentHelper,
     Block,
@@ -16,13 +16,7 @@ export function checkOccurencesOfMandatoryBlocks(
     const result: DiagnosticWithCode[] = [];
 
     // Use full text of file as range for diagnostics
-    const range = new Range(
-        new Position(0, 0),
-        new Position(
-            document.getLineCount() - 1,
-            document.getLineByIndex(document.getLineCount() - 1).length
-        )
-    );
+    const range = document.getTextRange();
 
     const missingMetaBlockDiagnostic: DiagnosticWithCode = {
         message: "No 'meta' block defined.",

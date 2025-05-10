@@ -7,15 +7,17 @@ export const getBlockContent = (
     document: TextDocumentHelper,
     startingPosition: Position,
     shouldBeArrayBlock: boolean
-): {
-    content: string | DictionaryBlockField[] | ArrayBlockField[];
-    contentRange: Range;
-} => {
+):
+    | {
+          content: string | DictionaryBlockField[] | ArrayBlockField[];
+          contentRange: Range;
+      }
+    | undefined => {
     // the block content is exclusive of the block's opening bracket line
     const firsContentLine = startingPosition.line + 1;
 
     if (shouldBeArrayBlock) {
-        return parseArrayBlock(document, startingPosition, firsContentLine);
+        return parseArrayBlock(document, firsContentLine);
     } else {
         return parseTextOrDictionaryBlock(document, firsContentLine);
     }
@@ -23,7 +25,6 @@ export const getBlockContent = (
 
 const parseArrayBlock = (
     document: TextDocumentHelper,
-    blockStartingPosition: Position,
     firstContentLine: number
 ) => {
     const allRemainingLines = document.getAllLines(firstContentLine);
@@ -33,16 +34,7 @@ const parseArrayBlock = (
     );
 
     if (lastLineForBlock == undefined) {
-        // ToDo: return undefined (or something similar) if no closing block bracket exists and handle this case correctly in the calling function.
-        const range = new Range(
-            blockStartingPosition,
-            new Position(
-                document.getLineCount() - 1,
-                document.getLineByIndex(document.getLineCount() - 1).length
-            )
-        );
-
-        return { content: document.getText(range), contentRange: range };
+        return undefined;
     }
 
     const linesWithBlockContent = allRemainingLines.slice(
@@ -137,6 +129,10 @@ const parseTextOrDictionaryBlock = (
 
             lineIndex++;
         }
+    }
+
+    if (openBracketsOnBlockLevel > 0) {
+        return undefined;
     }
 
     const range = new Range(

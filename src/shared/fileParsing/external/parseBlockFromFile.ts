@@ -43,5 +43,5 @@ export const parseBlockFromFile = (
             .lastIndexOf(openingBracket)
     );
     return getBlockContent(document, startingBracket, shouldBeArrayBlock)
-        .content;
+        ?.content;
 };

@@ -1,4 +1,4 @@
-import { Range } from "vscode";
+import { Position, Range } from "vscode";
 
 export class TextDocumentHelper {
     constructor(private text: string) {
@@ -59,6 +59,16 @@ export class TextDocumentHelper {
                       ]
                     : []
             );
+    }
+
+    public getTextRange(startPosition?: Position) {
+        return new Range(
+            startPosition ? startPosition : new Position(0, 0),
+            new Position(
+                this.getLineCount() - 1,
+                this.getLineByIndex(this.getLineCount() - 1).length
+            )
+        );
     }
 
     public getLineByIndex(index: number) {

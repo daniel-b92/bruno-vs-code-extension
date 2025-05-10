@@ -42,13 +42,27 @@ export const parseBruFile = (document: TextDocumentHelper) => {
                 matches[0].length + matches.index
             );
 
-            const { contentRange, content } = getBlockContent(
+            const blockContent = getBlockContent(
                 document,
                 startingPosition,
                 matches[0].includes(BlockBracket.OpeningBracketForArrayBlock)
                     ? true
                     : false
             );
+
+            if (!blockContent) {
+                const remainingDocumentRange = document.getTextRange(
+                    new Position(lineIndex, 0)
+                );
+
+                result.textOutsideOfBlocks.push({
+                    range: remainingDocumentRange,
+                    text: document.getText(remainingDocumentRange),
+                });
+                return result;
+            }
+
+            const { contentRange, content } = blockContent;
 
             result.blocks.push({
                 name: blockName,
