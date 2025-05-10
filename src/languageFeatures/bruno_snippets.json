@@ -372,5 +372,17 @@
         "prefix": ["docs"],
         "body": ["docs {", "\t${0}", "}"],
         "description": "Add block for docs"
+    },
+
+    "vars block - for environment": {
+        "prefix": ["vars"],
+        "body": ["vars {", "\t${1:name}: ${2:value}", "}"],
+        "description": "Add 'vars' block for environment file"
+    },
+
+    "secret vars block - for environment": {
+        "prefix": ["vars:secret"],
+        "body": ["vars:secret [", "\t${1:entry}", "]"],
+        "description": "Add 'vars:secret' block for environment file"
     }
 }
