@@ -251,12 +251,12 @@ function showWarningForInvalidOrMissingHtmlReportPathConfig(
 }
 
 const shouldShowHtmlReport = (testsPassed: boolean) => {
-    const showOnlyOnFailureConfigKey = "bruno.alwaysShowHtmlReport";
+    const alwaysShowReportConfigKey = "bruno.alwaysShowHtmlReport";
     const fallbackValue = true;
 
     const configValue = workspace
         .getConfiguration()
-        .get<boolean>(showOnlyOnFailureConfigKey, fallbackValue);
+        .get<boolean>(alwaysShowReportConfigKey, fallbackValue);
 
-    return configValue ?? !testsPassed;
+    return configValue || !testsPassed;
 };
