@@ -1,4 +1,3 @@
-import { Position, Range } from "vscode";
 import {
     DictionaryBlockField,
     Block,
@@ -9,6 +8,7 @@ import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
 import { getBlockContent } from "../internal/getBlockContent";
 import { getNonBlockSpecificBlockStartPattern } from "../internal/util/getNonBlockSpecificBlockStartPattern";
 import { BlockBracket } from "../internal/util/blockBracketEnum";
+import { Position, Range } from "../..";
 
 export const parseBruFile = (document: TextDocumentHelper) => {
     const result: {

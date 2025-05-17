@@ -1,4 +1,4 @@
-import { Range } from "../../fileSystem/util/positionAndRangeDefinitions";
+import { Range } from "../../fileSystem/util/range";
 
 export interface Block {
     name: string;

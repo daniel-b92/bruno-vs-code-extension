@@ -1,7 +1,7 @@
-import { Position, Range } from "vscode";
 import { ArrayBlockField, DictionaryBlockField } from "../external/interfaces";
 import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
 import { BlockBracket } from "./util/blockBracketEnum";
+import { Position, Range } from "../..";
 
 export const getBlockContent = (
     document: TextDocumentHelper,

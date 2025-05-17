@@ -1,8 +1,8 @@
-import { Position } from "vscode";
 import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
 import { getBlockContent } from "../internal/getBlockContent";
 import { getBlockStartPatternByName } from "../internal/util/getBlockStartPatternByName";
 import { BlockBracket } from "../internal/util/blockBracketEnum";
+import { Position } from "../..";
 
 export const parseBlockFromFile = (
     document: TextDocumentHelper,

@@ -5,6 +5,7 @@ import {
     RequestFileBlockName,
     getAllMethodBlocks,
     getPossibleMethodBlocks,
+    mapRange,
 } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -20,7 +21,7 @@ export function checkOccurencesOfMandatoryBlocks(
 
     const missingMetaBlockDiagnostic: DiagnosticWithCode = {
         message: "No 'meta' block defined.",
-        range,
+        range: mapRange(range),
         severity: DiagnosticSeverity.Error,
         code: NonBlockSpecificDiagnosticCode.MissingMetaBlock,
     };
@@ -36,7 +37,7 @@ export function checkOccurencesOfMandatoryBlocks(
         message: `Too many or too few HTTP method blocks defined. Exactly one of the following blocks needs to be present: '${getPossibleMethodBlocks().join(
             "', '"
         )}'`,
-        range,
+        range: mapRange(range),
         severity: DiagnosticSeverity.Error,
         code: NonBlockSpecificDiagnosticCode.IncorrectNumberofHttpMethodBlocks,
     };

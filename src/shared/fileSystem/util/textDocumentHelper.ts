@@ -1,4 +1,5 @@
-import { Position, Range } from "vscode";
+import { Position } from "./position";
+import { Range } from "./range";
 
 export class TextDocumentHelper {
     constructor(private text: string) {
