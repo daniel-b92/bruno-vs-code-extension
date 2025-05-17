@@ -2,6 +2,8 @@ import { DiagnosticSeverity, Range, Uri } from "vscode";
 import {
     Block,
     castBlockToDictionaryBlock,
+    mapPosition,
+    mapRange,
 } from "../../../../../../shared";
 import { getSortedBlocksByPosition } from "../../../shared/util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
@@ -35,7 +37,10 @@ function getDiagnostic(
                 ? sortedBlocksWithIncorrectStructure.map(
                       ({ name, contentRange }) => ({
                           message: `Dictionary block with name '${name}'`,
-                          location: { uri: documentUri, range: contentRange },
+                          location: {
+                              uri: documentUri,
+                              range: mapRange(contentRange),
+                          },
                       })
                   )
                 : undefined,
@@ -44,14 +49,14 @@ function getDiagnostic(
     };
 }
 
-function getRange(
-    sortedBlocksWithIncorrectStructure: Block[]
-): Range {
+function getRange(sortedBlocksWithIncorrectStructure: Block[]): Range {
     return new Range(
-        sortedBlocksWithIncorrectStructure[0].contentRange.start,
-        sortedBlocksWithIncorrectStructure[
-            sortedBlocksWithIncorrectStructure.length - 1
-        ].contentRange.end
+        mapPosition(sortedBlocksWithIncorrectStructure[0].contentRange.start),
+        mapPosition(
+            sortedBlocksWithIncorrectStructure[
+                sortedBlocksWithIncorrectStructure.length - 1
+            ].contentRange.end
+        )
     );
 }
 

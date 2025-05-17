@@ -10,6 +10,7 @@ import {
     MethodBlockKey,
     isBodyBlock,
     getBodyTypeFromBlockName,
+    mapRange,
 } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -82,7 +83,7 @@ function getDiagnostic(
 ): DiagnosticWithCode {
     return {
         message: `Does not match name of body block. Expected value: '${expectedMethodBlockFieldValue}'.`,
-        range: methodBlockField.valueRange,
+        range: mapRange(methodBlockField.valueRange),
         relatedInformation: [
             {
                 message: `Defined body type in body block: '${getBodyTypeFromBlockName(
@@ -90,7 +91,7 @@ function getDiagnostic(
                 )}'`,
                 location: {
                     uri: documentUri,
-                    range: bodyBlock.nameRange,
+                    range: mapRange(bodyBlock.nameRange),
                 },
             },
         ],
@@ -105,7 +106,7 @@ function getDiagnosticInCaseOfMissingBodyBlock(
     return {
         message:
             "Missing body block despite definition of body type in method block.",
-        range: methodBlockField.valueRange,
+        range: mapRange(methodBlockField.valueRange),
         severity: DiagnosticSeverity.Error,
         code: getCode(),
     };
@@ -118,7 +119,7 @@ function getDiagnosticInCaseOfNonExpectedBodyBlock(
 ): DiagnosticWithCode {
     return {
         message: `A body block is defined although the body type in the method block is '${methodBlockField.value}'.`,
-        range: methodBlockField.valueRange,
+        range: mapRange(methodBlockField.valueRange),
         relatedInformation: [
             {
                 message: `Defined body type in body block: '${getBodyTypeFromBlockName(
@@ -126,7 +127,7 @@ function getDiagnosticInCaseOfNonExpectedBodyBlock(
                 )}'`,
                 location: {
                     uri: documentUri,
-                    range: bodyBlock.nameRange,
+                    range: mapRange(bodyBlock.nameRange),
                 },
             },
         ],

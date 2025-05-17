@@ -10,6 +10,7 @@ import {
     getMethodBlockIfValid,
     DictionaryBlock,
     getLineBreakForDocument,
+    mapPosition,
 } from "../../../shared";
 import { getSortedBlocksByPosition } from "../diagnostics/shared/util/getSortedBlocksByPosition";
 
@@ -107,12 +108,17 @@ function removeBlock(
             sortedBlocks[pathParamsBlockIndex - 1].contentRange.end;
 
         editBuilder.delete(
-            new Range(previousBlockEnd, pathParamsBlock.contentRange.end)
+            new Range(
+                mapPosition(previousBlockEnd),
+                mapPosition(pathParamsBlock.contentRange.end)
+            )
         );
     } else {
         const nextBlockStart = sortedBlocks[1].nameRange.start;
 
-        editBuilder.delete(new Range(new Position(0, 0), nextBlockStart));
+        editBuilder.delete(
+            new Range(new Position(0, 0), mapPosition(nextBlockStart))
+        );
     }
 }
 

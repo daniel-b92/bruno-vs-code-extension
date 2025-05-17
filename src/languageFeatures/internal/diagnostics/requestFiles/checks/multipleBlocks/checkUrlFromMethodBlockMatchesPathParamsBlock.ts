@@ -8,6 +8,7 @@ import {
     getUrlFieldFromMethodBlock,
     Block,
     RequestFileBlockName,
+    mapRange,
 } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -103,14 +104,14 @@ function getDiagnosticForMissingPathParamsInUrl(
                 ? `'${missingUrlSubstrings[0]}'`
                 : JSON.stringify(missingUrlSubstrings, undefined, 2)
         }`,
-        range: urlFieldInMethodBlock.valueRange,
+        range: mapRange(urlFieldInMethodBlock.valueRange),
         severity: DiagnosticSeverity.Warning,
         relatedInformation: [
             {
                 message: `'${RequestFileBlockName.PathParams}' block`,
                 location: {
                     uri: documentUri,
-                    range: pathParamsBlock.contentRange,
+                    range: mapRange(pathParamsBlock.contentRange),
                 },
             },
         ],
@@ -132,14 +133,14 @@ function getDiagnosticForMissingValuesInPathParamsBlock(
                 ? `'${missingPathParams[0]}'`
                 : JSON.stringify(missingPathParams, undefined, 2)
         }`,
-        range: pathParamsBlock.contentRange,
+        range: mapRange(pathParamsBlock.contentRange),
         severity: DiagnosticSeverity.Error,
         relatedInformation: [
             {
                 message: `URL field from method block`,
                 location: {
                     uri: documentUri,
-                    range: urlFieldInMethodBlock.valueRange,
+                    range: mapRange(urlFieldInMethodBlock.valueRange),
                 },
             },
         ],
@@ -172,14 +173,14 @@ function getDiagnosticForUrlNotMatchingPathParamsBlockValues(
                       2
                   )
         }`,
-        range: urlFieldInMethodBlock.valueRange,
+        range: mapRange(urlFieldInMethodBlock.valueRange),
         severity: DiagnosticSeverity.Error,
         relatedInformation: [
             {
                 message: `'${RequestFileBlockName.PathParams}' block`,
                 location: {
                     uri: documentUri,
-                    range: pathParamsBlock.contentRange,
+                    range: mapRange(pathParamsBlock.contentRange),
                 },
             },
         ],
@@ -199,7 +200,7 @@ function getDiagnosticForMissingPathParamsBlock(
             null,
             2
         )}.`,
-        range: urlFieldInMethodBlock.valueRange,
+        range: mapRange(urlFieldInMethodBlock.valueRange),
         severity: DiagnosticSeverity.Error,
         code: NonBlockSpecificDiagnosticCode.PathParamsBlockMissing,
     };

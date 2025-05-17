@@ -1,5 +1,10 @@
 import { DiagnosticSeverity, Range, Uri } from "vscode";
-import { Block, castBlockToArrayBlock } from "../../../../../../shared";
+import {
+    Block,
+    castBlockToArrayBlock,
+    mapPosition,
+    mapRange,
+} from "../../../../../../shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -32,7 +37,10 @@ function getDiagnostic(
                 ? sortedBlocksWithIncorrectStructure.map(
                       ({ name, contentRange }) => ({
                           message: `Array block with name '${name}'`,
-                          location: { uri: documentUri, range: contentRange },
+                          location: {
+                              uri: documentUri,
+                              range: mapRange(contentRange),
+                          },
                       })
                   )
                 : undefined,
@@ -43,9 +51,11 @@ function getDiagnostic(
 
 function getRange(sortedBlocksWithIncorrectStructure: Block[]): Range {
     return new Range(
-        sortedBlocksWithIncorrectStructure[0].contentRange.start,
-        sortedBlocksWithIncorrectStructure[
-            sortedBlocksWithIncorrectStructure.length - 1
-        ].contentRange.end
+        mapPosition(sortedBlocksWithIncorrectStructure[0].contentRange.start),
+        mapPosition(
+            sortedBlocksWithIncorrectStructure[
+                sortedBlocksWithIncorrectStructure.length - 1
+            ].contentRange.end
+        )
     );
 }

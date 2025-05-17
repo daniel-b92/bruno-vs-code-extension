@@ -2,6 +2,7 @@ import { DiagnosticSeverity, Range } from "vscode";
 import {
     DictionaryBlock,
     DictionaryBlockField,
+    mapPosition,
 } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
@@ -47,7 +48,7 @@ function getDiagnostic(
 
 function getRange(sortedFields: DictionaryBlockField[]): Range {
     return new Range(
-        sortedFields[0].keyRange.start,
-        sortedFields[sortedFields.length - 1].keyRange.end
+        mapPosition(sortedFields[0].keyRange.start),
+        mapPosition(sortedFields[sortedFields.length - 1].keyRange.end)
     );
 }

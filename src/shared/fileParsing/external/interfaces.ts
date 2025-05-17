@@ -1,4 +1,4 @@
-import { Range } from "vscode";
+import { Range } from "../../fileSystem/util/positionAndRangeDefinitions";
 
 export interface Block {
     name: string;

@@ -9,6 +9,7 @@ import {
     getValidDictionaryBlocksWithName,
     Block,
     RequestFileBlockName,
+    mapRange,
 } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -77,14 +78,14 @@ function getDiagnosticForUrlNotMatchingQueryParamsBlock(
         }' block '${getUrlSubstringForQueryParams(
             queryParamsFromQueryParamsBlock
         )}'.`,
-        range: urlFieldInMethodBlock.valueRange,
+        range: mapRange(urlFieldInMethodBlock.valueRange),
         severity: DiagnosticSeverity.Error,
         relatedInformation: [
             {
                 message: `'${RequestFileBlockName.QueryParams}' block`,
                 location: {
                     uri: documentUri,
-                    range: queryParamsBlock.contentRange,
+                    range: mapRange(queryParamsBlock.contentRange),
                 },
             },
         ],
@@ -106,7 +107,7 @@ function getDiagnosticForMissingQueryParamsBlock(
             null,
             2
         )}.`,
-        range: urlFieldInMethodBlock.valueRange,
+        range: mapRange(urlFieldInMethodBlock.valueRange),
         severity: DiagnosticSeverity.Warning,
         code: NonBlockSpecificDiagnosticCode.QueryParamsBlockMissing,
     };

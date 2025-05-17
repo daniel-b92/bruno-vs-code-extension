@@ -11,6 +11,7 @@ import {
     MetaBlockKey,
     castBlockToDictionaryBlock,
     getSequenceFieldFromMetaBlock,
+    mapRange,
 } from "../../../../../../shared";
 import { dirname } from "path";
 import { readFileSync } from "fs";
@@ -88,7 +89,7 @@ function getDiagnostic(
     return {
         message:
             "Other requests with the same sequence already exists within this folder.",
-        range: sequenceField.valueRange,
+        range: mapRange(sequenceField.valueRange),
         severity: DiagnosticSeverity.Error,
         code: getDiagnosticCode(),
         relatedInformation: otherRequestsWithSameSequence.map((path) => ({
@@ -116,7 +117,7 @@ function getRangeForSequence(filePath: string) {
         );
     }
 
-    return sequenceField.valueRange;
+    return mapRange(sequenceField.valueRange);
 }
 
 function getSequencesForOtherRequestsInFolder(

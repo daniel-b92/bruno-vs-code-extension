@@ -6,6 +6,8 @@ import {
 } from "vscode";
 import {
     Block,
+    mapPosition,
+    mapRange,
     RequestFileBlockName,
 } from "../../../../../../shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
@@ -33,8 +35,10 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
         const sortedDuplicates = getSortedBlocksByPosition(allDuplicateBlocks);
 
         const range = new Range(
-            sortedDuplicates[0].nameRange.start,
-            sortedDuplicates[sortedDuplicates.length - 1].contentRange.end
+            mapPosition(sortedDuplicates[0].nameRange.start),
+            mapPosition(
+                sortedDuplicates[sortedDuplicates.length - 1].contentRange.end
+            )
         );
 
         const multipleDefinitionsForSameBlocksDiagnostic: DiagnosticWithCode = {
@@ -52,7 +56,10 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
                             message: `Block '${name}' definition no. ${
                                 index + 1
                             }`,
-                            location: { uri: documentUri, range: nameRange },
+                            location: {
+                                uri: documentUri,
+                                range: mapRange(nameRange),
+                            },
                         })
                 );
 

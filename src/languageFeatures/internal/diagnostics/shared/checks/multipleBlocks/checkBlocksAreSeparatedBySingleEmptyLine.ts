@@ -1,5 +1,9 @@
 import { DiagnosticSeverity, Range, Uri } from "vscode";
-import { TextOutsideOfBlocks } from "../../../../../../shared";
+import {
+    mapPosition,
+    mapRange,
+    TextOutsideOfBlocks,
+} from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { getSortedTextOutsideOfBlocksByPosition } from "../../util/getSortedTextOutsideOfBlocksByPosition";
@@ -36,7 +40,7 @@ function getDiagnostic(
                 ? undefined
                 : sortedTextOutsideOfBlocks.map(({ range }) => ({
                       message: "Problematic text outside of blocks.",
-                      location: { uri: documentUri, range },
+                      location: { uri: documentUri, range: mapRange(range) },
                   })),
         code: NonBlockSpecificDiagnosticCode.BlocksNotAllSeparatedBySingleEmptyLine,
     };
@@ -46,9 +50,13 @@ function getRange(
     problematicTextOutsideOfBlocksSortedByPosition: TextOutsideOfBlocks[]
 ): Range {
     return new Range(
-        problematicTextOutsideOfBlocksSortedByPosition[0].range.start,
-        problematicTextOutsideOfBlocksSortedByPosition[
-            problematicTextOutsideOfBlocksSortedByPosition.length - 1
-        ].range.end
+        mapPosition(
+            problematicTextOutsideOfBlocksSortedByPosition[0].range.start
+        ),
+        mapPosition(
+            problematicTextOutsideOfBlocksSortedByPosition[
+                problematicTextOutsideOfBlocksSortedByPosition.length - 1
+            ].range.end
+        )
     );
 }

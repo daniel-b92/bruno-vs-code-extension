@@ -7,6 +7,7 @@ import {
     isAuthBlock,
     MethodBlockKey,
     Block,
+    mapRange,
 } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -69,7 +70,7 @@ function getDiagnostic(
 ): DiagnosticWithCode {
     return {
         message: "Auth type does not match name of auth block.",
-        range: methodBlockField.valueRange,
+        range: mapRange(methodBlockField.valueRange),
         relatedInformation: [
             {
                 message: `Defined auth type in auth block: '${getAuthTypeFromBlockName(
@@ -77,7 +78,7 @@ function getDiagnostic(
                 )}'`,
                 location: {
                     uri: documentUri,
-                    range: authBlock.nameRange,
+                    range: mapRange(authBlock.nameRange),
                 },
             },
         ],
@@ -92,7 +93,7 @@ function getDiagnosticInCaseOfMissingAuthBlock(
     return {
         message:
             "Missing auth block despite definition of auth type in method block.",
-        range: methodBlockField.valueRange,
+        range: mapRange(methodBlockField.valueRange),
         severity: DiagnosticSeverity.Error,
         code: getCode(),
     };
@@ -105,7 +106,7 @@ function getDiagnosticInCaseOfNonExpectedAuthBlock(
 ): DiagnosticWithCode {
     return {
         message: `An auth block is defined although the auth type is '${methodBlockField.value}'.`,
-        range: methodBlockField.valueRange,
+        range: mapRange(methodBlockField.valueRange),
         relatedInformation: [
             {
                 message: `Defined auth type in auth block: '${getAuthTypeFromBlockName(
@@ -113,7 +114,7 @@ function getDiagnosticInCaseOfNonExpectedAuthBlock(
                 )}'`,
                 location: {
                     uri: documentUri,
-                    range: authBlock.nameRange,
+                    range: mapRange(authBlock.nameRange),
                 },
             },
         ],

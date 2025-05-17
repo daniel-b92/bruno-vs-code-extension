@@ -1,5 +1,9 @@
 import { DiagnosticSeverity, Range, Uri } from "vscode";
-import { TextOutsideOfBlocks } from "../../../../../../shared";
+import {
+    mapPosition,
+    mapRange,
+    TextOutsideOfBlocks,
+} from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
@@ -30,10 +34,12 @@ export function checkThatNoTextExistsOutsideOfBlocks(
         );
 
         const range = new Range(
-            relevantTextOutsideOfBlocks[0].range.start,
-            relevantTextOutsideOfBlocks[
-                relevantTextOutsideOfBlocks.length - 1
-            ].range.end
+            mapPosition(relevantTextOutsideOfBlocks[0].range.start),
+            mapPosition(
+                relevantTextOutsideOfBlocks[
+                    relevantTextOutsideOfBlocks.length - 1
+                ].range.end
+            )
         );
 
         const diagnostic: DiagnosticWithCode = {
@@ -44,7 +50,7 @@ export function checkThatNoTextExistsOutsideOfBlocks(
                     message: `Text outside of blocks`,
                     location: {
                         uri: documentUri,
-                        range,
+                        range: mapRange(range),
                     },
                 })
             ),

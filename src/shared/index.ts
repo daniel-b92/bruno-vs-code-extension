@@ -7,6 +7,8 @@ export * from "./fileSystem/util/normalizeDirectoryPath";
 export * from "./fileSystem/util/textDocumentHelper";
 export * from "./fileSystem/util/getExtensionForRequestFiles";
 export * from "./fileSystem/util/getLineBreakForDocument";
+export * from "./fileSystem/util/positionAndRangeDefinitions";
+export * from "./fileSystem/util/positionAndRangeMapper";
 
 // file parsing
 export * from "./fileParsing/external/metaBlock/getMaxSequenceForRequests";

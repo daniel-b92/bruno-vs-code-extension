@@ -4,6 +4,7 @@ import {
     Block,
     MetaBlockKey,
     getFieldFromMetaBlock,
+    mapRange,
 } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { isSequenceValid } from "../../util/isSequenceValid";
@@ -28,7 +29,7 @@ function getDiagnostic(sequenceField: DictionaryBlockField) {
     return {
         message:
             "Sequence is not valid. It needs to be an integer with a value of at least 1.",
-        range: sequenceField.valueRange,
+        range: mapRange(sequenceField.valueRange),
         severity: DiagnosticSeverity.Error,
         code: RelevantWithinMetaBlockDiagnosticCode.SequenceNotValid,
     };
