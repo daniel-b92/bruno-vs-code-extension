@@ -230,7 +230,7 @@ export class CollectionExplorer
                     .then((picked) => {
                         return new Promise<void>((resolve) => {
                             if (picked != confirmationOption) {
-                                resolve();
+                                return resolve();
                             }
 
                             const path = item.getPath();
