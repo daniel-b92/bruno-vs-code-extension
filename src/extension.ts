@@ -43,7 +43,7 @@ export async function activate(context: ExtensionContext) {
         },
         () => {
             return new Promise<void>((resolve) => {
-                collectionItemProvider.refreshState().then(() => {
+                collectionItemProvider.refreshCache().then(() => {
                     activateRunner(
                         ctrl,
                         collectionItemProvider,

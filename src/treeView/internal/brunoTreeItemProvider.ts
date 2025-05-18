@@ -62,7 +62,7 @@ export class BrunoTreeItemProvider
 
     public refresh() {
         return new Promise<void>((resolve) => {
-            this.collectionItemProvider.refreshState().then(() => {
+            this.collectionItemProvider.refreshCache().then(() => {
                 this._onDidChangeTreeData.fire(undefined);
                 resolve();
             });

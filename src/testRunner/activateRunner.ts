@@ -123,7 +123,7 @@ export async function activateRunner(
                 return new Promise<void>((resolve) => {
                     ctrl.items.replace([]);
 
-                    collectionItemProvider.refreshState().then(() => {
+                    collectionItemProvider.refreshCache().then(() => {
                         const collections =
                             collectionItemProvider.getRegisteredCollections();
 

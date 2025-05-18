@@ -116,7 +116,7 @@ export class CollectionItemProvider {
         );
     }
 
-    public async refreshState() {
+    public async refreshCache() {
         this.collectionRegistry
             .getRegisteredCollections()
             .forEach((collection) => {
