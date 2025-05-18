@@ -319,7 +319,7 @@ const spawnChildProcess = (
     jsonReportPath: string,
     testEnvironment?: string
 ) => {
-    const npmPackageForUsingViaNpx = `${getNpmPackageNameWithoutSpecificVersion()}@2.2.2`;
+    const npmPackageForUsingViaNpx = `${getNpmPackageNameWithoutSpecificVersion()}@2.3.0`;
 
     const commandArguments: (string | undefined)[] = [];
     const shouldUseNpxForTriggeringTests = shouldUseNpx();
