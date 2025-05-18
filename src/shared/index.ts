@@ -71,9 +71,9 @@ export * from "./model/collectionDirectory";
 export * from "./model/collectionFile";
 export * from "./model/interfaces";
 
-// state
-export * from "./state/externalHelpers/collectionItemProvider";
-export * from "./state/externalHelpers/testRunnerDataHelper";
+// file system cache
+export * from "./fileSystemCache/externalHelpers/collectionItemProvider";
+export * from "./fileSystemCache/externalHelpers/testRunnerDataHelper";
 
 // vsCodeSettings
 export * from "./vsCodeSettings/getLinkToUserSetting";
