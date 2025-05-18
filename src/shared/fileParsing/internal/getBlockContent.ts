@@ -1,7 +1,12 @@
-import { ArrayBlockField, DictionaryBlockField } from "../external/interfaces";
+import {
+    ArrayBlockField,
+    DictionaryBlockField,
+    PlainTextWithinBlock,
+} from "../external/interfaces";
 import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
 import { BlockBracket } from "./util/blockBracketEnum";
 import { Position, Range } from "../..";
+import { isDictionaryBlockField } from "./util/isDictionaryBlockField";
 
 export const getBlockContent = (
     document: TextDocumentHelper,
@@ -9,7 +14,10 @@ export const getBlockContent = (
     shouldBeArrayBlock: boolean
 ):
     | {
-          content: string | DictionaryBlockField[] | ArrayBlockField[];
+          content:
+              | string
+              | (DictionaryBlockField | PlainTextWithinBlock)[]
+              | (ArrayBlockField | PlainTextWithinBlock)[];
           contentRange: Range;
       }
     | undefined => {
@@ -44,44 +52,68 @@ const parseArrayBlock = (
         )
     );
 
-    const nonFinalArrayBlockLines = linesWithBlockContent.slice(
+    const nonFinalBlockLines = linesWithBlockContent.slice(
         0,
         linesWithBlockContent.length - 1
     );
 
-    const lastContentLine =
-        linesWithBlockContent[linesWithBlockContent.length - 1];
+    const nonFinalLinesNotMatchingPattern: PlainTextWithinBlock[] = [];
 
-    const blockRange = new Range(
-        new Position(firstContentLine, 0),
-        new Position(
-            lastLineForBlock.index,
-            lastLineForBlock.content.lastIndexOf(
-                BlockBracket.ClosingBracketForArrayBlock
-            )
-        )
+    const nonFinalLinesMatchingBlockPattern = nonFinalBlockLines.filter(
+        ({ index, content }) => {
+            if (getNonFinalArrayBlockLinePattern().test(content)) {
+                return true;
+            } else {
+                nonFinalLinesNotMatchingPattern.push({
+                    text: content,
+                    range: document.getRangeForLine(index) as Range,
+                });
+                return false;
+            }
+        }
     );
 
-    const allLinesMatchPattern =
-        nonFinalArrayBlockLines.every((line) =>
-            getNonFinalArrayBlockLinePattern().test(line.content)
-        ) && getLastArrayBlockLinePattern().test(lastContentLine.content);
+    const lastContentLine =
+        linesWithBlockContent[linesWithBlockContent.length - 1];
+    const doesLastLineMatchBlockPattern = getLastArrayBlockLinePattern().test(
+        lastContentLine.content
+    );
 
     return {
-        content: allLinesMatchPattern
-            ? nonFinalArrayBlockLines
-                  .map(({ content, index }) =>
-                      getArrayEntryFromLine(index, content, false)
-                  )
-                  .concat([
-                      getArrayEntryFromLine(
-                          lastContentLine.index,
-                          lastContentLine.content,
-                          true
-                      ),
-                  ])
-            : document.getText(blockRange),
-        contentRange: blockRange,
+        content: (
+            nonFinalLinesMatchingBlockPattern.map(({ content, index }) =>
+                getArrayEntryFromLine(index, content, false)
+            ) as (ArrayBlockField | PlainTextWithinBlock)[]
+        )
+            .concat(
+                nonFinalLinesNotMatchingPattern.length > 0
+                    ? nonFinalLinesNotMatchingPattern
+                    : []
+            )
+            .concat(
+                doesLastLineMatchBlockPattern
+                    ? [
+                          getArrayEntryFromLine(
+                              lastContentLine.index,
+                              lastContentLine.content,
+                              true
+                          ),
+                      ]
+                    : [
+                          {
+                              text: lastContentLine.content,
+                              range: document.getRangeForLine(
+                                  lastContentLine.index
+                              ) as Range,
+                          },
+                      ]
+            ),
+        contentRange: getContentRange(
+            firstContentLine,
+            BlockBracket.ClosingBracketForArrayBlock,
+            lastContentLine.index,
+            lastContentLine.content
+        ),
     };
 };
 
@@ -90,7 +122,7 @@ const parseTextOrDictionaryBlock = (
     firstContentLine: number
 ) => {
     const lines: {
-        content: string | DictionaryBlockField | ArrayBlockField;
+        content: DictionaryBlockField | PlainTextWithinBlock;
     }[] = [];
     let openBracketsOnBlockLevel = 1;
     let lineIndex = firstContentLine;
@@ -121,10 +153,19 @@ const parseTextOrDictionaryBlock = (
             lines.push(
                 isKeyValuePair(line)
                     ? {
-                          content:
-                              getKeyAndValueFromLine(lineIndex, line) ?? line,
+                          content: getKeyAndValueFromLine(
+                              lineIndex,
+                              line
+                          ) as DictionaryBlockField,
                       }
-                    : { content: line }
+                    : {
+                          content: {
+                              text: line,
+                              range: document.getRangeForLine(
+                                  lineIndex
+                              ) as Range,
+                          },
+                      }
             );
 
             lineIndex++;
@@ -148,14 +189,32 @@ const parseTextOrDictionaryBlock = (
     );
 
     return {
-        content: lines.some((line) => typeof line.content == "string")
+        content: lines.every((line) => !isDictionaryBlockField(line.content))
             ? document.getText(range)
-            : (lines as { content: DictionaryBlockField }[]).map(
-                  ({ content }) => content
-              ),
-        contentRange: range,
+            : (
+                  lines as {
+                      content: DictionaryBlockField | PlainTextWithinBlock;
+                  }[]
+              ).map(({ content }) => content),
+        contentRange: getContentRange(
+            firstContentLine,
+            BlockBracket.ClosingBracketForDictionaryOrTextBlock,
+            lineIndex,
+            document.getLineByIndex(lineIndex)
+        ),
     };
 };
+
+const getContentRange = (
+    firstLineIndex: number,
+    closingBracket: BlockBracket,
+    lastLineIndex: number,
+    lastLineContent: string
+) =>
+    new Range(
+        new Position(firstLineIndex, 0),
+        new Position(lastLineIndex, lastLineContent.lastIndexOf(closingBracket))
+    );
 
 const isKeyValuePair = (lineText: string) =>
     getKeyValuePairLinePattern().test(lineText);

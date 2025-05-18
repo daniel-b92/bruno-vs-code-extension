@@ -3,7 +3,10 @@ import { Range } from "../../fileSystem/util/range";
 export interface Block {
     name: string;
     nameRange: Range;
-    content: string | DictionaryBlockField[] | ArrayBlockField[];
+    content:
+        | string
+        | (DictionaryBlockField | PlainTextWithinBlock)[]
+        | (ArrayBlockField | PlainTextWithinBlock)[];
     contentRange: Range;
 }
 
@@ -31,6 +34,11 @@ export interface ArrayBlock {
 export interface ArrayBlockField {
     entry: string;
     entryRange: Range;
+}
+
+export interface PlainTextWithinBlock {
+    text: string;
+    range: Range;
 }
 
 export interface TextOutsideOfBlocks {

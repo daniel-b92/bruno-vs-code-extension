@@ -72,6 +72,15 @@ export class TextDocumentHelper {
         );
     }
 
+    public getRangeForLine(lineIndex: number) {
+        return this.getLineCount() <= lineIndex
+            ? undefined
+            : new Range(
+                  new Position(lineIndex, 0),
+                  new Position(lineIndex, this.getLineByIndex(lineIndex).length)
+              );
+    }
+
     public getLineByIndex(index: number) {
         return index < this.lines.fullLines.length
             ? this.lines.fullLines[index].content
