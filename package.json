@@ -20,12 +20,6 @@
     ],
     "main": "./dist/extension",
     "contributes": {
-        "typescriptServerPlugins": [
-            {
-                "enableForWorkspaceTypeScriptVersions": true,
-                "name": "typescript-for-bruno"
-            }
-        ],
         "configuration": {
             "title": "Bruno",
             "properties": {
@@ -206,7 +200,6 @@
     },
     "dependencies": {
         "npm": "^11.2.0",
-        "tree-kill": "^1.2.2",
-        "typescript-for-bruno": "file:///home/daniel/git/bruno-vs-code-extension/src/languageFeatures/server/out"
+        "tree-kill": "^1.2.2"
     }
 }
