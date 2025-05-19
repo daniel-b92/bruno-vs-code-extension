@@ -15,6 +15,7 @@ import { getSortedBlocksByPosition } from "../../../shared/util/getSortedBlocksB
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { isDictionaryBlockField } from "../../../../../../shared/fileParsing/internal/util/isDictionaryBlockField";
+import { getSortedPlainTextLinesByPosition } from "../../util/getSortedPlainTextLinesByPosition";
 
 export function checkDictionaryBlocksHaveDictionaryStructure(
     documentUri: Uri,
@@ -47,8 +48,11 @@ function getDiagnostic(
     }[]
 ): DiagnosticWithCode {
     return {
-        message:
-            "At least one dictionary block does not have the correct structure.",
+        message: `At least one dictionary block does not have the correct structure. A valid dictionary block matches the following pattern:
+<blockName> {
+  key1: value1
+  key2: value2
+}`,
         range: getRange(sortedBlocksWithIncorrectStructure),
         relatedInformation:
             sortedBlocksWithIncorrectStructure.length > 1 ||
@@ -92,22 +96,15 @@ function getRange(
         ];
     return new Range(
         mapPosition(
-            sortLinesByPosition(
+            getSortedPlainTextLinesByPosition(
                 sortedBlocksWithIncorrectStructure[0].invalidLines
             )[0].range.start
         ),
         mapPosition(
-            sortLinesByPosition(lastBlock.invalidLines)[
+            getSortedPlainTextLinesByPosition(lastBlock.invalidLines)[
                 lastBlock.invalidLines.length - 1
             ].range.end
         )
-    );
-}
-
-function sortLinesByPosition(plainTextLines: PlainTextWithinBlock[]) {
-    return plainTextLines.sort(
-        ({ range: range1 }, { range: range2 }) =>
-            range1.start.line - range2.start.line
     );
 }
 
