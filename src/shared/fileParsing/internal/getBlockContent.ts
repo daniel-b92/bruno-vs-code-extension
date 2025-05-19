@@ -111,8 +111,8 @@ const parseArrayBlock = (
         contentRange: getContentRange(
             firstContentLine,
             BlockBracket.ClosingBracketForArrayBlock,
-            lastContentLine.index,
-            lastContentLine.content
+            lastLineForBlock.index,
+            lastLineForBlock.content
         ),
     };
 };
@@ -208,12 +208,12 @@ const parseTextOrDictionaryBlock = (
 const getContentRange = (
     firstLineIndex: number,
     closingBracket: BlockBracket,
-    lastLineIndex: number,
+    lineWithClosingBracketIndex: number,
     lastLineContent: string
 ) =>
     new Range(
         new Position(firstLineIndex, 0),
-        new Position(lastLineIndex, lastLineContent.lastIndexOf(closingBracket))
+        new Position(lineWithClosingBracketIndex, lastLineContent.lastIndexOf(closingBracket))
     );
 
 const isKeyValuePair = (lineText: string) =>
@@ -258,8 +258,8 @@ const getArrayEntryFromLine = (
     isLastArrayBlockLine: boolean
 ): ArrayBlockField => {
     const entry = isLastArrayBlockLine
-        ? lineText.replace(",", "").trim()
-        : lineText.trim();
+        ? lineText.trim()
+        : lineText.replace(",", "").trim();
 
     const entryStartIndex = lineText.indexOf(entry);
     const entryEndIndex = entryStartIndex + entry.length;

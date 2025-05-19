@@ -175,6 +175,12 @@ export class BrunoLangDiagnosticsProvider {
                 blocks.filter(
                     ({ name }) => name == EnvironmentFileBlockName.SecretVars
                 )
+            ),
+            checkDictionaryBlocksHaveDictionaryStructure(
+                documentUri,
+                blocks.filter(
+                    ({ name }) => name == EnvironmentFileBlockName.Vars
+                )
             )
         );
 
