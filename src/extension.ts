@@ -5,6 +5,7 @@ import {
     tests,
     Uri,
     window,
+    workspace,
 } from "vscode";
 import { activateRunner } from "./testRunner";
 import { activateTreeView } from "./treeView";
@@ -15,6 +16,7 @@ import {
     TestRunnerDataHelper,
 } from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures";
+import { syncTsPlugin } from "./syncTsPlugin";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
@@ -35,6 +37,14 @@ export async function activate(context: ExtensionContext) {
     );
 
     const startTestRunEmitter = new EventEmitter<Uri>();
+
+    await syncTsPlugin();
+
+    workspace.onDidChangeConfiguration(async (e) => {
+        if (e.affectsConfiguration("typescript")) {
+            await syncTsPlugin();
+        }
+    });
 
     window.withProgress(
         {

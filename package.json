@@ -44,6 +44,13 @@
                 }
             }
         },
+        "typescriptServerPlugins": [
+            {
+                "enableForWorkspaceTypeScriptVersions": true,
+                "name": "typescript-for-bruno",
+                "languages": ["bruno"]
+            }
+        ],
         "snippets": [
             {
                 "language": "bruno",
@@ -181,7 +188,7 @@
     },
     "scripts": {
         "vscode:prepublish": "npm run package",
-        "compile": "webpack --mode development",
+        "compile": "webpack --mode development && cd ./src/tsPlugin && tsc -p '.' && cd ../.. && npm install",
         "lint": "eslint",
         "watch": "webpack --mode development --watch",
         "package": "webpack --mode production --devtool hidden-source-map"
@@ -190,7 +197,7 @@
         "@eslint/js": "^9.13.0",
         "@stylistic/eslint-plugin": "^2.13.0",
         "@types/node": "^20.17.24",
-        "@types/vscode": "^1.98.0",
+        "@types/vscode": "^1.100.0",
         "eslint": "^9.22.0",
         "ts-loader": "^9.5.2",
         "typescript": "^5.8.2",
@@ -200,6 +207,8 @@
     },
     "dependencies": {
         "npm": "^11.2.0",
-        "tree-kill": "^1.2.2"
+        "tree-kill": "^1.2.2",
+        "typescript-for-bruno": "file:///home/daniel/git/bruno-vs-code-extension/src/tsPlugin/out",
+        "typescript-language-server": "^4.3.4"
     }
 }
