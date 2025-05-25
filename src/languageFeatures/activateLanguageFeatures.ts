@@ -17,12 +17,14 @@ import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDi
 import { updateUrlToMatchQueryParams } from "./internal/autoUpdates/updateUrlToMatchQueryParams";
 import { updatePathParamsKeysToMatchUrl } from "./internal/autoUpdates/updatePathParamsKeysToMatchUrl";
 import { isBrunoEnvironmentFile } from "./internal/diagnostics/shared/util/isBrunoEnvironmentFile";
+import { existsSync, unlinkSync, writeFileSync } from "fs";
+import { getVirtualJsFileName } from "./internal/shared/getVirtualJsFileName";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
     collectionItemProvider: CollectionItemProvider
 ) {
-    provideBrunoLangCompletionItems();
+    provideBrunoLangCompletionItems(collectionItemProvider);
 
     const diagnosticCollection = languages.createDiagnosticCollection("bruno");
     context.subscriptions.push(diagnosticCollection);
@@ -35,6 +37,23 @@ export function activateLanguageFeatures(
     context.subscriptions.push(
         brunoLangDiagnosticsProvider,
         workspace.onDidOpenTextDocument((doc) => {
+            if (
+                isBrunoRequestFile(
+                    collectionItemProvider.getRegisteredCollections().slice(),
+                    doc.uri.fsPath
+                )
+            ) {
+                createTemporaryJsFile(
+                    (
+                        collectionItemProvider.getAncestorCollectionForPath(
+                            doc.fileName
+                        ) as Collection
+                    ).getRootDirectory(),
+                    doc.fileName,
+                    doc.getText()
+                );
+            }
+
             fetchDiagnostics(
                 doc,
                 brunoLangDiagnosticsProvider,
@@ -43,6 +62,25 @@ export function activateLanguageFeatures(
         }),
         workspace.onDidChangeTextDocument((e) => {
             if (e.contentChanges.length > 0) {
+                if (
+                    isBrunoRequestFile(
+                        collectionItemProvider
+                            .getRegisteredCollections()
+                            .slice(),
+                        e.document.uri.fsPath
+                    )
+                ) {
+                    createTemporaryJsFile(
+                        (
+                            collectionItemProvider.getAncestorCollectionForPath(
+                                e.document.fileName
+                            ) as Collection
+                        ).getRootDirectory(),
+                        e.document.fileName,
+                        e.document.getText()
+                    );
+                }
+
                 fetchDiagnostics(
                     e.document,
                     brunoLangDiagnosticsProvider,
@@ -55,23 +93,75 @@ export function activateLanguageFeatures(
                 isBrunoRequestFile(
                     collectionItemProvider.getRegisteredCollections().slice(),
                     e.document.uri.fsPath
-                ) &&
-                window.activeTextEditor &&
-                window.activeTextEditor.document.uri.toString() ==
-                    e.document.uri.toString()
+                )
             ) {
-                const { blocks: parsedBlocks } = parseBruFile(
-                    new TextDocumentHelper(e.document.getText())
-                );
-
-                window.activeTextEditor.edit((editBuilder) => {
-                    updateUrlToMatchQueryParams(editBuilder, parsedBlocks);
-                    updatePathParamsKeysToMatchUrl(
-                        e.document,
-                        editBuilder,
-                        parsedBlocks
+                const collection =
+                    collectionItemProvider.getAncestorCollectionForPath(
+                        e.document.fileName
                     );
-                });
+                if (
+                    collection &&
+                    existsSync(
+                        getVirtualJsFileName(
+                            collection.getRootDirectory(),
+                            e.document.uri.fsPath
+                        )
+                    )
+                ) {
+                    unlinkSync(
+                        getVirtualJsFileName(
+                            collection.getRootDirectory(),
+                            e.document.uri.fsPath
+                        )
+                    );
+                }
+
+                if (
+                    window.activeTextEditor &&
+                    window.activeTextEditor.document.uri.toString() ==
+                        e.document.uri.toString()
+                ) {
+                    const { blocks: parsedBlocks } = parseBruFile(
+                        new TextDocumentHelper(e.document.getText())
+                    );
+
+                    window.activeTextEditor.edit((editBuilder) => {
+                        updateUrlToMatchQueryParams(editBuilder, parsedBlocks);
+                        updatePathParamsKeysToMatchUrl(
+                            e.document,
+                            editBuilder,
+                            parsedBlocks
+                        );
+                    });
+                }
+            }
+        }),
+        workspace.onDidCloseTextDocument((doc) => {
+            if (
+                isBrunoRequestFile(
+                    collectionItemProvider.getRegisteredCollections().slice(),
+                    doc.uri.fsPath
+                )
+            ) {
+                const collection =
+                    collectionItemProvider.getAncestorCollectionForPath(
+                        doc.uri.fsPath
+                    ) as Collection;
+                if (
+                    existsSync(
+                        getVirtualJsFileName(
+                            collection.getRootDirectory(),
+                            doc.uri.fsPath
+                        )
+                    )
+                ) {
+                    unlinkSync(
+                        getVirtualJsFileName(
+                            collection.getRootDirectory(),
+                            doc.uri.fsPath
+                        )
+                    );
+                }
             }
         })
     );
@@ -95,4 +185,15 @@ function fetchDiagnostics(
             document.getText()
         );
     }
+}
+
+function createTemporaryJsFile(
+    collectionRootDirectory: string,
+    bruFileName: string,
+    bruFileContent: string
+) {
+    writeFileSync(
+        getVirtualJsFileName(collectionRootDirectory, bruFileName),
+        bruFileContent
+    );
 }

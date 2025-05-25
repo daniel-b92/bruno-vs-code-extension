@@ -1,9 +1,18 @@
-import { CompletionItem, languages } from "vscode";
+import {
+    commands,
+    CompletionItem,
+    CompletionList,
+    languages,
+    Uri,
+    workspace,
+} from "vscode";
 import {
     ApiKeyAuthBlockKey,
     ApiKeyAuthBlockPlacementValue,
     BooleanFieldValue,
+    CollectionItemProvider,
     getMaxSequenceForRequests,
+    mapRange,
     MetaBlockKey,
     MethodBlockAuth,
     MethodBlockBody,
@@ -11,15 +20,83 @@ import {
     OAuth2BlockCredentialsPlacementValue,
     OAuth2BlockTokenPlacementValue,
     OAuth2ViaAuthorizationCodeBlockKey,
+    parseBruFile,
+    RequestFileBlockName,
     RequestType,
+    TextDocumentHelper,
 } from "../../../shared";
 import { dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
+import { getVirtualJsFileName } from "../shared/getVirtualJsFileName";
 
-export function provideBrunoLangCompletionItems() {
+export function provideBrunoLangCompletionItems(
+    collectionItemProvider: CollectionItemProvider
+) {
     getCompletionItemsForFieldsInMetaBlock();
     getCompletionItemsForFieldsInMethodBlock();
     getCompletionItemsForFieldsInAuthBlock();
+    getCompletionsForTextBlocks(collectionItemProvider);
+}
+
+function getCompletionsForTextBlocks(
+    collectionItemProvider: CollectionItemProvider
+) {
+    languages.registerCompletionItemProvider(
+        getRequestFileDocumentSelector(),
+        {
+            async provideCompletionItems(document, position) {
+                const collection =
+                    collectionItemProvider.getAncestorCollectionForPath(
+                        document.fileName
+                    );
+
+                if (!collection) {
+                    return [];
+                }
+
+                const { blocks } = parseBruFile(
+                    new TextDocumentHelper(document.getText())
+                );
+
+                const blocksToCheck = blocks.filter(({ name }) =>
+                    (
+                        [
+                            RequestFileBlockName.PreRequestScript,
+                            RequestFileBlockName.PostResponseScript,
+                            RequestFileBlockName.Tests,
+                        ] as string[]
+                    ).includes(name)
+                );
+
+                if (
+                    blocksToCheck.some(({ contentRange }) =>
+                        mapRange(contentRange).contains(position)
+                    )
+                ) {
+                    const virtualJsFileUri = Uri.file(
+                        getVirtualJsFileName(
+                            collection.getRootDirectory(),
+                            document.fileName
+                        )
+                    );
+                    await workspace.openTextDocument(virtualJsFileUri);
+
+                    const result =
+                        await commands.executeCommand<CompletionList>(
+                            "vscode.executeCompletionItemProvider",
+                            virtualJsFileUri,
+                            position
+                        );
+                    return result;
+                } else {
+                    return undefined;
+                }
+            },
+        },
+        ".",
+        " ",
+        "("
+    );
 }
 
 function getCompletionItemsForFieldsInMetaBlock() {
