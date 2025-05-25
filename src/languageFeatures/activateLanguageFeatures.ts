@@ -17,8 +17,6 @@ import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDi
 import { updateUrlToMatchQueryParams } from "./internal/autoUpdates/updateUrlToMatchQueryParams";
 import { updatePathParamsKeysToMatchUrl } from "./internal/autoUpdates/updatePathParamsKeysToMatchUrl";
 import { isBrunoEnvironmentFile } from "./internal/diagnostics/shared/util/isBrunoEnvironmentFile";
-import { extname } from "path";
-import { writeFileSync } from "fs";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
@@ -37,10 +35,6 @@ export function activateLanguageFeatures(
     context.subscriptions.push(
         brunoLangDiagnosticsProvider,
         workspace.onDidOpenTextDocument((doc) => {
-            if (extname(doc.fileName) == ".bru") {
-                createTemporaryJsFile(doc.fileName, doc.getText());
-            }
-
             fetchDiagnostics(
                 doc,
                 brunoLangDiagnosticsProvider,
@@ -49,12 +43,6 @@ export function activateLanguageFeatures(
         }),
         workspace.onDidChangeTextDocument((e) => {
             if (e.contentChanges.length > 0) {
-                if (extname(e.document.fileName) == ".bru") {
-                    createTemporaryJsFile(
-                        e.document.fileName,
-                        e.document.getText()
-                    );
-                }
                 fetchDiagnostics(
                     e.document,
                     brunoLangDiagnosticsProvider,
@@ -107,12 +95,4 @@ function fetchDiagnostics(
             document.getText()
         );
     }
-}
-
-function createTemporaryJsFile(bruFileName: string, bruFileContent: string) {
-    writeFileSync(getVirtualJsFileName(bruFileName), bruFileContent);
-}
-
-function getVirtualJsFileName(bruFileName: string) {
-    return bruFileName.replace(extname(bruFileName), ".js");
 }

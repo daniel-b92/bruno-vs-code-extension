@@ -16,22 +16,20 @@ function init(_modules: {
             proxy[k] = (...args: unknown[]) => x.apply(info.languageService, args);
         }
 
-        proxy.getCompletionsAtPosition = (fileName, position, options) => {
-            if (extname(fileName) != ".bru") {
-                return info.languageService.getCompletionsAtPosition(
-                    fileName,
-                    position,
-                    options
-                );
-            }
+        proxy.getSyntacticDiagnostics = (fileName) => {
+            return filterDefaultDiagnostics(
+                info,
+                fileName,
+                info.languageService.getSyntacticDiagnostics(fileName)
+            ) as ts.DiagnosticWithLocation[];
+        };
 
-            if (extname(fileName) == ".bru") {
-                return getCompletionItemsForBruFile(
-                    info.languageService,
-                    fileName,
-                    position
-                );
-            }
+        proxy.getSemanticDiagnostics = (fileName) => {
+            return filterDefaultDiagnostics(
+                info,
+                fileName,
+                info.languageService.getSemanticDiagnostics(fileName)
+            );
         };
 
         return proxy;
@@ -42,22 +40,98 @@ function init(_modules: {
     };
 }
 
-function getCompletionItemsForBruFile(
-    service: ts.LanguageService,
-    bruFileName: string,
-    offsetInBruFile: number
+function filterDefaultDiagnostics(
+    info: ts.server.PluginCreateInfo,
+    fileName: string,
+    defaultDiagnostics: (ts.Diagnostic | ts.DiagnosticWithLocation)[]
 ) {
-    const virtualFileName = getVirtualJsFileName(bruFileName);
+    if (extname(fileName) != ".bru") {
+        return defaultDiagnostics;
+    } else {
+        let fileContent: string | undefined = undefined;
+        const scriptSnapshot =
+            info.languageServiceHost.getScriptSnapshot(fileName);
 
-    return service.getCompletionsAtPosition(
-        virtualFileName,
-        offsetInBruFile,
-        {}
-    );
+        if (scriptSnapshot) {
+            fileContent = scriptSnapshot.getText(0, scriptSnapshot.getLength());
+        } else {
+            fileContent = info.languageServiceHost.readFile(fileName);
+        }
+
+        if (!fileContent) {
+            return [];
+        }
+
+        const indizes: {
+            blockName: string;
+            startIndex: number;
+            endIndex: number;
+        }[] = [];
+
+        for (const blockName of Object.values(TextBlockName)) {
+            const indizesForBlock = getTextBlockStartAndEndIndex(
+                fileContent,
+                blockName
+            );
+
+            if (indizesForBlock) {
+                indizes.push({ blockName, ...indizesForBlock });
+            }
+        }
+
+        if (indizes.length > 0) {
+            return defaultDiagnostics.filter(
+                ({ start, length }) =>
+                    start != undefined &&
+                    length != undefined &&
+                    indizes.some(
+                        ({ startIndex: blockStart, endIndex: blockEnd }) =>
+                            start >= blockStart && start <= blockEnd
+                    ) &&
+                    // Do not show diagnostics for functions that are provided by Bruno at runtime
+                    !["bru", "req", "res", "test", "expect"].includes(
+                        fileContent.substring(start, start + length)
+                    )
+            );
+        } else {
+            return [];
+        }
+    }
 }
 
-function getVirtualJsFileName(bruFileName: string) {
-    return bruFileName.replace(extname(bruFileName), ".js");
+function getTextBlockStartAndEndIndex(
+    fullTextContent: string,
+    blockName: TextBlockName
+) {
+    const startPattern = new RegExp(`^\\s*${blockName}\\s*{\\s*$`, "m");
+    const startMatches = startPattern.exec(fullTextContent);
+
+    if (!startMatches || startMatches.length == 0) {
+        return undefined;
+    }
+
+    const contentStartIndex =
+        startMatches.index + startMatches[0].indexOf("{") + 1;
+    const remainingDoc = fullTextContent.substring(contentStartIndex);
+
+    const endPattern = /^\s*}\s*$/m;
+    const endMatches = endPattern.exec(remainingDoc);
+
+    if (!endMatches || endMatches.length == 0) {
+        return undefined;
+    }
+
+    // ToDo: Improve determination of block end (by counting open curly brackets)
+    const contentEndIndex =
+        contentStartIndex + endMatches.index + endMatches[0].indexOf("}");
+
+    return { startIndex: contentStartIndex, endIndex: contentEndIndex };
+}
+
+enum TextBlockName {
+    Tests = "tests",
+    PreRequestScript = "script:pre-request",
+    PostResponseScript = "script:post-response",
 }
 
 export = init;
