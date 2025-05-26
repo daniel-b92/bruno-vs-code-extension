@@ -4,7 +4,6 @@ import {
     CompletionList,
     languages,
     Uri,
-    workspace,
 } from "vscode";
 import {
     ApiKeyAuthBlockKey,
@@ -79,14 +78,16 @@ function getCompletionsForTextBlocks(
                             document.fileName
                         )
                     );
-                    await workspace.openTextDocument(virtualJsFileUri);
 
+                    // ToDo: Find a way to avoid causing Debug warnings when requesting completion items that are not opened in VS Code.
+                    // Currently it probably only works so well by chance.
                     const result =
                         await commands.executeCommand<CompletionList>(
                             "vscode.executeCompletionItemProvider",
                             virtualJsFileUri,
                             position
                         );
+
                     return result;
                 } else {
                     return undefined;
@@ -95,7 +96,8 @@ function getCompletionsForTextBlocks(
         },
         ".",
         " ",
-        "("
+        "(",
+        "/"
     );
 }
 
