@@ -1,6 +1,7 @@
 import { lstatSync, readdirSync } from "fs";
 import { extname, resolve } from "path";
 import { getSequenceFromMetaBlock } from "./getSequenceFromMetaBlock";
+import { getExtensionForRequestFiles } from "../../../fileSystem/util/getExtensionForRequestFiles";
 
 export const getSequencesForRequests = (directory: string) => {
     const result: { path: string; sequence: number }[] = [];
@@ -10,7 +11,7 @@ export const getSequencesForRequests = (directory: string) => {
 
         if (
             lstatSync(fullPath).isFile() &&
-            extname(fullPath) == ".bru" &&
+            extname(fullPath) == getExtensionForRequestFiles() &&
             getSequenceFromMetaBlock(fullPath) != undefined
         ) {
             result.push({

@@ -1,5 +1,9 @@
 import { basename, dirname, extname } from "path";
-import { Collection, normalizeDirectoryPath } from "../../../../../shared";
+import {
+    Collection,
+    getExtensionForRequestFiles,
+    normalizeDirectoryPath,
+} from "../../../../../shared";
 import { existsSync } from "fs";
 
 export function isBrunoRequestFile(
@@ -11,7 +15,7 @@ export function isBrunoRequestFile(
     }
 
     const isBrunoRequestFile =
-        extname(path) == ".bru" &&
+        extname(path) == getExtensionForRequestFiles() &&
         registeredCollections.some((collection) =>
             path.startsWith(
                 normalizeDirectoryPath(collection.getRootDirectory())

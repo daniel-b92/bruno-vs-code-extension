@@ -7,6 +7,7 @@ import { CollectionDirectory } from "../../model/collectionDirectory";
 import { extname } from "path";
 import { addTestItemAndAncestorsToTestTree } from "../../../testRunner";
 import { normalizeDirectoryPath } from "../../fileSystem/util/normalizeDirectoryPath";
+import { getExtensionForRequestFiles } from "../../fileSystem/util/getExtensionForRequestFiles";
 
 export class TestRunnerDataHelper {
     constructor(private testController: vscode.TestController) {}
@@ -62,7 +63,7 @@ export class TestRunnerDataHelper {
                 ({ item }) =>
                     item instanceof CollectionFile &&
                     item.getSequence() != undefined &&
-                    extname(item.getPath()) == ".bru" &&
+                    extname(item.getPath()) == getExtensionForRequestFiles() &&
                     item
                         .getPath()
                         .startsWith(normalizeDirectoryPath(directory.getPath()))

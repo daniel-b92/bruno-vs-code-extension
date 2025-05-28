@@ -1,8 +1,17 @@
 import { existsSync, lstatSync, readFileSync } from "fs";
-import { getSequenceFieldFromMetaBlock, TextDocumentHelper } from "../../..";
+import {
+    getExtensionForRequestFiles,
+    getSequenceFieldFromMetaBlock,
+    TextDocumentHelper,
+} from "../../..";
+import { extname } from "path";
 
 export function getSequenceFromMetaBlock(testFilePath: string) {
-    if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {
+    if (
+        !existsSync(testFilePath) ||
+        !lstatSync(testFilePath).isFile() ||
+        extname(testFilePath) != getExtensionForRequestFiles()
+    ) {
         return undefined;
     }
 
