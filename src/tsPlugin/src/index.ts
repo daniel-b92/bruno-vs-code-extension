@@ -103,7 +103,13 @@ function getTextBlockStartAndEndIndex(
     fullTextContent: string,
     blockName: TextBlockName
 ) {
-    const startPattern = new RegExp(`^\\s*${blockName}\\s*{\\s*$`, "m");
+    const openingBracketChar = "{";
+    const closingBracketChar = "}";
+
+    const startPattern = new RegExp(
+        `^\\s*${blockName}\\s*${openingBracketChar}\\s*$`,
+        "m"
+    );
     const startMatches = startPattern.exec(fullTextContent);
 
     if (!startMatches || startMatches.length == 0) {
@@ -111,21 +117,37 @@ function getTextBlockStartAndEndIndex(
     }
 
     const contentStartIndex =
-        startMatches.index + startMatches[0].indexOf("{") + 1;
+        startMatches.index + startMatches[0].indexOf(openingBracketChar) + 1;
+
     const remainingDoc = fullTextContent.substring(contentStartIndex);
+    const remainingDocLength = remainingDoc.length;
+    let openBracketsOnBlockLevel = 1;
+    let remainingDocCurrentIndex = 0;
 
-    const endPattern = /^\s*}\s*$/m;
-    const endMatches = endPattern.exec(remainingDoc);
+    while (
+        openBracketsOnBlockLevel > 0 &&
+        remainingDocCurrentIndex < remainingDocLength
+    ) {
+        const currentChar = remainingDoc.charAt(remainingDocCurrentIndex);
 
-    if (!endMatches || endMatches.length == 0) {
+        openBracketsOnBlockLevel +=
+            currentChar == openingBracketChar
+                ? 1
+                : currentChar == closingBracketChar
+                ? -1
+                : 0;
+
+        remainingDocCurrentIndex++;
+    }
+
+    if (openBracketsOnBlockLevel > 0) {
         return undefined;
     }
 
-    // ToDo: Improve determination of block end (by counting open curly brackets)
-    const contentEndIndex =
-        contentStartIndex + endMatches.index + endMatches[0].indexOf("}");
-
-    return { startIndex: contentStartIndex, endIndex: contentEndIndex };
+    return {
+        startIndex: contentStartIndex,
+        endIndex: remainingDocCurrentIndex + contentStartIndex,
+    };
 }
 
 enum TextBlockName {
