@@ -1,6 +1,6 @@
 import { basename, extname, resolve } from "path";
 
-export function getVirtualJsFileName(
+export function getTemporaryJsFileName(
     collectionRootDirectory: string,
     bruFileName: string
 ) {

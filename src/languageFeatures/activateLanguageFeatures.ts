@@ -17,8 +17,9 @@ import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDi
 import { updateUrlToMatchQueryParams } from "./internal/autoUpdates/updateUrlToMatchQueryParams";
 import { updatePathParamsKeysToMatchUrl } from "./internal/autoUpdates/updatePathParamsKeysToMatchUrl";
 import { isBrunoEnvironmentFile } from "./internal/diagnostics/shared/util/isBrunoEnvironmentFile";
-import { existsSync, unlinkSync, writeFileSync } from "fs";
-import { getVirtualJsFileName } from "./internal/shared/getVirtualJsFileName";
+import { existsSync, unlinkSync } from "fs";
+import { getTemporaryJsFileName } from "./internal/shared/getTemporaryJsFileName";
+import { createTemporaryJsFile } from "./internal/shared/createTemporaryJsFile";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
@@ -102,14 +103,14 @@ export function activateLanguageFeatures(
                 if (
                     collection &&
                     existsSync(
-                        getVirtualJsFileName(
+                        getTemporaryJsFileName(
                             collection.getRootDirectory(),
                             e.document.uri.fsPath
                         )
                     )
                 ) {
                     unlinkSync(
-                        getVirtualJsFileName(
+                        getTemporaryJsFileName(
                             collection.getRootDirectory(),
                             e.document.uri.fsPath
                         )
@@ -149,14 +150,14 @@ export function activateLanguageFeatures(
                     ) as Collection;
                 if (
                     existsSync(
-                        getVirtualJsFileName(
+                        getTemporaryJsFileName(
                             collection.getRootDirectory(),
                             doc.uri.fsPath
                         )
                     )
                 ) {
                     unlinkSync(
-                        getVirtualJsFileName(
+                        getTemporaryJsFileName(
                             collection.getRootDirectory(),
                             doc.uri.fsPath
                         )
@@ -185,15 +186,4 @@ function fetchDiagnostics(
             document.getText()
         );
     }
-}
-
-function createTemporaryJsFile(
-    collectionRootDirectory: string,
-    bruFileName: string,
-    bruFileContent: string
-) {
-    writeFileSync(
-        getVirtualJsFileName(collectionRootDirectory, bruFileName),
-        bruFileContent
-    );
 }

@@ -21,13 +21,14 @@ import {
     OAuth2BlockTokenPlacementValue,
     OAuth2ViaAuthorizationCodeBlockKey,
     parseBruFile,
-    RequestFileBlockName,
     RequestType,
     TextDocumentHelper,
 } from "../../../shared";
 import { dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
-import { getVirtualJsFileName } from "../shared/getVirtualJsFileName";
+import { getTemporaryJsFileName } from "../shared/getTemporaryJsFileName";
+import { getBlocksWithJsCode } from "../shared/getBlocksWithJsCode";
+import { isTempJsFileInSync } from "../shared/isTempJsFileInSync";
 
 export function provideBrunoLangCompletionItems(
     collectionItemProvider: CollectionItemProvider
@@ -54,18 +55,9 @@ function getCompletionsForTextBlocks(
                     return [];
                 }
 
-                const { blocks } = parseBruFile(
-                    new TextDocumentHelper(document.getText())
-                );
-
-                const blocksToCheck = blocks.filter(({ name }) =>
-                    (
-                        [
-                            RequestFileBlockName.PreRequestScript,
-                            RequestFileBlockName.PostResponseScript,
-                            RequestFileBlockName.Tests,
-                        ] as string[]
-                    ).includes(name)
+                const blocksToCheck = getBlocksWithJsCode(
+                    parseBruFile(new TextDocumentHelper(document.getText()))
+                        .blocks
                 );
 
                 if (
@@ -74,7 +66,7 @@ function getCompletionsForTextBlocks(
                     )
                 ) {
                     const virtualJsFileUri = Uri.file(
-                        getVirtualJsFileName(
+                        getTemporaryJsFileName(
                             collection.getRootDirectory(),
                             document.fileName
                         )
@@ -85,14 +77,22 @@ function getCompletionsForTextBlocks(
                     );
 
                     // Sometimes it takes a short while until VS Code notices that the Javascript file has been modified externally
-                    if (document.getText() != virtualJsDoc.getText()) {
+                    if (
+                        !isTempJsFileInSync(
+                            virtualJsDoc.getText(),
+                            blocksToCheck
+                        )
+                    ) {
                         await new Promise<void>((resolve) => {
                             workspace.onDidChangeTextDocument((e) => {
                                 if (
                                     e.document.uri.toString() ==
                                         virtualJsFileUri.toString() &&
                                     e.contentChanges.length > 0 &&
-                                    e.document.getText() == document.getText()
+                                    isTempJsFileInSync(
+                                        virtualJsDoc.getText(),
+                                        blocksToCheck
+                                    )
                                 ) {
                                     resolve();
                                 }

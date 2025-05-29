@@ -137,6 +137,73 @@ export class TextDocumentHelper {
             );
     }
 
+    /**
+     * Get the text up until all of the scopes opened by the given opening character within the text have been closed by the given closing character.
+     * Additionally, one more closing character is expected because the start position is expected to be after the first opening character.
+     * @param startLine The line index for starting the search. Should be after the initial opening character (so that at the given position one of the scopes
+     * defined by the opening and closing character pairs is already open).
+     * @param openingChar The opening character for the scope. Every time this character is found within the given part of the text, the temrination condition will change
+     * so that the newly opened scope is closed by a respective closing character additionally.
+     * @param closingChar The closing character for the scope.
+     */
+    public getContentUntilClosingChar(
+        startLine: number,
+        openingChar: string,
+        closingChar: string
+    ): { content: string; range: Range } | undefined {
+        const remainingLines = this.getAllLines(startLine).filter(
+            ({ index }) => index >= startLine
+        );
+
+        let openScopes = 1;
+        let closingCharPosition: Position | undefined = undefined;
+
+        for (const line of remainingLines) {
+            {
+                const lineLength = line.content.length;
+                let currentCharIndex = 0;
+
+                while (openScopes > 0 && currentCharIndex < lineLength) {
+                    const currentChar = line.content.charAt(currentCharIndex);
+
+                    openScopes +=
+                        currentChar == openingChar
+                            ? 1
+                            : currentChar == closingChar
+                            ? -1
+                            : 0;
+
+                    if (openScopes == 0) {
+                        closingCharPosition = new Position(
+                            line.index,
+                            currentCharIndex
+                        );
+                    }
+
+                    currentCharIndex++;
+                }
+
+                if (openScopes == 0) {
+                    break;
+                }
+            }
+        }
+
+        if (!closingCharPosition) {
+            return undefined;
+        }
+
+        const range = new Range(
+            new Position(startLine, 0),
+            closingCharPosition
+        );
+
+        return {
+            content: this.getText(range),
+            range,
+        };
+    }
+
     public getText(range?: Range) {
         if (!range) {
             return this.text;
