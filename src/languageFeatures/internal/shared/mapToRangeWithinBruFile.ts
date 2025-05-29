@@ -6,13 +6,14 @@ import {
     Range,
     RequestFileBlockName,
 } from "../../../shared";
+import { Range as VsCodeRange } from "vscode";
 import { getBlocksWithJsCode } from "./getBlocksWithJsCode";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
 
 export function mapToRangeWithinBruFile(
     blocksInBruFile: Block[],
     fullJsFileContent: string,
-    rangeInJsFile: Range
+    rangeInJsFile: VsCodeRange
 ) {
     const start = mapToPositionWithinBruFile(
         blocksInBruFile,
@@ -32,7 +33,7 @@ export function mapToRangeWithinBruFile(
             )}:${rangeInJsFile.end}`
         );
     }
-    return start && end ? new Range(start, end) : undefined;
+    return start && end ? mapRange(new Range(start, end)) : undefined;
 }
 
 function mapToPositionWithinBruFile(

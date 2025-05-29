@@ -3,7 +3,7 @@ import {
     CompletionItem,
     CompletionList,
     languages,
-    Range,
+    Range as VsCodeRange,
     TextEdit,
     Uri,
     workspace,
@@ -122,23 +122,23 @@ function getCompletionsForTextBlocks(
                         resultFromJsFile.items.map((item) => ({
                             ...item,
                             range: item.range
-                                ? item.range instanceof Range
+                                ? item.range instanceof VsCodeRange
                                     ? (mapToRangeWithinBruFile(
                                           blocksToCheck,
                                           virtualJsDoc.getText(),
                                           item.range
-                                      ) as Range)
+                                      ) as VsCodeRange)
                                     : {
                                           inserting: mapToRangeWithinBruFile(
                                               blocksToCheck,
                                               virtualJsDoc.getText(),
                                               item.range.inserting
-                                          ) as Range,
+                                          ) as VsCodeRange,
                                           replacing: mapToRangeWithinBruFile(
                                               blocksToCheck,
                                               virtualJsDoc.getText(),
                                               item.range.replacing
-                                          ) as Range,
+                                          ) as VsCodeRange,
                                       }
                                 : undefined,
                             textEdit: item.textEdit
@@ -147,7 +147,7 @@ function getCompletionsForTextBlocks(
                                           blocksToCheck,
                                           virtualJsDoc.getText(),
                                           item.textEdit.range
-                                      ) as Range,
+                                      ) as VsCodeRange,
                                       item.textEdit.newText
                                   )
                                 : undefined,
