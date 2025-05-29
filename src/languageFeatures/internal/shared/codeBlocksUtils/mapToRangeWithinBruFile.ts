@@ -5,9 +5,9 @@ import {
     Position,
     Range,
     RequestFileBlockName,
-} from "../../../shared";
+} from "../../../../shared";
 import { Range as VsCodeRange } from "vscode";
-import { getBlocksWithJsCode } from "./getBlocksWithJsCode";
+import { getCodeBlocks } from "./getCodeBlocks";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
 
 export function mapToRangeWithinBruFile(
@@ -69,7 +69,7 @@ function getBlockFromJsFileWherePositionIsIn(
     fullJsFileContent: string,
     positionInJsFile: Position
 ) {
-    const blocksWithJsCodeInBruFile = getBlocksWithJsCode(blocksInBruFile);
+    const blocksWithJsCodeInBruFile = getCodeBlocks(blocksInBruFile);
 
     return (
         blocksWithJsCodeInBruFile

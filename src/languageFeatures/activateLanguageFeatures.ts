@@ -18,8 +18,8 @@ import { updateUrlToMatchQueryParams } from "./internal/autoUpdates/updateUrlToM
 import { updatePathParamsKeysToMatchUrl } from "./internal/autoUpdates/updatePathParamsKeysToMatchUrl";
 import { isBrunoEnvironmentFile } from "./internal/diagnostics/shared/util/isBrunoEnvironmentFile";
 import { existsSync, unlinkSync } from "fs";
-import { getTemporaryJsFileName } from "./internal/shared/getTemporaryJsFileName";
-import { createTemporaryJsFile } from "./internal/shared/createTemporaryJsFile";
+import { getTemporaryJsFileName } from "./internal/shared/codeBlocksUtils/getTemporaryJsFileName";
+import { createTemporaryJsFile } from "./internal/shared/codeBlocksUtils/createTemporaryJsFile";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,

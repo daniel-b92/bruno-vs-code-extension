@@ -1,6 +1,6 @@
-import { Block, RequestFileBlockName } from "../../../shared";
+import { Block, RequestFileBlockName } from "../../../../shared";
 
-export function getBlocksWithJsCode(allBlocks: Block[]) {
+export function getCodeBlocks(allBlocks: Block[]) {
     return allBlocks.filter(({ name }) =>
         [
             RequestFileBlockName.PreRequestScript,

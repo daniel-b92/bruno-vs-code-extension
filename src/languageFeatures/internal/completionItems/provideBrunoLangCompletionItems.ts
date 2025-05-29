@@ -29,11 +29,11 @@ import {
 } from "../../../shared";
 import { dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
-import { getTemporaryJsFileName } from "../shared/getTemporaryJsFileName";
-import { getBlocksWithJsCode } from "../shared/getBlocksWithJsCode";
-import { isTempJsFileInSync } from "../shared/isTempJsFileInSync";
-import { getPositionWithinTempJsFile } from "../shared/getPositionWithinTempJsFile";
-import { mapToRangeWithinBruFile } from "../shared/mapToRangeWithinBruFile";
+import { getTemporaryJsFileName } from "../shared/codeBlocksUtils/getTemporaryJsFileName";
+import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
+import { isTempJsFileInSync } from "../shared/codeBlocksUtils/isTempJsFileInSync";
+import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
+import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 
 export function provideBrunoLangCompletionItems(
     collectionItemProvider: CollectionItemProvider
@@ -60,7 +60,7 @@ function getCompletionsForTextBlocks(
                     return [];
                 }
 
-                const blocksToCheck = getBlocksWithJsCode(
+                const blocksToCheck = getCodeBlocks(
                     parseBruFile(new TextDocumentHelper(document.getText()))
                         .blocks
                 );

@@ -2,7 +2,7 @@ import {
     Range,
     RequestFileBlockName,
     TextDocumentHelper,
-} from "../../../shared";
+} from "../../../../shared";
 import { mapBlockNameToJsFileLine } from "./mapBlockNameToJsFileFunctionName";
 
 export function getTempJsFileBlockContent(
