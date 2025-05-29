@@ -3,6 +3,8 @@ import {
     CompletionItem,
     CompletionList,
     languages,
+    Range,
+    TextEdit,
     Uri,
     workspace,
 } from "vscode";
@@ -21,6 +23,7 @@ import {
     OAuth2BlockTokenPlacementValue,
     OAuth2ViaAuthorizationCodeBlockKey,
     parseBruFile,
+    RequestFileBlockName,
     RequestType,
     TextDocumentHelper,
 } from "../../../shared";
@@ -29,6 +32,8 @@ import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocument
 import { getTemporaryJsFileName } from "../shared/getTemporaryJsFileName";
 import { getBlocksWithJsCode } from "../shared/getBlocksWithJsCode";
 import { isTempJsFileInSync } from "../shared/isTempJsFileInSync";
+import { getPositionWithinTempJsFile } from "../shared/getPositionWithinTempJsFile";
+import { mapToRangeWithinBruFile } from "../shared/mapToRangeWithinBruFile";
 
 export function provideBrunoLangCompletionItems(
     collectionItemProvider: CollectionItemProvider
@@ -60,11 +65,11 @@ function getCompletionsForTextBlocks(
                         .blocks
                 );
 
-                if (
-                    blocksToCheck.some(({ contentRange }) =>
-                        mapRange(contentRange).contains(position)
-                    )
-                ) {
+                const blockInBruFile = blocksToCheck.find(({ contentRange }) =>
+                    mapRange(contentRange).contains(position)
+                );
+
+                if (blockInBruFile) {
                     const virtualJsFileUri = Uri.file(
                         getTemporaryJsFileName(
                             collection.getRootDirectory(),
@@ -100,14 +105,55 @@ function getCompletionsForTextBlocks(
                         });
                     }
 
-                    const result =
+                    const resultFromJsFile =
                         await commands.executeCommand<CompletionList>(
                             "vscode.executeCompletionItemProvider",
                             virtualJsDoc.uri,
-                            position
+                            getPositionWithinTempJsFile(
+                                virtualJsDoc.getText(),
+                                blockInBruFile.name as RequestFileBlockName,
+                                position.translate(
+                                    -blockInBruFile.contentRange.start.line
+                                )
+                            )
                         );
 
-                    return result;
+                    return new CompletionList<CompletionItem>(
+                        resultFromJsFile.items.map((item) => ({
+                            ...item,
+                            range: item.range
+                                ? item.range instanceof Range
+                                    ? (mapToRangeWithinBruFile(
+                                          blocksToCheck,
+                                          virtualJsDoc.getText(),
+                                          item.range
+                                      ) as Range)
+                                    : {
+                                          inserting: mapToRangeWithinBruFile(
+                                              blocksToCheck,
+                                              virtualJsDoc.getText(),
+                                              item.range.inserting
+                                          ) as Range,
+                                          replacing: mapToRangeWithinBruFile(
+                                              blocksToCheck,
+                                              virtualJsDoc.getText(),
+                                              item.range.replacing
+                                          ) as Range,
+                                      }
+                                : undefined,
+                            textEdit: item.textEdit
+                                ? new TextEdit(
+                                      mapToRangeWithinBruFile(
+                                          blocksToCheck,
+                                          virtualJsDoc.getText(),
+                                          item.textEdit.range
+                                      ) as Range,
+                                      item.textEdit.newText
+                                  )
+                                : undefined,
+                        })),
+                        resultFromJsFile.isIncomplete
+                    );
                 } else {
                     return undefined;
                 }

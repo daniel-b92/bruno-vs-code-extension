@@ -21,12 +21,7 @@ export function getPositionWithinTempJsFile(
 
     const blockDocumentHelper = new TextDocumentHelper(block.content);
 
-    if (
-        !block ||
-        positionWithinBlock.line >= blockDocumentHelper.getLineCount() ||
-        positionWithinBlock.character >=
-            blockDocumentHelper.getLineByIndex(positionWithinBlock.line).length
-    ) {
+    if (positionWithinBlock.line >= blockDocumentHelper.getLineCount()) {
         return undefined;
     }
 
