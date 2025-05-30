@@ -18,9 +18,11 @@ import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDi
 import { updateUrlToMatchQueryParams } from "./internal/autoUpdates/updateUrlToMatchQueryParams";
 import { updatePathParamsKeysToMatchUrl } from "./internal/autoUpdates/updatePathParamsKeysToMatchUrl";
 import { isBrunoEnvironmentFile } from "./internal/diagnostics/shared/util/isBrunoEnvironmentFile";
-import { existsSync, unlinkSync } from "fs";
+import { existsSync } from "fs";
 import { getTemporaryJsFileName } from "./internal/shared/codeBlocksUtils/getTemporaryJsFileName";
 import { createTemporaryJsFile } from "./internal/shared/codeBlocksUtils/createTemporaryJsFile";
+import { TemporaryJsFilesRegistry } from "./internal/shared/temporaryJsFilesRegistry";
+import { deleteTemporaryJsFile } from "./internal/shared/codeBlocksUtils/deleteTemporaryJsFile";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
@@ -35,17 +37,26 @@ export function activateLanguageFeatures(
         diagnosticCollection,
         collectionItemProvider
     );
+    const tempJsFilesRegistry = new TemporaryJsFilesRegistry();
 
     context.subscriptions.push(
         brunoLangDiagnosticsProvider,
+        tempJsFilesRegistry,
         window.onDidChangeActiveTextEditor((editor) => {
             if (
-                editor &&
-                window.tabGroups.activeTabGroup.activeTab &&
-                window.tabGroups.activeTabGroup.activeTab.input instanceof
-                    TabInputText &&
+                !editor ||
+                !window.tabGroups.activeTabGroup.activeTab ||
+                !(
+                    window.tabGroups.activeTabGroup.activeTab.input instanceof
+                    TabInputText
+                )
+            ) {
+                for (const toDelete of tempJsFilesRegistry.getRegisteredJsFiles()) {
+                    deleteTemporaryJsFile(tempJsFilesRegistry, toDelete);
+                }
+            } else if (
                 editor.document.uri.toString() ==
-                    window.tabGroups.activeTabGroup.activeTab.input.uri.toString()
+                window.tabGroups.activeTabGroup.activeTab.input.uri.toString()
             ) {
                 fetchDiagnostics(
                     editor.document,
@@ -67,6 +78,7 @@ export function activateLanguageFeatures(
                                 editor.document.fileName
                             ) as Collection
                         ).getRootDirectory(),
+                        tempJsFilesRegistry,
                         editor.document.fileName,
                         editor.document.getText()
                     );
@@ -92,6 +104,7 @@ export function activateLanguageFeatures(
                                 e.document.fileName
                             ) as Collection
                         ).getRootDirectory(),
+                        tempJsFilesRegistry,
                         e.document.fileName,
                         e.document.getText()
                     );
@@ -119,14 +132,12 @@ export function activateLanguageFeatures(
                     );
                 if (
                     collection &&
-                    existsSync(
-                        getTemporaryJsFileName(
-                            collection.getRootDirectory(),
-                            e.document.uri.fsPath
-                        )
-                    )
+                    tempJsFilesRegistry
+                        .getRegisteredJsFiles()
+                        .includes(e.document.uri.fsPath)
                 ) {
-                    unlinkSync(
+                    deleteTemporaryJsFile(
+                        tempJsFilesRegistry,
                         getTemporaryJsFileName(
                             collection.getRootDirectory(),
                             e.document.uri.fsPath
@@ -173,7 +184,8 @@ export function activateLanguageFeatures(
                         )
                     )
                 ) {
-                    unlinkSync(
+                    deleteTemporaryJsFile(
+                        tempJsFilesRegistry,
                         getTemporaryJsFileName(
                             collection.getRootDirectory(),
                             doc.uri.fsPath

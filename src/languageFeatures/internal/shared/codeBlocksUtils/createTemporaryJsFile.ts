@@ -6,9 +6,11 @@ import {
 } from "../../../../shared";
 import { getTemporaryJsFileName } from "./getTemporaryJsFileName";
 import { mapBlockNameToJsFileLine } from "./mapBlockNameToJsFileFunctionName";
+import { TemporaryJsFilesRegistry } from "../temporaryJsFilesRegistry";
 
 export function createTemporaryJsFile(
     collectionRootDirectory: string,
+    tempJsFilesRegistry: TemporaryJsFilesRegistry,
     bruFileName: string,
     bruFileContent: string
 ) {
@@ -33,8 +35,11 @@ ${content}}`
         );
     }
 
-    writeFileSync(
-        getTemporaryJsFileName(collectionRootDirectory, bruFileName),
-        result.join("\n\n")
+    const fileName = getTemporaryJsFileName(
+        collectionRootDirectory,
+        bruFileName
     );
+
+    writeFileSync(fileName, result.join("\n\n"));
+    tempJsFilesRegistry.registerJsFile(fileName);
 }
