@@ -1,6 +1,7 @@
 import {
     ExtensionContext,
     languages,
+    TabInputText,
     TextDocument,
     window,
     workspace,
@@ -37,29 +38,40 @@ export function activateLanguageFeatures(
 
     context.subscriptions.push(
         brunoLangDiagnosticsProvider,
-        workspace.onDidOpenTextDocument((doc) => {
+        window.onDidChangeActiveTextEditor((editor) => {
             if (
-                isBrunoRequestFile(
-                    collectionItemProvider.getRegisteredCollections().slice(),
-                    doc.uri.fsPath
-                )
+                editor &&
+                window.tabGroups.activeTabGroup.activeTab &&
+                window.tabGroups.activeTabGroup.activeTab.input instanceof
+                    TabInputText &&
+                editor.document.uri.toString() ==
+                    window.tabGroups.activeTabGroup.activeTab.input.uri.toString()
             ) {
-                createTemporaryJsFile(
-                    (
-                        collectionItemProvider.getAncestorCollectionForPath(
-                            doc.fileName
-                        ) as Collection
-                    ).getRootDirectory(),
-                    doc.fileName,
-                    doc.getText()
+                fetchDiagnostics(
+                    editor.document,
+                    brunoLangDiagnosticsProvider,
+                    collectionItemProvider.getRegisteredCollections().slice()
                 );
-            }
 
-            fetchDiagnostics(
-                doc,
-                brunoLangDiagnosticsProvider,
-                collectionItemProvider.getRegisteredCollections().slice()
-            );
+                if (
+                    isBrunoRequestFile(
+                        collectionItemProvider
+                            .getRegisteredCollections()
+                            .slice(),
+                        editor.document.uri.fsPath
+                    )
+                ) {
+                    createTemporaryJsFile(
+                        (
+                            collectionItemProvider.getAncestorCollectionForPath(
+                                editor.document.fileName
+                            ) as Collection
+                        ).getRootDirectory(),
+                        editor.document.fileName,
+                        editor.document.getText()
+                    );
+                }
+            }
         }),
         workspace.onDidChangeTextDocument((e) => {
             if (e.contentChanges.length > 0) {
@@ -69,7 +81,10 @@ export function activateLanguageFeatures(
                             .getRegisteredCollections()
                             .slice(),
                         e.document.uri.fsPath
-                    )
+                    ) &&
+                    // If the document has been modified externally (not via VS Code), skip all actions
+                    window.activeTextEditor?.document.uri.toString() ==
+                        e.document.uri.toString()
                 ) {
                     createTemporaryJsFile(
                         (
@@ -80,13 +95,15 @@ export function activateLanguageFeatures(
                         e.document.fileName,
                         e.document.getText()
                     );
-                }
 
-                fetchDiagnostics(
-                    e.document,
-                    brunoLangDiagnosticsProvider,
-                    collectionItemProvider.getRegisteredCollections().slice()
-                );
+                    fetchDiagnostics(
+                        e.document,
+                        brunoLangDiagnosticsProvider,
+                        collectionItemProvider
+                            .getRegisteredCollections()
+                            .slice()
+                    );
+                }
             }
         }),
         workspace.onWillSaveTextDocument((e) => {
