@@ -11,7 +11,6 @@ import { TemporaryJsFilesRegistry } from "../temporaryJsFilesRegistry";
 export function createTemporaryJsFile(
     collectionRootDirectory: string,
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
-    bruFileName: string,
     bruFileContent: string
 ) {
     const { blocks: parsedBlocks } = parseBruFile(
@@ -35,16 +34,13 @@ ${content}}`
         );
     }
 
-    const fileName = getTemporaryJsFileName(
-        collectionRootDirectory,
-        bruFileName
-    );
+    const fileName = getTemporaryJsFileName(collectionRootDirectory);
 
     writeFileSync(
         fileName,
         getDefinitionsForInbuiltLibraries().concat(result).join("\n\n")
     );
-    tempJsFilesRegistry.registerJsFile(fileName);
+    tempJsFilesRegistry.registerJsFile(collectionRootDirectory);
 }
 
 /** The Bru class is globally available in Bruno but not exposed.
@@ -425,7 +421,7 @@ const res = {
 	 * @returns {void}
 	 */
 	setBody: (newBody) => {}
-}`;
+};`;
 
     return [bruUtilities, requestUtilities, responseUtilities];
 }

@@ -1,28 +1,55 @@
+import { normalizeDirectoryPath } from "../../../shared";
+import { getTemporaryJsFileName } from "./codeBlocksUtils/getTemporaryJsFileName";
+
 export class TemporaryJsFilesRegistry {
     constructor() {}
 
-    private jsFiles: string[] = [];
+    private jsFiles: {
+        collectionRootDirectory: string;
+        file: string;
+    }[] = [];
 
-    public registerJsFile(filePath: string) {
-        if (!this.jsFiles.includes(filePath)) {
-            this.jsFiles.push(filePath);
+    public registerJsFile(collectionRootDirectory: string) {
+        const filePath = getTemporaryJsFileName(collectionRootDirectory);
+
+        if (
+            !this.jsFiles.some(
+                ({
+                    collectionRootDirectory: registeredCollection,
+                    file: registeredFile,
+                }) =>
+                    normalizeDirectoryPath(registeredCollection) ==
+                        normalizeDirectoryPath(collectionRootDirectory) &&
+                    registeredFile == filePath
+            )
+        ) {
+            this.jsFiles.push({
+                collectionRootDirectory,
+                file: filePath,
+            });
         }
     }
 
-    public unregisterJsFile(filePath: string) {
-        const index = this.jsFiles.indexOf(filePath);
+    public unregisterJsFileForCollection(collectionRootDirectory: string) {
+        const index = this.jsFiles.findIndex(
+            ({ collectionRootDirectory: registeredCollection }) =>
+                normalizeDirectoryPath(registeredCollection) ==
+                normalizeDirectoryPath(collectionRootDirectory)
+        );
 
         if (index >= 0) {
             this.jsFiles.splice(index, 1);
         } else {
             console.warn(
-                `Temporary js file for unregistering '${filePath}' is not registered.`
+                `Temporary js file for collection '${collectionRootDirectory}' that should be unregistered is not registered.`
             );
         }
     }
 
-    public getRegisteredJsFiles() {
-        return this.jsFiles.slice();
+    public getCollectionsWithRegisteredJsFiles() {
+        return this.jsFiles.map(
+            ({ collectionRootDirectory }) => collectionRootDirectory
+        );
     }
 
     public dispose() {

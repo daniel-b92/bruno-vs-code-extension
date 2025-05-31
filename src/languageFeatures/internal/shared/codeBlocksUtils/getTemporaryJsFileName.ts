@@ -1,12 +1,5 @@
-import { basename, extname, resolve } from "path";
+import { resolve } from "path";
 
-export function getTemporaryJsFileName(
-    collectionRootDirectory: string,
-    bruFileName: string
-) {
-    const oldBaseName = basename(bruFileName);
-    return resolve(
-        collectionRootDirectory,
-        oldBaseName.replace(extname(oldBaseName), ".js")
-    );
+export function getTemporaryJsFileName(collectionRootDirectory: string) {
+    return resolve(collectionRootDirectory, "__temp.js");
 }

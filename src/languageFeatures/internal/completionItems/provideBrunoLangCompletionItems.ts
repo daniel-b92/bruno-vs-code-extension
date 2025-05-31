@@ -71,10 +71,7 @@ function getCompletionsForTextBlocks(
 
                 if (blockInBruFile) {
                     const virtualJsFileUri = Uri.file(
-                        getTemporaryJsFileName(
-                            collection.getRootDirectory(),
-                            document.fileName
-                        )
+                        getTemporaryJsFileName(collection.getRootDirectory())
                     );
 
                     const virtualJsDoc = await workspace.openTextDocument(

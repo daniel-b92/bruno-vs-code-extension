@@ -10,6 +10,7 @@ import { provideBrunoLangCompletionItems } from "./internal/completionItems/prov
 import {
     Collection,
     CollectionItemProvider,
+    normalizeDirectoryPath,
     parseBruFile,
     TextDocumentHelper,
 } from "../shared";
@@ -18,11 +19,9 @@ import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDi
 import { updateUrlToMatchQueryParams } from "./internal/autoUpdates/updateUrlToMatchQueryParams";
 import { updatePathParamsKeysToMatchUrl } from "./internal/autoUpdates/updatePathParamsKeysToMatchUrl";
 import { isBrunoEnvironmentFile } from "./internal/diagnostics/shared/util/isBrunoEnvironmentFile";
-import { existsSync } from "fs";
-import { getTemporaryJsFileName } from "./internal/shared/codeBlocksUtils/getTemporaryJsFileName";
 import { createTemporaryJsFile } from "./internal/shared/codeBlocksUtils/createTemporaryJsFile";
 import { TemporaryJsFilesRegistry } from "./internal/shared/temporaryJsFilesRegistry";
-import { deleteTemporaryJsFile } from "./internal/shared/codeBlocksUtils/deleteTemporaryJsFile";
+import { deleteTemporaryJsFileForCollection } from "./internal/shared/codeBlocksUtils/deleteTemporaryJsFile";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
@@ -51,8 +50,11 @@ export function activateLanguageFeatures(
                     TabInputText
                 )
             ) {
-                for (const toDelete of tempJsFilesRegistry.getRegisteredJsFiles()) {
-                    deleteTemporaryJsFile(tempJsFilesRegistry, toDelete);
+                for (const collecton of tempJsFilesRegistry.getCollectionsWithRegisteredJsFiles()) {
+                    deleteTemporaryJsFileForCollection(
+                        tempJsFilesRegistry,
+                        collecton
+                    );
                 }
             } else if (
                 editor.document.uri.toString() ==
@@ -79,9 +81,15 @@ export function activateLanguageFeatures(
                             ) as Collection
                         ).getRootDirectory(),
                         tempJsFilesRegistry,
-                        editor.document.fileName,
                         editor.document.getText()
                     );
+                } else {
+                    for (const collection of tempJsFilesRegistry.getCollectionsWithRegisteredJsFiles()) {
+                        deleteTemporaryJsFileForCollection(
+                            tempJsFilesRegistry,
+                            collection
+                        );
+                    }
                 }
             }
         }),
@@ -105,7 +113,6 @@ export function activateLanguageFeatures(
                             ) as Collection
                         ).getRootDirectory(),
                         tempJsFilesRegistry,
-                        e.document.fileName,
                         e.document.getText()
                     );
 
@@ -133,15 +140,17 @@ export function activateLanguageFeatures(
                 if (
                     collection &&
                     tempJsFilesRegistry
-                        .getRegisteredJsFiles()
-                        .includes(e.document.uri.fsPath)
-                ) {
-                    deleteTemporaryJsFile(
-                        tempJsFilesRegistry,
-                        getTemporaryJsFileName(
-                            collection.getRootDirectory(),
-                            e.document.uri.fsPath
+                        .getCollectionsWithRegisteredJsFiles()
+                        .map((registered) => normalizeDirectoryPath(registered))
+                        .includes(
+                            normalizeDirectoryPath(
+                                collection.getRootDirectory()
+                            )
                         )
+                ) {
+                    deleteTemporaryJsFileForCollection(
+                        tempJsFilesRegistry,
+                        collection.getRootDirectory()
                     );
                 }
 
@@ -162,35 +171,6 @@ export function activateLanguageFeatures(
                             parsedBlocks
                         );
                     });
-                }
-            }
-        }),
-        workspace.onDidCloseTextDocument((doc) => {
-            if (
-                isBrunoRequestFile(
-                    collectionItemProvider.getRegisteredCollections().slice(),
-                    doc.uri.fsPath
-                )
-            ) {
-                const collection =
-                    collectionItemProvider.getAncestorCollectionForPath(
-                        doc.uri.fsPath
-                    ) as Collection;
-                if (
-                    existsSync(
-                        getTemporaryJsFileName(
-                            collection.getRootDirectory(),
-                            doc.uri.fsPath
-                        )
-                    )
-                ) {
-                    deleteTemporaryJsFile(
-                        tempJsFilesRegistry,
-                        getTemporaryJsFileName(
-                            collection.getRootDirectory(),
-                            doc.uri.fsPath
-                        )
-                    );
                 }
             }
         })
