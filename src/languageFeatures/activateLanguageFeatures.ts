@@ -22,12 +22,14 @@ import { isBrunoEnvironmentFile } from "./internal/diagnostics/shared/util/isBru
 import { createTemporaryJsFile } from "./internal/shared/codeBlocksUtils/createTemporaryJsFile";
 import { TemporaryJsFilesRegistry } from "./internal/shared/temporaryJsFilesRegistry";
 import { deleteTemporaryJsFileForCollection } from "./internal/shared/codeBlocksUtils/deleteTemporaryJsFile";
+import { provideInfosOnHover } from "./internal/hover/provideInfosOnHover";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
     collectionItemProvider: CollectionItemProvider
 ) {
     provideBrunoLangCompletionItems(collectionItemProvider);
+    provideInfosOnHover(collectionItemProvider);
 
     const diagnosticCollection = languages.createDiagnosticCollection("bruno");
     context.subscriptions.push(diagnosticCollection);
