@@ -32,6 +32,15 @@ function init(_modules: {
             );
         };
 
+        proxy.getQuickInfoAtPosition = (fileName, position) => {
+            return extname(fileName) == ".bru"
+                ? undefined
+                : info.languageService.getQuickInfoAtPosition(
+                      fileName,
+                      position
+                  );
+        };
+
         return proxy;
     }
 

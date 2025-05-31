@@ -28,8 +28,10 @@ export function activateLanguageFeatures(
     context: ExtensionContext,
     collectionItemProvider: CollectionItemProvider
 ) {
+    const tempJsFilesRegistry = new TemporaryJsFilesRegistry();
+
     provideBrunoLangCompletionItems(collectionItemProvider);
-    provideInfosOnHover(collectionItemProvider);
+    provideInfosOnHover(collectionItemProvider, tempJsFilesRegistry);
 
     const diagnosticCollection = languages.createDiagnosticCollection("bruno");
     context.subscriptions.push(diagnosticCollection);
@@ -38,7 +40,6 @@ export function activateLanguageFeatures(
         diagnosticCollection,
         collectionItemProvider
     );
-    const tempJsFilesRegistry = new TemporaryJsFilesRegistry();
 
     context.subscriptions.push(
         brunoLangDiagnosticsProvider,

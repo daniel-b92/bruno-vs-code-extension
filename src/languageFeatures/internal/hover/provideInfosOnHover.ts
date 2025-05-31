@@ -2,6 +2,7 @@ import { commands, Hover, languages, Uri, workspace } from "vscode";
 import {
     CollectionItemProvider,
     mapRange,
+    normalizeDirectoryPath,
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
@@ -12,9 +13,12 @@ import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositi
 import { getTemporaryJsFileName } from "../shared/codeBlocksUtils/getTemporaryJsFileName";
 import { isTempJsFileInSync } from "../shared/codeBlocksUtils/isTempJsFileInSync";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
+import { TemporaryJsFilesRegistry } from "../shared/temporaryJsFilesRegistry";
+import { createTemporaryJsFile } from "../shared/codeBlocksUtils/createTemporaryJsFile";
 
 export function provideInfosOnHover(
-    collectionItemProvider: CollectionItemProvider
+    collectionItemProvider: CollectionItemProvider,
+    tempJsFilesRegistry: TemporaryJsFilesRegistry
 ) {
     languages.registerHoverProvider(getRequestFileDocumentSelector(), {
         async provideHover(document, position) {
@@ -24,7 +28,7 @@ export function provideInfosOnHover(
                 );
 
             if (!collection) {
-                return new Hover([]);
+                return null;
             }
 
             const blocksToCheck = getCodeBlocks(
@@ -36,6 +40,24 @@ export function provideInfosOnHover(
             );
 
             if (blockInBruFile) {
+                const isTempJsFileRegistered = tempJsFilesRegistry
+                    .getCollectionsWithRegisteredJsFiles()
+                    .some(
+                        (registered) =>
+                            normalizeDirectoryPath(registered) ==
+                            normalizeDirectoryPath(
+                                collection.getRootDirectory()
+                            )
+                    );
+
+                if (!isTempJsFileRegistered) {
+                    createTemporaryJsFile(
+                        collection.getRootDirectory(),
+                        tempJsFilesRegistry,
+                        document.getText()
+                    );
+                }
+
                 const virtualJsFileUri = Uri.file(
                     getTemporaryJsFileName(collection.getRootDirectory())
                 );
@@ -65,7 +87,7 @@ export function provideInfosOnHover(
                     });
                 }
 
-                const resultFromJsFile = await commands.executeCommand<Hover>(
+                const resultFromJsFile = await commands.executeCommand<Hover[]>(
                     "vscode.executeHoverProvider",
                     virtualJsDoc.uri,
                     getPositionWithinTempJsFile(
@@ -77,16 +99,18 @@ export function provideInfosOnHover(
                     )
                 );
 
-                return resultFromJsFile.range
+                return resultFromJsFile.length == 0
+                    ? null
+                    : resultFromJsFile[0].range
                     ? new Hover(
-                          resultFromJsFile.contents,
+                          resultFromJsFile[0].contents,
                           mapToRangeWithinBruFile(
                               blocksToCheck,
                               virtualJsDoc.getText(),
-                              resultFromJsFile.range
+                              resultFromJsFile[0].range
                           )
                       )
-                    : resultFromJsFile;
+                    : resultFromJsFile[0];
             }
         },
     });
