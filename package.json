@@ -48,7 +48,9 @@
             {
                 "enableForWorkspaceTypeScriptVersions": true,
                 "name": "typescript-for-bruno",
-                "languages": ["bruno"]
+                "languages": [
+                    "bruno"
+                ]
             }
         ],
         "snippets": [
@@ -196,6 +198,8 @@
     "devDependencies": {
         "@eslint/js": "^9.13.0",
         "@stylistic/eslint-plugin": "^2.13.0",
+        "@types/chai": "^5.2.2",
+        "@types/mocha": "^10.0.10",
         "@types/node": "^20.17.24",
         "@types/vscode": "^1.100.0",
         "eslint": "^9.22.0",

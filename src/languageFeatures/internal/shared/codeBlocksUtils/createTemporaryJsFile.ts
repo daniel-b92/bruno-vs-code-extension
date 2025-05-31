@@ -423,5 +423,13 @@ const res = {
 	setBody: (newBody) => {}
 };`;
 
-    return [bruUtilities, requestUtilities, responseUtilities];
+    const chaiAndMochaTestUtils = `const { expect } = require("chai");
+const { test } = require("mocha")`;
+
+    return [
+        bruUtilities,
+        requestUtilities,
+        responseUtilities,
+        chaiAndMochaTestUtils,
+    ];
 }
