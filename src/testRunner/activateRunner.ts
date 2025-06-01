@@ -24,6 +24,7 @@ import {
     CollectionItemProvider,
     FileChangeType,
     getExtensionForRequestFiles,
+    CollectionItem,
 } from "../shared";
 
 export async function activateRunner(
@@ -38,7 +39,7 @@ export async function activateRunner(
     const queue = new TestRunQueue(ctrl);
     const testRunnerDataHelper = new TestRunnerDataHelper(ctrl);
 
-    handleTestTreeUpdates(ctrl, collectionItemProvider);
+    handleTestTreeUpdates(ctrl, collectionItemProvider, testRunnerDataHelper);
 
     collectionItemProvider.subscribeToUpdates()(
         async ({ data: { item: changedItem } }) => {
@@ -193,15 +194,11 @@ export async function activateRunner(
 
                 if (
                     maybeItem &&
-                    ((maybeItem.item instanceof CollectionFile &&
-                        extname(maybeItem.item.getPath()) ==
-                            getExtensionForRequestFiles() &&
-                        maybeItem.item.getSequence()) ||
-                        (maybeItem.item instanceof CollectionDirectory &&
-                            testRunnerDataHelper.getTestFileDescendants(
-                                collection,
-                                maybeItem.item
-                            ).length > 0))
+                    isRelevantForTestTree(
+                        testRunnerDataHelper,
+                        collection,
+                        maybeItem.item
+                    )
                 ) {
                     testItem = maybeItem.testItem;
                     return true;
@@ -247,17 +244,21 @@ function addMissingTestCollectionsAndItemsToTestTree(
 
 function handleTestTreeUpdates(
     controller: TestController,
-    collectionItemProvider: CollectionItemProvider
+    collectionItemProvider: CollectionItemProvider,
+    testRunnerDataHelper: TestRunnerDataHelper
 ) {
     collectionItemProvider.subscribeToUpdates()(
         ({ collection, data: { item, testItem }, updateType, changedData }) => {
-            if (updateType == FileChangeType.Created && testItem) {
+            if (
+                updateType == FileChangeType.Created &&
+                isRelevantForTestTree(testRunnerDataHelper, collection, item)
+            ) {
                 addTestItemAndAncestorsToTestTree(controller, collection, item);
                 // ToDo: Fix handling of creation of Collection directories
             } else if (
                 updateType == FileChangeType.Modified &&
-                testItem &&
                 item instanceof CollectionFile &&
+                extname(item.getPath()) == getExtensionForRequestFiles() &&
                 changedData?.sequenceChanged
             ) {
                 /* For directories, no changes are ever registered because renaming a directory is seen as a creation of a new directory with the
@@ -281,7 +282,10 @@ function handleTestTreeUpdates(
                         testItem.uri as Uri
                     );
                 }
-            } else if (updateType == FileChangeType.Deleted && testItem) {
+            } else if (
+                updateType == FileChangeType.Deleted &&
+                isRelevantForTestTree(testRunnerDataHelper, collection, item)
+            ) {
                 removeTestItemFromTree(
                     controller,
                     collection,
@@ -318,9 +322,24 @@ function removeTestItemFromTree(
 ) {
     const parentItem = collection.getStoredDataForPath(dirname(itemUri.fsPath));
 
-    if (parentItem && parentItem.testItem) {
+    if (parentItem) {
         parentItem.testItem.children.delete(getTestId(itemUri));
     } else {
         controller.items.delete(getTestId(itemUri));
     }
+}
+
+function isRelevantForTestTree(
+    testRunnerDataHelper: TestRunnerDataHelper,
+    collection: Collection,
+    item: CollectionItem
+) {
+    return (
+        (item instanceof CollectionFile &&
+            extname(item.getPath()) == getExtensionForRequestFiles() &&
+            item.getSequence() != undefined) ||
+        (item instanceof CollectionDirectory &&
+            testRunnerDataHelper.getTestFileDescendants(collection, item)
+                .length > 0)
+    );
 }
