@@ -45,7 +45,7 @@ export class BrunoTreeItemProvider
         );
     }
 
-    async getTreeItem(element: BrunoTreeItem): Promise<vscode.TreeItem> {
+    getTreeItem(element: BrunoTreeItem): vscode.TreeItem {
         return element as unknown as vscode.TreeItem;
     }
 
