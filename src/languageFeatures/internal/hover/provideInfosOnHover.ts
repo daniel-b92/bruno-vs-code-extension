@@ -1,8 +1,7 @@
-import { commands, Hover, languages, Uri, workspace } from "vscode";
+import { commands, Hover, languages } from "vscode";
 import {
     CollectionItemProvider,
     mapRange,
-    normalizeDirectoryPath,
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
@@ -10,11 +9,9 @@ import {
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
-import { getTemporaryJsFileName } from "../shared/codeBlocksUtils/getTemporaryJsFileName";
-import { isTempJsFileInSync } from "../shared/codeBlocksUtils/isTempJsFileInSync";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { TemporaryJsFilesRegistry } from "../shared/temporaryJsFilesRegistry";
-import { createTemporaryJsFile } from "../shared/codeBlocksUtils/createTemporaryJsFile";
+import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSync";
 
 export function provideInfosOnHover(
     collectionItemProvider: CollectionItemProvider,
@@ -40,58 +37,18 @@ export function provideInfosOnHover(
             );
 
             if (blockInBruFile) {
-                const isTempJsFileRegistered = tempJsFilesRegistry
-                    .getCollectionsWithRegisteredJsFiles()
-                    .some(
-                        (registered) =>
-                            normalizeDirectoryPath(registered) ==
-                            normalizeDirectoryPath(
-                                collection.getRootDirectory()
-                            )
-                    );
-
-                if (!isTempJsFileRegistered) {
-                    createTemporaryJsFile(
-                        collection.getRootDirectory(),
-                        tempJsFilesRegistry,
-                        document.getText()
-                    );
-                }
-
-                const virtualJsFileUri = Uri.file(
-                    getTemporaryJsFileName(collection.getRootDirectory())
+                const temporaryJsDoc = await waitForTempJsFileToBeInSync(
+                    tempJsFilesRegistry,
+                    collection,
+                    document.getText(),
+                    blocksToCheck
                 );
-
-                const virtualJsDoc = await workspace.openTextDocument(
-                    virtualJsFileUri
-                );
-
-                // Sometimes it takes a short while until VS Code notices that the Javascript file has been modified externally
-                if (
-                    !isTempJsFileInSync(virtualJsDoc.getText(), blocksToCheck)
-                ) {
-                    await new Promise<void>((resolve) => {
-                        workspace.onDidChangeTextDocument((e) => {
-                            if (
-                                e.document.uri.toString() ==
-                                    virtualJsFileUri.toString() &&
-                                e.contentChanges.length > 0 &&
-                                isTempJsFileInSync(
-                                    virtualJsDoc.getText(),
-                                    blocksToCheck
-                                )
-                            ) {
-                                resolve();
-                            }
-                        });
-                    });
-                }
 
                 const resultFromJsFile = await commands.executeCommand<Hover[]>(
                     "vscode.executeHoverProvider",
-                    virtualJsDoc.uri,
+                    temporaryJsDoc.uri,
                     getPositionWithinTempJsFile(
-                        virtualJsDoc.getText(),
+                        temporaryJsDoc.getText(),
                         blockInBruFile.name as RequestFileBlockName,
                         position.translate(
                             -blockInBruFile.contentRange.start.line
@@ -106,7 +63,7 @@ export function provideInfosOnHover(
                           resultFromJsFile[0].contents,
                           mapToRangeWithinBruFile(
                               blocksToCheck,
-                              virtualJsDoc.getText(),
+                              temporaryJsDoc.getText(),
                               resultFromJsFile[0].range
                           )
                       )

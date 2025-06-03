@@ -1,7 +1,5 @@
 import {
     languages,
-    Uri,
-    workspace,
     commands,
     CompletionList,
     CompletionItem,
@@ -17,13 +15,14 @@ import {
 } from "../../../shared";
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
-import { getTemporaryJsFileName } from "../shared/codeBlocksUtils/getTemporaryJsFileName";
-import { isTempJsFileInSync } from "../shared/codeBlocksUtils/isTempJsFileInSync";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
+import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSync";
+import { TemporaryJsFilesRegistry } from "../shared/temporaryJsFilesRegistry";
 
 export function provideCodeBlocksCompletionItems(
-    collectionItemProvider: CollectionItemProvider
+    collectionItemProvider: CollectionItemProvider,
+    tempJsFilesRegistry: TemporaryJsFilesRegistry
 ) {
     return languages.registerCompletionItemProvider(
         getRequestFileDocumentSelector(),
@@ -48,44 +47,19 @@ export function provideCodeBlocksCompletionItems(
                 );
 
                 if (blockInBruFile) {
-                    const virtualJsFileUri = Uri.file(
-                        getTemporaryJsFileName(collection.getRootDirectory())
+                    const temporaryJsDoc = await waitForTempJsFileToBeInSync(
+                        tempJsFilesRegistry,
+                        collection,
+                        document.getText(),
+                        blocksToCheck
                     );
-
-                    const virtualJsDoc = await workspace.openTextDocument(
-                        virtualJsFileUri
-                    );
-
-                    // Sometimes it takes a short while until VS Code notices that the Javascript file has been modified externally
-                    if (
-                        !isTempJsFileInSync(
-                            virtualJsDoc.getText(),
-                            blocksToCheck
-                        )
-                    ) {
-                        await new Promise<void>((resolve) => {
-                            workspace.onDidChangeTextDocument((e) => {
-                                if (
-                                    e.document.uri.toString() ==
-                                        virtualJsFileUri.toString() &&
-                                    e.contentChanges.length > 0 &&
-                                    isTempJsFileInSync(
-                                        virtualJsDoc.getText(),
-                                        blocksToCheck
-                                    )
-                                ) {
-                                    resolve();
-                                }
-                            });
-                        });
-                    }
 
                     const resultFromJsFile =
                         await commands.executeCommand<CompletionList>(
                             "vscode.executeCompletionItemProvider",
-                            virtualJsDoc.uri,
+                            temporaryJsDoc.uri,
                             getPositionWithinTempJsFile(
-                                virtualJsDoc.getText(),
+                                temporaryJsDoc.getText(),
                                 blockInBruFile.name as RequestFileBlockName,
                                 position.translate(
                                     -blockInBruFile.contentRange.start.line
@@ -100,18 +74,18 @@ export function provideCodeBlocksCompletionItems(
                                 ? item.range instanceof VsCodeRange
                                     ? (mapToRangeWithinBruFile(
                                           blocksToCheck,
-                                          virtualJsDoc.getText(),
+                                          temporaryJsDoc.getText(),
                                           item.range
                                       ) as VsCodeRange)
                                     : {
                                           inserting: mapToRangeWithinBruFile(
                                               blocksToCheck,
-                                              virtualJsDoc.getText(),
+                                              temporaryJsDoc.getText(),
                                               item.range.inserting
                                           ) as VsCodeRange,
                                           replacing: mapToRangeWithinBruFile(
                                               blocksToCheck,
-                                              virtualJsDoc.getText(),
+                                              temporaryJsDoc.getText(),
                                               item.range.replacing
                                           ) as VsCodeRange,
                                       }
@@ -120,7 +94,7 @@ export function provideCodeBlocksCompletionItems(
                                 ? new TextEdit(
                                       mapToRangeWithinBruFile(
                                           blocksToCheck,
-                                          virtualJsDoc.getText(),
+                                          temporaryJsDoc.getText(),
                                           item.textEdit.range
                                       ) as VsCodeRange,
                                       item.textEdit.newText

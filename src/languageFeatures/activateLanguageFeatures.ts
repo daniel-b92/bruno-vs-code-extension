@@ -45,7 +45,10 @@ export function activateLanguageFeatures(
         diagnosticCollection,
         tempJsFilesRegistry,
         ...provideBrunoLangCompletionItems(),
-        provideCodeBlocksCompletionItems(collectionItemProvider),
+        provideCodeBlocksCompletionItems(
+            collectionItemProvider,
+            tempJsFilesRegistry
+        ),
         provideInfosOnHover(collectionItemProvider, tempJsFilesRegistry),
         brunoLangDiagnosticsProvider,
         tempJsFilesRegistry,
