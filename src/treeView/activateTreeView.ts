@@ -7,5 +7,7 @@ export function activateTreeView(
     itemProvider: CollectionItemProvider,
     startTestRunEmitter: EventEmitter<Uri>
 ) {
-    new CollectionExplorer(context, itemProvider, startTestRunEmitter);
+    context.subscriptions.push(
+        new CollectionExplorer(itemProvider, startTestRunEmitter)
+    );
 }

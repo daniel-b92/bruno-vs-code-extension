@@ -39,7 +39,6 @@ export class CollectionExplorer
     dropMimeTypes = [`application/vnd.code.tree.${this.treeViewId}`];
 
     constructor(
-        extensionContext: vscode.ExtensionContext,
         private itemProvider: CollectionItemProvider,
         startTestRunEmitter: vscode.EventEmitter<vscode.Uri>
     ) {
@@ -208,7 +207,7 @@ export class CollectionExplorer
                     extname(originalPath) == getExtensionForRequestFiles() &&
                     getSequenceFromMetaBlock(originalPath) != undefined
                 ) {
-                    replaceSequenceForRequest(
+                    this.replaceSequenceForRequest(
                         newPath,
                         getMaxSequenceForRequests(dirname(originalPath)) + 1
                     );
@@ -269,7 +268,7 @@ export class CollectionExplorer
             }
         );
 
-        extensionContext.subscriptions.push(
+        this.disposables.push(
             vscode.window.onDidChangeActiveTextEditor((e) => {
                 if (e && treeView.visible) {
                     const maybeCollection =
@@ -289,6 +288,14 @@ export class CollectionExplorer
                 }
             })
         );
+    }
+
+    private disposables: vscode.Disposable[] = [];
+
+    public dispose() {
+        for (const disposable of this.disposables) {
+            disposable.dispose();
+        }
     }
 
     handleDrag(
@@ -578,7 +585,7 @@ export class CollectionExplorer
                 : getMaxSequenceForRequests(targetDirectory) + 1
             : getMaxSequenceForRequests(targetDirectory) + 1;
 
-        replaceSequenceForRequest(newPath, newSequence);
+        this.replaceSequenceForRequest(newPath, newSequence);
 
         if (target.isFile) {
             getSequencesForRequests(targetDirectory)
@@ -587,7 +594,7 @@ export class CollectionExplorer
                         path != newPath && sequence >= newSequence
                 )
                 .forEach(({ path, sequence: initialSequence }) => {
-                    replaceSequenceForRequest(path, initialSequence + 1);
+                    this.replaceSequenceForRequest(path, initialSequence + 1);
                 });
         }
 
@@ -610,24 +617,24 @@ export class CollectionExplorer
             const newSeq = i + 1;
 
             if (initialSeq != newSeq) {
-                replaceSequenceForRequest(path, newSeq);
+                this.replaceSequenceForRequest(path, newSeq);
             }
         }
     }
-}
 
-const replaceSequenceForRequest = (filePath: string, newSequence: number) => {
-    const originalSequence = getSequenceFromMetaBlock(filePath);
+    private replaceSequenceForRequest(filePath: string, newSequence: number) {
+        const originalSequence = getSequenceFromMetaBlock(filePath);
 
-    if (originalSequence != undefined) {
-        writeFileSync(
-            filePath,
-            readFileSync(filePath)
-                .toString()
-                .replace(
-                    new RegExp(`seq:\\s*${originalSequence}`),
-                    `seq: ${newSequence}`
-                )
-        );
+        if (originalSequence != undefined) {
+            writeFileSync(
+                filePath,
+                readFileSync(filePath)
+                    .toString()
+                    .replace(
+                        new RegExp(`seq:\\s*${originalSequence}`),
+                        `seq: ${newSequence}`
+                    )
+            );
+        }
     }
-};
+}
