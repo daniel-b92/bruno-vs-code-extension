@@ -1,4 +1,6 @@
 import {
+    DiagnosticChangeEvent,
+    DiagnosticCollection,
     ExtensionContext,
     languages,
     TabInputText,
@@ -27,6 +29,9 @@ import { TemporaryJsFilesRegistry } from "./internal/shared/temporaryJsFilesRegi
 import { deleteTemporaryJsFileForCollection } from "./internal/shared/codeBlocksUtils/deleteTemporaryJsFile";
 import { provideCodeBlocksCompletionItems } from "./internal/completionItems/provideCodeBlocksCompletionItems";
 import { provideInfosOnHover } from "./internal/hover/provideInfosOnHover";
+import { getTemporaryJsFileName } from "./internal/shared/codeBlocksUtils/getTemporaryJsFileName";
+import { CodeBlocksDiagnosticsProvider } from "./internal/diagnostics/codeBlocksDiagnosticsProvider";
+import { getCodeBlocks } from "./internal/shared/codeBlocksUtils/getCodeBlocks";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
@@ -34,15 +39,23 @@ export function activateLanguageFeatures(
 ) {
     const tempJsFilesRegistry = new TemporaryJsFilesRegistry();
 
-    const diagnosticCollection = languages.createDiagnosticCollection("bruno");
+    const bruLangDiagnosticCollection =
+        languages.createDiagnosticCollection("bruLang");
+
+    const codeBlocksDiagnosticCollection =
+        languages.createDiagnosticCollection("brunoCodeBlocks");
 
     const brunoLangDiagnosticsProvider = new BrunoLangDiagnosticsProvider(
-        diagnosticCollection,
+        bruLangDiagnosticCollection,
         collectionItemProvider
     );
 
+    const codeBlocksDiagnosticsProvider = new CodeBlocksDiagnosticsProvider();
+
     context.subscriptions.push(
-        diagnosticCollection,
+        bruLangDiagnosticCollection,
+        codeBlocksDiagnosticCollection,
+        codeBlocksDiagnosticsProvider,
         tempJsFilesRegistry,
         ...provideBrunoLangCompletionItems(),
         provideCodeBlocksCompletionItems(
@@ -74,6 +87,15 @@ export function activateLanguageFeatures(
                 collectionItemProvider,
                 e
             );
+        }),
+        languages.onDidChangeDiagnostics((event) => {
+            onDidChangeDiagnostics(
+                tempJsFilesRegistry,
+                collectionItemProvider,
+                codeBlocksDiagnosticsProvider,
+                codeBlocksDiagnosticCollection,
+                event
+            );
         })
     );
 }
@@ -99,7 +121,7 @@ function onDidChangeActiveTextEditor(
         editor.document.uri.toString() ==
         window.tabGroups.activeTabGroup.activeTab.input.uri.toString()
     ) {
-        fetchDiagnostics(
+        fetchBrunoLanguageDiagnostics(
             editor.document,
             brunoLangDiagnosticsProvider,
             collectionItemProvider.getRegisteredCollections().slice()
@@ -157,11 +179,62 @@ function onDidChangeTextDocument(
                 event.document.getText()
             );
 
-            fetchDiagnostics(
+            fetchBrunoLanguageDiagnostics(
                 event.document,
                 brunoLangDiagnosticsProvider,
                 collectionItemProvider.getRegisteredCollections().slice()
             );
+        }
+    }
+}
+
+async function onDidChangeDiagnostics(
+    tempJsFilesRegistry: TemporaryJsFilesRegistry,
+    collectionItemProvider: CollectionItemProvider,
+    codeBlocksDiagnosticsProvider: CodeBlocksDiagnosticsProvider,
+    diagnosticCollection: DiagnosticCollection,
+    event: DiagnosticChangeEvent
+) {
+    if (!window.activeTextEditor) {
+        return;
+    }
+
+    const activeDocumentUri = window.activeTextEditor.document.uri;
+    const activeDocumentContent = window.activeTextEditor.document.getText();
+    if (
+        isBrunoRequestFile(
+            collectionItemProvider.getRegisteredCollections().slice(),
+            activeDocumentUri.fsPath
+        )
+    ) {
+        const collection = collectionItemProvider.getAncestorCollectionForPath(
+            activeDocumentUri.fsPath
+        );
+
+        if (!collection) {
+            return;
+        }
+
+        const tempJsFileForActiveBruFile = getTemporaryJsFileName(
+            collection.getRootDirectory()
+        );
+
+        if (
+            event.uris.some((uri) => uri.fsPath == tempJsFileForActiveBruFile)
+        ) {
+            const diagnostics =
+                await codeBlocksDiagnosticsProvider.mapDiagnosticsFromTempJsFile(
+                    tempJsFilesRegistry,
+                    collection,
+                    activeDocumentContent,
+                    getCodeBlocks(
+                        parseBruFile(
+                            new TextDocumentHelper(activeDocumentContent)
+                        ).blocks
+                    )
+                );
+
+            diagnosticCollection.set(activeDocumentUri, diagnostics);
         }
     }
 }
@@ -214,7 +287,7 @@ function onWillSaveTextDocument(
     }
 }
 
-function fetchDiagnostics(
+function fetchBrunoLanguageDiagnostics(
     document: TextDocument,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     registeredCollections: Collection[]
