@@ -20,7 +20,7 @@ export function provideInfosOnHover(
     collectionItemProvider: CollectionItemProvider,
     tempJsFilesRegistry: TemporaryJsFilesRegistry
 ) {
-    languages.registerHoverProvider(getRequestFileDocumentSelector(), {
+    return languages.registerHoverProvider(getRequestFileDocumentSelector(), {
         async provideHover(document, position) {
             const collection =
                 collectionItemProvider.getAncestorCollectionForPath(
