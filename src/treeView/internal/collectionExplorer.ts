@@ -277,13 +277,23 @@ export class CollectionExplorer
                         );
 
                     if (maybeCollection) {
-                        treeView.reveal(
-                            (
-                                maybeCollection.getStoredDataForPath(
-                                    e.document.uri.fsPath
-                                ) as CollectionData
-                            ).treeItem
-                        );
+                        const treeItem = (
+                            maybeCollection.getStoredDataForPath(
+                                e.document.uri.fsPath
+                            ) as CollectionData
+                        ).treeItem;
+
+                        treeView.reveal(treeItem).then(() => {
+                            // Sometimes the 'reveal' command does not actually reveal the item, in that case it is retried once
+                            if (
+                                !treeView.selection.some(
+                                    (item) =>
+                                        item.getPath() == e.document.uri.fsPath
+                                )
+                            ) {
+                                treeView.reveal(treeItem);
+                            }
+                        });
                     }
                 }
             })
