@@ -1,4 +1,4 @@
-import { Diagnostic, languages } from "vscode";
+import { Diagnostic, languages, Range } from "vscode";
 import { Block, Collection } from "../../../shared";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { TemporaryJsFilesRegistry } from "../shared/temporaryJsFilesRegistry";
@@ -49,18 +49,27 @@ export class CodeBlocksDiagnosticsProvider {
                                                 message,
                                                 location: { uri, range },
                                             }) => {
-                                                const mappedRelatedInfoRange =
-                                                    mapToRangeWithinBruFile(
-                                                        codeBlocks,
-                                                        temporaryJsDoc.getText(),
-                                                        range
-                                                    );
-                                                return mappedRelatedInfoRange
+                                                let mappedRangeFromRelatedInfos:
+                                                    | Range
+                                                    | undefined = range;
+
+                                                if (
+                                                    uri.toString() ==
+                                                    temporaryJsDoc.uri.toString()
+                                                ) {
+                                                    mappedRangeFromRelatedInfos =
+                                                        mapToRangeWithinBruFile(
+                                                            codeBlocks,
+                                                            temporaryJsDoc.getText(),
+                                                            range
+                                                        );
+                                                }
+                                                return mappedRangeFromRelatedInfos
                                                     ? {
                                                           message,
                                                           location: {
                                                               uri,
-                                                              range: mappedRelatedInfoRange,
+                                                              range: mappedRangeFromRelatedInfos,
                                                           },
                                                       }
                                                     : undefined;
