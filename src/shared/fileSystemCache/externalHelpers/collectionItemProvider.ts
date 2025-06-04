@@ -16,7 +16,10 @@ import { getSequenceFromMetaBlock } from "../../fileParsing/external/metaBlock/g
 export class CollectionItemProvider {
     constructor(
         collectionWatcher: CollectionWatcher,
-        private testRunnerDataHelper: TestRunnerDataHelper
+        private testRunnerDataHelper: TestRunnerDataHelper,
+        private getPathsToIgnoreForCollection: (
+            collectionRootDir: string
+        ) => string[]
     ) {
         this.collectionRegistry = new CollectionRegistry(collectionWatcher);
         this.itemUpdateEmitter = new vscode.EventEmitter<{
@@ -38,7 +41,10 @@ export class CollectionItemProvider {
 
                 if (
                     registeredCollection.isRootDirectory(uri.fsPath) &&
-                    fileChangeType == FileChangeType.Deleted
+                    fileChangeType == FileChangeType.Deleted &&
+                    !this.getPathsToIgnoreForCollection(
+                        registeredCollection.getRootDirectory()
+                    ).includes(uri.fsPath)
                 ) {
                     this.handleCollectionDeletion(uri);
                     return;
@@ -49,13 +55,19 @@ export class CollectionItemProvider {
 
                 if (
                     !maybeRegisteredData &&
-                    fileChangeType == FileChangeType.Created
+                    fileChangeType == FileChangeType.Created &&
+                    !this.getPathsToIgnoreForCollection(
+                        registeredCollection.getRootDirectory()
+                    ).includes(uri.fsPath)
                 ) {
                     this.handleItemCreation(registeredCollection, uri.fsPath);
                     return;
                 } else if (
                     maybeRegisteredData &&
-                    fileChangeType == FileChangeType.Deleted
+                    fileChangeType == FileChangeType.Deleted &&
+                    !this.getPathsToIgnoreForCollection(
+                        registeredCollection.getRootDirectory()
+                    ).includes(uri.fsPath)
                 ) {
                     this.handleItemDeletion(
                         registeredCollection,
@@ -63,7 +75,10 @@ export class CollectionItemProvider {
                     );
                 } else if (
                     maybeRegisteredData &&
-                    fileChangeType == FileChangeType.Modified
+                    fileChangeType == FileChangeType.Modified &&
+                    !this.getPathsToIgnoreForCollection(
+                        registeredCollection.getRootDirectory()
+                    ).includes(uri.fsPath)
                 ) {
                     this.handleModificationOfRegisteredItem(
                         registeredCollection,
@@ -127,7 +142,8 @@ export class CollectionItemProvider {
 
         await registerMissingCollectionsAndTheirItems(
             this.testRunnerDataHelper,
-            this.collectionRegistry
+            this.collectionRegistry,
+            this.getPathsToIgnoreForCollection
         );
     }
 

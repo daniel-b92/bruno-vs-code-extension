@@ -15,6 +15,7 @@ import { provideBrunoLangCompletionItems } from "./internal/completionItems/prov
 import {
     Collection,
     CollectionItemProvider,
+    getTemporaryJsFileName,
     normalizeDirectoryPath,
     parseBruFile,
     TextDocumentHelper,
@@ -29,7 +30,6 @@ import { TemporaryJsFilesRegistry } from "./internal/shared/temporaryJsFilesRegi
 import { deleteTemporaryJsFileForCollection } from "./internal/shared/codeBlocksUtils/deleteTemporaryJsFile";
 import { provideCodeBlocksCompletionItems } from "./internal/completionItems/provideCodeBlocksCompletionItems";
 import { provideInfosOnHover } from "./internal/hover/provideInfosOnHover";
-import { getTemporaryJsFileName } from "./internal/shared/codeBlocksUtils/getTemporaryJsFileName";
 import { CodeBlocksDiagnosticsProvider } from "./internal/diagnostics/codeBlocksDiagnosticsProvider";
 import { getCodeBlocks } from "./internal/shared/codeBlocksUtils/getCodeBlocks";
 

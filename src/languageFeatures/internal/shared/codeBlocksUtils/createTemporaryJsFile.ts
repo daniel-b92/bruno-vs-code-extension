@@ -3,8 +3,8 @@ import {
     parseBruFile,
     TextDocumentHelper,
     RequestFileBlockName,
+    getTemporaryJsFileName,
 } from "../../../../shared";
-import { getTemporaryJsFileName } from "./getTemporaryJsFileName";
 import { mapBlockNameToJsFileLine } from "./mapBlockNameToJsFileFunctionName";
 import { TemporaryJsFilesRegistry } from "../temporaryJsFilesRegistry";
 
