@@ -1,8 +1,12 @@
 import { Uri, workspace } from "vscode";
-import { Block, Collection, normalizeDirectoryPath } from "../../../../shared";
+import {
+    Block,
+    Collection,
+    getTemporaryJsFileName,
+    normalizeDirectoryPath,
+} from "../../../../shared";
 import { TemporaryJsFilesRegistry } from "../temporaryJsFilesRegistry";
 import { createTemporaryJsFile } from "./createTemporaryJsFile";
-import { getTemporaryJsFileName } from "./getTemporaryJsFileName";
 import { isTempJsFileInSync } from "./isTempJsFileInSync";
 
 export async function waitForTempJsFileToBeInSync(

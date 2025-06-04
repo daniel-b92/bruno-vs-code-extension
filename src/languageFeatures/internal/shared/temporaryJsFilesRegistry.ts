@@ -1,5 +1,7 @@
-import { normalizeDirectoryPath } from "../../../shared";
-import { getTemporaryJsFileName } from "./codeBlocksUtils/getTemporaryJsFileName";
+import {
+    getTemporaryJsFileName,
+    normalizeDirectoryPath,
+} from "../../../shared";
 
 export class TemporaryJsFilesRegistry {
     constructor() {}

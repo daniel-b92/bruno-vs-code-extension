@@ -1,6 +1,6 @@
 import { unlinkSync } from "fs";
 import { TemporaryJsFilesRegistry } from "../temporaryJsFilesRegistry";
-import { getTemporaryJsFileName } from "./getTemporaryJsFileName";
+import { getTemporaryJsFileName } from "../../../../shared";
 
 export function deleteTemporaryJsFileForCollection(
     tempJsFilesRegistry: TemporaryJsFilesRegistry,

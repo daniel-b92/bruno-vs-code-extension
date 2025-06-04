@@ -1,11 +1,12 @@
-import { lstatSync, readdirSync } from "fs";
-import { dirname, resolve } from "path";
+import { dirname } from "path";
 import * as vscode from "vscode";
 import {
     getSequenceFromMetaBlock,
     CollectionData,
     FileChangeType,
     CollectionItemProvider,
+    normalizeDirectoryPath,
+    CollectionFile,
 } from "../../shared";
 import { BrunoTreeItem } from "../brunoTreeItem";
 
@@ -92,34 +93,36 @@ export class BrunoTreeItemProvider
                     (a.label as string) > (b.label as string) ? 1 : -1
                 );
         } else {
-            return readdirSync(element.path)
-                .map((childPath) => {
-                    const fullPath = resolve(element.path, childPath);
-                    const maybeCollection =
-                        this.collectionItemProvider.getAncestorCollectionForPath(
-                            fullPath
-                        );
+            const collection =
+                this.collectionItemProvider.getAncestorCollectionForPath(
+                    element.getPath()
+                );
 
-                    const maybeRegisteredData = maybeCollection
-                        ? this.collectionItemProvider.getRegisteredItem(
-                              maybeCollection,
-                              fullPath
-                          )
-                        : undefined;
+            if (!collection) {
+                return [];
+            }
 
-                    if (maybeRegisteredData) {
-                        return maybeRegisteredData.treeItem;
-                    }
+            return collection
+                .getAllStoredDataForCollection()
+                .filter(
+                    ({ item: registeredItem }) =>
+                        normalizeDirectoryPath(
+                            dirname(registeredItem.getPath())
+                        ) == normalizeDirectoryPath(element.getPath())
+                )
+                .map(({ item: collectionItem }) => {
+                    const path = collectionItem.getPath();
 
-                    const item = lstatSync(fullPath).isFile()
-                        ? new BrunoTreeItem(
-                              fullPath,
-                              true,
-                              getSequenceFromMetaBlock(fullPath)
-                          )
-                        : new BrunoTreeItem(fullPath, false);
+                    const treeItem =
+                        collectionItem instanceof CollectionFile
+                            ? new BrunoTreeItem(
+                                  path,
+                                  true,
+                                  getSequenceFromMetaBlock(path)
+                              )
+                            : new BrunoTreeItem(path, false);
 
-                    return item;
+                    return treeItem;
                 })
                 .sort((a, b) =>
                     a.getSequence() != undefined && b.getSequence() != undefined

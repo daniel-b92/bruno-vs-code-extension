@@ -11,7 +11,8 @@ import { addItemToCollection } from "./addItemToCollection";
 
 export async function registerMissingCollectionsAndTheirItems(
     testRunnerDataHelper: TestRunnerDataHelper,
-    collectionRegistry: CollectionRegistry
+    collectionRegistry: CollectionRegistry,
+    getPathsToIgnoreForCollection: (collectionRootDir: string) => string[]
 ) {
     const allCollections = await registerAllExistingCollections(
         testRunnerDataHelper,
@@ -28,7 +29,12 @@ export async function registerMissingCollectionsAndTheirItems(
                 const path = resolve(currentPath, childItem);
                 const isDirectory = lstatSync(path).isDirectory();
 
-                if (!collection.getStoredDataForPath(path)) {
+                if (
+                    !collection.getStoredDataForPath(path) &&
+                    !getPathsToIgnoreForCollection(
+                        collection.getRootDirectory()
+                    ).includes(path)
+                ) {
                     const item = isDirectory
                         ? new CollectionDirectory(path)
                         : new CollectionFile(
@@ -39,7 +45,12 @@ export async function registerMissingCollectionsAndTheirItems(
                     addItemToCollection(testRunnerDataHelper, collection, item);
                 }
 
-                if (isDirectory) {
+                if (
+                    isDirectory &&
+                    !getPathsToIgnoreForCollection(
+                        collection.getRootDirectory()
+                    ).includes(path)
+                ) {
                     currentPaths.push(path);
                 }
             }

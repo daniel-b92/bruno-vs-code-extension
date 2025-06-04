@@ -14,6 +14,7 @@ import {
     FileChangedEvent,
     CollectionItemProvider,
     TestRunnerDataHelper,
+    getTemporaryJsFileName,
 } from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures";
 import { syncTsPlugin } from "./syncTsPlugin";
@@ -33,7 +34,8 @@ export async function activate(context: ExtensionContext) {
 
     const collectionItemProvider = new CollectionItemProvider(
         collectionWatcher,
-        new TestRunnerDataHelper(ctrl)
+        new TestRunnerDataHelper(ctrl),
+        getPathsToIgnoreForCollection
     );
 
     const startTestRunEmitter = new EventEmitter<Uri>();
@@ -75,4 +77,8 @@ export async function activate(context: ExtensionContext) {
             });
         }
     );
+}
+
+function getPathsToIgnoreForCollection(collectionRootDirectory: string) {
+    return [getTemporaryJsFileName(collectionRootDirectory)];
 }
