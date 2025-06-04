@@ -28,6 +28,7 @@ import { deleteTemporaryJsFileForCollection } from "./internal/shared/codeBlocks
 import { provideCodeBlocksCompletionItems } from "./internal/completionItems/provideCodeBlocksCompletionItems";
 import { provideInfosOnHover } from "./internal/hover/provideInfosOnHover";
 import { provideSignatureHelp } from "./internal/signatureHelp/provideSignatureHelp";
+import { provideDefinitions } from "./internal/definitionProvider/provideDefinitions";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
@@ -52,6 +53,7 @@ export function activateLanguageFeatures(
         ),
         provideInfosOnHover(collectionItemProvider, tempJsFilesRegistry),
         provideSignatureHelp(collectionItemProvider, tempJsFilesRegistry),
+        provideDefinitions(collectionItemProvider, tempJsFilesRegistry),
         brunoLangDiagnosticsProvider,
         tempJsFilesRegistry,
         window.onDidChangeActiveTextEditor((editor) => {
