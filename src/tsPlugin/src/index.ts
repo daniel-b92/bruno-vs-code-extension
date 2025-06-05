@@ -32,6 +32,14 @@ function init(_modules: {
             );
         };
 
+        proxy.getSuggestionDiagnostics = (fileName) => {
+            return filterDefaultDiagnostics(
+                info,
+                fileName,
+                info.languageService.getSuggestionDiagnostics(fileName)
+            ) as ts.DiagnosticWithLocation[];
+        };
+
         proxy.getQuickInfoAtPosition = (fileName, position) => {
             return extname(fileName) == ".bru"
                 ? undefined
