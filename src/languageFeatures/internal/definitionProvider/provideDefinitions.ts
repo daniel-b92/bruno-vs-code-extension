@@ -1,4 +1,11 @@
-import { commands, languages, Location, LocationLink } from "vscode";
+import {
+    commands,
+    Definition,
+    DefinitionLink,
+    languages,
+    Location,
+    LocationLink,
+} from "vscode";
 import {
     CollectionItemProvider,
     mapRange,
@@ -71,13 +78,13 @@ export function provideDefinitions(
                     );
 
                     return relevantLocations.length > 0
-                        ? (relevantLocations[0] as Location)
+                        ? (relevantLocations as Definition)
                         : (resultFromJsFile.filter(
                               (val) =>
                                   !(val instanceof Location) &&
                                   val.targetUri.toString() !=
                                       temporaryJsDoc.uri.toString()
-                          ) as LocationLink[]);
+                          ) as DefinitionLink[]);
                 }
             },
         }
