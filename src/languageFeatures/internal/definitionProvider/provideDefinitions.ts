@@ -60,20 +60,18 @@ export function provideDefinitions(
                         )
                     );
 
-                    return resultFromJsFile.length == 0
-                        ? []
-                        : resultFromJsFile.some(
-                              (val) =>
-                                  val instanceof Location &&
-                                  val.uri.toString() !=
-                                      temporaryJsDoc.uri.toString()
-                          )
-                        ? (resultFromJsFile.find(
-                              (val) =>
-                                  val instanceof Location &&
-                                  val.uri.toString() !=
-                                      temporaryJsDoc.uri.toString()
-                          ) as Location)
+                    if (resultFromJsFile.length == 0) {
+                        return [];
+                    }
+
+                    const relevantLocations = resultFromJsFile.filter(
+                        (val) =>
+                            val instanceof Location &&
+                            val.uri.toString() != temporaryJsDoc.uri.toString()
+                    );
+
+                    return relevantLocations.length > 0
+                        ? (relevantLocations[0] as Location)
                         : (resultFromJsFile.filter(
                               (val) =>
                                   !(val instanceof Location) &&
