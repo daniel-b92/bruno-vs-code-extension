@@ -33,15 +33,39 @@ function init(_modules: {
         };
 
         proxy.getSuggestionDiagnostics = (fileName) => {
-            return filterDefaultDiagnostics(
+            const defaultDiagnostics =
+                info.languageService.getSuggestionDiagnostics(fileName);
+
+            if (!isBrunoFile(fileName)) {
+                return defaultDiagnostics;
+            }
+            const allDiagnosticsForCodeBlocks = filterDefaultDiagnostics(
                 info,
                 fileName,
-                info.languageService.getSuggestionDiagnostics(fileName)
+                defaultDiagnostics
             ) as ts.DiagnosticWithLocation[];
+
+            // The ts server always reports errors when importing a Javascript function in a .bru file.
+            return allDiagnosticsForCodeBlocks.filter(
+                ({ code, messageText, start }) => {
+                    const scriptSnapshot =
+                        info.languageServiceHost.getScriptSnapshot(fileName);
+
+                    // ToDo: Improve filtering, so that it is ensured that no valid diagnostics are filtered out by mistake.
+                    return !(
+                        scriptSnapshot &&
+                        scriptSnapshot.getText(0, start).includes("require(") &&
+                        code == 7044 &&
+                        typeof messageText == "string" &&
+                        messageText.includes("better type may be inferred")
+                    );
+                }
+            );
         };
 
+        // All hovers are provided by the extension implementation
         proxy.getQuickInfoAtPosition = (fileName, position) => {
-            return extname(fileName) == ".bru"
+            return isBrunoFile(fileName)
                 ? undefined
                 : info.languageService.getQuickInfoAtPosition(
                       fileName,
@@ -62,7 +86,7 @@ function filterDefaultDiagnostics(
     fileName: string,
     defaultDiagnostics: (ts.Diagnostic | ts.DiagnosticWithLocation)[]
 ) {
-    if (extname(fileName) != ".bru") {
+    if (!isBrunoFile(fileName)) {
         return defaultDiagnostics;
     } else {
         let fileContent: string | undefined = undefined;
@@ -165,6 +189,10 @@ function getTextBlockStartAndEndIndex(
         startIndex: contentStartIndex,
         endIndex: remainingDocCurrentIndex + contentStartIndex,
     };
+}
+
+function isBrunoFile(fileName: string) {
+    return extname(fileName) == ".bru";
 }
 
 enum TextBlockName {
