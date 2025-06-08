@@ -8,7 +8,8 @@ import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
 import { getBlockContent } from "../internal/getBlockContent";
 import { getNonBlockSpecificBlockStartPattern } from "../internal/util/getNonBlockSpecificBlockStartPattern";
 import { BlockBracket } from "../internal/util/blockBracketEnum";
-import { Position, Range } from "../..";
+import { Position, Range, shouldBeDictionaryBlock } from "../..";
+import { BlockType } from "../internal/util/BlockTypeEnum";
 
 export const parseBruFile = (document: TextDocumentHelper) => {
     const result: {
@@ -46,8 +47,10 @@ export const parseBruFile = (document: TextDocumentHelper) => {
                 document,
                 startingPosition,
                 matches[0].includes(BlockBracket.OpeningBracketForArrayBlock)
-                    ? true
-                    : false
+                    ? BlockType.Array
+                    : shouldBeDictionaryBlock(blockName)
+                    ? BlockType.Dictionary
+                    : BlockType.Text
             );
 
             if (!blockContent) {

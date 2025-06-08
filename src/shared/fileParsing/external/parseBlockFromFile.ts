@@ -2,7 +2,8 @@ import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
 import { getBlockContent } from "../internal/getBlockContent";
 import { getBlockStartPatternByName } from "../internal/util/getBlockStartPatternByName";
 import { BlockBracket } from "../internal/util/blockBracketEnum";
-import { Position } from "../..";
+import { Position, shouldBeDictionaryBlock } from "../..";
+import { BlockType } from "../internal/util/BlockTypeEnum";
 
 export const parseBlockFromFile = (
     document: TextDocumentHelper,
@@ -42,6 +43,13 @@ export const parseBlockFromFile = (
             .getLineByIndex(lineIndex)
             .lastIndexOf(openingBracket)
     );
-    return getBlockContent(document, startingBracket, shouldBeArrayBlock)
-        ?.content;
+    return getBlockContent(
+        document,
+        startingBracket,
+        shouldBeArrayBlock
+            ? BlockType.Array
+            : shouldBeDictionaryBlock(blockName)
+            ? BlockType.Dictionary
+            : BlockType.Text
+    )?.content;
 };

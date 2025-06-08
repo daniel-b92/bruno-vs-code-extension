@@ -6,12 +6,12 @@ import {
 import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
 import { BlockBracket } from "./util/blockBracketEnum";
 import { Position, Range } from "../..";
-import { isDictionaryBlockField } from "./util/isDictionaryBlockField";
+import { BlockType } from "./util/BlockTypeEnum";
 
 export const getBlockContent = (
     document: TextDocumentHelper,
     startingPosition: Position,
-    shouldBeArrayBlock: boolean
+    blockType: BlockType
 ):
     | {
           content:
@@ -24,10 +24,20 @@ export const getBlockContent = (
     // the block content is exclusive of the block's opening bracket line
     const firsContentLine = startingPosition.line + 1;
 
-    if (shouldBeArrayBlock) {
+    if (blockType == BlockType.Array) {
         return parseArrayBlock(document, firsContentLine);
+    } else if (blockType == BlockType.Dictionary) {
+        return parseDictionaryBlock(document, firsContentLine);
+    } else if (blockType == BlockType.Text) {
+        return parseTextBlock(document, firsContentLine);
     } else {
-        return parseTextOrDictionaryBlock(document, firsContentLine);
+        throw new Error(
+            `Cannot parse block with unknown type '${blockType}'. Known block types are ${JSON.stringify(
+                Object.entries(BlockType),
+                null,
+                2
+            )}`
+        );
     }
 };
 
@@ -117,7 +127,7 @@ const parseArrayBlock = (
     };
 };
 
-const parseTextOrDictionaryBlock = (
+const parseDictionaryBlock = (
     document: TextDocumentHelper,
     firstContentLine: number
 ) => {
@@ -176,26 +186,8 @@ const parseTextOrDictionaryBlock = (
         return undefined;
     }
 
-    const range = new Range(
-        new Position(firstContentLine, 0),
-        new Position(
-            lineIndex,
-            document
-                .getLineByIndex(lineIndex)
-                .lastIndexOf(
-                    BlockBracket.ClosingBracketForDictionaryOrTextBlock
-                )
-        )
-    );
-
     return {
-        content: lines.every((line) => !isDictionaryBlockField(line.content))
-            ? document.getText(range)
-            : (
-                  lines as {
-                      content: DictionaryBlockField | PlainTextWithinBlock;
-                  }[]
-              ).map(({ content }) => content),
+        content: lines.map(({ content }) => content),
         contentRange: getContentRange(
             firstContentLine,
             BlockBracket.ClosingBracketForDictionaryOrTextBlock,
@@ -203,6 +195,21 @@ const parseTextOrDictionaryBlock = (
             document.getLineByIndex(lineIndex)
         ),
     };
+};
+
+const parseTextBlock = (
+    document: TextDocumentHelper,
+    firstContentLine: number
+) => {
+    const result = document.getContentUntilClosingChar(
+        firstContentLine,
+        BlockBracket.OpeningBracketForDictionaryOrTextBlock,
+        BlockBracket.ClosingBracketForDictionaryOrTextBlock
+    );
+
+    return result
+        ? { content: result.content, contentRange: result.range }
+        : undefined;
 };
 
 const getContentRange = (
@@ -213,7 +220,10 @@ const getContentRange = (
 ) =>
     new Range(
         new Position(firstLineIndex, 0),
-        new Position(lineWithClosingBracketIndex, lastLineContent.lastIndexOf(closingBracket))
+        new Position(
+            lineWithClosingBracketIndex,
+            lastLineContent.lastIndexOf(closingBracket)
+        )
     );
 
 const isKeyValuePair = (lineText: string) =>

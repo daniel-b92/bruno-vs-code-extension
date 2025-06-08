@@ -4,7 +4,7 @@ import {
     isAuthBlock,
     isParamsBlock,
     isVarsBlock,
-} from "../../../../../shared";
+} from "../..";
 
 export function shouldBeDictionaryBlock(blockName: string) {
     const allBlockNames = Object.values(RequestFileBlockName);

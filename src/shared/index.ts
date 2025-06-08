@@ -16,6 +16,7 @@ export * from "./fileParsing/external/metaBlock/getMaxSequenceForRequests";
 export * from "./fileParsing/external/metaBlock/getSequencesForRequests";
 export * from "./fileParsing/external/parseBruFile";
 export * from "./fileParsing/external/interfaces";
+export * from "./fileParsing/external/shouldBeDictionaryBlock";
 export * from "./fileParsing/external/getValidDictionaryBlocksWithName";
 export * from "./fileParsing/external/authBlocks/getAuthTypeFromBlockName";
 export * from "./fileParsing/external/authBlocks/isAuthBlock";

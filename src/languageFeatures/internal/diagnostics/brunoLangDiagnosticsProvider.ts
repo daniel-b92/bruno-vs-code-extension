@@ -6,6 +6,7 @@ import {
     isAuthBlock,
     parseBruFile,
     RequestFileBlockName,
+    shouldBeDictionaryBlock,
     TextDocumentHelper,
 } from "../../../shared";
 import { checkOccurencesOfMandatoryBlocks } from "./requestFiles/checks/multipleBlocks/checkOccurencesOfMandatoryBlocks";
@@ -27,7 +28,6 @@ import { getAuthBlockSpecificDiagnostics } from "./getAuthBlockSpecificDiagnosti
 import { checkUrlFromMethodBlockMatchesQueryParamsBlock } from "./requestFiles/checks/multipleBlocks/checkUrlFromMethodBlockMatchesQueryParamsBlock";
 import { checkUrlFromMethodBlockMatchesPathParamsBlock } from "./requestFiles/checks/multipleBlocks/checkUrlFromMethodBlockMatchesPathParamsBlock";
 import { checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests } from "./requestFiles/checks/multipleBlocks/checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests";
-import { shouldBeDictionaryBlock } from "./requestFiles/util/shouldBeDictionaryBlock";
 import { checkArrayBlocksHaveArrayStructure } from "./shared/checks/multipleBlocks/checkArrayBlocksHaveArrayStructure";
 
 export class BrunoLangDiagnosticsProvider {
