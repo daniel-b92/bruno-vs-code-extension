@@ -7,7 +7,7 @@
         "sourceMap": true,
         "strict": true,
         "rootDir": "src",
-        "plugins": [{ "name": "typescript-for-bruno" }],
+        "plugins": [{ "name": "@daniel-b92/ts-plugin-for-bruno" }],
 
         "allowUnreachableCode": false,
         "noUnusedLocals": true,
