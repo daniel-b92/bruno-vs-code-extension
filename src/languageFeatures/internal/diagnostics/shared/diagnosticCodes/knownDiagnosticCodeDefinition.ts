@@ -2,9 +2,11 @@ import { RelevantWithinAuthBlockDiagnosticCode } from "./relevantWithinAuthBlock
 import { RelevantWithinMetaBlockDiagnosticCode } from "./relevantWithinMetaBlockDiagnosticCodeEnum";
 import { RelevantWithinMethodBlockDiagnosticCode } from "./relevantWithinMethodBlockDiagnosticCodeEnum";
 import { NonBlockSpecificDiagnosticCode } from "./nonBlockSpecificDiagnosticCodeEnum";
+import { RelevantWithinBodyBlockDiagnosticCode } from "./relevantWithinBodyBlockDiagnosticCodeEnum";
 
 export type KnownDiagnosticCode =
     | RelevantWithinAuthBlockDiagnosticCode
     | RelevantWithinMetaBlockDiagnosticCode
     | RelevantWithinMethodBlockDiagnosticCode
+    | RelevantWithinBodyBlockDiagnosticCode
     | NonBlockSpecificDiagnosticCode;

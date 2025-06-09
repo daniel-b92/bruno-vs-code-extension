@@ -4,6 +4,7 @@ import {
     EnvironmentFileBlockName,
     getAllMethodBlocks,
     isAuthBlock,
+    isBodyBlock,
     parseBruFile,
     RequestFileBlockName,
     shouldBeDictionaryBlock,
@@ -29,6 +30,7 @@ import { checkUrlFromMethodBlockMatchesQueryParamsBlock } from "./requestFiles/c
 import { checkUrlFromMethodBlockMatchesPathParamsBlock } from "./requestFiles/checks/multipleBlocks/checkUrlFromMethodBlockMatchesPathParamsBlock";
 import { checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests } from "./requestFiles/checks/multipleBlocks/checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests";
 import { checkArrayBlocksHaveArrayStructure } from "./shared/checks/multipleBlocks/checkArrayBlocksHaveArrayStructure";
+import { getRequestBodyBlockSpecificDiagnostics } from "./getRequestBodyBlockSpecificDiagnostics";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -142,6 +144,15 @@ export class BrunoLangDiagnosticsProvider {
             this.addToResults(
                 results,
                 ...getAuthBlockSpecificDiagnostics(authBlocks[0])
+            );
+        }
+
+        const bodyBlocks = blocks.filter(({ name }) => isBodyBlock(name));
+
+        if (bodyBlocks.length == 1) {
+            this.addToResults(
+                results,
+                ...getRequestBodyBlockSpecificDiagnostics(bodyBlocks[0])
             );
         }
 
