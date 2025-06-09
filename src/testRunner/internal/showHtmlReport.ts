@@ -8,8 +8,8 @@ export function showHtmlReport(htmlReportPath: string, testItemPath: string) {
         : undefined;
 
     const panel = window.createWebviewPanel(
-        "bruno HTML report",
-        `bruno HTML report - ${getTestLabel(Uri.file(testItemPath))}`,
+        "bru HTML report",
+        `bru HTML report - ${getTestLabel(Uri.file(testItemPath))}`,
         column || ViewColumn.One,
         {
             enableCommandUris: true,

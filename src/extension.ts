@@ -20,8 +20,8 @@ import { syncTsPlugin } from "./syncTsPlugin";
 
 export async function activate(context: ExtensionContext) {
     const ctrl = tests.createTestController(
-        "brunoCliTestController",
-        "Bruno CLI Tests"
+        "bruAsCodeTestController",
+        "bru-as-code"
     );
     context.subscriptions.push(ctrl);
 

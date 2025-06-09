@@ -389,4 +389,4 @@ const getLineBreakForTestRunOutput = () => "\r\n";
 const getNpmPackageNameWithoutSpecificVersion = () => "@usebruno/cli";
 
 const getConfigKeyForAllowingUsageOfNpx = () =>
-    "bruno.allowInstallationOfBrunoCliViaNpx";
+    "bru-as-code.allowInstallationOfBrunoCliViaNpx";

@@ -1,19 +1,20 @@
 {
-    "name": "bruno-cli-test-runner-experiment",
-    "displayName": "bruno-cli-test-runner-experiment",
-    "description": "Bruno test runner via Bruno CLI",
-    "version": "0.8.0",
-    "publisher": "dbe",
+    "name": "bru-as-code",
+    "displayName": "bru-as-code",
+    "description": "Enables working with Bruno files in a manner like working with code",
+    "version": "0.9.0",
+    "publisher": "daniel-b92",
     "private": true,
     "license": "MIT",
-    "repository": "https://github.com/Microsoft/vscode-extension-samples",
+    "repository": "https://github.com/daniel-b92/bruno-vs-code-extension",
     "engines": {
         "vscode": "^1.100.0"
     },
     "categories": [
         "Testing",
         "Snippets",
-        "Programming Languages"
+        "Programming Languages",
+        "Linters"
     ],
     "activationEvents": [
         "workspaceContains:**/*.bru"
@@ -47,23 +48,23 @@
     },
     "contributes": {
         "configuration": {
-            "title": "Bruno",
+            "title": "bru-as-code",
             "properties": {
-                "bruno.testRunEnvironment": {
+                "bru-as-code.testRunEnvironment": {
                     "type": "string",
                     "description": "The name of the environment to use for running Bruno tests with."
                 },
-                "bruno.htmlReportPath": {
+                "bru-as-code.htmlReportPath": {
                     "type": "string",
                     "default": "../results.html",
                     "description": "The path for saving HTML test reports. Can either be defined as an absolute path or relative to the collection root directory."
                 },
-                "bruno.alwaysShowHtmlReport": {
+                "bru-as-code.alwaysShowHtmlReport": {
                     "type": "boolean",
                     "default": true,
                     "markdownDescription": "Whether to always show the HTML test report after running tests. If set to *false*, the HTML report will only be shown for failed runs."
                 },
-                "bruno.allowInstallationOfBrunoCliViaNpx": {
+                "bru-as-code.allowInstallationOfBrunoCliViaNpx": {
                     "type": "boolean",
                     "default": false,
                     "markdownDescription": "Allow the Bruno CLI npm package to be installed temporarily via npx, if it's not already installed globally. See [npm docs](https://docs.npmjs.com/cli/v11/commands/npx) for further infos on npx."
@@ -75,34 +76,34 @@
                 "enableForWorkspaceTypeScriptVersions": true,
                 "name": "@zentryc5t/ts-plugin-for-bruno",
                 "languages": [
-                    "bruno"
+                    "bru"
                 ]
             }
         ],
         "snippets": [
             {
-                "language": "bruno",
+                "language": "bru",
                 "path": "./src/languageFeatures/bruno_snippets.json"
             }
         ],
         "languages": [
             {
-                "id": "bruno",
+                "id": "bru",
                 "extensions": [
                     ".bru"
                 ],
                 "aliases": [
-                    "bruno",
-                    "bruno"
+                    "bru",
+                    "bru"
                 ],
                 "configuration": "./src/languageFeatures/language-configuration.json"
             }
         ],
         "grammars": [
             {
-                "language": "bruno",
+                "language": "bru",
                 "scopeName": "source.bru",
-                "path": "./syntaxes/bruno.tmLanguage.json"
+                "path": "./syntaxes/bru.tmLanguage.json"
             }
         ],
         "commands": [

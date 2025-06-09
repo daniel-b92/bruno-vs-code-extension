@@ -1,6 +1,6 @@
 {
     "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-    "name": "bruno",
+    "name": "bru",
     "scopeName": "source.bru",
     "patterns": [
         {
@@ -34,19 +34,19 @@
     ],
     "repository": {
         "dictionary-block": {
-            "name": "meta.dictionary-block.bruno",
+            "name": "meta.dictionary-block.bru",
             "begin": "^(meta|get|post|put|delete|options|patch|head|params:\\S+|headers|auth:\\S+|body:multipart-form|body:form-urlencoded|body:file|vars:\\S+|assert|vars)\\s*{$",
             "end": "^}\\s*$",
-            "beginCaptures": { "0": { "name": "keyword.bruno" } },
+            "beginCaptures": { "0": { "name": "keyword.bru" } },
             "patterns": [{ "include": "#dictionary" }]
         },
         "script-or-test-block": {
-            "name": "meta.script-or-test-block.bruno",
+            "name": "meta.script-or-test-block.bru",
             "begin": "^(tests|script:\\S+)\\s*{$",
             "end": "^}\\s*$",
             "beginCaptures": {
                 "0": {
-                    "name": "keyword.bruno"
+                    "name": "keyword.bru"
                 }
             },
             "patterns": [
@@ -56,12 +56,12 @@
             ]
         },
         "json-or-graphql-vars-body-block": {
-            "name": "meta.json-or-graphql-vars-body-block.bruno",
+            "name": "meta.json-or-graphql-vars-body-block.bru",
             "begin": "^(body:json|body:graphql:vars)\\s*{$",
             "end": "^}\\s*$",
             "beginCaptures": {
                 "0": {
-                    "name": "keyword.bruno"
+                    "name": "keyword.bru"
                 }
             },
             "patterns": [
@@ -71,12 +71,12 @@
             ]
         },
         "xml-body-block": {
-            "name": "meta.xml-body-block.bruno",
+            "name": "meta.xml-body-block.bru",
             "begin": "^body:xml\\s*{$",
             "end": "^}\\s*$",
             "beginCaptures": {
                 "0": {
-                    "name": "keyword.bruno"
+                    "name": "keyword.bru"
                 }
             },
             "patterns": [
@@ -86,12 +86,12 @@
             ]
         },
         "sparql-body-block": {
-            "name": "meta.sparql-body-block.bruno",
+            "name": "meta.sparql-body-block.bru",
             "begin": "^body:sparql\\s*{$",
             "end": "^}\\s*$",
             "beginCaptures": {
                 "0": {
-                    "name": "keyword.bruno"
+                    "name": "keyword.bru"
                 }
             },
             "patterns": [
@@ -101,12 +101,12 @@
             ]
         },
         "graphql-body-block": {
-            "name": "meta.graphql-body-block.bruno",
+            "name": "meta.graphql-body-block.bru",
             "begin": "^body:graphql\\s*{$",
             "end": "^}\\s*$",
             "beginCaptures": {
                 "0": {
-                    "name": "keyword.bruno"
+                    "name": "keyword.bru"
                 }
             },
             "patterns": [
@@ -116,12 +116,12 @@
             ]
         },
         "text-body-or-docs-block": {
-            "name": "meta.text-body-or-docs-block.bruno",
+            "name": "meta.text-body-or-docs-block.bru",
             "begin": "^(body:text|docs)\\s*{$",
             "end": "^}\\s*$",
             "beginCaptures": {
                 "0": {
-                    "name": "keyword.bruno"
+                    "name": "keyword.bru"
                 }
             },
             "patterns": [
@@ -131,16 +131,16 @@
             ]
         },
         "array-block": {
-            "name": "meta.array-block.bruno",
+            "name": "meta.array-block.bru",
             "begin": "^vars:secret\\s*\\[$",
             "end": "^\\]\\s*$",
-            "beginCaptures": { "0": { "name": "keyword.bruno" } },
+            "beginCaptures": { "0": { "name": "keyword.bru" } },
             "patterns": [
                 {
                     "match": "^\\s*([^,\\n\\]]+),?\\s*$",
                     "captures": {
                         "1": {
-                            "name": "entity.name.tag.bruno"
+                            "name": "entity.name.tag.bru"
                         }
                     }
                 }
@@ -152,22 +152,22 @@
                     "match": "^\\s*([^\\:]+)[\\:]\\s+([^\\n]+)\\s*$",
                     "captures": {
                         "1": {
-                            "name": "entity.name.tag.bruno"
+                            "name": "entity.name.tag.bru"
                         },
                         "2": {
-                            "name": "string.bruno"
+                            "name": "string.bru"
                         }
                     }
                 }
             ]
         },
         "strings": {
-            "name": "string.quoted.double.bruno",
+            "name": "string.quoted.double.bru",
             "begin": "\"",
             "end": "\"",
             "patterns": [
                 {
-                    "name": "constant.character.escape.bruno",
+                    "name": "constant.character.escape.bru",
                     "match": "\\\\."
                 }
             ]

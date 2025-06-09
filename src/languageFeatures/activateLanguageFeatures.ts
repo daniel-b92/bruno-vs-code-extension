@@ -36,7 +36,7 @@ export function activateLanguageFeatures(
 ) {
     const tempJsFilesRegistry = new TemporaryJsFilesRegistry();
 
-    const diagnosticCollection = languages.createDiagnosticCollection("bruno");
+    const diagnosticCollection = languages.createDiagnosticCollection("bru-as-code");
 
     const brunoLangDiagnosticsProvider = new BrunoLangDiagnosticsProvider(
         diagnosticCollection,

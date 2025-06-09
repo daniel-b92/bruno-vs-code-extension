@@ -20,7 +20,7 @@ import {
     getLinkToUserSetting,
 } from "../../shared";
 
-const environmentConfigKey = "bruno.testRunEnvironment";
+const environmentConfigKey = "bru-as-code.testRunEnvironment";
 
 export const startTestRun = async (
     ctrl: TestController,
@@ -208,7 +208,7 @@ function gatherTestItems(collection: vscodeTestItemCollection) {
 }
 
 const getHtmlReportPath = (collectionRootDir: string) => {
-    const reportPathConfigKey = "bruno.htmlReportPath";
+    const reportPathConfigKey = "bru-as-code.htmlReportPath";
     const defaultFileName = "results.html";
     const fallbackAbsolutePath = resolve(
         collectionRootDir,
@@ -251,7 +251,7 @@ function showWarningForInvalidOrMissingHtmlReportPathConfig(
 }
 
 const shouldShowHtmlReport = (testsPassed: boolean) => {
-    const alwaysShowReportConfigKey = "bruno.alwaysShowHtmlReport";
+    const alwaysShowReportConfigKey = "bru-as-code.alwaysShowHtmlReport";
     const fallbackValue = true;
 
     const configValue = workspace
