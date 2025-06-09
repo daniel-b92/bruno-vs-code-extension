@@ -103,7 +103,7 @@ function getDiagnosticForMissingPathParamsInUrl(
             missingUrlSubstrings.length == 1
                 ? `'${missingUrlSubstrings[0]}'`
                 : JSON.stringify(missingUrlSubstrings, undefined, 2)
-        }`,
+        }. Saving may fix this issue since the path params will be automatically updated, to match the url on saving.`,
         range: mapRange(urlFieldInMethodBlock.valueRange),
         severity: DiagnosticSeverity.Warning,
         relatedInformation: [
