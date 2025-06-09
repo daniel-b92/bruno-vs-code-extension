@@ -7,8 +7,8 @@ export const syncTsPlugin = async () => {
             await ext.activate();
         }
         const tsAPi = ext.exports.getAPI(0);
-        tsAPi.configurePlugin("@daniel-b92/ts-plugin-for-bruno", {
-            name: "@daniel-b92/ts-plugin-for-bruno",
+        tsAPi.configurePlugin("@zentryc5t/ts-plugin-for-bruno", {
+            name: "@zentryc5t/ts-plugin-for-bruno",
             languages: ["bruno"]
         });
     }

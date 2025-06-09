@@ -19,6 +19,32 @@
         "workspaceContains:**/*.bru"
     ],
     "main": "./dist/extension",
+    "scripts": {
+        "vscode:prepublish": "npm run package",
+        "compile": "webpack --mode development",
+        "lint": "eslint",
+        "watch": "webpack --mode development --watch",
+        "package": "webpack --mode production --devtool hidden-source-map"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.13.0",
+        "@stylistic/eslint-plugin": "^2.13.0",
+        "@types/chai": "^5.2.2",
+        "@types/mocha": "^10.0.10",
+        "@types/node": "^20.17.24",
+        "@types/vscode": "^1.100.0",
+        "eslint": "^9.22.0",
+        "ts-loader": "^9.5.2",
+        "typescript": "^5.8.2",
+        "typescript-eslint": "^8.26.1",
+        "webpack": "^5.98.0",
+        "webpack-cli": "^6.0.1"
+    },
+    "dependencies": {
+        "@zentryc5t/ts-plugin-for-bruno": "^1.0.0",
+        "npm": "^11.2.0",
+        "tree-kill": "^1.2.2"
+    },
     "contributes": {
         "configuration": {
             "title": "Bruno",
@@ -47,7 +73,7 @@
         "typescriptServerPlugins": [
             {
                 "enableForWorkspaceTypeScriptVersions": true,
-                "name": "@daniel-b92/ts-plugin-for-bruno",
+                "name": "@zentryc5t/ts-plugin-for-bruno",
                 "languages": [
                     "bruno"
                 ]
@@ -187,31 +213,5 @@
                 }
             ]
         }
-    },
-    "scripts": {
-        "vscode:prepublish": "npm run package",
-        "compile": "npm install && webpack --mode development",
-        "lint": "eslint",
-        "watch": "webpack --mode development --watch",
-        "package": "webpack --mode production --devtool hidden-source-map"
-    },
-    "devDependencies": {
-        "@eslint/js": "^9.13.0",
-        "@stylistic/eslint-plugin": "^2.13.0",
-        "@types/chai": "^5.2.2",
-        "@types/mocha": "^10.0.10",
-        "@types/node": "^20.17.24",
-        "@types/vscode": "^1.100.0",
-        "eslint": "^9.22.0",
-        "ts-loader": "^9.5.2",
-        "typescript": "^5.8.2",
-        "typescript-eslint": "^8.26.1",
-        "webpack": "^5.98.0",
-        "webpack-cli": "^6.0.1"
-    },
-    "dependencies": {
-        "@daniel-b92/ts-plugin-for-bruno": "file:src/tsPlugin",
-        "npm": "^11.2.0",
-        "tree-kill": "^1.2.2"
     }
 }
