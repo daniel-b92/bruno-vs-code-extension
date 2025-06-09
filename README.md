@@ -27,4 +27,4 @@ Run the following command for installing all dependencies:
 npm install
 ```
 
-If you want to make changes to the Typescript language service plugin used by the extension, navigate to `src/tsPlugin` and ... TODO: Add description on how to handle tsPlugin modifications
+If you want to make changes to the Typescript language service plugin used by the extension, see [Readme](./src/tsPlugin/README.md) for more infos.
