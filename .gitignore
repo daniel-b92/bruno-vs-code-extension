@@ -8,3 +8,5 @@ node_modules
 
 samples/**/results.html
 samples/**/*results.json
+
+**/__temp_bru_reference.js
