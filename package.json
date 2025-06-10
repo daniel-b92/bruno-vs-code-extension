@@ -10,6 +10,9 @@
     "engines": {
         "vscode": "^1.100.0"
     },
+    "extensionDependencies": [
+        "vscode.typescript-language-features"
+    ],
     "categories": [
         "Testing",
         "Snippets",
@@ -43,7 +46,6 @@
     },
     "dependencies": {
         "@zentryc5t/ts-plugin-for-bruno": "^1.0.0",
-        "npm": "^11.2.0",
         "tree-kill": "^1.2.2"
     },
     "contributes": {
