@@ -4,12 +4,14 @@ import {
     mapRange,
     RequestFileBlockName,
     Range,
-    Position,
+    TextDocumentHelper,
+    mapPosition,
 } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { RelevantWithinBodyBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinBodyBlockDiagnosticCodeEnum";
 
 export function checkJsonRequestBodySyntax(
+    document: TextDocumentHelper,
     requestBody: Block
 ): DiagnosticWithCode | undefined {
     if (
@@ -19,14 +21,18 @@ export function checkJsonRequestBodySyntax(
         try {
             JSON.parse(requestBody.content);
         } catch (err) {
-            return getDiagnostic(requestBody.contentRange, err);
+            return getDiagnostic(document, requestBody.contentRange, err);
         }
     } else {
         return undefined;
     }
 }
 
-function getDiagnostic(contentRange: Range, error: unknown) {
+function getDiagnostic(
+    document: TextDocumentHelper,
+    contentRange: Range,
+    error: unknown
+) {
     if (!(error instanceof SyntaxError)) {
         return getDiagnosticForUnexpectedErrorWhileParsingJson(
             contentRange,
@@ -34,7 +40,11 @@ function getDiagnostic(contentRange: Range, error: unknown) {
         );
     }
 
-    const startPosition = getPositionForSyntaxError(contentRange, error);
+    const startPosition = getPositionForSyntaxError(
+        document,
+        contentRange,
+        error
+    );
 
     if (startPosition) {
         const searchString = "in JSON";
@@ -56,31 +66,34 @@ function getDiagnostic(contentRange: Range, error: unknown) {
 }
 
 function getPositionForSyntaxError(
+    document: TextDocumentHelper,
     blockContentRange: Range,
     error: SyntaxError
 ) {
     const message = error.message;
 
-    const matches = /\(line\s*(\d*)\s*column\s*(\d*)\s*\)$/m.exec(message);
+    const matches = /in JSON at position (\d*)/.exec(message);
 
-    if (matches && matches.length >= 3) {
-        const lineNumber =
+    if (matches && matches.length >= 2) {
+        const offset =
             matches[1] && !isNaN(Number(matches[1]))
                 ? Number(matches[1])
                 : undefined;
-        const columnNumber =
-            matches[2] && !isNaN(Number(matches[2]))
-                ? Number(matches[2])
-                : undefined;
 
-        // The displayed line number has base 1 instead of 0.
-        return lineNumber && lineNumber >= 1 && columnNumber
-            ? new Position(
-                  lineNumber - 1 + blockContentRange.start.line,
-                  lineNumber > 1
-                      ? columnNumber
-                      : columnNumber - blockContentRange.start.character
-              )
+        if (offset == undefined) {
+            return undefined;
+        }
+
+        const positionInDocument = document.getPositionForOffset(
+            blockContentRange.start,
+            offset
+        );
+
+        return positionInDocument &&
+            mapRange(blockContentRange).contains(
+                mapPosition(positionInDocument)
+            )
+            ? positionInDocument
             : undefined;
     } else {
         return undefined;

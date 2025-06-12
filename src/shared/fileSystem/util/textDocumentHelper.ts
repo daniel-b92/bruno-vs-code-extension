@@ -204,6 +204,50 @@ export class TextDocumentHelper {
         };
     }
 
+    public getPositionForOffset(
+        { line: startLine, character: startChar }: Position,
+        offset: number
+    ) {
+        const lastLineIndex = this.getLineCount() - 1;
+
+        if (
+            startLine > lastLineIndex ||
+            startChar > this.getLineByIndex(startLine).length
+        ) {
+            return undefined;
+        }
+
+        if (startLine == lastLineIndex) {
+            const line = this.getLineByIndex(startLine);
+            return line.length >= startChar + offset
+                ? new Position(startLine, startChar + offset)
+                : undefined;
+        }
+
+        // add 1 for the line break at the end
+        const firstLineRemainingLengthWithLineBreak =
+            this.getLineByIndex(startLine).length - startChar + 1;
+
+        let currentOffset = firstLineRemainingLengthWithLineBreak;
+
+        const lineContainingPosition = this.getAllLines(startLine + 1).find(
+            ({ content, index }) => {
+                const currentTextLengthWithLineBreak =
+                    content.length + (index < lastLineIndex ? 1 : 0);
+
+                if (currentOffset + currentTextLengthWithLineBreak >= offset) {
+                    return true;
+                } else {
+                    currentOffset += currentTextLengthWithLineBreak;
+                }
+            }
+        );
+
+        return lineContainingPosition != undefined
+            ? new Position(lineContainingPosition.index, offset - currentOffset)
+            : undefined;
+    }
+
     public getText(range?: Range) {
         if (!range) {
             return this.text;
