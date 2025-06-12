@@ -47,7 +47,7 @@ function getDiagnostic(
     );
 
     if (startPosition) {
-        const searchString = "in JSON";
+        const searchString = "at position ";
 
         return {
             message: error.message.includes(searchString)
@@ -72,7 +72,7 @@ function getPositionForSyntaxError(
 ) {
     const message = error.message;
 
-    const matches = /in JSON at position (\d*)/.exec(message);
+    const matches = /at position (\d*)\s*/.exec(message);
 
     if (matches && matches.length >= 2) {
         const offset =

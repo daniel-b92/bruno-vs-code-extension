@@ -217,21 +217,11 @@ export class TextDocumentHelper {
             return undefined;
         }
 
-        if (startLine == lastLineIndex) {
-            const line = this.getLineByIndex(startLine);
-            return line.length >= startChar + offset
-                ? new Position(startLine, startChar + offset)
-                : undefined;
-        }
+        let currentOffset = 0;
 
-        // add 1 for the line break at the end
-        const firstLineRemainingLengthWithLineBreak =
-            this.getLineByIndex(startLine).length - startChar + 1;
-
-        let currentOffset = firstLineRemainingLengthWithLineBreak;
-
-        const lineContainingPosition = this.getAllLines(startLine + 1).find(
+        const lineContainingPosition = this.getAllLines(startLine).find(
             ({ content, index }) => {
+                // add 1 for the line break at the end of each line
                 const currentTextLengthWithLineBreak =
                     content.length + (index < lastLineIndex ? 1 : 0);
 
