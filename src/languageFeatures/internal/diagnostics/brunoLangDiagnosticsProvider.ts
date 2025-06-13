@@ -152,10 +152,7 @@ export class BrunoLangDiagnosticsProvider {
         if (bodyBlocks.length == 1) {
             this.addToResults(
                 results,
-                ...getRequestBodyBlockSpecificDiagnostics(
-                    document,
-                    bodyBlocks[0]
-                )
+                ...getRequestBodyBlockSpecificDiagnostics(bodyBlocks[0])
             );
         }
 
