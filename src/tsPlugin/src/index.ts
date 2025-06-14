@@ -13,7 +13,9 @@ function init(_modules: {
         ) as (keyof ts.LanguageService)[]) {
             const x = info.languageService[k]!;
             // @ts-expect-error - JS runtime trickery which is tricky to type tersely
-            proxy[k] = (...args: unknown[]) => x.apply(info.languageService, args);
+            proxy[k] = (...args: unknown[]) =>
+                // @ts-expect-error - JS runtime trickery which is tricky to type tersely
+                x.apply(info.languageService, args);
         }
 
         proxy.getSyntacticDiagnostics = (fileName) => {
@@ -47,19 +49,10 @@ function init(_modules: {
 
             // The ts server always reports errors when importing a Javascript function in a .bru file.
             return allDiagnosticsForCodeBlocks.filter(
-                ({ code, messageText, start }) => {
-                    const scriptSnapshot =
-                        info.languageServiceHost.getScriptSnapshot(fileName);
-
-                    // ToDo: Improve filtering, so that it is ensured that no valid diagnostics are filtered out by mistake.
-                    return !(
-                        scriptSnapshot &&
-                        scriptSnapshot.getText(0, start).includes("require(") &&
-                        code == 7044 &&
-                        typeof messageText == "string" &&
-                        messageText.includes("better type may be inferred")
-                    );
-                }
+                // Do not show diagnostics that only make sense for Typescript files.
+                // Bru file code blocks should be treated like Javascript functions instead.
+                // A list of diagnostics can be found here: https://github.com/microsoft/TypeScript/blob/main/src/compiler/diagnosticMessages.json
+                ({ code }) => (code < 7_043 || code > 7_050) && code != 80_004
             );
         };
 
@@ -132,7 +125,10 @@ function filterDefaultDiagnostics(
                     // Do not show diagnostics for functions that are provided by Bruno at runtime
                     !["bru", "req", "res", "test", "expect"].includes(
                         fileContent.substring(start, start + length)
-                    )
+                    ) &&
+                    // Avoid showing incorrect error when using `require`
+                    // (the error seems to only occur for short periods of time when typescript type definitions have not been reloaded for a while)
+                    fileContent.substring(start, start + length) != "require"
             );
         } else {
             return [];
