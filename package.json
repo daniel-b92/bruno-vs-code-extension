@@ -111,7 +111,8 @@
         "commands": [
             {
                 "command": "brunoCollectionsView.refresh",
-                "title": "Refresh",
+                "title": "Bru-As-Code: Refresh Collection View",
+                "shortTitle": "Refresh",
                 "icon": "$(extensions-refresh)"
             },
             {
@@ -213,6 +214,44 @@
                     "command": "brunoCollectionsView.deleteItem",
                     "when": "view == brunoCollectionsView",
                     "group": "navigation@30"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "brunoCollectionsView.deleteItem",
+                    "when": "view == noView"
+                },
+                {
+                    "command": "brunoCollectionsView.duplicateFile",
+                    "when": "view == noView"
+                },
+                {
+                    "command": "brunoCollectionsView.duplicateFolder",
+                    "when": "view == noView"
+                },
+                {
+                    "command": "brunoCollectionsView.renameItem",
+                    "when": "view == noView"
+                },
+                {
+                    "command": "brunoCollectionsView.createRequestFile",
+                    "when": "view == noView"
+                },
+                {
+                    "command": "brunoCollectionsView.createEmptyFile",
+                    "when": "view == noView"
+                },
+                {
+                    "command": "brunoCollectionsView.createFolder",
+                    "when": "view == noView"
+                },
+                {
+                    "command": "brunoCollectionsView.startTestRun",
+                    "when": "view == noView"
+                },
+                {
+                    "command": "brunoCollectionsView.openInNewTabgroup",
+                    "when": "view == noView"
                 }
             ]
         }
