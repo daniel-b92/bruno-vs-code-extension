@@ -1,12 +1,14 @@
 {
-  "name": "@zentryc5t/ts-plugin-for-bruno",
-  "version": "1.0.0",
-  "main": "./out/index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "zentryc5t",
-  "license": "MIT",
-  "description": "",
-  "repository": {"url": "https://github.com/daniel-b92/bruno-vs-code-extension/tree/main/src/tsPlugin"}
+    "name": "@zentryc5t/ts-plugin-for-bruno",
+    "version": "1.0.2",
+    "main": "./out/index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "zentryc5t",
+    "license": "MIT",
+    "description": "",
+    "repository": {
+        "url": "https://github.com/daniel-b92/bruno-vs-code-extension/tree/main/src/tsPlugin"
+    }
 }

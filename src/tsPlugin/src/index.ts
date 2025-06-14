@@ -124,11 +124,12 @@ function filterDefaultDiagnostics(
                     ) &&
                     // Do not show diagnostics for functions that are provided by Bruno at runtime
                     !["bru", "req", "res", "test", "expect"].includes(
-                        fileContent.substring(start, start + length)
+                        (fileContent as string).substring(start, start + length)
                     ) &&
                     // Avoid showing incorrect error when using `require`
                     // (the error seems to only occur for short periods of time when typescript type definitions have not been reloaded for a while)
-                    fileContent.substring(start, start + length) != "require"
+                    (fileContent as string).substring(start, start + length) !=
+                        "require"
             );
         } else {
             return [];
