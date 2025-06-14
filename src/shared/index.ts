@@ -1,7 +1,7 @@
 // file system
 export * from "./fileSystem/collectionWatcher";
 export * from "./fileSystem/fileChangesDefinitions";
-export * from "./fileSystem/getTemporaryJsFileName";
+export * from "./fileSystem/util/getTemporaryJsFileName";
 export * from "./fileSystem/util/collectionRootFolderHelper";
 export * from "./fileSystem/util/getTestFileDescendants";
 export * from "./fileSystem/util/normalizeDirectoryPath";

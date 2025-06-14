@@ -1,4 +1,4 @@
-import { unlinkSync } from "fs";
+import { existsSync, unlinkSync } from "fs";
 import { TemporaryJsFilesRegistry } from "../temporaryJsFilesRegistry";
 import { getTemporaryJsFileName } from "../../../../shared";
 
@@ -6,6 +6,10 @@ export function deleteTemporaryJsFileForCollection(
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
     collectionRootDirectory: string
 ) {
-    unlinkSync(getTemporaryJsFileName(collectionRootDirectory));
+    const path = getTemporaryJsFileName(collectionRootDirectory);
+
+    if (existsSync(path)) {
+        unlinkSync(path);
+    }
     tempJsFilesRegistry.unregisterJsFileForCollection(collectionRootDirectory);
 }

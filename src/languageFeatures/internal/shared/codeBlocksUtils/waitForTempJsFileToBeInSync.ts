@@ -4,10 +4,13 @@ import {
     Collection,
     getTemporaryJsFileName,
     normalizeDirectoryPath,
+    RequestFileBlockName,
 } from "../../../../shared";
 import { TemporaryJsFilesRegistry } from "../temporaryJsFilesRegistry";
 import { createTemporaryJsFile } from "./createTemporaryJsFile";
-import { isTempJsFileInSync } from "./isTempJsFileInSync";
+import { existsSync } from "fs";
+import { getCodeBlocks } from "./getCodeBlocks";
+import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
 
 export async function waitForTempJsFileToBeInSync(
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
@@ -15,7 +18,7 @@ export async function waitForTempJsFileToBeInSync(
     bruFileContent: string,
     bruFileCodeBlocks: Block[]
 ) {
-    createTemporaryJsFileIfNotAlreadyRegistered(
+    createTemporaryJsFileIfNotAlreadyExisting(
         tempJsFilesRegistry,
         collection,
         bruFileContent
@@ -49,7 +52,27 @@ export async function waitForTempJsFileToBeInSync(
     return temporaryJsDoc;
 }
 
-function createTemporaryJsFileIfNotAlreadyRegistered(
+function isTempJsFileInSync(
+    tempJsFileFullContent: string,
+    relevantBlocksFromBruFile: Block[]
+) {
+    const blocksFromBruFile = getCodeBlocks(relevantBlocksFromBruFile);
+
+    return blocksFromBruFile.every(({ name, content: bruFileBlockContent }) => {
+        const jsFileBlock = getTempJsFileBlockContent(
+            tempJsFileFullContent,
+            name as RequestFileBlockName
+        );
+
+        if (!jsFileBlock) {
+            return false;
+        }
+
+        return jsFileBlock.content == bruFileBlockContent;
+    });
+}
+
+function createTemporaryJsFileIfNotAlreadyExisting(
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
     collection: Collection,
     bruFileContent: string
@@ -62,7 +85,10 @@ function createTemporaryJsFileIfNotAlreadyRegistered(
                 normalizeDirectoryPath(collection.getRootDirectory())
         );
 
-    if (!isTempJsFileRegistered) {
+    if (
+        !isTempJsFileRegistered ||
+        !existsSync(getTemporaryJsFileName(collection.getRootDirectory()))
+    ) {
         createTemporaryJsFile(
             collection.getRootDirectory(),
             tempJsFilesRegistry,
