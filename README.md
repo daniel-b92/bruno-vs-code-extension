@@ -30,11 +30,7 @@ For getting the most out of the extension, please follow these steps when instal
 
 
 ### Improving intellisense
-- If you use the `test` and the `expect` functions in your response validations, it's helpful to add the npm packages 
-  - [@types/mocha](https://www.npmjs.com/package/@types/mocha) and
-  - [@types/chai](https://www.npmjs.com/package/@types/chai)
-  
-  as dev dependencies for your collection. That will enable proper intellisense for these functions. Also consider adding type definitions for other inbuilt libraries you use within your tests (e.g. `moment`).
+- You can improve intellisense by adding type definitions as dev dependencies for all inbuilt libraries from `bruno` you use within your collection (e.g. `axios` or `moment`).
 
 ## Contributing
 
