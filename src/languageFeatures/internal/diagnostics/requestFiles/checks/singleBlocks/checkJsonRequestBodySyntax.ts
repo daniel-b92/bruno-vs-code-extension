@@ -18,7 +18,7 @@ export function checkJsonRequestBodySyntax(
         requestBody.name == RequestFileBlockName.JsonBody &&
         typeof requestBody.content == "string"
     ) {
-        const regexForFindingVariableOccurences = /{{\S*?}}/g;
+        const regexForFindingVariableOccurences = /{{\S+?}}/g;
         const placeholderForVariables = "1";
         const documentForBlock = new TextDocumentHelper(requestBody.content);
 
@@ -39,7 +39,8 @@ export function checkJsonRequestBodySyntax(
                 documentForBlock,
                 requestBody,
                 err,
-                regexForFindingVariableOccurences
+                regexForFindingVariableOccurences,
+                placeholderForVariables
             );
         }
     } else {
@@ -51,7 +52,8 @@ function getDiagnostic(
     documentForBlock: TextDocumentHelper,
     actualRequestBody: Block,
     errorInBlockWithReplacements: unknown,
-    regexForFindingVariableOccurences: RegExp
+    regexForFindingVariableOccurences: RegExp,
+    placeholderForVariables: string
 ) {
     if (!(errorInBlockWithReplacements instanceof SyntaxError)) {
         return getDiagnosticForUnexpectedErrorWhileParsingJson(
@@ -63,7 +65,8 @@ function getDiagnostic(
     const startPositionWithinBlock = getPositionForSyntaxErrorWithinBlock(
         documentForBlock,
         errorInBlockWithReplacements,
-        regexForFindingVariableOccurences
+        regexForFindingVariableOccurences,
+        placeholderForVariables
     );
 
     if (startPositionWithinBlock) {
@@ -98,7 +101,8 @@ function getDiagnostic(
 function getPositionForSyntaxErrorWithinBlock(
     docForActualBlock: TextDocumentHelper,
     errorInBlockWithReplacements: SyntaxError,
-    regexForFindingVariableOccurences: RegExp
+    regexForFindingVariableOccurences: RegExp,
+    placeholderForVariables: string
 ) {
     const message = errorInBlockWithReplacements.message;
 
@@ -122,7 +126,8 @@ function getPositionForSyntaxErrorWithinBlock(
         mapOffsetFromSyntaxErrorToOffsetInActualBlock(
             docForActualBlock,
             regexForFindingVariableOccurences,
-            errorOffsetInBlockWithReplacements
+            errorOffsetInBlockWithReplacements,
+            placeholderForVariables
         )
     );
 }
@@ -130,7 +135,8 @@ function getPositionForSyntaxErrorWithinBlock(
 function mapOffsetFromSyntaxErrorToOffsetInActualBlock(
     docForActualBlock: TextDocumentHelper,
     regexForFindingVariableOccurences: RegExp,
-    errorOffsetInBlockWithReplacements: number
+    errorOffsetInBlockWithReplacements: number,
+    placeholderForVariables: string
 ) {
     const replacedSubstringsInOriginalDoc =
         getSubstringsThatHaveBeenReplacedInActualDoc(
@@ -138,43 +144,48 @@ function mapOffsetFromSyntaxErrorToOffsetInActualBlock(
             regexForFindingVariableOccurences
         );
 
-    if (!replacedSubstringsInOriginalDoc) {
-        return 0;
+    if (replacedSubstringsInOriginalDoc.length == 0) {
+        return errorOffsetInBlockWithReplacements;
     }
 
-    // ToDo: Also detemrine offset correctly if more than one substring has been replaced
-    const { firstSubstring } = replacedSubstringsInOriginalDoc;
+    let offsetToAddForBlockWithReplacements = 0;
 
-    return firstSubstring.offset <= errorOffsetInBlockWithReplacements
-        ? firstSubstring.content.length
-        : 0;
+    for (const {
+        content: originalContent,
+        offset: offsetInOriginalBlock,
+    } of replacedSubstringsInOriginalDoc) {
+        if (
+            errorOffsetInBlockWithReplacements >
+            offsetInOriginalBlock + offsetToAddForBlockWithReplacements
+        ) {
+            offsetToAddForBlockWithReplacements +=
+                placeholderForVariables.length - originalContent.length;
+        } else {
+            break;
+        }
+    }
+
+    return (
+        errorOffsetInBlockWithReplacements - offsetToAddForBlockWithReplacements
+    );
 }
 
 function getSubstringsThatHaveBeenReplacedInActualDoc(
-    document: TextDocumentHelper,
+    docForActualBlock: TextDocumentHelper,
     regexForFindingVariableOccurences: RegExp
-):
-    | {
-          firstSubstring: { content: string; offset: number };
-          followingSubstrings: { content: string }[];
-      }
-    | undefined {
-    const matches = regexForFindingVariableOccurences.exec(document.getText());
+): { content: string; offset: number }[] {
+    const matches = Array.from(
+        docForActualBlock.getText().matchAll(regexForFindingVariableOccurences)
+    );
 
-    if (!matches || matches.length == 0) {
-        return undefined;
+    if (matches.length == 0) {
+        return [];
     }
 
-    const firstSubstring = { content: matches[0], offset: matches.index };
-
-    return matches.length == 1
-        ? { firstSubstring, followingSubstrings: [] }
-        : {
-              firstSubstring,
-              followingSubstrings: matches
-                  .slice(1)
-                  .map((string) => ({ content: string })),
-          };
+    return matches.map(({ "0": content, index }) => ({
+        content,
+        offset: index,
+    }));
 }
 
 function getDiagnosticForUnexpectedErrorWhileParsingJson(
