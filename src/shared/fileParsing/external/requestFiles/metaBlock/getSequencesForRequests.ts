@@ -1,7 +1,7 @@
 import { lstatSync, readdirSync } from "fs";
 import { extname, resolve } from "path";
 import { getSequenceFromMetaBlock } from "./getSequenceFromMetaBlock";
-import { getExtensionForRequestFiles } from "../../../fileSystem/util/getExtensionForRequestFiles";
+import { getExtensionForRequestFiles } from "../../../../fileSystem/util/getExtensionForRequestFiles";
 
 export const getSequencesForRequests = (directory: string) => {
     const result: { path: string; sequence: number }[] = [];

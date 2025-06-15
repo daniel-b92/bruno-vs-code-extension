@@ -25,19 +25,20 @@ export function checkDictionaryBlocksHaveDictionaryStructure(
         blocksToCheck.filter((block) => !castBlockToDictionaryBlock(block))
     );
 
-    if (sortedBlocksWithoutCorrectStructure.length > 0) {
-        return getDiagnostic(
-            documentUri,
-            sortedBlocksWithoutCorrectStructure.map((block) => ({
-                blockName: block.name,
-                invalidLines: getLinesWithInvalidStructure(
-                    block
-                ) as PlainTextWithinBlock[],
-            }))
-        );
-    } else {
+    if (sortedBlocksWithoutCorrectStructure.length == 0) {
         return undefined;
     }
+
+    const invalidBlocksSorted = sortedBlocksWithoutCorrectStructure
+        .map((block) => ({
+            blockName: block.name,
+            invalidLines: getLinesWithInvalidStructure(block) ?? [],
+        }))
+        .filter(({ invalidLines }) => invalidLines.length > 0);
+
+    return invalidBlocksSorted.length > 0
+        ? getDiagnostic(documentUri, invalidBlocksSorted)
+        : undefined;
 }
 
 function getDiagnostic(

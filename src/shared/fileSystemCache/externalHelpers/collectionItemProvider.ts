@@ -11,7 +11,7 @@ import { CollectionData } from "../../model/interfaces";
 import { TestRunnerDataHelper } from "./testRunnerDataHelper";
 import { addItemToCollection } from "../internalHelpers/addItemToCollection";
 import { registerMissingCollectionsAndTheirItems } from "../internalHelpers/registerMissingCollectionsAndTheirItems";
-import { getSequenceFromMetaBlock } from "../../fileParsing/external/metaBlock/getSequenceFromMetaBlock";
+import { getSequenceFromMetaBlock } from "../..";
 
 export class CollectionItemProvider {
     constructor(

@@ -36,7 +36,8 @@ export function activateLanguageFeatures(
 ) {
     const tempJsFilesRegistry = new TemporaryJsFilesRegistry();
 
-    const diagnosticCollection = languages.createDiagnosticCollection("bru-as-code");
+    const diagnosticCollection =
+        languages.createDiagnosticCollection("bru-as-code");
 
     const brunoLangDiagnosticsProvider = new BrunoLangDiagnosticsProvider(
         diagnosticCollection,
@@ -142,30 +143,33 @@ function onDidChangeTextDocument(
     event: TextDocumentChangeEvent
 ) {
     if (event.contentChanges.length > 0) {
+        // If the document has been modified externally (not via VS Code), skip all actions
         if (
-            isBrunoRequestFile(
-                collectionItemProvider.getRegisteredCollections().slice(),
-                event.document.uri.fsPath
-            ) &&
-            // If the document has been modified externally (not via VS Code), skip all actions
             window.activeTextEditor?.document.uri.toString() ==
-                event.document.uri.toString()
+            event.document.uri.toString()
         ) {
-            createTemporaryJsFile(
-                (
-                    collectionItemProvider.getAncestorCollectionForPath(
-                        event.document.fileName
-                    ) as Collection
-                ).getRootDirectory(),
-                tempJsFilesRegistry,
-                event.document.getText()
-            );
-
             fetchDiagnostics(
                 event.document,
                 brunoLangDiagnosticsProvider,
                 collectionItemProvider.getRegisteredCollections().slice()
             );
+
+            if (
+                isBrunoRequestFile(
+                    collectionItemProvider.getRegisteredCollections().slice(),
+                    event.document.uri.fsPath
+                )
+            ) {
+                createTemporaryJsFile(
+                    (
+                        collectionItemProvider.getAncestorCollectionForPath(
+                            event.document.fileName
+                        ) as Collection
+                    ).getRootDirectory(),
+                    tempJsFilesRegistry,
+                    event.document.getText()
+                );
+            }
         }
     }
 }

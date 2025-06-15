@@ -2,12 +2,11 @@ import { existsSync, lstatSync, readFileSync, writeFileSync } from "fs";
 import { parseBruFile } from "../fileParsing/external/parseBruFile";
 import { TextDocumentHelper } from "../fileSystem/util/textDocumentHelper";
 import { RequestFileBlockName } from "../languageUtils/requestFileBlockNameEnum";
-import { getAllMethodBlocks } from "../fileParsing/external/methodBlocks/getAllMethodBlocks";
 import {
     getLineBreak,
     getNumberOfWhitespacesForIndentation,
 } from "./internal/writerUtils";
-import { MethodBlockAuth, MethodBlockBody } from "..";
+import { getAllMethodBlocks, MethodBlockAuth, MethodBlockBody } from "..";
 
 export function appendDefaultMethodBlock(
     testFilePath: string,

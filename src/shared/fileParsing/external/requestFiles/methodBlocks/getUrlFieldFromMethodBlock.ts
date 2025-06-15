@@ -1,4 +1,4 @@
-import { Block, MethodBlockKey } from "../../../../shared";
+import { Block, MethodBlockKey } from "../../../../../shared";
 import { getMethodBlockIfValid } from "./getMethodBlockIfValid";
 
 export function getUrlFieldFromMethodBlock(allBlocks: Block[]) {

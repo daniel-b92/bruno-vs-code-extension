@@ -3,15 +3,20 @@ import {
     RequestFileBlockName,
     isAuthBlock,
     isParamsBlock,
-    isVarsBlock,
+    isVarsBlockInRequestFile,
+    isVarsBlockInEnvironmentFile,
+    EnvironmentFileBlockName,
 } from "../..";
 
 export function shouldBeDictionaryBlock(blockName: string) {
-    const allBlockNames = Object.values(RequestFileBlockName);
+    const allBlockNames = (
+        Object.values(RequestFileBlockName) as string[]
+    ).concat(Object.values(EnvironmentFileBlockName));
 
-    if (!allBlockNames.some((validName) => blockName == validName)) {
+    if (!allBlockNames.includes(blockName)) {
         return undefined;
     }
+
     return (
         blockName == RequestFileBlockName.Meta ||
         blockName == RequestFileBlockName.Headers ||
@@ -19,13 +24,14 @@ export function shouldBeDictionaryBlock(blockName: string) {
         (getPossibleMethodBlocks() as string[]).includes(blockName) ||
         isAuthBlock(blockName) ||
         isParamsBlock(blockName) ||
-        isVarsBlock(blockName) ||
+        isVarsBlockInRequestFile(blockName) ||
         (
             [
                 RequestFileBlockName.MultipartFormBody,
                 RequestFileBlockName.FormUrlEncodedBody,
                 RequestFileBlockName.FileOrBinaryBody,
             ] as string[]
-        ).includes(blockName)
+        ).includes(blockName) ||
+        isVarsBlockInEnvironmentFile(blockName)
     );
 }

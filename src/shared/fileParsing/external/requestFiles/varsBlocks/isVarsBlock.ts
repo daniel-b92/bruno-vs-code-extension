@@ -1,4 +1,4 @@
-import { RequestFileBlockName } from "../../..";
+import { RequestFileBlockName } from "../../../..";
 
 export function isVarsBlock(blockName: string) {
     return (

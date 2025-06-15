@@ -1,5 +1,5 @@
-import { Block } from "../interfaces";
-import { getPossibleMethodBlocks } from "../../..";
+import { Block } from "../../interfaces";
+import { getPossibleMethodBlocks } from "../../../..";
 
 export function getAllMethodBlocks(parsedBlocks: Block[]) {
     const possibleMethodBlocks = getPossibleMethodBlocks() as string[];
