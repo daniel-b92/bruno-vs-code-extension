@@ -11,17 +11,17 @@ import {
 } from "vscode";
 import { provideBrunoLangCompletionItems } from "./internal/completionItems/provideBrunoLangCompletionItems";
 import {
+    BrunoFileType,
     Collection,
     CollectionItemProvider,
+    getTypeOfBrunoFile,
     normalizeDirectoryPath,
     parseBruFile,
     TextDocumentHelper,
 } from "../shared";
-import { isBrunoRequestFile } from "./internal/diagnostics/shared/util/isBrunoRequestFile";
 import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/autoUpdates/updateUrlToMatchQueryParams";
 import { updatePathParamsKeysToMatchUrl } from "./internal/autoUpdates/updatePathParamsKeysToMatchUrl";
-import { isBrunoEnvironmentFile } from "./internal/diagnostics/shared/util/isBrunoEnvironmentFile";
 import { createTemporaryJsFile } from "./internal/shared/codeBlocksUtils/createTemporaryJsFile";
 import { TemporaryJsFilesRegistry } from "./internal/shared/temporaryJsFilesRegistry";
 import { deleteTemporaryJsFileForCollection } from "./internal/shared/codeBlocksUtils/deleteTemporaryJsFile";
@@ -104,18 +104,22 @@ function onDidChangeActiveTextEditor(
         editor.document.uri.toString() ==
         window.tabGroups.activeTabGroup.activeTab.input.uri.toString()
     ) {
+        const fileType = getTypeOfBrunoFile(
+            collectionItemProvider.getRegisteredCollections().slice(),
+            editor.document.uri.fsPath
+        );
+
+        if (fileType == undefined) {
+            return;
+        }
+
         fetchDiagnostics(
             editor.document,
             brunoLangDiagnosticsProvider,
-            collectionItemProvider.getRegisteredCollections().slice()
+            fileType
         );
 
-        if (
-            isBrunoRequestFile(
-                collectionItemProvider.getRegisteredCollections().slice(),
-                editor.document.uri.fsPath
-            )
-        ) {
+        if (getBrunoFileTypesThatCanHaveCodeBlocks().includes(fileType)) {
             createTemporaryJsFile(
                 (
                     collectionItemProvider.getAncestorCollectionForPath(
@@ -148,18 +152,22 @@ function onDidChangeTextDocument(
             window.activeTextEditor?.document.uri.toString() ==
             event.document.uri.toString()
         ) {
+            const fileType = getTypeOfBrunoFile(
+                collectionItemProvider.getRegisteredCollections().slice(),
+                event.document.uri.fsPath
+            );
+
+            if (fileType == undefined) {
+                return;
+            }
+
             fetchDiagnostics(
                 event.document,
                 brunoLangDiagnosticsProvider,
-                collectionItemProvider.getRegisteredCollections().slice()
+                fileType
             );
 
-            if (
-                isBrunoRequestFile(
-                    collectionItemProvider.getRegisteredCollections().slice(),
-                    event.document.uri.fsPath
-                )
-            ) {
+            if (getBrunoFileTypesThatCanHaveCodeBlocks().includes(fileType)) {
                 createTemporaryJsFile(
                     (
                         collectionItemProvider.getAncestorCollectionForPath(
@@ -179,15 +187,19 @@ function onWillSaveTextDocument(
     collectionItemProvider: CollectionItemProvider,
     event: TextDocumentWillSaveEvent
 ) {
+    const fileType = getTypeOfBrunoFile(
+        collectionItemProvider.getRegisteredCollections().slice(),
+        event.document.uri.fsPath
+    );
+
     if (
-        isBrunoRequestFile(
-            collectionItemProvider.getRegisteredCollections().slice(),
-            event.document.uri.fsPath
-        )
+        fileType != undefined &&
+        getBrunoFileTypesThatCanHaveCodeBlocks().includes(fileType)
     ) {
         const collection = collectionItemProvider.getAncestorCollectionForPath(
             event.document.fileName
         );
+
         if (
             collection &&
             tempJsFilesRegistry
@@ -225,19 +237,25 @@ function onWillSaveTextDocument(
 function fetchDiagnostics(
     document: TextDocument,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
-    registeredCollections: Collection[]
+    brunoFileType: BrunoFileType
 ) {
-    if (isBrunoRequestFile(registeredCollections, document.uri.fsPath)) {
+    if (brunoFileType == BrunoFileType.RequestFile) {
         brunoLangDiagnosticsProvider.provideDiagnosticsForRequestFile(
             document.uri,
             document.getText()
         );
-    } else if (
-        isBrunoEnvironmentFile(registeredCollections, document.uri.fsPath)
-    ) {
+    } else if (brunoFileType == BrunoFileType.EnvironmentFile) {
         brunoLangDiagnosticsProvider.provideDiagnosticsForEnvironmentFile(
             document.uri,
             document.getText()
         );
     }
+}
+
+function getBrunoFileTypesThatCanHaveCodeBlocks() {
+    return [
+        BrunoFileType.CollectionSettingsFile,
+        BrunoFileType.FolderSettingsFile,
+        BrunoFileType.RequestFile,
+    ];
 }
