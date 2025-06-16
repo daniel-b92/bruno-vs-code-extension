@@ -1,4 +1,4 @@
-import { Uri, workspace } from "vscode";
+import { Disposable, TextDocument, Uri, workspace } from "vscode";
 import {
     Block,
     Collection,
@@ -30,23 +30,43 @@ export async function waitForTempJsFileToBeInSync(
 
     const temporaryJsDoc = await workspace.openTextDocument(virtualJsFileUri);
 
+    const toDispose: Disposable[] = [];
+
     // Sometimes it takes a short while until VS Code notices that the Javascript file has been modified externally
     if (!isTempJsFileInSync(temporaryJsDoc.getText(), bruFileCodeBlocks)) {
-        await new Promise<void>((resolve) => {
-            // ToDo: Find a way to dispose of the event listener after Promise has been fulfilled
-            workspace.onDidChangeTextDocument((e) => {
-                if (
-                    e.document.uri.toString() == virtualJsFileUri.toString() &&
-                    e.contentChanges.length > 0 &&
-                    isTempJsFileInSync(
-                        temporaryJsDoc.getText(),
-                        bruFileCodeBlocks
-                    )
-                ) {
-                    resolve();
-                }
-            });
-        });
+        const result = await new Promise<TextDocument | undefined>(
+            (resolve) => {
+                toDispose.push(
+                    workspace.onDidChangeTextDocument((e) => {
+                        if (
+                            e.document.uri.toString() ==
+                                virtualJsFileUri.toString() &&
+                            e.contentChanges.length > 0 &&
+                            isTempJsFileInSync(
+                                temporaryJsDoc.getText(),
+                                bruFileCodeBlocks
+                            )
+                        ) {
+                            resolve(e.document);
+                        }
+                    })
+                );
+
+                toDispose.push(
+                    workspace.onDidCloseTextDocument((doc) => {
+                        if (doc.uri.toString() == virtualJsFileUri.toString()) {
+                            resolve(undefined);
+                        }
+                    })
+                );
+            }
+        );
+
+        toDispose.forEach((disposable) => disposable.dispose());
+
+        if (!result) {
+            return await workspace.openTextDocument(virtualJsFileUri);
+        }
     }
 
     return temporaryJsDoc;
