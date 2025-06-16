@@ -18,29 +18,16 @@ export class BrunoTreeItemProvider
         private collectionItemProvider: CollectionItemProvider
     ) {
         collectionItemProvider.subscribeToUpdates()(
-            ({ collection, data: { item }, updateType, changedData }) => {
+            ({ updateType, changedData }) => {
                 if (
                     updateType == FileChangeType.Deleted ||
+                    updateType == FileChangeType.Created ||
                     (updateType == FileChangeType.Modified &&
                         changedData?.sequenceChanged)
                 ) {
-                    // Always update all items when items have to be deleted from tree view.
+                    // Always update all items when items have to be deleted from / created for the tree view.
                     // When only triggering an update for the parent item, there were issues with the refresh mechanism.
                     this._onDidChangeTreeData.fire(undefined);
-                } else if (updateType == FileChangeType.Created) {
-                    // Registration of the new item occurs in the `getTreeItem` or `getChildren` function
-                    const maybeParent =
-                        collectionItemProvider.getRegisteredItem(
-                            collection,
-                            dirname(item.getPath())
-                        );
-
-                    if (maybeParent) {
-                        this._onDidChangeTreeData.fire(maybeParent.treeItem);
-                    } else {
-                        // If no parent item was found, trigger update for all items (e.g. if item is collection root directory).
-                        this._onDidChangeTreeData.fire(undefined);
-                    }
                 }
             }
         );
