@@ -111,45 +111,63 @@
         "commands": [
             {
                 "command": "brunoCollectionsView.refresh",
-                "title": "Bru-As-Code: Refresh Collection View",
-                "shortTitle": "Refresh",
+                "title": "Refresh collection explorer",
+                "category": "Bru-as-Code",
                 "icon": "$(extensions-refresh)"
             },
             {
                 "command": "brunoCollectionsView.deleteItem",
-                "title": "Delete"
+                "title": "Delete",
+                "category": "Bru-as-Code",
+                "enablement": "view == brunoCollectionsView"
             },
             {
                 "command": "brunoCollectionsView.duplicateFile",
-                "title": "Duplicate"
+                "title": "Duplicate",
+                "category": "Bru-as-Code",
+                "enablement": "view == brunoCollectionsView"
             },
             {
                 "command": "brunoCollectionsView.duplicateFolder",
-                "title": "Duplicate"
+                "title": "Duplicate",
+                "category": "Bru-as-Code",
+                "enablement": "view == brunoCollectionsView"
             },
             {
                 "command": "brunoCollectionsView.renameItem",
-                "title": "Rename"
+                "title": "Rename",
+                "category": "Bru-as-Code",
+                "enablement": "view == brunoCollectionsView"
             },
             {
                 "command": "brunoCollectionsView.createRequestFile",
-                "title": "Create request file"
+                "title": "Create request file",
+                "category": "Bru-as-Code",
+                "enablement": "view == brunoCollectionsView"
             },
             {
                 "command": "brunoCollectionsView.createEmptyFile",
-                "title": "Create empty file"
+                "title": "Create empty file",
+                "category": "Bru-as-Code",
+                "enablement": "view == brunoCollectionsView"
             },
             {
                 "command": "brunoCollectionsView.createFolder",
-                "title": "Create folder"
+                "title": "Create folder",
+                "category": "Bru-as-Code",
+                "enablement": "view == brunoCollectionsView"
             },
             {
                 "command": "brunoCollectionsView.startTestRun",
-                "title": "Start test run"
+                "title": "Start test run",
+                "category": "Bru-as-Code",
+                "enablement": "view == brunoCollectionsView"
             },
             {
                 "command": "brunoCollectionsView.openInNewTabgroup",
-                "title": "Open to the side"
+                "title": "Open to the side",
+                "category": "Bru-as-Code",
+                "enablement": "view == brunoCollectionsView"
             }
         ],
         "views": {
@@ -214,44 +232,6 @@
                     "command": "brunoCollectionsView.deleteItem",
                     "when": "view == brunoCollectionsView",
                     "group": "navigation@30"
-                }
-            ],
-            "commandPalette": [
-                {
-                    "command": "brunoCollectionsView.deleteItem",
-                    "when": "view == noView"
-                },
-                {
-                    "command": "brunoCollectionsView.duplicateFile",
-                    "when": "view == noView"
-                },
-                {
-                    "command": "brunoCollectionsView.duplicateFolder",
-                    "when": "view == noView"
-                },
-                {
-                    "command": "brunoCollectionsView.renameItem",
-                    "when": "view == noView"
-                },
-                {
-                    "command": "brunoCollectionsView.createRequestFile",
-                    "when": "view == noView"
-                },
-                {
-                    "command": "brunoCollectionsView.createEmptyFile",
-                    "when": "view == noView"
-                },
-                {
-                    "command": "brunoCollectionsView.createFolder",
-                    "when": "view == noView"
-                },
-                {
-                    "command": "brunoCollectionsView.startTestRun",
-                    "when": "view == noView"
-                },
-                {
-                    "command": "brunoCollectionsView.openInNewTabgroup",
-                    "when": "view == noView"
                 }
             ]
         }
