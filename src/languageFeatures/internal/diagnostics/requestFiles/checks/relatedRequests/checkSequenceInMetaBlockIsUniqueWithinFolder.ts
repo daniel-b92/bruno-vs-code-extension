@@ -1,6 +1,5 @@
 import { DiagnosticSeverity, Uri } from "vscode";
 import {
-    CollectionData,
     CollectionFile,
     CollectionItemProvider,
     DictionaryBlockField,
@@ -12,6 +11,8 @@ import {
     castBlockToDictionaryBlock,
     getSequenceFieldFromMetaBlock,
     mapRange,
+    getTypeOfBrunoFile,
+    BrunoFileType,
 } from "../../../../../../shared";
 import { dirname } from "path";
 import { readFileSync } from "fs";
@@ -134,9 +135,9 @@ function getSequencesForOtherRequestsInFolder(
     );
 
     result.push(
-        ...otherRequestsInFolder.map(({ item }) => ({
-            file: item.getPath(),
-            sequence: (item as CollectionFile).getSequence() as number,
+        ...otherRequestsInFolder.map((requestFile) => ({
+            file: requestFile.getPath(),
+            sequence: requestFile.getSequence() as number,
         }))
     );
 
@@ -147,8 +148,8 @@ function getOtherRequestsInFolder(
     itemProvider: CollectionItemProvider,
     directoryPath: string,
     documentUri: Uri
-) {
-    const result: CollectionData[] = [];
+): CollectionFile[] {
+    const result: CollectionFile[] = [];
 
     const collection = itemProvider.getAncestorCollectionForPath(directoryPath);
 
@@ -161,14 +162,20 @@ function getOtherRequestsInFolder(
 
     return collection
         .getAllStoredDataForCollection()
-        .filter(
-            ({ item }) =>
+        .filter(({ item }) => {
+            const itemPath = item.getPath();
+
+            return (
                 item instanceof CollectionFile &&
-                normalizeDirectoryPath(dirname(item.getPath())) ==
+                normalizeDirectoryPath(dirname(itemPath)) ==
                     normalizeDirectoryPath(directoryPath) &&
                 item.getSequence() != undefined &&
-                item.getPath() != documentUri.fsPath
-        );
+                itemPath != documentUri.fsPath &&
+                getTypeOfBrunoFile([collection], itemPath) ==
+                    BrunoFileType.RequestFile
+            );
+        })
+        .map(({ item }) => item as CollectionFile);
 }
 
 function getDiagnosticCode() {
