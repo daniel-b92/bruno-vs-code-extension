@@ -2,11 +2,12 @@
     "name": "bru-as-code",
     "displayName": "bru-as-code",
     "description": "Enables working with Bruno files in a manner like working with code",
-    "version": "0.9.2",
+    "version": "0.9.3",
     "publisher": "daniel-b92",
     "private": true,
     "license": "MIT",
     "repository": "https://github.com/daniel-b92/bruno-vs-code-extension",
+    "bugs": {"url": "https://github.com/daniel-b92/bruno-vs-code-extension/issues"},
     "engines": {
         "vscode": "^1.100.0"
     },
