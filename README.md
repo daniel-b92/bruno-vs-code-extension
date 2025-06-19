@@ -12,6 +12,11 @@ The main features of the extension are
 - a test runner (for executing tests via the [Bruno CLI](https://www.npmjs.com/package/@usebruno/cli))
 - language features that provide some intellisense when editing `.bru` files, e.g. providing suggestions when typing in code blocks.
 
+
+https://github.com/user-attachments/assets/2370b924-769b-4da3-9f5f-1ac67589fe49
+
+
+
 ## Using the extension
 
 ### Getting started
