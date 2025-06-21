@@ -1,8 +1,10 @@
-import { TextDocumentHelper } from "../../../../fileSystem/util/textDocumentHelper";
-import { MetaBlockKey } from "../../../../languageUtils/metaBlock/metaBlockKeyEnum";
-import { RequestFileBlockName } from "../../../../languageUtils/requestFileBlockNameEnum";
+import {
+    MetaBlockKey,
+    TextDocumentHelper,
+    RequestFileBlockName,
+    parseBlockFromFile,
+} from "../../../..";
 import { isDictionaryBlockField } from "../../../internal/util/isDictionaryBlockField";
-import { parseBlockFromFile } from "../../parseBlockFromFile";
 
 export function getSequenceFieldFromMetaBlock(
     documentHelper: TextDocumentHelper

@@ -1,5 +1,4 @@
-import { MethodBlockAuth, MethodBlockBody } from "..";
-import { RequestType } from "../languageUtils/metaBlock/requestTypeEnum";
+import { MethodBlockAuth, MethodBlockBody, RequestType } from "..";
 
 export interface MetaBlockContent {
     name: string;

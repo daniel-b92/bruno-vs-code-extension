@@ -1,12 +1,14 @@
 import { existsSync, lstatSync, readFileSync, writeFileSync } from "fs";
-import { parseBruFile } from "../fileParsing/external/parseBruFile";
-import { TextDocumentHelper } from "../fileSystem/util/textDocumentHelper";
-import { RequestFileBlockName } from "../languageUtils/requestFileBlockNameEnum";
 import { basename, dirname, extname } from "path";
-import { Collection } from "../model/collection";
-import { CollectionFile } from "../model/collectionFile";
-import { MetaBlockContent } from "./interfaces";
-import { RequestType } from "../languageUtils/metaBlock/requestTypeEnum";
+import {
+    RequestType,
+    parseBruFile,
+    RequestFileBlockName,
+    Collection,
+    CollectionFile,
+    MetaBlockContent,
+    TextDocumentHelper,
+} from "..";
 import {
     getLineBreak,
     getNumberOfWhitespacesForIndentation,

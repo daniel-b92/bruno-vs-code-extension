@@ -3,10 +3,12 @@ import { RelevantWithinMetaBlockDiagnosticCode } from "./relevantWithinMetaBlock
 import { RelevantWithinMethodBlockDiagnosticCode } from "./relevantWithinMethodBlockDiagnosticCodeEnum";
 import { NonBlockSpecificDiagnosticCode } from "./nonBlockSpecificDiagnosticCodeEnum";
 import { RelevantWithinBodyBlockDiagnosticCode } from "./relevantWithinBodyBlockDiagnosticCodeEnum";
+import { RelevantWithinAuthModeBlockDiagnosticCode } from "./relevantWithinAuthModeBlockDiagnosticCodeEnum";
 
 export type KnownDiagnosticCode =
     | RelevantWithinAuthBlockDiagnosticCode
     | RelevantWithinMetaBlockDiagnosticCode
     | RelevantWithinMethodBlockDiagnosticCode
     | RelevantWithinBodyBlockDiagnosticCode
-    | NonBlockSpecificDiagnosticCode;
+    | NonBlockSpecificDiagnosticCode
+    | RelevantWithinAuthModeBlockDiagnosticCode;

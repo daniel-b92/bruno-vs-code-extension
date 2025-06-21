@@ -3,7 +3,7 @@ import {
     getFieldFromDictionaryBlock,
     MetaBlockKey,
     Block,
-} from "../..";
+} from "../../..";
 
 export function getFieldFromMetaBlock(
     metaBlock: Block,

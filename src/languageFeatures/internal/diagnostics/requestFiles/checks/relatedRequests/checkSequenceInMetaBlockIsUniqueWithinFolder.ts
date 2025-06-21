@@ -18,7 +18,7 @@ import { dirname } from "path";
 import { readFileSync } from "fs";
 import { DiagnosticWithCode } from "../../../definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
-import { isSequenceValid } from "../../util/isSequenceValid";
+import { isSequenceValid } from "../../../shared/util/isSequenceValid";
 
 export function checkSequenceInMetaBlockIsUniqueWithinFolder(
     itemProvider: CollectionItemProvider,

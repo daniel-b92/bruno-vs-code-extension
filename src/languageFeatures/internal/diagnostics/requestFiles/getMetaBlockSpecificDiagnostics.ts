@@ -7,22 +7,22 @@ import {
     DictionaryBlockField,
     RequestType,
     CollectionItemProvider,
-} from "../../../shared";
-import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
-import { checkNoKeysAreMissingForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
-import { checkNoMandatoryValuesAreMissingForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoMandatoryValuesAreMissingForDictionaryBlock";
-import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "./shared/checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
-import { checkValueForDictionaryBlockFieldIsValid } from "./shared/checks/singleBlocks/checkValueForDictionaryBlockFieldIsValid";
-import { checkMetaBlockStartsInFirstLine } from "./shared/checks/singleBlocks/checkMetaBlockStartsInFirstLine";
-import { DiagnosticWithCode } from "./definitions";
-import { RelevantWithinMetaBlockDiagnosticCode } from "./shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
-import { RelatedRequestsDiagnosticsHelper } from "./requestFiles/helpers/relatedRequestsDiagnosticsHelper";
-import { checkSequenceInMetaBlockIsValid } from "./requestFiles/checks/singleBlocks/checkSequenceInMetaBlockIsValid";
-import { checkSequenceInMetaBlockIsUniqueWithinFolder } from "./requestFiles/checks/relatedRequests/checkSequenceInMetaBlockIsUniqueWithinFolder";
+} from "../../../../shared";
+import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
+import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
+import { checkNoMandatoryValuesAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoMandatoryValuesAreMissingForDictionaryBlock";
+import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "../shared/checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
+import { checkValueForDictionaryBlockFieldIsValid } from "../shared/checks/singleBlocks/checkValueForDictionaryBlockFieldIsValid";
+import { checkMetaBlockStartsInFirstLine } from "../shared/checks/singleBlocks/checkMetaBlockStartsInFirstLine";
+import { DiagnosticWithCode } from "../definitions";
+import { RelevantWithinMetaBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
+import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDiagnosticsHelper";
+import { checkSequenceInMetaBlockIsValid } from "../shared/checks/singleBlocks/checkSequenceInMetaBlockIsValid";
+import { checkSequenceInMetaBlockIsUniqueWithinFolder } from "./checks/relatedRequests/checkSequenceInMetaBlockIsUniqueWithinFolder";
 
 export function getMetaBlockSpecificDiagnostics(
     itemProvider: CollectionItemProvider,
-    relatedRequestsHelper: RelatedRequestsDiagnosticsHelper,
+    relatedFilesHelper: RelatedFilesDiagnosticsHelper,
     documentUri: Uri,
     documentHelper: TextDocumentHelper,
     metaBlock: Block
@@ -78,7 +78,7 @@ export function getMetaBlockSpecificDiagnostics(
         itemProvider,
         metaBlock,
         documentUri,
-        relatedRequestsHelper
+        relatedFilesHelper
     )) {
         diagnostics.push(results.result);
     }
@@ -90,7 +90,7 @@ function provideRelatedRequestsDiagnosticsForMetaBlock(
     itemProvider: CollectionItemProvider,
     metaBlock: Block,
     documentUri: Uri,
-    relatedRequestsHelper: RelatedRequestsDiagnosticsHelper
+    relatedRequestsHelper: RelatedFilesDiagnosticsHelper
 ): {
     uri: Uri;
     result: DiagnosticWithCode;

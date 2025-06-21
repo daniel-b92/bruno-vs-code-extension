@@ -1,4 +1,4 @@
-import { DictionaryBlock } from "..";
+import { DictionaryBlock } from "../..";
 
 export function getFieldFromDictionaryBlock(
     methodBlock: DictionaryBlock,

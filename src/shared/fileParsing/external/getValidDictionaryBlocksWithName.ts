@@ -1,5 +1,5 @@
 import { castBlockToDictionaryBlock } from "../..";
-import { RequestFileBlockName } from "../../languageUtils/requestFileBlockNameEnum";
+import { RequestFileBlockName } from "../../languageUtils/requestFiles/requestFileBlockNameEnum";
 import { DictionaryBlock, Block } from "./interfaces";
 
 export function getValidDictionaryBlocksWithName(

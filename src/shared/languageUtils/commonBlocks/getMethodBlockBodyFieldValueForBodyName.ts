@@ -1,6 +1,6 @@
-import { getBodyTypeFromBlockName } from "..";
+import { getBodyTypeFromBlockName } from "../..";
 import { MethodBlockBody } from "./methodBlocks/methodBlockBodyEnum";
-import { RequestFileBlockName } from "./requestFileBlockNameEnum";
+import { RequestFileBlockName } from "../requestFiles/requestFileBlockNameEnum";
 
 export function getMethodBlockBodyFieldValueForBodyName(
     bodyBlockName: RequestFileBlockName

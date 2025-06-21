@@ -1,4 +1,4 @@
-import { RequestFileBlockName } from "../../../../languageUtils/requestFileBlockNameEnum";
+import { RequestFileBlockName } from "../../../../languageUtils/requestFiles/requestFileBlockNameEnum";
 
 export function isBodyBlock(blockName: string) {
     return (

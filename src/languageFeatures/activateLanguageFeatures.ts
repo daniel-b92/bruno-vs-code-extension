@@ -249,6 +249,11 @@ function fetchDiagnostics(
             document.uri,
             document.getText()
         );
+    } else if (brunoFileType == BrunoFileType.FolderSettingsFile) {
+        brunoLangDiagnosticsProvider.provideDiagnosticsForFolderSettingsFile(
+            document.uri,
+            document.getText()
+        );
     }
 }
 

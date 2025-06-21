@@ -3,7 +3,7 @@ import {
     getFieldFromDictionaryBlock,
     MethodBlockKey,
     Block,
-} from "../..";
+} from "../../..";
 
 export function getFieldFromMethodBlock(
     methodBlock: Block,
