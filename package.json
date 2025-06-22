@@ -59,7 +59,7 @@
                 },
                 "bru-as-code.htmlReportPath": {
                     "type": "string",
-                    "default": "../results.html",
+                    "default": "results.html",
                     "description": "The path for saving HTML test reports. Can either be defined as an absolute path or relative to the collection root directory."
                 },
                 "bru-as-code.alwaysShowHtmlReport": {
