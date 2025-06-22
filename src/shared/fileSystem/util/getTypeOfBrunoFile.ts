@@ -8,7 +8,7 @@ import {
 import { existsSync } from "fs";
 
 export function getTypeOfBrunoFile(
-    registeredCollections: Collection[],
+    collectionsToSearch: Collection[],
     path: string
 ): BrunoFileType | undefined {
     if (!existsSync(path)) {
@@ -17,7 +17,7 @@ export function getTypeOfBrunoFile(
 
     const isValidBruFile =
         extname(path) == getExtensionForRequestFiles() &&
-        registeredCollections.some((collection) =>
+        collectionsToSearch.some((collection) =>
             path.startsWith(
                 normalizeDirectoryPath(collection.getRootDirectory())
             )
@@ -31,7 +31,7 @@ export function getTypeOfBrunoFile(
         return BrunoFileType.EnvironmentFile;
     } else if (isFolderSettingsFile(path)) {
         return BrunoFileType.FolderSettingsFile;
-    } else if (isCollectionSettingsFile(registeredCollections, path)) {
+    } else if (isCollectionSettingsFile(collectionsToSearch, path)) {
         return BrunoFileType.CollectionSettingsFile;
     } else {
         return BrunoFileType.RequestFile;

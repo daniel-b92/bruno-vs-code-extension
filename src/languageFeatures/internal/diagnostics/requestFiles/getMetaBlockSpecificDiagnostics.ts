@@ -74,7 +74,7 @@ export function getMetaBlockSpecificDiagnostics(
         checkMetaBlockStartsInFirstLine(documentHelper, metaBlock),
     ];
 
-    for (const results of provideRelatedRequestsDiagnosticsForMetaBlock(
+    for (const results of provideRelatedFilesDiagnosticsForMetaBlock(
         itemProvider,
         metaBlock,
         documentUri,
@@ -86,7 +86,7 @@ export function getMetaBlockSpecificDiagnostics(
     return diagnostics;
 }
 
-function provideRelatedRequestsDiagnosticsForMetaBlock(
+function provideRelatedFilesDiagnosticsForMetaBlock(
     itemProvider: CollectionItemProvider,
     metaBlock: Block,
     documentUri: Uri,

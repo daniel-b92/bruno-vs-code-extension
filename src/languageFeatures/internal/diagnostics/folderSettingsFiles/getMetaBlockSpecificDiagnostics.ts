@@ -3,6 +3,7 @@ import {
     Block,
     castBlockToDictionaryBlock,
     MetaBlockKey,
+    CollectionItemProvider,
 } from "../../../../shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
@@ -12,8 +13,14 @@ import { checkMetaBlockStartsInFirstLine } from "../shared/checks/singleBlocks/c
 import { DiagnosticWithCode } from "../definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { checkSequenceInMetaBlockIsValid } from "../shared/checks/singleBlocks/checkSequenceInMetaBlockIsValid";
+import { Uri } from "vscode";
+import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDiagnosticsHelper";
+import { checkFolderSequenceInMetaBlockIsUnique } from "./checkFolderSequenceInMetaBlockIsUnique";
 
 export function getMetaBlockSpecificDiagnostics(
+    itemProvider: CollectionItemProvider,
+    relatedFilesHelper: RelatedFilesDiagnosticsHelper,
+    documentUri: Uri,
     documentHelper: TextDocumentHelper,
     metaBlock: Block
 ): (DiagnosticWithCode | undefined)[] {
@@ -55,7 +62,42 @@ export function getMetaBlockSpecificDiagnostics(
             : undefined,
     ];
 
-    // ToDo: add diagnostics if other folder settings with same parent folder have same sequence, see diagnostics for sequence in  request files.
+    for (const results of provideRelatedFilesDiagnosticsForMetaBlock(
+        itemProvider,
+        metaBlock,
+        documentUri,
+        relatedFilesHelper
+    )) {
+        diagnostics.push(results.result);
+    }
 
     return diagnostics;
+}
+
+function provideRelatedFilesDiagnosticsForMetaBlock(
+    itemProvider: CollectionItemProvider,
+    metaBlock: Block,
+    documentUri: Uri,
+    relatedRequestsHelper: RelatedFilesDiagnosticsHelper
+): {
+    uri: Uri;
+    result: DiagnosticWithCode;
+}[] {
+    const { code, toAdd } = checkFolderSequenceInMetaBlockIsUnique(
+        itemProvider,
+        metaBlock,
+        documentUri
+    );
+
+    if (toAdd) {
+        relatedRequestsHelper.registerDiagnostic({
+            files: toAdd.affectedFiles,
+            diagnosticCode: code,
+        });
+
+        return [{ uri: documentUri, result: toAdd.diagnosticCurrentFile }];
+    } else {
+        relatedRequestsHelper.unregisterDiagnostic(documentUri.fsPath, code);
+        return [];
+    }
 }

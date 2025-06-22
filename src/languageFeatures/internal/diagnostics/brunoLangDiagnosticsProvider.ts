@@ -283,6 +283,9 @@ export class BrunoLangDiagnosticsProvider {
             this.addToResults(
                 results,
                 ...getMetaBlockSpecificDiagnosticsForFolderSettings(
+                    this.itemProvider,
+                    this.relatedRequestsHelper,
+                    documentUri,
                     document,
                     metaBlocks[0]
                 )

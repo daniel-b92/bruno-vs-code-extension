@@ -179,5 +179,5 @@ function getOtherRequestsInFolder(
 }
 
 function getDiagnosticCode() {
-    return RelevantWithinMetaBlockDiagnosticCode.SequenceNotUniqueWithinFolder;
+    return RelevantWithinMetaBlockDiagnosticCode.RequestSequenceNotUniqueWithinFolder;
 }
