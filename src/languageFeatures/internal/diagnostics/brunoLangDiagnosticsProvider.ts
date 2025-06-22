@@ -36,6 +36,7 @@ import { getRequestBodyBlockSpecificDiagnostics } from "./requestFiles/getReques
 import { checkOccurencesOfMandatoryBlocks as checkOccurencesOfMandatoryBlocksForFolderSettingsFile } from "./folderSettingsFiles/checkOccurencesOfMandatoryBlocks";
 import { getMetaBlockSpecificDiagnostics as getMetaBlockSpecificDiagnosticsForFolderSettings } from "./folderSettingsFiles/getMetaBlockSpecificDiagnostics";
 import { getAuthModeBlockSpecificDiagnostics } from "./folderSettingsFiles/getAuthModeBlockSpecificDiagnostics";
+import { checkDictionaryBlocksAreNotEmpty } from "./shared/checks/multipleBlocks/checkDictionaryBlocksAreNotEmpty";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -91,6 +92,9 @@ export class BrunoLangDiagnosticsProvider {
     ): DiagnosticWithCode[] {
         const document = new TextDocumentHelper(documentText);
         const { blocks, textOutsideOfBlocks } = parseBruFile(document);
+        const blocksThatShouldBeDictionaryBlocks = blocks.filter(({ name }) =>
+            shouldBeDictionaryBlock(name)
+        );
 
         const results: DiagnosticWithCode[] = [];
 
@@ -117,7 +121,11 @@ export class BrunoLangDiagnosticsProvider {
             ),
             checkDictionaryBlocksHaveDictionaryStructure(
                 documentUri,
-                blocks.filter(({ name }) => shouldBeDictionaryBlock(name))
+                blocksThatShouldBeDictionaryBlocks
+            ),
+            checkDictionaryBlocksAreNotEmpty(
+                documentUri,
+                blocksThatShouldBeDictionaryBlocks
             ),
             checkUrlFromMethodBlockMatchesQueryParamsBlock(documentUri, blocks),
             checkUrlFromMethodBlockMatchesPathParamsBlock(documentUri, blocks),
@@ -182,6 +190,9 @@ export class BrunoLangDiagnosticsProvider {
         const document = new TextDocumentHelper(documentText);
 
         const { blocks, textOutsideOfBlocks } = parseBruFile(document);
+        const blocksThatShouldBeDictionaryBlocks = blocks.filter(
+            ({ name }) => name == EnvironmentFileBlockName.Vars
+        );
 
         const results: DiagnosticWithCode[] = [];
 
@@ -205,9 +216,11 @@ export class BrunoLangDiagnosticsProvider {
             ),
             checkDictionaryBlocksHaveDictionaryStructure(
                 documentUri,
-                blocks.filter(
-                    ({ name }) => name == EnvironmentFileBlockName.Vars
-                )
+                blocksThatShouldBeDictionaryBlocks
+            ),
+            checkDictionaryBlocksAreNotEmpty(
+                documentUri,
+                blocksThatShouldBeDictionaryBlocks
             )
         );
 
@@ -221,6 +234,11 @@ export class BrunoLangDiagnosticsProvider {
         const document = new TextDocumentHelper(documentText);
 
         const { blocks, textOutsideOfBlocks } = parseBruFile(document);
+        const blocksThatShouldBeDictionaryBlocks = blocks.filter(
+            ({ name }) =>
+                shouldBeDictionaryBlock(name) ||
+                name == FolderSettingsSpecificBlock.AuthMode
+        );
 
         const results: DiagnosticWithCode[] = [];
 
@@ -243,11 +261,11 @@ export class BrunoLangDiagnosticsProvider {
             ),
             checkDictionaryBlocksHaveDictionaryStructure(
                 documentUri,
-                blocks.filter(
-                    ({ name }) =>
-                        shouldBeDictionaryBlock(name) ||
-                        name == FolderSettingsSpecificBlock.AuthMode
-                )
+                blocksThatShouldBeDictionaryBlocks
+            ),
+            checkDictionaryBlocksAreNotEmpty(
+                documentUri,
+                blocksThatShouldBeDictionaryBlocks
             ),
             checkBlocksAreSeparatedBySingleEmptyLine(
                 documentUri,

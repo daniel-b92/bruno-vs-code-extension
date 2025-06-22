@@ -29,4 +29,5 @@ export enum NonBlockSpecificDiagnosticCode {
     PathParamsBlockMissing = "bru19",
     GraphQlBlocksDefinedForNonGraphQlRequestType = "bru20",
     ArrayBlocksNotStructuredCorrectly = "bru21",
+    DictionaryBlocksWithoutContent = "bru22",
 }
