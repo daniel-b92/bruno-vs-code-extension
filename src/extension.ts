@@ -51,7 +51,7 @@ export async function activate(context: ExtensionContext) {
     window.withProgress(
         {
             location: ProgressLocation.Window,
-            title: "Starting Bruno test extension...",
+            title: "Starting bru-as-code extension...",
         },
         () => {
             return new Promise<void>((resolve) => {

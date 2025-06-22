@@ -2,7 +2,7 @@
     "name": "bru-as-code",
     "displayName": "bru-as-code",
     "description": "Enables working with Bruno files in a manner like working with code",
-    "version": "0.9.3",
+    "version": "0.10.0",
     "publisher": "daniel-b92",
     "private": true,
     "license": "MIT",
@@ -20,6 +20,7 @@
         "Programming Languages",
         "Linters"
     ],
+    "icon": "./icon.png",
     "activationEvents": [
         "workspaceContains:**/*.bru"
     ],
