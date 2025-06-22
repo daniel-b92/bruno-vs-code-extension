@@ -30,4 +30,5 @@ export enum NonBlockSpecificDiagnosticCode {
     GraphQlBlocksDefinedForNonGraphQlRequestType = "bru20",
     ArrayBlocksNotStructuredCorrectly = "bru21",
     DictionaryBlocksWithoutContent = "bru22",
+    AuthBlockNotMatchingAuthModeBlock = "bru23",
 }

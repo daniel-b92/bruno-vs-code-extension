@@ -37,6 +37,7 @@ import { checkOccurencesOfMandatoryBlocks as checkOccurencesOfMandatoryBlocksFor
 import { getMetaBlockSpecificDiagnostics as getMetaBlockSpecificDiagnosticsForFolderSettings } from "./folderSettingsFiles/getMetaBlockSpecificDiagnostics";
 import { getAuthModeBlockSpecificDiagnostics } from "./folderSettingsFiles/getAuthModeBlockSpecificDiagnostics";
 import { checkDictionaryBlocksAreNotEmpty } from "./shared/checks/multipleBlocks/checkDictionaryBlocksAreNotEmpty";
+import { checkAuthBlockTypeFromAuthModeBlockExists } from "./folderSettingsFiles/checkAuthBlockTypeFromAuthModeBlockExists";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -253,6 +254,7 @@ export class BrunoLangDiagnosticsProvider {
                 documentUri,
                 textOutsideOfBlocks
             ),
+            checkAuthBlockTypeFromAuthModeBlockExists(documentUri, blocks),
             checkAtMostOneAuthBlockExists(documentUri, blocks),
             checkNoBlocksHaveUnknownNames(
                 documentUri,
