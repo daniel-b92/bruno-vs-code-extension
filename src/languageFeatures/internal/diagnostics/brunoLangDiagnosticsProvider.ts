@@ -275,8 +275,6 @@ export class BrunoLangDiagnosticsProvider {
             )
         );
 
-        // ToDo: Add validation that value in auth mode block matches auth block name
-
         const metaBlocks = blocks.filter(
             ({ name }) => name == RequestFileBlockName.Meta
         );
