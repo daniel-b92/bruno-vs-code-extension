@@ -384,5 +384,11 @@
         "prefix": ["vars:secret"],
         "body": ["vars:secret [", "\t${1:entry}", "]"],
         "description": "Add 'vars:secret' block for environment file"
+    },
+
+    "auth mode block - for folder settings": {
+        "prefix": "auth",
+        "body": ["auth {", "\tmode: ${1:mode}", "}"],
+        "description": "Add block for auth mode for folder settings file"
     }
 }
