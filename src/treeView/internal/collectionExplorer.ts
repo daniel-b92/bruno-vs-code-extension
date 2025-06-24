@@ -88,6 +88,11 @@ export class CollectionExplorer
                 vscode.window
                     .showInputBox({
                         title: `Create file in '${basename(parentFolderPath)}'`,
+                        validateInput: (newFileName: string) => {
+                            return this.validateNewItemNameIsUnique(
+                                resolve(parentFolderPath, newFileName)
+                            );
+                        },
                     })
                     .then((fileName) => {
                         if (fileName == undefined) {
@@ -122,6 +127,11 @@ export class CollectionExplorer
                         title: `Create folder in '${basename(
                             parentFolderPath
                         )}'`,
+                        validateInput: (newFolderName: string) => {
+                            return this.validateNewItemNameIsUnique(
+                                resolve(parentFolderPath, newFolderName)
+                            );
+                        },
                     })
                     .then((folderName) => {
                         if (folderName == undefined) {
@@ -150,8 +160,16 @@ export class CollectionExplorer
 
                 vscode.window
                     .showInputBox({
-                        title: `Rename '${basename(originalPath)}'`,
+                        title: `Rename ${
+                            isFile ? "file" : "folder"
+                        } '${basename(originalPath)}'`,
                         value: basename(originalPath),
+                        validateInput: (newItemName: string) => {
+                            return this.validateNewItemNameIsUnique(
+                                resolve(dirname(originalPath), newItemName),
+                                originalPath
+                            );
+                        },
                         valueSelection: [0, originalName.length],
                     })
                     .then((newItemName) => {
@@ -381,6 +399,14 @@ export class CollectionExplorer
         const requestName = await vscode.window.showInputBox({
             title: `Create request file in '${basename(parentFolderPath)}'`,
             value: "request_name",
+            validateInput: (newFileName: string) => {
+                return this.validateNewItemNameIsUnique(
+                    resolve(
+                        parentFolderPath,
+                        `${newFileName}${getExtensionForRequestFiles()}`
+                    )
+                );
+            },
         });
 
         if (requestName == undefined) {
@@ -505,6 +531,18 @@ export class CollectionExplorer
                 );
             }
         }
+    }
+
+    private validateNewItemNameIsUnique(
+        newItemPath: string,
+        originalItemPath?: string
+    ) {
+        return existsSync(newItemPath) &&
+            (!originalItemPath || newItemPath != originalItemPath)
+            ? `${
+                  lstatSync(newItemPath).isFile() ? "File" : "Folder"
+              } with name '${basename(newItemPath)}' already exists`
+            : undefined;
     }
 
     private updateTabsAfterChangingItemPath(
