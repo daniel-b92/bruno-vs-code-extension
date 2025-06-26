@@ -1,4 +1,4 @@
-import { writeFileSync } from "fs";
+import { createWriteStream } from "fs";
 import {
     parseBruFile,
     TextDocumentHelper,
@@ -36,10 +36,23 @@ ${content}}`
 
     const fileName = getTemporaryJsFileName(collectionRootDirectory);
 
-    writeFileSync(
-        fileName,
+    const writeStream = createWriteStream(fileName);
+
+    writeStream.on("finish", () => {
+        console.log("Finished writing temporary js file.");
+    });
+    writeStream.on("error", (err) => {
+        console.error(
+            "An error occurred while trying to write temporary js file:",
+            err.message
+        );
+    });
+
+    writeStream.write(
         getDefinitionsForInbuiltLibraries().concat(result).join("\n\n")
     );
+    writeStream.end();
+
     tempJsFilesRegistry.registerJsFile(collectionRootDirectory);
 }
 
