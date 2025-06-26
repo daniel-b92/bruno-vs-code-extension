@@ -1,3 +1,8 @@
+## [0.11.1] (2025-06-26)
+
+### Fixes
+- Update diagnostics for `.bru` files on deletions or external modifications 
+
 ## [0.11.0] (2025-06-24)
 
 ### Features

@@ -1,11 +1,12 @@
 import {
+    DiagnosticCollection,
     ExtensionContext,
     languages,
     TabInputText,
-    TextDocument,
     TextDocumentChangeEvent,
     TextDocumentWillSaveEvent,
     TextEditor,
+    Uri,
     window,
     workspace,
 } from "vscode";
@@ -13,7 +14,11 @@ import { provideBrunoLangCompletionItems } from "./internal/completionItems/prov
 import {
     BrunoFileType,
     Collection,
+    CollectionDirectory,
+    CollectionFile,
     CollectionItemProvider,
+    FileChangeType,
+    getExtensionForRequestFiles,
     getTypeOfBrunoFile,
     normalizeDirectoryPath,
     parseBruFile,
@@ -29,6 +34,8 @@ import { provideCodeBlocksCompletionItems } from "./internal/completionItems/pro
 import { provideInfosOnHover } from "./internal/hover/provideInfosOnHover";
 import { provideSignatureHelp } from "./internal/signatureHelp/provideSignatureHelp";
 import { provideDefinitions } from "./internal/definitionProvider/provideDefinitions";
+import { extname } from "path";
+import { readFileSync } from "fs";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
@@ -79,7 +86,12 @@ export function activateLanguageFeatures(
                 collectionItemProvider,
                 e
             );
-        })
+        }),
+        updateDiagnosticsOnDeletionOrExternalModification(
+            collectionItemProvider,
+            diagnosticCollection,
+            brunoLangDiagnosticsProvider
+        )
     );
 }
 
@@ -114,7 +126,8 @@ function onDidChangeActiveTextEditor(
         }
 
         fetchDiagnostics(
-            editor.document,
+            editor.document.uri,
+            editor.document.getText(),
             brunoLangDiagnosticsProvider,
             fileType
         );
@@ -162,7 +175,8 @@ function onDidChangeTextDocument(
             }
 
             fetchDiagnostics(
-                event.document,
+                event.document.uri,
+                event.document.getText(),
                 brunoLangDiagnosticsProvider,
                 fileType
             );
@@ -234,25 +248,77 @@ function onWillSaveTextDocument(
     }
 }
 
+function updateDiagnosticsOnDeletionOrExternalModification(
+    collectionItemProvider: CollectionItemProvider,
+    diagnosticCollection: DiagnosticCollection,
+    brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider
+) {
+    return collectionItemProvider.subscribeToUpdates()(
+        async ({ collection, data: { item }, updateType }) => {
+            if (
+                updateType == FileChangeType.Deleted &&
+                item instanceof CollectionFile &&
+                extname(item.getPath()) == getExtensionForRequestFiles()
+            ) {
+                diagnosticCollection.delete(Uri.file(item.getPath()));
+            } else if (
+                updateType == FileChangeType.Deleted &&
+                item instanceof CollectionDirectory
+            ) {
+                const normalizedDirPath = normalizeDirectoryPath(
+                    item.getPath()
+                );
+
+                diagnosticCollection.forEach((uri) => {
+                    if (uri.fsPath.startsWith(normalizedDirPath)) {
+                        diagnosticCollection.delete(uri);
+                    }
+                });
+            } else if (
+                updateType == FileChangeType.Modified &&
+                item instanceof CollectionFile &&
+                extname(item.getPath()) == getExtensionForRequestFiles() &&
+                // If the modified file is the currently open one in VS Code, the diagnostics will already be updated on every change event.
+                (!window.activeTextEditor ||
+                    window.activeTextEditor.document.uri.fsPath !=
+                        item.getPath()) &&
+                // Only validate external modifications, if the file already has some diagnostics
+                diagnosticCollection.get(Uri.file(item.getPath()))
+            ) {
+                fetchDiagnostics(
+                    Uri.file(item.getPath()),
+                    readFileSync(item.getPath()).toString(),
+                    brunoLangDiagnosticsProvider,
+                    getTypeOfBrunoFile(
+                        [collection],
+                        item.getPath()
+                    ) as BrunoFileType
+                );
+            }
+        }
+    );
+}
+
 function fetchDiagnostics(
-    document: TextDocument,
+    uri: Uri,
+    content: string,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     brunoFileType: BrunoFileType
 ) {
     if (brunoFileType == BrunoFileType.RequestFile) {
         brunoLangDiagnosticsProvider.provideDiagnosticsForRequestFile(
-            document.uri,
-            document.getText()
+            uri,
+            content
         );
     } else if (brunoFileType == BrunoFileType.EnvironmentFile) {
         brunoLangDiagnosticsProvider.provideDiagnosticsForEnvironmentFile(
-            document.uri,
-            document.getText()
+            uri,
+            content
         );
     } else if (brunoFileType == BrunoFileType.FolderSettingsFile) {
         brunoLangDiagnosticsProvider.provideDiagnosticsForFolderSettingsFile(
-            document.uri,
-            document.getText()
+            uri,
+            content
         );
     }
 }
