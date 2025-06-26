@@ -254,7 +254,7 @@ function updateDiagnosticsOnDeletionOrExternalModification(
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider
 ) {
     return collectionItemProvider.subscribeToUpdates()(
-        async ({ collection, data: { item }, updateType }) => {
+        ({ collection, data: { item }, updateType }) => {
             if (
                 updateType == FileChangeType.Deleted &&
                 item instanceof CollectionFile &&
