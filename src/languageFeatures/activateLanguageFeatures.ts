@@ -109,9 +109,7 @@ function onDidChangeActiveTextEditor(
             TabInputText
         )
     ) {
-        for (const collecton of tempJsFilesRegistry.getCollectionsWithRegisteredJsFiles()) {
-            deleteTemporaryJsFileForCollection(tempJsFilesRegistry, collecton);
-        }
+        deleteAllTemporaryJsFiles(tempJsFilesRegistry);
     } else if (
         editor.document.uri.toString() ==
         window.tabGroups.activeTabGroup.activeTab.input.uri.toString()
@@ -122,6 +120,7 @@ function onDidChangeActiveTextEditor(
         );
 
         if (fileType == undefined) {
+            deleteAllTemporaryJsFiles(tempJsFilesRegistry);
             return;
         }
 
@@ -143,12 +142,7 @@ function onDidChangeActiveTextEditor(
                 editor.document.getText()
             );
         } else {
-            for (const collection of tempJsFilesRegistry.getCollectionsWithRegisteredJsFiles()) {
-                deleteTemporaryJsFileForCollection(
-                    tempJsFilesRegistry,
-                    collection
-                );
-            }
+            deleteAllTemporaryJsFiles(tempJsFilesRegistry);
         }
     }
 }
@@ -320,6 +314,14 @@ function fetchDiagnostics(
             uri,
             content
         );
+    }
+}
+
+function deleteAllTemporaryJsFiles(
+    tempJsFilesRegistry: TemporaryJsFilesRegistry
+) {
+    for (const collection of tempJsFilesRegistry.getCollectionsWithRegisteredJsFiles()) {
+        deleteTemporaryJsFileForCollection(tempJsFilesRegistry, collection);
     }
 }
 
