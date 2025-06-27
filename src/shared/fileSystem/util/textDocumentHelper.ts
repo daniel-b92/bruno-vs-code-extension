@@ -36,9 +36,9 @@ export class TextDocumentHelper {
     } = { fullLines: [], lastLine: undefined };
 
     public getAllLines(
-        startIndex: number
+        startIndex?: number
     ): { index: number; content: string }[] {
-        if (startIndex >= this.getLineCount()) {
+        if (startIndex != undefined && startIndex >= this.getLineCount()) {
             throw new Error(
                 `startIndex '${startIndex}' for document text is invalid. The document only has ${this.getLineCount()} lines.`
             );
@@ -47,7 +47,7 @@ export class TextDocumentHelper {
         return this.lines.fullLines
             .slice(startIndex)
             .map(({ content }, i) => ({
-                index: i + startIndex,
+                index: i + (startIndex ?? 0),
                 content,
             }))
             .concat(
