@@ -18,7 +18,7 @@ export async function waitForTempJsFileToBeInSync(
     bruFileContent: string,
     bruFileCodeBlocks: Block[]
 ) {
-    createTemporaryJsFileIfNotAlreadyExisting(
+    await createTemporaryJsFileIfNotAlreadyExisting(
         tempJsFilesRegistry,
         collection,
         bruFileContent
@@ -92,7 +92,7 @@ function isTempJsFileInSync(
     });
 }
 
-function createTemporaryJsFileIfNotAlreadyExisting(
+async function createTemporaryJsFileIfNotAlreadyExisting(
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
     collection: Collection,
     bruFileContent: string
@@ -109,7 +109,7 @@ function createTemporaryJsFileIfNotAlreadyExisting(
         !isTempJsFileRegistered ||
         !existsSync(getTemporaryJsFileName(collection.getRootDirectory()))
     ) {
-        createTemporaryJsFile(
+        await createTemporaryJsFile(
             collection.getRootDirectory(),
             tempJsFilesRegistry,
             bruFileContent
