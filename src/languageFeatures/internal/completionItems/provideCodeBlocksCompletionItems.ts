@@ -12,6 +12,7 @@ import {
     TextDocumentHelper,
     mapRange,
     RequestFileBlockName,
+    OutputChannelLogger,
 } from "../../../shared";
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
@@ -22,7 +23,8 @@ import { TemporaryJsFilesRegistry } from "../shared/temporaryJsFilesRegistry";
 
 export function provideCodeBlocksCompletionItems(
     collectionItemProvider: CollectionItemProvider,
-    tempJsFilesRegistry: TemporaryJsFilesRegistry
+    tempJsFilesRegistry: TemporaryJsFilesRegistry,
+    logger?: OutputChannelLogger
 ) {
     return languages.registerCompletionItemProvider(
         getRequestFileDocumentSelector(),
@@ -52,7 +54,8 @@ export function provideCodeBlocksCompletionItems(
                         collection,
                         document.getText(),
                         blocksToCheck,
-                        document.fileName
+                        document.fileName,
+                        logger
                     );
 
                     if (!temporaryJsDoc) {

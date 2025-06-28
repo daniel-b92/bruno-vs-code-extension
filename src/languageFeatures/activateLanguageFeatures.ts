@@ -19,6 +19,7 @@ import {
     CollectionItemProvider,
     FileChangeType,
     getExtensionForRequestFiles,
+    getLoggerFromSubscriptions,
     getTypeOfBrunoFile,
     normalizeDirectoryPath,
     parseBruFile,
@@ -57,11 +58,24 @@ export function activateLanguageFeatures(
         ...provideBrunoLangCompletionItems(),
         provideCodeBlocksCompletionItems(
             collectionItemProvider,
-            tempJsFilesRegistry
+            tempJsFilesRegistry,
+            getLoggerFromSubscriptions(context)
         ),
-        provideInfosOnHover(collectionItemProvider, tempJsFilesRegistry),
-        provideSignatureHelp(collectionItemProvider, tempJsFilesRegistry),
-        provideDefinitions(collectionItemProvider, tempJsFilesRegistry),
+        provideInfosOnHover(
+            collectionItemProvider,
+            tempJsFilesRegistry,
+            getLoggerFromSubscriptions(context)
+        ),
+        provideSignatureHelp(
+            collectionItemProvider,
+            tempJsFilesRegistry,
+            getLoggerFromSubscriptions(context)
+        ),
+        provideDefinitions(
+            collectionItemProvider,
+            tempJsFilesRegistry,
+            getLoggerFromSubscriptions(context)
+        ),
         brunoLangDiagnosticsProvider,
         tempJsFilesRegistry,
         window.onDidChangeActiveTextEditor((editor) => {

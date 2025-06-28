@@ -15,16 +15,25 @@ import {
     CollectionItemProvider,
     TestRunnerDataHelper,
     getTemporaryJsFileName,
+    OutputChannelLogger,
 } from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures";
 import { syncTsPlugin } from "./syncTsPlugin";
 
 export async function activate(context: ExtensionContext) {
+    const extensionNameLabel = "BruAsCode";
+
     const ctrl = tests.createTestController(
         "bruAsCodeTestController",
-        "bru-as-code"
+        extensionNameLabel
     );
     context.subscriptions.push(ctrl);
+
+    const logger = new OutputChannelLogger(
+        window.createOutputChannel(extensionNameLabel, { log: true })
+    );
+
+    context.subscriptions.push(logger);
 
     const fileChangedEmitter = new EventEmitter<FileChangedEvent>();
     const collectionWatcher = new CollectionWatcher(

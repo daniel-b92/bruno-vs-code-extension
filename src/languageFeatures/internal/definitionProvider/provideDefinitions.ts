@@ -9,6 +9,7 @@ import {
 import {
     CollectionItemProvider,
     mapRange,
+    OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
@@ -21,7 +22,8 @@ import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTe
 
 export function provideDefinitions(
     collectionItemProvider: CollectionItemProvider,
-    tempJsFilesRegistry: TemporaryJsFilesRegistry
+    tempJsFilesRegistry: TemporaryJsFilesRegistry,
+    logger?: OutputChannelLogger
 ) {
     return languages.registerDefinitionProvider(
         getRequestFileDocumentSelector(),
@@ -51,7 +53,8 @@ export function provideDefinitions(
                         collection,
                         document.getText(),
                         blocksToCheck,
-                        document.fileName
+                        document.fileName,
+                        logger
                     );
 
                     if (!temporaryJsDoc) {

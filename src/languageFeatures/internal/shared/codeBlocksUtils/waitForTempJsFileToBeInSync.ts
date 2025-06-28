@@ -4,6 +4,7 @@ import {
     Collection,
     getTemporaryJsFileName,
     normalizeDirectoryPath,
+    OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
@@ -19,7 +20,8 @@ export async function waitForTempJsFileToBeInSync(
     collection: Collection,
     bruFileContentSnapshot: string,
     bruFileCodeBlocksSnapshot: Block[],
-    bruFilePath: string
+    bruFilePath: string,
+    logger?: OutputChannelLogger
 ): Promise<TextDocument | undefined> {
     await createTemporaryJsFileIfNotAlreadyExisting(
         tempJsFilesRegistry,
@@ -37,7 +39,7 @@ export async function waitForTempJsFileToBeInSync(
     if (
         isTempJsFileInSync(jsDocInitially.getText(), bruFileCodeBlocksSnapshot)
     ) {
-        console.log(`Temp JS file in sync on first check.`);
+        logger?.debug(`Temp JS file in sync on first check.`);
         return jsDocInitially;
     }
 
@@ -68,7 +70,7 @@ export async function waitForTempJsFileToBeInSync(
                         bruFileCodeBlocksSnapshot
                     )
                 ) {
-                    console.log(`Temp JS file in sync after waiting.`);
+                    logger?.debug(`Temp JS file in sync after waiting.`);
                     timeout.close();
                     resolve({ document: e.document });
                 }
@@ -79,7 +81,7 @@ export async function waitForTempJsFileToBeInSync(
         toDispose.push(
             workspace.onDidChangeTextDocument((e) => {
                 if (e.document.uri.toString() == bruFilePath.toString()) {
-                    console.log(
+                    logger?.debug(
                         `Aborting waiting for temp Js file to be in sync because bru file has been modified.`
                     );
                     timeout.close();
@@ -88,7 +90,7 @@ export async function waitForTempJsFileToBeInSync(
             }),
             workspace.onDidDeleteFiles((e) => {
                 if (e.files.some(({ fsPath }) => fsPath == bruFilePath)) {
-                    console.log(
+                    logger?.debug(
                         `Aborting waiting for temp Js file to be in sync because bru file has been deleted.`
                     );
                     timeout.close();
@@ -102,7 +104,7 @@ export async function waitForTempJsFileToBeInSync(
         toDispose.push(
             workspace.onDidCloseTextDocument((doc) => {
                 if (doc.uri.toString() == virtualJsFileUri.toString()) {
-                    console.log(
+                    logger?.debug(
                         `Temp Js document has been closed. Need to start a retry for waiting for it to be in sync.`
                     );
                     resolve({ shouldRetry: true });

@@ -2,6 +2,7 @@ import { commands, Hover, languages } from "vscode";
 import {
     CollectionItemProvider,
     mapRange,
+    OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
@@ -15,7 +16,8 @@ import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTe
 
 export function provideInfosOnHover(
     collectionItemProvider: CollectionItemProvider,
-    tempJsFilesRegistry: TemporaryJsFilesRegistry
+    tempJsFilesRegistry: TemporaryJsFilesRegistry,
+    logger?: OutputChannelLogger
 ) {
     return languages.registerHoverProvider(getRequestFileDocumentSelector(), {
         async provideHover(document, position) {
@@ -42,7 +44,8 @@ export function provideInfosOnHover(
                     collection,
                     document.getText(),
                     blocksToCheck,
-                    document.fileName
+                    document.fileName,
+                    logger
                 );
 
                 if (!temporaryJsDoc) {
