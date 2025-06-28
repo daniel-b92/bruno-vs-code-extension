@@ -43,8 +43,13 @@ export function provideSignatureHelp(
                         tempJsFilesRegistry,
                         collection,
                         document.getText(),
-                        blocksToCheck
+                        blocksToCheck,
+                        document.fileName
                     );
+
+                    if (!temporaryJsDoc) {
+                        return undefined;
+                    }
 
                     return await commands.executeCommand<SignatureHelp>(
                         "vscode.executeSignatureHelpProvider",

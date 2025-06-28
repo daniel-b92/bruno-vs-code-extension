@@ -41,8 +41,13 @@ export function provideInfosOnHover(
                     tempJsFilesRegistry,
                     collection,
                     document.getText(),
-                    blocksToCheck
+                    blocksToCheck,
+                    document.fileName
                 );
+
+                if (!temporaryJsDoc) {
+                    return undefined;
+                }
 
                 const resultFromJsFile = await commands.executeCommand<Hover[]>(
                     "vscode.executeHoverProvider",
