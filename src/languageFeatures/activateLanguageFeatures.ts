@@ -35,7 +35,6 @@ import { provideInfosOnHover } from "./internal/hover/provideInfosOnHover";
 import { provideSignatureHelp } from "./internal/signatureHelp/provideSignatureHelp";
 import { provideDefinitions } from "./internal/definitionProvider/provideDefinitions";
 import { extname } from "path";
-import { readFileSync } from "fs";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
@@ -87,10 +86,9 @@ export function activateLanguageFeatures(
                 e
             );
         }),
-        updateDiagnosticsOnDeletionOrExternalModification(
+        handleDiagnosticUpdatesOnFileDeletion(
             collectionItemProvider,
-            diagnosticCollection,
-            brunoLangDiagnosticsProvider
+            diagnosticCollection
         )
     );
 }
@@ -248,13 +246,12 @@ function onWillSaveTextDocument(
     }
 }
 
-function updateDiagnosticsOnDeletionOrExternalModification(
+function handleDiagnosticUpdatesOnFileDeletion(
     collectionItemProvider: CollectionItemProvider,
-    diagnosticCollection: DiagnosticCollection,
-    brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider
+    diagnosticCollection: DiagnosticCollection
 ) {
     return collectionItemProvider.subscribeToUpdates()(
-        ({ collection, data: { item }, updateType }) => {
+        ({ data: { item }, updateType }) => {
             if (
                 updateType == FileChangeType.Deleted &&
                 item instanceof CollectionFile &&
@@ -274,26 +271,6 @@ function updateDiagnosticsOnDeletionOrExternalModification(
                         diagnosticCollection.delete(uri);
                     }
                 });
-            } else if (
-                updateType == FileChangeType.Modified &&
-                item instanceof CollectionFile &&
-                extname(item.getPath()) == getExtensionForRequestFiles() &&
-                // If the modified file is the currently open one in VS Code, the diagnostics will already be updated on every change event.
-                (!window.activeTextEditor ||
-                    window.activeTextEditor.document.uri.fsPath !=
-                        item.getPath()) &&
-                // Only validate external modifications, if the file already has some diagnostics
-                diagnosticCollection.get(Uri.file(item.getPath()))
-            ) {
-                fetchDiagnostics(
-                    Uri.file(item.getPath()),
-                    readFileSync(item.getPath()).toString(),
-                    brunoLangDiagnosticsProvider,
-                    getTypeOfBrunoFile(
-                        [collection],
-                        item.getPath()
-                    ) as BrunoFileType
-                );
             }
         }
     );
