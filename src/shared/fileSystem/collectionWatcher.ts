@@ -9,11 +9,13 @@ import { FileChangedEvent, FileChangeType } from "./fileChangesDefinitions";
 import { basename } from "path";
 import { normalizeDirectoryPath } from "./util/normalizeDirectoryPath";
 import { lstatSync } from "fs";
+import { OutputChannelLogger } from "../logging/outputChannelLogger";
 
 export class CollectionWatcher {
     constructor(
         private context: ExtensionContext,
-        private fileChangedEmitter: EventEmitter<FileChangedEvent>
+        private fileChangedEmitter: EventEmitter<FileChangedEvent>,
+        private logger?: OutputChannelLogger
     ) {}
 
     private watchers: {
@@ -22,6 +24,11 @@ export class CollectionWatcher {
     }[] = [];
 
     public startWatchingCollection(rootDirectory: string) {
+        this.logger?.info(
+            `Starting to watch collection '${basename(
+                rootDirectory
+            )}' for file system changes.`
+        );
         const testPattern =
             this.getPatternForTestitemsInCollection(rootDirectory);
 
@@ -43,11 +50,19 @@ export class CollectionWatcher {
                 changeType: FileChangeType.Created,
             });
 
+            this.logger?.debug(
+                `Registered file system creation event for path '${uri.fsPath}'.`
+            );
+
             const path = uri.fsPath;
 
             if (lstatSync(path).isDirectory()) {
                 const descendants = await workspace.findFiles(
                     new RelativePattern(path, "**/*")
+                );
+
+                this.logger?.debug(
+                    `Created file system element was a directory. Will fire events for all  '${descendants.length}}' descendants that were created, too.`
                 );
 
                 // When renaming a directory with descendant items, the file system watcher only sends a notification that a directory has been created.
@@ -61,12 +76,19 @@ export class CollectionWatcher {
             }
         });
         watcher.onDidChange((uri) => {
+            this.logger?.debug(
+                `Registered file system modification event for path '${uri.fsPath}'.`
+            );
+
             this.fileChangedEmitter.fire({
                 uri,
                 changeType: FileChangeType.Modified,
             });
         });
         watcher.onDidDelete((uri) => {
+            this.logger?.debug(
+                `Registered file system deletion event for path '${uri.fsPath}'.`
+            );
             this.fileChangedEmitter.fire({
                 uri,
                 changeType: FileChangeType.Deleted,
@@ -104,18 +126,18 @@ export class CollectionWatcher {
             )
         );
 
-        if(!maybeWorkspaceFolder){
+        if (!maybeWorkspaceFolder) {
             return undefined;
         }
 
         return new RelativePattern(
-                  maybeWorkspaceFolder, normalizeDirectoryPath(collectionRootDir) != (
-                    normalizeDirectoryPath(maybeWorkspaceFolder.uri.fsPath)
-                ) ? 
-                  `{**/${basename(collectionRootDir)},**/${basename(
+            maybeWorkspaceFolder,
+            normalizeDirectoryPath(collectionRootDir) !=
+            normalizeDirectoryPath(maybeWorkspaceFolder.uri.fsPath)
+                ? `{**/${basename(collectionRootDir)},**/${basename(
                       collectionRootDir
-                  )}/**/*}`: `{*/,**/*}`
-              )
-            ;
+                  )}/**/*}`
+                : `{*/,**/*}`
+        );
     }
 }

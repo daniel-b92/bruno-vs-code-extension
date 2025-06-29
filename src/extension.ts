@@ -38,13 +38,15 @@ export async function activate(context: ExtensionContext) {
     const fileChangedEmitter = new EventEmitter<FileChangedEvent>();
     const collectionWatcher = new CollectionWatcher(
         context,
-        fileChangedEmitter
+        fileChangedEmitter,
+        logger
     );
 
     const collectionItemProvider = new CollectionItemProvider(
         collectionWatcher,
         new TestRunnerDataHelper(ctrl),
-        getPathsToIgnoreForCollection
+        getPathsToIgnoreForCollection,
+        logger
     );
 
     const startTestRunEmitter = new EventEmitter<Uri>();

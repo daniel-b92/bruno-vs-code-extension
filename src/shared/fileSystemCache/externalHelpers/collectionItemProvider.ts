@@ -11,7 +11,8 @@ import { CollectionData } from "../../model/interfaces";
 import { TestRunnerDataHelper } from "./testRunnerDataHelper";
 import { addItemToCollection } from "../internalHelpers/addItemToCollection";
 import { registerMissingCollectionsAndTheirItems } from "../internalHelpers/registerMissingCollectionsAndTheirItems";
-import { getSequenceFromMetaBlock } from "../..";
+import { getSequenceFromMetaBlock, OutputChannelLogger } from "../..";
+import { basename } from "path";
 
 export class CollectionItemProvider {
     constructor(
@@ -19,7 +20,8 @@ export class CollectionItemProvider {
         private testRunnerDataHelper: TestRunnerDataHelper,
         private getPathsToIgnoreForCollection: (
             collectionRootDir: string
-        ) => string[]
+        ) => string[],
+        private logger?: OutputChannelLogger
     ) {
         this.collectionRegistry = new CollectionRegistry(collectionWatcher);
         this.itemUpdateEmitter = new vscode.EventEmitter<{
@@ -46,6 +48,9 @@ export class CollectionItemProvider {
                         registeredCollection.getRootDirectory()
                     ).includes(uri.fsPath)
                 ) {
+                    this.logger?.info(
+                        `Got notification for deletion of collection '${uri.fsPath}'.`
+                    );
                     this.handleCollectionDeletion(uri);
                     return;
                 }
@@ -60,6 +65,14 @@ export class CollectionItemProvider {
                         registeredCollection.getRootDirectory()
                     ).includes(uri.fsPath)
                 ) {
+                    this.logger?.info(
+                        `Got notification for new created item '${
+                            uri.fsPath
+                        }' in collection '${basename(
+                            registeredCollection.getRootDirectory()
+                        )}'.`
+                    );
+
                     this.handleItemCreation(registeredCollection, uri.fsPath);
                     return;
                 } else if (
@@ -69,6 +82,14 @@ export class CollectionItemProvider {
                         registeredCollection.getRootDirectory()
                     ).includes(uri.fsPath)
                 ) {
+                    this.logger?.info(
+                        `Got notification for deletion of cached item '${
+                            uri.fsPath
+                        }' in collection '${basename(
+                            registeredCollection.getRootDirectory()
+                        )}'.`
+                    );
+
                     this.handleItemDeletion(
                         registeredCollection,
                         maybeRegisteredData
@@ -80,6 +101,14 @@ export class CollectionItemProvider {
                         registeredCollection.getRootDirectory()
                     ).includes(uri.fsPath)
                 ) {
+                    this.logger?.info(
+                        `Got notification for modification of cached item '${
+                            uri.fsPath
+                        }' in collection '${basename(
+                            registeredCollection.getRootDirectory()
+                        )}'.`
+                    );
+
                     this.handleModificationOfRegisteredItem(
                         registeredCollection,
                         maybeRegisteredData
