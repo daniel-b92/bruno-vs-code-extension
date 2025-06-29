@@ -49,7 +49,7 @@ export class CollectionItemProvider {
                     ).includes(uri.fsPath)
                 ) {
                     this.logger?.info(
-                        `Got notification for deletion of collection '${uri.fsPath}'.`
+                        `${this.commonPreMessageForLogging} Hnadling deletion of collection '${uri.fsPath}'.`
                     );
                     this.handleCollectionDeletion(uri);
                     return;
@@ -66,7 +66,9 @@ export class CollectionItemProvider {
                     ).includes(uri.fsPath)
                 ) {
                     this.logger?.info(
-                        `Got notification for new created item '${
+                        `${
+                            this.commonPreMessageForLogging
+                        } Handling creation of item '${
                             uri.fsPath
                         }' in collection '${basename(
                             registeredCollection.getRootDirectory()
@@ -83,7 +85,9 @@ export class CollectionItemProvider {
                     ).includes(uri.fsPath)
                 ) {
                     this.logger?.info(
-                        `Got notification for deletion of cached item '${
+                        `${
+                            this.commonPreMessageForLogging
+                        } Handling deletion of cached item '${
                             uri.fsPath
                         }' in collection '${basename(
                             registeredCollection.getRootDirectory()
@@ -102,7 +106,9 @@ export class CollectionItemProvider {
                     ).includes(uri.fsPath)
                 ) {
                     this.logger?.info(
-                        `Got notification for modification of cached item '${
+                        `${
+                            this.commonPreMessageForLogging
+                        } Handling modification of cached item '${
                             uri.fsPath
                         }' in collection '${basename(
                             registeredCollection.getRootDirectory()
@@ -125,6 +131,8 @@ export class CollectionItemProvider {
         updateType: FileChangeType;
         changedData?: { sequenceChanged?: boolean };
     }>;
+
+    private commonPreMessageForLogging = "[CollectionItemProvider]";
 
     public subscribeToUpdates() {
         return this.itemUpdateEmitter.event;
@@ -161,6 +169,8 @@ export class CollectionItemProvider {
     }
 
     public async refreshCache() {
+        const startTime = performance.now();
+
         this.collectionRegistry
             .getRegisteredCollections()
             .forEach((collection) => {
@@ -173,6 +183,13 @@ export class CollectionItemProvider {
             this.testRunnerDataHelper,
             this.collectionRegistry,
             this.getPathsToIgnoreForCollection
+        );
+
+        const endTime = performance.now();
+        this.logger?.info(
+            `${this.commonPreMessageForLogging} Cache refresh duration: ${
+                endTime - startTime
+            } ms`
         );
     }
 

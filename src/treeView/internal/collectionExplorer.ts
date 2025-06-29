@@ -16,6 +16,7 @@ import {
     RequestType,
     MetaBlockKey,
     getFieldFromMetaBlock,
+    OutputChannelLogger,
 } from "../../shared";
 import {
     copyFileSync,
@@ -40,7 +41,8 @@ export class CollectionExplorer
 
     constructor(
         private itemProvider: CollectionItemProvider,
-        startTestRunEmitter: vscode.EventEmitter<vscode.Uri>
+        startTestRunEmitter: vscode.EventEmitter<vscode.Uri>,
+        private logger?: OutputChannelLogger
     ) {
         if (
             !vscode.workspace.workspaceFolders ||
@@ -52,7 +54,8 @@ export class CollectionExplorer
         }
         const treeDataProvider = new BrunoTreeItemProvider(
             vscode.workspace.workspaceFolders[0].uri.fsPath,
-            itemProvider
+            itemProvider,
+            logger
         );
 
         const treeView = vscode.window.createTreeView(this.treeViewId, {
@@ -301,6 +304,14 @@ export class CollectionExplorer
                             ) as CollectionData
                         ).treeItem;
 
+                        this.logger?.debug(
+                            `Starting first attempt of revealing item '${
+                                treeItem.path
+                            }' in explorer for collection '${basename(
+                                maybeCollection.getRootDirectory()
+                            )}'.`
+                        );
+
                         treeView.reveal(treeItem).then(() => {
                             // Sometimes the 'reveal' command does not actually reveal the item, in that case it is retried once
                             if (
@@ -309,6 +320,14 @@ export class CollectionExplorer
                                         item.getPath() == e.document.uri.fsPath
                                 )
                             ) {
+                                this.logger?.debug(
+                                    `Starting second attempt of revealing item '${
+                                        treeItem.path
+                                    }' in explorer for collection '${basename(
+                                        maybeCollection.getRootDirectory()
+                                    )}'.`
+                                );
+
                                 treeView.reveal(treeItem);
                             }
                         });

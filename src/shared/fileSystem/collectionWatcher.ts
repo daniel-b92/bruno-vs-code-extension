@@ -18,6 +18,8 @@ export class CollectionWatcher {
         private logger?: OutputChannelLogger
     ) {}
 
+    private preMessageForLogging = "[CollectionWatcher]";
+
     private watchers: {
         rootDirectory: string;
         watcher: FileSystemWatcher;
@@ -25,9 +27,11 @@ export class CollectionWatcher {
 
     public startWatchingCollection(rootDirectory: string) {
         this.logger?.info(
-            `Starting to watch collection '${basename(
+            `${
+                this.preMessageForLogging
+            } Starting to watch collection '${basename(
                 rootDirectory
-            )}' for file system changes.`
+            )}' for changes.`
         );
         const testPattern =
             this.getPatternForTestitemsInCollection(rootDirectory);
@@ -51,7 +55,7 @@ export class CollectionWatcher {
             });
 
             this.logger?.debug(
-                `Registered file system creation event for path '${uri.fsPath}'.`
+                `${this.preMessageForLogging} Handling file system creation event for path '${uri.fsPath}'.`
             );
 
             const path = uri.fsPath;
@@ -62,7 +66,7 @@ export class CollectionWatcher {
                 );
 
                 this.logger?.debug(
-                    `Created file system element was a directory. Will fire events for all  '${descendants.length}}' descendants that were created, too.`
+                    `${this.preMessageForLogging} Created item was a directory. Firing events for all  '${descendants.length}}' descendants that were created, too.`
                 );
 
                 // When renaming a directory with descendant items, the file system watcher only sends a notification that a directory has been created.
@@ -77,7 +81,7 @@ export class CollectionWatcher {
         });
         watcher.onDidChange((uri) => {
             this.logger?.debug(
-                `Registered file system modification event for path '${uri.fsPath}'.`
+                `${this.preMessageForLogging} Modification event for path '${uri.fsPath}'.`
             );
 
             this.fileChangedEmitter.fire({
@@ -87,7 +91,7 @@ export class CollectionWatcher {
         });
         watcher.onDidDelete((uri) => {
             this.logger?.debug(
-                `Registered file system deletion event for path '${uri.fsPath}'.`
+                `${this.preMessageForLogging} Deletion event for path '${uri.fsPath}'.`
             );
             this.fileChangedEmitter.fire({
                 uri,

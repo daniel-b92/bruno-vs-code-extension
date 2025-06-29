@@ -1,4 +1,4 @@
-import { dirname } from "path";
+import { basename, dirname } from "path";
 import * as vscode from "vscode";
 import {
     getSequenceFromMetaBlock,
@@ -7,6 +7,7 @@ import {
     CollectionItemProvider,
     normalizeDirectoryPath,
     CollectionFile,
+    OutputChannelLogger,
 } from "../../shared";
 import { BrunoTreeItem } from "../brunoTreeItem";
 
@@ -15,16 +16,21 @@ export class BrunoTreeItemProvider
 {
     constructor(
         private workspaceRoot: string,
-        private collectionItemProvider: CollectionItemProvider
+        private collectionItemProvider: CollectionItemProvider,
+        private logger?: OutputChannelLogger
     ) {
         collectionItemProvider.subscribeToUpdates()(
-            ({ updateType, changedData }) => {
+            ({ updateType, changedData, data: { item } }) => {
                 if (
                     updateType == FileChangeType.Deleted ||
                     updateType == FileChangeType.Created ||
                     (updateType == FileChangeType.Modified &&
                         changedData?.sequenceChanged)
                 ) {
+                    this.logger?.debug(
+                        `Triggering update of collection tree view root item due to change event for cached item '${item.getPath()}'.`
+                    );
+
                     // Always update all items when items have to be deleted from / created for the tree view.
                     // When only triggering an update for the parent item, there were issues with the refresh mechanism.
                     this._onDidChangeTreeData.fire(undefined);
@@ -49,6 +55,10 @@ export class BrunoTreeItemProvider
     }
 
     public refresh() {
+        this.logger?.info(
+            `Triggering full cache refresh and afterwards a refresh of the collection explorer tree.`
+        );
+
         return new Promise<void>((resolve) => {
             this.collectionItemProvider.refreshCache().then(() => {
                 this._onDidChangeTreeData.fire(undefined);
@@ -66,6 +76,10 @@ export class BrunoTreeItemProvider
         }
 
         if (!element) {
+            this.logger?.debug(
+                `Fetching root items for collection explorer tree.`
+            );
+
             return this.collectionItemProvider
                 .getRegisteredCollections()
                 .map(
@@ -86,8 +100,17 @@ export class BrunoTreeItemProvider
                 );
 
             if (!collection) {
+                this.logger?.debug(
+                    `Could not determine collection for tree item ${element.getPath()}. Returning an empty list for the requested child items.`
+                );
                 return [];
             }
+
+            this.logger?.debug(
+                `Fetching child explorer tree items for item ${element.getPath()} for collection '${basename(
+                    collection.getRootDirectory()
+                )}' collection.`
+            );
 
             return collection
                 .getAllStoredDataForCollection()
