@@ -1,3 +1,12 @@
+## [0.12.0] (2025-06-29)
+
+### Features
+- Add own output channel for extension for log messages and add logging for some events.
+
+### Fixes
+- Do not update diagnostics for `.bru` files on external modifications because it can lead to incorrect diagnostics when multiple files are updated.
+- Avoid deadlocks while waiting for temporary js file to be updated and improve resilience of the waiting mechanism.
+
 ## [0.11.1] (2025-06-26)
 
 ### Fixes
