@@ -3,6 +3,7 @@ import {
     TextDocumentHelper,
     RequestFileBlockName,
     getTemporaryJsFileName,
+    OutputChannelLogger,
 } from "../../../../shared";
 import { mapBlockNameToJsFileLine } from "./mapBlockNameToJsFileFunctionName";
 import { TemporaryJsFilesRegistry } from "../temporaryJsFilesRegistry";
@@ -11,7 +12,8 @@ import { Uri, workspace, WorkspaceEdit } from "vscode";
 export async function createTemporaryJsFile(
     collectionRootDirectory: string,
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
-    bruFileContent: string
+    bruFileContent: string,
+    logger?: OutputChannelLogger
 ) {
     const { blocks: parsedBlocks } = parseBruFile(
         new TextDocumentHelper(bruFileContent)
@@ -49,7 +51,7 @@ ${content}}`
     if (editResult) {
         tempJsFilesRegistry.registerJsFile(collectionRootDirectory);
     } else {
-        console.error(`Did not manage to create temporary js file.`);
+        logger?.error(`Did not manage to create temporary js file.`);
     }
 }
 

@@ -22,6 +22,7 @@ import {
     getLoggerFromSubscriptions,
     getTypeOfBrunoFile,
     normalizeDirectoryPath,
+    OutputChannelLogger,
     parseBruFile,
     TextDocumentHelper,
 } from "../shared";
@@ -52,6 +53,8 @@ export function activateLanguageFeatures(
         collectionItemProvider
     );
 
+    const logger = getLoggerFromSubscriptions(context);
+
     context.subscriptions.push(
         diagnosticCollection,
         tempJsFilesRegistry,
@@ -59,23 +62,19 @@ export function activateLanguageFeatures(
         provideCodeBlocksCompletionItems(
             collectionItemProvider,
             tempJsFilesRegistry,
-            getLoggerFromSubscriptions(context)
+            logger
         ),
         provideInfosOnHover(
             collectionItemProvider,
             tempJsFilesRegistry,
-            getLoggerFromSubscriptions(context)
+            logger
         ),
         provideSignatureHelp(
             collectionItemProvider,
             tempJsFilesRegistry,
-            getLoggerFromSubscriptions(context)
+            logger
         ),
-        provideDefinitions(
-            collectionItemProvider,
-            tempJsFilesRegistry,
-            getLoggerFromSubscriptions(context)
-        ),
+        provideDefinitions(collectionItemProvider, tempJsFilesRegistry, logger),
         brunoLangDiagnosticsProvider,
         tempJsFilesRegistry,
         window.onDidChangeActiveTextEditor((editor) => {
@@ -83,7 +82,8 @@ export function activateLanguageFeatures(
                 tempJsFilesRegistry,
                 brunoLangDiagnosticsProvider,
                 collectionItemProvider,
-                editor
+                editor,
+                logger
             );
         }),
         workspace.onDidChangeTextDocument((e) => {
@@ -91,7 +91,8 @@ export function activateLanguageFeatures(
                 tempJsFilesRegistry,
                 brunoLangDiagnosticsProvider,
                 collectionItemProvider,
-                e
+                e,
+                logger
             );
         }),
         workspace.onWillSaveTextDocument((e) => {
@@ -113,7 +114,8 @@ function onDidChangeActiveTextEditor(
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     collectionItemProvider: CollectionItemProvider,
-    editor: TextEditor | undefined
+    editor: TextEditor | undefined,
+    logger?: OutputChannelLogger
 ) {
     if (
         !editor ||
@@ -153,7 +155,8 @@ function onDidChangeActiveTextEditor(
                     ) as Collection
                 ).getRootDirectory(),
                 tempJsFilesRegistry,
-                editor.document.getText()
+                editor.document.getText(),
+                logger
             );
         } else {
             deleteAllTemporaryJsFiles(tempJsFilesRegistry);
@@ -165,7 +168,8 @@ function onDidChangeTextDocument(
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     collectionItemProvider: CollectionItemProvider,
-    event: TextDocumentChangeEvent
+    event: TextDocumentChangeEvent,
+    logger?: OutputChannelLogger
 ) {
     if (event.contentChanges.length > 0) {
         // If the document has been modified externally (not via VS Code), skip all actions
@@ -197,7 +201,8 @@ function onDidChangeTextDocument(
                         ) as Collection
                     ).getRootDirectory(),
                     tempJsFilesRegistry,
-                    event.document.getText()
+                    event.document.getText(),
+                    logger
                 );
             }
         }

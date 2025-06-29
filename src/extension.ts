@@ -68,6 +68,7 @@ export async function activate(context: ExtensionContext) {
             return new Promise<void>((resolve) => {
                 collectionItemProvider.refreshCache().then(() => {
                     activateRunner(
+                        context,
                         ctrl,
                         collectionItemProvider,
                         startTestRunEmitter.event

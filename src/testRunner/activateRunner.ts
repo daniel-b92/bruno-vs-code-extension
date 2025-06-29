@@ -9,6 +9,7 @@ import {
     Uri,
     window,
     ProgressLocation,
+    ExtensionContext,
 } from "vscode";
 import { startTestRun } from "./internal/startTestRun";
 import { TestRunQueue } from "./internal/testRunQueue";
@@ -25,9 +26,11 @@ import {
     FileChangeType,
     getExtensionForRequestFiles,
     CollectionItem,
+    getLoggerFromSubscriptions,
 } from "../shared";
 
 export async function activateRunner(
+    context: ExtensionContext,
     ctrl: TestController,
     collectionItemProvider: CollectionItemProvider,
     startTestRunEvent: VscodeEvent<Uri>
@@ -38,6 +41,7 @@ export async function activateRunner(
     >();
     const queue = new TestRunQueue(ctrl);
     const testRunnerDataHelper = new TestRunnerDataHelper(ctrl);
+    const logger = getLoggerFromSubscriptions(context);
 
     handleTestTreeUpdates(ctrl, collectionItemProvider, testRunnerDataHelper);
 
@@ -53,7 +57,8 @@ export async function activateRunner(
                         true
                     ),
                     collectionItemProvider,
-                    queue
+                    queue,
+                    logger
                 );
                 return;
             }
@@ -80,7 +85,8 @@ export async function activateRunner(
                     ctrl,
                     new TestRunRequest(include, undefined, profile, true),
                     collectionItemProvider,
-                    queue
+                    queue,
+                    logger
                 );
             }
         }
@@ -95,7 +101,8 @@ export async function activateRunner(
                 ctrl,
                 request,
                 collectionItemProvider,
-                queue
+                queue,
+                logger
             );
         }
 
@@ -215,7 +222,8 @@ export async function activateRunner(
                     false
                 ),
                 collectionItemProvider,
-                queue
+                queue,
+                logger
             );
         } else {
             window.showInformationMessage(

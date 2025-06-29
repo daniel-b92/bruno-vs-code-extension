@@ -83,18 +83,21 @@ export function provideCodeBlocksCompletionItems(
                                     ? (mapToRangeWithinBruFile(
                                           blocksToCheck,
                                           temporaryJsDoc.getText(),
-                                          item.range
+                                          item.range,
+                                          logger
                                       ) as VsCodeRange)
                                     : {
                                           inserting: mapToRangeWithinBruFile(
                                               blocksToCheck,
                                               temporaryJsDoc.getText(),
-                                              item.range.inserting
+                                              item.range.inserting,
+                                              logger
                                           ) as VsCodeRange,
                                           replacing: mapToRangeWithinBruFile(
                                               blocksToCheck,
                                               temporaryJsDoc.getText(),
-                                              item.range.replacing
+                                              item.range.replacing,
+                                              logger
                                           ) as VsCodeRange,
                                       }
                                 : undefined,

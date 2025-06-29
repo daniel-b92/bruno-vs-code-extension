@@ -26,7 +26,8 @@ export async function waitForTempJsFileToBeInSync(
     await createTemporaryJsFileIfNotAlreadyExisting(
         tempJsFilesRegistry,
         collection,
-        bruFileContentSnapshot
+        bruFileContentSnapshot,
+        logger
     );
 
     const virtualJsFileUri = Uri.file(
@@ -51,7 +52,8 @@ export async function waitForTempJsFileToBeInSync(
             createTemporaryJsFile(
                 collection.getRootDirectory(),
                 tempJsFilesRegistry,
-                bruFileContentSnapshot
+                bruFileContentSnapshot,
+                logger
             ),
         10_000
     );
@@ -159,7 +161,8 @@ function isTempJsFileInSync(
 async function createTemporaryJsFileIfNotAlreadyExisting(
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
     collection: Collection,
-    bruFileContent: string
+    bruFileContent: string,
+    logger?: OutputChannelLogger
 ) {
     const isTempJsFileRegistered = tempJsFilesRegistry
         .getCollectionsWithRegisteredJsFiles()
@@ -176,7 +179,8 @@ async function createTemporaryJsFileIfNotAlreadyExisting(
         await createTemporaryJsFile(
             collection.getRootDirectory(),
             tempJsFilesRegistry,
-            bruFileContent
+            bruFileContent,
+            logger
         );
     }
 }

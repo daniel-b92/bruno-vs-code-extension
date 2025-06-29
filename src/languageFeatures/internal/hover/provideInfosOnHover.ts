@@ -72,7 +72,8 @@ export function provideInfosOnHover(
                           mapToRangeWithinBruFile(
                               blocksToCheck,
                               temporaryJsDoc.getText(),
-                              resultFromJsFile[0].range
+                              resultFromJsFile[0].range,
+                              logger
                           )
                       )
                     : resultFromJsFile[0];
