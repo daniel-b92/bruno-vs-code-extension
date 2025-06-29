@@ -107,6 +107,7 @@ export async function waitForTempJsFileToBeInSync(
                     logger?.debug(
                         `Temp Js document has been closed. Need to start a retry for waiting for it to be in sync.`
                     );
+                    timeout.close();
                     resolve({ shouldRetry: true });
                 }
             })
