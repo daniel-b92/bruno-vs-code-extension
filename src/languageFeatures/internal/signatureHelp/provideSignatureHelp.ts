@@ -2,6 +2,7 @@ import { commands, languages, SignatureHelp } from "vscode";
 import {
     CollectionItemProvider,
     mapRange,
+    OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
@@ -14,7 +15,8 @@ import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTe
 
 export function provideSignatureHelp(
     collectionItemProvider: CollectionItemProvider,
-    tempJsFilesRegistry: TemporaryJsFilesRegistry
+    tempJsFilesRegistry: TemporaryJsFilesRegistry,
+    logger?: OutputChannelLogger
 ) {
     return languages.registerSignatureHelpProvider(
         getRequestFileDocumentSelector(),
@@ -43,8 +45,14 @@ export function provideSignatureHelp(
                         tempJsFilesRegistry,
                         collection,
                         document.getText(),
-                        blocksToCheck
+                        blocksToCheck,
+                        document.fileName,
+                        logger
                     );
+
+                    if (!temporaryJsDoc) {
+                        return undefined;
+                    }
 
                     return await commands.executeCommand<SignatureHelp>(
                         "vscode.executeSignatureHelpProvider",

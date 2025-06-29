@@ -13,7 +13,7 @@ import { getTestFilesWithFailures } from "./jsonReportParser";
 import { getTestItemDescendants } from "../testTreeUtils/getTestItemDescendants";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import treeKill = require("tree-kill");
-import { getLinkToUserSetting } from "../../shared";
+import { getLinkToUserSetting, OutputChannelLogger } from "../../shared";
 
 export async function runTestStructure(
     item: vscodeTestItem,
@@ -21,7 +21,8 @@ export async function runTestStructure(
     abortEmitter: EventEmitter<void>,
     collectionRootDirectory: string,
     htmlReportPath: string,
-    testEnvironment?: string
+    testEnvironment?: string,
+    logger?: OutputChannelLogger
 ): Promise<boolean> {
     const path = (item.uri as Uri).fsPath;
     const lineBreak = getLineBreakForTestRunOutput();
@@ -51,7 +52,8 @@ export async function runTestStructure(
             collectionRootDirectory,
             htmlReportPath,
             jsonReportPath,
-            testEnvironment
+            testEnvironment,
+            logger
         );
 
         if (!canUseNpx()) {
@@ -77,13 +79,15 @@ export async function runTestStructure(
 
         abortEmitter.event(() => {
             while (!childProcess.pid) {
-                console.error("Could not get PID of child process to kill");
+                logger?.error(
+                    "Could not get PID of child process to kill for test run."
+                );
             }
             treeKill(childProcess.pid);
         });
 
         childProcess.on("error", (err) => {
-            console.error("Failed to start subprocess.", err);
+            logger?.error("Failed to start subprocess.", err);
             if (existsSync(htmlReportPath)) {
                 options.appendOutput(
                     `Results can be found here: ${htmlReportPath}${lineBreak}`
@@ -115,7 +119,9 @@ export async function runTestStructure(
         });
 
         childProcess.on("close", (exitCode) => {
-            console.log(`child process exited with code ${exitCode}`);
+            logger?.info(
+                `Child process for test run exited with code ${exitCode}`
+            );
             duration = Date.now() - start;
             if (existsSync(htmlReportPath)) {
                 options.appendOutput(
@@ -317,12 +323,13 @@ const spawnChildProcess = (
     collectionRootDirectory: string,
     htmlReportPath: string,
     jsonReportPath: string,
-    testEnvironment?: string
+    testEnvironment?: string,
+    logger?: OutputChannelLogger
 ) => {
     const npmPackageForUsingViaNpx = `${getNpmPackageNameWithoutSpecificVersion()}@2.6.1`;
 
     const commandArguments: (string | undefined)[] = [];
-    const shouldUseNpxForTriggeringTests = shouldUseNpx();
+    const shouldUseNpxForTriggeringTests = shouldUseNpx(logger);
     const command = shouldUseNpxForTriggeringTests ? "npx" : "bru";
     const argForRunCommand =
         testPath == collectionRootDirectory
@@ -347,6 +354,14 @@ const spawnChildProcess = (
         commandArguments.push(...["--env", testEnvironment]);
     }
 
+    logger?.debug(
+        `Using command '${command}' and command arguments ${JSON.stringify(
+            commandArguments,
+            null,
+            2
+        )} for triggering test run via CLI.`
+    );
+
     const childProcess = spawn(command, commandArguments as string[], {
         cwd: collectionRootDirectory,
         shell: true,
@@ -355,7 +370,7 @@ const spawnChildProcess = (
     return { childProcess, usingNpx: shouldUseNpxForTriggeringTests };
 };
 
-const shouldUseNpx = () => {
+const shouldUseNpx = (logger?: OutputChannelLogger) => {
     if (!canUseNpx()) {
         return false;
     }
@@ -364,7 +379,7 @@ const shouldUseNpx = () => {
 
     exec("npm list -g --depth=0", (err, stdOut) => {
         if (err) {
-            console.warn(
+            logger?.warn(
                 `Got an unexpected error when trying to determine globally installed NPM packages: '${err.message}'`
             );
             isPackageInstalledGlobally = false;

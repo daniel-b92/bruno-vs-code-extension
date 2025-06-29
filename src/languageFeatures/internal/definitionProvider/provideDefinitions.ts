@@ -9,6 +9,7 @@ import {
 import {
     CollectionItemProvider,
     mapRange,
+    OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
@@ -21,7 +22,8 @@ import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTe
 
 export function provideDefinitions(
     collectionItemProvider: CollectionItemProvider,
-    tempJsFilesRegistry: TemporaryJsFilesRegistry
+    tempJsFilesRegistry: TemporaryJsFilesRegistry,
+    logger?: OutputChannelLogger
 ) {
     return languages.registerDefinitionProvider(
         getRequestFileDocumentSelector(),
@@ -50,8 +52,14 @@ export function provideDefinitions(
                         tempJsFilesRegistry,
                         collection,
                         document.getText(),
-                        blocksToCheck
+                        blocksToCheck,
+                        document.fileName,
+                        logger
                     );
+
+                    if (!temporaryJsDoc) {
+                        return undefined;
+                    }
 
                     const resultFromJsFile = await commands.executeCommand<
                         (Location | LocationLink)[]

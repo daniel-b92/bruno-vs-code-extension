@@ -18,6 +18,7 @@ import {
     Collection,
     CollectionItemProvider,
     getLinkToUserSetting,
+    OutputChannelLogger,
 } from "../../shared";
 
 const environmentConfigKey = "bru-as-code.testRunEnvironment";
@@ -26,7 +27,8 @@ export const startTestRun = async (
     ctrl: TestController,
     request: TestRunRequest,
     collectionItemProvider: CollectionItemProvider,
-    queue: TestRunQueue
+    queue: TestRunQueue,
+    logger?: OutputChannelLogger
 ) => {
     const discoverTests = (tests: Iterable<vscodeTestItem>) => {
         const result: QueuedTest[] = [];
@@ -96,7 +98,8 @@ export const startTestRun = async (
                 { test, abortEmitter, id, request },
                 run,
                 collectionRootDir,
-                htmlReportPath
+                htmlReportPath,
+                logger
             );
 
             if (!didRun) {
@@ -139,7 +142,8 @@ const prepareAndRunTest = async (
     { test, abortEmitter }: QueuedTest,
     run: TestRun,
     collectionRootDirectory: string,
-    htmlReportPath: string
+    htmlReportPath: string,
+    logger?: OutputChannelLogger
 ): Promise<{ didRun: boolean; passed?: boolean }> => {
     if (checkForRequestedCancellation(run)) {
         run.end();
@@ -167,7 +171,8 @@ const prepareAndRunTest = async (
         abortEmitter,
         collectionRootDirectory,
         htmlReportPath,
-        testEnvironment
+        testEnvironment,
+        logger
     );
 
     return { didRun: true, passed };

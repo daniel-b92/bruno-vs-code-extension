@@ -13,7 +13,7 @@ export function getTempJsFileBlockContent(
 
     const documentHelper = new TextDocumentHelper(fullFileContent);
     const functionDeclarationLine = documentHelper
-        .getAllLines(0)
+        .getAllLines()
         .find(({ content }) => content == expectedFunctionDeclarationLine);
 
     if (functionDeclarationLine == undefined) {

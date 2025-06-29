@@ -2,6 +2,7 @@ import {
     Block,
     mapPosition,
     mapRange,
+    OutputChannelLogger,
     Position,
     Range,
     RequestFileBlockName,
@@ -13,7 +14,8 @@ import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
 export function mapToRangeWithinBruFile(
     blocksInBruFile: Block[],
     fullJsFileContent: string,
-    rangeInJsFile: VsCodeRange
+    rangeInJsFile: VsCodeRange,
+    logger?: OutputChannelLogger
 ) {
     const start = mapToPositionWithinBruFile(
         blocksInBruFile,
@@ -27,10 +29,12 @@ export function mapToRangeWithinBruFile(
     );
 
     if (!start || !end) {
-        console.error(
-            `Could not determine start or end for range in Js file ${mapPosition(
-                rangeInJsFile.start
-            )}:${rangeInJsFile.end}`
+        logger?.error(
+            `Could not determine start or end for range in Js file ${JSON.stringify(
+                rangeInJsFile.start,
+                null,
+                2
+            )}:${JSON.stringify(rangeInJsFile.end, null, 2)}`
         );
     }
     return start && end ? mapRange(new Range(start, end)) : undefined;

@@ -19,8 +19,10 @@ import {
     CollectionItemProvider,
     FileChangeType,
     getExtensionForRequestFiles,
+    getLoggerFromSubscriptions,
     getTypeOfBrunoFile,
     normalizeDirectoryPath,
+    OutputChannelLogger,
     parseBruFile,
     TextDocumentHelper,
 } from "../shared";
@@ -50,17 +52,28 @@ export function activateLanguageFeatures(
         collectionItemProvider
     );
 
+    const logger = getLoggerFromSubscriptions(context);
+
     context.subscriptions.push(
         diagnosticCollection,
         tempJsFilesRegistry,
         ...provideBrunoLangCompletionItems(),
         provideCodeBlocksCompletionItems(
             collectionItemProvider,
-            tempJsFilesRegistry
+            tempJsFilesRegistry,
+            logger
         ),
-        provideInfosOnHover(collectionItemProvider, tempJsFilesRegistry),
-        provideSignatureHelp(collectionItemProvider, tempJsFilesRegistry),
-        provideDefinitions(collectionItemProvider, tempJsFilesRegistry),
+        provideInfosOnHover(
+            collectionItemProvider,
+            tempJsFilesRegistry,
+            logger
+        ),
+        provideSignatureHelp(
+            collectionItemProvider,
+            tempJsFilesRegistry,
+            logger
+        ),
+        provideDefinitions(collectionItemProvider, tempJsFilesRegistry, logger),
         brunoLangDiagnosticsProvider,
         tempJsFilesRegistry,
         window.onDidChangeActiveTextEditor((editor) => {
@@ -68,7 +81,8 @@ export function activateLanguageFeatures(
                 tempJsFilesRegistry,
                 brunoLangDiagnosticsProvider,
                 collectionItemProvider,
-                editor
+                editor,
+                logger
             );
         }),
         workspace.onDidChangeTextDocument((e) => {
@@ -76,7 +90,8 @@ export function activateLanguageFeatures(
                 tempJsFilesRegistry,
                 brunoLangDiagnosticsProvider,
                 collectionItemProvider,
-                e
+                e,
+                logger
             );
         }),
         workspace.onWillSaveTextDocument((e) => {
@@ -97,7 +112,8 @@ function onDidChangeActiveTextEditor(
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     collectionItemProvider: CollectionItemProvider,
-    editor: TextEditor | undefined
+    editor: TextEditor | undefined,
+    logger?: OutputChannelLogger
 ) {
     if (
         !editor ||
@@ -107,9 +123,7 @@ function onDidChangeActiveTextEditor(
             TabInputText
         )
     ) {
-        for (const collecton of tempJsFilesRegistry.getCollectionsWithRegisteredJsFiles()) {
-            deleteTemporaryJsFileForCollection(tempJsFilesRegistry, collecton);
-        }
+        deleteAllTemporaryJsFiles(tempJsFilesRegistry);
     } else if (
         editor.document.uri.toString() ==
         window.tabGroups.activeTabGroup.activeTab.input.uri.toString()
@@ -120,6 +134,7 @@ function onDidChangeActiveTextEditor(
         );
 
         if (fileType == undefined) {
+            deleteAllTemporaryJsFiles(tempJsFilesRegistry);
             return;
         }
 
@@ -138,15 +153,11 @@ function onDidChangeActiveTextEditor(
                     ) as Collection
                 ).getRootDirectory(),
                 tempJsFilesRegistry,
-                editor.document.getText()
+                editor.document.getText(),
+                logger
             );
         } else {
-            for (const collection of tempJsFilesRegistry.getCollectionsWithRegisteredJsFiles()) {
-                deleteTemporaryJsFileForCollection(
-                    tempJsFilesRegistry,
-                    collection
-                );
-            }
+            deleteAllTemporaryJsFiles(tempJsFilesRegistry);
         }
     }
 }
@@ -155,7 +166,8 @@ function onDidChangeTextDocument(
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     collectionItemProvider: CollectionItemProvider,
-    event: TextDocumentChangeEvent
+    event: TextDocumentChangeEvent,
+    logger?: OutputChannelLogger
 ) {
     if (event.contentChanges.length > 0) {
         // If the document has been modified externally (not via VS Code), skip all actions
@@ -187,7 +199,8 @@ function onDidChangeTextDocument(
                         ) as Collection
                     ).getRootDirectory(),
                     tempJsFilesRegistry,
-                    event.document.getText()
+                    event.document.getText(),
+                    logger
                 );
             }
         }
@@ -297,6 +310,14 @@ function fetchDiagnostics(
             uri,
             content
         );
+    }
+}
+
+function deleteAllTemporaryJsFiles(
+    tempJsFilesRegistry: TemporaryJsFilesRegistry
+) {
+    for (const collection of tempJsFilesRegistry.getCollectionsWithRegisteredJsFiles()) {
+        deleteTemporaryJsFileForCollection(tempJsFilesRegistry, collection);
     }
 }
 

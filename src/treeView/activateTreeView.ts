@@ -1,6 +1,6 @@
 import { CollectionExplorer } from "./internal/collectionExplorer";
 import { EventEmitter, ExtensionContext, Uri } from "vscode";
-import { CollectionItemProvider } from "../shared";
+import { CollectionItemProvider, getLoggerFromSubscriptions } from "../shared";
 
 export function activateTreeView(
     context: ExtensionContext,
@@ -8,6 +8,10 @@ export function activateTreeView(
     startTestRunEmitter: EventEmitter<Uri>
 ) {
     context.subscriptions.push(
-        new CollectionExplorer(itemProvider, startTestRunEmitter)
+        new CollectionExplorer(
+            itemProvider,
+            startTestRunEmitter,
+            getLoggerFromSubscriptions(context)
+        )
     );
 }

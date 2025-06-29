@@ -86,3 +86,7 @@ export * from "./fileSystemCache/externalHelpers/testRunnerDataHelper";
 
 // vsCodeSettings
 export * from "./vsCodeSettings/getLinkToUserSetting";
+
+// logging
+export * from "./logging/outputChannelLogger";
+export * from "./logging/getLoggerFromSubscriptions";

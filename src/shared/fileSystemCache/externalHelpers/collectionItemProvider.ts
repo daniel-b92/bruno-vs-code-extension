@@ -11,7 +11,8 @@ import { CollectionData } from "../../model/interfaces";
 import { TestRunnerDataHelper } from "./testRunnerDataHelper";
 import { addItemToCollection } from "../internalHelpers/addItemToCollection";
 import { registerMissingCollectionsAndTheirItems } from "../internalHelpers/registerMissingCollectionsAndTheirItems";
-import { getSequenceFromMetaBlock } from "../..";
+import { getSequenceFromMetaBlock, OutputChannelLogger } from "../..";
+import { basename } from "path";
 
 export class CollectionItemProvider {
     constructor(
@@ -19,7 +20,8 @@ export class CollectionItemProvider {
         private testRunnerDataHelper: TestRunnerDataHelper,
         private getPathsToIgnoreForCollection: (
             collectionRootDir: string
-        ) => string[]
+        ) => string[],
+        private logger?: OutputChannelLogger
     ) {
         this.collectionRegistry = new CollectionRegistry(collectionWatcher);
         this.itemUpdateEmitter = new vscode.EventEmitter<{
@@ -46,6 +48,9 @@ export class CollectionItemProvider {
                         registeredCollection.getRootDirectory()
                     ).includes(uri.fsPath)
                 ) {
+                    this.logger?.info(
+                        `${this.commonPreMessageForLogging} Hnadling deletion of collection '${uri.fsPath}'.`
+                    );
                     this.handleCollectionDeletion(uri);
                     return;
                 }
@@ -60,6 +65,16 @@ export class CollectionItemProvider {
                         registeredCollection.getRootDirectory()
                     ).includes(uri.fsPath)
                 ) {
+                    this.logger?.info(
+                        `${
+                            this.commonPreMessageForLogging
+                        } Handling creation of item '${
+                            uri.fsPath
+                        }' in collection '${basename(
+                            registeredCollection.getRootDirectory()
+                        )}'.`
+                    );
+
                     this.handleItemCreation(registeredCollection, uri.fsPath);
                     return;
                 } else if (
@@ -69,6 +84,16 @@ export class CollectionItemProvider {
                         registeredCollection.getRootDirectory()
                     ).includes(uri.fsPath)
                 ) {
+                    this.logger?.info(
+                        `${
+                            this.commonPreMessageForLogging
+                        } Handling deletion of cached item '${
+                            uri.fsPath
+                        }' in collection '${basename(
+                            registeredCollection.getRootDirectory()
+                        )}'.`
+                    );
+
                     this.handleItemDeletion(
                         registeredCollection,
                         maybeRegisteredData
@@ -80,6 +105,16 @@ export class CollectionItemProvider {
                         registeredCollection.getRootDirectory()
                     ).includes(uri.fsPath)
                 ) {
+                    this.logger?.info(
+                        `${
+                            this.commonPreMessageForLogging
+                        } Handling modification of cached item '${
+                            uri.fsPath
+                        }' in collection '${basename(
+                            registeredCollection.getRootDirectory()
+                        )}'.`
+                    );
+
                     this.handleModificationOfRegisteredItem(
                         registeredCollection,
                         maybeRegisteredData
@@ -96,6 +131,8 @@ export class CollectionItemProvider {
         updateType: FileChangeType;
         changedData?: { sequenceChanged?: boolean };
     }>;
+
+    private commonPreMessageForLogging = "[CollectionItemProvider]";
 
     public subscribeToUpdates() {
         return this.itemUpdateEmitter.event;
@@ -132,6 +169,8 @@ export class CollectionItemProvider {
     }
 
     public async refreshCache() {
+        const startTime = performance.now();
+
         this.collectionRegistry
             .getRegisteredCollections()
             .forEach((collection) => {
@@ -144,6 +183,13 @@ export class CollectionItemProvider {
             this.testRunnerDataHelper,
             this.collectionRegistry,
             this.getPathsToIgnoreForCollection
+        );
+
+        const endTime = performance.now();
+        this.logger?.info(
+            `${this.commonPreMessageForLogging} Cache refresh duration: ${
+                endTime - startTime
+            } ms`
         );
     }
 

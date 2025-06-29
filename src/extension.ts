@@ -15,27 +15,38 @@ import {
     CollectionItemProvider,
     TestRunnerDataHelper,
     getTemporaryJsFileName,
+    OutputChannelLogger,
 } from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures";
 import { syncTsPlugin } from "./syncTsPlugin";
 
 export async function activate(context: ExtensionContext) {
+    const extensionNameLabel = "BruAsCode";
+
     const ctrl = tests.createTestController(
         "bruAsCodeTestController",
-        "bru-as-code"
+        extensionNameLabel
     );
     context.subscriptions.push(ctrl);
+
+    const logger = new OutputChannelLogger(
+        window.createOutputChannel(extensionNameLabel, { log: true })
+    );
+
+    context.subscriptions.push(logger);
 
     const fileChangedEmitter = new EventEmitter<FileChangedEvent>();
     const collectionWatcher = new CollectionWatcher(
         context,
-        fileChangedEmitter
+        fileChangedEmitter,
+        logger
     );
 
     const collectionItemProvider = new CollectionItemProvider(
         collectionWatcher,
         new TestRunnerDataHelper(ctrl),
-        getPathsToIgnoreForCollection
+        getPathsToIgnoreForCollection,
+        logger
     );
 
     const startTestRunEmitter = new EventEmitter<Uri>();
@@ -57,6 +68,7 @@ export async function activate(context: ExtensionContext) {
             return new Promise<void>((resolve) => {
                 collectionItemProvider.refreshCache().then(() => {
                     activateRunner(
+                        context,
                         ctrl,
                         collectionItemProvider,
                         startTestRunEmitter.event

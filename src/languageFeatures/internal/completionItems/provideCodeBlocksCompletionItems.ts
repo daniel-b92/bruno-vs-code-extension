@@ -12,6 +12,7 @@ import {
     TextDocumentHelper,
     mapRange,
     RequestFileBlockName,
+    OutputChannelLogger,
 } from "../../../shared";
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
@@ -22,7 +23,8 @@ import { TemporaryJsFilesRegistry } from "../shared/temporaryJsFilesRegistry";
 
 export function provideCodeBlocksCompletionItems(
     collectionItemProvider: CollectionItemProvider,
-    tempJsFilesRegistry: TemporaryJsFilesRegistry
+    tempJsFilesRegistry: TemporaryJsFilesRegistry,
+    logger?: OutputChannelLogger
 ) {
     return languages.registerCompletionItemProvider(
         getRequestFileDocumentSelector(),
@@ -51,8 +53,14 @@ export function provideCodeBlocksCompletionItems(
                         tempJsFilesRegistry,
                         collection,
                         document.getText(),
-                        blocksToCheck
+                        blocksToCheck,
+                        document.fileName,
+                        logger
                     );
+
+                    if (!temporaryJsDoc) {
+                        return undefined;
+                    }
 
                     const resultFromJsFile =
                         await commands.executeCommand<CompletionList>(
@@ -75,18 +83,21 @@ export function provideCodeBlocksCompletionItems(
                                     ? (mapToRangeWithinBruFile(
                                           blocksToCheck,
                                           temporaryJsDoc.getText(),
-                                          item.range
+                                          item.range,
+                                          logger
                                       ) as VsCodeRange)
                                     : {
                                           inserting: mapToRangeWithinBruFile(
                                               blocksToCheck,
                                               temporaryJsDoc.getText(),
-                                              item.range.inserting
+                                              item.range.inserting,
+                                              logger
                                           ) as VsCodeRange,
                                           replacing: mapToRangeWithinBruFile(
                                               blocksToCheck,
                                               temporaryJsDoc.getText(),
-                                              item.range.replacing
+                                              item.range.replacing,
+                                              logger
                                           ) as VsCodeRange,
                                       }
                                 : undefined,

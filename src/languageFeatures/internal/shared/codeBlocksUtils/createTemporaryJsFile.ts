@@ -1,17 +1,19 @@
-import { writeFileSync } from "fs";
 import {
     parseBruFile,
     TextDocumentHelper,
     RequestFileBlockName,
     getTemporaryJsFileName,
+    OutputChannelLogger,
 } from "../../../../shared";
 import { mapBlockNameToJsFileLine } from "./mapBlockNameToJsFileFunctionName";
 import { TemporaryJsFilesRegistry } from "../temporaryJsFilesRegistry";
+import { Uri, workspace, WorkspaceEdit } from "vscode";
 
-export function createTemporaryJsFile(
+export async function createTemporaryJsFile(
     collectionRootDirectory: string,
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
-    bruFileContent: string
+    bruFileContent: string,
+    logger?: OutputChannelLogger
 ) {
     const { blocks: parsedBlocks } = parseBruFile(
         new TextDocumentHelper(bruFileContent)
@@ -36,11 +38,21 @@ ${content}}`
 
     const fileName = getTemporaryJsFileName(collectionRootDirectory);
 
-    writeFileSync(
-        fileName,
-        getDefinitionsForInbuiltLibraries().concat(result).join("\n\n")
-    );
-    tempJsFilesRegistry.registerJsFile(collectionRootDirectory);
+    const workspaceEdit = new WorkspaceEdit();
+    workspaceEdit.createFile(Uri.file(fileName), {
+        contents: Buffer.from(
+            getDefinitionsForInbuiltLibraries().concat(result).join("\n\n")
+        ),
+        overwrite: true,
+    });
+
+    const editResult = await workspace.applyEdit(workspaceEdit);
+
+    if (editResult) {
+        tempJsFilesRegistry.registerJsFile(collectionRootDirectory);
+    } else {
+        logger?.error(`Did not manage to create temporary js file.`);
+    }
 }
 
 /** The Bru class is globally available in Bruno but not exposed.
