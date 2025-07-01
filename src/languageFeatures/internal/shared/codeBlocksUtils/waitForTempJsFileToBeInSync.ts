@@ -47,16 +47,20 @@ export async function waitForTempJsFileToBeInSync(
     const toDispose: Disposable[] = [];
 
     // Fallback mechanism for updating the temporary js file, in case it for some reason did not work by the default mechanism.
-    const timeout = setTimeout(
-        () =>
-            createTemporaryJsFile(
-                collection.getRootDirectory(),
-                tempJsFilesRegistry,
-                bruFileContentSnapshot,
-                logger
-            ),
-        10_000
-    );
+    const timeout = setTimeout(() => {
+        logger?.debug(
+            "Fallback mechanism triggered for updating temp js file after timeout has been reached."
+        );
+
+        createTemporaryJsFile(
+            collection.getRootDirectory(),
+            tempJsFilesRegistry,
+            bruFileContentSnapshot,
+            logger
+        );
+    }, 10_000);
+
+    const startTime = performance.now();
 
     const { document: currentJsDoc, shouldRetry } = await new Promise<{
         document?: TextDocument;
@@ -72,30 +76,35 @@ export async function waitForTempJsFileToBeInSync(
                         bruFileCodeBlocksSnapshot
                     )
                 ) {
-                    logger?.debug(`Temp JS file in sync after waiting.`);
-                    timeout.close();
+                    logger?.debug(
+                        `Temp JS file in sync after waiting for ${
+                            performance.now() - startTime
+                        } ms.`
+                    );
+                    clearTimeout(timeout);
                     resolve({ document: e.document });
+                } else if (
+                    e.document.uri.fsPath.toString() ==
+                        bruFilePath.toString() &&
+                    e.contentChanges.length > 0
+                ) {
+                    logger?.debug(
+                        `Aborting waiting for temp Js file to be in sync because bru file has been modified.`
+                    );
+                    clearTimeout(timeout);
+                    resolve({ shouldRetry: true });
                 }
             })
         );
 
         // If the bruno file is modified or deleted in the meantime, the request will be outdated, so it can be canceled.
         toDispose.push(
-            workspace.onDidChangeTextDocument((e) => {
-                if (e.document.uri.toString() == bruFilePath.toString()) {
-                    logger?.debug(
-                        `Aborting waiting for temp Js file to be in sync because bru file has been modified.`
-                    );
-                    timeout.close();
-                    resolve({ shouldRetry: false });
-                }
-            }),
             workspace.onDidDeleteFiles((e) => {
                 if (e.files.some(({ fsPath }) => fsPath == bruFilePath)) {
                     logger?.debug(
                         `Aborting waiting for temp Js file to be in sync because bru file has been deleted.`
                     );
-                    timeout.close();
+                    clearTimeout(timeout);
                     resolve({ shouldRetry: false });
                 }
             })
@@ -109,7 +118,7 @@ export async function waitForTempJsFileToBeInSync(
                     logger?.debug(
                         `Temp Js document has been closed. Need to start a retry for waiting for it to be in sync.`
                     );
-                    timeout.close();
+                    clearTimeout(timeout);
                     resolve({ shouldRetry: true });
                 }
             })
@@ -123,12 +132,14 @@ export async function waitForTempJsFileToBeInSync(
             Uri.file(bruFilePath)
         );
 
+        const newBruContentSnapshot = currentBrunoDoc.getText();
+
         return await waitForTempJsFileToBeInSync(
             tempJsFilesRegistry,
             collection,
-            currentBrunoDoc.getText(),
+            newBruContentSnapshot,
             getCodeBlocks(
-                parseBruFile(new TextDocumentHelper(currentBrunoDoc.getText()))
+                parseBruFile(new TextDocumentHelper(newBruContentSnapshot))
                     .blocks
             ),
             bruFilePath
