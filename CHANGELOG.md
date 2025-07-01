@@ -1,3 +1,8 @@
+## [0.12.2] (2025-07-01)
+
+### Fixes
+- Fix condition for aborting waiting state for temp js file to be in sync
+
 ## [0.12.1] (2025-06-29)
 
 ### Fixes
