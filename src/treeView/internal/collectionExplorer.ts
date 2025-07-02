@@ -185,20 +185,20 @@ export class CollectionExplorer
                             newItemName
                         );
 
-                        renameSync(originalPath, newPath);
-
-                        if (
-                            isFile &&
-                            extname(newPath) == getExtensionForRequestFiles()
-                        ) {
-                            this.replaceNameInRequestFile(newPath);
-                        }
-
-                        this.updateTabsAfterChangingItemPath(
+                        this.renameFileOrFolder(
                             originalPath,
                             newPath,
                             isFile
-                        );
+                        ).then((renamed) => {
+                            if (
+                                renamed &&
+                                isFile &&
+                                extname(newPath) ==
+                                    getExtensionForRequestFiles()
+                            ) {
+                                this.replaceNameInRequestFile(newPath);
+                            }
+                        });
                     });
             }
         );
@@ -297,7 +297,13 @@ export class CollectionExplorer
                             e.document.uri.fsPath
                         );
 
-                    if (maybeCollection) {
+                    if (
+                        maybeCollection &&
+                        // Sometimes when e.g. renaming a folder, the descendant file paths may not have been updated in the collection yet.
+                        maybeCollection.getStoredDataForPath(
+                            e.document.uri.fsPath
+                        )
+                    ) {
                         const treeItem = (
                             maybeCollection.getStoredDataForPath(
                                 e.document.uri.fsPath
@@ -666,6 +672,35 @@ export class CollectionExplorer
         }
 
         this.normalizeSequencesForRequestFiles(targetDirectory);
+    }
+
+    private async renameFileOrFolder(
+        sourcePath: string,
+        targetPath: string,
+        isFile: boolean
+    ) {
+        const workspaceEdit = new vscode.WorkspaceEdit();
+
+        workspaceEdit.renameFile(
+            vscode.Uri.file(sourcePath),
+            vscode.Uri.file(targetPath)
+        );
+
+        const renamedSuccessfully = await vscode.workspace.applyEdit(
+            workspaceEdit
+        );
+
+        if (renamedSuccessfully) {
+            return true;
+        } else {
+            vscode.window.showErrorMessage(
+                `Renaming / Moving ${
+                    isFile ? "file" : "folder"
+                } '${sourcePath}' failed unexpectedly.`
+            );
+
+            return false;
+        }
     }
 
     private getTargetDirectoryForDragAndDrop(target: BrunoTreeItem) {
