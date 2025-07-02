@@ -25,7 +25,6 @@ import {
     lstatSync,
     mkdirSync,
     readFileSync,
-    renameSync,
     rmSync,
     writeFileSync,
 } from "fs";
@@ -405,17 +404,16 @@ export class CollectionExplorer
 
         const isFile = (item.value as BrunoTreeItem).isFile;
 
-        if (isFile) {
-            renameSync(sourcePath, newPath);
-
-            // Only when moving a file, sequences of requests may need to be adjusted
-            this.updateSequencesAfterMovingFile(target, sourcePath);
-        } else {
-            cpSync(sourcePath, newPath, { recursive: true });
-            rmSync(sourcePath, { recursive: true, force: true });
-        }
-
-        this.updateTabsAfterChangingItemPath(sourcePath, newPath, isFile);
+        this.renameFileOrFolder(sourcePath, newPath, isFile).then((renamed) => {
+            if (
+                renamed &&
+                isFile &&
+                extname(newPath) == getExtensionForRequestFiles()
+            ) {
+                // Only when moving a file, sequences of requests may need to be adjusted
+                this.updateSequencesAfterMovingFile(target, sourcePath);
+            }
+        });
     }
 
     private async createRequestFile(item: BrunoTreeItem) {
@@ -568,36 +566,6 @@ export class CollectionExplorer
                   lstatSync(newItemPath).isFile() ? "File" : "Folder"
               } with name '${basename(newItemPath)}' already exists`
             : undefined;
-    }
-
-    private updateTabsAfterChangingItemPath(
-        originalPath: string,
-        newPath: string,
-        isFile: boolean
-    ) {
-        const toClose = this.getOpenTabsStartingWithPath(
-            isFile ? originalPath : normalizeDirectoryPath(originalPath)
-        );
-
-        const toOpenInstead = toClose.map(({ tab, filePath }) => ({
-            viewColumn: tab.group.viewColumn,
-            filePath: isFile ? newPath : resolve(newPath, basename(filePath)),
-        }));
-
-        vscode.window.tabGroups
-            .close(toClose.map(({ tab }) => tab))
-            .then(() => {
-                for (const { filePath, viewColumn } of toOpenInstead) {
-                    vscode.workspace
-                        .openTextDocument(filePath)
-                        .then((document) => {
-                            vscode.window.showTextDocument(
-                                document,
-                                viewColumn
-                            );
-                        });
-                }
-            });
     }
 
     private getOpenTabsStartingWithPath(path: string) {
