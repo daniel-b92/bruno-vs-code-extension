@@ -25,7 +25,6 @@ import {
     lstatSync,
     mkdirSync,
     readFileSync,
-    rmSync,
     writeFileSync,
 } from "fs";
 import { basename, dirname, extname, resolve } from "path";
@@ -247,36 +246,31 @@ export class CollectionExplorer
                         confirmationOption
                     )
                     .then((picked) => {
-                        return new Promise<void>((resolve) => {
-                            if (picked != confirmationOption) {
-                                return resolve();
-                            }
+                        if (picked != confirmationOption) {
+                            return;
+                        }
+                        const path = item.getPath();
 
-                            const path = item.getPath();
-                            rmSync(path, { recursive: true, force: true });
+                        const workspaceEdit = new vscode.WorkspaceEdit();
+                        workspaceEdit.deleteFile(
+                            vscode.Uri.file(item.getPath()),
+                            { recursive: true }
+                        );
 
-                            if (
-                                extname(path) ==
-                                    getExtensionForRequestFiles() &&
-                                existsSync(dirname(path))
-                            ) {
-                                this.normalizeSequencesForRequestFiles(
-                                    dirname(path)
-                                );
-                            }
-
-                            vscode.window.tabGroups
-                                .close(
-                                    this.getOpenTabsStartingWithPath(
-                                        item.isFile
-                                            ? item.getPath()
-                                            : normalizeDirectoryPath(
-                                                  item.getPath()
-                                              )
-                                    ).map(({ tab }) => tab)
-                                )
-                                .then(() => resolve());
-                        });
+                        vscode.workspace
+                            .applyEdit(workspaceEdit)
+                            .then((deleted) => {
+                                if (
+                                    deleted &&
+                                    extname(path) ==
+                                        getExtensionForRequestFiles() &&
+                                    existsSync(dirname(path))
+                                ) {
+                                    this.normalizeSequencesForRequestFiles(
+                                        dirname(path)
+                                    );
+                                }
+                            });
                     });
             }
         );
@@ -566,21 +560,6 @@ export class CollectionExplorer
                   lstatSync(newItemPath).isFile() ? "File" : "Folder"
               } with name '${basename(newItemPath)}' already exists`
             : undefined;
-    }
-
-    private getOpenTabsStartingWithPath(path: string) {
-        return vscode.window.tabGroups.all
-            .map(({ tabs }) => tabs)
-            .flat()
-            .filter(
-                (tab) =>
-                    tab.input instanceof vscode.TabInputText &&
-                    tab.input.uri.fsPath.startsWith(path)
-            )
-            .map((tab) => ({
-                tab,
-                filePath: (tab.input as vscode.TabInputText).uri.fsPath,
-            }));
     }
 
     private getPathForDuplicatedItem(originalPath: string) {
