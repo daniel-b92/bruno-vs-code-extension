@@ -2,7 +2,6 @@ import { commands, languages, SignatureHelp } from "vscode";
 import {
     CollectionItemProvider,
     mapRange,
-    OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
@@ -10,13 +9,11 @@ import {
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
-import { TemporaryJsFilesRegistry } from "../shared/temporaryJsFilesRegistry";
-import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSync";
+import { TemporaryJsFileSyncQueue } from "../shared/temporaryJsFileSyncQueue";
 
 export function provideSignatureHelp(
     collectionItemProvider: CollectionItemProvider,
-    tempJsFilesRegistry: TemporaryJsFilesRegistry,
-    logger?: OutputChannelLogger
+    tempJsFileSyncQueue: TemporaryJsFileSyncQueue
 ) {
     return languages.registerSignatureHelpProvider(
         getRequestFileDocumentSelector(),
@@ -41,13 +38,13 @@ export function provideSignatureHelp(
                 );
 
                 if (blockInBruFile) {
-                    const temporaryJsDoc = await waitForTempJsFileToBeInSync(
-                        tempJsFilesRegistry,
-                        collection,
-                        document.getText(),
-                        blocksToCheck,
-                        document.fileName,
-                        logger
+                    const temporaryJsDoc = await tempJsFileSyncQueue.addToQueue(
+                        {
+                            collection,
+                            bruFileContent: document.getText(),
+                            bruFilePath: document.fileName,
+                            bruFileCodeBlocks: blocksToCheck,
+                        }
                     );
 
                     if (!temporaryJsDoc) {

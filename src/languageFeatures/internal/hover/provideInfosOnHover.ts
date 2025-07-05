@@ -11,12 +11,11 @@ import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocument
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
-import { TemporaryJsFilesRegistry } from "../shared/temporaryJsFilesRegistry";
-import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSync";
+import { TemporaryJsFileSyncQueue } from "../shared/temporaryJsFileSyncQueue";
 
 export function provideInfosOnHover(
     collectionItemProvider: CollectionItemProvider,
-    tempJsFilesRegistry: TemporaryJsFilesRegistry,
+    tempJsFileSyncQueue: TemporaryJsFileSyncQueue,
     logger?: OutputChannelLogger
 ) {
     return languages.registerHoverProvider(getRequestFileDocumentSelector(), {
@@ -39,14 +38,12 @@ export function provideInfosOnHover(
             );
 
             if (blockInBruFile) {
-                const temporaryJsDoc = await waitForTempJsFileToBeInSync(
-                    tempJsFilesRegistry,
+                const temporaryJsDoc = await tempJsFileSyncQueue.addToQueue({
                     collection,
-                    document.getText(),
-                    blocksToCheck,
-                    document.fileName,
-                    logger
-                );
+                    bruFileContent: document.getText(),
+                    bruFilePath: document.fileName,
+                    bruFileCodeBlocks: blocksToCheck,
+                });
 
                 if (!temporaryJsDoc) {
                     return undefined;

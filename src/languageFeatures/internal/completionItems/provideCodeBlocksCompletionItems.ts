@@ -18,12 +18,11 @@ import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
-import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSync";
-import { TemporaryJsFilesRegistry } from "../shared/temporaryJsFilesRegistry";
+import { TemporaryJsFileSyncQueue } from "../shared/temporaryJsFileSyncQueue";
 
 export function provideCodeBlocksCompletionItems(
     collectionItemProvider: CollectionItemProvider,
-    tempJsFilesRegistry: TemporaryJsFilesRegistry,
+    tempJsFileSyncQueue: TemporaryJsFileSyncQueue,
     logger?: OutputChannelLogger
 ) {
     return languages.registerCompletionItemProvider(
@@ -36,87 +35,86 @@ export function provideCodeBlocksCompletionItems(
                     );
 
                 if (!collection) {
-                    return [];
+                    return undefined;
                 }
 
+                const contentSnapshot = document.getText();
+
                 const blocksToCheck = getCodeBlocks(
-                    parseBruFile(new TextDocumentHelper(document.getText()))
-                        .blocks
+                    parseBruFile(new TextDocumentHelper(contentSnapshot)).blocks
                 );
 
                 const blockInBruFile = blocksToCheck.find(({ contentRange }) =>
                     mapRange(contentRange).contains(position)
                 );
 
-                if (blockInBruFile) {
-                    const temporaryJsDoc = await waitForTempJsFileToBeInSync(
-                        tempJsFilesRegistry,
-                        collection,
-                        document.getText(),
-                        blocksToCheck,
-                        document.fileName,
-                        logger
-                    );
-
-                    if (!temporaryJsDoc) {
-                        return undefined;
-                    }
-
-                    const resultFromJsFile =
-                        await commands.executeCommand<CompletionList>(
-                            "vscode.executeCompletionItemProvider",
-                            temporaryJsDoc.uri,
-                            getPositionWithinTempJsFile(
-                                temporaryJsDoc.getText(),
-                                blockInBruFile.name as RequestFileBlockName,
-                                position.translate(
-                                    -blockInBruFile.contentRange.start.line
-                                )
-                            )
-                        );
-
-                    return new CompletionList<CompletionItem>(
-                        resultFromJsFile.items.map((item) => ({
-                            ...item,
-                            range: item.range
-                                ? item.range instanceof VsCodeRange
-                                    ? (mapToRangeWithinBruFile(
-                                          blocksToCheck,
-                                          temporaryJsDoc.getText(),
-                                          item.range,
-                                          logger
-                                      ) as VsCodeRange)
-                                    : {
-                                          inserting: mapToRangeWithinBruFile(
-                                              blocksToCheck,
-                                              temporaryJsDoc.getText(),
-                                              item.range.inserting,
-                                              logger
-                                          ) as VsCodeRange,
-                                          replacing: mapToRangeWithinBruFile(
-                                              blocksToCheck,
-                                              temporaryJsDoc.getText(),
-                                              item.range.replacing,
-                                              logger
-                                          ) as VsCodeRange,
-                                      }
-                                : undefined,
-                            textEdit: item.textEdit
-                                ? new TextEdit(
-                                      mapToRangeWithinBruFile(
-                                          blocksToCheck,
-                                          temporaryJsDoc.getText(),
-                                          item.textEdit.range
-                                      ) as VsCodeRange,
-                                      item.textEdit.newText
-                                  )
-                                : undefined,
-                        })),
-                        resultFromJsFile.isIncomplete
-                    );
-                } else {
+                if (!blockInBruFile) {
                     return undefined;
                 }
+
+                const tempJsDoc = await tempJsFileSyncQueue.addToQueue({
+                    collection,
+                    bruFilePath: document.fileName,
+                    bruFileContent: contentSnapshot,
+                    bruFileCodeBlocks: blocksToCheck,
+                });
+
+                if (!tempJsDoc) {
+                    return undefined;
+                }
+
+                const resultFromJsFile =
+                    await commands.executeCommand<CompletionList>(
+                        "vscode.executeCompletionItemProvider",
+                        tempJsDoc.uri,
+                        getPositionWithinTempJsFile(
+                            tempJsDoc.getText(),
+                            blockInBruFile.name as RequestFileBlockName,
+                            position.translate(
+                                -blockInBruFile.contentRange.start.line
+                            )
+                        )
+                    );
+
+                return new CompletionList<CompletionItem>(
+                    resultFromJsFile.items.map((item) => ({
+                        ...item,
+                        range: item.range
+                            ? item.range instanceof VsCodeRange
+                                ? (mapToRangeWithinBruFile(
+                                      blocksToCheck,
+                                      tempJsDoc.getText(),
+                                      item.range,
+                                      logger
+                                  ) as VsCodeRange)
+                                : {
+                                      inserting: mapToRangeWithinBruFile(
+                                          blocksToCheck,
+                                          tempJsDoc.getText(),
+                                          item.range.inserting,
+                                          logger
+                                      ) as VsCodeRange,
+                                      replacing: mapToRangeWithinBruFile(
+                                          blocksToCheck,
+                                          tempJsDoc.getText(),
+                                          item.range.replacing,
+                                          logger
+                                      ) as VsCodeRange,
+                                  }
+                            : undefined,
+                        textEdit: item.textEdit
+                            ? new TextEdit(
+                                  mapToRangeWithinBruFile(
+                                      blocksToCheck,
+                                      tempJsDoc.getText(),
+                                      item.textEdit.range
+                                  ) as VsCodeRange,
+                                  item.textEdit.newText
+                              )
+                            : undefined,
+                    })),
+                    resultFromJsFile.isIncomplete
+                );
             },
         },
         ".",

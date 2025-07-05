@@ -9,7 +9,6 @@ import {
 import {
     CollectionItemProvider,
     mapRange,
-    OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
@@ -17,13 +16,11 @@ import {
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
-import { TemporaryJsFilesRegistry } from "../shared/temporaryJsFilesRegistry";
-import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSync";
+import { TemporaryJsFileSyncQueue } from "../shared/temporaryJsFileSyncQueue";
 
 export function provideDefinitions(
     collectionItemProvider: CollectionItemProvider,
-    tempJsFilesRegistry: TemporaryJsFilesRegistry,
-    logger?: OutputChannelLogger
+    tempJsFilesSyncQueue: TemporaryJsFileSyncQueue
 ) {
     return languages.registerDefinitionProvider(
         getRequestFileDocumentSelector(),
@@ -48,14 +45,13 @@ export function provideDefinitions(
                 );
 
                 if (blockInBruFile) {
-                    const temporaryJsDoc = await waitForTempJsFileToBeInSync(
-                        tempJsFilesRegistry,
-                        collection,
-                        document.getText(),
-                        blocksToCheck,
-                        document.fileName,
-                        logger
-                    );
+                    const temporaryJsDoc =
+                        await tempJsFilesSyncQueue.addToQueue({
+                            collection,
+                            bruFileContent: document.getText(),
+                            bruFilePath: document.fileName,
+                            bruFileCodeBlocks: blocksToCheck,
+                        });
 
                     if (!temporaryJsDoc) {
                         return undefined;

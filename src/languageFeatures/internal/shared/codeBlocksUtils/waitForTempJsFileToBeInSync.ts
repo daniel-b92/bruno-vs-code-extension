@@ -6,14 +6,13 @@ import {
     normalizeDirectoryPath,
     OutputChannelLogger,
     parseBruFile,
-    RequestFileBlockName,
     TextDocumentHelper,
 } from "../../../../shared";
 import { TemporaryJsFilesRegistry } from "../temporaryJsFilesRegistry";
 import { createTemporaryJsFile } from "./createTemporaryJsFile";
 import { existsSync } from "fs";
 import { getCodeBlocks } from "./getCodeBlocks";
-import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
+import { isTempJsFileInSync } from "./isTempJsFileInSync";
 
 export async function waitForTempJsFileToBeInSync(
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
@@ -147,26 +146,6 @@ export async function waitForTempJsFileToBeInSync(
     } else {
         return currentJsDoc;
     }
-}
-
-function isTempJsFileInSync(
-    tempJsFileFullContent: string,
-    relevantBlocksFromBruFile: Block[]
-) {
-    const blocksFromBruFile = getCodeBlocks(relevantBlocksFromBruFile);
-
-    return blocksFromBruFile.every(({ name, content: bruFileBlockContent }) => {
-        const jsFileBlock = getTempJsFileBlockContent(
-            tempJsFileFullContent,
-            name as RequestFileBlockName
-        );
-
-        if (!jsFileBlock) {
-            return false;
-        }
-
-        return jsFileBlock.content == bruFileBlockContent;
-    });
 }
 
 async function createTemporaryJsFileIfNotAlreadyExisting(
