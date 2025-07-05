@@ -76,8 +76,8 @@ export function activateLanguageFeatures(
         provideDefinitions(collectionItemProvider, tempJsFilesRegistry, logger),
         brunoLangDiagnosticsProvider,
         tempJsFilesRegistry,
-        window.onDidChangeActiveTextEditor((editor) => {
-            onDidChangeActiveTextEditor(
+        window.onDidChangeActiveTextEditor(async (editor) => {
+            await onDidChangeActiveTextEditor(
                 tempJsFilesRegistry,
                 brunoLangDiagnosticsProvider,
                 collectionItemProvider,
@@ -85,8 +85,8 @@ export function activateLanguageFeatures(
                 logger
             );
         }),
-        workspace.onDidChangeTextDocument((e) => {
-            onDidChangeTextDocument(
+        workspace.onDidChangeTextDocument(async (e) => {
+            await onDidChangeTextDocument(
                 tempJsFilesRegistry,
                 brunoLangDiagnosticsProvider,
                 collectionItemProvider,
@@ -94,8 +94,8 @@ export function activateLanguageFeatures(
                 logger
             );
         }),
-        workspace.onWillSaveTextDocument((e) => {
-            onWillSaveTextDocument(
+        workspace.onWillSaveTextDocument(async (e) => {
+            await onWillSaveTextDocument(
                 tempJsFilesRegistry,
                 collectionItemProvider,
                 e
@@ -108,7 +108,7 @@ export function activateLanguageFeatures(
     );
 }
 
-function onDidChangeActiveTextEditor(
+async function onDidChangeActiveTextEditor(
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     collectionItemProvider: CollectionItemProvider,
@@ -123,7 +123,7 @@ function onDidChangeActiveTextEditor(
             TabInputText
         )
     ) {
-        deleteAllTemporaryJsFiles(tempJsFilesRegistry);
+        await deleteAllTemporaryJsFiles(tempJsFilesRegistry);
     } else if (
         editor.document.uri.toString() ==
         window.tabGroups.activeTabGroup.activeTab.input.uri.toString()
@@ -134,7 +134,7 @@ function onDidChangeActiveTextEditor(
         );
 
         if (fileType == undefined) {
-            deleteAllTemporaryJsFiles(tempJsFilesRegistry);
+            await deleteAllTemporaryJsFiles(tempJsFilesRegistry);
             return;
         }
 
@@ -146,7 +146,7 @@ function onDidChangeActiveTextEditor(
         );
 
         if (getBrunoFileTypesThatCanHaveCodeBlocks().includes(fileType)) {
-            createTemporaryJsFile(
+            await createTemporaryJsFile(
                 (
                     collectionItemProvider.getAncestorCollectionForPath(
                         editor.document.fileName
@@ -157,12 +157,12 @@ function onDidChangeActiveTextEditor(
                 logger
             );
         } else {
-            deleteAllTemporaryJsFiles(tempJsFilesRegistry);
+            await deleteAllTemporaryJsFiles(tempJsFilesRegistry);
         }
     }
 }
 
-function onDidChangeTextDocument(
+async function onDidChangeTextDocument(
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     collectionItemProvider: CollectionItemProvider,
@@ -192,7 +192,7 @@ function onDidChangeTextDocument(
             );
 
             if (getBrunoFileTypesThatCanHaveCodeBlocks().includes(fileType)) {
-                createTemporaryJsFile(
+                await createTemporaryJsFile(
                     (
                         collectionItemProvider.getAncestorCollectionForPath(
                             event.document.fileName
@@ -207,7 +207,7 @@ function onDidChangeTextDocument(
     }
 }
 
-function onWillSaveTextDocument(
+async function onWillSaveTextDocument(
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
     collectionItemProvider: CollectionItemProvider,
     event: TextDocumentWillSaveEvent
@@ -232,7 +232,7 @@ function onWillSaveTextDocument(
                 .map((registered) => normalizeDirectoryPath(registered))
                 .includes(normalizeDirectoryPath(collection.getRootDirectory()))
         ) {
-            deleteTemporaryJsFileForCollection(
+            await deleteTemporaryJsFileForCollection(
                 tempJsFilesRegistry,
                 collection.getRootDirectory()
             );
@@ -313,12 +313,18 @@ function fetchDiagnostics(
     }
 }
 
-function deleteAllTemporaryJsFiles(
+async function deleteAllTemporaryJsFiles(
     tempJsFilesRegistry: TemporaryJsFilesRegistry
 ) {
+    const deletions: Promise<void>[] = [];
+
     for (const collection of tempJsFilesRegistry.getCollectionsWithRegisteredJsFiles()) {
-        deleteTemporaryJsFileForCollection(tempJsFilesRegistry, collection);
+        deletions.push(
+            deleteTemporaryJsFileForCollection(tempJsFilesRegistry, collection)
+        );
     }
+
+    await Promise.all(deletions);
 }
 
 function getBrunoFileTypesThatCanHaveCodeBlocks() {
