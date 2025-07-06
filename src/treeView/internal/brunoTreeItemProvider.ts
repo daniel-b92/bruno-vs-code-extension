@@ -108,7 +108,7 @@ export class BrunoTreeItemProvider
             }
 
             this.logger?.debug(
-                `Fetching child explorer tree items for item ${element.getPath()} for collection '${basename(
+                `Fetching child explorer tree items for item '${element.getPath()}' for collection '${basename(
                     collection.getRootDirectory()
                 )}' collection.`
             );
@@ -123,19 +123,15 @@ export class BrunoTreeItemProvider
                 )
                 .map(({ item: collectionItem }) => {
                     const path = collectionItem.getPath();
+                    const isFile = collectionItem instanceof CollectionFile;
 
-                    const treeItem =
-                        collectionItem instanceof CollectionFile
-                            ? new BrunoTreeItem(
-                                  path,
-                                  true,
-                                  getSequenceFromMetaBlock(path)
-                              )
-                            : new BrunoTreeItem(
-                                  path,
-                                  false,
-                                  getSequenceForFolder(path)
-                              );
+                    const treeItem = new BrunoTreeItem(
+                        path,
+                        isFile,
+                        isFile
+                            ? getSequenceFromMetaBlock(path)
+                            : getSequenceForFolder(path)
+                    );
 
                     return treeItem;
                 })
