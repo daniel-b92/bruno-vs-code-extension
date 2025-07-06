@@ -1,3 +1,8 @@
+## [Unreleased] (2025-07-06)
+
+### Features
+- Add handling of cancellation tokens for language features.
+
 ## [0.12.3] (2025-07-02)
 
 ### Fixes
