@@ -11,36 +11,47 @@ import {
     OAuth2BlockCredentialsPlacementValue,
     OAuth2BlockTokenPlacementValue,
     OAuth2ViaAuthorizationCodeBlockKey,
+    OutputChannelLogger,
     RequestType,
 } from "../../../shared";
 import { dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 
-export function provideBrunoLangCompletionItems() {
-    return getCompletionItemsForFieldsInMetaBlock()
-        .concat([getCompletionItemsForFieldsInMethodBlock()])
-        .concat([getCompletionItemsForFieldsInAuthBlock()]);
+export function provideBrunoLangCompletionItems(logger?: OutputChannelLogger) {
+    return getCompletionItemsForFieldsInMetaBlock(logger)
+        .concat([getCompletionItemsForFieldsInMethodBlock(logger)])
+        .concat([getCompletionItemsForFieldsInAuthBlock(logger)]);
 }
 
-function getCompletionItemsForFieldsInMetaBlock() {
+function getCompletionItemsForFieldsInMetaBlock(logger?: OutputChannelLogger) {
     const result: Disposable[] = [];
 
     result.push(
-        registerFixedCompletionItems([
-            {
-                linePattern: getLinePatternForDictionaryField(
-                    MetaBlockKey.Type
-                ),
-                choices: Object.values(RequestType),
-            },
-        ])
+        registerFixedCompletionItems(
+            [
+                {
+                    linePattern: getLinePatternForDictionaryField(
+                        MetaBlockKey.Type
+                    ),
+                    choices: Object.values(RequestType),
+                },
+            ],
+            logger
+        )
     );
 
     result.push(
         languages.registerCompletionItemProvider(
             getRequestFileDocumentSelector(),
             {
-                provideCompletionItems(document, position) {
+                provideCompletionItems(document, position, token) {
+                    if (token.isCancellationRequested) {
+                        logger?.debug(
+                            `Cancellation requested for completion provider for bruno language.`
+                        );
+                        return undefined;
+                    }
+
                     const currentText = document.lineAt(position.line).text;
                     const sequencePattern = new RegExp(
                         `^\\s*${MetaBlockKey.Sequence}:\\s*$`,
@@ -71,70 +82,90 @@ function getCompletionItemsForFieldsInMetaBlock() {
     return result;
 }
 
-function getCompletionItemsForFieldsInMethodBlock() {
-    return registerFixedCompletionItems([
-        {
-            linePattern: getLinePatternForDictionaryField(MethodBlockKey.Body),
-            choices: Object.values(MethodBlockBody),
-        },
-        {
-            linePattern: getLinePatternForDictionaryField(MethodBlockKey.Auth),
-            choices: Object.values(MethodBlockAuth),
-        },
-    ]);
+function getCompletionItemsForFieldsInMethodBlock(
+    logger?: OutputChannelLogger
+) {
+    return registerFixedCompletionItems(
+        [
+            {
+                linePattern: getLinePatternForDictionaryField(
+                    MethodBlockKey.Body
+                ),
+                choices: Object.values(MethodBlockBody),
+            },
+            {
+                linePattern: getLinePatternForDictionaryField(
+                    MethodBlockKey.Auth
+                ),
+                choices: Object.values(MethodBlockAuth),
+            },
+        ],
+        logger
+    );
 }
 
-function getCompletionItemsForFieldsInAuthBlock() {
-    return registerFixedCompletionItems([
-        {
-            linePattern: getLinePatternForDictionaryField(
-                ApiKeyAuthBlockKey.Placement
-            ),
-            choices: Object.values(ApiKeyAuthBlockPlacementValue),
-        },
-        {
-            linePattern: getLinePatternForDictionaryField(
-                OAuth2ViaAuthorizationCodeBlockKey.CredentialsPlacement
-            ),
-            choices: Object.values(OAuth2BlockCredentialsPlacementValue),
-        },
-        {
-            linePattern: getLinePatternForDictionaryField(
-                OAuth2ViaAuthorizationCodeBlockKey.Pkce
-            ),
-            choices: Object.values(BooleanFieldValue),
-        },
-        {
-            linePattern: getLinePatternForDictionaryField(
-                OAuth2ViaAuthorizationCodeBlockKey.TokenPlacement
-            ),
-            choices: Object.values(OAuth2BlockTokenPlacementValue),
-        },
-        {
-            linePattern: getLinePatternForDictionaryField(
-                OAuth2ViaAuthorizationCodeBlockKey.AutoFetchToken
-            ),
-            choices: Object.values(BooleanFieldValue),
-        },
-        {
-            linePattern: getLinePatternForDictionaryField(
-                OAuth2ViaAuthorizationCodeBlockKey.AutoRefreshToken
-            ),
-            choices: Object.values(BooleanFieldValue),
-        },
-    ]);
+function getCompletionItemsForFieldsInAuthBlock(logger?: OutputChannelLogger) {
+    return registerFixedCompletionItems(
+        [
+            {
+                linePattern: getLinePatternForDictionaryField(
+                    ApiKeyAuthBlockKey.Placement
+                ),
+                choices: Object.values(ApiKeyAuthBlockPlacementValue),
+            },
+            {
+                linePattern: getLinePatternForDictionaryField(
+                    OAuth2ViaAuthorizationCodeBlockKey.CredentialsPlacement
+                ),
+                choices: Object.values(OAuth2BlockCredentialsPlacementValue),
+            },
+            {
+                linePattern: getLinePatternForDictionaryField(
+                    OAuth2ViaAuthorizationCodeBlockKey.Pkce
+                ),
+                choices: Object.values(BooleanFieldValue),
+            },
+            {
+                linePattern: getLinePatternForDictionaryField(
+                    OAuth2ViaAuthorizationCodeBlockKey.TokenPlacement
+                ),
+                choices: Object.values(OAuth2BlockTokenPlacementValue),
+            },
+            {
+                linePattern: getLinePatternForDictionaryField(
+                    OAuth2ViaAuthorizationCodeBlockKey.AutoFetchToken
+                ),
+                choices: Object.values(BooleanFieldValue),
+            },
+            {
+                linePattern: getLinePatternForDictionaryField(
+                    OAuth2ViaAuthorizationCodeBlockKey.AutoRefreshToken
+                ),
+                choices: Object.values(BooleanFieldValue),
+            },
+        ],
+        logger
+    );
 }
 
 function registerFixedCompletionItems(
     params: {
         linePattern: RegExp;
         choices: string[];
-    }[]
+    }[],
+    logger?: OutputChannelLogger
 ) {
     return languages.registerCompletionItemProvider(
         getRequestFileDocumentSelector(),
         {
-            provideCompletionItems(document, position) {
+            provideCompletionItems(document, position, token) {
+                if (token.isCancellationRequested) {
+                    logger?.debug(
+                        `Cancellation requested for completion provider for bruno language.`
+                    );
+                    return undefined;
+                }
+
                 const currentText = document.lineAt(position.line).text;
 
                 const items: CompletionItem[] = [];

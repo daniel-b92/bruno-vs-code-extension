@@ -20,7 +20,7 @@ export function provideInfosOnHover(
     logger?: OutputChannelLogger
 ) {
     return languages.registerHoverProvider(getRequestFileDocumentSelector(), {
-        async provideHover(document, position) {
+        async provideHover(document, position, token) {
             const collection =
                 collectionItemProvider.getAncestorCollectionForPath(
                     document.fileName
@@ -39,16 +39,27 @@ export function provideInfosOnHover(
             );
 
             if (blockInBruFile) {
+                if (token.isCancellationRequested) {
+                    logger?.debug(`Cancellation requested for hover provider.`);
+                    return undefined;
+                }
+
                 const temporaryJsDoc = await waitForTempJsFileToBeInSync(
                     tempJsFilesRegistry,
                     collection,
                     document.getText(),
                     blocksToCheck,
                     document.fileName,
+                    token,
                     logger
                 );
 
                 if (!temporaryJsDoc) {
+                    return undefined;
+                }
+
+                if (token.isCancellationRequested) {
+                    logger?.debug(`Cancellation requested for hover provider.`);
                     return undefined;
                 }
 

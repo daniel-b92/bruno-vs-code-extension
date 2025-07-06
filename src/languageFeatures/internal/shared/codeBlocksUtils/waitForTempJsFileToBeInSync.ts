@@ -1,4 +1,10 @@
-import { Disposable, TextDocument, Uri, workspace } from "vscode";
+import {
+    CancellationToken,
+    Disposable,
+    TextDocument,
+    Uri,
+    workspace,
+} from "vscode";
 import {
     Block,
     Collection,
@@ -21,8 +27,14 @@ export async function waitForTempJsFileToBeInSync(
     bruFileContentSnapshot: string,
     bruFileCodeBlocksSnapshot: Block[],
     bruFilePath: string,
+    token: CancellationToken,
     logger?: OutputChannelLogger
 ): Promise<TextDocument | undefined> {
+    if (shouldAbort(token)) {
+        addLogEntryForAbortion(logger);
+        return undefined;
+    }
+
     await createTemporaryJsFileIfNotAlreadyExisting(
         tempJsFilesRegistry,
         collection,
@@ -34,6 +46,10 @@ export async function waitForTempJsFileToBeInSync(
         getTemporaryJsFileName(collection.getRootDirectory())
     );
 
+    if (shouldAbort(token)) {
+        addLogEntryForAbortion(logger);
+        return undefined;
+    }
     const jsDocInitially = await workspace.openTextDocument(virtualJsFileUri);
 
     // Sometimes it takes a short while until VS Code notices that the Javascript file has been modified externally
@@ -62,10 +78,24 @@ export async function waitForTempJsFileToBeInSync(
 
     const startTime = performance.now();
 
+    if (shouldAbort(token)) {
+        addLogEntryForAbortion(logger);
+        clearTimeout(timeout);
+        return undefined;
+    }
+
     const { document: currentJsDoc, shouldRetry } = await new Promise<{
         document?: TextDocument;
         shouldRetry?: boolean;
     }>((resolve) => {
+        toDispose.push(
+            token.onCancellationRequested(() => {
+                addLogEntryForAbortion(logger);
+                clearTimeout(timeout);
+                resolve({ shouldRetry: false });
+            })
+        );
+
         toDispose.push(
             workspace.onDidChangeTextDocument((e) => {
                 if (
@@ -128,6 +158,12 @@ export async function waitForTempJsFileToBeInSync(
     toDispose.forEach((disposable) => disposable.dispose());
 
     if (!currentJsDoc && shouldRetry) {
+        if (shouldAbort(token)) {
+            addLogEntryForAbortion(logger);
+            clearTimeout(timeout);
+            return undefined;
+        }
+
         const currentBrunoDoc = await workspace.openTextDocument(
             Uri.file(bruFilePath)
         );
@@ -142,11 +178,23 @@ export async function waitForTempJsFileToBeInSync(
                 parseBruFile(new TextDocumentHelper(newBruContentSnapshot))
                     .blocks
             ),
-            bruFilePath
+            bruFilePath,
+            token,
+            logger
         );
     } else {
         return currentJsDoc;
     }
+}
+
+function shouldAbort(token: CancellationToken) {
+    return token.isCancellationRequested;
+}
+
+function addLogEntryForAbortion(logger?: OutputChannelLogger) {
+    logger?.debug(
+        "Cancellation requested after starting to wait for temp js file to be in sync."
+    );
 }
 
 function isTempJsFileInSync(

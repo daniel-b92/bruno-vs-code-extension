@@ -28,7 +28,7 @@ export function provideDefinitions(
     return languages.registerDefinitionProvider(
         getRequestFileDocumentSelector(),
         {
-            async provideDefinition(document, position) {
+            async provideDefinition(document, position, token) {
                 const collection =
                     collectionItemProvider.getAncestorCollectionForPath(
                         document.fileName
@@ -48,16 +48,31 @@ export function provideDefinitions(
                 );
 
                 if (blockInBruFile) {
+                    if (token.isCancellationRequested) {
+                        logger?.debug(
+                            `Cancellation requested for definitions provider.`
+                        );
+                        return undefined;
+                    }
+
                     const temporaryJsDoc = await waitForTempJsFileToBeInSync(
                         tempJsFilesRegistry,
                         collection,
                         document.getText(),
                         blocksToCheck,
                         document.fileName,
+                        token,
                         logger
                     );
 
                     if (!temporaryJsDoc) {
+                        return undefined;
+                    }
+
+                    if (token.isCancellationRequested) {
+                        logger?.debug(
+                            `Cancellation requested for definitions provider.`
+                        );
                         return undefined;
                     }
 
