@@ -12,6 +12,7 @@ import { createTemporaryJsFile } from "./codeBlocksUtils/createTemporaryJsFile";
 import { waitForTempJsFileToBeInSync } from "./codeBlocksUtils/waitForTempJsFileToBeInSync";
 import { getCodeBlocks } from "./codeBlocksUtils/getCodeBlocks";
 import { isTempJsFileInSync } from "./codeBlocksUtils/isTempJsFileInSync";
+import { existsSync } from "fs";
 
 interface QueuedSyncRequest {
     collection: Collection;
@@ -60,13 +61,16 @@ export class TemporaryJsFileSyncQueue {
         const toSync = this.getOldestItemFromQueue() as QueuedSyncRequest;
         this.activeRequest = toSync;
 
-        const initialTempJsDoc = await workspace.openTextDocument(
-            Uri.file(
-                getTemporaryJsFileName(toSync.collection.getRootDirectory())
-            )
+        const tempJsFilePath = getTemporaryJsFileName(
+            toSync.collection.getRootDirectory()
         );
 
+        const initialTempJsDoc = existsSync(tempJsFilePath)
+            ? await workspace.openTextDocument(Uri.file(tempJsFilePath))
+            : undefined;
+
         if (
+            initialTempJsDoc &&
             isTempJsFileInSync(
                 initialTempJsDoc.getText(),
                 toSync.bruFileCodeBlocks
@@ -104,8 +108,6 @@ export class TemporaryJsFileSyncQueue {
     }
 
     public removeItemFromQueue(toRemove: QueuedSyncRequest) {
-        const oldestItemBeforeRemoval = this.getOldestItemFromQueue();
-
         const indexForRemoval = this.getIndexForRequestInQueue(toRemove);
 
         if (indexForRemoval >= 0) {
@@ -120,15 +122,6 @@ export class TemporaryJsFileSyncQueue {
                 `Item with path '${toRemove.bruFilePath}' to be removed from temp js sync queue not found in queue.`
             );
         }
-
-        if (
-            this.queue.length > 0 &&
-            oldestItemBeforeRemoval &&
-            this.getIndexForRequestInQueue(oldestItemBeforeRemoval) < 0
-        ) {
-            // If the oldest item in the queue is a different item than before we can trigger a sync for the oldest request
-            this.triggerSyncForOldestRequest();
-        }
     }
 
     private async waitForTurn(request: QueuedSyncRequest) {
@@ -137,8 +130,9 @@ export class TemporaryJsFileSyncQueue {
 
             if (
                 !oldestItemInQueue ||
-                this.getIndexForRequestInQueue(request) ==
-                    this.getIndexForRequestInQueue(oldestItemInQueue)
+                (!this.activeRequest &&
+                    this.getIndexForRequestInQueue(request) ==
+                        this.getIndexForRequestInQueue(oldestItemInQueue))
             ) {
                 resolve();
             }
