@@ -1,9 +1,11 @@
 import { BrunoTreeItem } from "../../treeView/brunoTreeItem";
-import { normalizeDirectoryPath } from "../fileSystem/util/normalizeDirectoryPath";
-import { CollectionDirectory } from "./collectionDirectory";
-import { CollectionFile } from "./collectionFile";
-import { CollectionData } from "./interfaces";
-import { TestRunnerDataHelper } from "..";
+import {
+    CollectionData,
+    CollectionDirectory,
+    CollectionItem,
+    normalizeDirectoryPath,
+    TestRunnerDataHelper,
+} from "..";
 
 export class Collection {
     constructor(
@@ -44,9 +46,7 @@ export class Collection {
         this.testData.push(data);
     }
 
-    public removeTestItemAndDescendants(
-        item: CollectionDirectory | CollectionFile
-    ) {
+    public removeTestItemAndDescendants(item: CollectionItem) {
         if (!this.removeTestItemIfRegistered(item.getPath())) {
             console.warn(
                 `Did not find collection item to be removed with path '${item.getPath()}' for collection root directory '${

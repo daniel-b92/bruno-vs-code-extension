@@ -1,14 +1,16 @@
 import * as vscode from "vscode";
-import { CollectionFile } from "../../model/collectionFile";
-import { CollectionItem } from "../../model/interfaces";
 import { getTestId, getTestLabel } from "../../../testRunner";
-import { Collection } from "../../model/collection";
-import { CollectionDirectory } from "../../model/collectionDirectory";
 import { extname } from "path";
 import { addTestItemAndAncestorsToTestTree } from "../../../testRunner";
-import { normalizeDirectoryPath } from "../../fileSystem/util/normalizeDirectoryPath";
-import { getExtensionForRequestFiles } from "../../fileSystem/util/getExtensionForRequestFiles";
-import { isFolderSettingsFile } from "../../fileSystem/util/isFolderSettingsFile";
+import {
+    Collection,
+    CollectionDirectory,
+    CollectionFile,
+    CollectionItem,
+    doesFileNameMatchFolderSettingsFileName,
+    getExtensionForRequestFiles,
+    normalizeDirectoryPath,
+} from "../..";
 
 export class TestRunnerDataHelper {
     constructor(private testController: vscode.TestController) {}
@@ -65,7 +67,7 @@ export class TestRunnerDataHelper {
                     item instanceof CollectionFile &&
                     item.getSequence() != undefined &&
                     extname(item.getPath()) == getExtensionForRequestFiles() &&
-                    isFolderSettingsFile(item.getPath()) &&
+                    doesFileNameMatchFolderSettingsFileName(item.getPath()) &&
                     item
                         .getPath()
                         .startsWith(normalizeDirectoryPath(directory.getPath()))

@@ -1,7 +1,5 @@
 import { TestItem } from "vscode";
 import { BrunoTreeItem } from "../../treeView/brunoTreeItem";
-import { CollectionDirectory } from "./collectionDirectory";
-import { CollectionFile } from "./collectionFile";
 
 export interface CollectionItem {
     getPath: () => string;
@@ -9,7 +7,7 @@ export interface CollectionItem {
 }
 
 export interface CollectionData {
-    item: CollectionFile | CollectionDirectory;
+    item: CollectionItem;
     treeItem: BrunoTreeItem;
     testItem: TestItem;
 }

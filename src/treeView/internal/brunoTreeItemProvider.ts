@@ -130,7 +130,10 @@ export class BrunoTreeItemProvider
                         isFile,
                         isFile
                             ? getSequenceFromMetaBlock(path)
-                            : getSequenceForFolder(path)
+                            : getSequenceForFolder(
+                                  collection.getRootDirectory(),
+                                  path
+                              )
                     );
 
                     return treeItem;

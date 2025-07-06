@@ -1,14 +1,16 @@
-import { TestRunnerDataHelper } from "../..";
+import {
+    Collection,
+    CollectionData,
+    CollectionFile,
+    CollectionItem,
+    TestRunnerDataHelper,
+} from "../..";
 import { BrunoTreeItem } from "../../../treeView/brunoTreeItem";
-import { Collection } from "../../model/collection";
-import { CollectionDirectory } from "../../model/collectionDirectory";
-import { CollectionFile } from "../../model/collectionFile";
-import { CollectionData } from "../../model/interfaces";
 
 export function addItemToCollection(
     testRunnerDataHelper: TestRunnerDataHelper,
     collection: Collection,
-    item: CollectionFile | CollectionDirectory
+    item: CollectionItem
 ) {
     const isFile = item instanceof CollectionFile;
 

@@ -1,18 +1,25 @@
 import { lstatSync } from "fs";
 import * as vscode from "vscode";
-import { FileChangeType } from "../../fileSystem/fileChangesDefinitions";
-import { CollectionWatcher } from "../../fileSystem/collectionWatcher";
 import { CollectionRegistry } from "../internalHelpers/collectionRegistry";
-import { normalizeDirectoryPath } from "../../fileSystem/util/normalizeDirectoryPath";
-import { CollectionFile } from "../../model/collectionFile";
-import { CollectionDirectory } from "../../model/collectionDirectory";
-import { Collection } from "../../model/collection";
-import { CollectionData } from "../../model/interfaces";
-import { TestRunnerDataHelper } from "./testRunnerDataHelper";
 import { addItemToCollection } from "../internalHelpers/addItemToCollection";
 import { registerMissingCollectionsAndTheirItems } from "../internalHelpers/registerMissingCollectionsAndTheirItems";
-import { getSequenceFromMetaBlock, OutputChannelLogger } from "../..";
-import { basename } from "path";
+import {
+    BrunoFileType,
+    Collection,
+    CollectionData,
+    CollectionDirectory,
+    CollectionFile,
+    CollectionItem,
+    CollectionWatcher,
+    FileChangeType,
+    getSequenceForFolder,
+    getSequenceFromMetaBlock,
+    getTypeOfBrunoFile,
+    normalizeDirectoryPath,
+    OutputChannelLogger,
+    TestRunnerDataHelper,
+} from "../..";
+import { basename, dirname } from "path";
 
 export class CollectionItemProvider {
     constructor(
@@ -49,7 +56,7 @@ export class CollectionItemProvider {
                     ).includes(uri.fsPath)
                 ) {
                     this.logger?.info(
-                        `${this.commonPreMessageForLogging} Hnadling deletion of collection '${uri.fsPath}'.`
+                        `${this.commonPreMessageForLogging} Handling deletion of collection '${uri.fsPath}'.`
                     );
                     this.handleCollectionDeletion(uri);
                     return;
@@ -95,6 +102,7 @@ export class CollectionItemProvider {
                     );
 
                     this.handleItemDeletion(
+                        testRunnerDataHelper,
                         registeredCollection,
                         maybeRegisteredData
                     );
@@ -212,10 +220,14 @@ export class CollectionItemProvider {
         registeredCollection: Collection,
         itemPath: string
     ) {
-        const item: CollectionFile | CollectionDirectory = lstatSync(
-            itemPath
-        ).isDirectory()
-            ? new CollectionDirectory(itemPath)
+        const item: CollectionItem = lstatSync(itemPath).isDirectory()
+            ? new CollectionDirectory(
+                  itemPath,
+                  getSequenceForFolder(
+                      registeredCollection.getRootDirectory(),
+                      itemPath
+                  )
+              )
             : new CollectionFile(itemPath, getSequenceFromMetaBlock(itemPath));
 
         this.itemUpdateEmitter.fire({
@@ -230,10 +242,46 @@ export class CollectionItemProvider {
     }
 
     private handleItemDeletion(
+        testRunnerDataHelper: TestRunnerDataHelper,
         registeredCollectionForItem: Collection,
         data: CollectionData
     ) {
         registeredCollectionForItem.removeTestItemAndDescendants(data.item);
+
+        const { item } = data;
+        if (
+            getTypeOfBrunoFile([registeredCollectionForItem], item.getPath()) ==
+            BrunoFileType.FolderSettingsFile
+        ) {
+            const parentFolderData =
+                registeredCollectionForItem.getStoredDataForPath(
+                    dirname(item.getPath())
+                );
+
+            if (parentFolderData) {
+                const parentFolderPath = parentFolderData.item.getPath();
+                const oldSequence = parentFolderData.item.getSequence();
+
+                registeredCollectionForItem.removeTestItemIfRegistered(
+                    parentFolderPath
+                );
+
+                const newParentFolderItem = new CollectionDirectory(
+                    parentFolderPath
+                );
+
+                this.itemUpdateEmitter.fire({
+                    collection: registeredCollectionForItem,
+                    data: addItemToCollection(
+                        testRunnerDataHelper,
+                        registeredCollectionForItem,
+                        newParentFolderItem
+                    ),
+                    updateType: FileChangeType.Modified,
+                    changedData: { sequenceChanged: oldSequence != undefined },
+                });
+            }
+        }
 
         this.itemUpdateEmitter.fire({
             collection: registeredCollectionForItem,

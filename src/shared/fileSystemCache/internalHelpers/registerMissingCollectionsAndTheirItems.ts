@@ -1,16 +1,16 @@
 import { lstatSync, readdirSync } from "fs";
-import { getAllCollectionRootDirectories } from "../../fileSystem/util/collectionRootFolderHelper";
-import { normalizeDirectoryPath } from "../../fileSystem/util/normalizeDirectoryPath";
 import {
+    Collection,
+    CollectionDirectory,
+    CollectionFile,
+    getAllCollectionRootDirectories,
     getSequenceForFolder,
     getSequenceFromMetaBlock,
+    normalizeDirectoryPath,
     TestRunnerDataHelper,
 } from "../..";
-import { Collection } from "../../model/collection";
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
-import { CollectionDirectory } from "../../model/collectionDirectory";
-import { CollectionFile } from "../../model/collectionFile";
 import { addItemToCollection } from "./addItemToCollection";
 
 export async function registerMissingCollectionsAndTheirItems(
@@ -42,7 +42,10 @@ export async function registerMissingCollectionsAndTheirItems(
                     const item = isDirectory
                         ? new CollectionDirectory(
                               path,
-                              getSequenceForFolder(path)
+                              getSequenceForFolder(
+                                  collection.getRootDirectory(),
+                                  path
+                              )
                           )
                         : new CollectionFile(
                               path,
