@@ -14,11 +14,7 @@ export function addItemToCollection(
 
     const data: CollectionData = {
         item,
-        treeItem: new BrunoTreeItem(
-            item.getPath(),
-            isFile,
-            isFile ? item.getSequence() : undefined
-        ),
+        treeItem: new BrunoTreeItem(item.getPath(), isFile, item.getSequence()),
         testItem: testRunnerDataHelper.createVsCodeTestItem(item),
     };
 

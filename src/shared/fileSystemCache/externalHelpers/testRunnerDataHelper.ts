@@ -8,14 +8,15 @@ import { extname } from "path";
 import { addTestItemAndAncestorsToTestTree } from "../../../testRunner";
 import { normalizeDirectoryPath } from "../../fileSystem/util/normalizeDirectoryPath";
 import { getExtensionForRequestFiles } from "../../fileSystem/util/getExtensionForRequestFiles";
+import { isFolderSettingsFile } from "../../fileSystem/util/isFolderSettingsFile";
 
 export class TestRunnerDataHelper {
     constructor(private testController: vscode.TestController) {}
 
     public createVsCodeTestItem = (item: CollectionItem) => {
-        const getSortText = (file: CollectionFile) =>
-            file.getSequence()
-                ? new Array((file.getSequence() as number) + 1).join("a")
+        const getSortText = (item: CollectionItem) =>
+            item.getSequence()
+                ? new Array((item.getSequence() as number) + 1).join("a")
                 : undefined;
 
         const uri = vscode.Uri.file(item.getPath());
@@ -64,6 +65,7 @@ export class TestRunnerDataHelper {
                     item instanceof CollectionFile &&
                     item.getSequence() != undefined &&
                     extname(item.getPath()) == getExtensionForRequestFiles() &&
+                    isFolderSettingsFile(item.getPath()) &&
                     item
                         .getPath()
                         .startsWith(normalizeDirectoryPath(directory.getPath()))

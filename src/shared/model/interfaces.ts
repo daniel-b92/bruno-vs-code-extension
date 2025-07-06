@@ -5,6 +5,7 @@ import { CollectionFile } from "./collectionFile";
 
 export interface CollectionItem {
     getPath: () => string;
+    getSequence: () => number | undefined;
 }
 
 export interface CollectionData {

@@ -3,6 +3,7 @@ import {
     BrunoFileType,
     Collection,
     getExtensionForRequestFiles,
+    isFolderSettingsFile,
     normalizeDirectoryPath,
 } from "../..";
 import { existsSync } from "fs";
@@ -42,10 +43,6 @@ function isEnvironmentFile(path: string) {
     return normalizeDirectoryPath(dirname(path)).match(
         /(\/|\\)environments(\/|\\)$/
     );
-}
-
-function isFolderSettingsFile(path: string) {
-    return basename(path) == "folder.bru";
 }
 
 function isCollectionSettingsFile(

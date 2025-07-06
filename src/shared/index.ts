@@ -13,6 +13,7 @@ export * from "./fileSystem/util/range";
 export * from "./fileSystem/util/position";
 export * from "./fileSystem/util/positionAndRangeMapper";
 export * from "./fileSystem/util/getTypeOfBrunoFile";
+export * from "./fileSystem/util/isFolderSettingsFile";
 
 // file parsing
 export * from "./fileParsing/external/requestFiles/metaBlock/getMaxSequenceForRequests";
@@ -25,8 +26,8 @@ export * from "./fileParsing/external/requestFiles/authBlocks/getAuthTypeFromBlo
 export * from "./fileParsing/external/requestFiles/authBlocks/isAuthBlock";
 export * from "./fileParsing/external/requestFiles/bodyBlocks/getBodyTypeFromBlockName";
 export * from "./fileParsing/external/requestFiles/bodyBlocks/isBodyBlock";
-export * from "./fileParsing/external/requestFiles/metaBlock/getSequenceFieldFromMetaBlock";
-export * from "./fileParsing/external/requestFiles/metaBlock/getSequenceFromMetaBlock";
+export * from "./fileParsing/external/shared/getSequenceFieldFromMetaBlock";
+export * from "./fileParsing/external/shared/getSequenceFromMetaBlock";
 export * from "./fileParsing/external/requestFiles/methodBlocks/getAllMethodBlocks";
 export * from "./fileParsing/external/requestFiles/methodBlocks/getUrlFieldFromMethodBlock";
 export * from "./fileParsing/external/requestFiles/methodBlocks/getMethodBlockIfValid";
@@ -36,6 +37,7 @@ export { isVarsBlock as isVarsBlockInEnvironmentFile } from "./fileParsing/exter
 export * from "./fileParsing/external/castBlockToDictionaryBlock";
 export * from "./fileParsing/external/castBlockToArrayBlock";
 export * from "./fileParsing/external/parseBlockFromFile";
+export * from "./fileParsing/external/folderSettings/getSequenceForFolder";
 
 // language utils
 export * from "./languageUtils/booleanFieldValueEnum";

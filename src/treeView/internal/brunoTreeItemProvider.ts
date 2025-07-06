@@ -8,6 +8,7 @@ import {
     normalizeDirectoryPath,
     CollectionFile,
     OutputChannelLogger,
+    getSequenceForFolder,
 } from "../../shared";
 import { BrunoTreeItem } from "../brunoTreeItem";
 
@@ -130,7 +131,11 @@ export class BrunoTreeItemProvider
                                   true,
                                   getSequenceFromMetaBlock(path)
                               )
-                            : new BrunoTreeItem(path, false);
+                            : new BrunoTreeItem(
+                                  path,
+                                  false,
+                                  getSequenceForFolder(path)
+                              );
 
                     return treeItem;
                 })

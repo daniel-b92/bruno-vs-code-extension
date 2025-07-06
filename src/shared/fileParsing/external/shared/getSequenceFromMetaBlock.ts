@@ -3,7 +3,7 @@ import {
     getExtensionForRequestFiles,
     getSequenceFieldFromMetaBlock,
     TextDocumentHelper,
-} from "../../../..";
+} from "../../..";
 import { extname } from "path";
 
 export function getSequenceFromMetaBlock(testFilePath: string) {
