@@ -4,8 +4,8 @@ import {
     CollectionDirectory,
     CollectionFile,
     getAllCollectionRootDirectories,
+    getSequenceForFile,
     getSequenceForFolder,
-    getSequenceFromMetaBlock,
     normalizeDirectoryPath,
     TestRunnerDataHelper,
 } from "../..";
@@ -49,7 +49,7 @@ export async function registerMissingCollectionsAndTheirItems(
                           )
                         : new CollectionFile(
                               path,
-                              getSequenceFromMetaBlock(path)
+                              getSequenceForFile(collection, path)
                           );
 
                     addItemToCollection(testRunnerDataHelper, collection, item);

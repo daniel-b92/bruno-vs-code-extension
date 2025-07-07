@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, readdirSync } from "fs";
-import { getSequenceFromMetaBlock } from "../shared/getSequenceFromMetaBlock";
+import { parseSequenceFromMetaBlock } from "../shared/parseSequenceFromMetaBlock";
 import { resolve } from "path";
 import {
     doesFileNameMatchFolderSettingsFileName,
@@ -27,5 +27,5 @@ export function getSequenceForFolder(
         return undefined;
     }
 
-    return getSequenceFromMetaBlock(resolve(folderPath, settingsFileName));
+    return parseSequenceFromMetaBlock(resolve(folderPath, settingsFileName));
 }

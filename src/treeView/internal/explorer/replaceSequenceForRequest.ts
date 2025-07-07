@@ -1,11 +1,11 @@
 import { writeFileSync, readFileSync } from "fs";
-import { getSequenceFromMetaBlock } from "../../../shared";
+import { parseSequenceFromMetaBlock } from "../../../shared";
 
 export function replaceSequenceForRequest(
     filePath: string,
     newSequence: number
 ) {
-    const originalSequence = getSequenceFromMetaBlock(filePath);
+    const originalSequence = parseSequenceFromMetaBlock(filePath);
 
     if (originalSequence != undefined) {
         writeFileSync(

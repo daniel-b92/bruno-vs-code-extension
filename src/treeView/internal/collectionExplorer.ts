@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { BrunoTreeItemProvider } from "./brunoTreeItemProvider";
 import {
-    getSequenceFromMetaBlock,
+    parseSequenceFromMetaBlock,
     getSequencesForRequests,
     getMaxSequenceForRequests,
     CollectionItemProvider,
@@ -282,6 +282,8 @@ export class CollectionExplorer
             (item: BrunoTreeItem) => {
                 const originalPath = item.getPath();
 
+                // ToDo: Update sequence for duplicated folder, if it had one
+
                 cpSync(item.getPath(), getPathForDuplicatedItem(originalPath), {
                     recursive: true,
                 });
@@ -296,9 +298,11 @@ export class CollectionExplorer
 
                 copyFileSync(originalPath, newPath);
 
+                // ToDo: Only replace sequence if it's a request file
+
                 if (
                     extname(originalPath) == getExtensionForRequestFiles() &&
-                    getSequenceFromMetaBlock(originalPath) != undefined
+                    parseSequenceFromMetaBlock(originalPath) != undefined
                 ) {
                     replaceSequenceForRequest(
                         newPath,
@@ -334,6 +338,8 @@ export class CollectionExplorer
                         vscode.workspace
                             .applyEdit(workspaceEdit)
                             .then((deleted) => {
+                                // ToDo: Only normalize sequences of request files if a request files was deleted
+                                // If the file was a folder settings file,, update sequences for other folders
                                 if (
                                     deleted &&
                                     extname(path) ==

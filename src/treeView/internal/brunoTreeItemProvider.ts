@@ -1,7 +1,6 @@
 import { basename, dirname } from "path";
 import * as vscode from "vscode";
 import {
-    getSequenceFromMetaBlock,
     CollectionData,
     FileChangeType,
     CollectionItemProvider,
@@ -9,6 +8,7 @@ import {
     CollectionFile,
     OutputChannelLogger,
     getSequenceForFolder,
+    getSequenceForFile,
 } from "../../shared";
 import { BrunoTreeItem } from "../brunoTreeItem";
 
@@ -113,37 +113,33 @@ export class BrunoTreeItemProvider
                 )}' collection.`
             );
 
-            return collection
-                .getAllStoredDataForCollection()
-                .filter(
-                    ({ item: registeredItem }) =>
-                        normalizeDirectoryPath(
-                            dirname(registeredItem.getPath())
-                        ) == normalizeDirectoryPath(element.getPath())
-                )
-                .map(({ item: collectionItem }) => {
-                    const path = collectionItem.getPath();
-                    const isFile = collectionItem instanceof CollectionFile;
+            return this.getSortedTreeItems(
+                collection
+                    .getAllStoredDataForCollection()
+                    .filter(
+                        ({ item: registeredItem }) =>
+                            normalizeDirectoryPath(
+                                dirname(registeredItem.getPath())
+                            ) == normalizeDirectoryPath(element.getPath())
+                    )
+                    .map(({ item: collectionItem }) => {
+                        const path = collectionItem.getPath();
+                        const isFile = collectionItem instanceof CollectionFile;
 
-                    const treeItem = new BrunoTreeItem(
-                        path,
-                        isFile,
-                        isFile
-                            ? getSequenceFromMetaBlock(path)
-                            : getSequenceForFolder(
-                                  collection.getRootDirectory(),
-                                  path
-                              )
-                    );
+                        const treeItem = new BrunoTreeItem(
+                            path,
+                            isFile,
+                            isFile
+                                ? getSequenceForFile(collection, path)
+                                : getSequenceForFolder(
+                                      collection.getRootDirectory(),
+                                      path
+                                  )
+                        );
 
-                    return treeItem;
-                })
-                .sort((a, b) =>
-                    a.getSequence() != undefined && b.getSequence() != undefined
-                        ? (a.getSequence() as number) -
-                          (b.getSequence() as number)
-                        : 0
-                );
+                        return treeItem;
+                    })
+            );
         }
     }
 
@@ -172,5 +168,19 @@ export class BrunoTreeItemProvider
                 item.getPath()
             ),
         };
+    }
+
+    private getSortedTreeItems(items: BrunoTreeItem[]) {
+        return items
+            .slice()
+            .sort((a, b) =>
+                (!a.isFile && b.isFile) ||
+                (a.getSequence() && !b.getSequence()) ||
+                (a.getSequence() &&
+                    b.getSequence() &&
+                    (a.getSequence() as number) <= (b.getSequence() as number))
+                    ? -1
+                    : 1
+            );
     }
 }

@@ -6,17 +6,17 @@ import {
 } from "../../..";
 import { extname } from "path";
 
-export function getSequenceFromMetaBlock(testFilePath: string) {
+export function parseSequenceFromMetaBlock(filePath: string) {
     if (
-        !existsSync(testFilePath) ||
-        !lstatSync(testFilePath).isFile() ||
-        extname(testFilePath) != getExtensionForRequestFiles()
+        !existsSync(filePath) ||
+        !lstatSync(filePath).isFile() ||
+        extname(filePath) != getExtensionForRequestFiles()
     ) {
         return undefined;
     }
 
     const sequence = getSequenceFieldFromMetaBlock(
-        new TextDocumentHelper(readFileSync(testFilePath).toString())
+        new TextDocumentHelper(readFileSync(filePath).toString())
     );
 
     return sequence && !isNaN(Number(sequence.value))
