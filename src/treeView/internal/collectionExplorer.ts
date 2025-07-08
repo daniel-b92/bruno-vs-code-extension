@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import { BrunoTreeItemProvider } from "./brunoTreeItemProvider";
 import {
-    parseSequenceFromMetaBlock,
     getSequencesForRequests,
     getMaxSequenceForRequests,
     CollectionItemProvider,
@@ -9,6 +8,10 @@ import {
     normalizeDirectoryPath,
     getExtensionForRequestFiles,
     OutputChannelLogger,
+    getSequenceForFile,
+    getTypeOfBrunoFile,
+    BrunoFileType,
+    Collection,
 } from "../../shared";
 import { copyFileSync, cpSync, existsSync, mkdirSync, writeFileSync } from "fs";
 import { basename, dirname, extname, resolve } from "path";
@@ -62,6 +65,8 @@ export class CollectionExplorer
     }
 
     private disposables: vscode.Disposable[] = [];
+
+    private confirmationOptionForModals = "Confirm";
 
     public dispose() {
         for (const disposable of this.disposables) {
@@ -293,21 +298,43 @@ export class CollectionExplorer
         vscode.commands.registerCommand(
             `${this.treeViewId}.duplicateFile`,
             (item: BrunoTreeItem) => {
-                const originalPath = item.getPath();
-                const newPath = getPathForDuplicatedItem(originalPath);
-
-                copyFileSync(originalPath, newPath);
-
-                // ToDo: Only replace sequence if it's a request file
-
-                if (
-                    extname(originalPath) == getExtensionForRequestFiles() &&
-                    parseSequenceFromMetaBlock(originalPath) != undefined
-                ) {
-                    replaceSequenceForRequest(
-                        newPath,
-                        getMaxSequenceForRequests(dirname(originalPath)) + 1
+                const collection =
+                    this.itemProvider.getAncestorCollectionForPath(
+                        item.getPath()
                     );
+
+                if (collection) {
+                    const brunoFileType = getTypeOfBrunoFile(
+                        [collection],
+                        item.getPath()
+                    );
+
+                    if (
+                        brunoFileType != BrunoFileType.CollectionSettingsFile &&
+                        brunoFileType != BrunoFileType.FolderSettingsFile
+                    ) {
+                        this.duplicateFile(collection, item);
+                    } else if (
+                        brunoFileType == BrunoFileType.CollectionSettingsFile
+                    ) {
+                        this.showWarningDialog(
+                            "Duplicate collection settings file?",
+                            "Only one collection settings file can be defined per collection."
+                        ).then((confirmed) => {
+                            if (confirmed) {
+                                this.duplicateFile(collection, item);
+                            }
+                        });
+                    } else {
+                        this.showWarningDialog(
+                            "Duplicate folder settings file?",
+                            "Only one folder settings file can be defined per folder."
+                        ).then((confirmed) => {
+                            if (confirmed) {
+                                this.duplicateFile(collection, item);
+                            }
+                        });
+                    }
                 }
             }
         );
@@ -315,16 +342,14 @@ export class CollectionExplorer
         vscode.commands.registerCommand(
             `${this.treeViewId}.deleteItem`,
             (item: BrunoTreeItem) => {
-                const confirmationOption = "Confirm";
-
                 vscode.window
                     .showInformationMessage(
                         `Delete '${item.label}'?`,
                         { modal: true },
-                        confirmationOption
+                        this.confirmationOptionForModals
                     )
                     .then((picked) => {
-                        if (picked != confirmationOption) {
+                        if (picked != this.confirmationOptionForModals) {
                             return;
                         }
                         const path = item.getPath();
@@ -335,15 +360,23 @@ export class CollectionExplorer
                             { recursive: true }
                         );
 
+                        const collection =
+                            this.itemProvider.getAncestorCollectionForPath(
+                                path
+                            );
+
+                        const brunoFileType = collection
+                            ? getTypeOfBrunoFile([collection], path)
+                            : undefined;
+
                         vscode.workspace
                             .applyEdit(workspaceEdit)
                             .then((deleted) => {
-                                // ToDo: Only normalize sequences of request files if a request files was deleted
-                                // If the file was a folder settings file,, update sequences for other folders
+                                // ToDo: If the file was a folder settings file, update sequences for other folders
                                 if (
                                     deleted &&
-                                    extname(path) ==
-                                        getExtensionForRequestFiles() &&
+                                    brunoFileType ==
+                                        BrunoFileType.RequestFile &&
                                     existsSync(dirname(path))
                                 ) {
                                     normalizeSequencesForRequestFiles(
@@ -390,6 +423,33 @@ export class CollectionExplorer
         }
 
         normalizeSequencesForRequestFiles(targetDirectory);
+    }
+
+    private duplicateFile(collection: Collection, item: BrunoTreeItem) {
+        const originalPath = item.getPath();
+        const newPath = getPathForDuplicatedItem(originalPath);
+
+        copyFileSync(originalPath, newPath);
+
+        if (collection && getSequenceForFile(collection, originalPath)) {
+            replaceSequenceForRequest(
+                newPath,
+                getMaxSequenceForRequests(dirname(originalPath)) + 1
+            );
+        }
+    }
+
+    private async showWarningDialog(modalMessage: string, detailText: string) {
+        const picked = await vscode.window.showWarningMessage(
+            modalMessage,
+            {
+                modal: true,
+                detail: detailText,
+            },
+            this.confirmationOptionForModals
+        );
+
+        return picked == this.confirmationOptionForModals;
     }
 
     private handleChangedTextEditor(
