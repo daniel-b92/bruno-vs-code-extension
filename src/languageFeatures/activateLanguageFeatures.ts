@@ -57,7 +57,7 @@ export function activateLanguageFeatures(
     context.subscriptions.push(
         diagnosticCollection,
         tempJsFilesRegistry,
-        ...provideBrunoLangCompletionItems(),
+        ...provideBrunoLangCompletionItems(collectionItemProvider, logger),
         provideCodeBlocksCompletionItems(
             collectionItemProvider,
             tempJsFilesRegistry,

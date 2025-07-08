@@ -380,6 +380,7 @@ export class CollectionExplorer
                                     existsSync(dirname(path))
                                 ) {
                                     normalizeSequencesForRequestFiles(
+                                        this.itemProvider,
                                         dirname(path)
                                     );
                                 }
@@ -406,13 +407,16 @@ export class CollectionExplorer
         const newSequence = target.isFile
             ? target.getSequence()
                 ? (target.getSequence() as number) + 1
-                : getMaxSequenceForRequests(targetDirectory) + 1
-            : getMaxSequenceForRequests(targetDirectory) + 1;
+                : getMaxSequenceForRequests(
+                      this.itemProvider,
+                      targetDirectory
+                  ) + 1
+            : getMaxSequenceForRequests(this.itemProvider, targetDirectory) + 1;
 
         replaceSequenceForRequest(newPath, newSequence);
 
         if (target.isFile) {
-            getSequencesForRequests(targetDirectory)
+            getSequencesForRequests(this.itemProvider, targetDirectory)
                 .filter(
                     ({ path, sequence }) =>
                         path != newPath && sequence >= newSequence
@@ -422,7 +426,7 @@ export class CollectionExplorer
                 });
         }
 
-        normalizeSequencesForRequestFiles(targetDirectory);
+        normalizeSequencesForRequestFiles(this.itemProvider, targetDirectory);
     }
 
     private duplicateFile(collection: Collection, item: BrunoTreeItem) {
@@ -434,7 +438,10 @@ export class CollectionExplorer
         if (collection && getSequenceForFile(collection, originalPath)) {
             replaceSequenceForRequest(
                 newPath,
-                getMaxSequenceForRequests(dirname(originalPath)) + 1
+                getMaxSequenceForRequests(
+                    this.itemProvider,
+                    dirname(originalPath)
+                ) + 1
             );
         }
     }

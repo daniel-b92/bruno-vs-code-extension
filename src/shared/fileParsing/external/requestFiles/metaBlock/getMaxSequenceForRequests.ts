@@ -1,7 +1,13 @@
+import { CollectionItemProvider } from "../../../../fileSystemCache/externalHelpers/collectionItemProvider";
 import { getSequencesForRequests } from "./getSequencesForRequests";
 
-export function getMaxSequenceForRequests(directory: string) {
+export function getMaxSequenceForRequests(
+    itemProvider: CollectionItemProvider,
+    directory: string
+) {
     return Math.max(
-        ...getSequencesForRequests(directory).map(({ sequence }) => sequence)
+        ...getSequencesForRequests(itemProvider, directory).map(
+            ({ sequence }) => sequence
+        )
     );
 }

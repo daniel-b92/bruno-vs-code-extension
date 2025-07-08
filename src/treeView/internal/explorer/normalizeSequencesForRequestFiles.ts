@@ -1,8 +1,17 @@
-import { getSequencesForRequests } from "../../../shared";
+import {
+    CollectionItemProvider,
+    getSequencesForRequests,
+} from "../../../shared";
 import { replaceSequenceForRequest } from "./replaceSequenceForRequest";
 
-export function normalizeSequencesForRequestFiles(parentDirectoryPath: string) {
-    const initialSequences = getSequencesForRequests(parentDirectoryPath);
+export function normalizeSequencesForRequestFiles(
+    itemProvider: CollectionItemProvider,
+    parentDirectoryPath: string
+) {
+    const initialSequences = getSequencesForRequests(
+        itemProvider,
+        parentDirectoryPath
+    );
 
     initialSequences.sort(
         ({ sequence: seq1 }, { sequence: seq2 }) => seq1 - seq2
