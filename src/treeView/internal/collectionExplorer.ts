@@ -12,6 +12,9 @@ import {
     getTypeOfBrunoFile,
     BrunoFileType,
     Collection,
+    getSequenceForFolder,
+    getMaxSequenceForFolders,
+    getFolderSettingsFilePath,
 } from "../../shared";
 import { copyFileSync, cpSync, existsSync, mkdirSync, writeFileSync } from "fs";
 import { basename, dirname, extname, resolve } from "path";
@@ -21,8 +24,9 @@ import { createRequestFile } from "./explorer/createRequestFile";
 import { replaceNameInRequestFile } from "./explorer/replaceNameInRequestFile";
 import { getPathForDuplicatedItem } from "./explorer/getPathForDuplicatedItem";
 import { renameFileOrFolder } from "./explorer/renameFileOrFolder";
-import { replaceSequenceForRequest } from "./explorer/replaceSequenceForRequest";
+import { replaceSequenceForFile } from "./explorer/replaceSequenceForFile";
 import { normalizeSequencesForRequestFiles } from "./explorer/normalizeSequencesForRequestFiles";
+import { normalizeSequencesForFolders } from "./explorer/normalizeSequencesForFolders";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>
@@ -129,6 +133,7 @@ export class CollectionExplorer
         const isFile = (item.value as BrunoTreeItem).isFile;
 
         renameFileOrFolder(sourcePath, newPath, isFile).then((renamed) => {
+            // ToDo: If the file was a folder settings file, update sequences for parent folder and other folders
             if (
                 renamed &&
                 isFile &&
@@ -287,11 +292,42 @@ export class CollectionExplorer
             (item: BrunoTreeItem) => {
                 const originalPath = item.getPath();
 
-                // ToDo: Update sequence for duplicated folder, if it had one
+                const collection =
+                    this.itemProvider.getAncestorCollectionForPath(
+                        item.getPath()
+                    );
 
-                cpSync(item.getPath(), getPathForDuplicatedItem(originalPath), {
+                if (!collection) {
+                    vscode.window.showErrorMessage(
+                        `An unexpected error occured. Failed to determine collection for item with path '${item.getPath()}'`
+                    );
+                    return;
+                }
+
+                const newFolderPath = getPathForDuplicatedItem(originalPath);
+
+                cpSync(item.getPath(), newFolderPath, {
                     recursive: true,
                 });
+
+                const newFolderSettingsFile =
+                    getFolderSettingsFilePath(newFolderPath);
+
+                if (
+                    getSequenceForFolder(
+                        collection.getRootDirectory(),
+                        originalPath
+                    ) &&
+                    newFolderSettingsFile
+                ) {
+                    replaceSequenceForFile(
+                        newFolderSettingsFile,
+                        getMaxSequenceForFolders(
+                            this.itemProvider,
+                            dirname(originalPath)
+                        ) + 1
+                    );
+                }
             }
         );
 
@@ -372,7 +408,6 @@ export class CollectionExplorer
                         vscode.workspace
                             .applyEdit(workspaceEdit)
                             .then((deleted) => {
-                                // ToDo: If the file was a folder settings file, update sequences for other folders
                                 if (
                                     deleted &&
                                     brunoFileType ==
@@ -382,6 +417,20 @@ export class CollectionExplorer
                                     normalizeSequencesForRequestFiles(
                                         this.itemProvider,
                                         dirname(path)
+                                    );
+                                } else if (
+                                    deleted &&
+                                    (brunoFileType ==
+                                        BrunoFileType.FolderSettingsFile ||
+                                        (!brunoFileType && !item.isFile)) &&
+                                    existsSync(dirname(path))
+                                ) {
+                                    normalizeSequencesForFolders(
+                                        this.itemProvider,
+                                        brunoFileType ==
+                                            BrunoFileType.FolderSettingsFile
+                                            ? dirname(dirname(path))
+                                            : dirname(path)
                                     );
                                 }
                             });
@@ -413,7 +462,7 @@ export class CollectionExplorer
                   ) + 1
             : getMaxSequenceForRequests(this.itemProvider, targetDirectory) + 1;
 
-        replaceSequenceForRequest(newPath, newSequence);
+        replaceSequenceForFile(newPath, newSequence);
 
         if (target.isFile) {
             getSequencesForRequests(this.itemProvider, targetDirectory)
@@ -422,7 +471,7 @@ export class CollectionExplorer
                         path != newPath && sequence >= newSequence
                 )
                 .forEach(({ path, sequence: initialSequence }) => {
-                    replaceSequenceForRequest(path, initialSequence + 1);
+                    replaceSequenceForFile(path, initialSequence + 1);
                 });
         }
 
@@ -435,8 +484,8 @@ export class CollectionExplorer
 
         copyFileSync(originalPath, newPath);
 
-        if (collection && getSequenceForFile(collection, originalPath)) {
-            replaceSequenceForRequest(
+        if (getSequenceForFile(collection, originalPath)) {
+            replaceSequenceForFile(
                 newPath,
                 getMaxSequenceForRequests(
                     this.itemProvider,

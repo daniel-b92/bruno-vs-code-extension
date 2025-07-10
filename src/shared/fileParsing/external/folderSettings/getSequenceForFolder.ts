@@ -1,10 +1,6 @@
-import { existsSync, lstatSync, readdirSync } from "fs";
+import { existsSync, lstatSync } from "fs";
 import { parseSequenceFromMetaBlock } from "../shared/parseSequenceFromMetaBlock";
-import { resolve } from "path";
-import {
-    doesFileNameMatchFolderSettingsFileName,
-    normalizeDirectoryPath,
-} from "../../..";
+import { getFolderSettingsFilePath, normalizeDirectoryPath } from "../../..";
 
 export function getSequenceForFolder(
     collectionRootDirectory: string,
@@ -19,13 +15,9 @@ export function getSequenceForFolder(
         return undefined;
     }
 
-    const settingsFileName = readdirSync(folderPath).find(
-        doesFileNameMatchFolderSettingsFileName
-    );
+    const folderSettingsFile = getFolderSettingsFilePath(folderPath);
 
-    if (!settingsFileName) {
-        return undefined;
-    }
-
-    return parseSequenceFromMetaBlock(resolve(folderPath, settingsFileName));
+    return folderSettingsFile
+        ? parseSequenceFromMetaBlock(folderSettingsFile)
+        : undefined;
 }

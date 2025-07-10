@@ -2,7 +2,7 @@ import {
     CollectionItemProvider,
     getSequencesForRequests,
 } from "../../../shared";
-import { replaceSequenceForRequest } from "./replaceSequenceForRequest";
+import { replaceSequenceForFile } from "./replaceSequenceForFile";
 
 export function normalizeSequencesForRequestFiles(
     itemProvider: CollectionItemProvider,
@@ -22,7 +22,7 @@ export function normalizeSequencesForRequestFiles(
         const newSeq = i + 1;
 
         if (initialSeq != newSeq) {
-            replaceSequenceForRequest(path, newSeq);
+            replaceSequenceForFile(path, newSeq);
         }
     }
 }

@@ -40,6 +40,9 @@ export * from "./fileParsing/external/castBlockToDictionaryBlock";
 export * from "./fileParsing/external/castBlockToArrayBlock";
 export * from "./fileParsing/external/parseBlockFromFile";
 export * from "./fileParsing/external/folderSettings/getSequenceForFolder";
+export * from "./fileParsing/external/folderSettings/getSequencesForFolders";
+export * from "./fileParsing/external/folderSettings/getMaxSequenceForFolders";
+export * from "./fileParsing/external/folderSettings/getFolderSettingsFilePath";
 
 // language utils
 export * from "./languageUtils/booleanFieldValueEnum";
