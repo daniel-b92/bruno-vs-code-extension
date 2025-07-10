@@ -171,16 +171,33 @@ export class BrunoTreeItemProvider
     }
 
     private getSortedTreeItems(items: BrunoTreeItem[]) {
-        return items
-            .slice()
-            .sort((a, b) =>
-                (!a.isFile && b.isFile) ||
-                (a.getSequence() && !b.getSequence()) ||
-                (a.getSequence() &&
-                    b.getSequence() &&
-                    (a.getSequence() as number) <= (b.getSequence() as number))
-                    ? -1
-                    : 1
-            );
+        return items.slice().sort((a, b) => {
+            if (a.isFile != b.isFile) {
+                // Display all subfolders before files
+                return a.isFile ? 1 : -1;
+            } else if (
+                !a.getSequence() &&
+                !b.getSequence() &&
+                a.label &&
+                b.label
+            ) {
+                // Order items without a sequence alphabetically by label
+                const labelForA =
+                    typeof a.label == "string" ? a.label : a.label.label;
+                const labelForB =
+                    typeof b.label == "string" ? b.label : b.label.label;
+
+                return labelForA <= labelForB ? -1 : 1;
+            } else if (!a.getSequence() || !b.getSequence()) {
+                // Diplay items with a sequence before items without one
+                return a.getSequence() ? -1 : 1;
+            } else if (a.getSequence() && b.getSequence()) {
+                return (
+                    (a.getSequence() as number) - (b.getSequence() as number)
+                );
+            } else {
+                return 0;
+            }
+        });
     }
 }
