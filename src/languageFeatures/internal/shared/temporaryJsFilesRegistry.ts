@@ -41,10 +41,6 @@ export class TemporaryJsFilesRegistry {
 
         if (index >= 0) {
             this.jsFiles.splice(index, 1);
-        } else {
-            console.warn(
-                `Temporary js file for collection '${collectionRootDirectory}' that should be unregistered is not registered.`
-            );
         }
     }
 
