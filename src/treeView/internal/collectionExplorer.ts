@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import { BrunoTreeItemProvider } from "./brunoTreeItemProvider";
 import {
-    getSequencesForRequests,
     getMaxSequenceForRequests,
     CollectionItemProvider,
     CollectionData,
@@ -27,6 +26,8 @@ import { renameFileOrFolder } from "./explorer/renameFileOrFolder";
 import { replaceSequenceForFile } from "./explorer/replaceSequenceForFile";
 import { normalizeSequencesForRequestFiles } from "./explorer/normalizeSequencesForRequestFiles";
 import { normalizeSequencesForFolders } from "./explorer/normalizeSequencesForFolders";
+import { updateSequencesAfterMovingRequestFile } from "./explorer/updateSequencesAfterMovingRequestFile";
+import { updateSequencesAfterMovingFolder } from "./explorer/updateSequencesAfterMovingFolder";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>
@@ -99,23 +100,40 @@ export class CollectionExplorer
         dataTransfer: vscode.DataTransfer,
         _token: vscode.CancellationToken
     ) {
-        const item = dataTransfer.get("text/uri-list");
+        const transferItem = dataTransfer.get("text/uri-list");
 
-        if (!item || !target || !existsSync(target.getPath())) {
+        if (!transferItem || !target || !existsSync(target.getPath())) {
             return;
         }
 
-        const sourcePath = await item.asString();
+        const sourcePath = await transferItem.asString();
+        const sourceCollection =
+            this.itemProvider.getAncestorCollectionForPath(sourcePath);
+
+        if (
+            !sourceCollection ||
+            !sourceCollection.getStoredDataForPath(sourcePath)
+        ) {
+            vscode.window.showErrorMessage(
+                `An unexpected error occured. Could not determine collection for path '${sourcePath}'.`
+            );
+            return;
+        }
+
+        const { item: originalItem, treeItem: originalTreeItem } =
+            sourceCollection.getStoredDataForPath(sourcePath) as CollectionData;
+        const originalItemSequence = originalItem.getSequence();
+
         const newPath = resolve(
             this.getTargetDirectoryForDragAndDrop(target),
             basename(sourcePath)
         );
-        const newCollection =
+        const targetCollection =
             this.itemProvider.getAncestorCollectionForPath(newPath);
 
         if (
-            newCollection &&
-            this.itemProvider.getRegisteredItem(newCollection, newPath) &&
+            targetCollection &&
+            this.itemProvider.getRegisteredItem(targetCollection, newPath) &&
             normalizeDirectoryPath(newPath) !=
                 normalizeDirectoryPath(sourcePath) // confirmation should not be required when moving a request within the same folder (e.g. to update the sequence)
         ) {
@@ -130,17 +148,34 @@ export class CollectionExplorer
             }
         }
 
-        const isFile = (item.value as BrunoTreeItem).isFile;
+        const isFile = originalTreeItem.isFile;
+
+        const brunoFileType = isFile
+            ? getTypeOfBrunoFile([sourceCollection], sourcePath)
+            : undefined;
 
         renameFileOrFolder(sourcePath, newPath, isFile).then((renamed) => {
-            // ToDo: If the file was a folder settings file, update sequences for parent folder and other folders
-            if (
-                renamed &&
-                isFile &&
-                extname(newPath) == getExtensionForRequestFiles()
-            ) {
-                // Only when moving a file, sequences of requests may need to be adjusted
-                this.updateSequencesAfterMovingFile(target, sourcePath);
+            if (!renamed) {
+                vscode.window.showErrorMessage(
+                    `An unexpected error occured while trying to move item '${sourcePath}'.`
+                );
+                return;
+            }
+            if (isFile && brunoFileType == BrunoFileType.RequestFile) {
+                // Only when moving a request file, sequences of requests may need to be adjusted
+                updateSequencesAfterMovingRequestFile(
+                    this.itemProvider,
+                    target,
+                    this.getTargetDirectoryForDragAndDrop(target),
+                    sourcePath
+                );
+                // ToDo: Allow user to insert folder before or after or as a subfolder of the target folder
+            } else if (!isFile && originalItemSequence) {
+                updateSequencesAfterMovingFolder(
+                    this.itemProvider,
+                    target,
+                    sourcePath
+                );
             }
         });
     }
@@ -322,10 +357,11 @@ export class CollectionExplorer
                 ) {
                     replaceSequenceForFile(
                         newFolderSettingsFile,
-                        getMaxSequenceForFolders(
-                            this.itemProvider,
-                            dirname(originalPath)
-                        ) + 1
+                        1 +
+                            (getMaxSequenceForFolders(
+                                this.itemProvider,
+                                dirname(originalPath)
+                            ) ?? 0)
                     );
                 }
             }
@@ -444,38 +480,6 @@ export class CollectionExplorer
                 startTestRunEmitter.fire(vscode.Uri.file(item.getPath()));
             }
         );
-    }
-
-    private updateSequencesAfterMovingFile(
-        target: BrunoTreeItem,
-        sourcePath: string
-    ) {
-        const targetDirectory = this.getTargetDirectoryForDragAndDrop(target);
-        const newPath = resolve(targetDirectory, basename(sourcePath));
-
-        const newSequence = target.isFile
-            ? target.getSequence()
-                ? (target.getSequence() as number) + 1
-                : getMaxSequenceForRequests(
-                      this.itemProvider,
-                      targetDirectory
-                  ) + 1
-            : getMaxSequenceForRequests(this.itemProvider, targetDirectory) + 1;
-
-        replaceSequenceForFile(newPath, newSequence);
-
-        if (target.isFile) {
-            getSequencesForRequests(this.itemProvider, targetDirectory)
-                .filter(
-                    ({ path, sequence }) =>
-                        path != newPath && sequence >= newSequence
-                )
-                .forEach(({ path, sequence: initialSequence }) => {
-                    replaceSequenceForFile(path, initialSequence + 1);
-                });
-        }
-
-        normalizeSequencesForRequestFiles(this.itemProvider, targetDirectory);
     }
 
     private duplicateFile(collection: Collection, item: BrunoTreeItem) {

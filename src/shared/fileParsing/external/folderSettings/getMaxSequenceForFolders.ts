@@ -4,9 +4,9 @@ export function getMaxSequenceForFolders(
     itemProvider: CollectionItemProvider,
     parentFolder: string
 ) {
-    return Math.max(
-        ...getSequencesForFolders(itemProvider, parentFolder).map(
-            ({ sequence }) => sequence
-        )
+    const sequences = getSequencesForFolders(itemProvider, parentFolder).map(
+        ({ sequence }) => sequence
     );
+
+    return sequences.length > 0 ? Math.max(...sequences) : undefined;
 }
