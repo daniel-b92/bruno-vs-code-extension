@@ -28,6 +28,9 @@ import { normalizeSequencesForRequestFiles } from "./explorer/normalizeSequences
 import { normalizeSequencesForFolders } from "./explorer/normalizeSequencesForFolders";
 import { updateSequencesAfterMovingRequestFile } from "./explorer/updateSequencesAfterMovingRequestFile";
 import { updateSequencesAfterMovingFolder } from "./explorer/updateSequencesAfterMovingFolder";
+import { showErrorMessageForFailedDragAndDrop } from "./explorer/showErrorMessageForFailedDragAndDrop";
+import { moveFolderIntoTargetFolder } from "./explorer/moveFolderIntoTargetFolder";
+import { FolderDropInsertionOption } from "./explorer/folderDropInsertionOptionEnum";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>
@@ -154,13 +157,18 @@ export class CollectionExplorer
             ? getTypeOfBrunoFile([sourceCollection], sourcePath)
             : undefined;
 
-        renameFileOrFolder(sourcePath, newPath, isFile).then((renamed) => {
-            if (!renamed) {
-                vscode.window.showErrorMessage(
-                    `An unexpected error occured while trying to move item '${sourcePath}'.`
-                );
+        if (isFile) {
+            const wasSuccessful = renameFileOrFolder(
+                sourcePath,
+                newPath,
+                isFile
+            );
+
+            if (!wasSuccessful) {
+                showErrorMessageForFailedDragAndDrop(sourcePath);
                 return;
             }
+
             if (isFile && brunoFileType == BrunoFileType.RequestFile) {
                 // Only when moving a request file, sequences of requests may need to be adjusted
                 updateSequencesAfterMovingRequestFile(
@@ -169,15 +177,48 @@ export class CollectionExplorer
                     this.getTargetDirectoryForDragAndDrop(target),
                     sourcePath
                 );
-                // ToDo: Allow user to insert folder before or after or as a subfolder of the target folder
-            } else if (!isFile && originalItemSequence) {
-                updateSequencesAfterMovingFolder(
-                    this.itemProvider,
-                    target,
-                    sourcePath
-                );
             }
-        });
+            return;
+        }
+
+        if (!target.getSequence()) {
+            // Insert the folder into the target folder if the target folder does not have a sequence.
+            moveFolderIntoTargetFolder(
+                this.itemProvider,
+                sourcePath,
+                target,
+                originalItemSequence
+            );
+            return;
+        }
+
+        const pickedOption = await vscode.window.showInformationMessage(
+            `Where should the folder '${basename(sourcePath)}' be inserted?`,
+            { modal: true },
+            ...Object.values(FolderDropInsertionOption)
+        );
+
+        if (!pickedOption) {
+            return;
+        }
+
+        if (
+            pickedOption == FolderDropInsertionOption.MoveIntoTargetAsSubfolder
+        ) {
+            moveFolderIntoTargetFolder(
+                this.itemProvider,
+                sourcePath,
+                target,
+                originalItemSequence
+            );
+        } else {
+            updateSequencesAfterMovingFolder(
+                this.itemProvider,
+                sourcePath,
+                target,
+                pickedOption
+            );
+        }
     }
 
     private registerCommands(
@@ -348,6 +389,7 @@ export class CollectionExplorer
                 const newFolderSettingsFile =
                     getFolderSettingsFilePath(newFolderPath);
 
+                // ToDo: Replace name in folder.bru, too
                 if (
                     getSequenceForFolder(
                         collection.getRootDirectory(),
