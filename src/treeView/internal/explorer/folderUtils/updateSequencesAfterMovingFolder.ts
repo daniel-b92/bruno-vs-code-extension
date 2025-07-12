@@ -53,6 +53,8 @@ export async function updateSequencesAfterMovingFolder(
         return;
     }
 
+    const parentFolder = dirname(target.getPath());
+
     const newSequence =
         insertionOption == FolderDropInsertionOption.InsertBeforeTarget
             ? (target.getSequence() as number)
@@ -60,7 +62,7 @@ export async function updateSequencesAfterMovingFolder(
 
     replaceSequenceForFile(newFolderSettingsFile, newSequence);
 
-    getSequencesForFolders(itemProvider, dirname(target.getPath()))
+    getSequencesForFolders(itemProvider, parentFolder)
         .filter(
             ({ folderPath, sequence }) =>
                 folderPath != sourcePath && sequence >= newSequence
@@ -71,6 +73,8 @@ export async function updateSequencesAfterMovingFolder(
                 initialSequence + 1
             );
         });
+
+    normalizeSequencesForFolders(itemProvider, parentFolder);
 }
 
 async function copyFolderSettingsFile(
