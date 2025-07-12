@@ -43,9 +43,9 @@ export async function updateSequencesAfterMovingFolder(
         return;
     }
 
-    const newFolderSettingsFile = await copyFolderSettingsFileFromTargetFolder(
-        sourcePath,
-        target
+    const newFolderSettingsFile = await copyFolderSettingsFile(
+        target,
+        sourcePath
     );
 
     if (!newFolderSettingsFile) {
@@ -73,25 +73,25 @@ export async function updateSequencesAfterMovingFolder(
         });
 }
 
-async function copyFolderSettingsFileFromTargetFolder(
-    sourcePath: string,
-    target: BrunoTreeItem
+async function copyFolderSettingsFile(
+    sourceFolderItem: BrunoTreeItem,
+    destinationFolder: string
 ) {
     const targetFolderSettingsFile = getFolderSettingsFilePath(
-        target.getPath()
+        sourceFolderItem.getPath()
     );
 
     if (!targetFolderSettingsFile) {
         window.showErrorMessage(
             `An unexpected error occured. Could not find settings file for target folder '${basename(
-                target.getPath()
+                sourceFolderItem.getPath()
             )}'`
         );
         return;
     }
 
     const newFolderSettingsFilePath = resolve(
-        sourcePath,
+        destinationFolder,
         basename(targetFolderSettingsFile)
     );
 
@@ -106,6 +106,9 @@ async function copyFolderSettingsFileFromTargetFolder(
         return undefined;
     }
 
-    replaceNameInMetaBlock(newFolderSettingsFilePath, basename(sourcePath));
+    replaceNameInMetaBlock(
+        newFolderSettingsFilePath,
+        basename(destinationFolder)
+    );
     return newFolderSettingsFilePath;
 }
