@@ -144,6 +144,13 @@ export class CollectionExplorer
             return;
         }
 
+        if (target.isFile) {
+            vscode.window.showInformationMessage(
+                "Cannot use a file as a target for moving a folder to. Please select a folder instead."
+            );
+            return;
+        }
+
         if (!target.getSequence()) {
             // If the target does not have a sequence, moving a folder should always cause an insertion into the target folder.
             // So in this case, the new path is the same for files and folders.
