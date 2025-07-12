@@ -4,14 +4,14 @@ import {
     getFolderSettingsFilePath,
     getMaxSequenceForFolders,
     getSequencesForFolders,
-} from "../../../shared";
-import { BrunoTreeItem } from "../../brunoTreeItem";
-import { replaceSequenceForFile } from "./replaceSequenceForFile";
+} from "../../../../shared";
+import { BrunoTreeItem } from "../../../brunoTreeItem";
+import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
 import { normalizeSequencesForFolders } from "./normalizeSequencesForFolders";
 import { Uri, window, workspace, WorkspaceEdit } from "vscode";
-import { FolderDropInsertionOption } from "./folderDropInsertionOptionEnum";
+import { FolderDropInsertionOption } from "../folderDropInsertionOptionEnum";
 import { readFileSync } from "fs";
-import { showErrorMessageForFailedDragAndDrop } from "./showErrorMessageForFailedDragAndDrop";
+import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";
 
 export async function updateSequencesAfterMovingFolder(
     itemProvider: CollectionItemProvider,

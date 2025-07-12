@@ -6,7 +6,7 @@ import {
     RequestFileBlockName,
     getFieldFromMetaBlock,
     MetaBlockKey,
-} from "../../../shared";
+} from "../../../../shared";
 
 export function replaceNameInRequestFile(filePath: string) {
     const documentHelper = new TextDocumentHelper(

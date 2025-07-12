@@ -1,7 +1,7 @@
 import {
     CollectionItemProvider,
     getSequencesForRequests,
-} from "../../../shared";
+} from "../../../../shared";
 import { replaceSequenceForFile } from "./replaceSequenceForFile";
 
 export function normalizeSequencesForRequestFiles(

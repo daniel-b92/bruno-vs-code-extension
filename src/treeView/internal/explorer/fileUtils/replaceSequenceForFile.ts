@@ -1,5 +1,5 @@
 import { writeFileSync, readFileSync } from "fs";
-import { MetaBlockKey, parseSequenceFromMetaBlock } from "../../../shared";
+import { MetaBlockKey, parseSequenceFromMetaBlock } from "../../../../shared";
 
 export function replaceSequenceForFile(filePath: string, newSequence: number) {
     const originalSequence = parseSequenceFromMetaBlock(filePath);

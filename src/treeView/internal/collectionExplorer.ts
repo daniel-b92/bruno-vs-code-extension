@@ -19,18 +19,16 @@ import { copyFileSync, cpSync, existsSync, mkdirSync, writeFileSync } from "fs";
 import { basename, dirname, extname, resolve } from "path";
 import { BrunoTreeItem } from "../brunoTreeItem";
 import { validateNewItemNameIsUnique } from "./explorer/validateNewItemNameIsUnique";
-import { createRequestFile } from "./explorer/createRequestFile";
-import { replaceNameInRequestFile } from "./explorer/replaceNameInRequestFile";
+import { createRequestFile } from "./explorer/fileUtils/createRequestFile";
+import { replaceNameInRequestFile } from "./explorer/fileUtils/replaceNameInRequestFile";
 import { getPathForDuplicatedItem } from "./explorer/getPathForDuplicatedItem";
 import { renameFileOrFolder } from "./explorer/renameFileOrFolder";
-import { replaceSequenceForFile } from "./explorer/replaceSequenceForFile";
-import { normalizeSequencesForRequestFiles } from "./explorer/normalizeSequencesForRequestFiles";
-import { normalizeSequencesForFolders } from "./explorer/normalizeSequencesForFolders";
-import { updateSequencesAfterMovingRequestFile } from "./explorer/updateSequencesAfterMovingRequestFile";
-import { updateSequencesAfterMovingFolder } from "./explorer/updateSequencesAfterMovingFolder";
-import { showErrorMessageForFailedDragAndDrop } from "./explorer/showErrorMessageForFailedDragAndDrop";
-import { moveFolderIntoTargetFolder } from "./explorer/moveFolderIntoTargetFolder";
+import { replaceSequenceForFile } from "./explorer/fileUtils/replaceSequenceForFile";
+import { normalizeSequencesForRequestFiles } from "./explorer/fileUtils/normalizeSequencesForRequestFiles";
+import { normalizeSequencesForFolders } from "./explorer/folderUtils/normalizeSequencesForFolders";
+import { moveFolderIntoTargetFolder } from "./explorer/folderUtils/moveFolderIntoTargetFolder";
 import { FolderDropInsertionOption } from "./explorer/folderDropInsertionOptionEnum";
+import { moveFileIntoFolder } from "./explorer/fileUtils/moveFileIntoFolder";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>
@@ -99,95 +97,58 @@ export class CollectionExplorer
     }
 
     async handleDrop(
-        target: BrunoTreeItem | undefined,
+        maybeTarget: BrunoTreeItem | undefined,
         dataTransfer: vscode.DataTransfer,
         _token: vscode.CancellationToken
     ) {
-        const transferItem = dataTransfer.get("text/uri-list");
-
-        if (!transferItem || !target || !existsSync(target.getPath())) {
-            return;
-        }
-
-        const sourcePath = await transferItem.asString();
-        const sourceCollection =
-            this.itemProvider.getAncestorCollectionForPath(sourcePath);
-
-        if (
-            !sourceCollection ||
-            !sourceCollection.getStoredDataForPath(sourcePath)
-        ) {
-            vscode.window.showErrorMessage(
-                `An unexpected error occured. Could not determine collection for path '${sourcePath}'.`
-            );
-            return;
-        }
-
-        const { item: originalItem, treeItem: originalTreeItem } =
-            sourceCollection.getStoredDataForPath(sourcePath) as CollectionData;
-        const originalItemSequence = originalItem.getSequence();
-
-        const newPath = resolve(
-            this.getTargetDirectoryForDragAndDrop(target),
-            basename(sourcePath)
+        const gatheredData = await this.gatherDataForDroppingItem(
+            maybeTarget,
+            dataTransfer
         );
-        const targetCollection =
-            this.itemProvider.getAncestorCollectionForPath(newPath);
 
-        if (
-            targetCollection &&
-            this.itemProvider.getRegisteredItem(targetCollection, newPath) &&
-            normalizeDirectoryPath(newPath) !=
-                normalizeDirectoryPath(sourcePath) // confirmation should not be required when moving a request within the same folder (e.g. to update the sequence)
-        ) {
-            if (
-                !(await vscode.window.showInformationMessage(
-                    `An item with the path '${newPath}' already exists. Do you want to overwrite it?`,
-                    { modal: true },
-                    "Confirm"
-                ))
-            ) {
-                return;
-            }
+        if (!gatheredData) {
+            return;
         }
 
-        const isFile = originalTreeItem.isFile;
+        const {
+            originalTreeItem,
+            sourceCollection,
+            sourcePath,
+            newPath,
+            targetCollection,
+            target,
+        } = gatheredData;
 
-        const brunoFileType = isFile
-            ? getTypeOfBrunoFile([sourceCollection], sourcePath)
-            : undefined;
-
-        if (isFile) {
-            const wasSuccessful = renameFileOrFolder(
+        if (
+            !(await this.requestConfirmationForOverwritingItemIfNeeded(
                 sourcePath,
                 newPath,
-                isFile
+                targetCollection
+            ))
+        ) {
+            return;
+        }
+
+        if (originalTreeItem.isFile) {
+            moveFileIntoFolder(
+                this.itemProvider,
+                sourcePath,
+                newPath,
+                target,
+                this.getTargetDirectoryForDragAndDrop(target),
+                getTypeOfBrunoFile([sourceCollection], sourcePath)
             );
-
-            if (!wasSuccessful) {
-                showErrorMessageForFailedDragAndDrop(sourcePath);
-                return;
-            }
-
-            if (isFile && brunoFileType == BrunoFileType.RequestFile) {
-                // Only when moving a request file, sequences of requests may need to be adjusted
-                updateSequencesAfterMovingRequestFile(
-                    this.itemProvider,
-                    target,
-                    this.getTargetDirectoryForDragAndDrop(target),
-                    sourcePath
-                );
-            }
             return;
         }
 
         if (!target.getSequence()) {
-            // Insert the folder into the target folder if the target folder does not have a sequence.
+            // Always insert the folder into the target folder if the target folder does not have a sequence
             moveFolderIntoTargetFolder(
                 this.itemProvider,
                 sourcePath,
                 target,
-                originalItemSequence
+                FolderDropInsertionOption.MoveIntoTargetAsSubfolder,
+                originalTreeItem.getSequence()
             );
             return;
         }
@@ -202,23 +163,81 @@ export class CollectionExplorer
             return;
         }
 
-        if (
-            pickedOption == FolderDropInsertionOption.MoveIntoTargetAsSubfolder
-        ) {
-            moveFolderIntoTargetFolder(
-                this.itemProvider,
-                sourcePath,
-                target,
-                originalItemSequence
-            );
-        } else {
-            updateSequencesAfterMovingFolder(
-                this.itemProvider,
-                sourcePath,
-                target,
-                pickedOption
-            );
+        moveFolderIntoTargetFolder(
+            this.itemProvider,
+            sourcePath,
+            target,
+            pickedOption,
+            originalTreeItem.getSequence()
+        );
+    }
+
+    private async gatherDataForDroppingItem(
+        target: BrunoTreeItem | undefined,
+        dataTransfer: vscode.DataTransfer
+    ) {
+        const transferItem = dataTransfer.get("text/uri-list");
+
+        if (!transferItem || !target || !existsSync(target.getPath())) {
+            return undefined;
         }
+
+        const sourcePath = await transferItem.asString();
+        const sourceCollection =
+            this.itemProvider.getAncestorCollectionForPath(sourcePath);
+
+        if (
+            !sourceCollection ||
+            !sourceCollection.getStoredDataForPath(sourcePath)
+        ) {
+            vscode.window.showErrorMessage(
+                `An unexpected error occured. Could not determine collection for path '${sourcePath}'.`
+            );
+            return undefined;
+        }
+
+        const { treeItem: originalTreeItem } =
+            sourceCollection.getStoredDataForPath(sourcePath) as CollectionData;
+
+        const newPath = resolve(
+            this.getTargetDirectoryForDragAndDrop(target),
+            basename(sourcePath)
+        );
+
+        const targetCollection =
+            this.itemProvider.getAncestorCollectionForPath(newPath);
+
+        return {
+            originalTreeItem,
+            sourceCollection,
+            sourcePath: originalTreeItem.getPath(),
+            newPath,
+            targetCollection,
+            target,
+        };
+    }
+
+    private async requestConfirmationForOverwritingItemIfNeeded(
+        sourcePath: string,
+        newPath: string,
+        targetCollection?: Collection
+    ) {
+        if (
+            targetCollection &&
+            this.itemProvider.getRegisteredItem(targetCollection, newPath) &&
+            normalizeDirectoryPath(newPath) !=
+                normalizeDirectoryPath(sourcePath) // confirmation should not be required when moving a request within the same folder (e.g. to update the sequence)
+        ) {
+            const pickedOption = await vscode.window.showInformationMessage(
+                `An item with the path '${newPath}' already exists. Do you want to overwrite it?`,
+                { modal: true },
+                this.confirmationOptionForModals
+            );
+
+            return pickedOption == this.confirmationOptionForModals;
+        }
+
+        return true;
     }
 
     private registerCommands(

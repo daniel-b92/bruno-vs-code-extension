@@ -1,8 +1,8 @@
 import {
     CollectionItemProvider,
     getSequencesForFolders,
-} from "../../../shared";
-import { replaceSequenceForFile } from "./replaceSequenceForFile";
+} from "../../../../shared";
+import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
 
 export function normalizeSequencesForFolders(
     itemProvider: CollectionItemProvider,
