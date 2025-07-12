@@ -150,6 +150,12 @@ export class CollectionExplorer
             );
             return;
         }
+        if (target.getPath().includes(sourcePath)) {
+            vscode.window.showInformationMessage(
+                "Cannot use a descendant item as a target for moving a folder to. Please select a different target folder."
+            );
+            return;
+        }
 
         if (!target.getSequence()) {
             // If the target does not have a sequence, moving a folder should always cause an insertion into the target folder.
