@@ -71,7 +71,6 @@ export class CollectionExplorer
     }
 
     private disposables: vscode.Disposable[] = [];
-
     private confirmationOptionForModals = "Confirm";
 
     public dispose() {
@@ -114,35 +113,55 @@ export class CollectionExplorer
             originalTreeItem,
             sourceCollection,
             sourcePath,
-            newPath,
             targetCollection,
             target,
         } = gatheredData;
 
-        if (
-            !(await this.requestConfirmationForOverwritingItemIfNeeded(
-                sourcePath,
-                newPath,
-                targetCollection
-            ))
-        ) {
-            return;
-        }
-
         if (originalTreeItem.isFile) {
+            const newPath = this.getNewPathForDragAndDropFile(
+                sourcePath,
+                target
+            );
+
+            if (
+                !(await this.requestConfirmationForOverwritingItemIfNeeded(
+                    sourcePath,
+                    newPath,
+                    targetCollection
+                ))
+            ) {
+                return;
+            }
+
             moveFileIntoFolder(
                 this.itemProvider,
                 sourcePath,
                 newPath,
                 target,
-                this.getTargetDirectoryForDragAndDrop(target),
+                dirname(newPath),
                 getTypeOfBrunoFile([sourceCollection], sourcePath)
             );
             return;
         }
 
         if (!target.getSequence()) {
-            // Always insert the folder into the target folder if the target folder does not have a sequence
+            // If the target does not have a sequence, moving a folder should always cause an insertion into the target folder.
+            // So in this case, the new path is the same for files and folders.
+            const newPath = this.getNewPathForDragAndDropFile(
+                sourcePath,
+                target
+            );
+
+            if (
+                !(await this.requestConfirmationForOverwritingItemIfNeeded(
+                    sourcePath,
+                    newPath,
+                    targetCollection
+                ))
+            ) {
+                return;
+            }
+
             moveFolderIntoTargetFolder(
                 this.itemProvider,
                 sourcePath,
@@ -159,7 +178,17 @@ export class CollectionExplorer
             ...Object.values(FolderDropInsertionOption)
         );
 
-        if (!pickedOption) {
+        if (
+            !pickedOption ||
+            (pickedOption ==
+                FolderDropInsertionOption.MoveIntoTargetAsSubfolder &&
+                !(await this.requestConfirmationForOverwritingItemIfNeeded(
+                    sourcePath,
+                    // With the insertion option of moving into the target folder, the new item path is the same as if moving a file.
+                    this.getNewPathForDragAndDropFile(sourcePath, target),
+                    targetCollection
+                )))
+        ) {
             return;
         }
 
@@ -199,19 +228,14 @@ export class CollectionExplorer
         const { treeItem: originalTreeItem } =
             sourceCollection.getStoredDataForPath(sourcePath) as CollectionData;
 
-        const newPath = resolve(
-            this.getTargetDirectoryForDragAndDrop(target),
-            basename(sourcePath)
+        const targetCollection = this.itemProvider.getAncestorCollectionForPath(
+            target.getPath()
         );
-
-        const targetCollection =
-            this.itemProvider.getAncestorCollectionForPath(newPath);
 
         return {
             originalTreeItem,
             sourceCollection,
             sourcePath: originalTreeItem.getPath(),
-            newPath,
             targetCollection,
             target,
         };
@@ -631,7 +655,13 @@ export class CollectionExplorer
         }
     }
 
-    private getTargetDirectoryForDragAndDrop(target: BrunoTreeItem) {
-        return target.isFile ? dirname(target.getPath()) : target.getPath();
+    private getNewPathForDragAndDropFile(
+        sourcePath: string,
+        target: BrunoTreeItem
+    ) {
+        return resolve(
+            target.isFile ? dirname(target.getPath()) : target.getPath(),
+            basename(sourcePath)
+        );
     }
 }
