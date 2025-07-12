@@ -1,5 +1,4 @@
 import { readFileSync, writeFileSync } from "fs";
-import { extname, basename } from "path";
 import {
     TextDocumentHelper,
     parseBruFile,
@@ -8,7 +7,7 @@ import {
     MetaBlockKey,
 } from "../../../../shared";
 
-export function replaceNameInRequestFile(filePath: string) {
+export function replaceNameInMetaBlock(filePath: string, newName: string) {
     const documentHelper = new TextDocumentHelper(
         readFileSync(filePath).toString()
     );
@@ -19,14 +18,6 @@ export function replaceNameInRequestFile(filePath: string) {
 
     if (metaBlock) {
         const nameField = getFieldFromMetaBlock(metaBlock, MetaBlockKey.Name);
-
-        const newName =
-            extname(filePath).length > 0
-                ? basename(filePath).substring(
-                      0,
-                      basename(filePath).indexOf(extname(basename(filePath)))
-                  )
-                : basename(filePath);
 
         if (nameField) {
             writeFileSync(

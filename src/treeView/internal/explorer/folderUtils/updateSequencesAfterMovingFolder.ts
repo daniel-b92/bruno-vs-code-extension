@@ -12,6 +12,7 @@ import { Uri, window, workspace, WorkspaceEdit } from "vscode";
 import { FolderDropInsertionOption } from "../folderDropInsertionOptionEnum";
 import { readFileSync } from "fs";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";
+import { replaceNameInMetaBlock } from "../fileUtils/replaceNameInMetaBlock";
 
 export async function updateSequencesAfterMovingFolder(
     itemProvider: CollectionItemProvider,
@@ -95,14 +96,16 @@ async function copyFolderSettingsFileFromTargetFolder(
     );
 
     const workspaceEdit = new WorkspaceEdit();
-    workspaceEdit.createFile(
-        Uri.file(newFolderSettingsFilePath),
-        // ToDo: replace name in folder.bru file with source path folder name
-        {
-            overwrite: true,
-            contents: Buffer.from(readFileSync(targetFolderSettingsFile)),
-        }
-    );
+    workspaceEdit.createFile(Uri.file(newFolderSettingsFilePath), {
+        overwrite: true,
+        contents: Buffer.from(readFileSync(targetFolderSettingsFile)),
+    });
     const wasSuccessful = await workspace.applyEdit(workspaceEdit);
-    return wasSuccessful ? newFolderSettingsFilePath : undefined;
+
+    if (!wasSuccessful) {
+        return undefined;
+    }
+
+    replaceNameInMetaBlock(newFolderSettingsFilePath, basename(sourcePath));
+    return newFolderSettingsFilePath;
 }

@@ -20,7 +20,7 @@ import { basename, dirname, extname, resolve } from "path";
 import { BrunoTreeItem } from "../brunoTreeItem";
 import { validateNewItemNameIsUnique } from "./explorer/validateNewItemNameIsUnique";
 import { createRequestFile } from "./explorer/fileUtils/createRequestFile";
-import { replaceNameInRequestFile } from "./explorer/fileUtils/replaceNameInRequestFile";
+import { replaceNameInMetaBlock } from "./explorer/fileUtils/replaceNameInMetaBlock";
 import { getPathForDuplicatedItem } from "./explorer/getPathForDuplicatedItem";
 import { renameFileOrFolder } from "./explorer/renameFileOrFolder";
 import { replaceSequenceForFile } from "./explorer/fileUtils/replaceSequenceForFile";
@@ -374,7 +374,10 @@ export class CollectionExplorer
                                     extname(newPath) ==
                                         getExtensionForRequestFiles()
                                 ) {
-                                    replaceNameInRequestFile(newPath);
+                                    replaceNameInMetaBlock(
+                                        newPath,
+                                        newItemName
+                                    );
                                 }
                             }
                         );
@@ -408,7 +411,6 @@ export class CollectionExplorer
                 const newFolderSettingsFile =
                     getFolderSettingsFilePath(newFolderPath);
 
-                // ToDo: Replace name in folder.bru, too
                 if (
                     getSequenceForFolder(
                         collection.getRootDirectory(),
@@ -423,6 +425,11 @@ export class CollectionExplorer
                                 this.itemProvider,
                                 dirname(originalPath)
                             ) ?? 0)
+                    );
+
+                    replaceNameInMetaBlock(
+                        newFolderSettingsFile,
+                        basename(newFolderPath)
                     );
                 }
             }
