@@ -27,7 +27,6 @@ export async function updateSequencesAfterMovingFolder(
         const newFolderPath = resolve(parentFolder, basename(sourcePath));
         const newFolderSettingsFile = getFolderSettingsFilePath(newFolderPath);
 
-        // ToDo: Check if the drag and drop target can be a file when moving a folder
         const newSequence =
             1 + (getMaxSequenceForFolders(itemProvider, parentFolder) ?? 0);
 
@@ -40,6 +39,7 @@ export async function updateSequencesAfterMovingFolder(
 
         replaceSequenceForFile(newFolderSettingsFile, newSequence);
         normalizeSequencesForFolders(itemProvider, parentFolder);
+        normalizeSequencesForFolders(itemProvider, dirname(sourcePath));
         return;
     }
 
