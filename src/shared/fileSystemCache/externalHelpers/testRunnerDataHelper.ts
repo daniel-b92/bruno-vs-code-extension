@@ -1,23 +1,20 @@
 import * as vscode from "vscode";
-import { CollectionFile } from "../../model/collectionFile";
-import { CollectionItem } from "../../model/interfaces";
 import { getTestId, getTestLabel } from "../../../testRunner";
-import { Collection } from "../../model/collection";
-import { CollectionDirectory } from "../../model/collectionDirectory";
-import { extname } from "path";
 import { addTestItemAndAncestorsToTestTree } from "../../../testRunner";
-import { normalizeDirectoryPath } from "../../fileSystem/util/normalizeDirectoryPath";
-import { getExtensionForRequestFiles } from "../../fileSystem/util/getExtensionForRequestFiles";
+import {
+    BrunoFileType,
+    Collection,
+    CollectionDirectory,
+    CollectionFile,
+    CollectionItem,
+    getTypeOfBrunoFile,
+    normalizeDirectoryPath,
+} from "../..";
 
 export class TestRunnerDataHelper {
     constructor(private testController: vscode.TestController) {}
 
     public createVsCodeTestItem = (item: CollectionItem) => {
-        const getSortText = (file: CollectionFile) =>
-            file.getSequence()
-                ? new Array((file.getSequence() as number) + 1).join("a")
-                : undefined;
-
         const uri = vscode.Uri.file(item.getPath());
         const testItem = this.testController.createTestItem(
             getTestId(uri),
@@ -27,10 +24,11 @@ export class TestRunnerDataHelper {
 
         if (item instanceof CollectionFile) {
             testItem.canResolveChildren = false;
-            testItem.sortText = getSortText(item);
         } else {
             testItem.canResolveChildren = true;
         }
+
+        testItem.sortText = this.getVsCodeTestItemSortText(item);
 
         return testItem;
     };
@@ -62,11 +60,22 @@ export class TestRunnerDataHelper {
             .filter(
                 ({ item }) =>
                     item instanceof CollectionFile &&
+                    getTypeOfBrunoFile(
+                        [collectionForDirectory],
+                        item.getPath()
+                    ) == BrunoFileType.RequestFile &&
                     item.getSequence() != undefined &&
-                    extname(item.getPath()) == getExtensionForRequestFiles() &&
                     item
                         .getPath()
                         .startsWith(normalizeDirectoryPath(directory.getPath()))
             );
+    }
+
+    private getVsCodeTestItemSortText(item: CollectionItem) {
+        return item.getSequence()
+            ? new Array((item.getSequence() as number) + 1)
+                  .join("a")
+                  .concat(item instanceof CollectionDirectory ? "" : "b")
+            : undefined;
     }
 }

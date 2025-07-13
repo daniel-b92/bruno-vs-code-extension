@@ -3,6 +3,7 @@ import {
     ApiKeyAuthBlockKey,
     ApiKeyAuthBlockPlacementValue,
     BooleanFieldValue,
+    CollectionItemProvider,
     getMaxSequenceForRequests,
     MetaBlockKey,
     MethodBlockAuth,
@@ -17,13 +18,19 @@ import {
 import { dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 
-export function provideBrunoLangCompletionItems(logger?: OutputChannelLogger) {
-    return getCompletionItemsForFieldsInMetaBlock(logger)
+export function provideBrunoLangCompletionItems(
+    itemProvider: CollectionItemProvider,
+    logger?: OutputChannelLogger
+) {
+    return getCompletionItemsForFieldsInMetaBlock(itemProvider, logger)
         .concat([getCompletionItemsForFieldsInMethodBlock(logger)])
         .concat([getCompletionItemsForFieldsInAuthBlock(logger)]);
 }
 
-function getCompletionItemsForFieldsInMetaBlock(logger?: OutputChannelLogger) {
+function getCompletionItemsForFieldsInMetaBlock(
+    itemProvider: CollectionItemProvider,
+    logger?: OutputChannelLogger
+) {
     const result: Disposable[] = [];
 
     result.push(
@@ -64,6 +71,7 @@ function getCompletionItemsForFieldsInMetaBlock(logger?: OutputChannelLogger) {
                                 new CompletionItem(
                                     `${currentText.endsWith(" ") ? "" : " "}${
                                         getMaxSequenceForRequests(
+                                            itemProvider,
                                             dirname(document.uri.fsPath)
                                         ) + 1
                                     }`

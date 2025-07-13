@@ -1,25 +1,29 @@
-import { lstatSync, readdirSync } from "fs";
-import { extname, resolve } from "path";
-import { getSequenceFromMetaBlock } from "./getSequenceFromMetaBlock";
-import { getExtensionForRequestFiles } from "../../../../fileSystem/util/getExtensionForRequestFiles";
+import { resolve } from "path";
+import { CollectionItemProvider } from "../../../../fileSystemCache/externalHelpers/collectionItemProvider";
+import { readdirSync } from "fs";
+import { getSequenceForFile } from "../../shared/getSequenceForFile";
 
-export const getSequencesForRequests = (directory: string) => {
-    const result: { path: string; sequence: number }[] = [];
+export const getSequencesForRequests = (
+    itemProvider: CollectionItemProvider,
+    directory: string
+): { path: string; sequence: number }[] => {
+    const collection = itemProvider.getAncestorCollectionForPath(directory);
 
-    readdirSync(directory).map((childName) => {
-        const fullPath = resolve(directory, childName);
+    if (!collection || !collection.getStoredDataForPath(directory)) {
+        return [];
+    }
 
-        if (
-            lstatSync(fullPath).isFile() &&
-            extname(fullPath) == getExtensionForRequestFiles() &&
-            getSequenceFromMetaBlock(fullPath) != undefined
-        ) {
-            result.push({
+    return readdirSync(directory)
+        .map((childName) => {
+            const fullPath = resolve(directory, childName);
+
+            return {
                 path: fullPath,
-                sequence: getSequenceFromMetaBlock(fullPath) as number,
-            });
-        }
-    });
-
-    return result;
+                sequence: getSequenceForFile(collection, fullPath),
+            };
+        })
+        .filter(({ sequence }) => sequence != undefined) as {
+        path: string;
+        sequence: number;
+    }[];
 };

@@ -1,13 +1,14 @@
 import { basename, dirname } from "path";
 import * as vscode from "vscode";
 import {
-    getSequenceFromMetaBlock,
     CollectionData,
     FileChangeType,
     CollectionItemProvider,
     normalizeDirectoryPath,
     CollectionFile,
     OutputChannelLogger,
+    getSequenceForFolder,
+    getSequenceForFile,
 } from "../../shared";
 import { BrunoTreeItem } from "../brunoTreeItem";
 
@@ -107,39 +108,38 @@ export class BrunoTreeItemProvider
             }
 
             this.logger?.debug(
-                `Fetching child explorer tree items for item ${element.getPath()} for collection '${basename(
+                `Fetching child explorer tree items for item '${element.getPath()}' for collection '${basename(
                     collection.getRootDirectory()
                 )}' collection.`
             );
 
-            return collection
-                .getAllStoredDataForCollection()
-                .filter(
-                    ({ item: registeredItem }) =>
-                        normalizeDirectoryPath(
-                            dirname(registeredItem.getPath())
-                        ) == normalizeDirectoryPath(element.getPath())
-                )
-                .map(({ item: collectionItem }) => {
-                    const path = collectionItem.getPath();
+            return this.getSortedTreeItems(
+                collection
+                    .getAllStoredDataForCollection()
+                    .filter(
+                        ({ item: registeredItem }) =>
+                            normalizeDirectoryPath(
+                                dirname(registeredItem.getPath())
+                            ) == normalizeDirectoryPath(element.getPath())
+                    )
+                    .map(({ item: collectionItem }) => {
+                        const path = collectionItem.getPath();
+                        const isFile = collectionItem instanceof CollectionFile;
 
-                    const treeItem =
-                        collectionItem instanceof CollectionFile
-                            ? new BrunoTreeItem(
-                                  path,
-                                  true,
-                                  getSequenceFromMetaBlock(path)
-                              )
-                            : new BrunoTreeItem(path, false);
+                        const treeItem = new BrunoTreeItem(
+                            path,
+                            isFile,
+                            isFile
+                                ? getSequenceForFile(collection, path)
+                                : getSequenceForFolder(
+                                      collection.getRootDirectory(),
+                                      path
+                                  )
+                        );
 
-                    return treeItem;
-                })
-                .sort((a, b) =>
-                    a.getSequence() != undefined && b.getSequence() != undefined
-                        ? (a.getSequence() as number) -
-                          (b.getSequence() as number)
-                        : 0
-                );
+                        return treeItem;
+                    })
+            );
         }
     }
 
@@ -168,5 +168,36 @@ export class BrunoTreeItemProvider
                 item.getPath()
             ),
         };
+    }
+
+    private getSortedTreeItems(items: BrunoTreeItem[]) {
+        return items.slice().sort((a, b) => {
+            if (a.isFile != b.isFile) {
+                // Display all subfolders before files
+                return a.isFile ? 1 : -1;
+            } else if (
+                !a.getSequence() &&
+                !b.getSequence() &&
+                a.label &&
+                b.label
+            ) {
+                // Order items without a sequence alphabetically by label
+                const labelForA =
+                    typeof a.label == "string" ? a.label : a.label.label;
+                const labelForB =
+                    typeof b.label == "string" ? b.label : b.label.label;
+
+                return labelForA <= labelForB ? -1 : 1;
+            } else if (!a.getSequence() || !b.getSequence()) {
+                // Diplay items with a sequence before items without one
+                return a.getSequence() ? -1 : 1;
+            } else if (a.getSequence() && b.getSequence()) {
+                return (
+                    (a.getSequence() as number) - (b.getSequence() as number)
+                );
+            } else {
+                return 0;
+            }
+        });
     }
 }

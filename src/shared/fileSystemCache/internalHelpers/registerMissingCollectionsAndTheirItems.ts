@@ -1,12 +1,16 @@
 import { lstatSync, readdirSync } from "fs";
-import { getAllCollectionRootDirectories } from "../../fileSystem/util/collectionRootFolderHelper";
-import { normalizeDirectoryPath } from "../../fileSystem/util/normalizeDirectoryPath";
-import { getSequenceFromMetaBlock, TestRunnerDataHelper } from "../..";
-import { Collection } from "../../model/collection";
+import {
+    Collection,
+    CollectionDirectory,
+    CollectionFile,
+    getAllCollectionRootDirectories,
+    getSequenceForFile,
+    getSequenceForFolder,
+    normalizeDirectoryPath,
+    TestRunnerDataHelper,
+} from "../..";
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
-import { CollectionDirectory } from "../../model/collectionDirectory";
-import { CollectionFile } from "../../model/collectionFile";
 import { addItemToCollection } from "./addItemToCollection";
 
 export async function registerMissingCollectionsAndTheirItems(
@@ -36,10 +40,16 @@ export async function registerMissingCollectionsAndTheirItems(
                     ).includes(path)
                 ) {
                     const item = isDirectory
-                        ? new CollectionDirectory(path)
+                        ? new CollectionDirectory(
+                              path,
+                              getSequenceForFolder(
+                                  collection.getRootDirectory(),
+                                  path
+                              )
+                          )
                         : new CollectionFile(
                               path,
-                              getSequenceFromMetaBlock(path)
+                              getSequenceForFile(collection, path)
                           );
 
                     addItemToCollection(testRunnerDataHelper, collection, item);

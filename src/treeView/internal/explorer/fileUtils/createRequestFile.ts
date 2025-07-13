@@ -7,10 +7,10 @@ import {
     addMetaBlock,
     appendDefaultMethodBlock,
     CollectionItemProvider,
-} from "../../../shared";
-import { BrunoTreeItem } from "../../brunoTreeItem";
+} from "../../../../shared";
+import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { commands, Uri, window } from "vscode";
-import { validateNewItemNameIsUnique } from "./validateNewItemNameIsUnique";
+import { validateNewItemNameIsUnique } from "../validateNewItemNameIsUnique";
 
 export async function createRequestFile(
     itemProvider: CollectionItemProvider,

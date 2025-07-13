@@ -3,6 +3,7 @@ import {
     BrunoFileType,
     Collection,
     getExtensionForRequestFiles,
+    doesFileNameMatchFolderSettingsFileName,
     normalizeDirectoryPath,
 } from "../..";
 import { existsSync } from "fs";
@@ -29,13 +30,30 @@ export function getTypeOfBrunoFile(
 
     if (isEnvironmentFile(path)) {
         return BrunoFileType.EnvironmentFile;
-    } else if (isFolderSettingsFile(path)) {
-        return BrunoFileType.FolderSettingsFile;
-    } else if (isCollectionSettingsFile(collectionsToSearch, path)) {
+    } else if (
+        isChildElementOfCollectionRootDirectory(collectionsToSearch, path) &&
+        doesNameMatchCollectionSettingsFile(path)
+    ) {
         return BrunoFileType.CollectionSettingsFile;
+    } else if (
+        !isChildElementOfCollectionRootDirectory(collectionsToSearch, path) &&
+        doesFileNameMatchFolderSettingsFileName(path)
+    ) {
+        return BrunoFileType.FolderSettingsFile;
     } else {
         return BrunoFileType.RequestFile;
     }
+}
+
+function isChildElementOfCollectionRootDirectory(
+    registeredCollections: Collection[],
+    path: string
+) {
+    return registeredCollections.some(
+        (collection) =>
+            normalizeDirectoryPath(collection.getRootDirectory()) ==
+            normalizeDirectoryPath(dirname(path))
+    );
 }
 
 function isEnvironmentFile(path: string) {
@@ -44,20 +62,6 @@ function isEnvironmentFile(path: string) {
     );
 }
 
-function isFolderSettingsFile(path: string) {
-    return basename(path) == "folder.bru";
-}
-
-function isCollectionSettingsFile(
-    registeredCollections: Collection[],
-    path: string
-) {
-    return (
-        basename(path) == "collection.bru" &&
-        registeredCollections.some(
-            (collection) =>
-                normalizeDirectoryPath(collection.getRootDirectory()) ==
-                normalizeDirectoryPath(dirname(path))
-        )
-    );
+function doesNameMatchCollectionSettingsFile(path: string) {
+    return basename(path) == "collection.bru";
 }

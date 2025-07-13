@@ -3,8 +3,8 @@ import {
     TextDocumentHelper,
     RequestFileBlockName,
     parseBlockFromFile,
-} from "../../../..";
-import { isDictionaryBlockField } from "../../../internal/util/isDictionaryBlockField";
+} from "../../..";
+import { isDictionaryBlockField } from "../../internal/util/isDictionaryBlockField";
 
 export function getSequenceFieldFromMetaBlock(
     documentHelper: TextDocumentHelper
