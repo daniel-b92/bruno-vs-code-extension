@@ -118,9 +118,9 @@ export class CollectionExplorer
         } = gatheredData;
 
         if (originalTreeItem.isFile) {
-            const newPath = this.getNewPathForDragAndDropFile(
-                sourcePath,
-                target
+            const newPath = resolve(
+                target.isFile ? dirname(target.getPath()) : target.getPath(),
+                basename(sourcePath)
             );
 
             if (
@@ -159,11 +159,7 @@ export class CollectionExplorer
 
         if (!target.getSequence()) {
             // If the target does not have a sequence, moving a folder should always cause an insertion into the target folder.
-            // So in this case, the new path is the same for files and folders.
-            const newPath = this.getNewPathForDragAndDropFile(
-                sourcePath,
-                target
-            );
+            const newPath = resolve(target.getPath(), basename(sourcePath));
 
             if (
                 !(await this.requestConfirmationForOverwritingItemIfNeeded(
@@ -198,7 +194,7 @@ export class CollectionExplorer
                 !(await this.requestConfirmationForOverwritingItemIfNeeded(
                     sourcePath,
                     // With the insertion option of moving into the target folder, the new item path is the same as if moving a file.
-                    this.getNewPathForDragAndDropFile(sourcePath, target),
+                    resolve(target.getPath(), basename(sourcePath)),
                     targetCollection
                 )))
         ) {
@@ -666,15 +662,5 @@ export class CollectionExplorer
                 });
             }
         }
-    }
-
-    private getNewPathForDragAndDropFile(
-        sourcePath: string,
-        target: BrunoTreeItem
-    ) {
-        return resolve(
-            target.isFile ? dirname(target.getPath()) : target.getPath(),
-            basename(sourcePath)
-        );
     }
 }
