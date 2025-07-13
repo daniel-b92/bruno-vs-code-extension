@@ -4,21 +4,25 @@ import {
 } from "../../../../shared";
 import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
 
-export function normalizeSequencesForFolders(
+export async function normalizeSequencesForFolders(
     itemProvider: CollectionItemProvider,
     parentFolder: string
 ) {
-    const initialSequences = getSequencesForFolders(itemProvider, parentFolder);
+    const initialSequences = await getSequencesForFolders(
+        itemProvider,
+        parentFolder
+    );
 
     initialSequences.sort(
         ({ sequence: seq1 }, { sequence: seq2 }) => seq1 - seq2
     );
 
-    initialSequences.forEach(({ settingsFile, sequence: initialSeq }, i) => {
+    for (let i = 0; i < initialSequences.length; i++) {
+        const { settingsFile, sequence: initialSeq } = initialSequences[i];
         const newSeq = i + 1;
 
         if (initialSeq != newSeq) {
-            replaceSequenceForFile(settingsFile, newSeq);
+            await replaceSequenceForFile(settingsFile, newSeq);
         }
-    });
+    }
 }

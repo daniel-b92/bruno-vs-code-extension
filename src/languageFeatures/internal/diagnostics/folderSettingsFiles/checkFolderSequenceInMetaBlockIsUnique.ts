@@ -15,22 +15,23 @@ import {
     BrunoFileType,
 } from "../../../../shared";
 import { basename, dirname } from "path";
-import { readFileSync } from "fs";
+import { readFile } from "fs";
 import { DiagnosticWithCode } from "../definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { isSequenceValid } from "../shared/util/isSequenceValid";
+import { promisify } from "util";
 
-export function checkFolderSequenceInMetaBlockIsUnique(
+export async function checkFolderSequenceInMetaBlockIsUnique(
     itemProvider: CollectionItemProvider,
     metaBlock: Block,
     documentUri: Uri
-): {
+): Promise<{
     code: RelevantWithinMetaBlockDiagnosticCode;
     toAdd?: {
         affectedFiles: string[];
         diagnosticCurrentFile: DiagnosticWithCode;
     };
-} {
+}> {
     const castedBlock = castBlockToDictionaryBlock(metaBlock);
 
     if (
@@ -78,7 +79,7 @@ export function checkFolderSequenceInMetaBlockIsUnique(
                 affectedFiles: allAffectedFiles.map(
                     ({ folderSettingsFile }) => folderSettingsFile
                 ),
-                diagnosticCurrentFile: getDiagnostic(
+                diagnosticCurrentFile: await getDiagnostic(
                     sequenceField,
                     otherFoldersWithSameSequence
                 ),
@@ -89,34 +90,41 @@ export function checkFolderSequenceInMetaBlockIsUnique(
     }
 }
 
-function getDiagnostic(
+async function getDiagnostic(
     sequenceField: DictionaryBlockField,
     otherFoldersWithSameSequence: {
         folderSettingsFile: string;
         folderPath: string;
     }[]
-): DiagnosticWithCode {
+): Promise<DiagnosticWithCode> {
     return {
         message:
             "Other folders with the same sequence already exist for the same parent folder.",
         range: mapRange(sequenceField.valueRange),
         severity: DiagnosticSeverity.Error,
         code: getDiagnosticCode(),
-        relatedInformation: otherFoldersWithSameSequence.map(
-            ({ folderPath, folderSettingsFile }) => ({
-                message: `Folder '${basename(folderPath)}' with same sequence`,
-                location: {
-                    uri: Uri.file(folderSettingsFile),
-                    range: getRangeForSequence(folderSettingsFile),
-                },
-            })
+        relatedInformation: await Promise.all(
+            otherFoldersWithSameSequence.map(
+                async ({ folderPath, folderSettingsFile }) => ({
+                    message: `Folder '${basename(
+                        folderPath
+                    )}' with same sequence`,
+                    location: {
+                        uri: Uri.file(folderSettingsFile),
+                        range: await getRangeForSequence(folderSettingsFile),
+                    },
+                })
+            )
         ),
     };
 }
 
-function getRangeForSequence(filePath: string) {
+async function getRangeForSequence(filePath: string) {
+    const readFileAsync = promisify(readFile);
+    const fileContent = await readFileAsync(filePath, "utf-8");
+
     const sequenceField = getSequenceFieldFromMetaBlock(
-        new TextDocumentHelper(readFileSync(filePath).toString())
+        new TextDocumentHelper(fileContent)
     );
 
     if (!sequenceField) {

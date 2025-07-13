@@ -1,35 +1,52 @@
-import { lstatSync, readdirSync } from "fs";
+import { lstat, readdir } from "fs";
 import {
     CollectionItemProvider,
     getFolderSettingsFilePath,
     getSequenceForFolder,
 } from "../../..";
 import { resolve } from "path";
+import { promisify } from "util";
 
-export function getSequencesForFolders(
+export async function getSequencesForFolders(
     itemProvider: CollectionItemProvider,
     parentFolder: string
-): { folderPath: string; settingsFile: string; sequence: number }[] {
+): Promise<{ folderPath: string; settingsFile: string; sequence: number }[]> {
     const collection = itemProvider.getAncestorCollectionForPath(parentFolder);
 
     if (!collection || !collection.getStoredDataForPath(parentFolder)) {
         return [];
     }
 
-    return readdirSync(parentFolder)
-        .map((itemName) => resolve(parentFolder, itemName))
-        .filter((item) => lstatSync(item).isDirectory())
-        .map((folderPath) => {
+    const allChildItems = (await promisify(readdir)(parentFolder)).map(
+        (itemName) => resolve(parentFolder, itemName)
+    );
+
+    const mappedArray = await Promise.all(
+        allChildItems.map(async (item) =>
+            (await promisify(lstat)(item)).isDirectory()
+        )
+    );
+
+    const onlyDirectories = allChildItems.filter(
+        (_item, index) => mappedArray[index]
+    );
+
+    const mappedDirectories = await Promise.all(
+        onlyDirectories.map(async (folderPath) => {
             return {
                 folderPath,
-                settingsFile: getFolderSettingsFilePath(folderPath),
-                sequence: getSequenceForFolder(
+                settingsFile: await getFolderSettingsFilePath(folderPath),
+                sequence: await getSequenceForFolder(
                     collection.getRootDirectory(),
                     folderPath
                 ),
             };
         })
-        .filter(({ sequence }) => sequence != undefined) as {
+    );
+
+    return mappedDirectories.filter(
+        ({ sequence }) => sequence != undefined
+    ) as {
         folderPath: string;
         settingsFile: string;
         sequence: number;

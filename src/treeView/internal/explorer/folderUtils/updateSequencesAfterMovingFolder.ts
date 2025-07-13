@@ -25,10 +25,13 @@ export async function updateSequencesAfterMovingFolder(
     ) {
         const parentFolder = target.getPath();
         const newFolderPath = resolve(parentFolder, basename(sourcePath));
-        const newFolderSettingsFile = getFolderSettingsFilePath(newFolderPath);
+        const newFolderSettingsFile = await getFolderSettingsFilePath(
+            newFolderPath
+        );
 
         const newSequence =
-            1 + (getMaxSequenceForFolders(itemProvider, parentFolder) ?? 0);
+            1 +
+            ((await getMaxSequenceForFolders(itemProvider, parentFolder)) ?? 0);
 
         if (!newFolderSettingsFile) {
             window.showErrorMessage(
@@ -37,9 +40,9 @@ export async function updateSequencesAfterMovingFolder(
             return;
         }
 
-        replaceSequenceForFile(newFolderSettingsFile, newSequence);
-        normalizeSequencesForFolders(itemProvider, parentFolder);
-        normalizeSequencesForFolders(itemProvider, dirname(sourcePath));
+        await replaceSequenceForFile(newFolderSettingsFile, newSequence);
+        await normalizeSequencesForFolders(itemProvider, parentFolder);
+        await normalizeSequencesForFolders(itemProvider, dirname(sourcePath));
         return;
     }
 
@@ -60,28 +63,30 @@ export async function updateSequencesAfterMovingFolder(
             ? (target.getSequence() as number)
             : (target.getSequence() as number) + 1;
 
-    replaceSequenceForFile(newFolderSettingsFile, newSequence);
+    await replaceSequenceForFile(newFolderSettingsFile, newSequence);
 
-    getSequencesForFolders(itemProvider, parentFolder)
-        .filter(
-            ({ folderPath, sequence }) =>
-                folderPath != sourcePath && sequence >= newSequence
-        )
-        .forEach(({ folderPath, sequence: initialSequence }) => {
-            replaceSequenceForFile(
-                getFolderSettingsFilePath(folderPath) as string,
-                initialSequence + 1
-            );
-        });
+    const filtered = (
+        await getSequencesForFolders(itemProvider, parentFolder)
+    ).filter(
+        ({ folderPath, sequence }) =>
+            folderPath != sourcePath && sequence >= newSequence
+    );
 
-    normalizeSequencesForFolders(itemProvider, parentFolder);
+    for (const { folderPath, sequence: initialSequence } of filtered) {
+        await replaceSequenceForFile(
+            (await getFolderSettingsFilePath(folderPath)) as string,
+            initialSequence + 1
+        );
+    }
+
+    await normalizeSequencesForFolders(itemProvider, parentFolder);
 }
 
 async function copyFolderSettingsFile(
     sourceFolderItem: BrunoTreeItem,
     destinationFolder: string
 ) {
-    const targetFolderSettingsFile = getFolderSettingsFilePath(
+    const targetFolderSettingsFile = await getFolderSettingsFilePath(
         sourceFolderItem.getPath()
     );
 

@@ -15,22 +15,23 @@ import {
     BrunoFileType,
 } from "../../../../../../shared";
 import { dirname } from "path";
-import { readFileSync } from "fs";
 import { DiagnosticWithCode } from "../../../definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { isSequenceValid } from "../../../shared/util/isSequenceValid";
+import { promisify } from "util";
+import { readFile } from "fs";
 
-export function checkSequenceInMetaBlockIsUniqueWithinFolder(
+export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
     itemProvider: CollectionItemProvider,
     metaBlock: Block,
     documentUri: Uri
-): {
+): Promise<{
     code: RelevantWithinMetaBlockDiagnosticCode;
     toAdd?: {
         affectedFiles: string[];
         diagnosticCurrentFile: DiagnosticWithCode;
     };
-} {
+}> {
     const castedBlock = castBlockToDictionaryBlock(metaBlock);
 
     if (
@@ -72,7 +73,7 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
             code: getDiagnosticCode(),
             toAdd: {
                 affectedFiles: allAffectedFiles,
-                diagnosticCurrentFile: getDiagnostic(
+                diagnosticCurrentFile: await getDiagnostic(
                     sequenceField,
                     otherRequestsWithSameSequence
                 ),
@@ -83,29 +84,32 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
     }
 }
 
-function getDiagnostic(
+async function getDiagnostic(
     sequenceField: DictionaryBlockField,
     otherRequestsWithSameSequence: string[]
-): DiagnosticWithCode {
+): Promise<DiagnosticWithCode> {
     return {
         message:
             "Other requests with the same sequence already exists within this folder.",
         range: mapRange(sequenceField.valueRange),
         severity: DiagnosticSeverity.Error,
         code: getDiagnosticCode(),
-        relatedInformation: otherRequestsWithSameSequence.map((path) => ({
-            message: `Request with same sequence`,
-            location: {
-                uri: Uri.file(path),
-                range: getRangeForSequence(path),
-            },
-        })),
+        relatedInformation: await Promise.all(
+            otherRequestsWithSameSequence.map(async (path) => ({
+                message: `Request with same sequence`,
+                location: {
+                    uri: Uri.file(path),
+                    range: await getRangeForSequence(path),
+                },
+            }))
+        ),
     };
 }
 
-function getRangeForSequence(filePath: string) {
+async function getRangeForSequence(filePath: string) {
+    const readFileAsync = promisify(readFile);
     const sequenceField = getSequenceFieldFromMetaBlock(
-        new TextDocumentHelper(readFileSync(filePath).toString())
+        new TextDocumentHelper(await readFileAsync(filePath, "utf-8"))
     );
 
     if (!sequenceField) {

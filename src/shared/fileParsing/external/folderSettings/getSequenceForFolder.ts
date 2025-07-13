@@ -1,23 +1,28 @@
-import { existsSync, lstatSync } from "fs";
+import { lstat } from "fs";
 import { parseSequenceFromMetaBlock } from "../shared/parseSequenceFromMetaBlock";
-import { getFolderSettingsFilePath, normalizeDirectoryPath } from "../../..";
+import {
+    checkIfFileExistsAsync,
+    getFolderSettingsFilePath,
+    normalizeDirectoryPath,
+} from "../../..";
+import { promisify } from "util";
 
-export function getSequenceForFolder(
+export async function getSequenceForFolder(
     collectionRootDirectory: string,
     folderPath: string
 ) {
     if (
-        !existsSync(folderPath) ||
-        !lstatSync(folderPath).isDirectory() ||
+        !(await checkIfFileExistsAsync(folderPath)) ||
+        !(await promisify(lstat)(folderPath)).isDirectory() ||
         normalizeDirectoryPath(collectionRootDirectory) ==
             normalizeDirectoryPath(folderPath)
     ) {
         return undefined;
     }
 
-    const folderSettingsFile = getFolderSettingsFilePath(folderPath);
+    const folderSettingsFile = await getFolderSettingsFilePath(folderPath);
 
     return folderSettingsFile
-        ? parseSequenceFromMetaBlock(folderSettingsFile)
+        ? await parseSequenceFromMetaBlock(folderSettingsFile)
         : undefined;
 }

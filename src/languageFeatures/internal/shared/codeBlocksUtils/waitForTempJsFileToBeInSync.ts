@@ -7,6 +7,7 @@ import {
 } from "vscode";
 import {
     Block,
+    checkIfFileExistsAsync,
     Collection,
     getTemporaryJsFileName,
     normalizeDirectoryPath,
@@ -17,7 +18,6 @@ import {
 } from "../../../../shared";
 import { TemporaryJsFilesRegistry } from "../temporaryJsFilesRegistry";
 import { createTemporaryJsFile } from "./createTemporaryJsFile";
-import { existsSync } from "fs";
 import { getCodeBlocks } from "./getCodeBlocks";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
 
@@ -233,7 +233,9 @@ async function createTemporaryJsFileIfNotAlreadyExisting(
 
     if (
         !isTempJsFileRegistered ||
-        !existsSync(getTemporaryJsFileName(collection.getRootDirectory()))
+        !(await checkIfFileExistsAsync(
+            getTemporaryJsFileName(collection.getRootDirectory())
+        ))
     ) {
         await createTemporaryJsFile(
             collection.getRootDirectory(),

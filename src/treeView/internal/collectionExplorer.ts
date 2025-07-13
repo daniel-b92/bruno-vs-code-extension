@@ -133,7 +133,7 @@ export class CollectionExplorer
                 return;
             }
 
-            moveFileIntoFolder(
+            await moveFileIntoFolder(
                 this.itemProvider,
                 sourcePath,
                 newPath,
@@ -171,7 +171,7 @@ export class CollectionExplorer
                 return;
             }
 
-            moveFolderIntoTargetFolder(
+            await moveFolderIntoTargetFolder(
                 this.itemProvider,
                 sourcePath,
                 target,
@@ -201,7 +201,7 @@ export class CollectionExplorer
             return;
         }
 
-        moveFolderIntoTargetFolder(
+        await moveFolderIntoTargetFolder(
             this.itemProvider,
             sourcePath,
             target,
@@ -420,7 +420,7 @@ export class CollectionExplorer
 
         vscode.commands.registerCommand(
             `${this.treeViewId}.duplicateFolder`,
-            (item: BrunoTreeItem) => {
+            async (item: BrunoTreeItem) => {
                 const originalPath = item.getPath();
 
                 const collection =
@@ -441,23 +441,24 @@ export class CollectionExplorer
                     recursive: true,
                 });
 
-                const newFolderSettingsFile =
-                    getFolderSettingsFilePath(newFolderPath);
+                const newFolderSettingsFile = await getFolderSettingsFilePath(
+                    newFolderPath
+                );
 
                 if (
-                    getSequenceForFolder(
+                    (await getSequenceForFolder(
                         collection.getRootDirectory(),
                         originalPath
-                    ) &&
+                    )) &&
                     newFolderSettingsFile
                 ) {
-                    replaceSequenceForFile(
+                    await replaceSequenceForFile(
                         newFolderSettingsFile,
                         1 +
-                            (getMaxSequenceForFolders(
+                            ((await getMaxSequenceForFolders(
                                 this.itemProvider,
                                 dirname(originalPath)
-                            ) ?? 0)
+                            )) ?? 0)
                     );
 
                     replaceNameInMetaBlock(
@@ -470,7 +471,7 @@ export class CollectionExplorer
 
         vscode.commands.registerCommand(
             `${this.treeViewId}.duplicateFile`,
-            (item: BrunoTreeItem) => {
+            async (item: BrunoTreeItem) => {
                 const collection =
                     this.itemProvider.getAncestorCollectionForPath(
                         item.getPath()
@@ -486,25 +487,25 @@ export class CollectionExplorer
                         brunoFileType != BrunoFileType.CollectionSettingsFile &&
                         brunoFileType != BrunoFileType.FolderSettingsFile
                     ) {
-                        this.duplicateFile(collection, item);
+                        await this.duplicateFile(collection, item);
                     } else if (
                         brunoFileType == BrunoFileType.CollectionSettingsFile
                     ) {
                         this.showWarningDialog(
                             "Duplicate collection settings file?",
                             "Only one collection settings file can be defined per collection."
-                        ).then((confirmed) => {
+                        ).then(async (confirmed) => {
                             if (confirmed) {
-                                this.duplicateFile(collection, item);
+                                await this.duplicateFile(collection, item);
                             }
                         });
                     } else {
                         this.showWarningDialog(
                             "Duplicate folder settings file?",
                             "Only one folder settings file can be defined per folder."
-                        ).then((confirmed) => {
+                        ).then(async (confirmed) => {
                             if (confirmed) {
-                                this.duplicateFile(collection, item);
+                                await this.duplicateFile(collection, item);
                             }
                         });
                     }
@@ -544,14 +545,14 @@ export class CollectionExplorer
 
                         vscode.workspace
                             .applyEdit(workspaceEdit)
-                            .then((deleted) => {
+                            .then(async (deleted) => {
                                 if (
                                     deleted &&
                                     brunoFileType ==
                                         BrunoFileType.RequestFile &&
                                     existsSync(dirname(path))
                                 ) {
-                                    normalizeSequencesForRequestFiles(
+                                    await normalizeSequencesForRequestFiles(
                                         this.itemProvider,
                                         dirname(path)
                                     );
@@ -583,19 +584,19 @@ export class CollectionExplorer
         );
     }
 
-    private duplicateFile(collection: Collection, item: BrunoTreeItem) {
+    private async duplicateFile(collection: Collection, item: BrunoTreeItem) {
         const originalPath = item.getPath();
         const newPath = getPathForDuplicatedItem(originalPath);
 
         copyFileSync(originalPath, newPath);
 
-        if (getSequenceForFile(collection, originalPath)) {
-            replaceSequenceForFile(
+        if (await getSequenceForFile(collection, originalPath)) {
+            await replaceSequenceForFile(
                 newPath,
-                getMaxSequenceForRequests(
+                (await getMaxSequenceForRequests(
                     this.itemProvider,
                     dirname(originalPath)
-                ) + 1
+                )) + 1
             );
         }
     }

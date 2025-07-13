@@ -5,12 +5,15 @@ import {
     parseSequenceFromMetaBlock,
 } from "../../..";
 
-export function getSequenceForFile(collection: Collection, filePath: string) {
+export async function getSequenceForFile(
+    collection: Collection,
+    filePath: string
+) {
     if (
         getTypeOfBrunoFile([collection], filePath) != BrunoFileType.RequestFile
     ) {
         return undefined;
     }
 
-    return parseSequenceFromMetaBlock(filePath);
+    return await parseSequenceFromMetaBlock(filePath);
 }

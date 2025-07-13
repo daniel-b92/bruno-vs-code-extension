@@ -42,14 +42,14 @@ export async function registerMissingCollectionsAndTheirItems(
                     const item = isDirectory
                         ? new CollectionDirectory(
                               path,
-                              getSequenceForFolder(
+                              await getSequenceForFolder(
                                   collection.getRootDirectory(),
                                   path
                               )
                           )
                         : new CollectionFile(
                               path,
-                              getSequenceForFile(collection, path)
+                              await getSequenceForFile(collection, path)
                           );
 
                     addItemToCollection(testRunnerDataHelper, collection, item);

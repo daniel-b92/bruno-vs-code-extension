@@ -8,7 +8,10 @@ export const getTestFileDescendants = async (directoryPath: string) => {
             `**/*${getExtensionForRequestFiles()}`
         )
     );
-    return bruFileUris.filter(
-        (uri) => parseSequenceFromMetaBlock(uri.fsPath) != undefined
+    return Promise.all(
+        bruFileUris.filter(
+            async (uri) =>
+                (await parseSequenceFromMetaBlock(uri.fsPath)) != undefined
+        )
     );
 };

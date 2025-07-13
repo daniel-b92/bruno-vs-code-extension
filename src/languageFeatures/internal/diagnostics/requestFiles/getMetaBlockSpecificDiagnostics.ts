@@ -20,13 +20,13 @@ import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDia
 import { checkSequenceInMetaBlockIsValid } from "../shared/checks/singleBlocks/checkSequenceInMetaBlockIsValid";
 import { checkSequenceInMetaBlockIsUniqueWithinFolder } from "./checks/relatedRequests/checkSequenceInMetaBlockIsUniqueWithinFolder";
 
-export function getMetaBlockSpecificDiagnostics(
+export async function getMetaBlockSpecificDiagnostics(
     itemProvider: CollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
     documentUri: Uri,
     documentHelper: TextDocumentHelper,
     metaBlock: Block
-): (DiagnosticWithCode | undefined)[] {
+): Promise<(DiagnosticWithCode | undefined)[]> {
     const castedMetaBlock = castBlockToDictionaryBlock(metaBlock);
     const metaBlockKeys = Object.values(MetaBlockKey);
 
@@ -74,7 +74,7 @@ export function getMetaBlockSpecificDiagnostics(
         checkMetaBlockStartsInFirstLine(documentHelper, metaBlock),
     ];
 
-    for (const results of provideRelatedFilesDiagnosticsForMetaBlock(
+    for (const results of await provideRelatedFilesDiagnosticsForMetaBlock(
         itemProvider,
         metaBlock,
         documentUri,
@@ -86,16 +86,18 @@ export function getMetaBlockSpecificDiagnostics(
     return diagnostics;
 }
 
-function provideRelatedFilesDiagnosticsForMetaBlock(
+async function provideRelatedFilesDiagnosticsForMetaBlock(
     itemProvider: CollectionItemProvider,
     metaBlock: Block,
     documentUri: Uri,
     relatedRequestsHelper: RelatedFilesDiagnosticsHelper
-): {
-    uri: Uri;
-    result: DiagnosticWithCode;
-}[] {
-    const { code, toAdd } = checkSequenceInMetaBlockIsUniqueWithinFolder(
+): Promise<
+    {
+        uri: Uri;
+        result: DiagnosticWithCode;
+    }[]
+> {
+    const { code, toAdd } = await checkSequenceInMetaBlockIsUniqueWithinFolder(
         itemProvider,
         metaBlock,
         documentUri

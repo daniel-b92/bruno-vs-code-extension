@@ -40,7 +40,7 @@ export class CollectionItemProvider {
         }>();
 
         collectionWatcher.subscribeToUpdates()(
-            ({ uri, changeType: fileChangeType }) => {
+            async ({ uri, changeType: fileChangeType }) => {
                 const registeredCollection = this.getAncestorCollectionForPath(
                     uri.fsPath
                 );
@@ -124,7 +124,7 @@ export class CollectionItemProvider {
                         )}'.`
                     );
 
-                    this.handleModificationOfRegisteredItem(
+                    await this.handleModificationOfRegisteredItem(
                         registeredCollection,
                         maybeRegisteredData
                     );
@@ -217,21 +217,21 @@ export class CollectionItemProvider {
         }
     }
 
-    private handleItemCreation(
+    private async handleItemCreation(
         registeredCollection: Collection,
         itemPath: string
     ) {
         const item: CollectionItem = lstatSync(itemPath).isDirectory()
             ? new CollectionDirectory(
                   itemPath,
-                  getSequenceForFolder(
+                  await getSequenceForFolder(
                       registeredCollection.getRootDirectory(),
                       itemPath
                   )
               )
             : new CollectionFile(
                   itemPath,
-                  getSequenceForFile(registeredCollection, itemPath)
+                  await getSequenceForFile(registeredCollection, itemPath)
               );
 
         this.itemUpdateEmitter.fire({
@@ -278,7 +278,7 @@ export class CollectionItemProvider {
         });
     }
 
-    private handleModificationOfRegisteredItem(
+    private async handleModificationOfRegisteredItem(
         registeredCollectionForItem: Collection,
         collectionData: CollectionData
     ) {
@@ -289,7 +289,7 @@ export class CollectionItemProvider {
             [registeredCollectionForItem],
             itemPath
         );
-        const newSequence = parseSequenceFromMetaBlock(itemPath);
+        const newSequence = await parseSequenceFromMetaBlock(itemPath);
 
         if (
             modifiedItem instanceof CollectionFile &&

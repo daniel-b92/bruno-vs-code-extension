@@ -1,6 +1,6 @@
-import { existsSync } from "fs";
 import { TemporaryJsFilesRegistry } from "../temporaryJsFilesRegistry";
 import {
+    checkIfFileExistsAsync,
     getTemporaryJsFileName,
     OutputChannelLogger,
 } from "../../../../shared";
@@ -14,7 +14,7 @@ export async function deleteTemporaryJsFileForCollection(
 ) {
     const path = getTemporaryJsFileName(collectionRootDirectory);
 
-    if (existsSync(path)) {
+    if (await checkIfFileExistsAsync(path)) {
         const workspaceEdit = new WorkspaceEdit();
         workspaceEdit.deleteFile(Uri.file(path));
         const wasSuccessful = await workspace.applyEdit(workspaceEdit);
@@ -31,5 +31,6 @@ export async function deleteTemporaryJsFileForCollection(
             );
         }
     }
+
     tempJsFilesRegistry.unregisterJsFileForCollection(collectionRootDirectory);
 }

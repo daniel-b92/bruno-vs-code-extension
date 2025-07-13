@@ -138,7 +138,7 @@ async function onDidChangeActiveTextEditor(
             return;
         }
 
-        fetchDiagnostics(
+        await fetchDiagnostics(
             editor.document.uri,
             editor.document.getText(),
             brunoLangDiagnosticsProvider,
@@ -184,7 +184,7 @@ async function onDidChangeTextDocument(
                 return;
             }
 
-            fetchDiagnostics(
+            await fetchDiagnostics(
                 event.document.uri,
                 event.document.getText(),
                 brunoLangDiagnosticsProvider,
@@ -289,14 +289,14 @@ function handleDiagnosticUpdatesOnFileDeletion(
     );
 }
 
-function fetchDiagnostics(
+async function fetchDiagnostics(
     uri: Uri,
     content: string,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     brunoFileType: BrunoFileType
 ) {
     if (brunoFileType == BrunoFileType.RequestFile) {
-        brunoLangDiagnosticsProvider.provideDiagnosticsForRequestFile(
+        await brunoLangDiagnosticsProvider.provideDiagnosticsForRequestFile(
             uri,
             content
         );
@@ -306,7 +306,7 @@ function fetchDiagnostics(
             content
         );
     } else if (brunoFileType == BrunoFileType.FolderSettingsFile) {
-        brunoLangDiagnosticsProvider.provideDiagnosticsForFolderSettingsFile(
+        await brunoLangDiagnosticsProvider.provideDiagnosticsForFolderSettingsFile(
             uri,
             content
         );
