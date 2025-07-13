@@ -5,7 +5,6 @@ import {
     getExtensionForRequestFiles,
     doesFileNameMatchFolderSettingsFileName,
     normalizeDirectoryPath,
-    isChildElementOfCollectionRootDirectory,
 } from "../..";
 import { existsSync } from "fs";
 
@@ -44,6 +43,17 @@ export function getTypeOfBrunoFile(
     } else {
         return BrunoFileType.RequestFile;
     }
+}
+
+function isChildElementOfCollectionRootDirectory(
+    registeredCollections: Collection[],
+    path: string
+) {
+    return registeredCollections.some(
+        (collection) =>
+            normalizeDirectoryPath(collection.getRootDirectory()) ==
+            normalizeDirectoryPath(dirname(path))
+    );
 }
 
 function isEnvironmentFile(path: string) {

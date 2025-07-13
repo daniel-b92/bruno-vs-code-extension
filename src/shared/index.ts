@@ -14,7 +14,6 @@ export * from "./fileSystem/util/position";
 export * from "./fileSystem/util/positionAndRangeMapper";
 export * from "./fileSystem/util/getTypeOfBrunoFile";
 export * from "./fileSystem/util/doesFileNameMatchFolderSettingsFileName";
-export * from "./fileSystem/util/isChildElementOfCollectionRootDirectory";
 
 // file parsing
 export * from "./fileParsing/external/requestFiles/metaBlock/getMaxSequenceForRequests";
