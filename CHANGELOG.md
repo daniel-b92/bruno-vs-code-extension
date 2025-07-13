@@ -1,6 +1,7 @@
-## [Unreleased] (2025-07-06)
+## [0.13.0] (2025-07-13)
 
 ### Features
+- Add correct handling of folder sequences in explorer and in test runner.
 - Add handling of cancellation tokens for language features.
 
 ## [0.12.3] (2025-07-02)
