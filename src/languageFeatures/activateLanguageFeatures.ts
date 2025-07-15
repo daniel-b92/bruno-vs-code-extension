@@ -128,7 +128,7 @@ async function onDidChangeActiveTextEditor(
         editor.document.uri.toString() ==
         window.tabGroups.activeTabGroup.activeTab.input.uri.toString()
     ) {
-        const fileType = getTypeOfBrunoFile(
+        const fileType = await getTypeOfBrunoFile(
             collectionItemProvider.getRegisteredCollections().slice(),
             editor.document.uri.fsPath
         );
@@ -175,7 +175,7 @@ async function onDidChangeTextDocument(
             window.activeTextEditor?.document.uri.toString() ==
             event.document.uri.toString()
         ) {
-            const fileType = getTypeOfBrunoFile(
+            const fileType = await getTypeOfBrunoFile(
                 collectionItemProvider.getRegisteredCollections().slice(),
                 event.document.uri.fsPath
             );
@@ -212,7 +212,7 @@ async function onWillSaveTextDocument(
     collectionItemProvider: CollectionItemProvider,
     event: TextDocumentWillSaveEvent
 ) {
-    const fileType = getTypeOfBrunoFile(
+    const fileType = await getTypeOfBrunoFile(
         collectionItemProvider.getRegisteredCollections().slice(),
         event.document.uri.fsPath
     );

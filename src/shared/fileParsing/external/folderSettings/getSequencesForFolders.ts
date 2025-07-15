@@ -1,6 +1,7 @@
 import { lstat, readdir } from "fs";
 import {
     CollectionItemProvider,
+    filterAsync,
     getFolderSettingsFilePath,
     getSequenceForFolder,
 } from "../../..";
@@ -17,36 +18,27 @@ export async function getSequencesForFolders(
         return [];
     }
 
-    const allChildItems = (await promisify(readdir)(parentFolder)).map(
-        (itemName) => resolve(parentFolder, itemName)
+    const allChildFolderItems = await filterAsync(
+        (
+            await promisify(readdir)(parentFolder)
+        ).map((itemName) => resolve(parentFolder, itemName)),
+        async (item) => (await promisify(lstat)(item)).isDirectory()
     );
 
-    const mappedArray = await Promise.all(
-        allChildItems.map(async (item) =>
-            (await promisify(lstat)(item)).isDirectory()
+    return (
+        await Promise.all(
+            allChildFolderItems.map(async (folderPath) => {
+                return {
+                    folderPath,
+                    settingsFile: await getFolderSettingsFilePath(folderPath),
+                    sequence: await getSequenceForFolder(
+                        collection.getRootDirectory(),
+                        folderPath
+                    ),
+                };
+            })
         )
-    );
-
-    const onlyDirectories = allChildItems.filter(
-        (_item, index) => mappedArray[index]
-    );
-
-    const mappedDirectories = await Promise.all(
-        onlyDirectories.map(async (folderPath) => {
-            return {
-                folderPath,
-                settingsFile: await getFolderSettingsFilePath(folderPath),
-                sequence: await getSequenceForFolder(
-                    collection.getRootDirectory(),
-                    folderPath
-                ),
-            };
-        })
-    );
-
-    return mappedDirectories.filter(
-        ({ sequence }) => sequence != undefined
-    ) as {
+    ).filter(({ sequence }) => sequence != undefined) as {
         folderPath: string;
         settingsFile: string;
         sequence: number;

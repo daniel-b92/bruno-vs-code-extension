@@ -13,6 +13,7 @@ import {
     mapRange,
     getTypeOfBrunoFile,
     BrunoFileType,
+    filterAsync,
 } from "../../../../../../shared";
 import { dirname } from "path";
 import { DiagnosticWithCode } from "../../../definitions";
@@ -51,7 +52,7 @@ export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
         ({ key }) => key == MetaBlockKey.Sequence
     ) as DictionaryBlockField;
 
-    const otherRequestsInFolder = getSequencesForOtherRequestsInFolder(
+    const otherRequestsInFolder = await getSequencesForOtherRequestsInFolder(
         itemProvider,
         documentUri,
         dirname(documentUri.fsPath)
@@ -125,14 +126,14 @@ async function getRangeForSequence(filePath: string) {
     return mapRange(sequenceField.valueRange);
 }
 
-function getSequencesForOtherRequestsInFolder(
+async function getSequencesForOtherRequestsInFolder(
     itemProvider: CollectionItemProvider,
     documentUri: Uri,
     directoryPath: string
 ) {
     const result: { file: string; sequence: number }[] = [];
 
-    const otherRequestsInFolder = getOtherRequestsInFolder(
+    const otherRequestsInFolder = await getOtherRequestsInFolder(
         itemProvider,
         directoryPath,
         documentUri
@@ -148,11 +149,11 @@ function getSequencesForOtherRequestsInFolder(
     return result;
 }
 
-function getOtherRequestsInFolder(
+async function getOtherRequestsInFolder(
     itemProvider: CollectionItemProvider,
     directoryPath: string,
     documentUri: Uri
-): CollectionFile[] {
+): Promise<CollectionFile[]> {
     const result: CollectionFile[] = [];
 
     const collection = itemProvider.getAncestorCollectionForPath(directoryPath);
@@ -164,22 +165,24 @@ function getOtherRequestsInFolder(
         return result;
     }
 
-    return collection
-        .getAllStoredDataForCollection()
-        .filter(({ item }) => {
-            const itemPath = item.getPath();
+    return (
+        await filterAsync(
+            collection.getAllStoredDataForCollection().slice(),
+            async ({ item }) => {
+                const itemPath = item.getPath();
 
-            return (
-                item instanceof CollectionFile &&
-                normalizeDirectoryPath(dirname(itemPath)) ==
-                    normalizeDirectoryPath(directoryPath) &&
-                item.getSequence() != undefined &&
-                itemPath != documentUri.fsPath &&
-                getTypeOfBrunoFile([collection], itemPath) ==
-                    BrunoFileType.RequestFile
-            );
-        })
-        .map(({ item }) => item as CollectionFile);
+                return (
+                    item instanceof CollectionFile &&
+                    normalizeDirectoryPath(dirname(itemPath)) ==
+                        normalizeDirectoryPath(directoryPath) &&
+                    item.getSequence() != undefined &&
+                    itemPath != documentUri.fsPath &&
+                    (await getTypeOfBrunoFile([collection], itemPath)) ==
+                        BrunoFileType.RequestFile
+                );
+            }
+        )
+    ).map(({ item }) => item as CollectionFile);
 }
 
 function getDiagnosticCode() {

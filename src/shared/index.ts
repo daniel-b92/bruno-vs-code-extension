@@ -16,6 +16,10 @@ export * from "./fileSystem/util/getTypeOfBrunoFile";
 export * from "./fileSystem/util/doesFileNameMatchFolderSettingsFileName";
 export * from "./fileSystem/util/checkIfFileExistsAsync";
 
+// array utils
+export * from "./arrayUtils/filterAsync";
+export * from "./arrayUtils/someAsync";
+
 // file parsing
 export * from "./fileParsing/external/requestFiles/metaBlock/getMaxSequenceForRequests";
 export * from "./fileParsing/external/requestFiles/metaBlock/getSequencesForRequests";

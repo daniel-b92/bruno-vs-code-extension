@@ -10,7 +10,8 @@ export async function getSequenceForFile(
     filePath: string
 ) {
     if (
-        getTypeOfBrunoFile([collection], filePath) != BrunoFileType.RequestFile
+        (await getTypeOfBrunoFile([collection], filePath)) !=
+        BrunoFileType.RequestFile
     ) {
         return undefined;
     }

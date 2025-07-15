@@ -13,6 +13,7 @@ import {
     mapRange,
     getTypeOfBrunoFile,
     BrunoFileType,
+    filterAsync,
 } from "../../../../shared";
 import { basename, dirname } from "path";
 import { readFile } from "fs";
@@ -51,7 +52,7 @@ export async function checkFolderSequenceInMetaBlockIsUnique(
         ({ key }) => key == MetaBlockKey.Sequence
     ) as DictionaryBlockField;
 
-    const otherFolderSettings = getSequencesForOtherFoldersWithSameParent(
+    const otherFolderSettings = await getSequencesForOtherFoldersWithSameParent(
         itemProvider,
         documentUri,
         documentUri.fsPath
@@ -140,19 +141,23 @@ async function getRangeForSequence(filePath: string) {
     return mapRange(sequenceField.valueRange);
 }
 
-function getSequencesForOtherFoldersWithSameParent(
+async function getSequencesForOtherFoldersWithSameParent(
     itemProvider: CollectionItemProvider,
     documentUri: Uri,
     folderSettingsFile: string
-): {
-    folderSettingsFile: string;
-    folderPath: string;
-    sequence: number;
-}[] {
-    return getOtherFolderSettingsWithSameParentFolder(
-        itemProvider,
-        folderSettingsFile,
-        documentUri
+): Promise<
+    {
+        folderSettingsFile: string;
+        folderPath: string;
+        sequence: number;
+    }[]
+> {
+    return (
+        await getOtherFolderSettingsWithSameParentFolder(
+            itemProvider,
+            folderSettingsFile,
+            documentUri
+        )
     ).map(({ folderSettings, folderPath }) => ({
         folderSettingsFile: folderSettings.getPath(),
         folderPath,
@@ -160,11 +165,11 @@ function getSequencesForOtherFoldersWithSameParent(
     }));
 }
 
-function getOtherFolderSettingsWithSameParentFolder(
+async function getOtherFolderSettingsWithSameParentFolder(
     itemProvider: CollectionItemProvider,
     referenceFolderSettings: string,
     documentUri: Uri
-): { folderPath: string; folderSettings: CollectionFile }[] {
+): Promise<{ folderPath: string; folderSettings: CollectionFile }[]> {
     const collection = itemProvider.getAncestorCollectionForPath(
         referenceFolderSettings
     );
@@ -176,28 +181,30 @@ function getOtherFolderSettingsWithSameParentFolder(
         return [];
     }
 
-    return collection
-        .getAllStoredDataForCollection()
-        .filter(({ item }) => {
-            const itemPath = item.getPath();
+    return (
+        await filterAsync(
+            collection.getAllStoredDataForCollection().slice(),
+            async ({ item }) => {
+                const itemPath = item.getPath();
 
-            return (
-                item instanceof CollectionFile &&
-                normalizeDirectoryPath(dirname(dirname(itemPath))) ==
-                    normalizeDirectoryPath(
-                        dirname(dirname(referenceFolderSettings))
-                    ) &&
-                item.getSequence() != undefined &&
-                normalizeDirectoryPath(dirname(itemPath)) !=
-                    normalizeDirectoryPath(dirname(documentUri.fsPath)) &&
-                getTypeOfBrunoFile([collection], itemPath) ==
-                    BrunoFileType.FolderSettingsFile
-            );
-        })
-        .map(({ item }) => ({
-            folderSettings: item as CollectionFile,
-            folderPath: dirname(item.getPath()),
-        }));
+                return (
+                    item instanceof CollectionFile &&
+                    normalizeDirectoryPath(dirname(dirname(itemPath))) ==
+                        normalizeDirectoryPath(
+                            dirname(dirname(referenceFolderSettings))
+                        ) &&
+                    item.getSequence() != undefined &&
+                    normalizeDirectoryPath(dirname(itemPath)) !=
+                        normalizeDirectoryPath(dirname(documentUri.fsPath)) &&
+                    (await getTypeOfBrunoFile([collection], itemPath)) ==
+                        BrunoFileType.FolderSettingsFile
+                );
+            }
+        )
+    ).map(({ item }) => ({
+        folderSettings: item as CollectionFile,
+        folderPath: dirname(item.getPath()),
+    }));
 }
 
 function getDiagnosticCode() {

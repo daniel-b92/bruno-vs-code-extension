@@ -139,7 +139,7 @@ export class CollectionExplorer
                 newPath,
                 target,
                 dirname(newPath),
-                getTypeOfBrunoFile([sourceCollection], sourcePath)
+                await getTypeOfBrunoFile([sourceCollection], sourcePath)
             );
             return;
         }
@@ -478,7 +478,7 @@ export class CollectionExplorer
                     );
 
                 if (collection) {
-                    const brunoFileType = getTypeOfBrunoFile(
+                    const brunoFileType = await getTypeOfBrunoFile(
                         [collection],
                         item.getPath()
                     );
@@ -515,64 +515,53 @@ export class CollectionExplorer
 
         vscode.commands.registerCommand(
             `${this.treeViewId}.deleteItem`,
-            (item: BrunoTreeItem) => {
-                vscode.window
-                    .showInformationMessage(
-                        `Delete '${item.label}'?`,
-                        { modal: true },
-                        this.confirmationOptionForModals
-                    )
-                    .then((picked) => {
-                        if (picked != this.confirmationOptionForModals) {
-                            return;
-                        }
-                        const path = item.getPath();
+            async (item: BrunoTreeItem) => {
+                const picked = await vscode.window.showInformationMessage(
+                    `Delete '${item.label}'?`,
+                    { modal: true },
+                    this.confirmationOptionForModals
+                );
+                if (picked != this.confirmationOptionForModals) {
+                    return;
+                }
+                const path = item.getPath();
 
-                        const workspaceEdit = new vscode.WorkspaceEdit();
-                        workspaceEdit.deleteFile(
-                            vscode.Uri.file(item.getPath()),
-                            { recursive: true }
-                        );
+                const workspaceEdit = new vscode.WorkspaceEdit();
+                workspaceEdit.deleteFile(vscode.Uri.file(item.getPath()), {
+                    recursive: true,
+                });
 
-                        const collection =
-                            this.itemProvider.getAncestorCollectionForPath(
-                                path
-                            );
+                const collection =
+                    this.itemProvider.getAncestorCollectionForPath(path);
 
-                        const brunoFileType = collection
-                            ? getTypeOfBrunoFile([collection], path)
-                            : undefined;
+                const brunoFileType = collection
+                    ? await getTypeOfBrunoFile([collection], path)
+                    : undefined;
 
-                        vscode.workspace
-                            .applyEdit(workspaceEdit)
-                            .then(async (deleted) => {
-                                if (
-                                    deleted &&
-                                    brunoFileType ==
-                                        BrunoFileType.RequestFile &&
-                                    existsSync(dirname(path))
-                                ) {
-                                    await normalizeSequencesForRequestFiles(
-                                        this.itemProvider,
-                                        dirname(path)
-                                    );
-                                } else if (
-                                    deleted &&
-                                    (brunoFileType ==
-                                        BrunoFileType.FolderSettingsFile ||
-                                        (!brunoFileType && !item.isFile)) &&
-                                    existsSync(dirname(path))
-                                ) {
-                                    normalizeSequencesForFolders(
-                                        this.itemProvider,
-                                        brunoFileType ==
-                                            BrunoFileType.FolderSettingsFile
-                                            ? dirname(dirname(path))
-                                            : dirname(path)
-                                    );
-                                }
-                            });
-                    });
+                const deleted = await vscode.workspace.applyEdit(workspaceEdit);
+
+                if (
+                    deleted &&
+                    brunoFileType == BrunoFileType.RequestFile &&
+                    existsSync(dirname(path))
+                ) {
+                    await normalizeSequencesForRequestFiles(
+                        this.itemProvider,
+                        dirname(path)
+                    );
+                } else if (
+                    deleted &&
+                    (brunoFileType == BrunoFileType.FolderSettingsFile ||
+                        (!brunoFileType && !item.isFile)) &&
+                    existsSync(dirname(path))
+                ) {
+                    normalizeSequencesForFolders(
+                        this.itemProvider,
+                        brunoFileType == BrunoFileType.FolderSettingsFile
+                            ? dirname(dirname(path))
+                            : dirname(path)
+                    );
+                }
             }
         );
 

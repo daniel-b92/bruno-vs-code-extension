@@ -1,5 +1,9 @@
 import { RelativePattern, workspace } from "vscode";
-import { getExtensionForRequestFiles, parseSequenceFromMetaBlock } from "../..";
+import {
+    filterAsync,
+    getExtensionForRequestFiles,
+    parseSequenceFromMetaBlock,
+} from "../..";
 
 export const getTestFileDescendants = async (directoryPath: string) => {
     const bruFileUris = await workspace.findFiles(
@@ -8,10 +12,9 @@ export const getTestFileDescendants = async (directoryPath: string) => {
             `**/*${getExtensionForRequestFiles()}`
         )
     );
-    return Promise.all(
-        bruFileUris.filter(
-            async (uri) =>
-                (await parseSequenceFromMetaBlock(uri.fsPath)) != undefined
-        )
+    return await filterAsync(
+        bruFileUris,
+        async (uri) =>
+            (await parseSequenceFromMetaBlock(uri.fsPath)) != undefined
     );
 };

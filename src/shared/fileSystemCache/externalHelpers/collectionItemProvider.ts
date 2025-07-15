@@ -1,4 +1,3 @@
-import { lstatSync } from "fs";
 import * as vscode from "vscode";
 import { CollectionRegistry } from "../internalHelpers/collectionRegistry";
 import { addItemToCollection } from "../internalHelpers/addItemToCollection";
@@ -21,6 +20,8 @@ import {
     getSequenceForFile,
 } from "../..";
 import { basename, dirname } from "path";
+import { promisify } from "util";
+import { lstat } from "fs";
 
 export class CollectionItemProvider {
     constructor(
@@ -102,7 +103,7 @@ export class CollectionItemProvider {
                         )}'.`
                     );
 
-                    this.handleItemDeletion(
+                    await this.handleItemDeletion(
                         testRunnerDataHelper,
                         registeredCollection,
                         maybeRegisteredData
@@ -221,7 +222,9 @@ export class CollectionItemProvider {
         registeredCollection: Collection,
         itemPath: string
     ) {
-        const item: CollectionItem = lstatSync(itemPath).isDirectory()
+        const item: CollectionItem = (
+            await promisify(lstat)(itemPath)
+        ).isDirectory()
             ? new CollectionDirectory(
                   itemPath,
                   await getSequenceForFolder(
@@ -245,15 +248,17 @@ export class CollectionItemProvider {
         });
     }
 
-    private handleItemDeletion(
+    private async handleItemDeletion(
         testRunnerDataHelper: TestRunnerDataHelper,
         registeredCollectionForItem: Collection,
         data: CollectionData
     ) {
         const { item } = data;
         if (
-            getTypeOfBrunoFile([registeredCollectionForItem], item.getPath()) ==
-            BrunoFileType.FolderSettingsFile
+            (await getTypeOfBrunoFile(
+                [registeredCollectionForItem],
+                item.getPath()
+            )) == BrunoFileType.FolderSettingsFile
         ) {
             const parentFolderData =
                 registeredCollectionForItem.getStoredDataForPath(
@@ -285,7 +290,7 @@ export class CollectionItemProvider {
         const { item: modifiedItem, treeItem, testItem } = collectionData;
         const itemPath = modifiedItem.getPath();
 
-        const fileType = getTypeOfBrunoFile(
+        const fileType = await getTypeOfBrunoFile(
             [registeredCollectionForItem],
             itemPath
         );

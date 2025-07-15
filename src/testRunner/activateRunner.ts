@@ -27,6 +27,7 @@ import {
     getExtensionForRequestFiles,
     CollectionItem,
     getLoggerFromSubscriptions,
+    someAsync,
 } from "../shared";
 
 export async function activateRunner(
@@ -139,12 +140,16 @@ export async function activateRunner(
                             ctrl,
                             testRunnerDataHelper,
                             collections
-                        );
-                        // The displayed test tree view is only updated correctly, if you re-add the collection on top level again
-                        collections.forEach((collection) =>
-                            addCollectionTestItemToTestTree(ctrl, collection)
-                        );
-                        resolve();
+                        ).then(() => {
+                            // The displayed test tree view is only updated correctly, if you re-add the collection on top level again
+                            collections.forEach((collection) =>
+                                addCollectionTestItemToTestTree(
+                                    ctrl,
+                                    collection
+                                )
+                            );
+                            resolve();
+                        });
                     });
                 });
             }
@@ -162,7 +167,7 @@ export async function activateRunner(
 
     ctrl.resolveHandler = async (item) => {
         if (!item) {
-            addMissingTestCollectionsAndItemsToTestTree(
+            await addMissingTestCollectionsAndItemsToTestTree(
                 ctrl,
                 testRunnerDataHelper,
                 collectionItemProvider.getRegisteredCollections()
@@ -181,7 +186,7 @@ export async function activateRunner(
 
         const data = collection.getStoredDataForPath(path);
         if (data && data.item instanceof CollectionDirectory) {
-            testRunnerDataHelper.addTestTreeItemsForDirectoryAndDescendants(
+            await testRunnerDataHelper.addTestTreeItemsForDirectoryAndDescendants(
                 collection,
                 data.item
             );
@@ -194,23 +199,26 @@ export async function activateRunner(
     startTestRunEvent(async (uri) => {
         let testItem: VscodeTestItem | undefined;
 
-        const isRunnable = collectionItemProvider
-            .getRegisteredCollections()
-            .some((collection) => {
+        const isRunnable = await someAsync(
+            collectionItemProvider.getRegisteredCollections().slice(),
+            async (collection) => {
                 const maybeItem = collection.getStoredDataForPath(uri.fsPath);
 
                 if (
                     maybeItem &&
-                    isRelevantForTestTree(
+                    (await isRelevantForTestTree(
                         testRunnerDataHelper,
                         collection,
                         maybeItem.item
-                    )
+                    ))
                 ) {
                     testItem = maybeItem.testItem;
                     return true;
+                } else {
+                    return false;
                 }
-            });
+            }
+        );
 
         if (isRunnable) {
             await startTestRun(
@@ -233,13 +241,13 @@ export async function activateRunner(
     });
 }
 
-function addMissingTestCollectionsAndItemsToTestTree(
+async function addMissingTestCollectionsAndItemsToTestTree(
     controller: TestController,
     testRunnerDataHelper: TestRunnerDataHelper,
     registeredCollections: readonly Collection[]
 ) {
     for (const collection of registeredCollections) {
-        testRunnerDataHelper.addTestTreeItemsForDirectoryAndDescendants(
+        await testRunnerDataHelper.addTestTreeItemsForDirectoryAndDescendants(
             collection,
             collection.getStoredDataForPath(collection.getRootDirectory())
                 ?.item as CollectionDirectory
@@ -256,10 +264,19 @@ function handleTestTreeUpdates(
     testRunnerDataHelper: TestRunnerDataHelper
 ) {
     collectionItemProvider.subscribeToUpdates()(
-        ({ collection, data: { item, testItem }, updateType, changedData }) => {
+        async ({
+            collection,
+            data: { item, testItem },
+            updateType,
+            changedData,
+        }) => {
             if (
                 updateType == FileChangeType.Created &&
-                isRelevantForTestTree(testRunnerDataHelper, collection, item)
+                (await isRelevantForTestTree(
+                    testRunnerDataHelper,
+                    collection,
+                    item
+                ))
             ) {
                 addTestItemAndAncestorsToTestTree(controller, collection, item);
                 // ToDo: Fix handling of creation of Collection directories
@@ -292,7 +309,11 @@ function handleTestTreeUpdates(
                 }
             } else if (
                 updateType == FileChangeType.Deleted &&
-                isRelevantForTestTree(testRunnerDataHelper, collection, item)
+                (await isRelevantForTestTree(
+                    testRunnerDataHelper,
+                    collection,
+                    item
+                ))
             ) {
                 removeTestItemFromTree(
                     controller,
@@ -337,7 +358,7 @@ function removeTestItemFromTree(
     }
 }
 
-function isRelevantForTestTree(
+async function isRelevantForTestTree(
     testRunnerDataHelper: TestRunnerDataHelper,
     collection: Collection,
     item: CollectionItem
@@ -347,7 +368,11 @@ function isRelevantForTestTree(
             extname(item.getPath()) == getExtensionForRequestFiles() &&
             item.getSequence() != undefined) ||
         (item instanceof CollectionDirectory &&
-            testRunnerDataHelper.getTestFileDescendants(collection, item)
-                .length > 0)
+            (
+                await testRunnerDataHelper.getTestFileDescendants(
+                    collection,
+                    item
+                )
+            ).length > 0)
     );
 }
