@@ -46,7 +46,7 @@ export async function createRequestFile(
         label: type,
     }));
 
-    quickPick.onDidChangeSelection((picks) => {
+    quickPick.onDidChangeSelection(async (picks) => {
         pickedLabels.push(...picks.map(({ label }) => label));
 
         if (pickedLabels.length == 1) {
@@ -93,13 +93,13 @@ export async function createRequestFile(
             );
         }
 
-        addMetaBlock(
+        await addMetaBlock(
             collectionForFile,
             filePath,
             pickedLabels[0] as RequestType
         );
 
-        appendDefaultMethodBlock(
+        await appendDefaultMethodBlock(
             filePath,
             pickedLabels[1] as RequestFileBlockName
         );

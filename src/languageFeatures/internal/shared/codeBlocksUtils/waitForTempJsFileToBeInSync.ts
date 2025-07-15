@@ -7,7 +7,7 @@ import {
 } from "vscode";
 import {
     Block,
-    checkIfFileExistsAsync,
+    checkIfPathExistsAsync,
     Collection,
     getTemporaryJsFileName,
     normalizeDirectoryPath,
@@ -233,7 +233,7 @@ async function createTemporaryJsFileIfNotAlreadyExisting(
 
     if (
         !isTempJsFileRegistered ||
-        !(await checkIfFileExistsAsync(
+        !(await checkIfPathExistsAsync(
             getTemporaryJsFileName(collection.getRootDirectory())
         ))
     ) {

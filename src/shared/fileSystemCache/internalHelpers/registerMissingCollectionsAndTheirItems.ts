@@ -1,4 +1,3 @@
-import { lstatSync, readdirSync } from "fs";
 import {
     Collection,
     CollectionDirectory,
@@ -12,6 +11,8 @@ import {
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
 import { addItemToCollection } from "./addItemToCollection";
+import { lstat, readdir } from "fs";
+import { promisify } from "util";
 
 export async function registerMissingCollectionsAndTheirItems(
     testRunnerDataHelper: TestRunnerDataHelper,
@@ -29,9 +30,11 @@ export async function registerMissingCollectionsAndTheirItems(
         while (currentPaths.length > 0) {
             const currentPath = currentPaths.splice(0, 1)[0];
 
-            for (const childItem of readdirSync(currentPath)) {
+            for (const childItem of await promisify(readdir)(currentPath)) {
                 const path = resolve(currentPath, childItem);
-                const isDirectory = lstatSync(path).isDirectory();
+                const isDirectory = (
+                    await promisify(lstat)(path)
+                ).isDirectory();
 
                 if (
                     !collection.getStoredDataForPath(path) &&

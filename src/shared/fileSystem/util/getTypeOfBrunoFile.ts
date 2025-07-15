@@ -5,14 +5,14 @@ import {
     getExtensionForRequestFiles,
     doesFileNameMatchFolderSettingsFileName,
     normalizeDirectoryPath,
-    checkIfFileExistsAsync,
+    checkIfPathExistsAsync,
 } from "../..";
 
 export async function getTypeOfBrunoFile(
     collectionsToSearch: Collection[],
     path: string
 ): Promise<BrunoFileType | undefined> {
-    if (!(await checkIfFileExistsAsync(path))) {
+    if (!(await checkIfPathExistsAsync(path))) {
         return undefined;
     }
 

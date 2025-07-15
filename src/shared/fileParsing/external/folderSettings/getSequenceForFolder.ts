@@ -1,7 +1,7 @@
 import { lstat } from "fs";
 import { parseSequenceFromMetaBlock } from "../shared/parseSequenceFromMetaBlock";
 import {
-    checkIfFileExistsAsync,
+    checkIfPathExistsAsync,
     getFolderSettingsFilePath,
     normalizeDirectoryPath,
 } from "../../..";
@@ -12,7 +12,7 @@ export async function getSequenceForFolder(
     folderPath: string
 ) {
     if (
-        !(await checkIfFileExistsAsync(folderPath)) ||
+        !(await checkIfPathExistsAsync(folderPath)) ||
         !(await promisify(lstat)(folderPath)).isDirectory() ||
         normalizeDirectoryPath(collectionRootDirectory) ==
             normalizeDirectoryPath(folderPath)

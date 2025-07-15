@@ -1,6 +1,6 @@
 import { lstat, readFile } from "fs";
 import {
-    checkIfFileExistsAsync,
+    checkIfPathExistsAsync,
     getExtensionForRequestFiles,
     getSequenceFieldFromMetaBlock,
     TextDocumentHelper,
@@ -10,7 +10,7 @@ import { promisify } from "util";
 
 export async function parseSequenceFromMetaBlock(filePath: string) {
     if (
-        !(await checkIfFileExistsAsync(filePath)) ||
+        !(await checkIfPathExistsAsync(filePath)) ||
         !(await promisify(lstat)(filePath)).isFile() ||
         extname(filePath) != getExtensionForRequestFiles()
     ) {

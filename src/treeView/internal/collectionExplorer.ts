@@ -14,8 +14,8 @@ import {
     getSequenceForFolder,
     getMaxSequenceForFolders,
     getFolderSettingsFilePath,
+    checkIfPathExistsAsync,
 } from "../../shared";
-import { copyFileSync, cpSync, existsSync, mkdirSync, writeFileSync } from "fs";
 import { basename, dirname, extname, resolve } from "path";
 import { BrunoTreeItem } from "../brunoTreeItem";
 import { validateNewItemNameIsUnique } from "./explorer/validateNewItemNameIsUnique";
@@ -29,6 +29,8 @@ import { normalizeSequencesForFolders } from "./explorer/folderUtils/normalizeSe
 import { moveFolderIntoTargetFolder } from "./explorer/folderUtils/moveFolderIntoTargetFolder";
 import { FolderDropInsertionOption } from "./explorer/folderDropInsertionOptionEnum";
 import { moveFileIntoFolder } from "./explorer/fileUtils/moveFileIntoFolder";
+import { promisify } from "util";
+import { copyFile, cp, mkdir, writeFile } from "fs";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>
@@ -216,7 +218,11 @@ export class CollectionExplorer
     ) {
         const transferItem = dataTransfer.get("text/uri-list");
 
-        if (!transferItem || !target || !existsSync(target.getPath())) {
+        if (
+            !transferItem ||
+            !target ||
+            !(await checkIfPathExistsAsync(target.getPath()))
+        ) {
             return undefined;
         }
 
@@ -299,31 +305,29 @@ export class CollectionExplorer
 
         vscode.commands.registerCommand(
             `${this.treeViewId}.createEmptyFile`,
-            (item: BrunoTreeItem) => {
+            async (item: BrunoTreeItem) => {
                 const parentFolderPath = item.getPath();
 
-                vscode.window
-                    .showInputBox({
-                        title: `Create file in '${basename(parentFolderPath)}'`,
-                        validateInput: (newFileName: string) => {
-                            return validateNewItemNameIsUnique(
-                                resolve(parentFolderPath, newFileName)
-                            );
-                        },
-                    })
-                    .then((fileName) => {
-                        if (fileName == undefined) {
-                            return;
-                        }
-
-                        const filePath = resolve(parentFolderPath, fileName);
-                        writeFileSync(filePath, "");
-
-                        vscode.commands.executeCommand(
-                            "vscode.open",
-                            vscode.Uri.file(filePath)
+                const fileName = await vscode.window.showInputBox({
+                    title: `Create file in '${basename(parentFolderPath)}'`,
+                    validateInput: (newFileName: string) => {
+                        return validateNewItemNameIsUnique(
+                            resolve(parentFolderPath, newFileName)
                         );
-                    });
+                    },
+                });
+
+                if (fileName == undefined) {
+                    return;
+                }
+
+                const filePath = resolve(parentFolderPath, fileName);
+                await promisify(writeFile)(filePath, "");
+
+                await vscode.commands.executeCommand(
+                    "vscode.open",
+                    vscode.Uri.file(filePath)
+                );
             }
         );
 
@@ -336,27 +340,23 @@ export class CollectionExplorer
 
         vscode.commands.registerCommand(
             `${this.treeViewId}.createFolder`,
-            (item: BrunoTreeItem) => {
+            async (item: BrunoTreeItem) => {
                 const parentFolderPath = item.getPath();
 
-                vscode.window
-                    .showInputBox({
-                        title: `Create folder in '${basename(
-                            parentFolderPath
-                        )}'`,
-                        validateInput: (newFolderName: string) => {
-                            return validateNewItemNameIsUnique(
-                                resolve(parentFolderPath, newFolderName)
-                            );
-                        },
-                    })
-                    .then((folderName) => {
-                        if (folderName == undefined) {
-                            return;
-                        }
+                const folderName = await vscode.window.showInputBox({
+                    title: `Create folder in '${basename(parentFolderPath)}'`,
+                    validateInput: (newFolderName: string) => {
+                        return validateNewItemNameIsUnique(
+                            resolve(parentFolderPath, newFolderName)
+                        );
+                    },
+                });
 
-                        mkdirSync(resolve(parentFolderPath, folderName));
-                    });
+                if (folderName == undefined) {
+                    return;
+                }
+
+                await promisify(mkdir)(resolve(parentFolderPath, folderName));
             }
         );
 
@@ -437,7 +437,9 @@ export class CollectionExplorer
 
                 const newFolderPath = getPathForDuplicatedItem(originalPath);
 
-                cpSync(item.getPath(), newFolderPath, {
+                // @ts-expect-error The TS server somehow does not understand
+                // that there is a `cp` function with up to 4 parameters when using `promisify`.
+                await promisify(cp)(item.getPath(), newFolderPath, {
                     recursive: true,
                 });
 
@@ -543,7 +545,7 @@ export class CollectionExplorer
                 if (
                     deleted &&
                     brunoFileType == BrunoFileType.RequestFile &&
-                    existsSync(dirname(path))
+                    (await checkIfPathExistsAsync(dirname(path)))
                 ) {
                     await normalizeSequencesForRequestFiles(
                         this.itemProvider,
@@ -553,7 +555,7 @@ export class CollectionExplorer
                     deleted &&
                     (brunoFileType == BrunoFileType.FolderSettingsFile ||
                         (!brunoFileType && !item.isFile)) &&
-                    existsSync(dirname(path))
+                    (await checkIfPathExistsAsync(dirname(path)))
                 ) {
                     normalizeSequencesForFolders(
                         this.itemProvider,
@@ -577,7 +579,7 @@ export class CollectionExplorer
         const originalPath = item.getPath();
         const newPath = getPathForDuplicatedItem(originalPath);
 
-        copyFileSync(originalPath, newPath);
+        await promisify(copyFile)(originalPath, newPath);
 
         if (await getSequenceForFile(collection, originalPath)) {
             await replaceSequenceForFile(
