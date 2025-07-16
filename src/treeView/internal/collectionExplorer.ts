@@ -66,8 +66,8 @@ export class CollectionExplorer
         this.registerCommands(treeDataProvider, startTestRunEmitter);
 
         this.disposables.push(
-            vscode.window.onDidChangeActiveTextEditor((e) => {
-                this.handleChangedTextEditor(e, treeView);
+            vscode.window.onDidChangeActiveTextEditor(async (e) => {
+                await this.handleChangedTextEditor(e, treeView);
             })
         );
     }
@@ -362,9 +362,10 @@ export class CollectionExplorer
 
         vscode.commands.registerCommand(
             `${this.treeViewId}.renameItem`,
-            (item: BrunoTreeItem) => {
+            async (item: BrunoTreeItem) => {
                 const originalPath = item.getPath();
                 const isFile = item.isFile;
+
                 const originalName =
                     isFile && extname(originalPath) != ""
                         ? basename(originalPath).substring(
@@ -375,68 +376,56 @@ export class CollectionExplorer
                           )
                         : basename(originalPath);
 
-                vscode.window
-                    .showInputBox({
-                        title: `Rename ${
-                            isFile ? "file" : "folder"
-                        } '${basename(originalPath)}'`,
-                        value: basename(originalPath),
-                        validateInput: (newItemName: string) => {
-                            return validateNewItemNameIsUnique(
-                                resolve(dirname(originalPath), newItemName),
-                                originalPath
-                            );
-                        },
-                        valueSelection: [0, originalName.length],
-                    })
-                    .then(async (newItemName) => {
-                        if (newItemName == undefined) {
-                            return;
-                        }
-
-                        const newPath = resolve(
-                            dirname(originalPath),
-                            newItemName
+                const newItemName = await vscode.window.showInputBox({
+                    title: `Rename ${isFile ? "file" : "folder"} '${basename(
+                        originalPath
+                    )}'`,
+                    value: basename(originalPath),
+                    validateInput: (newItemName: string) => {
+                        return validateNewItemNameIsUnique(
+                            resolve(dirname(originalPath), newItemName),
+                            originalPath
                         );
+                    },
+                    valueSelection: [0, originalName.length],
+                });
 
-                        const collection =
-                            this.itemProvider.getAncestorCollectionForPath(
-                                originalPath
-                            );
-                        const isRequestFile =
-                            collection &&
-                            isFile &&
-                            (await getTypeOfBrunoFile(
-                                [collection],
-                                originalPath
-                            )) == BrunoFileType.RequestFile;
+                if (newItemName == undefined) {
+                    return;
+                }
 
-                        renameFileOrFolder(originalPath, newPath, isFile).then(
-                            async (renamed) => {
-                                if (renamed && isRequestFile) {
-                                    replaceNameInMetaBlock(
-                                        newPath,
-                                        newItemName.replace(
-                                            getExtensionForRequestFiles(),
-                                            ""
-                                        )
-                                    );
-                                } else if (renamed && !isFile) {
-                                    const folderSettingsPath =
-                                        await getFolderSettingsFilePath(
-                                            newPath
-                                        );
+                const newPath = resolve(dirname(originalPath), newItemName);
 
-                                    if (folderSettingsPath) {
-                                        replaceNameInMetaBlock(
-                                            folderSettingsPath,
-                                            newItemName
-                                        );
-                                    }
-                                }
-                            }
-                        );
-                    });
+                const collection =
+                    this.itemProvider.getAncestorCollectionForPath(
+                        originalPath
+                    );
+                const isRequestFile =
+                    collection &&
+                    isFile &&
+                    (await getTypeOfBrunoFile([collection], originalPath)) ==
+                        BrunoFileType.RequestFile;
+
+                const renamed = await renameFileOrFolder(
+                    originalPath,
+                    newPath,
+                    isFile
+                );
+
+                if (renamed && isRequestFile) {
+                    replaceNameInMetaBlock(
+                        newPath,
+                        newItemName.replace(getExtensionForRequestFiles(), "")
+                    );
+                } else if (renamed && !isFile) {
+                    const folderSettingsPath = await getFolderSettingsFilePath(
+                        newPath
+                    );
+
+                    if (folderSettingsPath) {
+                        replaceNameInMetaBlock(folderSettingsPath, newItemName);
+                    }
+                }
             }
         );
 
@@ -501,48 +490,47 @@ export class CollectionExplorer
                         item.getPath()
                     );
 
-                if (collection) {
-                    const brunoFileType = await getTypeOfBrunoFile(
-                        [collection],
-                        item.getPath()
+                if (!collection) {
+                    return;
+                }
+
+                const brunoFileType = await getTypeOfBrunoFile(
+                    [collection],
+                    item.getPath()
+                );
+
+                if (
+                    brunoFileType != BrunoFileType.CollectionSettingsFile &&
+                    brunoFileType != BrunoFileType.FolderSettingsFile
+                ) {
+                    const newPath = await this.duplicateFile(collection, item);
+
+                    replaceNameInMetaBlock(
+                        newPath,
+                        basename(newPath).replace(
+                            getExtensionForRequestFiles(),
+                            ""
+                        )
+                    );
+                } else if (
+                    brunoFileType == BrunoFileType.CollectionSettingsFile
+                ) {
+                    const confirmed = await this.showWarningDialog(
+                        "Duplicate collection settings file?",
+                        "Only one collection settings file can be defined per collection."
                     );
 
-                    if (
-                        brunoFileType != BrunoFileType.CollectionSettingsFile &&
-                        brunoFileType != BrunoFileType.FolderSettingsFile
-                    ) {
-                        const newPath = await this.duplicateFile(
-                            collection,
-                            item
-                        );
+                    if (confirmed) {
+                        await this.duplicateFile(collection, item);
+                    }
+                } else {
+                    const confirmed = await this.showWarningDialog(
+                        "Duplicate folder settings file?",
+                        "Only one folder settings file can be defined per folder."
+                    );
 
-                        replaceNameInMetaBlock(
-                            newPath,
-                            basename(newPath).replace(
-                                getExtensionForRequestFiles(),
-                                ""
-                            )
-                        );
-                    } else if (
-                        brunoFileType == BrunoFileType.CollectionSettingsFile
-                    ) {
-                        this.showWarningDialog(
-                            "Duplicate collection settings file?",
-                            "Only one collection settings file can be defined per collection."
-                        ).then(async (confirmed) => {
-                            if (confirmed) {
-                                await this.duplicateFile(collection, item);
-                            }
-                        });
-                    } else {
-                        this.showWarningDialog(
-                            "Duplicate folder settings file?",
-                            "Only one folder settings file can be defined per folder."
-                        ).then(async (confirmed) => {
-                            if (confirmed) {
-                                await this.duplicateFile(collection, item);
-                            }
-                        });
+                    if (confirmed) {
+                        await this.duplicateFile(collection, item);
                     }
                 }
             }
@@ -640,7 +628,7 @@ export class CollectionExplorer
         return picked == this.confirmationOptionForModals;
     }
 
-    private handleChangedTextEditor(
+    private async handleChangedTextEditor(
         e: vscode.TextEditor | undefined,
         treeView: vscode.TreeView<BrunoTreeItem>
     ) {
@@ -669,24 +657,24 @@ export class CollectionExplorer
                     )}'.`
                 );
 
-                treeView.reveal(treeItem).then(() => {
-                    // Sometimes the 'reveal' command does not actually reveal the item, in that case it is retried once
-                    if (
-                        !treeView.selection.some(
-                            (item) => item.getPath() == e.document.uri.fsPath
-                        )
-                    ) {
-                        this.logger?.debug(
-                            `Starting second attempt of revealing item '${
-                                treeItem.path
-                            }' in explorer for collection '${basename(
-                                maybeCollection.getRootDirectory()
-                            )}'.`
-                        );
+                await treeView.reveal(treeItem);
 
-                        treeView.reveal(treeItem);
-                    }
-                });
+                // Sometimes the 'reveal' command does not actually reveal the item, in that case it is retried once
+                if (
+                    !treeView.selection.some(
+                        (item) => item.getPath() == e.document.uri.fsPath
+                    )
+                ) {
+                    this.logger?.debug(
+                        `Starting second attempt of revealing item '${
+                            treeItem.path
+                        }' in explorer for collection '${basename(
+                            maybeCollection.getRootDirectory()
+                        )}'.`
+                    );
+
+                    await treeView.reveal(treeItem);
+                }
             }
         }
     }
