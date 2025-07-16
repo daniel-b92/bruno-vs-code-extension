@@ -10,9 +10,10 @@ import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
 import { normalizeSequencesForFolders } from "./normalizeSequencesForFolders";
 import { Uri, window, workspace, WorkspaceEdit } from "vscode";
 import { FolderDropInsertionOption } from "../folderDropInsertionOptionEnum";
-import { readFileSync } from "fs";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";
 import { replaceNameInMetaBlock } from "../fileUtils/replaceNameInMetaBlock";
+import { promisify } from "util";
+import { readFile } from "fs";
 
 export async function updateSequencesAfterMovingFolder(
     itemProvider: CollectionItemProvider,
@@ -107,7 +108,9 @@ async function copyFolderSettingsFile(
     const workspaceEdit = new WorkspaceEdit();
     workspaceEdit.createFile(Uri.file(newFolderSettingsFilePath), {
         overwrite: true,
-        contents: Buffer.from(readFileSync(targetFolderSettingsFile)),
+        contents: Buffer.from(
+            await promisify(readFile)(targetFolderSettingsFile)
+        ),
     });
     const wasSuccessful = await workspace.applyEdit(workspaceEdit);
 
@@ -115,9 +118,10 @@ async function copyFolderSettingsFile(
         return undefined;
     }
 
-    replaceNameInMetaBlock(
+    await replaceNameInMetaBlock(
         newFolderSettingsFilePath,
         basename(destinationFolder)
     );
+
     return newFolderSettingsFilePath;
 }

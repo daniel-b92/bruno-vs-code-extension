@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "fs";
+import { promisify } from "util";
 import {
     TextDocumentHelper,
     parseBruFile,
@@ -6,10 +6,14 @@ import {
     getFieldFromMetaBlock,
     MetaBlockKey,
 } from "../../../../shared";
+import { readFile, writeFile } from "fs";
 
-export function replaceNameInMetaBlock(filePath: string, newName: string) {
+export async function replaceNameInMetaBlock(
+    filePath: string,
+    newName: string
+) {
     const documentHelper = new TextDocumentHelper(
-        readFileSync(filePath).toString()
+        await promisify(readFile)(filePath, "utf-8")
     );
 
     const metaBlock = parseBruFile(documentHelper).blocks.find(
@@ -20,7 +24,7 @@ export function replaceNameInMetaBlock(filePath: string, newName: string) {
         const nameField = getFieldFromMetaBlock(metaBlock, MetaBlockKey.Name);
 
         if (nameField) {
-            writeFileSync(
+            await promisify(writeFile)(
                 filePath,
                 documentHelper.getFullTextWithReplacement(
                     {

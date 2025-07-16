@@ -412,18 +412,25 @@ export class CollectionExplorer
                     isFile
                 );
 
-                if (renamed && isRequestFile) {
-                    replaceNameInMetaBlock(
+                if (!renamed) {
+                    return;
+                }
+
+                if (isRequestFile) {
+                    await replaceNameInMetaBlock(
                         newPath,
                         newItemName.replace(getExtensionForRequestFiles(), "")
                     );
-                } else if (renamed && !isFile) {
+                } else if (!isFile) {
                     const folderSettingsPath = await getFolderSettingsFilePath(
                         newPath
                     );
 
                     if (folderSettingsPath) {
-                        replaceNameInMetaBlock(folderSettingsPath, newItemName);
+                        await replaceNameInMetaBlock(
+                            folderSettingsPath,
+                            newItemName
+                        );
                     }
                 }
             }
@@ -446,7 +453,9 @@ export class CollectionExplorer
                     return;
                 }
 
-                const newFolderPath = getPathForDuplicatedItem(originalPath);
+                const newFolderPath = await getPathForDuplicatedItem(
+                    originalPath
+                );
 
                 // @ts-expect-error The TS server somehow does not understand
                 // that there is a `cp` function with up to 4 parameters when using `promisify`.
@@ -474,7 +483,7 @@ export class CollectionExplorer
                             )) ?? 0)
                     );
 
-                    replaceNameInMetaBlock(
+                    await replaceNameInMetaBlock(
                         newFolderSettingsFile,
                         basename(newFolderPath)
                     );
@@ -505,7 +514,7 @@ export class CollectionExplorer
                 ) {
                     const newPath = await this.duplicateFile(collection, item);
 
-                    replaceNameInMetaBlock(
+                    await replaceNameInMetaBlock(
                         newPath,
                         basename(newPath).replace(
                             getExtensionForRequestFiles(),
@@ -598,7 +607,7 @@ export class CollectionExplorer
 
     private async duplicateFile(collection: Collection, item: BrunoTreeItem) {
         const originalPath = item.getPath();
-        const newPath = getPathForDuplicatedItem(originalPath);
+        const newPath = await getPathForDuplicatedItem(originalPath);
 
         await promisify(copyFile)(originalPath, newPath);
 

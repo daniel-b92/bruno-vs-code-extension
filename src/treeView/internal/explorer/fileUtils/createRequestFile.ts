@@ -1,4 +1,3 @@
-import { writeFileSync } from "fs";
 import { basename, resolve } from "path";
 import {
     getExtensionForRequestFiles,
@@ -11,6 +10,8 @@ import {
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { commands, Uri, window } from "vscode";
 import { validateNewItemNameIsUnique } from "../validateNewItemNameIsUnique";
+import { promisify } from "util";
+import { writeFile } from "fs";
 
 export async function createRequestFile(
     itemProvider: CollectionItemProvider,
@@ -73,7 +74,8 @@ export async function createRequestFile(
             parentFolderPath,
             `${requestName}${getExtensionForRequestFiles()}`
         );
-        writeFileSync(filePath, "");
+
+        await promisify(writeFile)(filePath, "");
 
         const collectionForFile =
             itemProvider.getAncestorCollectionForPath(filePath);
