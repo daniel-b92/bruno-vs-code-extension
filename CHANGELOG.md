@@ -1,3 +1,8 @@
+## [0.13.1] (2025-07-16)
+
+### Fixes
+- Add missing adjustment for name field in meta block when renaming or duplicating a request file or a folder with a settings file
+
 ## [0.13.0] (2025-07-13)
 
 ### Features

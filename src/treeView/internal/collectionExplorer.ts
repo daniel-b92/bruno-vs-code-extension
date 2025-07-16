@@ -389,7 +389,7 @@ export class CollectionExplorer
                         },
                         valueSelection: [0, originalName.length],
                     })
-                    .then((newItemName) => {
+                    .then(async (newItemName) => {
                         if (newItemName == undefined) {
                             return;
                         }
@@ -399,18 +399,40 @@ export class CollectionExplorer
                             newItemName
                         );
 
+                        const collection =
+                            this.itemProvider.getAncestorCollectionForPath(
+                                originalPath
+                            );
+                        const isRequestFile =
+                            collection &&
+                            isFile &&
+                            (await getTypeOfBrunoFile(
+                                [collection],
+                                originalPath
+                            )) == BrunoFileType.RequestFile;
+
                         renameFileOrFolder(originalPath, newPath, isFile).then(
-                            (renamed) => {
-                                if (
-                                    renamed &&
-                                    isFile &&
-                                    extname(newPath) ==
-                                        getExtensionForRequestFiles()
-                                ) {
+                            async (renamed) => {
+                                if (renamed && isRequestFile) {
                                     replaceNameInMetaBlock(
                                         newPath,
-                                        newItemName
+                                        newItemName.replace(
+                                            getExtensionForRequestFiles(),
+                                            ""
+                                        )
                                     );
+                                } else if (renamed && !isFile) {
+                                    const folderSettingsPath =
+                                        await getFolderSettingsFilePath(
+                                            newPath
+                                        );
+
+                                    if (folderSettingsPath) {
+                                        replaceNameInMetaBlock(
+                                            folderSettingsPath,
+                                            newItemName
+                                        );
+                                    }
                                 }
                             }
                         );
@@ -489,7 +511,18 @@ export class CollectionExplorer
                         brunoFileType != BrunoFileType.CollectionSettingsFile &&
                         brunoFileType != BrunoFileType.FolderSettingsFile
                     ) {
-                        await this.duplicateFile(collection, item);
+                        const newPath = await this.duplicateFile(
+                            collection,
+                            item
+                        );
+
+                        replaceNameInMetaBlock(
+                            newPath,
+                            basename(newPath).replace(
+                                getExtensionForRequestFiles(),
+                                ""
+                            )
+                        );
                     } else if (
                         brunoFileType == BrunoFileType.CollectionSettingsFile
                     ) {
@@ -590,6 +623,8 @@ export class CollectionExplorer
                 )) + 1
             );
         }
+
+        return newPath;
     }
 
     private async showWarningDialog(modalMessage: string, detailText: string) {
