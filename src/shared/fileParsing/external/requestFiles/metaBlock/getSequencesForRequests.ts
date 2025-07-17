@@ -1,28 +1,33 @@
 import { resolve } from "path";
 import { CollectionItemProvider } from "../../../../fileSystemCache/externalHelpers/collectionItemProvider";
-import { readdirSync } from "fs";
 import { getSequenceForFile } from "../../shared/getSequenceForFile";
+import { promisify } from "util";
+import { readdir } from "fs";
 
-export const getSequencesForRequests = (
+export const getSequencesForRequests = async (
     itemProvider: CollectionItemProvider,
     directory: string
-): { path: string; sequence: number }[] => {
+): Promise<{ path: string; sequence: number }[]> => {
     const collection = itemProvider.getAncestorCollectionForPath(directory);
 
     if (!collection || !collection.getStoredDataForPath(directory)) {
         return [];
     }
 
-    return readdirSync(directory)
-        .map((childName) => {
-            const fullPath = resolve(directory, childName);
+    return (
+        await Promise.all(
+            (
+                await promisify(readdir)(directory)
+            ).map(async (childName) => {
+                const fullPath = resolve(directory, childName);
 
-            return {
-                path: fullPath,
-                sequence: getSequenceForFile(collection, fullPath),
-            };
-        })
-        .filter(({ sequence }) => sequence != undefined) as {
+                return {
+                    path: fullPath,
+                    sequence: await getSequenceForFile(collection, fullPath),
+                };
+            })
+        )
+    ).filter(({ sequence }) => sequence != undefined) as {
         path: string;
         sequence: number;
     }[];

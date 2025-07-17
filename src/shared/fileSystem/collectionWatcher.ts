@@ -8,8 +8,9 @@ import {
 import { FileChangedEvent, FileChangeType } from "./fileChangesDefinitions";
 import { basename } from "path";
 import { normalizeDirectoryPath } from "./util/normalizeDirectoryPath";
-import { lstatSync } from "fs";
 import { OutputChannelLogger } from "../logging/outputChannelLogger";
+import { lstat } from "fs";
+import { promisify } from "util";
 
 export class CollectionWatcher {
     constructor(
@@ -60,7 +61,7 @@ export class CollectionWatcher {
 
             const path = uri.fsPath;
 
-            if (lstatSync(path).isDirectory()) {
+            if ((await promisify(lstat)(path)).isDirectory()) {
                 const descendants = await workspace.findFiles(
                     new RelativePattern(path, "**/*")
                 );

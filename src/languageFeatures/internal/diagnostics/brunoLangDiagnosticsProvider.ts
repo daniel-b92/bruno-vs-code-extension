@@ -54,11 +54,11 @@ export class BrunoLangDiagnosticsProvider {
         this.relatedRequestsHelper.dispose();
     }
 
-    public provideDiagnosticsForRequestFile(
+    public async provideDiagnosticsForRequestFile(
         documentUri: Uri,
         documentText: string
     ) {
-        const newDiagnostics = this.determineDiagnosticsForRequestFile(
+        const newDiagnostics = await this.determineDiagnosticsForRequestFile(
             documentUri,
             documentText
         );
@@ -76,21 +76,22 @@ export class BrunoLangDiagnosticsProvider {
         this.diagnosticCollection.set(documentUri, newDiagnostics);
     }
 
-    public provideDiagnosticsForFolderSettingsFile(
+    public async provideDiagnosticsForFolderSettingsFile(
         documentUri: Uri,
         documentText: string
     ) {
-        const newDiagnostics = this.determineDiagnosticsForFolderSettingsFile(
-            documentUri,
-            documentText
-        );
+        const newDiagnostics =
+            await this.determineDiagnosticsForFolderSettingsFile(
+                documentUri,
+                documentText
+            );
         this.diagnosticCollection.set(documentUri, newDiagnostics);
     }
 
-    private determineDiagnosticsForRequestFile(
+    private async determineDiagnosticsForRequestFile(
         documentUri: Uri,
         documentText: string
-    ): DiagnosticWithCode[] {
+    ): Promise<DiagnosticWithCode[]> {
         const document = new TextDocumentHelper(documentText);
         const { blocks, textOutsideOfBlocks } = parseBruFile(document);
         const blocksThatShouldBeDictionaryBlocks = blocks.filter(({ name }) =>
@@ -144,13 +145,13 @@ export class BrunoLangDiagnosticsProvider {
         if (metaBlocks.length == 1) {
             this.addToResults(
                 results,
-                ...getMetaBlockSpecificDiagnosticsForRequestFile(
+                ...(await getMetaBlockSpecificDiagnosticsForRequestFile(
                     this.itemProvider,
                     this.relatedRequestsHelper,
                     documentUri,
                     document,
                     metaBlocks[0]
-                )
+                ))
             );
         }
 
@@ -228,10 +229,10 @@ export class BrunoLangDiagnosticsProvider {
         return results;
     }
 
-    private determineDiagnosticsForFolderSettingsFile(
+    private async determineDiagnosticsForFolderSettingsFile(
         documentUri: Uri,
         documentText: string
-    ): DiagnosticWithCode[] {
+    ): Promise<DiagnosticWithCode[]> {
         const document = new TextDocumentHelper(documentText);
 
         const { blocks, textOutsideOfBlocks } = parseBruFile(document);
@@ -282,13 +283,13 @@ export class BrunoLangDiagnosticsProvider {
         if (metaBlocks.length == 1) {
             this.addToResults(
                 results,
-                ...getMetaBlockSpecificDiagnosticsForFolderSettings(
+                ...(await getMetaBlockSpecificDiagnosticsForFolderSettings(
                     this.itemProvider,
                     this.relatedRequestsHelper,
                     documentUri,
                     document,
                     metaBlocks[0]
-                )
+                ))
             );
         }
 

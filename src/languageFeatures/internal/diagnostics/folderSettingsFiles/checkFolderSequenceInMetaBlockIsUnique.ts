@@ -13,24 +13,26 @@ import {
     mapRange,
     getTypeOfBrunoFile,
     BrunoFileType,
+    filterAsync,
 } from "../../../../shared";
 import { basename, dirname } from "path";
-import { readFileSync } from "fs";
+import { readFile } from "fs";
 import { DiagnosticWithCode } from "../definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { isSequenceValid } from "../shared/util/isSequenceValid";
+import { promisify } from "util";
 
-export function checkFolderSequenceInMetaBlockIsUnique(
+export async function checkFolderSequenceInMetaBlockIsUnique(
     itemProvider: CollectionItemProvider,
     metaBlock: Block,
     documentUri: Uri
-): {
+): Promise<{
     code: RelevantWithinMetaBlockDiagnosticCode;
     toAdd?: {
         affectedFiles: string[];
         diagnosticCurrentFile: DiagnosticWithCode;
     };
-} {
+}> {
     const castedBlock = castBlockToDictionaryBlock(metaBlock);
 
     if (
@@ -50,7 +52,7 @@ export function checkFolderSequenceInMetaBlockIsUnique(
         ({ key }) => key == MetaBlockKey.Sequence
     ) as DictionaryBlockField;
 
-    const otherFolderSettings = getSequencesForOtherFoldersWithSameParent(
+    const otherFolderSettings = await getSequencesForOtherFoldersWithSameParent(
         itemProvider,
         documentUri,
         documentUri.fsPath
@@ -78,7 +80,7 @@ export function checkFolderSequenceInMetaBlockIsUnique(
                 affectedFiles: allAffectedFiles.map(
                     ({ folderSettingsFile }) => folderSettingsFile
                 ),
-                diagnosticCurrentFile: getDiagnostic(
+                diagnosticCurrentFile: await getDiagnostic(
                     sequenceField,
                     otherFoldersWithSameSequence
                 ),
@@ -89,34 +91,41 @@ export function checkFolderSequenceInMetaBlockIsUnique(
     }
 }
 
-function getDiagnostic(
+async function getDiagnostic(
     sequenceField: DictionaryBlockField,
     otherFoldersWithSameSequence: {
         folderSettingsFile: string;
         folderPath: string;
     }[]
-): DiagnosticWithCode {
+): Promise<DiagnosticWithCode> {
     return {
         message:
             "Other folders with the same sequence already exist for the same parent folder.",
         range: mapRange(sequenceField.valueRange),
         severity: DiagnosticSeverity.Error,
         code: getDiagnosticCode(),
-        relatedInformation: otherFoldersWithSameSequence.map(
-            ({ folderPath, folderSettingsFile }) => ({
-                message: `Folder '${basename(folderPath)}' with same sequence`,
-                location: {
-                    uri: Uri.file(folderSettingsFile),
-                    range: getRangeForSequence(folderSettingsFile),
-                },
-            })
+        relatedInformation: await Promise.all(
+            otherFoldersWithSameSequence.map(
+                async ({ folderPath, folderSettingsFile }) => ({
+                    message: `Folder '${basename(
+                        folderPath
+                    )}' with same sequence`,
+                    location: {
+                        uri: Uri.file(folderSettingsFile),
+                        range: await getRangeForSequence(folderSettingsFile),
+                    },
+                })
+            )
         ),
     };
 }
 
-function getRangeForSequence(filePath: string) {
+async function getRangeForSequence(filePath: string) {
+    const readFileAsync = promisify(readFile);
+    const fileContent = await readFileAsync(filePath, "utf-8");
+
     const sequenceField = getSequenceFieldFromMetaBlock(
-        new TextDocumentHelper(readFileSync(filePath).toString())
+        new TextDocumentHelper(fileContent)
     );
 
     if (!sequenceField) {
@@ -132,19 +141,23 @@ function getRangeForSequence(filePath: string) {
     return mapRange(sequenceField.valueRange);
 }
 
-function getSequencesForOtherFoldersWithSameParent(
+async function getSequencesForOtherFoldersWithSameParent(
     itemProvider: CollectionItemProvider,
     documentUri: Uri,
     folderSettingsFile: string
-): {
-    folderSettingsFile: string;
-    folderPath: string;
-    sequence: number;
-}[] {
-    return getOtherFolderSettingsWithSameParentFolder(
-        itemProvider,
-        folderSettingsFile,
-        documentUri
+): Promise<
+    {
+        folderSettingsFile: string;
+        folderPath: string;
+        sequence: number;
+    }[]
+> {
+    return (
+        await getOtherFolderSettingsWithSameParentFolder(
+            itemProvider,
+            folderSettingsFile,
+            documentUri
+        )
     ).map(({ folderSettings, folderPath }) => ({
         folderSettingsFile: folderSettings.getPath(),
         folderPath,
@@ -152,11 +165,11 @@ function getSequencesForOtherFoldersWithSameParent(
     }));
 }
 
-function getOtherFolderSettingsWithSameParentFolder(
+async function getOtherFolderSettingsWithSameParentFolder(
     itemProvider: CollectionItemProvider,
     referenceFolderSettings: string,
     documentUri: Uri
-): { folderPath: string; folderSettings: CollectionFile }[] {
+): Promise<{ folderPath: string; folderSettings: CollectionFile }[]> {
     const collection = itemProvider.getAncestorCollectionForPath(
         referenceFolderSettings
     );
@@ -168,28 +181,30 @@ function getOtherFolderSettingsWithSameParentFolder(
         return [];
     }
 
-    return collection
-        .getAllStoredDataForCollection()
-        .filter(({ item }) => {
-            const itemPath = item.getPath();
+    return (
+        await filterAsync(
+            collection.getAllStoredDataForCollection().slice(),
+            async ({ item }) => {
+                const itemPath = item.getPath();
 
-            return (
-                item instanceof CollectionFile &&
-                normalizeDirectoryPath(dirname(dirname(itemPath))) ==
-                    normalizeDirectoryPath(
-                        dirname(dirname(referenceFolderSettings))
-                    ) &&
-                item.getSequence() != undefined &&
-                normalizeDirectoryPath(dirname(itemPath)) !=
-                    normalizeDirectoryPath(dirname(documentUri.fsPath)) &&
-                getTypeOfBrunoFile([collection], itemPath) ==
-                    BrunoFileType.FolderSettingsFile
-            );
-        })
-        .map(({ item }) => ({
-            folderSettings: item as CollectionFile,
-            folderPath: dirname(item.getPath()),
-        }));
+                return (
+                    item instanceof CollectionFile &&
+                    normalizeDirectoryPath(dirname(dirname(itemPath))) ==
+                        normalizeDirectoryPath(
+                            dirname(dirname(referenceFolderSettings))
+                        ) &&
+                    item.getSequence() != undefined &&
+                    normalizeDirectoryPath(dirname(itemPath)) !=
+                        normalizeDirectoryPath(dirname(documentUri.fsPath)) &&
+                    (await getTypeOfBrunoFile([collection], itemPath)) ==
+                        BrunoFileType.FolderSettingsFile
+                );
+            }
+        )
+    ).map(({ item }) => ({
+        folderSettings: item as CollectionFile,
+        folderPath: dirname(item.getPath()),
+    }));
 }
 
 function getDiagnosticCode() {

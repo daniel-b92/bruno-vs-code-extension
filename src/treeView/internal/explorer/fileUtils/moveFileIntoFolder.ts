@@ -21,7 +21,7 @@ export async function moveFileIntoFolder(
 
     if (brunoFileType == BrunoFileType.RequestFile) {
         // Only when moving a request file, sequences of requests may need to be adjusted
-        updateSequencesAfterMovingRequestFile(
+        await updateSequencesAfterMovingRequestFile(
             itemProvider,
             target,
             targetDirectoryForDragAndDrop,

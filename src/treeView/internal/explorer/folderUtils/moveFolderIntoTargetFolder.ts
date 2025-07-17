@@ -30,7 +30,7 @@ export async function moveFolderIntoTargetFolder(
         originalItemSequence ||
         insertionOption != FolderDropInsertionOption.MoveIntoTargetAsSubfolder
     ) {
-        updateSequencesAfterMovingFolder(
+        await updateSequencesAfterMovingFolder(
             itemProvider,
             sourcePath,
             targetItem,

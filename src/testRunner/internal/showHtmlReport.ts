@@ -1,8 +1,12 @@
-import { readFileSync } from "fs";
+import { promisify } from "util";
 import { getTestLabel } from "../testTreeUtils/testTreeHelper";
 import { Uri, ViewColumn, window } from "vscode";
+import { readFile } from "fs";
 
-export function showHtmlReport(htmlReportPath: string, testItemPath: string) {
+export async function showHtmlReport(
+    htmlReportPath: string,
+    testItemPath: string
+) {
     const column = window.activeTextEditor
         ? window.activeTextEditor.viewColumn
         : undefined;
@@ -19,5 +23,5 @@ export function showHtmlReport(htmlReportPath: string, testItemPath: string) {
         }
     );
 
-    panel.webview.html = readFileSync(htmlReportPath).toString();
+    panel.webview.html = await promisify(readFile)(htmlReportPath, "utf-8");
 }

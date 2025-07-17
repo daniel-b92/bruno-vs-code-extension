@@ -1,4 +1,3 @@
-import { existsSync, lstatSync, unlinkSync } from "fs";
 import { exec, spawn } from "child_process";
 import { dirname, resolve } from "path";
 import {
@@ -13,7 +12,13 @@ import { getTestFilesWithFailures } from "./jsonReportParser";
 import { getTestItemDescendants } from "../testTreeUtils/getTestItemDescendants";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import treeKill = require("tree-kill");
-import { getLinkToUserSetting, OutputChannelLogger } from "../../shared";
+import {
+    checkIfPathExistsAsync,
+    getLinkToUserSetting,
+    OutputChannelLogger,
+} from "../../shared";
+import { existsSync, lstatSync, unlink, unlinkSync } from "fs";
+import { promisify } from "util";
 
 export async function runTestStructure(
     item: vscodeTestItem,
@@ -28,13 +33,13 @@ export async function runTestStructure(
     const lineBreak = getLineBreakForTestRunOutput();
     const isDirectory = item.canResolveChildren;
 
-    if (existsSync(htmlReportPath)) {
-        unlinkSync(htmlReportPath);
+    if (await checkIfPathExistsAsync(htmlReportPath)) {
+        await promisify(unlink)(htmlReportPath);
     }
 
     const jsonReportPath = getJsonReportPath(collectionRootDirectory);
-    if (existsSync(jsonReportPath)) {
-        unlinkSync(jsonReportPath);
+    if (await checkIfPathExistsAsync(jsonReportPath)) {
+        await promisify(unlink)(jsonReportPath);
     }
 
     if (isDirectory) {

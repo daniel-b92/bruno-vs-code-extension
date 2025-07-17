@@ -51,7 +51,7 @@ function getCompletionItemsForFieldsInMetaBlock(
         languages.registerCompletionItemProvider(
             getRequestFileDocumentSelector(),
             {
-                provideCompletionItems(document, position, token) {
+                async provideCompletionItems(document, position, token) {
                     if (token.isCancellationRequested) {
                         logger?.debug(
                             `Cancellation requested for completion provider for bruno language.`
@@ -70,10 +70,10 @@ function getCompletionItemsForFieldsInMetaBlock(
                             items: [
                                 new CompletionItem(
                                     `${currentText.endsWith(" ") ? "" : " "}${
-                                        getMaxSequenceForRequests(
+                                        (await getMaxSequenceForRequests(
                                             itemProvider,
                                             dirname(document.uri.fsPath)
-                                        ) + 1
+                                        )) + 1
                                     }`
                                 ),
                             ],

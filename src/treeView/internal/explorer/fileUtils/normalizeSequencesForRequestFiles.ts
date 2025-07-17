@@ -4,11 +4,11 @@ import {
 } from "../../../../shared";
 import { replaceSequenceForFile } from "./replaceSequenceForFile";
 
-export function normalizeSequencesForRequestFiles(
+export async function normalizeSequencesForRequestFiles(
     itemProvider: CollectionItemProvider,
     parentDirectoryPath: string
 ) {
-    const initialSequences = getSequencesForRequests(
+    const initialSequences = await getSequencesForRequests(
         itemProvider,
         parentDirectoryPath
     );
@@ -22,7 +22,7 @@ export function normalizeSequencesForRequestFiles(
         const newSeq = i + 1;
 
         if (initialSeq != newSeq) {
-            replaceSequenceForFile(path, newSeq);
+            await replaceSequenceForFile(path, newSeq);
         }
     }
 }

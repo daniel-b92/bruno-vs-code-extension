@@ -1,4 +1,3 @@
-import { existsSync, lstatSync, readFileSync, writeFileSync } from "fs";
 import { basename, dirname, extname } from "path";
 import {
     RequestType,
@@ -8,23 +7,29 @@ import {
     CollectionFile,
     MetaBlockContent,
     TextDocumentHelper,
+    checkIfPathExistsAsync,
 } from "..";
 import {
     getLineBreak,
     getNumberOfWhitespacesForIndentation,
 } from "./internal/writerUtils";
+import { promisify } from "util";
+import { lstat, readFile, writeFile } from "fs";
 
-export function addMetaBlock(
+export async function addMetaBlock(
     collection: Collection,
     testFilePath: string,
     requestType: RequestType
 ) {
-    if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {
+    if (
+        !(await checkIfPathExistsAsync(testFilePath)) ||
+        !(await promisify(lstat)(testFilePath)).isFile()
+    ) {
         throw new Error(`No file found for given path '${testFilePath}'`);
     }
 
     const documentHelper = new TextDocumentHelper(
-        readFileSync(testFilePath).toString()
+        await promisify(readFile)(testFilePath, "utf-8")
     );
 
     if (
@@ -37,7 +42,7 @@ export function addMetaBlock(
         );
     }
 
-    writeFileSync(
+    await promisify(writeFile)(
         testFilePath,
         documentHelper.getLineCount() == 0
             ? mapContentToText(

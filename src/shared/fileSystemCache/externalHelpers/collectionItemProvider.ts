@@ -1,4 +1,3 @@
-import { lstatSync } from "fs";
 import * as vscode from "vscode";
 import { CollectionRegistry } from "../internalHelpers/collectionRegistry";
 import { addItemToCollection } from "../internalHelpers/addItemToCollection";
@@ -21,6 +20,8 @@ import {
     getSequenceForFile,
 } from "../..";
 import { basename, dirname } from "path";
+import { promisify } from "util";
+import { lstat } from "fs";
 
 export class CollectionItemProvider {
     constructor(
@@ -40,7 +41,7 @@ export class CollectionItemProvider {
         }>();
 
         collectionWatcher.subscribeToUpdates()(
-            ({ uri, changeType: fileChangeType }) => {
+            async ({ uri, changeType: fileChangeType }) => {
                 const registeredCollection = this.getAncestorCollectionForPath(
                     uri.fsPath
                 );
@@ -102,7 +103,7 @@ export class CollectionItemProvider {
                         )}'.`
                     );
 
-                    this.handleItemDeletion(
+                    await this.handleItemDeletion(
                         testRunnerDataHelper,
                         registeredCollection,
                         maybeRegisteredData
@@ -124,7 +125,7 @@ export class CollectionItemProvider {
                         )}'.`
                     );
 
-                    this.handleModificationOfRegisteredItem(
+                    await this.handleModificationOfRegisteredItem(
                         registeredCollection,
                         maybeRegisteredData
                     );
@@ -217,21 +218,23 @@ export class CollectionItemProvider {
         }
     }
 
-    private handleItemCreation(
+    private async handleItemCreation(
         registeredCollection: Collection,
         itemPath: string
     ) {
-        const item: CollectionItem = lstatSync(itemPath).isDirectory()
+        const item: CollectionItem = (
+            await promisify(lstat)(itemPath)
+        ).isDirectory()
             ? new CollectionDirectory(
                   itemPath,
-                  getSequenceForFolder(
+                  await getSequenceForFolder(
                       registeredCollection.getRootDirectory(),
                       itemPath
                   )
               )
             : new CollectionFile(
                   itemPath,
-                  getSequenceForFile(registeredCollection, itemPath)
+                  await getSequenceForFile(registeredCollection, itemPath)
               );
 
         this.itemUpdateEmitter.fire({
@@ -245,15 +248,17 @@ export class CollectionItemProvider {
         });
     }
 
-    private handleItemDeletion(
+    private async handleItemDeletion(
         testRunnerDataHelper: TestRunnerDataHelper,
         registeredCollectionForItem: Collection,
         data: CollectionData
     ) {
         const { item } = data;
         if (
-            getTypeOfBrunoFile([registeredCollectionForItem], item.getPath()) ==
-            BrunoFileType.FolderSettingsFile
+            (await getTypeOfBrunoFile(
+                [registeredCollectionForItem],
+                item.getPath()
+            )) == BrunoFileType.FolderSettingsFile
         ) {
             const parentFolderData =
                 registeredCollectionForItem.getStoredDataForPath(
@@ -278,18 +283,18 @@ export class CollectionItemProvider {
         });
     }
 
-    private handleModificationOfRegisteredItem(
+    private async handleModificationOfRegisteredItem(
         registeredCollectionForItem: Collection,
         collectionData: CollectionData
     ) {
         const { item: modifiedItem, treeItem, testItem } = collectionData;
         const itemPath = modifiedItem.getPath();
 
-        const fileType = getTypeOfBrunoFile(
+        const fileType = await getTypeOfBrunoFile(
             [registeredCollectionForItem],
             itemPath
         );
-        const newSequence = parseSequenceFromMetaBlock(itemPath);
+        const newSequence = await parseSequenceFromMetaBlock(itemPath);
 
         if (
             modifiedItem instanceof CollectionFile &&

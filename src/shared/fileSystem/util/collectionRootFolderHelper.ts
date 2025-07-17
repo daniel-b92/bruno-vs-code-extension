@@ -1,7 +1,8 @@
-import { lstatSync, readdirSync } from "fs";
 import { dirname } from "path";
 import { getTestFileDescendants } from "./getTestFileDescendants";
 import { workspace } from "vscode";
+import { promisify } from "util";
+import { lstat, readdir } from "fs";
 
 export const getAllCollectionRootDirectories = async () => {
     const maybeFilesInCollectionRootDirs = await workspace.findFiles(
@@ -23,8 +24,10 @@ export const getAllCollectionRootDirectories = async () => {
 
 const isCollectionRootDir = async (path: string) => {
     const containsBrunoJsonFile =
-        lstatSync(path).isDirectory() &&
-        readdirSync(path).some((file) => file.endsWith("bruno.json"));
+        (await promisify(lstat)(path)).isDirectory() &&
+        (await promisify(readdir)(path)).some((file) =>
+            file.endsWith("bruno.json")
+        );
 
     if (!containsBrunoJsonFile) {
         return false;

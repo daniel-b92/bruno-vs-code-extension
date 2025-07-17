@@ -1,4 +1,3 @@
-import { existsSync, lstatSync, readFileSync, writeFileSync } from "fs";
 import {
     getLineBreak,
     getNumberOfWhitespacesForIndentation,
@@ -10,18 +9,24 @@ import {
     parseBruFile,
     TextDocumentHelper,
     RequestFileBlockName,
+    checkIfPathExistsAsync,
 } from "..";
+import { promisify } from "util";
+import { lstat, readFile, writeFile } from "fs";
 
-export function appendDefaultMethodBlock(
+export async function appendDefaultMethodBlock(
     testFilePath: string,
     blockName: RequestFileBlockName
 ) {
-    if (!existsSync(testFilePath) || !lstatSync(testFilePath).isFile()) {
+    if (
+        !(await checkIfPathExistsAsync(testFilePath)) ||
+        !(await promisify(lstat)(testFilePath)).isFile()
+    ) {
         throw new Error(`No file found for given path '${testFilePath}'`);
     }
 
     const documentHelper = new TextDocumentHelper(
-        readFileSync(testFilePath).toString()
+        await promisify(readFile)(testFilePath, "utf-8")
     );
 
     const allExistingBlocks = parseBruFile(documentHelper).blocks;
@@ -44,7 +49,7 @@ export function appendDefaultMethodBlock(
         );
     }
 
-    writeFileSync(
+    await promisify(writeFile)(
         testFilePath,
         `${documentHelper.getText()}${getLineBreak()}${getLineBreak()}${getTextToAdd(
             blockName

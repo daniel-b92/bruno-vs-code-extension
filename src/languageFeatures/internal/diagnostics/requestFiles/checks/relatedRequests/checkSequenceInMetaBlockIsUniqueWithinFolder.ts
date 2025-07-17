@@ -13,24 +13,26 @@ import {
     mapRange,
     getTypeOfBrunoFile,
     BrunoFileType,
+    filterAsync,
 } from "../../../../../../shared";
 import { dirname } from "path";
-import { readFileSync } from "fs";
 import { DiagnosticWithCode } from "../../../definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { isSequenceValid } from "../../../shared/util/isSequenceValid";
+import { promisify } from "util";
+import { readFile } from "fs";
 
-export function checkSequenceInMetaBlockIsUniqueWithinFolder(
+export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
     itemProvider: CollectionItemProvider,
     metaBlock: Block,
     documentUri: Uri
-): {
+): Promise<{
     code: RelevantWithinMetaBlockDiagnosticCode;
     toAdd?: {
         affectedFiles: string[];
         diagnosticCurrentFile: DiagnosticWithCode;
     };
-} {
+}> {
     const castedBlock = castBlockToDictionaryBlock(metaBlock);
 
     if (
@@ -50,7 +52,7 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
         ({ key }) => key == MetaBlockKey.Sequence
     ) as DictionaryBlockField;
 
-    const otherRequestsInFolder = getSequencesForOtherRequestsInFolder(
+    const otherRequestsInFolder = await getSequencesForOtherRequestsInFolder(
         itemProvider,
         documentUri,
         dirname(documentUri.fsPath)
@@ -72,7 +74,7 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
             code: getDiagnosticCode(),
             toAdd: {
                 affectedFiles: allAffectedFiles,
-                diagnosticCurrentFile: getDiagnostic(
+                diagnosticCurrentFile: await getDiagnostic(
                     sequenceField,
                     otherRequestsWithSameSequence
                 ),
@@ -83,29 +85,32 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(
     }
 }
 
-function getDiagnostic(
+async function getDiagnostic(
     sequenceField: DictionaryBlockField,
     otherRequestsWithSameSequence: string[]
-): DiagnosticWithCode {
+): Promise<DiagnosticWithCode> {
     return {
         message:
             "Other requests with the same sequence already exists within this folder.",
         range: mapRange(sequenceField.valueRange),
         severity: DiagnosticSeverity.Error,
         code: getDiagnosticCode(),
-        relatedInformation: otherRequestsWithSameSequence.map((path) => ({
-            message: `Request with same sequence`,
-            location: {
-                uri: Uri.file(path),
-                range: getRangeForSequence(path),
-            },
-        })),
+        relatedInformation: await Promise.all(
+            otherRequestsWithSameSequence.map(async (path) => ({
+                message: `Request with same sequence`,
+                location: {
+                    uri: Uri.file(path),
+                    range: await getRangeForSequence(path),
+                },
+            }))
+        ),
     };
 }
 
-function getRangeForSequence(filePath: string) {
+async function getRangeForSequence(filePath: string) {
+    const readFileAsync = promisify(readFile);
     const sequenceField = getSequenceFieldFromMetaBlock(
-        new TextDocumentHelper(readFileSync(filePath).toString())
+        new TextDocumentHelper(await readFileAsync(filePath, "utf-8"))
     );
 
     if (!sequenceField) {
@@ -121,14 +126,14 @@ function getRangeForSequence(filePath: string) {
     return mapRange(sequenceField.valueRange);
 }
 
-function getSequencesForOtherRequestsInFolder(
+async function getSequencesForOtherRequestsInFolder(
     itemProvider: CollectionItemProvider,
     documentUri: Uri,
     directoryPath: string
 ) {
     const result: { file: string; sequence: number }[] = [];
 
-    const otherRequestsInFolder = getOtherRequestsInFolder(
+    const otherRequestsInFolder = await getOtherRequestsInFolder(
         itemProvider,
         directoryPath,
         documentUri
@@ -144,11 +149,11 @@ function getSequencesForOtherRequestsInFolder(
     return result;
 }
 
-function getOtherRequestsInFolder(
+async function getOtherRequestsInFolder(
     itemProvider: CollectionItemProvider,
     directoryPath: string,
     documentUri: Uri
-): CollectionFile[] {
+): Promise<CollectionFile[]> {
     const result: CollectionFile[] = [];
 
     const collection = itemProvider.getAncestorCollectionForPath(directoryPath);
@@ -160,22 +165,24 @@ function getOtherRequestsInFolder(
         return result;
     }
 
-    return collection
-        .getAllStoredDataForCollection()
-        .filter(({ item }) => {
-            const itemPath = item.getPath();
+    return (
+        await filterAsync(
+            collection.getAllStoredDataForCollection().slice(),
+            async ({ item }) => {
+                const itemPath = item.getPath();
 
-            return (
-                item instanceof CollectionFile &&
-                normalizeDirectoryPath(dirname(itemPath)) ==
-                    normalizeDirectoryPath(directoryPath) &&
-                item.getSequence() != undefined &&
-                itemPath != documentUri.fsPath &&
-                getTypeOfBrunoFile([collection], itemPath) ==
-                    BrunoFileType.RequestFile
-            );
-        })
-        .map(({ item }) => item as CollectionFile);
+                return (
+                    item instanceof CollectionFile &&
+                    normalizeDirectoryPath(dirname(itemPath)) ==
+                        normalizeDirectoryPath(directoryPath) &&
+                    item.getSequence() != undefined &&
+                    itemPath != documentUri.fsPath &&
+                    (await getTypeOfBrunoFile([collection], itemPath)) ==
+                        BrunoFileType.RequestFile
+                );
+            }
+        )
+    ).map(({ item }) => item as CollectionFile);
 }
 
 function getDiagnosticCode() {

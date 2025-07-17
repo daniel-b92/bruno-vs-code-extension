@@ -7,6 +7,7 @@ import {
     CollectionDirectory,
     CollectionFile,
     CollectionItem,
+    filterAsync,
     getTypeOfBrunoFile,
     normalizeDirectoryPath,
 } from "../..";
@@ -33,11 +34,11 @@ export class TestRunnerDataHelper {
         return testItem;
     };
 
-    public addTestTreeItemsForDirectoryAndDescendants(
+    public async addTestTreeItemsForDirectoryAndDescendants(
         collectionForDirectory: Collection,
         directory: CollectionDirectory
     ) {
-        const relevantFiles = this.getTestFileDescendants(
+        const relevantFiles = await this.getTestFileDescendants(
             collectionForDirectory,
             directory
         );
@@ -51,24 +52,23 @@ export class TestRunnerDataHelper {
         }
     }
 
-    public getTestFileDescendants(
+    public async getTestFileDescendants(
         collectionForDirectory: Collection,
         directory: CollectionDirectory
     ) {
-        return collectionForDirectory
-            .getAllStoredDataForCollection()
-            .filter(
-                ({ item }) =>
-                    item instanceof CollectionFile &&
-                    getTypeOfBrunoFile(
-                        [collectionForDirectory],
-                        item.getPath()
-                    ) == BrunoFileType.RequestFile &&
-                    item.getSequence() != undefined &&
-                    item
-                        .getPath()
-                        .startsWith(normalizeDirectoryPath(directory.getPath()))
-            );
+        return await filterAsync(
+            collectionForDirectory.getAllStoredDataForCollection().slice(),
+            async ({ item }) =>
+                item instanceof CollectionFile &&
+                (await getTypeOfBrunoFile(
+                    [collectionForDirectory],
+                    item.getPath()
+                )) == BrunoFileType.RequestFile &&
+                item.getSequence() != undefined &&
+                item
+                    .getPath()
+                    .startsWith(normalizeDirectoryPath(directory.getPath()))
+        );
     }
 
     private getVsCodeTestItemSortText(item: CollectionItem) {
