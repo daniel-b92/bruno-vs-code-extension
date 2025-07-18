@@ -21,12 +21,13 @@ export class BrunoTreeItemProvider
         private logger?: OutputChannelLogger
     ) {
         collectionItemProvider.subscribeToUpdates()(
-            ({ updateType, changedData, data: { item } }) => {
+            ({ updateType, changedData, data: { item }, remainingEvents }) => {
                 if (
-                    updateType == FileChangeType.Deleted ||
-                    updateType == FileChangeType.Created ||
-                    (updateType == FileChangeType.Modified &&
-                        changedData?.sequenceChanged)
+                    remainingEvents == 0 &&
+                    (updateType == FileChangeType.Deleted ||
+                        updateType == FileChangeType.Created ||
+                        (updateType == FileChangeType.Modified &&
+                            changedData?.sequenceChanged))
                 ) {
                     this.logger?.debug(
                         `Triggering update of collection tree view root item due to change event for cached item '${item.getPath()}'.`

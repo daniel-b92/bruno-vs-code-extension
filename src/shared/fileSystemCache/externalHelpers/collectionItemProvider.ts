@@ -38,10 +38,18 @@ export class CollectionItemProvider {
             data: CollectionData;
             updateType: FileChangeType;
             changedData?: { sequenceChanged?: boolean };
+            remainingEvents: number;
         }>();
 
-        collectionWatcher.subscribeToUpdates()(
-            async ({ uri, changeType: fileChangeType }) => {
+        collectionWatcher.subscribeToUpdates()(async (events) => {
+            const sortedEvents = events.sort(({ uri: uri1 }, { uri: uri2 }) =>
+                uri1 <= uri2 ? -1 : 1
+            );
+
+            for (let i = 0; i < sortedEvents.length; i++) {
+                const { uri, changeType: fileChangeType } = sortedEvents[i];
+                const remainingEvents = sortedEvents.length - i - 1;
+
                 const registeredCollection = this.getAncestorCollectionForPath(
                     uri.fsPath
                 );
@@ -60,7 +68,7 @@ export class CollectionItemProvider {
                     this.logger?.info(
                         `${this.commonPreMessageForLogging} Handling deletion of collection '${uri.fsPath}'.`
                     );
-                    this.handleCollectionDeletion(uri);
+                    this.handleCollectionDeletion(uri, remainingEvents);
                     return;
                 }
 
@@ -72,20 +80,24 @@ export class CollectionItemProvider {
                     fileChangeType == FileChangeType.Created &&
                     !this.getPathsToIgnoreForCollection(
                         registeredCollection.getRootDirectory()
-                    ).includes(uri.fsPath)
+                    ).includes(uri.fsPath) &&
+                    registeredCollection.getStoredDataForPath(
+                        dirname(uri.fsPath)
+                    )
                 ) {
                     this.logger?.info(
-                        `${
-                            this.commonPreMessageForLogging
-                        } Handling creation of item '${
+                        `${this.commonPreMessageForLogging} creation of item '${
                             uri.fsPath
                         }' in collection '${basename(
                             registeredCollection.getRootDirectory()
                         )}'.`
                     );
 
-                    this.handleItemCreation(registeredCollection, uri.fsPath);
-                    return;
+                    await this.handleItemCreation(
+                        registeredCollection,
+                        uri.fsPath,
+                        remainingEvents
+                    );
                 } else if (
                     maybeRegisteredData &&
                     fileChangeType == FileChangeType.Deleted &&
@@ -94,9 +106,7 @@ export class CollectionItemProvider {
                     ).includes(uri.fsPath)
                 ) {
                     this.logger?.info(
-                        `${
-                            this.commonPreMessageForLogging
-                        } Handling deletion of cached item '${
+                        `${this.commonPreMessageForLogging} deletion of item '${
                             uri.fsPath
                         }' in collection '${basename(
                             registeredCollection.getRootDirectory()
@@ -106,7 +116,8 @@ export class CollectionItemProvider {
                     await this.handleItemDeletion(
                         testRunnerDataHelper,
                         registeredCollection,
-                        maybeRegisteredData
+                        maybeRegisteredData,
+                        remainingEvents
                     );
                 } else if (
                     maybeRegisteredData &&
@@ -118,7 +129,7 @@ export class CollectionItemProvider {
                     this.logger?.info(
                         `${
                             this.commonPreMessageForLogging
-                        } Handling modification of cached item '${
+                        } modification of item '${
                             uri.fsPath
                         }' in collection '${basename(
                             registeredCollection.getRootDirectory()
@@ -127,11 +138,12 @@ export class CollectionItemProvider {
 
                     await this.handleModificationOfRegisteredItem(
                         registeredCollection,
-                        maybeRegisteredData
+                        maybeRegisteredData,
+                        remainingEvents
                     );
                 }
             }
-        );
+        });
     }
 
     private collectionRegistry: CollectionRegistry;
@@ -139,6 +151,7 @@ export class CollectionItemProvider {
         collection: Collection;
         data: CollectionData;
         updateType: FileChangeType;
+        remainingEvents: number;
         changedData?: { sequenceChanged?: boolean };
     }>;
 
@@ -203,7 +216,10 @@ export class CollectionItemProvider {
         );
     }
 
-    private handleCollectionDeletion(collectionUri: vscode.Uri) {
+    private handleCollectionDeletion(
+        collectionUri: vscode.Uri,
+        remainingEvents: number
+    ) {
         const registeredCollection =
             this.collectionRegistry.unregisterCollection(collectionUri.fsPath);
 
@@ -214,13 +230,15 @@ export class CollectionItemProvider {
                     registeredCollection.getRootDirectory()
                 ) as CollectionData,
                 updateType: FileChangeType.Deleted,
+                remainingEvents,
             });
         }
     }
 
     private async handleItemCreation(
         registeredCollection: Collection,
-        itemPath: string
+        itemPath: string,
+        remainingEvents: number
     ) {
         const item: CollectionItem = (
             await promisify(lstat)(itemPath)
@@ -245,13 +263,15 @@ export class CollectionItemProvider {
                 item
             ),
             updateType: FileChangeType.Created,
+            remainingEvents,
         });
     }
 
     private async handleItemDeletion(
         testRunnerDataHelper: TestRunnerDataHelper,
         registeredCollectionForItem: Collection,
-        data: CollectionData
+        data: CollectionData,
+        remainingEvents: number
     ) {
         const { item } = data;
         if (
@@ -269,7 +289,8 @@ export class CollectionItemProvider {
                 this.handleFolderSequenceUpdate(
                     testRunnerDataHelper,
                     registeredCollectionForItem,
-                    parentFolderData
+                    parentFolderData,
+                    remainingEvents
                 );
             }
         }
@@ -280,12 +301,14 @@ export class CollectionItemProvider {
             collection: registeredCollectionForItem,
             data,
             updateType: FileChangeType.Deleted,
+            remainingEvents,
         });
     }
 
     private async handleModificationOfRegisteredItem(
         registeredCollectionForItem: Collection,
-        collectionData: CollectionData
+        collectionData: CollectionData,
+        remainingEvents: number
     ) {
         const { item: modifiedItem, treeItem, testItem } = collectionData;
         const itemPath = modifiedItem.getPath();
@@ -310,6 +333,7 @@ export class CollectionItemProvider {
                     this.testRunnerDataHelper,
                     registeredCollectionForItem,
                     parentFolderData,
+                    remainingEvents,
                     newSequence
                 );
             }
@@ -336,6 +360,7 @@ export class CollectionItemProvider {
                 changedData: {
                     sequenceChanged: modifiedItem.getSequence() != newSequence,
                 },
+                remainingEvents,
             });
         }
     }
@@ -344,6 +369,7 @@ export class CollectionItemProvider {
         testRunnerDataHelper: TestRunnerDataHelper,
         collection: Collection,
         oldFolderData: CollectionData,
+        remainingEvents: number,
         newSequence?: number
     ) {
         const folderPath = oldFolderData.item.getPath();
@@ -362,6 +388,7 @@ export class CollectionItemProvider {
             ),
             updateType: FileChangeType.Modified,
             changedData: { sequenceChanged: oldSequence != newSequence },
+            remainingEvents,
         });
     }
 }

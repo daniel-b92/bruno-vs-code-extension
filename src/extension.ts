@@ -35,7 +35,7 @@ export async function activate(context: ExtensionContext) {
 
     context.subscriptions.push(logger);
 
-    const fileChangedEmitter = new EventEmitter<FileChangedEvent>();
+    const fileChangedEmitter = new EventEmitter<FileChangedEvent[]>();
     const collectionWatcher = new CollectionWatcher(
         context,
         fileChangedEmitter,
