@@ -1,7 +1,7 @@
 ## [Unreleased] (2025-07-20)
 
 ### Fixes / Improvements
-- Make all file system operations async for reducing waiting time before being able to continue with other actions for cases where a file system takes longer for some reason.
+- Make all file system operations async (for reducing waiting time before being able to continue with other actions for cases where a file system operation takes longer for some reason).
 
 ## [0.13.1] (2025-07-16)
 
