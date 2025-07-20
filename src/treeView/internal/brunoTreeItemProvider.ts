@@ -20,24 +20,25 @@ export class BrunoTreeItemProvider
         private collectionItemProvider: CollectionItemProvider,
         private logger?: OutputChannelLogger
     ) {
-        collectionItemProvider.subscribeToUpdates()(
-            ({ updateType, changedData, data: { item } }) => {
-                if (
-                    updateType == FileChangeType.Deleted ||
-                    updateType == FileChangeType.Created ||
-                    (updateType == FileChangeType.Modified &&
-                        changedData?.sequenceChanged)
-                ) {
-                    this.logger?.debug(
-                        `Triggering update of collection tree view root item due to change event for cached item '${item.getPath()}'.`
-                    );
+        collectionItemProvider.subscribeToUpdates()((updates) => {
+            if (
+                updates.some(
+                    ({ updateType, changedData }) =>
+                        updateType == FileChangeType.Deleted ||
+                        updateType == FileChangeType.Created ||
+                        (updateType == FileChangeType.Modified &&
+                            changedData?.sequenceChanged)
+                )
+            ) {
+                this.logger?.debug(
+                    `Collection tree view root refresh due to events for ${updates.length} items.`
+                );
 
-                    // Always update all items when items have to be deleted from / created for the tree view.
-                    // When only triggering an update for the parent item, there were issues with the refresh mechanism.
-                    this._onDidChangeTreeData.fire(undefined);
-                }
+                // Always update all items when items have to be deleted from / created for the tree view.
+                // When only triggering an update for the parent item, there were issues with the refresh mechanism.
+                this._onDidChangeTreeData.fire(undefined);
             }
-        );
+        });
     }
 
     getTreeItem(element: BrunoTreeItem): vscode.TreeItem {
@@ -68,7 +69,7 @@ export class BrunoTreeItemProvider
         });
     }
 
-    getChildren(element?: BrunoTreeItem): BrunoTreeItem[] {
+    async getChildren(element?: BrunoTreeItem): Promise<BrunoTreeItem[]> {
         if (!this.workspaceRoot) {
             vscode.window.showInformationMessage(
                 "No Bruno test data found in empty workspace"
@@ -114,31 +115,34 @@ export class BrunoTreeItemProvider
             );
 
             return this.getSortedTreeItems(
-                collection
-                    .getAllStoredDataForCollection()
-                    .filter(
-                        ({ item: registeredItem }) =>
-                            normalizeDirectoryPath(
-                                dirname(registeredItem.getPath())
-                            ) == normalizeDirectoryPath(element.getPath())
-                    )
-                    .map(({ item: collectionItem }) => {
-                        const path = collectionItem.getPath();
-                        const isFile = collectionItem instanceof CollectionFile;
+                await Promise.all(
+                    collection
+                        .getAllStoredDataForCollection()
+                        .filter(
+                            ({ item: registeredItem }) =>
+                                normalizeDirectoryPath(
+                                    dirname(registeredItem.getPath())
+                                ) == normalizeDirectoryPath(element.getPath())
+                        )
+                        .map(async ({ item: collectionItem }) => {
+                            const path = collectionItem.getPath();
+                            const isFile =
+                                collectionItem instanceof CollectionFile;
 
-                        const treeItem = new BrunoTreeItem(
-                            path,
-                            isFile,
-                            isFile
-                                ? getSequenceForFile(collection, path)
-                                : getSequenceForFolder(
-                                      collection.getRootDirectory(),
-                                      path
-                                  )
-                        );
+                            const treeItem = new BrunoTreeItem(
+                                path,
+                                isFile,
+                                isFile
+                                    ? await getSequenceForFile(collection, path)
+                                    : await getSequenceForFolder(
+                                          collection.getRootDirectory(),
+                                          path
+                                      )
+                            );
 
-                        return treeItem;
-                    })
+                            return treeItem;
+                        })
+                )
             );
         }
     }

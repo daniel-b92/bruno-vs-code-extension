@@ -17,13 +17,13 @@ import { Uri } from "vscode";
 import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDiagnosticsHelper";
 import { checkFolderSequenceInMetaBlockIsUnique } from "./checkFolderSequenceInMetaBlockIsUnique";
 
-export function getMetaBlockSpecificDiagnostics(
+export async function getMetaBlockSpecificDiagnostics(
     itemProvider: CollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
     documentUri: Uri,
     documentHelper: TextDocumentHelper,
     metaBlock: Block
-): (DiagnosticWithCode | undefined)[] {
+): Promise<(DiagnosticWithCode | undefined)[]> {
     const castedMetaBlock = castBlockToDictionaryBlock(metaBlock);
     const metaBlockKeys = [MetaBlockKey.Name, MetaBlockKey.Sequence];
 
@@ -62,7 +62,7 @@ export function getMetaBlockSpecificDiagnostics(
             : undefined,
     ];
 
-    for (const results of provideRelatedFilesDiagnosticsForMetaBlock(
+    for (const results of await provideRelatedFilesDiagnosticsForMetaBlock(
         itemProvider,
         metaBlock,
         documentUri,
@@ -74,16 +74,18 @@ export function getMetaBlockSpecificDiagnostics(
     return diagnostics;
 }
 
-function provideRelatedFilesDiagnosticsForMetaBlock(
+async function provideRelatedFilesDiagnosticsForMetaBlock(
     itemProvider: CollectionItemProvider,
     metaBlock: Block,
     documentUri: Uri,
     relatedRequestsHelper: RelatedFilesDiagnosticsHelper
-): {
-    uri: Uri;
-    result: DiagnosticWithCode;
-}[] {
-    const { code, toAdd } = checkFolderSequenceInMetaBlockIsUnique(
+): Promise<
+    {
+        uri: Uri;
+        result: DiagnosticWithCode;
+    }[]
+> {
+    const { code, toAdd } = await checkFolderSequenceInMetaBlockIsUnique(
         itemProvider,
         metaBlock,
         documentUri

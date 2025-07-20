@@ -1,14 +1,16 @@
-import { existsSync, lstatSync } from "fs";
 import { basename } from "path";
+import { checkIfPathExistsAsync } from "../../../shared";
+import { promisify } from "util";
+import { lstat } from "fs";
 
-export function validateNewItemNameIsUnique(
+export async function validateNewItemNameIsUnique(
     newItemPath: string,
     originalItemPath?: string
 ) {
-    return existsSync(newItemPath) &&
+    return (await checkIfPathExistsAsync(newItemPath)) &&
         (!originalItemPath || newItemPath != originalItemPath)
         ? `${
-              lstatSync(newItemPath).isFile() ? "File" : "Folder"
+              (await promisify(lstat)(newItemPath)).isFile() ? "File" : "Folder"
           } with name '${basename(newItemPath)}' already exists`
         : undefined;
 }

@@ -23,6 +23,8 @@ const config = {
         fs: "commonjs fs",
         path: "commonjs path",
         child_process: "commonjs child_process",
+        util: "commonjs util",
+        glob: "commonjs glob"
     },
     resolve: {
         // support reading TypeScript and JavaScript files, 📖 -> https://github.com/TypeStrong/ts-loader

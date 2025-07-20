@@ -1,9 +1,12 @@
-import { readdirSync } from "fs";
+import { readdir } from "fs";
 import { doesFileNameMatchFolderSettingsFileName } from "../../..";
 import { resolve } from "path";
+import { promisify } from "util";
 
-export function getFolderSettingsFilePath(folderPath: string) {
-    const settingsFileName = readdirSync(folderPath).find(
+export async function getFolderSettingsFilePath(folderPath: string) {
+    const childItems = await promisify(readdir)(folderPath);
+
+    const settingsFileName = childItems.find(
         doesFileNameMatchFolderSettingsFileName
     );
 

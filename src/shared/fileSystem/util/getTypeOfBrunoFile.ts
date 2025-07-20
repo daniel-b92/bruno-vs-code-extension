@@ -5,14 +5,14 @@ import {
     getExtensionForRequestFiles,
     doesFileNameMatchFolderSettingsFileName,
     normalizeDirectoryPath,
+    checkIfPathExistsAsync,
 } from "../..";
-import { existsSync } from "fs";
 
-export function getTypeOfBrunoFile(
+export async function getTypeOfBrunoFile(
     collectionsToSearch: Collection[],
     path: string
-): BrunoFileType | undefined {
-    if (!existsSync(path)) {
+): Promise<BrunoFileType | undefined> {
+    if (!(await checkIfPathExistsAsync(path))) {
         return undefined;
     }
 

@@ -1,22 +1,24 @@
-import { existsSync, lstatSync, readFileSync } from "fs";
+import { lstat, readFile } from "fs";
 import {
+    checkIfPathExistsAsync,
     getExtensionForRequestFiles,
     getSequenceFieldFromMetaBlock,
     TextDocumentHelper,
 } from "../../..";
 import { extname } from "path";
+import { promisify } from "util";
 
-export function parseSequenceFromMetaBlock(filePath: string) {
+export async function parseSequenceFromMetaBlock(filePath: string) {
     if (
-        !existsSync(filePath) ||
-        !lstatSync(filePath).isFile() ||
+        !(await checkIfPathExistsAsync(filePath)) ||
+        !(await promisify(lstat)(filePath)).isFile() ||
         extname(filePath) != getExtensionForRequestFiles()
     ) {
         return undefined;
     }
 
     const sequence = getSequenceFieldFromMetaBlock(
-        new TextDocumentHelper(readFileSync(filePath).toString())
+        new TextDocumentHelper(await promisify(readFile)(filePath, "utf-8"))
     );
 
     return sequence && !isNaN(Number(sequence.value))

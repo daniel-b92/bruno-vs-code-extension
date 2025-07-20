@@ -128,7 +128,7 @@ async function onDidChangeActiveTextEditor(
         editor.document.uri.toString() ==
         window.tabGroups.activeTabGroup.activeTab.input.uri.toString()
     ) {
-        const fileType = getTypeOfBrunoFile(
+        const fileType = await getTypeOfBrunoFile(
             collectionItemProvider.getRegisteredCollections().slice(),
             editor.document.uri.fsPath
         );
@@ -138,7 +138,7 @@ async function onDidChangeActiveTextEditor(
             return;
         }
 
-        fetchDiagnostics(
+        await fetchDiagnostics(
             editor.document.uri,
             editor.document.getText(),
             brunoLangDiagnosticsProvider,
@@ -175,7 +175,7 @@ async function onDidChangeTextDocument(
             window.activeTextEditor?.document.uri.toString() ==
             event.document.uri.toString()
         ) {
-            const fileType = getTypeOfBrunoFile(
+            const fileType = await getTypeOfBrunoFile(
                 collectionItemProvider.getRegisteredCollections().slice(),
                 event.document.uri.fsPath
             );
@@ -184,7 +184,7 @@ async function onDidChangeTextDocument(
                 return;
             }
 
-            fetchDiagnostics(
+            await fetchDiagnostics(
                 event.document.uri,
                 event.document.getText(),
                 brunoLangDiagnosticsProvider,
@@ -212,7 +212,7 @@ async function onWillSaveTextDocument(
     collectionItemProvider: CollectionItemProvider,
     event: TextDocumentWillSaveEvent
 ) {
-    const fileType = getTypeOfBrunoFile(
+    const fileType = await getTypeOfBrunoFile(
         collectionItemProvider.getRegisteredCollections().slice(),
         event.document.uri.fsPath
     );
@@ -263,8 +263,11 @@ function handleDiagnosticUpdatesOnFileDeletion(
     collectionItemProvider: CollectionItemProvider,
     diagnosticCollection: DiagnosticCollection
 ) {
-    return collectionItemProvider.subscribeToUpdates()(
-        ({ data: { item }, updateType }) => {
+    return collectionItemProvider.subscribeToUpdates()((updates) => {
+        for (const {
+            data: { item },
+            updateType,
+        } of updates) {
             if (
                 updateType == FileChangeType.Deleted &&
                 item instanceof CollectionFile &&
@@ -286,17 +289,17 @@ function handleDiagnosticUpdatesOnFileDeletion(
                 });
             }
         }
-    );
+    });
 }
 
-function fetchDiagnostics(
+async function fetchDiagnostics(
     uri: Uri,
     content: string,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     brunoFileType: BrunoFileType
 ) {
     if (brunoFileType == BrunoFileType.RequestFile) {
-        brunoLangDiagnosticsProvider.provideDiagnosticsForRequestFile(
+        await brunoLangDiagnosticsProvider.provideDiagnosticsForRequestFile(
             uri,
             content
         );
@@ -306,7 +309,7 @@ function fetchDiagnostics(
             content
         );
     } else if (brunoFileType == BrunoFileType.FolderSettingsFile) {
-        brunoLangDiagnosticsProvider.provideDiagnosticsForFolderSettingsFile(
+        await brunoLangDiagnosticsProvider.provideDiagnosticsForFolderSettingsFile(
             uri,
             content
         );

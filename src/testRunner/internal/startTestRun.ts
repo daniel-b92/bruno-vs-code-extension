@@ -1,5 +1,4 @@
 import { showHtmlReport } from "./showHtmlReport";
-import { existsSync } from "fs";
 import {
     EventEmitter,
     TestController,
@@ -15,6 +14,7 @@ import { dirname, extname, isAbsolute, resolve } from "path";
 import { runTestStructure } from "./runTestStructure";
 import { QueuedTest, TestRunQueue } from "./testRunQueue";
 import {
+    checkIfPathExistsAsync,
     Collection,
     CollectionItemProvider,
     getLinkToUserSetting,
@@ -84,7 +84,7 @@ export const startTestRun = async (
                 ) as Collection
             ).getRootDirectory();
 
-            const htmlReportPath = getHtmlReportPath(collectionRootDir);
+            const htmlReportPath = await getHtmlReportPath(collectionRootDir);
 
             run.token.onCancellationRequested(() => {
                 abortEmitter.fire();
@@ -112,9 +112,9 @@ export const startTestRun = async (
                 didRun &&
                 passed != undefined &&
                 shouldShowHtmlReport(passed) &&
-                existsSync(htmlReportPath)
+                (await checkIfPathExistsAsync(htmlReportPath))
             ) {
-                showHtmlReport(htmlReportPath, path);
+                await showHtmlReport(htmlReportPath, path);
             }
 
             nextItemToRun = queue.getNextTestThatCanStartRunning(toRun);
@@ -212,7 +212,7 @@ function gatherTestItems(collection: vscodeTestItemCollection) {
     return items;
 }
 
-const getHtmlReportPath = (collectionRootDir: string) => {
+const getHtmlReportPath = async (collectionRootDir: string) => {
     const reportPathConfigKey = "bru-as-code.htmlReportPath";
     const defaultFileName = "results.html";
     const fallbackAbsolutePath = resolve(
@@ -230,11 +230,16 @@ const getHtmlReportPath = (collectionRootDir: string) => {
             fallbackAbsolutePath
         );
         return fallbackAbsolutePath;
-    } else if (isAbsolute(configValue) && existsSync(dirname(configValue))) {
+    } else if (
+        isAbsolute(configValue) &&
+        (await checkIfPathExistsAsync(dirname(configValue)))
+    ) {
         return configValue;
     } else if (
         !isAbsolute(configValue) &&
-        existsSync(dirname(resolve(collectionRootDir, configValue)))
+        (await checkIfPathExistsAsync(
+            dirname(resolve(collectionRootDir, configValue))
+        ))
     ) {
         return resolve(collectionRootDir, configValue);
     } else {

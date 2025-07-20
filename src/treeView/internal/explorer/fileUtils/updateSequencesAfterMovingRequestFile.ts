@@ -8,7 +8,7 @@ import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { normalizeSequencesForRequestFiles } from "./normalizeSequencesForRequestFiles";
 import { replaceSequenceForFile } from "./replaceSequenceForFile";
 
-export function updateSequencesAfterMovingRequestFile(
+export async function updateSequencesAfterMovingRequestFile(
     itemProvider: CollectionItemProvider,
     target: BrunoTreeItem,
     targetDirectory: string,
@@ -19,21 +19,23 @@ export function updateSequencesAfterMovingRequestFile(
     const newSequence = target.isFile
         ? target.getSequence()
             ? (target.getSequence() as number) + 1
-            : getMaxSequenceForRequests(itemProvider, targetDirectory) + 1
-        : getMaxSequenceForRequests(itemProvider, targetDirectory) + 1;
+            : (await getMaxSequenceForRequests(itemProvider, targetDirectory)) +
+              1
+        : (await getMaxSequenceForRequests(itemProvider, targetDirectory)) + 1;
 
-    replaceSequenceForFile(newPath, newSequence);
+    await replaceSequenceForFile(newPath, newSequence);
 
     if (target.isFile) {
-        getSequencesForRequests(itemProvider, targetDirectory)
-            .filter(
-                ({ path, sequence }) =>
-                    path != newPath && sequence >= newSequence
-            )
-            .forEach(({ path, sequence: initialSequence }) => {
-                replaceSequenceForFile(path, initialSequence + 1);
-            });
+        const filtered = (
+            await getSequencesForRequests(itemProvider, targetDirectory)
+        ).filter(
+            ({ path, sequence }) => path != newPath && sequence >= newSequence
+        );
+
+        for (const { path, sequence: initialSequence } of filtered) {
+            await replaceSequenceForFile(path, initialSequence + 1);
+        }
     }
 
-    normalizeSequencesForRequestFiles(itemProvider, targetDirectory);
+    await normalizeSequencesForRequestFiles(itemProvider, targetDirectory);
 }

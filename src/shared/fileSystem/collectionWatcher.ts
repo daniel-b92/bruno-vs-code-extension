@@ -3,13 +3,16 @@ import {
     ExtensionContext,
     FileSystemWatcher,
     RelativePattern,
+    Uri,
     workspace,
 } from "vscode";
 import { FileChangedEvent, FileChangeType } from "./fileChangesDefinitions";
 import { basename } from "path";
 import { normalizeDirectoryPath } from "./util/normalizeDirectoryPath";
-import { lstatSync } from "fs";
 import { OutputChannelLogger } from "../logging/outputChannelLogger";
+import { lstat } from "fs";
+import { promisify } from "util";
+import { glob } from "glob";
 
 export class CollectionWatcher {
     constructor(
@@ -49,35 +52,42 @@ export class CollectionWatcher {
         const watcher = workspace.createFileSystemWatcher(testPattern);
 
         watcher.onDidCreate(async (uri) => {
-            this.fileChangedEmitter.fire({
-                uri,
-                changeType: FileChangeType.Created,
-            });
+            const path = uri.fsPath;
+            const isFile = (await promisify(lstat)(path)).isFile();
 
-            this.logger?.debug(
-                `${this.preMessageForLogging} Handling file system creation event for path '${uri.fsPath}'.`
+            if (isFile) {
+                this.logger?.debug(
+                    `${this.preMessageForLogging} Creation event for file '${path}'.`
+                );
+
+                this.fileChangedEmitter.fire({
+                    uri,
+                    changeType: FileChangeType.Created,
+                });
+
+                return;
+            }
+
+            const descendants = await glob(
+                `${
+                    path == normalizeDirectoryPath(path)
+                        ? path.substring(0, path.length - 1)
+                        : path
+                }/**/*`
             );
 
-            const path = uri.fsPath;
+            this.logger?.debug(
+                `${this.preMessageForLogging} Creation event for directory '${uri.fsPath}' with a total of ${descendants.length} descendants.`
+            );
 
-            if (lstatSync(path).isDirectory()) {
-                const descendants = await workspace.findFiles(
-                    new RelativePattern(path, "**/*")
-                );
-
-                this.logger?.debug(
-                    `${this.preMessageForLogging} Created item was a directory. Firing events for all  '${descendants.length}}' descendants that were created, too.`
-                );
-
-                // When renaming a directory with descendant items, the file system watcher only sends a notification that a directory has been created.
-                // It shouldn't hurt to additionally send a notification for each descendant item here (even if it may in some cases be sent multiple times, then).
-                descendants.forEach((uri) => {
-                    this.fileChangedEmitter.fire({
-                        uri,
-                        changeType: FileChangeType.Created,
-                    });
+            // When renaming a directory with descendant items, the file system watcher only sends a notification that a directory has been created.
+            // It shouldn't hurt to additionally send a notification for each descendant item here (even if it may in some cases be sent multiple times, then).
+            [path].concat(descendants).forEach((path) => {
+                this.fileChangedEmitter.fire({
+                    uri: Uri.file(path),
+                    changeType: FileChangeType.Created,
                 });
-            }
+            });
         });
         watcher.onDidChange((uri) => {
             this.logger?.debug(
