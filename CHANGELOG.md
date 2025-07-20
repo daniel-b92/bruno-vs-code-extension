@@ -2,6 +2,8 @@
 
 ### Fixes / Improvements
 - Make all file system operations async (for reducing waiting time before being able to continue with other actions for cases where a file system operation takes longer for some reason).
+- update all npm packages
+- bump Bruno CLI version used for executing tests via npx
 
 ## [0.13.1] (2025-07-16)
 
