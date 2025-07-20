@@ -1,4 +1,4 @@
-## [Unreleased] (2025-07-20)
+## [0.14.0] (2025-07-20)
 
 ### Features
 - Provide diagnostics for collectons settings files
