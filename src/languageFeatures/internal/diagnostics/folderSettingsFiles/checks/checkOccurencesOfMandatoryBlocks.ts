@@ -4,9 +4,9 @@ import {
     Block,
     RequestFileBlockName,
     mapRange,
-} from "../../../../shared";
-import { DiagnosticWithCode } from "../definitions";
-import { NonBlockSpecificDiagnosticCode } from "../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+} from "../../../../../shared";
+import { DiagnosticWithCode } from "../../definitions";
+import { NonBlockSpecificDiagnosticCode } from "../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkOccurencesOfMandatoryBlocks(
     document: TextDocumentHelper,

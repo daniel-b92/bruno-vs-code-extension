@@ -9,9 +9,9 @@ import {
     getFieldFromDictionaryBlock,
     castBlockToDictionaryBlock,
     AuthModeBlockKey,
-} from "../../../../shared";
-import { DiagnosticWithCode } from "../definitions";
-import { NonBlockSpecificDiagnosticCode } from "../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+} from "../../../../../../shared";
+import { DiagnosticWithCode } from "../../../definitions";
+import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkAuthBlockTypeFromAuthModeBlockExists(
     documentUri: Uri,

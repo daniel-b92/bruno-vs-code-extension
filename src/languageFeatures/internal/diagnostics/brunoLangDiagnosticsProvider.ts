@@ -1,43 +1,9 @@
 import { DiagnosticCollection, Uri } from "vscode";
-import {
-    CollectionItemProvider,
-    EnvironmentFileBlockName,
-    FolderSettingsSpecificBlock,
-    getAllMethodBlocks,
-    getValidBlockNamesForFolderSettingsFiles,
-    isAuthBlock,
-    isBodyBlock,
-    parseBruFile,
-    RequestFileBlockName,
-    shouldBeDictionaryBlock,
-    TextDocumentHelper,
-} from "../../../shared";
-import { checkOccurencesOfMandatoryBlocks as checkOccurencesOfMandatoryBlocksForRequestFile } from "./requestFiles/checks/multipleBlocks/checkOccurencesOfMandatoryBlocks";
-import { checkThatNoBlocksAreDefinedMultipleTimes } from "./shared/checks/multipleBlocks/checkThatNoBlocksAreDefinedMultipleTimes";
-import { checkThatNoTextExistsOutsideOfBlocks } from "./shared/checks/multipleBlocks/checkThatNoTextExistsOutsideOfBlocks";
-import { checkAtMostOneAuthBlockExists } from "./shared/checks/multipleBlocks/checkAtMostOneAuthBlockExists";
-import { checkAtMostOneBodyBlockExists } from "./requestFiles/checks/multipleBlocks/checkAtMostOneBodyBlockExists";
+import { CollectionItemProvider } from "../../../shared";
 import { RelatedFilesDiagnosticsHelper } from "./shared/helpers/relatedFilesDiagnosticsHelper";
-import { checkBodyBlockTypeFromMethodBlockExists } from "./requestFiles/checks/multipleBlocks/checkBodyBlockTypeFromMethodBlockExists";
-import { checkAuthBlockTypeFromMethodBlockExists } from "./requestFiles/checks/multipleBlocks/checkAuthBlockTypeFromMethodBlockExists";
-import { checkNoBlocksHaveUnknownNames } from "./shared/checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
-import { checkDictionaryBlocksHaveDictionaryStructure } from "./shared/checks/multipleBlocks/checkDictionaryBlocksHaveDictionaryStructure";
-import { DiagnosticWithCode } from "./definitions";
-import { checkEitherAssertOrTestsBlockExists } from "./requestFiles/checks/multipleBlocks/checkEitherAssertOrTestsBlockExists";
-import { checkBlocksAreSeparatedBySingleEmptyLine } from "./shared/checks/multipleBlocks/checkBlocksAreSeparatedBySingleEmptyLine";
-import { getMetaBlockSpecificDiagnostics as getMetaBlockSpecificDiagnosticsForRequestFile } from "./requestFiles/getMetaBlockSpecificDiagnostics";
-import { getMethodBlockSpecificDiagnostics } from "./requestFiles/getMethodBlockSpecificDiagnostics";
-import { getAuthBlockSpecificDiagnostics } from "./getAuthBlockSpecificDiagnostics";
-import { checkUrlFromMethodBlockMatchesQueryParamsBlock } from "./requestFiles/checks/multipleBlocks/checkUrlFromMethodBlockMatchesQueryParamsBlock";
-import { checkUrlFromMethodBlockMatchesPathParamsBlock } from "./requestFiles/checks/multipleBlocks/checkUrlFromMethodBlockMatchesPathParamsBlock";
-import { checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests } from "./requestFiles/checks/multipleBlocks/checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests";
-import { checkArrayBlocksHaveArrayStructure } from "./shared/checks/multipleBlocks/checkArrayBlocksHaveArrayStructure";
-import { getRequestBodyBlockSpecificDiagnostics } from "./requestFiles/getRequestBodyBlockSpecificDiagnostics";
-import { checkOccurencesOfMandatoryBlocks as checkOccurencesOfMandatoryBlocksForFolderSettingsFile } from "./folderSettingsFiles/checkOccurencesOfMandatoryBlocks";
-import { getMetaBlockSpecificDiagnostics as getMetaBlockSpecificDiagnosticsForFolderSettings } from "./folderSettingsFiles/getMetaBlockSpecificDiagnostics";
-import { getAuthModeBlockSpecificDiagnostics } from "./folderSettingsFiles/getAuthModeBlockSpecificDiagnostics";
-import { checkDictionaryBlocksAreNotEmpty } from "./shared/checks/multipleBlocks/checkDictionaryBlocksAreNotEmpty";
-import { checkAuthBlockTypeFromAuthModeBlockExists } from "./folderSettingsFiles/checkAuthBlockTypeFromAuthModeBlockExists";
+import { determineDiagnosticsForFolderSettingsFile } from "./folderSettingsFiles/determineDiagnosticsForFolderSettingsFile";
+import { determineDiagnosticsForRequestFile } from "./requestFiles/determineDiagnosticsForRequestFile";
+import { determineDiagnosticsForEnvironmentFile } from "./environmentFiles/determineDiagnosticsForEnvironmentFile";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -58,9 +24,11 @@ export class BrunoLangDiagnosticsProvider {
         documentUri: Uri,
         documentText: string
     ) {
-        const newDiagnostics = await this.determineDiagnosticsForRequestFile(
+        const newDiagnostics = await determineDiagnosticsForRequestFile(
             documentUri,
-            documentText
+            documentText,
+            this.itemProvider,
+            this.relatedRequestsHelper
         );
         this.diagnosticCollection.set(documentUri, newDiagnostics);
     }
@@ -69,7 +37,7 @@ export class BrunoLangDiagnosticsProvider {
         documentUri: Uri,
         documentText: string
     ) {
-        const newDiagnostics = this.determineDiagnosticsForEnvironmentFile(
+        const newDiagnostics = determineDiagnosticsForEnvironmentFile(
             documentUri,
             documentText
         );
@@ -80,246 +48,13 @@ export class BrunoLangDiagnosticsProvider {
         documentUri: Uri,
         documentText: string
     ) {
-        const newDiagnostics =
-            await this.determineDiagnosticsForFolderSettingsFile(
-                documentUri,
-                documentText
-            );
+        const newDiagnostics = await determineDiagnosticsForFolderSettingsFile(
+            documentUri,
+            documentText,
+            this.itemProvider,
+            this.relatedRequestsHelper
+        );
+
         this.diagnosticCollection.set(documentUri, newDiagnostics);
-    }
-
-    private async determineDiagnosticsForRequestFile(
-        documentUri: Uri,
-        documentText: string
-    ): Promise<DiagnosticWithCode[]> {
-        const document = new TextDocumentHelper(documentText);
-        const { blocks, textOutsideOfBlocks } = parseBruFile(document);
-        const blocksThatShouldBeDictionaryBlocks = blocks.filter(({ name }) =>
-            shouldBeDictionaryBlock(name)
-        );
-
-        const results: DiagnosticWithCode[] = [];
-
-        this.addToResults(
-            results,
-            ...checkOccurencesOfMandatoryBlocksForRequestFile(document, blocks),
-            checkThatNoBlocksAreDefinedMultipleTimes(documentUri, blocks),
-            checkThatNoTextExistsOutsideOfBlocks(
-                documentUri,
-                textOutsideOfBlocks
-            ),
-            checkAtMostOneAuthBlockExists(documentUri, blocks),
-            checkAtMostOneBodyBlockExists(documentUri, blocks),
-            checkAuthBlockTypeFromMethodBlockExists(documentUri, blocks),
-            checkBodyBlockTypeFromMethodBlockExists(documentUri, blocks),
-            checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
-                documentUri,
-                blocks
-            ),
-            checkNoBlocksHaveUnknownNames(
-                documentUri,
-                blocks,
-                Object.values(RequestFileBlockName) as string[]
-            ),
-            checkDictionaryBlocksHaveDictionaryStructure(
-                documentUri,
-                blocksThatShouldBeDictionaryBlocks
-            ),
-            checkDictionaryBlocksAreNotEmpty(
-                documentUri,
-                blocksThatShouldBeDictionaryBlocks
-            ),
-            checkUrlFromMethodBlockMatchesQueryParamsBlock(documentUri, blocks),
-            checkUrlFromMethodBlockMatchesPathParamsBlock(documentUri, blocks),
-            checkEitherAssertOrTestsBlockExists(document, blocks),
-            checkBlocksAreSeparatedBySingleEmptyLine(
-                documentUri,
-                textOutsideOfBlocks
-            )
-        );
-
-        const metaBlocks = blocks.filter(
-            ({ name }) => name == RequestFileBlockName.Meta
-        );
-
-        if (metaBlocks.length == 1) {
-            this.addToResults(
-                results,
-                ...(await getMetaBlockSpecificDiagnosticsForRequestFile(
-                    this.itemProvider,
-                    this.relatedRequestsHelper,
-                    documentUri,
-                    document,
-                    metaBlocks[0]
-                ))
-            );
-        }
-
-        const methodBlocks = getAllMethodBlocks(blocks);
-
-        if (methodBlocks.length == 1) {
-            this.addToResults(
-                results,
-                ...getMethodBlockSpecificDiagnostics(methodBlocks[0])
-            );
-        }
-
-        const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
-
-        if (authBlocks.length == 1) {
-            this.addToResults(
-                results,
-                ...getAuthBlockSpecificDiagnostics(authBlocks[0])
-            );
-        }
-
-        const bodyBlocks = blocks.filter(({ name }) => isBodyBlock(name));
-
-        if (bodyBlocks.length == 1) {
-            this.addToResults(
-                results,
-                ...getRequestBodyBlockSpecificDiagnostics(bodyBlocks[0])
-            );
-        }
-
-        return results;
-    }
-
-    private determineDiagnosticsForEnvironmentFile(
-        documentUri: Uri,
-        documentText: string
-    ): DiagnosticWithCode[] {
-        const document = new TextDocumentHelper(documentText);
-
-        const { blocks, textOutsideOfBlocks } = parseBruFile(document);
-        const blocksThatShouldBeDictionaryBlocks = blocks.filter(
-            ({ name }) => name == EnvironmentFileBlockName.Vars
-        );
-
-        const results: DiagnosticWithCode[] = [];
-
-        this.addToResults(
-            results,
-            checkThatNoBlocksAreDefinedMultipleTimes(documentUri, blocks),
-            checkThatNoTextExistsOutsideOfBlocks(
-                documentUri,
-                textOutsideOfBlocks
-            ),
-            checkNoBlocksHaveUnknownNames(
-                documentUri,
-                blocks,
-                Object.values(EnvironmentFileBlockName)
-            ),
-            checkArrayBlocksHaveArrayStructure(
-                documentUri,
-                blocks.filter(
-                    ({ name }) => name == EnvironmentFileBlockName.SecretVars
-                )
-            ),
-            checkDictionaryBlocksHaveDictionaryStructure(
-                documentUri,
-                blocksThatShouldBeDictionaryBlocks
-            ),
-            checkDictionaryBlocksAreNotEmpty(
-                documentUri,
-                blocksThatShouldBeDictionaryBlocks
-            )
-        );
-
-        return results;
-    }
-
-    private async determineDiagnosticsForFolderSettingsFile(
-        documentUri: Uri,
-        documentText: string
-    ): Promise<DiagnosticWithCode[]> {
-        const document = new TextDocumentHelper(documentText);
-
-        const { blocks, textOutsideOfBlocks } = parseBruFile(document);
-        const blocksThatShouldBeDictionaryBlocks = blocks.filter(
-            ({ name }) =>
-                shouldBeDictionaryBlock(name) ||
-                name == FolderSettingsSpecificBlock.AuthMode
-        );
-
-        const results: DiagnosticWithCode[] = [];
-
-        this.addToResults(
-            results,
-            checkOccurencesOfMandatoryBlocksForFolderSettingsFile(
-                document,
-                blocks
-            ),
-            checkThatNoBlocksAreDefinedMultipleTimes(documentUri, blocks),
-            checkThatNoTextExistsOutsideOfBlocks(
-                documentUri,
-                textOutsideOfBlocks
-            ),
-            checkAuthBlockTypeFromAuthModeBlockExists(documentUri, blocks),
-            checkAtMostOneAuthBlockExists(documentUri, blocks),
-            checkNoBlocksHaveUnknownNames(
-                documentUri,
-                blocks,
-                Object.values(getValidBlockNamesForFolderSettingsFiles())
-            ),
-            checkDictionaryBlocksHaveDictionaryStructure(
-                documentUri,
-                blocksThatShouldBeDictionaryBlocks
-            ),
-            checkDictionaryBlocksAreNotEmpty(
-                documentUri,
-                blocksThatShouldBeDictionaryBlocks
-            ),
-            checkBlocksAreSeparatedBySingleEmptyLine(
-                documentUri,
-                textOutsideOfBlocks
-            )
-        );
-
-        const metaBlocks = blocks.filter(
-            ({ name }) => name == RequestFileBlockName.Meta
-        );
-
-        if (metaBlocks.length == 1) {
-            this.addToResults(
-                results,
-                ...(await getMetaBlockSpecificDiagnosticsForFolderSettings(
-                    this.itemProvider,
-                    this.relatedRequestsHelper,
-                    documentUri,
-                    document,
-                    metaBlocks[0]
-                ))
-            );
-        }
-
-        const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
-
-        if (authBlocks.length == 1) {
-            this.addToResults(
-                results,
-                ...getAuthBlockSpecificDiagnostics(authBlocks[0])
-            );
-        }
-
-        const authModeBlocks = blocks.filter(
-            ({ name }) => name == FolderSettingsSpecificBlock.AuthMode
-        );
-
-        if (authModeBlocks.length == 1) {
-            this.addToResults(
-                results,
-                ...getAuthModeBlockSpecificDiagnostics(authModeBlocks[0])
-            );
-        }
-
-        return results;
-    }
-
-    private addToResults(
-        results: DiagnosticWithCode[],
-        ...maybeDiagnostics: (DiagnosticWithCode | undefined)[]
-    ) {
-        results.push(...maybeDiagnostics.filter((val) => val != undefined));
     }
 }
