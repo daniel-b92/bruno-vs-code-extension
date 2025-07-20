@@ -5,20 +5,20 @@ import {
     isAuthBlock,
     Block,
     mapRange,
-    FolderSettingsSpecificBlock,
+    SettingsFileSpecificBlock,
     getFieldFromDictionaryBlock,
     castBlockToDictionaryBlock,
     AuthModeBlockKey,
-} from "../../../../shared";
-import { DiagnosticWithCode } from "../definitions";
-import { NonBlockSpecificDiagnosticCode } from "../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+} from "../../../../../../shared";
+import { DiagnosticWithCode } from "../../../definitions";
+import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkAuthBlockTypeFromAuthModeBlockExists(
     documentUri: Uri,
     blocks: Block[]
 ): DiagnosticWithCode | undefined {
     const authModeBlocks = blocks.filter(
-        ({ name }) => name == FolderSettingsSpecificBlock.AuthMode
+        ({ name }) => name == SettingsFileSpecificBlock.AuthMode
     );
     const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
 

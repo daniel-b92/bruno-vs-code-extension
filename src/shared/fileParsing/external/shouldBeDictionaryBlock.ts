@@ -6,7 +6,7 @@ import {
     isVarsBlockInRequestFile,
     isVarsBlockInEnvironmentFile,
     EnvironmentFileBlockName,
-    FolderSettingsSpecificBlock,
+    SettingsFileSpecificBlock,
 } from "../..";
 
 export function shouldBeDictionaryBlock(blockName: string) {
@@ -14,7 +14,7 @@ export function shouldBeDictionaryBlock(blockName: string) {
         Object.values(RequestFileBlockName) as string[]
     ).concat(
         (Object.values(EnvironmentFileBlockName) as string[]).concat(
-            Object.values(FolderSettingsSpecificBlock)
+            Object.values(SettingsFileSpecificBlock)
         )
     );
 
@@ -38,6 +38,6 @@ export function shouldBeDictionaryBlock(blockName: string) {
             ] as string[]
         ).includes(blockName) ||
         isVarsBlockInEnvironmentFile(blockName) ||
-        blockName == FolderSettingsSpecificBlock.AuthMode
+        blockName == SettingsFileSpecificBlock.AuthMode
     );
 }

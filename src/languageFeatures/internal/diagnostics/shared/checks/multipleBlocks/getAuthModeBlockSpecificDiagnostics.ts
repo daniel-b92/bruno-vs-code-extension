@@ -1,13 +1,13 @@
-import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
-import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
-import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "../shared/checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
-import { DiagnosticWithCode } from "../definitions";
+import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
+import { checkNoKeysAreMissingForDictionaryBlock } from "../singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
+import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "../singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
+import { DiagnosticWithCode } from "../../../definitions";
 import {
     Block,
     castBlockToDictionaryBlock,
     AuthModeBlockKey,
-} from "../../../../shared";
-import { RelevantWithinAuthModeBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinAuthModeBlockDiagnosticCodeEnum";
+} from "../../../../../../shared";
+import { RelevantWithinAuthModeBlockDiagnosticCode } from "../../diagnosticCodes/relevantWithinAuthModeBlockDiagnosticCodeEnum";
 
 export function getAuthModeBlockSpecificDiagnostics(
     authBlock: Block

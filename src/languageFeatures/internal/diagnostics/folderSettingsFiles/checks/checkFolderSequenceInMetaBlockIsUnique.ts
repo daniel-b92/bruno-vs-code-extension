@@ -14,12 +14,12 @@ import {
     getTypeOfBrunoFile,
     BrunoFileType,
     filterAsync,
-} from "../../../../shared";
+} from "../../../../../shared";
 import { basename, dirname } from "path";
 import { readFile } from "fs";
-import { DiagnosticWithCode } from "../definitions";
-import { RelevantWithinMetaBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
-import { isSequenceValid } from "../shared/util/isSequenceValid";
+import { DiagnosticWithCode } from "../../definitions";
+import { RelevantWithinMetaBlockDiagnosticCode } from "../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
+import { isSequenceValid } from "../../shared/util/isSequenceValid";
 import { promisify } from "util";
 
 export async function checkFolderSequenceInMetaBlockIsUnique(
