@@ -4,9 +4,8 @@ import {
     SettingsFileSpecificBlock,
 } from "../..";
 
-export function getValidBlockNamesForFolderSettingsFiles(): string[] {
+export function getValidBlockNamesForCollectionSettingsFiles(): string[] {
     return [
-        RequestFileBlockName.Meta,
         RequestFileBlockName.Headers,
         SettingsFileSpecificBlock.AuthMode,
         ...Object.values(AuthBlockName),
@@ -15,6 +14,5 @@ export function getValidBlockNamesForFolderSettingsFiles(): string[] {
         RequestFileBlockName.PreRequestScript,
         RequestFileBlockName.PostResponseScript,
         RequestFileBlockName.Tests,
-        RequestFileBlockName.Docs,
     ];
 }

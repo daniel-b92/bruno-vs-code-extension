@@ -76,9 +76,10 @@ export * from "./languageUtils/commonBlocks/getExpectedUrlQueryParamsForQueryPar
 export * from "./languageUtils/commonBlocks/getPathParamsFromPathParamsBlock";
 export * from "./languageUtils/commonBlocks/getDefaultIndentationForDictionaryBlockFields";
 export * from "./languageUtils/commonBlocks/getFieldFromDictionaryBlock";
-export * from "./languageUtils/folderSettingsFiles/folderSettingsSpecificBlockEnum";
+export * from "./languageUtils/commonBlocks/settingsFileSpecificBlockEnum";
 export * from "./languageUtils/folderSettingsFiles/getValidBlockNamesForFolderSettingsFiles";
-export * from "./languageUtils/folderSettingsFiles/authModeBlock/authModeBlockKeyEnum";
+export * from "./languageUtils/collectionSettingsFiles/getValidBlockNamesForCollectionSettingsFiles";
+export * from "./languageUtils/commonBlocks/authModeBlock/authModeBlockKeyEnum";
 
 // test file writing
 export * from "./testFileWriting/addMetaBlock";

@@ -4,10 +4,8 @@ import {
     parseBruFile,
     shouldBeDictionaryBlock,
     SettingsFileSpecificBlock,
-    getValidBlockNamesForFolderSettingsFiles,
-    RequestFileBlockName,
     isAuthBlock,
-    CollectionItemProvider,
+    getValidBlockNamesForCollectionSettingsFiles,
 } from "../../../../shared";
 import { DiagnosticWithCode } from "../definitions";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
@@ -20,19 +18,15 @@ import { checkNoBlocksHaveUnknownNames } from "../shared/checks/multipleBlocks/c
 import { checkThatNoBlocksAreDefinedMultipleTimes } from "../shared/checks/multipleBlocks/checkThatNoBlocksAreDefinedMultipleTimes";
 import { checkThatNoTextExistsOutsideOfBlocks } from "../shared/checks/multipleBlocks/checkThatNoTextExistsOutsideOfBlocks";
 import { getAuthModeBlockSpecificDiagnostics } from "../shared/checks/multipleBlocks/getAuthModeBlockSpecificDiagnostics";
-import { checkOccurencesOfMandatoryBlocks } from "./checks/checkOccurencesOfMandatoryBlocks";
-import { getMetaBlockSpecificDiagnostics } from "./util/getMetaBlockSpecificDiagnostics";
-import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDiagnosticsHelper";
 
-export async function determineDiagnosticsForFolderSettingsFile(
+export function determineDiagnosticsForCollectionSettingsFile(
     documentUri: Uri,
-    documentText: string,
-    itemProvider: CollectionItemProvider,
-    relatedFilesHelper: RelatedFilesDiagnosticsHelper
-): Promise<DiagnosticWithCode[]> {
+    documentText: string
+): DiagnosticWithCode[] {
     const document = new TextDocumentHelper(documentText);
 
     const { blocks, textOutsideOfBlocks } = parseBruFile(document);
+
     const blocksThatShouldBeDictionaryBlocks = blocks.filter(
         ({ name }) =>
             shouldBeDictionaryBlock(name) ||
@@ -42,7 +36,6 @@ export async function determineDiagnosticsForFolderSettingsFile(
     const results: (DiagnosticWithCode | undefined)[] = [];
 
     results.push(
-        checkOccurencesOfMandatoryBlocks(document, blocks),
         checkThatNoBlocksAreDefinedMultipleTimes(documentUri, blocks),
         checkThatNoTextExistsOutsideOfBlocks(documentUri, textOutsideOfBlocks),
         checkAuthBlockTypeFromAuthModeBlockExists(documentUri, blocks),
@@ -50,7 +43,7 @@ export async function determineDiagnosticsForFolderSettingsFile(
         checkNoBlocksHaveUnknownNames(
             documentUri,
             blocks,
-            Object.values(getValidBlockNamesForFolderSettingsFiles())
+            Object.values(getValidBlockNamesForCollectionSettingsFiles())
         ),
         checkDictionaryBlocksHaveDictionaryStructure(
             documentUri,
@@ -65,22 +58,6 @@ export async function determineDiagnosticsForFolderSettingsFile(
             textOutsideOfBlocks
         )
     );
-
-    const metaBlocks = blocks.filter(
-        ({ name }) => name == RequestFileBlockName.Meta
-    );
-
-    if (metaBlocks.length == 1) {
-        results.push(
-            ...(await getMetaBlockSpecificDiagnostics(
-                itemProvider,
-                relatedFilesHelper,
-                documentUri,
-                document,
-                metaBlocks[0]
-            ))
-        );
-    }
 
     const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
 

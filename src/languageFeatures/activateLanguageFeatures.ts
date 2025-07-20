@@ -313,6 +313,11 @@ async function fetchDiagnostics(
             uri,
             content
         );
+    } else if (brunoFileType == BrunoFileType.CollectionSettingsFile) {
+        brunoLangDiagnosticsProvider.provideDiagnosticsForCollectionSettingsFile(
+            uri,
+            content
+        );
     }
 }
 

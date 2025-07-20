@@ -5,7 +5,7 @@ import {
     isAuthBlock,
     Block,
     mapRange,
-    FolderSettingsSpecificBlock,
+    SettingsFileSpecificBlock,
     getFieldFromDictionaryBlock,
     castBlockToDictionaryBlock,
     AuthModeBlockKey,
@@ -18,7 +18,7 @@ export function checkAuthBlockTypeFromAuthModeBlockExists(
     blocks: Block[]
 ): DiagnosticWithCode | undefined {
     const authModeBlocks = blocks.filter(
-        ({ name }) => name == FolderSettingsSpecificBlock.AuthMode
+        ({ name }) => name == SettingsFileSpecificBlock.AuthMode
     );
     const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
 

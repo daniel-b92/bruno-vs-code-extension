@@ -4,6 +4,7 @@ import { RelatedFilesDiagnosticsHelper } from "./shared/helpers/relatedFilesDiag
 import { determineDiagnosticsForFolderSettingsFile } from "./folderSettingsFiles/determineDiagnosticsForFolderSettingsFile";
 import { determineDiagnosticsForRequestFile } from "./requestFiles/determineDiagnosticsForRequestFile";
 import { determineDiagnosticsForEnvironmentFile } from "./environmentFiles/determineDiagnosticsForEnvironmentFile";
+import { determineDiagnosticsForCollectionSettingsFile } from "./collectionSettingsFiles/determineDiagnosticsForCollectionSettingsFile";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(
@@ -30,6 +31,7 @@ export class BrunoLangDiagnosticsProvider {
             this.itemProvider,
             this.relatedRequestsHelper
         );
+
         this.diagnosticCollection.set(documentUri, newDiagnostics);
     }
 
@@ -41,6 +43,19 @@ export class BrunoLangDiagnosticsProvider {
             documentUri,
             documentText
         );
+
+        this.diagnosticCollection.set(documentUri, newDiagnostics);
+    }
+
+    public provideDiagnosticsForCollectionSettingsFile(
+        documentUri: Uri,
+        documentText: string
+    ) {
+        const newDiagnostics = determineDiagnosticsForCollectionSettingsFile(
+            documentUri,
+            documentText
+        );
+
         this.diagnosticCollection.set(documentUri, newDiagnostics);
     }
 
