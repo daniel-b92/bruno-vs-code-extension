@@ -20,25 +20,25 @@ export class BrunoTreeItemProvider
         private collectionItemProvider: CollectionItemProvider,
         private logger?: OutputChannelLogger
     ) {
-        collectionItemProvider.subscribeToUpdates()(
-            ({ updateType, changedData, data: { item }, remainingEvents }) => {
-                if (
-                    remainingEvents == 0 &&
-                    (updateType == FileChangeType.Deleted ||
+        collectionItemProvider.subscribeToUpdates()((updates) => {
+            if (
+                updates.some(
+                    ({ updateType, changedData }) =>
+                        updateType == FileChangeType.Deleted ||
                         updateType == FileChangeType.Created ||
                         (updateType == FileChangeType.Modified &&
-                            changedData?.sequenceChanged))
-                ) {
-                    this.logger?.debug(
-                        `Triggering update of collection tree view root item due to change event for cached item '${item.getPath()}'.`
-                    );
+                            changedData?.sequenceChanged)
+                )
+            ) {
+                this.logger?.debug(
+                    `Collection tree view root refresh due to events for ${updates.length} items.`
+                );
 
-                    // Always update all items when items have to be deleted from / created for the tree view.
-                    // When only triggering an update for the parent item, there were issues with the refresh mechanism.
-                    this._onDidChangeTreeData.fire(undefined);
-                }
+                // Always update all items when items have to be deleted from / created for the tree view.
+                // When only triggering an update for the parent item, there were issues with the refresh mechanism.
+                this._onDidChangeTreeData.fire(undefined);
             }
-        );
+        });
     }
 
     getTreeItem(element: BrunoTreeItem): vscode.TreeItem {

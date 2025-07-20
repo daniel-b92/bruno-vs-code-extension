@@ -46,8 +46,10 @@ export async function activateRunner(
 
     handleTestTreeUpdates(ctrl, collectionItemProvider, testRunnerDataHelper);
 
-    collectionItemProvider.subscribeToUpdates()(
-        async ({ data: { item: changedItem } }) => {
+    collectionItemProvider.subscribeToUpdates()(async (updates) => {
+        for (const {
+            data: { item: changedItem },
+        } of updates) {
             if (watchingTests.has("ALL")) {
                 await startTestRun(
                     ctrl,
@@ -91,7 +93,7 @@ export async function activateRunner(
                 );
             }
         }
-    );
+    });
 
     const runHandler = async (
         request: TestRunRequest,
@@ -263,13 +265,13 @@ function handleTestTreeUpdates(
     collectionItemProvider: CollectionItemProvider,
     testRunnerDataHelper: TestRunnerDataHelper
 ) {
-    collectionItemProvider.subscribeToUpdates()(
-        async ({
+    collectionItemProvider.subscribeToUpdates()(async (updates) => {
+        for (const {
             collection,
             data: { item, testItem },
             updateType,
             changedData,
-        }) => {
+        } of updates) {
             if (
                 updateType == FileChangeType.Created &&
                 (await isRelevantForTestTree(
@@ -331,7 +333,7 @@ function handleTestTreeUpdates(
                 addCollectionTestItemToTestTree(controller, collection);
             }
         }
-    );
+    });
 }
 
 function addCollectionTestItemToTestTree(

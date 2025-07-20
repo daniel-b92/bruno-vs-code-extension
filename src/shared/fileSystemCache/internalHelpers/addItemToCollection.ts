@@ -20,7 +20,21 @@ export function addItemToCollection(
         testItem: testRunnerDataHelper.createVsCodeTestItem(item),
     };
 
-    collection.addItem(data);
+    const registeredDataWithSamePath = collection.getStoredDataForPath(
+        item.getPath()
+    );
+
+    if (!registeredDataWithSamePath) {
+        collection.addItem(data);
+    } else if (
+        registeredDataWithSamePath &&
+        registeredDataWithSamePath.item.getSequence() != item.getSequence()
+    ) {
+        collection.removeTestItemIfRegistered(
+            registeredDataWithSamePath.item.getPath()
+        );
+        collection.addItem(data);
+    }
 
     return data;
 }

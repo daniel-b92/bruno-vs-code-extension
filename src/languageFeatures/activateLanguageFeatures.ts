@@ -263,8 +263,11 @@ function handleDiagnosticUpdatesOnFileDeletion(
     collectionItemProvider: CollectionItemProvider,
     diagnosticCollection: DiagnosticCollection
 ) {
-    return collectionItemProvider.subscribeToUpdates()(
-        ({ data: { item }, updateType }) => {
+    return collectionItemProvider.subscribeToUpdates()((updates) => {
+        for (const {
+            data: { item },
+            updateType,
+        } of updates) {
             if (
                 updateType == FileChangeType.Deleted &&
                 item instanceof CollectionFile &&
@@ -286,7 +289,7 @@ function handleDiagnosticUpdatesOnFileDeletion(
                 });
             }
         }
-    );
+    });
 }
 
 async function fetchDiagnostics(

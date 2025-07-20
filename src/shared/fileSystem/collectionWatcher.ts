@@ -17,7 +17,7 @@ import { glob } from "glob";
 export class CollectionWatcher {
     constructor(
         private context: ExtensionContext,
-        private fileChangedEmitter: EventEmitter<FileChangedEvent[]>,
+        private fileChangedEmitter: EventEmitter<FileChangedEvent>,
         private logger?: OutputChannelLogger
     ) {}
 
@@ -27,8 +27,6 @@ export class CollectionWatcher {
         rootDirectory: string;
         watcher: FileSystemWatcher;
     }[] = [];
-
-    private recentlyCreatedFolder: string | undefined = undefined;
 
     public startWatchingCollection(rootDirectory: string) {
         this.logger?.info(
@@ -62,67 +60,53 @@ export class CollectionWatcher {
                     `${this.preMessageForLogging} Creation event for file '${path}'.`
                 );
 
-                this.fileChangedEmitter.fire([
-                    {
-                        uri,
-                        changeType: FileChangeType.Created,
-                    },
-                ]);
+                this.fileChangedEmitter.fire({
+                    uri,
+                    changeType: FileChangeType.Created,
+                });
 
                 return;
             }
 
-            if (this.isNotificationNeededForCreatedFolder(path)) {
-                const descendants = await glob(
-                    `${
-                        path == normalizeDirectoryPath(path)
-                            ? path.substring(0, path.length - 1)
-                            : path
-                    }/**/*`
-                );
+            const descendants = await glob(
+                `${
+                    path == normalizeDirectoryPath(path)
+                        ? path.substring(0, path.length - 1)
+                        : path
+                }/**/*`
+            );
 
-                this.logger?.debug(
-                    `${this.preMessageForLogging} Creation event for directory '${uri.fsPath}' with a total of ${descendants.length} descendants.`
-                );
+            this.logger?.debug(
+                `${this.preMessageForLogging} Creation event for directory '${uri.fsPath}' with a total of ${descendants.length} descendants.`
+            );
 
-                // When renaming a directory with descendant items, the file system watcher only sends a notification that a directory has been created.
-                // It shouldn't hurt to additionally send a notification for each descendant item here (even if it may in some cases be sent multiple times, then).
-                this.fileChangedEmitter.fire(
-                    [{ uri, changeType: FileChangeType.Created }].concat(
-                        descendants.map((path) => ({
-                            uri: Uri.file(path),
-                            changeType: FileChangeType.Created,
-                        }))
-                    )
-                );
-            } else {
-                this.logger?.debug(
-                    `${this.preMessageForLogging} Not firing event for newly created directory '${uri.fsPath}'.`
-                );
-            }
+            // When renaming a directory with descendant items, the file system watcher only sends a notification that a directory has been created.
+            // It shouldn't hurt to additionally send a notification for each descendant item here (even if it may in some cases be sent multiple times, then).
+            [path].concat(descendants).forEach((path) => {
+                this.fileChangedEmitter.fire({
+                    uri: Uri.file(path),
+                    changeType: FileChangeType.Created,
+                });
+            });
         });
         watcher.onDidChange((uri) => {
             this.logger?.debug(
                 `${this.preMessageForLogging} Modification event for path '${uri.fsPath}'.`
             );
 
-            this.fileChangedEmitter.fire([
-                {
-                    uri,
-                    changeType: FileChangeType.Modified,
-                },
-            ]);
+            this.fileChangedEmitter.fire({
+                uri,
+                changeType: FileChangeType.Modified,
+            });
         });
         watcher.onDidDelete((uri) => {
             this.logger?.debug(
                 `${this.preMessageForLogging} Deletion event for path '${uri.fsPath}'.`
             );
-            this.fileChangedEmitter.fire([
-                {
-                    uri,
-                    changeType: FileChangeType.Deleted,
-                },
-            ]);
+            this.fileChangedEmitter.fire({
+                uri,
+                changeType: FileChangeType.Deleted,
+            });
         });
 
         this.watchers.push({ rootDirectory, watcher });
@@ -168,37 +152,6 @@ export class CollectionWatcher {
                       collectionRootDir
                   )}/**/*}`
                 : `{*/,**/*}`
-        );
-    }
-
-    private isNotificationNeededForCreatedFolder(path: string): boolean {
-        if (!this.recentlyCreatedFolder) {
-            this.recentlyCreatedFolder = path;
-            this.configureResetForRecentlyCreatedFolder();
-            return true;
-        }
-
-        const registeredPathNormalized = normalizeDirectoryPath(
-            this.recentlyCreatedFolder
-        );
-        const newPathNormalized = normalizeDirectoryPath(path);
-
-        if (
-            !newPathNormalized.startsWith(registeredPathNormalized) ||
-            newPathNormalized.length < registeredPathNormalized.length
-        ) {
-            this.recentlyCreatedFolder = path;
-            this.configureResetForRecentlyCreatedFolder();
-            return true;
-        }
-
-        return false;
-    }
-
-    private configureResetForRecentlyCreatedFolder() {
-        return setTimeout(
-            () => (this.recentlyCreatedFolder = undefined),
-            1_000
         );
     }
 }
