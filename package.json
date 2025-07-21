@@ -51,6 +51,7 @@
     "dependencies": {
         "@zentryc5t/ts-plugin-for-bruno": "^1.0.0",
         "glob": "^11.0.3",
+        "prettier": "^3.6.2",
         "tree-kill": "^1.2.2"
     },
     "contributes": {
