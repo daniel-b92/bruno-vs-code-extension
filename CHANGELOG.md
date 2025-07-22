@@ -1,3 +1,8 @@
+## [0.15.0] (2025-07-22)
+
+### Features
+- Add first version of formatting code blocks via prettier (can only be triggered explicitly via context menu for now, not autmatically on save yet).
+
 ## [0.14.0] (2025-07-20)
 
 ### Features
