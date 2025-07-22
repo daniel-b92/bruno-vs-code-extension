@@ -1,5 +1,6 @@
 import { languages, TextEdit } from "vscode";
 import {
+    Block,
     getLineBreakForDocument,
     mapRange,
     OutputChannelLogger,
@@ -26,44 +27,53 @@ export function registerCodeBlockFormatter(_logger?: OutputChannelLogger) {
                 const codeBlocks = getCodeBlocks(blocks);
                 const lineBreak = getLineBreakForDocument(document);
 
-                const textEdits: TextEdit[] = [];
+                const textEdits: Promise<TextEdit>[] = [];
 
                 for (const block of codeBlocks) {
-                    const formattedWithDummyFunction = await format(
-                        `${mapBlockNameToJsFileLine(block.name as RequestFileBlockName)}${lineBreak}${block.content.toString()}${lineBreak}}`,
-                        {
-                            parser: "typescript",
-                        },
-                    );
-
-                    const docHelperForBlock = new TextDocumentHelper(
-                        formattedWithDummyFunction,
-                    );
-                    const lastLineOfBlockContentIndex =
-                        docHelperForBlock.getLineCount() - 2;
-                    const lastLineOfBlockContent =
-                        docHelperForBlock.getLineByIndex(
-                            lastLineOfBlockContentIndex,
-                        );
-
-                    textEdits.push(
-                        new TextEdit(
-                            mapRange(block.contentRange),
-                            docHelperForBlock.getText(
-                                new Range(
-                                    new Position(1, 0),
-                                    new Position(
-                                        lastLineOfBlockContentIndex,
-                                        lastLineOfBlockContent.length,
-                                    ),
-                                ),
-                            ),
-                        ),
-                    );
+                    textEdits.push(getTextEditForBlock(block, lineBreak));
                 }
 
-                return textEdits;
+                return await Promise.all(textEdits);
             },
         },
+    );
+}
+
+async function getTextEditForBlock(block: Block, documentLineBreak: string) {
+    const formattedWithDummyFunctionReplacement = await format(
+        `${mapBlockNameToJsFileLine(block.name as RequestFileBlockName)}${documentLineBreak}${block.content.toString()}${documentLineBreak}}`,
+        {
+            parser: "typescript",
+        },
+    );
+
+    const docHelperForDummyFunctionReplacement = new TextDocumentHelper(
+        formattedWithDummyFunctionReplacement,
+    );
+
+    const lastLineIndex =
+        docHelperForDummyFunctionReplacement.getLineCount() - 1;
+
+    return new TextEdit(
+        mapRange(
+            new Range(
+                block.contentRange.start,
+                new Position(
+                    block.contentRange.end.line,
+                    block.contentRange.end.character + 1, // block content does not end until the closing bracket char is reached
+                ),
+            ),
+        ),
+        docHelperForDummyFunctionReplacement.getText(
+            new Range(
+                new Position(1, 0),
+                new Position(
+                    lastLineIndex,
+                    docHelperForDummyFunctionReplacement.getLineByIndex(
+                        lastLineIndex,
+                    ).length, // The last line is the same for the dummy function replacement as for the real block. In both cases it will only contain the closing bracket.
+                ),
+            ),
+        ),
     );
 }
