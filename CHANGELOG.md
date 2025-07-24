@@ -3,6 +3,7 @@
 ### Features
 - Add syntax highlighting, snippet, completion items and diagnostics for new `settings` block in request files.
 - Fix incorrect statement in last changelog regarding formatting: The VS Code setting for formatting on save is respected.
+- Bump Bruno CLI version used for executing tests via npx to '2.8.0'
 
 ## [0.15.0] (2025-07-22)
 
