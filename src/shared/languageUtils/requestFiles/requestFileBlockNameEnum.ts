@@ -27,7 +27,6 @@ export enum RequestFileBlockName {
     OAuth2Auth = "auth:oauth2",
     WsseAuth = "auth:wsse",
     ApiKeyAuth = "auth:apikey",
-    
 
     // Body
     JsonBody = "body:json",
@@ -53,5 +52,6 @@ export enum RequestFileBlockName {
     PostResponseScript = "script:post-response",
 
     // Other
+    Settings = "settings",
     Docs = "docs",
 }

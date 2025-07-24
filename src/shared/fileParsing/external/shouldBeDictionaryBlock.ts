@@ -26,6 +26,7 @@ export function shouldBeDictionaryBlock(blockName: string) {
         blockName == RequestFileBlockName.Meta ||
         blockName == RequestFileBlockName.Headers ||
         blockName == RequestFileBlockName.Assertions ||
+        blockName == RequestFileBlockName.Settings ||
         (getPossibleMethodBlocks() as string[]).includes(blockName) ||
         isAuthBlock(blockName) ||
         isParamsBlock(blockName) ||

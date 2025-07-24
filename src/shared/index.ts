@@ -80,6 +80,7 @@ export * from "./languageUtils/commonBlocks/settingsFileSpecificBlockEnum";
 export * from "./languageUtils/folderSettingsFiles/getValidBlockNamesForFolderSettingsFiles";
 export * from "./languageUtils/collectionSettingsFiles/getValidBlockNamesForCollectionSettingsFiles";
 export * from "./languageUtils/commonBlocks/authModeBlock/authModeBlockKeyEnum";
+export * from "./languageUtils/commonBlocks/settingsBlock/settingsBlockKeyEnum";
 
 // test file writing
 export * from "./testFileWriting/addMetaBlock";

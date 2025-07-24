@@ -8,6 +8,8 @@ import {
     isAuthBlock,
     isBodyBlock,
     CollectionItemProvider,
+    Block,
+    TextOutsideOfBlocks,
 } from "../../../../shared";
 import { DiagnosticWithCode } from "../definitions";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
@@ -30,23 +32,49 @@ import { getRequestBodyBlockSpecificDiagnostics } from "./getRequestBodyBlockSpe
 import { checkOccurencesOfMandatoryBlocks } from "./checks/multipleBlocks/checkOccurencesOfMandatoryBlocks";
 import { getMetaBlockSpecificDiagnostics } from "./getMetaBlockSpecificDiagnostics";
 import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDiagnosticsHelper";
+import { getSettingsBlockSpecificDiagnostics } from "./getSettingsBlockSpecificDiagnostics";
 
 export async function determineDiagnosticsForRequestFile(
     documentUri: Uri,
     documentText: string,
     itemProvider: CollectionItemProvider,
-    relatedFilesHelper: RelatedFilesDiagnosticsHelper
+    relatedFilesHelper: RelatedFilesDiagnosticsHelper,
 ): Promise<DiagnosticWithCode[]> {
-    const document = new TextDocumentHelper(documentText);
-    const { blocks, textOutsideOfBlocks } = parseBruFile(document);
+    const documentHelper = new TextDocumentHelper(documentText);
+    const { blocks, textOutsideOfBlocks } = parseBruFile(documentHelper);
+
+    const results = collectCommonDiagnostics(
+        documentUri,
+        documentHelper,
+        blocks,
+        textOutsideOfBlocks,
+    ).concat(
+        await collectBlockSpecificDiagnostics(
+            itemProvider,
+            relatedFilesHelper,
+            documentUri,
+            documentHelper,
+            blocks,
+        ),
+    );
+
+    return results.filter((val) => val != undefined) as DiagnosticWithCode[];
+}
+
+function collectCommonDiagnostics(
+    documentUri: Uri,
+    documentHelper: TextDocumentHelper,
+    blocks: Block[],
+    textOutsideOfBlocks: TextOutsideOfBlocks[],
+): (DiagnosticWithCode | undefined)[] {
     const blocksThatShouldBeDictionaryBlocks = blocks.filter(({ name }) =>
-        shouldBeDictionaryBlock(name)
+        shouldBeDictionaryBlock(name),
     );
 
     const results: (DiagnosticWithCode | undefined)[] = [];
 
     results.push(
-        ...checkOccurencesOfMandatoryBlocks(document, blocks),
+        ...checkOccurencesOfMandatoryBlocks(documentHelper, blocks),
         checkThatNoBlocksAreDefinedMultipleTimes(documentUri, blocks),
         checkThatNoTextExistsOutsideOfBlocks(documentUri, textOutsideOfBlocks),
         checkAtMostOneAuthBlockExists(documentUri, blocks),
@@ -55,32 +83,44 @@ export async function determineDiagnosticsForRequestFile(
         checkBodyBlockTypeFromMethodBlockExists(documentUri, blocks),
         checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
             documentUri,
-            blocks
+            blocks,
         ),
         checkNoBlocksHaveUnknownNames(
             documentUri,
             blocks,
-            Object.values(RequestFileBlockName) as string[]
+            Object.values(RequestFileBlockName) as string[],
         ),
         checkDictionaryBlocksHaveDictionaryStructure(
             documentUri,
-            blocksThatShouldBeDictionaryBlocks
+            blocksThatShouldBeDictionaryBlocks,
         ),
         checkDictionaryBlocksAreNotEmpty(
             documentUri,
-            blocksThatShouldBeDictionaryBlocks
+            blocksThatShouldBeDictionaryBlocks,
         ),
         checkUrlFromMethodBlockMatchesQueryParamsBlock(documentUri, blocks),
         checkUrlFromMethodBlockMatchesPathParamsBlock(documentUri, blocks),
-        checkEitherAssertOrTestsBlockExists(document, blocks),
+        checkEitherAssertOrTestsBlockExists(documentHelper, blocks),
         checkBlocksAreSeparatedBySingleEmptyLine(
             documentUri,
-            textOutsideOfBlocks
-        )
+            textOutsideOfBlocks,
+        ),
     );
 
+    return results;
+}
+
+async function collectBlockSpecificDiagnostics(
+    itemProvider: CollectionItemProvider,
+    relatedFilesHelper: RelatedFilesDiagnosticsHelper,
+    documentUri: Uri,
+    documentHelper: TextDocumentHelper,
+    blocks: Block[],
+): Promise<(DiagnosticWithCode | undefined)[]> {
+    const results: (DiagnosticWithCode | undefined)[] = [];
+
     const metaBlocks = blocks.filter(
-        ({ name }) => name == RequestFileBlockName.Meta
+        ({ name }) => name == RequestFileBlockName.Meta,
     );
 
     if (metaBlocks.length == 1) {
@@ -89,9 +129,9 @@ export async function determineDiagnosticsForRequestFile(
                 itemProvider,
                 relatedFilesHelper,
                 documentUri,
-                document,
-                metaBlocks[0]
-            ))
+                documentHelper,
+                metaBlocks[0],
+            )),
         );
     }
 
@@ -113,5 +153,13 @@ export async function determineDiagnosticsForRequestFile(
         results.push(...getRequestBodyBlockSpecificDiagnostics(bodyBlocks[0]));
     }
 
-    return results.filter((val) => val != undefined) as DiagnosticWithCode[];
+    const settingsBlocks = blocks.filter(
+        ({ name }) => name == RequestFileBlockName.Settings,
+    );
+
+    if (settingsBlocks.length == 1) {
+        results.push(...getSettingsBlockSpecificDiagnostics(settingsBlocks[0]));
+    }
+
+    return results;
 }

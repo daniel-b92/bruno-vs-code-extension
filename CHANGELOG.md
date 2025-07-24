@@ -1,7 +1,13 @@
+## [0.16.0] (2025-07-24)
+
+### Features
+- Add syntax highlighting, snippet, completion items and diagnostics for new `settings` block in request files.
+- Fix incorrect statement in last changelog regarding formatting: The VS Code setting for formatting on save is respected.
+
 ## [0.15.0] (2025-07-22)
 
 ### Features
-- Add first version of formatting code blocks via prettier (can only be triggered explicitly via context menu for now, not autmatically on save yet).
+- Add first version of formatting code blocks via prettier.
 
 ## [0.14.0] (2025-07-20)
 

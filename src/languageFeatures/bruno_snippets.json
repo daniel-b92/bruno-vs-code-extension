@@ -374,6 +374,12 @@
         "description": "Add block for docs"
     },
 
+    "settings block": {
+        "prefix": "settings",
+        "body": ["settings {", "\tencodeUrl: ${1|true,false|}", "}"],
+        "description": "Add settings block"
+    },
+
     "vars block - for environment": {
         "prefix": ["vars"],
         "body": ["vars {", "\t${1:name}: ${2:value}", "}"],

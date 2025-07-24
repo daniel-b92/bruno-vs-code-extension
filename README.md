@@ -11,6 +11,7 @@ The main features of the extension are
 - a collection explorer for creating/modifying/deleting request files and folders within collections
 - a test runner (for executing tests via the [Bruno CLI](https://www.npmjs.com/package/@usebruno/cli))
 - language features that provide some intellisense when editing `.bru` files, e.g. providing suggestions when typing in code blocks.
+  - There also is a formatter included (curently only for formatting code blocks).
 
 ![VsCodeExtensionLanguageFeatures](https://github.com/user-attachments/assets/c558b1bf-5a0a-45c0-bd03-eea25728edec)
 

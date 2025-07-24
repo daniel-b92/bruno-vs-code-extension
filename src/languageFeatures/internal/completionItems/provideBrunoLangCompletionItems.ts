@@ -14,22 +14,24 @@ import {
     OAuth2ViaAuthorizationCodeBlockKey,
     OutputChannelLogger,
     RequestType,
+    SettingsBlockKey,
 } from "../../../shared";
 import { dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 
 export function provideBrunoLangCompletionItems(
     itemProvider: CollectionItemProvider,
-    logger?: OutputChannelLogger
+    logger?: OutputChannelLogger,
 ) {
     return getCompletionItemsForFieldsInMetaBlock(itemProvider, logger)
         .concat([getCompletionItemsForFieldsInMethodBlock(logger)])
-        .concat([getCompletionItemsForFieldsInAuthBlock(logger)]);
+        .concat([getCompletionItemsForFieldsInAuthBlock(logger)])
+        .concat(getCompletionItemsForFieldsInSettingsBlock(logger));
 }
 
 function getCompletionItemsForFieldsInMetaBlock(
     itemProvider: CollectionItemProvider,
-    logger?: OutputChannelLogger
+    logger?: OutputChannelLogger,
 ) {
     const result: Disposable[] = [];
 
@@ -38,13 +40,13 @@ function getCompletionItemsForFieldsInMetaBlock(
             [
                 {
                     linePattern: getLinePatternForDictionaryField(
-                        MetaBlockKey.Type
+                        MetaBlockKey.Type,
                     ),
                     choices: Object.values(RequestType),
                 },
             ],
-            logger
-        )
+            logger,
+        ),
     );
 
     result.push(
@@ -54,7 +56,7 @@ function getCompletionItemsForFieldsInMetaBlock(
                 async provideCompletionItems(document, position, token) {
                     if (token.isCancellationRequested) {
                         logger?.debug(
-                            `Cancellation requested for completion provider for bruno language.`
+                            `Cancellation requested for completion provider for bruno language.`,
                         );
                         return undefined;
                     }
@@ -62,7 +64,7 @@ function getCompletionItemsForFieldsInMetaBlock(
                     const currentText = document.lineAt(position.line).text;
                     const sequencePattern = new RegExp(
                         `^\\s*${MetaBlockKey.Sequence}:\\s*$`,
-                        "m"
+                        "m",
                     );
 
                     if (currentText.match(sequencePattern)) {
@@ -72,9 +74,9 @@ function getCompletionItemsForFieldsInMetaBlock(
                                     `${currentText.endsWith(" ") ? "" : " "}${
                                         (await getMaxSequenceForRequests(
                                             itemProvider,
-                                            dirname(document.uri.fsPath)
+                                            dirname(document.uri.fsPath),
                                         )) + 1
-                                    }`
+                                    }`,
                                 ),
                             ],
                         };
@@ -83,32 +85,32 @@ function getCompletionItemsForFieldsInMetaBlock(
                     }
                 },
             },
-            ...getTriggerChars()
-        )
+            ...getTriggerChars(),
+        ),
     );
 
     return result;
 }
 
 function getCompletionItemsForFieldsInMethodBlock(
-    logger?: OutputChannelLogger
+    logger?: OutputChannelLogger,
 ) {
     return registerFixedCompletionItems(
         [
             {
                 linePattern: getLinePatternForDictionaryField(
-                    MethodBlockKey.Body
+                    MethodBlockKey.Body,
                 ),
                 choices: Object.values(MethodBlockBody),
             },
             {
                 linePattern: getLinePatternForDictionaryField(
-                    MethodBlockKey.Auth
+                    MethodBlockKey.Auth,
                 ),
                 choices: Object.values(MethodBlockAuth),
             },
         ],
-        logger
+        logger,
     );
 }
 
@@ -117,42 +119,58 @@ function getCompletionItemsForFieldsInAuthBlock(logger?: OutputChannelLogger) {
         [
             {
                 linePattern: getLinePatternForDictionaryField(
-                    ApiKeyAuthBlockKey.Placement
+                    ApiKeyAuthBlockKey.Placement,
                 ),
                 choices: Object.values(ApiKeyAuthBlockPlacementValue),
             },
             {
                 linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKey.CredentialsPlacement
+                    OAuth2ViaAuthorizationCodeBlockKey.CredentialsPlacement,
                 ),
                 choices: Object.values(OAuth2BlockCredentialsPlacementValue),
             },
             {
                 linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKey.Pkce
+                    OAuth2ViaAuthorizationCodeBlockKey.Pkce,
                 ),
                 choices: Object.values(BooleanFieldValue),
             },
             {
                 linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKey.TokenPlacement
+                    OAuth2ViaAuthorizationCodeBlockKey.TokenPlacement,
                 ),
                 choices: Object.values(OAuth2BlockTokenPlacementValue),
             },
             {
                 linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKey.AutoFetchToken
+                    OAuth2ViaAuthorizationCodeBlockKey.AutoFetchToken,
                 ),
                 choices: Object.values(BooleanFieldValue),
             },
             {
                 linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKey.AutoRefreshToken
+                    OAuth2ViaAuthorizationCodeBlockKey.AutoRefreshToken,
                 ),
                 choices: Object.values(BooleanFieldValue),
             },
         ],
-        logger
+        logger,
+    );
+}
+
+function getCompletionItemsForFieldsInSettingsBlock(
+    logger?: OutputChannelLogger,
+) {
+    return registerFixedCompletionItems(
+        [
+            {
+                linePattern: getLinePatternForDictionaryField(
+                    SettingsBlockKey.EncodeUrl,
+                ),
+                choices: Object.values(BooleanFieldValue),
+            },
+        ],
+        logger,
     );
 }
 
@@ -161,7 +179,7 @@ function registerFixedCompletionItems(
         linePattern: RegExp;
         choices: string[];
     }[],
-    logger?: OutputChannelLogger
+    logger?: OutputChannelLogger,
 ) {
     return languages.registerCompletionItemProvider(
         getRequestFileDocumentSelector(),
@@ -169,7 +187,7 @@ function registerFixedCompletionItems(
             provideCompletionItems(document, position, token) {
                 if (token.isCancellationRequested) {
                     logger?.debug(
-                        `Cancellation requested for completion provider for bruno language.`
+                        `Cancellation requested for completion provider for bruno language.`,
                     );
                     return undefined;
                 }
@@ -186,9 +204,9 @@ function registerFixedCompletionItems(
                                     new CompletionItem(
                                         `${
                                             currentText.endsWith(" ") ? "" : " "
-                                        }${choice}`
-                                    )
-                            )
+                                        }${choice}`,
+                                    ),
+                            ),
                         );
                     }
                 }
@@ -196,7 +214,7 @@ function registerFixedCompletionItems(
                 return items;
             },
         },
-        ...getTriggerChars()
+        ...getTriggerChars(),
     );
 }
 
