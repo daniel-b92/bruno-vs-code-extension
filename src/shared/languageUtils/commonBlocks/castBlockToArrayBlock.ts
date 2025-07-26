@@ -1,5 +1,4 @@
-import { isArrayBlockField } from "../internal/util/isArrayBlockField";
-import { Block, ArrayBlock } from "./interfaces";
+import { ArrayBlock, Block, isArrayBlockField } from "../..";
 
 export function castBlockToArrayBlock(block: Block) {
     return Array.isArray(block.content) &&

@@ -40,8 +40,6 @@ export * from "./fileParsing/external/requestFiles/methodBlocks/getMethodBlockIf
 export * from "./fileParsing/external/requestFiles/paramsBlocks/isParamsBlock";
 export { isVarsBlock as isVarsBlockInRequestFile } from "./fileParsing/external/requestFiles/varsBlocks/isVarsBlock";
 export { isVarsBlock as isVarsBlockInEnvironmentFile } from "./fileParsing/external/environmentFiles/varsBlocks/isVarsBlock";
-export * from "./fileParsing/external/castBlockToDictionaryBlock";
-export * from "./fileParsing/external/castBlockToArrayBlock";
 export * from "./fileParsing/external/parseBlockFromFile";
 export * from "./fileParsing/external/folderSettings/getSequenceForFolder";
 export * from "./fileParsing/external/folderSettings/getSequencesForFolders";
@@ -81,6 +79,12 @@ export * from "./languageUtils/folderSettingsFiles/getValidBlockNamesForFolderSe
 export * from "./languageUtils/collectionSettingsFiles/getValidBlockNamesForCollectionSettingsFiles";
 export * from "./languageUtils/commonBlocks/authModeBlock/authModeBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/settingsBlock/settingsBlockKeyEnum";
+export * from "./languageUtils/commonBlocks/codeBlocks/getSetEnvironmentVariables";
+export * from "./languageUtils/commonBlocks/castBlockToTextBlock";
+export * from "./languageUtils/commonBlocks/castBlockToDictionaryBlock";
+export * from "./languageUtils/commonBlocks/castBlockToArrayBlock";
+export * from "./languageUtils/commonBlocks/isArrayBlockField";
+export * from "./languageUtils/commonBlocks/isDictionaryBlockField";
 
 // test file writing
 export * from "./testFileWriting/addMetaBlock";
