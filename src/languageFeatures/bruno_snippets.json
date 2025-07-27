@@ -1,5 +1,5 @@
 {
-    "meta block": {
+    "meta block request file": {
         "prefix": "meta",
         "body": [
             "meta {",
@@ -8,7 +8,18 @@
             "\tseq:${3: }${0}",
             "}"
         ],
-        "description": "Add meta block"
+        "description": "Add meta block for a request file"
+    },
+
+    "meta block folder settings file": {
+        "prefix": "meta",
+        "body": [
+            "meta {",
+            "\tname: ${1:${TM_FILENAME/(.*)\\..+$/$1/}}",
+            "\tseq:${2: }${0}",
+            "}"
+        ],
+        "description": "Add meta block for a folder settings file"
     },
 
     "get block": {
