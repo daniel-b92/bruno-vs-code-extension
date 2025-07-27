@@ -104,6 +104,8 @@ export * from "./fileSystemCache/externalHelpers/testRunnerDataHelper";
 
 // vsCodeSettings
 export * from "./vsCodeSettings/getLinkToUserSetting";
+export * from "./vsCodeSettings/getConfiguredTestEnvironment";
+export * from "./vsCodeSettings/getEnvironmentSettingsKey";
 
 // logging
 export * from "./logging/outputChannelLogger";

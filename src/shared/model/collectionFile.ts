@@ -1,4 +1,4 @@
-import { CollectionItem, FileVariables, VariableReference } from "./interfaces";
+import { CollectionItem, FileVariables } from "./interfaces";
 
 export class CollectionFile implements CollectionItem {
     constructor(
@@ -18,8 +18,8 @@ export class CollectionFile implements CollectionItem {
     public getReferencedEnvironmentVariables() {
         return this.variables
             ? {
-                  used: this.variables.usedEnvironmentVars as readonly VariableReference[],
-                  set: this.variables.setEnvironmentVars as readonly VariableReference[],
+                  used: this.variables.usedEnvironmentVars,
+                  set: this.variables.setEnvironmentVars,
               }
             : undefined;
     }
