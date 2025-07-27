@@ -4,7 +4,7 @@ import {
     parseBruFile,
     shouldBeDictionaryBlock,
     SettingsFileSpecificBlock,
-    getValidBlockNamesForFolderSettingsFiles,
+    getValidBlockNamesForFolderSettingsFile,
     RequestFileBlockName,
     isAuthBlock,
     CollectionItemProvider,
@@ -50,7 +50,7 @@ export async function determineDiagnosticsForFolderSettingsFile(
         checkNoBlocksHaveUnknownNames(
             documentUri,
             blocks,
-            Object.values(getValidBlockNamesForFolderSettingsFiles())
+            Object.values(getValidBlockNamesForFolderSettingsFile())
         ),
         checkDictionaryBlocksHaveDictionaryStructure(
             documentUri,

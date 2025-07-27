@@ -31,4 +31,5 @@ export enum NonBlockSpecificDiagnosticCode {
     ArrayBlocksNotStructuredCorrectly = "bru21",
     DictionaryBlocksWithoutContent = "bru22",
     AuthBlockNotMatchingAuthModeBlock = "bru23",
+    RedundantBlocksDefined = "bru24",
 }

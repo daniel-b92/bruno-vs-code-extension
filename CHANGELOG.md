@@ -1,3 +1,9 @@
+## [0.16.1] (2025-07-27)
+
+### Fixes
+- Fix issue with displaying error for allowed but redundant 'meta' block in collection settings file.
+- Avoid causing errors when removing folders via collection explorer by switching to fs function instead of using VS Codes `applyEdit`.
+
 ## [0.16.0] (2025-07-24)
 
 ### Features

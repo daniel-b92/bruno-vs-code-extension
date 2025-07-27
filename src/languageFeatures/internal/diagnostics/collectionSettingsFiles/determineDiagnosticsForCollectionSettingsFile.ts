@@ -5,7 +5,8 @@ import {
     shouldBeDictionaryBlock,
     SettingsFileSpecificBlock,
     isAuthBlock,
-    getValidBlockNamesForCollectionSettingsFiles,
+    getValidBlockNamesForCollectionSettingsFile,
+    getNamesForRedundantBlocksForCollectionSettingsFile,
 } from "../../../../shared";
 import { DiagnosticWithCode } from "../definitions";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
@@ -18,10 +19,11 @@ import { checkNoBlocksHaveUnknownNames } from "../shared/checks/multipleBlocks/c
 import { checkThatNoBlocksAreDefinedMultipleTimes } from "../shared/checks/multipleBlocks/checkThatNoBlocksAreDefinedMultipleTimes";
 import { checkThatNoTextExistsOutsideOfBlocks } from "../shared/checks/multipleBlocks/checkThatNoTextExistsOutsideOfBlocks";
 import { getAuthModeBlockSpecificDiagnostics } from "../shared/checks/multipleBlocks/getAuthModeBlockSpecificDiagnostics";
+import { checkNoRedundantBlocksExist } from "../shared/checks/multipleBlocks/checkNoRedundantBlocksExist";
 
 export function determineDiagnosticsForCollectionSettingsFile(
     documentUri: Uri,
-    documentText: string
+    documentText: string,
 ): DiagnosticWithCode[] {
     const document = new TextDocumentHelper(documentText);
 
@@ -30,7 +32,7 @@ export function determineDiagnosticsForCollectionSettingsFile(
     const blocksThatShouldBeDictionaryBlocks = blocks.filter(
         ({ name }) =>
             shouldBeDictionaryBlock(name) ||
-            name == SettingsFileSpecificBlock.AuthMode
+            name == SettingsFileSpecificBlock.AuthMode,
     );
 
     const results: (DiagnosticWithCode | undefined)[] = [];
@@ -43,20 +45,27 @@ export function determineDiagnosticsForCollectionSettingsFile(
         checkNoBlocksHaveUnknownNames(
             documentUri,
             blocks,
-            Object.values(getValidBlockNamesForCollectionSettingsFiles())
+            getValidBlockNamesForCollectionSettingsFile().concat(
+                getNamesForRedundantBlocksForCollectionSettingsFile(),
+            ),
+        ),
+        checkNoRedundantBlocksExist(
+            documentUri,
+            blocks,
+            getNamesForRedundantBlocksForCollectionSettingsFile(),
         ),
         checkDictionaryBlocksHaveDictionaryStructure(
             documentUri,
-            blocksThatShouldBeDictionaryBlocks
+            blocksThatShouldBeDictionaryBlocks,
         ),
         checkDictionaryBlocksAreNotEmpty(
             documentUri,
-            blocksThatShouldBeDictionaryBlocks
+            blocksThatShouldBeDictionaryBlocks,
         ),
         checkBlocksAreSeparatedBySingleEmptyLine(
             documentUri,
-            textOutsideOfBlocks
-        )
+            textOutsideOfBlocks,
+        ),
     );
 
     const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
@@ -66,7 +75,7 @@ export function determineDiagnosticsForCollectionSettingsFile(
     }
 
     const authModeBlocks = blocks.filter(
-        ({ name }) => name == SettingsFileSpecificBlock.AuthMode
+        ({ name }) => name == SettingsFileSpecificBlock.AuthMode,
     );
 
     if (authModeBlocks.length == 1) {
