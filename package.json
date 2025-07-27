@@ -2,7 +2,7 @@
     "name": "bru-as-code",
     "displayName": "bru-as-code",
     "description": "Enables working with Bruno files in a manner like working with code",
-    "version": "0.16.0",
+    "version": "0.16.1",
     "publisher": "daniel-b92",
     "private": true,
     "license": "MIT",
