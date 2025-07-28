@@ -1,3 +1,9 @@
+## [0.16.2] (2025-07-28)
+
+### Fixes
+
+- Fix issue with tabs staying open after deleting item via collection explorer.
+
 ## [0.16.1] (2025-07-27)
 
 ### Fixes

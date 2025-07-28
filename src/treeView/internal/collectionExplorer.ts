@@ -31,6 +31,7 @@ import { FolderDropInsertionOption } from "./explorer/folderDropInsertionOptionE
 import { moveFileIntoFolder } from "./explorer/fileUtils/moveFileIntoFolder";
 import { promisify } from "util";
 import { copyFile, cp, mkdir, rm, writeFile } from "fs";
+import { closeTabsRelatedToItem } from "./explorer/closeTabsRelatedToItem";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>
@@ -576,7 +577,9 @@ export class CollectionExplorer
                     );
                 } else if (
                     (brunoFileType == BrunoFileType.FolderSettingsFile ||
-                        (!brunoFileType && !item.isFile && item.getSequence())) &&
+                        (!brunoFileType &&
+                            !item.isFile &&
+                            item.getSequence())) &&
                     (await checkIfPathExistsAsync(dirname(path)))
                 ) {
                     normalizeSequencesForFolders(
@@ -586,6 +589,7 @@ export class CollectionExplorer
                             : dirname(path),
                     );
                 }
+                await closeTabsRelatedToItem(item);
             },
         );
 
@@ -633,7 +637,11 @@ export class CollectionExplorer
         e: vscode.TextEditor | undefined,
         treeView: vscode.TreeView<BrunoTreeItem>,
     ) {
-        if (e && treeView.visible) {
+        if (
+            e &&
+            treeView.visible &&
+            (await checkIfPathExistsAsync(e.document.uri.fsPath))
+        ) {
             const maybeCollection =
                 this.itemProvider.getAncestorCollectionForPath(
                     e.document.uri.fsPath,
