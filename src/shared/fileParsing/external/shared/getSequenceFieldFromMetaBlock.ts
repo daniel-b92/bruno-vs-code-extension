@@ -4,7 +4,7 @@ import {
     RequestFileBlockName,
     parseBlockFromFile,
 } from "../../..";
-import { isDictionaryBlockField } from "../../internal/util/isDictionaryBlockField";
+import { isDictionaryBlockField } from "../../../languageUtils/commonBlocks/isDictionaryBlockField";
 
 export function getSequenceFieldFromMetaBlock(
     documentHelper: TextDocumentHelper

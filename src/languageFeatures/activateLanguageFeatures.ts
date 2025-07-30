@@ -13,11 +13,15 @@ import {
 import { provideBrunoLangCompletionItems } from "./internal/completionItems/provideBrunoLangCompletionItems";
 import {
     BrunoFileType,
+    castBlockToDictionaryBlock,
+    checkIfPathExistsAsync,
     Collection,
     CollectionDirectory,
     CollectionFile,
     CollectionItemProvider,
+    EnvironmentFileBlockName,
     FileChangeType,
+    getConfiguredTestEnvironment,
     getExtensionForRequestFiles,
     getLoggerFromSubscriptions,
     getTypeOfBrunoFile,
@@ -36,12 +40,14 @@ import { provideCodeBlocksCompletionItems } from "./internal/completionItems/pro
 import { provideInfosOnHover } from "./internal/hover/provideInfosOnHover";
 import { provideSignatureHelp } from "./internal/signatureHelp/provideSignatureHelp";
 import { provideDefinitions } from "./internal/definitionProvider/provideDefinitions";
-import { extname } from "path";
+import { extname, resolve } from "path";
 import { registerCodeBlockFormatter } from "./internal/formatting/registerCodeBlockFormatter";
+import { readFile } from "fs";
+import { promisify } from "util";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
-    collectionItemProvider: CollectionItemProvider,
+    itemProvider: CollectionItemProvider,
 ) {
     const tempJsFilesRegistry = new TemporaryJsFilesRegistry();
 
@@ -50,7 +56,7 @@ export function activateLanguageFeatures(
 
     const brunoLangDiagnosticsProvider = new BrunoLangDiagnosticsProvider(
         diagnosticCollection,
-        collectionItemProvider,
+        itemProvider,
     );
 
     const logger = getLoggerFromSubscriptions(context);
@@ -58,23 +64,15 @@ export function activateLanguageFeatures(
     context.subscriptions.push(
         diagnosticCollection,
         tempJsFilesRegistry,
-        ...provideBrunoLangCompletionItems(collectionItemProvider, logger),
+        ...provideBrunoLangCompletionItems(itemProvider, logger),
         provideCodeBlocksCompletionItems(
-            collectionItemProvider,
+            itemProvider,
             tempJsFilesRegistry,
             logger,
         ),
-        provideInfosOnHover(
-            collectionItemProvider,
-            tempJsFilesRegistry,
-            logger,
-        ),
-        provideSignatureHelp(
-            collectionItemProvider,
-            tempJsFilesRegistry,
-            logger,
-        ),
-        provideDefinitions(collectionItemProvider, tempJsFilesRegistry, logger),
+        provideInfosOnHover(itemProvider, tempJsFilesRegistry, logger),
+        provideSignatureHelp(itemProvider, tempJsFilesRegistry, logger),
+        provideDefinitions(itemProvider, tempJsFilesRegistry, logger),
         registerCodeBlockFormatter(logger),
         brunoLangDiagnosticsProvider,
         tempJsFilesRegistry,
@@ -82,7 +80,7 @@ export function activateLanguageFeatures(
             await onDidChangeActiveTextEditor(
                 tempJsFilesRegistry,
                 brunoLangDiagnosticsProvider,
-                collectionItemProvider,
+                itemProvider,
                 editor,
                 logger,
             );
@@ -91,20 +89,16 @@ export function activateLanguageFeatures(
             await onDidChangeTextDocument(
                 tempJsFilesRegistry,
                 brunoLangDiagnosticsProvider,
-                collectionItemProvider,
+                itemProvider,
                 e,
                 logger,
             );
         }),
         workspace.onWillSaveTextDocument(async (e) => {
-            await onWillSaveTextDocument(
-                tempJsFilesRegistry,
-                collectionItemProvider,
-                e,
-            );
+            await onWillSaveTextDocument(tempJsFilesRegistry, itemProvider, e);
         }),
         handleDiagnosticUpdatesOnFileDeletion(
-            collectionItemProvider,
+            itemProvider,
             diagnosticCollection,
         ),
     );
@@ -335,6 +329,66 @@ async function deleteAllTemporaryJsFiles(
     }
 
     await Promise.all(deletions);
+}
+
+async function fetchAvailableVarsFromConfiguredEnvironments(
+    itemProvider: CollectionItemProvider,
+) {
+    const environmentName = getConfiguredTestEnvironment();
+
+    if (!environmentName) {
+        return undefined;
+    }
+
+    const collections = itemProvider.getRegisteredCollections().slice();
+
+    // for each collection the environment is used with the configured name
+    const environmentFiles = (
+        await Promise.all(
+            collections.map(async (collection) => {
+                const environmentFile = resolve(
+                    collection.getRootDirectory(),
+                    "environments",
+                    `${environmentName}${getExtensionForRequestFiles()}`,
+                ); // ToDo: Save type of file already in cache
+
+                return (await checkIfPathExistsAsync(environmentFile))
+                    ? { collection, environmentFile }
+                    : undefined;
+            }),
+        )
+    ).filter((val) => val != undefined);
+
+    return (
+        await Promise.all(
+            environmentFiles.map(async ({ collection, environmentFile }) => {
+                const varsBlocks = parseBruFile(
+                    new TextDocumentHelper(
+                        await promisify(readFile)(environmentFile, {
+                            encoding: "utf-8",
+                        }),
+                    ),
+                ).blocks.filter(
+                    ({ name }) => name == EnvironmentFileBlockName.Vars,
+                );
+
+                if (varsBlocks.length != 1) {
+                    return undefined;
+                }
+
+                const castedBlock = castBlockToDictionaryBlock(varsBlocks[0]);
+
+                if (!castedBlock) {
+                    return undefined;
+                }
+
+                return {
+                    collection,
+                    envVars: castedBlock.content.map(({ key }) => key),
+                };
+            }),
+        )
+    ).filter((val) => val != undefined);
 }
 
 function getBrunoFileTypesThatCanHaveCodeBlocks() {

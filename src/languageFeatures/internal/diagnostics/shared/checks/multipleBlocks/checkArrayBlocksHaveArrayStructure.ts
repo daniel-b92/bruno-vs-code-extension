@@ -14,7 +14,7 @@ import {
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
-import { isArrayBlockField } from "../../../../../../shared/fileParsing/internal/util/isArrayBlockField";
+import { isArrayBlockField } from "../../../../../../shared/languageUtils/commonBlocks/isArrayBlockField";
 import { getSortedPlainTextLinesByPosition } from "../../util/getSortedPlainTextLinesByPosition";
 
 export function checkArrayBlocksHaveArrayStructure(
