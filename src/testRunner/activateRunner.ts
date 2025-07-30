@@ -24,7 +24,7 @@ import {
     normalizeDirectoryPath,
     CollectionItemProvider,
     FileChangeType,
-    getExtensionForRequestFiles,
+    getExtensionForBrunoFiles,
     CollectionItem,
     getLoggerFromSubscriptions,
     someAsync,
@@ -285,7 +285,7 @@ function handleTestTreeUpdates(
             } else if (
                 updateType == FileChangeType.Modified &&
                 item instanceof CollectionFile &&
-                extname(item.getPath()) == getExtensionForRequestFiles() &&
+                extname(item.getPath()) == getExtensionForBrunoFiles() &&
                 changedData?.sequenceChanged
             ) {
                 /* For directories, no changes are ever registered because renaming a directory is seen as a creation of a new directory with the
@@ -367,7 +367,7 @@ async function isRelevantForTestTree(
 ) {
     return (
         (item instanceof CollectionFile &&
-            extname(item.getPath()) == getExtensionForRequestFiles() &&
+            extname(item.getPath()) == getExtensionForBrunoFiles() &&
             item.getSequence() != undefined) ||
         (item instanceof CollectionDirectory &&
             (

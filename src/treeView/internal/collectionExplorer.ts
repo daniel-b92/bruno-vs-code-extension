@@ -5,10 +5,10 @@ import {
     CollectionItemProvider,
     CollectionData,
     normalizeDirectoryPath,
-    getExtensionForRequestFiles,
+    getExtensionForBrunoFiles,
     OutputChannelLogger,
     getSequenceForFile,
-    getTypeOfBrunoFile,
+    getFileType,
     BrunoFileType,
     Collection,
     getSequenceForFolder,
@@ -136,15 +136,19 @@ export class CollectionExplorer
                 return;
             }
 
-            await moveFileIntoFolder(
-                this.itemProvider,
-                sourcePath,
-                newPath,
-                target,
-                dirname(newPath),
-                await getTypeOfBrunoFile([sourceCollection], sourcePath),
-            );
-            return;
+            const fileType = await getFileType(sourceCollection, sourcePath);
+
+            if (fileType) {
+                await moveFileIntoFolder(
+                    this.itemProvider,
+                    sourcePath,
+                    newPath,
+                    target,
+                    dirname(newPath),
+                    fileType,
+                );
+                return;
+            }
         }
 
         if (target.isFile) {
@@ -404,7 +408,7 @@ export class CollectionExplorer
                 const isRequestFile =
                     collection &&
                     isFile &&
-                    (await getTypeOfBrunoFile([collection], originalPath)) ==
+                    (await getFileType([collection], originalPath)) ==
                         BrunoFileType.RequestFile;
 
                 const renamed = await renameFileOrFolder(
@@ -420,7 +424,7 @@ export class CollectionExplorer
                 if (isRequestFile) {
                     await replaceNameInMetaBlock(
                         newPath,
-                        newItemName.replace(getExtensionForRequestFiles(), ""),
+                        newItemName.replace(getExtensionForBrunoFiles(), ""),
                     );
                 } else if (!isFile) {
                     const folderSettingsPath =
@@ -501,7 +505,7 @@ export class CollectionExplorer
                     return;
                 }
 
-                const brunoFileType = await getTypeOfBrunoFile(
+                const brunoFileType = await getFileType(
                     [collection],
                     item.getPath(),
                 );
@@ -515,7 +519,7 @@ export class CollectionExplorer
                     await replaceNameInMetaBlock(
                         newPath,
                         basename(newPath).replace(
-                            getExtensionForRequestFiles(),
+                            getExtensionForBrunoFiles(),
                             "",
                         ),
                     );
@@ -560,7 +564,7 @@ export class CollectionExplorer
                     this.itemProvider.getAncestorCollectionForPath(path);
 
                 const brunoFileType = collection
-                    ? await getTypeOfBrunoFile([collection], path)
+                    ? await getFileType([collection], path)
                     : undefined;
 
                 await promisify(rm)(item.getPath(), {

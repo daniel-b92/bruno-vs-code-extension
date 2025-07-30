@@ -1,4 +1,8 @@
-import { BrunoFileType, CollectionItemProvider } from "../../../../shared";
+import {
+    BrunoFileType,
+    CollectionItemProvider,
+    FileType,
+} from "../../../../shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { renameFileOrFolder } from "../renameFileOrFolder";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";
@@ -10,7 +14,7 @@ export async function moveFileIntoFolder(
     newPath: string,
     target: BrunoTreeItem,
     targetDirectoryForDragAndDrop: string,
-    brunoFileType?: BrunoFileType
+    fileType: FileType,
 ) {
     const wasSuccessful = await renameFileOrFolder(sourcePath, newPath, true);
 
@@ -19,13 +23,13 @@ export async function moveFileIntoFolder(
         return;
     }
 
-    if (brunoFileType == BrunoFileType.RequestFile) {
+    if (fileType == BrunoFileType.RequestFile) {
         // Only when moving a request file, sequences of requests may need to be adjusted
         await updateSequencesAfterMovingRequestFile(
             itemProvider,
             target,
             targetDirectoryForDragAndDrop,
-            sourcePath
+            sourcePath,
         );
     }
 }

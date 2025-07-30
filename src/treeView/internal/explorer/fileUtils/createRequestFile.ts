@@ -1,6 +1,6 @@
 import { basename, resolve } from "path";
 import {
-    getExtensionForRequestFiles,
+    getExtensionForBrunoFiles,
     RequestType,
     RequestFileBlockName,
     addMetaBlock,
@@ -26,7 +26,7 @@ export async function createRequestFile(
             return validateNewItemNameIsUnique(
                 resolve(
                     parentFolderPath,
-                    `${newFileName}${getExtensionForRequestFiles()}`
+                    `${newFileName}${getExtensionForBrunoFiles()}`
                 )
             );
         },
@@ -72,7 +72,7 @@ export async function createRequestFile(
 
         const filePath = resolve(
             parentFolderPath,
-            `${requestName}${getExtensionForRequestFiles()}`
+            `${requestName}${getExtensionForBrunoFiles()}`
         );
 
         await promisify(writeFile)(filePath, "");

@@ -8,7 +8,7 @@ import {
     CollectionFile,
     CollectionItem,
     filterAsync,
-    getTypeOfBrunoFile,
+    getFileType,
     normalizeDirectoryPath,
 } from "../..";
 
@@ -60,7 +60,7 @@ export class TestRunnerDataHelper {
             collectionForDirectory.getAllStoredDataForCollection().slice(),
             async ({ item }) =>
                 item instanceof CollectionFile &&
-                (await getTypeOfBrunoFile(
+                (await getFileType(
                     [collectionForDirectory],
                     item.getPath()
                 )) == BrunoFileType.RequestFile &&

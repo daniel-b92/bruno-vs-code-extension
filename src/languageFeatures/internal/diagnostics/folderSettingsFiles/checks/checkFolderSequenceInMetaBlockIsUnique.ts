@@ -11,7 +11,6 @@ import {
     castBlockToDictionaryBlock,
     getSequenceFieldFromMetaBlock,
     mapRange,
-    getTypeOfBrunoFile,
     BrunoFileType,
     filterAsync,
 } from "../../../../../shared";
@@ -25,7 +24,7 @@ import { promisify } from "util";
 export async function checkFolderSequenceInMetaBlockIsUnique(
     itemProvider: CollectionItemProvider,
     metaBlock: Block,
-    documentUri: Uri
+    documentUri: Uri,
 ): Promise<{
     code: RelevantWithinMetaBlockDiagnosticCode;
     toAdd?: {
@@ -41,27 +40,27 @@ export async function checkFolderSequenceInMetaBlockIsUnique(
             .length != 1 ||
         !isSequenceValid(
             castedBlock.content.find(
-                ({ key }) => key == MetaBlockKey.Sequence
-            ) as DictionaryBlockField
+                ({ key }) => key == MetaBlockKey.Sequence,
+            ) as DictionaryBlockField,
         )
     ) {
         return { code: getDiagnosticCode() };
     }
 
     const sequenceField = castedBlock.content.find(
-        ({ key }) => key == MetaBlockKey.Sequence
+        ({ key }) => key == MetaBlockKey.Sequence,
     ) as DictionaryBlockField;
 
     const otherFolderSettings = await getSequencesForOtherFoldersWithSameParent(
         itemProvider,
         documentUri,
-        documentUri.fsPath
+        documentUri.fsPath,
     );
 
     const otherFoldersWithSameSequence = otherFolderSettings
         .filter(
             ({ sequence: existingSequence }) =>
-                Number.parseInt(sequenceField.value) == existingSequence
+                Number.parseInt(sequenceField.value) == existingSequence,
         )
         .map(({ folderSettingsFile, folderPath }) => ({
             folderSettingsFile,
@@ -78,11 +77,11 @@ export async function checkFolderSequenceInMetaBlockIsUnique(
             code: getDiagnosticCode(),
             toAdd: {
                 affectedFiles: allAffectedFiles.map(
-                    ({ folderSettingsFile }) => folderSettingsFile
+                    ({ folderSettingsFile }) => folderSettingsFile,
                 ),
                 diagnosticCurrentFile: await getDiagnostic(
                     sequenceField,
-                    otherFoldersWithSameSequence
+                    otherFoldersWithSameSequence,
                 ),
             },
         };
@@ -96,7 +95,7 @@ async function getDiagnostic(
     otherFoldersWithSameSequence: {
         folderSettingsFile: string;
         folderPath: string;
-    }[]
+    }[],
 ): Promise<DiagnosticWithCode> {
     return {
         message:
@@ -108,14 +107,14 @@ async function getDiagnostic(
             otherFoldersWithSameSequence.map(
                 async ({ folderPath, folderSettingsFile }) => ({
                     message: `Folder '${basename(
-                        folderPath
+                        folderPath,
                     )}' with same sequence`,
                     location: {
                         uri: Uri.file(folderSettingsFile),
                         range: await getRangeForSequence(folderSettingsFile),
                     },
-                })
-            )
+                }),
+            ),
         ),
     };
 }
@@ -125,7 +124,7 @@ async function getRangeForSequence(filePath: string) {
     const fileContent = await readFileAsync(filePath, "utf-8");
 
     const sequenceField = getSequenceFieldFromMetaBlock(
-        new TextDocumentHelper(fileContent)
+        new TextDocumentHelper(fileContent),
     );
 
     if (!sequenceField) {
@@ -134,7 +133,7 @@ async function getRangeForSequence(filePath: string) {
                 RequestFileBlockName.Meta
             }' block did not have expected format for file '${filePath}'. Got field for '${
                 MetaBlockKey.Sequence
-            }': ${JSON.stringify(sequenceField, null, 2)}.`
+            }': ${JSON.stringify(sequenceField, null, 2)}.`,
         );
     }
 
@@ -144,7 +143,7 @@ async function getRangeForSequence(filePath: string) {
 async function getSequencesForOtherFoldersWithSameParent(
     itemProvider: CollectionItemProvider,
     documentUri: Uri,
-    folderSettingsFile: string
+    folderSettingsFile: string,
 ): Promise<
     {
         folderSettingsFile: string;
@@ -156,7 +155,7 @@ async function getSequencesForOtherFoldersWithSameParent(
         await getOtherFolderSettingsWithSameParentFolder(
             itemProvider,
             folderSettingsFile,
-            documentUri
+            documentUri,
         )
     ).map(({ folderSettings, folderPath }) => ({
         folderSettingsFile: folderSettings.getPath(),
@@ -168,15 +167,15 @@ async function getSequencesForOtherFoldersWithSameParent(
 async function getOtherFolderSettingsWithSameParentFolder(
     itemProvider: CollectionItemProvider,
     referenceFolderSettings: string,
-    documentUri: Uri
+    documentUri: Uri,
 ): Promise<{ folderPath: string; folderSettings: CollectionFile }[]> {
     const collection = itemProvider.getAncestorCollectionForPath(
-        referenceFolderSettings
+        referenceFolderSettings,
     );
 
     if (!collection) {
         console.warn(
-            `Could not determine collection for folder settings path '${referenceFolderSettings}'`
+            `Could not determine collection for folder settings path '${referenceFolderSettings}'`,
         );
         return [];
     }
@@ -191,15 +190,14 @@ async function getOtherFolderSettingsWithSameParentFolder(
                     item instanceof CollectionFile &&
                     normalizeDirectoryPath(dirname(dirname(itemPath))) ==
                         normalizeDirectoryPath(
-                            dirname(dirname(referenceFolderSettings))
+                            dirname(dirname(referenceFolderSettings)),
                         ) &&
                     item.getSequence() != undefined &&
                     normalizeDirectoryPath(dirname(itemPath)) !=
                         normalizeDirectoryPath(dirname(documentUri.fsPath)) &&
-                    (await getTypeOfBrunoFile([collection], itemPath)) ==
-                        BrunoFileType.FolderSettingsFile
+                    item.getFileType() == BrunoFileType.FolderSettingsFile
                 );
-            }
+            },
         )
     ).map(({ item }) => ({
         folderSettings: item as CollectionFile,
