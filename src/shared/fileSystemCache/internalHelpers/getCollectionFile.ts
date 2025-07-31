@@ -1,5 +1,9 @@
-import { Collection, CollectionFile, getSequenceForFile } from "../..";
-import { getFileType } from "./getFileType";
+import {
+    Collection,
+    CollectionFile,
+    getFileType,
+    getSequenceForFile,
+} from "../..";
 
 export async function getCollectionFile(collection: Collection, path: string) {
     const fileType = await getFileType(collection, path);

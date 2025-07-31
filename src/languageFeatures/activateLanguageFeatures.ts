@@ -25,7 +25,7 @@ import {
     parseBruFile,
     TextDocumentHelper,
     checkIfPathExistsAsync,
-    FileType,
+    isBrunoFileType,
 } from "../shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/autoUpdates/updateUrlToMatchQueryParams";
@@ -365,8 +365,4 @@ async function getBrunoFileTypeIfExists(
         isBrunoFileType(itemWithCollection.data.item.getFileType())
         ? (itemWithCollection.data.item.getFileType() as BrunoFileType)
         : undefined;
-}
-
-function isBrunoFileType(fileType: FileType): fileType is BrunoFileType {
-    return Object.values(BrunoFileType).includes(fileType);
 }

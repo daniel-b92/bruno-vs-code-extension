@@ -12,9 +12,9 @@ export * from "./fileSystem/util/getLineBreakForDocument";
 export * from "./fileSystem/util/range";
 export * from "./fileSystem/util/position";
 export * from "./fileSystem/util/positionAndRangeMapper";
-export * from "./fileSystemCache/internalHelpers/getFileType";
 export * from "./fileSystem/util/doesFileNameMatchFolderSettingsFileName";
 export * from "./fileSystem/util/checkIfPathExistsAsync";
+export * from "./fileSystem/util/getFileType";
 
 // array utils
 export * from "./arrayUtils/filterAsync";
@@ -97,6 +97,7 @@ export * from "./model/interfaces";
 // file system cache
 export * from "./fileSystemCache/externalHelpers/collectionItemProvider";
 export * from "./fileSystemCache/externalHelpers/testRunnerDataHelper";
+export * from "./fileSystemCache/externalHelpers/isBrunoFileType";
 
 // vsCodeSettings
 export * from "./vsCodeSettings/getLinkToUserSetting";

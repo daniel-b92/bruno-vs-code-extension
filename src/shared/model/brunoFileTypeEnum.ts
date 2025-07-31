@@ -1,6 +1,6 @@
 export enum BrunoFileType {
-    RequestFile,
-    FolderSettingsFile,
-    CollectionSettingsFile,
-    EnvironmentFile,
+    RequestFile = "RequestFile",
+    FolderSettingsFile = "FolderSettingsFile",
+    CollectionSettingsFile = "CollectionSettingsFile",
+    EnvironmentFile = "EnvironmentFile",
 }
