@@ -11,7 +11,6 @@ import {
     castBlockToDictionaryBlock,
     getSequenceFieldFromMetaBlock,
     mapRange,
-    getTypeOfBrunoFile,
     BrunoFileType,
     filterAsync,
 } from "../../../../../../shared";
@@ -25,7 +24,7 @@ import { readFile } from "fs";
 export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
     itemProvider: CollectionItemProvider,
     metaBlock: Block,
-    documentUri: Uri
+    documentUri: Uri,
 ): Promise<{
     code: RelevantWithinMetaBlockDiagnosticCode;
     toAdd?: {
@@ -41,33 +40,33 @@ export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
             .length != 1 ||
         !isSequenceValid(
             castedBlock.content.find(
-                ({ key }) => key == MetaBlockKey.Sequence
-            ) as DictionaryBlockField
+                ({ key }) => key == MetaBlockKey.Sequence,
+            ) as DictionaryBlockField,
         )
     ) {
         return { code: getDiagnosticCode() };
     }
 
     const sequenceField = castedBlock.content.find(
-        ({ key }) => key == MetaBlockKey.Sequence
+        ({ key }) => key == MetaBlockKey.Sequence,
     ) as DictionaryBlockField;
 
     const otherRequestsInFolder = await getSequencesForOtherRequestsInFolder(
         itemProvider,
         documentUri,
-        dirname(documentUri.fsPath)
+        dirname(documentUri.fsPath),
     );
 
     const otherRequestsWithSameSequence = otherRequestsInFolder
         .filter(
             ({ sequence: existingSequence }) =>
-                Number.parseInt(sequenceField.value) == existingSequence
+                Number.parseInt(sequenceField.value) == existingSequence,
         )
         .map(({ file }) => file);
 
     if (otherRequestsWithSameSequence.length > 0) {
         const allAffectedFiles = otherRequestsWithSameSequence.concat(
-            documentUri.fsPath
+            documentUri.fsPath,
         );
 
         return {
@@ -76,7 +75,7 @@ export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
                 affectedFiles: allAffectedFiles,
                 diagnosticCurrentFile: await getDiagnostic(
                     sequenceField,
-                    otherRequestsWithSameSequence
+                    otherRequestsWithSameSequence,
                 ),
             },
         };
@@ -87,7 +86,7 @@ export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
 
 async function getDiagnostic(
     sequenceField: DictionaryBlockField,
-    otherRequestsWithSameSequence: string[]
+    otherRequestsWithSameSequence: string[],
 ): Promise<DiagnosticWithCode> {
     return {
         message:
@@ -102,7 +101,7 @@ async function getDiagnostic(
                     uri: Uri.file(path),
                     range: await getRangeForSequence(path),
                 },
-            }))
+            })),
         ),
     };
 }
@@ -110,7 +109,7 @@ async function getDiagnostic(
 async function getRangeForSequence(filePath: string) {
     const readFileAsync = promisify(readFile);
     const sequenceField = getSequenceFieldFromMetaBlock(
-        new TextDocumentHelper(await readFileAsync(filePath, "utf-8"))
+        new TextDocumentHelper(await readFileAsync(filePath, "utf-8")),
     );
 
     if (!sequenceField) {
@@ -119,7 +118,7 @@ async function getRangeForSequence(filePath: string) {
                 RequestFileBlockName.Meta
             }' block did not have expected format for file '${filePath}'. Got field for '${
                 MetaBlockKey.Sequence
-            }': ${JSON.stringify(sequenceField, null, 2)}.`
+            }': ${JSON.stringify(sequenceField, null, 2)}.`,
         );
     }
 
@@ -129,21 +128,21 @@ async function getRangeForSequence(filePath: string) {
 async function getSequencesForOtherRequestsInFolder(
     itemProvider: CollectionItemProvider,
     documentUri: Uri,
-    directoryPath: string
+    directoryPath: string,
 ) {
     const result: { file: string; sequence: number }[] = [];
 
     const otherRequestsInFolder = await getOtherRequestsInFolder(
         itemProvider,
         directoryPath,
-        documentUri
+        documentUri,
     );
 
     result.push(
         ...otherRequestsInFolder.map((requestFile) => ({
             file: requestFile.getPath(),
             sequence: requestFile.getSequence() as number,
-        }))
+        })),
     );
 
     return result;
@@ -152,7 +151,7 @@ async function getSequencesForOtherRequestsInFolder(
 async function getOtherRequestsInFolder(
     itemProvider: CollectionItemProvider,
     directoryPath: string,
-    documentUri: Uri
+    documentUri: Uri,
 ): Promise<CollectionFile[]> {
     const result: CollectionFile[] = [];
 
@@ -160,7 +159,7 @@ async function getOtherRequestsInFolder(
 
     if (!collection) {
         console.warn(
-            `Could not determine collection for directory path '${directoryPath}'`
+            `Could not determine collection for directory path '${directoryPath}'`,
         );
         return result;
     }
@@ -177,10 +176,9 @@ async function getOtherRequestsInFolder(
                         normalizeDirectoryPath(directoryPath) &&
                     item.getSequence() != undefined &&
                     itemPath != documentUri.fsPath &&
-                    (await getTypeOfBrunoFile([collection], itemPath)) ==
-                        BrunoFileType.RequestFile
+                    item.getFileType() == BrunoFileType.RequestFile
                 );
-            }
+            },
         )
     ).map(({ item }) => item as CollectionFile);
 }

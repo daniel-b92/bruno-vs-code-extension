@@ -1,7 +1,11 @@
-import { CollectionItem } from "./interfaces";
+import { CollectionItem, FileType } from "./interfaces";
 
 export class CollectionFile implements CollectionItem {
-    constructor(private path: string, private sequence?: number) {}
+    constructor(
+        private path: string,
+        private fileType: FileType,
+        private sequence?: number,
+    ) {}
 
     public getPath() {
         return this.path;
@@ -9,5 +13,9 @@ export class CollectionFile implements CollectionItem {
 
     public getSequence() {
         return this.sequence;
+    }
+
+    public getFileType() {
+        return this.fileType;
     }
 }

@@ -8,7 +8,6 @@ import {
     CollectionFile,
     CollectionItem,
     filterAsync,
-    getTypeOfBrunoFile,
     normalizeDirectoryPath,
 } from "../..";
 
@@ -20,7 +19,7 @@ export class TestRunnerDataHelper {
         const testItem = this.testController.createTestItem(
             getTestId(uri),
             getTestLabel(uri),
-            uri
+            uri,
         );
 
         if (item instanceof CollectionFile) {
@@ -36,38 +35,35 @@ export class TestRunnerDataHelper {
 
     public async addTestTreeItemsForDirectoryAndDescendants(
         collectionForDirectory: Collection,
-        directory: CollectionDirectory
+        directory: CollectionDirectory,
     ) {
         const relevantFiles = await this.getTestFileDescendants(
             collectionForDirectory,
-            directory
+            directory,
         );
 
         for (const { item } of relevantFiles) {
             addTestItemAndAncestorsToTestTree(
                 this.testController,
                 collectionForDirectory,
-                item
+                item,
             );
         }
     }
 
     public async getTestFileDescendants(
         collectionForDirectory: Collection,
-        directory: CollectionDirectory
+        directory: CollectionDirectory,
     ) {
         return await filterAsync(
             collectionForDirectory.getAllStoredDataForCollection().slice(),
             async ({ item }) =>
                 item instanceof CollectionFile &&
-                (await getTypeOfBrunoFile(
-                    [collectionForDirectory],
-                    item.getPath()
-                )) == BrunoFileType.RequestFile &&
+                item.getFileType() == BrunoFileType.RequestFile &&
                 item.getSequence() != undefined &&
                 item
                     .getPath()
-                    .startsWith(normalizeDirectoryPath(directory.getPath()))
+                    .startsWith(normalizeDirectoryPath(directory.getPath())),
         );
     }
 

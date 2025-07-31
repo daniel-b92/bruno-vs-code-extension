@@ -1,5 +1,6 @@
 import { TestItem } from "vscode";
 import { BrunoTreeItem } from "../../treeView/brunoTreeItem";
+import { BrunoFileType } from "./brunoFileTypeEnum";
 
 export interface CollectionItem {
     getPath: () => string;
@@ -11,3 +12,5 @@ export interface CollectionData {
     treeItem: BrunoTreeItem;
     testItem: TestItem;
 }
+
+export type FileType = BrunoFileType | "other";
