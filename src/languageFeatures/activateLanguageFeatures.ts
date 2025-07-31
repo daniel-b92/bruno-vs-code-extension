@@ -28,6 +28,7 @@ import {
     parseBruFile,
     TextDocumentHelper,
     isBrunoFileType,
+    getConfiguredTestEnvironment,
 } from "../shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/autoUpdates/updateUrlToMatchQueryParams";
@@ -354,7 +355,7 @@ async function fetchAvailableVarsFromConfiguredEnvironments(
                 const environmentFile = resolve(
                     collection.getRootDirectory(),
                     "environments",
-                    `${environmentName}${getExtensionForRequestFiles()}`,
+                    `${environmentName}${getExtensionForBrunoFiles()}`,
                 ); // ToDo: Save type of file already in cache
 
                 return (await checkIfPathExistsAsync(environmentFile))

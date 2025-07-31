@@ -86,6 +86,7 @@ export * from "./languageUtils/commonBlocks/castBlockToDictionaryBlock";
 export * from "./languageUtils/commonBlocks/castBlockToArrayBlock";
 export * from "./languageUtils/commonBlocks/isArrayBlockField";
 export * from "./languageUtils/commonBlocks/isDictionaryBlockField";
+export * from "./languageUtils/commonBlocks/variableDefinitions";
 
 // test file writing
 export * from "./testFileWriting/addMetaBlock";
