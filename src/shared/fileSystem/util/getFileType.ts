@@ -2,41 +2,38 @@ import { basename, dirname, extname } from "path";
 import {
     BrunoFileType,
     Collection,
-    getExtensionForRequestFiles,
+    getExtensionForBrunoFiles,
     doesFileNameMatchFolderSettingsFileName,
     normalizeDirectoryPath,
     checkIfPathExistsAsync,
+    FileType,
 } from "../..";
 
-export async function getTypeOfBrunoFile(
-    collectionsToSearch: Collection[],
-    path: string
-): Promise<BrunoFileType | undefined> {
+export async function getFileType(
+    collection: Collection,
+    path: string,
+): Promise<FileType | undefined> {
     if (!(await checkIfPathExistsAsync(path))) {
         return undefined;
     }
 
     const isValidBruFile =
-        extname(path) == getExtensionForRequestFiles() &&
-        collectionsToSearch.some((collection) =>
-            path.startsWith(
-                normalizeDirectoryPath(collection.getRootDirectory())
-            )
-        );
+        extname(path) == getExtensionForBrunoFiles() &&
+        path.startsWith(normalizeDirectoryPath(collection.getRootDirectory()));
 
     if (!isValidBruFile) {
-        return undefined;
+        return "other";
     }
 
     if (isEnvironmentFile(path)) {
         return BrunoFileType.EnvironmentFile;
     } else if (
-        isChildElementOfCollectionRootDirectory(collectionsToSearch, path) &&
+        isChildElementOfCollectionRootDirectory(collection, path) &&
         doesNameMatchCollectionSettingsFile(path)
     ) {
         return BrunoFileType.CollectionSettingsFile;
     } else if (
-        !isChildElementOfCollectionRootDirectory(collectionsToSearch, path) &&
+        !isChildElementOfCollectionRootDirectory(collection, path) &&
         doesFileNameMatchFolderSettingsFileName(path)
     ) {
         return BrunoFileType.FolderSettingsFile;
@@ -46,19 +43,18 @@ export async function getTypeOfBrunoFile(
 }
 
 function isChildElementOfCollectionRootDirectory(
-    registeredCollections: Collection[],
-    path: string
+    collection: Collection,
+    path: string,
 ) {
-    return registeredCollections.some(
-        (collection) =>
-            normalizeDirectoryPath(collection.getRootDirectory()) ==
-            normalizeDirectoryPath(dirname(path))
+    return (
+        normalizeDirectoryPath(collection.getRootDirectory()) ==
+        normalizeDirectoryPath(dirname(path))
     );
 }
 
 function isEnvironmentFile(path: string) {
     return normalizeDirectoryPath(dirname(path)).match(
-        /(\/|\\)environments(\/|\\)$/
+        /(\/|\\)environments(\/|\\)$/,
     );
 }
 

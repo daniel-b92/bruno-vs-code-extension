@@ -1,20 +1,20 @@
 // file system
 export * from "./fileSystem/collectionWatcher";
 export * from "./fileSystem/fileChangesDefinitions";
-export * from "./fileSystem/brunoFileTypeEnum";
+export * from "./model/brunoFileTypeEnum";
 export * from "./fileSystem/util/getTemporaryJsFileName";
 export * from "./fileSystem/util/collectionRootFolderHelper";
 export * from "./fileSystem/util/getTestFileDescendants";
 export * from "./fileSystem/util/normalizeDirectoryPath";
 export * from "./fileSystem/util/textDocumentHelper";
-export * from "./fileSystem/util/getExtensionForRequestFiles";
+export * from "./fileSystem/util/getExtensionForBrunoFiles";
 export * from "./fileSystem/util/getLineBreakForDocument";
 export * from "./fileSystem/util/range";
 export * from "./fileSystem/util/position";
 export * from "./fileSystem/util/positionAndRangeMapper";
-export * from "./fileSystem/util/getTypeOfBrunoFile";
 export * from "./fileSystem/util/doesFileNameMatchFolderSettingsFileName";
 export * from "./fileSystem/util/checkIfPathExistsAsync";
+export * from "./fileSystem/util/getFileType";
 
 // array utils
 export * from "./arrayUtils/filterAsync";
@@ -101,6 +101,7 @@ export * from "./model/interfaces";
 // file system cache
 export * from "./fileSystemCache/externalHelpers/collectionItemProvider";
 export * from "./fileSystemCache/externalHelpers/testRunnerDataHelper";
+export * from "./fileSystemCache/externalHelpers/isBrunoFileType";
 
 // vsCodeSettings
 export * from "./vsCodeSettings/getLinkToUserSetting";

@@ -1,10 +1,10 @@
-import { CollectionItem, FileVariables } from "./interfaces";
+import { CollectionItem, FileType } from "./interfaces";
 
 export class CollectionFile implements CollectionItem {
     constructor(
         private path: string,
+        private fileType: FileType,
         private sequence?: number,
-        private variables?: FileVariables,
     ) {}
 
     public getPath() {
@@ -15,12 +15,7 @@ export class CollectionFile implements CollectionItem {
         return this.sequence;
     }
 
-    public getReferencedEnvironmentVariables() {
-        return this.variables
-            ? {
-                  used: this.variables.usedEnvironmentVars,
-                  set: this.variables.setEnvironmentVars,
-              }
-            : undefined;
+    public getFileType() {
+        return this.fileType;
     }
 }

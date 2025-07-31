@@ -1,7 +1,7 @@
 import { RelativePattern, workspace } from "vscode";
 import {
     filterAsync,
-    getExtensionForRequestFiles,
+    getExtensionForBrunoFiles,
     parseSequenceFromMetaBlock,
 } from "../..";
 
@@ -9,7 +9,7 @@ export const getTestFileDescendants = async (directoryPath: string) => {
     const bruFileUris = await workspace.findFiles(
         new RelativePattern(
             directoryPath,
-            `**/*${getExtensionForRequestFiles()}`
+            `**/*${getExtensionForBrunoFiles()}`
         )
     );
     return await filterAsync(

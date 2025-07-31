@@ -1,6 +1,6 @@
 import { TestItem } from "vscode";
 import { BrunoTreeItem } from "../../treeView/brunoTreeItem";
-import { Range } from "../fileSystem/util/range";
+import { BrunoFileType } from "./brunoFileTypeEnum";
 
 export interface CollectionItem {
     getPath: () => string;
@@ -13,12 +13,4 @@ export interface CollectionData {
     testItem: TestItem;
 }
 
-export interface FileVariables {
-    setEnvironmentVars: VariableReference[];
-    usedEnvironmentVars: VariableReference[];
-}
-
-export interface VariableReference {
-    name: string;
-    range: Range;
-}
+export type FileType = BrunoFileType | "other";

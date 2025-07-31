@@ -21,14 +21,13 @@ import {
     CollectionItemProvider,
     EnvironmentFileBlockName,
     FileChangeType,
-    getConfiguredTestEnvironment,
-    getExtensionForRequestFiles,
+    getExtensionForBrunoFiles,
     getLoggerFromSubscriptions,
-    getTypeOfBrunoFile,
     normalizeDirectoryPath,
     OutputChannelLogger,
     parseBruFile,
     TextDocumentHelper,
+    isBrunoFileType,
 } from "../shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/autoUpdates/updateUrlToMatchQueryParams";
@@ -124,24 +123,24 @@ async function onDidChangeActiveTextEditor(
         editor.document.uri.toString() ==
         window.tabGroups.activeTabGroup.activeTab.input.uri.toString()
     ) {
-        const fileType = await getTypeOfBrunoFile(
-            collectionItemProvider.getRegisteredCollections().slice(),
+        const brunoFileType = await getBrunoFileTypeIfExists(
+            collectionItemProvider,
             editor.document.uri.fsPath,
         );
 
-        if (fileType == undefined) {
+        if (!brunoFileType) {
             await deleteAllTemporaryJsFiles(tempJsFilesRegistry);
             return;
         }
 
-        await fetchDiagnostics(
+        await fetchBrunoSpecificDiagnostics(
             editor.document.uri,
             editor.document.getText(),
             brunoLangDiagnosticsProvider,
-            fileType,
+            brunoFileType,
         );
 
-        if (getBrunoFileTypesThatCanHaveCodeBlocks().includes(fileType)) {
+        if (getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType)) {
             await createTemporaryJsFile(
                 (
                     collectionItemProvider.getAncestorCollectionForPath(
@@ -171,23 +170,25 @@ async function onDidChangeTextDocument(
             window.activeTextEditor?.document.uri.toString() ==
             event.document.uri.toString()
         ) {
-            const fileType = await getTypeOfBrunoFile(
-                collectionItemProvider.getRegisteredCollections().slice(),
+            const brunoFileType = await getBrunoFileTypeIfExists(
+                collectionItemProvider,
                 event.document.uri.fsPath,
             );
 
-            if (fileType == undefined) {
+            if (!brunoFileType) {
                 return;
             }
 
-            await fetchDiagnostics(
+            await fetchBrunoSpecificDiagnostics(
                 event.document.uri,
                 event.document.getText(),
                 brunoLangDiagnosticsProvider,
-                fileType,
+                brunoFileType,
             );
 
-            if (getBrunoFileTypesThatCanHaveCodeBlocks().includes(fileType)) {
+            if (
+                getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType)
+            ) {
                 await createTemporaryJsFile(
                     (
                         collectionItemProvider.getAncestorCollectionForPath(
@@ -208,14 +209,14 @@ async function onWillSaveTextDocument(
     collectionItemProvider: CollectionItemProvider,
     event: TextDocumentWillSaveEvent,
 ) {
-    const fileType = await getTypeOfBrunoFile(
-        collectionItemProvider.getRegisteredCollections().slice(),
-        event.document.uri.fsPath,
+    const brunoFileType = await getBrunoFileTypeIfExists(
+        collectionItemProvider,
+        event.document.fileName,
     );
 
     if (
-        fileType != undefined &&
-        getBrunoFileTypesThatCanHaveCodeBlocks().includes(fileType)
+        brunoFileType != undefined &&
+        getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType)
     ) {
         const collection = collectionItemProvider.getAncestorCollectionForPath(
             event.document.fileName,
@@ -267,7 +268,7 @@ function handleDiagnosticUpdatesOnFileDeletion(
             if (
                 updateType == FileChangeType.Deleted &&
                 item instanceof CollectionFile &&
-                extname(item.getPath()) == getExtensionForRequestFiles()
+                extname(item.getPath()) == getExtensionForBrunoFiles()
             ) {
                 diagnosticCollection.delete(Uri.file(item.getPath()));
             } else if (
@@ -288,7 +289,7 @@ function handleDiagnosticUpdatesOnFileDeletion(
     });
 }
 
-async function fetchDiagnostics(
+async function fetchBrunoSpecificDiagnostics(
     uri: Uri,
     content: string,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
@@ -313,6 +314,10 @@ async function fetchDiagnostics(
         brunoLangDiagnosticsProvider.provideDiagnosticsForCollectionSettingsFile(
             uri,
             content,
+        );
+    } else {
+        throw new Error(
+            `Fetching Bruno specific diagnostics not implemented for file type '${brunoFileType}'.`,
         );
     }
 }
@@ -397,4 +402,19 @@ function getBrunoFileTypesThatCanHaveCodeBlocks() {
         BrunoFileType.FolderSettingsFile,
         BrunoFileType.RequestFile,
     ];
+}
+
+async function getBrunoFileTypeIfExists(
+    collectionItemProvider: CollectionItemProvider,
+    filePath: string,
+) {
+    const itemWithCollection =
+        collectionItemProvider.getRegisteredItemAndCollection(filePath);
+
+    return itemWithCollection &&
+        (await checkIfPathExistsAsync(filePath)) &&
+        itemWithCollection.data.item instanceof CollectionFile &&
+        isBrunoFileType(itemWithCollection.data.item.getFileType())
+        ? (itemWithCollection.data.item.getFileType() as BrunoFileType)
+        : undefined;
 }

@@ -1,9 +1,7 @@
 import {
     Collection,
     CollectionDirectory,
-    CollectionFile,
     getAllCollectionRootDirectories,
-    getSequenceForFile,
     getSequenceForFolder,
     normalizeDirectoryPath,
     TestRunnerDataHelper,
@@ -13,15 +11,16 @@ import { resolve } from "path";
 import { addItemToCollection } from "./addItemToCollection";
 import { lstat, readdir } from "fs";
 import { promisify } from "util";
+import { getCollectionFile } from "./getCollectionFile";
 
 export async function registerMissingCollectionsAndTheirItems(
     testRunnerDataHelper: TestRunnerDataHelper,
     collectionRegistry: CollectionRegistry,
-    getPathsToIgnoreForCollection: (collectionRootDir: string) => string[]
+    getPathsToIgnoreForCollection: (collectionRootDir: string) => string[],
 ) {
     const allCollections = await registerAllExistingCollections(
         testRunnerDataHelper,
-        collectionRegistry
+        collectionRegistry,
     );
 
     for (const collection of allCollections) {
@@ -39,7 +38,7 @@ export async function registerMissingCollectionsAndTheirItems(
                 if (
                     !collection.getStoredDataForPath(path) &&
                     !getPathsToIgnoreForCollection(
-                        collection.getRootDirectory()
+                        collection.getRootDirectory(),
                     ).includes(path)
                 ) {
                     const item = isDirectory
@@ -47,13 +46,10 @@ export async function registerMissingCollectionsAndTheirItems(
                               path,
                               await getSequenceForFolder(
                                   collection.getRootDirectory(),
-                                  path
-                              )
+                                  path,
+                              ),
                           )
-                        : new CollectionFile(
-                              path,
-                              await getSequenceForFile(collection, path)
-                          );
+                        : await getCollectionFile(collection, path);
 
                     addItemToCollection(testRunnerDataHelper, collection, item);
                 }
@@ -61,7 +57,7 @@ export async function registerMissingCollectionsAndTheirItems(
                 if (
                     isDirectory &&
                     !getPathsToIgnoreForCollection(
-                        collection.getRootDirectory()
+                        collection.getRootDirectory(),
                     ).includes(path)
                 ) {
                     currentPaths.push(path);
@@ -73,7 +69,7 @@ export async function registerMissingCollectionsAndTheirItems(
 
 async function registerAllExistingCollections(
     testRunnerDataHelper: TestRunnerDataHelper,
-    registry: CollectionRegistry
+    registry: CollectionRegistry,
 ) {
     return (await getAllCollectionRootDirectories()).map((rootDirectory) => {
         const collection = new Collection(rootDirectory, testRunnerDataHelper);
@@ -84,7 +80,7 @@ async function registerAllExistingCollections(
                 .some(
                     (registered) =>
                         normalizeDirectoryPath(registered.getRootDirectory()) ==
-                        normalizeDirectoryPath(rootDirectory)
+                        normalizeDirectoryPath(rootDirectory),
                 )
         ) {
             registry.registerCollection(collection);
