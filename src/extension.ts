@@ -5,7 +5,6 @@ import {
     tests,
     Uri,
     window,
-    workspace,
 } from "vscode";
 import { activateRunner } from "./testRunner";
 import { activateTreeView } from "./treeView";
@@ -18,19 +17,18 @@ import {
     OutputChannelLogger,
 } from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures";
-import { syncTsPlugin } from "./syncTsPlugin";
 
 export async function activate(context: ExtensionContext) {
     const extensionNameLabel = "BruAsCode";
 
     const ctrl = tests.createTestController(
         "bruAsCodeTestController",
-        extensionNameLabel
+        extensionNameLabel,
     );
     context.subscriptions.push(ctrl);
 
     const logger = new OutputChannelLogger(
-        window.createOutputChannel(extensionNameLabel, { log: true })
+        window.createOutputChannel(extensionNameLabel, { log: true }),
     );
 
     context.subscriptions.push(logger);
@@ -39,25 +37,17 @@ export async function activate(context: ExtensionContext) {
     const collectionWatcher = new CollectionWatcher(
         context,
         fileChangedEmitter,
-        logger
+        logger,
     );
 
     const collectionItemProvider = new CollectionItemProvider(
         collectionWatcher,
         new TestRunnerDataHelper(ctrl),
         getPathsToIgnoreForCollection,
-        logger
+        logger,
     );
 
     const startTestRunEmitter = new EventEmitter<Uri>();
-
-    await syncTsPlugin();
-
-    workspace.onDidChangeConfiguration(async (e) => {
-        if (e.affectsConfiguration("typescript")) {
-            await syncTsPlugin();
-        }
-    });
 
     window.withProgress(
         {
@@ -71,23 +61,23 @@ export async function activate(context: ExtensionContext) {
                         context,
                         ctrl,
                         collectionItemProvider,
-                        startTestRunEmitter.event
+                        startTestRunEmitter.event,
                     ).then(() => {
                         activateTreeView(
                             context,
                             collectionItemProvider,
-                            startTestRunEmitter
+                            startTestRunEmitter,
                         );
 
                         activateLanguageFeatures(
                             context,
-                            collectionItemProvider
+                            collectionItemProvider,
                         );
                         resolve();
                     });
                 });
             });
-        }
+        },
     );
 }
 
