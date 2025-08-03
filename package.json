@@ -52,6 +52,7 @@
         "@zentryc5t/ts-plugin-for-bruno": "^1.0.0",
         "glob": "^11.0.3",
         "prettier": "^3.6.2",
+        "process": "^0.11.10",
         "tree-kill": "^1.2.2"
     },
     "contributes": {
@@ -76,6 +77,11 @@
                     "type": "boolean",
                     "default": false,
                     "markdownDescription": "Allow the Bruno CLI npm package to be installed temporarily via npx, if it's not already installed globally. See [npm docs](https://docs.npmjs.com/cli/v11/commands/npx) for further infos on npx."
+                },
+                "bru-as-code.suggestCreatingTsConfigsForCollections": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Show a dialog suggesting to create tsconfig files for collections (if not already existing) after every extension start."
                 }
             }
         },

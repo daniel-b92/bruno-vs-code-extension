@@ -11,9 +11,13 @@ get {
 }
 
 tests {
+  const moment = require("moment");
+
   test("should be able to login", function() {
     const data = res.getBody();
     expect(res.getStatus()).to.equal(200);
     expect(res.getBody()).to.contain("example");
+    
+    const someMoment = moment().add(2, "minute");
   });
 }
