@@ -1,19 +1,24 @@
-import { EndOfLine, workspace } from "vscode";
+import { EndOfLine, TextDocument, workspace } from "vscode";
 import { getLineBreakFromSettings } from "../..";
 
-export function getLineBreak(referenceFile?: string) {
+export function getLineBreak(referenceFile?: string | TextDocument) {
     if (referenceFile) {
-        return getLineBreakForFile(referenceFile) ?? getLineBreakFromSettings();
+        const document =
+            typeof referenceFile == "string"
+                ? workspace.textDocuments.find(
+                      ({ fileName: docPath }) => referenceFile == docPath,
+                  )
+                : referenceFile;
+
+        return document
+            ? (getLineBreakForFile(document) ?? getLineBreakFromSettings())
+            : getLineBreakFromSettings();
     }
 
     return getLineBreakFromSettings();
 }
 
-function getLineBreakForFile(filePath: string) {
-    const document = workspace.textDocuments.find(
-        ({ fileName: docPath }) => filePath == docPath,
-    );
-
+function getLineBreakForFile(document: TextDocument) {
     return document
         ? document.eol == EndOfLine.LF
             ? "\n"

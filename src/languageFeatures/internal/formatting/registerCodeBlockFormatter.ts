@@ -25,7 +25,7 @@ export function registerCodeBlockFormatter(_logger?: OutputChannelLogger) {
                 );
 
                 const codeBlocks = getCodeBlocks(blocks);
-                const lineBreak = getLineBreak(document.fileName);
+                const lineBreak = getLineBreak(document);
 
                 const textEdits: Promise<TextEdit>[] = [];
 

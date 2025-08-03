@@ -52,15 +52,13 @@ export async function appendDefaultMethodBlock(
     await promisify(writeFile)(
         testFilePath,
         `${documentHelper.getText()}${lineBreak}${lineBreak}${getTextToAdd(
+            lineBreak,
             blockName,
         )}`,
     );
 }
 
-function getTextToAdd(blockName: RequestFileBlockName) {
-    // ToDo: Use linebreak configured in workspace of extension user
-
-    const lineBreak = getLineBreak();
+function getTextToAdd(lineBreak: string, blockName: RequestFileBlockName) {
     const whitespacesForIndentation = getNumberOfWhitespacesForIndentation();
 
     return `${blockName} {`

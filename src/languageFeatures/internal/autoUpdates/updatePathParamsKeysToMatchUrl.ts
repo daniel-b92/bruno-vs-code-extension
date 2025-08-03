@@ -152,7 +152,7 @@ function addMissingEntriesInPathParamsBlock(
     allParsedBlocks: Block[],
     parsedPathParamsBlocks: DictionaryBlock[],
 ) {
-    const lineBreak = getLineBreak(document.fileName);
+    const lineBreak = getLineBreak(document);
 
     const blockContentToInsert = paramsToAdd
         .map(
