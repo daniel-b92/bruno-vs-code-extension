@@ -16,6 +16,7 @@ import {
     Collection,
     getCancelOptionLabel,
     getLineBreakFromSettings,
+    getTemporaryJsFileName,
 } from "../shared";
 
 export async function suggestCreatingTsConfigsForCollections(
@@ -85,13 +86,16 @@ async function getCollectionsWithoutTsConfigs(
     return await filterAsync(
         itemProvider.getRegisteredCollections().slice(),
         async (collection) =>
-            collection
-                .getAllStoredDataForCollection()
-                // Only if JS files exist in the collection, the tsconfig is needed. Otherwise an error will be shown in the tsconfig because no files are included.
-                .some(({ item }) => extname(item.getPath()) == ".js") &&
             !(await checkIfPathExistsAsync(
                 getTsConfigPathForCollection(collection),
-            )),
+            )) &&
+            collection.getAllStoredDataForCollection().some(
+                // Only if JS files exist in the collection, the tsconfig is needed. Otherwise an error will be shown in the tsconfig because no files are included.
+                ({ item }) =>
+                    extname(item.getPath()) == ".js" &&
+                    item.getPath() !=
+                        getTemporaryJsFileName(collection.getRootDirectory()),
+            ),
     );
 }
 
