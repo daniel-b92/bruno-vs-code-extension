@@ -1,7 +1,7 @@
 import { languages, TextEdit } from "vscode";
 import {
     Block,
-    getLineBreakForDocument,
+    getLineBreak,
     mapRange,
     OutputChannelLogger,
     parseBruFile,
@@ -25,7 +25,7 @@ export function registerCodeBlockFormatter(_logger?: OutputChannelLogger) {
                 );
 
                 const codeBlocks = getCodeBlocks(blocks);
-                const lineBreak = getLineBreakForDocument(document);
+                const lineBreak = getLineBreak(document.fileName);
 
                 const textEdits: Promise<TextEdit>[] = [];
 

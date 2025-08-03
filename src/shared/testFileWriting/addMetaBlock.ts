@@ -8,18 +8,16 @@ import {
     MetaBlockContent,
     TextDocumentHelper,
     checkIfPathExistsAsync,
-} from "..";
-import {
     getLineBreak,
-    getNumberOfWhitespacesForIndentation,
-} from "./internal/writerUtils";
+} from "..";
+import { getNumberOfWhitespacesForIndentation } from "./internal/writerUtils";
 import { promisify } from "util";
 import { lstat, readFile, writeFile } from "fs";
 
 export async function addMetaBlock(
     collection: Collection,
     testFilePath: string,
-    requestType: RequestType
+    requestType: RequestType,
 ) {
     if (
         !(await checkIfPathExistsAsync(testFilePath)) ||
@@ -29,16 +27,16 @@ export async function addMetaBlock(
     }
 
     const documentHelper = new TextDocumentHelper(
-        await promisify(readFile)(testFilePath, "utf-8")
+        await promisify(readFile)(testFilePath, "utf-8"),
     );
 
     if (
         parseBruFile(documentHelper).blocks.some(
-            ({ name }) => name == RequestFileBlockName.Meta
+            ({ name }) => name == RequestFileBlockName.Meta,
         )
     ) {
         throw new Error(
-            `'${RequestFileBlockName.Meta}' block already exists for request file '${testFilePath}'`
+            `'${RequestFileBlockName.Meta}' block already exists for request file '${testFilePath}'`,
         );
     }
 
@@ -46,20 +44,22 @@ export async function addMetaBlock(
         testFilePath,
         documentHelper.getLineCount() == 0
             ? mapContentToText(
-                  getContent(collection, testFilePath, requestType)
+                  testFilePath,
+                  getContent(collection, testFilePath, requestType),
               )
             : `${mapContentToText(
-                  getContent(collection, testFilePath, requestType)
+                  testFilePath,
+                  getContent(collection, testFilePath, requestType),
               )}
         
-${documentHelper.getText()}`
+${documentHelper.getText()}`,
     );
 }
 
 function getContent(
     collection: Collection,
     testFilePath: string,
-    requestType: RequestType
+    requestType: RequestType,
 ): MetaBlockContent {
     const existingSequences = collection
         .getAllStoredDataForCollection()
@@ -67,35 +67,38 @@ function getContent(
             ({ item }) =>
                 item instanceof CollectionFile &&
                 dirname(item.getPath()) == dirname(testFilePath) &&
-                item.getSequence() != undefined
+                item.getSequence() != undefined,
         )
         .map(({ item }) => (item as CollectionFile).getSequence() as number);
 
     return {
         name: basename(testFilePath).substring(
             0,
-            basename(testFilePath).indexOf(extname(testFilePath))
+            basename(testFilePath).indexOf(extname(testFilePath)),
         ),
         type: requestType,
         sequence: Math.max(...existingSequences) + 1,
     };
 }
 
-function mapContentToText({ name, type, sequence }: MetaBlockContent) {
-    const lineBreak = getLineBreak();
+function mapContentToText(
+    filePath: string,
+    { name, type, sequence }: MetaBlockContent,
+) {
+    const lineBreak = getLineBreak(filePath);
     const whitespacesForIndentation = getNumberOfWhitespacesForIndentation();
 
     return `${RequestFileBlockName.Meta} {`
         .concat(
-            `${lineBreak}${" ".repeat(whitespacesForIndentation)}name: ${name}`
+            `${lineBreak}${" ".repeat(whitespacesForIndentation)}name: ${name}`,
         )
         .concat(
-            `${lineBreak}${" ".repeat(whitespacesForIndentation)}type: ${type}`
+            `${lineBreak}${" ".repeat(whitespacesForIndentation)}type: ${type}`,
         )
         .concat(
             `${lineBreak}${" ".repeat(
-                whitespacesForIndentation
-            )}seq: ${sequence}`
+                whitespacesForIndentation,
+            )}seq: ${sequence}`,
         )
         .concat(`${lineBreak}}`);
 }

@@ -8,7 +8,7 @@ export * from "./fileSystem/util/getTestFileDescendants";
 export * from "./fileSystem/util/normalizeDirectoryPath";
 export * from "./fileSystem/util/textDocumentHelper";
 export * from "./fileSystem/util/getExtensionForBrunoFiles";
-export * from "./fileSystem/util/getLineBreakForDocument";
+export * from "./fileSystem/util/getLineBreak";
 export * from "./fileSystem/util/range";
 export * from "./fileSystem/util/position";
 export * from "./fileSystem/util/positionAndRangeMapper";
@@ -101,7 +101,13 @@ export * from "./fileSystemCache/externalHelpers/isBrunoFileType";
 
 // vsCodeSettings
 export * from "./vsCodeSettings/getLinkToUserSetting";
+export * from "./vsCodeSettings/getLineBreakFromSettings";
 
 // logging
 export * from "./logging/outputChannelLogger";
 export * from "./logging/getLoggerFromSubscriptions";
+
+//dialogs
+export * from "./dialogs/getConfirmationOptionLabel";
+export * from "./dialogs/getDoNotAskAgainOptionLabel";
+export * from "./dialogs/getCancelOptionLabel";

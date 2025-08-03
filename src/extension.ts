@@ -17,6 +17,7 @@ import {
     OutputChannelLogger,
 } from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures";
+import { suggestCreatingTsConfigsForCollections } from "./languageFeatures/suggestCreatingTsConfigsForCollections";
 
 export async function activate(context: ExtensionContext) {
     const extensionNameLabel = "BruAsCode";
@@ -73,7 +74,12 @@ export async function activate(context: ExtensionContext) {
                             context,
                             collectionItemProvider,
                         );
+
                         resolve();
+
+                        suggestCreatingTsConfigsForCollections(
+                            collectionItemProvider,
+                        );
                     });
                 });
             });
