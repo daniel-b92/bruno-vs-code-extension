@@ -108,6 +108,4 @@ export * from "./logging/outputChannelLogger";
 export * from "./logging/getLoggerFromSubscriptions";
 
 //dialogs
-export * from "./dialogs/getConfirmationOptionLabel";
-export * from "./dialogs/getDoNotAskAgainOptionLabel";
-export * from "./dialogs/getCancelOptionLabel";
+export * from "./dialogs/dialogOptionLabelEnum";

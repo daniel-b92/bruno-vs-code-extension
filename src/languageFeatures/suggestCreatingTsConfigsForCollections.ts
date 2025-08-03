@@ -11,12 +11,10 @@ import {
     CollectionItemProvider,
     filterAsync,
     checkIfPathExistsAsync,
-    getConfirmationOptionLabel,
-    getDoNotAskAgainOptionLabel,
     Collection,
-    getCancelOptionLabel,
     getLineBreakFromSettings,
     getTemporaryJsFileName,
+    DialogOptionLabelEnum,
 } from "../shared";
 
 export async function suggestCreatingTsConfigsForCollections(
@@ -29,9 +27,9 @@ export async function suggestCreatingTsConfigsForCollections(
         return;
     }
 
-    const confirmationOption = getConfirmationOptionLabel();
-    const cancelOption = getCancelOptionLabel();
-    const doNotAskAgainOption = getDoNotAskAgainOptionLabel();
+    const confirmationOption = DialogOptionLabelEnum.Confirm;
+    const cancelOption = DialogOptionLabelEnum.Cancel;
+    const doNotAskAgainOption = DialogOptionLabelEnum.DoNotAskAgain;
 
     const pickedOption = await window.showInformationMessage<MessageItem>(
         `It is recommended to add a 'tsconfig.json' in the root folder of every collection that contains JS files (to avoid errors for the Typescript language server).

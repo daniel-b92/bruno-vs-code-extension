@@ -16,7 +16,7 @@ import {
     checkIfPathExistsAsync,
     CollectionFile,
     isBrunoFileType,
-    getConfirmationOptionLabel,
+    DialogOptionLabelEnum,
 } from "../../shared";
 import { basename, dirname, extname, resolve } from "path";
 import { BrunoTreeItem } from "../brunoTreeItem";
@@ -76,7 +76,7 @@ export class CollectionExplorer
     }
 
     private disposables: vscode.Disposable[] = [];
-    private confirmationOptionForModals = getConfirmationOptionLabel();
+    private confirmationOptionForModals = DialogOptionLabelEnum.Confirm;
 
     public dispose() {
         for (const disposable of this.disposables) {
