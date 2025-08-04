@@ -2,6 +2,7 @@
 
 ### Fixes / Improvements
 - Show suggestion for adding `tsconfig.json` files for each collection because otherwise the typescript language server runs into issues when trying to determine the project.
+- Add description on how to use the local TS plugin code during extension development.
 
 ## [0.16.2] (2025-07-28)
 
