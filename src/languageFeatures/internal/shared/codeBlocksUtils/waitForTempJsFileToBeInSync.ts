@@ -16,8 +16,8 @@ import {
     RequestFileBlockName,
     TextDocumentHelper,
 } from "../../../../shared";
-import { TemporaryJsFilesRegistry } from "../temporaryJsFilesRegistry";
-import { createTemporaryJsFile } from "./createTemporaryJsFile";
+import { TemporaryJsFilesRegistry } from "../temporaryJsFilesUpdates/internal/temporaryJsFilesRegistry";
+import { createTemporaryJsFile } from "../temporaryJsFilesUpdates/internal/createTemporaryJsFile";
 import { getCodeBlocks } from "./getCodeBlocks";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
 

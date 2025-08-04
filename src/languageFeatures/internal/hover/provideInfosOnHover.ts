@@ -11,7 +11,7 @@ import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocument
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
-import { TemporaryJsFilesRegistry } from "../shared/temporaryJsFilesRegistry";
+import { TemporaryJsFilesRegistry } from "../shared/temporaryJsFilesUpdates/internal/temporaryJsFilesRegistry";
 import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSync";
 
 export function provideInfosOnHover(

@@ -30,21 +30,28 @@ import {
 import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/autoUpdates/updateUrlToMatchQueryParams";
 import { updatePathParamsKeysToMatchUrl } from "./internal/autoUpdates/updatePathParamsKeysToMatchUrl";
-import { createTemporaryJsFile } from "./internal/shared/codeBlocksUtils/createTemporaryJsFile";
-import { TemporaryJsFilesRegistry } from "./internal/shared/temporaryJsFilesRegistry";
-import { deleteTemporaryJsFileForCollection } from "./internal/shared/codeBlocksUtils/deleteTemporaryJsFile";
+import { createTemporaryJsFile } from "./internal/shared/temporaryJsFilesUpdates/internal/createTemporaryJsFile";
+import { TemporaryJsFilesRegistry } from "./internal/shared/temporaryJsFilesUpdates/internal/temporaryJsFilesRegistry";
+import { deleteTemporaryJsFileForCollection } from "./internal/shared/temporaryJsFilesUpdates/internal/deleteTemporaryJsFile";
 import { provideCodeBlocksCompletionItems } from "./internal/completionItems/provideCodeBlocksCompletionItems";
 import { provideInfosOnHover } from "./internal/hover/provideInfosOnHover";
 import { provideSignatureHelp } from "./internal/signatureHelp/provideSignatureHelp";
 import { provideDefinitions } from "./internal/definitionProvider/provideDefinitions";
 import { extname } from "path";
 import { registerCodeBlockFormatter } from "./internal/formatting/registerCodeBlockFormatter";
+import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates/tempJsFileUpdateQueue";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
     collectionItemProvider: CollectionItemProvider,
 ) {
+    const logger = getLoggerFromSubscriptions(context);
+
     const tempJsFilesRegistry = new TemporaryJsFilesRegistry();
+    const tempJsFilesUpdateQueue = new TempJsFileUpdateQueue(
+        tempJsFilesRegistry,
+        logger,
+    );
 
     const diagnosticCollection =
         languages.createDiagnosticCollection("bru-as-code");
@@ -54,11 +61,9 @@ export function activateLanguageFeatures(
         collectionItemProvider,
     );
 
-    const logger = getLoggerFromSubscriptions(context);
-
     context.subscriptions.push(
         diagnosticCollection,
-        tempJsFilesRegistry,
+        tempJsFilesUpdateQueue,
         ...provideBrunoLangCompletionItems(collectionItemProvider, logger),
         provideCodeBlocksCompletionItems(
             collectionItemProvider,
@@ -78,7 +83,7 @@ export function activateLanguageFeatures(
         provideDefinitions(collectionItemProvider, tempJsFilesRegistry, logger),
         registerCodeBlockFormatter(logger),
         brunoLangDiagnosticsProvider,
-        tempJsFilesRegistry,
+        tempJsFilesUpdateQueue,
         window.onDidChangeActiveTextEditor(async (editor) => {
             await onDidChangeActiveTextEditor(
                 tempJsFilesRegistry,
