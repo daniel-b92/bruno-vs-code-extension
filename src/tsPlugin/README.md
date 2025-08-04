@@ -6,4 +6,11 @@ This directory provides an `npm` package for a Typescript language service plugi
 
 ## Main Features
 
-Only some of the intellisense features for `Bruno` files are provided by this npm package. For a fuller set of intellisense features, you can use the VS Code extension, that is built from the root folder of this git repository. 
+Only some of the intellisense features for `Bruno` files are provided by this npm package. For a fuller set of intellisense features, you can use the VS Code extension, that is built from the root folder of this git repository.
+
+## Debugging
+
+For using the local TS plugin within the VS Code extension, please follow these steps:
+    - Replace the `name` in the base [package.json](../../package.json) for the `typescriptServerPlugins` contibution field with the name `typescript-for-bruno`.
+    - In the base [tsconfig.json](../../tsconfig.json) replace the value for the `plugins` field with the commented out plugins value.
+    - Use the launch configuration `Run Extension With local TS plugin` for launching the extension
