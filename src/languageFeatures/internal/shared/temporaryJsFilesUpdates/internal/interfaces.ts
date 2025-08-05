@@ -1,4 +1,4 @@
-import { CancellationToken } from "typescript";
+import { CancellationToken } from "vscode";
 
 export enum TempJsUpdateType {
     Creation = "Creation",
