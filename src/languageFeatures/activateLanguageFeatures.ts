@@ -343,7 +343,7 @@ async function deleteAllTemporaryJsFiles(
     updateQueue: TempJsFileUpdateQueue,
     itemProvider: CollectionItemProvider,
 ) {
-    const deletions: Promise<void>[] = [];
+    const deletions: Promise<boolean>[] = [];
 
     const existingFiles = await filterAsync(
         itemProvider.getRegisteredCollections().map((collection) => ({
