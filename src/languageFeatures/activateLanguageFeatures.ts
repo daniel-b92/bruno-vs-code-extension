@@ -97,7 +97,6 @@ export function activateLanguageFeatures(
         }),
         workspace.onDidChangeTextDocument(async (e) => {
             await onDidChangeTextDocument(
-                tempJsFilesUpdateQueue,
                 brunoLangDiagnosticsProvider,
                 collectionItemProvider,
                 e,
@@ -174,7 +173,6 @@ async function onDidChangeActiveTextEditor(
 }
 
 async function onDidChangeTextDocument(
-    queue: TempJsFileUpdateQueue,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     collectionItemProvider: CollectionItemProvider,
     event: TextDocumentChangeEvent,
@@ -200,24 +198,6 @@ async function onDidChangeTextDocument(
                 brunoLangDiagnosticsProvider,
                 brunoFileType,
             );
-
-            if (
-                getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType)
-            ) {
-                const collectionRootFolder = (
-                    collectionItemProvider.getAncestorCollectionForPath(
-                        event.document.fileName,
-                    ) as Collection
-                ).getRootDirectory();
-
-                await queue.addToQueue({
-                    collectionRootFolder,
-                    update: {
-                        type: TempJsUpdateType.Creation,
-                        bruFileContent: event.document.getText(),
-                    },
-                });
-            }
         }
     }
 }
