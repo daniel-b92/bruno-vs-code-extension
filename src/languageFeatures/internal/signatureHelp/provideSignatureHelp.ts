@@ -10,12 +10,10 @@ import {
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
-import { TemporaryJsFilesRegistry } from "../shared/temporaryJsFilesUpdates/internal/temporaryJsFilesRegistry";
 import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSync";
 
 export function provideSignatureHelp(
     collectionItemProvider: CollectionItemProvider,
-    tempJsFilesRegistry: TemporaryJsFilesRegistry,
     logger?: OutputChannelLogger,
 ) {
     return languages.registerSignatureHelpProvider(
@@ -49,7 +47,6 @@ export function provideSignatureHelp(
                     }
 
                     const temporaryJsDoc = await waitForTempJsFileToBeInSync(
-                        tempJsFilesRegistry,
                         {
                             collection,
                             bruFileContentSnapshot: document.getText(),

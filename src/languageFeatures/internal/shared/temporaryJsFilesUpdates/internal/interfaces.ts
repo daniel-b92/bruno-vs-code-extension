@@ -7,9 +7,8 @@ export enum TempJsUpdateType {
 
 export interface TempJsUpdateRequest {
     collectionRootFolder: string;
-    filePath: string;
     update:
-        | { type: TempJsUpdateType.Creation; newContent: string }
+        | { type: TempJsUpdateType.Creation; bruFileContent: string }
         | { type: TempJsUpdateType.Deletion };
-    cancellationToken: CancellationToken;
+    cancellationToken?: CancellationToken;
 }

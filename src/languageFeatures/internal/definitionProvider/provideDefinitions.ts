@@ -17,12 +17,10 @@ import {
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
-import { TemporaryJsFilesRegistry } from "../shared/temporaryJsFilesUpdates/internal/temporaryJsFilesRegistry";
 import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSync";
 
 export function provideDefinitions(
     collectionItemProvider: CollectionItemProvider,
-    tempJsFilesRegistry: TemporaryJsFilesRegistry,
     logger?: OutputChannelLogger,
 ) {
     return languages.registerDefinitionProvider(
@@ -56,7 +54,6 @@ export function provideDefinitions(
                     }
 
                     const temporaryJsDoc = await waitForTempJsFileToBeInSync(
-                        tempJsFilesRegistry,
                         {
                             collection,
                             bruFileContentSnapshot: document.getText(),

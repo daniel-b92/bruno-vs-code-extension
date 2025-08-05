@@ -7,45 +7,22 @@ import {
 } from "vscode";
 import {
     Block,
-    checkIfPathExistsAsync,
-    Collection,
     getTemporaryJsFileName,
-    normalizeDirectoryPath,
     OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
 } from "../../../../shared";
-import { TemporaryJsFilesRegistry } from "../temporaryJsFilesUpdates/internal/temporaryJsFilesRegistry";
-import { createTemporaryJsFile } from "../temporaryJsFilesUpdates/internal/createTemporaryJsFile";
 import { getCodeBlocks } from "./getCodeBlocks";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
 import { TempJsSyncRequest } from "./interfaces";
 
 export async function waitForTempJsFileToBeInSync(
-    tempJsFilesRegistry: TemporaryJsFilesRegistry,
     request: TempJsSyncRequest,
     logger?: OutputChannelLogger,
 ): Promise<TextDocument | undefined> {
-    const {
-        bruFileCodeBlocksSnapshot,
-        bruFileContentSnapshot,
-        bruFilePath,
-        collection,
-        token,
-    } = request;
-
-    if (shouldAbort(token)) {
-        addLogEntryForAbortion(logger);
-        return undefined;
-    }
-
-    await createTemporaryJsFileIfNotAlreadyExisting(
-        tempJsFilesRegistry,
-        collection,
-        bruFileContentSnapshot,
-        logger,
-    );
+    const { bruFileCodeBlocksSnapshot, bruFilePath, collection, token } =
+        request;
 
     const virtualJsFileUri = Uri.file(
         getTemporaryJsFileName(collection.getRootDirectory()),
@@ -67,25 +44,10 @@ export async function waitForTempJsFileToBeInSync(
 
     const toDispose: Disposable[] = [];
 
-    // Fallback mechanism for updating the temporary js file, in case it for some reason did not work by the default mechanism.
-    const timeout = setTimeout(() => {
-        logger?.debug(
-            "Fallback mechanism triggered for updating temp js file after timeout has been reached.",
-        );
-
-        createTemporaryJsFile(
-            collection.getRootDirectory(),
-            tempJsFilesRegistry,
-            bruFileContentSnapshot,
-            logger,
-        );
-    }, 10_000);
-
     const startTime = performance.now();
 
     if (shouldAbort(token)) {
         addLogEntryForAbortion(logger);
-        clearTimeout(timeout);
         return undefined;
     }
 
@@ -96,7 +58,6 @@ export async function waitForTempJsFileToBeInSync(
         toDispose.push(
             token.onCancellationRequested(() => {
                 addLogEntryForAbortion(logger);
-                clearTimeout(timeout);
                 resolve({ shouldRetry: false });
             }),
         );
@@ -116,7 +77,6 @@ export async function waitForTempJsFileToBeInSync(
                             performance.now() - startTime
                         } ms.`,
                     );
-                    clearTimeout(timeout);
                     resolve({ document: e.document });
                 } else if (
                     e.document.uri.fsPath.toString() ==
@@ -126,7 +86,6 @@ export async function waitForTempJsFileToBeInSync(
                     logger?.debug(
                         `Aborting waiting for temp Js file to be in sync because bru file has been modified.`,
                     );
-                    clearTimeout(timeout);
                     resolve({ shouldRetry: true });
                 }
             }),
@@ -139,7 +98,6 @@ export async function waitForTempJsFileToBeInSync(
                     logger?.debug(
                         `Aborting waiting for temp Js file to be in sync because bru file has been deleted.`,
                     );
-                    clearTimeout(timeout);
                     resolve({ shouldRetry: false });
                 }
             }),
@@ -153,7 +111,6 @@ export async function waitForTempJsFileToBeInSync(
                     logger?.debug(
                         `Temp Js document has been closed. Need to start a retry for waiting for it to be in sync.`,
                     );
-                    clearTimeout(timeout);
                     resolve({ shouldRetry: true });
                 }
             }),
@@ -165,7 +122,6 @@ export async function waitForTempJsFileToBeInSync(
     if (!currentJsDoc && shouldRetry) {
         if (shouldAbort(token)) {
             addLogEntryForAbortion(logger);
-            clearTimeout(timeout);
             return undefined;
         }
 
@@ -176,7 +132,6 @@ export async function waitForTempJsFileToBeInSync(
         const newBruContentSnapshot = currentBrunoDoc.getText();
 
         return await waitForTempJsFileToBeInSync(
-            tempJsFilesRegistry,
             {
                 ...request,
                 bruFileContentSnapshot: newBruContentSnapshot,
@@ -220,33 +175,4 @@ function isTempJsFileInSync(
 
         return jsFileBlock.content == bruFileBlockContent;
     });
-}
-
-async function createTemporaryJsFileIfNotAlreadyExisting(
-    tempJsFilesRegistry: TemporaryJsFilesRegistry,
-    collection: Collection,
-    bruFileContent: string,
-    logger?: OutputChannelLogger,
-) {
-    const isTempJsFileRegistered = tempJsFilesRegistry
-        .getCollectionsWithRegisteredJsFiles()
-        .some(
-            (registered) =>
-                normalizeDirectoryPath(registered) ==
-                normalizeDirectoryPath(collection.getRootDirectory()),
-        );
-
-    if (
-        !isTempJsFileRegistered ||
-        !(await checkIfPathExistsAsync(
-            getTemporaryJsFileName(collection.getRootDirectory()),
-        ))
-    ) {
-        await createTemporaryJsFile(
-            collection.getRootDirectory(),
-            tempJsFilesRegistry,
-            bruFileContent,
-            logger,
-        );
-    }
 }

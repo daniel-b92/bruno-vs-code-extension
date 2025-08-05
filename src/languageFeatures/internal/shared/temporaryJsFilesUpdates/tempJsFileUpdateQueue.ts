@@ -1,6 +1,10 @@
 import { TempJsUpdateRequest, TempJsUpdateType } from "./internal/interfaces";
 import { TemporaryJsFilesRegistry } from "./internal/temporaryJsFilesRegistry";
-import { OutputChannelLogger } from "../../../../shared";
+import {
+    checkIfPathExistsAsync,
+    getTemporaryJsFileName,
+    OutputChannelLogger,
+} from "../../../../shared";
 import { createTemporaryJsFile } from "./internal/createTemporaryJsFile";
 import { deleteTemporaryJsFileForCollection } from "./internal/deleteTemporaryJsFile";
 import { CancellationToken, EventEmitter } from "vscode";
@@ -30,7 +34,7 @@ export class TempJsFileUpdateQueue {
 
         const { cancellationToken: token } = updateRequest;
 
-        if (token.isCancellationRequested) {
+        if (token && token.isCancellationRequested) {
             return;
         }
 
@@ -54,17 +58,19 @@ export class TempJsFileUpdateQueue {
 
     private async waitForRequestToBeAbleToRunOrCancelled(
         requestId: string,
-        token: CancellationToken,
+        token?: CancellationToken,
     ) {
         return await new Promise<boolean>((resolve) => {
-            token.onCancellationRequested(() => {
-                if (this.removeFromQueue(requestId)) {
-                    resolve(false);
-                }
-            });
+            if (token) {
+                token.onCancellationRequested(() => {
+                    if (this.removeFromQueue(requestId)) {
+                        resolve(false);
+                    }
+                });
+            }
 
             this.updateCanRunNotifier.event((id) => {
-                if (token.isCancellationRequested) {
+                if (token && token.isCancellationRequested) {
                     resolve(false);
                 }
 
@@ -75,10 +81,10 @@ export class TempJsFileUpdateQueue {
         });
     }
 
-    private async triggerUpdate(requestId: string, token: CancellationToken) {
+    private async triggerUpdate(requestId: string, token?: CancellationToken) {
         const { request } = this.getRequestFromQueue(requestId);
 
-        if (token.isCancellationRequested) {
+        if (token && token.isCancellationRequested) {
             return;
         }
 
@@ -92,10 +98,15 @@ export class TempJsFileUpdateQueue {
             await createTemporaryJsFile(
                 collectionRootFolder,
                 this.registry,
-                update.newContent,
+                update.bruFileContent,
                 this.logger,
             );
-        } else if (update.type == TempJsUpdateType.Deletion) {
+        } else if (
+            update.type == TempJsUpdateType.Deletion &&
+            (await checkIfPathExistsAsync(
+                getTemporaryJsFileName(collectionRootFolder),
+            ))
+        ) {
             await deleteTemporaryJsFileForCollection(
                 this.registry,
                 collectionRootFolder,
@@ -110,7 +121,7 @@ export class TempJsFileUpdateQueue {
             this.updateCanRunNotifier.fire(this.queue[0].id);
         }
 
-        if (token.isCancellationRequested) {
+        if (token && token.isCancellationRequested) {
             this.logger?.debug(
                 `Cancellation requested for temp JS update with ID '${requestId}' after triggering workspace edit. Could not be aborted anymore.`,
             );
@@ -148,7 +159,7 @@ export class TempJsFileUpdateQueue {
     }
 
     private getIdForRequest(request: TempJsUpdateRequest) {
-        const { collectionRootFolder, filePath, update } = request;
-        return `${collectionRootFolder}-${filePath}-${update.type == TempJsUpdateType.Creation ? `${update.newContent}` : update.type}-${new Date().getTime}`;
+        const { collectionRootFolder, update } = request;
+        return `${collectionRootFolder}-${update.type == TempJsUpdateType.Creation ? `${update.bruFileContent}` : update.type}-${new Date().getTime}`;
     }
 }
