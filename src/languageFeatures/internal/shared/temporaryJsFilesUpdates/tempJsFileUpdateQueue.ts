@@ -16,6 +16,7 @@ export class TempJsFileUpdateQueue {
     ) {
         this.queue = [];
         this.activeUpdate = undefined;
+        this.latestRequestBruFileContent = undefined;
     }
 
     private queue: { request: TempJsUpdateRequest; id: string }[];
@@ -23,6 +24,7 @@ export class TempJsFileUpdateQueue {
         | { request: TempJsUpdateRequest; id: string }
         | undefined;
     private updateCanRunNotifier = new EventEmitter<string>();
+    private latestRequestBruFileContent: string | undefined;
 
     public async addToQueue(updateRequest: TempJsUpdateRequest) {
         const id = this.getIdForRequest(updateRequest);
@@ -94,13 +96,18 @@ export class TempJsFileUpdateQueue {
             request: { collectionRootFolder, update },
         } = request;
 
-        if (update.type == TempJsUpdateType.Creation) {
+        if (
+            update.type == TempJsUpdateType.Creation &&
+            update.bruFileContent != this.latestRequestBruFileContent
+        ) {
             await createTemporaryJsFile(
                 collectionRootFolder,
                 this.registry,
                 update.bruFileContent,
                 this.logger,
             );
+
+            this.latestRequestBruFileContent = update.bruFileContent;
         } else if (
             update.type == TempJsUpdateType.Deletion &&
             (await checkIfPathExistsAsync(
@@ -112,6 +119,8 @@ export class TempJsFileUpdateQueue {
                 collectionRootFolder,
                 this.logger,
             );
+
+            this.latestRequestBruFileContent = undefined;
         }
 
         this.activeUpdate = undefined;
@@ -130,7 +139,7 @@ export class TempJsFileUpdateQueue {
 
     private removeFromQueue(requestId: string) {
         if (this.activeUpdate && this.activeUpdate.id == requestId) {
-            this.logger?.warn(
+            this.logger?.debug(
                 `Could not remove temp JS update for id '${requestId}' from queue because it's currently active.`,
             );
 
