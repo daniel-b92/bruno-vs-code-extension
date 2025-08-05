@@ -103,12 +103,8 @@ export class TempJsFileUpdateQueue {
             );
         }
 
-        this.queue.splice(
-            this.queue.findIndex((queued) => requestId == queued.id) as number,
-            1,
-        );
-
         this.activeUpdate = undefined;
+        this.removeFromQueue(requestId);
 
         if (this.queue.length > 0) {
             this.updateCanRunNotifier.fire(this.queue[0].id);
@@ -116,7 +112,7 @@ export class TempJsFileUpdateQueue {
 
         if (token.isCancellationRequested) {
             this.logger?.debug(
-                `Cancellation requested for temp JS update with ID '${requestId}' after triggering workspace edit. Could not be aborted.`,
+                `Cancellation requested for temp JS update with ID '${requestId}' after triggering workspace edit. Could not be aborted anymore.`,
             );
         }
     }
