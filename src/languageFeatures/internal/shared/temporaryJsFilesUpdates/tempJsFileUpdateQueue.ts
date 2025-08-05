@@ -3,6 +3,7 @@ import { TemporaryJsFilesRegistry } from "./internal/temporaryJsFilesRegistry";
 import {
     checkIfPathExistsAsync,
     getTemporaryJsFileName,
+    normalizeDirectoryPath,
     OutputChannelLogger,
 } from "../../../../shared";
 import { createTemporaryJsFile } from "./internal/createTemporaryJsFile";
@@ -23,11 +24,14 @@ export class TempJsFileUpdateQueue {
     private activeUpdate:
         | { request: TempJsUpdateRequest; id: string }
         | undefined;
-    private updateCanRunNotifier = new EventEmitter<string>();
+    private requestCanBeRunNotifier = new EventEmitter<string>();
     private latestRequestBruFileContent: string | undefined;
+    private requestHasBeenRemovedFromQueueNotifier = new EventEmitter<string>();
 
     public async addToQueue(updateRequest: TempJsUpdateRequest) {
         const id = this.getIdForRequest(updateRequest);
+
+        this.removeOutdatedRequestsFromQueue(updateRequest);
 
         this.queue.push({
             request: updateRequest,
@@ -58,7 +62,8 @@ export class TempJsFileUpdateQueue {
     }
 
     public dispose() {
-        this.updateCanRunNotifier.dispose();
+        this.requestCanBeRunNotifier.dispose();
+        this.requestHasBeenRemovedFromQueueNotifier.dispose();
         this.registry.dispose();
         this.queue.splice(0);
         this.activeUpdate = undefined;
@@ -77,7 +82,15 @@ export class TempJsFileUpdateQueue {
                 });
             }
 
-            this.updateCanRunNotifier.event((id) => {
+            this.requestHasBeenRemovedFromQueueNotifier.event(
+                (removedRequestId) => {
+                    if (requestId == removedRequestId) {
+                        resolve(false);
+                    }
+                },
+            );
+
+            this.requestCanBeRunNotifier.event((id) => {
                 if (token && token.isCancellationRequested) {
                     resolve(false);
                 }
@@ -133,7 +146,7 @@ export class TempJsFileUpdateQueue {
         this.removeFromQueue(requestId);
 
         if (this.queue.length > 0) {
-            this.updateCanRunNotifier.fire(this.queue[0].id);
+            this.requestCanBeRunNotifier.fire(this.queue[0].id);
         }
 
         if (token && token.isCancellationRequested) {
@@ -141,6 +154,57 @@ export class TempJsFileUpdateQueue {
                 `Cancellation requested for temp JS update with ID '${requestId}' after triggering workspace edit. Could not be aborted anymore.`,
             );
         }
+    }
+
+    private removeOutdatedRequestsFromQueue(
+        latestRequest: TempJsUpdateRequest,
+    ) {
+        if (this.queue.length <= 1) {
+            return;
+        }
+
+        const {
+            update: latestUpdate,
+            collectionRootFolder: collectionForLatestRequest,
+        } = latestRequest;
+
+        // Skip the very oldest request because it is most likely either actively being worked on or will be very soon
+        // (to avoid race conditions).
+        const redundantRequests = this.queue
+            .slice(1)
+            .map(({ id, request }, oneBasedIndex) => ({
+                id,
+                request,
+                index: oneBasedIndex + 1,
+            }))
+            .filter(
+                ({
+                    request: {
+                        collectionRootFolder: collectionForQueuedRequest,
+                        update: queuedUpdate,
+                    },
+                }) => {
+                    if (
+                        normalizeDirectoryPath(collectionForLatestRequest) !=
+                        normalizeDirectoryPath(collectionForQueuedRequest)
+                    ) {
+                        return false;
+                    }
+
+                    return (
+                        latestUpdate.type != queuedUpdate.type ||
+                        latestUpdate.type == TempJsUpdateType.Deletion ||
+                        (queuedUpdate.type == TempJsUpdateType.Creation &&
+                            latestUpdate.bruFileContent !=
+                                queuedUpdate.bruFileContent)
+                    );
+                },
+            );
+
+        redundantRequests.forEach(({ id, index }) => {
+            this.queue.splice(index, 1);
+            this.requestHasBeenRemovedFromQueueNotifier.fire(id);
+        });
     }
 
     private removeFromQueue(requestId: string) {
@@ -152,8 +216,12 @@ export class TempJsFileUpdateQueue {
             return false;
         }
 
-        const { index } = this.getRequestFromQueue(requestId);
-        this.queue.splice(index, 1);
+        try {
+            const { index } = this.getRequestFromQueue(requestId);
+            this.queue.splice(index, 1);
+        } catch (err) {
+            this.logger?.warn((err as { message: string }).message);
+        }
 
         return true;
     }
