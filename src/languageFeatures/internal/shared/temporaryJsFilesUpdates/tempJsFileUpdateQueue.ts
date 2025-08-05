@@ -160,6 +160,6 @@ export class TempJsFileUpdateQueue {
 
     private getIdForRequest(request: TempJsUpdateRequest) {
         const { collectionRootFolder, update } = request;
-        return `${collectionRootFolder}-${update.type == TempJsUpdateType.Creation ? `${update.bruFileContent}` : update.type}-${new Date().getTime}`;
+        return `${collectionRootFolder}-${update.type == TempJsUpdateType.Creation ? `${update.bruFileContent}` : update.type}-${new Date().getTime()}`;
     }
 }

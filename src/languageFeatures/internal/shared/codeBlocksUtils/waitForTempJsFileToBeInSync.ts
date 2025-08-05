@@ -16,13 +16,35 @@ import {
 import { getCodeBlocks } from "./getCodeBlocks";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
 import { TempJsSyncRequest } from "./interfaces";
+import { TempJsFileUpdateQueue } from "../temporaryJsFilesUpdates/tempJsFileUpdateQueue";
+import { TempJsUpdateType } from "../temporaryJsFilesUpdates/internal/interfaces";
 
 export async function waitForTempJsFileToBeInSync(
+    queue: TempJsFileUpdateQueue,
     request: TempJsSyncRequest,
     logger?: OutputChannelLogger,
 ): Promise<TextDocument | undefined> {
-    const { bruFileCodeBlocksSnapshot, bruFilePath, collection, token } =
-        request;
+    const {
+        bruFileCodeBlocksSnapshot,
+        bruFilePath,
+        bruFileContentSnapshot,
+        collection,
+        token,
+    } = request;
+
+    if (shouldAbort(token)) {
+        addLogEntryForAbortion(logger);
+        return undefined;
+    }
+
+    queue.addToQueue({
+        collectionRootFolder: collection.getRootDirectory(),
+        update: {
+            type: TempJsUpdateType.Creation,
+            bruFileContent: bruFileContentSnapshot,
+        },
+        cancellationToken: token,
+    });
 
     const virtualJsFileUri = Uri.file(
         getTemporaryJsFileName(collection.getRootDirectory()),
@@ -132,6 +154,7 @@ export async function waitForTempJsFileToBeInSync(
         const newBruContentSnapshot = currentBrunoDoc.getText();
 
         return await waitForTempJsFileToBeInSync(
+            queue,
             {
                 ...request,
                 bruFileContentSnapshot: newBruContentSnapshot,
