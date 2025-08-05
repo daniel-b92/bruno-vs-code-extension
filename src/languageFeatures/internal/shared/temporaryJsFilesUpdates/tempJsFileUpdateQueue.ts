@@ -321,6 +321,8 @@ class QueueUpdateHandler {
             this.logger?.warn(
                 `Requested to remove lock for temp JS update request '${requestId}' although it was locked by a different request with the ID '${this.lockedBy}'`,
             );
+
+            return;
         }
 
         this.lockedBy = undefined;
