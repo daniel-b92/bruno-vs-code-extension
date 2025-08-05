@@ -58,11 +58,13 @@ export function provideCodeBlocksCompletionItems(
 
                     const temporaryJsDoc = await waitForTempJsFileToBeInSync(
                         tempJsFilesRegistry,
-                        collection,
-                        document.getText(),
-                        blocksToCheck,
-                        document.fileName,
-                        token,
+                        {
+                            collection,
+                            bruFileContentSnapshot: document.getText(),
+                            bruFileCodeBlocksSnapshot: blocksToCheck,
+                            bruFilePath: document.fileName,
+                            token,
+                        },
                         logger,
                     );
 

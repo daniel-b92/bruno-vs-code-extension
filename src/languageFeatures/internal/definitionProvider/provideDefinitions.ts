@@ -23,7 +23,7 @@ import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTe
 export function provideDefinitions(
     collectionItemProvider: CollectionItemProvider,
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
-    logger?: OutputChannelLogger
+    logger?: OutputChannelLogger,
 ) {
     return languages.registerDefinitionProvider(
         getRequestFileDocumentSelector(),
@@ -31,7 +31,7 @@ export function provideDefinitions(
             async provideDefinition(document, position, token) {
                 const collection =
                     collectionItemProvider.getAncestorCollectionForPath(
-                        document.fileName
+                        document.fileName,
                     );
 
                 if (!collection) {
@@ -40,29 +40,31 @@ export function provideDefinitions(
 
                 const blocksToCheck = getCodeBlocks(
                     parseBruFile(new TextDocumentHelper(document.getText()))
-                        .blocks
+                        .blocks,
                 );
 
                 const blockInBruFile = blocksToCheck.find(({ contentRange }) =>
-                    mapRange(contentRange).contains(position)
+                    mapRange(contentRange).contains(position),
                 );
 
                 if (blockInBruFile) {
                     if (token.isCancellationRequested) {
                         logger?.debug(
-                            `Cancellation requested for definitions provider.`
+                            `Cancellation requested for definitions provider.`,
                         );
                         return undefined;
                     }
 
                     const temporaryJsDoc = await waitForTempJsFileToBeInSync(
                         tempJsFilesRegistry,
-                        collection,
-                        document.getText(),
-                        blocksToCheck,
-                        document.fileName,
-                        token,
-                        logger
+                        {
+                            collection,
+                            bruFileContentSnapshot: document.getText(),
+                            bruFileCodeBlocksSnapshot: blocksToCheck,
+                            bruFilePath: document.fileName,
+                            token,
+                        },
+                        logger,
                     );
 
                     if (!temporaryJsDoc) {
@@ -71,7 +73,7 @@ export function provideDefinitions(
 
                     if (token.isCancellationRequested) {
                         logger?.debug(
-                            `Cancellation requested for definitions provider.`
+                            `Cancellation requested for definitions provider.`,
                         );
                         return undefined;
                     }
@@ -85,9 +87,9 @@ export function provideDefinitions(
                             temporaryJsDoc.getText(),
                             blockInBruFile.name as RequestFileBlockName,
                             position.translate(
-                                -blockInBruFile.contentRange.start.line
-                            )
-                        )
+                                -blockInBruFile.contentRange.start.line,
+                            ),
+                        ),
                     );
 
                     if (resultFromJsFile.length == 0) {
@@ -97,7 +99,7 @@ export function provideDefinitions(
                     const relevantLocations = resultFromJsFile.filter(
                         (val) =>
                             val instanceof Location &&
-                            val.uri.toString() != temporaryJsDoc.uri.toString()
+                            val.uri.toString() != temporaryJsDoc.uri.toString(),
                     );
 
                     return relevantLocations.length > 0
@@ -106,10 +108,10 @@ export function provideDefinitions(
                               (val) =>
                                   !(val instanceof Location) &&
                                   val.targetUri.toString() !=
-                                      temporaryJsDoc.uri.toString()
+                                      temporaryJsDoc.uri.toString(),
                           ) as DefinitionLink[]);
                 }
             },
-        }
+        },
     );
 }
