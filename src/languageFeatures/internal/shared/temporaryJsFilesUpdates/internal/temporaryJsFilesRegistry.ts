@@ -11,7 +11,7 @@ export class TemporaryJsFilesRegistry {
         file: string;
     }[] = [];
 
-    public createAndRegisterJsFile(collectionRootDirectory: string) {
+    public registerJsFile(collectionRootDirectory: string) {
         const filePath = getTemporaryJsFileName(collectionRootDirectory);
 
         if (
@@ -39,12 +39,6 @@ export class TemporaryJsFilesRegistry {
         if (maybeRegisteredFile) {
             this.jsFiles.splice(maybeRegisteredFile.index, 1);
         }
-    }
-
-    public getCollectionsWithRegisteredJsFiles() {
-        return this.jsFiles.map(
-            ({ collectionRootDirectory }) => collectionRootDirectory,
-        );
     }
 
     public dispose() {

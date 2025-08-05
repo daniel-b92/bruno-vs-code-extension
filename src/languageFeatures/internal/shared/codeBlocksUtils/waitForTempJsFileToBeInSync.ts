@@ -37,7 +37,7 @@ export async function waitForTempJsFileToBeInSync(
         return undefined;
     }
 
-    queue.addToQueue({
+    const shouldContinue = await queue.addToQueue({
         collectionRootFolder: collection.getRootDirectory(),
         update: {
             type: TempJsUpdateType.Creation,
@@ -45,6 +45,13 @@ export async function waitForTempJsFileToBeInSync(
         },
         cancellationToken: token,
     });
+
+    if (!shouldContinue) {
+        logger?.debug(
+            "Cancellation returned while trying to add temp js file update request to queue.",
+        );
+        return undefined;
+    }
 
     const virtualJsFileUri = Uri.file(
         getTemporaryJsFileName(collection.getRootDirectory()),

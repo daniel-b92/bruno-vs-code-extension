@@ -44,7 +44,7 @@ ${content}}`,
     const editResult = await workspace.applyEdit(workspaceEdit);
 
     if (editResult) {
-        tempJsFilesRegistry.createAndRegisterJsFile(collectionRootDirectory);
+        tempJsFilesRegistry.registerJsFile(collectionRootDirectory);
     } else {
         logger?.error(`Did not manage to create temporary js file.`);
     }

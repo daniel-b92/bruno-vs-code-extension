@@ -37,30 +37,28 @@ export class TempJsFileUpdateQueue {
         );
         await this.queueUpdater.addToEndOfQueue(updateRequest, id);
 
-        const queueLength = this.queueUpdater.getLengthOfQueue();
-
-        if (queueLength > 2) {
-            this.logger?.trace(
-                `More than 2 temp JS update requests exist. Current queue length: ${queueLength}`,
-            );
-        }
-
         const { cancellationToken: token } = updateRequest;
 
         if (token && token.isCancellationRequested) {
-            return;
+            return false;
         }
 
-        return this.queueUpdater.getLengthOfQueue() > 1 || this.activeUpdate
-            ? await this.waitForRequestToBeAbleToRunOrBeCancelled(
-                  id,
-                  token,
-              ).then((shouldRun) => {
-                  if (shouldRun) {
-                      this.triggerUpdate(id, token);
-                  }
-              })
-            : await this.triggerUpdate(id, token);
+        if (this.queueUpdater.getLengthOfQueue() <= 1 && !this.activeUpdate) {
+            await this.triggerUpdate(id, token);
+            return true;
+        }
+
+        const shouldRun = await this.waitForRequestToBeAbleToRunOrBeCancelled(
+            id,
+            token,
+        );
+
+        if (shouldRun) {
+            await this.triggerUpdate(id, token);
+            return true;
+        }
+
+        return false;
     }
 
     public dispose() {
@@ -199,6 +197,12 @@ class QueueUpdateHandler {
 
         this.queue.push({ request, id });
 
+        if (this.queue.length > 2) {
+            this.logger?.trace(
+                `More than 2 temp JS update requests exist. Current queue length: ${this.queue.length}`,
+            );
+        }
+
         this.removeLockForRequest(id);
     }
 
@@ -287,8 +291,6 @@ class QueueUpdateHandler {
         });
 
         this.removeLockForRequest(id);
-
-        return redundantRequests.map(({ id, request }) => ({ id, request }));
     }
 
     public dispose() {
