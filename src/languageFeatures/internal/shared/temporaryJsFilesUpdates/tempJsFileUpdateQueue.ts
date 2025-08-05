@@ -34,6 +34,12 @@ export class TempJsFileUpdateQueue {
             id,
         });
 
+        if (this.queue.length > 2) {
+            this.logger?.trace(
+                `More than 2 temp JS update requests exist. Current queue length: ${this.queue.length}`,
+            );
+        }
+
         const { cancellationToken: token } = updateRequest;
 
         if (token && token.isCancellationRequested) {

@@ -11,6 +11,10 @@ export class OutputChannelLogger {
         this.vsCodeLogger.debug(message);
     }
 
+    public trace(message: string) {
+        this.vsCodeLogger.trace(message);
+    }
+
     public warn(message: string) {
         console.warn(message);
         this.vsCodeLogger.warn(message);
