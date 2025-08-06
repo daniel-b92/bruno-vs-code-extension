@@ -180,14 +180,14 @@ export class TempJsFileUpdateQueue {
 
         if (token && token.isCancellationRequested) {
             this.logger?.debug(
-                `Cancellation requested for temp JS update with ID '${requestId}' after triggering workspace edit. Could not be aborted anymore.`,
+                `Cancellation requested for temp JS update with type '${request.request.update.type}' after triggering workspace edit. Could not be aborted anymore.`,
             );
         }
     }
 
     private async removeFromQueue(requestId: string) {
         if (this.activeUpdate && this.activeUpdate.id == requestId) {
-            this.logger?.debug(
+            this.logger?.warn(
                 `Could not remove temp JS update for id '${requestId}' from queue because it's currently active.`,
             );
 
@@ -385,7 +385,7 @@ class QueueUpdateHandler {
     private removeLockForRequest(requestId: string) {
         if (this.lockedBy && this.lockedBy.requestId != requestId) {
             this.logger?.warn(
-                `Requested to remove lock for temp JS update request '${requestId}' although it was locked by a different request with the ID '${this.lockedBy}'`,
+                `Requested to remove lock for temp JS update request although it was locked by a different request.`,
             );
 
             return;
