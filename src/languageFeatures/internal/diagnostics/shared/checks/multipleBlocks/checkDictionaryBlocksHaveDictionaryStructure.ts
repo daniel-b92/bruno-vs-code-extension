@@ -14,7 +14,7 @@ import {
 import { getSortedBlocksByPosition } from "../../../shared/util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
-import { isDictionaryBlockField } from "../../../../../../shared/fileParsing/internal/util/isDictionaryBlockField";
+import { isDictionaryBlockField } from "../../../../../../shared/languageUtils/commonBlocks/isDictionaryBlockField";
 import { getSortedPlainTextLinesByPosition } from "../../util/getSortedPlainTextLinesByPosition";
 
 export function checkDictionaryBlocksHaveDictionaryStructure(

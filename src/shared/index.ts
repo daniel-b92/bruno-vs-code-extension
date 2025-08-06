@@ -40,8 +40,6 @@ export * from "./fileParsing/external/requestFiles/methodBlocks/getMethodBlockIf
 export * from "./fileParsing/external/requestFiles/paramsBlocks/isParamsBlock";
 export { isVarsBlock as isVarsBlockInRequestFile } from "./fileParsing/external/requestFiles/varsBlocks/isVarsBlock";
 export { isVarsBlock as isVarsBlockInEnvironmentFile } from "./fileParsing/external/environmentFiles/varsBlocks/isVarsBlock";
-export * from "./fileParsing/external/castBlockToDictionaryBlock";
-export * from "./fileParsing/external/castBlockToArrayBlock";
 export * from "./fileParsing/external/parseBlockFromFile";
 export * from "./fileParsing/external/folderSettings/getSequenceForFolder";
 export * from "./fileParsing/external/folderSettings/getSequencesForFolders";
@@ -82,6 +80,13 @@ export { getValidBlockNames as getValidBlockNamesForCollectionSettingsFile } fro
 export { getNamesForRedundantBlocks as getNamesForRedundantBlocksForCollectionSettingsFile } from "./languageUtils/collectionSettingsFiles/getNamesForRedundantBlocks";
 export * from "./languageUtils/commonBlocks/authModeBlock/authModeBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/settingsBlock/settingsBlockKeyEnum";
+export * from "./languageUtils/commonBlocks/codeBlocks/getSetEnvironmentVariables";
+export * from "./languageUtils/commonBlocks/castBlockToTextBlock";
+export * from "./languageUtils/commonBlocks/castBlockToDictionaryBlock";
+export * from "./languageUtils/commonBlocks/castBlockToArrayBlock";
+export * from "./languageUtils/commonBlocks/isArrayBlockField";
+export * from "./languageUtils/commonBlocks/isDictionaryBlockField";
+export * from "./languageUtils/commonBlocks/variableDefinitions";
 
 // test file writing
 export * from "./testFileWriting/addMetaBlock";
@@ -101,6 +106,8 @@ export * from "./fileSystemCache/externalHelpers/isBrunoFileType";
 
 // vsCodeSettings
 export * from "./vsCodeSettings/getLinkToUserSetting";
+export * from "./vsCodeSettings/getConfiguredTestEnvironment";
+export * from "./vsCodeSettings/getEnvironmentSettingsKey";
 export * from "./vsCodeSettings/getLineBreakFromSettings";
 
 // logging

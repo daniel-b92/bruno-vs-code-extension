@@ -13,18 +13,21 @@ import {
 import { provideBrunoLangCompletionItems } from "./internal/completionItems/provideBrunoLangCompletionItems";
 import {
     BrunoFileType,
+    castBlockToDictionaryBlock,
+    checkIfPathExistsAsync,
     Collection,
     CollectionDirectory,
     CollectionFile,
     CollectionItemProvider,
+    EnvironmentFileBlockName,
     FileChangeType,
     getExtensionForBrunoFiles,
     getLoggerFromSubscriptions,
     normalizeDirectoryPath,
     parseBruFile,
     TextDocumentHelper,
-    checkIfPathExistsAsync,
     isBrunoFileType,
+    getConfiguredTestEnvironment,
     getTemporaryJsFileName,
     filterAsync,
 } from "../shared";
@@ -36,14 +39,16 @@ import { provideCodeBlocksCompletionItems } from "./internal/completionItems/pro
 import { provideInfosOnHover } from "./internal/hover/provideInfosOnHover";
 import { provideSignatureHelp } from "./internal/signatureHelp/provideSignatureHelp";
 import { provideDefinitions } from "./internal/definitionProvider/provideDefinitions";
-import { extname } from "path";
+import { extname, resolve } from "path";
 import { registerCodeBlockFormatter } from "./internal/formatting/registerCodeBlockFormatter";
+import { readFile } from "fs";
+import { promisify } from "util";
 import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "./internal/shared/temporaryJsFilesUpdates/internal/interfaces";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
-    collectionItemProvider: CollectionItemProvider,
+    itemProvider: CollectionItemProvider,
 ) {
     const logger = getLoggerFromSubscriptions(context);
 
@@ -57,33 +62,21 @@ export function activateLanguageFeatures(
 
     const brunoLangDiagnosticsProvider = new BrunoLangDiagnosticsProvider(
         diagnosticCollection,
-        collectionItemProvider,
+        itemProvider,
     );
 
     context.subscriptions.push(
         diagnosticCollection,
         tempJsFilesUpdateQueue,
-        ...provideBrunoLangCompletionItems(collectionItemProvider, logger),
+        ...provideBrunoLangCompletionItems(itemProvider, logger),
         provideCodeBlocksCompletionItems(
             tempJsFilesUpdateQueue,
-            collectionItemProvider,
+            itemProvider,
             logger,
         ),
-        provideInfosOnHover(
-            tempJsFilesUpdateQueue,
-            collectionItemProvider,
-            logger,
-        ),
-        provideSignatureHelp(
-            tempJsFilesUpdateQueue,
-            collectionItemProvider,
-            logger,
-        ),
-        provideDefinitions(
-            tempJsFilesUpdateQueue,
-            collectionItemProvider,
-            logger,
-        ),
+        provideInfosOnHover(tempJsFilesUpdateQueue, itemProvider, logger),
+        provideSignatureHelp(tempJsFilesUpdateQueue, itemProvider, logger),
+        provideDefinitions(tempJsFilesUpdateQueue, itemProvider, logger),
         registerCodeBlockFormatter(logger),
         brunoLangDiagnosticsProvider,
         tempJsFilesUpdateQueue,
@@ -91,26 +84,26 @@ export function activateLanguageFeatures(
             await onDidChangeActiveTextEditor(
                 tempJsFilesUpdateQueue,
                 brunoLangDiagnosticsProvider,
-                collectionItemProvider,
+                itemProvider,
                 editor,
             );
         }),
         workspace.onDidChangeTextDocument(async (e) => {
             await onDidChangeTextDocument(
                 brunoLangDiagnosticsProvider,
-                collectionItemProvider,
+                itemProvider,
                 e,
             );
         }),
         workspace.onWillSaveTextDocument(async (e) => {
             await onWillSaveTextDocument(
                 tempJsFilesUpdateQueue,
-                collectionItemProvider,
+                itemProvider,
                 e,
             );
         }),
         handleDiagnosticUpdatesOnFileDeletion(
-            collectionItemProvider,
+            itemProvider,
             diagnosticCollection,
         ),
     );
@@ -343,6 +336,66 @@ async function deleteAllTemporaryJsFiles(
     }
 
     await Promise.all(deletions);
+}
+
+async function fetchAvailableVarsFromConfiguredEnvironments(
+    itemProvider: CollectionItemProvider,
+) {
+    const environmentName = getConfiguredTestEnvironment();
+
+    if (!environmentName) {
+        return undefined;
+    }
+
+    const collections = itemProvider.getRegisteredCollections().slice();
+
+    // for each collection the environment is used with the configured name
+    const environmentFiles = (
+        await Promise.all(
+            collections.map(async (collection) => {
+                const environmentFile = resolve(
+                    collection.getRootDirectory(),
+                    "environments",
+                    `${environmentName}${getExtensionForBrunoFiles()}`,
+                ); // ToDo: Save type of file already in cache
+
+                return (await checkIfPathExistsAsync(environmentFile))
+                    ? { collection, environmentFile }
+                    : undefined;
+            }),
+        )
+    ).filter((val) => val != undefined);
+
+    return (
+        await Promise.all(
+            environmentFiles.map(async ({ collection, environmentFile }) => {
+                const varsBlocks = parseBruFile(
+                    new TextDocumentHelper(
+                        await promisify(readFile)(environmentFile, {
+                            encoding: "utf-8",
+                        }),
+                    ),
+                ).blocks.filter(
+                    ({ name }) => name == EnvironmentFileBlockName.Vars,
+                );
+
+                if (varsBlocks.length != 1) {
+                    return undefined;
+                }
+
+                const castedBlock = castBlockToDictionaryBlock(varsBlocks[0]);
+
+                if (!castedBlock) {
+                    return undefined;
+                }
+
+                return {
+                    collection,
+                    envVars: castedBlock.content.map(({ key }) => key),
+                };
+            }),
+        )
+    ).filter((val) => val != undefined);
 }
 
 function getBrunoFileTypesThatCanHaveCodeBlocks() {

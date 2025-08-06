@@ -2,7 +2,7 @@ import {
     ArrayBlockField,
     DictionaryBlockField,
     PlainTextWithinBlock,
-} from "../../external/interfaces";
+} from "../../fileParsing/external/interfaces";
 
 export function isDictionaryBlockField(
     field: ArrayBlockField | DictionaryBlockField | PlainTextWithinBlock
