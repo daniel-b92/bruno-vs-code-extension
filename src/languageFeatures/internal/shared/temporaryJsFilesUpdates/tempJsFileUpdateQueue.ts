@@ -279,16 +279,16 @@ class QueueUpdateHandler {
         id: string,
         requestRemovedFromQueueNotifier: EventEmitter<string[]>,
     ) {
-        if (this.queue.length <= 1) {
-            return;
-        }
-
         const {
             update: latestUpdate,
             collectionRootFolder: collectionForLatestRequest,
         } = latestRequest;
 
         await this.getLockForRequest(id, requestRemovedFromQueueNotifier);
+
+        if (this.queue.length <= 1) {
+            return;
+        }
 
         // Skip the very oldest request because it is most likely either actively being worked on or will be very soon
         // (to avoid race conditions).
