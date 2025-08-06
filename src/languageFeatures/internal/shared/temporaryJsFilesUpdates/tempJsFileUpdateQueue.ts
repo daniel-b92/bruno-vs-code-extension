@@ -18,6 +18,24 @@ export class TempJsFileUpdateQueue {
         this.activeUpdate = undefined;
         this.latestRequestBruFileContent = undefined;
         this.queueUpdater = new QueueUpdateHandler();
+
+        this.requestHasBeenRemovedFromQueueNotifier.event(
+            (removedRequestId) => {
+                if (
+                    this.activeUpdate &&
+                    this.activeUpdate.id == removedRequestId
+                ) {
+                    this.activeUpdate = undefined;
+
+                    const newOldestRequest =
+                        this.queueUpdater.getOldestItemFromQueue();
+
+                    if (newOldestRequest) {
+                        this.requestCanBeRunNotifier.fire(newOldestRequest.id);
+                    }
+                }
+            },
+        );
     }
 
     private queueUpdater: QueueUpdateHandler;
@@ -34,8 +52,13 @@ export class TempJsFileUpdateQueue {
         await this.queueUpdater.removeOutdatedRequestsFromQueue(
             updateRequest,
             id,
+            this.requestHasBeenRemovedFromQueueNotifier,
         );
-        await this.queueUpdater.addToEndOfQueue(updateRequest, id);
+        await this.queueUpdater.addToEndOfQueue(
+            updateRequest,
+            id,
+            this.requestHasBeenRemovedFromQueueNotifier,
+        );
 
         const { cancellationToken: token } = updateRequest;
 
@@ -171,7 +194,10 @@ export class TempJsFileUpdateQueue {
             return false;
         }
 
-        await this.queueUpdater.removeFromQueue(requestId);
+        await this.queueUpdater.removeFromQueue(
+            requestId,
+            this.requestHasBeenRemovedFromQueueNotifier,
+        );
 
         return true;
     }
@@ -189,11 +215,15 @@ class QueueUpdateHandler {
     }
 
     private queue: { request: TempJsUpdateRequest; id: string }[];
-    private lockedBy: string | undefined;
+    private lockedBy: { requestId: string; time: Date } | undefined;
     private canObtainLockNotifier = new EventEmitter<string>();
 
-    public async addToEndOfQueue(request: TempJsUpdateRequest, id: string) {
-        await this.getLockForRequest(id);
+    public async addToEndOfQueue(
+        request: TempJsUpdateRequest,
+        id: string,
+        requestRemovedFromQueueNotifier: EventEmitter<string>,
+    ) {
+        await this.getLockForRequest(id, requestRemovedFromQueueNotifier);
 
         this.queue.push({ request, id });
 
@@ -206,8 +236,11 @@ class QueueUpdateHandler {
         this.removeLockForRequest(id);
     }
 
-    public async removeFromQueue(id: string) {
-        await this.getLockForRequest(id);
+    public async removeFromQueue(
+        id: string,
+        requestRemovedFromQueueNotifier: EventEmitter<string>,
+    ) {
+        await this.getLockForRequest(id, requestRemovedFromQueueNotifier);
 
         const { index } = this.getRequestFromQueue(id);
         this.queue.splice(index, 1);
@@ -241,6 +274,7 @@ class QueueUpdateHandler {
     public async removeOutdatedRequestsFromQueue(
         latestRequest: TempJsUpdateRequest,
         id: string,
+        requestRemovedFromQueueNotifier: EventEmitter<string>,
     ) {
         if (this.queue.length <= 1) {
             return;
@@ -251,7 +285,7 @@ class QueueUpdateHandler {
             collectionRootFolder: collectionForLatestRequest,
         } = latestRequest;
 
-        await this.getLockForRequest(id);
+        await this.getLockForRequest(id, requestRemovedFromQueueNotifier);
 
         // Skip the very oldest request because it is most likely either actively being worked on or will be very soon
         // (to avoid race conditions).
@@ -299,7 +333,10 @@ class QueueUpdateHandler {
         this.canObtainLockNotifier.dispose();
     }
 
-    private async getLockForRequest(requestId: string) {
+    private async getLockForRequest(
+        requestId: string,
+        requestRemovedFromQueueNotifier: EventEmitter<string>,
+    ) {
         return await new Promise<void>((resolve) => {
             this.canObtainLockNotifier.event((chosenId) => {
                 if (requestId == chosenId) {
@@ -312,14 +349,41 @@ class QueueUpdateHandler {
                 (this.queue.length == 0 ||
                     (this.queue.length == 1 && this.queue[0].id == requestId))
             ) {
-                this.lockedBy = requestId;
+                this.lockedBy = { requestId, time: new Date() };
                 resolve();
+            }
+
+            const maxLockingTimeInMs = 30_000;
+
+            if (
+                this.lockedBy &&
+                this.lockedBy.requestId != requestId &&
+                new Date().getTime() - this.lockedBy.time.getTime() >
+                    maxLockingTimeInMs
+            ) {
+                this.logger?.warn(
+                    `Request that holds the lock for updating temp js files seems to be stuck. Will forcefully remove the lock and delete the request from the queue.`,
+                );
+
+                const toRemoveFromQueue = this.lockedBy.requestId;
+
+                // Usually,the lock property should not be set explicitly and instead the request should wait until it's notified that it can obtian the lock.
+                // However, for resolving this stalemate situation, it has to be set explicitly.
+                this.lockedBy = { requestId, time: new Date() };
+
+                this.removeFromQueue(
+                    toRemoveFromQueue,
+                    requestRemovedFromQueueNotifier,
+                ).then(() => {
+                    this.removeLockForRequest(requestId);
+                    resolve();
+                });
             }
         });
     }
 
     private removeLockForRequest(requestId: string) {
-        if (this.lockedBy != requestId) {
+        if (this.lockedBy && this.lockedBy.requestId != requestId) {
             this.logger?.warn(
                 `Requested to remove lock for temp JS update request '${requestId}' although it was locked by a different request with the ID '${this.lockedBy}'`,
             );
