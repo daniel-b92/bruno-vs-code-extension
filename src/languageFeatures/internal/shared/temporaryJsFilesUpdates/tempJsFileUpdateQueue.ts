@@ -51,20 +51,26 @@ export class TempJsFileUpdateQueue {
     public async addToQueue(updateRequest: TempJsUpdateRequest) {
         const id = this.getIdForRequest(updateRequest);
 
+        const { cancellationToken: token } = updateRequest;
+
         await this.queueUpdater.removeOutdatedRequestsFromQueue(
             updateRequest,
             id,
             this.requestHasBeenRemovedFromQueueNotifier,
         );
+
+        if (token && token.isCancellationRequested) {
+            return false;
+        }
+
         await this.queueUpdater.addToEndOfQueue(
             updateRequest,
             id,
             this.requestHasBeenRemovedFromQueueNotifier,
         );
 
-        const { cancellationToken: token } = updateRequest;
-
         if (token && token.isCancellationRequested) {
+            await this.removeFromQueue(id);
             return false;
         }
 
@@ -79,11 +85,11 @@ export class TempJsFileUpdateQueue {
         );
 
         if (shouldRun) {
-            await this.triggerUpdate(id, token);
-            return true;
+            const wasTriggered = await this.triggerUpdate(id, token);
+            return wasTriggered;
+        } else {
+            return false;
         }
-
-        return false;
     }
 
     public dispose() {
@@ -101,13 +107,9 @@ export class TempJsFileUpdateQueue {
         return await new Promise<boolean>((resolve) => {
             if (token) {
                 token.onCancellationRequested(() => {
-                    this.removeFromQueue(requestId).then(
-                        (removedSuccessfully) => {
-                            if (removedSuccessfully) {
-                                resolve(false);
-                            }
-                        },
-                    );
+                    this.removeFromQueue(requestId).then(() => {
+                        resolve(false);
+                    });
                 });
             }
 
@@ -135,7 +137,8 @@ export class TempJsFileUpdateQueue {
         const { request } = this.queueUpdater.getRequestFromQueue(requestId);
 
         if (token && token.isCancellationRequested) {
-            return;
+            await this.removeFromQueue(requestId);
+            return false;
         }
 
         this.activeUpdate = request;
@@ -174,26 +177,22 @@ export class TempJsFileUpdateQueue {
         this.activeUpdate = undefined;
         await this.removeFromQueue(requestId);
 
-        const newOldestItem = this.queueUpdater.getOldestItemFromQueue();
-
-        if (newOldestItem) {
-            this.requestCanBeRunNotifier.fire(newOldestItem.id);
-        }
-
         if (token && token.isCancellationRequested) {
             this.logger?.debug(
                 `Cancellation requested for temp JS update with type '${request.request.update.type}' after triggering workspace edit. Could not be aborted anymore.`,
             );
         }
+
+        return true;
     }
 
     private async removeFromQueue(requestId: string) {
         if (this.activeUpdate && this.activeUpdate.id == requestId) {
             this.logger?.warn(
-                `Could not remove temp JS update for id '${requestId}' from queue because it's currently active.`,
+                `Will remove temp JS update request from queue that is currently marked as active.`,
             );
 
-            return false;
+            this.activeUpdate = undefined;
         }
 
         await this.queueUpdater.removeFromQueue(
@@ -201,7 +200,11 @@ export class TempJsFileUpdateQueue {
             this.requestHasBeenRemovedFromQueueNotifier,
         );
 
-        return true;
+        const newOldestItem = this.queueUpdater.getOldestItemFromQueue();
+
+        if (newOldestItem) {
+            this.requestCanBeRunNotifier.fire(newOldestItem.id);
+        }
     }
 
     private getIdForRequest(request: TempJsUpdateRequest) {
@@ -287,6 +290,7 @@ class QueueUpdateHandler {
         await this.getLockForRequest(id, requestRemovedFromQueueNotifier);
 
         if (this.queue.length <= 1) {
+            this.removeLockForRequest(id);
             return;
         }
 
