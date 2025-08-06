@@ -2,7 +2,7 @@
 
 ### Fixes / Improvements
 - Show suggestion for adding `tsconfig.json` files for each collection because otherwise the typescript language server runs into issues when trying to determine the project.
-- Add description on how to use the local TS plugin code during extension development.
+- Try to make intellisense features more reliable and faster by adding queuing of all update requests for temporary JS files and removing outdated requests from the queue whenever sensible.
 
 ## [0.16.2] (2025-07-28)
 

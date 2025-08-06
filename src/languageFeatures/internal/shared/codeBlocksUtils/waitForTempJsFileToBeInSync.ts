@@ -7,43 +7,62 @@ import {
 } from "vscode";
 import {
     Block,
-    checkIfPathExistsAsync,
     Collection,
     getTemporaryJsFileName,
-    normalizeDirectoryPath,
     OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
 } from "../../../../shared";
-import { TemporaryJsFilesRegistry } from "../temporaryJsFilesRegistry";
-import { createTemporaryJsFile } from "./createTemporaryJsFile";
 import { getCodeBlocks } from "./getCodeBlocks";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
+import { TempJsFileUpdateQueue } from "../temporaryJsFilesUpdates/tempJsFileUpdateQueue";
+import { TempJsUpdateType } from "../temporaryJsFilesUpdates/internal/interfaces";
+
+export interface TempJsSyncRequest {
+    collection: Collection;
+    bruFileContentSnapshot: string;
+    bruFileCodeBlocksSnapshot: Block[];
+    bruFilePath: string;
+    token: CancellationToken;
+}
 
 export async function waitForTempJsFileToBeInSync(
-    tempJsFilesRegistry: TemporaryJsFilesRegistry,
-    collection: Collection,
-    bruFileContentSnapshot: string,
-    bruFileCodeBlocksSnapshot: Block[],
-    bruFilePath: string,
-    token: CancellationToken,
-    logger?: OutputChannelLogger
+    queue: TempJsFileUpdateQueue,
+    request: TempJsSyncRequest,
+    logger?: OutputChannelLogger,
 ): Promise<TextDocument | undefined> {
+    const {
+        bruFileCodeBlocksSnapshot,
+        bruFilePath,
+        bruFileContentSnapshot,
+        collection,
+        token,
+    } = request;
+
     if (shouldAbort(token)) {
         addLogEntryForAbortion(logger);
         return undefined;
     }
 
-    await createTemporaryJsFileIfNotAlreadyExisting(
-        tempJsFilesRegistry,
-        collection,
-        bruFileContentSnapshot,
-        logger
-    );
+    const shouldContinue = await queue.addToQueue({
+        collectionRootFolder: collection.getRootDirectory(),
+        update: {
+            type: TempJsUpdateType.Creation,
+            bruFileContent: bruFileContentSnapshot,
+        },
+        cancellationToken: token,
+    });
+
+    if (!shouldContinue) {
+        logger?.debug(
+            "Cancellation returned while trying to add temp js file update request to queue.",
+        );
+        return undefined;
+    }
 
     const virtualJsFileUri = Uri.file(
-        getTemporaryJsFileName(collection.getRootDirectory())
+        getTemporaryJsFileName(collection.getRootDirectory()),
     );
 
     if (shouldAbort(token)) {
@@ -62,25 +81,10 @@ export async function waitForTempJsFileToBeInSync(
 
     const toDispose: Disposable[] = [];
 
-    // Fallback mechanism for updating the temporary js file, in case it for some reason did not work by the default mechanism.
-    const timeout = setTimeout(() => {
-        logger?.debug(
-            "Fallback mechanism triggered for updating temp js file after timeout has been reached."
-        );
-
-        createTemporaryJsFile(
-            collection.getRootDirectory(),
-            tempJsFilesRegistry,
-            bruFileContentSnapshot,
-            logger
-        );
-    }, 10_000);
-
     const startTime = performance.now();
 
     if (shouldAbort(token)) {
         addLogEntryForAbortion(logger);
-        clearTimeout(timeout);
         return undefined;
     }
 
@@ -91,9 +95,8 @@ export async function waitForTempJsFileToBeInSync(
         toDispose.push(
             token.onCancellationRequested(() => {
                 addLogEntryForAbortion(logger);
-                clearTimeout(timeout);
                 resolve({ shouldRetry: false });
-            })
+            }),
         );
 
         toDispose.push(
@@ -103,15 +106,14 @@ export async function waitForTempJsFileToBeInSync(
                     e.contentChanges.length > 0 &&
                     isTempJsFileInSync(
                         jsDocInitially.getText(),
-                        bruFileCodeBlocksSnapshot
+                        bruFileCodeBlocksSnapshot,
                     )
                 ) {
                     logger?.debug(
                         `Temp JS file in sync after waiting for ${
                             performance.now() - startTime
-                        } ms.`
+                        } ms.`,
                     );
-                    clearTimeout(timeout);
                     resolve({ document: e.document });
                 } else if (
                     e.document.uri.fsPath.toString() ==
@@ -119,12 +121,11 @@ export async function waitForTempJsFileToBeInSync(
                     e.contentChanges.length > 0
                 ) {
                     logger?.debug(
-                        `Aborting waiting for temp Js file to be in sync because bru file has been modified.`
+                        `Aborting waiting for temp Js file to be in sync because bru file has been modified.`,
                     );
-                    clearTimeout(timeout);
                     resolve({ shouldRetry: true });
                 }
-            })
+            }),
         );
 
         // If the bruno file is modified or deleted in the meantime, the request will be outdated, so it can be canceled.
@@ -132,12 +133,11 @@ export async function waitForTempJsFileToBeInSync(
             workspace.onDidDeleteFiles((e) => {
                 if (e.files.some(({ fsPath }) => fsPath == bruFilePath)) {
                     logger?.debug(
-                        `Aborting waiting for temp Js file to be in sync because bru file has been deleted.`
+                        `Aborting waiting for temp Js file to be in sync because bru file has been deleted.`,
                     );
-                    clearTimeout(timeout);
                     resolve({ shouldRetry: false });
                 }
-            })
+            }),
         );
 
         // VS Code can close the text document anytime.
@@ -146,12 +146,11 @@ export async function waitForTempJsFileToBeInSync(
             workspace.onDidCloseTextDocument((doc) => {
                 if (doc.uri.toString() == virtualJsFileUri.toString()) {
                     logger?.debug(
-                        `Temp Js document has been closed. Need to start a retry for waiting for it to be in sync.`
+                        `Temp Js document has been closed. Need to start a retry for waiting for it to be in sync.`,
                     );
-                    clearTimeout(timeout);
                     resolve({ shouldRetry: true });
                 }
-            })
+            }),
         );
     });
 
@@ -160,27 +159,26 @@ export async function waitForTempJsFileToBeInSync(
     if (!currentJsDoc && shouldRetry) {
         if (shouldAbort(token)) {
             addLogEntryForAbortion(logger);
-            clearTimeout(timeout);
             return undefined;
         }
 
         const currentBrunoDoc = await workspace.openTextDocument(
-            Uri.file(bruFilePath)
+            Uri.file(bruFilePath),
         );
 
         const newBruContentSnapshot = currentBrunoDoc.getText();
 
         return await waitForTempJsFileToBeInSync(
-            tempJsFilesRegistry,
-            collection,
-            newBruContentSnapshot,
-            getCodeBlocks(
-                parseBruFile(new TextDocumentHelper(newBruContentSnapshot))
-                    .blocks
-            ),
-            bruFilePath,
-            token,
-            logger
+            queue,
+            {
+                ...request,
+                bruFileContentSnapshot: newBruContentSnapshot,
+                bruFileCodeBlocksSnapshot: getCodeBlocks(
+                    parseBruFile(new TextDocumentHelper(newBruContentSnapshot))
+                        .blocks,
+                ),
+            },
+            logger,
         );
     } else {
         return currentJsDoc;
@@ -193,20 +191,20 @@ function shouldAbort(token: CancellationToken) {
 
 function addLogEntryForAbortion(logger?: OutputChannelLogger) {
     logger?.debug(
-        "Cancellation requested after starting to wait for temp js file to be in sync."
+        "Cancellation requested after starting to wait for temp js file to be in sync.",
     );
 }
 
 function isTempJsFileInSync(
     tempJsFileFullContent: string,
-    relevantBlocksFromBruFile: Block[]
+    relevantBlocksFromBruFile: Block[],
 ) {
     const blocksFromBruFile = getCodeBlocks(relevantBlocksFromBruFile);
 
     return blocksFromBruFile.every(({ name, content: bruFileBlockContent }) => {
         const jsFileBlock = getTempJsFileBlockContent(
             tempJsFileFullContent,
-            name as RequestFileBlockName
+            name as RequestFileBlockName,
         );
 
         if (!jsFileBlock) {
@@ -215,33 +213,4 @@ function isTempJsFileInSync(
 
         return jsFileBlock.content == bruFileBlockContent;
     });
-}
-
-async function createTemporaryJsFileIfNotAlreadyExisting(
-    tempJsFilesRegistry: TemporaryJsFilesRegistry,
-    collection: Collection,
-    bruFileContent: string,
-    logger?: OutputChannelLogger
-) {
-    const isTempJsFileRegistered = tempJsFilesRegistry
-        .getCollectionsWithRegisteredJsFiles()
-        .some(
-            (registered) =>
-                normalizeDirectoryPath(registered) ==
-                normalizeDirectoryPath(collection.getRootDirectory())
-        );
-
-    if (
-        !isTempJsFileRegistered ||
-        !(await checkIfPathExistsAsync(
-            getTemporaryJsFileName(collection.getRootDirectory())
-        ))
-    ) {
-        await createTemporaryJsFile(
-            collection.getRootDirectory(),
-            tempJsFilesRegistry,
-            bruFileContent,
-            logger
-        );
-    }
 }
