@@ -7,6 +7,7 @@ import {
 } from "vscode";
 import {
     Block,
+    Collection,
     getTemporaryJsFileName,
     OutputChannelLogger,
     parseBruFile,
@@ -15,9 +16,16 @@ import {
 } from "../../../../shared";
 import { getCodeBlocks } from "./getCodeBlocks";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
-import { TempJsSyncRequest } from "./interfaces";
 import { TempJsFileUpdateQueue } from "../temporaryJsFilesUpdates/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "../temporaryJsFilesUpdates/internal/interfaces";
+
+export interface TempJsSyncRequest {
+    collection: Collection;
+    bruFileContentSnapshot: string;
+    bruFileCodeBlocksSnapshot: Block[];
+    bruFilePath: string;
+    token: CancellationToken;
+}
 
 export async function waitForTempJsFileToBeInSync(
     queue: TempJsFileUpdateQueue,
