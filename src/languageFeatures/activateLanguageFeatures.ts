@@ -24,18 +24,17 @@ import {
     getExtensionForBrunoFiles,
     getLoggerFromSubscriptions,
     normalizeDirectoryPath,
-    OutputChannelLogger,
     parseBruFile,
     TextDocumentHelper,
     isBrunoFileType,
     getConfiguredTestEnvironment,
+    getTemporaryJsFileName,
+    filterAsync,
 } from "../shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/autoUpdates/updateUrlToMatchQueryParams";
 import { updatePathParamsKeysToMatchUrl } from "./internal/autoUpdates/updatePathParamsKeysToMatchUrl";
-import { createTemporaryJsFile } from "./internal/shared/codeBlocksUtils/createTemporaryJsFile";
-import { TemporaryJsFilesRegistry } from "./internal/shared/temporaryJsFilesRegistry";
-import { deleteTemporaryJsFileForCollection } from "./internal/shared/codeBlocksUtils/deleteTemporaryJsFile";
+import { TemporaryJsFilesRegistry } from "./internal/shared/temporaryJsFilesUpdates/internal/temporaryJsFilesRegistry";
 import { provideCodeBlocksCompletionItems } from "./internal/completionItems/provideCodeBlocksCompletionItems";
 import { provideInfosOnHover } from "./internal/hover/provideInfosOnHover";
 import { provideSignatureHelp } from "./internal/signatureHelp/provideSignatureHelp";
@@ -44,12 +43,19 @@ import { extname, resolve } from "path";
 import { registerCodeBlockFormatter } from "./internal/formatting/registerCodeBlockFormatter";
 import { readFile } from "fs";
 import { promisify } from "util";
+import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates/tempJsFileUpdateQueue";
+import { TempJsUpdateType } from "./internal/shared/temporaryJsFilesUpdates/internal/interfaces";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
     itemProvider: CollectionItemProvider,
 ) {
-    const tempJsFilesRegistry = new TemporaryJsFilesRegistry();
+    const logger = getLoggerFromSubscriptions(context);
+
+    const tempJsFilesUpdateQueue = new TempJsFileUpdateQueue(
+        new TemporaryJsFilesRegistry(),
+        logger,
+    );
 
     const diagnosticCollection =
         languages.createDiagnosticCollection("bru-as-code");
@@ -59,43 +65,42 @@ export function activateLanguageFeatures(
         itemProvider,
     );
 
-    const logger = getLoggerFromSubscriptions(context);
-
     context.subscriptions.push(
         diagnosticCollection,
-        tempJsFilesRegistry,
+        tempJsFilesUpdateQueue,
         ...provideBrunoLangCompletionItems(itemProvider, logger),
         provideCodeBlocksCompletionItems(
+            tempJsFilesUpdateQueue,
             itemProvider,
-            tempJsFilesRegistry,
             logger,
         ),
-        provideInfosOnHover(itemProvider, tempJsFilesRegistry, logger),
-        provideSignatureHelp(itemProvider, tempJsFilesRegistry, logger),
-        provideDefinitions(itemProvider, tempJsFilesRegistry, logger),
+        provideInfosOnHover(tempJsFilesUpdateQueue, itemProvider, logger),
+        provideSignatureHelp(tempJsFilesUpdateQueue, itemProvider, logger),
+        provideDefinitions(tempJsFilesUpdateQueue, itemProvider, logger),
         registerCodeBlockFormatter(logger),
         brunoLangDiagnosticsProvider,
-        tempJsFilesRegistry,
+        tempJsFilesUpdateQueue,
         window.onDidChangeActiveTextEditor(async (editor) => {
             await onDidChangeActiveTextEditor(
-                tempJsFilesRegistry,
+                tempJsFilesUpdateQueue,
                 brunoLangDiagnosticsProvider,
                 itemProvider,
                 editor,
-                logger,
             );
         }),
         workspace.onDidChangeTextDocument(async (e) => {
             await onDidChangeTextDocument(
-                tempJsFilesRegistry,
                 brunoLangDiagnosticsProvider,
                 itemProvider,
                 e,
-                logger,
             );
         }),
         workspace.onWillSaveTextDocument(async (e) => {
-            await onWillSaveTextDocument(tempJsFilesRegistry, itemProvider, e);
+            await onWillSaveTextDocument(
+                tempJsFilesUpdateQueue,
+                itemProvider,
+                e,
+            );
         }),
         handleDiagnosticUpdatesOnFileDeletion(
             itemProvider,
@@ -105,11 +110,10 @@ export function activateLanguageFeatures(
 }
 
 async function onDidChangeActiveTextEditor(
-    tempJsFilesRegistry: TemporaryJsFilesRegistry,
+    queue: TempJsFileUpdateQueue,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
-    collectionItemProvider: CollectionItemProvider,
+    itemProvider: CollectionItemProvider,
     editor: TextEditor | undefined,
-    logger?: OutputChannelLogger,
 ) {
     if (
         !editor ||
@@ -119,18 +123,18 @@ async function onDidChangeActiveTextEditor(
             TabInputText
         )
     ) {
-        await deleteAllTemporaryJsFiles(tempJsFilesRegistry);
+        await deleteAllTemporaryJsFiles(queue, itemProvider);
     } else if (
         editor.document.uri.toString() ==
         window.tabGroups.activeTabGroup.activeTab.input.uri.toString()
     ) {
         const brunoFileType = await getBrunoFileTypeIfExists(
-            collectionItemProvider,
+            itemProvider,
             editor.document.uri.fsPath,
         );
 
         if (!brunoFileType) {
-            await deleteAllTemporaryJsFiles(tempJsFilesRegistry);
+            await deleteAllTemporaryJsFiles(queue, itemProvider);
             return;
         }
 
@@ -142,28 +146,29 @@ async function onDidChangeActiveTextEditor(
         );
 
         if (getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType)) {
-            await createTemporaryJsFile(
-                (
-                    collectionItemProvider.getAncestorCollectionForPath(
-                        editor.document.fileName,
-                    ) as Collection
-                ).getRootDirectory(),
-                tempJsFilesRegistry,
-                editor.document.getText(),
-                logger,
-            );
+            const collectionRootFolder = (
+                itemProvider.getAncestorCollectionForPath(
+                    editor.document.fileName,
+                ) as Collection
+            ).getRootDirectory();
+
+            await queue.addToQueue({
+                collectionRootFolder,
+                update: {
+                    type: TempJsUpdateType.Creation,
+                    bruFileContent: editor.document.getText(),
+                },
+            });
         } else {
-            await deleteAllTemporaryJsFiles(tempJsFilesRegistry);
+            await deleteAllTemporaryJsFiles(queue, itemProvider);
         }
     }
 }
 
 async function onDidChangeTextDocument(
-    tempJsFilesRegistry: TemporaryJsFilesRegistry,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     collectionItemProvider: CollectionItemProvider,
     event: TextDocumentChangeEvent,
-    logger?: OutputChannelLogger,
 ) {
     if (event.contentChanges.length > 0) {
         // If the document has been modified externally (not via VS Code), skip all actions
@@ -186,27 +191,12 @@ async function onDidChangeTextDocument(
                 brunoLangDiagnosticsProvider,
                 brunoFileType,
             );
-
-            if (
-                getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType)
-            ) {
-                await createTemporaryJsFile(
-                    (
-                        collectionItemProvider.getAncestorCollectionForPath(
-                            event.document.fileName,
-                        ) as Collection
-                    ).getRootDirectory(),
-                    tempJsFilesRegistry,
-                    event.document.getText(),
-                    logger,
-                );
-            }
         }
     }
 }
 
 async function onWillSaveTextDocument(
-    tempJsFilesRegistry: TemporaryJsFilesRegistry,
+    queue: TempJsFileUpdateQueue,
     collectionItemProvider: CollectionItemProvider,
     event: TextDocumentWillSaveEvent,
 ) {
@@ -225,15 +215,14 @@ async function onWillSaveTextDocument(
 
         if (
             collection &&
-            tempJsFilesRegistry
-                .getCollectionsWithRegisteredJsFiles()
-                .map((registered) => normalizeDirectoryPath(registered))
-                .includes(normalizeDirectoryPath(collection.getRootDirectory()))
+            (await checkIfPathExistsAsync(
+                getTemporaryJsFileName(collection.getRootDirectory()),
+            ))
         ) {
-            await deleteTemporaryJsFileForCollection(
-                tempJsFilesRegistry,
-                collection.getRootDirectory(),
-            );
+            await queue.addToQueue({
+                collectionRootFolder: collection.getRootDirectory(),
+                update: { type: TempJsUpdateType.Deletion },
+            });
         }
 
         if (
@@ -324,13 +313,25 @@ async function fetchBrunoSpecificDiagnostics(
 }
 
 async function deleteAllTemporaryJsFiles(
-    tempJsFilesRegistry: TemporaryJsFilesRegistry,
+    updateQueue: TempJsFileUpdateQueue,
+    itemProvider: CollectionItemProvider,
 ) {
-    const deletions: Promise<void>[] = [];
+    const deletions: Promise<boolean>[] = [];
 
-    for (const collection of tempJsFilesRegistry.getCollectionsWithRegisteredJsFiles()) {
+    const existingFiles = await filterAsync(
+        itemProvider.getRegisteredCollections().map((collection) => ({
+            collectionRootFolder: collection.getRootDirectory(),
+            filePath: getTemporaryJsFileName(collection.getRootDirectory()),
+        })),
+        async ({ filePath }) => await checkIfPathExistsAsync(filePath),
+    );
+
+    for (const { collectionRootFolder } of existingFiles) {
         deletions.push(
-            deleteTemporaryJsFileForCollection(tempJsFilesRegistry, collection),
+            updateQueue.addToQueue({
+                collectionRootFolder,
+                update: { type: TempJsUpdateType.Deletion },
+            }),
         );
     }
 

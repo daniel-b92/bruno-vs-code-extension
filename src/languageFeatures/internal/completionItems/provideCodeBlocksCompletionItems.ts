@@ -19,12 +19,12 @@ import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositi
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSync";
-import { TemporaryJsFilesRegistry } from "../shared/temporaryJsFilesRegistry";
+import { TempJsFileUpdateQueue } from "../shared/temporaryJsFilesUpdates/tempJsFileUpdateQueue";
 
 export function provideCodeBlocksCompletionItems(
+    queue: TempJsFileUpdateQueue,
     collectionItemProvider: CollectionItemProvider,
-    tempJsFilesRegistry: TemporaryJsFilesRegistry,
-    logger?: OutputChannelLogger
+    logger?: OutputChannelLogger,
 ) {
     return languages.registerCompletionItemProvider(
         getRequestFileDocumentSelector(),
@@ -32,7 +32,7 @@ export function provideCodeBlocksCompletionItems(
             async provideCompletionItems(document, position, token) {
                 const collection =
                     collectionItemProvider.getAncestorCollectionForPath(
-                        document.fileName
+                        document.fileName,
                     );
 
                 if (!collection) {
@@ -41,29 +41,31 @@ export function provideCodeBlocksCompletionItems(
 
                 const blocksToCheck = getCodeBlocks(
                     parseBruFile(new TextDocumentHelper(document.getText()))
-                        .blocks
+                        .blocks,
                 );
 
                 const blockInBruFile = blocksToCheck.find(({ contentRange }) =>
-                    mapRange(contentRange).contains(position)
+                    mapRange(contentRange).contains(position),
                 );
 
                 if (blockInBruFile) {
                     if (token.isCancellationRequested) {
                         logger?.debug(
-                            `Cancellation requested for completion provider for code blocks.`
+                            `Cancellation requested for completion provider for code blocks.`,
                         );
                         return undefined;
                     }
 
                     const temporaryJsDoc = await waitForTempJsFileToBeInSync(
-                        tempJsFilesRegistry,
-                        collection,
-                        document.getText(),
-                        blocksToCheck,
-                        document.fileName,
-                        token,
-                        logger
+                        queue,
+                        {
+                            collection,
+                            bruFileContentSnapshot: document.getText(),
+                            bruFileCodeBlocksSnapshot: blocksToCheck,
+                            bruFilePath: document.fileName,
+                            token,
+                        },
+                        logger,
                     );
 
                     if (!temporaryJsDoc) {
@@ -72,7 +74,7 @@ export function provideCodeBlocksCompletionItems(
 
                     if (token.isCancellationRequested) {
                         logger?.debug(
-                            `Cancellation requested for completion provider for code blocks.`
+                            `Cancellation requested for completion provider for code blocks.`,
                         );
                         return undefined;
                     }
@@ -85,9 +87,9 @@ export function provideCodeBlocksCompletionItems(
                                 temporaryJsDoc.getText(),
                                 blockInBruFile.name as RequestFileBlockName,
                                 position.translate(
-                                    -blockInBruFile.contentRange.start.line
-                                )
-                            )
+                                    -blockInBruFile.contentRange.start.line,
+                                ),
+                            ),
                         );
 
                     return new CompletionList<CompletionItem>(
@@ -99,20 +101,20 @@ export function provideCodeBlocksCompletionItems(
                                           blocksToCheck,
                                           temporaryJsDoc.getText(),
                                           item.range,
-                                          logger
+                                          logger,
                                       ) as VsCodeRange)
                                     : {
                                           inserting: mapToRangeWithinBruFile(
                                               blocksToCheck,
                                               temporaryJsDoc.getText(),
                                               item.range.inserting,
-                                              logger
+                                              logger,
                                           ) as VsCodeRange,
                                           replacing: mapToRangeWithinBruFile(
                                               blocksToCheck,
                                               temporaryJsDoc.getText(),
                                               item.range.replacing,
-                                              logger
+                                              logger,
                                           ) as VsCodeRange,
                                       }
                                 : undefined,
@@ -121,13 +123,13 @@ export function provideCodeBlocksCompletionItems(
                                       mapToRangeWithinBruFile(
                                           blocksToCheck,
                                           temporaryJsDoc.getText(),
-                                          item.textEdit.range
+                                          item.textEdit.range,
                                       ) as VsCodeRange,
-                                      item.textEdit.newText
+                                      item.textEdit.newText,
                                   )
                                 : undefined,
                         })),
-                        resultFromJsFile.isIncomplete
+                        resultFromJsFile.isIncomplete,
                     );
                 } else {
                     return undefined;
@@ -135,6 +137,6 @@ export function provideCodeBlocksCompletionItems(
             },
         },
         ".",
-        "/"
+        "/",
     );
 }

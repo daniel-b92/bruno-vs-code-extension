@@ -39,6 +39,7 @@ const config = {
             // see https://webpack.js.org/configuration/resolve/#resolvefallback
             // for the list of Node.js core module polyfills.
             os: false,
+            process: require.resolve("process/browser"),
         },
     },
     module: {

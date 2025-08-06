@@ -11,19 +11,19 @@ import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocument
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
-import { TemporaryJsFilesRegistry } from "../shared/temporaryJsFilesRegistry";
 import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSync";
+import { TempJsFileUpdateQueue } from "../shared/temporaryJsFilesUpdates/tempJsFileUpdateQueue";
 
 export function provideInfosOnHover(
+    queue: TempJsFileUpdateQueue,
     collectionItemProvider: CollectionItemProvider,
-    tempJsFilesRegistry: TemporaryJsFilesRegistry,
-    logger?: OutputChannelLogger
+    logger?: OutputChannelLogger,
 ) {
     return languages.registerHoverProvider(getRequestFileDocumentSelector(), {
         async provideHover(document, position, token) {
             const collection =
                 collectionItemProvider.getAncestorCollectionForPath(
-                    document.fileName
+                    document.fileName,
                 );
 
             if (!collection) {
@@ -31,11 +31,11 @@ export function provideInfosOnHover(
             }
 
             const blocksToCheck = getCodeBlocks(
-                parseBruFile(new TextDocumentHelper(document.getText())).blocks
+                parseBruFile(new TextDocumentHelper(document.getText())).blocks,
             );
 
             const blockInBruFile = blocksToCheck.find(({ contentRange }) =>
-                mapRange(contentRange).contains(position)
+                mapRange(contentRange).contains(position),
             );
 
             if (blockInBruFile) {
@@ -45,13 +45,15 @@ export function provideInfosOnHover(
                 }
 
                 const temporaryJsDoc = await waitForTempJsFileToBeInSync(
-                    tempJsFilesRegistry,
-                    collection,
-                    document.getText(),
-                    blocksToCheck,
-                    document.fileName,
-                    token,
-                    logger
+                    queue,
+                    {
+                        collection,
+                        bruFileContentSnapshot: document.getText(),
+                        bruFileCodeBlocksSnapshot: blocksToCheck,
+                        bruFilePath: document.fileName,
+                        token,
+                    },
+                    logger,
                 );
 
                 if (!temporaryJsDoc) {
@@ -70,24 +72,24 @@ export function provideInfosOnHover(
                         temporaryJsDoc.getText(),
                         blockInBruFile.name as RequestFileBlockName,
                         position.translate(
-                            -blockInBruFile.contentRange.start.line
-                        )
-                    )
+                            -blockInBruFile.contentRange.start.line,
+                        ),
+                    ),
                 );
 
                 return resultFromJsFile.length == 0
                     ? null
                     : resultFromJsFile[0].range
-                    ? new Hover(
-                          resultFromJsFile[0].contents,
-                          mapToRangeWithinBruFile(
-                              blocksToCheck,
-                              temporaryJsDoc.getText(),
-                              resultFromJsFile[0].range,
-                              logger
-                          )
-                      )
-                    : resultFromJsFile[0];
+                      ? new Hover(
+                            resultFromJsFile[0].contents,
+                            mapToRangeWithinBruFile(
+                                blocksToCheck,
+                                temporaryJsDoc.getText(),
+                                resultFromJsFile[0].range,
+                                logger,
+                            ),
+                        )
+                      : resultFromJsFile[0];
             }
         },
     });

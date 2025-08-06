@@ -1,9 +1,9 @@
-import { TemporaryJsFilesRegistry } from "../temporaryJsFilesRegistry";
+import { TemporaryJsFilesRegistry } from "./temporaryJsFilesRegistry";
 import {
     checkIfPathExistsAsync,
     getTemporaryJsFileName,
     OutputChannelLogger,
-} from "../../../../shared";
+} from "../../../../../shared";
 import { Uri, workspace, WorkspaceEdit } from "vscode";
 import { basename } from "path";
 

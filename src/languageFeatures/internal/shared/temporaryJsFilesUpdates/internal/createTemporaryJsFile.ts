@@ -4,47 +4,42 @@ import {
     RequestFileBlockName,
     getTemporaryJsFileName,
     OutputChannelLogger,
-} from "../../../../shared";
-import { mapBlockNameToJsFileLine } from "./mapBlockNameToJsFileFunctionName";
-import { TemporaryJsFilesRegistry } from "../temporaryJsFilesRegistry";
+} from "../../../../../shared";
+import { mapBlockNameToJsFileLine } from "../../codeBlocksUtils/mapBlockNameToJsFileFunctionName";
+import { TemporaryJsFilesRegistry } from "./temporaryJsFilesRegistry";
 import { Uri, workspace, WorkspaceEdit } from "vscode";
+import { getCodeBlocks } from "../../codeBlocksUtils/getCodeBlocks";
 
 export async function createTemporaryJsFile(
     collectionRootDirectory: string,
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
     bruFileContent: string,
-    logger?: OutputChannelLogger
+    logger?: OutputChannelLogger,
 ) {
     const { blocks: parsedBlocks } = parseBruFile(
-        new TextDocumentHelper(bruFileContent)
+        new TextDocumentHelper(bruFileContent),
     );
-    const blocksWithJsCode = parsedBlocks.filter(({ name }) =>
-        (
-            [
-                RequestFileBlockName.PreRequestScript,
-                RequestFileBlockName.PostResponseScript,
-                RequestFileBlockName.Tests,
-            ] as string[]
-        ).includes(name)
+
+    const functionsForTempJsFile = getCodeBlocks(parsedBlocks).map(
+        ({
+            name,
+            content,
+        }) => `${mapBlockNameToJsFileLine(name as RequestFileBlockName)}
+${content}}`,
     );
-    const result: string[] = [];
-
-    for (const { name, content } of blocksWithJsCode) {
-        result.push(
-            `${mapBlockNameToJsFileLine(name as RequestFileBlockName)}
-${content}}`
-        );
-    }
-
-    const fileName = getTemporaryJsFileName(collectionRootDirectory);
 
     const workspaceEdit = new WorkspaceEdit();
-    workspaceEdit.createFile(Uri.file(fileName), {
-        contents: Buffer.from(
-            getDefinitionsForInbuiltLibraries().concat(result).join("\n\n")
-        ),
-        overwrite: true,
-    });
+    workspaceEdit.createFile(
+        Uri.file(getTemporaryJsFileName(collectionRootDirectory)),
+        {
+            contents: Buffer.from(
+                getDefinitionsForInbuiltLibraries()
+                    .concat(functionsForTempJsFile)
+                    .join("\n\n"),
+            ),
+            overwrite: true,
+        },
+    );
 
     const editResult = await workspace.applyEdit(workspaceEdit);
 

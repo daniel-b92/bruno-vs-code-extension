@@ -1,7 +1,7 @@
 import {
     getTemporaryJsFileName,
     normalizeDirectoryPath,
-} from "../../../shared";
+} from "../../../../../shared";
 
 export class TemporaryJsFilesRegistry {
     constructor() {}
@@ -20,9 +20,8 @@ export class TemporaryJsFilesRegistry {
                     collectionRootDirectory: registeredCollection,
                     file: registeredFile,
                 }) =>
-                    normalizeDirectoryPath(registeredCollection) ==
-                        normalizeDirectoryPath(collectionRootDirectory) &&
-                    registeredFile == filePath
+                    this.getRegisteredFileForCollection(registeredCollection) &&
+                    registeredFile == filePath,
             )
         ) {
             this.jsFiles.push({
@@ -33,24 +32,30 @@ export class TemporaryJsFilesRegistry {
     }
 
     public unregisterJsFileForCollection(collectionRootDirectory: string) {
-        const index = this.jsFiles.findIndex(
-            ({ collectionRootDirectory: registeredCollection }) =>
-                normalizeDirectoryPath(registeredCollection) ==
-                normalizeDirectoryPath(collectionRootDirectory)
+        const maybeRegisteredFile = this.getRegisteredFileForCollection(
+            collectionRootDirectory,
         );
 
-        if (index >= 0) {
-            this.jsFiles.splice(index, 1);
+        if (maybeRegisteredFile) {
+            this.jsFiles.splice(maybeRegisteredFile.index, 1);
         }
-    }
-
-    public getCollectionsWithRegisteredJsFiles() {
-        return this.jsFiles.map(
-            ({ collectionRootDirectory }) => collectionRootDirectory
-        );
     }
 
     public dispose() {
         this.jsFiles.splice(0, this.jsFiles.length);
+    }
+
+    private getRegisteredFileForCollection(collectionRootDirectory: string) {
+        const index = this.jsFiles.findIndex(
+            ({ collectionRootDirectory: registeredCollection }) =>
+                normalizeDirectoryPath(registeredCollection) ==
+                normalizeDirectoryPath(collectionRootDirectory),
+        );
+
+        if (index >= 0) {
+            return { file: this.jsFiles[index].file, index };
+        } else {
+            return undefined;
+        }
     }
 }
