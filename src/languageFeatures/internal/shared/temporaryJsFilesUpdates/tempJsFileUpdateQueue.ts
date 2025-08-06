@@ -20,10 +20,10 @@ export class TempJsFileUpdateQueue {
         this.queueUpdater = new QueueUpdateHandler();
 
         this.requestHasBeenRemovedFromQueueNotifier.event(
-            (removedRequestId) => {
+            (removedRequestIds) => {
                 if (
                     this.activeUpdate &&
-                    this.activeUpdate.id == removedRequestId
+                    removedRequestIds.includes(this.activeUpdate.id)
                 ) {
                     this.activeUpdate = undefined;
 
@@ -44,7 +44,9 @@ export class TempJsFileUpdateQueue {
         | undefined;
     private requestCanBeRunNotifier = new EventEmitter<string>();
     private latestRequestBruFileContent: string | undefined;
-    private requestHasBeenRemovedFromQueueNotifier = new EventEmitter<string>();
+    private requestHasBeenRemovedFromQueueNotifier = new EventEmitter<
+        string[]
+    >();
 
     public async addToQueue(updateRequest: TempJsUpdateRequest) {
         const id = this.getIdForRequest(updateRequest);
@@ -110,8 +112,8 @@ export class TempJsFileUpdateQueue {
             }
 
             this.requestHasBeenRemovedFromQueueNotifier.event(
-                (removedRequestId) => {
-                    if (requestId == removedRequestId) {
+                (removedRequestIds) => {
+                    if (removedRequestIds.includes(requestId)) {
                         resolve(false);
                     }
                 },
@@ -221,7 +223,7 @@ class QueueUpdateHandler {
     public async addToEndOfQueue(
         request: TempJsUpdateRequest,
         id: string,
-        requestRemovedFromQueueNotifier: EventEmitter<string>,
+        requestRemovedFromQueueNotifier: EventEmitter<string[]>,
     ) {
         await this.getLockForRequest(id, requestRemovedFromQueueNotifier);
 
@@ -238,7 +240,7 @@ class QueueUpdateHandler {
 
     public async removeFromQueue(
         id: string,
-        requestRemovedFromQueueNotifier: EventEmitter<string>,
+        requestRemovedFromQueueNotifier: EventEmitter<string[]>,
     ) {
         await this.getLockForRequest(id, requestRemovedFromQueueNotifier);
 
@@ -246,6 +248,7 @@ class QueueUpdateHandler {
         this.queue.splice(index, 1);
 
         this.removeLockForRequest(id);
+        requestRemovedFromQueueNotifier.fire([id]);
     }
 
     public getOldestItemFromQueue() {
@@ -274,7 +277,7 @@ class QueueUpdateHandler {
     public async removeOutdatedRequestsFromQueue(
         latestRequest: TempJsUpdateRequest,
         id: string,
-        requestRemovedFromQueueNotifier: EventEmitter<string>,
+        requestRemovedFromQueueNotifier: EventEmitter<string[]>,
     ) {
         if (this.queue.length <= 1) {
             return;
@@ -325,6 +328,10 @@ class QueueUpdateHandler {
         });
 
         this.removeLockForRequest(id);
+
+        requestRemovedFromQueueNotifier.fire(
+            redundantRequests.map(({ id }) => id),
+        );
     }
 
     public dispose() {
@@ -335,7 +342,7 @@ class QueueUpdateHandler {
 
     private async getLockForRequest(
         requestId: string,
-        requestRemovedFromQueueNotifier: EventEmitter<string>,
+        requestRemovedFromQueueNotifier: EventEmitter<string[]>,
     ) {
         return await new Promise<void>((resolve) => {
             this.canObtainLockNotifier.event((chosenId) => {
@@ -344,7 +351,9 @@ class QueueUpdateHandler {
                 }
             });
 
-            if (
+            if (this.lockedBy && this.lockedBy.requestId == requestId) {
+                resolve();
+            } else if (
                 !this.lockedBy &&
                 (this.queue.length == 0 ||
                     (this.queue.length == 1 && this.queue[0].id == requestId))
