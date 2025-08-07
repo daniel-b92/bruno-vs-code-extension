@@ -4,7 +4,7 @@ node_modules/**/src
 # files from node_modules are actually only needed for the npm package @zentryc5t/ts-plugin-for-bruno
 
 src/**/*.ts
-src/tsPlugin
+tsPlugin
 
 **/tsconfig.json
 samples/

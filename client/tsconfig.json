@@ -6,9 +6,7 @@
         "outDir": "out",
         "sourceMap": true,
         "strict": true,
-        "rootDir": "src",
-        // for using local ts plugin: "plugins": [{ "name": "typescript-for-bruno" }],
-        "plugins": [{ "name": "@zentryc5t/ts-plugin-for-bruno" }],
+        "composite": true,
 
         "allowUnreachableCode": false,
         "noUnusedLocals": true,
@@ -17,7 +15,5 @@
         "strictNullChecks": true,
         "strictPropertyInitialization": true
     },
-    "include": ["client", "server"],
-    "exclude": ["node_modules", ".vscode-test", "**/*.md"],
-    "references": [{ "path": "./client" }, { "path": "./server" }]
+    "exclude": ["node_modules", ".vscode-test"],
 }
