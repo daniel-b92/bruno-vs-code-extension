@@ -6,8 +6,8 @@ import {
     Uri,
     window,
 } from "vscode";
-import { activateRunner } from "./testRunner";
-import { activateTreeView } from "./treeView";
+import { activateRunner } from "./client/testRunner";
+import { activateTreeView } from "./client/explorer";
 import {
     CollectionWatcher,
     FileChangedEvent,
@@ -16,8 +16,8 @@ import {
     getTemporaryJsFileName,
     OutputChannelLogger,
 } from "./shared";
-import { activateLanguageFeatures } from "./languageFeatures";
-import { suggestCreatingTsConfigsForCollections } from "./languageFeatures/suggestCreatingTsConfigsForCollections";
+import { activateLanguageFeatures } from "./server";
+import { suggestCreatingTsConfigsForCollections } from "./suggestCreatingTsConfigsForCollections";
 
 export async function activate(context: ExtensionContext) {
     const extensionNameLabel = "BruAsCode";

@@ -98,7 +98,7 @@
         "snippets": [
             {
                 "language": "bru",
-                "path": "./src/languageFeatures/bruno_snippets.json"
+                "path": "./src/languageConfig/bruno_snippets.json"
             }
         ],
         "languages": [
@@ -111,7 +111,7 @@
                     "bru",
                     "bru"
                 ],
-                "configuration": "./src/languageFeatures/language-configuration.json"
+                "configuration": "./src/languageConfig/language-configuration.json"
             }
         ],
         "grammars": [
