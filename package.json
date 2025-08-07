@@ -33,7 +33,8 @@
         "compileWithLocalTsPlugin": "cd tsPlugin && tsc --project tsconfig.json && mkdir -p ../node_modules/typescript-for-bruno && cp ./out/index.js ../node_modules/typescript-for-bruno && cd .. && webpack --mode development",
         "lint": "eslint",
         "watch": "webpack --mode development --watch",
-        "package": "webpack --mode production --devtool hidden-source-map"
+        "package": "webpack --mode production --devtool hidden-source-map",
+        "postinstall": "cd client && npm install && cd ../server && npm install && cd .."
     },
     "devDependencies": {
         "@eslint/js": "^9.13.0",
@@ -50,11 +51,7 @@
         "webpack-cli": "^6.0.1"
     },
     "dependencies": {
-        "@zentryc5t/ts-plugin-for-bruno": "^1.0.0",
-        "glob": "^11.0.3",
-        "prettier": "^3.6.2",
-        "process": "^0.11.10",
-        "tree-kill": "^1.2.2"
+        "@zentryc5t/ts-plugin-for-bruno": "^1.0.0"
     },
     "contributes": {
         "configuration": {
