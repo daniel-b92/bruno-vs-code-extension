@@ -16,6 +16,7 @@ import {
     getTemporaryJsFileName,
     OutputChannelLogger,
     suggestCreatingTsConfigsForCollections,
+    getExtensionForBrunoFiles,
 } from "../../shared";
 import {
     LanguageClient,
@@ -32,7 +33,7 @@ export async function activate(context: ExtensionContext) {
 
     // The server is implemented in node
     const serverModule = context.asAbsolutePath(
-        join("server", "out", "server.js")
+        join("server", "out", "server.js"),
     );
 
     // If the extension is launched in debug mode then the debug server options are used
@@ -48,7 +49,9 @@ export async function activate(context: ExtensionContext) {
     // Options to control the language client
     const clientOptions: LanguageClientOptions = {
         // Register the server for plain text documents
-        documentSelector: [{ scheme: "file", language: "plaintext" }],
+        documentSelector: [
+            { scheme: "file", pattern: `**/*${getExtensionForBrunoFiles()}` },
+        ],
     };
 
     // Create the language client and start the client.
@@ -56,39 +59,39 @@ export async function activate(context: ExtensionContext) {
         "bru-as-code",
         "Bru As Code",
         serverOptions,
-        clientOptions
+        clientOptions,
     );
-
-    // Start the client. This will also launch the server
-    client.start();
 
     const ctrl = tests.createTestController(
         "bruAsCodeTestController",
-        extensionNameLabel
+        extensionNameLabel,
     );
-    context.subscriptions.push(ctrl, client);
 
     const logger = new OutputChannelLogger(
-        window.createOutputChannel(extensionNameLabel, { log: true })
+        window.createOutputChannel(extensionNameLabel, { log: true }),
     );
-
-    context.subscriptions.push(logger);
 
     const fileChangedEmitter = new EventEmitter<FileChangedEvent>();
-    const collectionWatcher = new CollectionWatcher(
-        context,
-        fileChangedEmitter,
-        logger
-    );
+    const collectionWatcher = new CollectionWatcher(fileChangedEmitter, logger);
 
     const collectionItemProvider = new CollectionItemProvider(
         collectionWatcher,
         new TestRunnerDataHelper(ctrl),
         getPathsToIgnoreForCollection,
-        logger
+        logger,
     );
 
     const startTestRunEmitter = new EventEmitter<Uri>();
+
+    context.subscriptions.push(
+        ctrl,
+        client,
+        logger,
+        fileChangedEmitter,
+        collectionWatcher,
+        collectionItemProvider,
+        startTestRunEmitter,
+    );
 
     window.withProgress(
         {
@@ -102,24 +105,27 @@ export async function activate(context: ExtensionContext) {
                         context,
                         ctrl,
                         collectionItemProvider,
-                        startTestRunEmitter.event
+                        startTestRunEmitter.event,
                     ).then(() => {
                         activateTreeView(
                             context,
                             collectionItemProvider,
-                            startTestRunEmitter
+                            startTestRunEmitter,
                         );
 
                         resolve();
 
                         suggestCreatingTsConfigsForCollections(
-                            collectionItemProvider
+                            collectionItemProvider,
                         );
                     });
                 });
             });
-        }
+        },
     );
+
+    // Start the client. This will also launch the server
+    return client.start();
 }
 
 export function deactivate(): Thenable<void> | undefined {

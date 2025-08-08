@@ -1,6 +1,5 @@
 import {
     EventEmitter,
-    ExtensionContext,
     FileSystemWatcher,
     RelativePattern,
     Uri,
@@ -16,7 +15,6 @@ import { glob } from "glob";
 
 export class CollectionWatcher {
     constructor(
-        private context: ExtensionContext,
         private fileChangedEmitter: EventEmitter<FileChangedEvent>,
         private logger?: OutputChannelLogger
     ) {}
@@ -110,7 +108,6 @@ export class CollectionWatcher {
         });
 
         this.watchers.push({ rootDirectory, watcher });
-        this.context.subscriptions.push(watcher);
     }
 
     public stopWatchingCollection(path: string) {
@@ -127,6 +124,13 @@ export class CollectionWatcher {
 
     public subscribeToUpdates() {
         return this.fileChangedEmitter.event;
+    }
+
+    public dispose() {
+        this.watchers.forEach((watcher) => {
+            watcher.watcher.dispose();
+        });
+        this.watchers.splice(0);
     }
 
     private getPatternForTestitemsInCollection(collectionRootDir: string) {

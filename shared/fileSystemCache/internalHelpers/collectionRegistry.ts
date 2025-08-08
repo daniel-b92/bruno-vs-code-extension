@@ -46,6 +46,10 @@ export class CollectionRegistry {
         }
     }
 
+    public dispose() {
+        this.collections.splice(0);
+    }
+
     private isCollectionRegistered(rootDirectory: string) {
         return this.collections.some(
             (registered) =>
