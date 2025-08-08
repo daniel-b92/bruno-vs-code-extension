@@ -15,6 +15,7 @@ export * from "./fileSystem/util/positionAndRangeMapper";
 export * from "./fileSystem/util/doesFileNameMatchFolderSettingsFileName";
 export * from "./fileSystem/util/checkIfPathExistsAsync";
 export * from "./fileSystem/util/getFileType";
+export * from "./fileSystem/util/getBrunoFileTypeIfExists";
 
 // array utils
 export * from "./arrayUtils/filterAsync";

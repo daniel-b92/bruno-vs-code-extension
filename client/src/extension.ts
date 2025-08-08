@@ -3,8 +3,10 @@ import {
     ExtensionContext,
     ProgressLocation,
     tests,
+    TextDocumentWillSaveEvent,
     Uri,
     window,
+    workspace,
 } from "vscode";
 import { activateRunner } from "./testRunner";
 import { activateTreeView } from "./explorer";
@@ -17,6 +19,9 @@ import {
     OutputChannelLogger,
     suggestCreatingTsConfigsForCollections,
     getExtensionForBrunoFiles,
+    parseBruFile,
+    TextDocumentHelper,
+    getBrunoFileTypeIfExists,
 } from "../../shared";
 import {
     LanguageClient,
@@ -25,6 +30,8 @@ import {
     TransportKind,
 } from "vscode-languageclient/node";
 import { join } from "path";
+import { updatePathParamsKeysToMatchUrl } from "./languageFeatures/autoUpdates/updatePathParamsKeysToMatchUrl";
+import { updateUrlToMatchQueryParams } from "./languageFeatures/autoUpdates/updateUrlToMatchQueryParams";
 
 let client: LanguageClient;
 
@@ -91,6 +98,9 @@ export async function activate(context: ExtensionContext) {
         collectionWatcher,
         collectionItemProvider,
         startTestRunEmitter,
+        workspace.onWillSaveTextDocument(async (e) => {
+            await onWillSaveTextDocument(collectionItemProvider, e);
+        }),
     );
 
     window.withProgress(
@@ -137,4 +147,34 @@ export function deactivate(): Thenable<void> | undefined {
 
 function getPathsToIgnoreForCollection(collectionRootDirectory: string) {
     return [getTemporaryJsFileName(collectionRootDirectory)];
+}
+
+async function onWillSaveTextDocument(
+    collectionItemProvider: CollectionItemProvider,
+    event: TextDocumentWillSaveEvent,
+) {
+    const brunoFileType = await getBrunoFileTypeIfExists(
+        collectionItemProvider,
+        event.document.fileName,
+    );
+
+    if (
+        brunoFileType &&
+        window.activeTextEditor &&
+        window.activeTextEditor.document.uri.toString() ==
+            event.document.uri.toString()
+    ) {
+        const { blocks: parsedBlocks } = parseBruFile(
+            new TextDocumentHelper(event.document.getText()),
+        );
+
+        window.activeTextEditor.edit((editBuilder) => {
+            updateUrlToMatchQueryParams(editBuilder, parsedBlocks);
+            updatePathParamsKeysToMatchUrl(
+                event.document,
+                editBuilder,
+                parsedBlocks,
+            );
+        });
+    }
 }
