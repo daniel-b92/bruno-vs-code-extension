@@ -12,19 +12,19 @@ import {
     TextDocumentHelper,
     mapRange,
     RequestFileBlockName,
-    OutputChannelLogger,
 } from "../../../shared";
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
-import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSync";
 import { TempJsFileUpdateQueue } from "../shared/temporaryJsFilesUpdates/tempJsFileUpdateQueue";
+import { ConsoleLogger } from "../shared/logging/consoleLogger";
+import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 
 export function provideCodeBlocksCompletionItems(
     queue: TempJsFileUpdateQueue,
     collectionItemProvider: CollectionItemProvider,
-    logger?: OutputChannelLogger,
+    logger?: ConsoleLogger,
 ) {
     return languages.registerCompletionItemProvider(
         getRequestFileDocumentSelector(),

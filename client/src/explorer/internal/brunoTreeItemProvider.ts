@@ -6,11 +6,11 @@ import {
     CollectionItemProvider,
     normalizeDirectoryPath,
     CollectionFile,
-    OutputChannelLogger,
     getSequenceForFolder,
     getSequenceForFile,
 } from "../../../../shared";
 import { BrunoTreeItem } from "../brunoTreeItem";
+import { OutputChannelLogger } from "../../shared";
 
 export class BrunoTreeItemProvider
     implements vscode.TreeDataProvider<BrunoTreeItem>
@@ -18,7 +18,7 @@ export class BrunoTreeItemProvider
     constructor(
         private workspaceRoot: string,
         private collectionItemProvider: CollectionItemProvider,
-        private logger?: OutputChannelLogger
+        private logger?: OutputChannelLogger,
     ) {
         collectionItemProvider.subscribeToUpdates()((updates) => {
             if (
@@ -27,11 +27,11 @@ export class BrunoTreeItemProvider
                         updateType == FileChangeType.Deleted ||
                         updateType == FileChangeType.Created ||
                         (updateType == FileChangeType.Modified &&
-                            changedData?.sequenceChanged)
+                            changedData?.sequenceChanged),
                 )
             ) {
                 this.logger?.debug(
-                    `Collection tree view root refresh due to events for ${updates.length} items.`
+                    `Collection tree view root refresh due to events for ${updates.length} items.`,
                 );
 
                 // Always update all items when items have to be deleted from / created for the tree view.
@@ -50,7 +50,7 @@ export class BrunoTreeItemProvider
 
         const registeredParent = this.collectionItemProvider.getRegisteredItem(
             collection,
-            dirname(element.getPath())
+            dirname(element.getPath()),
         );
 
         return registeredParent ? registeredParent.treeItem : undefined;
@@ -58,7 +58,7 @@ export class BrunoTreeItemProvider
 
     public refresh() {
         this.logger?.info(
-            `Triggering full cache refresh and afterwards a refresh of the collection explorer tree.`
+            `Triggering full cache refresh and afterwards a refresh of the collection explorer tree.`,
         );
 
         return new Promise<void>((resolve) => {
@@ -72,14 +72,14 @@ export class BrunoTreeItemProvider
     async getChildren(element?: BrunoTreeItem): Promise<BrunoTreeItem[]> {
         if (!this.workspaceRoot) {
             vscode.window.showInformationMessage(
-                "No Bruno test data found in empty workspace"
+                "No Bruno test data found in empty workspace",
             );
             return [];
         }
 
         if (!element) {
             this.logger?.debug(
-                `Fetching root items for collection explorer tree.`
+                `Fetching root items for collection explorer tree.`,
             );
 
             return this.collectionItemProvider
@@ -88,30 +88,30 @@ export class BrunoTreeItemProvider
                     (collection) =>
                         (
                             collection.getStoredDataForPath(
-                                collection.getRootDirectory()
+                                collection.getRootDirectory(),
                             ) as CollectionData
-                        ).treeItem
+                        ).treeItem,
                 )
                 .sort((a, b) =>
-                    (a.label as string) > (b.label as string) ? 1 : -1
+                    (a.label as string) > (b.label as string) ? 1 : -1,
                 );
         } else {
             const collection =
                 this.collectionItemProvider.getAncestorCollectionForPath(
-                    element.getPath()
+                    element.getPath(),
                 );
 
             if (!collection) {
                 this.logger?.debug(
-                    `Could not determine collection for tree item ${element.getPath()}. Returning an empty list for the requested child items.`
+                    `Could not determine collection for tree item ${element.getPath()}. Returning an empty list for the requested child items.`,
                 );
                 return [];
             }
 
             this.logger?.debug(
                 `Fetching child explorer tree items for item '${element.getPath()}' for collection '${basename(
-                    collection.getRootDirectory()
-                )}' collection.`
+                    collection.getRootDirectory(),
+                )}' collection.`,
             );
 
             return this.getSortedTreeItems(
@@ -121,8 +121,8 @@ export class BrunoTreeItemProvider
                         .filter(
                             ({ item: registeredItem }) =>
                                 normalizeDirectoryPath(
-                                    dirname(registeredItem.getPath())
-                                ) == normalizeDirectoryPath(element.getPath())
+                                    dirname(registeredItem.getPath()),
+                                ) == normalizeDirectoryPath(element.getPath()),
                         )
                         .map(async ({ item: collectionItem }) => {
                             const path = collectionItem.getPath();
@@ -136,13 +136,13 @@ export class BrunoTreeItemProvider
                                     ? await getSequenceForFile(collection, path)
                                     : await getSequenceForFolder(
                                           collection.getRootDirectory(),
-                                          path
-                                      )
+                                          path,
+                                      ),
                             );
 
                             return treeItem;
-                        })
-                )
+                        }),
+                ),
             );
         }
     }
@@ -156,12 +156,12 @@ export class BrunoTreeItemProvider
     private mapTreeItemToCollectionItem(item: BrunoTreeItem) {
         const collection =
             this.collectionItemProvider.getAncestorCollectionForPath(
-                item.getPath()
+                item.getPath(),
             );
 
         if (!collection) {
             throw new Error(
-                `No registered collection found for tree item with path '${item.getPath()}'.`
+                `No registered collection found for tree item with path '${item.getPath()}'.`,
             );
         }
 
@@ -169,7 +169,7 @@ export class BrunoTreeItemProvider
             collection,
             item: this.collectionItemProvider.getRegisteredItem(
                 collection,
-                item.getPath()
+                item.getPath(),
             ),
         };
     }

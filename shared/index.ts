@@ -87,11 +87,6 @@ export { getNamesForRedundantBlocks as getNamesForRedundantBlocksForCollectionSe
 export * from "./languageUtils/commonBlocks/authModeBlock/authModeBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/settingsBlock/settingsBlockKeyEnum";
 
-// test file writing
-export * from "./testFileWriting/addMetaBlock";
-export * from "./testFileWriting/appendDefaultMethodBlock";
-export * from "./testFileWriting/interfaces";
-
 // model
 export * from "./model/collection";
 export * from "./model/collectionDirectory";
@@ -102,15 +97,3 @@ export * from "./model/interfaces";
 export * from "./fileSystemCache/externalHelpers/collectionItemProvider";
 export * from "./fileSystemCache/externalHelpers/testRunnerDataHelper";
 export * from "./fileSystemCache/externalHelpers/isBrunoFileType";
-
-// vsCodeSettings
-export * from "./vsCodeSettings/getLinkToUserSetting";
-export * from "./vsCodeSettings/getLineBreakFromSettings";
-
-// logging
-export * from "./logging/outputChannelLogger";
-export * from "./logging/getLoggerFromSubscriptions";
-
-//dialogs
-export * from "./dialogs/suggestCreatingTsConfigsForCollections";
-export * from "./dialogs/dialogOptionLabelEnum";

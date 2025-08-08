@@ -8,7 +8,7 @@ import {
 import { FileChangedEvent, FileChangeType } from "./fileChangesDefinitions";
 import { basename } from "path";
 import { normalizeDirectoryPath } from "./util/normalizeDirectoryPath";
-import { OutputChannelLogger } from "../logging/outputChannelLogger";
+import { OutputChannelLogger } from "../../client/src/shared/logging/outputChannelLogger";
 import { lstat } from "fs";
 import { promisify } from "util";
 import { glob } from "glob";

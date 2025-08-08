@@ -2,7 +2,6 @@ import { commands, Hover, languages } from "vscode";
 import {
     CollectionItemProvider,
     mapRange,
-    OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
@@ -10,14 +9,15 @@ import {
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
-import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSync";
 import { TempJsFileUpdateQueue } from "../shared/temporaryJsFilesUpdates/tempJsFileUpdateQueue";
+import { ConsoleLogger } from "../shared/logging/consoleLogger";
+import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 
 export function provideInfosOnHover(
     queue: TempJsFileUpdateQueue,
     collectionItemProvider: CollectionItemProvider,
-    logger?: OutputChannelLogger,
+    logger?: ConsoleLogger,
 ) {
     return languages.registerHoverProvider(getRequestFileDocumentSelector(), {
         async provideHover(document, position, token) {

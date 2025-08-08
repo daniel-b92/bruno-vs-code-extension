@@ -8,7 +8,7 @@ import {
     RequestFileBlockName,
     checkIfPathExistsAsync,
     getLineBreak,
-} from "..";
+} from "../../../../shared";
 import { promisify } from "util";
 import { lstat, readFile, writeFile } from "fs";
 

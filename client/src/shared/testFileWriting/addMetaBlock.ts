@@ -5,14 +5,14 @@ import {
     RequestFileBlockName,
     Collection,
     CollectionFile,
-    MetaBlockContent,
     TextDocumentHelper,
     checkIfPathExistsAsync,
     getLineBreak,
-} from "..";
+} from "../../../../shared";
 import { getNumberOfWhitespacesForIndentation } from "./internal/writerUtils";
 import { promisify } from "util";
 import { lstat, readFile, writeFile } from "fs";
+import { MetaBlockContent } from "..";
 
 export async function addMetaBlock(
     collection: Collection,

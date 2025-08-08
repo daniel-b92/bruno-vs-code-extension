@@ -3,14 +3,24 @@ import {
     ProposedFeatures,
     InitializeParams,
     CompletionItem,
-    CompletionItemKind,
     TextDocumentPositionParams,
     InitializeResult,
+    TextDocuments,
+    CancellationToken,
 } from "vscode-languageserver/node";
+
+import { TextDocument } from "vscode-languageserver-textdocument";
+import { getBrunoLangCompletionItems } from "./completionItems/getBrunoLangCompletionItems";
+import { ConsoleLogger } from "./shared/logging/consoleLogger";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 const connection = createConnection(ProposedFeatures.all);
+
+// Create a simple text document manager.
+const documents = new TextDocuments(TextDocument);
+
+const logger = new ConsoleLogger(connection.console);
 
 let hasWorkspaceFolderCapability = false;
 
@@ -54,22 +64,23 @@ connection.onDidChangeWatchedFiles((_change) => {
 
 // This handler provides the initial list of the completion items.
 connection.onCompletion(
-    (_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
-        // The pass parameter contains the position of the text document in
-        // which code complete got requested. For the example we ignore this
-        // info and always provide the same completion items.
-        return [
-            {
-                label: "TypeScript",
-                kind: CompletionItemKind.Text,
-                data: 1,
-            },
-            {
-                label: "JavaScript",
-                kind: CompletionItemKind.Text,
-                data: 2,
-            },
-        ];
+    (
+        { position, textDocument: { uri } }: TextDocumentPositionParams,
+        token: CancellationToken,
+    ): CompletionItem[] => {
+        const document = documents.get(uri);
+
+        if (!document) {
+            return [];
+        }
+
+        // ToDo: Find a better way for logging (if possible also use the same output channel as the client)
+        connection.console.info("Fetching completion items");
+
+        return getBrunoLangCompletionItems(
+            { document, position, token },
+            logger,
+        );
     },
 );
 

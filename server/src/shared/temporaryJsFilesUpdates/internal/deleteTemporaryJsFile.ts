@@ -2,15 +2,15 @@ import { TemporaryJsFilesRegistry } from "./temporaryJsFilesRegistry";
 import {
     checkIfPathExistsAsync,
     getTemporaryJsFileName,
-    OutputChannelLogger,
 } from "../../../../../shared";
 import { Uri, workspace, WorkspaceEdit } from "vscode";
 import { basename } from "path";
+import { ConsoleLogger } from "../../logging/consoleLogger";
 
 export async function deleteTemporaryJsFileForCollection(
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
     collectionRootDirectory: string,
-    logger?: OutputChannelLogger
+    logger?: ConsoleLogger,
 ) {
     const path = getTemporaryJsFileName(collectionRootDirectory);
 
@@ -21,13 +21,13 @@ export async function deleteTemporaryJsFileForCollection(
 
         if (wasSuccessful) {
             tempJsFilesRegistry.unregisterJsFileForCollection(
-                collectionRootDirectory
+                collectionRootDirectory,
             );
         } else {
             logger?.warn(
                 `Unexpected error occured while trying to delete temp JS file for collection '${basename(
-                    collectionRootDirectory
-                )}'.`
+                    collectionRootDirectory,
+                )}'.`,
             );
         }
     }

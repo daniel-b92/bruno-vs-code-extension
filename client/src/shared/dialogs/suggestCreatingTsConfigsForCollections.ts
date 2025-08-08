@@ -12,17 +12,15 @@ import {
     filterAsync,
     checkIfPathExistsAsync,
     Collection,
-    getLineBreakFromSettings,
     getTemporaryJsFileName,
-    DialogOptionLabelEnum,
-} from "..";
+} from "../../../../shared";
+import { DialogOptionLabelEnum, getLineBreakFromSettings } from "..";
 
 export async function suggestCreatingTsConfigsForCollections(
-    itemProvider: CollectionItemProvider
+    itemProvider: CollectionItemProvider,
 ) {
-    const collectionsMissingTsConfig = await getCollectionsWithoutTsConfigs(
-        itemProvider
-    );
+    const collectionsMissingTsConfig =
+        await getCollectionsWithoutTsConfigs(itemProvider);
 
     if (!collectionsMissingTsConfig || collectionsMissingTsConfig.length == 0) {
         return;
@@ -37,20 +35,20 @@ export async function suggestCreatingTsConfigsForCollections(
 Add a default config for ${
             collectionsMissingTsConfig.length == 1
                 ? `the collection '${basename(
-                      collectionsMissingTsConfig[0].getRootDirectory()
+                      collectionsMissingTsConfig[0].getRootDirectory(),
                   )}'?`
                 : `each of the following collections?
 ${JSON.stringify(
     collectionsMissingTsConfig.map((collection) =>
-        basename(collection.getRootDirectory())
+        basename(collection.getRootDirectory()),
     ),
     null,
-    2
+    2,
 )}?`
         }`,
         { title: confirmationOption },
         { title: cancelOption },
-        { title: doNotAskAgainOption }
+        { title: doNotAskAgainOption },
     );
 
     if (!pickedOption || pickedOption.title == cancelOption) {
@@ -61,7 +59,7 @@ ${JSON.stringify(
             .update(
                 getSettingsKeyForShowingSuggestion(),
                 false,
-                ConfigurationTarget.Global
+                ConfigurationTarget.Global,
             );
 
         return;
@@ -71,12 +69,12 @@ ${JSON.stringify(
     window.showInformationMessage(
         `Created a tsconfig for ${
             results.filter(({ success }) => success).length
-        } / ${collectionsMissingTsConfig.length} collections.`
+        } / ${collectionsMissingTsConfig.length} collections.`,
     );
 }
 
 async function getCollectionsWithoutTsConfigs(
-    itemProvider: CollectionItemProvider
+    itemProvider: CollectionItemProvider,
 ): Promise<undefined | Collection[]> {
     if (
         !workspace
@@ -90,15 +88,15 @@ async function getCollectionsWithoutTsConfigs(
         itemProvider.getRegisteredCollections().slice(),
         async (collection) =>
             !(await checkIfPathExistsAsync(
-                getTsConfigPathForCollection(collection)
+                getTsConfigPathForCollection(collection),
             )) &&
             collection.getAllStoredDataForCollection().some(
                 // Only if JS files exist in the collection, the tsconfig is needed. Otherwise an error will be shown in the tsconfig because no files are included.
                 ({ item }) =>
                     extname(item.getPath()) == ".js" &&
                     item.getPath() !=
-                        getTemporaryJsFileName(collection.getRootDirectory())
-            )
+                        getTemporaryJsFileName(collection.getRootDirectory()),
+            ),
     );
 }
 
@@ -112,9 +110,9 @@ async function createTsConfigs(collections: Collection[]) {
             Uri.file(getTsConfigPathForCollection(collection)),
             {
                 contents: Buffer.from(
-                    getDefaultTsConfigContent(getLineBreakFromSettings())
+                    getDefaultTsConfigContent(getLineBreakFromSettings()),
                 ),
-            }
+            },
         );
 
         const editResult = await workspace.applyEdit(workspaceEdit);
@@ -122,8 +120,8 @@ async function createTsConfigs(collections: Collection[]) {
         if (!editResult) {
             window.showErrorMessage(
                 `Unexpected error while trying to create file '${getTsConfigPathForCollection(
-                    collection
-                )}'`
+                    collection,
+                )}'`,
             );
         }
 

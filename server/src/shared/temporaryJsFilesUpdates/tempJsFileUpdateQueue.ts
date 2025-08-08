@@ -4,16 +4,16 @@ import {
     checkIfPathExistsAsync,
     getTemporaryJsFileName,
     normalizeDirectoryPath,
-    OutputChannelLogger,
 } from "../../../../shared";
 import { createTemporaryJsFile } from "./internal/createTemporaryJsFile";
 import { deleteTemporaryJsFileForCollection } from "./internal/deleteTemporaryJsFile";
 import { CancellationToken, EventEmitter } from "vscode";
+import { ConsoleLogger } from "../logging/consoleLogger";
 
 export class TempJsFileUpdateQueue {
     constructor(
         private registry: TemporaryJsFilesRegistry,
-        private logger?: OutputChannelLogger,
+        private logger?: ConsoleLogger,
     ) {
         this.activeUpdate = undefined;
         this.latestRequestBruFileContent = undefined;
@@ -214,7 +214,7 @@ export class TempJsFileUpdateQueue {
 }
 
 class QueueUpdateHandler {
-    constructor(private logger?: OutputChannelLogger) {
+    constructor(private logger?: ConsoleLogger) {
         this.queue = [];
         this.lockedBy = undefined;
     }
@@ -233,7 +233,7 @@ class QueueUpdateHandler {
         this.queue.push({ request, id });
 
         if (this.queue.length > 2) {
-            this.logger?.trace(
+            this.logger?.debug(
                 `More than 2 temp JS update requests exist. Current queue length: ${this.queue.length}`,
             );
         }

@@ -16,8 +16,6 @@ import {
     CollectionItemProvider,
     TestRunnerDataHelper,
     getTemporaryJsFileName,
-    OutputChannelLogger,
-    suggestCreatingTsConfigsForCollections,
     getExtensionForBrunoFiles,
     parseBruFile,
     TextDocumentHelper,
@@ -32,6 +30,10 @@ import {
 import { join } from "path";
 import { updatePathParamsKeysToMatchUrl } from "./languageFeatures/autoUpdates/updatePathParamsKeysToMatchUrl";
 import { updateUrlToMatchQueryParams } from "./languageFeatures/autoUpdates/updateUrlToMatchQueryParams";
+import {
+    OutputChannelLogger,
+    suggestCreatingTsConfigsForCollections,
+} from "./shared";
 
 let client: LanguageClient;
 

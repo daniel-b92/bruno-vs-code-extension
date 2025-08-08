@@ -12,13 +12,10 @@ import { getTestFilesWithFailures } from "./jsonReportParser";
 import { getTestItemDescendants } from "../testTreeUtils/getTestItemDescendants";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import treeKill = require("tree-kill");
-import {
-    checkIfPathExistsAsync,
-    getLinkToUserSetting,
-    OutputChannelLogger,
-} from "../../../../shared";
+import { checkIfPathExistsAsync } from "../../../../shared";
 import { existsSync, lstatSync, unlink, unlinkSync } from "fs";
 import { promisify } from "util";
+import { getLinkToUserSetting, OutputChannelLogger } from "../../shared";
 
 export async function runTestStructure(
     item: vscodeTestItem,
@@ -27,7 +24,7 @@ export async function runTestStructure(
     collectionRootDirectory: string,
     htmlReportPath: string,
     testEnvironment?: string,
-    logger?: OutputChannelLogger
+    logger?: OutputChannelLogger,
 ): Promise<boolean> {
     const path = (item.uri as Uri).fsPath;
     const lineBreak = getLineBreakForTestRunOutput();
@@ -44,7 +41,7 @@ export async function runTestStructure(
 
     if (isDirectory) {
         getTestItemDescendants(item).forEach(
-            (descendant) => (descendant.busy = true)
+            (descendant) => (descendant.busy = true),
         );
     }
 
@@ -58,18 +55,18 @@ export async function runTestStructure(
             htmlReportPath,
             jsonReportPath,
             testEnvironment,
-            logger
+            logger,
         );
 
         if (!canUseNpx()) {
             options.appendOutput(lineBreak);
             options.appendOutput(
                 `Temporarily installing the Bruno CLI npm package via npx is disabled (see ${getLinkToUserSetting(
-                    getConfigKeyForAllowingUsageOfNpx()
-                )})${lineBreak}`
+                    getConfigKeyForAllowingUsageOfNpx(),
+                )})${lineBreak}`,
             );
             options.appendOutput(
-                `Will continue with the assumption that the package is already installed globally.${lineBreak}`
+                `Will continue with the assumption that the package is already installed globally.${lineBreak}`,
             );
             options.appendOutput(lineBreak);
         } else {
@@ -78,14 +75,14 @@ export async function runTestStructure(
                     usingNpx
                         ? "npx"
                         : "the globally installed Bruno CLI package"
-                } for triggering the test run.${lineBreak}`
+                } for triggering the test run.${lineBreak}`,
             );
         }
 
         abortEmitter.event(() => {
             while (!childProcess.pid) {
                 logger?.error(
-                    "Could not get PID of child process to kill for test run."
+                    "Could not get PID of child process to kill for test run.",
                 );
             }
             treeKill(childProcess.pid);
@@ -95,7 +92,7 @@ export async function runTestStructure(
             logger?.error("Failed to start subprocess.", err);
             if (existsSync(htmlReportPath)) {
                 options.appendOutput(
-                    `Results can be found here: ${htmlReportPath}${lineBreak}`
+                    `Results can be found here: ${htmlReportPath}${lineBreak}`,
                 );
             }
 
@@ -113,24 +110,24 @@ export async function runTestStructure(
 
         childProcess.stdout.on("data", (data) => {
             options.appendOutput(
-                (data.toString() as string).replace(/\n/g, lineBreak)
+                (data.toString() as string).replace(/\n/g, lineBreak),
             );
         });
 
         childProcess.stderr.on("data", (data) => {
             options.appendOutput(
-                (data.toString() as string).replace(/\n/g, lineBreak)
+                (data.toString() as string).replace(/\n/g, lineBreak),
             );
         });
 
         childProcess.on("close", (exitCode) => {
             logger?.info(
-                `Child process for test run exited with code ${exitCode}`
+                `Child process for test run exited with code ${exitCode}`,
             );
             duration = Date.now() - start;
             if (existsSync(htmlReportPath)) {
                 options.appendOutput(
-                    `HTML report has been saved in file: '${htmlReportPath}'${lineBreak}`
+                    `HTML report has been saved in file: '${htmlReportPath}'${lineBreak}`,
                 );
             }
             if (exitCode == 0) {
@@ -172,7 +169,7 @@ export async function runTestStructure(
                                 assertionResults,
                                 request as Record<string, string | object>,
                                 response as Record<string, string | object>,
-                                error
+                                error,
                             ),
                         ]);
                     }
@@ -189,14 +186,14 @@ export async function runTestStructure(
 const setStatusForDescendantItems = (
     testDirectoryItem: vscodeTestItem,
     jsonReportPath: string,
-    options: TestRun
+    options: TestRun,
 ) => {
     if (!existsSync(jsonReportPath)) {
         options.appendOutput(
-            `Could not find JSON report file.${getLineBreakForTestRunOutput()}`
+            `Could not find JSON report file.${getLineBreakForTestRunOutput()}`,
         );
         options.appendOutput(
-            `Therefore cannot determine status of descendant test items. Will set status 'skipped' for all.${getLineBreakForTestRunOutput()}`
+            `Therefore cannot determine status of descendant test items. Will set status 'skipped' for all.${getLineBreakForTestRunOutput()}`,
         );
         getTestItemDescendants(testDirectoryItem).forEach((child) => {
             child.busy = false;
@@ -206,14 +203,14 @@ const setStatusForDescendantItems = (
     }
 
     const testFileDescendants = getTestItemDescendants(
-        testDirectoryItem
+        testDirectoryItem,
     ).filter((descendant) => lstatSync(descendant.uri!.fsPath).isFile());
 
     const failedTests = getTestFilesWithFailures(jsonReportPath)
         .map((failedTest) => ({
             // 'testfile' field from the JSON report does not always match the absolute file path
             item: testFileDescendants.find((descendant) =>
-                descendant.uri!.fsPath.includes(failedTest.file)
+                descendant.uri!.fsPath.includes(failedTest.file),
             ),
             request: failedTest.request,
             response: failedTest.response,
@@ -236,15 +233,15 @@ const setStatusForDescendantItems = (
                 `Child directory item to run does not have a URI! Item: ${JSON.stringify(
                     child,
                     null,
-                    2
-                )}`
+                    2,
+                )}`,
             );
         }
         const childPath = child.uri.fsPath!;
         child.busy = false;
 
         const maybeTestFailure = failedTests.find((failed) =>
-            failed.item.uri?.fsPath.includes(childPath)
+            failed.item.uri?.fsPath.includes(childPath),
         );
 
         if (!maybeTestFailure) {
@@ -258,14 +255,14 @@ const setStatusForDescendantItems = (
                     maybeTestFailure.assertionResults,
                     maybeTestFailure.request,
                     maybeTestFailure.response,
-                    maybeTestFailure.error
-                )
+                    maybeTestFailure.error,
+                ),
             );
         } else {
             // For ancestor test directories only log generic message
             options.failed(
                 child,
-                new TestMessage("A test in the directory failed.")
+                new TestMessage("A test in the directory failed."),
             );
         }
     });
@@ -276,12 +273,12 @@ const getTestMessageForFailedTest = (
     assertionResults: Record<string, string | number | object>[],
     request: Record<string, string | number | object>,
     response: Record<string, string | number | object>,
-    error?: string
+    error?: string,
 ) => {
     const linebreak = getLineBreakForTestRunOutput();
 
     const stringifyField = (
-        reportField: Record<string, string | number | object>
+        reportField: Record<string, string | number | object>,
     ) =>
         Object.keys(reportField)
             .map((key) =>
@@ -290,8 +287,8 @@ const getTestMessageForFailedTest = (
                     : `${key}: ${JSON.stringify(
                           reportField[key],
                           null,
-                          2
-                      ).replace(/\n/g, linebreak)}`
+                          2,
+                      ).replace(/\n/g, linebreak)}`,
             )
             .join(linebreak);
 
@@ -315,8 +312,8 @@ const getTestMessageForFailedTest = (
                 : "",
             error ? `error: ${error}${linebreak}${dividerAndLinebreak}` : "",
             `request:${linebreak}${formattedRequest}${linebreak}${dividerAndLinebreak}`,
-            `response:${linebreak}${formattedResponse}${linebreak}${dividerAndLinebreak}`
-        )
+            `response:${linebreak}${formattedResponse}${linebreak}${dividerAndLinebreak}`,
+        ),
     );
 };
 
@@ -329,7 +326,7 @@ const spawnChildProcess = (
     htmlReportPath: string,
     jsonReportPath: string,
     testEnvironment?: string,
-    logger?: OutputChannelLogger
+    logger?: OutputChannelLogger,
 ) => {
     const npmPackageForUsingViaNpx = `${getNpmPackageNameWithoutSpecificVersion()}@2.8.0`;
 
@@ -352,7 +349,7 @@ const spawnChildProcess = (
             htmlReportPath,
             "--reporter-json",
             jsonReportPath,
-        ].filter((entry) => entry != undefined)
+        ].filter((entry) => entry != undefined),
     );
 
     if (testEnvironment) {
@@ -363,8 +360,8 @@ const spawnChildProcess = (
         `Using command '${command}' and command arguments ${JSON.stringify(
             commandArguments,
             null,
-            2
-        )} for triggering test run via CLI.`
+            2,
+        )} for triggering test run via CLI.`,
     );
 
     const childProcess = spawn(command, commandArguments as string[], {
@@ -385,12 +382,12 @@ const shouldUseNpx = (logger?: OutputChannelLogger) => {
     exec("npm list -g --depth=0", (err, stdOut) => {
         if (err) {
             logger?.warn(
-                `Got an unexpected error when trying to determine globally installed NPM packages: '${err.message}'`
+                `Got an unexpected error when trying to determine globally installed NPM packages: '${err.message}'`,
             );
             isPackageInstalledGlobally = false;
         } else {
             isPackageInstalledGlobally = stdOut.includes(
-                getNpmPackageNameWithoutSpecificVersion()
+                getNpmPackageNameWithoutSpecificVersion(),
             );
         }
     });

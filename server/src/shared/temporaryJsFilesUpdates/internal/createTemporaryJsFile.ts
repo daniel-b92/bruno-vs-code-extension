@@ -3,18 +3,18 @@ import {
     TextDocumentHelper,
     RequestFileBlockName,
     getTemporaryJsFileName,
-    OutputChannelLogger,
 } from "../../../../../shared";
 import { mapBlockNameToJsFileLine } from "../../codeBlocksUtils/mapBlockNameToJsFileFunctionName";
 import { TemporaryJsFilesRegistry } from "./temporaryJsFilesRegistry";
 import { Uri, workspace, WorkspaceEdit } from "vscode";
 import { getCodeBlocks } from "../../codeBlocksUtils/getCodeBlocks";
+import { ConsoleLogger } from "../../logging/consoleLogger";
 
 export async function createTemporaryJsFile(
     collectionRootDirectory: string,
     tempJsFilesRegistry: TemporaryJsFilesRegistry,
     bruFileContent: string,
-    logger?: OutputChannelLogger,
+    logger?: ConsoleLogger,
 ) {
     const { blocks: parsedBlocks } = parseBruFile(
         new TextDocumentHelper(bruFileContent),

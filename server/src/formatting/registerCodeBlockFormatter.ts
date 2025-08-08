@@ -3,7 +3,6 @@ import {
     Block,
     getLineBreak,
     mapRange,
-    OutputChannelLogger,
     parseBruFile,
     Position,
     Range,
@@ -15,7 +14,7 @@ import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { format } from "prettier";
 import { mapBlockNameToJsFileLine } from "../shared/codeBlocksUtils/mapBlockNameToJsFileFunctionName";
 
-export function registerCodeBlockFormatter(_logger?: OutputChannelLogger) {
+export function registerCodeBlockFormatter() {
     return languages.registerDocumentFormattingEditProvider(
         getRequestFileDocumentSelector(),
         {

@@ -3,8 +3,6 @@ import {
     getExtensionForBrunoFiles,
     RequestType,
     RequestFileBlockName,
-    addMetaBlock,
-    appendDefaultMethodBlock,
     CollectionItemProvider,
 } from "../../../../../../shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
@@ -12,10 +10,11 @@ import { commands, Uri, window } from "vscode";
 import { validateNewItemNameIsUnique } from "../validateNewItemNameIsUnique";
 import { promisify } from "util";
 import { writeFile } from "fs";
+import { addMetaBlock, appendDefaultMethodBlock } from "../../../../shared";
 
 export async function createRequestFile(
     itemProvider: CollectionItemProvider,
-    item: BrunoTreeItem
+    item: BrunoTreeItem,
 ) {
     const parentFolderPath = item.getPath();
 
@@ -26,8 +25,8 @@ export async function createRequestFile(
             return validateNewItemNameIsUnique(
                 resolve(
                     parentFolderPath,
-                    `${newFileName}${getExtensionForBrunoFiles()}`
-                )
+                    `${newFileName}${getExtensionForBrunoFiles()}`,
+                ),
             );
         },
     });
@@ -72,7 +71,7 @@ export async function createRequestFile(
 
         const filePath = resolve(
             parentFolderPath,
-            `${requestName}${getExtensionForBrunoFiles()}`
+            `${requestName}${getExtensionForBrunoFiles()}`,
         );
 
         await promisify(writeFile)(filePath, "");
@@ -82,7 +81,7 @@ export async function createRequestFile(
 
         if (!collectionForFile) {
             throw new Error(
-                `No registered collection found for newly created request file '${filePath}'`
+                `No registered collection found for newly created request file '${filePath}'`,
             );
         }
         if (pickedLabels.length != 2) {
@@ -90,20 +89,20 @@ export async function createRequestFile(
                 `Did not find as many picked items as expected. Expected to get 2. Instead got '${JSON.stringify(
                     pickedLabels,
                     null,
-                    2
-                )}'`
+                    2,
+                )}'`,
             );
         }
 
         await addMetaBlock(
             collectionForFile,
             filePath,
-            pickedLabels[0] as RequestType
+            pickedLabels[0] as RequestType,
         );
 
         await appendDefaultMethodBlock(
             filePath,
-            pickedLabels[1] as RequestFileBlockName
+            pickedLabels[1] as RequestFileBlockName,
         );
 
         commands.executeCommand("vscode.open", Uri.file(filePath));

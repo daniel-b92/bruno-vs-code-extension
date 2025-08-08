@@ -2,7 +2,6 @@ import { commands, languages, SignatureHelp } from "vscode";
 import {
     CollectionItemProvider,
     mapRange,
-    OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
@@ -12,11 +11,12 @@ import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSync";
 import { TempJsFileUpdateQueue } from "../shared/temporaryJsFilesUpdates/tempJsFileUpdateQueue";
+import { ConsoleLogger } from "../shared/logging/consoleLogger";
 
 export function provideSignatureHelp(
     queue: TempJsFileUpdateQueue,
     collectionItemProvider: CollectionItemProvider,
-    logger?: OutputChannelLogger,
+    logger?: ConsoleLogger,
 ) {
     return languages.registerSignatureHelpProvider(
         getRequestFileDocumentSelector(),

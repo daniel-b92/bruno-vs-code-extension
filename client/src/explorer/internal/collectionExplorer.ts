@@ -6,7 +6,6 @@ import {
     CollectionData,
     normalizeDirectoryPath,
     getExtensionForBrunoFiles,
-    OutputChannelLogger,
     getSequenceForFile,
     BrunoFileType,
     Collection,
@@ -16,7 +15,6 @@ import {
     checkIfPathExistsAsync,
     CollectionFile,
     isBrunoFileType,
-    DialogOptionLabelEnum,
 } from "../../../../shared";
 import { basename, dirname, extname, resolve } from "path";
 import { BrunoTreeItem } from "../brunoTreeItem";
@@ -34,6 +32,7 @@ import { moveFileIntoFolder } from "./explorer/fileUtils/moveFileIntoFolder";
 import { promisify } from "util";
 import { copyFile, cp, mkdir, rm, writeFile } from "fs";
 import { closeTabsRelatedToItem } from "./explorer/closeTabsRelatedToItem";
+import { DialogOptionLabelEnum, OutputChannelLogger } from "../../shared";
 
 export class CollectionExplorer
     implements vscode.TreeDragAndDropController<BrunoTreeItem>

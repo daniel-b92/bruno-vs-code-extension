@@ -9,7 +9,6 @@ import {
     Block,
     Collection,
     getTemporaryJsFileName,
-    OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
@@ -18,6 +17,7 @@ import { getCodeBlocks } from "./getCodeBlocks";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
 import { TempJsFileUpdateQueue } from "../temporaryJsFilesUpdates/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "../temporaryJsFilesUpdates/internal/interfaces";
+import { ConsoleLogger } from "../logging/consoleLogger";
 
 export interface TempJsSyncRequest {
     collection: Collection;
@@ -30,7 +30,7 @@ export interface TempJsSyncRequest {
 export async function waitForTempJsFileToBeInSync(
     queue: TempJsFileUpdateQueue,
     request: TempJsSyncRequest,
-    logger?: OutputChannelLogger,
+    logger?: ConsoleLogger,
 ): Promise<TextDocument | undefined> {
     const {
         bruFileCodeBlocksSnapshot,
@@ -189,7 +189,7 @@ function shouldAbort(token: CancellationToken) {
     return token.isCancellationRequested;
 }
 
-function addLogEntryForAbortion(logger?: OutputChannelLogger) {
+function addLogEntryForAbortion(logger?: ConsoleLogger) {
     logger?.debug(
         "Cancellation requested after starting to wait for temp js file to be in sync.",
     );

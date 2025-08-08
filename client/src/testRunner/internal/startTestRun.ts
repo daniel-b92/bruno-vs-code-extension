@@ -17,9 +17,8 @@ import {
     checkIfPathExistsAsync,
     Collection,
     CollectionItemProvider,
-    getLinkToUserSetting,
-    OutputChannelLogger,
 } from "../../../../shared";
+import { getLinkToUserSetting, OutputChannelLogger } from "../../shared";
 
 const environmentConfigKey = "bru-as-code.testRunEnvironment";
 
@@ -28,7 +27,7 @@ export const startTestRun = async (
     request: TestRunRequest,
     collectionItemProvider: CollectionItemProvider,
     queue: TestRunQueue,
-    logger?: OutputChannelLogger
+    logger?: OutputChannelLogger,
 ) => {
     const discoverTests = (tests: Iterable<vscodeTestItem>) => {
         const result: QueuedTest[] = [];
@@ -47,8 +46,8 @@ export const startTestRun = async (
                     `Did not find registered collection for item with Uri '${JSON.stringify(
                         test.uri,
                         null,
-                        2
-                    )}'`
+                        2,
+                    )}'`,
                 );
             }
 
@@ -80,7 +79,7 @@ export const startTestRun = async (
 
             const collectionRootDir = (
                 collectionItemProvider.getAncestorCollectionForPath(
-                    path
+                    path,
                 ) as Collection
             ).getRootDirectory();
 
@@ -99,7 +98,7 @@ export const startTestRun = async (
                 run,
                 collectionRootDir,
                 htmlReportPath,
-                logger
+                logger,
             );
 
             if (!didRun) {
@@ -129,7 +128,7 @@ export const startTestRun = async (
             ]);
             toRun.splice(
                 toRun.findIndex(({ id: idForMatching }) => idForMatching == id),
-                1
+                1,
             );
         }
     };
@@ -143,7 +142,7 @@ const prepareAndRunTest = async (
     run: TestRun,
     collectionRootDirectory: string,
     htmlReportPath: string,
-    logger?: OutputChannelLogger
+    logger?: OutputChannelLogger,
 ): Promise<{ didRun: boolean; passed?: boolean }> => {
     if (checkForRequestedCancellation(run)) {
         run.end();
@@ -172,7 +171,7 @@ const prepareAndRunTest = async (
         collectionRootDirectory,
         htmlReportPath,
         testEnvironment,
-        logger
+        logger,
     );
 
     return { didRun: true, passed };
@@ -187,22 +186,22 @@ const getIdForQueuedRun = (itemPath: string, creationTime: Date) =>
 const printInfosOnTestRunStart = (
     run: TestRun,
     htmlReportPath: string,
-    testEnvironment?: string
+    testEnvironment?: string,
 ) => {
     if (!testEnvironment) {
         run.appendOutput(`Not using any environment for the test run.\r\n`);
         run.appendOutput(
             `You can configure an environment to use via the setting ${getLinkToUserSetting(
-                environmentConfigKey
-            )}\r\n`
+                environmentConfigKey,
+            )}\r\n`,
         );
     } else {
         run.appendOutput(
-            `Using the test environment '${testEnvironment}'.\r\n`
+            `Using the test environment '${testEnvironment}'.\r\n`,
         );
     }
     run.appendOutput(
-        `Saving the HTML test report to file '${htmlReportPath}'.\r\n`
+        `Saving the HTML test report to file '${htmlReportPath}'.\r\n`,
     );
 };
 
@@ -217,7 +216,7 @@ const getHtmlReportPath = async (collectionRootDir: string) => {
     const defaultFileName = "results.html";
     const fallbackAbsolutePath = resolve(
         collectionRootDir,
-        `../${defaultFileName}`
+        `../${defaultFileName}`,
     );
 
     const configValue = workspace
@@ -227,7 +226,7 @@ const getHtmlReportPath = async (collectionRootDir: string) => {
     if (!configValue || extname(configValue) != ".html") {
         showWarningForInvalidOrMissingHtmlReportPathConfig(
             configValue,
-            fallbackAbsolutePath
+            fallbackAbsolutePath,
         );
         return fallbackAbsolutePath;
     } else if (
@@ -238,14 +237,14 @@ const getHtmlReportPath = async (collectionRootDir: string) => {
     } else if (
         !isAbsolute(configValue) &&
         (await checkIfPathExistsAsync(
-            dirname(resolve(collectionRootDir, configValue))
+            dirname(resolve(collectionRootDir, configValue)),
         ))
     ) {
         return resolve(collectionRootDir, configValue);
     } else {
         showWarningForInvalidOrMissingHtmlReportPathConfig(
             configValue,
-            fallbackAbsolutePath
+            fallbackAbsolutePath,
         );
         return fallbackAbsolutePath;
     }
@@ -253,10 +252,10 @@ const getHtmlReportPath = async (collectionRootDir: string) => {
 
 function showWarningForInvalidOrMissingHtmlReportPathConfig(
     configValue: string | undefined,
-    fallbackPathThatWillBeUsed: string
+    fallbackPathThatWillBeUsed: string,
 ) {
     window.showWarningMessage(
-        `Configured HTML report path '${configValue}' is invalid or missing. Will use the fallback path '${fallbackPathThatWillBeUsed}' instead.`
+        `Configured HTML report path '${configValue}' is invalid or missing. Will use the fallback path '${fallbackPathThatWillBeUsed}' instead.`,
     );
 }
 
