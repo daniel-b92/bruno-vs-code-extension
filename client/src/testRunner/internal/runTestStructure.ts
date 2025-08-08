@@ -16,7 +16,7 @@ import {
     checkIfPathExistsAsync,
     getLinkToUserSetting,
     OutputChannelLogger,
-} from "../../shared";
+} from "../../../../shared";
 import { existsSync, lstatSync, unlink, unlinkSync } from "fs";
 import { promisify } from "util";
 

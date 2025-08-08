@@ -26,15 +26,15 @@
     "activationEvents": [
         "workspaceContains:**/*.bru"
     ],
-    "main": "./dist/extension",
+    "main": "./client/out/extension",
     "scripts": {
         "vscode:prepublish": "npm run package",
-        "compile": "webpack --mode development",
-        "compileWithLocalTsPlugin": "cd tsPlugin && tsc --project tsconfig.json && mkdir -p ../node_modules/typescript-for-bruno && cp ./out/index.js ../node_modules/typescript-for-bruno && cd .. && webpack --mode development",
+        "compile": "cd ./client && webpack --mode development && cd ../server && webpack --mode development && cd ..",
+        "compileWithLocalTsPlugin": "cd tsPlugin && tsc --project tsconfig.json && mkdir -p ../node_modules/typescript-for-bruno && cp ./out/index.js ../node_modules/typescript-for-bruno && cd .. && npm: compile",
         "lint": "eslint",
-        "watch": "webpack --mode development --watch",
-        "package": "webpack --mode production --devtool hidden-source-map",
-        "postinstall": "cd client && npm install && cd ../server && npm install && cd .."
+        "watch": "cd ./client && webpack --mode development --watch && cd ../server && webpack --mode development --watch && cd ..",
+        "package": "cd ./client && webpack --mode production --devtool hidden-source-map && cd ../server && webpack --mode production --devtool hidden-source-map && cd ..",
+        "postinstall": "cd ./client && npm install && cd ../server && npm install && cd .."
     },
     "devDependencies": {
         "@eslint/js": "^9.13.0",

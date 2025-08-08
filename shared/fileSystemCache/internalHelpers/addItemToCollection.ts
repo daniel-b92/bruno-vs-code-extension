@@ -5,7 +5,7 @@ import {
     CollectionItem,
     TestRunnerDataHelper,
 } from "../..";
-import { BrunoTreeItem } from "../../../explorer/brunoTreeItem";
+import { BrunoTreeItem } from "../../../client/src/explorer/brunoTreeItem";
 
 export function addItemToCollection(
     testRunnerDataHelper: TestRunnerDataHelper,

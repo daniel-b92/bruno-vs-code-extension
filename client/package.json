@@ -12,6 +12,11 @@
   "dependencies": {
     "glob": "^11.0.3",
     "process": "^0.11.10",
-    "tree-kill": "^1.2.2"
+    "tree-kill": "^1.2.2",
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.2.0",
+    "@types/vscode": "^1.102.0"
   }
 }

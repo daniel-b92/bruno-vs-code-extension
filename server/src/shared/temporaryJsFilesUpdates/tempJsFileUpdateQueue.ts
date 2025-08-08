@@ -5,7 +5,7 @@ import {
     getTemporaryJsFileName,
     normalizeDirectoryPath,
     OutputChannelLogger,
-} from "../../../../client/src/shared";
+} from "../../../../shared";
 import { createTemporaryJsFile } from "./internal/createTemporaryJsFile";
 import { deleteTemporaryJsFileForCollection } from "./internal/deleteTemporaryJsFile";
 import { CancellationToken, EventEmitter } from "vscode";

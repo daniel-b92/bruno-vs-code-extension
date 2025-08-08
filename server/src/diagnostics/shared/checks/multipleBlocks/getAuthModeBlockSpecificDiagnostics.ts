@@ -6,7 +6,7 @@ import {
     Block,
     castBlockToDictionaryBlock,
     AuthModeBlockKey,
-} from "../../../../sharedred";
+} from "../../../../../../shared";
 import { RelevantWithinAuthModeBlockDiagnosticCode } from "../../diagnosticCodes/relevantWithinAuthModeBlockDiagnosticCodeEnum";
 
 export function getAuthModeBlockSpecificDiagnostics(

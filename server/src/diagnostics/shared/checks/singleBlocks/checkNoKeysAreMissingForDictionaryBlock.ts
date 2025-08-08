@@ -1,5 +1,5 @@
 import { DiagnosticSeverity } from "vscode";
-import { DictionaryBlock, mapRange } from "../../../../sharedred";
+import { DictionaryBlock, mapRange } from "../../../../../../shared";
 import { getMissingKeysForDictionaryBlock } from "../../util/getMissingKeysForDictionaryBlock";
 import { DiagnosticWithCode } from "../../../definitions";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";

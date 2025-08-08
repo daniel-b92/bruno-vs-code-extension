@@ -13,7 +13,7 @@ import {
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
-} from "../sharedred";
+} from "../../../shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";

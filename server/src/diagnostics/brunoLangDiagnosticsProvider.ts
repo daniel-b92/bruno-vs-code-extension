@@ -1,5 +1,5 @@
 import { DiagnosticCollection, Uri } from "vscode";
-import { CollectionItemProvider } from "../sharedred";
+import { CollectionItemProvider } from "../../../shared";
 import { RelatedFilesDiagnosticsHelper } from "./shared/helpers/relatedFilesDiagnosticsHelper";
 import { determineDiagnosticsForFolderSettingsFile } from "./folderSettingsFiles/determineDiagnosticsForFolderSettingsFile";
 import { determineDiagnosticsForRequestFile } from "./requestFiles/determineDiagnosticsForRequestFile";

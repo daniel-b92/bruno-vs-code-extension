@@ -1,5 +1,5 @@
 import { Tab, window, TabInputText } from "vscode";
-import { normalizeDirectoryPath } from "../../../shared";
+import { normalizeDirectoryPath } from "../../../../../shared";
 import { BrunoTreeItem } from "../../brunoTreeItem";
 
 export async function closeTabsRelatedToItem(item: BrunoTreeItem) {

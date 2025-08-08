@@ -19,7 +19,7 @@ import {
     CollectionItemProvider,
     getLinkToUserSetting,
     OutputChannelLogger,
-} from "../../shared";
+} from "../../../../shared";
 
 const environmentConfigKey = "bru-as-code.testRunEnvironment";
 

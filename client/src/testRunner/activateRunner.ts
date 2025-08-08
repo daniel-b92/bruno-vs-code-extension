@@ -28,7 +28,7 @@ import {
     CollectionItem,
     getLoggerFromSubscriptions,
     someAsync,
-} from "../shared";
+} from "../../../shared";
 
 export async function activateRunner(
     context: ExtensionContext,

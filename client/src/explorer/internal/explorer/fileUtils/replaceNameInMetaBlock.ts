@@ -5,7 +5,7 @@ import {
     RequestFileBlockName,
     getFieldFromMetaBlock,
     MetaBlockKey,
-} from "../../../../shared";
+} from "../../../../../../shared";
 import { readFile, writeFile } from "fs";
 
 export async function replaceNameInMetaBlock(

@@ -1,4 +1,4 @@
-import { TextOutsideOfBlocks } from "../../../sharedred";
+import { TextOutsideOfBlocks } from "../../../../../shared";
 
 export function getSortedTextOutsideOfBlocksByPosition(
     unsorted: TextOutsideOfBlocks[]

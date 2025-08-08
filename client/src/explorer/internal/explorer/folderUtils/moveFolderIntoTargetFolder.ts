@@ -2,7 +2,7 @@ import { basename, dirname, resolve } from "path";
 import {
     CollectionItemProvider,
     normalizeDirectoryPath,
-} from "../../../../shared";
+} from "../../../../../../shared";
 import { renameFileOrFolder } from "../renameFileOrFolder";
 import { updateSequencesAfterMovingFolder } from "./updateSequencesAfterMovingFolder";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";

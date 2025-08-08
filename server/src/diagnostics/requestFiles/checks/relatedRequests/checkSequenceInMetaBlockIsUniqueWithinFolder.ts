@@ -13,7 +13,7 @@ import {
     mapRange,
     BrunoFileType,
     filterAsync,
-} from "../../../../sharedred";
+} from "../../../../../../shared";
 import { dirname } from "path";
 import { DiagnosticWithCode } from "../../../definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";

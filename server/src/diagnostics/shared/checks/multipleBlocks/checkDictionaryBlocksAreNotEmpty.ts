@@ -4,8 +4,8 @@ import {
     Range,
     Uri,
 } from "vscode";
-import { Block, mapPosition, mapRange } from "../../../../sharedred";
-import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
+import { Block, mapPosition, mapRange } from "../../../../../../shared";
+import { getSortedBlocksByPosition } from "../../../../../../shared/languageUtils/commonBlocks/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 

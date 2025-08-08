@@ -9,7 +9,7 @@ import {
     getFieldFromDictionaryBlock,
     castBlockToDictionaryBlock,
     AuthModeBlockKey,
-} from "../../../../sharedred";
+} from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 

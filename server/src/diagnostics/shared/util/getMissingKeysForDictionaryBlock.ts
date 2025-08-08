@@ -1,4 +1,4 @@
-import { DictionaryBlock } from "../../../sharedred";
+import { DictionaryBlock } from "../../../../../shared";
 
 export function getMissingKeysForDictionaryBlock(
     block: DictionaryBlock,

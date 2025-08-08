@@ -47,6 +47,7 @@ export * from "./fileParsing/external/folderSettings/getSequenceForFolder";
 export * from "./fileParsing/external/folderSettings/getSequencesForFolders";
 export * from "./fileParsing/external/folderSettings/getMaxSequenceForFolders";
 export * from "./fileParsing/external/folderSettings/getFolderSettingsFilePath";
+export * from "./fileParsing/external/isArrayBlockField";
 
 // language utils
 export * from "./languageUtils/booleanFieldValueEnum";
@@ -61,6 +62,7 @@ export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockAuthEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockBodyEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/getPossibleMethodBlocks";
 export * from "./languageUtils/commonBlocks/methodBlocks/getFieldFromMethodBlock";
+export * from "./languageUtils/commonBlocks/getSortedBlocksByPosition";
 export * from "./languageUtils/urls/getQueryParamsFromUrl";
 export * from "./languageUtils/urls/getPathParamsFromUrl";
 export * from "./languageUtils/urls/getUrlSubstringForQueryParams";
@@ -108,4 +110,5 @@ export * from "./logging/outputChannelLogger";
 export * from "./logging/getLoggerFromSubscriptions";
 
 //dialogs
+export * from "./dialogs/suggestCreatingTsConfigsForCollections";
 export * from "./dialogs/dialogOptionLabelEnum";

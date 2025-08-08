@@ -1,4 +1,4 @@
-import { DictionaryBlockField } from "../../../sharedred";
+import { DictionaryBlockField } from "../../../../../shared";
 
 export function getSortedDictionaryBlockFieldsByPosition(
     unsorted: DictionaryBlockField[]

@@ -1,6 +1,6 @@
 import { DiagnosticSeverity, Uri } from "vscode";
-import { isAuthBlock, Block, mapRange } from "../../../../sharedred";
-import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
+import { isAuthBlock, Block, mapRange } from "../../../../../../shared";
+import { getSortedBlocksByPosition } from "../../../../../../shared/languageUtils/commonBlocks/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 

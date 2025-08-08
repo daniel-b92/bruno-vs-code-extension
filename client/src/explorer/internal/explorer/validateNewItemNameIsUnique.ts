@@ -1,5 +1,5 @@
 import { basename } from "path";
-import { checkIfPathExistsAsync } from "../../../shared";
+import { checkIfPathExistsAsync } from "../../../../../shared";
 import { promisify } from "util";
 import { lstat } from "fs";
 

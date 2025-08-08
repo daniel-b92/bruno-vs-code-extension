@@ -1,4 +1,4 @@
-import { BrunoTreeItem } from "../../explorer/brunoTreeItem";
+import { BrunoTreeItem } from "../../client/src/explorer/brunoTreeItem";
 import {
     CollectionData,
     CollectionDirectory,

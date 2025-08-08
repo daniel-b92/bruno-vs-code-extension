@@ -6,7 +6,7 @@ import {
     Position,
     Range,
     RequestFileBlockName,
-} from "../../../../client/src/shared";
+} from "../../../../shared";
 import { Range as VsCodeRange } from "vscode";
 import { getCodeBlocks } from "./getCodeBlocks";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";

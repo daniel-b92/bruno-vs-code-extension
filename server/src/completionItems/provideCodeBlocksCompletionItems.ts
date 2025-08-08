@@ -13,7 +13,7 @@ import {
     mapRange,
     RequestFileBlockName,
     OutputChannelLogger,
-} from "../sharedred";
+} from "../../../shared";
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";

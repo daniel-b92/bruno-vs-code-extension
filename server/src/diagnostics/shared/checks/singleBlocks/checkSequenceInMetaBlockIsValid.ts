@@ -5,7 +5,7 @@ import {
     MetaBlockKey,
     getFieldFromMetaBlock,
     mapRange,
-} from "../../../../sharedred";
+} from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { isSequenceValid } from "../../util/isSequenceValid";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";

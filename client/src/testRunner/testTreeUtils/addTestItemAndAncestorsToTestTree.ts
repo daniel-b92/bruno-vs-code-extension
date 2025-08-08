@@ -4,7 +4,7 @@ import {
     normalizeDirectoryPath,
     CollectionData,
     CollectionItem,
-} from "../../shared";
+} from "../../../../shared";
 import { dirname } from "path";
 import { getTestId } from "./testTreeHelper";
 

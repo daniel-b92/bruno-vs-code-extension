@@ -1,4 +1,4 @@
-import { Block, RequestFileBlockName } from "../../../../client/src/shared";
+import { Block, RequestFileBlockName } from "../../../../shared";
 
 export function getCodeBlocks(allBlocks: Block[]) {
     return allBlocks.filter(({ name }) =>

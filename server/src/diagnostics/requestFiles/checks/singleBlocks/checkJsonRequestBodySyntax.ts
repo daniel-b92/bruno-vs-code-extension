@@ -7,7 +7,7 @@ import {
     TextDocumentHelper,
     mapPosition,
     Position,
-} from "../../../../sharedred";
+} from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { RelevantWithinBodyBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinBodyBlockDiagnosticCodeEnum";
 

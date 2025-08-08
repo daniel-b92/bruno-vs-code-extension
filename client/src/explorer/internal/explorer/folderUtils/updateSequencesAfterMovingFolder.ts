@@ -4,7 +4,7 @@ import {
     getFolderSettingsFilePath,
     getMaxSequenceForFolders,
     getSequencesForFolders,
-} from "../../../../shared";
+} from "../../../../../../shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
 import { normalizeSequencesForFolders } from "./normalizeSequencesForFolders";

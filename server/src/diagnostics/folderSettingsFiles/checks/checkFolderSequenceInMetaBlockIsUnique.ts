@@ -13,7 +13,7 @@ import {
     mapRange,
     BrunoFileType,
     filterAsync,
-} from "../../../sharedred";
+} from "../../../../../shared";
 import { basename, dirname } from "path";
 import { readFile } from "fs";
 import { DiagnosticWithCode } from "../../definitions";

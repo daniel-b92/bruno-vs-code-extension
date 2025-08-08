@@ -8,7 +8,7 @@ import {
     getUrlSubstringForQueryParams,
     Block,
     mapPosition,
-} from "../sharedred";
+} from "../../../../shared";
 
 export function updateUrlToMatchQueryParams(
     editBuilder: TextEditorEdit,

@@ -2,7 +2,7 @@ import {
     Position,
     RequestFileBlockName,
     TextDocumentHelper,
-} from "../../../../client/src/shared";
+} from "../../../../shared";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
 
 export function getPositionWithinTempJsFile(

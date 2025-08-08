@@ -17,7 +17,7 @@ import {
     CollectionFile,
     isBrunoFileType,
     DialogOptionLabelEnum,
-} from "../../shared";
+} from "../../../../shared";
 import { basename, dirname, extname, resolve } from "path";
 import { BrunoTreeItem } from "../brunoTreeItem";
 import { validateNewItemNameIsUnique } from "./explorer/validateNewItemNameIsUnique";

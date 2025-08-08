@@ -3,7 +3,7 @@ import {
     DictionaryBlock,
     DictionaryBlockField,
     mapPosition,
-} from "../../../../sharedred";
+} from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
 import { getFieldsWithEmptyValuesForDictionaryBlock } from "../../util/getFieldsWithEmptyValuesForDictionaryBlock";

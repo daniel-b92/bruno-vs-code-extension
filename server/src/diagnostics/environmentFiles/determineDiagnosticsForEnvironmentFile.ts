@@ -3,7 +3,7 @@ import {
     TextDocumentHelper,
     parseBruFile,
     EnvironmentFileBlockName,
-} from "../../sharedred";
+} from "../../../../shared";
 import { DiagnosticWithCode } from "../definitions";
 import { checkArrayBlocksHaveArrayStructure } from "../shared/checks/multipleBlocks/checkArrayBlocksHaveArrayStructure";
 import { checkDictionaryBlocksAreNotEmpty } from "../shared/checks/multipleBlocks/checkDictionaryBlocksAreNotEmpty";

@@ -1,4 +1,4 @@
-import { DictionaryBlock, DictionaryBlockField } from "../../../sharedred";
+import { DictionaryBlock, DictionaryBlockField } from "../../../../../shared";
 
 export interface FieldsWithSameKey {
     key: string;

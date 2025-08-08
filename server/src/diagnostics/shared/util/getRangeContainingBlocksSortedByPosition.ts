@@ -1,4 +1,4 @@
-import { Block, mapPosition, Range } from "../../../sharedred";
+import { Block, mapPosition, Range } from "../../../../../shared";
 
 export function getRangeContainingBlocksSortedByPosition(
     blocksSortedByPosition: Block[],

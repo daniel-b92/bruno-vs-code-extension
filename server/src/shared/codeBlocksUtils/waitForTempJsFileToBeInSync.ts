@@ -13,7 +13,7 @@ import {
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
-} from "../../../../client/src/shared";
+} from "../../../../shared";
 import { getCodeBlocks } from "./getCodeBlocks";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
 import { TempJsFileUpdateQueue } from "../temporaryJsFilesUpdates/tempJsFileUpdateQueue";

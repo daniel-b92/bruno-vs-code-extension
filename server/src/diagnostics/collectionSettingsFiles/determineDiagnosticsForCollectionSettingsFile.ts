@@ -7,7 +7,7 @@ import {
     isAuthBlock,
     getValidBlockNamesForCollectionSettingsFile,
     getNamesForRedundantBlocksForCollectionSettingsFile,
-} from "../../sharedred";
+} from "../../../../shared";
 import { DiagnosticWithCode } from "../definitions";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
 import { checkAtMostOneAuthBlockExists } from "../shared/checks/multipleBlocks/checkAtMostOneAuthBlockExists";

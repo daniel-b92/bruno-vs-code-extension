@@ -3,7 +3,7 @@ import {
     DictionaryBlockField,
     DictionaryBlock,
     mapPosition,
-} from "../../../../sharedred";
+} from "../../../../../../shared";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
 import { getUnknownKeysFromDictionaryBlock } from "../../util/getUnknownKeysFromDictionaryBlock";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";

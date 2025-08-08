@@ -4,7 +4,7 @@ import {
     RequestFileBlockName,
     getTemporaryJsFileName,
     OutputChannelLogger,
-} from "../../../../../client/src/shared";
+} from "../../../../../shared";
 import { mapBlockNameToJsFileLine } from "../../codeBlocksUtils/mapBlockNameToJsFileFunctionName";
 import { TemporaryJsFilesRegistry } from "./temporaryJsFilesRegistry";
 import { Uri, workspace, WorkspaceEdit } from "vscode";

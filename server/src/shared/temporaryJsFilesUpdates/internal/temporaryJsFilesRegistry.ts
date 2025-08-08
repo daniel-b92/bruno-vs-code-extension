@@ -1,7 +1,7 @@
 import {
     getTemporaryJsFileName,
     normalizeDirectoryPath,
-} from "../../../../../client/src/shared";
+} from "../../../../../shared";
 
 export class TemporaryJsFilesRegistry {
     constructor() {}

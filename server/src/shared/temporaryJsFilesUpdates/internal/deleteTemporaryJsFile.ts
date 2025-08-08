@@ -3,7 +3,7 @@ import {
     checkIfPathExistsAsync,
     getTemporaryJsFileName,
     OutputChannelLogger,
-} from "../../../../../client/src/shared";
+} from "../../../../../shared";
 import { Uri, workspace, WorkspaceEdit } from "vscode";
 import { basename } from "path";
 

@@ -1,5 +1,5 @@
 import { writeFile, readFile } from "fs";
-import { MetaBlockKey, parseSequenceFromMetaBlock } from "../../../../shared";
+import { MetaBlockKey, parseSequenceFromMetaBlock } from "../../../../../../shared";
 import { promisify } from "util";
 
 export async function replaceSequenceForFile(

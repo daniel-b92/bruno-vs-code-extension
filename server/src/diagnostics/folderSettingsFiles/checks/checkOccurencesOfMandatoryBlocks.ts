@@ -4,7 +4,7 @@ import {
     Block,
     RequestFileBlockName,
     mapRange,
-} from "../../../sharedred";
+} from "../../../../../shared";
 import { DiagnosticWithCode } from "../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 

@@ -1,7 +1,7 @@
 import {
     CollectionItemProvider,
     getSequencesForFolders,
-} from "../../../../shared";
+} from "../../../../../../shared";
 import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
 
 export async function normalizeSequencesForFolders(

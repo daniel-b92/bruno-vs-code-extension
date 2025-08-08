@@ -1,4 +1,4 @@
-import { isArrayBlockField } from "../internal/util/isArrayBlockField";
+import { isArrayBlockField } from "./isArrayBlockField";
 import { Block, ArrayBlock } from "./interfaces";
 
 export function castBlockToArrayBlock(block: Block) {

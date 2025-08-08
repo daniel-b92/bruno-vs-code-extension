@@ -1,5 +1,5 @@
 import { DiagnosticSeverity, Position, Range } from "vscode";
-import { Block, TextDocumentHelper } from "../../../../sharedred";
+import { Block, TextDocumentHelper } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 

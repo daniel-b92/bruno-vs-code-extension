@@ -2,7 +2,7 @@ import {
     BrunoFileType,
     CollectionItemProvider,
     FileType,
-} from "../../../../shared";
+} from "../../../../../../shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { renameFileOrFolder } from "../renameFileOrFolder";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";

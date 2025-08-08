@@ -11,18 +11,18 @@ import {
     DictionaryBlock,
     mapPosition,
     getLineBreak,
-} from "../sharedred";
-import { getSortedBlocksByPosition } from "../diagnostics/shared/util/getSortedBlocksByPosition";
+    getSortedBlocksByPosition,
+} from "../../../../shared";
 
 export function updatePathParamsKeysToMatchUrl(
     document: TextDocument,
     editBuilder: TextEditorEdit,
-    blocks: Block[],
+    blocks: Block[]
 ) {
     const urlField = getUrlFieldFromMethodBlock(blocks);
     const pathParamsBlocks = getValidDictionaryBlocksWithName(
         blocks,
-        RequestFileBlockName.PathParams,
+        RequestFileBlockName.PathParams
     );
 
     if (urlField && pathParamsBlocks.length <= 1) {
@@ -36,13 +36,13 @@ export function updatePathParamsKeysToMatchUrl(
         if (
             doesTheFirstListContainEntriesTheSecondDoesNot(
                 listFromUrl,
-                listFromPathParamsBlock,
+                listFromPathParamsBlock
             )
         ) {
             const paramsToAdd = listFromPathParamsBlock
                 ? listFromUrl.filter(
                       (paramFromUrl) =>
-                          !listFromPathParamsBlock.includes(paramFromUrl),
+                          !listFromPathParamsBlock.includes(paramFromUrl)
                   )
                 : listFromUrl;
 
@@ -51,13 +51,13 @@ export function updatePathParamsKeysToMatchUrl(
                 editBuilder,
                 paramsToAdd,
                 blocks,
-                pathParamsBlocks,
+                pathParamsBlocks
             );
         } else if (
             listFromPathParamsBlock &&
             doesTheFirstListContainEntriesTheSecondDoesNot(
                 listFromPathParamsBlock,
-                listFromUrl,
+                listFromUrl
             )
         ) {
             if (listFromUrl.length == 0) {
@@ -65,14 +65,14 @@ export function updatePathParamsKeysToMatchUrl(
             } else {
                 const paramsToRemove = listFromPathParamsBlock.filter(
                     (fromPathParamsBlock) =>
-                        !listFromUrl.includes(fromPathParamsBlock),
+                        !listFromUrl.includes(fromPathParamsBlock)
                 );
 
                 removeEntriesFromPathParamsBlock(
                     document,
                     editBuilder,
                     paramsToRemove,
-                    pathParamsBlocks[0],
+                    pathParamsBlocks[0]
                 );
             }
         }
@@ -81,7 +81,7 @@ export function updatePathParamsKeysToMatchUrl(
 
 function doesTheFirstListContainEntriesTheSecondDoesNot(
     list1: string[],
-    list2: string[] | undefined,
+    list2: string[] | undefined
 ) {
     return (
         (list1.length > 0 && list2 == undefined) ||
@@ -95,12 +95,12 @@ function doesTheFirstListContainEntriesTheSecondDoesNot(
 function removeBlock(
     editBuilder: TextEditorEdit,
     allBlocks: Block[],
-    pathParamsBlock: DictionaryBlock,
+    pathParamsBlock: DictionaryBlock
 ) {
     const sortedBlocks = getSortedBlocksByPosition(allBlocks);
 
     const pathParamsBlockIndex = sortedBlocks.findIndex(
-        ({ name }) => name == pathParamsBlock.name,
+        ({ name }) => name == pathParamsBlock.name
     );
 
     if (pathParamsBlockIndex > 0) {
@@ -110,14 +110,14 @@ function removeBlock(
         editBuilder.delete(
             new Range(
                 mapPosition(previousBlockEnd),
-                mapPosition(pathParamsBlock.contentRange.end),
-            ),
+                mapPosition(pathParamsBlock.contentRange.end)
+            )
         );
     } else {
         const nextBlockStart = sortedBlocks[1].nameRange.start;
 
         editBuilder.delete(
-            new Range(new Position(0, 0), mapPosition(nextBlockStart)),
+            new Range(new Position(0, 0), mapPosition(nextBlockStart))
         );
     }
 }
@@ -126,7 +126,7 @@ function removeEntriesFromPathParamsBlock(
     document: TextDocument,
     editBuilder: TextEditorEdit,
     paramsToRemove: string[],
-    pathParamsBlock: DictionaryBlock,
+    pathParamsBlock: DictionaryBlock
 ) {
     const rangesToRemove = pathParamsBlock.content
         .filter(({ key }) => paramsToRemove.includes(key))
@@ -135,9 +135,9 @@ function removeEntriesFromPathParamsBlock(
                 new Range(
                     new Position(valueRange.start.line, 0),
                     document.lineAt(
-                        valueRange.end.line,
-                    ).rangeIncludingLineBreak.end,
-                ),
+                        valueRange.end.line
+                    ).rangeIncludingLineBreak.end
+                )
         );
 
     for (const range of rangesToRemove) {
@@ -150,7 +150,7 @@ function addMissingEntriesInPathParamsBlock(
     editBuilder: TextEditorEdit,
     paramsToAdd: string[],
     allParsedBlocks: Block[],
-    parsedPathParamsBlocks: DictionaryBlock[],
+    parsedPathParamsBlocks: DictionaryBlock[]
 ) {
     const lineBreak = getLineBreak(document);
 
@@ -158,29 +158,29 @@ function addMissingEntriesInPathParamsBlock(
         .map(
             (urlSubstring) =>
                 `${" ".repeat(
-                    getDefaultIndentationForDictionaryBlockFields(),
-                )}${urlSubstring}: `,
+                    getDefaultIndentationForDictionaryBlockFields()
+                )}${urlSubstring}: `
         )
         .join(lineBreak);
 
     if (parsedPathParamsBlocks.length == 0) {
         const methodBlock = getMethodBlockIfValid(
-            allParsedBlocks,
+            allParsedBlocks
         ) as DictionaryBlock;
 
         editBuilder.insert(
             new Position(
                 methodBlock.contentRange.end.line,
-                methodBlock.contentRange.end.character + 1,
+                methodBlock.contentRange.end.character + 1
             ),
             `${lineBreak.repeat(2)}${
                 RequestFileBlockName.PathParams
-            } {${lineBreak}${blockContentToInsert}${lineBreak}}`,
+            } {${lineBreak}${blockContentToInsert}${lineBreak}}`
         );
     } else {
         editBuilder.insert(
             new Position(parsedPathParamsBlocks[0].contentRange.end.line, 0),
-            `${blockContentToInsert}${lineBreak}`,
+            `${blockContentToInsert}${lineBreak}`
         );
     }
 }

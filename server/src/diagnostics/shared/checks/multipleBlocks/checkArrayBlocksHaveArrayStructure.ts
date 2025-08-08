@@ -10,19 +10,19 @@ import {
     mapPosition,
     mapRange,
     PlainTextWithinBlock,
-} from "../../../../sharedred";
-import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
+    isArrayBlockField,
+} from "../../../../../../shared";
+import { getSortedBlocksByPosition } from "../../../../../../shared/languageUtils/commonBlocks/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
-import { isArrayBlockField } from "../../../../shared/fileParsing/internal/util/isArrayBlockFieldeld";
 import { getSortedPlainTextLinesByPosition } from "../../util/getSortedPlainTextLinesByPosition";
 
 export function checkArrayBlocksHaveArrayStructure(
     documentUri: Uri,
-    blocksToCheck: Block[]
+    blocksToCheck: Block[],
 ): DiagnosticWithCode | undefined {
     const sortedBlocksWithoutCorrectStructure = getSortedBlocksByPosition(
-        blocksToCheck.filter((block) => !castBlockToArrayBlock(block))
+        blocksToCheck.filter((block) => !castBlockToArrayBlock(block)),
     );
 
     if (sortedBlocksWithoutCorrectStructure.length > 0) {
@@ -31,9 +31,9 @@ export function checkArrayBlocksHaveArrayStructure(
             sortedBlocksWithoutCorrectStructure.map((block) => ({
                 blockName: block.name,
                 invalidLines: getLinesWithInvalidStructure(
-                    block
+                    block,
                 ) as PlainTextWithinBlock[],
-            }))
+            })),
         );
     } else {
         return undefined;
@@ -45,11 +45,10 @@ function getDiagnostic(
     sortedBlocksWithIncorrectStructure: {
         blockName: string;
         invalidLines: PlainTextWithinBlock[];
-    }[]
+    }[],
 ): DiagnosticWithCode {
     return {
-        message:
-            `At least one array block does not have the correct structure. A valid array block matches the following pattern:
+        message: `At least one array block does not have the correct structure. A valid array block matches the following pattern:
 <blockName> [
   entry1,
   entry2,
@@ -68,9 +67,9 @@ function getDiagnostic(
                                       uri: documentUri,
                                       range: mapRange(range),
                                   },
-                              }))
+                              })),
                           ),
-                      [] as DiagnosticRelatedInformation[]
+                      [] as DiagnosticRelatedInformation[],
                   )
                 : undefined,
         severity: DiagnosticSeverity.Error,
@@ -82,7 +81,7 @@ function getRange(
     sortedBlocksWithIncorrectStructure: {
         blockName: string;
         invalidLines: PlainTextWithinBlock[];
-    }[]
+    }[],
 ): Range {
     const lastBlock =
         sortedBlocksWithIncorrectStructure[
@@ -91,21 +90,21 @@ function getRange(
     return new Range(
         mapPosition(
             getSortedPlainTextLinesByPosition(
-                sortedBlocksWithIncorrectStructure[0].invalidLines
-            )[0].range.start
+                sortedBlocksWithIncorrectStructure[0].invalidLines,
+            )[0].range.start,
         ),
         mapPosition(
             getSortedPlainTextLinesByPosition(lastBlock.invalidLines)[
                 lastBlock.invalidLines.length - 1
-            ].range.end
-        )
+            ].range.end,
+        ),
     );
 }
 
 function getLinesWithInvalidStructure(block: Block) {
     return Array.isArray(block.content)
         ? (block.content.filter(
-              (line) => !isArrayBlockField(line)
+              (line) => !isArrayBlockField(line),
           ) as PlainTextWithinBlock[])
         : undefined;
 }

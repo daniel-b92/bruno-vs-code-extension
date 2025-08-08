@@ -15,7 +15,7 @@ import {
     OutputChannelLogger,
     RequestType,
     SettingsBlockKey,
-} from "../sharedred";
+} from "../../../shared";
 import { dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 

@@ -9,7 +9,7 @@ import {
     OutputChannelLogger,
     getSequenceForFolder,
     getSequenceForFile,
-} from "../../shared";
+} from "../../../../shared";
 import { BrunoTreeItem } from "../brunoTreeItem";
 
 export class BrunoTreeItemProvider

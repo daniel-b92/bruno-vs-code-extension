@@ -10,6 +10,7 @@
   "license": "MIT",
   "description": "",
   "dependencies": {
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "vscode-languageserver": "^9.0.1"
   }
 }

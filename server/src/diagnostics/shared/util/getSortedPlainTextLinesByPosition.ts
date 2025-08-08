@@ -1,4 +1,4 @@
-import { PlainTextWithinBlock } from "../../../sharedred";
+import { PlainTextWithinBlock } from "../../../../../shared";
 
 export function getSortedPlainTextLinesByPosition(
     plainTextLines: PlainTextWithinBlock[]

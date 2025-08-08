@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { getTestId, getTestLabel } from "../../../testRunner";
-import { addTestItemAndAncestorsToTestTree } from "../../../testRunner";
+import { getTestId, getTestLabel } from "../../../client/src/testRunner";
+import { addTestItemAndAncestorsToTestTree } from "../../../client/src/testRunner";
 import {
     BrunoFileType,
     Collection,

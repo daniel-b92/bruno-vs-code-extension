@@ -13,7 +13,7 @@ import {
     OAuth2GrantType,
     OAuth2ViaAuthorizationCodeBlockKey,
     getMandatoryKeysForOAuth2Block,
-} from "../sharedred";
+} from "../../../shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
 import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "./shared/checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";

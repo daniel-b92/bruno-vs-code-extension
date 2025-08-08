@@ -6,7 +6,7 @@ import {
     addMetaBlock,
     appendDefaultMethodBlock,
     CollectionItemProvider,
-} from "../../../../shared";
+} from "../../../../../../shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { commands, Uri, window } from "vscode";
 import { validateNewItemNameIsUnique } from "../validateNewItemNameIsUnique";

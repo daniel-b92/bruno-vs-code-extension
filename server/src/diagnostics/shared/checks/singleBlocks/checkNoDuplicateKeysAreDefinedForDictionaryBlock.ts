@@ -3,7 +3,7 @@ import {
     DictionaryBlockField,
     DictionaryBlock,
     mapPosition,
-} from "../../../../sharedred";
+} from "../../../../../../shared";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 import {
     FieldsWithSameKey,

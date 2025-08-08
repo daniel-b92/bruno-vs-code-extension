@@ -1,5 +1,5 @@
 import { TestItem } from "vscode";
-import { BrunoTreeItem } from "../../explorer/brunoTreeItem";
+import { BrunoTreeItem } from "../../client/src/explorer/brunoTreeItem";
 import { BrunoFileType } from "./brunoFileTypeEnum";
 
 export interface CollectionItem {
