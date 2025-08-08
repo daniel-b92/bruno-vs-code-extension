@@ -11,6 +11,7 @@
   "description": "",
   "dependencies": {
     "glob": "^11.0.3",
+    "prettier": "^3.6.2",
     "process": "^0.11.10",
     "tree-kill": "^1.2.2",
     "vscode-languageclient": "^9.0.1"

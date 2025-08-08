@@ -6,8 +6,8 @@ const path = require("path");
 
 /**@type {import('webpack').Configuration}*/
 const config = {
-    extends: path.resolve(__dirname, "./base.webpack.config.js"),
-    entry: "./src/extension.ts", // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
+    extends: path.resolve(path.dirname(__dirname), "base.webpack.config.js"),
+    entry: path.resolve("src", "extension.ts"), // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
     output: {
         // the bundle is stored in the 'out' folder (check package.json), 📖 -> https://webpack.js.org/configuration/output/
         path: path.resolve(__dirname, "out"),

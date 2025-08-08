@@ -48,6 +48,7 @@ export * from "./fileParsing/external/folderSettings/getSequencesForFolders";
 export * from "./fileParsing/external/folderSettings/getMaxSequenceForFolders";
 export * from "./fileParsing/external/folderSettings/getFolderSettingsFilePath";
 export * from "./fileParsing/external/isArrayBlockField";
+export * from "./fileParsing/external/isDictionaryBlockField";
 
 // language utils
 export * from "./languageUtils/booleanFieldValueEnum";

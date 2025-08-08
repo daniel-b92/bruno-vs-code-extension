@@ -26,7 +26,7 @@
     "activationEvents": [
         "workspaceContains:**/*.bru"
     ],
-    "main": "./client/out/extension",
+    "main": "./client/out/client",
     "scripts": {
         "vscode:prepublish": "npm run package",
         "compile": "cd ./client && webpack --mode development && cd ../server && webpack --mode development && cd ..",
@@ -51,7 +51,8 @@
         "webpack-cli": "^6.0.1"
     },
     "dependencies": {
-        "@zentryc5t/ts-plugin-for-bruno": "^1.0.0"
+        "@zentryc5t/ts-plugin-for-bruno": "^1.0.0",
+        "glob": "^11.0.3"
     },
     "contributes": {
         "configuration": {

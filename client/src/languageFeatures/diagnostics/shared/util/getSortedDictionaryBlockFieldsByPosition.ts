@@ -1,15 +1,17 @@
-import { Block } from "../..";
+import { DictionaryBlockField } from "../../../../../../shared";
 
-export function getSortedBlocksByPosition(unsorted: Block[]) {
+export function getSortedDictionaryBlockFieldsByPosition(
+    unsorted: DictionaryBlockField[]
+) {
     return unsorted.slice().sort(
         (
             {
-                nameRange: {
+                keyRange: {
                     start: { line: line1 },
                 },
             },
             {
-                nameRange: {
+                keyRange: {
                     start: { line: line2 },
                 },
             }
