@@ -220,13 +220,8 @@ async function onWillSaveTextDocument(
             event.document.fileName,
         );
 
-        if (
-            collection &&
-            (await checkIfPathExistsAsync(
-                getTemporaryJsFileName(collection.getRootDirectory()),
-            ))
-        ) {
-            await queue.addToQueue({
+        if (collection) {
+            queue.addToQueue({
                 collectionRootFolder: collection.getRootDirectory(),
                 update: { type: TempJsUpdateType.Deletion },
             });

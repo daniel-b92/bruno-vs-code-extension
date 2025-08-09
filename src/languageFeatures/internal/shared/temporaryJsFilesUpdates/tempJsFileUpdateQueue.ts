@@ -9,6 +9,7 @@ import {
 import { createTemporaryJsFile } from "./internal/createTemporaryJsFile";
 import { deleteTemporaryJsFileForCollection } from "./internal/deleteTemporaryJsFile";
 import { CancellationToken, EventEmitter } from "vscode";
+import { setTimeout } from "timers/promises";
 
 export class TempJsFileUpdateQueue {
     constructor(
@@ -171,18 +172,77 @@ export class TempJsFileUpdateQueue {
                 getTemporaryJsFileName(collectionRootFolder),
             ))
         ) {
-            await deleteTemporaryJsFileForCollection(
-                this.registry,
-                collectionRootFolder,
-                this.logger,
+            const deletionIdentifier = 0;
+            const cancellationIdentifier = 1;
+            const otherCreationRequestIdentifier = 2;
+
+            const deletionPromise = setTimeout(
+                8_000,
+                deletionIdentifier,
+            ); /* Sometimes, the deletions seem to block other important functions from the extension host.
+            To avoid this, we add some waiting time before actually executing the deletion.*/
+
+            const cancellationPromise = new Promise<number>((resolve) => {
+                if (token) {
+                    token.onCancellationRequested(() => {
+                        resolve(cancellationIdentifier);
+                    });
+                }
+            });
+
+            const otherCreationRequestPromise = new Promise<number>(
+                (resolve) => {
+                    this.queueUpdater
+                        .waitForRequestsToBeAddedToQueue()
+                        .then((newRequests) => {
+                            if (
+                                newRequests.length > 0 &&
+                                newRequests.some(
+                                    ({
+                                        id,
+                                        request: {
+                                            collectionRootFolder:
+                                                newRequestCollection,
+                                            update: newUpdate,
+                                        },
+                                    }) =>
+                                        id != requestId &&
+                                        newRequestCollection ==
+                                            collectionRootFolder &&
+                                        newUpdate.type ==
+                                            TempJsUpdateType.Creation,
+                                )
+                            ) {
+                                this.logger?.debug(
+                                    `Removing temp js file deletion request from queue since newer request exists for file creation already.`,
+                                );
+
+                                resolve(otherCreationRequestIdentifier);
+                            }
+                        });
+                },
             );
 
-            this.latestRequestBruFileContent = undefined;
+            const fulfilledCondition = await Promise.race([
+                deletionPromise,
+                cancellationPromise,
+                otherCreationRequestPromise,
+            ]);
 
-            if (token && token.isCancellationRequested) {
-                this.logger?.debug(
-                    `Cancellation requested for temp JS update with type '${request.request.update.type}' after triggering workspace edit. Could not be aborted anymore.`,
+            if (fulfilledCondition == deletionIdentifier) {
+                await deleteTemporaryJsFileForCollection(
+                    this.registry,
+                    collectionRootFolder,
+                    this.logger,
                 );
+
+                this.latestRequestBruFileContent = undefined;
+
+                if (token && token.isCancellationRequested) {
+                    this.logger?.debug(
+                        `Cancellation requested for temp JS update with type '${request.request.update.type}' after triggering workspace edit. Could not be aborted anymore.`,
+                    );
+                }
             }
         }
 
@@ -266,6 +326,24 @@ class QueueUpdateHandler {
 
     public getOldestItemFromQueue() {
         return this.queue.length > 0 ? this.queue[0] : undefined;
+    }
+
+    public waitForRequestsToBeAddedToQueue() {
+        const initialRequestIds = this.queue.map(({ id }) => id);
+
+        return new Promise<{ request: TempJsUpdateRequest; id: string }[]>(
+            (resolve) => {
+                if (
+                    this.queue.some(({ id }) => !initialRequestIds.includes(id))
+                ) {
+                    resolve(
+                        this.queue.filter(
+                            ({ id }) => !initialRequestIds.includes(id),
+                        ),
+                    );
+                }
+            },
+        );
     }
 
     public getRequestFromQueue(requestId: string) {

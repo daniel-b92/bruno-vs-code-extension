@@ -26,6 +26,7 @@ const config = {
         util: "commonjs util",
         glob: "commonjs glob",
         prettier: "commonjs prettier",
+        "timers/promises": "commonjs timers/promises",
     },
     resolve: {
         // support reading TypeScript and JavaScript files, 📖 -> https://github.com/TypeStrong/ts-loader
