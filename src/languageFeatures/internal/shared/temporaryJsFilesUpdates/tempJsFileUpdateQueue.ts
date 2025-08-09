@@ -151,14 +151,20 @@ export class TempJsFileUpdateQueue {
             update.type == TempJsUpdateType.Creation &&
             update.bruFileContent != this.latestRequestBruFileContent
         ) {
-            await createTemporaryJsFile(
+            const wasSuccessful = await createTemporaryJsFile(
                 collectionRootFolder,
                 this.registry,
                 update.bruFileContent,
+                token,
                 this.logger,
             );
 
-            this.latestRequestBruFileContent = update.bruFileContent;
+            if (wasSuccessful) {
+                this.latestRequestBruFileContent = update.bruFileContent;
+            }
+            await this.cleanupAfterUpdate(requestId);
+
+            return wasSuccessful;
         } else if (
             update.type == TempJsUpdateType.Deletion &&
             (await checkIfPathExistsAsync(
@@ -172,18 +178,22 @@ export class TempJsFileUpdateQueue {
             );
 
             this.latestRequestBruFileContent = undefined;
+
+            if (token && token.isCancellationRequested) {
+                this.logger?.debug(
+                    `Cancellation requested for temp JS update with type '${request.request.update.type}' after triggering workspace edit. Could not be aborted anymore.`,
+                );
+            }
         }
 
-        this.activeUpdate = undefined;
-        await this.removeFromQueue(requestId);
-
-        if (token && token.isCancellationRequested) {
-            this.logger?.debug(
-                `Cancellation requested for temp JS update with type '${request.request.update.type}' after triggering workspace edit. Could not be aborted anymore.`,
-            );
-        }
+        await this.cleanupAfterUpdate(requestId);
 
         return true;
+    }
+
+    private async cleanupAfterUpdate(requestId: string) {
+        this.activeUpdate = undefined;
+        await this.removeFromQueue(requestId);
     }
 
     private async removeFromQueue(requestId: string) {
