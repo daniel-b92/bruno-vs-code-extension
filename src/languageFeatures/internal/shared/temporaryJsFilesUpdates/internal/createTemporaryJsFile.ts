@@ -105,7 +105,7 @@ async function startAttemptAtCreation(
         );
     }
 
-    if (!result || (result && !result.wasAborted)) {
+    if (!result || !result.wasAborted) {
         await promisify(writeFile)(fileName, content, {
             signal: abortController.signal,
         });

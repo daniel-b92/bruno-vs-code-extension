@@ -10,6 +10,7 @@ import { createTemporaryJsFile } from "./internal/createTemporaryJsFile";
 import { deleteTemporaryJsFileForCollection } from "./internal/deleteTemporaryJsFile";
 import { CancellationToken, EventEmitter } from "vscode";
 import { setTimeout } from "timers/promises";
+import { QueueUpdateHandler } from "./internal/queueUpdateHandler";
 
 export class TempJsFileUpdateQueue {
     constructor(
@@ -18,25 +19,23 @@ export class TempJsFileUpdateQueue {
     ) {
         this.activeUpdate = undefined;
         this.latestRequestBruFileContent = undefined;
-        this.queueUpdater = new QueueUpdateHandler();
+        this.queueUpdater = new QueueUpdateHandler(logger);
 
-        this.requestHasBeenRemovedFromQueueNotifier.event(
-            (removedRequestIds) => {
-                if (
-                    this.activeUpdate &&
-                    removedRequestIds.includes(this.activeUpdate.id)
-                ) {
-                    this.activeUpdate = undefined;
+        this.requestRemovedFromQueueNotifier.event((removedRequestIds) => {
+            if (
+                this.activeUpdate &&
+                removedRequestIds.includes(this.activeUpdate.id)
+            ) {
+                this.activeUpdate = undefined;
 
-                    const newOldestRequest =
-                        this.queueUpdater.getOldestItemFromQueue();
+                const newOldestRequest =
+                    this.queueUpdater.getOldestItemFromQueue();
 
-                    if (newOldestRequest) {
-                        this.requestCanBeRunNotifier.fire(newOldestRequest.id);
-                    }
+                if (newOldestRequest) {
+                    this.requestCanBeRunNotifier.fire(newOldestRequest.id);
                 }
-            },
-        );
+            }
+        });
     }
 
     private queueUpdater: QueueUpdateHandler;
@@ -45,19 +44,22 @@ export class TempJsFileUpdateQueue {
         | undefined;
     private requestCanBeRunNotifier = new EventEmitter<string>();
     private latestRequestBruFileContent: string | undefined;
-    private requestHasBeenRemovedFromQueueNotifier = new EventEmitter<
-        string[]
-    >();
+    private requestRemovedFromQueueNotifier = new EventEmitter<string[]>();
+    private requestAddedToQueueNotifier = new EventEmitter<{
+        request: TempJsUpdateRequest;
+        id: string;
+    }>();
 
     public async addToQueue(updateRequest: TempJsUpdateRequest) {
         const id = this.getIdForRequest(updateRequest);
+        this.requestAddedToQueueNotifier.fire({ request: updateRequest, id });
 
         const { cancellationToken: token } = updateRequest;
 
         await this.queueUpdater.removeOutdatedRequestsFromQueue(
             updateRequest,
             id,
-            this.requestHasBeenRemovedFromQueueNotifier,
+            this.requestRemovedFromQueueNotifier,
         );
 
         if (token && token.isCancellationRequested) {
@@ -67,7 +69,7 @@ export class TempJsFileUpdateQueue {
         await this.queueUpdater.addToEndOfQueue(
             updateRequest,
             id,
-            this.requestHasBeenRemovedFromQueueNotifier,
+            this.requestRemovedFromQueueNotifier,
         );
 
         if (token && token.isCancellationRequested) {
@@ -76,8 +78,8 @@ export class TempJsFileUpdateQueue {
         }
 
         if (this.queueUpdater.getLengthOfQueue() <= 1 && !this.activeUpdate) {
-            await this.triggerUpdate(id, token);
-            return true;
+            // If no other requests are queued, we can skip waiting for the notification that the new request can be triggered.
+            return await this.triggerUpdate(updateRequest, id, token);
         }
 
         const shouldRun = await this.waitForRequestToBeAbleToRunOrBeCancelled(
@@ -86,8 +88,7 @@ export class TempJsFileUpdateQueue {
         );
 
         if (shouldRun) {
-            const wasTriggered = await this.triggerUpdate(id, token);
-            return wasTriggered;
+            return await this.triggerUpdate(updateRequest, id, token);
         } else {
             return false;
         }
@@ -95,9 +96,10 @@ export class TempJsFileUpdateQueue {
 
     public dispose() {
         this.requestCanBeRunNotifier.dispose();
-        this.requestHasBeenRemovedFromQueueNotifier.dispose();
+        this.requestRemovedFromQueueNotifier.dispose();
         this.registry.dispose();
         this.queueUpdater.dispose();
+        this.requestAddedToQueueNotifier.dispose();
         this.activeUpdate = undefined;
     }
 
@@ -110,31 +112,65 @@ export class TempJsFileUpdateQueue {
                 token.onCancellationRequested(() => {
                     this.removeFromQueue(requestId).then(() => {
                         resolve(false);
+                        return;
                     });
                 });
             }
 
-            this.requestHasBeenRemovedFromQueueNotifier.event(
-                (removedRequestIds) => {
-                    if (removedRequestIds.includes(requestId)) {
-                        resolve(false);
-                    }
-                },
-            );
+            this.requestRemovedFromQueueNotifier.event((removedRequestIds) => {
+                if (removedRequestIds.includes(requestId)) {
+                    resolve(false);
+                    return;
+                }
+            });
 
             this.requestCanBeRunNotifier.event((id) => {
                 if (token && token.isCancellationRequested) {
                     resolve(false);
+                    return;
                 }
 
                 if (id == requestId) {
                     resolve(true);
+                    return;
                 }
             });
         });
     }
 
-    private async triggerUpdate(requestId: string, token?: CancellationToken) {
+    private async triggerUpdate(
+        request: TempJsUpdateRequest,
+        id: string,
+        token?: CancellationToken,
+    ) {
+        let result = false;
+
+        if (
+            request.update.type == TempJsUpdateType.Creation &&
+            request.update.bruFileContent != this.latestRequestBruFileContent
+        ) {
+            result = await this.triggerCreationUpdate(id, token);
+        } else if (
+            request.update.type == TempJsUpdateType.Deletion &&
+            (await checkIfPathExistsAsync(
+                getTemporaryJsFileName(request.collectionRootFolder),
+            ))
+        ) {
+            result = await this.triggerDeletionUpdate(id, token);
+        } else {
+            // Case where temp js file should already be up to date.
+            result = true;
+        }
+
+        await this.cleanupAfterUpdate(id);
+
+        return result;
+    }
+
+    private async triggerCreationUpdate(
+        requestId: string,
+        token?: CancellationToken,
+    ) {
         const { request } = this.queueUpdater.getRequestFromQueue(requestId);
 
         if (token && token.isCancellationRequested) {
@@ -148,29 +184,48 @@ export class TempJsFileUpdateQueue {
             request: { collectionRootFolder, update },
         } = request;
 
-        if (
-            update.type == TempJsUpdateType.Creation &&
-            update.bruFileContent != this.latestRequestBruFileContent
-        ) {
-            const wasSuccessful = await createTemporaryJsFile(
-                collectionRootFolder,
-                this.registry,
-                update.bruFileContent,
-                token,
-                this.logger,
+        if (update.type != TempJsUpdateType.Creation) {
+            throw new Error(
+                "Cannot handle temp js deletion update in creation function.",
             );
+        }
 
-            if (wasSuccessful) {
-                this.latestRequestBruFileContent = update.bruFileContent;
-            }
-            await this.cleanupAfterUpdate(requestId);
+        const wasSuccessful = await createTemporaryJsFile(
+            collectionRootFolder,
+            this.registry,
+            update.bruFileContent,
+            token,
+            this.logger,
+        );
 
-            return wasSuccessful;
-        } else if (
-            update.type == TempJsUpdateType.Deletion &&
-            (await checkIfPathExistsAsync(
+        if (wasSuccessful) {
+            this.latestRequestBruFileContent = update.bruFileContent;
+        }
+
+        return wasSuccessful;
+    }
+
+    private async triggerDeletionUpdate(
+        requestId: string,
+        token?: CancellationToken,
+    ) {
+        const { request } = this.queueUpdater.getRequestFromQueue(requestId);
+
+        if (token && token.isCancellationRequested) {
+            await this.removeFromQueue(requestId);
+            return false;
+        }
+
+        this.activeUpdate = request;
+
+        const {
+            request: { collectionRootFolder },
+        } = request;
+
+        if (
+            await checkIfPathExistsAsync(
                 getTemporaryJsFileName(collectionRootFolder),
-            ))
+            )
         ) {
             const deletionIdentifier = 0;
             const cancellationIdentifier = 1;
@@ -192,34 +247,26 @@ export class TempJsFileUpdateQueue {
 
             const otherCreationRequestPromise = new Promise<number>(
                 (resolve) => {
-                    this.queueUpdater
-                        .waitForRequestsToBeAddedToQueue()
-                        .then((newRequests) => {
-                            if (
-                                newRequests.length > 0 &&
-                                newRequests.some(
-                                    ({
-                                        id,
-                                        request: {
-                                            collectionRootFolder:
-                                                newRequestCollection,
-                                            update: newUpdate,
-                                        },
-                                    }) =>
-                                        id != requestId &&
-                                        newRequestCollection ==
-                                            collectionRootFolder &&
-                                        newUpdate.type ==
-                                            TempJsUpdateType.Creation,
-                                )
-                            ) {
-                                this.logger?.debug(
-                                    `Removing temp js file deletion request from queue since newer request exists for file creation already.`,
-                                );
+                    this.waitForRequestToBeAddedToQueue().then((newRequest) => {
+                        const {
+                            id: newId,
+                            request: {
+                                collectionRootFolder: newCollectionRoot,
+                            },
+                        } = newRequest;
 
-                                resolve(otherCreationRequestIdentifier);
-                            }
-                        });
+                        if (
+                            newId != requestId &&
+                            normalizeDirectoryPath(newCollectionRoot) ==
+                                normalizeDirectoryPath(collectionRootFolder)
+                        ) {
+                            this.logger?.debug(
+                                `Removing temp js file deletion request from queue since newer request exists for same file already.`,
+                            );
+
+                            resolve(otherCreationRequestIdentifier);
+                        }
+                    });
                 },
             );
 
@@ -246,9 +293,17 @@ export class TempJsFileUpdateQueue {
             }
         }
 
-        await this.cleanupAfterUpdate(requestId);
-
         return true;
+    }
+
+    private waitForRequestToBeAddedToQueue() {
+        return new Promise<{ request: TempJsUpdateRequest; id: string }>(
+            (resolve) => {
+                this.requestAddedToQueueNotifier.event((addedToQueue) => {
+                    resolve(addedToQueue);
+                });
+            },
+        );
     }
 
     private async cleanupAfterUpdate(requestId: string) {
@@ -267,7 +322,7 @@ export class TempJsFileUpdateQueue {
 
         await this.queueUpdater.removeFromQueue(
             requestId,
-            this.requestHasBeenRemovedFromQueueNotifier,
+            this.requestRemovedFromQueueNotifier,
         );
 
         const newOldestItem = this.queueUpdater.getOldestItemFromQueue();
@@ -280,222 +335,5 @@ export class TempJsFileUpdateQueue {
     private getIdForRequest(request: TempJsUpdateRequest) {
         const { collectionRootFolder, update } = request;
         return `${collectionRootFolder}-${update.type == TempJsUpdateType.Creation ? `${update.bruFileContent}` : update.type}-${new Date().getTime()}`;
-    }
-}
-
-class QueueUpdateHandler {
-    constructor(private logger?: OutputChannelLogger) {
-        this.queue = [];
-        this.lockedBy = undefined;
-    }
-
-    private queue: { request: TempJsUpdateRequest; id: string }[];
-    private lockedBy: { requestId: string; time: Date } | undefined;
-    private canObtainLockNotifier = new EventEmitter<string>();
-
-    public async addToEndOfQueue(
-        request: TempJsUpdateRequest,
-        id: string,
-        requestRemovedFromQueueNotifier: EventEmitter<string[]>,
-    ) {
-        await this.getLockForRequest(id, requestRemovedFromQueueNotifier);
-
-        this.queue.push({ request, id });
-
-        if (this.queue.length > 2) {
-            this.logger?.trace(
-                `More than 2 temp JS update requests exist. Current queue length: ${this.queue.length}`,
-            );
-        }
-
-        this.removeLockForRequest(id);
-    }
-
-    public async removeFromQueue(
-        id: string,
-        requestRemovedFromQueueNotifier: EventEmitter<string[]>,
-    ) {
-        await this.getLockForRequest(id, requestRemovedFromQueueNotifier);
-
-        const { index } = this.getRequestFromQueue(id);
-        this.queue.splice(index, 1);
-
-        this.removeLockForRequest(id);
-        requestRemovedFromQueueNotifier.fire([id]);
-    }
-
-    public getOldestItemFromQueue() {
-        return this.queue.length > 0 ? this.queue[0] : undefined;
-    }
-
-    public waitForRequestsToBeAddedToQueue() {
-        const initialRequestIds = this.queue.map(({ id }) => id);
-
-        return new Promise<{ request: TempJsUpdateRequest; id: string }[]>(
-            (resolve) => {
-                if (
-                    this.queue.some(({ id }) => !initialRequestIds.includes(id))
-                ) {
-                    resolve(
-                        this.queue.filter(
-                            ({ id }) => !initialRequestIds.includes(id),
-                        ),
-                    );
-                }
-            },
-        );
-    }
-
-    public getRequestFromQueue(requestId: string) {
-        const matchingRequests = this.queue
-            .map((request, index) => ({ request, index }))
-            .filter(({ request: queued }) => requestId == queued.id);
-
-        if (matchingRequests.length != 1) {
-            throw new Error(
-                `Could not find exactly one temp JS update request in queue for ID '${requestId}'.
-                Found ${matchingRequests.length} queued items matching the given ID.`,
-            );
-        }
-
-        return matchingRequests[0];
-    }
-
-    public getLengthOfQueue() {
-        return this.queue.length;
-    }
-
-    public async removeOutdatedRequestsFromQueue(
-        latestRequest: TempJsUpdateRequest,
-        id: string,
-        requestRemovedFromQueueNotifier: EventEmitter<string[]>,
-    ) {
-        const {
-            update: latestUpdate,
-            collectionRootFolder: collectionForLatestRequest,
-        } = latestRequest;
-
-        await this.getLockForRequest(id, requestRemovedFromQueueNotifier);
-
-        if (this.queue.length <= 1) {
-            this.removeLockForRequest(id);
-            return;
-        }
-
-        // Skip the very oldest request because it is most likely either actively being worked on or will be very soon
-        // (to avoid race conditions).
-        const redundantRequests = this.queue
-            .slice(1)
-            .map(({ id, request }, oneBasedIndex) => ({
-                id,
-                request,
-                index: oneBasedIndex + 1,
-            }))
-            .filter(
-                ({
-                    request: {
-                        collectionRootFolder: collectionForQueuedRequest,
-                        update: queuedUpdate,
-                    },
-                }) => {
-                    if (
-                        normalizeDirectoryPath(collectionForLatestRequest) !=
-                        normalizeDirectoryPath(collectionForQueuedRequest)
-                    ) {
-                        return false;
-                    }
-
-                    return (
-                        latestUpdate.type != queuedUpdate.type ||
-                        latestUpdate.type == TempJsUpdateType.Deletion ||
-                        (queuedUpdate.type == TempJsUpdateType.Creation &&
-                            latestUpdate.bruFileContent !=
-                                queuedUpdate.bruFileContent)
-                    );
-                },
-            );
-
-        redundantRequests.forEach(({ index }) => {
-            this.queue.splice(index, 1);
-        });
-
-        this.removeLockForRequest(id);
-
-        requestRemovedFromQueueNotifier.fire(
-            redundantRequests.map(({ id }) => id),
-        );
-    }
-
-    public dispose() {
-        this.queue.splice(0);
-        this.lockedBy = undefined;
-        this.canObtainLockNotifier.dispose();
-    }
-
-    private async getLockForRequest(
-        requestId: string,
-        requestRemovedFromQueueNotifier: EventEmitter<string[]>,
-    ) {
-        return await new Promise<void>((resolve) => {
-            this.canObtainLockNotifier.event((chosenId) => {
-                if (requestId == chosenId) {
-                    resolve();
-                }
-            });
-
-            if (this.lockedBy && this.lockedBy.requestId == requestId) {
-                resolve();
-            } else if (
-                !this.lockedBy &&
-                (this.queue.length == 0 ||
-                    (this.queue.length == 1 && this.queue[0].id == requestId))
-            ) {
-                this.lockedBy = { requestId, time: new Date() };
-                resolve();
-            }
-
-            const maxLockingTimeInMs = 30_000;
-
-            if (
-                this.lockedBy &&
-                this.lockedBy.requestId != requestId &&
-                new Date().getTime() - this.lockedBy.time.getTime() >
-                    maxLockingTimeInMs
-            ) {
-                this.logger?.warn(
-                    `Request that holds the lock for updating temp js files seems to be stuck. Will forcefully remove the lock and delete the request from the queue.`,
-                );
-
-                const toRemoveFromQueue = this.lockedBy.requestId;
-
-                // Usually,the lock property should not be set explicitly and instead the request should wait until it's notified that it can obtian the lock.
-                // However, for resolving this stalemate situation, it has to be set explicitly.
-                this.lockedBy = { requestId, time: new Date() };
-
-                this.removeFromQueue(
-                    toRemoveFromQueue,
-                    requestRemovedFromQueueNotifier,
-                ).then(() => {
-                    this.removeLockForRequest(requestId);
-                    resolve();
-                });
-            }
-        });
-    }
-
-    private removeLockForRequest(requestId: string) {
-        if (this.lockedBy && this.lockedBy.requestId != requestId) {
-            this.logger?.warn(
-                `Requested to remove lock for temp JS update request although it was locked by a different request.`,
-            );
-
-            return;
-        }
-
-        this.lockedBy = undefined;
-
-        if (this.queue.length > 0) {
-            this.canObtainLockNotifier.fire(this.queue[0].id);
-        }
     }
 }
