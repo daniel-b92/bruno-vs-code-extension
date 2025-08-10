@@ -15,12 +15,8 @@ export class QueueUpdateHandler {
     private lockedBy: { requestId: string; time: Date } | undefined;
     private canObtainLockNotifier = new EventEmitter<string>();
 
-    public async addToEndOfQueue(
-        request: TempJsUpdateRequest,
-        id: string,
-        requestRemovedFromQueueNotifier: EventEmitter<string[]>,
-    ) {
-        await this.getLockForRequest(id, requestRemovedFromQueueNotifier);
+    public async addToEndOfQueue(request: TempJsUpdateRequest, id: string) {
+        await this.getLockForRequest(id);
 
         this.queue.push({ request, id });
 
@@ -37,7 +33,7 @@ export class QueueUpdateHandler {
         id: string,
         requestsRemovedFromQueueNotifier: EventEmitter<string[]>,
     ) {
-        await this.getLockForRequest(id, requestsRemovedFromQueueNotifier);
+        await this.getLockForRequest(id);
 
         const { index } = this.getRequestFromQueue(id);
         this.queue.splice(index, 1);
@@ -79,7 +75,7 @@ export class QueueUpdateHandler {
             collectionRootFolder: collectionForLatestRequest,
         } = latestRequest;
 
-        await this.getLockForRequest(id, requestRemovedFromQueueNotifier);
+        await this.getLockForRequest(id);
 
         if (this.queue.length <= 1) {
             this.removeLockForRequest(id);
@@ -130,56 +126,40 @@ export class QueueUpdateHandler {
         );
     }
 
-    public dispose() {
-        this.queue.splice(0);
-        this.lockedBy = undefined;
-        this.canObtainLockNotifier.dispose();
-    }
-
-    private async getLockForRequest(
-        requestId: string,
+    public resetWholeState(
         requestRemovedFromQueueNotifier: EventEmitter<string[]>,
     ) {
+        const toRemoveFromQueue = this.queue.map(({ id }) => id);
+        this.dispose();
+
+        if (toRemoveFromQueue.length > 0) {
+            requestRemovedFromQueueNotifier.fire(toRemoveFromQueue);
+        }
+    }
+
+    public dispose() {
+        this.canObtainLockNotifier.dispose();
+        this.queue.splice(0);
+        this.lockedBy = undefined;
+    }
+
+    private async getLockForRequest(requestId: string) {
         return await new Promise<void>((resolve) => {
             this.canObtainLockNotifier.event((chosenId) => {
                 if (requestId == chosenId) {
                     resolve();
+                    return;
                 }
             });
 
             if (this.lockedBy && this.lockedBy.requestId == requestId) {
                 resolve();
+                return;
             } else if (!this.lockedBy && this.queue.length <= 1) {
                 // ToDo: Ensure that the request that has waited the longest gets assigned the next
                 this.lockedBy = { requestId, time: new Date() };
                 resolve();
-            }
-
-            const maxLockingTimeInMs = 30_000;
-
-            if (
-                this.lockedBy &&
-                this.lockedBy.requestId != requestId &&
-                new Date().getTime() - this.lockedBy.time.getTime() >
-                    maxLockingTimeInMs
-            ) {
-                this.logger?.warn(
-                    `Request that holds the lock for updating temp js files seems to be stuck. Will forcefully remove the lock and delete the request from the queue.`,
-                );
-
-                const toRemoveFromQueue = this.lockedBy.requestId;
-
-                // Usually,the lock property should not be set explicitly and instead the request should wait until it's notified that it can obtian the lock.
-                // However, for resolving this stalemate situation, it has to be set explicitly.
-                this.lockedBy = { requestId, time: new Date() };
-
-                this.removeFromQueue(
-                    toRemoveFromQueue,
-                    requestRemovedFromQueueNotifier,
-                ).then(() => {
-                    this.removeLockForRequest(requestId);
-                    resolve();
-                });
+                return;
             }
         });
     }

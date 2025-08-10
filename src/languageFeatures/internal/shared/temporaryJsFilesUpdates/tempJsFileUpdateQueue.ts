@@ -50,9 +50,66 @@ export class TempJsFileUpdateQueue {
         id: string;
     }>();
 
-    public async addToQueue(updateRequest: TempJsUpdateRequest) {
+    /**
+     *
+     * @param updateRequest The request for the update of the temporary js file.
+     * @returns {boolean} A value indicating whether the temp JS file has been updated as requested.
+     * This may e.g. not be the case, if the request has been aborted or if the request is outdated because a newer request for the same file has been issued in the meantime.
+     */
+    public async addToQueue(
+        updateRequest: TempJsUpdateRequest,
+    ): Promise<boolean> {
+        const timeoutInMs = 15_000;
+
+        try {
+            const timeoutIdentifier = 0;
+            const timeoutPromise = setTimeout(timeoutInMs, timeoutIdentifier);
+            const addToQueuePromise = this.tryToAddToQueue(updateRequest);
+
+            const fulfilledCondition = await Promise.race([
+                timeoutPromise,
+                addToQueuePromise,
+            ]);
+
+            if (fulfilledCondition === timeoutIdentifier) {
+                throw new Error(
+                    `Update request for temp js file seems to be stuck. The timeout has been reached.`,
+                );
+            }
+
+            return fulfilledCondition as boolean;
+        } catch (err) {
+            this.logger?.error(
+                `An internal error occured while trying to update temp js files for language features: '${(err as { message: string }).message}'. Will restart whole queue for updates.`,
+            );
+
+            this.resetWholeState();
+            return false;
+        }
+    }
+
+    public dispose() {
+        this.requestCanBeRunNotifier.dispose();
+        this.requestRemovedFromQueueNotifier.dispose();
+        this.requestAddedToQueueNotifier.dispose();
+        this.activeUpdate = undefined;
+        this.registry.dispose();
+        this.queueUpdater.dispose();
+    }
+
+    private resetWholeState() {
+        this.queueUpdater.resetWholeState(this.requestRemovedFromQueueNotifier);
+        this.queueUpdater = new QueueUpdateHandler(this.logger);
+        this.activeUpdate = undefined;
+        this.latestRequestBruFileContent = undefined;
+    }
+
+    private async tryToAddToQueue(updateRequest: TempJsUpdateRequest) {
         const id = this.getIdForRequest(updateRequest);
-        this.requestAddedToQueueNotifier.fire({ request: updateRequest, id });
+        this.requestAddedToQueueNotifier.fire({
+            request: updateRequest,
+            id,
+        });
 
         const { cancellationToken: token } = updateRequest;
 
@@ -66,11 +123,7 @@ export class TempJsFileUpdateQueue {
             return false;
         }
 
-        await this.queueUpdater.addToEndOfQueue(
-            updateRequest,
-            id,
-            this.requestRemovedFromQueueNotifier,
-        );
+        await this.queueUpdater.addToEndOfQueue(updateRequest, id);
 
         if (token && token.isCancellationRequested) {
             await this.removeFromQueue(id);
@@ -79,7 +132,8 @@ export class TempJsFileUpdateQueue {
 
         if (this.queueUpdater.getLengthOfQueue() <= 1 && !this.activeUpdate) {
             // If no other requests are queued, we can skip waiting for the notification that the new request can be triggered.
-            return await this.triggerUpdate(updateRequest, id, token);
+            const result = await this.triggerUpdate(updateRequest, id, token);
+            return result;
         }
 
         const shouldRun = await this.waitForRequestToBeAbleToRunOrBeCancelled(
@@ -87,20 +141,9 @@ export class TempJsFileUpdateQueue {
             token,
         );
 
-        if (shouldRun) {
-            return await this.triggerUpdate(updateRequest, id, token);
-        } else {
-            return false;
-        }
-    }
-
-    public dispose() {
-        this.requestCanBeRunNotifier.dispose();
-        this.requestRemovedFromQueueNotifier.dispose();
-        this.registry.dispose();
-        this.queueUpdater.dispose();
-        this.requestAddedToQueueNotifier.dispose();
-        this.activeUpdate = undefined;
+        return shouldRun
+            ? await this.triggerUpdate(updateRequest, id, token)
+            : false;
     }
 
     private async waitForRequestToBeAbleToRunOrBeCancelled(
