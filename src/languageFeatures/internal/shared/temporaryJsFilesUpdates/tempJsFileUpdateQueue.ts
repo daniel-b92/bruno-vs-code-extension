@@ -269,7 +269,7 @@ export class TempJsFileUpdateQueue {
             const otherCreationRequestIdentifier = 2;
 
             const deletionPromise = setTimeout(
-                8_000,
+                5_000,
                 deletionIdentifier,
             ); /* Sometimes, the deletions seem to block other important functions from the extension host.
             To avoid this, we add some waiting time before actually executing the deletion.*/
