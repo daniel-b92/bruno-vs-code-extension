@@ -13,7 +13,8 @@ export class QueueUpdateHandler {
 
     private queue: { request: TempJsUpdateRequest; id: string }[];
     private lockedBy: { requestId: string; time: Date } | undefined;
-    private canObtainLockNotifier = new EventEmitter<string>();
+    private lockAvailableNotifier = new EventEmitter<void>();
+    private requestsWaitingForLock: string[] = [];
 
     public async addToEndOfQueue(request: TempJsUpdateRequest, id: string) {
         await this.getLockForRequest(id);
@@ -66,14 +67,14 @@ export class QueueUpdateHandler {
     }
 
     public async removeOutdatedRequestsFromQueue(
-        latestRequest: TempJsUpdateRequest,
+        newRequest: TempJsUpdateRequest,
         id: string,
         requestRemovedFromQueueNotifier: EventEmitter<string[]>,
     ) {
         const {
-            update: latestUpdate,
-            collectionRootFolder: collectionForLatestRequest,
-        } = latestRequest;
+            update: newUpdate,
+            collectionRootFolder: collectionForNewRequest,
+        } = newRequest;
 
         await this.getLockForRequest(id);
 
@@ -99,17 +100,17 @@ export class QueueUpdateHandler {
                     },
                 }) => {
                     if (
-                        normalizeDirectoryPath(collectionForLatestRequest) !=
+                        normalizeDirectoryPath(collectionForNewRequest) !=
                         normalizeDirectoryPath(collectionForQueuedRequest)
                     ) {
                         return false;
                     }
 
                     return (
-                        latestUpdate.type != queuedUpdate.type ||
-                        latestUpdate.type == TempJsUpdateType.Deletion ||
+                        newUpdate.type != queuedUpdate.type ||
+                        newUpdate.type == TempJsUpdateType.Deletion ||
                         (queuedUpdate.type == TempJsUpdateType.Creation &&
-                            latestUpdate.bruFileContent !=
+                            newUpdate.bruFileContent !=
                                 queuedUpdate.bruFileContent)
                     );
                 },
@@ -138,27 +139,56 @@ export class QueueUpdateHandler {
     }
 
     public dispose() {
-        this.canObtainLockNotifier.dispose();
+        this.lockAvailableNotifier.dispose();
         this.queue.splice(0);
         this.lockedBy = undefined;
     }
 
     private async getLockForRequest(requestId: string) {
+        if (this.requestsWaitingForLock.includes(requestId)) {
+            throw new Error(
+                `Request that just started waiting for lock is already in list of waiting requests.`,
+            );
+        }
+
+        this.requestsWaitingForLock.push(requestId);
+
         return await new Promise<void>((resolve) => {
-            this.canObtainLockNotifier.event((chosenId) => {
-                if (requestId == chosenId) {
+            this.lockAvailableNotifier.event(() => {
+                const requestWithNextTurn =
+                    this.getRequestWithMinPositionInQueue(
+                        this.requestsWaitingForLock,
+                    );
+
+                if (
+                    !requestWithNextTurn ||
+                    requestWithNextTurn.id == requestId
+                ) {
                     resolve();
+                    this.removeRequestFromWaitingListForLock(requestId);
                     return;
                 }
             });
 
             if (this.lockedBy && this.lockedBy.requestId == requestId) {
                 resolve();
+                this.removeRequestFromWaitingListForLock(requestId);
                 return;
-            } else if (!this.lockedBy && this.queue.length <= 1) {
-                // ToDo: Ensure that the request that has waited the longest gets assigned the next
+            }
+
+            const requestWithMinPositionInQueue =
+                this.getRequestWithMinPositionInQueue(
+                    this.requestsWaitingForLock,
+                );
+
+            if (
+                !this.lockedBy &&
+                (!requestWithMinPositionInQueue ||
+                    requestWithMinPositionInQueue.id == requestId)
+            ) {
                 this.lockedBy = { requestId, time: new Date() };
                 resolve();
+                this.removeRequestFromWaitingListForLock(requestId);
                 return;
             }
         });
@@ -176,7 +206,33 @@ export class QueueUpdateHandler {
         this.lockedBy = undefined;
 
         if (this.queue.length > 0) {
-            this.canObtainLockNotifier.fire(this.queue[0].id);
+            this.lockAvailableNotifier.fire();
         }
+    }
+
+    private removeRequestFromWaitingListForLock(requestId: string) {
+        const indexToRemove = this.requestsWaitingForLock.findIndex(
+            (idFromList) => idFromList == requestId,
+        );
+
+        if (indexToRemove >= 0) {
+            this.requestsWaitingForLock.splice(indexToRemove, 1);
+        }
+    }
+
+    private getRequestWithMinPositionInQueue(requestIds: string[]) {
+        if (this.queue.length == 0 || requestIds.length == 0) {
+            return undefined;
+        }
+
+        const requestsInBothLists = this.queue
+            .map(({ id }, index) => ({ index, id }))
+            .filter(({ id }) => requestIds.includes(id));
+
+        return requestsInBothLists.length > 0
+            ? requestsInBothLists.sort(
+                  ({ index: index1 }, { index: index2 }) => index1 - index2,
+              )[0]
+            : undefined;
     }
 }
