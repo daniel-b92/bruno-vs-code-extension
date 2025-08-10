@@ -31,7 +31,6 @@ import {
 import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/autoUpdates/updateUrlToMatchQueryParams";
 import { updatePathParamsKeysToMatchUrl } from "./internal/autoUpdates/updatePathParamsKeysToMatchUrl";
-import { TemporaryJsFilesRegistry } from "./internal/shared/temporaryJsFilesUpdates/internal/temporaryJsFilesRegistry";
 import { provideCodeBlocksCompletionItems } from "./internal/completionItems/provideCodeBlocksCompletionItems";
 import { provideInfosOnHover } from "./internal/hover/provideInfosOnHover";
 import { provideSignatureHelp } from "./internal/signatureHelp/provideSignatureHelp";
@@ -47,10 +46,7 @@ export function activateLanguageFeatures(
 ) {
     const logger = getLoggerFromSubscriptions(context);
 
-    const tempJsFilesUpdateQueue = new TempJsFileUpdateQueue(
-        new TemporaryJsFilesRegistry(),
-        logger,
-    );
+    const tempJsFilesUpdateQueue = new TempJsFileUpdateQueue(logger);
 
     const diagnosticCollection =
         languages.createDiagnosticCollection("bru-as-code");

@@ -1,5 +1,4 @@
 import { TempJsUpdateRequest, TempJsUpdateType } from "./internal/interfaces";
-import { TemporaryJsFilesRegistry } from "./internal/temporaryJsFilesRegistry";
 import {
     checkIfPathExistsAsync,
     getTemporaryJsFileName,
@@ -13,10 +12,7 @@ import { setTimeout } from "timers/promises";
 import { QueueUpdateHandler } from "./internal/queueUpdateHandler";
 
 export class TempJsFileUpdateQueue {
-    constructor(
-        private registry: TemporaryJsFilesRegistry,
-        private logger?: OutputChannelLogger,
-    ) {
+    constructor(private logger?: OutputChannelLogger) {
         this.activeUpdate = undefined;
         this.latestRequestBruFileContent = undefined;
         this.queueUpdater = new QueueUpdateHandler(logger);
@@ -93,7 +89,6 @@ export class TempJsFileUpdateQueue {
         this.requestRemovedFromQueueNotifier.dispose();
         this.requestAddedToQueueNotifier.dispose();
         this.activeUpdate = undefined;
-        this.registry.dispose();
         this.queueUpdater.dispose();
     }
 
@@ -235,7 +230,6 @@ export class TempJsFileUpdateQueue {
 
         const wasSuccessful = await createTemporaryJsFile(
             collectionRootFolder,
-            this.registry,
             update.bruFileContent,
             token,
             this.logger,
@@ -321,7 +315,6 @@ export class TempJsFileUpdateQueue {
 
             if (fulfilledCondition == deletionIdentifier) {
                 await deleteTemporaryJsFileForCollection(
-                    this.registry,
                     collectionRootFolder,
                     this.logger,
                 );

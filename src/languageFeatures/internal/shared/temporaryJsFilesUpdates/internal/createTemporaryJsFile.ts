@@ -6,7 +6,6 @@ import {
     OutputChannelLogger,
 } from "../../../../../shared";
 import { mapBlockNameToJsFileLine } from "../../codeBlocksUtils/mapBlockNameToJsFileFunctionName";
-import { TemporaryJsFilesRegistry } from "./temporaryJsFilesRegistry";
 import { getCodeBlocks } from "../../codeBlocksUtils/getCodeBlocks";
 import { writeFile } from "fs";
 import { promisify } from "util";
@@ -14,7 +13,6 @@ import { CancellationToken, Disposable } from "vscode";
 
 export async function createTemporaryJsFile(
     collectionRootDirectory: string,
-    tempJsFilesRegistry: TemporaryJsFilesRegistry,
     bruFileContent: string,
     token?: CancellationToken,
     logger?: OutputChannelLogger,
@@ -60,10 +58,6 @@ ${content}}`,
         } else if (!wasSuccessful && !shouldRetry) {
             logger?.debug(`Creation of temp JS file was aborted`);
         }
-    }
-
-    if (wasSuccessful) {
-        tempJsFilesRegistry.registerJsFile(collectionRootDirectory);
     }
 
     return wasSuccessful;
