@@ -6,14 +6,15 @@ import {
     OutputChannelLogger,
 } from "../../../../../shared";
 import { mapBlockNameToJsFileLine } from "../../codeBlocksUtils/mapBlockNameToJsFileFunctionName";
-import { TemporaryJsFilesRegistry } from "./temporaryJsFilesRegistry";
-import { Uri, workspace, WorkspaceEdit } from "vscode";
 import { getCodeBlocks } from "../../codeBlocksUtils/getCodeBlocks";
+import { writeFile } from "fs";
+import { promisify } from "util";
+import { CancellationToken, Disposable } from "vscode";
 
 export async function createTemporaryJsFile(
     collectionRootDirectory: string,
-    tempJsFilesRegistry: TemporaryJsFilesRegistry,
     bruFileContent: string,
+    token?: CancellationToken,
     logger?: OutputChannelLogger,
 ) {
     const { blocks: parsedBlocks } = parseBruFile(
@@ -28,26 +29,91 @@ export async function createTemporaryJsFile(
 ${content}}`,
     );
 
-    const workspaceEdit = new WorkspaceEdit();
-    workspaceEdit.createFile(
-        Uri.file(getTemporaryJsFileName(collectionRootDirectory)),
-        {
-            contents: Buffer.from(
-                getDefinitionsForInbuiltLibraries()
-                    .concat(functionsForTempJsFile)
-                    .join("\n\n"),
-            ),
-            overwrite: true,
-        },
-    );
+    const fileName = getTemporaryJsFileName(collectionRootDirectory);
+    const content = getDefinitionsForInbuiltLibraries()
+        .concat(functionsForTempJsFile)
+        .join("\n\n");
 
-    const editResult = await workspace.applyEdit(workspaceEdit);
+    let maxRemainingAttempts = 2;
+    let wasSuccessful = false;
+    let shouldRetry = true;
 
-    if (editResult) {
-        tempJsFilesRegistry.registerJsFile(collectionRootDirectory);
-    } else {
-        logger?.error(`Did not manage to create temporary js file.`);
+    if (token && token.isCancellationRequested) {
+        return false;
     }
+
+    while (!wasSuccessful && shouldRetry && maxRemainingAttempts > 0) {
+        const { wasAborted, shouldRetry: shouldRetryAfterCurrentAttempt } =
+            await startAttemptAtCreation(fileName, content, token);
+
+        maxRemainingAttempts--;
+
+        wasSuccessful = !wasAborted;
+        shouldRetry = shouldRetryAfterCurrentAttempt;
+
+        if (!wasSuccessful && shouldRetry) {
+            logger?.warn(
+                `Did not manage to create temporary js file in last attempt. Remaining attempts: ${maxRemainingAttempts}`,
+            );
+        } else if (!wasSuccessful && !shouldRetry) {
+            logger?.debug(`Creation of temp JS file was aborted`);
+        }
+    }
+
+    return wasSuccessful;
+}
+
+interface CreationAttemptResult {
+    wasAborted: boolean;
+    shouldRetry: boolean;
+}
+
+async function startAttemptAtCreation(
+    fileName: string,
+    content: string,
+    token?: CancellationToken,
+): Promise<CreationAttemptResult> {
+    let result = undefined as CreationAttemptResult | undefined;
+
+    const toDispose: Disposable[] = [];
+
+    const abortController = new AbortController();
+
+    if (token && token.isCancellationRequested) {
+        return { wasAborted: true, shouldRetry: false };
+    }
+
+    const timeoutInMs = 5_000;
+
+    const timeout = setTimeout(() => {
+        abortController.abort();
+        result = { wasAborted: true, shouldRetry: true };
+    }, timeoutInMs);
+
+    if (token) {
+        toDispose.push(
+            token.onCancellationRequested(() => {
+                abortController.abort();
+                result = { wasAborted: true, shouldRetry: false };
+            }),
+        );
+    }
+
+    if (!result || !result.wasAborted) {
+        await promisify(writeFile)(fileName, content, {
+            signal: abortController.signal,
+        });
+
+        result = { wasAborted: false, shouldRetry: false };
+    }
+
+    clearTimeout(timeout);
+
+    toDispose.forEach((disposable) => {
+        disposable.dispose();
+    });
+
+    return result as CreationAttemptResult;
 }
 
 /** The Bru class is globally available in Bruno but not exposed.

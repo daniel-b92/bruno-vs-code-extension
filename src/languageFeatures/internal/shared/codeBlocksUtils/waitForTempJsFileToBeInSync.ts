@@ -24,7 +24,7 @@ export interface TempJsSyncRequest {
     bruFileContentSnapshot: string;
     bruFileCodeBlocksSnapshot: Block[];
     bruFilePath: string;
-    token: CancellationToken;
+    token?: CancellationToken;
 }
 
 export async function waitForTempJsFileToBeInSync(
@@ -75,7 +75,7 @@ export async function waitForTempJsFileToBeInSync(
     if (
         isTempJsFileInSync(jsDocInitially.getText(), bruFileCodeBlocksSnapshot)
     ) {
-        logger?.debug(`Temp JS file in sync on first check.`);
+        logger?.trace(`Temp JS file in sync on first check.`);
         return jsDocInitially;
     }
 
@@ -92,12 +92,14 @@ export async function waitForTempJsFileToBeInSync(
         document?: TextDocument;
         shouldRetry?: boolean;
     }>((resolve) => {
-        toDispose.push(
-            token.onCancellationRequested(() => {
-                addLogEntryForAbortion(logger);
-                resolve({ shouldRetry: false });
-            }),
-        );
+        if (token) {
+            toDispose.push(
+                token.onCancellationRequested(() => {
+                    addLogEntryForAbortion(logger);
+                    resolve({ shouldRetry: false });
+                }),
+            );
+        }
 
         toDispose.push(
             workspace.onDidChangeTextDocument((e) => {
@@ -109,7 +111,7 @@ export async function waitForTempJsFileToBeInSync(
                         bruFileCodeBlocksSnapshot,
                     )
                 ) {
-                    logger?.debug(
+                    logger?.trace(
                         `Temp JS file in sync after waiting for ${
                             performance.now() - startTime
                         } ms.`,
@@ -185,8 +187,8 @@ export async function waitForTempJsFileToBeInSync(
     }
 }
 
-function shouldAbort(token: CancellationToken) {
-    return token.isCancellationRequested;
+function shouldAbort(token?: CancellationToken) {
+    return token && token.isCancellationRequested;
 }
 
 function addLogEntryForAbortion(logger?: OutputChannelLogger) {
