@@ -10,7 +10,7 @@ export class TextDocumentHelper {
             remainingText.includes(LinebreakType.crlf)
         ) {
             const linebreakIndex = remainingText.search(
-                new RegExp(`(${LinebreakType.lf}|${LinebreakType.crlf})`)
+                new RegExp(`(${LinebreakType.lf}|${LinebreakType.crlf})`),
             );
             const linebreak = remainingText
                 .substring(linebreakIndex)
@@ -23,7 +23,7 @@ export class TextDocumentHelper {
                 linebreak,
             });
             remainingText = remainingText.substring(
-                linebreakIndex + linebreak.length
+                linebreakIndex + linebreak.length,
             );
         }
 
@@ -36,11 +36,11 @@ export class TextDocumentHelper {
     } = { fullLines: [], lastLine: undefined };
 
     public getAllLines(
-        startIndex?: number
+        startIndex?: number,
     ): { index: number; content: string }[] {
         if (startIndex != undefined && startIndex >= this.getLineCount()) {
             throw new Error(
-                `startIndex '${startIndex}' for document text is invalid. The document only has ${this.getLineCount()} lines.`
+                `startIndex '${startIndex}' for document text is invalid. The document only has ${this.getLineCount()} lines.`,
             );
         }
 
@@ -58,7 +58,7 @@ export class TextDocumentHelper {
                               content: this.lines.lastLine,
                           },
                       ]
-                    : []
+                    : [],
             );
     }
 
@@ -67,8 +67,8 @@ export class TextDocumentHelper {
             startPosition ? startPosition : new Position(0, 0),
             new Position(
                 this.getLineCount() - 1,
-                this.getLineByIndex(this.getLineCount() - 1).length
-            )
+                this.getLineByIndex(this.getLineCount() - 1).length,
+            ),
         );
     }
 
@@ -77,7 +77,10 @@ export class TextDocumentHelper {
             ? undefined
             : new Range(
                   new Position(lineIndex, 0),
-                  new Position(lineIndex, this.getLineByIndex(lineIndex).length)
+                  new Position(
+                      lineIndex,
+                      this.getLineByIndex(lineIndex).length,
+                  ),
               );
     }
 
@@ -100,26 +103,26 @@ export class TextDocumentHelper {
             startCharIndex: number;
             endCharIndex: number;
         },
-        replacement: string
+        replacement: string,
     ) {
         if (toReplace.lineIndex >= this.getLineCount()) {
             throw new Error(
                 `Given range ${JSON.stringify(
                     toReplace,
                     null,
-                    2
-                )} outside of text range ${JSON.stringify(this.lines, null, 2)}`
+                    2,
+                )} outside of text range ${JSON.stringify(this.lines, null, 2)}`,
             );
         } else if (toReplace.startCharIndex > toReplace.endCharIndex) {
             throw new Error(
-                `Start char index for text replacement '${toReplace.startCharIndex}' is larger than end char index '${toReplace.endCharIndex}'`
+                `Start char index for text replacement '${toReplace.startCharIndex}' is larger than end char index '${toReplace.endCharIndex}'`,
             );
         }
 
         const originalLine = this.getLineByIndex(toReplace.lineIndex);
         const adjustedLine = `${originalLine.substring(
             0,
-            toReplace.startCharIndex
+            toReplace.startCharIndex,
         )}${replacement}${originalLine.substring(toReplace.endCharIndex + 1)}`;
 
         return this.lines.fullLines
@@ -127,13 +130,13 @@ export class TextDocumentHelper {
                 ({ content, linebreak }, index) =>
                     `${
                         index == toReplace.lineIndex ? adjustedLine : content
-                    }${linebreak}`
+                    }${linebreak}`,
             )
             .join("")
             .concat(
                 toReplace.lineIndex == this.getLineCount() - 1
                     ? adjustedLine
-                    : this.lines.lastLine ?? ""
+                    : (this.lines.lastLine ?? ""),
             );
     }
 
@@ -149,43 +152,67 @@ export class TextDocumentHelper {
     public getContentUntilClosingChar(
         startLine: number,
         openingChar: string,
-        closingChar: string
+        closingChar: string,
     ): { content: string; range: Range } | undefined {
         const remainingLines = this.getAllLines(startLine).filter(
-            ({ index }) => index >= startLine
+            ({ index }) => index >= startLine,
+        );
+
+        if (remainingLines.length == 0) {
+            return undefined;
+        }
+
+        const relevantChars = remainingLines.reduce(
+            (prev, curr) => {
+                const { content, index } = curr;
+
+                const charsForLine = content
+                    .split("")
+                    .map((char, i) => ({ char, index: i }))
+                    .filter(
+                        ({ char }) =>
+                            char == openingChar || char == closingChar,
+                    );
+
+                return charsForLine.length > 0
+                    ? prev.concat({
+                          line: { index, chars: charsForLine },
+                      })
+                    : prev;
+            },
+            [] as {
+                line: {
+                    index: number;
+                    chars: { char: string; index: number }[];
+                };
+            }[],
         );
 
         let openScopes = 1;
         let closingCharPosition: Position | undefined = undefined;
 
-        for (const line of remainingLines) {
-            {
-                const lineLength = line.content.length;
-                let currentCharIndex = 0;
+        for (const { line } of relevantChars) {
+            const { index: lineIndex, chars } = line;
 
-                while (openScopes > 0 && currentCharIndex < lineLength) {
-                    const currentChar = line.content.charAt(currentCharIndex);
-
-                    openScopes +=
-                        currentChar == openingChar
-                            ? 1
-                            : currentChar == closingChar
-                            ? -1
-                            : 0;
+            for (const {
+                char: currentChar,
+                index: currentCharIndex,
+            } of chars) {
+                if ([openingChar, closingChar].includes(currentChar)) {
+                    openScopes += currentChar == openingChar ? 1 : -1;
 
                     if (openScopes == 0) {
                         closingCharPosition = new Position(
-                            line.index,
-                            currentCharIndex
+                            lineIndex,
+                            currentCharIndex,
                         );
+
+                        break;
                     }
-
-                    currentCharIndex++;
                 }
-
-                if (openScopes == 0) {
-                    break;
-                }
+            }
+            if (openScopes == 0) {
+                break;
             }
         }
 
@@ -195,7 +222,7 @@ export class TextDocumentHelper {
 
         const range = new Range(
             new Position(startLine, 0),
-            closingCharPosition
+            closingCharPosition,
         );
 
         return {
@@ -206,7 +233,7 @@ export class TextDocumentHelper {
 
     public getPositionForOffset(
         { line: startLine, character: startChar }: Position,
-        offset: number
+        offset: number,
     ) {
         const lastLineIndex = this.getLineCount() - 1;
 
@@ -230,7 +257,7 @@ export class TextDocumentHelper {
                 } else {
                     currentOffset += currentTextLengthWithLineBreak;
                 }
-            }
+            },
         );
 
         return lineContainingPosition != undefined
@@ -246,7 +273,7 @@ export class TextDocumentHelper {
         if (range.start.line >= this.lines.fullLines.length) {
             return (this.lines.lastLine as string).substring(
                 range.start.character,
-                range.end.character
+                range.end.character,
             );
         }
 
@@ -259,22 +286,22 @@ export class TextDocumentHelper {
             range.end.line < this.lines.fullLines.length
                 ? `${this.lines.fullLines[range.end.line].content.substring(
                       0,
-                      range.end.character
+                      range.end.character,
                   )}`
                 : (this.lines.lastLine as string).substring(
                       0,
-                      range.end.character
+                      range.end.character,
                   );
         const linesBetween = this.lines.fullLines.slice(
             range.start.line + 1,
-            range.end.line
+            range.end.line,
         );
 
         return linesBetween
             .reduce(
                 (prev, { content, linebreak }) =>
                     prev.concat(content.concat(linebreak)),
-                firstLine
+                firstLine,
             )
             .concat(lastLine);
     }
