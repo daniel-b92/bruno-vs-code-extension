@@ -5,6 +5,7 @@ import {
     mapRange,
     RequestFileBlockName,
     SettingsFileSpecificBlock,
+    TextDocumentHelper,
     TextOutsideOfBlocks,
 } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
@@ -70,29 +71,34 @@ export function checkThatNoTextExistsOutsideOfBlocks(
 
 function getMessage(relevantTextOutsideOfBlocks: TextOutsideOfBlocks[]) {
     const commonMessage = "Text outside of blocks is not allowed.";
-    const startOfTextMatchesBlockStart =
-        relevantTextOutsideOfBlocks[0].text.match(
-            getNonBlockSpecificBlockStartPattern(),
-        )
-            ? true
+
+    const docHelperForFirstText = new TextDocumentHelper(
+        relevantTextOutsideOfBlocks[0].text,
+    );
+
+    const firstLineContainsBlockStart =
+        docHelperForFirstText.getLineCount() >= 1
+            ? getNonBlockSpecificBlockStartPattern().test(
+                  docHelperForFirstText.getLineByIndex(0),
+              )
             : false;
 
-    if (!startOfTextMatchesBlockStart) {
+    if (!firstLineContainsBlockStart) {
         return commonMessage;
     }
 
-    const blockWithMissingClosingBracket = (
+    const blockWithStartMatchingFirstLine = (
         Object.values(RequestFileBlockName) as string[]
     )
         .concat(Object.values(SettingsFileSpecificBlock))
         .concat(Object.values(EnvironmentFileBlockName))
         .find((blockName) =>
-            relevantTextOutsideOfBlocks[0].text.match(
-                getBlockStartPatternByName(blockName),
+            getBlockStartPatternByName(blockName).test(
+                docHelperForFirstText.getLineByIndex(0),
             ),
         );
 
-    return blockWithMissingClosingBracket
-        ? `${commonMessage} Are you maybe missing a bracket for closing the block '${blockWithMissingClosingBracket}'?`
+    return blockWithStartMatchingFirstLine
+        ? `${commonMessage} Are you maybe missing a bracket for closing the block '${blockWithStartMatchingFirstLine}'?`
         : commonMessage;
 }
