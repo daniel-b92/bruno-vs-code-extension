@@ -119,7 +119,6 @@ async function onDidChangeActiveTextEditor(
     editor: TextEditor | undefined,
 ) {
     if (
-        !editor ||
         !window.tabGroups.activeTabGroup.activeTab ||
         !(
             window.tabGroups.activeTabGroup.activeTab.input instanceof
@@ -128,8 +127,9 @@ async function onDidChangeActiveTextEditor(
     ) {
         await deleteAllTemporaryJsFiles(queue, itemProvider);
     } else if (
+        editor &&
         editor.document.uri.toString() ==
-        window.tabGroups.activeTabGroup.activeTab.input.uri.toString()
+            window.tabGroups.activeTabGroup.activeTab.input.uri.toString()
     ) {
         const brunoFileType = await getBrunoFileTypeIfExists(
             itemProvider,
