@@ -166,6 +166,13 @@ export class TextDocumentHelper {
             (prev, curr) => {
                 const { content, index } = curr;
 
+                if (
+                    !content.includes(openingChar) &&
+                    !content.includes(closingChar)
+                ) {
+                    return prev;
+                }
+
                 const charsForLine = content
                     .split("")
                     .map((char, i) => ({ char, index: i }))
@@ -174,11 +181,9 @@ export class TextDocumentHelper {
                             char == openingChar || char == closingChar,
                     );
 
-                return charsForLine.length > 0
-                    ? prev.concat({
-                          line: { index, chars: charsForLine },
-                      })
-                    : prev;
+                return prev.concat({
+                    line: { index, chars: charsForLine },
+                });
             },
             [] as {
                 line: {
