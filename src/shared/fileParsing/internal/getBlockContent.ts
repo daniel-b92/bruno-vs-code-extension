@@ -24,20 +24,28 @@ export const getBlockContent = (
     // the block content is exclusive of the block's opening bracket line
     const firsContentLine = startingPosition.line + 1;
 
-    if (blockType == BlockType.Array) {
-        return parseArrayBlock(document, firsContentLine);
-    } else if (blockType == BlockType.Dictionary) {
-        return parseDictionaryBlock(document, firsContentLine);
-    } else if (blockType == BlockType.Text) {
-        return parseTextBlock(document, firsContentLine);
-    } else {
-        throw new Error(
-            `Cannot parse block with unknown type '${blockType}'. Known block types are ${JSON.stringify(
-                Object.entries(BlockType),
-                null,
-                2,
-            )}`,
-        );
+    switch (blockType) {
+        case BlockType.Array:
+            return parseArrayBlock(document, firsContentLine);
+        case BlockType.Dictionary:
+            return parseDictionaryBlock(document, firsContentLine);
+        case BlockType.Code:
+            // ToDo: Adjust parsing for code blocks by using AST for determining the block end.
+            return parseTextBlock(document, firsContentLine);
+        case BlockType.Json:
+            // ToDo: Adjust parsing for JSON blocks by using JSON parser / JSON AST for determining the block end.
+            return parseTextBlock(document, firsContentLine);
+        case BlockType.PlainText:
+            // ToDo: Adjust parsing for plain text blocks by determining block end via full line regex pattern.
+            return parseTextBlock(document, firsContentLine);
+        default:
+            throw new Error(
+                `Cannot parse block with unknown type '${blockType}'. Known block types are ${JSON.stringify(
+                    Object.entries(BlockType),
+                    null,
+                    2,
+                )}`,
+            );
     }
 };
 
