@@ -7,6 +7,7 @@ import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
 import { BlockBracket } from "./util/blockBracketEnum";
 import { Position, Range } from "../..";
 import { BlockType } from "./util/BlockTypeEnum";
+import { createSourceFile, Node, ScriptTarget, SyntaxKind } from "typescript";
 
 export const getBlockContent = (
     document: TextDocumentHelper,
@@ -31,7 +32,7 @@ export const getBlockContent = (
             return parseDictionaryBlock(document, firsContentLine);
         case BlockType.Code:
             // ToDo: Adjust parsing for code blocks by using AST for determining the block end.
-            return parseTextBlock(document, firsContentLine);
+            return parseCodeBlock(document, firsContentLine);
         case BlockType.Json:
             // ToDo: Adjust parsing for JSON blocks by using JSON parser / JSON AST for determining the block end.
             return parseTextBlock(document, firsContentLine);
@@ -206,6 +207,66 @@ const parseDictionaryBlock = (
             lineIndex,
             document.getLineByIndex(lineIndex),
         ),
+    };
+};
+
+const parseCodeBlock = (
+    document: TextDocumentHelper,
+    firstContentLine: number,
+) => {
+    const subDocumentStartPosition = new Position(firstContentLine - 1, 0);
+
+    const subDocument = new TextDocumentHelper(
+        document.getText(
+            new Range(
+                subDocumentStartPosition,
+                new Position(
+                    document.getLineCount() - 1,
+                    Number.MAX_SAFE_INTEGER,
+                ),
+            ),
+        ),
+    );
+
+    const sourceFile = createSourceFile(
+        "test.js",
+        subDocument.getText(),
+        ScriptTarget.ES2020,
+    );
+
+    const blockNode = (sourceFile as Node)
+        .getChildAt(0, sourceFile)
+        .getChildren(sourceFile)
+        .find(({ kind }) => kind == SyntaxKind.Block);
+
+    if (!blockNode) {
+        throw new Error(
+            `Could not find code block within given subdocument: ${subDocument.getText()}`,
+        );
+    }
+
+    const fullBlockEndOffset = blockNode.end;
+
+    const blockContentEndInSubDocument = subDocument.getPositionForOffset(
+        new Position(0, 0),
+        fullBlockEndOffset - 1,
+    );
+
+    if (!blockContentEndInSubDocument) {
+        return undefined;
+    }
+
+    const contentRange = new Range(
+        new Position(firstContentLine, 0),
+        new Position(
+            subDocumentStartPosition.line + blockContentEndInSubDocument.line,
+            blockContentEndInSubDocument.character,
+        ),
+    );
+
+    return {
+        content: document.getText(contentRange),
+        contentRange,
     };
 };
 

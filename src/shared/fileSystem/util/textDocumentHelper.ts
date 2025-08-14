@@ -257,7 +257,7 @@ export class TextDocumentHelper {
                 const currentTextLengthWithLineBreak =
                     content.length + (index < lastLineIndex ? 1 : 0);
 
-                if (currentOffset + currentTextLengthWithLineBreak >= offset) {
+                if (currentOffset + currentTextLengthWithLineBreak > offset) {
                     return true;
                 } else {
                     currentOffset += currentTextLengthWithLineBreak;
