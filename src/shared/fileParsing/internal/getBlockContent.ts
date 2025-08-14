@@ -31,7 +31,6 @@ export const getBlockContent = (
         case BlockType.Dictionary:
             return parseDictionaryBlock(document, firsContentLine);
         case BlockType.Code:
-            // ToDo: Adjust parsing for code blocks by using AST for determining the block end.
             return parseCodeBlock(document, firsContentLine);
         case BlockType.Json:
             // ToDo: Adjust parsing for JSON blocks by using JSON parser / JSON AST for determining the block end.
