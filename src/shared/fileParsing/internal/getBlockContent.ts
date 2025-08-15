@@ -8,6 +8,7 @@ import { BlockBracket } from "./util/blockBracketEnum";
 import { Position, Range } from "../..";
 import { BlockType } from "./util/BlockTypeEnum";
 import { createSourceFile, Node, ScriptTarget, SyntaxKind } from "typescript";
+import { getNonBlockSpecificBlockStartPattern } from "./util/getNonBlockSpecificBlockStartPattern";
 
 export const getBlockContent = (
     document: TextDocumentHelper,
@@ -33,8 +34,7 @@ export const getBlockContent = (
         case BlockType.Code:
             return parseCodeBlock(document, firsContentLine);
         case BlockType.Json:
-            // ToDo: Adjust parsing for JSON blocks by using JSON parser / JSON AST for determining the block end.
-            return parseTextBlock(document, firsContentLine);
+            return parseJsonBlock(document, firsContentLine);
         case BlockType.PlainText:
             // ToDo: Adjust parsing for plain text blocks by determining block end via full line regex pattern.
             return parseTextBlock(document, firsContentLine);
@@ -228,7 +228,7 @@ const parseCodeBlock = (
     );
 
     const sourceFile = createSourceFile(
-        "test.js",
+        "__temp.js",
         subDocument.getText(),
         ScriptTarget.ES2020,
     );
@@ -249,6 +249,73 @@ const parseCodeBlock = (
     const blockContentEndInSubDocument = subDocument.getPositionForOffset(
         new Position(0, 0),
         fullBlockEndOffset - 1,
+    );
+
+    if (!blockContentEndInSubDocument) {
+        return undefined;
+    }
+
+    const contentRange = new Range(
+        new Position(firstContentLine, 0),
+        new Position(
+            subDocumentStartPosition.line + blockContentEndInSubDocument.line,
+            blockContentEndInSubDocument.character,
+        ),
+    );
+
+    return {
+        content: document.getText(contentRange),
+        contentRange,
+    };
+};
+
+const parseJsonBlock = (
+    document: TextDocumentHelper,
+    firstContentLine: number,
+) => {
+    const subDocumentStartPosition = new Position(firstContentLine, 0);
+
+    const fullRemainingText = document.getText(
+        new Range(
+            subDocumentStartPosition,
+            new Position(document.getLineCount() - 1, Number.MAX_SAFE_INTEGER),
+        ),
+    );
+
+    const followingBlockStartIndex = fullRemainingText.search(
+        getNonBlockSpecificBlockStartPattern(),
+    );
+
+    const blockContentEndIndex = fullRemainingText
+        .substring(
+            0,
+            followingBlockStartIndex >= 0
+                ? followingBlockStartIndex
+                : undefined,
+        )
+        .lastIndexOf(BlockBracket.ClosingBracketForDictionaryOrTextBlock);
+
+    const subDocument = new TextDocumentHelper(
+        fullRemainingText.substring(0, blockContentEndIndex),
+    );
+
+    const sourceFile = createSourceFile(
+        "__temp.json",
+        subDocument.getText(),
+        ScriptTarget.JSON,
+    );
+
+    const blockNode = (sourceFile as Node).getChildAt(0, sourceFile);
+
+    if (!blockNode) {
+        throw new Error(
+            `Could not find JSON block within given subdocument: ${fullRemainingText}`,
+        );
+    }
+
+    const blockContentEndInSubDocument = subDocument.getPositionForOffset(
+        new Position(0, 0),
+        blockContentEndIndex,
     );
 
     if (!blockContentEndInSubDocument) {
