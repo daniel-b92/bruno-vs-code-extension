@@ -1,5 +1,5 @@
 import { DiagnosticSeverity } from "vscode";
-import { DictionaryBlockField, mapRange } from "../../../../../../shared";
+import { DictionaryBlockField, mapToVsCodeRange } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
 
@@ -24,7 +24,7 @@ function getDiagnostic(
         message: `Invalid value '${
             field.value
         }'. Allowed values are ${JSON.stringify(allowedValues, null, 2)}`,
-        range: mapRange(field.valueRange),
+        range: mapToVsCodeRange(field.valueRange),
         severity: DiagnosticSeverity.Error,
         code: diagnosticCode,
     };

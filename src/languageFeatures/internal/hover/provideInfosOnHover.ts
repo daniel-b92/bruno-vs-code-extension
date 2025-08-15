@@ -1,7 +1,8 @@
 import { commands, Hover, languages } from "vscode";
 import {
     CollectionItemProvider,
-    mapRange,
+    mapFromVsCodePosition,
+    mapToVsCodeRange,
     OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
@@ -35,7 +36,7 @@ export function provideInfosOnHover(
             );
 
             const blockInBruFile = blocksToCheck.find(({ contentRange }) =>
-                mapRange(contentRange).contains(position),
+                mapToVsCodeRange(contentRange).contains(position),
             );
 
             if (blockInBruFile) {
@@ -71,8 +72,10 @@ export function provideInfosOnHover(
                     getPositionWithinTempJsFile(
                         temporaryJsDoc.getText(),
                         blockInBruFile.name as RequestFileBlockName,
-                        position.translate(
-                            -blockInBruFile.contentRange.start.line,
+                        mapFromVsCodePosition(
+                            position.translate(
+                                -blockInBruFile.contentRange.start.line,
+                            ),
                         ),
                     ),
                 );

@@ -1,7 +1,7 @@
 import { DiagnosticSeverity, Range, Uri } from "vscode";
 import {
-    mapPosition,
-    mapRange,
+    mapToVsCodePosition,
+    mapToVsCodeRange,
     TextOutsideOfBlocks,
 } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
@@ -40,7 +40,7 @@ function getDiagnostic(
                 ? undefined
                 : sortedTextOutsideOfBlocks.map(({ range }) => ({
                       message: "Problematic text outside of blocks.",
-                      location: { uri: documentUri, range: mapRange(range) },
+                      location: { uri: documentUri, range: mapToVsCodeRange(range) },
                   })),
         code: NonBlockSpecificDiagnosticCode.BlocksNotAllSeparatedBySingleEmptyLine,
     };
@@ -50,10 +50,10 @@ function getRange(
     problematicTextOutsideOfBlocksSortedByPosition: TextOutsideOfBlocks[]
 ): Range {
     return new Range(
-        mapPosition(
+        mapToVsCodePosition(
             problematicTextOutsideOfBlocksSortedByPosition[0].range.start
         ),
-        mapPosition(
+        mapToVsCodePosition(
             problematicTextOutsideOfBlocksSortedByPosition[
                 problematicTextOutsideOfBlocksSortedByPosition.length - 1
             ].range.end

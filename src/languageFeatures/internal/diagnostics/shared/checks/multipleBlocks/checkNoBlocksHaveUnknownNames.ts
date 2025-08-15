@@ -1,5 +1,5 @@
 import { DiagnosticSeverity, Uri } from "vscode";
-import { Block, mapRange } from "../../../../../../shared";
+import { Block, mapToVsCodeRange } from "../../../../../../shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -32,7 +32,7 @@ function getDiagnostic(
             null,
             2,
         )}`,
-        range: mapRange(
+        range: mapToVsCodeRange(
             getRangeContainingBlocksSortedByPosition(
                 sortedBlocksWithUnknownNames,
             ),
@@ -40,7 +40,7 @@ function getDiagnostic(
         relatedInformation: sortedBlocksWithUnknownNames.map(
             ({ name, nameRange }) => ({
                 message: `Block with invalid name '${name}'`,
-                location: { uri: documentUri, range: mapRange(nameRange) },
+                location: { uri: documentUri, range: mapToVsCodeRange(nameRange) },
             }),
         ),
         severity: DiagnosticSeverity.Error,

@@ -1,5 +1,5 @@
 import { DiagnosticSeverity } from "vscode";
-import { DictionaryBlock, mapRange } from "../../../../../../shared";
+import { DictionaryBlock, mapToVsCodeRange } from "../../../../../../shared";
 import { getMissingKeysForDictionaryBlock } from "../../util/getMissingKeysForDictionaryBlock";
 import { DiagnosticWithCode } from "../../../definitions";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
@@ -28,7 +28,7 @@ function getDiagnostic(
             missingFields.length == 1
                 ? `Mandatory key '${missingFields[0]}' is missing.`
                 : `Mandatory keys '${missingFields.join("', '")}' are missing.`,
-        range: mapRange(block.contentRange),
+        range: mapToVsCodeRange(block.contentRange),
         severity: DiagnosticSeverity.Error,
         code: diagnosticCode,
     };

@@ -1,18 +1,18 @@
-import { DiagnosticSeverity } from "vscode";
+import { DiagnosticSeverity, Range as VsCodeRange } from "vscode";
 import {
     Block,
-    mapRange,
+    mapToVsCodeRange,
     RequestFileBlockName,
     Range,
     TextDocumentHelper,
-    mapPosition,
+    mapToVsCodePosition,
     Position,
 } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { RelevantWithinBodyBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinBodyBlockDiagnosticCodeEnum";
 
 export function checkJsonRequestBodySyntax(
-    requestBody: Block
+    requestBody: Block,
 ): DiagnosticWithCode | undefined {
     if (
         requestBody.name == RequestFileBlockName.JsonBody &&
@@ -31,8 +31,8 @@ export function checkJsonRequestBodySyntax(
                     .getText()
                     .replace(
                         regexForFindingVariableOccurences,
-                        placeholderForVariables
-                    )
+                        placeholderForVariables,
+                    ),
             );
         } catch (err) {
             return getDiagnostic(
@@ -40,7 +40,7 @@ export function checkJsonRequestBodySyntax(
                 requestBody,
                 err,
                 regexForFindingVariableOccurences,
-                placeholderForVariables
+                placeholderForVariables,
             );
         }
     } else {
@@ -53,12 +53,12 @@ function getDiagnostic(
     actualRequestBody: Block,
     errorInBlockWithReplacements: unknown,
     regexForFindingVariableOccurences: RegExp,
-    placeholderForVariables: string
+    placeholderForVariables: string,
 ) {
     if (!(errorInBlockWithReplacements instanceof SyntaxError)) {
         return getDiagnosticForUnexpectedErrorWhileParsingJson(
             actualRequestBody.contentRange,
-            errorInBlockWithReplacements
+            errorInBlockWithReplacements,
         );
     }
 
@@ -66,13 +66,13 @@ function getDiagnostic(
         documentForBlock,
         errorInBlockWithReplacements,
         regexForFindingVariableOccurences,
-        placeholderForVariables
+        placeholderForVariables,
     );
 
     if (startPositionWithinBlock) {
         const searchString = "at position ";
-        const positionInFullDocument = mapPosition(
-            startPositionWithinBlock
+        const positionInFullDocument = mapToVsCodePosition(
+            startPositionWithinBlock,
         ).translate(actualRequestBody.contentRange.start.line);
 
         return {
@@ -80,12 +80,13 @@ function getDiagnostic(
                 ? errorInBlockWithReplacements.message.substring(
                       0,
                       errorInBlockWithReplacements.message.lastIndexOf(
-                          searchString
-                      )
+                          searchString,
+                      ),
                   )
                 : errorInBlockWithReplacements.message,
-            range: mapRange(
-                new Range(positionInFullDocument, positionInFullDocument)
+            range: new VsCodeRange(
+                positionInFullDocument,
+                positionInFullDocument,
             ),
             severity: DiagnosticSeverity.Error,
             code: RelevantWithinBodyBlockDiagnosticCode.JsonSyntaxNotValid,
@@ -93,7 +94,7 @@ function getDiagnostic(
     } else {
         return getDiagnosticForSyntaxErrorWithoutPosition(
             actualRequestBody.contentRange,
-            errorInBlockWithReplacements
+            errorInBlockWithReplacements,
         );
     }
 }
@@ -102,7 +103,7 @@ function getPositionForSyntaxErrorWithinBlock(
     docForActualBlock: TextDocumentHelper,
     errorInBlockWithReplacements: SyntaxError,
     regexForFindingVariableOccurences: RegExp,
-    placeholderForVariables: string
+    placeholderForVariables: string,
 ) {
     const message = errorInBlockWithReplacements.message;
 
@@ -127,8 +128,8 @@ function getPositionForSyntaxErrorWithinBlock(
             docForActualBlock,
             regexForFindingVariableOccurences,
             errorOffsetInBlockWithReplacements,
-            placeholderForVariables
-        )
+            placeholderForVariables,
+        ),
     );
 }
 
@@ -136,12 +137,12 @@ function mapOffsetFromSyntaxErrorToOffsetInActualBlock(
     docForActualBlock: TextDocumentHelper,
     regexForFindingVariableOccurences: RegExp,
     errorOffsetInBlockWithReplacements: number,
-    placeholderForVariables: string
+    placeholderForVariables: string,
 ) {
     const replacedSubstringsInOriginalDoc =
         getSubstringsThatHaveBeenReplacedInActualDoc(
             docForActualBlock,
-            regexForFindingVariableOccurences
+            regexForFindingVariableOccurences,
         );
 
     if (replacedSubstringsInOriginalDoc.length == 0) {
@@ -172,10 +173,10 @@ function mapOffsetFromSyntaxErrorToOffsetInActualBlock(
 
 function getSubstringsThatHaveBeenReplacedInActualDoc(
     docForActualBlock: TextDocumentHelper,
-    regexForFindingVariableOccurences: RegExp
+    regexForFindingVariableOccurences: RegExp,
 ): { content: string; offset: number }[] {
     const matches = Array.from(
-        docForActualBlock.getText().matchAll(regexForFindingVariableOccurences)
+        docForActualBlock.getText().matchAll(regexForFindingVariableOccurences),
     );
 
     if (matches.length == 0) {
@@ -190,7 +191,7 @@ function getSubstringsThatHaveBeenReplacedInActualDoc(
 
 function getDiagnosticForUnexpectedErrorWhileParsingJson(
     blockContentRange: Range,
-    error: unknown
+    error: unknown,
 ) {
     return {
         message: `An unexpected error ocured while trying to parse the JSON request body. ${
@@ -198,7 +199,7 @@ function getDiagnosticForUnexpectedErrorWhileParsingJson(
                 ? `Got error message '${error.message}'.`
                 : "Failed to parse message from error."
         }`,
-        range: mapRange(blockContentRange),
+        range: mapToVsCodeRange(blockContentRange),
         severity: DiagnosticSeverity.Error,
         code: RelevantWithinBodyBlockDiagnosticCode.UnexpectedErrorWhileParsingJson,
     };
@@ -206,11 +207,11 @@ function getDiagnosticForUnexpectedErrorWhileParsingJson(
 
 function getDiagnosticForSyntaxErrorWithoutPosition(
     blockContentRange: Range,
-    error: SyntaxError
+    error: SyntaxError,
 ) {
     return {
         message: error.message,
-        range: mapRange(blockContentRange),
+        range: mapToVsCodeRange(blockContentRange),
         severity: DiagnosticSeverity.Error,
         code: RelevantWithinBodyBlockDiagnosticCode.JsonSyntaxNotValid,
     };

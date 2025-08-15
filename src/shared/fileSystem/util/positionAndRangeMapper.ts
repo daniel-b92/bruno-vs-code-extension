@@ -2,10 +2,17 @@ import { Position } from "./position";
 import { Range } from "./range";
 import { Position as VsCodePosition, Range as VsCodeRange } from "vscode";
 
-export function mapRange(range: Range): VsCodeRange {
-    return new VsCodeRange(mapPosition(range.start), mapPosition(range.end));
+export function mapToVsCodeRange(range: Range): VsCodeRange {
+    return new VsCodeRange(
+        mapToVsCodePosition(range.start),
+        mapToVsCodePosition(range.end),
+    );
 }
 
-export function mapPosition(position: Position): VsCodePosition {
+export function mapToVsCodePosition(position: Position): VsCodePosition {
     return new VsCodePosition(position.line, position.character);
+}
+
+export function mapFromVsCodePosition(position: VsCodePosition): Position {
+    return new Position(position.line, position.character);
 }

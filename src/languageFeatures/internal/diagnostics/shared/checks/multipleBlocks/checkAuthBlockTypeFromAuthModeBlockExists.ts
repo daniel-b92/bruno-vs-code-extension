@@ -4,7 +4,7 @@ import {
     getAuthTypeFromBlockName,
     isAuthBlock,
     Block,
-    mapRange,
+    mapToVsCodeRange,
     SettingsFileSpecificBlock,
     getFieldFromDictionaryBlock,
     castBlockToDictionaryBlock,
@@ -80,7 +80,7 @@ function getDiagnostic(
 ): DiagnosticWithCode {
     return {
         message: "Auth type does not match name of auth mode.",
-        range: mapRange(authModeField.valueRange),
+        range: mapToVsCodeRange(authModeField.valueRange),
         relatedInformation: [
             {
                 message: `Defined auth type in auth block: '${getAuthTypeFromBlockName(
@@ -88,7 +88,7 @@ function getDiagnostic(
                 )}'`,
                 location: {
                     uri: documentUri,
-                    range: mapRange(authBlock.nameRange),
+                    range: mapToVsCodeRange(authBlock.nameRange),
                 },
             },
         ],
@@ -102,7 +102,7 @@ function getDiagnosticInCaseOfMissingAuthBlock(
 ): DiagnosticWithCode {
     return {
         message: "Missing auth block for defined auth mode.",
-        range: mapRange(authModeField.valueRange),
+        range: mapToVsCodeRange(authModeField.valueRange),
         severity: DiagnosticSeverity.Error,
         code: getCode(),
     };
@@ -115,7 +115,7 @@ function getDiagnosticInCaseOfNonExpectedAuthBlock(
 ): DiagnosticWithCode {
     return {
         message: `An auth block is defined although the auth mode is '${authModeField.value}'.`,
-        range: mapRange(authModeField.valueRange),
+        range: mapToVsCodeRange(authModeField.valueRange),
         relatedInformation: [
             {
                 message: `Defined auth type in auth block: '${getAuthTypeFromBlockName(
@@ -123,7 +123,7 @@ function getDiagnosticInCaseOfNonExpectedAuthBlock(
                 )}'`,
                 location: {
                     uri: documentUri,
-                    range: mapRange(authBlock.nameRange),
+                    range: mapToVsCodeRange(authBlock.nameRange),
                 },
             },
         ],

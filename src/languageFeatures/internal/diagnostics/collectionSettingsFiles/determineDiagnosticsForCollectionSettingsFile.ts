@@ -20,6 +20,7 @@ import { checkThatNoBlocksAreDefinedMultipleTimes } from "../shared/checks/multi
 import { checkThatNoTextExistsOutsideOfBlocks } from "../shared/checks/multipleBlocks/checkThatNoTextExistsOutsideOfBlocks";
 import { getAuthModeBlockSpecificDiagnostics } from "../shared/checks/multipleBlocks/getAuthModeBlockSpecificDiagnostics";
 import { checkNoRedundantBlocksExist } from "../shared/checks/multipleBlocks/checkNoRedundantBlocksExist";
+import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBlocks/checkCodeBlocksHaveClosingBracket";
 
 export function determineDiagnosticsForCollectionSettingsFile(
     documentUri: Uri,
@@ -58,6 +59,7 @@ export function determineDiagnosticsForCollectionSettingsFile(
             documentUri,
             blocksThatShouldBeDictionaryBlocks,
         ),
+        checkCodeBlocksHaveClosingBracket(document, blocks),
         checkDictionaryBlocksAreNotEmpty(
             documentUri,
             blocksThatShouldBeDictionaryBlocks,

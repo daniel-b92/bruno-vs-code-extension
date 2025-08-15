@@ -10,7 +10,7 @@ import {
     MetaBlockKey,
     castBlockToDictionaryBlock,
     getSequenceFieldFromMetaBlock,
-    mapRange,
+    mapToVsCodeRange,
     BrunoFileType,
     filterAsync,
 } from "../../../../../shared";
@@ -100,7 +100,7 @@ async function getDiagnostic(
     return {
         message:
             "Other folders with the same sequence already exist for the same parent folder.",
-        range: mapRange(sequenceField.valueRange),
+        range: mapToVsCodeRange(sequenceField.valueRange),
         severity: DiagnosticSeverity.Error,
         code: getDiagnosticCode(),
         relatedInformation: await Promise.all(
@@ -137,7 +137,7 @@ async function getRangeForSequence(filePath: string) {
         );
     }
 
-    return mapRange(sequenceField.valueRange);
+    return mapToVsCodeRange(sequenceField.valueRange);
 }
 
 async function getSequencesForOtherFoldersWithSameParent(

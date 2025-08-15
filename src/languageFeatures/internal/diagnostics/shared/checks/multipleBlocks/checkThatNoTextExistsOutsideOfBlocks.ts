@@ -1,8 +1,8 @@
 import { DiagnosticSeverity, Range, Uri } from "vscode";
 import {
     EnvironmentFileBlockName,
-    mapPosition,
-    mapRange,
+    mapToVsCodePosition,
+    mapToVsCodeRange,
     RequestFileBlockName,
     SettingsFileSpecificBlock,
     TextDocumentHelper,
@@ -40,8 +40,8 @@ export function checkThatNoTextExistsOutsideOfBlocks(
         );
 
         const range = new Range(
-            mapPosition(relevantTextOutsideOfBlocks[0].range.start),
-            mapPosition(
+            mapToVsCodePosition(relevantTextOutsideOfBlocks[0].range.start),
+            mapToVsCodePosition(
                 relevantTextOutsideOfBlocks[
                     relevantTextOutsideOfBlocks.length - 1
                 ].range.end,
@@ -57,7 +57,7 @@ export function checkThatNoTextExistsOutsideOfBlocks(
                           message: `Text outside of blocks`,
                           location: {
                               uri: documentUri,
-                              range: mapRange(range),
+                              range: mapToVsCodeRange(range),
                           },
                       }))
                     : undefined,

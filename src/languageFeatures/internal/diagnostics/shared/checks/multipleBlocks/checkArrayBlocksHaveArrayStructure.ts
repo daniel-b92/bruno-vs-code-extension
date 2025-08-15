@@ -7,8 +7,8 @@ import {
 import {
     Block,
     castBlockToArrayBlock,
-    mapPosition,
-    mapRange,
+    mapToVsCodePosition,
+    mapToVsCodeRange,
     PlainTextWithinBlock,
 } from "../../../../../../shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
@@ -66,7 +66,7 @@ function getDiagnostic(
                                   message: `Invalid line in block '${curr.blockName}'`,
                                   location: {
                                       uri: documentUri,
-                                      range: mapRange(range),
+                                      range: mapToVsCodeRange(range),
                                   },
                               }))
                           ),
@@ -89,12 +89,12 @@ function getRange(
             sortedBlocksWithIncorrectStructure.length - 1
         ];
     return new Range(
-        mapPosition(
+        mapToVsCodePosition(
             getSortedPlainTextLinesByPosition(
                 sortedBlocksWithIncorrectStructure[0].invalidLines
             )[0].range.start
         ),
-        mapPosition(
+        mapToVsCodePosition(
             getSortedPlainTextLinesByPosition(lastBlock.invalidLines)[
                 lastBlock.invalidLines.length - 1
             ].range.end

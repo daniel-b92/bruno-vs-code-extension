@@ -32,4 +32,5 @@ export enum NonBlockSpecificDiagnosticCode {
     DictionaryBlocksWithoutContent = "bru22",
     AuthBlockNotMatchingAuthModeBlock = "bru23",
     RedundantBlocksDefined = "bru24",
+    CodeBlockMissingClosingBracket = "bru25",
 }

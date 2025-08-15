@@ -9,7 +9,7 @@ import {
     getValidDictionaryBlocksWithName,
     Block,
     RequestFileBlockName,
-    mapRange,
+    mapToVsCodeRange,
 } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -78,14 +78,14 @@ function getDiagnosticForUrlNotMatchingQueryParamsBlock(
         }' block '${getUrlSubstringForQueryParams(
             queryParamsFromQueryParamsBlock
         )}'. Saving may fix this issue since the url will be automatically updated, to match the query params on saving.`,
-        range: mapRange(urlFieldInMethodBlock.valueRange),
+        range: mapToVsCodeRange(urlFieldInMethodBlock.valueRange),
         severity: DiagnosticSeverity.Error,
         relatedInformation: [
             {
                 message: `'${RequestFileBlockName.QueryParams}' block`,
                 location: {
                     uri: documentUri,
-                    range: mapRange(queryParamsBlock.contentRange),
+                    range: mapToVsCodeRange(queryParamsBlock.contentRange),
                 },
             },
         ],
@@ -107,7 +107,7 @@ function getDiagnosticForMissingQueryParamsBlock(
             null,
             2
         )}.`,
-        range: mapRange(urlFieldInMethodBlock.valueRange),
+        range: mapToVsCodeRange(urlFieldInMethodBlock.valueRange),
         severity: DiagnosticSeverity.Warning,
         code: NonBlockSpecificDiagnosticCode.QueryParamsBlockMissing,
     };

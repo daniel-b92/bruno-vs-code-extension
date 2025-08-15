@@ -2,7 +2,7 @@ import { DiagnosticSeverity, Range } from "vscode";
 import {
     DictionaryBlockField,
     DictionaryBlock,
-    mapPosition,
+    mapToVsCodePosition,
 } from "../../../../../../shared";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 import {
@@ -49,8 +49,8 @@ function getDiagnostic(
 
 function getRange(sortedDuplicateFields: DictionaryBlockField[]): Range {
     return new Range(
-        mapPosition(sortedDuplicateFields[0].keyRange.start),
-        mapPosition(
+        mapToVsCodePosition(sortedDuplicateFields[0].keyRange.start),
+        mapToVsCodePosition(
             sortedDuplicateFields[sortedDuplicateFields.length - 1].keyRange.end
         )
     );
