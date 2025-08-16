@@ -1,5 +1,5 @@
 import { DiagnosticSeverity, Uri } from "vscode";
-import { isAuthBlock, Block, mapRange } from "../../../../../../shared";
+import { isAuthBlock, Block, mapToVsCodeRange } from "../../../../../../shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -25,14 +25,14 @@ function getDiagnostic(
 ): DiagnosticWithCode {
     return {
         message: "Too many 'auth' blocks are defined.",
-        range: mapRange(
+        range: mapToVsCodeRange(
             sortedAuthBlocks[sortedAuthBlocks.length - 1].nameRange
         ),
         relatedInformation: sortedAuthBlocks
             .slice(0, sortedAuthBlocks.length - 1)
             .map(({ name, nameRange }) => ({
                 message: `Other auth block with name '${name}'`,
-                location: { uri: documentUri, range: mapRange(nameRange) },
+                location: { uri: documentUri, range: mapToVsCodeRange(nameRange) },
             })),
         severity: DiagnosticSeverity.Error,
         code: getCode(),

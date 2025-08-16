@@ -6,8 +6,8 @@ import {
 } from "vscode";
 import {
     Block,
-    mapPosition,
-    mapRange,
+    mapToVsCodePosition,
+    mapToVsCodeRange,
     RequestFileBlockName,
 } from "../../../../../../shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
@@ -35,8 +35,8 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
         const sortedDuplicates = getSortedBlocksByPosition(allDuplicateBlocks);
 
         const range = new Range(
-            mapPosition(sortedDuplicates[0].nameRange.start),
-            mapPosition(
+            mapToVsCodePosition(sortedDuplicates[0].nameRange.start),
+            mapToVsCodePosition(
                 sortedDuplicates[sortedDuplicates.length - 1].contentRange.end
             )
         );
@@ -58,7 +58,7 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
                             }`,
                             location: {
                                 uri: documentUri,
-                                range: mapRange(nameRange),
+                                range: mapToVsCodeRange(nameRange),
                             },
                         })
                 );

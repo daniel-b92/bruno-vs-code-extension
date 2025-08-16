@@ -8,7 +8,8 @@ import {
 } from "vscode";
 import {
     CollectionItemProvider,
-    mapRange,
+    mapFromVsCodePosition,
+    mapToVsCodeRange,
     OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
@@ -44,7 +45,7 @@ export function provideDefinitions(
                 );
 
                 const blockInBruFile = blocksToCheck.find(({ contentRange }) =>
-                    mapRange(contentRange).contains(position),
+                    mapToVsCodeRange(contentRange).contains(position),
                 );
 
                 if (blockInBruFile) {
@@ -86,8 +87,10 @@ export function provideDefinitions(
                         getPositionWithinTempJsFile(
                             temporaryJsDoc.getText(),
                             blockInBruFile.name as RequestFileBlockName,
-                            position.translate(
-                                -blockInBruFile.contentRange.start.line,
+                            mapFromVsCodePosition(
+                                position.translate(
+                                    -blockInBruFile.contentRange.start.line,
+                                ),
                             ),
                         ),
                     );

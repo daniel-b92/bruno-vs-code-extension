@@ -7,7 +7,7 @@ import {
     getExpectedUrlQueryParamsForQueryParamsBlock,
     getUrlSubstringForQueryParams,
     Block,
-    mapPosition,
+    mapToVsCodePosition,
 } from "../../../shared";
 
 export function updateUrlToMatchQueryParams(
@@ -39,7 +39,7 @@ export function updateUrlToMatchQueryParams(
             editBuilder.replace(
                 new Range(
                     new Position(urlField.valueRange.start.line, startChar),
-                    mapPosition(urlField.valueRange.end)
+                    mapToVsCodePosition(urlField.valueRange.end)
                 ),
                 `${getUrlSubstringForQueryParams(
                     queryParamsFromQueryParamsBlock

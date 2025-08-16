@@ -9,7 +9,7 @@ import {
     getDefaultIndentationForDictionaryBlockFields,
     getMethodBlockIfValid,
     DictionaryBlock,
-    mapPosition,
+    mapToVsCodePosition,
     getLineBreak,
 } from "../../../shared";
 import { getSortedBlocksByPosition } from "../diagnostics/shared/util/getSortedBlocksByPosition";
@@ -109,15 +109,15 @@ function removeBlock(
 
         editBuilder.delete(
             new Range(
-                mapPosition(previousBlockEnd),
-                mapPosition(pathParamsBlock.contentRange.end),
+                mapToVsCodePosition(previousBlockEnd),
+                mapToVsCodePosition(pathParamsBlock.contentRange.end),
             ),
         );
     } else {
         const nextBlockStart = sortedBlocks[1].nameRange.start;
 
         editBuilder.delete(
-            new Range(new Position(0, 0), mapPosition(nextBlockStart)),
+            new Range(new Position(0, 0), mapToVsCodePosition(nextBlockStart)),
         );
     }
 }

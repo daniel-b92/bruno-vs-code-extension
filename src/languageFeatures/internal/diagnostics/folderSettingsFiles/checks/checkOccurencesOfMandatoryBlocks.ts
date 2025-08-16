@@ -3,7 +3,7 @@ import {
     TextDocumentHelper,
     Block,
     RequestFileBlockName,
-    mapRange,
+    mapToVsCodeRange,
 } from "../../../../../shared";
 import { DiagnosticWithCode } from "../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -20,7 +20,7 @@ export function checkOccurencesOfMandatoryBlocks(
 function getDiagnostic(document: TextDocumentHelper): DiagnosticWithCode {
     return {
         message: "No 'meta' block defined.",
-        range: mapRange(document.getTextRange()), // Use full text of file as range for diagnostics
+        range: mapToVsCodeRange(document.getTextRange()), // Use full text of file as range for diagnostics
         severity: DiagnosticSeverity.Error,
         code: NonBlockSpecificDiagnosticCode.MissingMetaBlock,
     };

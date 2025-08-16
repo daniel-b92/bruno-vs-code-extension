@@ -33,6 +33,7 @@ import { checkOccurencesOfMandatoryBlocks } from "./checks/multipleBlocks/checkO
 import { getMetaBlockSpecificDiagnostics } from "./getMetaBlockSpecificDiagnostics";
 import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDiagnosticsHelper";
 import { getSettingsBlockSpecificDiagnostics } from "./getSettingsBlockSpecificDiagnostics";
+import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBlocks/checkCodeBlocksHaveClosingBracket";
 
 export async function determineDiagnosticsForRequestFile(
     documentUri: Uri,
@@ -100,9 +101,11 @@ function collectCommonDiagnostics(
         ),
         checkUrlFromMethodBlockMatchesQueryParamsBlock(documentUri, blocks),
         checkUrlFromMethodBlockMatchesPathParamsBlock(documentUri, blocks),
+        checkCodeBlocksHaveClosingBracket(documentHelper, blocks),
         checkEitherAssertOrTestsBlockExists(documentHelper, blocks),
         checkBlocksAreSeparatedBySingleEmptyLine(
             documentUri,
+            blocks,
             textOutsideOfBlocks,
         ),
     );

@@ -1,18 +1,24 @@
 import { DiagnosticSeverity, Range, Uri } from "vscode";
 import {
-    mapPosition,
-    mapRange,
+    EnvironmentFileBlockName,
+    mapToVsCodePosition,
+    mapToVsCodeRange,
+    RequestFileBlockName,
+    SettingsFileSpecificBlock,
+    TextDocumentHelper,
     TextOutsideOfBlocks,
 } from "../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import { getNonBlockSpecificBlockStartPattern } from "../../../../../../shared/fileParsing/internal/util/getNonBlockSpecificBlockStartPattern";
+import { getBlockStartPatternByName } from "../../../../../../shared/fileParsing/internal/util/getBlockStartPatternByName";
 
 export function checkThatNoTextExistsOutsideOfBlocks(
     documentUri: Uri,
-    allTextOutsideOfBlocks: TextOutsideOfBlocks[]
+    allTextOutsideOfBlocks: TextOutsideOfBlocks[],
 ): DiagnosticWithCode | undefined {
     const relevantTextOutsideOfBlocks = allTextOutsideOfBlocks.filter(
-        ({ text }) => !/^\s*$/.test(text)
+        ({ text }) => !/^\s*$/.test(text),
     );
 
     if (relevantTextOutsideOfBlocks.length == 0) {
@@ -29,39 +35,70 @@ export function checkThatNoTextExistsOutsideOfBlocks(
                     range: {
                         start: { line: line2 },
                     },
-                }
-            ) => line1 - line2
+                },
+            ) => line1 - line2,
         );
 
         const range = new Range(
-            mapPosition(relevantTextOutsideOfBlocks[0].range.start),
-            mapPosition(
+            mapToVsCodePosition(relevantTextOutsideOfBlocks[0].range.start),
+            mapToVsCodePosition(
                 relevantTextOutsideOfBlocks[
                     relevantTextOutsideOfBlocks.length - 1
-                ].range.end
-            )
+                ].range.end,
+            ),
         );
 
         const diagnostic: DiagnosticWithCode = {
-            message: "Text outside of blocks is not allowed.",
+            message: getMessage(relevantTextOutsideOfBlocks),
             range,
-            relatedInformation: relevantTextOutsideOfBlocks.map(
-                ({ range }) => ({
-                    message: `Text outside of blocks`,
-                    location: {
-                        uri: documentUri,
-                        range: mapRange(range),
-                    },
-                })
-            ),
+            relatedInformation:
+                relevantTextOutsideOfBlocks.length > 1
+                    ? relevantTextOutsideOfBlocks.map(({ range }) => ({
+                          message: `Text outside of blocks`,
+                          location: {
+                              uri: documentUri,
+                              range: mapToVsCodeRange(range),
+                          },
+                      }))
+                    : undefined,
             severity: DiagnosticSeverity.Error,
-            code: getCode(),
+            code: NonBlockSpecificDiagnosticCode.TextOutsideOfBlocks,
         };
 
         return diagnostic;
     }
 }
 
-function getCode() {
-    return NonBlockSpecificDiagnosticCode.TextOutsideOfBlocks;
+function getMessage(relevantTextOutsideOfBlocks: TextOutsideOfBlocks[]) {
+    const commonMessage = "Text outside of blocks is not allowed.";
+
+    const docHelperForFirstText = new TextDocumentHelper(
+        relevantTextOutsideOfBlocks[0].text,
+    );
+
+    const firstLineContainsBlockStart =
+        docHelperForFirstText.getLineCount() >= 1
+            ? getNonBlockSpecificBlockStartPattern().test(
+                  docHelperForFirstText.getLineByIndex(0),
+              )
+            : false;
+
+    if (!firstLineContainsBlockStart) {
+        return commonMessage;
+    }
+
+    const blockWithStartMatchingFirstLine = (
+        Object.values(RequestFileBlockName) as string[]
+    )
+        .concat(Object.values(SettingsFileSpecificBlock))
+        .concat(Object.values(EnvironmentFileBlockName))
+        .find((blockName) =>
+            getBlockStartPatternByName(blockName).test(
+                docHelperForFirstText.getLineByIndex(0),
+            ),
+        );
+
+    return blockWithStartMatchingFirstLine
+        ? `${commonMessage} Are you maybe missing a bracket for closing the block '${blockWithStartMatchingFirstLine}'?`
+        : commonMessage;
 }

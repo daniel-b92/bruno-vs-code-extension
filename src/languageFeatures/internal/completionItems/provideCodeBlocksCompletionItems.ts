@@ -10,9 +10,10 @@ import {
     CollectionItemProvider,
     parseBruFile,
     TextDocumentHelper,
-    mapRange,
+    mapToVsCodeRange,
     RequestFileBlockName,
     OutputChannelLogger,
+    mapFromVsCodePosition,
 } from "../../../shared";
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
@@ -45,7 +46,7 @@ export function provideCodeBlocksCompletionItems(
                 );
 
                 const blockInBruFile = blocksToCheck.find(({ contentRange }) =>
-                    mapRange(contentRange).contains(position),
+                    mapToVsCodeRange(contentRange).contains(position),
                 );
 
                 if (blockInBruFile) {
@@ -86,8 +87,10 @@ export function provideCodeBlocksCompletionItems(
                             getPositionWithinTempJsFile(
                                 temporaryJsDoc.getText(),
                                 blockInBruFile.name as RequestFileBlockName,
-                                position.translate(
-                                    -blockInBruFile.contentRange.start.line,
+                                mapFromVsCodePosition(
+                                    position.translate(
+                                        -blockInBruFile.contentRange.start.line,
+                                    ),
                                 ),
                             ),
                         );

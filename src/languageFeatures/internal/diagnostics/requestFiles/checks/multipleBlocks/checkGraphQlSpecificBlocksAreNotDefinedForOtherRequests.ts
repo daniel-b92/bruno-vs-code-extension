@@ -6,7 +6,7 @@ import {
     Block,
     RequestFileBlockName,
     RequestType,
-    mapRange,
+    mapToVsCodeRange,
 } from "../../../../../../shared";
 import { getSortedBlocksByPosition } from "../../../shared/util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
@@ -58,10 +58,10 @@ function getDiagnostic(
 ): DiagnosticWithCode {
     return {
         message: `GraphQL specific blocks defined without using request type '${RequestType.Graphql}'.`,
-        range: mapRange(requestTypeField.valueRange),
+        range: mapToVsCodeRange(requestTypeField.valueRange),
         relatedInformation: sortedInvalidBlocks.map(({ name, nameRange }) => ({
             message: `Block with GraphQl specific name '${name}'`,
-            location: { uri: documentUri, range: mapRange(nameRange) },
+            location: { uri: documentUri, range: mapToVsCodeRange(nameRange) },
         })),
         severity: DiagnosticSeverity.Error,
         code: NonBlockSpecificDiagnosticCode.GraphQlBlocksDefinedForNonGraphQlRequestType,

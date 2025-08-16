@@ -23,12 +23,13 @@ import { getAuthModeBlockSpecificDiagnostics } from "../shared/checks/multipleBl
 import { checkOccurencesOfMandatoryBlocks } from "./checks/checkOccurencesOfMandatoryBlocks";
 import { getMetaBlockSpecificDiagnostics } from "./util/getMetaBlockSpecificDiagnostics";
 import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDiagnosticsHelper";
+import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBlocks/checkCodeBlocksHaveClosingBracket";
 
 export async function determineDiagnosticsForFolderSettingsFile(
     documentUri: Uri,
     documentText: string,
     itemProvider: CollectionItemProvider,
-    relatedFilesHelper: RelatedFilesDiagnosticsHelper
+    relatedFilesHelper: RelatedFilesDiagnosticsHelper,
 ): Promise<DiagnosticWithCode[]> {
     const document = new TextDocumentHelper(documentText);
 
@@ -36,7 +37,7 @@ export async function determineDiagnosticsForFolderSettingsFile(
     const blocksThatShouldBeDictionaryBlocks = blocks.filter(
         ({ name }) =>
             shouldBeDictionaryBlock(name) ||
-            name == SettingsFileSpecificBlock.AuthMode
+            name == SettingsFileSpecificBlock.AuthMode,
     );
 
     const results: (DiagnosticWithCode | undefined)[] = [];
@@ -50,24 +51,26 @@ export async function determineDiagnosticsForFolderSettingsFile(
         checkNoBlocksHaveUnknownNames(
             documentUri,
             blocks,
-            Object.values(getValidBlockNamesForFolderSettingsFile())
+            Object.values(getValidBlockNamesForFolderSettingsFile()),
         ),
         checkDictionaryBlocksHaveDictionaryStructure(
             documentUri,
-            blocksThatShouldBeDictionaryBlocks
+            blocksThatShouldBeDictionaryBlocks,
         ),
+        checkCodeBlocksHaveClosingBracket(document, blocks),
         checkDictionaryBlocksAreNotEmpty(
             documentUri,
-            blocksThatShouldBeDictionaryBlocks
+            blocksThatShouldBeDictionaryBlocks,
         ),
         checkBlocksAreSeparatedBySingleEmptyLine(
             documentUri,
-            textOutsideOfBlocks
-        )
+            blocks,
+            textOutsideOfBlocks,
+        ),
     );
 
     const metaBlocks = blocks.filter(
-        ({ name }) => name == RequestFileBlockName.Meta
+        ({ name }) => name == RequestFileBlockName.Meta,
     );
 
     if (metaBlocks.length == 1) {
@@ -77,8 +80,8 @@ export async function determineDiagnosticsForFolderSettingsFile(
                 relatedFilesHelper,
                 documentUri,
                 document,
-                metaBlocks[0]
-            ))
+                metaBlocks[0],
+            )),
         );
     }
 
@@ -89,7 +92,7 @@ export async function determineDiagnosticsForFolderSettingsFile(
     }
 
     const authModeBlocks = blocks.filter(
-        ({ name }) => name == SettingsFileSpecificBlock.AuthMode
+        ({ name }) => name == SettingsFileSpecificBlock.AuthMode,
     );
 
     if (authModeBlocks.length == 1) {

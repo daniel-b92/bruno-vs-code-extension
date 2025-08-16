@@ -2,7 +2,7 @@ import { languages, TextEdit } from "vscode";
 import {
     Block,
     getLineBreak,
-    mapRange,
+    mapToVsCodeRange,
     OutputChannelLogger,
     parseBruFile,
     Position,
@@ -55,7 +55,7 @@ async function getTextEditForBlock(block: Block, documentLineBreak: string) {
         docHelperForDummyFunctionReplacement.getLineCount() - 1;
 
     return new TextEdit(
-        mapRange(
+        mapToVsCodeRange(
             new Range(
                 block.contentRange.start,
                 new Position(

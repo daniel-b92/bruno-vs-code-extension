@@ -1,5 +1,5 @@
 import { DiagnosticSeverity, Uri } from "vscode";
-import { Block, mapRange } from "../../../../../../shared";
+import { Block, mapToVsCodeRange } from "../../../../../../shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -30,7 +30,7 @@ function getDiagnostic(
             sortedRedundantBlocks.length > 1
                 ? "Redundant blocks are defined."
                 : "Redundant block.",
-        range: mapRange(
+        range: mapToVsCodeRange(
             getRangeContainingBlocksSortedByPosition(sortedRedundantBlocks),
         ),
         relatedInformation:
@@ -39,7 +39,7 @@ function getDiagnostic(
                       message: `Redundant block '${name}'`,
                       location: {
                           uri: documentUri,
-                          range: mapRange(nameRange),
+                          range: mapToVsCodeRange(nameRange),
                       },
                   }))
                 : undefined,

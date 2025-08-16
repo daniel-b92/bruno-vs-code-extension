@@ -1,5 +1,5 @@
 import { DiagnosticSeverity, Uri } from "vscode";
-import { Block, isBodyBlock, mapRange } from "../../../../../../shared";
+import { Block, isBodyBlock, mapToVsCodeRange } from "../../../../../../shared";
 import { getSortedBlocksByPosition } from "../../../shared/util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -25,14 +25,14 @@ function getDiagnostic(
 ): DiagnosticWithCode {
     return {
         message: "Too many 'body' blocks are defined.",
-        range: mapRange(
+        range: mapToVsCodeRange(
             sortedBodyBlocks[sortedBodyBlocks.length - 1].nameRange
         ),
         relatedInformation: sortedBodyBlocks
             .slice(0, sortedBodyBlocks.length - 1)
             .map(({ name, nameRange }) => ({
                 message: `Other body block with name '${name}'`,
-                location: { uri: documentUri, range: mapRange(nameRange) },
+                location: { uri: documentUri, range: mapToVsCodeRange(nameRange) },
             })),
         severity: DiagnosticSeverity.Error,
         code: getCode(),

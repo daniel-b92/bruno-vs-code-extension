@@ -9,7 +9,7 @@ function init(_modules: {
         const proxy: ts.LanguageService = Object.create(null);
 
         for (const k of Object.keys(
-            info.languageService
+            info.languageService,
         ) as (keyof ts.LanguageService)[]) {
             const x = info.languageService[k]!;
             // @ts-expect-error - JS runtime trickery which is tricky to type tersely
@@ -22,7 +22,7 @@ function init(_modules: {
             return filterDefaultDiagnostics(
                 info,
                 fileName,
-                info.languageService.getSyntacticDiagnostics(fileName)
+                info.languageService.getSyntacticDiagnostics(fileName),
             ) as ts.DiagnosticWithLocation[];
         };
 
@@ -30,7 +30,7 @@ function init(_modules: {
             return filterDefaultDiagnostics(
                 info,
                 fileName,
-                info.languageService.getSemanticDiagnostics(fileName)
+                info.languageService.getSemanticDiagnostics(fileName),
             );
         };
 
@@ -44,7 +44,7 @@ function init(_modules: {
             const allDiagnosticsForCodeBlocks = filterDefaultDiagnostics(
                 info,
                 fileName,
-                defaultDiagnostics
+                defaultDiagnostics,
             ) as ts.DiagnosticWithLocation[];
 
             // The ts server always reports errors when importing a Javascript function in a .bru file.
@@ -52,7 +52,7 @@ function init(_modules: {
                 // Do not show diagnostics that only make sense for Typescript files.
                 // Bru file code blocks should be treated like Javascript functions instead.
                 // A list of diagnostics can be found here: https://github.com/microsoft/TypeScript/blob/main/src/compiler/diagnosticMessages.json
-                ({ code }) => (code < 7_043 || code > 7_050) && code != 80_004
+                ({ code }) => (code < 7_043 || code > 7_050) && code != 80_004,
             );
         };
 
@@ -62,7 +62,7 @@ function init(_modules: {
                 ? undefined
                 : info.languageService.getQuickInfoAtPosition(
                       fileName,
-                      position
+                      position,
                   );
         };
 
@@ -77,7 +77,7 @@ function init(_modules: {
 function filterDefaultDiagnostics(
     info: ts.server.PluginCreateInfo,
     fileName: string,
-    defaultDiagnostics: (ts.Diagnostic | ts.DiagnosticWithLocation)[]
+    defaultDiagnostics: (ts.Diagnostic | ts.DiagnosticWithLocation)[],
 ) {
     if (!isBrunoFile(fileName)) {
         return defaultDiagnostics;
@@ -103,9 +103,9 @@ function filterDefaultDiagnostics(
         }[] = [];
 
         for (const blockName of Object.values(TextBlockName)) {
-            const indizesForBlock = getTextBlockStartAndEndIndex(
+            const indizesForBlock = getCodeBlockStartAndEndIndex(
                 fileContent,
-                blockName
+                blockName,
             );
 
             if (indizesForBlock) {
@@ -120,16 +120,19 @@ function filterDefaultDiagnostics(
                     length != undefined &&
                     indizes.some(
                         ({ startIndex: blockStart, endIndex: blockEnd }) =>
-                            start >= blockStart && start <= blockEnd
+                            start >= blockStart && start <= blockEnd,
                     ) &&
                     // Do not show diagnostics for functions that are provided by Bruno at runtime
                     !["bru", "req", "res", "test", "expect"].includes(
-                        (fileContent as string).substring(start, start + length)
+                        (fileContent as string).substring(
+                            start,
+                            start + length,
+                        ),
                     ) &&
                     // Avoid showing incorrect error when using `require`
                     // (the error seems to only occur for short periods of time when typescript type definitions have not been reloaded for a while)
                     (fileContent as string).substring(start, start + length) !=
-                        "require"
+                        "require",
             );
         } else {
             return [];
@@ -137,16 +140,15 @@ function filterDefaultDiagnostics(
     }
 }
 
-function getTextBlockStartAndEndIndex(
+function getCodeBlockStartAndEndIndex(
     fullTextContent: string,
-    blockName: TextBlockName
+    blockName: TextBlockName,
 ) {
     const openingBracketChar = "{";
-    const closingBracketChar = "}";
 
     const startPattern = new RegExp(
         `^\\s*${blockName}\\s*${openingBracketChar}\\s*$`,
-        "m"
+        "m",
     );
     const startMatches = startPattern.exec(fullTextContent);
 
@@ -154,37 +156,30 @@ function getTextBlockStartAndEndIndex(
         return undefined;
     }
 
-    const contentStartIndex =
-        startMatches.index + startMatches[0].indexOf(openingBracketChar) + 1;
+    const blockStartIndex = startMatches.index;
+    const remainingDoc = fullTextContent.substring(blockStartIndex);
 
-    const remainingDoc = fullTextContent.substring(contentStartIndex);
-    const remainingDocLength = remainingDoc.length;
-    let openBracketsOnBlockLevel = 1;
-    let remainingDocCurrentIndex = 0;
+    const sourceFile = ts.createSourceFile(
+        "test.js",
+        remainingDoc,
+        ts.ScriptTarget.ES2020,
+    );
 
-    while (
-        openBracketsOnBlockLevel > 0 &&
-        remainingDocCurrentIndex < remainingDocLength
-    ) {
-        const currentChar = remainingDoc.charAt(remainingDocCurrentIndex);
+    const blockNodeInSubDocument = (sourceFile as ts.Node)
+        .getChildAt(0, sourceFile)
+        .getChildren(sourceFile)
+        .find(({ kind }) => kind == ts.SyntaxKind.Block);
 
-        openBracketsOnBlockLevel +=
-            currentChar == openingBracketChar
-                ? 1
-                : currentChar == closingBracketChar
-                ? -1
-                : 0;
-
-        remainingDocCurrentIndex++;
-    }
-
-    if (openBracketsOnBlockLevel > 0) {
-        return undefined;
+    if (!blockNodeInSubDocument) {
+        throw new Error(
+            `Could not find code block within given subdocument: ${remainingDoc}`,
+        );
     }
 
     return {
-        startIndex: contentStartIndex,
-        endIndex: remainingDocCurrentIndex + contentStartIndex,
+        startIndex:
+            blockStartIndex + startMatches[0].indexOf(openingBracketChar) + 1,
+        endIndex: blockStartIndex + blockNodeInSubDocument.end,
     };
 }
 

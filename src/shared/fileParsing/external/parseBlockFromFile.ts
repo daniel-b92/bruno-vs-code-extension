@@ -2,12 +2,11 @@ import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
 import { getBlockContent } from "../internal/getBlockContent";
 import { getBlockStartPatternByName } from "../internal/util/getBlockStartPatternByName";
 import { BlockBracket } from "../internal/util/blockBracketEnum";
-import { Position, shouldBeDictionaryBlock } from "../..";
-import { BlockType } from "../internal/util/BlockTypeEnum";
+import { getBlockType, Position } from "../..";
 
 export const parseBlockFromFile = (
     document: TextDocumentHelper,
-    blockName: string
+    blockName: string,
 ) => {
     const maybeMatches = document
         .getText()
@@ -18,7 +17,7 @@ export const parseBlockFromFile = (
     }
 
     const shouldBeArrayBlock = maybeMatches[0].includes(
-        BlockBracket.OpeningBracketForArrayBlock
+        BlockBracket.OpeningBracketForArrayBlock,
     );
 
     const openingBracket = shouldBeArrayBlock
@@ -32,8 +31,8 @@ export const parseBlockFromFile = (
                 0,
                 (maybeMatches.index as number) +
                     maybeMatches[0].indexOf(openingBracket) +
-                    1
-            )
+                    1,
+            ),
     );
     const lineIndex = subDocumentUntilBlockStart.getLineCount() - 1;
 
@@ -41,15 +40,11 @@ export const parseBlockFromFile = (
         lineIndex,
         subDocumentUntilBlockStart
             .getLineByIndex(lineIndex)
-            .lastIndexOf(openingBracket)
+            .lastIndexOf(openingBracket),
     );
     return getBlockContent(
         document,
         startingBracket,
-        shouldBeArrayBlock
-            ? BlockType.Array
-            : shouldBeDictionaryBlock(blockName)
-            ? BlockType.Dictionary
-            : BlockType.Text
+        getBlockType(maybeMatches[0], blockName),
     )?.content;
 };
