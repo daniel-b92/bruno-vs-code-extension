@@ -66,6 +66,7 @@ export function determineDiagnosticsForCollectionSettingsFile(
         ),
         checkBlocksAreSeparatedBySingleEmptyLine(
             documentUri,
+            blocks,
             textOutsideOfBlocks,
         ),
     );

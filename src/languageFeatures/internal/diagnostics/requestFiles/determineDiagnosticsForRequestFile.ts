@@ -105,6 +105,7 @@ function collectCommonDiagnostics(
         checkEitherAssertOrTestsBlockExists(documentHelper, blocks),
         checkBlocksAreSeparatedBySingleEmptyLine(
             documentUri,
+            blocks,
             textOutsideOfBlocks,
         ),
     );

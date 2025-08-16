@@ -7,4 +7,11 @@ export class Position {
     public equals(other: Position) {
         return other.line == this.line && other.character == this.character;
     }
+
+    public isBefore(other: Position) {
+        return (
+            this.line < other.line ||
+            (this.line == other.line && this.character < other.character)
+        );
+    }
 }

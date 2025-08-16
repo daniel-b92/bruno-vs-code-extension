@@ -64,6 +64,7 @@ export async function determineDiagnosticsForFolderSettingsFile(
         ),
         checkBlocksAreSeparatedBySingleEmptyLine(
             documentUri,
+            blocks,
             textOutsideOfBlocks,
         ),
     );
