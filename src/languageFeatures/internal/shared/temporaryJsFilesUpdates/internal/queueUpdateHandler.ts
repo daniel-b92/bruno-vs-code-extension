@@ -36,8 +36,14 @@ export class QueueUpdateHandler {
     ) {
         await this.getLockForRequest(id);
 
-        const { index } = this.getRequestFromQueue(id);
-        this.queue.splice(index, 1);
+        const requestFromQueue = this.getRequestFromQueue(id);
+
+        if (!requestFromQueue) {
+            this.removeLockForRequest(id);
+            return;
+        }
+
+        this.queue.splice(requestFromQueue.index, 1);
 
         this.removeLockForRequest(id);
         requestsRemovedFromQueueNotifier.fire([id]);
@@ -53,10 +59,12 @@ export class QueueUpdateHandler {
             .filter(({ request: queued }) => requestId == queued.id);
 
         if (matchingRequests.length != 1) {
-            throw new Error(
+            this.logger?.warn(
                 `Could not find exactly one temp JS update request in queue for the given ID.
                 Found ${matchingRequests.length} queued items matching the given ID.`,
             );
+
+            return undefined;
         }
 
         return matchingRequests[0];

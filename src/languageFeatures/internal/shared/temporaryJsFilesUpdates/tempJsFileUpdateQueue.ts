@@ -75,6 +75,19 @@ export class TempJsFileUpdateQueue {
 
             return fulfilledCondition as boolean;
         } catch (err) {
+            if (
+                Object.keys(err as object).includes("code") &&
+                (err as { code: string }).code == "ABORT_ERR"
+            ) {
+                this.logger?.warn(
+                    "Received abortion error that was thrown during temp js file creation. Will reset whole queuing state, in order to clean up the queue.",
+                );
+
+                this.resetWholeState();
+                // If a temp js file creation operation is aborted externally, an error is thrown.
+                return false;
+            }
+
             this.logger?.error(
                 `An internal error occured while trying to update temp js files for language features: '${(err as { message: string }).message}'. Will restart whole queue for updates.`,
             );
@@ -209,7 +222,16 @@ export class TempJsFileUpdateQueue {
         requestId: string,
         token?: CancellationToken,
     ) {
-        const { request } = this.queueUpdater.getRequestFromQueue(requestId);
+        const requestFromQueue =
+            this.queueUpdater.getRequestFromQueue(requestId);
+
+        if (!requestFromQueue) {
+            throw new Error(
+                `Could not find temp JS creation request in queue for the given ID.`,
+            );
+        }
+
+        const { request } = requestFromQueue;
 
         if (token && token.isCancellationRequested) {
             await this.removeFromQueue(requestId);
@@ -246,7 +268,14 @@ export class TempJsFileUpdateQueue {
         requestId: string,
         token?: CancellationToken,
     ) {
-        const { request } = this.queueUpdater.getRequestFromQueue(requestId);
+        const requestFromQueue =
+            this.queueUpdater.getRequestFromQueue(requestId);
+
+        if (!requestFromQueue) {
+            return false;
+        }
+
+        const { request } = requestFromQueue;
 
         if (token && token.isCancellationRequested) {
             await this.removeFromQueue(requestId);
