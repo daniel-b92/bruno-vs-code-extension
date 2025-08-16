@@ -51,7 +51,7 @@ export class TextDocumentHelper {
                 content,
             }))
             .concat(
-                this.lines.lastLine
+                this.lines.lastLine != undefined
                     ? [
                           {
                               index: this.lines.fullLines.length,
@@ -93,7 +93,7 @@ export class TextDocumentHelper {
     public getLineCount() {
         return (
             this.lines.fullLines.length +
-            (this.lines.lastLine && this.lines.lastLine.length > 0 ? 1 : 0)
+            (this.lines.lastLine != undefined ? 1 : 0)
         ); // The last line needs to be counted separately
     }
 
@@ -136,7 +136,9 @@ export class TextDocumentHelper {
             .concat(
                 toReplace.lineIndex == this.getLineCount() - 1
                     ? adjustedLine
-                    : (this.lines.lastLine ?? ""),
+                    : this.lines.lastLine != undefined
+                      ? this.lines.lastLine
+                      : "",
             );
     }
 
