@@ -286,14 +286,16 @@ const parseJsonBlock = (
         getNonBlockSpecificBlockStartPattern(),
     );
 
-    const blockContentEndIndex = fullRemainingText
-        .substring(
-            0,
-            followingBlockStartIndex >= 0
-                ? followingBlockStartIndex
-                : undefined,
-        )
-        .lastIndexOf(BlockBracket.ClosingBracketForDictionaryOrTextBlock);
+    const blockContentEndIndex =
+        followingBlockStartIndex < 0
+            ? fullRemainingText.lastIndexOf(
+                  BlockBracket.ClosingBracketForDictionaryOrTextBlock,
+              )
+            : fullRemainingText
+                  .substring(0, followingBlockStartIndex)
+                  .lastIndexOf(
+                      BlockBracket.ClosingBracketForDictionaryOrTextBlock,
+                  );
 
     const subDocument = new TextDocumentHelper(
         fullRemainingText.substring(0, blockContentEndIndex),
