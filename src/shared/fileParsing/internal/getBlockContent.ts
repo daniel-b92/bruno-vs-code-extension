@@ -4,7 +4,7 @@ import {
     PlainTextWithinBlock,
 } from "../external/interfaces";
 import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
-import { parseCodeBlock, Position, Range } from "../..";
+import { parseCodeBlockFromBruFile, Position, Range } from "../..";
 import { BlockType } from "./util/BlockTypeEnum";
 import { parseJsonBlock } from "./parseJsonBlock";
 import { parsePlainTextBlock } from "./parsePlainTextBlock";
@@ -33,7 +33,7 @@ export const getBlockContent = (
         case BlockType.Dictionary:
             return parseDictionaryBlock(document, firsContentLine);
         case BlockType.Code:
-            return parseCodeBlock(document, firsContentLine);
+            return parseCodeBlockFromBruFile(document, firsContentLine);
         case BlockType.Json:
             return parseJsonBlock(document, firsContentLine);
         case BlockType.PlainText:

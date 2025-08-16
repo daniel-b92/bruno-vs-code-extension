@@ -1,9 +1,10 @@
-import { createSourceFile, ScriptTarget, Node, SyntaxKind } from "typescript";
+import { createSourceFile, ScriptTarget, Node, SourceFile } from "typescript";
 import { Position, Range, TextDocumentHelper } from "../..";
 
 export function parseCodeBlock(
     document: TextDocumentHelper,
     firstContentLine: number,
+    callbackForGettingBlockNode: (sourceFile: SourceFile) => Node | undefined,
 ):
     | {
           content: string;
@@ -22,15 +23,10 @@ export function parseCodeBlock(
         ScriptTarget.ES2020,
     );
 
-    const blockNode = (sourceFile as Node)
-        .getChildAt(0, sourceFile)
-        .getChildren(sourceFile)
-        .find(({ kind }) => kind == SyntaxKind.Block);
+    const blockNode = callbackForGettingBlockNode(sourceFile);
 
     if (!blockNode) {
-        throw new Error(
-            `Could not find code block within given subdocument: ${subDocument.getText()}`,
-        );
+        return undefined;
     }
 
     const fullBlockEndOffset = blockNode.end;

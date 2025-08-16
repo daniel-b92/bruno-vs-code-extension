@@ -24,6 +24,7 @@ export * from "./arrayUtils/someAsync";
 export * from "./fileParsing/external/requestFiles/metaBlock/getMaxSequenceForRequests";
 export * from "./fileParsing/external/requestFiles/metaBlock/getSequencesForRequests";
 export * from "./fileParsing/external/parseBruFile";
+export * from "./fileParsing/external/parseCodeBlockFromBruFile";
 export * from "./fileParsing/external/parseCodeBlock";
 export * from "./fileParsing/external/interfaces";
 export * from "./fileParsing/external/shouldBeDictionaryBlock";

@@ -1,4 +1,6 @@
+import { Node, SourceFile, SyntaxKind } from "typescript";
 import {
+    parseCodeBlock,
     Range,
     RequestFileBlockName,
     TextDocumentHelper,
@@ -7,7 +9,7 @@ import { mapBlockNameToJsFileLine } from "./mapBlockNameToJsFileFunctionName";
 
 export function getTempJsFileBlockContent(
     fullFileContent: string,
-    blockName: RequestFileBlockName
+    blockName: RequestFileBlockName,
 ): { content: string; range: Range } | undefined {
     const expectedFunctionDeclarationLine = mapBlockNameToJsFileLine(blockName);
 
@@ -20,9 +22,27 @@ export function getTempJsFileBlockContent(
         return undefined;
     }
 
-    return documentHelper.getContentUntilClosingChar(
+    const parsedBlock = parseCodeBlockFromTempJsFile(
+        documentHelper,
         functionDeclarationLine.index + 1,
-        "{",
-        "}"
+    );
+
+    return parsedBlock
+        ? { content: parsedBlock.content, range: parsedBlock.contentRange }
+        : undefined;
+}
+
+function parseCodeBlockFromTempJsFile(
+    document: TextDocumentHelper,
+    firstContentLine: number,
+) {
+    return parseCodeBlock(
+        document,
+        firstContentLine,
+        (sourceFile: SourceFile) =>
+            (sourceFile as Node)
+                .getChildAt(0, sourceFile)
+                .getChildren(sourceFile)
+                .find(({ kind }) => kind == SyntaxKind.FunctionDeclaration),
     );
 }
