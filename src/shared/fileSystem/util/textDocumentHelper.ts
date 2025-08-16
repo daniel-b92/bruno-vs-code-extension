@@ -279,6 +279,15 @@ export class TextDocumentHelper {
             : undefined;
     }
 
+    public getTextStartingInLine(lineIndex: number) {
+        return this.getText(
+            new Range(
+                new Position(lineIndex, 0),
+                new Position(this.getLineCount() - 1, Number.MAX_SAFE_INTEGER),
+            ),
+        );
+    }
+
     public getText(range?: Range) {
         if (!range) {
             return this.text;

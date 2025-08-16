@@ -36,8 +36,7 @@ export const getBlockContent = (
         case BlockType.Json:
             return parseJsonBlock(document, firsContentLine);
         case BlockType.PlainText:
-            // ToDo: Adjust parsing for plain text blocks by determining block end via full line regex pattern.
-            return parseTextBlock(document, firsContentLine);
+            return parsePlainTextBlock(document, firsContentLine);
         default:
             throw new Error(
                 `Cannot parse block with unknown type '${blockType}'. Known block types are ${JSON.stringify(
@@ -126,7 +125,7 @@ const parseArrayBlock = (
                           },
                       ],
             ),
-        contentRange: getContentRange(
+        contentRange: getContentRangeForArrayOrDictionaryBlock(
             firstContentLine,
             BlockBracket.ClosingBracketForArrayBlock,
             lastLineForBlock.index,
@@ -200,7 +199,7 @@ const parseDictionaryBlock = (
 
     return {
         content: lines.map(({ content }) => content),
-        contentRange: getContentRange(
+        contentRange: getContentRangeForArrayOrDictionaryBlock(
             firstContentLine,
             BlockBracket.ClosingBracketForDictionaryOrTextBlock,
             lineIndex,
@@ -213,18 +212,10 @@ const parseCodeBlock = (
     document: TextDocumentHelper,
     firstContentLine: number,
 ) => {
-    const subDocumentStartPosition = new Position(firstContentLine - 1, 0);
+    const blockStartLine = firstContentLine - 1;
 
     const subDocument = new TextDocumentHelper(
-        document.getText(
-            new Range(
-                subDocumentStartPosition,
-                new Position(
-                    document.getLineCount() - 1,
-                    Number.MAX_SAFE_INTEGER,
-                ),
-            ),
-        ),
+        document.getTextStartingInLine(blockStartLine),
     );
 
     const sourceFile = createSourceFile(
@@ -258,7 +249,7 @@ const parseCodeBlock = (
     const contentRange = new Range(
         new Position(firstContentLine, 0),
         new Position(
-            subDocumentStartPosition.line + blockContentEndInSubDocument.line,
+            blockStartLine + blockContentEndInSubDocument.line,
             blockContentEndInSubDocument.character,
         ),
     );
@@ -273,14 +264,7 @@ const parseJsonBlock = (
     document: TextDocumentHelper,
     firstContentLine: number,
 ) => {
-    const subDocumentStartPosition = new Position(firstContentLine, 0);
-
-    const fullRemainingText = document.getText(
-        new Range(
-            subDocumentStartPosition,
-            new Position(document.getLineCount() - 1, Number.MAX_SAFE_INTEGER),
-        ),
-    );
+    const fullRemainingText = document.getTextStartingInLine(firstContentLine);
 
     const followingBlockStartIndex = fullRemainingText.search(
         getNonBlockSpecificBlockStartPattern(),
@@ -327,7 +311,7 @@ const parseJsonBlock = (
     const contentRange = new Range(
         new Position(firstContentLine, 0),
         new Position(
-            subDocumentStartPosition.line + blockContentEndInSubDocument.line,
+            firstContentLine + blockContentEndInSubDocument.line,
             blockContentEndInSubDocument.character,
         ),
     );
@@ -338,22 +322,47 @@ const parseJsonBlock = (
     };
 };
 
-const parseTextBlock = (
+const parsePlainTextBlock = (
     document: TextDocumentHelper,
     firstContentLine: number,
 ) => {
-    const result = document.getContentUntilClosingChar(
-        firstContentLine,
-        BlockBracket.OpeningBracketForDictionaryOrTextBlock,
-        BlockBracket.ClosingBracketForDictionaryOrTextBlock,
+    const patternForBlockEnd = new RegExp(
+        `^\\s*${BlockBracket.ClosingBracketForDictionaryOrTextBlock}\\s*$`,
+        "m",
     );
 
-    return result
-        ? { content: result.content, contentRange: result.range }
-        : undefined;
+    let blockEndPosition: Position | undefined = undefined;
+
+    document.getAllLines(firstContentLine).find(({ content, index }) => {
+        const patternMatches = content.match(patternForBlockEnd);
+
+        if (patternMatches && patternMatches.length > 0) {
+            blockEndPosition = new Position(
+                index,
+                content.indexOf(
+                    BlockBracket.ClosingBracketForDictionaryOrTextBlock,
+                ),
+            );
+
+            return true;
+        }
+
+        return false;
+    });
+
+    if (!blockEndPosition) {
+        return undefined;
+    }
+
+    const contentRange = new Range(
+        new Position(firstContentLine, 0),
+        blockEndPosition,
+    );
+
+    return { content: document.getText(contentRange), contentRange };
 };
 
-const getContentRange = (
+const getContentRangeForArrayOrDictionaryBlock = (
     firstLineIndex: number,
     closingBracket: BlockBracket,
     lineWithClosingBracketIndex: number,
