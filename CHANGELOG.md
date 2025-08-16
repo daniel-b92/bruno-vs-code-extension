@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.16.3] (2025-08-16)
 
 ### Fixes / Improvements
 - Show suggestion for adding `tsconfig.json` files for each collection because otherwise the typescript language server runs into issues when trying to determine the project.
