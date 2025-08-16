@@ -14,6 +14,7 @@ import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocument
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { format } from "prettier";
 import { mapBlockNameToJsFileLine } from "../shared/codeBlocksUtils/mapBlockNameToJsFileFunctionName";
+import { BlockBracket } from "../../../shared/fileParsing/internal/util/blockBracketEnum";
 
 export function registerCodeBlockFormatter(_logger?: OutputChannelLogger) {
     return languages.registerDocumentFormattingEditProvider(
@@ -27,28 +28,42 @@ export function registerCodeBlockFormatter(_logger?: OutputChannelLogger) {
                 const codeBlocks = getCodeBlocks(blocks);
                 const lineBreak = getLineBreak(document);
 
-                const textEdits: Promise<TextEdit>[] = [];
+                const textEdits: Promise<TextEdit | undefined>[] = [];
 
                 for (const block of codeBlocks) {
                     textEdits.push(getTextEditForBlock(block, lineBreak));
                 }
 
-                return await Promise.all(textEdits);
+                return (await Promise.all(textEdits)).filter(
+                    (edit) => edit,
+                ) as TextEdit[];
             },
         },
     );
 }
 
 async function getTextEditForBlock(block: Block, documentLineBreak: string) {
-    const formattedWithDummyFunctionReplacement = await format(
-        `${mapBlockNameToJsFileLine(block.name as RequestFileBlockName)}${documentLineBreak}${block.content.toString()}${documentLineBreak}}`,
-        {
-            parser: "typescript",
-        },
-    );
+    const toFormat = `${mapBlockNameToJsFileLine(block.name as RequestFileBlockName)}${documentLineBreak}${block.content.toString()}}`;
+
+    const formattedWithDummyFunctionReplacement = await format(toFormat, {
+        parser: "typescript",
+    });
+
+    if (
+        !formattedWithDummyFunctionReplacement.includes(
+            BlockBracket.ClosingBracketForDictionaryOrTextBlock,
+        )
+    ) {
+        return undefined;
+    }
 
     const docHelperForDummyFunctionReplacement = new TextDocumentHelper(
-        formattedWithDummyFunctionReplacement,
+        formattedWithDummyFunctionReplacement.substring(
+            0,
+            formattedWithDummyFunctionReplacement.lastIndexOf(
+                BlockBracket.ClosingBracketForDictionaryOrTextBlock,
+            ) + 1, // The formatter sometimes adds an extra empty line at the end of the text.
+        ),
     );
 
     const lastLineIndex =
