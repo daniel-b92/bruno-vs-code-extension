@@ -91,7 +91,8 @@
                 "enableForWorkspaceTypeScriptVersions": true,
                 "name": "@zentryc5t/ts-plugin-for-bruno",
                 "languages": [
-                    "bru"
+                    "bru",
+                    "js"
                 ]
             }
         ],

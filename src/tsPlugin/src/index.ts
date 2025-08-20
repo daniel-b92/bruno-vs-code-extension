@@ -240,7 +240,27 @@ function isACollectionRootFolder(
 ) {
     return info.serverHost
         .readDirectory(directoryPath, undefined, undefined, undefined, 1)
-        .some((fileName) => fileName.endsWith("bruno.json"));
+        .some((fileName) => {
+            if (!fileName.endsWith("bruno.json")) {
+                return false;
+            }
+
+            const content = info.languageServiceHost.readFile(fileName);
+
+            if (!content) {
+                return false;
+            }
+
+            try {
+                const parsedContent = JSON.parse(content) as
+                    | { type: string }
+                    | undefined;
+
+                return parsedContent && parsedContent.type == "collection";
+            } catch {
+                return false;
+            }
+        });
 }
 
 function isBrunoFile(fileName: string) {
