@@ -1,3 +1,8 @@
+## [Unreleased]
+
+### Fixes / Improvements
+- Do not show errors in JS files that are inside collections for inbuilt `Bruno` variables like `bru`, `req` and `res`.
+
 ## [0.16.3] (2025-08-16)
 
 ### Fixes / Improvements

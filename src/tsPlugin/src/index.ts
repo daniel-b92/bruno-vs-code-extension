@@ -1,4 +1,4 @@
-import { extname } from "path";
+import { dirname, extname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
 
 function init(_modules: {
@@ -52,7 +52,10 @@ function init(_modules: {
                 // Do not show diagnostics that only make sense for Typescript files.
                 // Bru file code blocks should be treated like Javascript functions instead.
                 // A list of diagnostics can be found here: https://github.com/microsoft/TypeScript/blob/main/src/compiler/diagnosticMessages.json
-                ({ code }) => (code < 7_043 || code > 7_050) && code != 80_004,
+                ({ code }) =>
+                    (code < 7_043 || code > 7_050) &&
+                    code != 80_001 &&
+                    code != 80_004,
             );
         };
 
@@ -79,18 +82,19 @@ function filterDefaultDiagnostics(
     fileName: string,
     defaultDiagnostics: (ts.Diagnostic | ts.DiagnosticWithLocation)[],
 ) {
-    if (!isBrunoFile(fileName)) {
-        return defaultDiagnostics;
-    } else {
-        let fileContent: string | undefined = undefined;
-        const scriptSnapshot =
-            info.languageServiceHost.getScriptSnapshot(fileName);
+    if (isJsFileFromBrunoCollection(info, fileName)) {
+        const fileContent = getFileContent(info, fileName);
 
-        if (scriptSnapshot) {
-            fileContent = scriptSnapshot.getText(0, scriptSnapshot.getLength());
-        } else {
-            fileContent = info.languageServiceHost.readFile(fileName);
+        if (!fileContent) {
+            return [];
         }
+
+        return filterOutDiagnosticsForInbuiltRuntimeFunctions(
+            defaultDiagnostics,
+            fileContent,
+        );
+    } else if (isBrunoFile(fileName)) {
+        const fileContent = getFileContent(info, fileName);
 
         if (!fileContent) {
             return [];
@@ -113,30 +117,23 @@ function filterDefaultDiagnostics(
             }
         }
 
-        if (indizes.length > 0) {
-            return defaultDiagnostics.filter(
-                ({ start, length }) =>
+        if (indizes.length == 0) {
+            return [];
+        }
+
+        return filterOutDiagnosticsForInbuiltRuntimeFunctions(
+            defaultDiagnostics.filter(
+                ({ start }) =>
                     start != undefined &&
-                    length != undefined &&
                     indizes.some(
                         ({ startIndex: blockStart, endIndex: blockEnd }) =>
                             start >= blockStart && start <= blockEnd,
-                    ) &&
-                    // Do not show diagnostics for functions that are provided by Bruno at runtime
-                    !["bru", "req", "res", "test", "expect"].includes(
-                        (fileContent as string).substring(
-                            start,
-                            start + length,
-                        ),
-                    ) &&
-                    // Avoid showing incorrect error when using `require`
-                    // (the error seems to only occur for short periods of time when typescript type definitions have not been reloaded for a while)
-                    (fileContent as string).substring(start, start + length) !=
-                        "require",
-            );
-        } else {
-            return [];
-        }
+                    ),
+            ),
+            fileContent,
+        );
+    } else {
+        return defaultDiagnostics;
     }
 }
 
@@ -181,6 +178,89 @@ function getCodeBlockStartAndEndIndex(
             blockStartIndex + startMatches[0].indexOf(openingBracketChar) + 1,
         endIndex: blockStartIndex + blockNodeInSubDocument.end,
     };
+}
+
+function isJsFileFromBrunoCollection(
+    info: ts.server.PluginCreateInfo,
+    fileName: string,
+) {
+    return extname(fileName) == ".js" && isInABrunoCollection(info, fileName);
+}
+
+function filterOutDiagnosticsForInbuiltRuntimeFunctions(
+    diagnosticsToFilter: (ts.Diagnostic | ts.DiagnosticWithLocation)[],
+    fileContent: string,
+) {
+    return diagnosticsToFilter.filter(
+        ({ start, length }) =>
+            start != undefined &&
+            length != undefined &&
+            // Do not show diagnostics for functions that are provided by Bruno at runtime
+            !["bru", "req", "res", "test", "expect"].includes(
+                fileContent.substring(start, start + length),
+            ) &&
+            // Avoid showing incorrect error when using `require`
+            // (the error seems to only occur for short periods of time when typescript type definitions have not been reloaded for a while)
+            fileContent.substring(start, start + length) != "require",
+    );
+}
+
+function getFileContent(info: ts.server.PluginCreateInfo, fileName: string) {
+    const scriptSnapshot = info.languageServiceHost.getScriptSnapshot(fileName);
+
+    if (scriptSnapshot) {
+        return scriptSnapshot.getText(0, scriptSnapshot.getLength());
+    } else {
+        return info.languageServiceHost.readFile(fileName);
+    }
+}
+
+function isInABrunoCollection(
+    info: ts.server.PluginCreateInfo,
+    fileName: string,
+) {
+    let currentDirectory = dirname(fileName);
+    let isCollectionRoot = isACollectionRootFolder(info, currentDirectory);
+
+    while (
+        info.serverHost.directoryExists(currentDirectory) &&
+        !isCollectionRoot &&
+        dirname(currentDirectory) != currentDirectory // dirname of a base folder in the file system seems to return the input folder again
+    ) {
+        currentDirectory = dirname(currentDirectory);
+        isCollectionRoot = isACollectionRootFolder(info, currentDirectory);
+    }
+
+    return isCollectionRoot;
+}
+
+function isACollectionRootFolder(
+    info: ts.server.PluginCreateInfo,
+    directoryPath: string,
+) {
+    return info.serverHost
+        .readDirectory(directoryPath, undefined, undefined, undefined, 1)
+        .some((fileName) => {
+            if (!fileName.endsWith("bruno.json")) {
+                return false;
+            }
+
+            const content = info.languageServiceHost.readFile(fileName);
+
+            if (!content) {
+                return false;
+            }
+
+            try {
+                const parsedContent = JSON.parse(content) as
+                    | { type: string }
+                    | undefined;
+
+                return parsedContent && parsedContent.type == "collection";
+            } catch {
+                return false;
+            }
+        });
 }
 
 function isBrunoFile(fileName: string) {
