@@ -13,7 +13,7 @@ import {
     FileChangedEvent,
     CollectionItemProvider,
     TestRunnerDataHelper,
-    getTemporaryJsFileName,
+    getTemporaryJsFileNameForBruFile,
     OutputChannelLogger,
 } from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures";
@@ -88,5 +88,5 @@ export async function activate(context: ExtensionContext) {
 }
 
 function getPathsToIgnoreForCollection(collectionRootDirectory: string) {
-    return [getTemporaryJsFileName(collectionRootDirectory)];
+    return [getTemporaryJsFileNameForBruFile(collectionRootDirectory)];
 }

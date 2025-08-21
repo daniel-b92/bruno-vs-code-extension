@@ -8,7 +8,7 @@ import {
 import {
     Block,
     Collection,
-    getTemporaryJsFileName,
+    getTemporaryJsFileNameForBruFile,
     OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
@@ -18,6 +18,7 @@ import { getCodeBlocks } from "./getCodeBlocks";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
 import { TempJsFileUpdateQueue } from "../temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "../temporaryJsFilesUpdates/internal/interfaces";
+import { getMappedTempJsFileContent } from "./getMappedTempJsFileContent";
 
 export interface TempJsSyncRequest {
     collection: Collection;
@@ -45,11 +46,17 @@ export async function waitForTempJsFileToBeInSyncWithBruFile(
         return undefined;
     }
 
+    const tempJsFilePath = getTemporaryJsFileNameForBruFile(
+        collection.getRootDirectory(),
+    );
+
     const shouldContinue = await queue.addToQueue({
-        collectionRootFolder: collection.getRootDirectory(),
+        filePath: tempJsFilePath,
         update: {
             type: TempJsUpdateType.Creation,
-            bruFileContent: bruFileContentSnapshot,
+            tempJsFileContent: getMappedTempJsFileContent(
+                bruFileContentSnapshot,
+            ),
         },
         cancellationToken: token,
     });
@@ -61,9 +68,7 @@ export async function waitForTempJsFileToBeInSyncWithBruFile(
         return undefined;
     }
 
-    const virtualJsFileUri = Uri.file(
-        getTemporaryJsFileName(collection.getRootDirectory()),
-    );
+    const virtualJsFileUri = Uri.file(tempJsFilePath);
 
     if (shouldAbort(token)) {
         addLogEntryForAbortion(logger);

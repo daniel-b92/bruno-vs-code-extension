@@ -25,7 +25,7 @@ import {
     TextDocumentHelper,
     checkIfPathExistsAsync,
     isBrunoFileType,
-    getTemporaryJsFileName,
+    getTemporaryJsFileNameForBruFile,
     filterAsync,
 } from "../shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDiagnosticsProvider";
@@ -39,6 +39,7 @@ import { extname } from "path";
 import { registerCodeBlockFormatter } from "./internal/formatting/registerCodeBlockFormatter";
 import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "./internal/shared/temporaryJsFilesUpdates/internal/interfaces";
+import { getMappedTempJsFileContent } from "./internal/shared/codeBlocksUtils/getMappedTempJsFileContent";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
@@ -156,10 +157,13 @@ async function onDidChangeActiveTextEditor(
             ).getRootDirectory();
 
             await queue.addToQueue({
-                collectionRootFolder,
+                filePath:
+                    getTemporaryJsFileNameForBruFile(collectionRootFolder),
                 update: {
                     type: TempJsUpdateType.Creation,
-                    bruFileContent: editor.document.getText(),
+                    tempJsFileContent: getMappedTempJsFileContent(
+                        editor.document.getText(),
+                    ),
                 },
             });
         } else {
@@ -218,7 +222,9 @@ async function onWillSaveTextDocument(
 
         if (collection) {
             queue.addToQueue({
-                collectionRootFolder: collection.getRootDirectory(),
+                filePath: getTemporaryJsFileNameForBruFile(
+                    collection.getRootDirectory(),
+                ),
                 update: { type: TempJsUpdateType.Deletion },
             });
         }
@@ -317,17 +323,18 @@ async function deleteAllTemporaryJsFiles(
     const deletions: Promise<boolean>[] = [];
 
     const existingFiles = await filterAsync(
-        itemProvider.getRegisteredCollections().map((collection) => ({
-            collectionRootFolder: collection.getRootDirectory(),
-            filePath: getTemporaryJsFileName(collection.getRootDirectory()),
-        })),
-        async ({ filePath }) => await checkIfPathExistsAsync(filePath),
+        itemProvider
+            .getRegisteredCollections()
+            .map((collection) =>
+                getTemporaryJsFileNameForBruFile(collection.getRootDirectory()),
+            ),
+        async (filePath) => await checkIfPathExistsAsync(filePath),
     );
 
-    for (const { collectionRootFolder } of existingFiles) {
+    for (const filePath of existingFiles) {
         deletions.push(
             updateQueue.addToQueue({
-                collectionRootFolder,
+                filePath,
                 update: { type: TempJsUpdateType.Deletion },
             }),
         );

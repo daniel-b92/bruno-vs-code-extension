@@ -1,8 +1,5 @@
 import { EventEmitter } from "vscode";
-import {
-    OutputChannelLogger,
-    normalizeDirectoryPath,
-} from "../../../../../shared";
+import { OutputChannelLogger } from "../../../../../shared";
 import { TempJsUpdateRequest, TempJsUpdateType } from "./interfaces";
 
 export class QueueUpdateHandler {
@@ -79,10 +76,7 @@ export class QueueUpdateHandler {
         id: string,
         requestRemovedFromQueueNotifier: EventEmitter<string[]>,
     ) {
-        const {
-            update: newUpdate,
-            collectionRootFolder: collectionForNewRequest,
-        } = newRequest;
+        const { update: newUpdate, filePath: pathForNewRequest } = newRequest;
 
         await this.getLockForRequest(id);
 
@@ -103,14 +97,11 @@ export class QueueUpdateHandler {
             .filter(
                 ({
                     request: {
-                        collectionRootFolder: collectionForQueuedRequest,
+                        filePath: pathForQueuedRequest,
                         update: queuedUpdate,
                     },
                 }) => {
-                    if (
-                        normalizeDirectoryPath(collectionForNewRequest) !=
-                        normalizeDirectoryPath(collectionForQueuedRequest)
-                    ) {
+                    if (pathForNewRequest != pathForQueuedRequest) {
                         return false;
                     }
 
@@ -118,8 +109,8 @@ export class QueueUpdateHandler {
                         newUpdate.type != queuedUpdate.type ||
                         newUpdate.type == TempJsUpdateType.Deletion ||
                         (queuedUpdate.type == TempJsUpdateType.Creation &&
-                            newUpdate.bruFileContent !=
-                                queuedUpdate.bruFileContent)
+                            newUpdate.tempJsFileContent !=
+                                queuedUpdate.tempJsFileContent)
                     );
                 },
             );

@@ -1,12 +1,10 @@
 import { TempJsUpdateRequest, TempJsUpdateType } from "../internal/interfaces";
 import {
     checkIfPathExistsAsync,
-    getTemporaryJsFileName,
-    normalizeDirectoryPath,
     OutputChannelLogger,
 } from "../../../../../shared";
 import { createTemporaryJsFile } from "../internal/createTemporaryJsFile";
-import { deleteTemporaryJsFileForCollection } from "../internal/deleteTemporaryJsFile";
+import { deleteTemporaryJsFile } from "../internal/deleteTemporaryJsFile";
 import { CancellationToken, EventEmitter } from "vscode";
 import { setTimeout } from "timers/promises";
 import { QueueUpdateHandler } from "../internal/queueUpdateHandler";
@@ -14,7 +12,7 @@ import { QueueUpdateHandler } from "../internal/queueUpdateHandler";
 export class TempJsFileUpdateQueue {
     constructor(private logger?: OutputChannelLogger) {
         this.activeUpdate = undefined;
-        this.latestRequestBruFileContent = undefined;
+        this.latestRequestTempJsFileContent = undefined;
         this.queueUpdater = new QueueUpdateHandler(logger);
 
         this.requestRemovedFromQueueNotifier.event((removedRequestIds) => {
@@ -39,7 +37,7 @@ export class TempJsFileUpdateQueue {
         | { request: TempJsUpdateRequest; id: string }
         | undefined;
     private requestCanBeRunNotifier = new EventEmitter<string>();
-    private latestRequestBruFileContent: string | undefined;
+    private latestRequestTempJsFileContent: string | undefined;
     private requestRemovedFromQueueNotifier = new EventEmitter<string[]>();
     private requestAddedToQueueNotifier = new EventEmitter<{
         request: TempJsUpdateRequest;
@@ -109,7 +107,7 @@ export class TempJsFileUpdateQueue {
         this.queueUpdater.resetWholeState(this.requestRemovedFromQueueNotifier);
         this.queueUpdater = new QueueUpdateHandler(this.logger);
         this.activeUpdate = undefined;
-        this.latestRequestBruFileContent = undefined;
+        this.latestRequestTempJsFileContent = undefined;
     }
 
     private async tryToAddToQueue(updateRequest: TempJsUpdateRequest) {
@@ -198,14 +196,13 @@ export class TempJsFileUpdateQueue {
 
         if (
             request.update.type == TempJsUpdateType.Creation &&
-            request.update.bruFileContent != this.latestRequestBruFileContent
+            request.update.tempJsFileContent !=
+                this.latestRequestTempJsFileContent
         ) {
             result = await this.triggerCreationUpdate(id, token);
         } else if (
             request.update.type == TempJsUpdateType.Deletion &&
-            (await checkIfPathExistsAsync(
-                getTemporaryJsFileName(request.collectionRootFolder),
-            ))
+            (await checkIfPathExistsAsync(request.filePath))
         ) {
             result = await this.triggerDeletionUpdate(id, token);
         } else {
@@ -241,7 +238,7 @@ export class TempJsFileUpdateQueue {
         this.activeUpdate = request;
 
         const {
-            request: { collectionRootFolder, update },
+            request: { filePath: tempJsFilePath, update },
         } = request;
 
         if (update.type != TempJsUpdateType.Creation) {
@@ -251,14 +248,14 @@ export class TempJsFileUpdateQueue {
         }
 
         const wasSuccessful = await createTemporaryJsFile(
-            collectionRootFolder,
-            update.bruFileContent,
+            tempJsFilePath,
+            update.tempJsFileContent,
             token,
             this.logger,
         );
 
         if (wasSuccessful) {
-            this.latestRequestBruFileContent = update.bruFileContent;
+            this.latestRequestTempJsFileContent = update.tempJsFileContent;
         }
 
         return wasSuccessful;
@@ -285,14 +282,10 @@ export class TempJsFileUpdateQueue {
         this.activeUpdate = request;
 
         const {
-            request: { collectionRootFolder },
+            request: { filePath },
         } = request;
 
-        if (
-            await checkIfPathExistsAsync(
-                getTemporaryJsFileName(collectionRootFolder),
-            )
-        ) {
+        if (await checkIfPathExistsAsync(filePath)) {
             const deletionIdentifier = 0;
             const cancellationIdentifier = 1;
             const otherCreationRequestIdentifier = 2;
@@ -316,16 +309,10 @@ export class TempJsFileUpdateQueue {
                     this.waitForRequestToBeAddedToQueue().then((newRequest) => {
                         const {
                             id: newId,
-                            request: {
-                                collectionRootFolder: newCollectionRoot,
-                            },
+                            request: { filePath: newFilePath },
                         } = newRequest;
 
-                        if (
-                            newId != requestId &&
-                            normalizeDirectoryPath(newCollectionRoot) ==
-                                normalizeDirectoryPath(collectionRootFolder)
-                        ) {
+                        if (newId != requestId && newFilePath == filePath) {
                             this.logger?.debug(
                                 `Removing temp js file deletion request from queue since newer request exists for same file already.`,
                             );
@@ -343,12 +330,9 @@ export class TempJsFileUpdateQueue {
             ]);
 
             if (fulfilledCondition == deletionIdentifier) {
-                await deleteTemporaryJsFileForCollection(
-                    collectionRootFolder,
-                    this.logger,
-                );
+                await deleteTemporaryJsFile(filePath, this.logger);
 
-                this.latestRequestBruFileContent = undefined;
+                this.latestRequestTempJsFileContent = undefined;
 
                 if (token && token.isCancellationRequested) {
                     this.logger?.debug(
@@ -398,7 +382,7 @@ export class TempJsFileUpdateQueue {
     }
 
     private getIdForRequest(request: TempJsUpdateRequest) {
-        const { collectionRootFolder, update } = request;
-        return `${collectionRootFolder}-${update.type == TempJsUpdateType.Creation ? `${update.bruFileContent}` : update.type}-${new Date().getTime()}`;
+        const { filePath, update } = request;
+        return `${filePath}-${update.type == TempJsUpdateType.Creation ? `${update.tempJsFileContent}` : update.type}-${new Date().getTime()}`;
     }
 }

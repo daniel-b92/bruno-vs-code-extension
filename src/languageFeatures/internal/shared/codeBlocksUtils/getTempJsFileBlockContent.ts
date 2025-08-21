@@ -8,12 +8,12 @@ import {
 import { mapBlockNameToJsFileLine } from "./mapBlockNameToJsFileFunctionName";
 
 export function getTempJsFileBlockContent(
-    fullFileContent: string,
+    fullTempJsFileContent: string,
     blockName: RequestFileBlockName,
 ): { content: string; range: Range } | undefined {
     const expectedFunctionDeclarationLine = mapBlockNameToJsFileLine(blockName);
 
-    const documentHelper = new TextDocumentHelper(fullFileContent);
+    const documentHelper = new TextDocumentHelper(fullTempJsFileContent);
     const functionDeclarationLine = documentHelper
         .getAllLines()
         .find(({ content }) => content == expectedFunctionDeclarationLine);
