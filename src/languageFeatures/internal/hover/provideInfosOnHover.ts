@@ -12,8 +12,8 @@ import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocument
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
-import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSync";
-import { TempJsFileUpdateQueue } from "../shared/temporaryJsFilesUpdates/tempJsFileUpdateQueue";
+import { waitForTempJsFileToBeInSyncWithBruFile } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
+import { TempJsFileUpdateQueue } from "../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 
 export function provideInfosOnHover(
     queue: TempJsFileUpdateQueue,
@@ -45,7 +45,7 @@ export function provideInfosOnHover(
                     return undefined;
                 }
 
-                const temporaryJsDoc = await waitForTempJsFileToBeInSync(
+                const temporaryJsDoc = await waitForTempJsFileToBeInSyncWithBruFile(
                     queue,
                     {
                         collection,

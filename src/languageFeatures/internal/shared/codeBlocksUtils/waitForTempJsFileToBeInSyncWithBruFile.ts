@@ -16,7 +16,7 @@ import {
 } from "../../../../shared";
 import { getCodeBlocks } from "./getCodeBlocks";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
-import { TempJsFileUpdateQueue } from "../temporaryJsFilesUpdates/tempJsFileUpdateQueue";
+import { TempJsFileUpdateQueue } from "../temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "../temporaryJsFilesUpdates/internal/interfaces";
 
 export interface TempJsSyncRequest {
@@ -27,7 +27,7 @@ export interface TempJsSyncRequest {
     token?: CancellationToken;
 }
 
-export async function waitForTempJsFileToBeInSync(
+export async function waitForTempJsFileToBeInSyncWithBruFile(
     queue: TempJsFileUpdateQueue,
     request: TempJsSyncRequest,
     logger?: OutputChannelLogger,
@@ -170,7 +170,7 @@ export async function waitForTempJsFileToBeInSync(
 
         const newBruContentSnapshot = currentBrunoDoc.getText();
 
-        return await waitForTempJsFileToBeInSync(
+        return await waitForTempJsFileToBeInSyncWithBruFile(
             queue,
             {
                 ...request,

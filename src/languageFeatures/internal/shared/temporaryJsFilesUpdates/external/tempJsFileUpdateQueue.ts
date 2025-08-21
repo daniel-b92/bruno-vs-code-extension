@@ -1,15 +1,15 @@
-import { TempJsUpdateRequest, TempJsUpdateType } from "./internal/interfaces";
+import { TempJsUpdateRequest, TempJsUpdateType } from "../internal/interfaces";
 import {
     checkIfPathExistsAsync,
     getTemporaryJsFileName,
     normalizeDirectoryPath,
     OutputChannelLogger,
-} from "../../../../shared";
-import { createTemporaryJsFile } from "./internal/createTemporaryJsFile";
-import { deleteTemporaryJsFileForCollection } from "./internal/deleteTemporaryJsFile";
+} from "../../../../../shared";
+import { createTemporaryJsFile } from "../internal/createTemporaryJsFile";
+import { deleteTemporaryJsFileForCollection } from "../internal/deleteTemporaryJsFile";
 import { CancellationToken, EventEmitter } from "vscode";
 import { setTimeout } from "timers/promises";
-import { QueueUpdateHandler } from "./internal/queueUpdateHandler";
+import { QueueUpdateHandler } from "../internal/queueUpdateHandler";
 
 export class TempJsFileUpdateQueue {
     constructor(private logger?: OutputChannelLogger) {

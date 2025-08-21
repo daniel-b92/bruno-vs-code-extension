@@ -18,8 +18,8 @@ import {
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
-import { waitForTempJsFileToBeInSync } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSync";
-import { TempJsFileUpdateQueue } from "../shared/temporaryJsFilesUpdates/tempJsFileUpdateQueue";
+import { waitForTempJsFileToBeInSyncWithBruFile } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
+import { TempJsFileUpdateQueue } from "../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 
 export function provideDefinitions(
     queue: TempJsFileUpdateQueue,
@@ -56,7 +56,7 @@ export function provideDefinitions(
                         return undefined;
                     }
 
-                    const temporaryJsDoc = await waitForTempJsFileToBeInSync(
+                    const temporaryJsDoc = await waitForTempJsFileToBeInSyncWithBruFile(
                         queue,
                         {
                             collection,

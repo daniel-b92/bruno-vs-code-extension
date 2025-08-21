@@ -37,7 +37,7 @@ import { provideSignatureHelp } from "./internal/signatureHelp/provideSignatureH
 import { provideDefinitions } from "./internal/definitionProvider/provideDefinitions";
 import { extname } from "path";
 import { registerCodeBlockFormatter } from "./internal/formatting/registerCodeBlockFormatter";
-import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates/tempJsFileUpdateQueue";
+import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "./internal/shared/temporaryJsFilesUpdates/internal/interfaces";
 
 export function activateLanguageFeatures(
