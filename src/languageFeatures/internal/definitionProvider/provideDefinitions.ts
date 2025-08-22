@@ -9,17 +9,14 @@ import {
 import {
     CollectionItemProvider,
     mapFromVsCodePosition,
-    mapToVsCodeRange,
     OutputChannelLogger,
-    parseBruFile,
     RequestFileBlockName,
-    TextDocumentHelper,
 } from "../../../shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
-import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { waitForTempJsFileToBeInSyncWithBruFile } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
+import { getCodeBlockContainingPosition } from "../shared/codeBlocksUtils/getCodeBlockContainingPosition";
 
 export function provideDefinitions(
     queue: TempJsFileUpdateQueue,
@@ -39,81 +36,79 @@ export function provideDefinitions(
                     return null;
                 }
 
-                const blocksToCheck = getCodeBlocks(
-                    parseBruFile(new TextDocumentHelper(document.getText()))
-                        .blocks,
+                const blockInBruFile = getCodeBlockContainingPosition(
+                    document.getText(),
+                    position,
                 );
 
-                const blockInBruFile = blocksToCheck.find(({ contentRange }) =>
-                    mapToVsCodeRange(contentRange).contains(position),
-                );
+                if (!blockInBruFile) {
+                    return undefined;
+                }
 
-                if (blockInBruFile) {
-                    if (token.isCancellationRequested) {
-                        logger?.debug(
-                            `Cancellation requested for definitions provider.`,
-                        );
-                        return undefined;
-                    }
+                if (token.isCancellationRequested) {
+                    logger?.debug(
+                        `Cancellation requested for definitions provider.`,
+                    );
+                    return undefined;
+                }
 
-                    const temporaryJsDoc = await waitForTempJsFileToBeInSyncWithBruFile(
+                const temporaryJsDoc =
+                    await waitForTempJsFileToBeInSyncWithBruFile(
                         queue,
                         {
                             collection,
                             bruFileContentSnapshot: document.getText(),
-                            bruFileCodeBlocksSnapshot: blocksToCheck,
                             bruFilePath: document.fileName,
                             token,
                         },
                         logger,
                     );
 
-                    if (!temporaryJsDoc) {
-                        return undefined;
-                    }
+                if (!temporaryJsDoc) {
+                    return undefined;
+                }
 
-                    if (token.isCancellationRequested) {
-                        logger?.debug(
-                            `Cancellation requested for definitions provider.`,
-                        );
-                        return undefined;
-                    }
+                if (token.isCancellationRequested) {
+                    logger?.debug(
+                        `Cancellation requested for definitions provider.`,
+                    );
+                    return undefined;
+                }
 
-                    const resultFromJsFile = await commands.executeCommand<
-                        (Location | LocationLink)[]
-                    >(
-                        "vscode.executeDefinitionProvider",
-                        temporaryJsDoc.uri,
-                        getPositionWithinTempJsFile(
-                            temporaryJsDoc.getText(),
-                            blockInBruFile.name as RequestFileBlockName,
-                            mapFromVsCodePosition(
-                                position.translate(
-                                    -blockInBruFile.contentRange.start.line,
-                                ),
+                const resultFromJsFile = await commands.executeCommand<
+                    (Location | LocationLink)[]
+                >(
+                    "vscode.executeDefinitionProvider",
+                    temporaryJsDoc.uri,
+                    getPositionWithinTempJsFile(
+                        temporaryJsDoc.getText(),
+                        blockInBruFile.name as RequestFileBlockName,
+                        mapFromVsCodePosition(
+                            position.translate(
+                                -blockInBruFile.contentRange.start.line,
                             ),
                         ),
-                    );
+                    ),
+                );
 
-                    if (resultFromJsFile.length == 0) {
-                        return [];
-                    }
-
-                    const relevantLocations = resultFromJsFile.filter(
-                        (val) =>
-                            val instanceof Location &&
-                            val.uri.toString() != temporaryJsDoc.uri.toString(),
-                    );
-
-                    return relevantLocations.length > 0
-                        ? (relevantLocations as Definition)
-                        : (resultFromJsFile.filter(
-                              (val) =>
-                                  !(val instanceof Location) &&
-                                  val.targetUri.toString() !=
-                                      temporaryJsDoc.uri.toString(),
-                          ) as DefinitionLink[]);
+                if (resultFromJsFile.length == 0) {
+                    return [];
                 }
+
+                const relevantLocations = resultFromJsFile.filter(
+                    (val) =>
+                        val instanceof Location &&
+                        val.uri.toString() != temporaryJsDoc.uri.toString(),
+                );
+
+                return relevantLocations.length > 0
+                    ? (relevantLocations as Definition)
+                    : (resultFromJsFile.filter(
+                          (val) =>
+                              !(val instanceof Location) &&
+                              val.targetUri.toString() !=
+                                  temporaryJsDoc.uri.toString(),
+                      ) as DefinitionLink[]);
             },
         },
     );

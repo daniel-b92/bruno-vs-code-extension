@@ -49,94 +49,94 @@ export function provideCodeBlocksCompletionItems(
                     mapToVsCodeRange(contentRange).contains(position),
                 );
 
-                if (blockInBruFile) {
-                    if (token.isCancellationRequested) {
-                        logger?.debug(
-                            `Cancellation requested for completion provider for code blocks.`,
-                        );
-                        return undefined;
-                    }
+                if (!blockInBruFile) {
+                    return undefined;
+                }
 
-                    const temporaryJsDoc = await waitForTempJsFileToBeInSyncWithBruFile(
+                if (token.isCancellationRequested) {
+                    logger?.debug(
+                        `Cancellation requested for completion provider for code blocks.`,
+                    );
+                    return undefined;
+                }
+
+                const temporaryJsDoc =
+                    await waitForTempJsFileToBeInSyncWithBruFile(
                         queue,
                         {
                             collection,
                             bruFileContentSnapshot: document.getText(),
-                            bruFileCodeBlocksSnapshot: blocksToCheck,
                             bruFilePath: document.fileName,
                             token,
                         },
                         logger,
                     );
 
-                    if (!temporaryJsDoc) {
-                        return undefined;
-                    }
-
-                    if (token.isCancellationRequested) {
-                        logger?.debug(
-                            `Cancellation requested for completion provider for code blocks.`,
-                        );
-                        return undefined;
-                    }
-
-                    const resultFromJsFile =
-                        await commands.executeCommand<CompletionList>(
-                            "vscode.executeCompletionItemProvider",
-                            temporaryJsDoc.uri,
-                            getPositionWithinTempJsFile(
-                                temporaryJsDoc.getText(),
-                                blockInBruFile.name as RequestFileBlockName,
-                                mapFromVsCodePosition(
-                                    position.translate(
-                                        -blockInBruFile.contentRange.start.line,
-                                    ),
-                                ),
-                            ),
-                        );
-
-                    return new CompletionList<CompletionItem>(
-                        resultFromJsFile.items.map((item) => ({
-                            ...item,
-                            range: item.range
-                                ? item.range instanceof VsCodeRange
-                                    ? (mapToRangeWithinBruFile(
-                                          blocksToCheck,
-                                          temporaryJsDoc.getText(),
-                                          item.range,
-                                          logger,
-                                      ) as VsCodeRange)
-                                    : {
-                                          inserting: mapToRangeWithinBruFile(
-                                              blocksToCheck,
-                                              temporaryJsDoc.getText(),
-                                              item.range.inserting,
-                                              logger,
-                                          ) as VsCodeRange,
-                                          replacing: mapToRangeWithinBruFile(
-                                              blocksToCheck,
-                                              temporaryJsDoc.getText(),
-                                              item.range.replacing,
-                                              logger,
-                                          ) as VsCodeRange,
-                                      }
-                                : undefined,
-                            textEdit: item.textEdit
-                                ? new TextEdit(
-                                      mapToRangeWithinBruFile(
-                                          blocksToCheck,
-                                          temporaryJsDoc.getText(),
-                                          item.textEdit.range,
-                                      ) as VsCodeRange,
-                                      item.textEdit.newText,
-                                  )
-                                : undefined,
-                        })),
-                        resultFromJsFile.isIncomplete,
-                    );
-                } else {
+                if (!temporaryJsDoc) {
                     return undefined;
                 }
+
+                if (token.isCancellationRequested) {
+                    logger?.debug(
+                        `Cancellation requested for completion provider for code blocks.`,
+                    );
+                    return undefined;
+                }
+
+                const resultFromJsFile =
+                    await commands.executeCommand<CompletionList>(
+                        "vscode.executeCompletionItemProvider",
+                        temporaryJsDoc.uri,
+                        getPositionWithinTempJsFile(
+                            temporaryJsDoc.getText(),
+                            blockInBruFile.name as RequestFileBlockName,
+                            mapFromVsCodePosition(
+                                position.translate(
+                                    -blockInBruFile.contentRange.start.line,
+                                ),
+                            ),
+                        ),
+                    );
+
+                return new CompletionList<CompletionItem>(
+                    resultFromJsFile.items.map((item) => ({
+                        ...item,
+                        range: item.range
+                            ? item.range instanceof VsCodeRange
+                                ? (mapToRangeWithinBruFile(
+                                      blocksToCheck,
+                                      temporaryJsDoc.getText(),
+                                      item.range,
+                                      logger,
+                                  ) as VsCodeRange)
+                                : {
+                                      inserting: mapToRangeWithinBruFile(
+                                          blocksToCheck,
+                                          temporaryJsDoc.getText(),
+                                          item.range.inserting,
+                                          logger,
+                                      ) as VsCodeRange,
+                                      replacing: mapToRangeWithinBruFile(
+                                          blocksToCheck,
+                                          temporaryJsDoc.getText(),
+                                          item.range.replacing,
+                                          logger,
+                                      ) as VsCodeRange,
+                                  }
+                            : undefined,
+                        textEdit: item.textEdit
+                            ? new TextEdit(
+                                  mapToRangeWithinBruFile(
+                                      blocksToCheck,
+                                      temporaryJsDoc.getText(),
+                                      item.textEdit.range,
+                                  ) as VsCodeRange,
+                                  item.textEdit.newText,
+                              )
+                            : undefined,
+                    })),
+                    resultFromJsFile.isIncomplete,
+                );
             },
         },
         ".",

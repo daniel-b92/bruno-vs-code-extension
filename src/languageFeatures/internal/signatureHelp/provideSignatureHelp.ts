@@ -2,17 +2,14 @@ import { commands, languages, SignatureHelp } from "vscode";
 import {
     CollectionItemProvider,
     mapFromVsCodePosition,
-    mapToVsCodeRange,
     OutputChannelLogger,
-    parseBruFile,
     RequestFileBlockName,
-    TextDocumentHelper,
 } from "../../../shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
-import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { waitForTempJsFileToBeInSyncWithBruFile } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
+import { getCodeBlockContainingPosition } from "../shared/codeBlocksUtils/getCodeBlockContainingPosition";
 
 export function provideSignatureHelp(
     queue: TempJsFileUpdateQueue,
@@ -32,60 +29,58 @@ export function provideSignatureHelp(
                     return null;
                 }
 
-                const blocksToCheck = getCodeBlocks(
-                    parseBruFile(new TextDocumentHelper(document.getText()))
-                        .blocks,
+                const blockInBruFile = getCodeBlockContainingPosition(
+                    document.getText(),
+                    position,
                 );
 
-                const blockInBruFile = blocksToCheck.find(({ contentRange }) =>
-                    mapToVsCodeRange(contentRange).contains(position),
-                );
+                if (!blockInBruFile) {
+                    return undefined;
+                }
 
-                if (blockInBruFile) {
-                    if (token.isCancellationRequested) {
-                        logger?.debug(
-                            `Cancellation requested for signature help provider.`,
-                        );
-                        return undefined;
-                    }
+                if (token.isCancellationRequested) {
+                    logger?.debug(
+                        `Cancellation requested for signature help provider.`,
+                    );
+                    return undefined;
+                }
 
-                    const temporaryJsDoc = await waitForTempJsFileToBeInSyncWithBruFile(
+                const temporaryJsDoc =
+                    await waitForTempJsFileToBeInSyncWithBruFile(
                         queue,
                         {
                             collection,
                             bruFileContentSnapshot: document.getText(),
-                            bruFileCodeBlocksSnapshot: blocksToCheck,
                             bruFilePath: document.fileName,
                             token,
                         },
                         logger,
                     );
 
-                    if (!temporaryJsDoc) {
-                        return undefined;
-                    }
+                if (!temporaryJsDoc) {
+                    return undefined;
+                }
 
-                    if (token.isCancellationRequested) {
-                        logger?.debug(
-                            `Cancellation requested for signature help provider.`,
-                        );
-                        return undefined;
-                    }
+                if (token.isCancellationRequested) {
+                    logger?.debug(
+                        `Cancellation requested for signature help provider.`,
+                    );
+                    return undefined;
+                }
 
-                    return await commands.executeCommand<SignatureHelp>(
-                        "vscode.executeSignatureHelpProvider",
-                        temporaryJsDoc.uri,
-                        getPositionWithinTempJsFile(
-                            temporaryJsDoc.getText(),
-                            blockInBruFile.name as RequestFileBlockName,
-                            mapFromVsCodePosition(
-                                position.translate(
-                                    -blockInBruFile.contentRange.start.line,
-                                ),
+                return await commands.executeCommand<SignatureHelp>(
+                    "vscode.executeSignatureHelpProvider",
+                    temporaryJsDoc.uri,
+                    getPositionWithinTempJsFile(
+                        temporaryJsDoc.getText(),
+                        blockInBruFile.name as RequestFileBlockName,
+                        mapFromVsCodePosition(
+                            position.translate(
+                                -blockInBruFile.contentRange.start.line,
                             ),
                         ),
-                    );
-                }
+                    ),
+                );
             },
         },
     );

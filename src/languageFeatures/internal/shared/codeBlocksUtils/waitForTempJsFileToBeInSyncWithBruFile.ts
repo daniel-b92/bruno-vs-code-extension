@@ -1,6 +1,5 @@
 import { CancellationToken, TextDocument } from "vscode";
 import {
-    Block,
     Collection,
     getTemporaryJsFileNameForBruFile,
     OutputChannelLogger,
@@ -12,7 +11,6 @@ import { waitForTempJsFileToBeInSync } from "../temporaryJsFilesUpdates/external
 export interface TempJsSyncRequestForBruFile {
     collection: Collection;
     bruFileContentSnapshot: string;
-    bruFileCodeBlocksSnapshot: Block[];
     bruFilePath: string;
     token?: CancellationToken;
 }

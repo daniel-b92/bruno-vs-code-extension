@@ -39,61 +39,62 @@ export function provideInfosOnHover(
                 mapToVsCodeRange(contentRange).contains(position),
             );
 
-            if (blockInBruFile) {
-                if (token.isCancellationRequested) {
-                    logger?.debug(`Cancellation requested for hover provider.`);
-                    return undefined;
-                }
+            if (!blockInBruFile) {
+                return undefined;
+            }
 
-                const temporaryJsDoc = await waitForTempJsFileToBeInSyncWithBruFile(
-                    queue,
-                    {
-                        collection,
-                        bruFileContentSnapshot: document.getText(),
-                        bruFileCodeBlocksSnapshot: blocksToCheck,
-                        bruFilePath: document.fileName,
-                        token,
-                    },
-                    logger,
-                );
+            if (token.isCancellationRequested) {
+                logger?.debug(`Cancellation requested for hover provider.`);
+                return undefined;
+            }
 
-                if (!temporaryJsDoc) {
-                    return undefined;
-                }
+            const temporaryJsDoc = await waitForTempJsFileToBeInSyncWithBruFile(
+                queue,
+                {
+                    collection,
+                    bruFileContentSnapshot: document.getText(),
+                    bruFilePath: document.fileName,
+                    token,
+                },
+                logger,
+            );
 
-                if (token.isCancellationRequested) {
-                    logger?.debug(`Cancellation requested for hover provider.`);
-                    return undefined;
-                }
+            if (!temporaryJsDoc) {
+                return undefined;
+            }
 
-                const resultFromJsFile = await commands.executeCommand<Hover[]>(
-                    "vscode.executeHoverProvider",
-                    temporaryJsDoc.uri,
-                    getPositionWithinTempJsFile(
-                        temporaryJsDoc.getText(),
-                        blockInBruFile.name as RequestFileBlockName,
-                        mapFromVsCodePosition(
-                            position.translate(
-                                -blockInBruFile.contentRange.start.line,
-                            ),
+            if (token.isCancellationRequested) {
+                logger?.debug(`Cancellation requested for hover provider.`);
+                return undefined;
+            }
+
+            const resultFromJsFile = await commands.executeCommand<Hover[]>(
+                "vscode.executeHoverProvider",
+                temporaryJsDoc.uri,
+                getPositionWithinTempJsFile(
+                    temporaryJsDoc.getText(),
+                    blockInBruFile.name as RequestFileBlockName,
+                    mapFromVsCodePosition(
+                        position.translate(
+                            -blockInBruFile.contentRange.start.line,
                         ),
                     ),
-                );
+                ),
+            );
 
-                return resultFromJsFile.length == 0
-                    ? null
-                    : resultFromJsFile[0].range
-                      ? new Hover(
-                            resultFromJsFile[0].contents,
-                            mapToRangeWithinBruFile(
-                                blocksToCheck,
-                                temporaryJsDoc.getText(),
-                                resultFromJsFile[0].range,
-                                logger,
-                            ),
-                        )
-                      : resultFromJsFile[0];
-            }
+            return resultFromJsFile.length == 0
+                ? null
+                : resultFromJsFile[0].range
+                  ? new Hover(
+                        resultFromJsFile[0].contents,
+                        mapToRangeWithinBruFile(
+                            blocksToCheck,
+                            temporaryJsDoc.getText(),
+                            resultFromJsFile[0].range,
+                            logger,
+                        ),
+                    )
+                  : resultFromJsFile[0];
         },
     });
 }
