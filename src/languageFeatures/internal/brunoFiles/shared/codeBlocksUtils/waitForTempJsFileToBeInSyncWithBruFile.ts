@@ -1,12 +1,12 @@
 import { CancellationToken, TextDocument } from "vscode";
 import {
     Collection,
-    getTemporaryJsFileNameForBruFile,
+    getTemporaryJsFileNameInFolder,
     OutputChannelLogger,
-} from "../../../../shared";
-import { TempJsFileUpdateQueue } from "../temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
-import { getMappedTempJsFileContent } from "./getMappedTempJsFileContent";
-import { waitForTempJsFileToBeInSync } from "../temporaryJsFilesUpdates/external/waitForTempJsFileToBeInSync";
+} from "../../../../../shared";
+import { TempJsFileUpdateQueue } from "../../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
+import { getTempJsFileContentForBruFile } from "./getTempJsFileContentForBruFile";
+import { waitForTempJsFileToBeInSync } from "../../../shared/temporaryJsFilesUpdates/external/waitForTempJsFileToBeInSync";
 
 export interface TempJsSyncRequestForBruFile {
     collection: Collection;
@@ -26,11 +26,11 @@ export async function waitForTempJsFileToBeInSyncWithBruFile(
         queue,
         {
             sourceFilePath: bruFilePath,
-            sourceFleContentSnapshot: bruFileContentSnapshot,
-            tempJsFilePath: getTemporaryJsFileNameForBruFile(
+            sourceFileContentSnapshot: bruFileContentSnapshot,
+            tempJsFilePath: getTemporaryJsFileNameInFolder(
                 collection.getRootDirectory(),
             ),
-            getDesiredTempJsFileContent: getMappedTempJsFileContent,
+            getDesiredTempJsFileContent: getTempJsFileContentForBruFile,
             token,
         },
         logger,

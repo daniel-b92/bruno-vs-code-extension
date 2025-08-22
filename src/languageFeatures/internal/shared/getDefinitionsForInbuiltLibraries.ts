@@ -1,36 +1,10 @@
-import {
-    parseBruFile,
-    RequestFileBlockName,
-    TextDocumentHelper,
-} from "../../../../shared";
-import { getCodeBlocks } from "./getCodeBlocks";
-import { mapBlockNameToJsFileLine } from "./mapBlockNameToJsFileFunctionName";
-
-export function getMappedTempJsFileContent(bruFileContent: string) {
-    const { blocks: parsedBlocks } = parseBruFile(
-        new TextDocumentHelper(bruFileContent),
-    );
-
-    const functionsForTempJsFile = getCodeBlocks(parsedBlocks).map(
-        ({
-            name,
-            content,
-        }) => `${mapBlockNameToJsFileLine(name as RequestFileBlockName)}
-${content}}`,
-    );
-
-    return getDefinitionsForInbuiltLibraries()
-        .concat(functionsForTempJsFile)
-        .join("\n\n");
-}
-
 /** The Bru class is globally available in Bruno but not exposed.
 * There are also no types for it.
 * This is a temporary workaround to get stop typescript from complaining and get intellisense.
 
 * Official javascript API reference:
 * https://docs.usebruno.com/testing/script/javascript-reference*/
-function getDefinitionsForInbuiltLibraries() {
+export function getDefinitionsForInbuiltLibraries() {
     const bruUtilities = `/**
  * Object with common utility function for Bruno.
  * @see {@link https://docs.usebruno.com/scripting/javascript-reference#bru} Documentation

@@ -3,7 +3,7 @@ import {
     mapToVsCodeRange,
     parseBruFile,
     TextDocumentHelper,
-} from "../../../../shared";
+} from "../../../../../shared";
 import { getCodeBlocks } from "./getCodeBlocks";
 
 export function getCodeBlockContainingPosition(

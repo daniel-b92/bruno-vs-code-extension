@@ -7,7 +7,7 @@ import {
 } from "../../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
-import { getCodeBlocks } from "../../../../../shared/codeBlocksUtils/getCodeBlocks";
+import { getCodeBlocks } from "../../../../shared/codeBlocksUtils/getCodeBlocks";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { BlockBracket } from "../../../../../../../shared/fileParsing/internal/util/blockBracketEnum";
 

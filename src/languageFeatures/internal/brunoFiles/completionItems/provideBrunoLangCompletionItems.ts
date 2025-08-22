@@ -17,7 +17,7 @@ import {
     SettingsBlockKey,
 } from "../../../../shared";
 import { dirname } from "path";
-import { getRequestFileDocumentSelector } from "../../shared/getRequestFileDocumentSelector";
+import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 
 export function provideBrunoLangCompletionItems(
     itemProvider: CollectionItemProvider,

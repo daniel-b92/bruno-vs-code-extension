@@ -10,10 +10,10 @@ import {
     RequestFileBlockName,
     TextDocumentHelper,
 } from "../../../../shared";
-import { getRequestFileDocumentSelector } from "../../shared/getRequestFileDocumentSelector";
-import { getCodeBlocks } from "../../shared/codeBlocksUtils/getCodeBlocks";
+import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
+import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { format } from "prettier";
-import { mapBlockNameToJsFileLine } from "../../shared/codeBlocksUtils/mapBlockNameToJsFileFunctionName";
+import { mapBlockNameToJsFileLine } from "../shared/codeBlocksUtils/mapBlockNameToJsFileFunctionName";
 import { BlockBracket } from "../../../../shared/fileParsing/internal/util/blockBracketEnum";
 
 export function registerCodeBlockFormatter(_logger?: OutputChannelLogger) {

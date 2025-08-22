@@ -5,11 +5,11 @@ import {
     OutputChannelLogger,
     RequestFileBlockName,
 } from "../../../../shared";
-import { getRequestFileDocumentSelector } from "../../shared/getRequestFileDocumentSelector";
-import { getPositionWithinTempJsFile } from "../../shared/codeBlocksUtils/getPositionWithinTempJsFile";
-import { waitForTempJsFileToBeInSyncWithBruFile } from "../../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
+import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
+import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
+import { waitForTempJsFileToBeInSyncWithBruFile } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
-import { getCodeBlockContainingPosition } from "../../shared/codeBlocksUtils/getCodeBlockContainingPosition";
+import { getCodeBlockContainingPosition } from "../shared/codeBlocksUtils/getCodeBlockContainingPosition";
 
 export function provideSignatureHelp(
     queue: TempJsFileUpdateQueue,

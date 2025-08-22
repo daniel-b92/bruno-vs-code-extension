@@ -13,7 +13,7 @@ import {
     checkIfPathExistsAsync,
     Collection,
     getLineBreakFromSettings,
-    getTemporaryJsFileNameForBruFile,
+    getTemporaryJsFileNameInFolder,
     DialogOptionLabelEnum,
 } from "../shared";
 
@@ -92,7 +92,7 @@ async function getCollectionsWithoutTsConfigs(
                 ({ item }) =>
                     extname(item.getPath()) == ".js" &&
                     item.getPath() !=
-                        getTemporaryJsFileNameForBruFile(collection.getRootDirectory()),
+                        getTemporaryJsFileNameInFolder(collection.getRootDirectory()),
             ),
     );
 }

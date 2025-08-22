@@ -4,7 +4,7 @@ import {
     OutputChannelLogger,
     Range,
     RequestFileBlockName,
-} from "../../../../shared";
+} from "../../../../../shared";
 import { Range as VsCodeRange, Position as VsCodePosition } from "vscode";
 import { getCodeBlocks } from "./getCodeBlocks";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";

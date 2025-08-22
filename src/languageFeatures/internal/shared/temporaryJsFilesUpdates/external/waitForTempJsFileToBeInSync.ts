@@ -12,7 +12,7 @@ import { basename } from "path";
 
 export interface TempJsSyncRequest {
     sourceFilePath: string;
-    sourceFleContentSnapshot: string;
+    sourceFileContentSnapshot: string;
     tempJsFilePath: string;
     getDesiredTempJsFileContent: (sourceFileContentSnapshot: string) => string;
     token?: CancellationToken;
@@ -25,14 +25,14 @@ export async function waitForTempJsFileToBeInSync(
 ): Promise<TextDocument | undefined> {
     const {
         sourceFilePath,
-        sourceFleContentSnapshot,
+        sourceFileContentSnapshot,
         tempJsFilePath,
         getDesiredTempJsFileContent,
         token,
     } = request;
 
     const desiredTempJsFileContentInitially = getDesiredTempJsFileContent(
-        sourceFleContentSnapshot,
+        sourceFileContentSnapshot,
     );
 
     if (shouldAbort(token)) {
@@ -162,7 +162,7 @@ export async function waitForTempJsFileToBeInSync(
             queue,
             {
                 ...request,
-                sourceFleContentSnapshot: newSourceFileContentSnapshot,
+                sourceFileContentSnapshot: newSourceFileContentSnapshot,
             },
             logger,
         );

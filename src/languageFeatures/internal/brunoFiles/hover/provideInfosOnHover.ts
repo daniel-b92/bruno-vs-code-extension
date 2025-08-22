@@ -8,11 +8,11 @@ import {
     RequestFileBlockName,
     TextDocumentHelper,
 } from "../../../../shared";
-import { getRequestFileDocumentSelector } from "../../shared/getRequestFileDocumentSelector";
-import { getCodeBlocks } from "../../shared/codeBlocksUtils/getCodeBlocks";
-import { getPositionWithinTempJsFile } from "../../shared/codeBlocksUtils/getPositionWithinTempJsFile";
-import { mapToRangeWithinBruFile } from "../../shared/codeBlocksUtils/mapToRangeWithinBruFile";
-import { waitForTempJsFileToBeInSyncWithBruFile } from "../../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
+import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
+import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
+import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
+import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
+import { waitForTempJsFileToBeInSyncWithBruFile } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 
 export function provideInfosOnHover(

@@ -25,7 +25,7 @@ import {
     TextDocumentHelper,
     checkIfPathExistsAsync,
     isBrunoFileType,
-    getTemporaryJsFileNameForBruFile,
+    getTemporaryJsFileNameInFolder,
     filterAsync,
 } from "../shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/brunoFiles/diagnostics/brunoLangDiagnosticsProvider";
@@ -39,7 +39,7 @@ import { extname } from "path";
 import { registerCodeBlockFormatter } from "./internal/brunoFiles/formatting/registerCodeBlockFormatter";
 import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "./internal/shared/temporaryJsFilesUpdates/internal/interfaces";
-import { getMappedTempJsFileContent } from "./internal/shared/codeBlocksUtils/getMappedTempJsFileContent";
+import { getTempJsFileContentForBruFile } from "./internal/brunoFiles/shared/codeBlocksUtils/getTempJsFileContentForBruFile";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
@@ -158,10 +158,10 @@ async function onDidChangeActiveTextEditor(
 
             await queue.addToQueue({
                 filePath:
-                    getTemporaryJsFileNameForBruFile(collectionRootFolder),
+                    getTemporaryJsFileNameInFolder(collectionRootFolder),
                 update: {
                     type: TempJsUpdateType.Creation,
-                    tempJsFileContent: getMappedTempJsFileContent(
+                    tempJsFileContent: getTempJsFileContentForBruFile(
                         editor.document.getText(),
                     ),
                 },
@@ -222,7 +222,7 @@ async function onWillSaveTextDocument(
 
         if (collection) {
             queue.addToQueue({
-                filePath: getTemporaryJsFileNameForBruFile(
+                filePath: getTemporaryJsFileNameInFolder(
                     collection.getRootDirectory(),
                 ),
                 update: { type: TempJsUpdateType.Deletion },
@@ -326,7 +326,7 @@ async function deleteAllTemporaryJsFiles(
         itemProvider
             .getRegisteredCollections()
             .map((collection) =>
-                getTemporaryJsFileNameForBruFile(collection.getRootDirectory()),
+                getTemporaryJsFileNameInFolder(collection.getRootDirectory()),
             ),
         async (filePath) => await checkIfPathExistsAsync(filePath),
     );
