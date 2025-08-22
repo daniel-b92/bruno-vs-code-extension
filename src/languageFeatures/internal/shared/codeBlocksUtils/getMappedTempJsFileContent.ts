@@ -16,7 +16,7 @@ export function getMappedTempJsFileContent(bruFileContent: string) {
             name,
             content,
         }) => `${mapBlockNameToJsFileLine(name as RequestFileBlockName)}
-    ${content}}`,
+${content}}`,
     );
 
     return getDefinitionsForInbuiltLibraries()
