@@ -6,7 +6,7 @@ import {
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { waitForTempJsFileToBeInSync } from "../../shared/temporaryJsFilesUpdates/external/waitForTempJsFileToBeInSync";
 import { dirname } from "path";
-import { getDefinitionsForInbuiltLibraries } from "../../shared/getDefinitionsForInbuiltLibraries";
+import { mapSourceFileToTempJsFileContent } from "./mapSourceFileToTempJsFileContent";
 
 export interface TempJsSyncRequestForJsFile {
     sourceFilePath: string;
@@ -29,10 +29,7 @@ export async function waitForTempJsFileToBeInSyncWithJsFile(
             tempJsFilePath: getTemporaryJsFileNameInFolder(
                 dirname(sourceFilePath),
             ),
-            getDesiredTempJsFileContent: (sourceFileContent: string) =>
-                getDefinitionsForInbuiltLibraries()
-                    .concat(sourceFileContent)
-                    .join("\n\n"),
+            getDesiredTempJsFileContent: mapSourceFileToTempJsFileContent,
             token,
         },
         logger,
