@@ -3,15 +3,13 @@ import {
     CollectionItemProvider,
     mapFromVsCodePosition,
     mapToVsCodePosition,
-    mapToVsCodeRange,
     OutputChannelLogger,
-    Range,
 } from "../../../../shared";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { getJsSourceFileDocumentSelector } from "../shared/getJsSourceFileDocumentSelector";
 import { waitForTempJsFileToBeInSyncWithJsFile } from "../shared/waitForTempJsFileToBeInSyncWithJsFile";
 import { getCorrespondingPositionInTempJsFile } from "../shared/getCorrespondingPositionInTempJsFile";
-import { getCorrespondingPositionInSourceFile } from "../shared/getCorrespondingPositionInSourceFile";
+import { getCorrespondingRangeInSourceFile } from "../shared/getCorrespondingRangeInSourceFile";
 
 export function registerHoverProvider(
     queue: TempJsFileUpdateQueue,
@@ -69,16 +67,7 @@ export function registerHoverProvider(
             return range
                 ? new Hover(
                       resultsFromTempJsFile[0].contents,
-                      mapToVsCodeRange(
-                          new Range(
-                              getCorrespondingPositionInSourceFile(
-                                  mapFromVsCodePosition(range.start),
-                              ),
-                              getCorrespondingPositionInSourceFile(
-                                  mapFromVsCodePosition(range.start),
-                              ),
-                          ),
-                      ),
+                      getCorrespondingRangeInSourceFile(range),
                   )
                 : resultsFromTempJsFile[0];
         },

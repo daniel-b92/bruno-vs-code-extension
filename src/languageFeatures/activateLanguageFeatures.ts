@@ -41,6 +41,7 @@ import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates
 import { TempJsUpdateType } from "./internal/shared/temporaryJsFilesUpdates/internal/interfaces";
 import { getTempJsFileContentForBruFile } from "./internal/brunoFiles/shared/codeBlocksUtils/getTempJsFileContentForBruFile";
 import { registerHoverProvider as registerHoverProviderForJsFiles } from "./internal/jsFiles/hover/registerHoverProvider";
+import { registerCompletionItemProvider as registerCompletionItemProviderForJsFiles } from "./internal/jsFiles/completionItems/registerCompletionItemProvider";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
@@ -84,6 +85,11 @@ export function activateLanguageFeatures(
         ),
         registerCodeBlockFormatter(logger),
         registerHoverProviderForJsFiles(
+            tempJsFilesUpdateQueue,
+            collectionItemProvider,
+            logger,
+        ),
+        registerCompletionItemProviderForJsFiles(
             tempJsFilesUpdateQueue,
             collectionItemProvider,
             logger,
