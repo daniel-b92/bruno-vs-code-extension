@@ -122,6 +122,7 @@ export async function activateLanguageFeatures(
                 tempJsFilesUpdateQueue,
                 brunoLangDiagnosticsProvider,
                 collectionItemProvider,
+                tempJsFilesProvider,
                 editor,
             );
         }),
@@ -150,6 +151,7 @@ async function onDidChangeActiveTextEditor(
     queue: TempJsFileUpdateQueue,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     itemProvider: CollectionItemProvider,
+    tempJsFilesProvider: TempJsFilesProvider,
     editor: TextEditor | undefined,
 ) {
     if (
@@ -159,7 +161,7 @@ async function onDidChangeActiveTextEditor(
             TabInputText
         )
     ) {
-        await deleteAllTemporaryJsFiles(queue, itemProvider);
+        await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
     } else if (
         editor &&
         editor.document.uri.toString() ==
@@ -171,7 +173,7 @@ async function onDidChangeActiveTextEditor(
         );
 
         if (!brunoFileType) {
-            await deleteAllTemporaryJsFiles(queue, itemProvider);
+            await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
             return;
         }
 
@@ -199,7 +201,7 @@ async function onDidChangeActiveTextEditor(
                 },
             });
         } else {
-            await deleteAllTemporaryJsFiles(queue, itemProvider);
+            await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
         }
     }
 }
@@ -350,16 +352,12 @@ async function fetchBrunoSpecificDiagnostics(
 
 async function deleteAllTemporaryJsFiles(
     updateQueue: TempJsFileUpdateQueue,
-    itemProvider: CollectionItemProvider,
+    tempJsFilesProvider: TempJsFilesProvider,
 ) {
     const deletions: Promise<boolean>[] = [];
 
     const existingFiles = await filterAsync(
-        itemProvider
-            .getRegisteredCollections()
-            .map((collection) =>
-                getTemporaryJsFileNameInFolder(collection.getRootDirectory()),
-            ),
+        tempJsFilesProvider.getRegisteredFiles(),
         async (filePath) => await checkIfPathExistsAsync(filePath),
     );
 
