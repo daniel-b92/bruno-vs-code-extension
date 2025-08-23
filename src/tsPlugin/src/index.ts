@@ -38,25 +38,30 @@ function init(_modules: {
             const defaultDiagnostics =
                 info.languageService.getSuggestionDiagnostics(fileName);
 
-            if (!isBrunoFile(fileName)) {
+            const isBruFile = isBrunoFile(fileName);
+
+            if (!isBruFile && !isJsFileFromBrunoCollection(info, fileName)) {
                 return defaultDiagnostics;
             }
-            const allDiagnosticsForCodeBlocks = filterDefaultDiagnostics(
+
+            const allDiagnostics = filterDefaultDiagnostics(
                 info,
                 fileName,
                 defaultDiagnostics,
             ) as ts.DiagnosticWithLocation[];
 
             // The ts server always reports errors when importing a Javascript function in a .bru file.
-            return allDiagnosticsForCodeBlocks.filter(
-                // Do not show diagnostics that only make sense for Typescript files.
-                // Bru file code blocks should be treated like Javascript functions instead.
-                // A list of diagnostics can be found here: https://github.com/microsoft/TypeScript/blob/main/src/compiler/diagnosticMessages.json
-                ({ code }) =>
-                    (code < 7_043 || code > 7_050) &&
-                    code != 80_001 &&
-                    code != 80_004,
-            );
+            return isBruFile
+                ? allDiagnostics.filter(
+                      // Do not show diagnostics that only make sense for Typescript files.
+                      // Bru file code blocks should be treated like Javascript functions instead.
+                      // A list of diagnostics can be found here: https://github.com/microsoft/TypeScript/blob/main/src/compiler/diagnosticMessages.json
+                      ({ code }) =>
+                          (code < 7_043 || code > 7_050) &&
+                          code != 80_001 &&
+                          code != 80_004,
+                  )
+                : allDiagnostics.filter(({ code }) => code != 80_001); // Bruno currently only supports CommonJS modules.
         };
 
         // All hovers are provided by the extension implementation for '.bru' and '.js' files within collections.
