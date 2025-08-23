@@ -10,13 +10,14 @@ export function getCorrespondingPositionInSourceFile(
 
     const additionalContentLines = additionalContentDoc.getLineCount();
 
-    if (positionInTempJsFile.line < additionalContentLines) {
+    // added content ends with a linebreak
+    if (positionInTempJsFile.line < additionalContentLines - 1) {
         throw new Error(`Could not map position in temp js file to corresponding position in source js file. 
 Got line ${positionInTempJsFile.line} from requested position and determined lines of additional content to be ${additionalContentLines}`);
     }
 
     return new Position(
-        positionInTempJsFile.line - additionalContentDoc.getLineCount(),
+        positionInTempJsFile.line - additionalContentDoc.getLineCount() + 1,
         positionInTempJsFile.character,
     );
 }
