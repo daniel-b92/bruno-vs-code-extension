@@ -3,6 +3,9 @@
 ### Fixes / Improvements
 - Do not show errors in JS files that are inside collections for inbuilt `Bruno` variables like `bru`, `req` and `res`.
 
+### Features
+- Provide intellisense for builtin Bruno functions (e.g. `bru.getVar(...)` or `res.getStatus()`) when used within JS files.
+
 ## [0.16.3] (2025-08-16)
 
 ### Fixes / Improvements
