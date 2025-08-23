@@ -1,5 +1,6 @@
 import { commands, Hover, languages } from "vscode";
 import {
+    CollectionItemProvider,
     mapFromVsCodePosition,
     mapToVsCodePosition,
     mapToVsCodeRange,
@@ -14,10 +15,15 @@ import { getCorrespondingPositionInSourceFile } from "../shared/getCorresponding
 
 export function registerHoverProvider(
     queue: TempJsFileUpdateQueue,
+    itemProvider: CollectionItemProvider,
     logger?: OutputChannelLogger,
 ) {
     return languages.registerHoverProvider(getJsSourceFileDocumentSelector(), {
         async provideHover(document, positionInSourceFile, token) {
+            if (!itemProvider.getAncestorCollectionForPath(document.fileName)) {
+                return undefined;
+            }
+
             if (token.isCancellationRequested) {
                 logger?.debug(`Cancellation requested for hover provider.`);
                 return undefined;

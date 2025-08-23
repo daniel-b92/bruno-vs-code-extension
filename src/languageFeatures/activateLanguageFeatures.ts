@@ -83,7 +83,11 @@ export function activateLanguageFeatures(
             logger,
         ),
         registerCodeBlockFormatter(logger),
-        registerHoverProviderForJsFiles(tempJsFilesUpdateQueue, logger),
+        registerHoverProviderForJsFiles(
+            tempJsFilesUpdateQueue,
+            collectionItemProvider,
+            logger,
+        ),
         brunoLangDiagnosticsProvider,
         tempJsFilesUpdateQueue,
         window.onDidChangeActiveTextEditor(async (editor) => {
