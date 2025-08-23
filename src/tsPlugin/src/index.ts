@@ -1,4 +1,4 @@
-import { dirname, extname } from "path";
+import { basename, dirname, extname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
 
 function init(_modules: {
@@ -59,14 +59,21 @@ function init(_modules: {
             );
         };
 
-        // All hovers are provided by the extension implementation
+        // All hovers are provided by the extension implementation for '.bru' and '.js' files within collections.
+        // Only for the temp js file, the ts language service has to be used.
         proxy.getQuickInfoAtPosition = (fileName, position) => {
-            return isBrunoFile(fileName)
-                ? undefined
-                : info.languageService.getQuickInfoAtPosition(
-                      fileName,
-                      position,
-                  );
+            if (
+                isBrunoFile(fileName) ||
+                (isJsFileFromBrunoCollection(info, fileName) &&
+                    !isTempJsFile(fileName))
+            ) {
+                return undefined;
+            }
+
+            return info.languageService.getQuickInfoAtPosition(
+                fileName,
+                position,
+            );
         };
 
         return proxy;
@@ -265,6 +272,10 @@ function isACollectionRootFolder(
 
 function isBrunoFile(fileName: string) {
     return extname(fileName) == ".bru";
+}
+
+function isTempJsFile(fileName: string) {
+    return basename(fileName) == "__temp_bru_reference.js";
 }
 
 enum TextBlockName {
