@@ -10,7 +10,7 @@ import {
     window,
     workspace,
 } from "vscode";
-import { provideBrunoLangCompletionItems } from "./internal/completionItems/provideBrunoLangCompletionItems";
+import { provideBrunoLangCompletionItems } from "./internal/brunoFiles/completionItems/provideBrunoLangCompletionItems";
 import {
     BrunoFileType,
     Collection,
@@ -25,20 +25,24 @@ import {
     TextDocumentHelper,
     checkIfPathExistsAsync,
     isBrunoFileType,
-    getTemporaryJsFileName,
+    getTemporaryJsFileNameInFolder,
     filterAsync,
 } from "../shared";
-import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDiagnosticsProvider";
-import { updateUrlToMatchQueryParams } from "./internal/autoUpdates/updateUrlToMatchQueryParams";
-import { updatePathParamsKeysToMatchUrl } from "./internal/autoUpdates/updatePathParamsKeysToMatchUrl";
-import { provideCodeBlocksCompletionItems } from "./internal/completionItems/provideCodeBlocksCompletionItems";
-import { provideInfosOnHover } from "./internal/hover/provideInfosOnHover";
-import { provideSignatureHelp } from "./internal/signatureHelp/provideSignatureHelp";
-import { provideDefinitions } from "./internal/definitionProvider/provideDefinitions";
+import { BrunoLangDiagnosticsProvider } from "./internal/brunoFiles/diagnostics/brunoLangDiagnosticsProvider";
+import { updateUrlToMatchQueryParams } from "./internal/brunoFiles/autoUpdates/updateUrlToMatchQueryParams";
+import { updatePathParamsKeysToMatchUrl } from "./internal/brunoFiles/autoUpdates/updatePathParamsKeysToMatchUrl";
+import { provideCodeBlocksCompletionItems } from "./internal/brunoFiles/completionItems/provideCodeBlocksCompletionItems";
+import { provideInfosOnHover as provideInfosOnHoverForBruFiles } from "./internal/brunoFiles/hover/provideInfosOnHover";
+import { provideSignatureHelp as provideSignatureHelpForBruFiles } from "./internal/brunoFiles/signatureHelp/provideSignatureHelp";
+import { provideDefinitions as provideDefinitionsForBruFiles } from "./internal/brunoFiles/definitionProvider/provideDefinitions";
 import { extname } from "path";
-import { registerCodeBlockFormatter } from "./internal/formatting/registerCodeBlockFormatter";
-import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates/tempJsFileUpdateQueue";
+import { registerCodeBlockFormatter } from "./internal/brunoFiles/formatting/registerCodeBlockFormatter";
+import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "./internal/shared/temporaryJsFilesUpdates/internal/interfaces";
+import { getTempJsFileContentForBruFile } from "./internal/brunoFiles/shared/codeBlocksUtils/getTempJsFileContentForBruFile";
+import { registerHoverProvider as registerHoverProviderForJsFiles } from "./internal/jsFiles/hover/registerHoverProvider";
+import { registerCompletionItemProvider as registerCompletionItemProviderForJsFiles } from "./internal/jsFiles/completionItems/registerCompletionItemProvider";
+import { registerSignatureHelpProvider as registerSignatureHelpProviderForJsFiles } from "./internal/jsFiles/signatureHelp/registerSignatureHelpProvider";
 
 export function activateLanguageFeatures(
     context: ExtensionContext,
@@ -65,22 +69,37 @@ export function activateLanguageFeatures(
             collectionItemProvider,
             logger,
         ),
-        provideInfosOnHover(
+        provideInfosOnHoverForBruFiles(
             tempJsFilesUpdateQueue,
             collectionItemProvider,
             logger,
         ),
-        provideSignatureHelp(
+        provideSignatureHelpForBruFiles(
             tempJsFilesUpdateQueue,
             collectionItemProvider,
             logger,
         ),
-        provideDefinitions(
+        provideDefinitionsForBruFiles(
             tempJsFilesUpdateQueue,
             collectionItemProvider,
             logger,
         ),
         registerCodeBlockFormatter(logger),
+        registerHoverProviderForJsFiles(
+            tempJsFilesUpdateQueue,
+            collectionItemProvider,
+            logger,
+        ),
+        registerCompletionItemProviderForJsFiles(
+            tempJsFilesUpdateQueue,
+            collectionItemProvider,
+            logger,
+        ),
+        registerSignatureHelpProviderForJsFiles(
+            tempJsFilesUpdateQueue,
+            collectionItemProvider,
+            logger,
+        ),
         brunoLangDiagnosticsProvider,
         tempJsFilesUpdateQueue,
         window.onDidChangeActiveTextEditor(async (editor) => {
@@ -156,10 +175,12 @@ async function onDidChangeActiveTextEditor(
             ).getRootDirectory();
 
             await queue.addToQueue({
-                collectionRootFolder,
+                filePath: getTemporaryJsFileNameInFolder(collectionRootFolder),
                 update: {
                     type: TempJsUpdateType.Creation,
-                    bruFileContent: editor.document.getText(),
+                    tempJsFileContent: getTempJsFileContentForBruFile(
+                        editor.document.getText(),
+                    ),
                 },
             });
         } else {
@@ -218,7 +239,9 @@ async function onWillSaveTextDocument(
 
         if (collection) {
             queue.addToQueue({
-                collectionRootFolder: collection.getRootDirectory(),
+                filePath: getTemporaryJsFileNameInFolder(
+                    collection.getRootDirectory(),
+                ),
                 update: { type: TempJsUpdateType.Deletion },
             });
         }
@@ -317,17 +340,18 @@ async function deleteAllTemporaryJsFiles(
     const deletions: Promise<boolean>[] = [];
 
     const existingFiles = await filterAsync(
-        itemProvider.getRegisteredCollections().map((collection) => ({
-            collectionRootFolder: collection.getRootDirectory(),
-            filePath: getTemporaryJsFileName(collection.getRootDirectory()),
-        })),
-        async ({ filePath }) => await checkIfPathExistsAsync(filePath),
+        itemProvider
+            .getRegisteredCollections()
+            .map((collection) =>
+                getTemporaryJsFileNameInFolder(collection.getRootDirectory()),
+            ),
+        async (filePath) => await checkIfPathExistsAsync(filePath),
     );
 
-    for (const { collectionRootFolder } of existingFiles) {
+    for (const filePath of existingFiles) {
         deletions.push(
             updateQueue.addToQueue({
-                collectionRootFolder,
+                filePath,
                 update: { type: TempJsUpdateType.Deletion },
             }),
         );

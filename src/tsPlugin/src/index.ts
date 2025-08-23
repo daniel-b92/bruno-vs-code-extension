@@ -1,4 +1,4 @@
-import { dirname, extname } from "path";
+import { basename, dirname, extname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
 
 function init(_modules: {
@@ -38,34 +38,58 @@ function init(_modules: {
             const defaultDiagnostics =
                 info.languageService.getSuggestionDiagnostics(fileName);
 
-            if (!isBrunoFile(fileName)) {
+            const isBruFile = isBrunoFile(fileName);
+
+            if (!isBruFile && !isJsFileFromBrunoCollection(info, fileName)) {
                 return defaultDiagnostics;
             }
-            const allDiagnosticsForCodeBlocks = filterDefaultDiagnostics(
+
+            const allDiagnostics = filterDefaultDiagnostics(
                 info,
                 fileName,
                 defaultDiagnostics,
             ) as ts.DiagnosticWithLocation[];
 
             // The ts server always reports errors when importing a Javascript function in a .bru file.
-            return allDiagnosticsForCodeBlocks.filter(
-                // Do not show diagnostics that only make sense for Typescript files.
-                // Bru file code blocks should be treated like Javascript functions instead.
-                // A list of diagnostics can be found here: https://github.com/microsoft/TypeScript/blob/main/src/compiler/diagnosticMessages.json
-                ({ code }) =>
-                    (code < 7_043 || code > 7_050) &&
-                    code != 80_001 &&
-                    code != 80_004,
+            return isBruFile
+                ? allDiagnostics.filter(
+                      // Do not show diagnostics that only make sense for Typescript files.
+                      // Bru file code blocks should be treated like Javascript functions instead.
+                      // A list of diagnostics can be found here: https://github.com/microsoft/TypeScript/blob/main/src/compiler/diagnosticMessages.json
+                      ({ code }) =>
+                          (code < 7_043 || code > 7_050) &&
+                          code != 80_001 &&
+                          code != 80_004,
+                  )
+                : allDiagnostics.filter(({ code }) => code != 80_001); // Bruno currently only supports CommonJS modules.
+        };
+
+        // All hovers are provided by the extension implementation for '.bru' and '.js' files within collections.
+        // Only for the temp js file, the ts language service has to be used.
+        proxy.getQuickInfoAtPosition = (fileName, position) => {
+            if (
+                isBrunoFile(fileName) ||
+                (isJsFileFromBrunoCollection(info, fileName) &&
+                    !isTempJsFile(fileName))
+            ) {
+                return undefined;
+            }
+
+            return info.languageService.getQuickInfoAtPosition(
+                fileName,
+                position,
             );
         };
 
-        // All hovers are provided by the extension implementation
-        proxy.getQuickInfoAtPosition = (fileName, position) => {
-            return isBrunoFile(fileName)
+        // All completions for '.js' files within collections are provided by the extension already.
+        proxy.getCompletionsAtPosition = (fileName, position, options) => {
+            return isJsFileFromBrunoCollection(info, fileName) &&
+                !isTempJsFile(fileName)
                 ? undefined
-                : info.languageService.getQuickInfoAtPosition(
+                : info.languageService.getCompletionsAtPosition(
                       fileName,
                       position,
+                      options,
                   );
         };
 
@@ -83,6 +107,11 @@ function filterDefaultDiagnostics(
     defaultDiagnostics: (ts.Diagnostic | ts.DiagnosticWithLocation)[],
 ) {
     if (isJsFileFromBrunoCollection(info, fileName)) {
+        // Avoid showing errors for temp js files.
+        if (isTempJsFile(fileName)) {
+            return [];
+        }
+
         const fileContent = getFileContent(info, fileName);
 
         if (!fileContent) {
@@ -265,6 +294,10 @@ function isACollectionRootFolder(
 
 function isBrunoFile(fileName: string) {
     return extname(fileName) == ".bru";
+}
+
+function isTempJsFile(fileName: string) {
+    return basename(fileName) == "__temp_bru_reference.js";
 }
 
 enum TextBlockName {

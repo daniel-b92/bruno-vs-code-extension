@@ -1,5 +1,12 @@
 import { resolve } from "path";
 
-export function getTemporaryJsFileName(collectionRootDirectory: string) {
-    return resolve(collectionRootDirectory, "__temp_bru_reference.js");
+export function getTemporaryJsFileNameInFolder(folderPath: string) {
+    return resolve(
+        folderPath,
+        `${getTemporaryJsFileBasenameWithoutExtension()}.js`,
+    );
+}
+
+export function getTemporaryJsFileBasenameWithoutExtension() {
+    return "__temp_bru_reference";
 }

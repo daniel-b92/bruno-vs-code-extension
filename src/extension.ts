@@ -13,7 +13,7 @@ import {
     FileChangedEvent,
     CollectionItemProvider,
     TestRunnerDataHelper,
-    getTemporaryJsFileName,
+    getTemporaryJsFileNameInFolder,
     OutputChannelLogger,
 } from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures";
@@ -88,5 +88,5 @@ export async function activate(context: ExtensionContext) {
 }
 
 function getPathsToIgnoreForCollection(collectionRootDirectory: string) {
-    return [getTemporaryJsFileName(collectionRootDirectory)];
+    return [getTemporaryJsFileNameInFolder(collectionRootDirectory)];
 }
