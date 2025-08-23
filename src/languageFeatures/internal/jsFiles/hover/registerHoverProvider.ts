@@ -1,8 +1,6 @@
 import { commands, Hover, languages } from "vscode";
 import {
     CollectionItemProvider,
-    mapFromVsCodePosition,
-    mapToVsCodePosition,
     OutputChannelLogger,
 } from "../../../../shared";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
@@ -51,11 +49,7 @@ export function registerHoverProvider(
             >(
                 "vscode.executeHoverProvider",
                 temporaryJsDoc.uri,
-                mapToVsCodePosition(
-                    getCorrespondingPositionInTempJsFile(
-                        mapFromVsCodePosition(positionInSourceFile),
-                    ),
-                ),
+                getCorrespondingPositionInTempJsFile(positionInSourceFile),
             );
 
             if (resultsFromTempJsFile.length == 0) {

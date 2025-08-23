@@ -81,6 +81,18 @@ function init(_modules: {
             );
         };
 
+        // All completions for '.js' files within collections are provided by the extension already.
+        proxy.getCompletionsAtPosition = (fileName, position, options) => {
+            return isJsFileFromBrunoCollection(info, fileName) &&
+                !isTempJsFile(fileName)
+                ? undefined
+                : info.languageService.getCompletionsAtPosition(
+                      fileName,
+                      position,
+                      options,
+                  );
+        };
+
         return proxy;
     }
 

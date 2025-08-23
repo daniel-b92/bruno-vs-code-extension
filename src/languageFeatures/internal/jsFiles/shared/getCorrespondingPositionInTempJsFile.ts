@@ -1,8 +1,9 @@
-import { Position, TextDocumentHelper } from "../../../../shared";
+import { Position as VsCodePosition } from "vscode";
+import { TextDocumentHelper } from "../../../../shared";
 import { mapSourceFileToTempJsFileContent } from "./mapSourceFileToTempJsFileContent";
 
 export function getCorrespondingPositionInTempJsFile(
-    positionInSourceFile: Position,
+    positionInSourceFile: VsCodePosition,
 ) {
     const additionalContentDoc = new TextDocumentHelper(
         mapSourceFileToTempJsFileContent(""),
@@ -14,7 +15,7 @@ export function getCorrespondingPositionInTempJsFile(
         );
     }
 
-    return new Position(
+    return new VsCodePosition(
         positionInSourceFile.line + additionalContentDoc.getLineCount() - 1, // added content ends with a linebreak
         positionInSourceFile.character,
     );

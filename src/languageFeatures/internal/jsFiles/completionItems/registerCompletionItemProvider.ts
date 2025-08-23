@@ -9,8 +9,6 @@ import {
 import {
     CollectionItemProvider,
     OutputChannelLogger,
-    mapFromVsCodePosition,
-    mapToVsCodePosition,
 } from "../../../../shared";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { getJsSourceFileDocumentSelector } from "../shared/getJsSourceFileDocumentSelector";
@@ -68,10 +66,8 @@ export function registerCompletionItemProvider(
                     await commands.executeCommand<CompletionList>(
                         "vscode.executeCompletionItemProvider",
                         temporaryJsDoc.uri,
-                        mapToVsCodePosition(
-                            getCorrespondingPositionInTempJsFile(
-                                mapFromVsCodePosition(positionInSourceFile),
-                            ),
+                        getCorrespondingPositionInTempJsFile(
+                            positionInSourceFile,
                         ),
                     );
 
