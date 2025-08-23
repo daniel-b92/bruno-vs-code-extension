@@ -33,9 +33,7 @@ export class CollectionItemProvider {
     constructor(
         collectionWatcher: CollectionWatcher,
         private testRunnerDataHelper: TestRunnerDataHelper,
-        private getPathsToIgnoreForCollection: (
-            collectionRootDir: string,
-        ) => string[],
+        private filePathsToIgnore: RegExp[],
         private logger?: OutputChannelLogger,
     ) {
         this.collectionRegistry = new CollectionRegistry(collectionWatcher);
@@ -54,9 +52,7 @@ export class CollectionItemProvider {
                 if (
                     registeredCollection.isRootDirectory(uri.fsPath) &&
                     fileChangeType == FileChangeType.Deleted &&
-                    !this.getPathsToIgnoreForCollection(
-                        registeredCollection.getRootDirectory(),
-                    ).includes(uri.fsPath)
+                    !this.shouldPathBeIgnored(uri.fsPath)
                 ) {
                     this.logger?.info(
                         `${this.commonPreMessageForLogging} Handling deletion of collection '${uri.fsPath}'.`,
@@ -71,9 +67,7 @@ export class CollectionItemProvider {
                 if (
                     !maybeRegisteredData &&
                     fileChangeType == FileChangeType.Created &&
-                    !this.getPathsToIgnoreForCollection(
-                        registeredCollection.getRootDirectory(),
-                    ).includes(uri.fsPath)
+                    !this.shouldPathBeIgnored(uri.fsPath)
                 ) {
                     this.logger?.info(
                         `${this.commonPreMessageForLogging} creation of item '${
@@ -90,9 +84,7 @@ export class CollectionItemProvider {
                 } else if (
                     maybeRegisteredData &&
                     fileChangeType == FileChangeType.Deleted &&
-                    !this.getPathsToIgnoreForCollection(
-                        registeredCollection.getRootDirectory(),
-                    ).includes(uri.fsPath)
+                    !this.shouldPathBeIgnored(uri.fsPath)
                 ) {
                     this.logger?.info(
                         `${this.commonPreMessageForLogging} deletion of item '${
@@ -110,9 +102,7 @@ export class CollectionItemProvider {
                 } else if (
                     maybeRegisteredData &&
                     fileChangeType == FileChangeType.Modified &&
-                    !this.getPathsToIgnoreForCollection(
-                        registeredCollection.getRootDirectory(),
-                    ).includes(uri.fsPath)
+                    !this.shouldPathBeIgnored(uri.fsPath)
                 ) {
                     this.logger?.info(
                         `${
@@ -199,7 +189,7 @@ export class CollectionItemProvider {
         await registerMissingCollectionsAndTheirItems(
             this.testRunnerDataHelper,
             this.collectionRegistry,
-            this.getPathsToIgnoreForCollection,
+            this.filePathsToIgnore,
         );
 
         const endTime = performance.now();
@@ -446,5 +436,11 @@ export class CollectionItemProvider {
                 this.itemUpdateEmitter.fire(notificationData);
             }, 500);
         }
+    }
+
+    private shouldPathBeIgnored(path: string) {
+        return this.filePathsToIgnore.some((patternToIgnore) =>
+            path.match(patternToIgnore),
+        );
     }
 }

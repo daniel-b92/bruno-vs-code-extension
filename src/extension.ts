@@ -13,8 +13,8 @@ import {
     FileChangedEvent,
     CollectionItemProvider,
     TestRunnerDataHelper,
-    getTemporaryJsFileNameInFolder,
     OutputChannelLogger,
+    getTemporaryJsFileBasenameWithoutExtension,
 } from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures";
 import { suggestCreatingTsConfigsForCollections } from "./languageFeatures/suggestCreatingTsConfigsForCollections";
@@ -44,7 +44,7 @@ export async function activate(context: ExtensionContext) {
     const collectionItemProvider = new CollectionItemProvider(
         collectionWatcher,
         new TestRunnerDataHelper(ctrl),
-        getPathsToIgnoreForCollection,
+        getPathsToIgnoreForCollections(),
         logger,
     );
 
@@ -87,6 +87,10 @@ export async function activate(context: ExtensionContext) {
     );
 }
 
-function getPathsToIgnoreForCollection(collectionRootDirectory: string) {
-    return [getTemporaryJsFileNameInFolder(collectionRootDirectory)];
+function getPathsToIgnoreForCollections() {
+    return [
+        new RegExp(
+            `(/|\\\\)${getTemporaryJsFileBasenameWithoutExtension()}\\.js`,
+        ),
+    ];
 }
