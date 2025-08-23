@@ -90,6 +90,11 @@ function filterDefaultDiagnostics(
     defaultDiagnostics: (ts.Diagnostic | ts.DiagnosticWithLocation)[],
 ) {
     if (isJsFileFromBrunoCollection(info, fileName)) {
+        // Avoid showing errors for temp js files.
+        if (isTempJsFile(fileName)) {
+            return [];
+        }
+
         const fileContent = getFileContent(info, fileName);
 
         if (!fileContent) {
