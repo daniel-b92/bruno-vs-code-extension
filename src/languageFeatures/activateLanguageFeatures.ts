@@ -27,6 +27,7 @@ import {
     isBrunoFileType,
     getTemporaryJsFileNameInFolder,
     filterAsync,
+    CollectionWatcher,
 } from "../shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/brunoFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/brunoFiles/autoUpdates/updateUrlToMatchQueryParams";
@@ -43,14 +44,27 @@ import { getTempJsFileContentForBruFile } from "./internal/brunoFiles/shared/cod
 import { registerHoverProvider as registerHoverProviderForJsFiles } from "./internal/jsFiles/hover/registerHoverProvider";
 import { registerCompletionItemProvider as registerCompletionItemProviderForJsFiles } from "./internal/jsFiles/completionItems/registerCompletionItemProvider";
 import { registerSignatureHelpProvider as registerSignatureHelpProviderForJsFiles } from "./internal/jsFiles/signatureHelp/registerSignatureHelpProvider";
+import { TempJsFilesProvider } from "../shared/fileSystemCache/externalHelpers/tempJsFilesProvider";
 
-export function activateLanguageFeatures(
+export async function activateLanguageFeatures(
     context: ExtensionContext,
+    collectionWatcher: CollectionWatcher,
     collectionItemProvider: CollectionItemProvider,
 ) {
     const logger = getLoggerFromSubscriptions(context);
 
     const tempJsFilesUpdateQueue = new TempJsFileUpdateQueue(logger);
+
+    const tempJsFilesProvider = new TempJsFilesProvider(
+        collectionWatcher,
+        logger,
+    );
+
+    await tempJsFilesProvider.refreshCache(
+        collectionItemProvider
+            .getRegisteredCollections()
+            .map((collection) => collection.getRootDirectory()),
+    );
 
     const diagnosticCollection =
         languages.createDiagnosticCollection("bru-as-code");
@@ -63,6 +77,7 @@ export function activateLanguageFeatures(
     context.subscriptions.push(
         diagnosticCollection,
         tempJsFilesUpdateQueue,
+        tempJsFilesProvider,
         ...provideBrunoLangCompletionItems(collectionItemProvider, logger),
         provideCodeBlocksCompletionItems(
             tempJsFilesUpdateQueue,

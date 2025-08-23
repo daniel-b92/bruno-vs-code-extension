@@ -127,7 +127,7 @@ export class CollectionItemProvider {
     private itemUpdateEmitter: vscode.EventEmitter<NotificationData[]>;
     private notificationBatch: NotificationData[] = [];
     private notificationSendEventTimer: NodeJS.Timeout | undefined = undefined;
-    private commonPreMessageForLogging = "[CollectionItemProvider]";
+    private readonly commonPreMessageForLogging = "[CollectionItemProvider]";
 
     public subscribeToUpdates() {
         return this.itemUpdateEmitter.event;
@@ -198,6 +198,16 @@ export class CollectionItemProvider {
                 endTime - startTime
             } ms`,
         );
+    }
+
+    public dispose() {
+        if (this.notificationSendEventTimer) {
+            clearTimeout(this.notificationSendEventTimer);
+        }
+
+        this.collectionRegistry.dispose();
+        this.itemUpdateEmitter.dispose();
+        this.notificationBatch.splice(0);
     }
 
     private handleCollectionDeletion(collectionUri: vscode.Uri) {
