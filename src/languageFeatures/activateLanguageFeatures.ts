@@ -139,6 +139,7 @@ export async function activateLanguageFeatures(
             await onWillSaveTextDocument(
                 tempJsFilesUpdateQueue,
                 collectionItemProvider,
+                tempJsFilesProvider,
                 e,
             );
         }),
@@ -225,14 +226,25 @@ async function onDidChangeTextDocument(
 async function onWillSaveTextDocument(
     queue: TempJsFileUpdateQueue,
     itemProvider: CollectionItemProvider,
+    tempJsFilesProvider: TempJsFilesProvider,
     event: TextDocumentWillSaveEvent,
 ) {
     const { document } = event;
 
     if (extname(document.fileName) == getExtensionForBrunoFiles()) {
-        await onWillSaveBruDocument(queue, itemProvider, document);
+        await onWillSaveBruDocument(
+            queue,
+            itemProvider,
+            tempJsFilesProvider,
+            document,
+        );
     } else if (extname(document.fileName) == getExtensionForTempJsFiles()) {
-        onWillSaveJsDocument(queue, itemProvider, document);
+        onWillSaveJsDocument(
+            queue,
+            itemProvider,
+            tempJsFilesProvider,
+            document,
+        );
     }
 }
 
@@ -347,6 +359,7 @@ async function handleOpeningOfJsDocument(
 async function onWillSaveBruDocument(
     queue: TempJsFileUpdateQueue,
     itemProvider: CollectionItemProvider,
+    tempJsFilesProvider: TempJsFilesProvider,
     document: TextDocument,
 ) {
     const brunoFileType = await getBrunoFileTypeIfExists(
@@ -363,12 +376,7 @@ async function onWillSaveBruDocument(
         );
 
         if (collection) {
-            queue.addToQueue({
-                filePath: getTemporaryJsFileNameInFolder(
-                    collection.getRootDirectory(),
-                ),
-                update: { type: TempJsUpdateType.Deletion },
-            });
+            deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
         }
 
         if (
@@ -395,15 +403,11 @@ async function onWillSaveBruDocument(
 function onWillSaveJsDocument(
     queue: TempJsFileUpdateQueue,
     itemProvider: CollectionItemProvider,
+    tempJsFilesProvider: TempJsFilesProvider,
     document: TextDocument,
 ) {
     if (isJsFileFromBrunoCollection(itemProvider, document.fileName)) {
-        queue.addToQueue({
-            filePath: getTemporaryJsFileNameInFolder(
-                dirname(document.fileName),
-            ),
-            update: { type: TempJsUpdateType.Deletion },
-        });
+        deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
     }
 }
 
