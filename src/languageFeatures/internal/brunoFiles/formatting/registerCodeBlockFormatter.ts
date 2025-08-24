@@ -2,7 +2,6 @@ import { languages, TextEdit } from "vscode";
 import {
     Block,
     getLineBreak,
-    getLineBreakFromSettings,
     mapToVsCodeRange,
     OutputChannelLogger,
     parseBruFile,
@@ -48,7 +47,6 @@ async function getTextEditForBlock(block: Block, documentLineBreak: string) {
 
     const formattedWithDummyFunctionReplacement = await format(toFormat, {
         parser: "typescript",
-        endOfLine: getLineBreakFromSettings() == "\n" ? "lf" : "crlf",
     });
 
     if (
