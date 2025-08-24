@@ -1,4 +1,11 @@
+## [0.17.1] (2025-08-24)
+
+### Fixes / Improvements
+- Reverts last few changes that were added for version `0.17.0` since some bigger issues have occured when working  with that version.
+- Do not show errors in JS files that are inside collections for inbuilt `Bruno` variables like `bru`, `req` and `res`.
+
 ## [0.17.0] (2025-08-24)
+**Note: Version had to be withdrawn because of some bigger issues - will try to fix them and add the feature in an upcoming version again**
 
 ### Fixes / Improvements
 
