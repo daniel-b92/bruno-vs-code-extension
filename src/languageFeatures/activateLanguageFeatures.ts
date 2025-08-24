@@ -269,85 +269,6 @@ function handleDiagnosticUpdatesOnFileDeletionForBruFile(
     });
 }
 
-async function fetchBrunoSpecificDiagnostics(
-    uri: Uri,
-    content: string,
-    brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
-    brunoFileType: BrunoFileType,
-) {
-    if (brunoFileType == BrunoFileType.RequestFile) {
-        await brunoLangDiagnosticsProvider.provideDiagnosticsForRequestFile(
-            uri,
-            content,
-        );
-    } else if (brunoFileType == BrunoFileType.EnvironmentFile) {
-        brunoLangDiagnosticsProvider.provideDiagnosticsForEnvironmentFile(
-            uri,
-            content,
-        );
-    } else if (brunoFileType == BrunoFileType.FolderSettingsFile) {
-        await brunoLangDiagnosticsProvider.provideDiagnosticsForFolderSettingsFile(
-            uri,
-            content,
-        );
-    } else if (brunoFileType == BrunoFileType.CollectionSettingsFile) {
-        brunoLangDiagnosticsProvider.provideDiagnosticsForCollectionSettingsFile(
-            uri,
-            content,
-        );
-    } else {
-        throw new Error(
-            `Fetching Bruno specific diagnostics not implemented for file type '${brunoFileType}'.`,
-        );
-    }
-}
-
-async function deleteAllTemporaryJsFiles(
-    updateQueue: TempJsFileUpdateQueue,
-    tempJsFilesProvider: TempJsFilesProvider,
-) {
-    const deletions: Promise<boolean>[] = [];
-
-    const existingFiles = await filterAsync(
-        tempJsFilesProvider.getRegisteredFiles(),
-        async (filePath) => await checkIfPathExistsAsync(filePath),
-    );
-
-    for (const filePath of existingFiles) {
-        deletions.push(
-            updateQueue.addToQueue({
-                filePath,
-                update: { type: TempJsUpdateType.Deletion },
-            }),
-        );
-    }
-
-    await Promise.all(deletions);
-}
-
-function getBrunoFileTypesThatCanHaveCodeBlocks() {
-    return [
-        BrunoFileType.CollectionSettingsFile,
-        BrunoFileType.FolderSettingsFile,
-        BrunoFileType.RequestFile,
-    ];
-}
-
-async function getBrunoFileTypeIfExists(
-    collectionItemProvider: CollectionItemProvider,
-    filePath: string,
-) {
-    const itemWithCollection =
-        collectionItemProvider.getRegisteredItemAndCollection(filePath);
-
-    return itemWithCollection &&
-        (await checkIfPathExistsAsync(filePath)) &&
-        itemWithCollection.data.item instanceof CollectionFile &&
-        isBrunoFileType(itemWithCollection.data.item.getFileType())
-        ? (itemWithCollection.data.item.getFileType() as BrunoFileType)
-        : undefined;
-}
-
 async function handleOpeningOfBruDocument(
     queue: TempJsFileUpdateQueue,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
@@ -484,6 +405,85 @@ function onWillSaveJsDocument(
             update: { type: TempJsUpdateType.Deletion },
         });
     }
+}
+
+async function fetchBrunoSpecificDiagnostics(
+    uri: Uri,
+    content: string,
+    brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
+    brunoFileType: BrunoFileType,
+) {
+    if (brunoFileType == BrunoFileType.RequestFile) {
+        await brunoLangDiagnosticsProvider.provideDiagnosticsForRequestFile(
+            uri,
+            content,
+        );
+    } else if (brunoFileType == BrunoFileType.EnvironmentFile) {
+        brunoLangDiagnosticsProvider.provideDiagnosticsForEnvironmentFile(
+            uri,
+            content,
+        );
+    } else if (brunoFileType == BrunoFileType.FolderSettingsFile) {
+        await brunoLangDiagnosticsProvider.provideDiagnosticsForFolderSettingsFile(
+            uri,
+            content,
+        );
+    } else if (brunoFileType == BrunoFileType.CollectionSettingsFile) {
+        brunoLangDiagnosticsProvider.provideDiagnosticsForCollectionSettingsFile(
+            uri,
+            content,
+        );
+    } else {
+        throw new Error(
+            `Fetching Bruno specific diagnostics not implemented for file type '${brunoFileType}'.`,
+        );
+    }
+}
+
+async function deleteAllTemporaryJsFiles(
+    updateQueue: TempJsFileUpdateQueue,
+    tempJsFilesProvider: TempJsFilesProvider,
+) {
+    const deletions: Promise<boolean>[] = [];
+
+    const existingFiles = await filterAsync(
+        tempJsFilesProvider.getRegisteredFiles(),
+        async (filePath) => await checkIfPathExistsAsync(filePath),
+    );
+
+    for (const filePath of existingFiles) {
+        deletions.push(
+            updateQueue.addToQueue({
+                filePath,
+                update: { type: TempJsUpdateType.Deletion },
+            }),
+        );
+    }
+
+    await Promise.all(deletions);
+}
+
+function getBrunoFileTypesThatCanHaveCodeBlocks() {
+    return [
+        BrunoFileType.CollectionSettingsFile,
+        BrunoFileType.FolderSettingsFile,
+        BrunoFileType.RequestFile,
+    ];
+}
+
+async function getBrunoFileTypeIfExists(
+    collectionItemProvider: CollectionItemProvider,
+    filePath: string,
+) {
+    const itemWithCollection =
+        collectionItemProvider.getRegisteredItemAndCollection(filePath);
+
+    return itemWithCollection &&
+        (await checkIfPathExistsAsync(filePath)) &&
+        itemWithCollection.data.item instanceof CollectionFile &&
+        isBrunoFileType(itemWithCollection.data.item.getFileType())
+        ? (itemWithCollection.data.item.getFileType() as BrunoFileType)
+        : undefined;
 }
 
 function isJsFileFromBrunoCollection(
