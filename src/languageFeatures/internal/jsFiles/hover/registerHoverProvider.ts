@@ -1,10 +1,11 @@
 import { commands, Hover, languages } from "vscode";
 import {
     CollectionItemProvider,
+    getTemporaryJsFileBasename,
     OutputChannelLogger,
 } from "../../../../shared";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
-import { getJsSourceFileDocumentSelector } from "../shared/getJsSourceFileDocumentSelector";
+import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import { waitForTempJsFileToBeInSyncWithJsFile } from "../shared/waitForTempJsFileToBeInSyncWithJsFile";
 import { getCorrespondingPositionInTempJsFile } from "../shared/getCorrespondingPositionInTempJsFile";
 import { getCorrespondingRangeInSourceFile } from "../shared/getCorrespondingRangeInSourceFile";
@@ -14,9 +15,13 @@ export function registerHoverProvider(
     itemProvider: CollectionItemProvider,
     logger?: OutputChannelLogger,
 ) {
-    return languages.registerHoverProvider(getJsSourceFileDocumentSelector(), {
+    return languages.registerHoverProvider(getJsFileDocumentSelector(), {
         async provideHover(document, positionInSourceFile, token) {
-            if (!itemProvider.getAncestorCollectionForPath(document.fileName)) {
+            if (
+                // For temp js files, the Typescript language server provides hovers already.
+                document.fileName.endsWith(getTemporaryJsFileBasename()) ||
+                !itemProvider.getAncestorCollectionForPath(document.fileName)
+            ) {
                 return undefined;
             }
 

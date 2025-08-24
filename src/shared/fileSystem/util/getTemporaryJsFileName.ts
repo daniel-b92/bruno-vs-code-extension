@@ -1,10 +1,11 @@
 import { resolve } from "path";
 
 export function getTemporaryJsFileNameInFolder(folderPath: string) {
-    return resolve(
-        folderPath,
-        `${getTemporaryJsFileBasenameWithoutExtension()}.js`,
-    );
+    return resolve(folderPath, getTemporaryJsFileBasename());
+}
+
+export function getTemporaryJsFileBasename() {
+    return `${getTemporaryJsFileBasenameWithoutExtension()}.js`;
 }
 
 export function getTemporaryJsFileBasenameWithoutExtension() {
