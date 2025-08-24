@@ -222,7 +222,7 @@ async function onDidChangeTextDocument(
     }
 }
 
-function onWillSaveTextDocument(
+async function onWillSaveTextDocument(
     queue: TempJsFileUpdateQueue,
     itemProvider: CollectionItemProvider,
     event: TextDocumentWillSaveEvent,
@@ -230,7 +230,7 @@ function onWillSaveTextDocument(
     const { document } = event;
 
     if (extname(document.fileName) == getExtensionForBrunoFiles()) {
-        onWillSaveBruDocument(queue, itemProvider, document);
+        await onWillSaveBruDocument(queue, itemProvider, document);
     } else if (extname(document.fileName) == getExtensionForTempJsFiles()) {
         onWillSaveJsDocument(queue, itemProvider, document);
     }
