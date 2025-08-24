@@ -1,14 +1,15 @@
 import { TempJsUpdateRequest, TempJsUpdateType } from "../internal/interfaces";
 import {
     checkIfPathExistsAsync,
+    everyAsync,
     OutputChannelLogger,
 } from "../../../../../shared";
 import { createTemporaryJsFile } from "../internal/createTemporaryJsFile";
-import { deleteTemporaryJsFile } from "../internal/deleteTemporaryJsFile";
+import { deleteTemporaryJsFiles } from "../internal/deleteTemporaryJsFile";
 import { CancellationToken, EventEmitter } from "vscode";
 import { setTimeout } from "timers/promises";
 import { QueueUpdateHandler } from "../internal/queueUpdateHandler";
-import { dirname } from "path";
+import { basename, dirname } from "path";
 
 export class TempJsFileUpdateQueue {
     constructor(private logger?: OutputChannelLogger) {
@@ -204,7 +205,10 @@ export class TempJsFileUpdateQueue {
             result = await this.triggerCreationUpdate(id, token);
         } else if (
             request.update.type == TempJsUpdateType.Deletion &&
-            (await checkIfPathExistsAsync(request.filePath))
+            (await everyAsync(
+                request.update.filePaths,
+                async (path) => await checkIfPathExistsAsync(path),
+            ))
         ) {
             result = await this.triggerDeletionUpdate(id, token);
         } else {
@@ -239,25 +243,27 @@ export class TempJsFileUpdateQueue {
 
         this.activeUpdate = request;
 
-        const {
-            request: { filePath: tempJsFilePath, update },
-        } = request;
-
-        if (update.type != TempJsUpdateType.Creation) {
+        if (request.request.update.type != TempJsUpdateType.Creation) {
             throw new Error(
                 "Cannot handle temp js deletion update in creation function.",
             );
         }
 
+        const {
+            request: {
+                update: { filePath: tempJsFilePath, tempJsFileContent },
+            },
+        } = request;
+
         const wasSuccessful = await createTemporaryJsFile(
             tempJsFilePath,
-            update.tempJsFileContent,
+            tempJsFileContent,
             token,
             this.logger,
         );
 
         if (wasSuccessful) {
-            this.latestRequestTempJsFileContent = update.tempJsFileContent;
+            this.latestRequestTempJsFileContent = tempJsFileContent;
         }
 
         return wasSuccessful;
@@ -283,11 +289,24 @@ export class TempJsFileUpdateQueue {
 
         this.activeUpdate = request;
 
+        if (request.request.update.type != TempJsUpdateType.Deletion) {
+            throw new Error(
+                "Cannot handle temp js creation update in deletion function.",
+            );
+        }
+
         const {
-            request: { filePath },
+            request: {
+                update: { filePaths },
+            },
         } = request;
 
-        if (await checkIfPathExistsAsync(filePath)) {
+        if (
+            await everyAsync(
+                filePaths,
+                async (path) => await checkIfPathExistsAsync(path),
+            )
+        ) {
             const deletionIdentifier = 0;
             const cancellationIdentifier = 1;
             const otherRequestAddedIdentifier = 2;
@@ -314,7 +333,13 @@ export class TempJsFileUpdateQueue {
                     // Deletion requests are by far not as important as creation requests, since they are only meant to clean up a little in the background.
                     if (newId != requestId) {
                         this.logger?.debug(
-                            `Removing temp js file deletion request for folder '${dirname(request.request.filePath)}' from queue since newer request exists for another file already.`,
+                            `Removing temp js file deletion request for folders ${JSON.stringify(
+                                filePaths.map((path) =>
+                                    basename(dirname(path)),
+                                ),
+                                null,
+                                2,
+                            )} from queue since newer request exists for another file already.`,
                         );
 
                         resolve(otherRequestAddedIdentifier);
@@ -329,7 +354,7 @@ export class TempJsFileUpdateQueue {
             ]);
 
             if (fulfilledCondition == deletionIdentifier) {
-                await deleteTemporaryJsFile(filePath, this.logger);
+                await deleteTemporaryJsFiles(filePaths, this.logger);
 
                 this.latestRequestTempJsFileContent = undefined;
 
@@ -381,7 +406,10 @@ export class TempJsFileUpdateQueue {
     }
 
     private getIdForRequest(request: TempJsUpdateRequest) {
-        const { filePath, update } = request;
-        return `${filePath}-${update.type == TempJsUpdateType.Creation ? `${update.tempJsFileContent}` : update.type}-${new Date().getTime()}`;
+        const { update } = request;
+
+        return update.type == TempJsUpdateType.Creation
+            ? `${update.type}-${update.filePath}-${update.tempJsFileContent}-${new Date().getTime()}`
+            : `${update.type}-${update.filePaths.join(",")}-${new Date().getTime()}`;
     }
 }

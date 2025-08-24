@@ -19,6 +19,7 @@ export * from "./fileSystem/util/getFileType";
 // array utils
 export * from "./arrayUtils/filterAsync";
 export * from "./arrayUtils/someAsync";
+export * from "./arrayUtils/everyAsync";
 
 // file parsing
 export * from "./fileParsing/external/requestFiles/metaBlock/getMaxSequenceForRequests";

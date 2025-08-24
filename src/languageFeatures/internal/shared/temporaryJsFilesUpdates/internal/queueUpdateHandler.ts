@@ -76,7 +76,7 @@ export class QueueUpdateHandler {
         id: string,
         requestRemovedFromQueueNotifier: EventEmitter<string[]>,
     ) {
-        const { update: newUpdate, filePath: pathForNewRequest } = newRequest;
+        const { update: newUpdate } = newRequest;
 
         await this.getLockForRequest(id);
 
@@ -94,26 +94,17 @@ export class QueueUpdateHandler {
                 request,
                 index: oneBasedIndex + 1,
             }))
-            .filter(
-                ({
-                    request: {
-                        filePath: pathForQueuedRequest,
-                        update: queuedUpdate,
-                    },
-                }) => {
-                    if (pathForNewRequest != pathForQueuedRequest) {
-                        return false;
-                    }
-
-                    return (
-                        newUpdate.type != queuedUpdate.type ||
-                        newUpdate.type == TempJsUpdateType.Deletion ||
-                        (queuedUpdate.type == TempJsUpdateType.Creation &&
-                            newUpdate.tempJsFileContent !=
-                                queuedUpdate.tempJsFileContent)
-                    );
-                },
-            );
+            .filter(({ request: { update: queuedUpdate } }) => {
+                return (
+                    newUpdate.type != queuedUpdate.type ||
+                    newUpdate.type == TempJsUpdateType.Deletion ||
+                    (queuedUpdate.type == TempJsUpdateType.Creation &&
+                        newUpdate.filePath != queuedUpdate.filePath) ||
+                    (queuedUpdate.type == TempJsUpdateType.Creation &&
+                        newUpdate.tempJsFileContent !=
+                            queuedUpdate.tempJsFileContent)
+                );
+            });
 
         redundantRequests.forEach(({ index }) => {
             this.queue.splice(index, 1);

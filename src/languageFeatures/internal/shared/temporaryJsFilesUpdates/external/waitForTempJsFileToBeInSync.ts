@@ -41,9 +41,9 @@ export async function waitForTempJsFileToBeInSync(
     }
 
     const shouldContinue = await queue.addToQueue({
-        filePath: tempJsFilePath,
         update: {
             type: TempJsUpdateType.Creation,
+            filePath: tempJsFilePath,
             tempJsFileContent: desiredTempJsFileContentInitially,
         },
         cancellationToken: token,

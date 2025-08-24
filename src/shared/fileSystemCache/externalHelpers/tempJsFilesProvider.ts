@@ -1,9 +1,11 @@
+import { basename } from "path";
 import {
     CollectionWatcher,
     FileChangeType,
     normalizeDirectoryPath,
     OutputChannelLogger,
     getTemporaryJsFileBasenameWithoutExtension,
+    getTemporaryJsFileBasename,
 } from "../..";
 import { glob } from "glob";
 
@@ -31,6 +33,7 @@ export class TempJsFilesProvider {
                     }
                 } else if (
                     fileChangeType == FileChangeType.Created &&
+                    basename(fsPath) == getTemporaryJsFileBasename() &&
                     (!this.registeredTempJsFiles ||
                         !this.registeredTempJsFiles.includes(fsPath))
                 ) {

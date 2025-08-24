@@ -8,10 +8,11 @@ import {
 } from "vscode";
 import {
     CollectionItemProvider,
+    getTemporaryJsFileBasename,
     OutputChannelLogger,
 } from "../../../../shared";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
-import { getJsSourceFileDocumentSelector } from "../shared/getJsSourceFileDocumentSelector";
+import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import { waitForTempJsFileToBeInSyncWithJsFile } from "../shared/waitForTempJsFileToBeInSyncWithJsFile";
 import { getCorrespondingPositionInTempJsFile } from "../shared/getCorrespondingPositionInTempJsFile";
 import { getCorrespondingRangeInSourceFile } from "../shared/getCorrespondingRangeInSourceFile";
@@ -22,7 +23,7 @@ export function registerCompletionItemProvider(
     logger?: OutputChannelLogger,
 ) {
     return languages.registerCompletionItemProvider(
-        getJsSourceFileDocumentSelector(),
+        getJsFileDocumentSelector(),
         {
             async provideCompletionItems(
                 document,
@@ -30,6 +31,8 @@ export function registerCompletionItemProvider(
                 token,
             ) {
                 if (
+                    // For temp js files, the Typescript language server provides the completion items already.
+                document.fileName.endsWith(getTemporaryJsFileBasename()) ||
                     !itemProvider.getAncestorCollectionForPath(
                         document.fileName,
                     )
