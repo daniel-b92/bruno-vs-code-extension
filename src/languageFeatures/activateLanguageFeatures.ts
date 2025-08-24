@@ -317,9 +317,9 @@ async function handleOpeningOfBruDocument(
     ).getRootDirectory();
 
     await queue.addToQueue({
-        filePath: getTemporaryJsFileNameInFolder(collectionRootFolder),
         update: {
             type: TempJsUpdateType.Creation,
+            filePath: getTemporaryJsFileNameInFolder(collectionRootFolder),
             tempJsFileContent: getTempJsFileContentForBruFile(
                 document.getText(),
             ),
@@ -346,9 +346,9 @@ async function handleOpeningOfJsDocument(
     }
 
     await queue.addToQueue({
-        filePath: getTemporaryJsFileNameInFolder(dirname(path)),
         update: {
             type: TempJsUpdateType.Creation,
+            filePath: getTemporaryJsFileNameInFolder(dirname(path)),
             tempJsFileContent: mapSourceFileToTempJsFileContent(
                 document.getText(),
             ),
@@ -448,23 +448,17 @@ async function deleteAllTemporaryJsFiles(
     updateQueue: TempJsFileUpdateQueue,
     tempJsFilesProvider: TempJsFilesProvider,
 ) {
-    const deletions: Promise<boolean>[] = [];
-
     const existingFiles = await filterAsync(
         tempJsFilesProvider.getRegisteredFiles(),
         async (filePath) => await checkIfPathExistsAsync(filePath),
     );
 
-    for (const filePath of existingFiles) {
-        deletions.push(
-            updateQueue.addToQueue({
-                filePath,
-                update: { type: TempJsUpdateType.Deletion },
-            }),
-        );
-    }
-
-    await Promise.all(deletions);
+    await updateQueue.addToQueue({
+        update: {
+            type: TempJsUpdateType.Deletion,
+            filePaths: existingFiles,
+        },
+    });
 }
 
 function getBrunoFileTypesThatCanHaveCodeBlocks() {

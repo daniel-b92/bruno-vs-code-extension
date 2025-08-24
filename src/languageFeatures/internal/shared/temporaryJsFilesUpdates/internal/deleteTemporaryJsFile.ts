@@ -1,24 +1,36 @@
 import {
     checkIfPathExistsAsync,
+    everyAsync,
     OutputChannelLogger,
 } from "../../../../../shared";
 import { Uri, workspace, WorkspaceEdit } from "vscode";
-import { basename } from "path";
+import { basename, dirname } from "path";
 
-export async function deleteTemporaryJsFile(
-    filePath: string,
+export async function deleteTemporaryJsFiles(
+    filePaths: string[],
     logger?: OutputChannelLogger,
 ) {
-    if (await checkIfPathExistsAsync(filePath)) {
+    if (
+        await everyAsync(
+            filePaths,
+            async (path) => await checkIfPathExistsAsync(path),
+        )
+    ) {
         const workspaceEdit = new WorkspaceEdit();
-        workspaceEdit.deleteFile(Uri.file(filePath));
+
+        for (const path of filePaths) {
+            workspaceEdit.deleteFile(Uri.file(path));
+        }
+
         const wasSuccessful = await workspace.applyEdit(workspaceEdit);
 
         if (!wasSuccessful) {
             logger?.warn(
-                `Unexpected error occured while trying to delete temp JS file '${basename(
-                    filePath,
-                )}'.`,
+                `Unexpected error occured while trying to delete temp JS files in folders ${JSON.stringify(
+                    filePaths.map((path) => basename(dirname(path))),
+                    null,
+                    2,
+                )}.`,
             );
         }
     }
