@@ -14,13 +14,13 @@ export class CollectionRegistry {
     public registerCollection(collection: Collection) {
         if (!this.isCollectionRegistered(collection.getRootDirectory())) {
             this.collectionWatcher.startWatchingCollection(
-                collection.getRootDirectory()
+                collection.getRootDirectory(),
             );
 
             this.collections.push(collection);
         } else {
             console.warn(
-                `Collection with root directory '${collection.getRootDirectory()}' is already registered. Skipped registering it again.`
+                `Collection with root directory '${collection.getRootDirectory()}' is already registered. Skipped registering it again.`,
             );
         }
     }
@@ -31,26 +31,30 @@ export class CollectionRegistry {
                 this.collections.findIndex(
                     (collection) =>
                         normalizeDirectoryPath(collection.getRootDirectory()) ==
-                        normalizeDirectoryPath(rootDirectory)
+                        normalizeDirectoryPath(rootDirectory),
                 ),
-                1
+                1,
             )[0];
 
             this.collectionWatcher.stopWatchingCollection(rootDirectory);
             return collection;
         } else {
             console.warn(
-                `No registered collection with root directory '${rootDirectory}' found for unregistering.`
+                `No registered collection with root directory '${rootDirectory}' found for unregistering.`,
             );
             return undefined;
         }
+    }
+
+    public dispose() {
+        this.collections.splice(0);
     }
 
     private isCollectionRegistered(rootDirectory: string) {
         return this.collections.some(
             (registered) =>
                 normalizeDirectoryPath(registered.getRootDirectory()) ==
-                normalizeDirectoryPath(rootDirectory)
+                normalizeDirectoryPath(rootDirectory),
         );
     }
 }

@@ -16,7 +16,7 @@ import { getCollectionFile } from "./getCollectionFile";
 export async function registerMissingCollectionsAndTheirItems(
     testRunnerDataHelper: TestRunnerDataHelper,
     collectionRegistry: CollectionRegistry,
-    getPathsToIgnoreForCollection: (collectionRootDir: string) => string[],
+    filePathsToIgnore: RegExp[],
 ) {
     const allCollections = await registerAllExistingCollections(
         testRunnerDataHelper,
@@ -37,9 +37,7 @@ export async function registerMissingCollectionsAndTheirItems(
 
                 if (
                     !collection.getStoredDataForPath(path) &&
-                    !getPathsToIgnoreForCollection(
-                        collection.getRootDirectory(),
-                    ).includes(path)
+                    !shouldPathBeIgnored(filePathsToIgnore, path)
                 ) {
                     const item = isDirectory
                         ? new CollectionDirectory(
@@ -56,9 +54,7 @@ export async function registerMissingCollectionsAndTheirItems(
 
                 if (
                     isDirectory &&
-                    !getPathsToIgnoreForCollection(
-                        collection.getRootDirectory(),
-                    ).includes(path)
+                    !shouldPathBeIgnored(filePathsToIgnore, path)
                 ) {
                     currentPaths.push(path);
                 }
@@ -88,4 +84,10 @@ async function registerAllExistingCollections(
 
         return collection;
     });
+}
+
+function shouldPathBeIgnored(filePathsToIgnore: RegExp[], path: string) {
+    return filePathsToIgnore.some((patternToIgnore) =>
+        path.match(patternToIgnore),
+    );
 }

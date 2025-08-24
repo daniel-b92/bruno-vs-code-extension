@@ -13,8 +13,8 @@ import {
     FileChangedEvent,
     CollectionItemProvider,
     TestRunnerDataHelper,
-    getTemporaryJsFileNameInFolder,
     OutputChannelLogger,
+    getTemporaryJsFileBasenameWithoutExtension,
 } from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures";
 import { suggestCreatingTsConfigsForCollections } from "./languageFeatures/suggestCreatingTsConfigsForCollections";
@@ -26,13 +26,10 @@ export async function activate(context: ExtensionContext) {
         "bruAsCodeTestController",
         extensionNameLabel,
     );
-    context.subscriptions.push(ctrl);
 
     const logger = new OutputChannelLogger(
         window.createOutputChannel(extensionNameLabel, { log: true }),
     );
-
-    context.subscriptions.push(logger);
 
     const fileChangedEmitter = new EventEmitter<FileChangedEvent>();
     const collectionWatcher = new CollectionWatcher(
@@ -41,14 +38,25 @@ export async function activate(context: ExtensionContext) {
         logger,
     );
 
+    const testRunnerDataHelper = new TestRunnerDataHelper(ctrl);
     const collectionItemProvider = new CollectionItemProvider(
         collectionWatcher,
-        new TestRunnerDataHelper(ctrl),
-        getPathsToIgnoreForCollection,
+        testRunnerDataHelper,
+        getPathsToIgnoreForCollections(),
         logger,
     );
 
     const startTestRunEmitter = new EventEmitter<Uri>();
+
+    context.subscriptions.push(
+        startTestRunEmitter,
+        fileChangedEmitter,
+        collectionItemProvider,
+        collectionWatcher,
+        testRunnerDataHelper,
+        logger,
+        ctrl,
+    );
 
     window.withProgress(
         {
@@ -72,14 +80,15 @@ export async function activate(context: ExtensionContext) {
 
                         activateLanguageFeatures(
                             context,
+                            collectionWatcher,
                             collectionItemProvider,
-                        );
+                        ).then(() => {
+                            resolve();
 
-                        resolve();
-
-                        suggestCreatingTsConfigsForCollections(
-                            collectionItemProvider,
-                        );
+                            suggestCreatingTsConfigsForCollections(
+                                collectionItemProvider,
+                            );
+                        });
                     });
                 });
             });
@@ -87,6 +96,10 @@ export async function activate(context: ExtensionContext) {
     );
 }
 
-function getPathsToIgnoreForCollection(collectionRootDirectory: string) {
-    return [getTemporaryJsFileNameInFolder(collectionRootDirectory)];
+function getPathsToIgnoreForCollections() {
+    return [
+        new RegExp(
+            `(/|\\\\)${getTemporaryJsFileBasenameWithoutExtension()}\\.js`,
+        ),
+    ];
 }
