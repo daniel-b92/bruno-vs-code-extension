@@ -8,6 +8,7 @@ import { deleteTemporaryJsFile } from "../internal/deleteTemporaryJsFile";
 import { CancellationToken, EventEmitter } from "vscode";
 import { setTimeout } from "timers/promises";
 import { QueueUpdateHandler } from "../internal/queueUpdateHandler";
+import { dirname } from "path";
 
 export class TempJsFileUpdateQueue {
     constructor(private logger?: OutputChannelLogger) {
@@ -112,10 +113,6 @@ export class TempJsFileUpdateQueue {
 
     private async tryToAddToQueue(updateRequest: TempJsUpdateRequest) {
         const id = this.getIdForRequest(updateRequest);
-        this.requestAddedToQueueNotifier.fire({
-            request: updateRequest,
-            id,
-        });
 
         const { cancellationToken: token } = updateRequest;
 
@@ -130,6 +127,11 @@ export class TempJsFileUpdateQueue {
         }
 
         await this.queueUpdater.addToEndOfQueue(updateRequest, id);
+
+        this.requestAddedToQueueNotifier.fire({
+            request: updateRequest,
+            id,
+        });
 
         if (token && token.isCancellationRequested) {
             await this.removeFromQueue(id);
@@ -288,7 +290,7 @@ export class TempJsFileUpdateQueue {
         if (await checkIfPathExistsAsync(filePath)) {
             const deletionIdentifier = 0;
             const cancellationIdentifier = 1;
-            const otherCreationRequestIdentifier = 2;
+            const otherRequestAddedIdentifier = 2;
 
             const deletionPromise = setTimeout(
                 5_000,
@@ -304,29 +306,26 @@ export class TempJsFileUpdateQueue {
                 }
             });
 
-            const otherCreationRequestPromise = new Promise<number>(
-                (resolve) => {
-                    this.waitForRequestToBeAddedToQueue().then((newRequest) => {
-                        const {
-                            id: newId,
-                            request: { filePath: newFilePath },
-                        } = newRequest;
+            const otherRequestAddedPromise = new Promise<number>((resolve) => {
+                this.waitForRequestToBeAddedToQueue().then((newRequest) => {
+                    const { id: newId } = newRequest;
 
-                        if (newId != requestId && newFilePath == filePath) {
-                            this.logger?.debug(
-                                `Removing temp js file deletion request from queue since newer request exists for same file already.`,
-                            );
+                    // Avoid blocking other requests that are are added to the end of the queue (there's currently no way for other requests to skip ahead of this one).
+                    // Deletion requests are by far not as important as creation requests, since they are only meant to clean up a little in the background.
+                    if (newId != requestId) {
+                        this.logger?.debug(
+                            `Removing temp js file deletion request for folder '${dirname(request.request.filePath)}' from queue since newer request exists for another file already.`,
+                        );
 
-                            resolve(otherCreationRequestIdentifier);
-                        }
-                    });
-                },
-            );
+                        resolve(otherRequestAddedIdentifier);
+                    }
+                });
+            });
 
             const fulfilledCondition = await Promise.race([
                 deletionPromise,
                 cancellationPromise,
-                otherCreationRequestPromise,
+                otherRequestAddedPromise,
             ]);
 
             if (fulfilledCondition == deletionIdentifier) {
