@@ -3,7 +3,7 @@ import {
     RequestFileBlockName,
     TextDocumentHelper,
 } from "../../../../../shared";
-import { getDefinitionsForInbuiltLibraries } from "../../../shared/getDefinitionsForInbuiltLibraries";
+import { getDefinitionsForInbuiltLibraries } from "../../../shared/temporaryJsFilesUpdates/external/getDefinitionsForInbuiltLibraries";
 import { getCodeBlocks } from "./getCodeBlocks";
 import { mapBlockNameToJsFileLine } from "./mapBlockNameToJsFileFunctionName";
 

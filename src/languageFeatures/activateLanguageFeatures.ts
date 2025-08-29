@@ -37,16 +37,13 @@ import { provideCodeBlocksCompletionItems } from "./internal/brunoFiles/completi
 import { provideInfosOnHover as provideInfosOnHoverForBruFiles } from "./internal/brunoFiles/hover/provideInfosOnHover";
 import { provideSignatureHelp as provideSignatureHelpForBruFiles } from "./internal/brunoFiles/signatureHelp/provideSignatureHelp";
 import { provideDefinitions as provideDefinitionsForBruFiles } from "./internal/brunoFiles/definitionProvider/provideDefinitions";
-import { dirname, extname } from "path";
+import { extname } from "path";
 import { registerCodeBlockFormatter } from "./internal/brunoFiles/formatting/registerCodeBlockFormatter";
 import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "./internal/shared/temporaryJsFilesUpdates/internal/interfaces";
 import { getTempJsFileContentForBruFile } from "./internal/brunoFiles/shared/codeBlocksUtils/getTempJsFileContentForBruFile";
-import { registerHoverProvider as registerHoverProviderForJsFiles } from "./internal/jsFiles/hover/registerHoverProvider";
-import { registerCompletionItemProvider as registerCompletionItemProviderForJsFiles } from "./internal/jsFiles/completionItems/registerCompletionItemProvider";
-import { registerSignatureHelpProvider as registerSignatureHelpProviderForJsFiles } from "./internal/jsFiles/signatureHelp/registerSignatureHelpProvider";
 import { TempJsFilesProvider } from "../shared/fileSystemCache/externalHelpers/tempJsFilesProvider";
-import { mapSourceFileToTempJsFileContent } from "./internal/jsFiles/shared/mapSourceFileToTempJsFileContent";
+import { getDefinitionsForInbuiltLibraries } from "./internal/shared/temporaryJsFilesUpdates/external/getDefinitionsForInbuiltLibraries";
 
 export async function activateLanguageFeatures(
     context: ExtensionContext,
@@ -102,21 +99,6 @@ export async function activateLanguageFeatures(
             logger,
         ),
         registerCodeBlockFormatter(logger),
-        registerHoverProviderForJsFiles(
-            tempJsFilesUpdateQueue,
-            collectionItemProvider,
-            logger,
-        ),
-        registerCompletionItemProviderForJsFiles(
-            tempJsFilesUpdateQueue,
-            collectionItemProvider,
-            logger,
-        ),
-        registerSignatureHelpProviderForJsFiles(
-            tempJsFilesUpdateQueue,
-            collectionItemProvider,
-            logger,
-        ),
         brunoLangDiagnosticsProvider,
         tempJsFilesUpdateQueue,
         window.onDidChangeActiveTextEditor(async (editor) => {
@@ -345,13 +327,17 @@ async function handleOpeningOfJsDocument(
         return;
     }
 
+    const collectionRootFolder = (
+        itemProvider.getAncestorCollectionForPath(
+            document.fileName,
+        ) as Collection
+    ).getRootDirectory();
+
     await queue.addToQueue({
         update: {
             type: TempJsUpdateType.Creation,
-            filePath: getTemporaryJsFileNameInFolder(dirname(path)),
-            tempJsFileContent: mapSourceFileToTempJsFileContent(
-                document.getText(),
-            ),
+            filePath: getTemporaryJsFileNameInFolder(collectionRootFolder),
+            tempJsFileContent: getDefinitionsForInbuiltLibraries().join("\n\n"),
         },
     });
 }

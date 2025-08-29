@@ -1,4 +1,4 @@
-import { basename, dirname, extname } from "path";
+import { extname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
 
 function init(_modules: {
@@ -40,10 +40,6 @@ function init(_modules: {
 
             const isBruFile = isBrunoFile(fileName);
 
-            if (!isBruFile && !isJsFileFromBrunoCollection(info, fileName)) {
-                return defaultDiagnostics;
-            }
-
             const allDiagnostics = filterDefaultDiagnostics(
                 info,
                 fileName,
@@ -64,14 +60,9 @@ function init(_modules: {
                 : allDiagnostics.filter(({ code }) => code != 80_001); // Bruno currently only supports CommonJS modules.
         };
 
-        // All hovers are provided by the extension implementation for '.bru' and '.js' files within collections.
-        // Only for the temp js file, the ts language service has to be used.
+        // All hovers are provided by the extension implementation for '.bru' files.
         proxy.getQuickInfoAtPosition = (fileName, position) => {
-            if (
-                isBrunoFile(fileName) ||
-                (isJsFileFromBrunoCollection(info, fileName) &&
-                    !isTempJsFile(fileName))
-            ) {
+            if (isBrunoFile(fileName)) {
                 return undefined;
             }
 
@@ -83,14 +74,25 @@ function init(_modules: {
 
         // All completions for '.js' files within collections are provided by the extension already.
         proxy.getCompletionsAtPosition = (fileName, position, options) => {
-            return isJsFileFromBrunoCollection(info, fileName) &&
-                !isTempJsFile(fileName)
-                ? undefined
-                : info.languageService.getCompletionsAtPosition(
-                      fileName,
-                      position,
-                      options,
-                  );
+            const defaultCompletions =
+                info.languageService.getCompletionsAtPosition(
+                    fileName,
+                    position,
+                    options,
+                );
+            return defaultCompletions
+                ? {
+                      ...defaultCompletions,
+                      entries: defaultCompletions.entries.filter(
+                          ({ data }) =>
+                              !data ||
+                              !data.fileName ||
+                              !data.fileName.includes(
+                                  getTempJsFileBaseNameWithoutExtension(),
+                              ),
+                      ),
+                  }
+                : undefined;
         };
 
         return proxy;
@@ -106,64 +108,48 @@ function filterDefaultDiagnostics(
     fileName: string,
     defaultDiagnostics: (ts.Diagnostic | ts.DiagnosticWithLocation)[],
 ) {
-    if (isJsFileFromBrunoCollection(info, fileName)) {
-        // Avoid showing errors for temp js files.
-        if (isTempJsFile(fileName)) {
-            return [];
-        }
-
-        const fileContent = getFileContent(info, fileName);
-
-        if (!fileContent) {
-            return [];
-        }
-
-        return filterOutDiagnosticsForInbuiltRuntimeFunctions(
-            defaultDiagnostics,
-            fileContent,
-        );
-    } else if (isBrunoFile(fileName)) {
-        const fileContent = getFileContent(info, fileName);
-
-        if (!fileContent) {
-            return [];
-        }
-
-        const indizes: {
-            blockName: string;
-            startIndex: number;
-            endIndex: number;
-        }[] = [];
-
-        for (const blockName of Object.values(TextBlockName)) {
-            const indizesForBlock = getCodeBlockStartAndEndIndex(
-                fileContent,
-                blockName,
-            );
-
-            if (indizesForBlock) {
-                indizes.push({ blockName, ...indizesForBlock });
-            }
-        }
-
-        if (indizes.length == 0) {
-            return [];
-        }
-
-        return filterOutDiagnosticsForInbuiltRuntimeFunctions(
-            defaultDiagnostics.filter(
-                ({ start }) =>
-                    start != undefined &&
-                    indizes.some(
-                        ({ startIndex: blockStart, endIndex: blockEnd }) =>
-                            start >= blockStart && start <= blockEnd,
-                    ),
-            ),
-            fileContent,
-        );
-    } else {
+    if (!isBrunoFile(fileName)) {
         return defaultDiagnostics;
     }
+
+    const fileContent = getFileContent(info, fileName);
+
+    if (!fileContent) {
+        return [];
+    }
+
+    const indizes: {
+        blockName: string;
+        startIndex: number;
+        endIndex: number;
+    }[] = [];
+
+    for (const blockName of Object.values(TextBlockName)) {
+        const indizesForBlock = getCodeBlockStartAndEndIndex(
+            fileContent,
+            blockName,
+        );
+
+        if (indizesForBlock) {
+            indizes.push({ blockName, ...indizesForBlock });
+        }
+    }
+
+    if (indizes.length == 0) {
+        return [];
+    }
+
+    return filterOutDiagnosticsForInbuiltRuntimeFunctions(
+        defaultDiagnostics.filter(
+            ({ start }) =>
+                start != undefined &&
+                indizes.some(
+                    ({ startIndex: blockStart, endIndex: blockEnd }) =>
+                        start >= blockStart && start <= blockEnd,
+                ),
+        ),
+        fileContent,
+    );
 }
 
 function getCodeBlockStartAndEndIndex(
@@ -209,13 +195,6 @@ function getCodeBlockStartAndEndIndex(
     };
 }
 
-function isJsFileFromBrunoCollection(
-    info: ts.server.PluginCreateInfo,
-    fileName: string,
-) {
-    return extname(fileName) == ".js" && isInABrunoCollection(info, fileName);
-}
-
 function filterOutDiagnosticsForInbuiltRuntimeFunctions(
     diagnosticsToFilter: (ts.Diagnostic | ts.DiagnosticWithLocation)[],
     fileContent: string,
@@ -244,60 +223,12 @@ function getFileContent(info: ts.server.PluginCreateInfo, fileName: string) {
     }
 }
 
-function isInABrunoCollection(
-    info: ts.server.PluginCreateInfo,
-    fileName: string,
-) {
-    let currentDirectory = dirname(fileName);
-    let isCollectionRoot = isACollectionRootFolder(info, currentDirectory);
-
-    while (
-        info.serverHost.directoryExists(currentDirectory) &&
-        !isCollectionRoot &&
-        dirname(currentDirectory) != currentDirectory // dirname of a base folder in the file system seems to return the input folder again
-    ) {
-        currentDirectory = dirname(currentDirectory);
-        isCollectionRoot = isACollectionRootFolder(info, currentDirectory);
-    }
-
-    return isCollectionRoot;
-}
-
-function isACollectionRootFolder(
-    info: ts.server.PluginCreateInfo,
-    directoryPath: string,
-) {
-    return info.serverHost
-        .readDirectory(directoryPath, undefined, undefined, undefined, 1)
-        .some((fileName) => {
-            if (!fileName.endsWith("bruno.json")) {
-                return false;
-            }
-
-            const content = info.languageServiceHost.readFile(fileName);
-
-            if (!content) {
-                return false;
-            }
-
-            try {
-                const parsedContent = JSON.parse(content) as
-                    | { type: string }
-                    | undefined;
-
-                return parsedContent && parsedContent.type == "collection";
-            } catch {
-                return false;
-            }
-        });
-}
-
 function isBrunoFile(fileName: string) {
     return extname(fileName) == ".bru";
 }
 
-function isTempJsFile(fileName: string) {
-    return basename(fileName) == "__temp_bru_reference.js";
+function getTempJsFileBaseNameWithoutExtension() {
+    return "__temp_bru_reference";
 }
 
 enum TextBlockName {

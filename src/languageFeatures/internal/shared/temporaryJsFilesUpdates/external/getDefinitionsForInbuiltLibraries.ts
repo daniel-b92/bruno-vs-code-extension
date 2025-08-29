@@ -381,10 +381,17 @@ const res = {
     const chaiAndMochaTestUtils = `const { expect } = require("chai");
 const { test } = require("mocha")`;
 
+	const globalDefinitions = `globalThis.bru = bru;
+globalThis.req = req;
+globalThis.res = res;
+globalThis.expect = expect;
+globalThis.test = test;`
+
     return [
         bruUtilities,
         requestUtilities,
         responseUtilities,
         chaiAndMochaTestUtils,
+		globalDefinitions
     ];
 }
