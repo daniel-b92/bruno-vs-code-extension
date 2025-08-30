@@ -1,4 +1,4 @@
-import { extname } from "path";
+import { dirname, extname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
 
 function init(_modules: {
@@ -72,7 +72,6 @@ function init(_modules: {
             );
         };
 
-        // All completions for '.js' files within collections are provided by the extension already.
         proxy.getCompletionsAtPosition = (fileName, position, options) => {
             const defaultCompletions =
                 info.languageService.getCompletionsAtPosition(
@@ -80,7 +79,8 @@ function init(_modules: {
                     position,
                     options,
                 );
-            return defaultCompletions
+
+            return defaultCompletions && isInABrunoCollection(info, fileName)
                 ? {
                       ...defaultCompletions,
                       entries: defaultCompletions.entries.filter(
@@ -92,7 +92,148 @@ function init(_modules: {
                               ),
                       ),
                   }
-                : undefined;
+                : defaultCompletions;
+        };
+
+        // ToDo: Return error when trying to rename one of the globally provided runtime functions in a js file.
+        /*proxy.getRenameInfo = (fileName, position, preferences) => {
+            const defaultRenameInfo = info.languageService.getRenameInfo(
+                fileName,
+                position,
+                preferences as ts.UserPreferences,
+            );
+
+            const fileContent = getFileContent(info, fileName);
+
+            if(!fileContent || extname(fileName) != ".js" || !isInABrunoCollection(info, fileName)) {
+                return defaultRenameInfo;
+            }
+
+            const isForInbuiltRuntimeFunction = fileContent.substring(0, position).match(new RegExp(`(${getNamesForInbuiltRuntimeVarsAndFunctions().join("|")})\\.\w*$`))
+
+            return  && 
+                ?  
+                : defaultRenameInfo;
+        };*/
+
+        proxy.findRenameLocations = (
+            fileName,
+            position,
+            findInStrings,
+            findInComments,
+            providePrefixAndSuffixTextForRename,
+        ) => {
+            const defaultRenameLocations =
+                info.languageService.findRenameLocations(
+                    fileName,
+                    position,
+                    findInStrings,
+                    findInComments,
+                    providePrefixAndSuffixTextForRename &&
+                        typeof providePrefixAndSuffixTextForRename != "boolean"
+                        ? providePrefixAndSuffixTextForRename
+                        : {},
+                );
+
+            return defaultRenameLocations &&
+                isInABrunoCollection(info, fileName)
+                ? defaultRenameLocations.filter(
+                      ({ fileName: fileForRenameLocation }) =>
+                          !fileForRenameLocation.includes(
+                              getTempJsFileBaseNameWithoutExtension(),
+                          ),
+                  )
+                : defaultRenameLocations;
+        };
+
+        proxy.findReferences = (fileName, position) => {
+            const defaultReferences = info.languageService.findReferences(
+                fileName,
+                position,
+            );
+
+            return defaultReferences && isInABrunoCollection(info, fileName)
+                ? defaultReferences.filter(
+                      ({ definition: { fileName: fileForDefinition } }) =>
+                          !fileForDefinition.includes(
+                              getTempJsFileBaseNameWithoutExtension(),
+                          ),
+                  )
+                : defaultReferences;
+        };
+
+        proxy.getDefinitionAtPosition = (fileName, position) => {
+            const defaultDefinitions =
+                info.languageService.getDefinitionAtPosition(
+                    fileName,
+                    position,
+                );
+
+            return defaultDefinitions && isInABrunoCollection(info, fileName)
+                ? defaultDefinitions.filter(
+                      ({ fileName: fileForDefinition }) =>
+                          !fileForDefinition.includes(
+                              getTempJsFileBaseNameWithoutExtension(),
+                          ),
+                  )
+                : defaultDefinitions;
+        };
+
+        proxy.getDefinitionAndBoundSpan = (fileName, position) => {
+            const defaultDefinition =
+                info.languageService.getDefinitionAndBoundSpan(
+                    fileName,
+                    position,
+                );
+
+            return defaultDefinition &&
+                isInABrunoCollection(info, fileName) &&
+                defaultDefinition.definitions
+                ? {
+                      ...defaultDefinition,
+                      definitions: defaultDefinition.definitions.filter(
+                          ({ fileName: fileForDefinition }) =>
+                              !fileForDefinition.includes(
+                                  getTempJsFileBaseNameWithoutExtension(),
+                              ),
+                      ),
+                  }
+                : defaultDefinition;
+        };
+
+        proxy.getTypeDefinitionAtPosition = (fileName, position) => {
+            const defaultDefinitions =
+                info.languageService.getDefinitionAtPosition(
+                    fileName,
+                    position,
+                );
+
+            return defaultDefinitions && isInABrunoCollection(info, fileName)
+                ? defaultDefinitions.filter(
+                      ({ fileName: fileForDefinition }) =>
+                          !fileForDefinition.includes(
+                              getTempJsFileBaseNameWithoutExtension(),
+                          ),
+                  )
+                : defaultDefinitions;
+        };
+
+        proxy.getImplementationAtPosition = (fileName, position) => {
+            const defaultImplementations =
+                info.languageService.getImplementationAtPosition(
+                    fileName,
+                    position,
+                );
+
+            return defaultImplementations &&
+                isInABrunoCollection(info, fileName)
+                ? defaultImplementations.filter(
+                      ({ fileName: fileForImplementation }) =>
+                          !fileForImplementation.includes(
+                              getTempJsFileBaseNameWithoutExtension(),
+                          ),
+                  )
+                : defaultImplementations;
         };
 
         return proxy;
@@ -108,8 +249,17 @@ function filterDefaultDiagnostics(
     fileName: string,
     defaultDiagnostics: (ts.Diagnostic | ts.DiagnosticWithLocation)[],
 ) {
-    if (!isBrunoFile(fileName)) {
+    if (
+        !isBrunoFile(fileName) &&
+        !fileName.includes(getTempJsFileBaseNameWithoutExtension())
+    ) {
         return defaultDiagnostics;
+    } else if (
+        fileName.includes(getTempJsFileBaseNameWithoutExtension()) &&
+        isInABrunoCollection(info, fileName)
+    ) {
+        // Filter out all diagnostics for temp js files.
+        return [];
     }
 
     const fileContent = getFileContent(info, fileName);
@@ -204,7 +354,7 @@ function filterOutDiagnosticsForInbuiltRuntimeFunctions(
             start != undefined &&
             length != undefined &&
             // Do not show diagnostics for functions that are provided by Bruno at runtime
-            !["bru", "req", "res", "test", "expect"].includes(
+            !getNamesForInbuiltRuntimeVarsAndFunctions().includes(
                 fileContent.substring(start, start + length),
             ) &&
             // Avoid showing incorrect error when using `require`
@@ -223,12 +373,64 @@ function getFileContent(info: ts.server.PluginCreateInfo, fileName: string) {
     }
 }
 
+function isInABrunoCollection(
+    info: ts.server.PluginCreateInfo,
+    fileName: string,
+) {
+    let currentDirectory = dirname(fileName);
+    let isCollectionRoot = isACollectionRootFolder(info, currentDirectory);
+
+    while (
+        info.serverHost.directoryExists(currentDirectory) &&
+        !isCollectionRoot &&
+        dirname(currentDirectory) != currentDirectory // dirname of a base folder in the file system seems to return the input folder again
+    ) {
+        currentDirectory = dirname(currentDirectory);
+        isCollectionRoot = isACollectionRootFolder(info, currentDirectory);
+    }
+
+    return isCollectionRoot;
+}
+
+function isACollectionRootFolder(
+    info: ts.server.PluginCreateInfo,
+    directoryPath: string,
+) {
+    return info.serverHost
+        .readDirectory(directoryPath, undefined, undefined, undefined, 1)
+        .some((fileName) => {
+            if (!fileName.endsWith("bruno.json")) {
+                return false;
+            }
+
+            const content = info.languageServiceHost.readFile(fileName);
+
+            if (!content) {
+                return false;
+            }
+
+            try {
+                const parsedContent = JSON.parse(content) as
+                    | { type: string }
+                    | undefined;
+
+                return parsedContent && parsedContent.type == "collection";
+            } catch {
+                return false;
+            }
+        });
+}
+
 function isBrunoFile(fileName: string) {
     return extname(fileName) == ".bru";
 }
 
 function getTempJsFileBaseNameWithoutExtension() {
     return "__temp_bru_reference";
+}
+
+function getNamesForInbuiltRuntimeVarsAndFunctions() {
+    return ["bru", "req", "res", "test", "expect"]
 }
 
 enum TextBlockName {
