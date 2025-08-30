@@ -2,7 +2,7 @@
     "name": "bru-as-code",
     "displayName": "bru-as-code",
     "description": "Enables working with Bruno files in a manner like working with code",
-    "version": "0.17.0",
+    "version": "0.17.2",
     "publisher": "daniel-b92",
     "private": true,
     "license": "MIT",
@@ -48,7 +48,7 @@
         "webpack-cli": "^6.0.1"
     },
     "dependencies": {
-        "@zentryc5t/ts-plugin-for-bruno": "^2.0.0",
+        "@zentryc5t/ts-plugin-for-bruno": "^3.0.0",
         "glob": "^11.0.3",
         "prettier": "^3.6.2",
         "process": "^0.11.10",

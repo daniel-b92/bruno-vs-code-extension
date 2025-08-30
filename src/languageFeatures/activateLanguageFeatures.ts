@@ -29,6 +29,7 @@ import {
     getTemporaryJsFileNameInFolder,
     filterAsync,
     CollectionWatcher,
+    getTemporaryJsFileBasename,
 } from "../shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/brunoFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/brunoFiles/autoUpdates/updateUrlToMatchQueryParams";
@@ -37,16 +38,13 @@ import { provideCodeBlocksCompletionItems } from "./internal/brunoFiles/completi
 import { provideInfosOnHover as provideInfosOnHoverForBruFiles } from "./internal/brunoFiles/hover/provideInfosOnHover";
 import { provideSignatureHelp as provideSignatureHelpForBruFiles } from "./internal/brunoFiles/signatureHelp/provideSignatureHelp";
 import { provideDefinitions as provideDefinitionsForBruFiles } from "./internal/brunoFiles/definitionProvider/provideDefinitions";
-import { dirname, extname } from "path";
+import { extname } from "path";
 import { registerCodeBlockFormatter } from "./internal/brunoFiles/formatting/registerCodeBlockFormatter";
 import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "./internal/shared/temporaryJsFilesUpdates/internal/interfaces";
 import { getTempJsFileContentForBruFile } from "./internal/brunoFiles/shared/codeBlocksUtils/getTempJsFileContentForBruFile";
-import { registerHoverProvider as registerHoverProviderForJsFiles } from "./internal/jsFiles/hover/registerHoverProvider";
-import { registerCompletionItemProvider as registerCompletionItemProviderForJsFiles } from "./internal/jsFiles/completionItems/registerCompletionItemProvider";
-import { registerSignatureHelpProvider as registerSignatureHelpProviderForJsFiles } from "./internal/jsFiles/signatureHelp/registerSignatureHelpProvider";
 import { TempJsFilesProvider } from "../shared/fileSystemCache/externalHelpers/tempJsFilesProvider";
-import { mapSourceFileToTempJsFileContent } from "./internal/jsFiles/shared/mapSourceFileToTempJsFileContent";
+import { getDefinitionsForInbuiltLibraries } from "./internal/shared/temporaryJsFilesUpdates/external/getDefinitionsForInbuiltLibraries";
 
 export async function activateLanguageFeatures(
     context: ExtensionContext,
@@ -102,21 +100,6 @@ export async function activateLanguageFeatures(
             logger,
         ),
         registerCodeBlockFormatter(logger),
-        registerHoverProviderForJsFiles(
-            tempJsFilesUpdateQueue,
-            collectionItemProvider,
-            logger,
-        ),
-        registerCompletionItemProviderForJsFiles(
-            tempJsFilesUpdateQueue,
-            collectionItemProvider,
-            logger,
-        ),
-        registerSignatureHelpProviderForJsFiles(
-            tempJsFilesUpdateQueue,
-            collectionItemProvider,
-            logger,
-        ),
         brunoLangDiagnosticsProvider,
         tempJsFilesUpdateQueue,
         window.onDidChangeActiveTextEditor(async (editor) => {
@@ -238,13 +221,6 @@ async function onWillSaveTextDocument(
             tempJsFilesProvider,
             document,
         );
-    } else if (extname(document.fileName) == getExtensionForTempJsFiles()) {
-        onWillSaveJsDocument(
-            queue,
-            itemProvider,
-            tempJsFilesProvider,
-            document,
-        );
     }
 }
 
@@ -335,23 +311,26 @@ async function handleOpeningOfJsDocument(
 ) {
     const path = document.fileName;
 
-    const isJsFileFromACollection = isJsFileFromBrunoCollection(
-        itemProvider,
-        path,
-    );
-
-    if (!isJsFileFromACollection) {
+    if (
+        path.includes(getTemporaryJsFileBasename()) ||
+        !isJsFileFromBrunoCollection(itemProvider, path)
+    ) {
         await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
         return;
     }
 
+    const collectionRootFolder = (
+        itemProvider.getAncestorCollectionForPath(
+            document.fileName,
+        ) as Collection
+    ).getRootDirectory();
+
     await queue.addToQueue({
         update: {
             type: TempJsUpdateType.Creation,
-            filePath: getTemporaryJsFileNameInFolder(dirname(path)),
-            tempJsFileContent: mapSourceFileToTempJsFileContent(
-                document.getText(),
-            ),
+            filePath: getTemporaryJsFileNameInFolder(collectionRootFolder),
+            tempJsFileContent:
+                getDefinitionsForInbuiltLibraries(true).join("\n\n"),
         },
     });
 }
@@ -397,17 +376,6 @@ async function onWillSaveBruDocument(
                 );
             });
         }
-    }
-}
-
-function onWillSaveJsDocument(
-    queue: TempJsFileUpdateQueue,
-    itemProvider: CollectionItemProvider,
-    tempJsFilesProvider: TempJsFilesProvider,
-    document: TextDocument,
-) {
-    if (isJsFileFromBrunoCollection(itemProvider, document.fileName)) {
-        deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
     }
 }
 

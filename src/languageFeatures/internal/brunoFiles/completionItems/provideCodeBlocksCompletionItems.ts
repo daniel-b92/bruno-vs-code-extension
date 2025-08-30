@@ -101,6 +101,9 @@ export function provideCodeBlocksCompletionItems(
                 return new CompletionList<CompletionItem>(
                     resultFromJsFile.items.map((item) => ({
                         ...item,
+                        /* Without unsetting the command field, selecting an exported function causes the `require` statement 
+                        to be inserted in the temp js file. */
+                        command: undefined,
                         range: item.range
                             ? item.range instanceof VsCodeRange
                                 ? (mapToRangeWithinBruFile(

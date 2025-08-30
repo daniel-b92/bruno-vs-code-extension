@@ -1,7 +1,12 @@
+## [0.17.2] (2025-08-30)
+
+### Fixes / Improvements
+- Fix issues from version `0.17.0` with providing intellisense for inbuilt `Bruno` functions in JS files.
+
 ## [0.17.1] (2025-08-24)
 
 ### Fixes / Improvements
-- Reverts last few changes that were added for version `0.17.0` since some bigger issues have occured when working  with that version.
+- Reverts last few changes that were added for version `0.17.0` since some bigger issues have occured when working with that version.
 - Do not show errors in JS files that are inside collections for inbuilt `Bruno` variables like `bru`, `req` and `res`.
 
 ## [0.17.0] (2025-08-24)
