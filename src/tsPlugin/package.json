@@ -1,9 +1,9 @@
 {
     "name": "@zentryc5t/ts-plugin-for-bruno",
-    "version": "2.0.0",
+    "version": "3.0.0",
     "main": "./out/index.js",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "compile": "tsc --project tsconfig.json"
     },
     "author": "zentryc5t",
     "license": "MIT",
