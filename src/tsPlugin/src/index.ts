@@ -95,26 +95,36 @@ function init(_modules: {
                 : defaultCompletions;
         };
 
-        // ToDo: Return error when trying to rename one of the globally provided runtime functions in a js file.
-        /*proxy.getRenameInfo = (fileName, position, preferences) => {
+        proxy.getRenameInfo = (fileName, position, preferences) => {
             const defaultRenameInfo = info.languageService.getRenameInfo(
                 fileName,
                 position,
                 preferences as ts.UserPreferences,
             );
 
-            const fileContent = getFileContent(info, fileName);
-
-            if(!fileContent || extname(fileName) != ".js" || !isInABrunoCollection(info, fileName)) {
+            if (
+                extname(fileName) != ".js" ||
+                !isInABrunoCollection(info, fileName)
+            ) {
                 return defaultRenameInfo;
             }
 
-            const isForInbuiltRuntimeFunction = fileContent.substring(0, position).match(new RegExp(`(${getNamesForInbuiltRuntimeVarsAndFunctions().join("|")})\\.\w*$`))
+            const definitionForPosition =
+                info.languageService.getDefinitionAtPosition(
+                    fileName,
+                    position,
+                );
 
-            return  && 
-                ?  
+            const isForInbuiltRuntimeFunction =
+                definitionForPosition &&
+                definitionForPosition.some(({ fileName }) =>
+                    fileName.includes(getTempJsFileBaseNameWithoutExtension()),
+                );
+
+            return isForInbuiltRuntimeFunction
+                ? { canRename: false, localizedErrorMessage: "You cannot rename elements that are provided by Bruno at runtime." }
                 : defaultRenameInfo;
-        };*/
+        };
 
         proxy.findRenameLocations = (
             fileName,
@@ -430,7 +440,7 @@ function getTempJsFileBaseNameWithoutExtension() {
 }
 
 function getNamesForInbuiltRuntimeVarsAndFunctions() {
-    return ["bru", "req", "res", "test", "expect"]
+    return ["bru", "req", "res", "test", "expect"];
 }
 
 enum TextBlockName {
