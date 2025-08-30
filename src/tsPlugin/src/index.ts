@@ -250,8 +250,6 @@ function init(_modules: {
                 : defaultImplementations;
         };
 
-        // ToDo: Filter out displayed link to temp js file for code fix suggestions (e.g. 'bru is declared here')
-
         return proxy;
     }
 
