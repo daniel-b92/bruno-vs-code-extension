@@ -1,6 +1,6 @@
 import { DiagnosticSeverity, Uri } from "vscode";
 import {
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     getAllMethodBlocks,
     getFieldFromMethodBlock,
     getMethodBlockBodyFieldValueForBodyName,
@@ -77,7 +77,7 @@ export function checkBodyBlockTypeFromMethodBlockExists(
 
 function getDiagnostic(
     documentUri: Uri,
-    methodBlockField: DictionaryBlockField,
+    methodBlockField: DictionaryBlockSimpleField,
     bodyBlock: Block,
     expectedMethodBlockFieldValue: MethodBlockBody
 ): DiagnosticWithCode {
@@ -101,7 +101,7 @@ function getDiagnostic(
 }
 
 function getDiagnosticInCaseOfMissingBodyBlock(
-    methodBlockField: DictionaryBlockField
+    methodBlockField: DictionaryBlockSimpleField
 ): DiagnosticWithCode {
     return {
         message:
@@ -114,7 +114,7 @@ function getDiagnosticInCaseOfMissingBodyBlock(
 
 function getDiagnosticInCaseOfNonExpectedBodyBlock(
     documentUri: Uri,
-    methodBlockField: DictionaryBlockField,
+    methodBlockField: DictionaryBlockSimpleField,
     bodyBlock: Block
 ): DiagnosticWithCode {
     return {

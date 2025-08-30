@@ -1,6 +1,6 @@
 import { DiagnosticSeverity, Uri } from "vscode";
 import {
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     getAllMethodBlocks,
     getAuthTypeFromBlockName,
     getFieldFromMethodBlock,
@@ -65,7 +65,7 @@ export function checkAuthBlockTypeFromMethodBlockExists(
 
 function getDiagnostic(
     documentUri: Uri,
-    methodBlockField: DictionaryBlockField,
+    methodBlockField: DictionaryBlockSimpleField,
     authBlock: Block
 ): DiagnosticWithCode {
     return {
@@ -88,7 +88,7 @@ function getDiagnostic(
 }
 
 function getDiagnosticInCaseOfMissingAuthBlock(
-    methodBlockField: DictionaryBlockField
+    methodBlockField: DictionaryBlockSimpleField
 ): DiagnosticWithCode {
     return {
         message:
@@ -101,7 +101,7 @@ function getDiagnosticInCaseOfMissingAuthBlock(
 
 function getDiagnosticInCaseOfNonExpectedAuthBlock(
     documentUri: Uri,
-    methodBlockField: DictionaryBlockField,
+    methodBlockField: DictionaryBlockSimpleField,
     authBlock: Block
 ): DiagnosticWithCode {
     return {

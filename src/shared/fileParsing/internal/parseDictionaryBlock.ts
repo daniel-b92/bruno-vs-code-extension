@@ -1,5 +1,5 @@
 import {
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     PlainTextWithinBlock,
     Position,
     Range,
@@ -13,7 +13,7 @@ export function parseDictionaryBlock(
     firstContentLine: number,
 ) {
     const lines: {
-        content: DictionaryBlockField | PlainTextWithinBlock;
+        content: DictionaryBlockSimpleField | PlainTextWithinBlock;
     }[] = [];
     let openBracketsOnBlockLevel = 1;
     let lineIndex = firstContentLine;
@@ -31,7 +31,7 @@ export function parseDictionaryBlock(
                 content: getKeyAndValueFromLine(
                     lineIndex,
                     line,
-                ) as DictionaryBlockField,
+                ) as DictionaryBlockSimpleField,
             });
 
             lineIndex++;
@@ -88,7 +88,7 @@ const isKeyValuePair = (lineText: string) =>
 const getKeyAndValueFromLine = (
     lineIndex: number,
     lineText: string,
-): DictionaryBlockField | undefined => {
+): DictionaryBlockSimpleField | undefined => {
     const matches = getKeyValuePairLinePattern().exec(lineText);
 
     if (matches && matches.length > 2) {

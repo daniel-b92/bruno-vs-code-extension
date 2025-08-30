@@ -1,7 +1,7 @@
 import { DiagnosticSeverity, Range } from "vscode";
 import {
     DictionaryBlock,
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     mapToVsCodePosition,
 } from "../../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
@@ -26,7 +26,7 @@ export function checkNoMandatoryValuesAreMissingForDictionaryBlock(
 }
 
 function getDiagnostic(
-    fieldsWithMissingValues: DictionaryBlockField[],
+    fieldsWithMissingValues: DictionaryBlockSimpleField[],
     diagnosticCode: KnownDiagnosticCode
 ) {
     return {
@@ -46,7 +46,7 @@ function getDiagnostic(
     };
 }
 
-function getRange(sortedFields: DictionaryBlockField[]): Range {
+function getRange(sortedFields: DictionaryBlockSimpleField[]): Range {
     return new Range(
         mapToVsCodePosition(sortedFields[0].keyRange.start),
         mapToVsCodePosition(sortedFields[sortedFields.length - 1].keyRange.end)

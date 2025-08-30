@@ -2,7 +2,7 @@ import { DiagnosticSeverity, Uri } from "vscode";
 import {
     castBlockToDictionaryBlock,
     DictionaryBlock,
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     getPathParamsFromPathParamsBlock,
     getPathParamsFromUrl,
     getUrlFieldFromMethodBlock,
@@ -92,7 +92,7 @@ export function checkUrlFromMethodBlockMatchesPathParamsBlock(
 
 function getDiagnosticForMissingPathParamsInUrl(
     documentUri: Uri,
-    urlFieldInMethodBlock: DictionaryBlockField,
+    urlFieldInMethodBlock: DictionaryBlockSimpleField,
     missingUrlSubstrings: string[],
     pathParamsBlock: DictionaryBlock
 ): DiagnosticWithCode {
@@ -121,7 +121,7 @@ function getDiagnosticForMissingPathParamsInUrl(
 
 function getDiagnosticForMissingValuesInPathParamsBlock(
     documentUri: Uri,
-    urlFieldInMethodBlock: DictionaryBlockField,
+    urlFieldInMethodBlock: DictionaryBlockSimpleField,
     missingPathParams: string[],
     pathParamsBlock: DictionaryBlock
 ): DiagnosticWithCode {
@@ -150,7 +150,7 @@ function getDiagnosticForMissingValuesInPathParamsBlock(
 
 function getDiagnosticForUrlNotMatchingPathParamsBlockValues(
     documentUri: Uri,
-    urlFieldInMethodBlock: DictionaryBlockField,
+    urlFieldInMethodBlock: DictionaryBlockSimpleField,
     missingPathParamsInPathParamsBlock: string[],
     missingUrlSubstrings: string[],
     pathParamsBlock: DictionaryBlock
@@ -189,7 +189,7 @@ function getDiagnosticForUrlNotMatchingPathParamsBlockValues(
 }
 
 function getDiagnosticForMissingPathParamsBlock(
-    urlFieldInMethodBlock: DictionaryBlockField,
+    urlFieldInMethodBlock: DictionaryBlockSimpleField,
     expectedPathParams: string[]
 ): DiagnosticWithCode {
     return {

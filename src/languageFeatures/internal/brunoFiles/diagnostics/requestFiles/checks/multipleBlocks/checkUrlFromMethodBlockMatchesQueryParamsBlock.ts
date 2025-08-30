@@ -1,7 +1,7 @@
 import { DiagnosticSeverity, Uri } from "vscode";
 import {
     DictionaryBlock,
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     getExpectedUrlQueryParamsForQueryParamsBlock,
     getQueryParamsFromUrl,
     getUrlFieldFromMethodBlock,
@@ -65,7 +65,7 @@ export function checkUrlFromMethodBlockMatchesQueryParamsBlock(
 
 function getDiagnosticForUrlNotMatchingQueryParamsBlock(
     documentUri: Uri,
-    urlFieldInMethodBlock: DictionaryBlockField,
+    urlFieldInMethodBlock: DictionaryBlockSimpleField,
     queryParamsBlock: DictionaryBlock,
     queryParamsFromQueryParamsBlock: URLSearchParams,
     queryParamsFromUrl: URLSearchParams | undefined
@@ -94,7 +94,7 @@ function getDiagnosticForUrlNotMatchingQueryParamsBlock(
 }
 
 function getDiagnosticForMissingQueryParamsBlock(
-    urlFieldInMethodBlock: DictionaryBlockField,
+    urlFieldInMethodBlock: DictionaryBlockSimpleField,
     expectedQueryParams: URLSearchParams
 ): DiagnosticWithCode {
     return {

@@ -1,7 +1,7 @@
-import { DictionaryBlockField } from "../../../../../../shared";
+import { DictionaryBlockSimpleField } from "../../../../../../shared";
 
 export function getSortedDictionaryBlockFieldsByPosition(
-    unsorted: DictionaryBlockField[]
+    unsorted: DictionaryBlockSimpleField[]
 ) {
     return unsorted.slice().sort(
         (

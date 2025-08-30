@@ -4,7 +4,7 @@ import {
     Block,
     castBlockToDictionaryBlock,
     MetaBlockKey,
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     RequestType,
     CollectionItemProvider,
 } from "../../../../../shared";
@@ -66,7 +66,7 @@ export async function getMetaBlockSpecificDiagnostics(
             ? checkValueForDictionaryBlockFieldIsValid(
                   castedMetaBlock.content.find(
                       ({ key }) => key == MetaBlockKey.Type,
-                  ) as DictionaryBlockField,
+                  ) as DictionaryBlockSimpleField,
                   Object.values(RequestType),
                   RelevantWithinMetaBlockDiagnosticCode.RequestTypeNotValid,
               )

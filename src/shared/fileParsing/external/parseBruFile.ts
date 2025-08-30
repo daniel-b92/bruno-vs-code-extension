@@ -1,5 +1,5 @@
 import {
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     Block,
     TextOutsideOfBlocks,
     ArrayBlockField,
@@ -72,7 +72,7 @@ export const parseBruFile = (document: TextDocumentHelper) => {
                 ),
                 content: content as
                     | string
-                    | DictionaryBlockField[]
+                    | DictionaryBlockSimpleField[]
                     | ArrayBlockField[],
                 contentRange,
             });

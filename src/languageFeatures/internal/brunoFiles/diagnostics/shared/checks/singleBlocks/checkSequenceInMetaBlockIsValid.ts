@@ -1,6 +1,6 @@
 import { DiagnosticSeverity } from "vscode";
 import {
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     Block,
     MetaBlockKey,
     getFieldFromMetaBlock,
@@ -25,7 +25,7 @@ export function checkSequenceInMetaBlockIsValid(
     }
 }
 
-function getDiagnostic(sequenceField: DictionaryBlockField) {
+function getDiagnostic(sequenceField: DictionaryBlockSimpleField) {
     return {
         message:
             "Sequence is not valid. It needs to be an integer with a value of at least 1.",

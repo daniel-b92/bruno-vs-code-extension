@@ -1,6 +1,6 @@
 import { DiagnosticSeverity, Range } from "vscode";
 import {
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     DictionaryBlock,
     mapToVsCodePosition,
 } from "../../../../../../../shared";
@@ -47,7 +47,7 @@ function getDiagnostic(
     };
 }
 
-function getRange(sortedDuplicateFields: DictionaryBlockField[]): Range {
+function getRange(sortedDuplicateFields: DictionaryBlockSimpleField[]): Range {
     return new Range(
         mapToVsCodePosition(sortedDuplicateFields[0].keyRange.start),
         mapToVsCodePosition(

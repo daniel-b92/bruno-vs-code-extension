@@ -2,7 +2,7 @@ import { DiagnosticSeverity, Uri } from "vscode";
 import {
     CollectionFile,
     CollectionItemProvider,
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     normalizeDirectoryPath,
     Block,
     RequestFileBlockName,
@@ -41,7 +41,7 @@ export async function checkFolderSequenceInMetaBlockIsUnique(
         !isSequenceValid(
             castedBlock.content.find(
                 ({ key }) => key == MetaBlockKey.Sequence,
-            ) as DictionaryBlockField,
+            ) as DictionaryBlockSimpleField,
         )
     ) {
         return { code: getDiagnosticCode() };
@@ -49,7 +49,7 @@ export async function checkFolderSequenceInMetaBlockIsUnique(
 
     const sequenceField = castedBlock.content.find(
         ({ key }) => key == MetaBlockKey.Sequence,
-    ) as DictionaryBlockField;
+    ) as DictionaryBlockSimpleField;
 
     const otherFolderSettings = await getSequencesForOtherFoldersWithSameParent(
         itemProvider,
@@ -91,7 +91,7 @@ export async function checkFolderSequenceInMetaBlockIsUnique(
 }
 
 async function getDiagnostic(
-    sequenceField: DictionaryBlockField,
+    sequenceField: DictionaryBlockSimpleField,
     otherFoldersWithSameSequence: {
         folderSettingsFile: string;
         folderPath: string;

@@ -1,6 +1,6 @@
 import {
     ArrayBlockField,
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     PlainTextWithinBlock,
 } from "../external/interfaces";
 import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
@@ -19,7 +19,7 @@ export const getBlockContent = (
     | {
           content:
               | string
-              | (DictionaryBlockField | PlainTextWithinBlock)[]
+              | (DictionaryBlockSimpleField | PlainTextWithinBlock)[]
               | (ArrayBlockField | PlainTextWithinBlock)[];
           contentRange: Range;
       }

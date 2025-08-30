@@ -1,8 +1,8 @@
-import { DictionaryBlock, DictionaryBlockField } from "../../../../../../shared";
+import { DictionaryBlock, DictionaryBlockSimpleField } from "../../../../../../shared";
 
 export interface FieldsWithSameKey {
     key: string;
-    fields: DictionaryBlockField[];
+    fields: DictionaryBlockSimpleField[];
 }
 
 export function getValidDuplicateKeysFromDictionaryBlock(

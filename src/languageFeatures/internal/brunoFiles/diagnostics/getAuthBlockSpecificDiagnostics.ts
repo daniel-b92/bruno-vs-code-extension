@@ -4,7 +4,7 @@ import {
     AuthBlockName,
     getMandatoryKeysForNonOAuth2Block,
     ApiKeyAuthBlockKey,
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     ApiKeyAuthBlockPlacementValue,
     BooleanFieldValue,
     DictionaryBlock,
@@ -79,7 +79,7 @@ export function getAuthBlockSpecificDiagnostics(
                 checkValueForDictionaryBlockFieldIsValid(
                     castedAuthBlock.content.find(
                         ({ key }) => key == ApiKeyAuthBlockKey.Placement,
-                    ) as DictionaryBlockField,
+                    ) as DictionaryBlockSimpleField,
                     Object.values(ApiKeyAuthBlockPlacementValue),
                     RelevantWithinAuthBlockDiagnosticCode.InvalidApiKeyAuthValueForPlacement,
                 ),

@@ -1,6 +1,6 @@
 import { DiagnosticSeverity, Uri } from "vscode";
 import {
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     getFieldFromMetaBlock,
     MetaBlockKey,
     Block,
@@ -54,7 +54,7 @@ export function checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
 function getDiagnostic(
     documentUri: Uri,
     sortedInvalidBlocks: Block[],
-    requestTypeField: DictionaryBlockField
+    requestTypeField: DictionaryBlockSimpleField
 ): DiagnosticWithCode {
     return {
         message: `GraphQL specific blocks defined without using request type '${RequestType.Graphql}'.`,

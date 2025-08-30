@@ -1,6 +1,6 @@
 import { DiagnosticSeverity, Uri } from "vscode";
 import {
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     getAuthTypeFromBlockName,
     isAuthBlock,
     Block,
@@ -75,7 +75,7 @@ export function checkAuthBlockTypeFromAuthModeBlockExists(
 
 function getDiagnostic(
     documentUri: Uri,
-    authModeField: DictionaryBlockField,
+    authModeField: DictionaryBlockSimpleField,
     authBlock: Block
 ): DiagnosticWithCode {
     return {
@@ -98,7 +98,7 @@ function getDiagnostic(
 }
 
 function getDiagnosticInCaseOfMissingAuthBlock(
-    authModeField: DictionaryBlockField
+    authModeField: DictionaryBlockSimpleField
 ): DiagnosticWithCode {
     return {
         message: "Missing auth block for defined auth mode.",
@@ -110,7 +110,7 @@ function getDiagnosticInCaseOfMissingAuthBlock(
 
 function getDiagnosticInCaseOfNonExpectedAuthBlock(
     documentUri: Uri,
-    authModeField: DictionaryBlockField,
+    authModeField: DictionaryBlockSimpleField,
     authBlock: Block
 ): DiagnosticWithCode {
     return {

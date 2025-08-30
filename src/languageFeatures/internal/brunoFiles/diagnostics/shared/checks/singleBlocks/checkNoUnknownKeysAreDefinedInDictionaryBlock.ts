@@ -1,6 +1,6 @@
 import { DiagnosticSeverity, Range } from "vscode";
 import {
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     DictionaryBlock,
     mapToVsCodePosition,
 } from "../../../../../../../shared";
@@ -24,7 +24,7 @@ export function checkNoUnknownKeysAreDefinedInDictionaryBlock(
 }
 
 function getDiagnostic(
-    unknownFields: DictionaryBlockField[],
+    unknownFields: DictionaryBlockSimpleField[],
     diagnosticCode: KnownDiagnosticCode,
     expectedKeys: string[]
 ) {
@@ -45,7 +45,7 @@ function getDiagnostic(
     };
 }
 
-function getRange(sortedUnknownFields: DictionaryBlockField[]): Range {
+function getRange(sortedUnknownFields: DictionaryBlockSimpleField[]): Range {
     return new Range(
         mapToVsCodePosition(sortedUnknownFields[0].keyRange.start),
         mapToVsCodePosition(

@@ -1,5 +1,5 @@
-import { DictionaryBlockField } from "../../../../../../shared";
+import { DictionaryBlockSimpleField } from "../../../../../../shared";
 
-export function isSequenceValid(field: DictionaryBlockField) {
+export function isSequenceValid(field: DictionaryBlockSimpleField) {
     return /^\d+$/.test(field.value) && Number(field.value) >= 1;
 }
