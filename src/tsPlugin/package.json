@@ -1,6 +1,6 @@
 {
     "name": "@zentryc5t/ts-plugin-for-bruno",
-    "version": "3.0.0",
+    "version": "3.0.1",
     "main": "./out/index.js",
     "scripts": {
         "compile": "tsc --project tsconfig.json"
