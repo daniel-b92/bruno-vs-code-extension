@@ -329,7 +329,8 @@ async function handleOpeningOfJsDocument(
         update: {
             type: TempJsUpdateType.Creation,
             filePath: getTemporaryJsFileNameInFolder(collectionRootFolder),
-            tempJsFileContent: getDefinitionsForInbuiltLibraries().join("\n\n"),
+            tempJsFileContent:
+                getDefinitionsForInbuiltLibraries(true).join("\n\n"),
         },
     });
 }

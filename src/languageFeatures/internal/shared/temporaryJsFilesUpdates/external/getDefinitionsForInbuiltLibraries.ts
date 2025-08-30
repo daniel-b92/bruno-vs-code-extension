@@ -4,7 +4,9 @@
 
 * Official javascript API reference:
 * https://docs.usebruno.com/testing/script/javascript-reference*/
-export function getDefinitionsForInbuiltLibraries() {
+export function getDefinitionsForInbuiltLibraries(
+    assignToGlobalObject = false,
+) {
     const bruUtilities = `/**
  * Object with common utility function for Bruno.
  * @see {@link https://docs.usebruno.com/scripting/javascript-reference#bru} Documentation
@@ -381,17 +383,16 @@ const res = {
     const chaiAndMochaTestUtils = `const { expect } = require("chai");
 const { test } = require("mocha")`;
 
-	const globalDefinitions = `globalThis.bru = bru;
+    const globalAssignments = `globalThis.bru = bru;
 globalThis.req = req;
 globalThis.res = res;
 globalThis.expect = expect;
-globalThis.test = test;`
+globalThis.test = test;`;
 
     return [
         bruUtilities,
         requestUtilities,
         responseUtilities,
         chaiAndMochaTestUtils,
-		globalDefinitions
-    ];
+    ].concat(assignToGlobalObject ? [globalAssignments] : []);
 }
