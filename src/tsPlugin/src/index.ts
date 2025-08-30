@@ -325,12 +325,32 @@ function filterDiagnosticsForJsFile(
 
     const fileContent = getFileContent(info, fileName);
 
-    return fileContent
-        ? filterOutDiagnosticsForInbuiltRuntimeFunctions(
-              defaultDiagnostics,
-              fileContent,
-          )
-        : [];
+    if (!fileContent) {
+        return [];
+    }
+
+    const filteredDiagnostics = filterOutDiagnosticsForInbuiltRuntimeFunctions(
+        defaultDiagnostics,
+        fileContent,
+    );
+
+    return filteredDiagnostics.map((diagnostic) => {
+        const { relatedInformation } = diagnostic;
+
+        const referencesTempJsFile =
+            relatedInformation &&
+            relatedInformation.some(
+                ({ file }) =>
+                    file &&
+                    file.fileName.endsWith(
+                        `${getTempJsFileBaseNameWithoutExtension()}.js`,
+                    ),
+            );
+
+        return referencesTempJsFile
+            ? { ...diagnostic, relatedInformation: undefined }
+            : diagnostic;
+    });
 }
 
 function getCodeBlockStartAndEndIndex(
