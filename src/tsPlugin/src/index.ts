@@ -122,7 +122,11 @@ function init(_modules: {
                 );
 
             return isForInbuiltRuntimeFunction
-                ? { canRename: false, localizedErrorMessage: "You cannot rename elements that are provided by Bruno at runtime." }
+                ? {
+                      canRename: false,
+                      localizedErrorMessage:
+                          "You cannot rename elements that are provided by Bruno at runtime.",
+                  }
                 : defaultRenameInfo;
         };
 
@@ -246,6 +250,8 @@ function init(_modules: {
                 : defaultImplementations;
         };
 
+        // ToDo: Filter out displayed link to temp js file for code fix suggestions (e.g. 'bru is declared here')
+
         return proxy;
     }
 
@@ -259,17 +265,10 @@ function filterDefaultDiagnostics(
     fileName: string,
     defaultDiagnostics: (ts.Diagnostic | ts.DiagnosticWithLocation)[],
 ) {
-    if (
-        !isBrunoFile(fileName) &&
-        !fileName.includes(getTempJsFileBaseNameWithoutExtension())
-    ) {
-        return defaultDiagnostics;
-    } else if (
-        fileName.includes(getTempJsFileBaseNameWithoutExtension()) &&
-        isInABrunoCollection(info, fileName)
-    ) {
-        // Filter out all diagnostics for temp js files.
-        return [];
+    if (!isBrunoFile(fileName)) {
+        return extname(fileName) == ".js"
+            ? filterDiagnosticsForJsFile(info, fileName, defaultDiagnostics)
+            : defaultDiagnostics;
     }
 
     const fileContent = getFileContent(info, fileName);
@@ -310,6 +309,28 @@ function filterDefaultDiagnostics(
         ),
         fileContent,
     );
+}
+
+function filterDiagnosticsForJsFile(
+    info: ts.server.PluginCreateInfo,
+    fileName: string,
+    defaultDiagnostics: (ts.Diagnostic | ts.DiagnosticWithLocation)[],
+) {
+    if (!isInABrunoCollection(info, fileName)) {
+        return defaultDiagnostics;
+    } else if (fileName.includes(getTempJsFileBaseNameWithoutExtension())) {
+        // Filter out all diagnostics for temp js files.
+        return [];
+    }
+
+    const fileContent = getFileContent(info, fileName);
+
+    return fileContent
+        ? filterOutDiagnosticsForInbuiltRuntimeFunctions(
+              defaultDiagnostics,
+              fileContent,
+          )
+        : [];
 }
 
 function getCodeBlockStartAndEndIndex(
