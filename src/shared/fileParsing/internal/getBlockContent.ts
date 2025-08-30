@@ -1,5 +1,6 @@
 import {
     ArrayBlockField,
+    DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
     PlainTextWithinBlock,
 } from "../external/interfaces";
@@ -19,7 +20,11 @@ export const getBlockContent = (
     | {
           content:
               | string
-              | (DictionaryBlockSimpleField | PlainTextWithinBlock)[]
+              | (
+                    | DictionaryBlockSimpleField
+                    | DictionaryBlockArrayField
+                    | PlainTextWithinBlock
+                )[]
               | (ArrayBlockField | PlainTextWithinBlock)[];
           contentRange: Range;
       }

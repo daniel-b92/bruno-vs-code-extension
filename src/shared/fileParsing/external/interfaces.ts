@@ -31,8 +31,8 @@ export interface DictionaryBlockSimpleField {
 export interface DictionaryBlockArrayField {
     key: string;
     keyRange: Range;
-    values: { value: string; range: Range }[];
-    plainTextWithinValues: PlainTextWithinDictionaryArrayValues[];
+    values: { content: string; range: Range }[];
+    plainTextWithinValues: PlainTextWithinDictionaryArrayValue[];
 }
 
 export interface ArrayBlock {
@@ -52,7 +52,7 @@ export interface PlainTextWithinBlock {
     range: Range;
 }
 
-export interface PlainTextWithinDictionaryArrayValues {
+export interface PlainTextWithinDictionaryArrayValue {
     text: string;
     range: Range;
 }
