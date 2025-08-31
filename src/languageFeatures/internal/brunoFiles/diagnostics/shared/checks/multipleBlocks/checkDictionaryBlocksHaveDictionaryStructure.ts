@@ -53,6 +53,10 @@ function getDiagnostic(
 <blockName> {
   key1: value1
   key2: value2
+  maybeArrayKey: [
+    arrVal1
+    arrVal2
+  ]
 }`,
         range: getRange(sortedBlocksWithIncorrectStructure),
         relatedInformation:
