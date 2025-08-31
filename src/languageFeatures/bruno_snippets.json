@@ -22,6 +22,16 @@
         "description": "Add meta block for a folder settings file"
     },
 
+    "tags field for meta block request file": {
+        "prefix": "tags",
+        "body": [
+            "tags: [",
+            "\t${0}",
+            "]"
+        ],
+        "description": "Add tags field in meta block for a request file"
+    },
+
     "get block": {
         "prefix": "get",
         "body": [
