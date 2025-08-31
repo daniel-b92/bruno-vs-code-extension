@@ -77,7 +77,7 @@ export function parseDictionaryBlock(
                 const { key, keyRange } = fieldStartLine.field;
 
                 const { field: arrayField, fieldEndLineIndex } =
-                    parseArrayField(document, lineIndex - 1, {
+                    parseArrayField(document, lineIndex, {
                         name: key,
                         range: keyRange,
                     });
@@ -85,34 +85,42 @@ export function parseDictionaryBlock(
                 lines.push(arrayField);
 
                 // Skip lines that belong to the array field
-                lineIndex = fieldEndLineIndex ?? document.getLineCount() - 1;
-            }
+                lineIndex =
+                    fieldEndLineIndex &&
+                    fieldEndLineIndex < document.getLineCount() - 1
+                        ? fieldEndLineIndex + 1
+                        : document.getLineCount() - 1;
+            } else {
+                const openingBracketsMatches = line.match(
+                    new RegExp(
+                        `\\${BlockBracket.OpeningBracketForDictionaryOrTextBlock}`,
+                    ),
+                );
+                const closingBracketsMatches = line.match(
+                    new RegExp(
+                        `\\${BlockBracket.ClosingBracketForDictionaryOrTextBlock}`,
+                    ),
+                );
 
-            const openingBracketsMatches = line.match(
-                new RegExp(
-                    `\\${BlockBracket.OpeningBracketForDictionaryOrTextBlock}`,
-                ),
-            );
-            const closingBracketsMatches = line.match(
-                new RegExp(
-                    `\\${BlockBracket.ClosingBracketForDictionaryOrTextBlock}`,
-                ),
-            );
+                // Only count brackets for block level, if they are not within a dictionary key or value entry.
+                openBracketsOnBlockLevel =
+                    openBracketsOnBlockLevel +
+                    (openingBracketsMatches
+                        ? openingBracketsMatches.length
+                        : 0) -
+                    (closingBracketsMatches
+                        ? closingBracketsMatches.length
+                        : 0);
 
-            // Only count brackets for block level, if they are not within a dictionary key or value entry.
-            openBracketsOnBlockLevel =
-                openBracketsOnBlockLevel +
-                (openingBracketsMatches ? openingBracketsMatches.length : 0) -
-                (closingBracketsMatches ? closingBracketsMatches.length : 0);
+                // the block content is exclusive of the block's closing bracket line
+                if (openBracketsOnBlockLevel > 0) {
+                    lines.push({
+                        text: line,
+                        range: document.getRangeForLine(lineIndex) as Range,
+                    });
 
-            // the block content is exclusive of the block's closing bracket line
-            if (openBracketsOnBlockLevel > 0) {
-                lines.push({
-                    text: line,
-                    range: document.getRangeForLine(lineIndex) as Range,
-                });
-
-                lineIndex++;
+                    lineIndex++;
+                }
             }
         }
     }
@@ -150,10 +158,7 @@ function parseArrayField(
         lineIndex: number;
     }[] = [];
 
-    while (
-        !foundEndOfArrayField &&
-        lineIndex < fullFileDocumentHelper.getLineCount()
-    ) {
+    while (lineIndex < fullFileDocumentHelper.getLineCount()) {
         const line = fullFileDocumentHelper.getLineByIndex(lineIndex);
         const isEndOfArrayField = line.trim() == "]";
 
@@ -184,6 +189,10 @@ function parseArrayField(
                 ),
                 lineIndex,
             });
+        }
+
+        if (foundEndOfArrayField) {
+            break;
         }
 
         lineIndex++;

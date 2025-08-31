@@ -28,21 +28,26 @@ export async function getMetaBlockSpecificDiagnostics(
     metaBlock: Block,
 ): Promise<(DiagnosticWithCode | undefined)[]> {
     const castedMetaBlock = castBlockToDictionaryBlock(metaBlock);
-    const metaBlockKeys = Object.values(MetaBlockKey);
+    const mandatoryBlockKeys = [
+        MetaBlockKey.Name,
+        MetaBlockKey.Sequence,
+        MetaBlockKey.Type,
+    ];
+    const optionalBlockKeys = [MetaBlockKey.Tags];
 
     const diagnostics = [
         checkSequenceInMetaBlockIsValid(metaBlock),
         castedMetaBlock
             ? checkNoKeysAreMissingForDictionaryBlock(
                   castedMetaBlock,
-                  metaBlockKeys,
+                  mandatoryBlockKeys,
                   RelevantWithinMetaBlockDiagnosticCode.KeysMissingInMetaBlock,
               )
             : undefined,
         castedMetaBlock
             ? checkNoUnknownKeysAreDefinedInDictionaryBlock(
                   castedMetaBlock,
-                  metaBlockKeys,
+                  mandatoryBlockKeys.concat(optionalBlockKeys),
                   RelevantWithinMetaBlockDiagnosticCode.UnknownKeysDefinedInMetaBlock,
               )
             : undefined,
@@ -56,7 +61,7 @@ export async function getMetaBlockSpecificDiagnostics(
         castedMetaBlock
             ? checkNoDuplicateKeysAreDefinedForDictionaryBlock(
                   castedMetaBlock,
-                  metaBlockKeys,
+                  mandatoryBlockKeys.concat(optionalBlockKeys),
                   RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
               )
             : undefined,

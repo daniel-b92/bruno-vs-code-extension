@@ -1,13 +1,25 @@
 import {
     ArrayBlockField,
+    DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
     PlainTextWithinBlock,
 } from "../../external/interfaces";
 
 export function isDictionaryBlockField(
-    field: ArrayBlockField | DictionaryBlockSimpleField | PlainTextWithinBlock
+    field:
+        | ArrayBlockField
+        | DictionaryBlockSimpleField
+        | DictionaryBlockArrayField
+        | PlainTextWithinBlock,
 ): field is DictionaryBlockSimpleField {
-    return ["key", "value"].every((expected) =>
-        Object.keys(field).includes(expected)
+    return (
+        // Case when it's a simple field
+        ["key", "value"].every((expected) =>
+            Object.keys(field).includes(expected),
+        ) ||
+        // Case when it's an array field
+        ["key", "values"].every((expected) =>
+            Object.keys(field).includes(expected),
+        )
     );
 }
