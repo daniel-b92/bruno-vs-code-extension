@@ -32,6 +32,8 @@ export * from "./fileParsing/external/shouldBeDictionaryBlock";
 export * from "./fileParsing/external/shared/shouldBeCodeBlock";
 export * from "./fileParsing/external/shared/shouldBeJsonBlock";
 export * from "./fileParsing/external/shared/getBlockType";
+export * from "./fileParsing/external/shared/isDictionaryBlockField";
+export * from "./fileParsing/external/shared/isDictionaryBlockSimpleField";
 export * from "./fileParsing/external/getValidDictionaryBlocksWithName";
 export * from "./fileParsing/external/requestFiles/authBlocks/getAuthTypeFromBlockName";
 export * from "./fileParsing/external/requestFiles/authBlocks/isAuthBlock";

@@ -9,21 +9,26 @@ import {
     Block,
     RequestFileBlockName,
     mapToVsCodeRange,
+    isDictionaryBlockSimpleField,
 } from "../../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkUrlFromMethodBlockMatchesPathParamsBlock(
     documentUri: Uri,
-    blocks: Block[]
+    blocks: Block[],
 ): DiagnosticWithCode | undefined {
     const pathParamsBlocks = blocks.filter(
-        ({ name }) => name == RequestFileBlockName.PathParams
+        ({ name }) => name == RequestFileBlockName.PathParams,
     );
 
     const urlField = getUrlFieldFromMethodBlock(blocks);
 
-    if (pathParamsBlocks.length > 1 || !urlField) {
+    if (
+        pathParamsBlocks.length > 1 ||
+        !urlField ||
+        !isDictionaryBlockSimpleField(urlField)
+    ) {
         return undefined;
     } else if (pathParamsBlocks.length == 0 && urlField) {
         const expectedPathParams = getPathParamsFromUrl(urlField.value);
@@ -31,7 +36,7 @@ export function checkUrlFromMethodBlockMatchesPathParamsBlock(
         return expectedPathParams.length > 0
             ? getDiagnosticForMissingPathParamsBlock(
                   urlField,
-                  expectedPathParams
+                  expectedPathParams,
               )
             : undefined;
     }
@@ -47,11 +52,11 @@ export function checkUrlFromMethodBlockMatchesPathParamsBlock(
     const pathParamsFromUrl = getPathParamsFromUrl(urlField.value);
 
     const missingUrlSubstrings = expectedPathsBasedOnPathParamsBlock.filter(
-        (expectedSubstring) => !pathParamsFromUrl.includes(expectedSubstring)
+        (expectedSubstring) => !pathParamsFromUrl.includes(expectedSubstring),
     );
     const missingPathParamsStrings = pathParamsFromUrl.filter(
         (expectedSubstring) =>
-            !expectedPathsBasedOnPathParamsBlock.includes(expectedSubstring)
+            !expectedPathsBasedOnPathParamsBlock.includes(expectedSubstring),
     );
 
     if (
@@ -62,7 +67,7 @@ export function checkUrlFromMethodBlockMatchesPathParamsBlock(
             documentUri,
             urlField,
             missingUrlSubstrings,
-            pathParamsBlock
+            pathParamsBlock,
         );
     } else if (
         missingUrlSubstrings.length == 0 &&
@@ -72,7 +77,7 @@ export function checkUrlFromMethodBlockMatchesPathParamsBlock(
             documentUri,
             urlField,
             missingPathParamsStrings,
-            pathParamsBlock
+            pathParamsBlock,
         );
     } else if (
         missingUrlSubstrings.length > 0 &&
@@ -83,7 +88,7 @@ export function checkUrlFromMethodBlockMatchesPathParamsBlock(
             urlField,
             missingPathParamsStrings,
             missingUrlSubstrings,
-            pathParamsBlock
+            pathParamsBlock,
         );
     } else {
         return undefined;
@@ -94,7 +99,7 @@ function getDiagnosticForMissingPathParamsInUrl(
     documentUri: Uri,
     urlFieldInMethodBlock: DictionaryBlockSimpleField,
     missingUrlSubstrings: string[],
-    pathParamsBlock: DictionaryBlock
+    pathParamsBlock: DictionaryBlock,
 ): DiagnosticWithCode {
     return {
         message: `URL is missing path params from '${
@@ -123,7 +128,7 @@ function getDiagnosticForMissingValuesInPathParamsBlock(
     documentUri: Uri,
     urlFieldInMethodBlock: DictionaryBlockSimpleField,
     missingPathParams: string[],
-    pathParamsBlock: DictionaryBlock
+    pathParamsBlock: DictionaryBlock,
 ): DiagnosticWithCode {
     return {
         message: `'${
@@ -153,7 +158,7 @@ function getDiagnosticForUrlNotMatchingPathParamsBlockValues(
     urlFieldInMethodBlock: DictionaryBlockSimpleField,
     missingPathParamsInPathParamsBlock: string[],
     missingUrlSubstrings: string[],
-    pathParamsBlock: DictionaryBlock
+    pathParamsBlock: DictionaryBlock,
 ): DiagnosticWithCode {
     return {
         message: `Entries from '${
@@ -170,7 +175,7 @@ function getDiagnosticForUrlNotMatchingPathParamsBlockValues(
                 : JSON.stringify(
                       missingPathParamsInPathParamsBlock,
                       undefined,
-                      2
+                      2,
                   )
         }`,
         range: mapToVsCodeRange(urlFieldInMethodBlock.valueRange),
@@ -190,7 +195,7 @@ function getDiagnosticForUrlNotMatchingPathParamsBlockValues(
 
 function getDiagnosticForMissingPathParamsBlock(
     urlFieldInMethodBlock: DictionaryBlockSimpleField,
-    expectedPathParams: string[]
+    expectedPathParams: string[],
 ): DiagnosticWithCode {
     return {
         message: `Missing a '${
@@ -198,7 +203,7 @@ function getDiagnosticForMissingPathParamsBlock(
         }' block with the following keys: ${JSON.stringify(
             expectedPathParams.map((value) => value.substring(2)),
             null,
-            2
+            2,
         )}.`,
         range: mapToVsCodeRange(urlFieldInMethodBlock.valueRange),
         severity: DiagnosticSeverity.Error,

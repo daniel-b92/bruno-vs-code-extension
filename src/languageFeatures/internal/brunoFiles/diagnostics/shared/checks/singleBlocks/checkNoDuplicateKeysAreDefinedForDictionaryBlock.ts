@@ -3,6 +3,7 @@ import {
     DictionaryBlockSimpleField,
     DictionaryBlock,
     mapToVsCodePosition,
+    DictionaryBlockArrayField,
 } from "../../../../../../../shared";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 import {
@@ -15,11 +16,11 @@ import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDe
 export function checkNoDuplicateKeysAreDefinedForDictionaryBlock(
     block: DictionaryBlock,
     expectedKeys: string[],
-    diagnosticCode: KnownDiagnosticCode
+    diagnosticCode: KnownDiagnosticCode,
 ): DiagnosticWithCode | undefined {
     const fieldsWithDuplicateKeys = getValidDuplicateKeysFromDictionaryBlock(
         block,
-        expectedKeys
+        expectedKeys,
     );
 
     if (fieldsWithDuplicateKeys.length > 0) {
@@ -31,10 +32,10 @@ export function checkNoDuplicateKeysAreDefinedForDictionaryBlock(
 
 function getDiagnostic(
     fieldsWithDuplicateKeys: FieldsWithSameKey[],
-    diagnosticCode: KnownDiagnosticCode
+    diagnosticCode: KnownDiagnosticCode,
 ) {
     const sortedFieldsByPosition = getSortedDictionaryBlockFieldsByPosition(
-        fieldsWithDuplicateKeys.map(({ fields }) => fields).flat()
+        fieldsWithDuplicateKeys.map(({ fields }) => fields).flat(),
     );
 
     return {
@@ -47,11 +48,17 @@ function getDiagnostic(
     };
 }
 
-function getRange(sortedDuplicateFields: DictionaryBlockSimpleField[]): Range {
+function getRange(
+    sortedDuplicateFields: (
+        | DictionaryBlockSimpleField
+        | DictionaryBlockArrayField
+    )[],
+): Range {
     return new Range(
         mapToVsCodePosition(sortedDuplicateFields[0].keyRange.start),
         mapToVsCodePosition(
-            sortedDuplicateFields[sortedDuplicateFields.length - 1].keyRange.end
-        )
+            sortedDuplicateFields[sortedDuplicateFields.length - 1].keyRange
+                .end,
+        ),
     );
 }

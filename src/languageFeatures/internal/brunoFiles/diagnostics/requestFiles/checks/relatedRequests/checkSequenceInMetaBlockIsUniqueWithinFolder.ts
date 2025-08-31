@@ -13,6 +13,7 @@ import {
     mapToVsCodeRange,
     BrunoFileType,
     filterAsync,
+    isDictionaryBlockSimpleField,
 } from "../../../../../../../shared";
 import { dirname } from "path";
 import { DiagnosticWithCode } from "../../../definitions";
@@ -112,7 +113,7 @@ async function getRangeForSequence(filePath: string) {
         new TextDocumentHelper(await readFileAsync(filePath, "utf-8")),
     );
 
-    if (!sequenceField) {
+    if (!sequenceField || !isDictionaryBlockSimpleField(sequenceField)) {
         throw new Error(
             `'${
                 RequestFileBlockName.Meta

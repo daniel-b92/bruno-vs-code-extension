@@ -5,20 +5,25 @@ import {
     MetaBlockKey,
     getFieldFromMetaBlock,
     mapToVsCodeRange,
+    isDictionaryBlockSimpleField,
 } from "../../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { isSequenceValid } from "../../util/isSequenceValid";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 
 export function checkSequenceInMetaBlockIsValid(
-    metaBlock: Block
+    metaBlock: Block,
 ): DiagnosticWithCode | undefined {
     const sequenceField = getFieldFromMetaBlock(
         metaBlock,
-        MetaBlockKey.Sequence
+        MetaBlockKey.Sequence,
     );
 
-    if (sequenceField && !isSequenceValid(sequenceField)) {
+    if (
+        sequenceField &&
+        isDictionaryBlockSimpleField(sequenceField) &&
+        !isSequenceValid(sequenceField)
+    ) {
         return getDiagnostic(sequenceField);
     } else {
         return undefined;

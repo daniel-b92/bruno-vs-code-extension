@@ -4,15 +4,15 @@ import {
     Block,
     castBlockToDictionaryBlock,
     MetaBlockKey,
-    DictionaryBlockSimpleField,
     RequestType,
     CollectionItemProvider,
+    isDictionaryBlockSimpleField,
 } from "../../../../../shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
 import { checkNoMandatoryValuesAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoMandatoryValuesAreMissingForDictionaryBlock";
 import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "../shared/checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
-import { checkValueForDictionaryBlockFieldIsValid } from "../shared/checks/singleBlocks/checkValueForDictionaryBlockFieldIsValid";
+import { checkValueForDictionaryBlockSimpleFieldIsValid } from "../shared/checks/singleBlocks/checkValueForDictionaryBlockSimpleFieldIsValid";
 import { checkMetaBlockStartsInFirstLine } from "../shared/checks/singleBlocks/checkMetaBlockStartsInFirstLine";
 import { DiagnosticWithCode } from "../definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
@@ -34,6 +34,9 @@ export async function getMetaBlockSpecificDiagnostics(
         MetaBlockKey.Type,
     ];
     const optionalBlockKeys = [MetaBlockKey.Tags];
+    const typeFields = castedMetaBlock
+        ? castedMetaBlock.content.filter(({ key }) => key == MetaBlockKey.Type)
+        : undefined;
 
     const diagnostics = [
         checkSequenceInMetaBlockIsValid(metaBlock),
@@ -65,13 +68,11 @@ export async function getMetaBlockSpecificDiagnostics(
                   RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
               )
             : undefined,
-        castedMetaBlock &&
-        castedMetaBlock.content.filter(({ key }) => key == MetaBlockKey.Type)
-            .length == 1
-            ? checkValueForDictionaryBlockFieldIsValid(
-                  castedMetaBlock.content.find(
-                      ({ key }) => key == MetaBlockKey.Type,
-                  ) as DictionaryBlockSimpleField,
+        typeFields &&
+        typeFields.length == 1 &&
+        isDictionaryBlockSimpleField(typeFields[0])
+            ? checkValueForDictionaryBlockSimpleFieldIsValid(
+                  typeFields[0],
                   Object.values(RequestType),
                   RelevantWithinMetaBlockDiagnosticCode.RequestTypeNotValid,
               )

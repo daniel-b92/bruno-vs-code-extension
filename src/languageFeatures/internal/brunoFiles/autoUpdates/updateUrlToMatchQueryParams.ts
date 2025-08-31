@@ -8,22 +8,32 @@ import {
     getUrlSubstringForQueryParams,
     Block,
     mapToVsCodePosition,
+    isDictionaryBlockSimpleField,
 } from "../../../../shared";
 
 export function updateUrlToMatchQueryParams(
     editBuilder: TextEditorEdit,
-    blocks: Block[]
+    blocks: Block[],
 ) {
     const urlField = getUrlFieldFromMethodBlock(blocks);
     const queryParamsBlocks = getValidDictionaryBlocksWithName(
         blocks,
-        RequestFileBlockName.QueryParams
+        RequestFileBlockName.QueryParams,
     );
 
-    if (urlField && queryParamsBlocks.length == 1) {
+    if (
+        urlField &&
+        isDictionaryBlockSimpleField(urlField) &&
+        queryParamsBlocks.length == 1 &&
+        queryParamsBlocks[0].content.every((field) =>
+            isDictionaryBlockSimpleField(field),
+        )
+    ) {
         const queryParamsFromUrl = getQueryParamsFromUrl(urlField.value);
         const queryParamsFromQueryParamsBlock =
-            getExpectedUrlQueryParamsForQueryParamsBlock(queryParamsBlocks[0]);
+            getExpectedUrlQueryParamsForQueryParamsBlock(
+                queryParamsBlocks[0].content,
+            );
 
         if (
             (!queryParamsFromUrl && queryParamsFromQueryParamsBlock.size > 0) ||
@@ -39,11 +49,11 @@ export function updateUrlToMatchQueryParams(
             editBuilder.replace(
                 new Range(
                     new Position(urlField.valueRange.start.line, startChar),
-                    mapToVsCodePosition(urlField.valueRange.end)
+                    mapToVsCodePosition(urlField.valueRange.end),
                 ),
                 `${getUrlSubstringForQueryParams(
-                    queryParamsFromQueryParamsBlock
-                )}`
+                    queryParamsFromQueryParamsBlock,
+                )}`,
             );
         }
     }

@@ -17,7 +17,7 @@ export interface Block {
 export interface DictionaryBlock {
     name: string;
     nameRange: Range;
-    content: DictionaryBlockSimpleField[];
+    content: (DictionaryBlockSimpleField | DictionaryBlockArrayField)[];
     contentRange: Range;
 }
 

@@ -11,6 +11,8 @@ import {
     DictionaryBlock,
     mapToVsCodePosition,
     getLineBreak,
+    DictionaryBlockSimpleField,
+    isDictionaryBlockSimpleField,
 } from "../../../../shared";
 import { getSortedBlocksByPosition } from "../diagnostics/shared/util/getSortedBlocksByPosition";
 
@@ -25,7 +27,11 @@ export function updatePathParamsKeysToMatchUrl(
         RequestFileBlockName.PathParams,
     );
 
-    if (urlField && pathParamsBlocks.length <= 1) {
+    if (
+        urlField &&
+        isDictionaryBlockSimpleField(urlField) &&
+        pathParamsBlocks.length <= 1
+    ) {
         const listFromUrl = getPathParamsFromUrl(urlField.value);
 
         const listFromPathParamsBlock =
@@ -62,7 +68,11 @@ export function updatePathParamsKeysToMatchUrl(
         ) {
             if (listFromUrl.length == 0) {
                 removeBlock(editBuilder, blocks, pathParamsBlocks[0]);
-            } else {
+            } else if (
+                pathParamsBlocks[0].content.every((field) =>
+                    isDictionaryBlockSimpleField(field),
+                )
+            ) {
                 const paramsToRemove = listFromPathParamsBlock.filter(
                     (fromPathParamsBlock) =>
                         !listFromUrl.includes(fromPathParamsBlock),
@@ -72,7 +82,7 @@ export function updatePathParamsKeysToMatchUrl(
                     document,
                     editBuilder,
                     paramsToRemove,
-                    pathParamsBlocks[0],
+                    pathParamsBlocks[0].content,
                 );
             }
         }
@@ -126,9 +136,9 @@ function removeEntriesFromPathParamsBlock(
     document: TextDocument,
     editBuilder: TextEditorEdit,
     paramsToRemove: string[],
-    pathParamsBlock: DictionaryBlock,
+    pathParamsBlockFields: DictionaryBlockSimpleField[],
 ) {
-    const rangesToRemove = pathParamsBlock.content
+    const rangesToRemove = pathParamsBlockFields
         .filter(({ key }) => paramsToRemove.includes(key))
         .map(
             ({ valueRange }) =>

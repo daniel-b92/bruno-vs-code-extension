@@ -1,7 +1,10 @@
-import { DictionaryBlockSimpleField } from "../../../../../../shared";
+import {
+    DictionaryBlockArrayField,
+    DictionaryBlockSimpleField,
+} from "../../../../../../shared";
 
 export function getSortedDictionaryBlockFieldsByPosition(
-    unsorted: DictionaryBlockSimpleField[]
+    unsorted: (DictionaryBlockSimpleField | DictionaryBlockArrayField)[],
 ) {
     return unsorted.slice().sort(
         (
@@ -14,7 +17,7 @@ export function getSortedDictionaryBlockFieldsByPosition(
                 keyRange: {
                     start: { line: line2 },
                 },
-            }
-        ) => line1 - line2
+            },
+        ) => line1 - line2,
     );
 }

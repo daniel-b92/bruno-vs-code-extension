@@ -1,13 +1,17 @@
-import { DictionaryBlock, DictionaryBlockSimpleField } from "../../../../../../shared";
+import {
+    DictionaryBlock,
+    DictionaryBlockArrayField,
+    DictionaryBlockSimpleField,
+} from "../../../../../../shared";
 
 export interface FieldsWithSameKey {
     key: string;
-    fields: DictionaryBlockSimpleField[];
+    fields: (DictionaryBlockSimpleField | DictionaryBlockArrayField)[];
 }
 
 export function getValidDuplicateKeysFromDictionaryBlock(
     block: DictionaryBlock,
-    allValidKeys: string[]
+    allValidKeys: string[],
 ) {
     const foundValidKeysSorted = block.content
         .filter(({ key }) => allValidKeys.includes(key))
@@ -32,7 +36,7 @@ export function getValidDuplicateKeysFromDictionaryBlock(
             });
         } else if (currentField.key == previousFieldFromList.key) {
             const entryToUpdate = result.find(
-                ({ key }) => key == currentField.key
+                ({ key }) => key == currentField.key,
             ) as FieldsWithSameKey;
 
             entryToUpdate.fields.push(currentField);

@@ -3,6 +3,7 @@ import {
     checkIfPathExistsAsync,
     getExtensionForBrunoFiles,
     getSequenceFieldFromMetaBlock,
+    isDictionaryBlockSimpleField,
     TextDocumentHelper,
 } from "../../..";
 import { extname } from "path";
@@ -18,10 +19,12 @@ export async function parseSequenceFromMetaBlock(filePath: string) {
     }
 
     const sequence = getSequenceFieldFromMetaBlock(
-        new TextDocumentHelper(await promisify(readFile)(filePath, "utf-8"))
+        new TextDocumentHelper(await promisify(readFile)(filePath, "utf-8")),
     );
 
-    return sequence && !isNaN(Number(sequence.value))
+    return sequence &&
+        isDictionaryBlockSimpleField(sequence) &&
+        !isNaN(Number(sequence.value))
         ? Number(sequence.value)
         : undefined;
 }
