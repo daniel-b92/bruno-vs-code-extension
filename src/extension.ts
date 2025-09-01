@@ -82,6 +82,7 @@ export async function activate(context: ExtensionContext) {
                             context,
                             collectionWatcher,
                             collectionItemProvider,
+                            startTestRunEmitter.event,
                         ).then(() => {
                             resolve();
 

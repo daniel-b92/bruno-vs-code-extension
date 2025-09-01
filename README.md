@@ -29,7 +29,9 @@ For getting the most out of the extension, please follow these steps when instal
 
 
 ### Improving intellisense
-- You can improve intellisense by adding type definitions as dev dependencies for all inbuilt libraries from `bruno` you use within your collection (e.g. `axios` or `moment`).
+- You can improve intellisense by adding type definitions as dev dependencies for all inbuilt libraries from `bruno` that you use:
+  - Most importantly for [Mocha](https://www.npmjs.com/package/@types/mocha) (intellisense for `test('description', function() {...})`) and [Chai](https://www.npmjs.com/package/@types/chai) (intellisense for `expect` validations).
+  - Further inbuilt libraries that you use (e.g. `axios` or `moment`).
 - Add typings via JSDoc in your code blocks and Javascript scripts, see https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html
 
 ## Contributing
