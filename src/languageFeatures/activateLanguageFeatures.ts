@@ -10,6 +10,7 @@ import {
     Uri,
     window,
     workspace,
+    Event as VsCodeEvent,
 } from "vscode";
 import { provideBrunoLangCompletionItems } from "./internal/brunoFiles/completionItems/provideBrunoLangCompletionItems";
 import {
@@ -50,10 +51,11 @@ export async function activateLanguageFeatures(
     context: ExtensionContext,
     collectionWatcher: CollectionWatcher,
     collectionItemProvider: CollectionItemProvider,
+    testRunStartedEvent: VsCodeEvent<Uri>,
 ) {
     const logger = getLoggerFromSubscriptions(context);
 
-    const tempJsFilesUpdateQueue = new TempJsFileUpdateQueue(logger);
+    const tempJsFilesUpdateQueue = new TempJsFileUpdateQueue(testRunStartedEvent, logger);
 
     const tempJsFilesProvider = new TempJsFilesProvider(
         collectionWatcher,

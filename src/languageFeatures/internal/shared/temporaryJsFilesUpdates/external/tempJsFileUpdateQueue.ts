@@ -6,13 +6,21 @@ import {
 } from "../../../../../shared";
 import { createTemporaryJsFile } from "../internal/createTemporaryJsFile";
 import { deleteTemporaryJsFiles } from "../internal/deleteTemporaryJsFile";
-import { CancellationToken, EventEmitter } from "vscode";
+import {
+    CancellationToken,
+    EventEmitter,
+    Uri,
+    Event as VsCodeEvent,
+} from "vscode";
 import { setTimeout } from "timers/promises";
 import { QueueUpdateHandler } from "../internal/queueUpdateHandler";
 import { basename, dirname } from "path";
 
 export class TempJsFileUpdateQueue {
-    constructor(private logger?: OutputChannelLogger) {
+    constructor(
+        private testRunStartedEvent: VsCodeEvent<Uri>,
+        private logger?: OutputChannelLogger,
+    ) {
         this.activeUpdate = undefined;
         this.latestRequestTempJsFileContent = undefined;
         this.queueUpdater = new QueueUpdateHandler(logger);
@@ -308,8 +316,9 @@ export class TempJsFileUpdateQueue {
             )
         ) {
             const deletionIdentifier = 0;
-            const cancellationIdentifier = 1;
+            const externalCancellationIdentifier = 1;
             const otherRequestAddedIdentifier = 2;
+            const internalCancellationIdentifier = 3;
 
             const deletionPromise = setTimeout(
                 5_000,
@@ -317,13 +326,25 @@ export class TempJsFileUpdateQueue {
             ); /* Sometimes, the deletions seem to block other important functions from the extension host.
             To avoid this, we add some waiting time before actually executing the deletion.*/
 
-            const cancellationPromise = new Promise<number>((resolve) => {
-                if (token) {
-                    token.onCancellationRequested(() => {
-                        resolve(cancellationIdentifier);
+            const externalCancellationPromise = new Promise<number>(
+                (resolve) => {
+                    if (token) {
+                        token.onCancellationRequested(() => {
+                            resolve(externalCancellationIdentifier);
+                        });
+                    }
+                },
+            );
+
+            const internalCancellationPromise = new Promise<number>(
+                (resolve) => {
+                    // Deleting a file while the Bruno CLI is just starting to run can result in an exception.
+                    // Since deletion requests are not so important, just cancel the request.
+                    this.testRunStartedEvent(() => {
+                        resolve(internalCancellationIdentifier);
                     });
-                }
-            });
+                },
+            );
 
             const otherRequestAddedPromise = new Promise<number>((resolve) => {
                 this.waitForRequestToBeAddedToQueue().then((newRequest) => {
@@ -349,8 +370,9 @@ export class TempJsFileUpdateQueue {
 
             const fulfilledCondition = await Promise.race([
                 deletionPromise,
-                cancellationPromise,
+                externalCancellationPromise,
                 otherRequestAddedPromise,
+                internalCancellationPromise,
             ]);
 
             if (fulfilledCondition == deletionIdentifier) {
@@ -363,6 +385,14 @@ export class TempJsFileUpdateQueue {
                         `Cancellation requested for temp JS update with type '${request.request.update.type}' after triggering workspace edit. Could not be aborted anymore.`,
                     );
                 }
+            } else if (fulfilledCondition == externalCancellationIdentifier) {
+                this.logger?.debug(
+                    `Canceling deletion request for ${filePaths.length} temp JS files due to external cancellation.`,
+                );
+            } else if (fulfilledCondition == internalCancellationIdentifier) {
+                this.logger?.debug(
+                    `Canceling deletion request for ${filePaths.length} temp JS files due to internal cancellation (e.g. because a testrun has started in the meantime).`,
+                );
             }
         }
 
