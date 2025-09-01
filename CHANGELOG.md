@@ -1,3 +1,9 @@
+## [0.17.3] (2025-09-01)
+
+### Fixes / Improvements
+- Fixes an issue, where an exception was thrown by the `Bruno` CLI process when triggering a testrun because of deletions of temp JS files in the background.
+  - Deletions are canceled in this situation now.
+
 ## [0.17.2] (2025-08-30)
 
 ### Fixes / Improvements
