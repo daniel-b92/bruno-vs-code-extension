@@ -5,8 +5,6 @@ import {
     Uri,
 } from "vscode";
 import {
-    Block,
-    castBlockToDictionaryBlock,
     DictionaryBlock,
     DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
@@ -22,23 +20,12 @@ interface DictionaryFieldsForBlock {
     fields: (DictionaryBlockSimpleField | DictionaryBlockArrayField)[];
 }
 
-export function checkDictionaryBlockSimpleFieldsStructure(
+export function checkDictionaryBlocksSimpleFieldsStructure(
     documentUri: Uri,
-    fieldsToCheck: { block: Block; keys: string[] }[],
+    fieldsToCheck: { block: DictionaryBlock; keys: string[] }[],
 ): DiagnosticWithCode | undefined {
-    const fieldsToCheckWithValidBlocks = fieldsToCheck
-        .map(({ block, keys }) => ({
-            block: castBlockToDictionaryBlock(block),
-            keys,
-        }))
-        .filter(({ block }) => block != undefined) as {
-        block: DictionaryBlock;
-        keys: string[];
-    }[];
-
-    const invalidFieldsSortedByPosition = getInvalidFieldsSortedByPosition(
-        fieldsToCheckWithValidBlocks,
-    );
+    const invalidFieldsSortedByPosition =
+        getInvalidFieldsSortedByPosition(fieldsToCheck);
 
     if (invalidFieldsSortedByPosition.length == 0) {
         return undefined;
@@ -52,8 +39,10 @@ function getDiagnostic(
     sortedFieldsWithIncorrectStructure: DictionaryFieldsForBlock[],
 ): DiagnosticWithCode {
     return {
-        message: `Some simple dictionary fields do not have the correct structure. A valid simple dictionary field matches the following pattern:
-key: value
+        message: `Some dictionary block simple fields do not have the correct structure. A dictionary block with only simple fields matches the following pattern:
+<blockName> {
+  key1: value1
+  key2: value2
 }`,
         range: getRange(sortedFieldsWithIncorrectStructure),
         relatedInformation:

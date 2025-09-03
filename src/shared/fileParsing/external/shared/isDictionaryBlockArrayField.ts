@@ -5,14 +5,14 @@ import {
     PlainTextWithinBlock,
 } from "../interfaces";
 
-export function isDictionaryBlockSimpleField(
+export function isDictionaryBlockArrayField(
     field:
         | ArrayBlockField
         | DictionaryBlockSimpleField
         | DictionaryBlockArrayField
         | PlainTextWithinBlock,
-): field is DictionaryBlockSimpleField {
-    return ["key", "value"].every((expected) =>
+): field is DictionaryBlockArrayField {
+    return ["key", "values"].every((expected) =>
         Object.keys(field).includes(expected),
     );
 }

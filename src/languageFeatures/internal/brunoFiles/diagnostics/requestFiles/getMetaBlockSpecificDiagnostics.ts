@@ -7,6 +7,8 @@ import {
     RequestType,
     CollectionItemProvider,
     isDictionaryBlockSimpleField,
+    shouldBeDictionaryArrayField,
+    RequestFileBlockName,
 } from "../../../../../shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
@@ -19,6 +21,7 @@ import { RelevantWithinMetaBlockDiagnosticCode } from "../shared/diagnosticCodes
 import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDiagnosticsHelper";
 import { checkSequenceInMetaBlockIsValid } from "../shared/checks/singleBlocks/checkSequenceInMetaBlockIsValid";
 import { checkSequenceInMetaBlockIsUniqueWithinFolder } from "./checks/relatedRequests/checkSequenceInMetaBlockIsUniqueWithinFolder";
+import { checkDictionaryBlockArrayFieldsStructure } from "../shared/checks/singleBlocks/checkDictionaryBlockArrayFieldsStructure";
 
 export async function getMetaBlockSpecificDiagnostics(
     itemProvider: CollectionItemProvider,
@@ -66,6 +69,21 @@ export async function getMetaBlockSpecificDiagnostics(
                   castedMetaBlock,
                   mandatoryBlockKeys.concat(optionalBlockKeys),
                   RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
+              )
+            : undefined,
+        castedMetaBlock &&
+        castedMetaBlock.content.some(({ key }) => key == MetaBlockKey.Tags)
+            ? checkDictionaryBlockArrayFieldsStructure(
+                  documentUri,
+                  castedMetaBlock,
+                  castedMetaBlock.content
+                      .map(({ key }) => key)
+                      .filter((existing) =>
+                          shouldBeDictionaryArrayField(
+                              RequestFileBlockName.Meta,
+                              existing,
+                          ),
+                      ),
               )
             : undefined,
         typeFields &&

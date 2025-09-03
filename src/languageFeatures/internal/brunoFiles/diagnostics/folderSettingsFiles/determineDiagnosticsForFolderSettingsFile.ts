@@ -8,6 +8,8 @@ import {
     RequestFileBlockName,
     isAuthBlock,
     CollectionItemProvider,
+    castBlockToDictionaryBlock,
+    DictionaryBlock,
 } from "../../../../../shared";
 import { DiagnosticWithCode } from "../definitions";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
@@ -24,6 +26,7 @@ import { checkOccurencesOfMandatoryBlocks } from "./checks/checkOccurencesOfMand
 import { getMetaBlockSpecificDiagnostics } from "./util/getMetaBlockSpecificDiagnostics";
 import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDiagnosticsHelper";
 import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBlocks/checkCodeBlocksHaveClosingBracket";
+import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 
 export async function determineDiagnosticsForFolderSettingsFile(
     documentUri: Uri,
@@ -40,6 +43,10 @@ export async function determineDiagnosticsForFolderSettingsFile(
             name == SettingsFileSpecificBlock.AuthMode,
     );
 
+    const validDictionaryBlocks = blocksThatShouldBeDictionaryBlocks.filter(
+        castBlockToDictionaryBlock,
+    ) as DictionaryBlock[];
+
     const results: (DiagnosticWithCode | undefined)[] = [];
 
     results.push(
@@ -53,9 +60,18 @@ export async function determineDiagnosticsForFolderSettingsFile(
             blocks,
             Object.values(getValidBlockNamesForFolderSettingsFile()),
         ),
-        checkDictionaryBlocksHaveDictionaryStructure(
+        validDictionaryBlocks.length < blocksThatShouldBeDictionaryBlocks.length
+            ? checkDictionaryBlocksHaveDictionaryStructure(
+                  documentUri,
+                  blocksThatShouldBeDictionaryBlocks,
+              )
+            : undefined,
+        checkDictionaryBlocksSimpleFieldsStructure(
             documentUri,
-            blocksThatShouldBeDictionaryBlocks,
+            validDictionaryBlocks.map((block) => ({
+                block,
+                keys: block.content.map(({ key }) => key),
+            })),
         ),
         checkCodeBlocksHaveClosingBracket(document, blocks),
         checkDictionaryBlocksAreNotEmpty(
