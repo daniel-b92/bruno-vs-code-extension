@@ -1,4 +1,4 @@
-import { isDictionaryBlockField } from "../internal/util/isDictionaryBlockField";
+import { isDictionaryBlockField } from "../..";
 import { DictionaryBlock, Block } from "./interfaces";
 
 export function castBlockToDictionaryBlock(block: Block) {

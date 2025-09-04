@@ -2,7 +2,7 @@ import { DiagnosticSeverity, Uri } from "vscode";
 import {
     CollectionFile,
     CollectionItemProvider,
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     normalizeDirectoryPath,
     Block,
     RequestFileBlockName,
@@ -13,6 +13,7 @@ import {
     mapToVsCodeRange,
     BrunoFileType,
     filterAsync,
+    isDictionaryBlockSimpleField,
 } from "../../../../../../shared";
 import { basename, dirname } from "path";
 import { readFile } from "fs";
@@ -41,7 +42,7 @@ export async function checkFolderSequenceInMetaBlockIsUnique(
         !isSequenceValid(
             castedBlock.content.find(
                 ({ key }) => key == MetaBlockKey.Sequence,
-            ) as DictionaryBlockField,
+            ) as DictionaryBlockSimpleField,
         )
     ) {
         return { code: getDiagnosticCode() };
@@ -49,7 +50,7 @@ export async function checkFolderSequenceInMetaBlockIsUnique(
 
     const sequenceField = castedBlock.content.find(
         ({ key }) => key == MetaBlockKey.Sequence,
-    ) as DictionaryBlockField;
+    ) as DictionaryBlockSimpleField;
 
     const otherFolderSettings = await getSequencesForOtherFoldersWithSameParent(
         itemProvider,
@@ -91,7 +92,7 @@ export async function checkFolderSequenceInMetaBlockIsUnique(
 }
 
 async function getDiagnostic(
-    sequenceField: DictionaryBlockField,
+    sequenceField: DictionaryBlockSimpleField,
     otherFoldersWithSameSequence: {
         folderSettingsFile: string;
         folderPath: string;
@@ -127,7 +128,7 @@ async function getRangeForSequence(filePath: string) {
         new TextDocumentHelper(fileContent),
     );
 
-    if (!sequenceField) {
+    if (!sequenceField || !isDictionaryBlockSimpleField(sequenceField)) {
         throw new Error(
             `'${
                 RequestFileBlockName.Meta

@@ -1,6 +1,6 @@
 import { DiagnosticSeverity, Uri } from "vscode";
 import {
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     getAuthTypeFromBlockName,
     isAuthBlock,
     Block,
@@ -9,16 +9,17 @@ import {
     getFieldFromDictionaryBlock,
     castBlockToDictionaryBlock,
     AuthModeBlockKey,
+    isDictionaryBlockSimpleField,
 } from "../../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkAuthBlockTypeFromAuthModeBlockExists(
     documentUri: Uri,
-    blocks: Block[]
+    blocks: Block[],
 ): DiagnosticWithCode | undefined {
     const authModeBlocks = blocks.filter(
-        ({ name }) => name == SettingsFileSpecificBlock.AuthMode
+        ({ name }) => name == SettingsFileSpecificBlock.AuthMode,
     );
     const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
 
@@ -34,7 +35,7 @@ export function checkAuthBlockTypeFromAuthModeBlockExists(
 
     const authModeField = getFieldFromDictionaryBlock(
         castedAuthModeBlock,
-        AuthModeBlockKey.Mode
+        AuthModeBlockKey.Mode,
     );
 
     const authTypeFromAuthBlock =
@@ -44,29 +45,32 @@ export function checkAuthBlockTypeFromAuthModeBlockExists(
 
     if (
         authModeField &&
+        isDictionaryBlockSimpleField(authModeField) &&
         !authTypeFromAuthBlock &&
         !getAuthTypesForNoDefinedAuthBlock().includes(authModeField.value)
     ) {
         return getDiagnosticInCaseOfMissingAuthBlock(authModeField);
     } else if (
         authModeField &&
+        isDictionaryBlockSimpleField(authModeField) &&
         authTypeFromAuthBlock &&
         getAuthTypesForNoDefinedAuthBlock().includes(authModeField.value)
     ) {
         return getDiagnosticInCaseOfNonExpectedAuthBlock(
             documentUri,
             authModeField,
-            authTypeFromAuthBlock.authBlock
+            authTypeFromAuthBlock.authBlock,
         );
     } else if (
         authModeField &&
+        isDictionaryBlockSimpleField(authModeField) &&
         authTypeFromAuthBlock &&
         authModeField.value != authTypeFromAuthBlock.value
     ) {
         return getDiagnostic(
             documentUri,
             authModeField,
-            authTypeFromAuthBlock.authBlock
+            authTypeFromAuthBlock.authBlock,
         );
     } else {
         return undefined;
@@ -75,8 +79,8 @@ export function checkAuthBlockTypeFromAuthModeBlockExists(
 
 function getDiagnostic(
     documentUri: Uri,
-    authModeField: DictionaryBlockField,
-    authBlock: Block
+    authModeField: DictionaryBlockSimpleField,
+    authBlock: Block,
 ): DiagnosticWithCode {
     return {
         message: "Auth type does not match name of auth mode.",
@@ -84,7 +88,7 @@ function getDiagnostic(
         relatedInformation: [
             {
                 message: `Defined auth type in auth block: '${getAuthTypeFromBlockName(
-                    authBlock.name
+                    authBlock.name,
                 )}'`,
                 location: {
                     uri: documentUri,
@@ -98,7 +102,7 @@ function getDiagnostic(
 }
 
 function getDiagnosticInCaseOfMissingAuthBlock(
-    authModeField: DictionaryBlockField
+    authModeField: DictionaryBlockSimpleField,
 ): DiagnosticWithCode {
     return {
         message: "Missing auth block for defined auth mode.",
@@ -110,8 +114,8 @@ function getDiagnosticInCaseOfMissingAuthBlock(
 
 function getDiagnosticInCaseOfNonExpectedAuthBlock(
     documentUri: Uri,
-    authModeField: DictionaryBlockField,
-    authBlock: Block
+    authModeField: DictionaryBlockSimpleField,
+    authBlock: Block,
 ): DiagnosticWithCode {
     return {
         message: `An auth block is defined although the auth mode is '${authModeField.value}'.`,
@@ -119,7 +123,7 @@ function getDiagnosticInCaseOfNonExpectedAuthBlock(
         relatedInformation: [
             {
                 message: `Defined auth type in auth block: '${getAuthTypeFromBlockName(
-                    authBlock.name
+                    authBlock.name,
                 )}'`,
                 location: {
                     uri: documentUri,

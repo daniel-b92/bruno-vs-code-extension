@@ -3,15 +3,15 @@ import {
     TextDocumentHelper,
     RequestFileBlockName,
     parseBlockFromFile,
+    isDictionaryBlockField,
 } from "../../..";
-import { isDictionaryBlockField } from "../../internal/util/isDictionaryBlockField";
 
 export function getSequenceFieldFromMetaBlock(
-    documentHelper: TextDocumentHelper
+    documentHelper: TextDocumentHelper,
 ) {
     const metaBlockContent = parseBlockFromFile(
         documentHelper,
-        RequestFileBlockName.Meta
+        RequestFileBlockName.Meta,
     );
 
     const sequence =

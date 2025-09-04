@@ -1,35 +1,43 @@
-import { DiagnosticSeverity, Range } from "vscode";
+import { DiagnosticSeverity, Range as VsCodeRange } from "vscode";
 import {
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     DictionaryBlock,
     mapToVsCodePosition,
+    DictionaryBlockArrayField,
 } from "../../../../../../../shared";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
-import { getUnknownKeysFromDictionaryBlock } from "../../util/getUnknownKeysFromDictionaryBlock";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 
 export function checkNoUnknownKeysAreDefinedInDictionaryBlock(
     block: DictionaryBlock,
     expectedKeys: string[],
-    diagnosticCode: KnownDiagnosticCode
+    diagnosticCode: KnownDiagnosticCode,
 ): DiagnosticWithCode | undefined {
-    const unknownKeys = getUnknownKeysFromDictionaryBlock(block, expectedKeys);
+    const fieldsWithUnknownKeys = getFieldsWithUnknownKeys(block, expectedKeys);
 
-    if (unknownKeys.length > 0) {
-        return getDiagnostic(unknownKeys, diagnosticCode, expectedKeys);
+    if (fieldsWithUnknownKeys.length > 0) {
+        return getDiagnostic(
+            fieldsWithUnknownKeys,
+            diagnosticCode,
+            expectedKeys,
+        );
     } else {
         return undefined;
     }
 }
 
 function getDiagnostic(
-    unknownFields: DictionaryBlockField[],
+    fieldsWithUnknownKeys: (
+        | DictionaryBlockSimpleField
+        | DictionaryBlockArrayField
+    )[],
     diagnosticCode: KnownDiagnosticCode,
-    expectedKeys: string[]
+    expectedKeys: string[],
 ) {
-    const sortedFields =
-        getSortedDictionaryBlockFieldsByPosition(unknownFields);
+    const sortedFields = getSortedDictionaryBlockFieldsByPosition(
+        fieldsWithUnknownKeys,
+    );
 
     return {
         message: `${
@@ -45,11 +53,23 @@ function getDiagnostic(
     };
 }
 
-function getRange(sortedUnknownFields: DictionaryBlockField[]): Range {
-    return new Range(
+function getRange(
+    sortedUnknownFields: (
+        | DictionaryBlockSimpleField
+        | DictionaryBlockArrayField
+    )[],
+): VsCodeRange {
+    return new VsCodeRange(
         mapToVsCodePosition(sortedUnknownFields[0].keyRange.start),
         mapToVsCodePosition(
-            sortedUnknownFields[sortedUnknownFields.length - 1].keyRange.end
-        )
+            sortedUnknownFields[sortedUnknownFields.length - 1].keyRange.end,
+        ),
     );
+}
+
+function getFieldsWithUnknownKeys(
+    block: DictionaryBlock,
+    allExpectedKeys: string[],
+) {
+    return block.content.filter(({ key }) => !allExpectedKeys.includes(key));
 }

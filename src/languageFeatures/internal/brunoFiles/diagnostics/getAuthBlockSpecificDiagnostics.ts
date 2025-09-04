@@ -4,7 +4,6 @@ import {
     AuthBlockName,
     getMandatoryKeysForNonOAuth2Block,
     ApiKeyAuthBlockKey,
-    DictionaryBlockField,
     ApiKeyAuthBlockPlacementValue,
     BooleanFieldValue,
     DictionaryBlock,
@@ -13,11 +12,12 @@ import {
     OAuth2GrantType,
     OAuth2ViaAuthorizationCodeBlockKey,
     getMandatoryKeysForOAuth2Block,
+    isDictionaryBlockSimpleField,
 } from "../../../../shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
 import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "./shared/checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
-import { checkValueForDictionaryBlockFieldIsValid } from "./shared/checks/singleBlocks/checkValueForDictionaryBlockFieldIsValid";
+import { checkValueForDictionaryBlockSimpleFieldIsValid } from "./shared/checks/singleBlocks/checkValueForDictionaryBlockSimpleFieldIsValid";
 import { DiagnosticWithCode } from "./definitions";
 import { RelevantWithinAuthBlockDiagnosticCode } from "./shared/diagnosticCodes/relevantWithinAuthBlockDiagnosticCodeEnum";
 
@@ -75,15 +75,19 @@ export function getAuthBlockSpecificDiagnostics(
                 ({ key }) => key == ApiKeyAuthBlockKey.Placement,
             )
         ) {
-            diagnostics.push(
-                checkValueForDictionaryBlockFieldIsValid(
-                    castedAuthBlock.content.find(
-                        ({ key }) => key == ApiKeyAuthBlockKey.Placement,
-                    ) as DictionaryBlockField,
-                    Object.values(ApiKeyAuthBlockPlacementValue),
-                    RelevantWithinAuthBlockDiagnosticCode.InvalidApiKeyAuthValueForPlacement,
-                ),
+            const field = castedAuthBlock.content.find(
+                ({ key }) => key == ApiKeyAuthBlockKey.Placement,
             );
+
+            if (field && isDictionaryBlockSimpleField(field)) {
+                diagnostics.push(
+                    checkValueForDictionaryBlockSimpleFieldIsValid(
+                        field,
+                        Object.values(ApiKeyAuthBlockPlacementValue),
+                        RelevantWithinAuthBlockDiagnosticCode.InvalidApiKeyAuthValueForPlacement,
+                    ),
+                );
+            }
         }
     } else if (castedAuthBlock.name == AuthBlockName.OAuth2Auth) {
         diagnostics.push(...getDiagnosticsForOAuth2AuthBlock(castedAuthBlock));
@@ -114,8 +118,9 @@ function getDiagnosticsForOAuth2AuthBlock(
             [OAuth2ViaAuthorizationCodeBlockKey.GrantType],
             RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock,
         ),
-        grantTypeFields.length == 1
-            ? checkValueForDictionaryBlockFieldIsValid(
+        grantTypeFields.length == 1 &&
+            isDictionaryBlockSimpleField(grantTypeFields[0])
+            ? checkValueForDictionaryBlockSimpleFieldIsValid(
                   grantTypeFields[0],
                   Object.values(OAuth2GrantType),
                   RelevantWithinAuthBlockDiagnosticCode.InvalidGrantType,
@@ -130,7 +135,8 @@ function getDiagnosticsForOAuth2AuthBlock(
 
     if (
         diagnosticsForGrantTypeField.filter((val) => val != undefined).length >
-        0
+            0 ||
+        !isDictionaryBlockSimpleField(grantTypeFields[0])
     ) {
         // For further validations, the grant type needs to be set to a valid value
         // (since it depends on the grant type, e.g. which keys are mandatory).
@@ -157,8 +163,9 @@ function checkValuesForOAuth2FieldsCommonForAllGrantTypes(
     );
 
     diagnostics.push(
-        credentialsPlacementFields.length == 1
-            ? checkValueForDictionaryBlockFieldIsValid(
+        credentialsPlacementFields.length == 1 &&
+            isDictionaryBlockSimpleField(credentialsPlacementFields[0])
+            ? checkValueForDictionaryBlockSimpleFieldIsValid(
                   credentialsPlacementFields[0],
                   Object.values(OAuth2BlockCredentialsPlacementValue),
                   RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForCredentialsPlacement,
@@ -171,8 +178,9 @@ function checkValuesForOAuth2FieldsCommonForAllGrantTypes(
     );
 
     diagnostics.push(
-        tokenPlacementFields.length == 1
-            ? checkValueForDictionaryBlockFieldIsValid(
+        tokenPlacementFields.length == 1 &&
+            isDictionaryBlockSimpleField(tokenPlacementFields[0])
+            ? checkValueForDictionaryBlockSimpleFieldIsValid(
                   tokenPlacementFields[0],
                   Object.values(OAuth2BlockTokenPlacementValue),
                   RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForTokenPlacement,
@@ -185,8 +193,9 @@ function checkValuesForOAuth2FieldsCommonForAllGrantTypes(
     );
 
     diagnostics.push(
-        autoFetchTokenFields.length == 1
-            ? checkValueForDictionaryBlockFieldIsValid(
+        autoFetchTokenFields.length == 1 &&
+            isDictionaryBlockSimpleField(autoFetchTokenFields[0])
+            ? checkValueForDictionaryBlockSimpleFieldIsValid(
                   autoFetchTokenFields[0],
                   Object.values(BooleanFieldValue),
                   RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForAutoFetchToken,
@@ -199,8 +208,9 @@ function checkValuesForOAuth2FieldsCommonForAllGrantTypes(
     );
 
     diagnostics.push(
-        autoRefreshTokenFields.length == 1
-            ? checkValueForDictionaryBlockFieldIsValid(
+        autoRefreshTokenFields.length == 1 &&
+            isDictionaryBlockSimpleField(autoRefreshTokenFields[0])
+            ? checkValueForDictionaryBlockSimpleFieldIsValid(
                   autoRefreshTokenFields[0],
                   Object.values(BooleanFieldValue),
                   RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForAutoRefreshToken,
@@ -243,8 +253,9 @@ function checkValuesForOAuth2FieldsDependingOnGrantType(
         );
 
         diagnostics.push(
-            pkceFields.length == 1
-                ? checkValueForDictionaryBlockFieldIsValid(
+            pkceFields.length == 1 &&
+                isDictionaryBlockSimpleField(pkceFields[0])
+                ? checkValueForDictionaryBlockSimpleFieldIsValid(
                       pkceFields[0],
                       Object.values(BooleanFieldValue),
                       RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForPkce,

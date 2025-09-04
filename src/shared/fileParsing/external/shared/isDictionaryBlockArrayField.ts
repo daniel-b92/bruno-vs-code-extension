@@ -3,16 +3,16 @@ import {
     DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
     PlainTextWithinBlock,
-} from "../../external/interfaces";
+} from "../interfaces";
 
-export function isArrayBlockField(
+export function isDictionaryBlockArrayField(
     field:
         | ArrayBlockField
         | DictionaryBlockSimpleField
         | DictionaryBlockArrayField
         | PlainTextWithinBlock,
-): field is ArrayBlockField {
-    return ["entry", "entryRange"].every((expected) =>
+): field is DictionaryBlockArrayField {
+    return ["key", "values"].every((expected) =>
         Object.keys(field).includes(expected),
     );
 }

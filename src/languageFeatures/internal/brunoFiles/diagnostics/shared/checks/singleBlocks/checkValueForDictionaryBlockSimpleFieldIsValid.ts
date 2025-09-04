@@ -1,12 +1,15 @@
 import { DiagnosticSeverity } from "vscode";
-import { DictionaryBlockField, mapToVsCodeRange } from "../../../../../../../shared";
+import {
+    DictionaryBlockSimpleField,
+    mapToVsCodeRange,
+} from "../../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
 
-export function checkValueForDictionaryBlockFieldIsValid(
-    field: DictionaryBlockField,
+export function checkValueForDictionaryBlockSimpleFieldIsValid(
+    field: DictionaryBlockSimpleField,
     allowedValues: string[],
-    diagnosticCode: KnownDiagnosticCode
+    diagnosticCode: KnownDiagnosticCode,
 ): DiagnosticWithCode | undefined {
     if (!allowedValues.includes(field.value)) {
         return getDiagnostic(field, allowedValues, diagnosticCode);
@@ -16,9 +19,9 @@ export function checkValueForDictionaryBlockFieldIsValid(
 }
 
 function getDiagnostic(
-    field: DictionaryBlockField,
+    field: DictionaryBlockSimpleField,
     allowedValues: string[],
-    diagnosticCode: KnownDiagnosticCode
+    diagnosticCode: KnownDiagnosticCode,
 ) {
     return {
         message: `Invalid value '${

@@ -13,29 +13,28 @@ export function getMethodBlockSpecificDiagnostics(
     methodBlock: Block,
 ): (DiagnosticWithCode | undefined)[] {
     const castedMethodBlock = castBlockToDictionaryBlock(methodBlock);
+
+    if (!castedMethodBlock) {
+        return [];
+    }
+
     const methodBlockKeys = Object.values(MethodBlockKey);
 
     return [
-        castedMethodBlock
-            ? checkNoKeysAreMissingForDictionaryBlock(
-                  castedMethodBlock,
-                  methodBlockKeys,
-                  RelevantWithinMethodBlockDiagnosticCode.KeysMissingInMethodBlock,
-              )
-            : undefined,
-        castedMethodBlock
-            ? checkNoUnknownKeysAreDefinedInDictionaryBlock(
-                  castedMethodBlock,
-                  methodBlockKeys,
-                  RelevantWithinMethodBlockDiagnosticCode.UnknownKeysDefinedInMethodBlock,
-              )
-            : undefined,
-        castedMethodBlock
-            ? checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-                  castedMethodBlock,
-                  methodBlockKeys,
-                  RelevantWithinMethodBlockDiagnosticCode.DuplicateKeysDefinedInMethodBlock,
-              )
-            : undefined,
+        checkNoKeysAreMissingForDictionaryBlock(
+            castedMethodBlock,
+            methodBlockKeys,
+            RelevantWithinMethodBlockDiagnosticCode.KeysMissingInMethodBlock,
+        ),
+        checkNoUnknownKeysAreDefinedInDictionaryBlock(
+            castedMethodBlock,
+            methodBlockKeys,
+            RelevantWithinMethodBlockDiagnosticCode.UnknownKeysDefinedInMethodBlock,
+        ),
+        checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+            castedMethodBlock,
+            methodBlockKeys,
+            RelevantWithinMethodBlockDiagnosticCode.DuplicateKeysDefinedInMethodBlock,
+        ),
     ];
 }

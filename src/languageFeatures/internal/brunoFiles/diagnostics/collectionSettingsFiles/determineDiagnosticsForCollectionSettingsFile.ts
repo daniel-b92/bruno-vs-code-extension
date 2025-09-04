@@ -7,6 +7,8 @@ import {
     isAuthBlock,
     getValidBlockNamesForCollectionSettingsFile,
     getNamesForRedundantBlocksForCollectionSettingsFile,
+    castBlockToDictionaryBlock,
+    DictionaryBlock,
 } from "../../../../../shared";
 import { DiagnosticWithCode } from "../definitions";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
@@ -21,6 +23,7 @@ import { checkThatNoTextExistsOutsideOfBlocks } from "../shared/checks/multipleB
 import { getAuthModeBlockSpecificDiagnostics } from "../shared/checks/multipleBlocks/getAuthModeBlockSpecificDiagnostics";
 import { checkNoRedundantBlocksExist } from "../shared/checks/multipleBlocks/checkNoRedundantBlocksExist";
 import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBlocks/checkCodeBlocksHaveClosingBracket";
+import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 
 export function determineDiagnosticsForCollectionSettingsFile(
     documentUri: Uri,
@@ -30,11 +33,13 @@ export function determineDiagnosticsForCollectionSettingsFile(
 
     const { blocks, textOutsideOfBlocks } = parseBruFile(document);
 
-    const blocksThatShouldBeDictionaryBlocks = blocks.filter(
-        ({ name }) =>
-            shouldBeDictionaryBlock(name) ||
-            name == SettingsFileSpecificBlock.AuthMode,
+    const blocksThatShouldBeDictionaryBlocks = blocks.filter(({ name }) =>
+        shouldBeDictionaryBlock(name),
     );
+
+    const validDictionaryBlocks = blocksThatShouldBeDictionaryBlocks.filter(
+        castBlockToDictionaryBlock,
+    ) as DictionaryBlock[];
 
     const results: (DiagnosticWithCode | undefined)[] = [];
 
@@ -55,9 +60,18 @@ export function determineDiagnosticsForCollectionSettingsFile(
             blocks,
             getNamesForRedundantBlocksForCollectionSettingsFile(),
         ),
-        checkDictionaryBlocksHaveDictionaryStructure(
+        validDictionaryBlocks.length < blocksThatShouldBeDictionaryBlocks.length
+            ? checkDictionaryBlocksHaveDictionaryStructure(
+                  documentUri,
+                  blocksThatShouldBeDictionaryBlocks,
+              )
+            : undefined,
+        checkDictionaryBlocksSimpleFieldsStructure(
             documentUri,
-            blocksThatShouldBeDictionaryBlocks,
+            validDictionaryBlocks.map((block) => ({
+                block,
+                keys: block.content.map(({ key }) => key),
+            })),
         ),
         checkCodeBlocksHaveClosingBracket(document, blocks),
         checkDictionaryBlocksAreNotEmpty(

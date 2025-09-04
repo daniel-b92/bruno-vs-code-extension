@@ -1,6 +1,6 @@
 import { DiagnosticSeverity, Uri } from "vscode";
 import {
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     getAllMethodBlocks,
     getAuthTypeFromBlockName,
     getFieldFromMethodBlock,
@@ -8,13 +8,14 @@ import {
     MethodBlockKey,
     Block,
     mapToVsCodeRange,
+    isDictionaryBlockSimpleField,
 } from "../../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkAuthBlockTypeFromMethodBlockExists(
     documentUri: Uri,
-    blocks: Block[]
+    blocks: Block[],
 ): DiagnosticWithCode | undefined {
     const methodBlocks = getAllMethodBlocks(blocks);
     const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
@@ -25,38 +26,39 @@ export function checkAuthBlockTypeFromMethodBlockExists(
 
     const methodBlockField = getFieldFromMethodBlock(
         methodBlocks[0],
-        MethodBlockKey.Auth
+        MethodBlockKey.Auth,
     );
     const authTypeFromAuthBlock =
         authBlocks.length > 0
             ? getAuthTypeFromAuthBlock(authBlocks[0])
             : undefined;
 
+    if (!methodBlockField || !isDictionaryBlockSimpleField(methodBlockField)) {
+        return undefined;
+    }
+
     if (
-        methodBlockField &&
         !authTypeFromAuthBlock &&
         !getAuthTypesForNoDefinedAuthBlock().includes(methodBlockField.value)
     ) {
         return getDiagnosticInCaseOfMissingAuthBlock(methodBlockField);
     } else if (
-        methodBlockField &&
         authTypeFromAuthBlock &&
         getAuthTypesForNoDefinedAuthBlock().includes(methodBlockField.value)
     ) {
         return getDiagnosticInCaseOfNonExpectedAuthBlock(
             documentUri,
             methodBlockField,
-            authTypeFromAuthBlock.authBlock
+            authTypeFromAuthBlock.authBlock,
         );
     } else if (
-        methodBlockField &&
         authTypeFromAuthBlock &&
         methodBlockField.value != authTypeFromAuthBlock.value
     ) {
         return getDiagnostic(
             documentUri,
             methodBlockField,
-            authTypeFromAuthBlock.authBlock
+            authTypeFromAuthBlock.authBlock,
         );
     } else {
         return undefined;
@@ -65,8 +67,8 @@ export function checkAuthBlockTypeFromMethodBlockExists(
 
 function getDiagnostic(
     documentUri: Uri,
-    methodBlockField: DictionaryBlockField,
-    authBlock: Block
+    methodBlockField: DictionaryBlockSimpleField,
+    authBlock: Block,
 ): DiagnosticWithCode {
     return {
         message: "Auth type does not match name of auth block.",
@@ -74,7 +76,7 @@ function getDiagnostic(
         relatedInformation: [
             {
                 message: `Defined auth type in auth block: '${getAuthTypeFromBlockName(
-                    authBlock.name
+                    authBlock.name,
                 )}'`,
                 location: {
                     uri: documentUri,
@@ -88,7 +90,7 @@ function getDiagnostic(
 }
 
 function getDiagnosticInCaseOfMissingAuthBlock(
-    methodBlockField: DictionaryBlockField
+    methodBlockField: DictionaryBlockSimpleField,
 ): DiagnosticWithCode {
     return {
         message:
@@ -101,8 +103,8 @@ function getDiagnosticInCaseOfMissingAuthBlock(
 
 function getDiagnosticInCaseOfNonExpectedAuthBlock(
     documentUri: Uri,
-    methodBlockField: DictionaryBlockField,
-    authBlock: Block
+    methodBlockField: DictionaryBlockSimpleField,
+    authBlock: Block,
 ): DiagnosticWithCode {
     return {
         message: `An auth block is defined although the auth type is '${methodBlockField.value}'.`,
@@ -110,7 +112,7 @@ function getDiagnosticInCaseOfNonExpectedAuthBlock(
         relatedInformation: [
             {
                 message: `Defined auth type in auth block: '${getAuthTypeFromBlockName(
-                    authBlock.name
+                    authBlock.name,
                 )}'`,
                 location: {
                     uri: documentUri,

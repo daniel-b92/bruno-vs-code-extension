@@ -7,6 +7,7 @@ import {
 import {
     Block,
     castBlockToDictionaryBlock,
+    isDictionaryBlockField,
     mapToVsCodePosition,
     mapToVsCodeRange,
     PlainTextWithinBlock,
@@ -14,7 +15,6 @@ import {
 import { getSortedBlocksByPosition } from "../../../shared/util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
-import { isDictionaryBlockField } from "../../../../../../../shared/fileParsing/internal/util/isDictionaryBlockField";
 import { getSortedPlainTextLinesByPosition } from "../../util/getSortedPlainTextLinesByPosition";
 
 export function checkDictionaryBlocksHaveDictionaryStructure(
@@ -53,6 +53,10 @@ function getDiagnostic(
 <blockName> {
   key1: value1
   key2: value2
+  maybeArrayKey: [
+    arrVal1
+    arrVal2
+  ]
 }`,
         range: getRange(sortedBlocksWithIncorrectStructure),
         relatedInformation:

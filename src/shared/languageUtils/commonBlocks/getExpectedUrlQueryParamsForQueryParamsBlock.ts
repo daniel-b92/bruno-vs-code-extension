@@ -1,11 +1,11 @@
-import { DictionaryBlock } from "../../fileParsing/external/interfaces";
+import { DictionaryBlockSimpleField } from "../../fileParsing/external/interfaces";
 
 export function getExpectedUrlQueryParamsForQueryParamsBlock(
-    queryParamsBlock: DictionaryBlock
+    queryParamsBlockFields: DictionaryBlockSimpleField[],
 ) {
     return new URLSearchParams(
-        queryParamsBlock.content
+        queryParamsBlockFields
             .map(({ key, value }) => `${key}=${value}`)
-            .join("&")
+            .join("&"),
     );
 }

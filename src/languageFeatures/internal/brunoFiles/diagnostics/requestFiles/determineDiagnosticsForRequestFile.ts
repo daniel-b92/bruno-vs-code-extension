@@ -10,6 +10,9 @@ import {
     CollectionItemProvider,
     Block,
     TextOutsideOfBlocks,
+    castBlockToDictionaryBlock,
+    DictionaryBlock,
+    shouldBeDictionaryArrayField,
 } from "../../../../../shared";
 import { DiagnosticWithCode } from "../definitions";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
@@ -34,6 +37,7 @@ import { getMetaBlockSpecificDiagnostics } from "./getMetaBlockSpecificDiagnosti
 import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDiagnosticsHelper";
 import { getSettingsBlockSpecificDiagnostics } from "./getSettingsBlockSpecificDiagnostics";
 import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBlocks/checkCodeBlocksHaveClosingBracket";
+import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 
 export async function determineDiagnosticsForRequestFile(
     documentUri: Uri,
@@ -72,6 +76,10 @@ function collectCommonDiagnostics(
         shouldBeDictionaryBlock(name),
     );
 
+    const validDictionaryBlocks = blocksThatShouldBeDictionaryBlocks.filter(
+        castBlockToDictionaryBlock,
+    ) as DictionaryBlock[];
+
     const results: (DiagnosticWithCode | undefined)[] = [];
 
     results.push(
@@ -91,9 +99,17 @@ function collectCommonDiagnostics(
             blocks,
             Object.values(RequestFileBlockName) as string[],
         ),
-        checkDictionaryBlocksHaveDictionaryStructure(
+        validDictionaryBlocks.length < blocksThatShouldBeDictionaryBlocks.length
+            ? checkDictionaryBlocksHaveDictionaryStructure(
+                  documentUri,
+                  blocksThatShouldBeDictionaryBlocks,
+              )
+            : undefined,
+        checkDictionaryBlocksSimpleFieldsStructure(
             documentUri,
-            blocksThatShouldBeDictionaryBlocks,
+            getDictionaryBlockFieldsThatShouldBeSimpleFields(
+                validDictionaryBlocks,
+            ),
         ),
         checkDictionaryBlocksAreNotEmpty(
             documentUri,
@@ -113,6 +129,27 @@ function collectCommonDiagnostics(
     return results;
 }
 
+function getDictionaryBlockFieldsThatShouldBeSimpleFields(
+    dictionaryBlocks: DictionaryBlock[],
+) {
+    return dictionaryBlocks
+        .map((block) => {
+            const keysToCheck = block.content
+                .map(({ key }) => key)
+                .filter(
+                    (key) => !shouldBeDictionaryArrayField(block.name, key),
+                );
+
+            return keysToCheck.length > 0
+                ? {
+                      block,
+                      keys: keysToCheck,
+                  }
+                : undefined;
+        })
+        .filter((val) => val != undefined);
+}
+
 async function collectBlockSpecificDiagnostics(
     itemProvider: CollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
@@ -127,15 +164,19 @@ async function collectBlockSpecificDiagnostics(
     );
 
     if (metaBlocks.length == 1) {
-        results.push(
-            ...(await getMetaBlockSpecificDiagnostics(
-                itemProvider,
-                relatedFilesHelper,
-                documentUri,
-                documentHelper,
-                metaBlocks[0],
-            )),
-        );
+        const castedMetaBlock = castBlockToDictionaryBlock(metaBlocks[0]);
+
+        if (castedMetaBlock) {
+            results.push(
+                ...(await getMetaBlockSpecificDiagnostics(
+                    itemProvider,
+                    relatedFilesHelper,
+                    documentUri,
+                    documentHelper,
+                    castedMetaBlock,
+                )),
+            );
+        }
     }
 
     const methodBlocks = getAllMethodBlocks(blocks);

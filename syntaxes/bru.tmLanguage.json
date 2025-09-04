@@ -35,8 +35,8 @@
     "repository": {
         "dictionary-block": {
             "name": "meta.dictionary-block.bru",
-            "begin": "^(meta|get|post|put|delete|options|patch|head|params:\\S+|headers|auth|auth:\\S+|body:multipart-form|body:form-urlencoded|body:file|vars:\\S+|assert|vars|settings)\\s*{$",
-            "end": "^}\\s*$",
+            "begin": "^\\s*(meta|get|post|put|delete|options|patch|head|params:\\S+|headers|auth|auth:\\S+|body:multipart-form|body:form-urlencoded|body:file|vars:\\S+|assert|vars|settings)\\s*{\\s*$",
+            "end": "^\\s*}\\s*$",
             "beginCaptures": { "0": { "name": "keyword.bru" } },
             "patterns": [{ "include": "#dictionary" }]
         },
@@ -149,7 +149,7 @@
         "dictionary": {
             "patterns": [
                 {
-                    "match": "^\\s*([^\\:]+)[\\:]\\s+([^\\n]+)\\s*$",
+                    "match": "^\\s*([^\\:]+)[\\:]\\s+([^\\n\\[]+)\\s*$",
                     "captures": {
                         "1": {
                             "name": "entity.name.tag.bru"
@@ -158,6 +158,18 @@
                             "name": "string.bru"
                         }
                     }
+                },
+                {
+                    "begin": "^\\s*([^\\:]+)[\\:]\\s+(\\[)\\s*$",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "entity.name.tag.bru"
+                        },
+                        "2": { "name": "keyword.bru" }
+                    },
+                    "end": "^\\s*(\\])\\s*$",
+                    "endCaptures": { "1": { "name": "keyword.bru" } },
+                    "contentName": "string.bru"
                 }
             ]
         },

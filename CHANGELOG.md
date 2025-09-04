@@ -1,3 +1,8 @@
+## [Unreleased]
+
+### Fixes / Improvements
+- Add support for `tags` field in `meta` block of request files.
+
 ## [0.17.3] (2025-09-01)
 
 ### Fixes / Improvements

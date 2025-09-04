@@ -1,12 +1,13 @@
 import { DiagnosticSeverity, Uri } from "vscode";
 import {
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     getFieldFromMetaBlock,
     MetaBlockKey,
     Block,
     RequestFileBlockName,
     RequestType,
     mapToVsCodeRange,
+    isDictionaryBlockSimpleField,
 } from "../../../../../../../shared";
 import { getSortedBlocksByPosition } from "../../../shared/util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
@@ -14,7 +15,7 @@ import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/
 
 export function checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
     documentUri: Uri,
-    blocks: Block[]
+    blocks: Block[],
 ): DiagnosticWithCode | undefined {
     const graphQlSpecificBlockNames = [
         RequestFileBlockName.GraphQlBody,
@@ -22,7 +23,7 @@ export function checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
     ];
 
     const metaBlocks = blocks.filter(
-        ({ name }) => name == RequestFileBlockName.Meta
+        ({ name }) => name == RequestFileBlockName.Meta,
     );
 
     if (metaBlocks.length != 1) {
@@ -31,17 +32,21 @@ export function checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
 
     const requestTypeField = getFieldFromMetaBlock(
         metaBlocks[0],
-        MetaBlockKey.Type
+        MetaBlockKey.Type,
     );
 
-    if (!requestTypeField || requestTypeField.value == RequestType.Graphql) {
+    if (
+        !requestTypeField ||
+        !isDictionaryBlockSimpleField(requestTypeField) ||
+        requestTypeField.value == RequestType.Graphql
+    ) {
         return undefined;
     }
 
     const invalidBlocks = getSortedBlocksByPosition(
         blocks.filter(({ name }) =>
-            (graphQlSpecificBlockNames as string[]).includes(name)
-        )
+            (graphQlSpecificBlockNames as string[]).includes(name),
+        ),
     );
 
     if (invalidBlocks.length > 0) {
@@ -54,7 +59,7 @@ export function checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
 function getDiagnostic(
     documentUri: Uri,
     sortedInvalidBlocks: Block[],
-    requestTypeField: DictionaryBlockField
+    requestTypeField: DictionaryBlockSimpleField,
 ): DiagnosticWithCode {
     return {
         message: `GraphQL specific blocks defined without using request type '${RequestType.Graphql}'.`,
