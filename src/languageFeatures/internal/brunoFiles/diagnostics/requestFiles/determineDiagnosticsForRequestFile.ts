@@ -164,15 +164,19 @@ async function collectBlockSpecificDiagnostics(
     );
 
     if (metaBlocks.length == 1) {
-        results.push(
-            ...(await getMetaBlockSpecificDiagnostics(
-                itemProvider,
-                relatedFilesHelper,
-                documentUri,
-                documentHelper,
-                metaBlocks[0],
-            )),
-        );
+        const castedMetaBlock = castBlockToDictionaryBlock(metaBlocks[0]);
+
+        if (castedMetaBlock) {
+            results.push(
+                ...(await getMetaBlockSpecificDiagnostics(
+                    itemProvider,
+                    relatedFilesHelper,
+                    documentUri,
+                    documentHelper,
+                    castedMetaBlock,
+                )),
+            );
+        }
     }
 
     const methodBlocks = getAllMethodBlocks(blocks);

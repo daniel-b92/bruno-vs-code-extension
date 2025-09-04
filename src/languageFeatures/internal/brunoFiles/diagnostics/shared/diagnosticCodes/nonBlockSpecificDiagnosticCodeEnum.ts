@@ -35,4 +35,5 @@ export enum NonBlockSpecificDiagnosticCode {
     CodeBlockMissingClosingBracket = "bru25",
     SimpleFieldsInDictionaryBlocksNotStructuredCorrectly = "bru26",
     ArrayFieldsInDictionaryBlocksNotStructuredCorrectly = "bru27",
+    InvalidValuesForArrayFieldsInDictionaryBlocks = "bru28",
 }
