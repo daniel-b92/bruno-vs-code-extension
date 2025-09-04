@@ -1,7 +1,10 @@
-## [Unreleased]
+## [0.17.4] (2025-09-04)
 
 ### Fixes / Improvements
 - Add support for `tags` field in `meta` block of request files.
+- Fix some issues related to temporary JS file updates:
+  - Fix issue where no new temp JS file was created if the content of the last file was the same as for the new request, even if it was for a different path.
+  - Fix issue where warnings were produced because of trying to clean up temp JS files when there weren't any existing ones.
 
 ## [0.17.3] (2025-09-01)
 

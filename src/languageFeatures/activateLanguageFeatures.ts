@@ -55,7 +55,10 @@ export async function activateLanguageFeatures(
 ) {
     const logger = getLoggerFromSubscriptions(context);
 
-    const tempJsFilesUpdateQueue = new TempJsFileUpdateQueue(testRunStartedEvent, logger);
+    const tempJsFilesUpdateQueue = new TempJsFileUpdateQueue(
+        testRunStartedEvent,
+        logger,
+    );
 
     const tempJsFilesProvider = new TempJsFilesProvider(
         collectionWatcher,
@@ -422,6 +425,10 @@ async function deleteAllTemporaryJsFiles(
         tempJsFilesProvider.getRegisteredFiles(),
         async (filePath) => await checkIfPathExistsAsync(filePath),
     );
+
+    if (existingFiles.length == 0) {
+        return;
+    }
 
     await updateQueue.addToQueue({
         update: {
