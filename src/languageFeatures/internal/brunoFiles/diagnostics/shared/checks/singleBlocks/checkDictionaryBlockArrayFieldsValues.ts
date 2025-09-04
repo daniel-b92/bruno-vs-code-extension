@@ -39,7 +39,8 @@ function getDiagnostic(
 - characters '-' and '_'`,
         range: getRange(invalidValuesSortedByPosition),
         relatedInformation:
-            invalidValuesSortedByPosition.length > 1
+            invalidValuesSortedByPosition.length > 1 ||
+            invalidValuesSortedByPosition[0].values.length > 1
                 ? invalidValuesSortedByPosition.reduce(
                       (prev, curr) =>
                           prev.concat(
