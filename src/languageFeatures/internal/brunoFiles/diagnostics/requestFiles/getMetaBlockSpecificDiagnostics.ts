@@ -71,8 +71,7 @@ export async function getMetaBlockSpecificDiagnostics(
                   RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
               )
             : undefined,
-        castedMetaBlock &&
-        castedMetaBlock.content.some(({ key }) => key == MetaBlockKey.Tags)
+        castedMetaBlock
             ? checkDictionaryBlockArrayFieldsStructure(
                   documentUri,
                   castedMetaBlock,
