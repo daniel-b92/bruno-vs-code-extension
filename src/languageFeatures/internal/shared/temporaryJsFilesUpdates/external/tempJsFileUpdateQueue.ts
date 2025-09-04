@@ -22,7 +22,7 @@ export class TempJsFileUpdateQueue {
         private logger?: OutputChannelLogger,
     ) {
         this.activeUpdate = undefined;
-        this.latestRequestTempJsFileContent = undefined;
+        this.latestRequestData = undefined;
         this.queueUpdater = new QueueUpdateHandler(logger);
 
         this.requestRemovedFromQueueNotifier.event((removedRequestIds) => {
@@ -47,7 +47,9 @@ export class TempJsFileUpdateQueue {
         | { request: TempJsUpdateRequest; id: string }
         | undefined;
     private requestCanBeRunNotifier = new EventEmitter<string>();
-    private latestRequestTempJsFileContent: string | undefined;
+    private latestRequestData:
+        | { filePath: string; content: string }
+        | undefined;
     private requestRemovedFromQueueNotifier = new EventEmitter<string[]>();
     private requestAddedToQueueNotifier = new EventEmitter<{
         request: TempJsUpdateRequest;
@@ -117,7 +119,7 @@ export class TempJsFileUpdateQueue {
         this.queueUpdater.resetWholeState(this.requestRemovedFromQueueNotifier);
         this.queueUpdater = new QueueUpdateHandler(this.logger);
         this.activeUpdate = undefined;
-        this.latestRequestTempJsFileContent = undefined;
+        this.latestRequestData = undefined;
     }
 
     private async tryToAddToQueue(updateRequest: TempJsUpdateRequest) {
@@ -203,18 +205,20 @@ export class TempJsFileUpdateQueue {
         id: string,
         token?: CancellationToken,
     ) {
+        const { update } = request;
         let result = false;
 
         if (
-            request.update.type == TempJsUpdateType.Creation &&
-            request.update.tempJsFileContent !=
-                this.latestRequestTempJsFileContent
+            update.type == TempJsUpdateType.Creation &&
+            (!this.latestRequestData ||
+                update.filePath != this.latestRequestData.filePath ||
+                update.tempJsFileContent != this.latestRequestData.content)
         ) {
             result = await this.triggerCreationUpdate(id, token);
         } else if (
-            request.update.type == TempJsUpdateType.Deletion &&
+            update.type == TempJsUpdateType.Deletion &&
             (await everyAsync(
-                request.update.filePaths,
+                update.filePaths,
                 async (path) => await checkIfPathExistsAsync(path),
             ))
         ) {
@@ -271,7 +275,10 @@ export class TempJsFileUpdateQueue {
         );
 
         if (wasSuccessful) {
-            this.latestRequestTempJsFileContent = tempJsFileContent;
+            this.latestRequestData = {
+                filePath: tempJsFilePath,
+                content: tempJsFileContent,
+            };
         }
 
         return wasSuccessful;
@@ -378,7 +385,7 @@ export class TempJsFileUpdateQueue {
             if (fulfilledCondition == deletionIdentifier) {
                 await deleteTemporaryJsFiles(filePaths, this.logger);
 
-                this.latestRequestTempJsFileContent = undefined;
+                this.latestRequestData = undefined;
 
                 if (token && token.isCancellationRequested) {
                     this.logger?.debug(
