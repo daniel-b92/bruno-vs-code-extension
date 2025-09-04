@@ -29,13 +29,8 @@ export * from "./fileParsing/external/parseCodeBlockFromBruFile";
 export * from "./fileParsing/external/parseCodeBlock";
 export * from "./fileParsing/external/interfaces";
 export * from "./fileParsing/external/shouldBeDictionaryBlock";
-export * from "./fileParsing/external/shared/shouldBeCodeBlock";
-export * from "./fileParsing/external/shared/shouldBeJsonBlock";
-export * from "./fileParsing/external/shared/shouldBeDictionaryArrayField";
+export * from "./languageUtils/commonFields/shouldBeDictionaryArrayField";
 export * from "./fileParsing/external/shared/getBlockType";
-export * from "./fileParsing/external/shared/isDictionaryBlockField";
-export * from "./fileParsing/external/shared/isDictionaryBlockSimpleField";
-export * from "./fileParsing/external/shared/isDictionaryBlockArrayField";
 export * from "./fileParsing/external/getValidDictionaryBlocksWithName";
 export * from "./fileParsing/external/requestFiles/authBlocks/getAuthTypeFromBlockName";
 export * from "./fileParsing/external/requestFiles/authBlocks/isAuthBlock";
@@ -71,6 +66,7 @@ export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockAuthEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockBodyEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/getPossibleMethodBlocks";
 export * from "./languageUtils/commonBlocks/methodBlocks/getFieldFromMethodBlock";
+export * from "./languageUtils/commonBlocks/shouldBeCodeBlock";
 export * from "./languageUtils/urls/getQueryParamsFromUrl";
 export * from "./languageUtils/urls/getPathParamsFromUrl";
 export * from "./languageUtils/urls/getUrlSubstringForQueryParams";
@@ -92,6 +88,9 @@ export { getValidBlockNames as getValidBlockNamesForCollectionSettingsFile } fro
 export { getNamesForRedundantBlocks as getNamesForRedundantBlocksForCollectionSettingsFile } from "./languageUtils/collectionSettingsFiles/getNamesForRedundantBlocks";
 export * from "./languageUtils/commonBlocks/authModeBlock/authModeBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/settingsBlock/settingsBlockKeyEnum";
+export * from "./languageUtils/commonFields/isDictionaryBlockField";
+export * from "./languageUtils/commonFields/isDictionaryBlockSimpleField";
+export * from "./languageUtils/commonFields/isDictionaryBlockArrayField";
 
 // test file writing
 export * from "./testFileWriting/addMetaBlock";

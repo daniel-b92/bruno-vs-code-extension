@@ -1,7 +1,7 @@
 import {
+    RequestFileBlockName,
     shouldBeCodeBlock,
     shouldBeDictionaryBlock,
-    shouldBeJsonBlock,
 } from "../../..";
 import { BlockBracket } from "../../internal/util/blockBracketEnum";
 import { BlockType } from "../../internal/util/BlockTypeEnum";
@@ -24,4 +24,8 @@ export function getBlockType(blockStartingLine: string, blockName: string) {
     }
 
     return BlockType.PlainText;
+}
+
+function shouldBeJsonBlock(blockName: string) {
+    return blockName == RequestFileBlockName.JsonBody;
 }
