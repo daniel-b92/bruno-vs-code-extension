@@ -83,6 +83,8 @@ export function provideCodeBlocksCompletionItems(
                     return undefined;
                 }
 
+                const startTimeForFetchingCompletions = performance.now();
+
                 const resultFromJsFile =
                     await commands.executeCommand<CompletionList>(
                         "vscode.executeCompletionItemProvider",
@@ -98,7 +100,24 @@ export function provideCodeBlocksCompletionItems(
                         ),
                     );
 
-                return new CompletionList<CompletionItem>(
+                const endTimeForFetchingCompletions = performance.now();
+                logger?.trace(
+                    `Fetching completion items from temp JS file duration: ${
+                        endTimeForFetchingCompletions -
+                        startTimeForFetchingCompletions
+                    } ms`,
+                );
+
+                if (token.isCancellationRequested) {
+                    logger?.debug(
+                        `Cancellation requested for completion provider for code blocks while fetching completons from temp JS file.`,
+                    );
+                    return undefined;
+                }
+
+                const startTimeForMappingCompletions = performance.now();
+
+                const result = new CompletionList<CompletionItem>(
                     resultFromJsFile.items.map((item) => ({
                         ...item,
                         /* Without unsetting the command field, selecting an exported function causes the `require` statement 
@@ -140,6 +159,16 @@ export function provideCodeBlocksCompletionItems(
                     })),
                     resultFromJsFile.isIncomplete,
                 );
+
+                const endTimeForMappingCompletions = performance.now();
+                logger?.trace(
+                    `Mapping completion items from temp JS file to bru file duration: ${
+                        endTimeForMappingCompletions -
+                        startTimeForMappingCompletions
+                    } ms`,
+                );
+
+                return result;
             },
         },
         ".",
