@@ -1,8 +1,4 @@
-import {
-    parseBruFile,
-    RequestFileBlockName,
-    TextDocumentHelper,
-} from "../../../../../shared";
+import { parseBruFile, TextDocumentHelper } from "../../../../../shared";
 import { getDefinitionsForInbuiltLibraries } from "../../../shared/temporaryJsFilesUpdates/external/getDefinitionsForInbuiltLibraries";
 import { getCodeBlocks } from "./getCodeBlocks";
 import { mapBlockNameToJsFileLine } from "./mapBlockNameToJsFileFunctionName";
@@ -13,10 +9,7 @@ export function getTempJsFileContentForBruFile(bruFileContent: string) {
     );
 
     const functionsForTempJsFile = getCodeBlocks(parsedBlocks).map(
-        ({
-            name,
-            content,
-        }) => `${mapBlockNameToJsFileLine(name as RequestFileBlockName)}
+        ({ name, content }) => `${mapBlockNameToJsFileLine(name)}
 ${content}}`,
     );
 

@@ -88,7 +88,7 @@ export function provideInfosOnHover(
                   ? new Hover(
                         resultFromJsFile[0].contents,
                         mapToRangeWithinBruFile(
-                            blocksToCheck,
+                            blockInBruFile,
                             temporaryJsDoc.getText(),
                             resultFromJsFile[0].range,
                             logger,

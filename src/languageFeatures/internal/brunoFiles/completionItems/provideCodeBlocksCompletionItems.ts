@@ -117,6 +117,8 @@ export function provideCodeBlocksCompletionItems(
 
                 const startTimeForMappingCompletions = performance.now();
 
+                const currentTempJsContent = temporaryJsDoc.getText();
+
                 const result = new CompletionList<CompletionItem>(
                     resultFromJsFile.items.map((item) => ({
                         ...item,
@@ -126,21 +128,21 @@ export function provideCodeBlocksCompletionItems(
                         range: item.range
                             ? item.range instanceof VsCodeRange
                                 ? (mapToRangeWithinBruFile(
-                                      blocksToCheck,
-                                      temporaryJsDoc.getText(),
+                                      blockInBruFile,
+                                      currentTempJsContent,
                                       item.range,
                                       logger,
                                   ) as VsCodeRange)
                                 : {
                                       inserting: mapToRangeWithinBruFile(
-                                          blocksToCheck,
-                                          temporaryJsDoc.getText(),
+                                          blockInBruFile,
+                                          currentTempJsContent,
                                           item.range.inserting,
                                           logger,
                                       ) as VsCodeRange,
                                       replacing: mapToRangeWithinBruFile(
-                                          blocksToCheck,
-                                          temporaryJsDoc.getText(),
+                                          blockInBruFile,
+                                          currentTempJsContent,
                                           item.range.replacing,
                                           logger,
                                       ) as VsCodeRange,
@@ -149,8 +151,8 @@ export function provideCodeBlocksCompletionItems(
                         textEdit: item.textEdit
                             ? new TextEdit(
                                   mapToRangeWithinBruFile(
-                                      blocksToCheck,
-                                      temporaryJsDoc.getText(),
+                                      blockInBruFile,
+                                      currentTempJsContent,
                                       item.textEdit.range,
                                   ) as VsCodeRange,
                                   item.textEdit.newText,

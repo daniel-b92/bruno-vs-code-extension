@@ -2,14 +2,13 @@ import { Node, SourceFile, SyntaxKind } from "typescript";
 import {
     parseCodeBlock,
     Range,
-    RequestFileBlockName,
     TextDocumentHelper,
 } from "../../../../../shared";
 import { mapBlockNameToJsFileLine } from "./mapBlockNameToJsFileFunctionName";
 
 export function getTempJsFileBlockContent(
     fullTempJsFileContent: string,
-    blockName: RequestFileBlockName,
+    blockName: string,
 ): { content: string; range: Range } | undefined {
     const expectedFunctionDeclarationLine = mapBlockNameToJsFileLine(blockName);
 
