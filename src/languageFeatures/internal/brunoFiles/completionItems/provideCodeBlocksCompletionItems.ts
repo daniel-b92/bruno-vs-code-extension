@@ -14,6 +14,7 @@ import {
     RequestFileBlockName,
     OutputChannelLogger,
     mapFromVsCodePosition,
+    Block,
 } from "../../../../shared";
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
@@ -119,6 +120,11 @@ export function provideCodeBlocksCompletionItems(
 
                 const currentTempJsContent = temporaryJsDoc.getText();
 
+                const knownRangeMappings: {
+                    rangeInTempJsFile: VsCodeRange;
+                    rangeInBruFile: VsCodeRange;
+                }[] = [];
+
                 const result = new CompletionList<CompletionItem>(
                     resultFromJsFile.items.map((item) => ({
                         ...item,
@@ -127,33 +133,38 @@ export function provideCodeBlocksCompletionItems(
                         command: undefined,
                         range: item.range
                             ? item.range instanceof VsCodeRange
-                                ? (mapToRangeWithinBruFile(
+                                ? mapTempJsRangeToBruFileRange(
                                       blockInBruFile,
                                       currentTempJsContent,
                                       item.range,
+                                      knownRangeMappings,
                                       logger,
-                                  ) as VsCodeRange)
+                                  )
                                 : {
-                                      inserting: mapToRangeWithinBruFile(
+                                      inserting: mapTempJsRangeToBruFileRange(
                                           blockInBruFile,
                                           currentTempJsContent,
                                           item.range.inserting,
+                                          knownRangeMappings,
                                           logger,
                                       ) as VsCodeRange,
-                                      replacing: mapToRangeWithinBruFile(
+                                      replacing: mapTempJsRangeToBruFileRange(
                                           blockInBruFile,
                                           currentTempJsContent,
                                           item.range.replacing,
+                                          knownRangeMappings,
                                           logger,
                                       ) as VsCodeRange,
                                   }
                             : undefined,
                         textEdit: item.textEdit
                             ? new TextEdit(
-                                  mapToRangeWithinBruFile(
+                                  mapTempJsRangeToBruFileRange(
                                       blockInBruFile,
                                       currentTempJsContent,
                                       item.textEdit.range,
+                                      knownRangeMappings,
+                                      logger,
                                   ) as VsCodeRange,
                                   item.textEdit.newText,
                               )
@@ -176,4 +187,38 @@ export function provideCodeBlocksCompletionItems(
         ".",
         "/",
     );
+}
+
+function mapTempJsRangeToBruFileRange(
+    blockInBruFile: Block,
+    fullJsFileContent: string,
+    rangeInJsFile: VsCodeRange,
+    knownRangeMappings: {
+        rangeInTempJsFile: VsCodeRange;
+        rangeInBruFile: VsCodeRange | undefined;
+    }[],
+    logger?: OutputChannelLogger,
+) {
+    const knownMapping = knownRangeMappings.find(
+        ({ rangeInTempJsFile: rangeWithKnownMapping }) =>
+            rangeInJsFile.isEqual(rangeWithKnownMapping),
+    );
+
+    if (knownMapping) {
+        return knownMapping.rangeInBruFile;
+    }
+
+    const mappedRange = mapToRangeWithinBruFile(
+        blockInBruFile,
+        fullJsFileContent,
+        rangeInJsFile,
+        logger,
+    );
+
+    knownRangeMappings.push({
+        rangeInTempJsFile: rangeInJsFile,
+        rangeInBruFile: mappedRange,
+    });
+
+    return mappedRange;
 }
