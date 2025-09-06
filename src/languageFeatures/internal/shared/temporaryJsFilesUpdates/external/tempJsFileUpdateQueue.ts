@@ -332,6 +332,14 @@ export class TempJsFileUpdateQueue {
             const otherRequestAddedIdentifier = 3;
             const internalCancellationIdentifier = 4;
 
+            const otherRequestAddedToQueueNotifier = new EventEmitter<void>();
+
+            this.requestAddedToQueueNotifier.event(({ id: newId }) => {
+                if (requestId != newId) {
+                    otherRequestAddedToQueueNotifier.fire();
+                }
+            });
+
             const toAwait = new Promise<number>((resolve) => {
                 /* Sometimes, the deletions seem to block other important functions from the extension host.
             To avoid this, we add some waiting time before actually executing the deletion.*/
@@ -353,29 +361,25 @@ export class TempJsFileUpdateQueue {
                     resolve(internalCancellationIdentifier);
                 });
 
-                this.waitForRequestToBeAddedToQueue().then((newRequest) => {
-                    const { id: newId } = newRequest;
-
+                otherRequestAddedToQueueNotifier.event(() => {
                     // Avoid blocking other requests that are are added to the end of the queue (there's currently no way for other requests to skip ahead of this one).
                     // Deletion requests are by far not as important as creation requests, since they are only meant to clean up a little in the background.
-                    if (newId != requestId) {
-                        this.logger?.debug(
-                            `Removing temp js file deletion request for folders ${JSON.stringify(
-                                filePaths.map((path) =>
-                                    basename(dirname(path)),
-                                ),
-                                null,
-                                2,
-                            )} from queue since newer request exists for another file already.`,
-                        );
+                    this.logger?.debug(
+                        `Removing temp js file deletion request for folders ${JSON.stringify(
+                            filePaths.map((path) => basename(dirname(path))),
+                            null,
+                            2,
+                        )} from queue since newer request exists for another file already.`,
+                    );
 
-                        clearTimeout(deletionTimeout);
-                        resolve(otherRequestAddedIdentifier);
-                    }
+                    clearTimeout(deletionTimeout);
+                    resolve(otherRequestAddedIdentifier);
                 });
             });
 
             const fulfilledCondition = await toAwait;
+
+            otherRequestAddedToQueueNotifier.dispose();
 
             if (fulfilledCondition == deletionIdentifier) {
                 await deleteTemporaryJsFiles(filePaths, this.logger);
@@ -399,16 +403,6 @@ export class TempJsFileUpdateQueue {
         }
 
         return true;
-    }
-
-    private waitForRequestToBeAddedToQueue() {
-        return new Promise<{ request: TempJsUpdateRequest; id: string }>(
-            (resolve) => {
-                this.requestAddedToQueueNotifier.event((addedToQueue) => {
-                    resolve(addedToQueue);
-                });
-            },
-        );
     }
 
     private async cleanupAfterUpdate(requestId: string) {
