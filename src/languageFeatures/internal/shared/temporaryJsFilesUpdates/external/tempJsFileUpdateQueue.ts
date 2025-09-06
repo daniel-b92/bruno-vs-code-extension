@@ -12,7 +12,6 @@ import {
     Uri,
     Event as VsCodeEvent,
 } from "vscode";
-import { setTimeout } from "timers/promises";
 import { QueueUpdateHandler } from "../internal/queueUpdateHandler";
 import { basename, dirname } from "path";
 
@@ -66,45 +65,51 @@ export class TempJsFileUpdateQueue {
         updateRequest: TempJsUpdateRequest,
     ): Promise<boolean> {
         const timeoutInMs = 15_000;
+        const timeoutIdentifier = 1;
 
-        try {
-            const timeoutIdentifier = 0;
-            const timeoutPromise = setTimeout(timeoutInMs, timeoutIdentifier);
-            const addToQueuePromise = this.tryToAddToQueue(updateRequest);
+        const toAwait = new Promise<number | boolean>((resolve) => {
+            const timeout = setTimeout(() => {
+                resolve(timeoutIdentifier);
+            }, timeoutInMs);
 
-            const fulfilledCondition = await Promise.race([
-                timeoutPromise,
-                addToQueuePromise,
-            ]);
+            this.tryToAddToQueue(updateRequest).then(
+                (succeeded) => {
+                    clearTimeout(timeout);
+                    resolve(succeeded);
+                },
+                (err) => {
+                    if (
+                        Object.keys(err as object).includes("code") &&
+                        (err as { code: string }).code == "ABORT_ERR"
+                    ) {
+                        this.logger?.warn(
+                            "Received abortion error that was thrown during temp js file creation. Will reset whole queuing state, in order to clean up the queue.",
+                        );
 
-            if (fulfilledCondition === timeoutIdentifier) {
-                throw new Error(
-                    `Update request for temp js file seems to be stuck. The timeout has been reached.`,
-                );
-            }
+                        this.resetWholeState();
+                        // If a temp js file creation operation is aborted externally, an error is thrown.
+                        return false;
+                    }
 
-            return fulfilledCondition as boolean;
-        } catch (err) {
-            if (
-                Object.keys(err as object).includes("code") &&
-                (err as { code: string }).code == "ABORT_ERR"
-            ) {
-                this.logger?.warn(
-                    "Received abortion error that was thrown during temp js file creation. Will reset whole queuing state, in order to clean up the queue.",
-                );
+                    this.logger?.error(
+                        `An internal error occured while trying to update temp js files for language features: '${(err as { message: string }).message}'. Will restart whole queue for updates.`,
+                    );
 
-                this.resetWholeState();
-                // If a temp js file creation operation is aborted externally, an error is thrown.
-                return false;
-            }
-
-            this.logger?.error(
-                `An internal error occured while trying to update temp js files for language features: '${(err as { message: string }).message}'. Will restart whole queue for updates.`,
+                    this.resetWholeState();
+                    resolve(false);
+                },
             );
+        });
 
-            this.resetWholeState();
-            return false;
+        const fulfilledCondition = await toAwait;
+
+        if (typeof fulfilledCondition == "number" && fulfilledCondition === 1) {
+            throw new Error(
+                `Update request for temp js file seems to be stuck. The timeout has been reached.`,
+            );
         }
+
+        return fulfilledCondition as boolean;
     }
 
     public dispose() {
@@ -322,38 +327,32 @@ export class TempJsFileUpdateQueue {
                 async (path) => await checkIfPathExistsAsync(path),
             )
         ) {
-            const deletionIdentifier = 0;
-            const externalCancellationIdentifier = 1;
-            const otherRequestAddedIdentifier = 2;
-            const internalCancellationIdentifier = 3;
+            const deletionIdentifier = 1;
+            const externalCancellationIdentifier = 2;
+            const otherRequestAddedIdentifier = 3;
+            const internalCancellationIdentifier = 4;
 
-            const deletionPromise = setTimeout(
-                5_000,
-                deletionIdentifier,
-            ); /* Sometimes, the deletions seem to block other important functions from the extension host.
+            const toAwait = new Promise<number>((resolve) => {
+                /* Sometimes, the deletions seem to block other important functions from the extension host.
             To avoid this, we add some waiting time before actually executing the deletion.*/
+                const deletionTimeout = setTimeout(() => {
+                    resolve(deletionIdentifier);
+                }, 5_000);
 
-            const externalCancellationPromise = new Promise<number>(
-                (resolve) => {
-                    if (token) {
-                        token.onCancellationRequested(() => {
-                            resolve(externalCancellationIdentifier);
-                        });
-                    }
-                },
-            );
-
-            const internalCancellationPromise = new Promise<number>(
-                (resolve) => {
-                    // Deleting a file while the Bruno CLI is just starting to run can result in an exception.
-                    // Since deletion requests are not so important, just cancel the request.
-                    this.testRunStartedEvent(() => {
-                        resolve(internalCancellationIdentifier);
+                if (token) {
+                    token.onCancellationRequested(() => {
+                        clearTimeout(deletionTimeout);
+                        resolve(externalCancellationIdentifier);
                     });
-                },
-            );
+                }
 
-            const otherRequestAddedPromise = new Promise<number>((resolve) => {
+                // Deleting a file while the Bruno CLI is just starting to run can result in an exception.
+                // Since deletion requests are not so important, just cancel the request.
+                this.testRunStartedEvent(() => {
+                    clearTimeout(deletionTimeout);
+                    resolve(internalCancellationIdentifier);
+                });
+
                 this.waitForRequestToBeAddedToQueue().then((newRequest) => {
                     const { id: newId } = newRequest;
 
@@ -370,17 +369,13 @@ export class TempJsFileUpdateQueue {
                             )} from queue since newer request exists for another file already.`,
                         );
 
+                        clearTimeout(deletionTimeout);
                         resolve(otherRequestAddedIdentifier);
                     }
                 });
             });
 
-            const fulfilledCondition = await Promise.race([
-                deletionPromise,
-                externalCancellationPromise,
-                otherRequestAddedPromise,
-                internalCancellationPromise,
-            ]);
+            const fulfilledCondition = await toAwait;
 
             if (fulfilledCondition == deletionIdentifier) {
                 await deleteTemporaryJsFiles(filePaths, this.logger);
