@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.17.5] (2025-09-06)
 
 ### Fixes / Improvements
 - Improve performance for fetching completion items within code blocks of `.bru` files.
