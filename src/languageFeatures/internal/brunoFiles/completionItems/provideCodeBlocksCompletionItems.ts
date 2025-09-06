@@ -23,6 +23,14 @@ import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocument
 import { waitForTempJsFileToBeInSyncWithBruFile } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 
+type CompletionItemRange =
+    | VsCodeRange
+    | {
+          inserting: VsCodeRange;
+          replacing: VsCodeRange;
+      }
+    | undefined;
+
 export function provideCodeBlocksCompletionItems(
     queue: TempJsFileUpdateQueue,
     collectionItemProvider: CollectionItemProvider,
@@ -126,50 +134,17 @@ export function provideCodeBlocksCompletionItems(
                 }[] = [];
 
                 const result = new CompletionList<CompletionItem>(
-                    resultFromJsFile.items.map((item) => ({
-                        ...item,
-                        /* Without unsetting the command field, selecting an exported function causes the `require` statement 
-                        to be inserted in the temp js file. */
-                        command: undefined,
-                        range: item.range
-                            ? item.range instanceof VsCodeRange
-                                ? mapTempJsRangeToBruFileRange(
-                                      blockInBruFile,
-                                      currentTempJsContent,
-                                      item.range,
-                                      knownRangeMappings,
-                                      logger,
-                                  )
-                                : {
-                                      inserting: mapTempJsRangeToBruFileRange(
-                                          blockInBruFile,
-                                          currentTempJsContent,
-                                          item.range.inserting,
-                                          knownRangeMappings,
-                                          logger,
-                                      ) as VsCodeRange,
-                                      replacing: mapTempJsRangeToBruFileRange(
-                                          blockInBruFile,
-                                          currentTempJsContent,
-                                          item.range.replacing,
-                                          knownRangeMappings,
-                                          logger,
-                                      ) as VsCodeRange,
-                                  }
-                            : undefined,
-                        textEdit: item.textEdit
-                            ? new TextEdit(
-                                  mapTempJsRangeToBruFileRange(
-                                      blockInBruFile,
-                                      currentTempJsContent,
-                                      item.textEdit.range,
-                                      knownRangeMappings,
-                                      logger,
-                                  ) as VsCodeRange,
-                                  item.textEdit.newText,
-                              )
-                            : undefined,
-                    })),
+                    resultFromJsFile.items
+                        .map((item) =>
+                            getMappedItem(
+                                item,
+                                blockInBruFile,
+                                currentTempJsContent,
+                                knownRangeMappings,
+                                logger,
+                            ),
+                        )
+                        .filter((mappedItem) => mappedItem != undefined),
                     resultFromJsFile.isIncomplete,
                 );
 
@@ -181,12 +156,154 @@ export function provideCodeBlocksCompletionItems(
                     } ms`,
                 );
 
+                if (result.items.length < resultFromJsFile.items.length) {
+                    logger?.debug(
+                        `Only managed to map ${result.items.length} / ${resultFromJsFile.items.length} completion items from temp JS file.`,
+                    );
+                }
+
                 return result;
             },
         },
         ".",
         "/",
     );
+}
+
+/**
+ * Checks if all range related fields can be mapped and if not, undefined is returned. Otherwise, the mapped item is returned.
+ */
+function getMappedItem(
+    item: CompletionItem,
+    blockInBruFile: Block,
+    currentTempJsContent: string,
+    knownRangeMappings: {
+        rangeInTempJsFile: VsCodeRange;
+        rangeInBruFile: VsCodeRange;
+    }[],
+    logger?: OutputChannelLogger,
+): CompletionItem | undefined {
+    const { range: mappedRange, couldBeMapped: couldRangeBeMapped } =
+        getMappedItemRange(
+            item.range,
+            blockInBruFile,
+            currentTempJsContent,
+            knownRangeMappings,
+            logger,
+        );
+
+    if (!couldRangeBeMapped) {
+        return undefined;
+    }
+
+    const { textEdit: mappedTextEdit, couldBeMapped: couldTextEditBeMapped } =
+        getMappedItemTextEdit(
+            item.textEdit,
+            blockInBruFile,
+            currentTempJsContent,
+            knownRangeMappings,
+            logger,
+        );
+
+    if (!couldTextEditBeMapped) {
+        return undefined;
+    }
+    return {
+        ...item,
+        /* Without unsetting the command field, selecting an exported function causes the `require` statement 
+                        to be inserted in the temp js file. */
+        command: undefined,
+        range: mappedRange,
+        textEdit: mappedTextEdit,
+    };
+}
+
+function getMappedItemRange(
+    itemRange: CompletionItemRange,
+    blockInBruFile: Block,
+    currentTempJsContent: string,
+    knownRangeMappings: {
+        rangeInTempJsFile: VsCodeRange;
+        rangeInBruFile: VsCodeRange;
+    }[],
+    logger?: OutputChannelLogger,
+): { range: CompletionItemRange; couldBeMapped: boolean } {
+    if (itemRange == undefined) {
+        return { range: undefined, couldBeMapped: true };
+    }
+
+    if (itemRange instanceof VsCodeRange) {
+        return {
+            range: mapTempJsRangeToBruFileRange(
+                blockInBruFile,
+                currentTempJsContent,
+                itemRange,
+                knownRangeMappings,
+                logger,
+            ),
+            couldBeMapped: true,
+        };
+    }
+
+    const mappedInsertion = mapTempJsRangeToBruFileRange(
+        blockInBruFile,
+        currentTempJsContent,
+        itemRange.inserting,
+        knownRangeMappings,
+        logger,
+    );
+
+    const mappedReplacement = mapTempJsRangeToBruFileRange(
+        blockInBruFile,
+        currentTempJsContent,
+        itemRange.replacing,
+        knownRangeMappings,
+        logger,
+    );
+
+    if (!mappedInsertion || !mappedReplacement) {
+        return { range: undefined, couldBeMapped: false };
+    }
+
+    return {
+        range: {
+            inserting: mappedInsertion,
+            replacing: mappedReplacement,
+        },
+        couldBeMapped: true,
+    };
+}
+
+function getMappedItemTextEdit(
+    itemTextEdit: TextEdit | undefined,
+    blockInBruFile: Block,
+    currentTempJsContent: string,
+    knownRangeMappings: {
+        rangeInTempJsFile: VsCodeRange;
+        rangeInBruFile: VsCodeRange;
+    }[],
+    logger?: OutputChannelLogger,
+): { textEdit: TextEdit | undefined; couldBeMapped: boolean } {
+    if (!itemTextEdit) {
+        return { textEdit: undefined, couldBeMapped: true };
+    }
+
+    const mappedTextEditRange = mapTempJsRangeToBruFileRange(
+        blockInBruFile,
+        currentTempJsContent,
+        itemTextEdit.range,
+        knownRangeMappings,
+        logger,
+    );
+
+    if (!mappedTextEditRange) {
+        return { textEdit: undefined, couldBeMapped: false };
+    }
+
+    return {
+        textEdit: new TextEdit(mappedTextEditRange, itemTextEdit.newText),
+        couldBeMapped: true,
+    };
 }
 
 function mapTempJsRangeToBruFileRange(
