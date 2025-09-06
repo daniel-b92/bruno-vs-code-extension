@@ -2,26 +2,23 @@ import {
     Block,
     mapToVsCodeRange,
     OutputChannelLogger,
-    Range,
-    RequestFileBlockName,
 } from "../../../../../shared";
 import { Range as VsCodeRange, Position as VsCodePosition } from "vscode";
-import { getCodeBlocks } from "./getCodeBlocks";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
 
 export function mapToRangeWithinBruFile(
-    blocksInBruFile: Block[],
+    blockInBruFile: Block,
     fullJsFileContent: string,
     rangeInJsFile: VsCodeRange,
     logger?: OutputChannelLogger,
 ) {
     const start = mapToPositionWithinBruFile(
-        blocksInBruFile,
+        blockInBruFile,
         fullJsFileContent,
         rangeInJsFile.start,
     );
     const end = mapToPositionWithinBruFile(
-        blocksInBruFile,
+        blockInBruFile,
         fullJsFileContent,
         rangeInJsFile.end,
     );
@@ -39,52 +36,41 @@ export function mapToRangeWithinBruFile(
 }
 
 function mapToPositionWithinBruFile(
-    blocksInBruFile: Block[],
+    blockInBruFile: Block,
     fullJsFileContent: string,
     positionInJsFile: VsCodePosition,
 ) {
     const blockInJsFileContainingPosition = getBlockFromJsFileWherePositionIsIn(
-        blocksInBruFile,
+        blockInBruFile,
         fullJsFileContent,
         positionInJsFile,
     );
 
     if (!blockInJsFileContainingPosition) {
         return undefined;
-    } else {
-        const blockInBruFile = blocksInBruFile.find(
-            ({ name }) => name == blockInJsFileContainingPosition.name,
-        ) as Block;
-
-        const positionWithinBlock = positionInJsFile.translate(
-            -blockInJsFileContainingPosition.range.start.line,
-        );
-
-        return positionWithinBlock.translate(
-            blockInBruFile.contentRange.start.line,
-        );
     }
+
+    const positionWithinBlock = positionInJsFile.translate(
+        -blockInJsFileContainingPosition.range.start.line,
+    );
+
+    return positionWithinBlock.translate(
+        blockInBruFile.contentRange.start.line,
+    );
 }
 
 function getBlockFromJsFileWherePositionIsIn(
-    blocksInBruFile: Block[],
+    blockInBruFile: Block,
     fullJsFileContent: string,
     positionInJsFile: VsCodePosition,
 ) {
-    const blocksWithJsCodeInBruFile = getCodeBlocks(blocksInBruFile);
+    const tempJsFileBlock = getTempJsFileBlockContent(
+        fullJsFileContent,
+        blockInBruFile.name,
+    );
 
-    return (
-        blocksWithJsCodeInBruFile
-            .map(({ name }) => ({
-                ...getTempJsFileBlockContent(
-                    fullJsFileContent,
-                    name as RequestFileBlockName,
-                ),
-                name,
-            }))
-            .filter(
-                ({ content, range }) =>
-                    content != undefined && range != undefined,
-            ) as { name: RequestFileBlockName; content: string; range: Range }[]
-    ).find(({ range }) => mapToVsCodeRange(range).contains(positionInJsFile));
+    return tempJsFileBlock &&
+        mapToVsCodeRange(tempJsFileBlock.range).contains(positionInJsFile)
+        ? tempJsFileBlock
+        : undefined;
 }

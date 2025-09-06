@@ -1,5 +1,3 @@
-import { RequestFileBlockName } from "../../../../../shared";
-
-export function mapBlockNameToJsFileLine(name: RequestFileBlockName) {
+export function mapBlockNameToJsFileLine(name: string) {
     return `function ${name.replace(/-/g, "_").replace(/:/g, "_")}() {`;
 }

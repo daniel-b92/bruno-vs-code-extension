@@ -1,3 +1,8 @@
+## [Unreleased]
+
+### Fixes / Improvements
+- Improve performance for fetching completion items and add some trace and debug logging for the completion provider function.
+
 ## [0.17.4] (2025-09-04)
 
 ### Fixes / Improvements

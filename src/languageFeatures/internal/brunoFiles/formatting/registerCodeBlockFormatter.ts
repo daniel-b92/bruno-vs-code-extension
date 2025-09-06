@@ -7,7 +7,6 @@ import {
     parseBruFile,
     Position,
     Range,
-    RequestFileBlockName,
     TextDocumentHelper,
 } from "../../../../shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
@@ -43,7 +42,7 @@ export function registerCodeBlockFormatter(_logger?: OutputChannelLogger) {
 }
 
 async function getTextEditForBlock(block: Block, documentLineBreak: string) {
-    const toFormat = `${mapBlockNameToJsFileLine(block.name as RequestFileBlockName)}${documentLineBreak}${block.content.toString()}}`;
+    const toFormat = `${mapBlockNameToJsFileLine(block.name)}${documentLineBreak}${block.content.toString()}}`;
 
     const formattedWithDummyFunctionReplacement = await format(toFormat, {
         parser: "typescript",
