@@ -1,7 +1,8 @@
 ## [Unreleased]
 
 ### Fixes / Improvements
-- Improve performance for fetching completion items and add some trace and debug logging for the completion provider function.
+- Improve performance for fetching completion items within code blocks of `.bru` files.
+- Fix some Promise-related issues with queuing temporary JS file update requests that could have caused memory leaks.
 
 ## [0.17.4] (2025-09-04)
 
