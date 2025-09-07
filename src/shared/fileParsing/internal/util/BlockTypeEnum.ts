@@ -1,5 +1,7 @@
 export enum BlockType {
     Array = 1,
     Dictionary = 2,
-    Text = 3,
+    Code = 3,
+    Json = 4,
+    PlainText = 5,
 }

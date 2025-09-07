@@ -5,25 +5,26 @@ import {
     RequestFileBlockName,
     getFieldFromMetaBlock,
     MetaBlockKey,
+    isDictionaryBlockSimpleField,
 } from "../../../../shared";
 import { readFile, writeFile } from "fs";
 
 export async function replaceNameInMetaBlock(
     filePath: string,
-    newName: string
+    newName: string,
 ) {
     const documentHelper = new TextDocumentHelper(
-        await promisify(readFile)(filePath, "utf-8")
+        await promisify(readFile)(filePath, "utf-8"),
     );
 
     const metaBlock = parseBruFile(documentHelper).blocks.find(
-        ({ name }) => name == RequestFileBlockName.Meta
+        ({ name }) => name == RequestFileBlockName.Meta,
     );
 
     if (metaBlock) {
         const nameField = getFieldFromMetaBlock(metaBlock, MetaBlockKey.Name);
 
-        if (nameField) {
+        if (nameField && isDictionaryBlockSimpleField(nameField)) {
             await promisify(writeFile)(
                 filePath,
                 documentHelper.getFullTextWithReplacement(
@@ -32,8 +33,8 @@ export async function replaceNameInMetaBlock(
                         startCharIndex: nameField.valueRange.start.character,
                         endCharIndex: nameField.valueRange.end.character,
                     },
-                    newName
-                )
+                    newName,
+                ),
             );
         }
     }

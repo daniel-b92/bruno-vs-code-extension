@@ -67,6 +67,8 @@ export class TestRunnerDataHelper {
         );
     }
 
+    public dispose() {}
+
     private getVsCodeTestItemSortText(item: CollectionItem) {
         return item.getSequence()
             ? new Array((item.getSequence() as number) + 1)

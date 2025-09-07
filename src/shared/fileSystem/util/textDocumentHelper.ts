@@ -10,7 +10,7 @@ export class TextDocumentHelper {
             remainingText.includes(LinebreakType.crlf)
         ) {
             const linebreakIndex = remainingText.search(
-                new RegExp(`(${LinebreakType.lf}|${LinebreakType.crlf})`)
+                new RegExp(`(${LinebreakType.lf}|${LinebreakType.crlf})`),
             );
             const linebreak = remainingText
                 .substring(linebreakIndex)
@@ -23,7 +23,7 @@ export class TextDocumentHelper {
                 linebreak,
             });
             remainingText = remainingText.substring(
-                linebreakIndex + linebreak.length
+                linebreakIndex + linebreak.length,
             );
         }
 
@@ -36,11 +36,11 @@ export class TextDocumentHelper {
     } = { fullLines: [], lastLine: undefined };
 
     public getAllLines(
-        startIndex?: number
+        startIndex?: number,
     ): { index: number; content: string }[] {
         if (startIndex != undefined && startIndex >= this.getLineCount()) {
             throw new Error(
-                `startIndex '${startIndex}' for document text is invalid. The document only has ${this.getLineCount()} lines.`
+                `startIndex '${startIndex}' for document text is invalid. The document only has ${this.getLineCount()} lines.`,
             );
         }
 
@@ -51,14 +51,14 @@ export class TextDocumentHelper {
                 content,
             }))
             .concat(
-                this.lines.lastLine
+                this.lines.lastLine != undefined
                     ? [
                           {
                               index: this.lines.fullLines.length,
                               content: this.lines.lastLine,
                           },
                       ]
-                    : []
+                    : [],
             );
     }
 
@@ -67,8 +67,8 @@ export class TextDocumentHelper {
             startPosition ? startPosition : new Position(0, 0),
             new Position(
                 this.getLineCount() - 1,
-                this.getLineByIndex(this.getLineCount() - 1).length
-            )
+                this.getLineByIndex(this.getLineCount() - 1).length,
+            ),
         );
     }
 
@@ -77,7 +77,10 @@ export class TextDocumentHelper {
             ? undefined
             : new Range(
                   new Position(lineIndex, 0),
-                  new Position(lineIndex, this.getLineByIndex(lineIndex).length)
+                  new Position(
+                      lineIndex,
+                      this.getLineByIndex(lineIndex).length,
+                  ),
               );
     }
 
@@ -90,7 +93,7 @@ export class TextDocumentHelper {
     public getLineCount() {
         return (
             this.lines.fullLines.length +
-            (this.lines.lastLine && this.lines.lastLine.length > 0 ? 1 : 0)
+            (this.lines.lastLine != undefined ? 1 : 0)
         ); // The last line needs to be counted separately
     }
 
@@ -100,26 +103,26 @@ export class TextDocumentHelper {
             startCharIndex: number;
             endCharIndex: number;
         },
-        replacement: string
+        replacement: string,
     ) {
         if (toReplace.lineIndex >= this.getLineCount()) {
             throw new Error(
                 `Given range ${JSON.stringify(
                     toReplace,
                     null,
-                    2
-                )} outside of text range ${JSON.stringify(this.lines, null, 2)}`
+                    2,
+                )} outside of text range ${JSON.stringify(this.lines, null, 2)}`,
             );
         } else if (toReplace.startCharIndex > toReplace.endCharIndex) {
             throw new Error(
-                `Start char index for text replacement '${toReplace.startCharIndex}' is larger than end char index '${toReplace.endCharIndex}'`
+                `Start char index for text replacement '${toReplace.startCharIndex}' is larger than end char index '${toReplace.endCharIndex}'`,
             );
         }
 
         const originalLine = this.getLineByIndex(toReplace.lineIndex);
         const adjustedLine = `${originalLine.substring(
             0,
-            toReplace.startCharIndex
+            toReplace.startCharIndex,
         )}${replacement}${originalLine.substring(toReplace.endCharIndex + 1)}`;
 
         return this.lines.fullLines
@@ -127,86 +130,21 @@ export class TextDocumentHelper {
                 ({ content, linebreak }, index) =>
                     `${
                         index == toReplace.lineIndex ? adjustedLine : content
-                    }${linebreak}`
+                    }${linebreak}`,
             )
             .join("")
             .concat(
                 toReplace.lineIndex == this.getLineCount() - 1
                     ? adjustedLine
-                    : this.lines.lastLine ?? ""
+                    : this.lines.lastLine != undefined
+                      ? this.lines.lastLine
+                      : "",
             );
-    }
-
-    /**
-     * Get the text up until all of the scopes opened by the given opening character within the text have been closed by the given closing character.
-     * Additionally, one more closing character is expected because the start position is expected to be after the first opening character.
-     * @param startLine The line index for starting the search. Should be after the initial opening character (so that at the given position one of the scopes
-     * defined by the opening and closing character pairs is already open).
-     * @param openingChar The opening character for the scope. Every time this character is found within the given part of the text, the temrination condition will change
-     * so that the newly opened scope is closed by a respective closing character additionally.
-     * @param closingChar The closing character for the scope.
-     */
-    public getContentUntilClosingChar(
-        startLine: number,
-        openingChar: string,
-        closingChar: string
-    ): { content: string; range: Range } | undefined {
-        const remainingLines = this.getAllLines(startLine).filter(
-            ({ index }) => index >= startLine
-        );
-
-        let openScopes = 1;
-        let closingCharPosition: Position | undefined = undefined;
-
-        for (const line of remainingLines) {
-            {
-                const lineLength = line.content.length;
-                let currentCharIndex = 0;
-
-                while (openScopes > 0 && currentCharIndex < lineLength) {
-                    const currentChar = line.content.charAt(currentCharIndex);
-
-                    openScopes +=
-                        currentChar == openingChar
-                            ? 1
-                            : currentChar == closingChar
-                            ? -1
-                            : 0;
-
-                    if (openScopes == 0) {
-                        closingCharPosition = new Position(
-                            line.index,
-                            currentCharIndex
-                        );
-                    }
-
-                    currentCharIndex++;
-                }
-
-                if (openScopes == 0) {
-                    break;
-                }
-            }
-        }
-
-        if (!closingCharPosition) {
-            return undefined;
-        }
-
-        const range = new Range(
-            new Position(startLine, 0),
-            closingCharPosition
-        );
-
-        return {
-            content: this.getText(range),
-            range,
-        };
     }
 
     public getPositionForOffset(
         { line: startLine, character: startChar }: Position,
-        offset: number
+        offset: number,
     ) {
         const lastLineIndex = this.getLineCount() - 1;
 
@@ -225,17 +163,33 @@ export class TextDocumentHelper {
                 const currentTextLengthWithLineBreak =
                     content.length + (index < lastLineIndex ? 1 : 0);
 
-                if (currentOffset + currentTextLengthWithLineBreak >= offset) {
+                if (
+                    (index < lastLineIndex &&
+                        currentOffset + currentTextLengthWithLineBreak >
+                            offset) ||
+                    (index == lastLineIndex &&
+                        currentOffset + currentTextLengthWithLineBreak >=
+                            offset)
+                ) {
                     return true;
                 } else {
                     currentOffset += currentTextLengthWithLineBreak;
                 }
-            }
+            },
         );
 
         return lineContainingPosition != undefined
             ? new Position(lineContainingPosition.index, offset - currentOffset)
             : undefined;
+    }
+
+    public getTextStartingInLine(lineIndex: number) {
+        return this.getText(
+            new Range(
+                new Position(lineIndex, 0),
+                new Position(this.getLineCount() - 1, Number.MAX_SAFE_INTEGER),
+            ),
+        );
     }
 
     public getText(range?: Range) {
@@ -246,7 +200,7 @@ export class TextDocumentHelper {
         if (range.start.line >= this.lines.fullLines.length) {
             return (this.lines.lastLine as string).substring(
                 range.start.character,
-                range.end.character
+                range.end.character,
             );
         }
 
@@ -259,22 +213,22 @@ export class TextDocumentHelper {
             range.end.line < this.lines.fullLines.length
                 ? `${this.lines.fullLines[range.end.line].content.substring(
                       0,
-                      range.end.character
+                      range.end.character,
                   )}`
                 : (this.lines.lastLine as string).substring(
                       0,
-                      range.end.character
+                      range.end.character,
                   );
         const linesBetween = this.lines.fullLines.slice(
             range.start.line + 1,
-            range.end.line
+            range.end.line,
         );
 
         return linesBetween
             .reduce(
                 (prev, { content, linebreak }) =>
                     prev.concat(content.concat(linebreak)),
-                firstLine
+                firstLine,
             )
             .concat(lastLine);
     }

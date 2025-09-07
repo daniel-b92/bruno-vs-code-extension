@@ -6,9 +6,12 @@ export enum TempJsUpdateType {
 }
 
 export interface TempJsUpdateRequest {
-    collectionRootFolder: string;
     update:
-        | { type: TempJsUpdateType.Creation; bruFileContent: string }
-        | { type: TempJsUpdateType.Deletion };
+        | {
+              type: TempJsUpdateType.Creation;
+              filePath: string;
+              tempJsFileContent: string;
+          }
+        | { type: TempJsUpdateType.Deletion; filePaths: string[] };
     cancellationToken?: CancellationToken;
 }

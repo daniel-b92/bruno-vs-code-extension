@@ -5,7 +5,11 @@ export interface Block {
     nameRange: Range;
     content:
         | string
-        | (DictionaryBlockField | PlainTextWithinBlock)[]
+        | (
+              | DictionaryBlockSimpleField
+              | DictionaryBlockArrayField
+              | PlainTextWithinBlock
+          )[]
         | (ArrayBlockField | PlainTextWithinBlock)[];
     contentRange: Range;
 }
@@ -13,15 +17,22 @@ export interface Block {
 export interface DictionaryBlock {
     name: string;
     nameRange: Range;
-    content: DictionaryBlockField[];
+    content: (DictionaryBlockSimpleField | DictionaryBlockArrayField)[];
     contentRange: Range;
 }
 
-export interface DictionaryBlockField {
+export interface DictionaryBlockSimpleField {
     key: string;
     value: string;
     keyRange: Range;
     valueRange: Range;
+}
+
+export interface DictionaryBlockArrayField {
+    key: string;
+    keyRange: Range;
+    values: { content: string; range: Range }[];
+    plainTextWithinValues: PlainTextWithinDictionaryArrayValue[];
 }
 
 export interface ArrayBlock {
@@ -44,6 +55,11 @@ export interface TextBlock {
 }
 
 export interface PlainTextWithinBlock {
+    text: string;
+    range: Range;
+}
+
+export interface PlainTextWithinDictionaryArrayValue {
     text: string;
     range: Range;
 }

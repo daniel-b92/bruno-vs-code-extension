@@ -3,14 +3,16 @@ import {
     ExtensionContext,
     languages,
     TabInputText,
+    TextDocument,
     TextDocumentChangeEvent,
     TextDocumentWillSaveEvent,
     TextEditor,
     Uri,
     window,
     workspace,
+    Event as VsCodeEvent,
 } from "vscode";
-import { provideBrunoLangCompletionItems } from "./internal/completionItems/provideBrunoLangCompletionItems";
+import { provideBrunoLangCompletionItems } from "./internal/brunoFiles/completionItems/provideBrunoLangCompletionItems";
 import {
     BrunoFileType,
     castBlockToDictionaryBlock,
@@ -28,33 +30,50 @@ import {
     TextDocumentHelper,
     isBrunoFileType,
     getConfiguredTestEnvironment,
-    getTemporaryJsFileName,
+    getTemporaryJsFileNameInFolder,
     filterAsync,
+    CollectionWatcher,
+    getTemporaryJsFileBasename,
 } from "../shared";
-import { BrunoLangDiagnosticsProvider } from "./internal/diagnostics/brunoLangDiagnosticsProvider";
-import { updateUrlToMatchQueryParams } from "./internal/autoUpdates/updateUrlToMatchQueryParams";
-import { updatePathParamsKeysToMatchUrl } from "./internal/autoUpdates/updatePathParamsKeysToMatchUrl";
-import { TemporaryJsFilesRegistry } from "./internal/shared/temporaryJsFilesUpdates/internal/temporaryJsFilesRegistry";
-import { provideCodeBlocksCompletionItems } from "./internal/completionItems/provideCodeBlocksCompletionItems";
-import { provideInfosOnHover } from "./internal/hover/provideInfosOnHover";
-import { provideSignatureHelp } from "./internal/signatureHelp/provideSignatureHelp";
-import { provideDefinitions } from "./internal/definitionProvider/provideDefinitions";
+import { BrunoLangDiagnosticsProvider } from "./internal/brunoFiles/diagnostics/brunoLangDiagnosticsProvider";
+import { updateUrlToMatchQueryParams } from "./internal/brunoFiles/autoUpdates/updateUrlToMatchQueryParams";
+import { updatePathParamsKeysToMatchUrl } from "./internal/brunoFiles/autoUpdates/updatePathParamsKeysToMatchUrl";
+import { provideCodeBlocksCompletionItems } from "./internal/brunoFiles/completionItems/provideCodeBlocksCompletionItems";
+import { provideInfosOnHover as provideInfosOnHoverForBruFiles } from "./internal/brunoFiles/hover/provideInfosOnHover";
+import { provideSignatureHelp as provideSignatureHelpForBruFiles } from "./internal/brunoFiles/signatureHelp/provideSignatureHelp";
+import { provideDefinitions as provideDefinitionsForBruFiles } from "./internal/brunoFiles/definitionProvider/provideDefinitions";
 import { extname, resolve } from "path";
-import { registerCodeBlockFormatter } from "./internal/formatting/registerCodeBlockFormatter";
-import { readFile } from "fs";
-import { promisify } from "util";
-import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates/tempJsFileUpdateQueue";
+import { registerCodeBlockFormatter } from "./internal/brunoFiles/formatting/registerCodeBlockFormatter";
+import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "./internal/shared/temporaryJsFilesUpdates/internal/interfaces";
+import { getTempJsFileContentForBruFile } from "./internal/brunoFiles/shared/codeBlocksUtils/getTempJsFileContentForBruFile";
+import { TempJsFilesProvider } from "../shared/fileSystemCache/externalHelpers/tempJsFilesProvider";
+import { getDefinitionsForInbuiltLibraries } from "./internal/shared/temporaryJsFilesUpdates/external/getDefinitionsForInbuiltLibraries";
+import { promisify } from "util";
+import { readFile } from "fs";
 
-export function activateLanguageFeatures(
+export async function activateLanguageFeatures(
     context: ExtensionContext,
+    collectionWatcher: CollectionWatcher,
     itemProvider: CollectionItemProvider,
+    testRunStartedEvent: VsCodeEvent<Uri>,
 ) {
     const logger = getLoggerFromSubscriptions(context);
 
     const tempJsFilesUpdateQueue = new TempJsFileUpdateQueue(
-        new TemporaryJsFilesRegistry(),
+        testRunStartedEvent,
         logger,
+    );
+
+    const tempJsFilesProvider = new TempJsFilesProvider(
+        collectionWatcher,
+        logger,
+    );
+
+    await tempJsFilesProvider.refreshCache(
+        itemProvider
+            .getRegisteredCollections()
+            .map((collection) => collection.getRootDirectory()),
     );
 
     const diagnosticCollection =
@@ -68,15 +87,43 @@ export function activateLanguageFeatures(
     context.subscriptions.push(
         diagnosticCollection,
         tempJsFilesUpdateQueue,
+        tempJsFilesProvider,
         ...provideBrunoLangCompletionItems(itemProvider, logger),
         provideCodeBlocksCompletionItems(
             tempJsFilesUpdateQueue,
             itemProvider,
             logger,
         ),
-        provideInfosOnHover(tempJsFilesUpdateQueue, itemProvider, logger),
-        provideSignatureHelp(tempJsFilesUpdateQueue, itemProvider, logger),
-        provideDefinitions(tempJsFilesUpdateQueue, itemProvider, logger),
+        provideInfosOnHoverForBruFiles(
+            tempJsFilesUpdateQueue,
+            itemProvider,
+            logger,
+        ),
+        provideSignatureHelpForBruFiles(
+            tempJsFilesUpdateQueue,
+            itemProvider,
+            logger,
+        ),
+        provideDefinitionsForBruFiles(
+            tempJsFilesUpdateQueue,
+            itemProvider,
+            logger,
+        ),
+        provideInfosOnHoverForBruFiles(
+            tempJsFilesUpdateQueue,
+            itemProvider,
+            logger,
+        ),
+        provideSignatureHelpForBruFiles(
+            tempJsFilesUpdateQueue,
+            itemProvider,
+            logger,
+        ),
+        provideDefinitionsForBruFiles(
+            tempJsFilesUpdateQueue,
+            itemProvider,
+            logger,
+        ),
         registerCodeBlockFormatter(logger),
         brunoLangDiagnosticsProvider,
         tempJsFilesUpdateQueue,
@@ -85,6 +132,7 @@ export function activateLanguageFeatures(
                 tempJsFilesUpdateQueue,
                 brunoLangDiagnosticsProvider,
                 itemProvider,
+                tempJsFilesProvider,
                 editor,
             );
         }),
@@ -99,10 +147,11 @@ export function activateLanguageFeatures(
             await onWillSaveTextDocument(
                 tempJsFilesUpdateQueue,
                 itemProvider,
+                tempJsFilesProvider,
                 e,
             );
         }),
-        handleDiagnosticUpdatesOnFileDeletion(
+        handleDiagnosticUpdatesOnFileDeletionForBruFile(
             itemProvider,
             diagnosticCollection,
         ),
@@ -113,54 +162,41 @@ async function onDidChangeActiveTextEditor(
     queue: TempJsFileUpdateQueue,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     itemProvider: CollectionItemProvider,
+    tempJsFilesProvider: TempJsFilesProvider,
     editor: TextEditor | undefined,
 ) {
     if (
-        !editor ||
         !window.tabGroups.activeTabGroup.activeTab ||
         !(
             window.tabGroups.activeTabGroup.activeTab.input instanceof
             TabInputText
         )
     ) {
-        await deleteAllTemporaryJsFiles(queue, itemProvider);
+        await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
     } else if (
+        editor &&
         editor.document.uri.toString() ==
-        window.tabGroups.activeTabGroup.activeTab.input.uri.toString()
+            window.tabGroups.activeTabGroup.activeTab.input.uri.toString()
     ) {
-        const brunoFileType = await getBrunoFileTypeIfExists(
-            itemProvider,
-            editor.document.uri.fsPath,
-        );
+        const path = editor.document.fileName;
 
-        if (!brunoFileType) {
-            await deleteAllTemporaryJsFiles(queue, itemProvider);
-            return;
-        }
-
-        await fetchBrunoSpecificDiagnostics(
-            editor.document.uri,
-            editor.document.getText(),
-            brunoLangDiagnosticsProvider,
-            brunoFileType,
-        );
-
-        if (getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType)) {
-            const collectionRootFolder = (
-                itemProvider.getAncestorCollectionForPath(
-                    editor.document.fileName,
-                ) as Collection
-            ).getRootDirectory();
-
-            await queue.addToQueue({
-                collectionRootFolder,
-                update: {
-                    type: TempJsUpdateType.Creation,
-                    bruFileContent: editor.document.getText(),
-                },
-            });
+        if (extname(path) == getExtensionForBrunoFiles()) {
+            handleOpeningOfBruDocument(
+                queue,
+                brunoLangDiagnosticsProvider,
+                itemProvider,
+                tempJsFilesProvider,
+                editor.document,
+            );
+        } else if (extname(path) == getExtensionForTempJsFiles()) {
+            handleOpeningOfJsDocument(
+                queue,
+                itemProvider,
+                tempJsFilesProvider,
+                editor.document,
+            );
         } else {
-            await deleteAllTemporaryJsFiles(queue, itemProvider);
+            await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
         }
     }
 }
@@ -197,56 +233,23 @@ async function onDidChangeTextDocument(
 
 async function onWillSaveTextDocument(
     queue: TempJsFileUpdateQueue,
-    collectionItemProvider: CollectionItemProvider,
+    itemProvider: CollectionItemProvider,
+    tempJsFilesProvider: TempJsFilesProvider,
     event: TextDocumentWillSaveEvent,
 ) {
-    const brunoFileType = await getBrunoFileTypeIfExists(
-        collectionItemProvider,
-        event.document.fileName,
-    );
+    const { document } = event;
 
-    if (
-        brunoFileType != undefined &&
-        getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType)
-    ) {
-        const collection = collectionItemProvider.getAncestorCollectionForPath(
-            event.document.fileName,
+    if (extname(document.fileName) == getExtensionForBrunoFiles()) {
+        await onWillSaveBruDocument(
+            queue,
+            itemProvider,
+            tempJsFilesProvider,
+            document,
         );
-
-        if (
-            collection &&
-            (await checkIfPathExistsAsync(
-                getTemporaryJsFileName(collection.getRootDirectory()),
-            ))
-        ) {
-            await queue.addToQueue({
-                collectionRootFolder: collection.getRootDirectory(),
-                update: { type: TempJsUpdateType.Deletion },
-            });
-        }
-
-        if (
-            window.activeTextEditor &&
-            window.activeTextEditor.document.uri.toString() ==
-                event.document.uri.toString()
-        ) {
-            const { blocks: parsedBlocks } = parseBruFile(
-                new TextDocumentHelper(event.document.getText()),
-            );
-
-            window.activeTextEditor.edit((editBuilder) => {
-                updateUrlToMatchQueryParams(editBuilder, parsedBlocks);
-                updatePathParamsKeysToMatchUrl(
-                    event.document,
-                    editBuilder,
-                    parsedBlocks,
-                );
-            });
-        }
     }
 }
 
-function handleDiagnosticUpdatesOnFileDeletion(
+function handleDiagnosticUpdatesOnFileDeletionForBruFile(
     collectionItemProvider: CollectionItemProvider,
     diagnosticCollection: DiagnosticCollection,
 ) {
@@ -277,6 +280,128 @@ function handleDiagnosticUpdatesOnFileDeletion(
             }
         }
     });
+}
+
+async function handleOpeningOfBruDocument(
+    queue: TempJsFileUpdateQueue,
+    brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
+    itemProvider: CollectionItemProvider,
+    tempJsFilesProvider: TempJsFilesProvider,
+    document: TextDocument,
+) {
+    const brunoFileType = await getBrunoFileTypeIfExists(
+        itemProvider,
+        document.fileName,
+    );
+
+    if (!brunoFileType) {
+        await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
+        return;
+    }
+
+    await fetchBrunoSpecificDiagnostics(
+        document.uri,
+        document.getText(),
+        brunoLangDiagnosticsProvider,
+        brunoFileType,
+    );
+
+    if (!getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType)) {
+        await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
+        return;
+    }
+
+    const collectionRootFolder = (
+        itemProvider.getAncestorCollectionForPath(
+            document.fileName,
+        ) as Collection
+    ).getRootDirectory();
+
+    await queue.addToQueue({
+        update: {
+            type: TempJsUpdateType.Creation,
+            filePath: getTemporaryJsFileNameInFolder(collectionRootFolder),
+            tempJsFileContent: getTempJsFileContentForBruFile(
+                document.getText(),
+            ),
+        },
+    });
+}
+
+async function handleOpeningOfJsDocument(
+    queue: TempJsFileUpdateQueue,
+    itemProvider: CollectionItemProvider,
+    tempJsFilesProvider: TempJsFilesProvider,
+    document: TextDocument,
+) {
+    const path = document.fileName;
+
+    if (
+        path.includes(getTemporaryJsFileBasename()) ||
+        !isJsFileFromBrunoCollection(itemProvider, path)
+    ) {
+        await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
+        return;
+    }
+
+    const collectionRootFolder = (
+        itemProvider.getAncestorCollectionForPath(
+            document.fileName,
+        ) as Collection
+    ).getRootDirectory();
+
+    await queue.addToQueue({
+        update: {
+            type: TempJsUpdateType.Creation,
+            filePath: getTemporaryJsFileNameInFolder(collectionRootFolder),
+            tempJsFileContent:
+                getDefinitionsForInbuiltLibraries(true).join("\n\n"),
+        },
+    });
+}
+
+async function onWillSaveBruDocument(
+    queue: TempJsFileUpdateQueue,
+    itemProvider: CollectionItemProvider,
+    tempJsFilesProvider: TempJsFilesProvider,
+    document: TextDocument,
+) {
+    const brunoFileType = await getBrunoFileTypeIfExists(
+        itemProvider,
+        document.fileName,
+    );
+
+    if (
+        brunoFileType != undefined &&
+        getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType)
+    ) {
+        const collection = itemProvider.getAncestorCollectionForPath(
+            document.fileName,
+        );
+
+        if (collection) {
+            deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
+        }
+
+        if (
+            window.activeTextEditor &&
+            window.activeTextEditor.document.uri.toString() ==
+                document.uri.toString()
+        ) {
+            const { blocks: parsedBlocks } = parseBruFile(
+                new TextDocumentHelper(document.getText()),
+            );
+
+            window.activeTextEditor.edit((editBuilder) => {
+                updateUrlToMatchQueryParams(editBuilder, parsedBlocks);
+                updatePathParamsKeysToMatchUrl(
+                    document,
+                    editBuilder,
+                    parsedBlocks,
+                );
+            });
+        }
+    }
 }
 
 async function fetchBrunoSpecificDiagnostics(
@@ -314,28 +439,23 @@ async function fetchBrunoSpecificDiagnostics(
 
 async function deleteAllTemporaryJsFiles(
     updateQueue: TempJsFileUpdateQueue,
-    itemProvider: CollectionItemProvider,
+    tempJsFilesProvider: TempJsFilesProvider,
 ) {
-    const deletions: Promise<boolean>[] = [];
-
     const existingFiles = await filterAsync(
-        itemProvider.getRegisteredCollections().map((collection) => ({
-            collectionRootFolder: collection.getRootDirectory(),
-            filePath: getTemporaryJsFileName(collection.getRootDirectory()),
-        })),
-        async ({ filePath }) => await checkIfPathExistsAsync(filePath),
+        tempJsFilesProvider.getRegisteredFiles(),
+        async (filePath) => await checkIfPathExistsAsync(filePath),
     );
 
-    for (const { collectionRootFolder } of existingFiles) {
-        deletions.push(
-            updateQueue.addToQueue({
-                collectionRootFolder,
-                update: { type: TempJsUpdateType.Deletion },
-            }),
-        );
+    if (existingFiles.length == 0) {
+        return;
     }
 
-    await Promise.all(deletions);
+    await updateQueue.addToQueue({
+        update: {
+            type: TempJsUpdateType.Deletion,
+            filePaths: existingFiles,
+        },
+    });
 }
 
 async function fetchAvailableVarsFromConfiguredEnvironments(
@@ -419,4 +539,18 @@ async function getBrunoFileTypeIfExists(
         isBrunoFileType(itemWithCollection.data.item.getFileType())
         ? (itemWithCollection.data.item.getFileType() as BrunoFileType)
         : undefined;
+}
+
+function isJsFileFromBrunoCollection(
+    itemProvider: CollectionItemProvider,
+    fileName: string,
+) {
+    return (
+        extname(fileName) == getExtensionForTempJsFiles() &&
+        itemProvider.getAncestorCollectionForPath(fileName) != undefined
+    );
+}
+
+function getExtensionForTempJsFiles() {
+    return ".js";
 }

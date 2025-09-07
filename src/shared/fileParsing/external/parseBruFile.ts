@@ -1,5 +1,5 @@
 import {
-    DictionaryBlockField,
+    DictionaryBlockSimpleField,
     Block,
     TextOutsideOfBlocks,
     ArrayBlockField,
@@ -7,9 +7,7 @@ import {
 import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
 import { getBlockContent } from "../internal/getBlockContent";
 import { getNonBlockSpecificBlockStartPattern } from "../internal/util/getNonBlockSpecificBlockStartPattern";
-import { BlockBracket } from "../internal/util/blockBracketEnum";
-import { Position, Range, shouldBeDictionaryBlock } from "../..";
-import { BlockType } from "../internal/util/BlockTypeEnum";
+import { getBlockType, Position, Range } from "../..";
 
 export const parseBruFile = (document: TextDocumentHelper) => {
     const result: {
@@ -30,8 +28,8 @@ export const parseBruFile = (document: TextDocumentHelper) => {
                     getCurrentTextOutsideOfBlocks(
                         currentTextOutsideOfBlocksStart,
                         new Position(lineIndex, matches.index),
-                        document
-                    )
+                        document,
+                    ),
                 );
 
                 currentTextOutsideOfBlocksStart = undefined;
@@ -40,22 +38,18 @@ export const parseBruFile = (document: TextDocumentHelper) => {
             const blockName = matches[1];
             const startingPosition = new Position(
                 lineIndex,
-                matches[0].length + matches.index
+                matches[0].length + matches.index,
             );
 
             const blockContent = getBlockContent(
                 document,
                 startingPosition,
-                matches[0].includes(BlockBracket.OpeningBracketForArrayBlock)
-                    ? BlockType.Array
-                    : shouldBeDictionaryBlock(blockName)
-                    ? BlockType.Dictionary
-                    : BlockType.Text
+                getBlockType(matches[0], blockName),
             );
 
             if (!blockContent) {
                 const remainingDocumentRange = document.getTextRange(
-                    new Position(lineIndex, 0)
+                    new Position(lineIndex, 0),
                 );
 
                 result.textOutsideOfBlocks.push({
@@ -73,12 +67,12 @@ export const parseBruFile = (document: TextDocumentHelper) => {
                     new Position(lineIndex, line.indexOf(blockName)),
                     new Position(
                         lineIndex,
-                        line.indexOf(blockName) + blockName.length
-                    )
+                        line.indexOf(blockName) + blockName.length,
+                    ),
                 ),
                 content: content as
                     | string
-                    | DictionaryBlockField[]
+                    | DictionaryBlockSimpleField[]
                     | ArrayBlockField[],
                 contentRange,
             });
@@ -86,7 +80,7 @@ export const parseBruFile = (document: TextDocumentHelper) => {
             // Skip the rest of the already parsed block
             currentTextOutsideOfBlocksStart = new Position(
                 contentRange.end.line,
-                contentRange.end.character + 1
+                contentRange.end.character + 1,
             );
             lineIndex = contentRange.end.line + 1;
         } else {
@@ -100,10 +94,10 @@ export const parseBruFile = (document: TextDocumentHelper) => {
                         currentTextOutsideOfBlocksStart,
                         new Position(
                             lineIndex,
-                            document.getLineByIndex(lineIndex).length
+                            document.getLineByIndex(lineIndex).length,
                         ),
-                        document
-                    )
+                        document,
+                    ),
                 );
             }
 
@@ -117,7 +111,7 @@ export const parseBruFile = (document: TextDocumentHelper) => {
 const getCurrentTextOutsideOfBlocks = (
     startPosition: Position,
     lastPosition: Position,
-    document: TextDocumentHelper
+    document: TextDocumentHelper,
 ): TextOutsideOfBlocks => {
     const range = new Range(startPosition, lastPosition);
 

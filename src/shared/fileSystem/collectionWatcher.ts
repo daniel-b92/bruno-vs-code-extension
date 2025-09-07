@@ -18,7 +18,7 @@ export class CollectionWatcher {
     constructor(
         private context: ExtensionContext,
         private fileChangedEmitter: EventEmitter<FileChangedEvent>,
-        private logger?: OutputChannelLogger
+        private logger?: OutputChannelLogger,
     ) {}
 
     private preMessageForLogging = "[CollectionWatcher]";
@@ -33,8 +33,8 @@ export class CollectionWatcher {
             `${
                 this.preMessageForLogging
             } Starting to watch collection '${basename(
-                rootDirectory
-            )}' for changes.`
+                rootDirectory,
+            )}' for changes.`,
         );
         const testPattern =
             this.getPatternForTestitemsInCollection(rootDirectory);
@@ -43,7 +43,7 @@ export class CollectionWatcher {
             this.watchers.some(
                 ({ rootDirectory: watched }) =>
                     normalizeDirectoryPath(watched) ==
-                    normalizeDirectoryPath(rootDirectory)
+                    normalizeDirectoryPath(rootDirectory),
             ) ||
             !testPattern
         ) {
@@ -57,7 +57,7 @@ export class CollectionWatcher {
 
             if (isFile) {
                 this.logger?.debug(
-                    `${this.preMessageForLogging} Creation event for file '${path}'.`
+                    `${this.preMessageForLogging} Creation event for file '${path}'.`,
                 );
 
                 this.fileChangedEmitter.fire({
@@ -73,11 +73,11 @@ export class CollectionWatcher {
                     path == normalizeDirectoryPath(path)
                         ? path.substring(0, path.length - 1)
                         : path
-                }/**/*`
+                }/**/*`,
             );
 
             this.logger?.debug(
-                `${this.preMessageForLogging} Creation event for directory '${uri.fsPath}' with a total of ${descendants.length} descendants.`
+                `${this.preMessageForLogging} Creation event for directory '${uri.fsPath}' with a total of ${descendants.length} descendants.`,
             );
 
             // When renaming a directory with descendant items, the file system watcher only sends a notification that a directory has been created.
@@ -91,7 +91,7 @@ export class CollectionWatcher {
         });
         watcher.onDidChange((uri) => {
             this.logger?.debug(
-                `${this.preMessageForLogging} Modification event for path '${uri.fsPath}'.`
+                `${this.preMessageForLogging} Modification event for path '${uri.fsPath}'.`,
             );
 
             this.fileChangedEmitter.fire({
@@ -101,7 +101,7 @@ export class CollectionWatcher {
         });
         watcher.onDidDelete((uri) => {
             this.logger?.debug(
-                `${this.preMessageForLogging} Deletion event for path '${uri.fsPath}'.`
+                `${this.preMessageForLogging} Deletion event for path '${uri.fsPath}'.`,
             );
             this.fileChangedEmitter.fire({
                 uri,
@@ -117,9 +117,9 @@ export class CollectionWatcher {
         if (this.watchers.some(({ rootDirectory }) => path == rootDirectory)) {
             const { watcher } = this.watchers.splice(
                 this.watchers.findIndex(
-                    ({ rootDirectory }) => rootDirectory == path
+                    ({ rootDirectory }) => rootDirectory == path,
                 ),
-                1
+                1,
             )[0];
             watcher.dispose();
         }
@@ -129,6 +129,16 @@ export class CollectionWatcher {
         return this.fileChangedEmitter.event;
     }
 
+    public dispose() {
+        this.fileChangedEmitter.dispose();
+
+        for (const { watcher } of this.watchers.splice(0)) {
+            watcher.dispose();
+        }
+
+        this.logger?.dispose();
+    }
+
     private getPatternForTestitemsInCollection(collectionRootDir: string) {
         if (!workspace.workspaceFolders) {
             return undefined;
@@ -136,8 +146,8 @@ export class CollectionWatcher {
 
         const maybeWorkspaceFolder = workspace.workspaceFolders.find((folder) =>
             normalizeDirectoryPath(collectionRootDir).includes(
-                normalizeDirectoryPath(folder.uri.fsPath)
-            )
+                normalizeDirectoryPath(folder.uri.fsPath),
+            ),
         );
 
         if (!maybeWorkspaceFolder) {
@@ -149,9 +159,9 @@ export class CollectionWatcher {
             normalizeDirectoryPath(collectionRootDir) !=
             normalizeDirectoryPath(maybeWorkspaceFolder.uri.fsPath)
                 ? `{**/${basename(collectionRootDir)},**/${basename(
-                      collectionRootDir
+                      collectionRootDir,
                   )}/**/*}`
-                : `{*/,**/*}`
+                : `{*/,**/*}`,
         );
     }
 }

@@ -1,13 +1,18 @@
 import {
     ArrayBlockField,
-    DictionaryBlockField,
+    DictionaryBlockArrayField,
+    DictionaryBlockSimpleField,
     PlainTextWithinBlock,
 } from "../../fileParsing/external/interfaces";
 
 export function isArrayBlockField(
-    field: ArrayBlockField | DictionaryBlockField | PlainTextWithinBlock
+    field:
+        | ArrayBlockField
+        | DictionaryBlockSimpleField
+        | DictionaryBlockArrayField
+        | PlainTextWithinBlock,
 ): field is ArrayBlockField {
     return ["entry", "entryRange"].every((expected) =>
-        Object.keys(field).includes(expected)
+        Object.keys(field).includes(expected),
     );
 }
