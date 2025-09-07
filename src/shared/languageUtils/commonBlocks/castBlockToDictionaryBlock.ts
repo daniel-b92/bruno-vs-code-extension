@@ -1,5 +1,4 @@
-import { isDictionaryBlockField } from "../..";
-import { DictionaryBlock, Block } from "./interfaces";
+import { Block, DictionaryBlock, isDictionaryBlockField } from "../..";
 
 export function castBlockToDictionaryBlock(block: Block) {
     return Array.isArray(block.content) &&

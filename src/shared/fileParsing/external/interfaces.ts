@@ -47,6 +47,13 @@ export interface ArrayBlockField {
     entryRange: Range;
 }
 
+export interface TextBlock {
+    name: string;
+    nameRange: Range;
+    content: string;
+    contentRange: Range;
+}
+
 export interface PlainTextWithinBlock {
     text: string;
     range: Range;
