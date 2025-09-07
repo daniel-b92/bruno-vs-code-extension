@@ -6,13 +6,16 @@ import {
     doesFileNameMatchFolderSettingsFileName,
     normalizeDirectoryPath,
     checkIfPathExistsAsync,
-    FileType,
+    ItemType,
+    NonBrunoSpecificItemType,
 } from "../..";
+import { promisify } from "util";
+import { lstat } from "fs";
 
-export async function getFileType(
+export async function getItemType(
     collection: Collection,
     path: string,
-): Promise<FileType | undefined> {
+): Promise<ItemType | undefined> {
     if (!(await checkIfPathExistsAsync(path))) {
         return undefined;
     }
@@ -22,7 +25,9 @@ export async function getFileType(
         path.startsWith(normalizeDirectoryPath(collection.getRootDirectory()));
 
     if (!isValidBruFile) {
-        return "other";
+        return (await promisify(lstat)(path)).isFile()
+            ? NonBrunoSpecificItemType.OtherFileType
+            : NonBrunoSpecificItemType.Directory;
     }
 
     if (isEnvironmentFile(path)) {

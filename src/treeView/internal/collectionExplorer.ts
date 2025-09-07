@@ -14,7 +14,7 @@ import {
     getMaxSequenceForFolders,
     getFolderSettingsFilePath,
     checkIfPathExistsAsync,
-    CollectionFile,
+    BrunoRequestFile,
     isBrunoFileType,
     DialogOptionLabelEnum,
 } from "../../shared";
@@ -140,16 +140,16 @@ export class CollectionExplorer
                 return;
             }
 
-            const fileType = (originalItem as CollectionFile).getFileType();
+            const itemType = (originalItem as BrunoRequestFile).getItemType();
 
-            if (isBrunoFileType(fileType)) {
+            if (isBrunoFileType(itemType)) {
                 await moveFileIntoFolder(
                     this.itemProvider,
                     sourcePath,
                     newPath,
                     target,
                     dirname(newPath),
-                    fileType,
+                    itemType,
                 );
                 return;
             }
@@ -414,8 +414,8 @@ export class CollectionExplorer
                     itemDataWithcollection &&
                     isFile &&
                     (
-                        itemDataWithcollection.data.item as CollectionFile
-                    ).getFileType() == BrunoFileType.RequestFile;
+                        itemDataWithcollection.data.item as BrunoRequestFile
+                    ).getItemType() == BrunoFileType.RequestFile;
 
                 const renamed = await renameFileOrFolder(
                     originalPath,
@@ -514,8 +514,8 @@ export class CollectionExplorer
                 const { collection } = itemDataWithCollection;
 
                 const fileType = (
-                    itemDataWithCollection.data.item as CollectionFile
-                ).getFileType();
+                    itemDataWithCollection.data.item as BrunoRequestFile
+                ).getItemType();
 
                 if (
                     fileType != BrunoFileType.CollectionSettingsFile &&
@@ -573,8 +573,8 @@ export class CollectionExplorer
 
                 const fileType =
                     itemDataWithCollection &&
-                    itemDataWithCollection.data.item instanceof CollectionFile
-                        ? itemDataWithCollection.data.item.getFileType()
+                    itemDataWithCollection.data.item.isFile()
+                        ? itemDataWithCollection.data.item.getItemType()
                         : undefined;
 
                 await promisify(rm)(item.getPath(), {

@@ -10,7 +10,7 @@ import {
 export class Collection {
     constructor(
         private rootDirectory: string,
-        testRunnerDataHelper: TestRunnerDataHelper
+        testRunnerDataHelper: TestRunnerDataHelper,
     ) {
         const item = new CollectionDirectory(rootDirectory);
 
@@ -51,7 +51,7 @@ export class Collection {
             console.warn(
                 `Did not find collection item to be removed with path '${item.getPath()}' for collection root directory '${
                     this.rootDirectory
-                }'.`
+                }'.`,
             );
             return;
         }
@@ -61,7 +61,7 @@ export class Collection {
                 ({ item: registered }) =>
                     registered
                         .getPath()
-                        .startsWith(normalizeDirectoryPath(item.getPath()))
+                        .startsWith(normalizeDirectoryPath(item.getPath())),
             );
             for (const { item: toRemove } of descendantsToRemove) {
                 this.removeTestItemIfRegistered(toRemove.getPath());
@@ -73,7 +73,7 @@ export class Collection {
         const itemIndex = this.testData.findIndex(
             ({ item: registered }) =>
                 normalizeDirectoryPath(registered.getPath()) ==
-                normalizeDirectoryPath(itemPath)
+                normalizeDirectoryPath(itemPath),
         );
 
         if (itemIndex != -1) {

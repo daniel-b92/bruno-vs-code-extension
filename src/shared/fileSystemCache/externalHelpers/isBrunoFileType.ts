@@ -1,7 +1,9 @@
-import { BrunoFileType, FileType } from "../..";
+import { BrunoFileType, ItemType, NonBrunoSpecificItemType } from "../..";
 
-export function isBrunoFileType(fileType: FileType): fileType is BrunoFileType {
+export function isBrunoFileType(itemType: ItemType): itemType is BrunoFileType {
     return (
-        fileType != "other" && Object.values(BrunoFileType).includes(fileType)
+        !(Object.values(NonBrunoSpecificItemType) as ItemType[]).includes(
+            itemType,
+        ) && (Object.values(BrunoFileType) as ItemType[]).includes(itemType)
     );
 }

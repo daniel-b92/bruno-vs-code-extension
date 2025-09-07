@@ -17,7 +17,6 @@ import {
     BrunoFileType,
     Collection,
     CollectionDirectory,
-    CollectionFile,
     CollectionItemProvider,
     FileChangeType,
     getExtensionForBrunoFiles,
@@ -240,7 +239,7 @@ function handleDiagnosticUpdatesOnFileDeletionForBruFile(
         } of updates) {
             if (
                 updateType == FileChangeType.Deleted &&
-                item instanceof CollectionFile &&
+                item.isFile() &&
                 extname(item.getPath()) == getExtensionForBrunoFiles()
             ) {
                 diagnosticCollection.delete(Uri.file(item.getPath()));
@@ -455,9 +454,9 @@ async function getBrunoFileTypeIfExists(
 
     return itemWithCollection &&
         (await checkIfPathExistsAsync(filePath)) &&
-        itemWithCollection.data.item instanceof CollectionFile &&
-        isBrunoFileType(itemWithCollection.data.item.getFileType())
-        ? (itemWithCollection.data.item.getFileType() as BrunoFileType)
+        itemWithCollection.data.item.isFile() &&
+        isBrunoFileType(itemWithCollection.data.item.getItemType())
+        ? (itemWithCollection.data.item.getItemType() as BrunoFileType)
         : undefined;
 }
 
