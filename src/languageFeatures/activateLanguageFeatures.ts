@@ -42,7 +42,7 @@ import { provideCodeBlocksCompletionItems } from "./internal/brunoFiles/completi
 import { provideInfosOnHover as provideInfosOnHoverForBruFiles } from "./internal/brunoFiles/hover/provideInfosOnHover";
 import { provideSignatureHelp as provideSignatureHelpForBruFiles } from "./internal/brunoFiles/signatureHelp/provideSignatureHelp";
 import { provideDefinitions as provideDefinitionsForBruFiles } from "./internal/brunoFiles/definitionProvider/provideDefinitions";
-import { extname, resolve } from "path";
+import { extname } from "path";
 import { registerCodeBlockFormatter } from "./internal/brunoFiles/formatting/registerCodeBlockFormatter";
 import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "./internal/shared/temporaryJsFilesUpdates/internal/interfaces";
@@ -90,21 +90,6 @@ export async function activateLanguageFeatures(
         tempJsFilesProvider,
         ...provideBrunoLangCompletionItems(itemProvider, logger),
         provideCodeBlocksCompletionItems(
-            tempJsFilesUpdateQueue,
-            itemProvider,
-            logger,
-        ),
-        provideInfosOnHoverForBruFiles(
-            tempJsFilesUpdateQueue,
-            itemProvider,
-            logger,
-        ),
-        provideSignatureHelpForBruFiles(
-            tempJsFilesUpdateQueue,
-            itemProvider,
-            logger,
-        ),
-        provideDefinitionsForBruFiles(
             tempJsFilesUpdateQueue,
             itemProvider,
             logger,
@@ -473,13 +458,11 @@ async function fetchAvailableVarsFromConfiguredEnvironments(
     const environmentFiles = (
         await Promise.all(
             collections.map(async (collection) => {
-                const environmentFile = resolve(
-                    collection.getRootDirectory(),
-                    "environments",
-                    `${environmentName}${getExtensionForBrunoFiles()}`,
-                ); // ToDo: Save type of file already in cache
+                const environmentFile =
+                    collection.getBrunoEnvironmentFile(environmentName);
 
-                return (await checkIfPathExistsAsync(environmentFile))
+                return environmentFile &&
+                    (await checkIfPathExistsAsync(environmentFile.getPath()))
                     ? { collection, environmentFile }
                     : undefined;
             }),
@@ -491,7 +474,7 @@ async function fetchAvailableVarsFromConfiguredEnvironments(
             environmentFiles.map(async ({ collection, environmentFile }) => {
                 const varsBlocks = parseBruFile(
                     new TextDocumentHelper(
-                        await promisify(readFile)(environmentFile, {
+                        await promisify(readFile)(environmentFile.getPath(), {
                             encoding: "utf-8",
                         }),
                     ),
