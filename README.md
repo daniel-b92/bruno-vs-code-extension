@@ -1,6 +1,6 @@
 ## About the project
 
-The goal is to provide a VS Code extension that allows working with `Bruno` files like working with code, including features like intellisense. `Bruno` is an open source API client, see [online docs](https://docs.usebruno.com/) for more infos.
+The VS Code extension allows working with `.bru` files like working with code. The main focus is on providing great intellisense when working with `.bru` files or `.js` files in `Bruno` collections. `Bruno` is an open source API client, see [online docs](https://docs.usebruno.com/) for more infos.
 
 **Disclaimer: All Bruno names, brands, trademarks, service marks and logos are the property of Bruno. This extension is not the official VS Code extension but instead a non-official one. The official extension can be found [here](https://marketplace.visualstudio.com/items?itemName=bruno-api-client.bruno).**
 
@@ -22,17 +22,18 @@ The main features of the extension are
 
 For getting the most out of the extension, please follow these steps when installing it:
 
+- If you already have an extension installed for working with `.bru` files (like e.g. the official [Bruno](https://marketplace.visualstudio.com/items?itemName=bruno-api-client.bruno) extension):
+  - Please uninstall the other extension. Otherwise you may run into unexpected issues due to incompatibilities.
 - Install `node js` and `npm`, if you haven't already.
 - If your collection is in a git repository, add the entry `**/__temp_bru_reference.js` to your gitignore file.
   - The extension will sometimes temporarily create a file with this name for providing the Javascript intellisense.
-- After installing the extension, you may need to trigger a restart of the extension host for the full intellisense to work (you can do this by opening the command palette (Ctrl + Shift + p) and executing the command for restarting the extension host).
-
 
 ### Improving intellisense
 - You can improve intellisense by adding type definitions as dev dependencies for all inbuilt libraries from `bruno` that you use:
   - Most importantly for [Mocha](https://www.npmjs.com/package/@types/mocha) (intellisense for `test('description', function() {...})`) and [Chai](https://www.npmjs.com/package/@types/chai) (intellisense for `expect` validations).
   - Further inbuilt libraries that you use (e.g. `axios` or `moment`).
-- Add typings via JSDoc in your code blocks and Javascript scripts, see https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html
+- Add typings via JSDoc in your code blocks and Javascript scripts, see https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html.
+- If you have defined a `tsconfig.json` for your collection, you can e.g. activate type checking for your Javascript files or enable the `strict` type checking mode, see https://www.typescriptlang.org/tsconfig/ for more infos.
 
 ## Contributing
 

@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Improvements
+- Add a warning in the readme about using other extensions for `.bru` files simultaneously with this one.
+- Add further advice on improving intellisense in the readme via `tsconfig` options.
+
 ## [0.17.5] (2025-09-06)
 
 ### Fixes / Improvements
