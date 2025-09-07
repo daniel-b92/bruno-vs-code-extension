@@ -5,10 +5,11 @@ import {
     BrunoFileType,
     Collection,
     CollectionDirectory,
-    CollectionFile,
-    CollectionItem,
+    CollectionItemWithSequence,
     filterAsync,
     normalizeDirectoryPath,
+    CollectionItem,
+    isCollectionItemWithSequence,
 } from "../..";
 
 export class TestRunnerDataHelper {
@@ -22,7 +23,7 @@ export class TestRunnerDataHelper {
             uri,
         );
 
-        if (item instanceof CollectionFile) {
+        if (item.isFile()) {
             testItem.canResolveChildren = false;
         } else {
             testItem.canResolveChildren = true;
@@ -42,7 +43,7 @@ export class TestRunnerDataHelper {
             directory,
         );
 
-        for (const { item } of relevantFiles) {
+        for (const item of relevantFiles) {
             addTestItemAndAncestorsToTestTree(
                 this.testController,
                 collectionForDirectory,
@@ -55,22 +56,26 @@ export class TestRunnerDataHelper {
         collectionForDirectory: Collection,
         directory: CollectionDirectory,
     ) {
-        return await filterAsync(
-            collectionForDirectory.getAllStoredDataForCollection().slice(),
-            async ({ item }) =>
-                item instanceof CollectionFile &&
-                item.getFileType() == BrunoFileType.RequestFile &&
+        return (await filterAsync(
+            collectionForDirectory
+                .getAllStoredDataForCollection()
+                .slice()
+                .map(({ item }) => item),
+            async (item) =>
+                item.isFile() &&
+                item.getItemType() == BrunoFileType.RequestFile &&
+                isCollectionItemWithSequence(item) &&
                 item.getSequence() != undefined &&
                 item
                     .getPath()
                     .startsWith(normalizeDirectoryPath(directory.getPath())),
-        );
+        )) as CollectionItemWithSequence[];
     }
 
     public dispose() {}
 
     private getVsCodeTestItemSortText(item: CollectionItem) {
-        return item.getSequence()
+        return isCollectionItemWithSequence(item) && item.getSequence()
             ? new Array((item.getSequence() as number) + 1)
                   .join("a")
                   .concat(item instanceof CollectionDirectory ? "" : "b")

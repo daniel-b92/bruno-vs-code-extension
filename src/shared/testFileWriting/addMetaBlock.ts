@@ -4,11 +4,12 @@ import {
     parseBruFile,
     RequestFileBlockName,
     Collection,
-    CollectionFile,
+    BrunoRequestFile,
     MetaBlockContent,
     TextDocumentHelper,
     checkIfPathExistsAsync,
     getLineBreak,
+    isCollectionItemWithSequence,
 } from "..";
 import { getNumberOfWhitespacesForIndentation } from "./internal/writerUtils";
 import { promisify } from "util";
@@ -65,11 +66,12 @@ function getContent(
         .getAllStoredDataForCollection()
         .filter(
             ({ item }) =>
-                item instanceof CollectionFile &&
+                item.isFile() &&
                 dirname(item.getPath()) == dirname(testFilePath) &&
+                isCollectionItemWithSequence(item) &&
                 item.getSequence() != undefined,
         )
-        .map(({ item }) => (item as CollectionFile).getSequence() as number);
+        .map(({ item }) => (item as BrunoRequestFile).getSequence() as number);
 
     return {
         name: basename(testFilePath).substring(
