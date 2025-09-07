@@ -14,7 +14,6 @@ import {
     getMaxSequenceForFolders,
     getFolderSettingsFilePath,
     checkIfPathExistsAsync,
-    BrunoRequestFile,
     isBrunoFileType,
     DialogOptionLabelEnum,
 } from "../../shared";
@@ -140,7 +139,7 @@ export class CollectionExplorer
                 return;
             }
 
-            const itemType = (originalItem as BrunoRequestFile).getItemType();
+            const itemType = originalItem.getItemType();
 
             if (isBrunoFileType(itemType)) {
                 await moveFileIntoFolder(
@@ -413,9 +412,8 @@ export class CollectionExplorer
                 const isRequestFile =
                     itemDataWithcollection &&
                     isFile &&
-                    (
-                        itemDataWithcollection.data.item as BrunoRequestFile
-                    ).getItemType() == BrunoFileType.RequestFile;
+                    itemDataWithcollection.data.item.getItemType() ==
+                        BrunoFileType.RequestFile;
 
                 const renamed = await renameFileOrFolder(
                     originalPath,
@@ -513,9 +511,7 @@ export class CollectionExplorer
 
                 const { collection } = itemDataWithCollection;
 
-                const fileType = (
-                    itemDataWithCollection.data.item as BrunoRequestFile
-                ).getItemType();
+                const fileType = itemDataWithCollection.data.item.getItemType();
 
                 if (
                     fileType != BrunoFileType.CollectionSettingsFile &&

@@ -15,7 +15,7 @@ export class BrunoRequestFile implements CollectionItemWithSequence {
     }
 
     public isFile() {
-        return false;
+        return true;
     }
 
     public getItemType() {
