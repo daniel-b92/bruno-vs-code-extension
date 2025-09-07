@@ -89,6 +89,7 @@ export class Collection {
     }
 
     public getBrunoEnvironmentFile(environmentName: string) {
+        // ToDo: Store environment files in separate array. There also variable references (or parsed variable blocks) could be stored later on.
         const matchingItems = this.testData
             .slice()
             .filter(
