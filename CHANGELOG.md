@@ -1,8 +1,9 @@
-## [Unreleased]
+## [0.17.6] (2025-09-15)
 
 ### Fixes / Improvements
 - Add a warning in the readme about using other extensions for `.bru` files simultaneously with this one.
 - Add further advice on improving intellisense in the readme via `tsconfig` options.
+- Filter out misleading Typescript error in `.bru` files stating that elements of an array implicitly have an `any` type.
 
 ## [0.17.5] (2025-09-06)
 
