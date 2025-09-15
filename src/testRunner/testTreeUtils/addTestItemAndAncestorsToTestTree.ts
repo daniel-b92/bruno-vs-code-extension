@@ -3,7 +3,7 @@ import {
     Collection,
     normalizeDirectoryPath,
     CollectionData,
-    CollectionItem,
+    CollectionItemWithSequence,
 } from "../../shared";
 import { dirname } from "path";
 import { getTestId } from "./testTreeHelper";
@@ -11,7 +11,7 @@ import { getTestId } from "./testTreeHelper";
 export function addTestItemAndAncestorsToTestTree(
     controller: TestController,
     collection: Collection,
-    item: CollectionItem
+    item: CollectionItemWithSequence
 ) {
     const data = collection.getStoredDataForPath(item.getPath());
 
@@ -32,7 +32,7 @@ export function addTestItemAndAncestorsToTestTree(
 function addMissingAncestorItemsToTestTree(
     controller: TestController,
     collection: Collection,
-    item: CollectionItem
+    item: CollectionItemWithSequence
 ) {
     const missingAncestors: CollectionData[] = [];
 
@@ -100,7 +100,7 @@ function addTestItemToListOfChildrenFromParent(
     }
 }
 
-function getAncestors(collection: Collection, item: CollectionItem) {
+function getAncestors(collection: Collection, item: CollectionItemWithSequence) {
     return collection.getAllStoredDataForCollection().filter(({ item: i }) => {
         const normalizedDescendantItemPath = normalizeDirectoryPath(
             item.getPath()

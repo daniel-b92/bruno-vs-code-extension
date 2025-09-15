@@ -1,7 +1,7 @@
 import {
     BrunoFileType,
     Collection,
-    getFileType,
+    getItemType,
     parseSequenceFromMetaBlock,
 } from "../../..";
 
@@ -10,7 +10,7 @@ export async function getSequenceForFile(
     filePath: string,
 ) {
     if (
-        (await getFileType(collection, filePath)) != BrunoFileType.RequestFile
+        (await getItemType(collection, filePath)) != BrunoFileType.RequestFile
     ) {
         return undefined;
     }
