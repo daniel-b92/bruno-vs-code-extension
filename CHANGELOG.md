@@ -1,3 +1,9 @@
+## [0.17.7] (2025-10-26)
+
+### Fixes / Improvements
+- Filter out incorrect diagnostics for `expect` statements referring to `JestMatchers` (only seems to have occured when using `@types/jest` npm package).
+- Make handling of temp JS file updates more resilient by restarting entire queue when running into a timeout (instead of just throwing an error).
+
 ## [0.17.6] (2025-09-15)
 
 ### Fixes / Improvements
