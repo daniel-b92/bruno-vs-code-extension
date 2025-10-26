@@ -6,7 +6,7 @@
         "strict": true,
         "checkJs": true,
         "noEmit": true,
-        "allowJs": true
+        "allowJs": true,
     },
     "exclude": ["node_modules"]
 }
