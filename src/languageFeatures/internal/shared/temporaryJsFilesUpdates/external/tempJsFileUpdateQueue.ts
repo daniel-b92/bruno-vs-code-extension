@@ -64,7 +64,7 @@ export class TempJsFileUpdateQueue {
     public async addToQueue(
         updateRequest: TempJsUpdateRequest,
     ): Promise<boolean> {
-        const timeoutInMs = 15_000;
+        const timeoutInMs = 10;
         const timeoutIdentifier = 1;
 
         const toAwait = new Promise<number | boolean>((resolve) => {
@@ -103,10 +103,12 @@ export class TempJsFileUpdateQueue {
 
         const fulfilledCondition = await toAwait;
 
-        if (typeof fulfilledCondition == "number" && fulfilledCondition === 1) {
-            throw new Error(
-                `Update request for temp js file seems to be stuck. The timeout has been reached.`,
+        if (typeof fulfilledCondition == "number" && fulfilledCondition === timeoutIdentifier) {
+            this.logger?.error(
+                `Update request for temp js file seems to be stuck. The timeout has been reached. Will restart whole queue for updates.`,
             );
+            this.resetWholeState();
+            return false;
         }
 
         return fulfilledCondition as boolean;
