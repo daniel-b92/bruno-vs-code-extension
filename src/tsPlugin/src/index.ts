@@ -437,7 +437,8 @@ function filterOutMisleadingDiagnosticsForOtherTestFrameworks(
                 ? messageText
                 : messageText.messageText;
 
-        code != 2_339 || !errorText.includes("JestMatchers<any>");
+        // When using global type definitions for Jest, the TS server expects every `expect` statement to use the matchers for Jest.
+        return code != 2_339 || !errorText.includes("JestMatchers<any>");
     });
 }
 
