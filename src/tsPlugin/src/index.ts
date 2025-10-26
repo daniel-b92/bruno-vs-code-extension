@@ -412,7 +412,9 @@ function filterOutDiagnosticsForInbuiltRuntimeFunctions(
     diagnosticsToFilter: (ts.Diagnostic | ts.DiagnosticWithLocation)[],
     fileContent: string,
 ) {
-    return diagnosticsToFilter.filter(
+    return filterOutMisleadingDiagnosticsForOtherTestFrameworks(
+        diagnosticsToFilter,
+    ).filter(
         ({ start, length }) =>
             start != undefined &&
             length != undefined &&
@@ -424,6 +426,19 @@ function filterOutDiagnosticsForInbuiltRuntimeFunctions(
             // (the error seems to only occur for short periods of time when typescript type definitions have not been reloaded for a while)
             fileContent.substring(start, start + length) != "require",
     );
+}
+
+function filterOutMisleadingDiagnosticsForOtherTestFrameworks(
+    diagnostics: (ts.Diagnostic | ts.DiagnosticWithLocation)[],
+) {
+    return diagnostics.filter(({ code, messageText }) => {
+        const errorText =
+            typeof messageText == "string"
+                ? messageText
+                : messageText.messageText;
+
+        code != 2_339 || !errorText.includes("JestMatchers<any>");
+    });
 }
 
 function getFileContent(info: ts.server.PluginCreateInfo, fileName: string) {
