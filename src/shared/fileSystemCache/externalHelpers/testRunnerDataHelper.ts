@@ -30,6 +30,10 @@ export class TestRunnerDataHelper {
 
         testItem.sortText = this.getVsCodeTestItemSortText(item);
 
+        const sequence = item.getSequence();
+        testItem.description =
+            sequence != undefined ? `seq: ${sequence}` : undefined;
+
         return testItem;
     };
 
@@ -71,9 +75,9 @@ export class TestRunnerDataHelper {
 
     private getVsCodeTestItemSortText(item: CollectionItem) {
         return item.getSequence()
-            ? new Array((item.getSequence() as number) + 1)
-                  .join("a")
-                  .concat(item instanceof CollectionDirectory ? "" : "b")
+            ? (item instanceof CollectionDirectory ? "" : "b").concat(
+                  new Array((item.getSequence() as number) + 1).join("a"),
+              )
             : undefined;
     }
 }
