@@ -30,10 +30,6 @@ export class TestRunnerDataHelper {
 
         testItem.sortText = this.getVsCodeTestItemSortText(item);
 
-        const sequence = item.getSequence();
-        testItem.description =
-            sequence != undefined ? `seq: ${sequence}` : undefined;
-
         return testItem;
     };
 
