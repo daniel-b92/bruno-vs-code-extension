@@ -14,6 +14,7 @@ import {
 } from "vscode";
 import { QueueUpdateHandler } from "../internal/queueUpdateHandler";
 import { basename, dirname } from "path";
+import { v4 as uuid } from "uuid";
 
 export class TempJsFileUpdateQueue {
     constructor(
@@ -103,7 +104,10 @@ export class TempJsFileUpdateQueue {
 
         const fulfilledCondition = await toAwait;
 
-        if (typeof fulfilledCondition == "number" && fulfilledCondition === timeoutIdentifier) {
+        if (
+            typeof fulfilledCondition == "number" &&
+            fulfilledCondition === timeoutIdentifier
+        ) {
             this.logger?.error(
                 `Update request for temp js file seems to be stuck. The timeout has been reached. Will restart whole queue for updates.`,
             );
@@ -434,10 +438,6 @@ export class TempJsFileUpdateQueue {
     }
 
     private getIdForRequest(request: TempJsUpdateRequest) {
-        const { update } = request;
-
-        return update.type == TempJsUpdateType.Creation
-            ? `${update.type}-${update.filePath}-${update.tempJsFileContent}-${new Date().getTime()}`
-            : `${update.type}-${update.filePaths.join(",")}-${new Date().getTime()}`;
+        return `${request.update.type}-${uuid()}`;
     }
 }
