@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Improvements
+- Fix sorting of requests and folders by sequence in test explorer view.
+
+
 ## [0.17.7] (2025-10-26)
 
 ### Fixes / Improvements
