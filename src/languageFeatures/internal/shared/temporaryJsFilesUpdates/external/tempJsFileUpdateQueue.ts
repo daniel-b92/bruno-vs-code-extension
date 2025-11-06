@@ -79,6 +79,8 @@ export class TempJsFileUpdateQueue {
                     resolve(succeeded);
                 },
                 (err) => {
+                    clearTimeout(timeout);
+
                     if (
                         Object.keys(err as object).includes("code") &&
                         (err as { code: string }).code == "ABORT_ERR"
