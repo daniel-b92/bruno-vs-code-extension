@@ -15,6 +15,7 @@ import {
 import { QueueUpdateHandler } from "../internal/queueUpdateHandler";
 import { basename, dirname } from "path";
 import { v4 as uuid } from "uuid";
+import { PendingRequestNotifier } from "../internal/pendingRequestNotifier";
 
 export class TempJsFileUpdateQueue {
     constructor(
@@ -55,6 +56,7 @@ export class TempJsFileUpdateQueue {
         request: TempJsUpdateRequest;
         id: string;
     }>();
+    private pendingRequestNotifier = new PendingRequestNotifier();
 
     /**
      *
@@ -69,23 +71,36 @@ export class TempJsFileUpdateQueue {
         const timeoutIdentifier = 1;
 
         const toAwait = new Promise<number | boolean>((resolve) => {
-            const timeout = setTimeout(() => {
+            const timeoutForAbortion = setTimeout(() => {
                 resolve(timeoutIdentifier);
             }, timeoutInMs);
 
+            const timeoutForNotication = setTimeout(
+                () => {
+                    this.pendingRequestNotifier.showPendingRequestInfo();
+                },
+                Math.round(timeoutInMs / 2.0),
+            );
+
+            const clearTimeoutsAndStopShowingNotifier = () => {
+                clearTimeout(timeoutForAbortion);
+                clearTimeout(timeoutForNotication);
+                this.pendingRequestNotifier.stopShowingPendingRequestInfo();
+            };
+
             this.tryToAddToQueue(updateRequest).then(
                 (succeeded) => {
-                    clearTimeout(timeout);
+                    clearTimeoutsAndStopShowingNotifier();
                     resolve(succeeded);
                 },
                 (err) => {
-                    clearTimeout(timeout);
+                    clearTimeoutsAndStopShowingNotifier()
 
                     if (
                         Object.keys(err as object).includes("code") &&
                         (err as { code: string }).code == "ABORT_ERR"
                     ) {
-                        this.logger?.warn(
+                        this.logger?.info(
                             "Received abortion error that was thrown during temp js file creation. Will reset whole queuing state, in order to clean up the queue.",
                         );
 
