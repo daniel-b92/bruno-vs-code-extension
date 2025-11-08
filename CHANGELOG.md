@@ -2,6 +2,9 @@
 
 ### Fixes / Improvements
 - Fix sorting of requests and folders by sequence in test explorer view.
+- Improve stability and transparency for language features.
+  - Ensure that unique identifiers are used internally for the temp JS update requests.
+  - Show notification when waiting longer than expected for temp JS update.
 
 
 ## [0.17.7] (2025-10-26)
