@@ -75,12 +75,16 @@ export class TempJsFileUpdateQueue {
                 resolve(timeoutIdentifier);
             }, timeoutInMs);
 
-            const timeoutForNotication = setTimeout(
-                () => {
-                    this.pendingRequestNotifier.showPendingRequestInfo();
-                },
-                Math.round(timeoutInMs / 2.0),
-            );
+            const timeoutForNotication =
+                // Deletions are only triggered in the background and should not be relevant for the user.
+                updateRequest.update.type == TempJsUpdateType.Creation
+                    ? setTimeout(
+                          () => {
+                              this.pendingRequestNotifier.showPendingRequestInfo();
+                          },
+                          Math.round(timeoutInMs / 2.0),
+                      )
+                    : undefined;
 
             const clearTimeoutsAndStopShowingNotifier = () => {
                 clearTimeout(timeoutForAbortion);
