@@ -14,6 +14,8 @@ import {
 } from "vscode";
 import { QueueUpdateHandler } from "../internal/queueUpdateHandler";
 import { basename, dirname } from "path";
+import { v4 as uuid } from "uuid";
+import { PendingRequestNotifier } from "../internal/pendingRequestNotifier";
 
 export class TempJsFileUpdateQueue {
     constructor(
@@ -54,6 +56,7 @@ export class TempJsFileUpdateQueue {
         request: TempJsUpdateRequest;
         id: string;
     }>();
+    private pendingRequestNotifier = new PendingRequestNotifier();
 
     /**
      *
@@ -64,25 +67,44 @@ export class TempJsFileUpdateQueue {
     public async addToQueue(
         updateRequest: TempJsUpdateRequest,
     ): Promise<boolean> {
-        const timeoutInMs = 15_000;
+        const timeoutInMs = 10_000;
         const timeoutIdentifier = 1;
 
         const toAwait = new Promise<number | boolean>((resolve) => {
-            const timeout = setTimeout(() => {
+            const timeoutForAbortion = setTimeout(() => {
                 resolve(timeoutIdentifier);
             }, timeoutInMs);
 
+            const timeoutForNotication =
+                // Deletions are only triggered in the background and should not be relevant for the user.
+                updateRequest.update.type == TempJsUpdateType.Creation
+                    ? setTimeout(
+                          () => {
+                              this.pendingRequestNotifier.showPendingRequestInfo();
+                          },
+                          Math.round(timeoutInMs / 2.0),
+                      )
+                    : undefined;
+
+            const clearTimeoutsAndStopShowingNotifier = () => {
+                clearTimeout(timeoutForAbortion);
+                clearTimeout(timeoutForNotication);
+                this.pendingRequestNotifier.stopShowingPendingRequestInfo();
+            };
+
             this.tryToAddToQueue(updateRequest).then(
                 (succeeded) => {
-                    clearTimeout(timeout);
+                    clearTimeoutsAndStopShowingNotifier();
                     resolve(succeeded);
                 },
                 (err) => {
+                    clearTimeoutsAndStopShowingNotifier();
+
                     if (
                         Object.keys(err as object).includes("code") &&
                         (err as { code: string }).code == "ABORT_ERR"
                     ) {
-                        this.logger?.warn(
+                        this.logger?.info(
                             "Received abortion error that was thrown during temp js file creation. Will reset whole queuing state, in order to clean up the queue.",
                         );
 
@@ -103,10 +125,15 @@ export class TempJsFileUpdateQueue {
 
         const fulfilledCondition = await toAwait;
 
-        if (typeof fulfilledCondition == "number" && fulfilledCondition === 1) {
-            throw new Error(
-                `Update request for temp js file seems to be stuck. The timeout has been reached.`,
+        if (
+            typeof fulfilledCondition == "number" &&
+            fulfilledCondition === timeoutIdentifier
+        ) {
+            this.logger?.error(
+                `Update request for temp js file seems to be stuck. The timeout has been reached. Will restart whole queue for updates.`,
             );
+            this.resetWholeState();
+            return false;
         }
 
         return fulfilledCondition as boolean;
@@ -118,6 +145,7 @@ export class TempJsFileUpdateQueue {
         this.requestAddedToQueueNotifier.dispose();
         this.activeUpdate = undefined;
         this.queueUpdater.dispose();
+        this.pendingRequestNotifier.dispose();
     }
 
     private resetWholeState() {
@@ -432,10 +460,6 @@ export class TempJsFileUpdateQueue {
     }
 
     private getIdForRequest(request: TempJsUpdateRequest) {
-        const { update } = request;
-
-        return update.type == TempJsUpdateType.Creation
-            ? `${update.type}-${update.filePath}-${update.tempJsFileContent}-${new Date().getTime()}`
-            : `${update.type}-${update.filePaths.join(",")}-${new Date().getTime()}`;
+        return `${request.update.type}-${new Date().toISOString()}-${uuid()}`;
     }
 }

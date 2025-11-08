@@ -76,9 +76,9 @@ export class TestRunnerDataHelper {
 
     private getVsCodeTestItemSortText(item: CollectionItem) {
         return isCollectionItemWithSequence(item) && item.getSequence()
-            ? new Array((item.getSequence() as number) + 1)
-                  .join("a")
-                  .concat(item instanceof CollectionDirectory ? "" : "b")
+            ? (item instanceof CollectionDirectory ? "" : "b").concat(
+                  new Array((item.getSequence() as number) + 1).join("a"),
+              )
             : undefined;
     }
 }

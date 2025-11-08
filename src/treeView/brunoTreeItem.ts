@@ -5,20 +5,20 @@ export class BrunoTreeItem extends vscode.TreeItem {
     constructor(
         public readonly path: string,
         public readonly isFile: boolean,
-        private sequence?: number
+        private sequence?: number,
     ) {
         super(
             basename(path),
             isFile
                 ? vscode.TreeItemCollapsibleState.None
-                : vscode.TreeItemCollapsibleState.Collapsed
+                : vscode.TreeItemCollapsibleState.Collapsed,
         );
 
         this.tooltip = sequence
             ? `${this.label} (sequence: ${this.sequence})`
             : `${this.label}`;
 
-        this.description = sequence ? `sequence: ${this.sequence}` : undefined;
+        this.description = sequence ? `seq: ${this.sequence}` : undefined;
 
         if (isFile) {
             this.command = {

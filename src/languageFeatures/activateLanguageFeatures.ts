@@ -274,6 +274,9 @@ async function handleOpeningOfBruDocument(
     );
 
     if (!brunoFileType) {
+        window.showWarningMessage(
+            "'bru' file seems to not be part of a valid collection. Therefore, intellisense will be limited.",
+        );
         await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
         return;
     }

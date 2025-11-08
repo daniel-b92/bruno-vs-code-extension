@@ -1,3 +1,19 @@
+## [Unreleased]
+
+### Fixes / Improvements
+- Fix sorting of requests and folders by sequence in test explorer view.
+- Improve stability and transparency for language features.
+  - Ensure that unique identifiers are used internally for the temp JS update requests.
+  - Show notification when waiting longer than expected for temp JS update.
+  - Show warning for `bru` files that are not inside a valid collection, that intellisense will be limited.
+
+
+## [0.17.7] (2025-10-26)
+
+### Fixes / Improvements
+- Filter out incorrect diagnostics for `expect` statements referring to `JestMatchers` (only seems to have occured when using `@types/jest` npm package).
+- Make handling of temp JS file updates more resilient by restarting entire queue when running into a timeout (instead of just throwing an error).
+
 ## [0.17.6] (2025-09-15)
 
 ### Fixes / Improvements

@@ -2,7 +2,7 @@
     "name": "bru-as-code",
     "displayName": "bru-as-code",
     "description": "Enables working with '.bru' files in a manner like working with code",
-    "version": "0.17.6",
+    "version": "0.17.7",
     "publisher": "daniel-b92",
     "private": true,
     "license": "MIT",
@@ -53,7 +53,8 @@
         "prettier": "^3.6.2",
         "process": "^0.11.10",
         "tree-kill": "^1.2.2",
-        "typescript": "^5.9.2"
+        "typescript": "^5.9.2",
+        "uuid": "^13.0.0"
     },
     "contributes": {
         "configuration": {
