@@ -455,6 +455,6 @@ export class TempJsFileUpdateQueue {
     }
 
     private getIdForRequest(request: TempJsUpdateRequest) {
-        return `${request.update.type}-${uuid()}`;
+        return `${request.update.type}-${new Date().toISOString()}-${uuid()}`;
     }
 }
