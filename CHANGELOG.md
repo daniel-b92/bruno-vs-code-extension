@@ -5,6 +5,7 @@
 - Improve stability and transparency for language features.
   - Ensure that unique identifiers are used internally for the temp JS update requests.
   - Show notification when waiting longer than expected for temp JS update.
+  - Show warning for `bru` files that are not inside a valid collection, that intellisense will be limited.
 
 
 ## [0.17.7] (2025-10-26)
