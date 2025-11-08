@@ -38,4 +38,8 @@ export class PendingRequestNotifier {
 
         this.stopShowingNotificationNotifier.fire();
     }
+
+    public dispose() {
+        this.stopShowingNotificationNotifier.dispose();
+    }
 }

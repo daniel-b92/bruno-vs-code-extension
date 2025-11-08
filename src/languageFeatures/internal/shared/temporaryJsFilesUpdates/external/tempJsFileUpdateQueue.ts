@@ -141,6 +141,7 @@ export class TempJsFileUpdateQueue {
         this.requestAddedToQueueNotifier.dispose();
         this.activeUpdate = undefined;
         this.queueUpdater.dispose();
+        this.pendingRequestNotifier.dispose();
     }
 
     private resetWholeState() {
