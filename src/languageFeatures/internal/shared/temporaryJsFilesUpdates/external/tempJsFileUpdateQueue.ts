@@ -67,7 +67,7 @@ export class TempJsFileUpdateQueue {
     public async addToQueue(
         updateRequest: TempJsUpdateRequest,
     ): Promise<boolean> {
-        const timeoutInMs = 15_000;
+        const timeoutInMs = 10_000;
         const timeoutIdentifier = 1;
 
         const toAwait = new Promise<number | boolean>((resolve) => {
@@ -94,7 +94,7 @@ export class TempJsFileUpdateQueue {
                     resolve(succeeded);
                 },
                 (err) => {
-                    clearTimeoutsAndStopShowingNotifier()
+                    clearTimeoutsAndStopShowingNotifier();
 
                     if (
                         Object.keys(err as object).includes("code") &&
