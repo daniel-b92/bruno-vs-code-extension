@@ -331,7 +331,7 @@ const spawnChildProcess = (
     testEnvironment?: string,
     logger?: OutputChannelLogger
 ) => {
-    const npmPackageForUsingViaNpx = `${getNpmPackageNameWithoutSpecificVersion()}@2.8.0`;
+    const npmPackageForUsingViaNpx = `${getNpmPackageNameWithoutSpecificVersion()}@2.13.2`;
 
     const commandArguments: (string | undefined)[] = [];
     const shouldUseNpxForTriggeringTests = shouldUseNpx(logger);
