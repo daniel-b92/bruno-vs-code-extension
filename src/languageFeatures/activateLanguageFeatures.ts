@@ -269,9 +269,41 @@ async function handleOpeningOfBruDocument(
     tempJsFilesProvider: TempJsFilesProvider,
     document: TextDocument,
 ) {
-    const brunoFileType = await getBrunoFileTypeIfExists(
+    let fileType = await getBrunoFileTypeIfExists(
         itemProvider,
         document.fileName,
+    );
+
+    if (fileType) {
+        return fileType;
+    }
+
+    const brunoFileType = await new Promise<BrunoFileType | undefined>(
+        (resolve) => {
+            const timeout = setTimeout(() => {
+                // Sometimes it can take a few seconds until a valid file type can be determined (e.g. when moving a file to a different folder).
+                resolve(undefined);
+            }, 3_000);
+
+            itemProvider.subscribeToUpdates()(async (updates) => {
+                if (
+                    updates.some(
+                        ({ updateType, data: { item } }) =>
+                            updateType == FileChangeType.Created &&
+                            item instanceof CollectionFile &&
+                            item.getPath() == document.fileName,
+                    )
+                ) {
+                    fileType = await getBrunoFileTypeIfExists(
+                        itemProvider,
+                        document.fileName,
+                    );
+
+                    clearTimeout(timeout);
+                    resolve(fileType);
+                }
+            });
+        },
     );
 
     if (!brunoFileType) {
