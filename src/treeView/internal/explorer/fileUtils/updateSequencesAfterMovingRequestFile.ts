@@ -1,4 +1,4 @@
-import { basename, resolve } from "path";
+import { basename, dirname, resolve } from "path";
 import {
     CollectionItemProvider,
     getMaxSequenceForRequests,
@@ -12,7 +12,7 @@ export async function updateSequencesAfterMovingRequestFile(
     itemProvider: CollectionItemProvider,
     target: BrunoTreeItem,
     targetDirectory: string,
-    sourcePath: string
+    sourcePath: string,
 ) {
     const newPath = resolve(targetDirectory, basename(sourcePath));
 
@@ -29,7 +29,7 @@ export async function updateSequencesAfterMovingRequestFile(
         const filtered = (
             await getSequencesForRequests(itemProvider, targetDirectory)
         ).filter(
-            ({ path, sequence }) => path != newPath && sequence >= newSequence
+            ({ path, sequence }) => path != newPath && sequence >= newSequence,
         );
 
         for (const { path, sequence: initialSequence } of filtered) {
@@ -38,4 +38,5 @@ export async function updateSequencesAfterMovingRequestFile(
     }
 
     await normalizeSequencesForRequestFiles(itemProvider, targetDirectory);
+    await normalizeSequencesForRequestFiles(itemProvider, dirname(sourcePath));
 }
