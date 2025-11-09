@@ -2,7 +2,7 @@
     "name": "bru-as-code",
     "displayName": "bru-as-code",
     "description": "Enables working with '.bru' files in a manner like working with code",
-    "version": "0.17.7",
+    "version": "0.17.8",
     "publisher": "daniel-b92",
     "private": true,
     "license": "MIT",
