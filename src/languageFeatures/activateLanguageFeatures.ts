@@ -280,7 +280,7 @@ async function handleOpeningOfBruDocument(
             const timeout = setTimeout(() => {
                 // Sometimes it can take a few seconds until a valid file type can be determined (e.g. when moving a file to a different folder).
                 resolve(undefined);
-            }, 3_000);
+            }, 2_500);
 
             itemProvider.subscribeToUpdates()(async (updates) => {
                 if (

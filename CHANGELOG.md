@@ -1,3 +1,9 @@
+## [0.17.9] (2025-11-09)
+
+### Fixes / Improvements
+- Add missing normalization of sequences for source directory when moving file to other folder.
+- Avoid incorrectly showing warning that file is outside of valid collections by waiting a few seconds in case of the file being moved and the cache not being quite up to date yet.
+
 ## [0.17.8] (2025-11-09)
 
 ### Fixes / Improvements
