@@ -269,17 +269,14 @@ async function handleOpeningOfBruDocument(
     tempJsFilesProvider: TempJsFilesProvider,
     document: TextDocument,
 ) {
-    let fileType = await getBrunoFileTypeIfExists(
+    const currentFileType = await getBrunoFileTypeIfExists(
         itemProvider,
         document.fileName,
     );
 
-    if (fileType) {
-        return fileType;
-    }
-
-    const brunoFileType = await new Promise<BrunoFileType | undefined>(
-        (resolve) => {
+    const brunoFileType =
+        currentFileType ??
+        (await new Promise<BrunoFileType | undefined>((resolve) => {
             const timeout = setTimeout(() => {
                 // Sometimes it can take a few seconds until a valid file type can be determined (e.g. when moving a file to a different folder).
                 resolve(undefined);
@@ -294,17 +291,16 @@ async function handleOpeningOfBruDocument(
                             item.getPath() == document.fileName,
                     )
                 ) {
-                    fileType = await getBrunoFileTypeIfExists(
-                        itemProvider,
-                        document.fileName,
-                    );
-
                     clearTimeout(timeout);
-                    resolve(fileType);
+                    resolve(
+                        await getBrunoFileTypeIfExists(
+                            itemProvider,
+                            document.fileName,
+                        ),
+                    );
                 }
             });
-        },
-    );
+        }));
 
     if (!brunoFileType) {
         window.showWarningMessage(
