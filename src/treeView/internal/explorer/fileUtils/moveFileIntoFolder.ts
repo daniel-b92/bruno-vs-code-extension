@@ -1,7 +1,7 @@
 import {
     BrunoFileType,
     CollectionItemProvider,
-    FileType,
+    ItemType,
 } from "../../../../shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { renameFileOrFolder } from "../renameFileOrFolder";
@@ -14,7 +14,7 @@ export async function moveFileIntoFolder(
     newPath: string,
     target: BrunoTreeItem,
     targetDirectoryForDragAndDrop: string,
-    fileType: FileType,
+    fileType: ItemType,
 ) {
     const wasSuccessful = await renameFileOrFolder(sourcePath, newPath, true);
 

@@ -1,7 +1,6 @@
 // file system
 export * from "./fileSystem/collectionWatcher";
 export * from "./fileSystem/fileChangesDefinitions";
-export * from "./model/brunoFileTypeEnum";
 export * from "./fileSystem/util/getTemporaryJsFileName";
 export * from "./fileSystem/util/collectionRootFolderHelper";
 export * from "./fileSystem/util/getTestFileDescendants";
@@ -14,7 +13,7 @@ export * from "./fileSystem/util/position";
 export * from "./fileSystem/util/positionAndRangeMapper";
 export * from "./fileSystem/util/doesFileNameMatchFolderSettingsFileName";
 export * from "./fileSystem/util/checkIfPathExistsAsync";
-export * from "./fileSystem/util/getFileType";
+export * from "./fileSystem/util/getItemType";
 
 // array utils
 export * from "./arrayUtils/filterAsync";
@@ -100,8 +99,12 @@ export * from "./testFileWriting/interfaces";
 // model
 export * from "./model/collection";
 export * from "./model/collectionDirectory";
-export * from "./model/collectionFile";
+export * from "./model/files/brunoRequestFile";
+export * from "./model/files/brunoFolderSettingsFile";
+export * from "./model/files/brunoEnvironmentFile";
+export * from "./model/files/nonBrunoFile";
 export * from "./model/interfaces";
+export * from "./model/typeguards/isCollectionItemWithSequence";
 
 // file system cache
 export * from "./fileSystemCache/externalHelpers/collectionItemProvider";
