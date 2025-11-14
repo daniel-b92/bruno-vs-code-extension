@@ -156,12 +156,12 @@ async function waitForFileToBeRegisteredInCache(
     itemProvider: CollectionItemProvider,
     filePath: string,
 ) {
-    await new Promise<boolean>((resolve) => {
+    return new Promise<boolean>((resolve) => {
         const abortionTimeout = setTimeout(() => {
             resolve(false);
         }, 2_500);
 
-        itemProvider.subscribeToUpdates()(async (updates) => {
+        itemProvider.subscribeToUpdates()((updates) => {
             if (
                 updates.some(
                     ({ updateType, data: { item } }) =>
