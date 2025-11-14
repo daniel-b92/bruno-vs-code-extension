@@ -10,6 +10,8 @@ import {
     MethodBlockAuth,
     MethodBlockBody,
     getLineBreak,
+    FileChangeType,
+    CollectionFile,
 } from "../../../../shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { commands, Uri, window } from "vscode";
@@ -79,16 +81,6 @@ export async function createRequestFile(
             `${requestName}${getExtensionForBrunoFiles()}`,
         );
 
-        await promisify(writeFile)(filePath, "");
-
-        const collectionForFile =
-            itemProvider.getAncestorCollectionForPath(filePath);
-
-        if (!collectionForFile) {
-            throw new Error(
-                `No registered collection found for newly created request file '${filePath}'`,
-            );
-        }
         if (pickedLabels.length != 2) {
             throw new Error(
                 `Did not find as many picked items as expected. Expected to get 2. Instead got '${JSON.stringify(
@@ -99,41 +91,88 @@ export async function createRequestFile(
             );
         }
 
-        const maxExistingFileSequence = await getMaxSequenceForRequests(
-            itemProvider,
-            parentFolderPath,
-        );
-
-        const lineBreak = getLineBreak(filePath);
-
-        const metaBlockContent = getContentForMetaBlock(
-            filePath,
-            {
-                name: requestName,
-                sequence: (maxExistingFileSequence ?? 0) + 1,
-                type: pickedLabels[0] as RequestType,
-            },
-            lineBreak,
-        );
-
-        const methodBlockContent = getContentForDefaultMethodBlock(
-            filePath,
-            pickedLabels[1],
-            {
-                url: "",
-                auth: MethodBlockAuth.None,
-                body: MethodBlockBody.None,
-            },
-            lineBreak,
-        );
-
         await promisify(writeFile)(
             filePath,
-            metaBlockContent.concat(lineBreak, methodBlockContent),
+            await getFileContent(itemProvider, parentFolderPath, {
+                filePath,
+                requestName,
+                requestType: pickedLabels[0] as RequestType,
+                methodBlockName: pickedLabels[1],
+            }),
         );
 
+        // After the new file hS been registered in the cache, it should be revealed in the explorer when opening it.
+        await waitForFileToBeRegisteredInCache(itemProvider, filePath);
         commands.executeCommand("vscode.open", Uri.file(filePath));
     });
 
     quickPick.show();
+}
+
+async function getFileContent(
+    itemProvider: CollectionItemProvider,
+    parentFolderPath: string,
+    chosenData: {
+        filePath: string;
+        requestName: string;
+        requestType: RequestType;
+        methodBlockName: string;
+    },
+) {
+    const { filePath, requestName, requestType, methodBlockName } = chosenData;
+
+    const maxExistingFileSequence = await getMaxSequenceForRequests(
+        itemProvider,
+        parentFolderPath,
+    );
+
+    const lineBreak = getLineBreak(filePath);
+
+    const metaBlockContent = getContentForMetaBlock(
+        filePath,
+        {
+            name: requestName,
+            sequence: (maxExistingFileSequence ?? 0) + 1,
+            type: requestType,
+        },
+        lineBreak,
+    );
+
+    const methodBlockContent = getContentForDefaultMethodBlock(
+        filePath,
+        methodBlockName,
+        {
+            url: "",
+            auth: MethodBlockAuth.None,
+            body: MethodBlockBody.None,
+        },
+        lineBreak,
+    );
+
+    return metaBlockContent.concat(lineBreak, methodBlockContent);
+}
+
+async function waitForFileToBeRegisteredInCache(
+    itemProvider: CollectionItemProvider,
+    filePath: string,
+) {
+    await new Promise<boolean>((resolve) => {
+        const abortionTimeout = setTimeout(() => {
+            resolve(false);
+        }, 2_500);
+
+        itemProvider.subscribeToUpdates()(async (updates) => {
+            if (
+                updates.some(
+                    ({ updateType, data: { item } }) =>
+                        updateType == FileChangeType.Created &&
+                        item instanceof CollectionFile &&
+                        item.getPath() == filePath,
+                )
+            ) {
+                clearTimeout(abortionTimeout);
+                resolve(true);
+            }
+        });
+    });
 }
