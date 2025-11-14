@@ -93,8 +93,8 @@ export * from "./languageUtils/commonFields/isDictionaryBlockSimpleField";
 export * from "./languageUtils/commonFields/isDictionaryBlockArrayField";
 
 // test file writing
-export * from "./testFileWriting/addMetaBlock";
-export * from "./testFileWriting/appendDefaultMethodBlock";
+export * from "./testFileWriting/getContentForMetaBlock";
+export * from "./testFileWriting/getContentForDefaultMethodBlock";
 export * from "./testFileWriting/interfaces";
 
 // model
