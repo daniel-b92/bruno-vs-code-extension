@@ -101,7 +101,7 @@ export async function createRequestFile(
             }),
         );
 
-        // After the new file hS been registered in the cache, it should be revealed in the explorer when opening it.
+        // After the new file has been registered in the cache, the explorer should be able to reveal it when opened in the editor.
         await waitForFileToBeRegisteredInCache(itemProvider, filePath);
         commands.executeCommand("vscode.open", Uri.file(filePath));
     });
