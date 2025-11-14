@@ -1,3 +1,8 @@
+## [Unreleased]
+
+### Fixes / Improvements
+- Fix sequence for request file when created via collection explorer in folder without other requests.
+
 ## [0.17.9] (2025-11-09)
 
 ### Fixes / Improvements
