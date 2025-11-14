@@ -72,10 +72,10 @@ function getCompletionItemsForFieldsInMetaBlock(
                             items: [
                                 new CompletionItem(
                                     `${currentText.endsWith(" ") ? "" : " "}${
-                                        (await getMaxSequenceForRequests(
+                                        ((await getMaxSequenceForRequests(
                                             itemProvider,
                                             dirname(document.uri.fsPath),
-                                        )) + 1
+                                        )) ?? 0) + 1
                                     }`,
                                 ),
                             ],

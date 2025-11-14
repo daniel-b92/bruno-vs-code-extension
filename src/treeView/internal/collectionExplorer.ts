@@ -622,10 +622,10 @@ export class CollectionExplorer
         if (await getSequenceForFile(collection, originalPath)) {
             await replaceSequenceForFile(
                 newPath,
-                (await getMaxSequenceForRequests(
+                ((await getMaxSequenceForRequests(
                     this.itemProvider,
                     dirname(originalPath),
-                )) + 1,
+                )) ?? 0) + 1,
             );
         }
 

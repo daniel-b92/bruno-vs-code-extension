@@ -3,11 +3,16 @@ import { getSequencesForRequests } from "./getSequencesForRequests";
 
 export async function getMaxSequenceForRequests(
     itemProvider: CollectionItemProvider,
-    directory: string
+    directory: string,
 ) {
-    return Math.max(
-        ...(await getSequencesForRequests(itemProvider, directory)).map(
-            ({ sequence }) => sequence
-        )
+    const sequencesForRequests = await getSequencesForRequests(
+        itemProvider,
+        directory,
     );
+
+    if (sequencesForRequests.length == 0) {
+        return undefined;
+    }
+
+    return Math.max(...sequencesForRequests.map(({ sequence }) => sequence));
 }
