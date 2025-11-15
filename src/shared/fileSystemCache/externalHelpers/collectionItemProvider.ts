@@ -156,7 +156,7 @@ export class CollectionItemProvider {
                     )
                 ) {
                     this.logger?.trace(
-                        `Waited for ${Math.round(performance.now() - startTime)}/${timeoutInMillis} ms for file '${filePath}' to be registered in cache.`,
+                        `Waited for ${Math.round(performance.now() - startTime)} / ${timeoutInMillis} ms for file '${filePath}' to be registered in cache.`,
                     );
                     clearTimeout(abortionTimeout);
                     return resolve(true);

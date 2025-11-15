@@ -183,18 +183,27 @@ async function onDidChangeActiveTextEditor(
 
 async function onDidChangeTextDocument(
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
-    collectionItemProvider: CollectionItemProvider,
-    event: TextDocumentChangeEvent,
+    itemProvider: CollectionItemProvider,
+    {
+        contentChanges,
+        document: { fileName, uri, getText },
+    }: TextDocumentChangeEvent,
 ) {
-    if (event.contentChanges.length > 0) {
+    if (contentChanges.length > 0) {
         // If the document has been modified externally (not via VS Code), skip all actions
         if (
-            window.activeTextEditor?.document.uri.toString() ==
-            event.document.uri.toString()
+            window.activeTextEditor?.document.uri.toString() == uri.toString()
         ) {
+            if (!itemProvider.getAncestorCollectionForPath(fileName)) {
+                return;
+            }
+
+            // Sometimes it can take a few seconds until a valid file type can be determined (e.g. when moving a file to a different folder).
+            await itemProvider.waitForFileToBeRegisteredInCache(fileName);
+
             const brunoFileType = await getBrunoFileTypeIfExists(
-                collectionItemProvider,
-                event.document.uri.fsPath,
+                itemProvider,
+                fileName,
             );
 
             if (!brunoFileType) {
@@ -202,8 +211,8 @@ async function onDidChangeTextDocument(
             }
 
             await fetchBrunoSpecificDiagnostics(
-                event.document.uri,
-                event.document.getText(),
+                uri,
+                getText(),
                 brunoLangDiagnosticsProvider,
                 brunoFileType,
             );
