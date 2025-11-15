@@ -10,8 +10,6 @@ import {
     MethodBlockAuth,
     MethodBlockBody,
     getLineBreak,
-    FileChangeType,
-    CollectionFile,
 } from "../../../../shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { commands, Uri, window } from "vscode";
@@ -91,18 +89,25 @@ export async function createRequestFile(
             );
         }
 
-        await promisify(writeFile)(
-            filePath,
-            await getFileContent(itemProvider, parentFolderPath, {
-                filePath,
-                requestName,
-                requestType: pickedLabels[0] as RequestType,
-                methodBlockName: pickedLabels[1],
-            }),
-        );
+        const toAwait: Promise<void | boolean>[] = [];
 
         // After the new file has been registered in the cache, the explorer should be able to reveal it when opened in the editor.
-        await waitForFileToBeRegisteredInCache(itemProvider, filePath);
+        toAwait.push(itemProvider.waitForFileToBeRegisteredInCache(filePath));
+
+        toAwait.push(
+            promisify(writeFile)(
+                filePath,
+                await getFileContent(itemProvider, parentFolderPath, {
+                    filePath,
+                    requestName,
+                    requestType: pickedLabels[0] as RequestType,
+                    methodBlockName: pickedLabels[1],
+                }),
+            ),
+        );
+
+        await Promise.all(toAwait);
+
         commands.executeCommand("vscode.open", Uri.file(filePath));
     });
 
@@ -150,29 +155,4 @@ async function getFileContent(
     );
 
     return metaBlockContent.concat(lineBreak, methodBlockContent);
-}
-
-async function waitForFileToBeRegisteredInCache(
-    itemProvider: CollectionItemProvider,
-    filePath: string,
-) {
-    return new Promise<boolean>((resolve) => {
-        const abortionTimeout = setTimeout(() => {
-            resolve(false);
-        }, 2_500);
-
-        itemProvider.subscribeToUpdates()((updates) => {
-            if (
-                updates.some(
-                    ({ updateType, data: { item } }) =>
-                        updateType == FileChangeType.Created &&
-                        item instanceof CollectionFile &&
-                        item.getPath() == filePath,
-                )
-            ) {
-                clearTimeout(abortionTimeout);
-                resolve(true);
-            }
-        });
-    });
 }

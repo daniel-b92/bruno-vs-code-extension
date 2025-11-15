@@ -267,42 +267,9 @@ async function handleOpeningOfBruDocument(
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     itemProvider: CollectionItemProvider,
     tempJsFilesProvider: TempJsFilesProvider,
-    document: TextDocument,
+    { fileName, getText, uri }: TextDocument,
 ) {
-    const currentFileType = await getBrunoFileTypeIfExists(
-        itemProvider,
-        document.fileName,
-    );
-
-    const brunoFileType =
-        currentFileType ??
-        (await new Promise<BrunoFileType | undefined>((resolve) => {
-            const timeout = setTimeout(() => {
-                // Sometimes it can take a few seconds until a valid file type can be determined (e.g. when moving a file to a different folder).
-                resolve(undefined);
-            }, 2_500);
-
-            itemProvider.subscribeToUpdates()(async (updates) => {
-                if (
-                    updates.some(
-                        ({ updateType, data: { item } }) =>
-                            updateType == FileChangeType.Created &&
-                            item instanceof CollectionFile &&
-                            item.getPath() == document.fileName,
-                    )
-                ) {
-                    clearTimeout(timeout);
-                    resolve(
-                        await getBrunoFileTypeIfExists(
-                            itemProvider,
-                            document.fileName,
-                        ),
-                    );
-                }
-            });
-        }));
-
-    if (!brunoFileType) {
+    if (!itemProvider.getAncestorCollectionForPath(fileName)) {
         window.showWarningMessage(
             "'bru' file seems to not be part of a valid collection. Therefore, intellisense will be limited.",
         );
@@ -310,9 +277,22 @@ async function handleOpeningOfBruDocument(
         return;
     }
 
+    // Sometimes it can take a few seconds until a valid file type can be determined (e.g. when moving a file to a different folder).
+    await itemProvider.waitForFileToBeRegisteredInCache(fileName);
+
+    const brunoFileType = await getBrunoFileTypeIfExists(
+        itemProvider,
+        fileName,
+    );
+
+    if (!brunoFileType) {
+        await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
+        return;
+    }
+
     await fetchBrunoSpecificDiagnostics(
-        document.uri,
-        document.getText(),
+        uri,
+        getText(),
         brunoLangDiagnosticsProvider,
         brunoFileType,
     );
@@ -323,18 +303,14 @@ async function handleOpeningOfBruDocument(
     }
 
     const collectionRootFolder = (
-        itemProvider.getAncestorCollectionForPath(
-            document.fileName,
-        ) as Collection
+        itemProvider.getAncestorCollectionForPath(fileName) as Collection
     ).getRootDirectory();
 
     await queue.addToQueue({
         update: {
             type: TempJsUpdateType.Creation,
             filePath: getTemporaryJsFileNameInFolder(collectionRootFolder),
-            tempJsFileContent: getTempJsFileContentForBruFile(
-                document.getText(),
-            ),
+            tempJsFileContent: getTempJsFileContentForBruFile(getText()),
         },
     });
 }

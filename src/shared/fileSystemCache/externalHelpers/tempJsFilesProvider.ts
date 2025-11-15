@@ -91,9 +91,9 @@ export class TempJsFilesProvider {
 
         // ToDo: Reduce log level(?)
         this.logger?.info(
-            `${this.commonPreMessageForLogging} Cache refresh duration: ${
-                endTime - startTime
-            } ms`,
+            `${this.commonPreMessageForLogging} Cache refresh duration: ${Math.round(
+                endTime - startTime,
+            )} ms`,
         );
 
         // ToDo: Reduce log level(?)

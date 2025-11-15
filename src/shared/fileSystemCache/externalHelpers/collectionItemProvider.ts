@@ -129,6 +129,42 @@ export class CollectionItemProvider {
     private notificationSendEventTimer: NodeJS.Timeout | undefined = undefined;
     private readonly commonPreMessageForLogging = "[CollectionItemProvider]";
 
+    public waitForFileToBeRegisteredInCache(
+        filePath: string,
+        timeoutInMillis = 5_000,
+    ) {
+        const startTime = performance.now();
+
+        return new Promise<boolean>((resolve) => {
+            if (this.getRegisteredItemAndCollection(filePath)) {
+                return resolve(true);
+            }
+
+            const abortionTimeout = setTimeout(() => {
+                this.logger?.debug(
+                    `Timeout of ${timeoutInMillis} ms reached while waiting for file '${filePath}' to be registered in cache.`,
+                );
+                return resolve(false);
+            }, timeoutInMillis);
+
+            this.subscribeToUpdates()((updates) => {
+                if (
+                    updates.some(
+                        ({ updateType, data: { item } }) =>
+                            updateType == FileChangeType.Created &&
+                            item.getPath() == filePath,
+                    )
+                ) {
+                    this.logger?.trace(
+                        `Waited for ${Math.round(performance.now() - startTime)}/${timeoutInMillis} ms for file '${filePath}' to be registered in cache.`,
+                    );
+                    clearTimeout(abortionTimeout);
+                    return resolve(true);
+                }
+            });
+        });
+    }
+
     public subscribeToUpdates() {
         return this.itemUpdateEmitter.event;
     }
@@ -194,9 +230,9 @@ export class CollectionItemProvider {
 
         const endTime = performance.now();
         this.logger?.info(
-            `${this.commonPreMessageForLogging} Cache refresh duration: ${
-                endTime - startTime
-            } ms`,
+            `${this.commonPreMessageForLogging} Cache refresh duration: ${Math.round(
+                endTime - startTime,
+            )} ms`,
         );
     }
 
