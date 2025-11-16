@@ -31,6 +31,7 @@ import {
     filterAsync,
     CollectionWatcher,
     getTemporaryJsFileBasename,
+    parseSequenceFromMetaBlock,
 } from "../shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/brunoFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/brunoFiles/autoUpdates/updateUrlToMatchQueryParams";
@@ -194,12 +195,23 @@ async function onDidChangeTextDocument(
         if (
             window.activeTextEditor?.document.uri.toString() == uri.toString()
         ) {
-            if (!itemProvider.getAncestorCollectionForPath(fileName)) {
+            const collection =
+                itemProvider.getAncestorCollectionForPath(fileName);
+
+            if (!collection) {
                 return;
             }
 
             // Sometimes it can take a few seconds until a valid file type can be determined (e.g. when moving a file to a different folder).
-            await itemProvider.waitForFileToBeRegisteredInCache(fileName);
+            await itemProvider.waitForItemsToBeRegisteredInCache(
+                collection.getRootDirectory(),
+                [
+                    {
+                        path: fileName,
+                        sequence: await parseSequenceFromMetaBlock(fileName),
+                    },
+                ],
+            );
 
             const brunoFileType = await getBrunoFileTypeIfExists(
                 itemProvider,
@@ -278,7 +290,8 @@ async function handleOpeningOfBruDocument(
     tempJsFilesProvider: TempJsFilesProvider,
     { fileName, getText, uri }: TextDocument,
 ) {
-    if (!itemProvider.getAncestorCollectionForPath(fileName)) {
+    const collection = itemProvider.getAncestorCollectionForPath(fileName);
+    if (!collection) {
         window.showWarningMessage(
             "'bru' file seems to not be part of a valid collection. Therefore, intellisense will be limited.",
         );
@@ -287,7 +300,15 @@ async function handleOpeningOfBruDocument(
     }
 
     // Sometimes it can take a few seconds until a valid file type can be determined (e.g. when moving a file to a different folder).
-    await itemProvider.waitForFileToBeRegisteredInCache(fileName);
+    await itemProvider.waitForItemsToBeRegisteredInCache(
+        collection.getRootDirectory(),
+        [
+            {
+                path: fileName,
+                sequence: await parseSequenceFromMetaBlock(fileName),
+            },
+        ],
+    );
 
     const brunoFileType = await getBrunoFileTypeIfExists(
         itemProvider,

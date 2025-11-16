@@ -10,6 +10,7 @@ import {
     MethodBlockAuth,
     MethodBlockBody,
     getLineBreak,
+    Collection,
 } from "../../../../shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { commands, Uri, window } from "vscode";
@@ -89,15 +90,33 @@ export async function createRequestFile(
             );
         }
 
+        const collection = itemProvider.getAncestorCollectionForPath(
+            filePath,
+        ) as Collection;
+        const requestSequence = (await getMaxSequenceForRequests(
+            itemProvider,
+            parentFolderPath,
+        )?? 0) + 1;
+
         const toAwait: Promise<void | boolean>[] = [];
 
         // After the new file has been registered in the cache, the explorer should be able to reveal it when opened in the editor.
-        toAwait.push(itemProvider.waitForFileToBeRegisteredInCache(filePath));
+        toAwait.push(
+            itemProvider.waitForItemsToBeRegisteredInCache(
+                collection.getRootDirectory(),
+                [
+                    {
+                        path: filePath,
+                        sequence: requestSequence,
+                    },
+                ],
+            ),
+        );
 
         toAwait.push(
             promisify(writeFile)(
                 filePath,
-                await getFileContent(itemProvider, parentFolderPath, {
+                await getFileContent(requestSequence, {
                     filePath,
                     requestName,
                     requestType: pickedLabels[0] as RequestType,
@@ -115,8 +134,7 @@ export async function createRequestFile(
 }
 
 async function getFileContent(
-    itemProvider: CollectionItemProvider,
-    parentFolderPath: string,
+    requestSequence: number,
     chosenData: {
         filePath: string;
         requestName: string;
@@ -126,18 +144,13 @@ async function getFileContent(
 ) {
     const { filePath, requestName, requestType, methodBlockName } = chosenData;
 
-    const maxExistingFileSequence = await getMaxSequenceForRequests(
-        itemProvider,
-        parentFolderPath,
-    );
-
     const lineBreak = getLineBreak(filePath);
 
     const metaBlockContent = getContentForMetaBlock(
         filePath,
         {
             name: requestName,
-            sequence: (maxExistingFileSequence ?? 0) + 1,
+            sequence: requestSequence,
             type: requestType,
         },
         lineBreak,

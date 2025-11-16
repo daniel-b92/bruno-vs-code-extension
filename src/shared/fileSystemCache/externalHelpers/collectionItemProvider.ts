@@ -38,130 +38,184 @@ export class CollectionItemProvider {
     ) {
         this.collectionRegistry = new CollectionRegistry(collectionWatcher);
         this.itemUpdateEmitter = new vscode.EventEmitter<NotificationData[]>();
+        this.disposables = [];
 
-        collectionWatcher.subscribeToUpdates()(
-            async ({ uri, changeType: fileChangeType }) => {
-                const registeredCollection = this.getAncestorCollectionForPath(
-                    uri.fsPath,
-                );
+        this.disposables.push(
+            collectionWatcher.subscribeToUpdates()(
+                async ({ uri, changeType: fileChangeType }) => {
+                    const registeredCollection =
+                        this.getAncestorCollectionForPath(uri.fsPath);
 
-                if (!registeredCollection) {
-                    return;
-                }
+                    if (!registeredCollection) {
+                        return;
+                    }
 
-                if (
-                    registeredCollection.isRootDirectory(uri.fsPath) &&
-                    fileChangeType == FileChangeType.Deleted &&
-                    !this.shouldPathBeIgnored(uri.fsPath)
-                ) {
-                    this.logger?.info(
-                        `${this.commonPreMessageForLogging} Handling deletion of collection '${uri.fsPath}'.`,
-                    );
-                    this.handleCollectionDeletion(uri);
-                    return;
-                }
+                    if (
+                        registeredCollection.isRootDirectory(uri.fsPath) &&
+                        fileChangeType == FileChangeType.Deleted &&
+                        !this.shouldPathBeIgnored(uri.fsPath)
+                    ) {
+                        this.logger?.info(
+                            `${this.commonPreMessageForLogging} Handling deletion of collection '${uri.fsPath}'.`,
+                        );
+                        this.handleCollectionDeletion(uri);
+                        return;
+                    }
 
-                const maybeRegisteredData =
-                    registeredCollection.getStoredDataForPath(uri.fsPath);
+                    const maybeRegisteredData =
+                        registeredCollection.getStoredDataForPath(uri.fsPath);
 
-                if (
-                    !maybeRegisteredData &&
-                    fileChangeType == FileChangeType.Created &&
-                    !this.shouldPathBeIgnored(uri.fsPath)
-                ) {
-                    this.logger?.info(
-                        `${this.commonPreMessageForLogging} creation of item '${
-                            uri.fsPath
-                        }' in collection '${basename(
-                            registeredCollection.getRootDirectory(),
-                        )}'.`,
-                    );
+                    if (
+                        !maybeRegisteredData &&
+                        fileChangeType == FileChangeType.Created &&
+                        !this.shouldPathBeIgnored(uri.fsPath)
+                    ) {
+                        this.logger?.info(
+                            `${this.commonPreMessageForLogging} creation of item '${
+                                uri.fsPath
+                            }' in collection '${basename(
+                                registeredCollection.getRootDirectory(),
+                            )}'.`,
+                        );
 
-                    await this.handleItemCreation(
-                        registeredCollection,
-                        uri.fsPath,
-                    );
-                } else if (
-                    maybeRegisteredData &&
-                    fileChangeType == FileChangeType.Deleted &&
-                    !this.shouldPathBeIgnored(uri.fsPath)
-                ) {
-                    this.logger?.info(
-                        `${this.commonPreMessageForLogging} deletion of item '${
-                            uri.fsPath
-                        }' in collection '${basename(
-                            registeredCollection.getRootDirectory(),
-                        )}'.`,
-                    );
+                        await this.handleItemCreation(
+                            registeredCollection,
+                            uri.fsPath,
+                        );
+                    } else if (
+                        maybeRegisteredData &&
+                        fileChangeType == FileChangeType.Deleted &&
+                        !this.shouldPathBeIgnored(uri.fsPath)
+                    ) {
+                        this.logger?.info(
+                            `${this.commonPreMessageForLogging} deletion of item '${
+                                uri.fsPath
+                            }' in collection '${basename(
+                                registeredCollection.getRootDirectory(),
+                            )}'.`,
+                        );
 
-                    await this.handleItemDeletion(
-                        testRunnerDataHelper,
-                        registeredCollection,
-                        maybeRegisteredData,
-                    );
-                } else if (
-                    maybeRegisteredData &&
-                    fileChangeType == FileChangeType.Modified &&
-                    !this.shouldPathBeIgnored(uri.fsPath)
-                ) {
-                    this.logger?.info(
-                        `${
-                            this.commonPreMessageForLogging
-                        } modification of item '${
-                            uri.fsPath
-                        }' in collection '${basename(
-                            registeredCollection.getRootDirectory(),
-                        )}'.`,
-                    );
+                        await this.handleItemDeletion(
+                            testRunnerDataHelper,
+                            registeredCollection,
+                            maybeRegisteredData,
+                        );
+                    } else if (
+                        maybeRegisteredData &&
+                        fileChangeType == FileChangeType.Modified &&
+                        !this.shouldPathBeIgnored(uri.fsPath)
+                    ) {
+                        this.logger?.info(
+                            `${
+                                this.commonPreMessageForLogging
+                            } modification of item '${
+                                uri.fsPath
+                            }' in collection '${basename(
+                                registeredCollection.getRootDirectory(),
+                            )}'.`,
+                        );
 
-                    await this.handleModificationOfRegisteredItem(
-                        registeredCollection,
-                        maybeRegisteredData,
-                    );
-                }
-            },
+                        await this.handleModificationOfRegisteredItem(
+                            registeredCollection,
+                            maybeRegisteredData,
+                        );
+                    }
+                },
+            ),
         );
     }
 
+    private disposables: vscode.Disposable[];
     private collectionRegistry: CollectionRegistry;
     private itemUpdateEmitter: vscode.EventEmitter<NotificationData[]>;
     private notificationBatch: NotificationData[] = [];
     private notificationSendEventTimer: NodeJS.Timeout | undefined = undefined;
     private readonly commonPreMessageForLogging = "[CollectionItemProvider]";
 
-    public waitForFileToBeRegisteredInCache(
-        filePath: string,
+    public waitForItemsToBeRegisteredInCache(
+        collectionRootFolder: string,
+        items: { path: string; sequence?: number }[],
         timeoutInMillis = 5_000,
     ) {
         const startTime = performance.now();
 
         return new Promise<boolean>((resolve) => {
-            if (this.getRegisteredItemAndCollection(filePath)) {
+            const collection = this.getRegisteredCollections().find(
+                (c) =>
+                    normalizeDirectoryPath(c.getRootDirectory()) ==
+                    normalizeDirectoryPath(collectionRootFolder),
+            );
+
+            if (!collection) {
+                this.logger?.warn(
+                    `Collection with root folder '${collectionRootFolder}' not found in list of registered collections.`,
+                );
+                return resolve(false);
+            }
+
+            const missingItems = items.filter(({ path, sequence }) => {
+                const registeredItem = this.getRegisteredItem(collection, path);
+                return (
+                    !registeredItem ||
+                    (sequence && registeredItem.item.getSequence() !== sequence)
+                );
+            });
+
+            if (missingItems.length == 0) {
                 return resolve(true);
             }
 
-            const abortionTimeout = setTimeout(() => {
-                this.logger?.debug(
-                    `Timeout of ${timeoutInMillis} ms reached while waiting for file '${filePath}' to be registered in cache.`,
-                );
-                return resolve(false);
-            }, timeoutInMillis);
+            const initialMissingItems = [...missingItems];
 
-            this.subscribeToUpdates()((updates) => {
-                if (
-                    updates.some(
-                        ({ updateType, data: { item } }) =>
-                            updateType == FileChangeType.Created &&
-                            item.getPath() == filePath,
-                    )
-                ) {
+            const subscription = this.subscribeToUpdates()((updates) => {
+                for (const {
+                    updateType,
+                    data: { item },
+                } of updates) {
+                    if (
+                        [
+                            FileChangeType.Created,
+                            FileChangeType.Modified,
+                        ].includes(updateType) &&
+                        missingItems.some(({ path }) => path == item.getPath())
+                    ) {
+                        const index = missingItems.findIndex(
+                            ({ path }) => path == item.getPath(),
+                        );
+
+                        const expectedSequence = missingItems[index].sequence;
+
+                        if (
+                            !expectedSequence ||
+                            expectedSequence === item.getSequence()
+                        ) {
+                            missingItems.splice(index, 1);
+
+                            if (missingItems.length == 0) {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (missingItems.length == 0) {
                     this.logger?.trace(
-                        `Waited for ${Math.round(performance.now() - startTime)} / ${timeoutInMillis} ms for file '${filePath}' to be registered in cache.`,
+                        `Waited for ${Math.round(performance.now() - startTime)} / ${timeoutInMillis} ms for items '${JSON.stringify(initialMissingItems, null, 2)}' to be registered in cache.`,
                     );
                     clearTimeout(abortionTimeout);
-                    return resolve(true);
+                    resolve(true);
                 }
             });
+
+            const abortionTimeout = setTimeout(() => {
+                this.logger?.debug(
+                    `Timeout of ${timeoutInMillis} ms reached while waiting for items '${JSON.stringify(items, null, 2)}' to be registered in cache.`,
+                );
+                resolve(false);
+            }, timeoutInMillis);
+
+            subscription.dispose();
+            clearTimeout(abortionTimeout);
         });
     }
 
@@ -244,6 +298,10 @@ export class CollectionItemProvider {
         this.collectionRegistry.dispose();
         this.itemUpdateEmitter.dispose();
         this.notificationBatch.splice(0);
+
+        for (const d of this.disposables) {
+            d.dispose();
+        }
     }
 
     private handleCollectionDeletion(collectionUri: vscode.Uri) {
