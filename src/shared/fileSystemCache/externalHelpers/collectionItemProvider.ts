@@ -132,14 +132,17 @@ export class CollectionItemProvider {
     private notificationSendEventTimer: NodeJS.Timeout | undefined = undefined;
     private readonly commonPreMessageForLogging = "[CollectionItemProvider]";
 
-    public waitForItemsToBeRegisteredInCache(
+    public async waitForItemsToBeRegisteredInCache(
         collectionRootFolder: string,
         items: { path: string; sequence?: number }[],
         timeoutInMillis = 5_000,
     ) {
         const startTime = performance.now();
 
-        return new Promise<boolean>((resolve) => {
+        let timeout: NodeJS.Timeout | undefined = undefined;
+        let disposable: vscode.Disposable | undefined = undefined;
+
+        const toAwait = new Promise<boolean>((resolve) => {
             const collection = this.getRegisteredCollections().find(
                 (c) =>
                     normalizeDirectoryPath(c.getRootDirectory()) ==
@@ -167,7 +170,7 @@ export class CollectionItemProvider {
 
             const initialMissingItems = [...missingItems];
 
-            const subscription = this.subscribeToUpdates()((updates) => {
+            disposable = this.subscribeToUpdates()((updates) => {
                 for (const {
                     updateType,
                     data: { item },
@@ -202,21 +205,27 @@ export class CollectionItemProvider {
                     this.logger?.trace(
                         `Waited for ${Math.round(performance.now() - startTime)} / ${timeoutInMillis} ms for items '${JSON.stringify(initialMissingItems, null, 2)}' to be registered in cache.`,
                     );
-                    clearTimeout(abortionTimeout);
-                    resolve(true);
+                    return resolve(true);
                 }
             });
 
-            const abortionTimeout = setTimeout(() => {
+            timeout = setTimeout(() => {
                 this.logger?.debug(
                     `Timeout of ${timeoutInMillis} ms reached while waiting for items '${JSON.stringify(items, null, 2)}' to be registered in cache.`,
                 );
-                resolve(false);
+                return resolve(false);
             }, timeoutInMillis);
-
-            subscription.dispose();
-            clearTimeout(abortionTimeout);
         });
+
+        const result = await toAwait;
+
+        if (disposable) {
+            (disposable as vscode.Disposable).dispose();
+        }
+
+        clearTimeout(timeout);
+
+        return result;
     }
 
     public subscribeToUpdates() {
