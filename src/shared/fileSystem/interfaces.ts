@@ -10,3 +10,8 @@ export interface FileChangedEvent {
     uri: Uri;
     changeType: FileChangeType;
 }
+
+export interface MultiFileOperationWithStatus {
+    running: boolean;
+    parentFolder: string;
+}

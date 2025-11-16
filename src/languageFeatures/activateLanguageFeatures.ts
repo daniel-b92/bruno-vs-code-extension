@@ -203,6 +203,9 @@ async function onDidChangeTextDocument(
             }
 
             // Sometimes it can take a few seconds until a valid file type can be determined (e.g. when moving a file to a different folder).
+
+            // ToDo: Ensure that all cached items are in sync for cases where drag and drop is done within a single folder.
+            // Currently, this always causes diagnostics to be generated claiming that multiple requests have the same sequence.
             await itemProvider.waitForItemsToBeRegisteredInCache(
                 collection.getRootDirectory(),
                 [

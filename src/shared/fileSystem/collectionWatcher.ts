@@ -6,7 +6,7 @@ import {
     Uri,
     workspace,
 } from "vscode";
-import { FileChangedEvent, FileChangeType } from "./fileChangesDefinitions";
+import { FileChangedEvent, FileChangeType } from "./interfaces";
 import { basename } from "path";
 import { normalizeDirectoryPath } from "./util/normalizeDirectoryPath";
 import { OutputChannelLogger } from "../logging/outputChannelLogger";

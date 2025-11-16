@@ -1,6 +1,6 @@
 // file system
 export * from "./fileSystem/collectionWatcher";
-export * from "./fileSystem/fileChangesDefinitions";
+export * from "./fileSystem/interfaces";
 export * from "./model/brunoFileTypeEnum";
 export * from "./fileSystem/util/getTemporaryJsFileName";
 export * from "./fileSystem/util/collectionRootFolderHelper";

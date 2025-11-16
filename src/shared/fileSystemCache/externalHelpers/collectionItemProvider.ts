@@ -16,6 +16,7 @@ import {
     normalizeDirectoryPath,
     OutputChannelLogger,
     TestRunnerDataHelper,
+    MultiFileOperationWithStatus,
 } from "../..";
 import { basename, dirname } from "path";
 import { promisify } from "util";
@@ -34,6 +35,7 @@ export class CollectionItemProvider {
         collectionWatcher: CollectionWatcher,
         private testRunnerDataHelper: TestRunnerDataHelper,
         private filePathsToIgnore: RegExp[],
+        multiFileOperationSubscription: vscode.Event<MultiFileOperationWithStatus>,
         private logger?: OutputChannelLogger,
     ) {
         this.collectionRegistry = new CollectionRegistry(collectionWatcher);
@@ -123,6 +125,22 @@ export class CollectionItemProvider {
                 },
             ),
         );
+
+        this.disposables.push(
+            multiFileOperationSubscription(({ parentFolder, running }) => {
+                if (running) {
+                    logger?.debug(
+                        `Got notification for active multi file operation in folder '${parentFolder}'`,
+                    );
+                    this.activeMultiFileOperationFolder = parentFolder;
+                } else {
+                    logger?.debug(
+                        `Got notification for finished multi file operation in folder '${parentFolder}'`,
+                    );
+                    this.activeMultiFileOperationFolder = undefined;
+                }
+            }),
+        );
     }
 
     private disposables: vscode.Disposable[];
@@ -130,6 +148,7 @@ export class CollectionItemProvider {
     private itemUpdateEmitter: vscode.EventEmitter<NotificationData[]>;
     private notificationBatch: NotificationData[] = [];
     private notificationSendEventTimer: NodeJS.Timeout | undefined = undefined;
+    private activeMultiFileOperationFolder: string | undefined = undefined;
     private readonly commonPreMessageForLogging = "[CollectionItemProvider]";
 
     public async waitForItemsToBeRegisteredInCache(
@@ -138,6 +157,23 @@ export class CollectionItemProvider {
         timeoutInMillis = 5_000,
     ) {
         const startTime = performance.now();
+
+        // Multi file operations often cause the cache to not be in sync with the file system for a little while.
+        // Therefore, wait until the operation is completed before continuing.
+        await new Promise<void>((resolve) => {
+            if (
+                !this.activeMultiFileOperationFolder ||
+                !items.some(({ path }) =>
+                    path.startsWith(
+                        normalizeDirectoryPath(
+                            this.activeMultiFileOperationFolder as string,
+                        ),
+                    ),
+                )
+            ) {
+                resolve();
+            }
+        });
 
         let timeout: NodeJS.Timeout | undefined = undefined;
         let disposable: vscode.Disposable | undefined = undefined;
@@ -165,6 +201,14 @@ export class CollectionItemProvider {
             });
 
             if (missingItems.length == 0) {
+                this.logger?.trace(
+                    `Cached items ${JSON.stringify(
+                        items.map(({ path }) => path),
+                        null,
+                        2,
+                    )} already up to date on first check.`,
+                );
+
                 return resolve(true);
             }
 
@@ -203,7 +247,11 @@ export class CollectionItemProvider {
 
                 if (missingItems.length == 0) {
                     this.logger?.trace(
-                        `Waited for ${Math.round(performance.now() - startTime)} / ${timeoutInMillis} ms for items '${JSON.stringify(initialMissingItems, null, 2)}' to be registered in cache.`,
+                        `Waited for ${Math.round(performance.now() - startTime)} / ${timeoutInMillis} ms for items ${JSON.stringify(
+                            initialMissingItems.map(({ path }) => path),
+                            null,
+                            2,
+                        )} to be registered in cache.`,
                     );
                     return resolve(true);
                 }
