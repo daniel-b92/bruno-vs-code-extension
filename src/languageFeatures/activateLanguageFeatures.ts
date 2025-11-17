@@ -31,7 +31,6 @@ import {
     filterAsync,
     CollectionWatcher,
     getTemporaryJsFileBasename,
-    parseSequenceFromMetaBlock,
 } from "../shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/brunoFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/brunoFiles/autoUpdates/updateUrlToMatchQueryParams";
@@ -206,14 +205,9 @@ async function onDidChangeTextDocument(
 
             // ToDo: Ensure that all cached items are in sync for cases where drag and drop is done within a single folder.
             // Currently, this always causes diagnostics to be generated claiming that multiple requests have the same sequence.
-            await itemProvider.waitForItemsToBeRegisteredInCache(
+            await itemProvider.waitForFileToBeRegisteredInCache(
                 collection.getRootDirectory(),
-                [
-                    {
-                        path: fileName,
-                        sequence: await parseSequenceFromMetaBlock(fileName),
-                    },
-                ],
+                fileName,
             );
 
             const brunoFileType = await getBrunoFileTypeIfExists(
@@ -303,14 +297,9 @@ async function handleOpeningOfBruDocument(
     }
 
     // Sometimes it can take a few seconds until a valid file type can be determined (e.g. when moving a file to a different folder).
-    await itemProvider.waitForItemsToBeRegisteredInCache(
+    await itemProvider.waitForFileToBeRegisteredInCache(
         collection.getRootDirectory(),
-        [
-            {
-                path: fileName,
-                sequence: await parseSequenceFromMetaBlock(fileName),
-            },
-        ],
+        fileName,
     );
 
     const brunoFileType = await getBrunoFileTypeIfExists(

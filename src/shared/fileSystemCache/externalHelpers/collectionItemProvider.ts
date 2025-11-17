@@ -17,11 +17,13 @@ import {
     OutputChannelLogger,
     TestRunnerDataHelper,
     MultiFileOperationWithStatus,
+    filterAsync,
 } from "../..";
-import { basename, dirname } from "path";
+import { basename, dirname, resolve as resolvePath } from "path";
 import { promisify } from "util";
 import { lstat } from "fs";
 import { getCollectionFile } from "../internalHelpers/getCollectionFile";
+import { readdir } from "fs/promises";
 
 interface NotificationData {
     collection: Collection;
@@ -128,17 +130,9 @@ export class CollectionItemProvider {
 
         this.disposables.push(
             multiFileOperationSubscription(({ parentFolder, running }) => {
-                if (running) {
-                    logger?.debug(
-                        `Got notification for active multi file operation in folder '${parentFolder}'`,
-                    );
-                    this.activeMultiFileOperationFolder = parentFolder;
-                } else {
-                    logger?.debug(
-                        `Got notification for finished multi file operation in folder '${parentFolder}'`,
-                    );
-                    this.activeMultiFileOperationFolder = undefined;
-                }
+                this.activeMultiFileOperationFolder = running
+                    ? parentFolder
+                    : undefined;
             }),
         );
     }
@@ -151,59 +145,71 @@ export class CollectionItemProvider {
     private activeMultiFileOperationFolder: string | undefined = undefined;
     private readonly commonPreMessageForLogging = "[CollectionItemProvider]";
 
-    public async waitForItemsToBeRegisteredInCache(
+    public async waitForFileToBeRegisteredInCache(
         collectionRootFolder: string,
-        items: { path: string; sequence?: number }[],
+        filePath: string,
         timeoutInMillis = 5_000,
     ) {
+        const collection = this.getRegisteredCollections().find(
+            (c) =>
+                normalizeDirectoryPath(c.getRootDirectory()) ==
+                normalizeDirectoryPath(collectionRootFolder),
+        );
+
+        if (!collection) {
+            this.logger?.warn(
+                `Collection with root folder '${collectionRootFolder}' not found in list of registered collections.`,
+            );
+            return Promise.resolve(false);
+        }
+
+        const parentFolder = dirname(filePath);
+
+        if (
+            !this.isMultiFileOperationActiveForFolder(parentFolder) &&
+            (await this.isCachedFileInSync(collection, filePath))
+        ) {
+            this.logger?.debug(
+                `Cached item '${filePath}' already up to date on first check.`,
+            );
+            return Promise.resolve(true);
+        }
+
         const startTime = performance.now();
+        const filesToCheck: { path: string; sequence?: number }[] = [];
 
         // Multi file operations often cause the cache to not be in sync with the file system for a little while.
-        // Therefore, wait until the operation is completed before continuing.
-        await new Promise<void>((resolve) => {
-            if (
-                !this.activeMultiFileOperationFolder ||
-                !items.some(({ path }) =>
-                    path.startsWith(
-                        normalizeDirectoryPath(
-                            this.activeMultiFileOperationFolder as string,
-                        ),
-                    ),
-                )
-            ) {
-                resolve();
-            }
-        });
+        // Therefore, wait until the operation is completed before continuing and afterwards we wait until all items for files in the folder are in sync.
+        if (!this.isMultiFileOperationActiveForFolder(parentFolder)) {
+            const sequence = await parseSequenceFromMetaBlock(filePath);
+            filesToCheck.push({ path: filePath, sequence });
+        } else {
+            this.logger?.debug(
+                `${this.commonPreMessageForLogging} Waiting for multi file operation in folder '${parentFolder}' to finish before items in cache will be checked.`,
+            );
+
+            await new Promise<void>((resolve) => {
+                if (!this.activeMultiFileOperationFolder) {
+                    resolve();
+                }
+            });
+
+            filesToCheck.push(
+                ...(await this.getFilesFromFolderThatAreNotInSync(
+                    parentFolder,
+                    collection,
+                )),
+            );
+        }
 
         let timeout: NodeJS.Timeout | undefined = undefined;
         let disposable: vscode.Disposable | undefined = undefined;
 
         const toAwait = new Promise<boolean>((resolve) => {
-            const collection = this.getRegisteredCollections().find(
-                (c) =>
-                    normalizeDirectoryPath(c.getRootDirectory()) ==
-                    normalizeDirectoryPath(collectionRootFolder),
-            );
-
-            if (!collection) {
-                this.logger?.warn(
-                    `Collection with root folder '${collectionRootFolder}' not found in list of registered collections.`,
-                );
-                return resolve(false);
-            }
-
-            const missingItems = items.filter(({ path, sequence }) => {
-                const registeredItem = this.getRegisteredItem(collection, path);
-                return (
-                    !registeredItem ||
-                    (sequence && registeredItem.item.getSequence() !== sequence)
-                );
-            });
-
-            if (missingItems.length == 0) {
-                this.logger?.trace(
+            if (filesToCheck.length == 0) {
+                this.logger?.debug(
                     `Cached items ${JSON.stringify(
-                        items.map(({ path }) => path),
+                        filesToCheck.map(({ path }) => path),
                         null,
                         2,
                     )} already up to date on first check.`,
@@ -212,7 +218,9 @@ export class CollectionItemProvider {
                 return resolve(true);
             }
 
-            const initialMissingItems = [...missingItems];
+            const initialMissingItems = [
+                ...filesToCheck.map(({ path }) => path),
+            ];
 
             disposable = this.subscribeToUpdates()((updates) => {
                 for (const {
@@ -224,31 +232,28 @@ export class CollectionItemProvider {
                             FileChangeType.Created,
                             FileChangeType.Modified,
                         ].includes(updateType) &&
-                        missingItems.some(({ path }) => path == item.getPath())
+                        filesToCheck.some(({ path }) => path == item.getPath())
                     ) {
-                        const index = missingItems.findIndex(
+                        const index = filesToCheck.findIndex(
                             ({ path }) => path == item.getPath(),
                         );
 
-                        const expectedSequence = missingItems[index].sequence;
+                        const expectedSequence = filesToCheck[index].sequence;
 
-                        if (
-                            !expectedSequence ||
-                            expectedSequence === item.getSequence()
-                        ) {
-                            missingItems.splice(index, 1);
+                        if (expectedSequence === item.getSequence()) {
+                            filesToCheck.splice(index, 1);
 
-                            if (missingItems.length == 0) {
+                            if (filesToCheck.length == 0) {
                                 break;
                             }
                         }
                     }
                 }
 
-                if (missingItems.length == 0) {
+                if (filesToCheck.length == 0) {
                     this.logger?.trace(
                         `Waited for ${Math.round(performance.now() - startTime)} / ${timeoutInMillis} ms for items ${JSON.stringify(
-                            initialMissingItems.map(({ path }) => path),
+                            initialMissingItems,
                             null,
                             2,
                         )} to be registered in cache.`,
@@ -259,7 +264,7 @@ export class CollectionItemProvider {
 
             timeout = setTimeout(() => {
                 this.logger?.debug(
-                    `Timeout of ${timeoutInMillis} ms reached while waiting for items '${JSON.stringify(items, null, 2)}' to be registered in cache.`,
+                    `Timeout of ${timeoutInMillis} ms reached while waiting for items '${JSON.stringify(filesToCheck, null, 2)}' to be registered in cache.`,
                 );
                 return resolve(false);
             }, timeoutInMillis);
@@ -603,5 +608,52 @@ export class CollectionItemProvider {
         return this.filePathsToIgnore.some((patternToIgnore) =>
             path.match(patternToIgnore),
         );
+    }
+
+    private isMultiFileOperationActiveForFolder(folderPath: string) {
+        return (
+            this.activeMultiFileOperationFolder &&
+            normalizeDirectoryPath(this.activeMultiFileOperationFolder) ==
+                normalizeDirectoryPath(folderPath)
+        );
+    }
+
+    private async isCachedFileInSync(collection: Collection, filePath: string) {
+        const cachedData = collection.getStoredDataForPath(filePath);
+
+        return (
+            cachedData != undefined &&
+            (await parseSequenceFromMetaBlock(filePath)) ==
+                cachedData.item.getSequence()
+        );
+    }
+
+    private async getFilesFromFolderThatAreNotInSync(
+        folderPath: string,
+        collection: Collection,
+    ) {
+        const allItemsInFolder = (await readdir(folderPath)).map((name) =>
+            resolvePath(folderPath, name),
+        );
+
+        const filesInFolder = await Promise.all(
+            (
+                await filterAsync(allItemsInFolder, async (path) =>
+                    (await promisify(lstat)(path)).isFile(),
+                )
+            ).map(async (path) => ({
+                path,
+                sequence: await parseSequenceFromMetaBlock(path),
+            })),
+        );
+
+        return filesInFolder.filter(({ path, sequence }) => {
+            const registeredItem = this.getRegisteredItem(collection, path);
+
+            return (
+                registeredItem == undefined ||
+                registeredItem.item.getSequence() !== sequence
+            );
+        });
     }
 }

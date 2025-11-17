@@ -93,23 +93,19 @@ export async function createRequestFile(
         const collection = itemProvider.getAncestorCollectionForPath(
             filePath,
         ) as Collection;
-        const requestSequence = (await getMaxSequenceForRequests(
-            itemProvider,
-            parentFolderPath,
-        )?? 0) + 1;
+        const requestSequence =
+            ((await getMaxSequenceForRequests(
+                itemProvider,
+                parentFolderPath,
+            )) ?? 0) + 1;
 
         const toAwait: Promise<void | boolean>[] = [];
 
         // After the new file has been registered in the cache, the explorer should be able to reveal it when opened in the editor.
         toAwait.push(
-            itemProvider.waitForItemsToBeRegisteredInCache(
+            itemProvider.waitForFileToBeRegisteredInCache(
                 collection.getRootDirectory(),
-                [
-                    {
-                        path: filePath,
-                        sequence: requestSequence,
-                    },
-                ],
+                filePath,
             ),
         );
 
