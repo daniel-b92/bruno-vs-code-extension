@@ -18,6 +18,7 @@ import {
     TestRunnerDataHelper,
     MultiFileOperationWithStatus,
     filterAsync,
+    getFileType,
 } from "../..";
 import { basename, dirname, resolve as resolvePath } from "path";
 import { promisify } from "util";
@@ -127,12 +128,18 @@ export class CollectionItemProvider {
                 },
             ),
         );
+        this.multiFileOperationFinishedNotifier =
+            new vscode.EventEmitter<string>();
 
         this.disposables.push(
+            this.multiFileOperationFinishedNotifier,
             multiFileOperationSubscription(({ parentFolder, running }) => {
-                this.activeMultiFileOperationFolder = running
-                    ? parentFolder
-                    : undefined;
+                if (running) {
+                    this.activeMultiFileOperationFolder = parentFolder;
+                } else {
+                    this.activeMultiFileOperationFolder = undefined;
+                    this.multiFileOperationFinishedNotifier.fire(parentFolder);
+                }
             }),
         );
     }
@@ -143,6 +150,7 @@ export class CollectionItemProvider {
     private notificationBatch: NotificationData[] = [];
     private notificationSendEventTimer: NodeJS.Timeout | undefined = undefined;
     private activeMultiFileOperationFolder: string | undefined = undefined;
+    private multiFileOperationFinishedNotifier: vscode.EventEmitter<string>;
     private readonly commonPreMessageForLogging = "[CollectionItemProvider]";
 
     public async waitForFileToBeRegisteredInCache(
@@ -188,14 +196,29 @@ export class CollectionItemProvider {
                 `${this.commonPreMessageForLogging} Waiting for multi file operation in folder '${parentFolder}' to finish before items in cache will be checked.`,
             );
 
+            let subscription: vscode.Disposable | undefined = undefined;
+
             await new Promise<void>((resolve) => {
-                if (!this.activeMultiFileOperationFolder) {
-                    resolve();
-                }
+                subscription = this.multiFileOperationFinishedNotifier.event(
+                    (folderPath) => {
+                        if (
+                            normalizeDirectoryPath(dirname(filePath)) ==
+                            normalizeDirectoryPath(folderPath)
+                        )
+                            this.logger?.debug(
+                                `${this.commonPreMessageForLogging} Multi file operation completed.`,
+                            );
+                        resolve();
+                    },
+                );
             });
 
+            if (subscription) {
+                (subscription as vscode.Disposable).dispose();
+            }
+
             filesToCheck.push(
-                ...(await this.getFilesFromFolderThatAreNotInSync(
+                ...(await this.getRequestFilesFromFolderThatAreNotInSync(
                     parentFolder,
                     collection,
                 )),
@@ -628,7 +651,7 @@ export class CollectionItemProvider {
         );
     }
 
-    private async getFilesFromFolderThatAreNotInSync(
+    private async getRequestFilesFromFolderThatAreNotInSync(
         folderPath: string,
         collection: Collection,
     ) {
@@ -647,12 +670,14 @@ export class CollectionItemProvider {
             })),
         );
 
-        return filesInFolder.filter(({ path, sequence }) => {
+        return await filterAsync(filesInFolder, async ({ path, sequence }) => {
             const registeredItem = this.getRegisteredItem(collection, path);
 
             return (
-                registeredItem == undefined ||
-                registeredItem.item.getSequence() !== sequence
+                (await getFileType(collection, path)) ==
+                    BrunoFileType.RequestFile &&
+                (registeredItem == undefined ||
+                    registeredItem.item.getSequence() !== sequence)
             );
         });
     }

@@ -101,23 +101,23 @@ export async function createRequestFile(
 
         const toAwait: Promise<void | boolean>[] = [];
 
-        // After the new file has been registered in the cache, the explorer should be able to reveal it when opened in the editor.
-        toAwait.push(
-            itemProvider.waitForFileToBeRegisteredInCache(
-                collection.getRootDirectory(),
-                filePath,
-            ),
-        );
-
         toAwait.push(
             promisify(writeFile)(
                 filePath,
-                await getFileContent(requestSequence, {
+                getFileContent(requestSequence, {
                     filePath,
                     requestName,
                     requestType: pickedLabels[0] as RequestType,
                     methodBlockName: pickedLabels[1],
                 }),
+            ),
+        );
+
+        // After the new file has been registered in the cache, the explorer should be able to reveal it when opened in the editor.
+        toAwait.push(
+            itemProvider.waitForFileToBeRegisteredInCache(
+                collection.getRootDirectory(),
+                filePath,
             ),
         );
 
@@ -129,7 +129,7 @@ export async function createRequestFile(
     quickPick.show();
 }
 
-async function getFileContent(
+function getFileContent(
     requestSequence: number,
     chosenData: {
         filePath: string;
