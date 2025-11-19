@@ -1,7 +1,8 @@
-## [Unreleased]
+## [0.17.10] (2025-11-19)
 
 ### Fixes / Improvements
 - Fix sequence for request file when created via collection explorer in folder without other requests.
+- Bump all dependencies in order to use versions without CVEs.
 
 ## [0.17.9] (2025-11-09)
 
