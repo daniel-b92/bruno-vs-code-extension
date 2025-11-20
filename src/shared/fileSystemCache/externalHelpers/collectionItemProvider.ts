@@ -135,9 +135,15 @@ export class CollectionItemProvider {
             this.multiFileOperationFinishedNotifier,
             multiFileOperationSubscription(({ parentFolder, running }) => {
                 if (running) {
-                    this.activeMultiFileOperationFolder = parentFolder;
+                    this.latestMultiFileOperation = {
+                        folderPath: parentFolder,
+                        completionDate: undefined,
+                    };
                 } else {
-                    this.activeMultiFileOperationFolder = undefined;
+                    this.latestMultiFileOperation = {
+                        folderPath: parentFolder,
+                        completionDate: new Date(),
+                    };
                     this.multiFileOperationFinishedNotifier.fire(parentFolder);
                 }
             }),
@@ -149,7 +155,10 @@ export class CollectionItemProvider {
     private itemUpdateEmitter: vscode.EventEmitter<NotificationData[]>;
     private notificationBatch: NotificationData[] = [];
     private notificationSendEventTimer: NodeJS.Timeout | undefined = undefined;
-    private activeMultiFileOperationFolder: string | undefined = undefined;
+    private latestMultiFileOperation: {
+        folderPath: string | undefined;
+        completionDate: Date | undefined;
+    } = { folderPath: undefined, completionDate: undefined };
     private multiFileOperationFinishedNotifier: vscode.EventEmitter<string>;
     private readonly commonPreMessageForLogging = "[CollectionItemProvider]";
 
@@ -174,7 +183,7 @@ export class CollectionItemProvider {
         const parentFolder = dirname(filePath);
 
         if (
-            !this.isMultiFileOperationActiveForFolder(parentFolder) &&
+            !this.hasMultiFileOperationRecentlyBeenActive(parentFolder) &&
             (await this.isCachedFileInSync(collection, filePath))
         ) {
             this.logger?.debug(
@@ -188,33 +197,18 @@ export class CollectionItemProvider {
 
         // Multi file operations often cause the cache to not be in sync with the file system for a little while.
         // Therefore, wait until the operation is completed before continuing and afterwards we wait until all items for files in the folder are in sync.
-        if (!this.isMultiFileOperationActiveForFolder(parentFolder)) {
+        if (!this.hasMultiFileOperationRecentlyBeenActive(parentFolder)) {
             const sequence = await parseSequenceFromMetaBlock(filePath);
             filesToCheck.push({ path: filePath, sequence });
         } else {
-            this.logger?.debug(
-                `${this.commonPreMessageForLogging} Waiting for multi file operation in folder '${parentFolder}' to finish before items in cache will be checked.`,
-            );
-
-            let subscription: vscode.Disposable | undefined = undefined;
-
-            await new Promise<void>((resolve) => {
-                subscription = this.multiFileOperationFinishedNotifier.event(
-                    (folderPath) => {
-                        if (
-                            normalizeDirectoryPath(dirname(filePath)) ==
-                            normalizeDirectoryPath(folderPath)
-                        )
-                            this.logger?.debug(
-                                `${this.commonPreMessageForLogging} Multi file operation completed.`,
-                            );
-                        resolve();
-                    },
+            if (this.isMultiFileOperationActive(parentFolder)) {
+                this.logger?.debug(
+                    `${this.commonPreMessageForLogging} Waiting for multi file operation in folder '${parentFolder}' to finish before items in cache will be checked.`,
                 );
-            });
 
-            if (subscription) {
-                (subscription as vscode.Disposable).dispose();
+                await this.waitForActiveMultiFileOperationToFinish(
+                    dirname(filePath),
+                );
             }
 
             filesToCheck.push(
@@ -633,12 +627,55 @@ export class CollectionItemProvider {
         );
     }
 
-    private isMultiFileOperationActiveForFolder(folderPath: string) {
+    private hasMultiFileOperationRecentlyBeenActive(folderPath: string) {
+        const maxDiffInMillis = 3_000;
+
+        const hasRecentlyBeenActive =
+            this.latestMultiFileOperation.completionDate != undefined &&
+            new Date().getTime() <=
+                this.latestMultiFileOperation.completionDate.getTime() +
+                    maxDiffInMillis;
+
         return (
-            this.activeMultiFileOperationFolder &&
-            normalizeDirectoryPath(this.activeMultiFileOperationFolder) ==
+            this.isMultiFileOperationActive(folderPath) ||
+            (hasRecentlyBeenActive &&
+                this.latestMultiFileOperation.folderPath != undefined &&
+                normalizeDirectoryPath(
+                    this.latestMultiFileOperation.folderPath,
+                ) == normalizeDirectoryPath(folderPath))
+        );
+    }
+
+    private isMultiFileOperationActive(folderPath: string) {
+        return (
+            this.latestMultiFileOperation.completionDate == undefined &&
+            this.latestMultiFileOperation.folderPath != undefined &&
+            normalizeDirectoryPath(this.latestMultiFileOperation.folderPath) ==
                 normalizeDirectoryPath(folderPath)
         );
+    }
+
+    private async waitForActiveMultiFileOperationToFinish(folderPath: string) {
+        let subscription: vscode.Disposable | undefined = undefined;
+
+        await new Promise<void>((resolve) => {
+            subscription = this.multiFileOperationFinishedNotifier.event(
+                (f) => {
+                    if (
+                        normalizeDirectoryPath(folderPath) ==
+                        normalizeDirectoryPath(f)
+                    )
+                        this.logger?.debug(
+                            `${this.commonPreMessageForLogging} Multi file operation completed.`,
+                        );
+                    resolve();
+                },
+            );
+        });
+
+        if (subscription) {
+            (subscription as vscode.Disposable).dispose();
+        }
     }
 
     private async isCachedFileInSync(collection: Collection, filePath: string) {
