@@ -31,6 +31,7 @@ import {
     filterAsync,
     CollectionWatcher,
     getTemporaryJsFileBasename,
+    getFileType,
 } from "../shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/brunoFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/brunoFiles/autoUpdates/updateUrlToMatchQueryParams";
@@ -201,15 +202,6 @@ async function onDidChangeTextDocument(
                 return;
             }
 
-            // Sometimes it can take a few seconds until a valid file type can be determined (e.g. when moving a file to a different folder).
-
-            // ToDo: Ensure that all cached items are in sync for cases where drag and drop is done within a single folder.
-            // Currently, this always causes diagnostics to be generated claiming that multiple requests have the same sequence.
-            await itemProvider.waitForFileToBeRegisteredInCache(
-                collection.getRootDirectory(),
-                fileName,
-            );
-
             const brunoFileType = await getBrunoFileTypeIfExists(
                 itemProvider,
                 fileName,
@@ -217,6 +209,14 @@ async function onDidChangeTextDocument(
 
             if (!brunoFileType) {
                 return;
+            }
+
+            // Sometimes it can take a few seconds until the cache is up to date (e.g. when moving a file to a different folder).
+            if (brunoFileType == BrunoFileType.RequestFile) {
+                await itemProvider.waitForFileToBeRegisteredInCache(
+                    collection.getRootDirectory(),
+                    fileName,
+                );
             }
 
             await fetchBrunoSpecificDiagnostics(
@@ -296,12 +296,6 @@ async function handleOpeningOfBruDocument(
         return;
     }
 
-    // Sometimes it can take a few seconds until a valid file type can be determined (e.g. when moving a file to a different folder).
-    await itemProvider.waitForFileToBeRegisteredInCache(
-        collection.getRootDirectory(),
-        fileName,
-    );
-
     const brunoFileType = await getBrunoFileTypeIfExists(
         itemProvider,
         fileName,
@@ -310,6 +304,14 @@ async function handleOpeningOfBruDocument(
     if (!brunoFileType) {
         await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
         return;
+    }
+
+    // Sometimes it can take a few seconds until the cache is up to date (e.g. when moving a file to a different folder).
+    if (brunoFileType == BrunoFileType.RequestFile) {
+        await itemProvider.waitForFileToBeRegisteredInCache(
+            collection.getRootDirectory(),
+            fileName,
+        );
     }
 
     await fetchBrunoSpecificDiagnostics(
@@ -476,18 +478,17 @@ function getBrunoFileTypesThatCanHaveCodeBlocks() {
 }
 
 async function getBrunoFileTypeIfExists(
-    collectionItemProvider: CollectionItemProvider,
+    itemProvider: CollectionItemProvider,
     filePath: string,
 ) {
-    const itemWithCollection =
-        collectionItemProvider.getRegisteredItemAndCollection(filePath);
+    const collection = itemProvider.getAncestorCollectionForPath(filePath);
 
-    return itemWithCollection &&
-        (await checkIfPathExistsAsync(filePath)) &&
-        itemWithCollection.data.item instanceof CollectionFile &&
-        isBrunoFileType(itemWithCollection.data.item.getFileType())
-        ? (itemWithCollection.data.item.getFileType() as BrunoFileType)
-        : undefined;
+    if (!collection) {
+        return undefined;
+    }
+
+    const fileType = await getFileType(collection, filePath);
+    return fileType && isBrunoFileType(fileType) ? fileType : undefined;
 }
 
 function isJsFileFromBrunoCollection(
