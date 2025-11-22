@@ -17,16 +17,18 @@ import {
     OutputChannelLogger,
     TestRunnerDataHelper,
     MultiFileOperationWithStatus,
-    filterAsync,
-    getFileType,
 } from "../..";
-import { basename, dirname, resolve as resolvePath } from "path";
+import { basename, dirname } from "path";
 import { promisify } from "util";
 import { lstat } from "fs";
 import { getCollectionFile } from "../internalHelpers/getCollectionFile";
-import { readdir } from "fs/promises";
+import { determineFilesToCheckWhetherInSync } from "../internalHelpers/determineFilesToCheckWhetherInSync";
+import {
+    ResultCode,
+    waitForFilesFromFolderToBeInSync,
+} from "../internalHelpers/waitForFilesFromFolderToBeInSync";
 
-interface NotificationData {
+export interface NotificationData {
     collection: Collection;
     data: CollectionData;
     updateType: FileChangeType;
@@ -179,12 +181,15 @@ export class CollectionItemProvider {
                 `${this.commonPreMessageForLogging} Aborting waiting for file '${filePath}' to be registered in cache.`,
             );
         };
-
-        const collection = this.getRegisteredCollections().find(
-            (c) =>
-                normalizeDirectoryPath(c.getRootDirectory()) ==
-                normalizeDirectoryPath(collectionRootFolder),
-        );
+        const getCollection = () => {
+            return this.getRegisteredCollections().find(
+                (c) =>
+                    normalizeDirectoryPath(c.getRootDirectory()) ==
+                    normalizeDirectoryPath(collectionRootFolder),
+            );
+        };
+        const parentFolder = dirname(filePath);
+        const collection = getCollection();
 
         if (!collection) {
             this.logger?.warn(
@@ -192,8 +197,6 @@ export class CollectionItemProvider {
             );
             return Promise.resolve(false);
         }
-
-        const parentFolder = dirname(filePath);
 
         if (shouldAbort) {
             addLogEntryForAbortion();
@@ -216,119 +219,56 @@ export class CollectionItemProvider {
         }
 
         const startTime = performance.now();
-        const filesToCheck: { path: string; sequence?: number }[] = [];
 
-        // Multi file operations often cause the cache to not be in sync with the file system for a little while.
-        // Therefore, wait until the operation is completed before continuing and afterwards we wait until all items for files in the folder are in sync.
-        if (!this.hasMultiFileOperationRecentlyBeenActive(parentFolder)) {
-            const sequence = await parseSequenceFromMetaBlock(filePath);
-            filesToCheck.push({ path: filePath, sequence });
-        } else {
-            if (this.isMultiFileOperationActive(parentFolder)) {
-                this.logger?.debug(
-                    `${this.commonPreMessageForLogging} Waiting for multi file operation in folder '${parentFolder}' to finish before items in cache will be checked.`,
-                );
-
-                await this.waitForActiveMultiFileOperationToFinish(
-                    dirname(filePath),
-                );
-            }
-
-            filesToCheck.push(
-                ...(await this.getRequestFilesFromFolderThatAreNotInSync(
-                    parentFolder,
-                    collection,
-                )),
-            );
-        }
+        const filesToCheck = await determineFilesToCheckWhetherInSync(
+            filePath,
+            parentFolder,
+            collection,
+            {
+                currentlyActive: (folder) =>
+                    this.isMultiFileOperationActive(folder),
+                recentlyActive: (folder) =>
+                    this.hasMultiFileOperationRecentlyBeenActive(folder),
+                multiFileOperationFinishedNotifier:
+                    this.multiFileOperationFinishedNotifier.event,
+            },
+            {
+                getRegisteredItem: (collection, path) =>
+                    this.getRegisteredItem(collection, path),
+            },
+            this.logger,
+        );
 
         if (shouldAbort) {
             addLogEntryForAbortion();
             return false;
         }
 
-        let timeout: NodeJS.Timeout | undefined = undefined;
-        let disposable: vscode.Disposable | undefined = undefined;
-        let toAwait: Promise<boolean> | undefined = undefined;
+        const resultCode = await waitForFilesFromFolderToBeInSync(
+            filesToCheck,
+            parentFolder,
+            {
+                shouldAbort: () => shouldAbort,
+                getSubscriptionForCacheUpdates: () => this.subscribeToUpdates(),
+            },
+            timeoutInMillis,
+            this.logger,
+        );
 
-        if (filesToCheck.length == 0) {
-            this.logger?.debug(
-                `Cached items from folder '${parentFolder}' already up to date on first check.`,
+        if (
+            resultCode == ResultCode.WaitingCompleted &&
+            filesToCheck.length > 0
+        ) {
+            this.logger?.trace(
+                `Waited for ${Math.round(performance.now() - startTime)} / ${timeoutInMillis} ms for items ${JSON.stringify(
+                    filesToCheck.map(({ path }) => path),
+                    null,
+                    2,
+                )} to be registered in cache.`,
             );
-
-            toAwait = Promise.resolve(true);
-        } else {
-            const initialMissingItems = [
-                ...filesToCheck.map(({ path }) => path),
-            ];
-
-            toAwait = new Promise<boolean>((resolve) => {
-                disposable = this.subscribeToUpdates()((updates) => {
-                    if (shouldAbort) {
-                        addLogEntryForAbortion();
-                        return resolve(false);
-                    }
-
-                    for (const {
-                        updateType,
-                        data: { item },
-                    } of updates) {
-                        if (
-                            [
-                                FileChangeType.Created,
-                                FileChangeType.Modified,
-                            ].includes(updateType) &&
-                            filesToCheck.some(
-                                ({ path }) => path == item.getPath(),
-                            )
-                        ) {
-                            const index = filesToCheck.findIndex(
-                                ({ path }) => path == item.getPath(),
-                            );
-
-                            const expectedSequence =
-                                filesToCheck[index].sequence;
-
-                            if (expectedSequence === item.getSequence()) {
-                                filesToCheck.splice(index, 1);
-
-                                if (filesToCheck.length == 0) {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    if (filesToCheck.length == 0) {
-                        this.logger?.trace(
-                            `Waited for ${Math.round(performance.now() - startTime)} / ${timeoutInMillis} ms for items ${JSON.stringify(
-                                initialMissingItems,
-                                null,
-                                2,
-                            )} to be registered in cache.`,
-                        );
-                        return resolve(true);
-                    }
-                });
-
-                timeout = setTimeout(() => {
-                    this.logger?.debug(
-                        `Timeout of ${timeoutInMillis} ms reached while waiting for items '${JSON.stringify(filesToCheck, null, 2)}' to be registered in cache.`,
-                    );
-                    return resolve(false);
-                }, timeoutInMillis);
-            });
         }
 
-        const result = await toAwait;
-
-        if (disposable) {
-            (disposable as vscode.Disposable).dispose();
-        }
-
-        clearTimeout(timeout);
-
-        return result;
+        return resultCode == ResultCode.WaitingCompleted;
     }
 
     public subscribeToUpdates() {
@@ -688,29 +628,6 @@ export class CollectionItemProvider {
         );
     }
 
-    private async waitForActiveMultiFileOperationToFinish(folderPath: string) {
-        let subscription: vscode.Disposable | undefined = undefined;
-
-        await new Promise<void>((resolve) => {
-            subscription = this.multiFileOperationFinishedNotifier.event(
-                (f) => {
-                    if (
-                        normalizeDirectoryPath(folderPath) ==
-                        normalizeDirectoryPath(f)
-                    )
-                        this.logger?.debug(
-                            `${this.commonPreMessageForLogging} Multi file operation completed.`,
-                        );
-                    resolve();
-                },
-            );
-        });
-
-        if (subscription) {
-            (subscription as vscode.Disposable).dispose();
-        }
-    }
-
     private async isCachedFileInSync(collection: Collection, filePath: string) {
         const cachedData = collection.getStoredDataForPath(filePath);
 
@@ -719,36 +636,5 @@ export class CollectionItemProvider {
             (await parseSequenceFromMetaBlock(filePath)) ==
                 cachedData.item.getSequence()
         );
-    }
-
-    private async getRequestFilesFromFolderThatAreNotInSync(
-        folderPath: string,
-        collection: Collection,
-    ) {
-        const allItemsInFolder = (await readdir(folderPath)).map((name) =>
-            resolvePath(folderPath, name),
-        );
-
-        const filesInFolder = await Promise.all(
-            (
-                await filterAsync(allItemsInFolder, async (path) =>
-                    (await promisify(lstat)(path)).isFile(),
-                )
-            ).map(async (path) => ({
-                path,
-                sequence: await parseSequenceFromMetaBlock(path),
-            })),
-        );
-
-        return await filterAsync(filesInFolder, async ({ path, sequence }) => {
-            const registeredItem = this.getRegisteredItem(collection, path);
-
-            return (
-                (await getFileType(collection, path)) ==
-                    BrunoFileType.RequestFile &&
-                (registeredItem == undefined ||
-                    registeredItem.item.getSequence() !== sequence)
-            );
-        });
     }
 }
