@@ -36,8 +36,6 @@ export async function determineFilesToCheckWhetherInSync(
     } = multiFileOperationData;
     const { getRegisteredItem } = cachedData;
 
-    // Multi file operations often cause the cache to not be in sync with the file system for a little while.
-    // Therefore, wait until the operation is completed before continuing and afterwards we wait until all items for files in the folder are in sync.
     if (!hasMultiFileOperationRecentlyBeenActive(parentFolder)) {
         const sequence = await parseSequenceFromMetaBlock(requestedFilePath);
         return [{ path: requestedFilePath, sequence }];

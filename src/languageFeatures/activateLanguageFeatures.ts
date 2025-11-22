@@ -213,8 +213,8 @@ async function onDidChangeTextDocument(
                 return;
             }
 
-            // Sometimes it can take a few seconds until the cache is up to date (e.g. when moving a file to a different folder).
             if (brunoFileType == BrunoFileType.RequestFile) {
+                // Sometimes it can take a few seconds until the cache is up to date (e.g. when moving a file to a different folder).
                 await itemProvider.waitForFileToBeRegisteredInCache(
                     collection.getRootDirectory(),
                     fileName,
@@ -331,12 +331,12 @@ async function handleOpeningOfBruDocument(
         return;
     }
 
-    // Sometimes it can take a few seconds until the cache is up to date (e.g. when moving a file to a different folder).
     if (brunoFileType == BrunoFileType.RequestFile) {
+        // Sometimes it can take a few seconds until the cache is up to date (e.g. when moving a file to a different folder).
         await itemProvider.waitForFileToBeRegisteredInCache(
             collection.getRootDirectory(),
             fileName,
-            shouldAbortNotifier.event
+            shouldAbortNotifier.event,
         );
     }
 
@@ -379,8 +379,8 @@ async function handleOpeningOfBruDocument(
     });
 
     for (const d of toDispose) {
-            d.dispose();
-        }
+        d.dispose();
+    }
 }
 
 async function handleOpeningOfJsDocument(
