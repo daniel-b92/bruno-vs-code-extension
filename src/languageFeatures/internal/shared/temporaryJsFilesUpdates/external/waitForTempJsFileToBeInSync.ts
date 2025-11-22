@@ -101,9 +101,9 @@ export async function waitForTempJsFileToBeInSync(
                         desiredTempJsFileContentInitially
                 ) {
                     logger?.trace(
-                        `Temp JS file in sync after waiting for ${
-                            performance.now() - startTime
-                        } ms.`,
+                        `Temp JS file in sync after waiting for ${Math.round(
+                            performance.now() - startTime,
+                        )} ms.`,
                     );
                     resolve({ document: e.document });
                 } else if (

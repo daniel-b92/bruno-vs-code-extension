@@ -34,7 +34,7 @@ export async function activateRunner(
     context: ExtensionContext,
     ctrl: TestController,
     collectionItemProvider: CollectionItemProvider,
-    startTestRunEvent: VscodeEvent<Uri>
+    startTestRunEvent: VscodeEvent<Uri>,
 ) {
     const watchingTests = new Map<
         VscodeTestItem | "ALL",
@@ -44,60 +44,68 @@ export async function activateRunner(
     const testRunnerDataHelper = new TestRunnerDataHelper(ctrl);
     const logger = getLoggerFromSubscriptions(context);
 
-    handleTestTreeUpdates(ctrl, collectionItemProvider, testRunnerDataHelper);
+    context.subscriptions.push(
+        handleTestTreeUpdates(
+            ctrl,
+            collectionItemProvider,
+            testRunnerDataHelper,
+        ),
+    );
 
-    collectionItemProvider.subscribeToUpdates()(async (updates) => {
-        for (const {
-            data: { item: changedItem },
-        } of updates) {
-            if (watchingTests.has("ALL")) {
-                await startTestRun(
-                    ctrl,
-                    new TestRunRequest(
-                        undefined,
-                        undefined,
-                        watchingTests.get("ALL"),
-                        true
-                    ),
-                    collectionItemProvider,
-                    queue,
-                    logger
-                );
-                return;
-            }
+    context.subscriptions.push(
+        collectionItemProvider.subscribeToUpdates()(async (updates) => {
+            for (const {
+                data: { item: changedItem },
+            } of updates) {
+                if (watchingTests.has("ALL")) {
+                    await startTestRun(
+                        ctrl,
+                        new TestRunRequest(
+                            undefined,
+                            undefined,
+                            watchingTests.get("ALL"),
+                            true,
+                        ),
+                        collectionItemProvider,
+                        queue,
+                        logger,
+                    );
+                    return;
+                }
 
-            const include: VscodeTestItem[] = [];
-            let profile: TestRunProfile | undefined;
+                const include: VscodeTestItem[] = [];
+                let profile: TestRunProfile | undefined;
 
-            for (const [watchedItem, thisProfile] of watchingTests) {
-                const cast = watchedItem as VscodeTestItem;
+                for (const [watchedItem, thisProfile] of watchingTests) {
+                    const cast = watchedItem as VscodeTestItem;
 
-                // If the modified item is a descendant of a watched item, trigger a testrun for that watched item.
-                if (
-                    cast.uri?.fsPath
-                        ? changedItem.getPath().includes(cast.uri.fsPath)
-                        : false
-                ) {
-                    include.push(cast);
-                    profile = thisProfile;
+                    // If the modified item is a descendant of a watched item, trigger a testrun for that watched item.
+                    if (
+                        cast.uri?.fsPath
+                            ? changedItem.getPath().includes(cast.uri.fsPath)
+                            : false
+                    ) {
+                        include.push(cast);
+                        profile = thisProfile;
+                    }
+                }
+
+                if (include.length) {
+                    await startTestRun(
+                        ctrl,
+                        new TestRunRequest(include, undefined, profile, true),
+                        collectionItemProvider,
+                        queue,
+                        logger,
+                    );
                 }
             }
-
-            if (include.length) {
-                await startTestRun(
-                    ctrl,
-                    new TestRunRequest(include, undefined, profile, true),
-                    collectionItemProvider,
-                    queue,
-                    logger
-                );
-            }
-        }
-    });
+        }),
+    );
 
     const runHandler = async (
         request: TestRunRequest,
-        cancellation: CancellationToken
+        cancellation: CancellationToken,
     ) => {
         if (!request.continuous) {
             return await startTestRun(
@@ -105,21 +113,21 @@ export async function activateRunner(
                 request,
                 collectionItemProvider,
                 queue,
-                logger
+                logger,
             );
         }
 
         if (request.include === undefined) {
             watchingTests.set("ALL", request.profile);
             cancellation.onCancellationRequested(() =>
-                watchingTests.delete("ALL")
+                watchingTests.delete("ALL"),
             );
         } else {
             request.include.forEach((item) =>
-                watchingTests.set(item, request.profile)
+                watchingTests.set(item, request.profile),
             );
             cancellation.onCancellationRequested(() =>
-                request.include!.forEach((item) => watchingTests.delete(item))
+                request.include!.forEach((item) => watchingTests.delete(item)),
             );
         }
     };
@@ -141,20 +149,20 @@ export async function activateRunner(
                         addMissingTestCollectionsAndItemsToTestTree(
                             ctrl,
                             testRunnerDataHelper,
-                            collections
+                            collections,
                         ).then(() => {
                             // The displayed test tree view is only updated correctly, if you re-add the collection on top level again
                             collections.forEach((collection) =>
                                 addCollectionTestItemToTestTree(
                                     ctrl,
-                                    collection
-                                )
+                                    collection,
+                                ),
                             );
                             resolve();
                         });
                     });
                 });
-            }
+            },
         );
     };
 
@@ -164,7 +172,7 @@ export async function activateRunner(
         runHandler,
         true,
         undefined,
-        true
+        true,
     );
 
     ctrl.resolveHandler = async (item) => {
@@ -172,7 +180,7 @@ export async function activateRunner(
             await addMissingTestCollectionsAndItemsToTestTree(
                 ctrl,
                 testRunnerDataHelper,
-                collectionItemProvider.getRegisteredCollections()
+                collectionItemProvider.getRegisteredCollections(),
             );
             return;
         }
@@ -182,7 +190,7 @@ export async function activateRunner(
             collectionItemProvider.getAncestorCollectionForPath(path);
         if (!collection) {
             throw new Error(
-                `Did not find registered collection for item with path '${path}'`
+                `Did not find registered collection for item with path '${path}'`,
             );
         }
 
@@ -190,7 +198,7 @@ export async function activateRunner(
         if (data && data.item instanceof CollectionDirectory) {
             await testRunnerDataHelper.addTestTreeItemsForDirectoryAndDescendants(
                 collection,
-                data.item
+                data.item,
             );
 
             // The displayed test tree view is only updated correctly, if you re-add the collection on top level again
@@ -211,7 +219,7 @@ export async function activateRunner(
                     (await isRelevantForTestTree(
                         testRunnerDataHelper,
                         collection,
-                        maybeItem.item
+                        maybeItem.item,
                     ))
                 ) {
                     testItem = maybeItem.testItem;
@@ -219,7 +227,7 @@ export async function activateRunner(
                 } else {
                     return false;
                 }
-            }
+            },
         );
 
         if (isRunnable) {
@@ -229,15 +237,15 @@ export async function activateRunner(
                     [testItem as VscodeTestItem],
                     undefined,
                     defaultProfile,
-                    false
+                    false,
                 ),
                 collectionItemProvider,
                 queue,
-                logger
+                logger,
             );
         } else {
             window.showInformationMessage(
-                "No bruno tests found for selected item."
+                "No bruno tests found for selected item.",
             );
         }
     });
@@ -246,13 +254,13 @@ export async function activateRunner(
 async function addMissingTestCollectionsAndItemsToTestTree(
     controller: TestController,
     testRunnerDataHelper: TestRunnerDataHelper,
-    registeredCollections: readonly Collection[]
+    registeredCollections: readonly Collection[],
 ) {
     for (const collection of registeredCollections) {
         await testRunnerDataHelper.addTestTreeItemsForDirectoryAndDescendants(
             collection,
             collection.getStoredDataForPath(collection.getRootDirectory())
-                ?.item as CollectionDirectory
+                ?.item as CollectionDirectory,
         );
 
         // The test tree view is only updated correctly, if you re-add the collection on top level again
@@ -263,9 +271,9 @@ async function addMissingTestCollectionsAndItemsToTestTree(
 function handleTestTreeUpdates(
     controller: TestController,
     collectionItemProvider: CollectionItemProvider,
-    testRunnerDataHelper: TestRunnerDataHelper
+    testRunnerDataHelper: TestRunnerDataHelper,
 ) {
-    collectionItemProvider.subscribeToUpdates()(async (updates) => {
+    return collectionItemProvider.subscribeToUpdates()(async (updates) => {
         for (const {
             collection,
             data: { item, testItem },
@@ -277,7 +285,7 @@ function handleTestTreeUpdates(
                 (await isRelevantForTestTree(
                     testRunnerDataHelper,
                     collection,
-                    item
+                    item,
                 ))
             ) {
                 addTestItemAndAncestorsToTestTree(controller, collection, item);
@@ -294,19 +302,19 @@ function handleTestTreeUpdates(
                     removeTestItemFromTree(
                         controller,
                         collection,
-                        testItem.uri as Uri
+                        testItem.uri as Uri,
                     );
                     addTestItemAndAncestorsToTestTree(
                         controller,
                         collection,
-                        item
+                        item,
                     );
                 } else if (item.getSequence() == undefined) {
                     // This case can e.g. happen if the sequence in the a .bru file is changed to an invalid value
                     removeTestItemFromTree(
                         controller,
                         collection,
-                        testItem.uri as Uri
+                        testItem.uri as Uri,
                     );
                 }
             } else if (
@@ -314,13 +322,13 @@ function handleTestTreeUpdates(
                 (await isRelevantForTestTree(
                     testRunnerDataHelper,
                     collection,
-                    item
+                    item,
                 ))
             ) {
                 removeTestItemFromTree(
                     controller,
                     collection,
-                    testItem.uri as Uri
+                    testItem.uri as Uri,
                 );
             }
 
@@ -338,18 +346,18 @@ function handleTestTreeUpdates(
 
 function addCollectionTestItemToTestTree(
     controller: TestController,
-    collection: Collection
+    collection: Collection,
 ) {
     controller.items.add(
         collection.getStoredDataForPath(collection.getRootDirectory())
-            ?.testItem as VscodeTestItem
+            ?.testItem as VscodeTestItem,
     );
 }
 
 function removeTestItemFromTree(
     controller: TestController,
     collection: Collection,
-    itemUri: Uri
+    itemUri: Uri,
 ) {
     const parentItem = collection.getStoredDataForPath(dirname(itemUri.fsPath));
 
@@ -363,7 +371,7 @@ function removeTestItemFromTree(
 async function isRelevantForTestTree(
     testRunnerDataHelper: TestRunnerDataHelper,
     collection: Collection,
-    item: CollectionItem
+    item: CollectionItem,
 ) {
     return (
         (item instanceof CollectionFile &&
@@ -373,7 +381,7 @@ async function isRelevantForTestTree(
             (
                 await testRunnerDataHelper.getTestFileDescendants(
                     collection,
-                    item
+                    item,
                 )
             ).length > 0)
     );
