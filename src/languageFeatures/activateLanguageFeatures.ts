@@ -11,6 +11,8 @@ import {
     window,
     workspace,
     Event as VsCodeEvent,
+    EventEmitter,
+    Disposable,
 } from "vscode";
 import { provideBrunoLangCompletionItems } from "./internal/brunoFiles/completionItems/provideBrunoLangCompletionItems";
 import {
@@ -287,6 +289,22 @@ async function handleOpeningOfBruDocument(
     tempJsFilesProvider: TempJsFilesProvider,
     { fileName, getText, uri }: TextDocument,
 ) {
+    const toDispose: Disposable[] = [];
+    let shouldAbort = false;
+    const shouldAbortNotifier = new EventEmitter<void>();
+
+    toDispose.push(
+        workspace.onDidChangeTextDocument(
+            ({ document: { fileName: changedFile } }) => {
+                if (changedFile == fileName) {
+                    shouldAbort = true;
+                    shouldAbortNotifier.fire();
+                }
+            },
+        ),
+        shouldAbortNotifier,
+    );
+
     const collection = itemProvider.getAncestorCollectionForPath(fileName);
     if (!collection) {
         window.showWarningMessage(
@@ -301,6 +319,13 @@ async function handleOpeningOfBruDocument(
         fileName,
     );
 
+    if (shouldAbort) {
+        for (const d of toDispose) {
+            d.dispose();
+        }
+        return;
+    }
+
     if (!brunoFileType) {
         await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
         return;
@@ -311,7 +336,15 @@ async function handleOpeningOfBruDocument(
         await itemProvider.waitForFileToBeRegisteredInCache(
             collection.getRootDirectory(),
             fileName,
+            shouldAbortNotifier.event
         );
+    }
+
+    if (shouldAbort) {
+        for (const d of toDispose) {
+            d.dispose();
+        }
+        return;
     }
 
     await fetchBrunoSpecificDiagnostics(
@@ -320,6 +353,13 @@ async function handleOpeningOfBruDocument(
         brunoLangDiagnosticsProvider,
         brunoFileType,
     );
+
+    if (shouldAbort) {
+        for (const d of toDispose) {
+            d.dispose();
+        }
+        return;
+    }
 
     if (!getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType)) {
         await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
@@ -337,6 +377,10 @@ async function handleOpeningOfBruDocument(
             tempJsFileContent: getTempJsFileContentForBruFile(getText()),
         },
     });
+
+    for (const d of toDispose) {
+            d.dispose();
+        }
 }
 
 async function handleOpeningOfJsDocument(

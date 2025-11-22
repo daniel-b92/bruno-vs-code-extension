@@ -165,8 +165,21 @@ export class CollectionItemProvider {
     public async waitForFileToBeRegisteredInCache(
         collectionRootFolder: string,
         filePath: string,
+        shouldAbortEvent?: vscode.Event<void>,
         timeoutInMillis = 5_000,
     ) {
+        let shouldAbort = false;
+        if (shouldAbortEvent != undefined) {
+            shouldAbortEvent(() => {
+                shouldAbort = true;
+            });
+        }
+        const addLogEntryForAbortion = () => {
+            this.logger?.debug(
+                `${this.commonPreMessageForLogging} Aborting waiting for file '${filePath}' to be registered in cache.`,
+            );
+        };
+
         const collection = this.getRegisteredCollections().find(
             (c) =>
                 normalizeDirectoryPath(c.getRootDirectory()) ==
@@ -182,6 +195,11 @@ export class CollectionItemProvider {
 
         const parentFolder = dirname(filePath);
 
+        if (shouldAbort) {
+            addLogEntryForAbortion();
+            return false;
+        }
+
         if (
             !this.hasMultiFileOperationRecentlyBeenActive(parentFolder) &&
             (await this.isCachedFileInSync(collection, filePath))
@@ -190,6 +208,11 @@ export class CollectionItemProvider {
                 `Cached item '${filePath}' already up to date on first check.`,
             );
             return Promise.resolve(true);
+        }
+
+        if (shouldAbort) {
+            addLogEntryForAbortion();
+            return false;
         }
 
         const startTime = performance.now();
@@ -219,73 +242,83 @@ export class CollectionItemProvider {
             );
         }
 
+        if (shouldAbort) {
+            addLogEntryForAbortion();
+            return false;
+        }
+
         let timeout: NodeJS.Timeout | undefined = undefined;
         let disposable: vscode.Disposable | undefined = undefined;
+        let toAwait: Promise<boolean> | undefined = undefined;
 
-        const toAwait = new Promise<boolean>((resolve) => {
-            if (filesToCheck.length == 0) {
-                this.logger?.debug(
-                    `Cached items ${JSON.stringify(
-                        filesToCheck.map(({ path }) => path),
-                        null,
-                        2,
-                    )} already up to date on first check.`,
-                );
+        if (filesToCheck.length == 0) {
+            this.logger?.debug(
+                `Cached items from folder '${parentFolder}' already up to date on first check.`,
+            );
 
-                return resolve(true);
-            }
-
+            toAwait = Promise.resolve(true);
+        } else {
             const initialMissingItems = [
                 ...filesToCheck.map(({ path }) => path),
             ];
 
-            disposable = this.subscribeToUpdates()((updates) => {
-                for (const {
-                    updateType,
-                    data: { item },
-                } of updates) {
-                    if (
-                        [
-                            FileChangeType.Created,
-                            FileChangeType.Modified,
-                        ].includes(updateType) &&
-                        filesToCheck.some(({ path }) => path == item.getPath())
-                    ) {
-                        const index = filesToCheck.findIndex(
-                            ({ path }) => path == item.getPath(),
-                        );
+            toAwait = new Promise<boolean>((resolve) => {
+                disposable = this.subscribeToUpdates()((updates) => {
+                    if (shouldAbort) {
+                        addLogEntryForAbortion();
+                        return resolve(false);
+                    }
 
-                        const expectedSequence = filesToCheck[index].sequence;
+                    for (const {
+                        updateType,
+                        data: { item },
+                    } of updates) {
+                        if (
+                            [
+                                FileChangeType.Created,
+                                FileChangeType.Modified,
+                            ].includes(updateType) &&
+                            filesToCheck.some(
+                                ({ path }) => path == item.getPath(),
+                            )
+                        ) {
+                            const index = filesToCheck.findIndex(
+                                ({ path }) => path == item.getPath(),
+                            );
 
-                        if (expectedSequence === item.getSequence()) {
-                            filesToCheck.splice(index, 1);
+                            const expectedSequence =
+                                filesToCheck[index].sequence;
 
-                            if (filesToCheck.length == 0) {
-                                break;
+                            if (expectedSequence === item.getSequence()) {
+                                filesToCheck.splice(index, 1);
+
+                                if (filesToCheck.length == 0) {
+                                    break;
+                                }
                             }
                         }
                     }
-                }
 
-                if (filesToCheck.length == 0) {
-                    this.logger?.trace(
-                        `Waited for ${Math.round(performance.now() - startTime)} / ${timeoutInMillis} ms for items ${JSON.stringify(
-                            initialMissingItems,
-                            null,
-                            2,
-                        )} to be registered in cache.`,
+                    if (filesToCheck.length == 0) {
+                        this.logger?.trace(
+                            `Waited for ${Math.round(performance.now() - startTime)} / ${timeoutInMillis} ms for items ${JSON.stringify(
+                                initialMissingItems,
+                                null,
+                                2,
+                            )} to be registered in cache.`,
+                        );
+                        return resolve(true);
+                    }
+                });
+
+                timeout = setTimeout(() => {
+                    this.logger?.debug(
+                        `Timeout of ${timeoutInMillis} ms reached while waiting for items '${JSON.stringify(filesToCheck, null, 2)}' to be registered in cache.`,
                     );
-                    return resolve(true);
-                }
+                    return resolve(false);
+                }, timeoutInMillis);
             });
-
-            timeout = setTimeout(() => {
-                this.logger?.debug(
-                    `Timeout of ${timeoutInMillis} ms reached while waiting for items '${JSON.stringify(filesToCheck, null, 2)}' to be registered in cache.`,
-                );
-                return resolve(false);
-            }, timeoutInMillis);
-        });
+        }
 
         const result = await toAwait;
 
