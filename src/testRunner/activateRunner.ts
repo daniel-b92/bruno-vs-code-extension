@@ -44,56 +44,64 @@ export async function activateRunner(
     const testRunnerDataHelper = new TestRunnerDataHelper(ctrl);
     const logger = getLoggerFromSubscriptions(context);
 
-    handleTestTreeUpdates(ctrl, collectionItemProvider, testRunnerDataHelper);
+    context.subscriptions.push(
+        handleTestTreeUpdates(
+            ctrl,
+            collectionItemProvider,
+            testRunnerDataHelper,
+        ),
+    );
 
-    collectionItemProvider.subscribeToUpdates()(async (updates) => {
-        for (const {
-            data: { item: changedItem },
-        } of updates) {
-            if (watchingTests.has("ALL")) {
-                await startTestRun(
-                    ctrl,
-                    new TestRunRequest(
-                        undefined,
-                        undefined,
-                        watchingTests.get("ALL"),
-                        true,
-                    ),
-                    collectionItemProvider,
-                    queue,
-                    logger,
-                );
-                return;
-            }
+    context.subscriptions.push(
+        collectionItemProvider.subscribeToUpdates()(async (updates) => {
+            for (const {
+                data: { item: changedItem },
+            } of updates) {
+                if (watchingTests.has("ALL")) {
+                    await startTestRun(
+                        ctrl,
+                        new TestRunRequest(
+                            undefined,
+                            undefined,
+                            watchingTests.get("ALL"),
+                            true,
+                        ),
+                        collectionItemProvider,
+                        queue,
+                        logger,
+                    );
+                    return;
+                }
 
-            const include: VscodeTestItem[] = [];
-            let profile: TestRunProfile | undefined;
+                const include: VscodeTestItem[] = [];
+                let profile: TestRunProfile | undefined;
 
-            for (const [watchedItem, thisProfile] of watchingTests) {
-                const cast = watchedItem as VscodeTestItem;
+                for (const [watchedItem, thisProfile] of watchingTests) {
+                    const cast = watchedItem as VscodeTestItem;
 
-                // If the modified item is a descendant of a watched item, trigger a testrun for that watched item.
-                if (
-                    cast.uri?.fsPath
-                        ? changedItem.getPath().includes(cast.uri.fsPath)
-                        : false
-                ) {
-                    include.push(cast);
-                    profile = thisProfile;
+                    // If the modified item is a descendant of a watched item, trigger a testrun for that watched item.
+                    if (
+                        cast.uri?.fsPath
+                            ? changedItem.getPath().includes(cast.uri.fsPath)
+                            : false
+                    ) {
+                        include.push(cast);
+                        profile = thisProfile;
+                    }
+                }
+
+                if (include.length) {
+                    await startTestRun(
+                        ctrl,
+                        new TestRunRequest(include, undefined, profile, true),
+                        collectionItemProvider,
+                        queue,
+                        logger,
+                    );
                 }
             }
-
-            if (include.length) {
-                await startTestRun(
-                    ctrl,
-                    new TestRunRequest(include, undefined, profile, true),
-                    collectionItemProvider,
-                    queue,
-                    logger,
-                );
-            }
-        }
-    });
+        }),
+    );
 
     const runHandler = async (
         request: TestRunRequest,
@@ -266,7 +274,7 @@ function handleTestTreeUpdates(
     collectionItemProvider: CollectionItemProvider,
     testRunnerDataHelper: TestRunnerDataHelper,
 ) {
-    collectionItemProvider.subscribeToUpdates()(async (updates) => {
+    return collectionItemProvider.subscribeToUpdates()(async (updates) => {
         for (const {
             collection,
             data: { item, testItem },

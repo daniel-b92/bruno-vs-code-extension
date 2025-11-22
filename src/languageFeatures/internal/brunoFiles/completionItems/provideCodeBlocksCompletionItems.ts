@@ -111,10 +111,10 @@ export function provideCodeBlocksCompletionItems(
 
                 const endTimeForFetchingCompletions = performance.now();
                 logger?.trace(
-                    `Fetching completion items from temp JS file duration: ${
+                    `Fetching completion items from temp JS file duration: ${Math.round(
                         endTimeForFetchingCompletions -
-                        startTimeForFetchingCompletions
-                    } ms`,
+                            startTimeForFetchingCompletions,
+                    )} ms`,
                 );
 
                 if (token.isCancellationRequested) {
@@ -150,10 +150,10 @@ export function provideCodeBlocksCompletionItems(
 
                 const endTimeForMappingCompletions = performance.now();
                 logger?.trace(
-                    `Mapping completion items from temp JS file to bru file duration: ${
+                    `Mapping completion items from temp JS file to bru file duration: ${Math.round(
                         endTimeForMappingCompletions -
-                        startTimeForMappingCompletions
-                    } ms`,
+                            startTimeForMappingCompletions,
+                    )} ms`,
                 );
 
                 if (result.items.length < resultFromJsFile.items.length) {

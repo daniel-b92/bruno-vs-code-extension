@@ -16,6 +16,7 @@ import {
     checkIfPathExistsAsync,
     isBrunoFileType,
     DialogOptionLabelEnum,
+    MultiFileOperationWithStatus,
 } from "../../shared";
 import { basename, dirname, extname, resolve } from "path";
 import { BrunoTreeItem } from "../brunoTreeItem";
@@ -44,6 +45,7 @@ export class CollectionExplorer
     constructor(
         private itemProvider: CollectionItemProvider,
         startTestRunEmitter: vscode.EventEmitter<vscode.Uri>,
+        private multiFileOperationNotifier: vscode.EventEmitter<MultiFileOperationWithStatus>,
         private logger?: OutputChannelLogger,
     ) {
         if (
@@ -142,6 +144,11 @@ export class CollectionExplorer
             const itemType = originalItem.getItemType();
 
             if (isBrunoFileType(itemType)) {
+                this.multiFileOperationNotifier.fire({
+                    parentFolder: dirname(newPath),
+                    running: true,
+                });
+
                 await moveFileIntoFolder(
                     this.itemProvider,
                     sourcePath,
@@ -150,6 +157,12 @@ export class CollectionExplorer
                     dirname(newPath),
                     itemType,
                 );
+
+                this.multiFileOperationNotifier.fire({
+                    parentFolder: dirname(newPath),
+                    running: false,
+                });
+
                 return;
             }
         }
@@ -618,10 +631,10 @@ export class CollectionExplorer
         if (await getSequenceForFile(collection, originalPath)) {
             await replaceSequenceForFile(
                 newPath,
-                (await getMaxSequenceForRequests(
+                ((await getMaxSequenceForRequests(
                     this.itemProvider,
                     dirname(originalPath),
-                )) + 1,
+                )) ?? 0) + 1,
             );
         }
 

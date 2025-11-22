@@ -1,6 +1,6 @@
 // file system
 export * from "./fileSystem/collectionWatcher";
-export * from "./fileSystem/fileChangesDefinitions";
+export * from "./fileSystem/interfaces";
 export * from "./fileSystem/util/getTemporaryJsFileName";
 export * from "./fileSystem/util/collectionRootFolderHelper";
 export * from "./fileSystem/util/getTestFileDescendants";
@@ -92,8 +92,8 @@ export * from "./languageUtils/commonFields/isDictionaryBlockSimpleField";
 export * from "./languageUtils/commonFields/isDictionaryBlockArrayField";
 
 // test file writing
-export * from "./testFileWriting/addMetaBlock";
-export * from "./testFileWriting/appendDefaultMethodBlock";
+export * from "./testFileWriting/getContentForMetaBlock";
+export * from "./testFileWriting/getContentForDefaultMethodBlock";
 export * from "./testFileWriting/interfaces";
 
 // model

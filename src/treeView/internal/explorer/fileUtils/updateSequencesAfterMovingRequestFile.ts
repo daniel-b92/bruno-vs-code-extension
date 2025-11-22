@@ -19,9 +19,12 @@ export async function updateSequencesAfterMovingRequestFile(
     const newSequence = target.isFile
         ? target.getSequence()
             ? (target.getSequence() as number) + 1
-            : (await getMaxSequenceForRequests(itemProvider, targetDirectory)) +
-              1
-        : (await getMaxSequenceForRequests(itemProvider, targetDirectory)) + 1;
+            : ((await getMaxSequenceForRequests(
+                  itemProvider,
+                  targetDirectory,
+              )) ?? 0) + 1
+        : ((await getMaxSequenceForRequests(itemProvider, targetDirectory)) ??
+              0) + 1;
 
     await replaceSequenceForFile(newPath, newSequence);
 

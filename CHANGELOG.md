@@ -1,22 +1,46 @@
+## [Unreleased]
+
+### Fixes / Improvements
+
+- Fix some timing issues that could occur while performing changes via explorer:
+    - When creating a new request file, it should always be revelealed in the explorer. This sometimes failed before.
+    - When using drag&drop to move a request file, sometimes the diagnostic would appear that the sequence is the same as an another file in the same folder, even though this wasn't the case. This should not occur anymore.
+
+## [0.17.10] (2025-11-19)
+
+### Fixes / Improvements
+
+- Fix sequence for request file when created via collection explorer in folder without other requests.
+- Bump all dependencies in order to use versions without CVEs.
+
+## [0.17.9] (2025-11-09)
+
+### Fixes / Improvements
+
+- Add missing normalization of sequences for source directory when moving file to other folder.
+- Avoid incorrectly showing warning that file is outside of valid collections by waiting a few seconds in case of the file being moved and the cache not being quite up to date yet.
+
 ## [0.17.8] (2025-11-09)
 
 ### Fixes / Improvements
+
 - Fix sorting of requests and folders by sequence in test explorer view.
 - Improve stability and transparency for language features.
-  - Ensure that unique identifiers are used internally for the temp JS update requests.
-  - Show notification when waiting longer than expected for temp JS update.
-  - Show warning for `bru` files that are not inside a valid collection, that intellisense will be limited.
-
+    - Ensure that unique identifiers are used internally for the temp JS update requests.
+    - Show notification when waiting longer than expected for temp JS update.
+    - Show warning for `bru` files that are not inside a valid collection, that intellisense will be limited.
 
 ## [0.17.7] (2025-10-26)
 
 ### Fixes / Improvements
+
 - Filter out incorrect diagnostics for `expect` statements referring to `JestMatchers` (only seems to have occured when using `@types/jest` npm package).
 - Make handling of temp JS file updates more resilient by restarting entire queue when running into a timeout (instead of just throwing an error).
 
 ## [0.17.6] (2025-09-15)
 
 ### Fixes / Improvements
+
 - Add a warning in the readme about using other extensions for `.bru` files simultaneously with this one.
 - Add further advice on improving intellisense in the readme via `tsconfig` options.
 - Filter out misleading Typescript error in `.bru` files stating that elements of an array implicitly have an `any` type.
@@ -24,35 +48,41 @@
 ## [0.17.5] (2025-09-06)
 
 ### Fixes / Improvements
+
 - Improve performance for fetching completion items within code blocks of `.bru` files.
 - Fix some Promise-related issues with queuing temporary JS file update requests that could have caused memory leaks.
 
 ## [0.17.4] (2025-09-04)
 
 ### Fixes / Improvements
+
 - Add support for `tags` field in `meta` block of request files.
 - Fix some issues related to temporary JS file updates:
-  - Fix issue where no new temp JS file was created if the content of the last file was the same as for the new request, even if it was for a different path.
-  - Fix issue where warnings were produced because of trying to clean up temp JS files when there weren't any existing ones.
+    - Fix issue where no new temp JS file was created if the content of the last file was the same as for the new request, even if it was for a different path.
+    - Fix issue where warnings were produced because of trying to clean up temp JS files when there weren't any existing ones.
 
 ## [0.17.3] (2025-09-01)
 
 ### Fixes / Improvements
+
 - Fixes an issue, where an exception was thrown by the `Bruno` CLI process when triggering a testrun because of deletions of temp JS files in the background.
-  - Deletions are canceled in this situation now.
+    - Deletions are canceled in this situation now.
 
 ## [0.17.2] (2025-08-30)
 
 ### Fixes / Improvements
+
 - Fix issues from version `0.17.0` with providing intellisense for inbuilt `Bruno` functions in JS files.
 
 ## [0.17.1] (2025-08-24)
 
 ### Fixes / Improvements
+
 - Reverts last few changes that were added for version `0.17.0` since some bigger issues have occured when working with that version.
 - Do not show errors in JS files that are inside collections for inbuilt `Bruno` variables like `bru`, `req` and `res`.
 
 ## [0.17.0] (2025-08-24)
+
 **Note: Version had to be withdrawn because of some bigger issues - will try to fix them and add the feature in an upcoming version again**
 
 ### Fixes / Improvements
