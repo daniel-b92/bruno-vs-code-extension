@@ -643,6 +643,7 @@ export class CollectionItemProvider {
 
         return (
             cachedData != undefined &&
+            isCollectionItemWithSequence(cachedData.item) &&
             (await parseSequenceFromMetaBlock(filePath)) ==
                 cachedData.item.getSequence()
         );
