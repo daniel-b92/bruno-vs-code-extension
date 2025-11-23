@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.17.11] (2025-11-23)
 
 ### Fixes / Improvements
 
