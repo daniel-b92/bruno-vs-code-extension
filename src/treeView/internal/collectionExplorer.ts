@@ -524,11 +524,11 @@ export class CollectionExplorer
 
                 const { collection } = itemDataWithCollection;
 
-                const fileType = itemDataWithCollection.data.item.getItemType();
+                const itemType = itemDataWithCollection.data.item.getItemType();
 
                 if (
-                    fileType != BrunoFileType.CollectionSettingsFile &&
-                    fileType != BrunoFileType.FolderSettingsFile
+                    itemType != BrunoFileType.CollectionSettingsFile &&
+                    itemType != BrunoFileType.FolderSettingsFile
                 ) {
                     const newPath = await this.duplicateFile(
                         collection,
@@ -542,7 +542,7 @@ export class CollectionExplorer
                             "",
                         ),
                     );
-                } else if (fileType == BrunoFileType.CollectionSettingsFile) {
+                } else if (itemType == BrunoFileType.CollectionSettingsFile) {
                     const confirmed = await this.showWarningDialog(
                         "Duplicate collection settings file?",
                         "Only one collection settings file can be defined per collection.",
@@ -580,7 +580,7 @@ export class CollectionExplorer
                 const itemDataWithCollection =
                     this.itemProvider.getRegisteredItemAndCollection(path);
 
-                const fileType =
+                const itemType =
                     itemDataWithCollection &&
                     itemDataWithCollection.data.item.isFile()
                         ? itemDataWithCollection.data.item.getItemType()
@@ -591,7 +591,7 @@ export class CollectionExplorer
                 });
 
                 if (
-                    fileType == BrunoFileType.RequestFile &&
+                    itemType == BrunoFileType.RequestFile &&
                     (await checkIfPathExistsAsync(dirname(path)))
                 ) {
                     await normalizeSequencesForRequestFiles(
@@ -599,13 +599,13 @@ export class CollectionExplorer
                         dirname(path),
                     );
                 } else if (
-                    (fileType == BrunoFileType.FolderSettingsFile ||
-                        (!fileType && !item.isFile && item.getSequence())) &&
+                    (itemType == BrunoFileType.FolderSettingsFile ||
+                        (!itemType && !item.isFile && item.getSequence())) &&
                     (await checkIfPathExistsAsync(dirname(path)))
                 ) {
                     normalizeSequencesForFolders(
                         this.itemProvider,
-                        fileType == BrunoFileType.FolderSettingsFile
+                        itemType == BrunoFileType.FolderSettingsFile
                             ? dirname(dirname(path))
                             : dirname(path),
                     );

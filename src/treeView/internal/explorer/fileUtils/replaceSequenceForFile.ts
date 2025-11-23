@@ -7,7 +7,7 @@ export async function replaceSequenceForFile(
     newSequence: number,
 ) {
     if (Number.isNaN(newSequence)) {
-        throw new Error(`New sequence to set for file '${filePath}' is NaN `);
+        throw new Error(`New sequence to set for file '${filePath}' is 'NaN'.`);
     }
 
     const originalSequence = await parseSequenceFromMetaBlock(filePath);
