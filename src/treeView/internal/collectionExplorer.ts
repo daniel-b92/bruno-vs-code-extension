@@ -14,9 +14,9 @@ import {
     getMaxSequenceForFolders,
     getFolderSettingsFilePath,
     checkIfPathExistsAsync,
-    CollectionFile,
     isBrunoFileType,
     DialogOptionLabelEnum,
+    MultiFileOperationWithStatus,
 } from "../../shared";
 import { basename, dirname, extname, resolve } from "path";
 import { BrunoTreeItem } from "../brunoTreeItem";
@@ -45,6 +45,7 @@ export class CollectionExplorer
     constructor(
         private itemProvider: CollectionItemProvider,
         startTestRunEmitter: vscode.EventEmitter<vscode.Uri>,
+        private multiFileOperationNotifier: vscode.EventEmitter<MultiFileOperationWithStatus>,
         private logger?: OutputChannelLogger,
     ) {
         if (
@@ -140,17 +141,28 @@ export class CollectionExplorer
                 return;
             }
 
-            const fileType = (originalItem as CollectionFile).getFileType();
+            const itemType = originalItem.getItemType();
 
-            if (isBrunoFileType(fileType)) {
+            if (isBrunoFileType(itemType)) {
+                this.multiFileOperationNotifier.fire({
+                    parentFolder: dirname(newPath),
+                    running: true,
+                });
+
                 await moveFileIntoFolder(
                     this.itemProvider,
                     sourcePath,
                     newPath,
                     target,
                     dirname(newPath),
-                    fileType,
+                    itemType,
                 );
+
+                this.multiFileOperationNotifier.fire({
+                    parentFolder: dirname(newPath),
+                    running: false,
+                });
+
                 return;
             }
         }
@@ -413,9 +425,8 @@ export class CollectionExplorer
                 const isRequestFile =
                     itemDataWithcollection &&
                     isFile &&
-                    (
-                        itemDataWithcollection.data.item as CollectionFile
-                    ).getFileType() == BrunoFileType.RequestFile;
+                    itemDataWithcollection.data.item.getItemType() ==
+                        BrunoFileType.RequestFile;
 
                 const renamed = await renameFileOrFolder(
                     originalPath,
@@ -513,13 +524,11 @@ export class CollectionExplorer
 
                 const { collection } = itemDataWithCollection;
 
-                const fileType = (
-                    itemDataWithCollection.data.item as CollectionFile
-                ).getFileType();
+                const itemType = itemDataWithCollection.data.item.getItemType();
 
                 if (
-                    fileType != BrunoFileType.CollectionSettingsFile &&
-                    fileType != BrunoFileType.FolderSettingsFile
+                    itemType != BrunoFileType.CollectionSettingsFile &&
+                    itemType != BrunoFileType.FolderSettingsFile
                 ) {
                     const newPath = await this.duplicateFile(
                         collection,
@@ -533,7 +542,7 @@ export class CollectionExplorer
                             "",
                         ),
                     );
-                } else if (fileType == BrunoFileType.CollectionSettingsFile) {
+                } else if (itemType == BrunoFileType.CollectionSettingsFile) {
                     const confirmed = await this.showWarningDialog(
                         "Duplicate collection settings file?",
                         "Only one collection settings file can be defined per collection.",
@@ -571,10 +580,10 @@ export class CollectionExplorer
                 const itemDataWithCollection =
                     this.itemProvider.getRegisteredItemAndCollection(path);
 
-                const fileType =
+                const itemType =
                     itemDataWithCollection &&
-                    itemDataWithCollection.data.item instanceof CollectionFile
-                        ? itemDataWithCollection.data.item.getFileType()
+                    itemDataWithCollection.data.item.isFile()
+                        ? itemDataWithCollection.data.item.getItemType()
                         : undefined;
 
                 await promisify(rm)(item.getPath(), {
@@ -582,7 +591,7 @@ export class CollectionExplorer
                 });
 
                 if (
-                    fileType == BrunoFileType.RequestFile &&
+                    itemType == BrunoFileType.RequestFile &&
                     (await checkIfPathExistsAsync(dirname(path)))
                 ) {
                     await normalizeSequencesForRequestFiles(
@@ -590,13 +599,13 @@ export class CollectionExplorer
                         dirname(path),
                     );
                 } else if (
-                    (fileType == BrunoFileType.FolderSettingsFile ||
-                        (!fileType && !item.isFile && item.getSequence())) &&
+                    (itemType == BrunoFileType.FolderSettingsFile ||
+                        (!itemType && !item.isFile && item.getSequence())) &&
                     (await checkIfPathExistsAsync(dirname(path)))
                 ) {
                     normalizeSequencesForFolders(
                         this.itemProvider,
-                        fileType == BrunoFileType.FolderSettingsFile
+                        itemType == BrunoFileType.FolderSettingsFile
                             ? dirname(dirname(path))
                             : dirname(path),
                     );
@@ -622,10 +631,10 @@ export class CollectionExplorer
         if (await getSequenceForFile(collection, originalPath)) {
             await replaceSequenceForFile(
                 newPath,
-                (await getMaxSequenceForRequests(
+                ((await getMaxSequenceForRequests(
                     this.itemProvider,
                     dirname(originalPath),
-                )) + 1,
+                )) ?? 0) + 1,
             );
         }
 

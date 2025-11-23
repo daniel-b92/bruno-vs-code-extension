@@ -1,11 +1,12 @@
 import { platform } from "process";
 import { workspace } from "vscode";
+import { LineBreakType } from "../fileSystem/util/getLineBreak";
 
 export function getLineBreakFromSettings() {
     const workspaceSetting = workspace
         .getConfiguration()
         .get<
-            "\n" | "\r\n" | "auto"
+            LineBreakType.Lf | LineBreakType.Crlf | "auto"
         >("files.eol", getFallbackLineBreakDependingOnOs());
 
     return workspaceSetting != "auto"
@@ -14,5 +15,5 @@ export function getLineBreakFromSettings() {
 }
 
 function getFallbackLineBreakDependingOnOs() {
-    return platform == "win32" ? "\r\n" : "\n";
+    return platform == "win32" ? LineBreakType.Crlf : LineBreakType.Lf;
 }

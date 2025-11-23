@@ -3,9 +3,14 @@ import {
     getExtensionForBrunoFiles,
     RequestType,
     RequestFileBlockName,
-    addMetaBlock,
-    appendDefaultMethodBlock,
     CollectionItemProvider,
+    getMaxSequenceForRequests,
+    getContentForMetaBlock,
+    getContentForDefaultMethodBlock,
+    MethodBlockAuth,
+    MethodBlockBody,
+    getLineBreak,
+    Collection,
 } from "../../../../shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { commands, Uri, window } from "vscode";
@@ -15,7 +20,7 @@ import { writeFile } from "fs";
 
 export async function createRequestFile(
     itemProvider: CollectionItemProvider,
-    item: BrunoTreeItem
+    item: BrunoTreeItem,
 ) {
     const parentFolderPath = item.getPath();
 
@@ -26,8 +31,8 @@ export async function createRequestFile(
             return validateNewItemNameIsUnique(
                 resolve(
                     parentFolderPath,
-                    `${newFileName}${getExtensionForBrunoFiles()}`
-                )
+                    `${newFileName}${getExtensionForBrunoFiles()}`,
+                ),
             );
         },
     });
@@ -72,42 +77,91 @@ export async function createRequestFile(
 
         const filePath = resolve(
             parentFolderPath,
-            `${requestName}${getExtensionForBrunoFiles()}`
+            `${requestName}${getExtensionForBrunoFiles()}`,
         );
 
-        await promisify(writeFile)(filePath, "");
-
-        const collectionForFile =
-            itemProvider.getAncestorCollectionForPath(filePath);
-
-        if (!collectionForFile) {
-            throw new Error(
-                `No registered collection found for newly created request file '${filePath}'`
-            );
-        }
         if (pickedLabels.length != 2) {
             throw new Error(
                 `Did not find as many picked items as expected. Expected to get 2. Instead got '${JSON.stringify(
                     pickedLabels,
                     null,
-                    2
-                )}'`
+                    2,
+                )}'`,
             );
         }
 
-        await addMetaBlock(
-            collectionForFile,
+        const collection = itemProvider.getAncestorCollectionForPath(
             filePath,
-            pickedLabels[0] as RequestType
+        ) as Collection;
+        const requestSequence =
+            ((await getMaxSequenceForRequests(
+                itemProvider,
+                parentFolderPath,
+            )) ?? 0) + 1;
+
+        const toAwait: Promise<void | boolean>[] = [];
+
+        toAwait.push(
+            promisify(writeFile)(
+                filePath,
+                getFileContent(requestSequence, {
+                    filePath,
+                    requestName,
+                    requestType: pickedLabels[0] as RequestType,
+                    methodBlockName: pickedLabels[1],
+                }),
+            ),
         );
 
-        await appendDefaultMethodBlock(
-            filePath,
-            pickedLabels[1] as RequestFileBlockName
+        // After the new file has been registered in the cache, the explorer should be able to reveal it when opened in the editor.
+        toAwait.push(
+            itemProvider.waitForFileToBeRegisteredInCache(
+                collection.getRootDirectory(),
+                filePath,
+            ),
         );
+
+        await Promise.all(toAwait);
 
         commands.executeCommand("vscode.open", Uri.file(filePath));
     });
 
     quickPick.show();
+}
+
+function getFileContent(
+    requestSequence: number,
+    chosenData: {
+        filePath: string;
+        requestName: string;
+        requestType: RequestType;
+        methodBlockName: string;
+    },
+) {
+    const { filePath, requestName, requestType, methodBlockName } = chosenData;
+
+    const lineBreak = getLineBreak(filePath);
+
+    const metaBlockContent = getContentForMetaBlock(
+        filePath,
+        {
+            name: requestName,
+            sequence: requestSequence,
+            type: requestType,
+        },
+        lineBreak,
+    );
+
+    const methodBlockContent = getContentForDefaultMethodBlock(
+        filePath,
+        methodBlockName,
+        {
+            url: "",
+            auth: MethodBlockAuth.None,
+            body: MethodBlockBody.None,
+        },
+        lineBreak,
+    );
+
+    return metaBlockContent.concat(lineBreak, methodBlockContent);
 }

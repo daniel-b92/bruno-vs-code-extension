@@ -27,11 +27,23 @@ function init(_modules: {
         };
 
         proxy.getSemanticDiagnostics = (fileName) => {
-            return filterDefaultDiagnostics(
+            const isBruFile = isBrunoFile(fileName);
+
+            const allDiagnostics = filterDefaultDiagnostics(
                 info,
                 fileName,
                 info.languageService.getSemanticDiagnostics(fileName),
             );
+
+            // The ts server always reports errors when importing a Javascript function in a .bru file.
+            return isBruFile
+                ? allDiagnostics.filter(
+                      // Do not show diagnostics that only make sense for Typescript files.
+                      // Bru file code blocks should be treated like Javascript functions instead.
+                      // A list of diagnostics can be found here: https://github.com/microsoft/TypeScript/blob/main/src/compiler/diagnosticMessages.json
+                      ({ code }) => ![7_006, 7_031].includes(code),
+                  )
+                : allDiagnostics;
         };
 
         proxy.getSuggestionDiagnostics = (fileName) => {
@@ -57,7 +69,9 @@ function init(_modules: {
                           code != 80_001 &&
                           code != 80_004,
                   )
-                : allDiagnostics.filter(({ code }) => code != 80_001); // Bruno currently only supports CommonJS modules.
+                : isInABrunoCollection(info, fileName)
+                  ? allDiagnostics.filter(({ code }) => code != 80_001)
+                  : allDiagnostics; // Bruno currently only supports CommonJS modules.)
         };
 
         // All hovers are provided by the extension implementation for '.bru' files.
@@ -398,7 +412,9 @@ function filterOutDiagnosticsForInbuiltRuntimeFunctions(
     diagnosticsToFilter: (ts.Diagnostic | ts.DiagnosticWithLocation)[],
     fileContent: string,
 ) {
-    return diagnosticsToFilter.filter(
+    return filterOutMisleadingDiagnosticsForOtherTestFrameworks(
+        diagnosticsToFilter,
+    ).filter(
         ({ start, length }) =>
             start != undefined &&
             length != undefined &&
@@ -410,6 +426,20 @@ function filterOutDiagnosticsForInbuiltRuntimeFunctions(
             // (the error seems to only occur for short periods of time when typescript type definitions have not been reloaded for a while)
             fileContent.substring(start, start + length) != "require",
     );
+}
+
+function filterOutMisleadingDiagnosticsForOtherTestFrameworks(
+    diagnostics: (ts.Diagnostic | ts.DiagnosticWithLocation)[],
+) {
+    return diagnostics.filter(({ code, messageText }) => {
+        const errorText =
+            typeof messageText == "string"
+                ? messageText
+                : messageText.messageText;
+
+        // When using global type definitions for Jest, the TS server expects every `expect` statement to use the matchers for Jest.
+        return code != 2_339 || !errorText.includes("JestMatchers<any>");
+    });
 }
 
 function getFileContent(info: ts.server.PluginCreateInfo, fileName: string) {

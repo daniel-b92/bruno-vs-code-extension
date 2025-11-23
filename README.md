@@ -1,6 +1,6 @@
 ## About the project
 
-The VS Code extension allows working with `.bru` files like working with code. The main focus is on providing great intellisense when working with `.bru` files or `.js` files in `Bruno` collections. `Bruno` is an open source API client, see [online docs](https://docs.usebruno.com/) for more infos.
+The VS Code extension allows working with `.bru` files like working with code, with a strong focus on intellisense. `Bruno` is an open source API client, see [online docs](https://docs.usebruno.com/) for more infos.
 
 **Disclaimer: All Bruno names, brands, trademarks, service marks and logos are the property of Bruno. This extension is not the official VS Code extension but instead a non-official one. The official extension can be found [here](https://marketplace.visualstudio.com/items?itemName=bruno-api-client.bruno).**
 

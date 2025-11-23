@@ -8,45 +8,49 @@ import {
     getTemporaryJsFileBasename,
 } from "../..";
 import { glob } from "glob";
+import { Disposable } from "vscode";
 
 export class TempJsFilesProvider {
     constructor(
         collectionWatcher: CollectionWatcher,
         private logger?: OutputChannelLogger,
     ) {
-        collectionWatcher.subscribeToUpdates()(
-            ({ uri: { fsPath }, changeType: fileChangeType }) => {
-                if (
-                    fileChangeType == FileChangeType.Deleted &&
-                    this.registeredTempJsFiles
-                ) {
-                    const index = this.registeredTempJsFiles.findIndex(
-                        (registered) =>
-                            fsPath == registered ||
-                            registered.startsWith(
-                                normalizeDirectoryPath(fsPath),
-                            ),
-                    );
+        this.disposables = [];
+        this.disposables.push(
+            collectionWatcher.subscribeToUpdates()(
+                ({ uri: { fsPath }, changeType: fileChangeType }) => {
+                    if (
+                        fileChangeType == FileChangeType.Deleted &&
+                        this.registeredTempJsFiles
+                    ) {
+                        const index = this.registeredTempJsFiles.findIndex(
+                            (registered) =>
+                                fsPath == registered ||
+                                registered.startsWith(
+                                    normalizeDirectoryPath(fsPath),
+                                ),
+                        );
 
-                    if (index >= 0) {
-                        this.registeredTempJsFiles.splice(index, 1);
-                    }
-                } else if (
-                    fileChangeType == FileChangeType.Created &&
-                    basename(fsPath) == getTemporaryJsFileBasename() &&
-                    (!this.registeredTempJsFiles ||
-                        !this.registeredTempJsFiles.includes(fsPath))
-                ) {
-                    if (!this.registeredTempJsFiles) {
-                        this.registeredTempJsFiles = [];
-                    }
+                        if (index >= 0) {
+                            this.registeredTempJsFiles.splice(index, 1);
+                        }
+                    } else if (
+                        fileChangeType == FileChangeType.Created &&
+                        basename(fsPath) == getTemporaryJsFileBasename() &&
+                        (!this.registeredTempJsFiles ||
+                            !this.registeredTempJsFiles.includes(fsPath))
+                    ) {
+                        if (!this.registeredTempJsFiles) {
+                            this.registeredTempJsFiles = [];
+                        }
 
-                    this.registeredTempJsFiles.push(fsPath);
-                }
-            },
+                        this.registeredTempJsFiles.push(fsPath);
+                    }
+                },
+            ),
         );
     }
-
+    private disposables: Disposable[];
     private registeredTempJsFiles: string[] | undefined = undefined;
     private readonly commonPreMessageForLogging = "[TempJsFilesProvider]";
 
@@ -91,9 +95,9 @@ export class TempJsFilesProvider {
 
         // ToDo: Reduce log level(?)
         this.logger?.info(
-            `${this.commonPreMessageForLogging} Cache refresh duration: ${
-                endTime - startTime
-            } ms`,
+            `${this.commonPreMessageForLogging} Cache refresh duration: ${Math.round(
+                endTime - startTime,
+            )} ms`,
         );
 
         // ToDo: Reduce log level(?)
@@ -105,6 +109,10 @@ export class TempJsFilesProvider {
     public dispose() {
         if (this.registeredTempJsFiles) {
             this.registeredTempJsFiles.splice(0);
+        }
+
+        for (const d of this.disposables) {
+            d.dispose();
         }
     }
 }

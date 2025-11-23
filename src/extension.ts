@@ -15,6 +15,7 @@ import {
     TestRunnerDataHelper,
     OutputChannelLogger,
     getTemporaryJsFileBasenameWithoutExtension,
+    MultiFileOperationWithStatus,
 } from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures";
 import { suggestCreatingTsConfigsForCollections } from "./languageFeatures/suggestCreatingTsConfigsForCollections";
@@ -38,11 +39,15 @@ export async function activate(context: ExtensionContext) {
         logger,
     );
 
+    const multiFileOperationNotifier =
+        new EventEmitter<MultiFileOperationWithStatus>();
+
     const testRunnerDataHelper = new TestRunnerDataHelper(ctrl);
     const collectionItemProvider = new CollectionItemProvider(
         collectionWatcher,
         testRunnerDataHelper,
         getPathsToIgnoreForCollections(),
+        multiFileOperationNotifier.event,
         logger,
     );
 
@@ -51,6 +56,7 @@ export async function activate(context: ExtensionContext) {
     context.subscriptions.push(
         startTestRunEmitter,
         fileChangedEmitter,
+        multiFileOperationNotifier,
         collectionItemProvider,
         collectionWatcher,
         testRunnerDataHelper,
@@ -76,6 +82,7 @@ export async function activate(context: ExtensionContext) {
                             context,
                             collectionItemProvider,
                             startTestRunEmitter,
+                            multiFileOperationNotifier,
                         );
 
                         activateLanguageFeatures(

@@ -1,6 +1,6 @@
 import { DiagnosticSeverity, Uri } from "vscode";
 import {
-    CollectionFile,
+    BrunoRequestFile,
     CollectionItemProvider,
     DictionaryBlockSimpleField,
     normalizeDirectoryPath,
@@ -14,6 +14,7 @@ import {
     BrunoFileType,
     filterAsync,
     isDictionaryBlockSimpleField,
+    isCollectionItemWithSequence,
 } from "../../../../../../../shared";
 import { dirname } from "path";
 import { DiagnosticWithCode } from "../../../definitions";
@@ -153,8 +154,8 @@ async function getOtherRequestsInFolder(
     itemProvider: CollectionItemProvider,
     directoryPath: string,
     documentUri: Uri,
-): Promise<CollectionFile[]> {
-    const result: CollectionFile[] = [];
+): Promise<BrunoRequestFile[]> {
+    const result: BrunoRequestFile[] = [];
 
     const collection = itemProvider.getAncestorCollectionForPath(directoryPath);
 
@@ -172,16 +173,17 @@ async function getOtherRequestsInFolder(
                 const itemPath = item.getPath();
 
                 return (
-                    item instanceof CollectionFile &&
+                    item.isFile() &&
                     normalizeDirectoryPath(dirname(itemPath)) ==
                         normalizeDirectoryPath(directoryPath) &&
+                    isCollectionItemWithSequence(item) &&
                     item.getSequence() != undefined &&
                     itemPath != documentUri.fsPath &&
-                    item.getFileType() == BrunoFileType.RequestFile
+                    item.getItemType() == BrunoFileType.RequestFile
                 );
             },
         )
-    ).map(({ item }) => item as CollectionFile);
+    ).map(({ item }) => item as BrunoRequestFile);
 }
 
 function getDiagnosticCode() {
