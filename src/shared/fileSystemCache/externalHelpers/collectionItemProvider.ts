@@ -7,8 +7,7 @@ import {
     Collection,
     CollectionData,
     CollectionDirectory,
-    CollectionFile,
-    CollectionItem,
+    CollectionItemWithSequence,
     CollectionWatcher,
     FileChangeType,
     getSequenceForFolder,
@@ -16,6 +15,8 @@ import {
     normalizeDirectoryPath,
     OutputChannelLogger,
     TestRunnerDataHelper,
+    CollectionItem,
+    isCollectionItemWithSequence,
     MultiFileOperationWithStatus,
 } from "../..";
 import { basename, dirname } from "path";
@@ -410,19 +411,22 @@ export class CollectionItemProvider {
     ) {
         const { item } = data;
         if (
-            item instanceof CollectionFile &&
-            item.getFileType() == BrunoFileType.FolderSettingsFile
+            item.isFile() &&
+            item.getItemType() == BrunoFileType.FolderSettingsFile
         ) {
             const parentFolderData =
                 registeredCollectionForItem.getStoredDataForPath(
                     dirname(item.getPath()),
                 );
 
-            if (parentFolderData) {
+            if (
+                parentFolderData &&
+                isCollectionItemWithSequence(parentFolderData.item)
+            ) {
                 this.handleFolderSequenceUpdate(
                     testRunnerDataHelper,
                     registeredCollectionForItem,
-                    parentFolderData,
+                    parentFolderData.item,
                 );
             }
         }
@@ -448,25 +452,29 @@ export class CollectionItemProvider {
         const newSequence = await parseSequenceFromMetaBlock(itemPath);
 
         if (
-            modifiedItem instanceof CollectionFile &&
-            modifiedItem.getFileType() == BrunoFileType.FolderSettingsFile
+            modifiedItem.isFile() &&
+            modifiedItem.getItemType() == BrunoFileType.FolderSettingsFile
         ) {
             const parentFolderData =
                 registeredCollectionForItem.getStoredDataForPath(
                     dirname(itemPath),
                 );
 
-            if (parentFolderData) {
+            if (
+                parentFolderData &&
+                isCollectionItemWithSequence(parentFolderData.item)
+            ) {
                 this.handleFolderSequenceUpdate(
                     this.testRunnerDataHelper,
                     registeredCollectionForItem,
-                    parentFolderData,
+                    parentFolderData.item,
                     newSequence,
                 );
             }
         } else if (
-            modifiedItem instanceof CollectionFile &&
-            modifiedItem.getFileType() == BrunoFileType.RequestFile
+            modifiedItem.isFile() &&
+            isCollectionItemWithSequence(modifiedItem) &&
+            modifiedItem.getItemType() == BrunoFileType.RequestFile
         ) {
             const newItem = await getCollectionFile(
                 registeredCollectionForItem,
@@ -500,11 +508,11 @@ export class CollectionItemProvider {
     private handleFolderSequenceUpdate(
         testRunnerDataHelper: TestRunnerDataHelper,
         collection: Collection,
-        oldFolderData: CollectionData,
+        oldFolderItem: CollectionItemWithSequence,
         newSequence?: number,
     ) {
-        const folderPath = oldFolderData.item.getPath();
-        const oldSequence = oldFolderData.item.getSequence();
+        const folderPath = oldFolderItem.getPath();
+        const oldSequence = oldFolderItem.getSequence();
 
         collection.removeTestItemIfRegistered(folderPath);
 
@@ -635,6 +643,7 @@ export class CollectionItemProvider {
 
         return (
             cachedData != undefined &&
+            isCollectionItemWithSequence(cachedData.item) &&
             (await parseSequenceFromMetaBlock(filePath)) ==
                 cachedData.item.getSequence()
         );

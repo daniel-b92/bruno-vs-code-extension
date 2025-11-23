@@ -1,6 +1,6 @@
 import { DiagnosticSeverity, Uri } from "vscode";
 import {
-    CollectionFile,
+    BrunoRequestFile,
     CollectionItemProvider,
     DictionaryBlockSimpleField,
     normalizeDirectoryPath,
@@ -14,6 +14,7 @@ import {
     BrunoFileType,
     filterAsync,
     isDictionaryBlockSimpleField,
+    isCollectionItemWithSequence,
 } from "../../../../../../shared";
 import { basename, dirname } from "path";
 import { readFile } from "fs";
@@ -169,7 +170,7 @@ async function getOtherFolderSettingsWithSameParentFolder(
     itemProvider: CollectionItemProvider,
     referenceFolderSettings: string,
     documentUri: Uri,
-): Promise<{ folderPath: string; folderSettings: CollectionFile }[]> {
+): Promise<{ folderPath: string; folderSettings: BrunoRequestFile }[]> {
     const collection = itemProvider.getAncestorCollectionForPath(
         referenceFolderSettings,
     );
@@ -188,20 +189,21 @@ async function getOtherFolderSettingsWithSameParentFolder(
                 const itemPath = item.getPath();
 
                 return (
-                    item instanceof CollectionFile &&
+                    item.isFile() &&
                     normalizeDirectoryPath(dirname(dirname(itemPath))) ==
                         normalizeDirectoryPath(
                             dirname(dirname(referenceFolderSettings)),
                         ) &&
+                    isCollectionItemWithSequence(item) &&
                     item.getSequence() != undefined &&
                     normalizeDirectoryPath(dirname(itemPath)) !=
                         normalizeDirectoryPath(dirname(documentUri.fsPath)) &&
-                    item.getFileType() == BrunoFileType.FolderSettingsFile
+                    item.getItemType() == BrunoFileType.FolderSettingsFile
                 );
             },
         )
     ).map(({ item }) => ({
-        folderSettings: item as CollectionFile,
+        folderSettings: item as BrunoRequestFile,
         folderPath: dirname(item.getPath()),
     }));
 }

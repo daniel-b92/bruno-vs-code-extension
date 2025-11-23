@@ -19,7 +19,6 @@ import {
     BrunoFileType,
     Collection,
     CollectionDirectory,
-    CollectionFile,
     CollectionItemProvider,
     FileChangeType,
     getExtensionForBrunoFiles,
@@ -33,7 +32,7 @@ import {
     filterAsync,
     CollectionWatcher,
     getTemporaryJsFileBasename,
-    getFileType,
+    getItemType,
 } from "../shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/brunoFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/brunoFiles/autoUpdates/updateUrlToMatchQueryParams";
@@ -260,7 +259,7 @@ function handleDiagnosticUpdatesOnFileDeletionForBruFile(
         } of updates) {
             if (
                 updateType == FileChangeType.Deleted &&
-                item instanceof CollectionFile &&
+                item.isFile() &&
                 extname(item.getPath()) == getExtensionForBrunoFiles()
             ) {
                 diagnosticCollection.delete(Uri.file(item.getPath()));
@@ -531,8 +530,8 @@ async function getBrunoFileTypeIfExists(
         return undefined;
     }
 
-    const fileType = await getFileType(collection, filePath);
-    return fileType && isBrunoFileType(fileType) ? fileType : undefined;
+    const itemType = await getItemType(collection, filePath);
+    return itemType && isBrunoFileType(itemType) ? itemType : undefined;
 }
 
 function isJsFileFromBrunoCollection(

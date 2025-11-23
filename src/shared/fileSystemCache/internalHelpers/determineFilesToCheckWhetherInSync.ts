@@ -4,7 +4,8 @@ import {
     Collection,
     CollectionData,
     filterAsync,
-    getFileType,
+    getItemType,
+    isCollectionItemWithSequence,
     normalizeDirectoryPath,
     OutputChannelLogger,
     parseSequenceFromMetaBlock,
@@ -87,10 +88,11 @@ async function getRequestFilesFromFolderThatAreNotInSync(
         const registeredItem = getRegisteredItem(collection, path);
 
         return (
-            (await getFileType(collection, path)) ==
+            (await getItemType(collection, path)) ==
                 BrunoFileType.RequestFile &&
             (registeredItem == undefined ||
-                registeredItem.item.getSequence() !== sequence)
+                (isCollectionItemWithSequence(registeredItem.item) &&
+                    registeredItem.item.getSequence() !== sequence))
         );
     });
 }

@@ -1,4 +1,4 @@
-import { FileChangeType } from "../..";
+import { FileChangeType, isCollectionItemWithSequence } from "../..";
 import { OutputChannelLogger } from "../../logging/outputChannelLogger";
 import { NotificationData } from "../externalHelpers/collectionItemProvider";
 import { Event, Disposable } from "vscode";
@@ -51,7 +51,8 @@ export async function waitForFilesFromFolderToBeInSync(
                     ) &&
                     remainingFilesToCheck.some(
                         ({ path }) => path == item.getPath(),
-                    )
+                    ) &&
+                    isCollectionItemWithSequence(item)
                 ) {
                     const index = remainingFilesToCheck.findIndex(
                         ({ path }) => path == item.getPath(),

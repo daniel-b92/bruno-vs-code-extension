@@ -14,7 +14,6 @@ import {
     getMaxSequenceForFolders,
     getFolderSettingsFilePath,
     checkIfPathExistsAsync,
-    CollectionFile,
     isBrunoFileType,
     DialogOptionLabelEnum,
     MultiFileOperationWithStatus,
@@ -142,9 +141,9 @@ export class CollectionExplorer
                 return;
             }
 
-            const fileType = (originalItem as CollectionFile).getFileType();
+            const itemType = originalItem.getItemType();
 
-            if (isBrunoFileType(fileType)) {
+            if (isBrunoFileType(itemType)) {
                 this.multiFileOperationNotifier.fire({
                     parentFolder: dirname(newPath),
                     running: true,
@@ -156,7 +155,7 @@ export class CollectionExplorer
                     newPath,
                     target,
                     dirname(newPath),
-                    fileType,
+                    itemType,
                 );
 
                 this.multiFileOperationNotifier.fire({
@@ -426,9 +425,8 @@ export class CollectionExplorer
                 const isRequestFile =
                     itemDataWithcollection &&
                     isFile &&
-                    (
-                        itemDataWithcollection.data.item as CollectionFile
-                    ).getFileType() == BrunoFileType.RequestFile;
+                    itemDataWithcollection.data.item.getItemType() ==
+                        BrunoFileType.RequestFile;
 
                 const renamed = await renameFileOrFolder(
                     originalPath,
@@ -526,13 +524,11 @@ export class CollectionExplorer
 
                 const { collection } = itemDataWithCollection;
 
-                const fileType = (
-                    itemDataWithCollection.data.item as CollectionFile
-                ).getFileType();
+                const itemType = itemDataWithCollection.data.item.getItemType();
 
                 if (
-                    fileType != BrunoFileType.CollectionSettingsFile &&
-                    fileType != BrunoFileType.FolderSettingsFile
+                    itemType != BrunoFileType.CollectionSettingsFile &&
+                    itemType != BrunoFileType.FolderSettingsFile
                 ) {
                     const newPath = await this.duplicateFile(
                         collection,
@@ -546,7 +542,7 @@ export class CollectionExplorer
                             "",
                         ),
                     );
-                } else if (fileType == BrunoFileType.CollectionSettingsFile) {
+                } else if (itemType == BrunoFileType.CollectionSettingsFile) {
                     const confirmed = await this.showWarningDialog(
                         "Duplicate collection settings file?",
                         "Only one collection settings file can be defined per collection.",
@@ -584,10 +580,10 @@ export class CollectionExplorer
                 const itemDataWithCollection =
                     this.itemProvider.getRegisteredItemAndCollection(path);
 
-                const fileType =
+                const itemType =
                     itemDataWithCollection &&
-                    itemDataWithCollection.data.item instanceof CollectionFile
-                        ? itemDataWithCollection.data.item.getFileType()
+                    itemDataWithCollection.data.item.isFile()
+                        ? itemDataWithCollection.data.item.getItemType()
                         : undefined;
 
                 await promisify(rm)(item.getPath(), {
@@ -595,7 +591,7 @@ export class CollectionExplorer
                 });
 
                 if (
-                    fileType == BrunoFileType.RequestFile &&
+                    itemType == BrunoFileType.RequestFile &&
                     (await checkIfPathExistsAsync(dirname(path)))
                 ) {
                     await normalizeSequencesForRequestFiles(
@@ -603,13 +599,13 @@ export class CollectionExplorer
                         dirname(path),
                     );
                 } else if (
-                    (fileType == BrunoFileType.FolderSettingsFile ||
-                        (!fileType && !item.isFile && item.getSequence())) &&
+                    (itemType == BrunoFileType.FolderSettingsFile ||
+                        (!itemType && !item.isFile && item.getSequence())) &&
                     (await checkIfPathExistsAsync(dirname(path)))
                 ) {
                     normalizeSequencesForFolders(
                         this.itemProvider,
-                        fileType == BrunoFileType.FolderSettingsFile
+                        itemType == BrunoFileType.FolderSettingsFile
                             ? dirname(dirname(path))
                             : dirname(path),
                     );

@@ -20,14 +20,14 @@ import {
     TestRunnerDataHelper,
     CollectionDirectory,
     Collection,
-    CollectionFile,
     normalizeDirectoryPath,
     CollectionItemProvider,
     FileChangeType,
     getExtensionForBrunoFiles,
-    CollectionItem,
+    CollectionItemWithSequence,
     getLoggerFromSubscriptions,
     someAsync,
+    isCollectionItemWithSequence,
 } from "../shared";
 
 export async function activateRunner(
@@ -212,17 +212,18 @@ export async function activateRunner(
         const isRunnable = await someAsync(
             collectionItemProvider.getRegisteredCollections().slice(),
             async (collection) => {
-                const maybeItem = collection.getStoredDataForPath(uri.fsPath);
+                const maybeData = collection.getStoredDataForPath(uri.fsPath);
 
                 if (
-                    maybeItem &&
+                    maybeData &&
+                    isCollectionItemWithSequence(maybeData.item) &&
                     (await isRelevantForTestTree(
                         testRunnerDataHelper,
                         collection,
-                        maybeItem.item,
+                        maybeData.item,
                     ))
                 ) {
-                    testItem = maybeItem.testItem;
+                    testItem = maybeData.testItem;
                     return true;
                 } else {
                     return false;
@@ -280,6 +281,10 @@ function handleTestTreeUpdates(
             updateType,
             changedData,
         } of updates) {
+            if (!isCollectionItemWithSequence(item)) {
+                return;
+            }
+
             if (
                 updateType == FileChangeType.Created &&
                 (await isRelevantForTestTree(
@@ -292,7 +297,7 @@ function handleTestTreeUpdates(
                 // ToDo: Fix handling of creation of Collection directories
             } else if (
                 updateType == FileChangeType.Modified &&
-                item instanceof CollectionFile &&
+                item.isFile() &&
                 extname(item.getPath()) == getExtensionForBrunoFiles() &&
                 changedData?.sequenceChanged
             ) {
@@ -371,10 +376,10 @@ function removeTestItemFromTree(
 async function isRelevantForTestTree(
     testRunnerDataHelper: TestRunnerDataHelper,
     collection: Collection,
-    item: CollectionItem,
+    item: CollectionItemWithSequence,
 ) {
     return (
-        (item instanceof CollectionFile &&
+        (item.isFile() &&
             extname(item.getPath()) == getExtensionForBrunoFiles() &&
             item.getSequence() != undefined) ||
         (item instanceof CollectionDirectory &&
