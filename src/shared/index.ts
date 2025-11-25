@@ -14,6 +14,7 @@ export * from "./fileSystem/util/positionAndRangeMapper";
 export * from "./fileSystem/util/doesFileNameMatchFolderSettingsFileName";
 export * from "./fileSystem/util/checkIfPathExistsAsync";
 export * from "./fileSystem/util/getItemType";
+export * from "./fileSystem/util/isInFolderForEnvironmentFiles";
 
 // array utils
 export * from "./arrayUtils/filterAsync";
@@ -114,6 +115,8 @@ export * from "./fileSystemCache/externalHelpers/isBrunoFileType";
 // vsCodeSettings
 export * from "./vsCodeSettings/getLinkToUserSetting";
 export * from "./vsCodeSettings/getLineBreakFromSettings";
+export * from "./vsCodeSettings/getConfiguredTestEnvironment";
+export * from "./vsCodeSettings/getEnvironmentSettingsKey";
 
 // logging
 export * from "./logging/outputChannelLogger";

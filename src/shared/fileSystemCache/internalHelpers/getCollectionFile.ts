@@ -1,3 +1,4 @@
+import { promisify } from "util";
 import {
     Collection,
     BrunoRequestFile,
@@ -8,7 +9,12 @@ import {
     BrunoEnvironmentFile,
     NonBrunoSpecificItemType,
     NonBrunoFile,
+    parseBruFile,
+    TextDocumentHelper,
+    EnvironmentFileBlockName,
+    castBlockToDictionaryBlock,
 } from "../..";
+import { readFile } from "fs";
 
 export async function getCollectionFile(collection: Collection, path: string) {
     const itemType = await getItemType(collection, path);
@@ -26,7 +32,7 @@ export async function getCollectionFile(collection: Collection, path: string) {
         case BrunoFileType.FolderSettingsFile:
             return new BrunoFolderSettingsFile(path);
         case BrunoFileType.EnvironmentFile:
-            return new BrunoEnvironmentFile(path);
+            return createEnvironmentFileInstance(path);
         case BrunoFileType.RequestFile:
             return new BrunoRequestFile(
                 path,
@@ -35,4 +41,29 @@ export async function getCollectionFile(collection: Collection, path: string) {
         case NonBrunoSpecificItemType.OtherFileType:
             return new NonBrunoFile(path);
     }
+}
+
+async function createEnvironmentFileInstance(path: string) {
+    const varsBlocks = parseBruFile(
+        new TextDocumentHelper(
+            await promisify(readFile)(path, {
+                encoding: "utf-8",
+            }),
+        ),
+    ).blocks.filter(({ name }) => name == EnvironmentFileBlockName.Vars);
+
+    if (varsBlocks.length != 1) {
+        return new BrunoEnvironmentFile(path, []);
+    }
+
+    const castedBlock = castBlockToDictionaryBlock(varsBlocks[0]);
+
+    if (!castedBlock) {
+        return new BrunoEnvironmentFile(path, []);
+    }
+
+    return new BrunoEnvironmentFile(
+        path,
+        castedBlock.content.map(({ key, keyRange: range }) => ({ key, range })),
+    );
 }
