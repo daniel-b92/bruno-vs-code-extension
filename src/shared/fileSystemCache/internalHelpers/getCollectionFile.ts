@@ -13,6 +13,7 @@ import {
     TextDocumentHelper,
     EnvironmentFileBlockName,
     castBlockToDictionaryBlock,
+    isDictionaryBlockSimpleField,
 } from "../..";
 import { readFile } from "fs";
 
@@ -64,6 +65,8 @@ async function createEnvironmentFileInstance(path: string) {
 
     return new BrunoEnvironmentFile(
         path,
-        castedBlock.content.map(({ key, keyRange: range }) => ({ key, range })),
+        castedBlock.content.filter((field) =>
+            isDictionaryBlockSimpleField(field),
+        ),
     );
 }

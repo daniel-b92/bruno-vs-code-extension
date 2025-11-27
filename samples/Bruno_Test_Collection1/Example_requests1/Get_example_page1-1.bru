@@ -21,12 +21,13 @@ auth:basic {
 
 body:json {
   {
-    "test": 3
+    "test": 3,
+    "value{{third}}:...Test": "{{other}}"
   }
 }
 
 tests {
-  test("should be able to login", function() {
+  test("should be able to login", function () {
     const data = res.getBody();
     expect(res.getStatus()).to.equal(200);
     expect(res.getBody()).to.contain("example");
