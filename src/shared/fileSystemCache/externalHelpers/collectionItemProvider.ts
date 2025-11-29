@@ -449,12 +449,11 @@ export class CollectionItemProvider {
         const { item: modifiedItem, treeItem, testItem } = collectionData;
         const itemPath = modifiedItem.getPath();
 
-        const newSequence = await parseSequenceFromMetaBlock(itemPath);
+        if (!modifiedItem.isFile()) {
+            return;
+        }
 
-        if (
-            modifiedItem.isFile() &&
-            modifiedItem.getItemType() == BrunoFileType.FolderSettingsFile
-        ) {
+        if (modifiedItem.getItemType() == BrunoFileType.FolderSettingsFile) {
             const parentFolderData =
                 registeredCollectionForItem.getStoredDataForPath(
                     dirname(itemPath),
@@ -468,13 +467,13 @@ export class CollectionItemProvider {
                     this.testRunnerDataHelper,
                     registeredCollectionForItem,
                     parentFolderData.item,
-                    newSequence,
+                    await parseSequenceFromMetaBlock(itemPath),
                 );
             }
         } else if (
-            modifiedItem.isFile() &&
-            isCollectionItemWithSequence(modifiedItem) &&
-            modifiedItem.getItemType() == BrunoFileType.RequestFile
+            modifiedItem.getItemType() == BrunoFileType.EnvironmentFile ||
+            (isCollectionItemWithSequence(modifiedItem) &&
+                modifiedItem.getItemType() == BrunoFileType.RequestFile)
         ) {
             const newItem = await getCollectionFile(
                 registeredCollectionForItem,
@@ -497,8 +496,12 @@ export class CollectionItemProvider {
                     data: { item: newItem, treeItem, testItem },
                     updateType: FileChangeType.Modified,
                     changedData: {
-                        sequenceChanged:
-                            modifiedItem.getSequence() != newSequence,
+                        sequenceChanged: isCollectionItemWithSequence(
+                            modifiedItem,
+                        )
+                            ? modifiedItem.getSequence() !=
+                              (await parseSequenceFromMetaBlock(itemPath))
+                            : undefined,
                     },
                 },
             ]);
