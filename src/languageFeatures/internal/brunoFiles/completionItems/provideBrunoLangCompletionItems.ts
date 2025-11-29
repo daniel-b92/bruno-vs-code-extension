@@ -1,10 +1,18 @@
-import { CompletionItem, Disposable, languages } from "vscode";
+import { CompletionItem, languages } from "vscode";
 import {
     ApiKeyAuthBlockKey,
     ApiKeyAuthBlockPlacementValue,
+    Block,
     BooleanFieldValue,
+    Collection,
     CollectionItemProvider,
+    getConfiguredTestEnvironment,
+    getMatchingTextContainingPosition,
     getMaxSequenceForRequests,
+    getPossibleMethodBlocks,
+    isAuthBlock,
+    mapFromVsCodePosition,
+    mapToVsCodeRange,
     MetaBlockKey,
     MethodBlockAuth,
     MethodBlockBody,
@@ -13,89 +21,201 @@ import {
     OAuth2BlockTokenPlacementValue,
     OAuth2ViaAuthorizationCodeBlockKey,
     OutputChannelLogger,
+    parseBruFile,
+    RequestFileBlockName,
     RequestType,
     SettingsBlockKey,
+    TextDocumentHelper,
 } from "../../../../shared";
 import { dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
+import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockVariables/getNonCodeBlocksThatSupportVariables";
+import { LanguageFeatureRequest } from "../shared/interfaces";
+import {
+    EnvVariableNameMatchingMode,
+    getMatchingEnvironmentVariableDefinitions,
+} from "../shared/nonCodeBlockVariables/getMatchingEnvironmentVariableDefinitions";
 
 export function provideBrunoLangCompletionItems(
     itemProvider: CollectionItemProvider,
     logger?: OutputChannelLogger,
 ) {
-    return getCompletionItemsForFieldsInMetaBlock(itemProvider, logger)
-        .concat([getCompletionItemsForFieldsInMethodBlock(logger)])
-        .concat([getCompletionItemsForFieldsInAuthBlock(logger)])
-        .concat(getCompletionItemsForFieldsInSettingsBlock(logger));
-}
-
-function getCompletionItemsForFieldsInMetaBlock(
-    itemProvider: CollectionItemProvider,
-    logger?: OutputChannelLogger,
-) {
-    const result: Disposable[] = [];
-
-    result.push(
-        registerFixedCompletionItems(
-            [
-                {
-                    linePattern: getLinePatternForDictionaryField(
-                        MetaBlockKey.Type,
-                    ),
-                    choices: Object.values(RequestType),
-                },
-            ],
-            logger,
-        ),
-    );
-
-    result.push(
-        languages.registerCompletionItemProvider(
-            getRequestFileDocumentSelector(),
-            {
-                async provideCompletionItems(document, position, token) {
-                    if (token.isCancellationRequested) {
-                        logger?.debug(
-                            `Cancellation requested for completion provider for bruno language.`,
-                        );
-                        return undefined;
-                    }
-
-                    const currentText = document.lineAt(position.line).text;
-                    const sequencePattern = new RegExp(
-                        `^\\s*${MetaBlockKey.Sequence}:\\s*$`,
-                        "m",
+    return languages.registerCompletionItemProvider(
+        getRequestFileDocumentSelector(),
+        {
+            async provideCompletionItems(document, position, token) {
+                if (token.isCancellationRequested) {
+                    logger?.debug(
+                        `Cancellation requested for completion provider for bruno language.`,
                     );
+                    return undefined;
+                }
+                const request: LanguageFeatureRequest = {
+                    document,
+                    position,
+                    token,
+                };
 
-                    if (currentText.match(sequencePattern)) {
-                        return {
-                            items: [
-                                new CompletionItem(
-                                    `${currentText.endsWith(" ") ? "" : " "}${
-                                        ((await getMaxSequenceForRequests(
-                                            itemProvider,
-                                            dirname(document.uri.fsPath),
-                                        )) ?? 0) + 1
-                                    }`,
-                                ),
-                            ],
-                        };
-                    } else {
-                        return undefined;
-                    }
-                },
+                const { blocks: parsedBlocks } = parseBruFile(
+                    new TextDocumentHelper(document.getText()),
+                );
+
+                const blockContainingPosition = parsedBlocks.find(
+                    ({ contentRange }) =>
+                        mapToVsCodeRange(contentRange).contains(position),
+                );
+
+                if (!blockContainingPosition) {
+                    return undefined;
+                }
+
+                if (token.isCancellationRequested) {
+                    logger?.debug(
+                        `Cancellation requested for completion provider for bruno language.`,
+                    );
+                    return undefined;
+                }
+                const collection = itemProvider.getAncestorCollectionForPath(
+                    document.fileName,
+                );
+
+                return (
+                    await getBlockSpecificCompletions(
+                        itemProvider,
+                        request,
+                        blockContainingPosition.name,
+                    )
+                ).concat(
+                    collection
+                        ? getNonBlockSpecificCompletions(request, {
+                              block: blockContainingPosition,
+                              collection,
+                          })
+                        : [],
+                );
             },
-            ...getTriggerChars(),
-        ),
+        },
+        ...getTriggerChars(),
     );
-
-    return result;
 }
 
-function getCompletionItemsForFieldsInMethodBlock(
+function getNonBlockSpecificCompletions(
+    request: LanguageFeatureRequest,
+    file: { block: Block; collection: Collection },
     logger?: OutputChannelLogger,
 ) {
-    return registerFixedCompletionItems(
+    const { block, collection } = file;
+    const { document, position, token } = request;
+    if (
+        (getNonCodeBlocksWithoutVariableSupport() as string[]).includes(
+            block.name,
+        )
+    ) {
+        return [];
+    }
+
+    const matchingText = getMatchingTextContainingPosition(
+        document,
+        mapFromVsCodePosition(position),
+        /{{\w*/,
+    );
+
+    if (!matchingText) {
+        return [];
+    }
+
+    if (token.isCancellationRequested) {
+        logger?.debug(`Cancellation requested for hover provider.`);
+        return [];
+    }
+
+    const matchingEnvVariableDefinitions =
+        getMatchingEnvironmentVariableDefinitions(
+            collection,
+            matchingText.substring(2),
+            EnvVariableNameMatchingMode.Prefix,
+            getConfiguredTestEnvironment(),
+        );
+
+    if (matchingEnvVariableDefinitions.length == 0) {
+        return [];
+    }
+
+    if (token.isCancellationRequested) {
+        logger?.debug(`Cancellation requested for hover provider.`);
+        return [];
+    }
+
+    return matchingEnvVariableDefinitions.flatMap(({ matchingVariables }) =>
+        matchingVariables.map(({ key }) => new CompletionItem(key)),
+    );
+}
+
+async function getBlockSpecificCompletions(
+    itemProvider: CollectionItemProvider,
+    request: LanguageFeatureRequest,
+    blockName: string,
+) {
+    if (blockName == RequestFileBlockName.Meta) {
+        return await getMetaBlockSpecificCompletions(itemProvider, request);
+    }
+    if ((getPossibleMethodBlocks() as string[]).includes(blockName)) {
+        return getMethodBlockSpecificCompletions(request);
+    }
+    if (isAuthBlock(blockName)) {
+        return getAuthBlockSpecificCompletions(request);
+    }
+    if (blockName == RequestFileBlockName.Settings) {
+        return getSettingsBlockSpecificCompletions(request);
+    }
+    return [];
+}
+
+async function getMetaBlockSpecificCompletions(
+    itemProvider: CollectionItemProvider,
+    request: LanguageFeatureRequest,
+) {
+    const { document, position } = request;
+
+    const getSequenceFieldCompletions = async () => {
+        const currentText = document.lineAt(position.line).text;
+        const sequencePattern = new RegExp(
+            `^\\s*${MetaBlockKey.Sequence}:\\s*$`,
+            "m",
+        );
+
+        if (currentText.match(sequencePattern)) {
+            return [
+                new CompletionItem(
+                    `${currentText.endsWith(" ") ? "" : " "}${
+                        ((await getMaxSequenceForRequests(
+                            itemProvider,
+                            dirname(document.uri.fsPath),
+                        )) ?? 0) + 1
+                    }`,
+                ),
+            ];
+        }
+        return [];
+    };
+
+    const typeFieldCompletions = getFixedCompletionItems(
+        [
+            {
+                linePattern: getLinePatternForDictionaryField(
+                    MetaBlockKey.Type,
+                ),
+                choices: Object.values(RequestType),
+            },
+        ],
+        request,
+    );
+
+    return (await getSequenceFieldCompletions()).concat(typeFieldCompletions);
+}
+
+function getMethodBlockSpecificCompletions(request: LanguageFeatureRequest) {
+    return getFixedCompletionItems(
         [
             {
                 linePattern: getLinePatternForDictionaryField(
@@ -110,12 +230,12 @@ function getCompletionItemsForFieldsInMethodBlock(
                 choices: Object.values(MethodBlockAuth),
             },
         ],
-        logger,
+        request,
     );
 }
 
-function getCompletionItemsForFieldsInAuthBlock(logger?: OutputChannelLogger) {
-    return registerFixedCompletionItems(
+function getAuthBlockSpecificCompletions(request: LanguageFeatureRequest) {
+    return getFixedCompletionItems(
         [
             {
                 linePattern: getLinePatternForDictionaryField(
@@ -154,14 +274,12 @@ function getCompletionItemsForFieldsInAuthBlock(logger?: OutputChannelLogger) {
                 choices: Object.values(BooleanFieldValue),
             },
         ],
-        logger,
+        request,
     );
 }
 
-function getCompletionItemsForFieldsInSettingsBlock(
-    logger?: OutputChannelLogger,
-) {
-    return registerFixedCompletionItems(
+function getSettingsBlockSpecificCompletions(request: LanguageFeatureRequest) {
+    return getFixedCompletionItems(
         [
             {
                 linePattern: getLinePatternForDictionaryField(
@@ -170,56 +288,39 @@ function getCompletionItemsForFieldsInSettingsBlock(
                 choices: Object.values(BooleanFieldValue),
             },
         ],
-        logger,
+        request,
     );
 }
 
-function registerFixedCompletionItems(
+function getFixedCompletionItems(
     params: {
         linePattern: RegExp;
         choices: string[];
     }[],
-    logger?: OutputChannelLogger,
+    { document, position }: LanguageFeatureRequest,
 ) {
-    return languages.registerCompletionItemProvider(
-        getRequestFileDocumentSelector(),
-        {
-            provideCompletionItems(document, position, token) {
-                if (token.isCancellationRequested) {
-                    logger?.debug(
-                        `Cancellation requested for completion provider for bruno language.`,
-                    );
-                    return undefined;
-                }
+    const currentText = document.lineAt(position.line).text;
 
-                const currentText = document.lineAt(position.line).text;
+    const items: CompletionItem[] = [];
 
-                const items: CompletionItem[] = [];
+    for (const { linePattern, choices } of params) {
+        if (currentText.match(linePattern)) {
+            items.push(
+                ...choices.map(
+                    (choice) =>
+                        new CompletionItem(
+                            `${currentText.endsWith(" ") ? "" : " "}${choice}`,
+                        ),
+                ),
+            );
+        }
+    }
 
-                for (const { linePattern, choices } of params) {
-                    if (currentText.match(linePattern)) {
-                        items.push(
-                            ...choices.map(
-                                (choice) =>
-                                    new CompletionItem(
-                                        `${
-                                            currentText.endsWith(" ") ? "" : " "
-                                        }${choice}`,
-                                    ),
-                            ),
-                        );
-                    }
-                }
-
-                return items;
-            },
-        },
-        ...getTriggerChars(),
-    );
+    return items;
 }
 
 function getTriggerChars() {
-    return [":", " "];
+    return [":", " ", "{"];
 }
 
 function getLinePatternForDictionaryField(key: string) {

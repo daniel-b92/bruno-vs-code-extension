@@ -4,13 +4,9 @@ import {
     Hover,
     languages,
     MarkdownString,
-    TextDocument,
-    Position as VsCodePosition,
 } from "vscode";
 import {
     Block,
-    BrunoEnvironmentFile,
-    BrunoFileType,
     Collection,
     CollectionItemProvider,
     getConfiguredTestEnvironment,
@@ -29,17 +25,20 @@ import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWit
 import { waitForTempJsFileToBeInSyncWithBruFile } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { basename } from "path";
+import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockVariables/getNonCodeBlocksThatSupportVariables";
+import { LanguageFeatureRequest } from "../shared/interfaces";
+import { getVariableNameForPositionInNonCodeBlock } from "../shared/nonCodeBlockVariables/getVariableNameForPositionInNonCodeBlock";
+import {
+    EnvVariableNameMatchingMode,
+    getMatchingEnvironmentVariableDefinitions,
+} from "../shared/nonCodeBlockVariables/getMatchingEnvironmentVariableDefinitions";
 
 interface ProviderParams {
-    collection: Collection;
     file: {
-        document: TextDocument;
-    };
-    hoverRequest: {
-        position: VsCodePosition;
+        collection: Collection;
         blockContainingPosition: Block;
-        token: CancellationToken;
     };
+    hoverRequest: LanguageFeatureRequest;
     logger?: OutputChannelLogger;
 }
 
@@ -74,17 +73,15 @@ export function provideInfosOnHover(
 
             if (shouldBeCodeBlock(blockContainingPosition.name)) {
                 return getHoverForCodeBlocks(queue, {
-                    collection,
-                    file: { document },
-                    hoverRequest: { position, blockContainingPosition, token },
+                    file: { collection, blockContainingPosition },
+                    hoverRequest: { document, position, token },
                     logger,
                 });
             }
 
             return getHoverForNonCodeBlocks({
-                collection,
-                file: { document },
-                hoverRequest: { position, blockContainingPosition, token },
+                file: { collection, blockContainingPosition },
+                hoverRequest: { document, position, token },
                 logger,
             });
         },
@@ -92,34 +89,23 @@ export function provideInfosOnHover(
 }
 
 function getHoverForNonCodeBlocks({
-    collection,
-    file,
+    file: {
+        collection,
+        blockContainingPosition: { name: blockName },
+    },
     hoverRequest,
     logger,
 }: ProviderParams) {
-    const {
-        blockContainingPosition: { name: blockName },
-        token,
-    } = hoverRequest;
+    const { token } = hoverRequest;
     if (
-        (
-            [
-                RequestFileBlockName.Docs,
-                RequestFileBlockName.Meta,
-                RequestFileBlockName.Settings,
-            ] as string[]
-        ).includes(blockName)
+        (getNonCodeBlocksWithoutVariableSupport() as string[]).includes(
+            blockName,
+        )
     ) {
-        // In some blocks, variables do not make sense.
         return undefined;
     }
 
-    const variableName = getVariableNameContainingPositionForNonCodeBlock({
-        collection,
-        file,
-        hoverRequest,
-        logger,
-    });
+    const variableName = getVariableNameForPositionInNonCodeBlock(hoverRequest);
 
     if (token.isCancellationRequested) {
         logger?.debug(`Cancellation requested for hover provider.`);
@@ -134,9 +120,8 @@ function getHoverForNonCodeBlocks({
 async function getHoverForCodeBlocks(
     tempJsUpdateQueue: TempJsFileUpdateQueue,
     {
-        collection,
-        file: { document },
-        hoverRequest: { position, blockContainingPosition, token },
+        file: { collection, blockContainingPosition },
+        hoverRequest: { document, position, token },
         logger,
     }: ProviderParams,
 ) {
@@ -204,37 +189,13 @@ function getHoverForVariable(
 | --------------- | ---------------- |\n`;
 
     const configuredEnvironmentName = getConfiguredTestEnvironment();
-
-    const matchingEnvironmentFiles = collection
-        .getAllStoredDataForCollection()
-        .filter(
-            ({ item }) =>
-                item.getItemType() == BrunoFileType.EnvironmentFile &&
-                (configuredEnvironmentName
-                    ? basename(item.getPath(), getExtensionForBrunoFiles()) ==
-                      configuredEnvironmentName
-                    : true),
-        )
-        .map(({ item }) => item as BrunoEnvironmentFile);
-
-    if (matchingEnvironmentFiles.length == 0) {
-        return undefined;
-    }
-
-    const matchingVariableDefinitions = matchingEnvironmentFiles
-        .map((item) => {
-            const matchingVariables = item
-                .getVariables()
-                .filter(({ key }) => variableName == key);
-
-            return matchingVariables.length > 0
-                ? {
-                      file: item.getPath(),
-                      matchingVariables,
-                  }
-                : undefined;
-        })
-        .filter((result) => result != undefined);
+    const matchingVariableDefinitions =
+        getMatchingEnvironmentVariableDefinitions(
+            collection,
+            variableName,
+            EnvVariableNameMatchingMode.Exact,
+            configuredEnvironmentName,
+        );
 
     if (matchingVariableDefinitions.length == 0) {
         return undefined;
@@ -266,49 +227,4 @@ function getHoverForVariable(
             ),
         ),
     );
-}
-
-function getVariableNameContainingPositionForNonCodeBlock({
-    file: { document },
-    hoverRequest: { position, token },
-    logger,
-}: ProviderParams) {
-    const pattern = /{{\S+}}/;
-    let remainingText = document.lineAt(position.line).text;
-    let alreadyCheckedText = "";
-    let variableName: undefined | string = undefined;
-
-    do {
-        if (token.isCancellationRequested) {
-            logger?.debug(`Cancellation requested for hover provider.`);
-            return undefined;
-        }
-
-        const matches = pattern.exec(remainingText);
-
-        if (!matches || matches.length == 0) {
-            return undefined;
-        }
-
-        const containsPosition =
-            position.character >= alreadyCheckedText.length + matches.index &&
-            position.character <=
-                alreadyCheckedText.length + matches.index + matches[0].length;
-
-        if (containsPosition) {
-            variableName = matches[0].substring(
-                matches[0].indexOf("{{") + 2,
-                matches[0].indexOf("}}"),
-            );
-            break;
-        }
-        const currentSectionEnd = matches.index + matches[0].length;
-        alreadyCheckedText = alreadyCheckedText.concat(
-            remainingText.substring(0, currentSectionEnd),
-        );
-
-        remainingText = remainingText.substring(currentSectionEnd);
-    } while (remainingText.length > 0);
-
-    return variableName;
 }
