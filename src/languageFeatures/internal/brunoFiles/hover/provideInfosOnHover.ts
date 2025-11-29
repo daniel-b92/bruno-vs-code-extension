@@ -70,7 +70,7 @@ export function provideInfosOnHover(
             }
 
             if (shouldBeCodeBlock(blockContainingPosition.name)) {
-                return provideHoverInfosForCodeBlocks(queue, {
+                return getHoverForCodeBlocks(queue, {
                     collection,
                     file: { document },
                     hoverRequest: { position, blockContainingPosition, token },
@@ -79,7 +79,7 @@ export function provideInfosOnHover(
             }
 
             if (isBodyBlock(blockContainingPosition.name)) {
-                return provideInfosForBodyBlocks({
+                return getHoverForNonCodeBlocks({
                     collection,
                     file: { document },
                     hoverRequest: { position, blockContainingPosition, token },
@@ -90,7 +90,7 @@ export function provideInfosOnHover(
     });
 }
 
-function provideInfosForBodyBlocks({
+function getHoverForNonCodeBlocks({
     collection,
     file: { document },
     hoverRequest: { position, token: _token },
@@ -143,7 +143,7 @@ function provideInfosForBodyBlocks({
     return new Hover(new MarkdownString(variableDefinition.value));
 }
 
-async function provideHoverInfosForCodeBlocks(
+async function getHoverForCodeBlocks(
     tempJsUpdateQueue: TempJsFileUpdateQueue,
     {
         collection,
