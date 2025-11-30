@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Features
+
+- Add basic intellisense for environment variables for non code blocks (hovers and completions).
+
 ## [0.17.11] (2025-11-23)
 
 ### Fixes / Improvements
