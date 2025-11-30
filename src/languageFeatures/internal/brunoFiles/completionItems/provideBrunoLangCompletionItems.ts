@@ -1,4 +1,4 @@
-import { CompletionItem, languages } from "vscode";
+import { CompletionItem, CompletionItemKind, languages } from "vscode";
 import {
     ApiKeyAuthBlockKey,
     ApiKeyAuthBlockPlacementValue,
@@ -7,6 +7,7 @@ import {
     Collection,
     CollectionItemProvider,
     getConfiguredTestEnvironment,
+    getExtensionForBrunoFiles,
     getMatchingTextContainingPosition,
     getMaxSequenceForRequests,
     getPossibleMethodBlocks,
@@ -27,7 +28,7 @@ import {
     SettingsBlockKey,
     TextDocumentHelper,
 } from "../../../../shared";
-import { dirname } from "path";
+import { basename, dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockVariables/getNonCodeBlocksThatSupportVariables";
 import { LanguageFeatureRequest } from "../shared/interfaces";
@@ -146,8 +147,17 @@ function getNonBlockSpecificCompletions(
         return [];
     }
 
-    return matchingEnvVariableDefinitions.flatMap(({ matchingVariables }) =>
-        matchingVariables.map(({ key }) => new CompletionItem(key)),
+    return matchingEnvVariableDefinitions.flatMap(
+        ({ file, matchingVariables }) =>
+            matchingVariables.map(({ key }) => {
+                const completionItem = new CompletionItem(key);
+                completionItem.kind = CompletionItemKind.Constant;
+                completionItem.detail = `Environment: '${basename(
+                    file,
+                    getExtensionForBrunoFiles(),
+                )}'`;
+                return completionItem;
+            }),
     );
 }
 

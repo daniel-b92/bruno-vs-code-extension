@@ -22,9 +22,11 @@ export function getMatchingEnvironmentVariableDefinitions(
         .filter(
             ({ item }) =>
                 item.getItemType() == BrunoFileType.EnvironmentFile &&
-                (environmentName
-                    ? basename(item.getPath(), getExtensionForBrunoFiles()) ==
-                      environmentName
+                (environmentName &&
+                // In case no environment is configured or no matching environment file is found, use all existing environment files.
+                environmentName ==
+                    basename(item.getPath(), getExtensionForBrunoFiles())
+                    ? environmentName
                     : true),
         )
         .map(({ item }) => item as BrunoEnvironmentFile);
