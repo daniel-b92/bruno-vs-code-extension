@@ -1,16 +1,11 @@
 import { BrunoTreeItem } from "../../treeView/brunoTreeItem";
 import {
-    BrunoEnvironmentFile,
-    BrunoFileType,
     CollectionData,
     CollectionDirectory,
     CollectionItem,
-    getExtensionForBrunoFiles,
-    isInFolderForEnvironmentFiles,
     normalizeDirectoryPath,
     TestRunnerDataHelper,
 } from "..";
-import { basename } from "path";
 
 export class Collection {
     constructor(
@@ -37,18 +32,6 @@ export class Collection {
             normalizeDirectoryPath(path) ==
             normalizeDirectoryPath(this.getRootDirectory())
         );
-    }
-
-    public getEnvironmentFile(environmentName: string) {
-        const data = this.testData.find(
-            ({ item }) =>
-                item.getItemType() == BrunoFileType.EnvironmentFile &&
-                isInFolderForEnvironmentFiles(item.getPath()) &&
-                environmentName.concat(getExtensionForBrunoFiles()) ==
-                    basename(item.getPath()),
-        );
-
-        return data ? (data.item as BrunoEnvironmentFile) : undefined;
     }
 
     public getStoredDataForPath(path: string) {
