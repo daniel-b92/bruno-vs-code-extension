@@ -8,6 +8,7 @@ import {
     checkIfPathExistsAsync,
     ItemType,
     NonBrunoSpecificItemType,
+    isInFolderForEnvironmentFiles,
 } from "../..";
 import { promisify } from "util";
 import { lstat } from "fs";
@@ -30,7 +31,7 @@ export async function getItemType(
             : NonBrunoSpecificItemType.Directory;
     }
 
-    if (isEnvironmentFile(path)) {
+    if (isInFolderForEnvironmentFiles(path)) {
         return BrunoFileType.EnvironmentFile;
     } else if (
         isChildElementOfCollectionRootDirectory(collection, path) &&
@@ -54,12 +55,6 @@ function isChildElementOfCollectionRootDirectory(
     return (
         normalizeDirectoryPath(collection.getRootDirectory()) ==
         normalizeDirectoryPath(dirname(path))
-    );
-}
-
-function isEnvironmentFile(path: string) {
-    return normalizeDirectoryPath(dirname(path)).match(
-        /(\/|\\)environments(\/|\\)$/,
     );
 }
 

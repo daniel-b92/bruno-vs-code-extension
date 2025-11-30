@@ -4,7 +4,12 @@ import { BrunoFileType, CollectionItem } from "../interfaces";
 export class BrunoEnvironmentFile implements CollectionItem {
     constructor(
         private readonly path: string,
-        private variables?: { key: string; range: Range }[],
+        private variables: {
+            key: string;
+            keyRange: Range;
+            value: string;
+            valueRange: Range;
+        }[],
     ) {}
 
     public getPath() {

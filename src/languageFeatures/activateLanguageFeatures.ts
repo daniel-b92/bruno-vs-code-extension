@@ -85,7 +85,7 @@ export async function activateLanguageFeatures(
         diagnosticCollection,
         tempJsFilesUpdateQueue,
         tempJsFilesProvider,
-        ...provideBrunoLangCompletionItems(collectionItemProvider, logger),
+        provideBrunoLangCompletionItems(collectionItemProvider, logger),
         provideCodeBlocksCompletionItems(
             tempJsFilesUpdateQueue,
             collectionItemProvider,

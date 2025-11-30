@@ -1,19 +1,46 @@
-import { commands, Hover, languages } from "vscode";
 import {
+    CancellationToken,
+    commands,
+    Hover,
+    languages,
+    MarkdownString,
+} from "vscode";
+import {
+    Block,
+    Collection,
     CollectionItemProvider,
+    getConfiguredTestEnvironment,
+    getExtensionForBrunoFiles,
     mapFromVsCodePosition,
     mapToVsCodeRange,
     OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
+    shouldBeCodeBlock,
     TextDocumentHelper,
 } from "../../../../shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
-import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { waitForTempJsFileToBeInSyncWithBruFile } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
+import { basename } from "path";
+import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockVariables/getNonCodeBlocksWithoutVariableSupport";
+import { LanguageFeatureRequest } from "../shared/interfaces";
+import { getVariableNameForPositionInNonCodeBlock } from "../shared/nonCodeBlockVariables/getVariableNameForPositionInNonCodeBlock";
+import {
+    EnvVariableNameMatchingMode,
+    getMatchingEnvironmentVariableDefinitions,
+} from "../shared/nonCodeBlockVariables/getMatchingEnvironmentVariableDefinitions";
+
+interface ProviderParams {
+    file: {
+        collection: Collection;
+        blockContainingPosition: Block;
+    };
+    hoverRequest: LanguageFeatureRequest;
+    logger?: OutputChannelLogger;
+}
 
 export function provideInfosOnHover(
     queue: TempJsFileUpdateQueue,
@@ -31,70 +58,173 @@ export function provideInfosOnHover(
                 return null;
             }
 
-            const blocksToCheck = getCodeBlocks(
-                parseBruFile(new TextDocumentHelper(document.getText())).blocks,
+            const { blocks: parsedBlocks } = parseBruFile(
+                new TextDocumentHelper(document.getText()),
             );
 
-            const blockInBruFile = blocksToCheck.find(({ contentRange }) =>
-                mapToVsCodeRange(contentRange).contains(position),
+            const blockContainingPosition = parsedBlocks.find(
+                ({ contentRange }) =>
+                    mapToVsCodeRange(contentRange).contains(position),
             );
 
-            if (!blockInBruFile) {
+            if (!blockContainingPosition) {
                 return undefined;
             }
 
-            if (token.isCancellationRequested) {
-                logger?.debug(`Cancellation requested for hover provider.`);
-                return undefined;
+            if (shouldBeCodeBlock(blockContainingPosition.name)) {
+                return getHoverForCodeBlocks(queue, {
+                    file: { collection, blockContainingPosition },
+                    hoverRequest: { document, position, token },
+                    logger,
+                });
             }
 
-            const temporaryJsDoc = await waitForTempJsFileToBeInSyncWithBruFile(
-                queue,
-                {
-                    collection,
-                    bruFileContentSnapshot: document.getText(),
-                    bruFilePath: document.fileName,
-                    token,
-                },
+            return getHoverForNonCodeBlocks({
+                file: { collection, blockContainingPosition },
+                hoverRequest: { document, position, token },
                 logger,
-            );
-
-            if (!temporaryJsDoc) {
-                return undefined;
-            }
-
-            if (token.isCancellationRequested) {
-                logger?.debug(`Cancellation requested for hover provider.`);
-                return undefined;
-            }
-
-            const resultFromJsFile = await commands.executeCommand<Hover[]>(
-                "vscode.executeHoverProvider",
-                temporaryJsDoc.uri,
-                getPositionWithinTempJsFile(
-                    temporaryJsDoc.getText(),
-                    blockInBruFile.name as RequestFileBlockName,
-                    mapFromVsCodePosition(
-                        position.translate(
-                            -blockInBruFile.contentRange.start.line,
-                        ),
-                    ),
-                ),
-            );
-
-            return resultFromJsFile.length == 0
-                ? null
-                : resultFromJsFile[0].range
-                  ? new Hover(
-                        resultFromJsFile[0].contents,
-                        mapToRangeWithinBruFile(
-                            blockInBruFile,
-                            temporaryJsDoc.getText(),
-                            resultFromJsFile[0].range,
-                            logger,
-                        ),
-                    )
-                  : resultFromJsFile[0];
+            });
         },
     });
+}
+
+function getHoverForNonCodeBlocks({
+    file: {
+        collection,
+        blockContainingPosition: { name: blockName },
+    },
+    hoverRequest,
+    logger,
+}: ProviderParams) {
+    const { token } = hoverRequest;
+    if (
+        (getNonCodeBlocksWithoutVariableSupport() as string[]).includes(
+            blockName,
+        )
+    ) {
+        return undefined;
+    }
+
+    const variableName = getVariableNameForPositionInNonCodeBlock(hoverRequest);
+
+    if (token.isCancellationRequested) {
+        logger?.debug(`Cancellation requested for hover provider.`);
+        return undefined;
+    }
+
+    return variableName
+        ? getHoverForVariable(collection, variableName, token, logger)
+        : undefined;
+}
+
+async function getHoverForCodeBlocks(
+    tempJsUpdateQueue: TempJsFileUpdateQueue,
+    {
+        file: { collection, blockContainingPosition },
+        hoverRequest: { document, position, token },
+        logger,
+    }: ProviderParams,
+) {
+    if (token.isCancellationRequested) {
+        logger?.debug(`Cancellation requested for hover provider.`);
+        return undefined;
+    }
+
+    const temporaryJsDoc = await waitForTempJsFileToBeInSyncWithBruFile(
+        tempJsUpdateQueue,
+        {
+            collection,
+            bruFileContentSnapshot: document.getText(),
+            bruFilePath: document.fileName,
+            token,
+        },
+        logger,
+    );
+
+    if (!temporaryJsDoc) {
+        return undefined;
+    }
+
+    if (token.isCancellationRequested) {
+        logger?.debug(`Cancellation requested for hover provider.`);
+        return undefined;
+    }
+
+    const resultFromJsFile = await commands.executeCommand<Hover[]>(
+        "vscode.executeHoverProvider",
+        temporaryJsDoc.uri,
+        getPositionWithinTempJsFile(
+            temporaryJsDoc.getText(),
+            blockContainingPosition.name as RequestFileBlockName,
+            mapFromVsCodePosition(
+                position.translate(
+                    -blockContainingPosition.contentRange.start.line,
+                ),
+            ),
+        ),
+    );
+
+    return resultFromJsFile.length == 0
+        ? null
+        : resultFromJsFile[0].range
+          ? new Hover(
+                resultFromJsFile[0].contents,
+                mapToRangeWithinBruFile(
+                    blockContainingPosition,
+                    temporaryJsDoc.getText(),
+                    resultFromJsFile[0].range,
+                    logger,
+                ),
+            )
+          : resultFromJsFile[0];
+}
+
+function getHoverForVariable(
+    collection: Collection,
+    variableName: string,
+    token: CancellationToken,
+    logger?: OutputChannelLogger,
+) {
+    const tableHeader = `| value | environment name |
+| --------------- | ---------------- |\n`;
+
+    const configuredEnvironmentName = getConfiguredTestEnvironment();
+    const matchingVariableDefinitions =
+        getMatchingEnvironmentVariableDefinitions(
+            collection,
+            variableName,
+            EnvVariableNameMatchingMode.Exact,
+            configuredEnvironmentName,
+        );
+
+    if (matchingVariableDefinitions.length == 0) {
+        return undefined;
+    }
+
+    if (token.isCancellationRequested) {
+        logger?.debug(`Cancellation requested for hover provider.`);
+        return undefined;
+    }
+
+    return new Hover(
+        new MarkdownString(
+            tableHeader.concat(
+                matchingVariableDefinitions
+                    .map(({ file, matchingVariables }) => {
+                        const environmentName = basename(
+                            file,
+                            getExtensionForBrunoFiles(),
+                        );
+
+                        return matchingVariables
+                            .map(
+                                ({ value }) =>
+                                    `| ${value} | ${environmentName}  |`,
+                            )
+                            .join("\n");
+                    })
+                    .join("\n"),
+            ),
+        ),
+    );
 }

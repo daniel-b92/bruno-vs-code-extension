@@ -109,11 +109,9 @@ export function provideCodeBlocksCompletionItems(
                         ),
                     );
 
-                const endTimeForFetchingCompletions = performance.now();
                 logger?.trace(
                     `Fetching completion items from temp JS file duration: ${Math.round(
-                        endTimeForFetchingCompletions -
-                            startTimeForFetchingCompletions,
+                        performance.now() - startTimeForFetchingCompletions,
                     )} ms`,
                 );
 
@@ -148,11 +146,9 @@ export function provideCodeBlocksCompletionItems(
                     resultFromJsFile.isIncomplete,
                 );
 
-                const endTimeForMappingCompletions = performance.now();
                 logger?.trace(
                     `Mapping completion items from temp JS file to bru file duration: ${Math.round(
-                        endTimeForMappingCompletions -
-                            startTimeForMappingCompletions,
+                        performance.now() - startTimeForMappingCompletions,
                     )} ms`,
                 );
 
