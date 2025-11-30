@@ -8,7 +8,7 @@ import {
 
 export enum EnvVariableNameMatchingMode {
     Exact = 1,
-    Prefix = 2,
+    Substring = 2,
 }
 
 export function getMatchingEnvironmentVariableDefinitions(
@@ -57,7 +57,7 @@ function matches(
     switch (matchingMode) {
         case EnvVariableNameMatchingMode.Exact:
             return actual == toSearch;
-        case EnvVariableNameMatchingMode.Prefix:
-            return actual.startsWith(toSearch);
+        case EnvVariableNameMatchingMode.Substring:
+            return actual.includes(toSearch);
     }
 }

@@ -133,7 +133,7 @@ function getNonBlockSpecificCompletions(
         getMatchingEnvironmentVariableDefinitions(
             collection,
             matchingText.substring(2),
-            EnvVariableNameMatchingMode.Prefix,
+            EnvVariableNameMatchingMode.Substring,
             getConfiguredTestEnvironment(),
         );
 
