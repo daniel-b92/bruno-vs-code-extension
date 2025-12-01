@@ -1,10 +1,10 @@
-import { createSourceFile, ScriptTarget, Node, SourceFile } from "typescript";
+import { createSourceFile, Node, ScriptTarget, SyntaxKind } from "typescript";
 import { Position, Range, TextDocumentHelper } from "../..";
 
 export function parseCodeBlock(
     document: TextDocumentHelper,
     firstContentLine: number,
-    callbackForGettingBlockNode: (sourceFile: SourceFile) => Node | undefined,
+    blockSyntaxKind: SyntaxKind,
 ):
     | {
           content: string;
@@ -23,7 +23,10 @@ export function parseCodeBlock(
         ScriptTarget.ES2020,
     );
 
-    const blockNode = callbackForGettingBlockNode(sourceFile);
+    const blockNode = (sourceFile as Node)
+        .getChildAt(0, sourceFile)
+        .getChildren(sourceFile)
+        .find(({ kind }) => kind == blockSyntaxKind);
 
     if (!blockNode) {
         return undefined;

@@ -1,4 +1,4 @@
-import { Node, SourceFile, SyntaxKind } from "typescript";
+import { SyntaxKind } from "typescript";
 import {
     parseCodeBlock,
     Range,
@@ -38,10 +38,6 @@ function parseCodeBlockFromTempJsFile(
     return parseCodeBlock(
         document,
         firstContentLine,
-        (sourceFile: SourceFile) =>
-            (sourceFile as Node)
-                .getChildAt(0, sourceFile)
-                .getChildren(sourceFile)
-                .find(({ kind }) => kind == SyntaxKind.FunctionDeclaration),
+        SyntaxKind.FunctionDeclaration,
     );
 }
