@@ -5,12 +5,7 @@ export function parseCodeBlock(
     document: TextDocumentHelper,
     firstContentLine: number,
     blockSyntaxKind: SyntaxKind,
-):
-    | {
-          content: string;
-          contentRange: Range;
-      }
-    | undefined {
+) {
     const blockStartLine = firstContentLine - 1;
 
     const subDocument = new TextDocumentHelper(
@@ -54,5 +49,6 @@ export function parseCodeBlock(
     return {
         content: document.getText(contentRange),
         contentRange,
+        blockAsTsNode: sourceFile as Node,
     };
 }

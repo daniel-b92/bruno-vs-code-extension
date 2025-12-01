@@ -4,6 +4,7 @@ import {
     Hover,
     languages,
     MarkdownString,
+    Position,
 } from "vscode";
 import {
     Block,
@@ -15,6 +16,7 @@ import {
     mapToVsCodeRange,
     OutputChannelLogger,
     parseBruFile,
+    parseCodeBlock,
     RequestFileBlockName,
     shouldBeCodeBlock,
     TextDocumentHelper,
@@ -32,6 +34,7 @@ import {
     EnvVariableNameMatchingMode,
     getMatchingEnvironmentVariableDefinitions,
 } from "../shared/nonCodeBlockVariables/getMatchingEnvironmentVariableDefinitions";
+import { SourceFile, SyntaxKind } from "typescript";
 
 interface ProviderParams {
     file: {
@@ -119,16 +122,20 @@ function getHoverForNonCodeBlocks({
 
 async function getHoverForCodeBlocks(
     tempJsUpdateQueue: TempJsFileUpdateQueue,
-    {
-        file: { collection, blockContainingPosition },
+    params: ProviderParams,
+) {
+    const {
+        file: { blockContainingPosition, collection },
         hoverRequest: { document, position, token },
         logger,
-    }: ProviderParams,
-) {
+    } = params;
+
     if (token.isCancellationRequested) {
         logger?.debug(`Cancellation requested for hover provider.`);
         return undefined;
     }
+
+    const envVariableNameForRequest = getEnvVariableNameForRequest(params);
 
     const temporaryJsDoc = await waitForTempJsFileToBeInSyncWithBruFile(
         tempJsUpdateQueue,
@@ -177,6 +184,47 @@ async function getHoverForCodeBlocks(
                 ),
             )
           : resultFromJsFile[0];
+}
+
+function getEnvVariableNameForRequest({
+    file: { collection, blockContainingPosition },
+    hoverRequest: { document, position, token },
+    logger,
+}: ProviderParams) {
+    const startLineForSourceFile =
+        blockContainingPosition.contentRange.start.line;
+
+    const parsedCodeBlock = parseCodeBlock(
+        new TextDocumentHelper(document.getText()),
+        startLineForSourceFile,
+        SyntaxKind.Block,
+    );
+
+    if (!parsedCodeBlock) {
+        return undefined;
+    }
+
+    const offsetWithinSubdocument =
+        document.offsetAt(position) -
+        document.offsetAt(new Position(startLineForSourceFile, 0));
+
+    const { blockAsTsNode: blockAsNode } = parsedCodeBlock;
+    const blockAsSourceFile = blockAsNode as SourceFile;
+
+    // ToDo: Go through nodes until reaching the environment variable name node.
+
+    //let currentNode = blockAsNode.;
+    //while(currentNode.getText().includes("bru.getEnvVar"))
+
+    const childContainingPosition = blockAsNode
+        .getChildren()
+        .find(
+            (child) =>
+                child.getStart(blockAsSourceFile) <= offsetWithinSubdocument &&
+                child.getEnd() >= offsetWithinSubdocument,
+        );
+
+    return undefined;
 }
 
 function getHoverForVariable(
