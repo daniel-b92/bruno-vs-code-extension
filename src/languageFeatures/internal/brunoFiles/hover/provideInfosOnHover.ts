@@ -34,7 +34,7 @@ import {
     EnvVariableNameMatchingMode,
     getMatchingEnvironmentVariableDefinitions,
 } from "../shared/nonCodeBlockVariables/getMatchingEnvironmentVariableDefinitions";
-import { SourceFile, SyntaxKind } from "typescript";
+import { createSourceFile, ScriptTarget, SyntaxKind } from "typescript";
 
 interface ProviderParams {
     file: {
@@ -137,6 +137,15 @@ async function getHoverForCodeBlocks(
 
     const envVariableNameForRequest = getEnvVariableNameForRequest(params);
 
+    if (envVariableNameForRequest) {
+        return getHoverForVariable(
+            collection,
+            envVariableNameForRequest,
+            token,
+            logger,
+        );
+    }
+
     const temporaryJsDoc = await waitForTempJsFileToBeInSyncWithBruFile(
         tempJsUpdateQueue,
         {
@@ -187,16 +196,14 @@ async function getHoverForCodeBlocks(
 }
 
 function getEnvVariableNameForRequest({
-    file: { collection, blockContainingPosition },
+    file: { blockContainingPosition },
     hoverRequest: { document, position, token },
-    logger,
 }: ProviderParams) {
-    const startLineForSourceFile =
-        blockContainingPosition.contentRange.start.line;
+    const firstContentLine = blockContainingPosition.contentRange.start.line;
 
     const parsedCodeBlock = parseCodeBlock(
         new TextDocumentHelper(document.getText()),
-        startLineForSourceFile,
+        firstContentLine,
         SyntaxKind.Block,
     );
 
@@ -206,23 +213,61 @@ function getEnvVariableNameForRequest({
 
     const offsetWithinSubdocument =
         document.offsetAt(position) -
-        document.offsetAt(new Position(startLineForSourceFile, 0));
+        document.offsetAt(new Position(firstContentLine - 1, 0));
 
     const { blockAsTsNode: blockAsNode } = parsedCodeBlock;
-    const blockAsSourceFile = blockAsNode as SourceFile;
+    const sourceFile = createSourceFile(
+        "__temp.js",
+        blockAsNode.getText(),
+        ScriptTarget.ES2020,
+    );
 
-    // ToDo: Go through nodes until reaching the environment variable name node.
+    let currentNode = blockAsNode;
+    const textToSearch = "getEnvVar";
 
-    //let currentNode = blockAsNode.;
-    //while(currentNode.getText().includes("bru.getEnvVar"))
+    if (!blockAsNode.getText(sourceFile).includes(textToSearch)) {
+        return undefined;
+    }
 
-    const childContainingPosition = blockAsNode
-        .getChildren()
-        .find(
+    do {
+        const currentChildren = currentNode.getChildren(sourceFile);
+
+        const childContainingPosition = currentChildren.find(
             (child) =>
-                child.getStart(blockAsSourceFile) <= offsetWithinSubdocument &&
+                child.getStart(sourceFile) <= offsetWithinSubdocument &&
                 child.getEnd() >= offsetWithinSubdocument,
         );
+
+        if (!childContainingPosition) {
+            return undefined;
+        }
+
+        const neededDepthReached = currentNode
+            .getChildren(sourceFile)
+            .some((child) =>
+                child
+                    .getChildren(sourceFile)
+                    .some(
+                        (grandChild) =>
+                            grandChild.getText(sourceFile) == textToSearch,
+                    ),
+            );
+
+        if (
+            neededDepthReached &&
+            childContainingPosition.kind == SyntaxKind.SyntaxList
+        ) {
+            const resultNode = childContainingPosition
+                .getChildren(sourceFile)
+                .find((child) => child.kind == SyntaxKind.StringLiteral);
+
+            return resultNode
+                ? resultNode.getText(sourceFile).match(/\w+/)?.[0]
+                : undefined;
+        }
+
+        currentNode = childContainingPosition;
+    } while (currentNode.getText(sourceFile).includes(textToSearch));
 
     return undefined;
 }
