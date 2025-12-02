@@ -4,6 +4,7 @@ import {
     Hover,
     languages,
     MarkdownString,
+    Position,
 } from "vscode";
 import {
     Block,
@@ -15,6 +16,7 @@ import {
     mapToVsCodeRange,
     OutputChannelLogger,
     parseBruFile,
+    parseCodeBlock,
     RequestFileBlockName,
     shouldBeCodeBlock,
     TextDocumentHelper,
@@ -32,6 +34,7 @@ import {
     EnvVariableNameMatchingMode,
     getMatchingEnvironmentVariableDefinitions,
 } from "../shared/nonCodeBlockVariables/getMatchingEnvironmentVariableDefinitions";
+import { createSourceFile, ScriptTarget, SyntaxKind } from "typescript";
 
 interface ProviderParams {
     file: {
@@ -119,15 +122,28 @@ function getHoverForNonCodeBlocks({
 
 async function getHoverForCodeBlocks(
     tempJsUpdateQueue: TempJsFileUpdateQueue,
-    {
-        file: { collection, blockContainingPosition },
+    params: ProviderParams,
+) {
+    const {
+        file: { blockContainingPosition, collection },
         hoverRequest: { document, position, token },
         logger,
-    }: ProviderParams,
-) {
+    } = params;
+
     if (token.isCancellationRequested) {
         logger?.debug(`Cancellation requested for hover provider.`);
         return undefined;
+    }
+
+    const envVariableNameForRequest = getEnvVariableNameForRequest(params);
+
+    if (envVariableNameForRequest) {
+        return getHoverForVariable(
+            collection,
+            envVariableNameForRequest,
+            token,
+            logger,
+        );
     }
 
     const temporaryJsDoc = await waitForTempJsFileToBeInSyncWithBruFile(
@@ -177,6 +193,83 @@ async function getHoverForCodeBlocks(
                 ),
             )
           : resultFromJsFile[0];
+}
+
+function getEnvVariableNameForRequest({
+    file: { blockContainingPosition },
+    hoverRequest: { document, position, token },
+}: ProviderParams) {
+    const firstContentLine = blockContainingPosition.contentRange.start.line;
+
+    const parsedCodeBlock = parseCodeBlock(
+        new TextDocumentHelper(document.getText()),
+        firstContentLine,
+        SyntaxKind.Block,
+    );
+
+    if (!parsedCodeBlock) {
+        return undefined;
+    }
+
+    const offsetWithinSubdocument =
+        document.offsetAt(position) -
+        document.offsetAt(new Position(firstContentLine - 1, 0));
+
+    const { blockAsTsNode: blockAsNode } = parsedCodeBlock;
+    const sourceFile = createSourceFile(
+        "__temp.js",
+        blockAsNode.getText(),
+        ScriptTarget.ES2020,
+    );
+
+    let currentNode = blockAsNode;
+    const textToSearch = "getEnvVar";
+
+    if (!blockAsNode.getText(sourceFile).includes(textToSearch)) {
+        return undefined;
+    }
+
+    do {
+        const currentChildren = currentNode.getChildren(sourceFile);
+
+        const childContainingPosition = currentChildren.find(
+            (child) =>
+                child.getStart(sourceFile) <= offsetWithinSubdocument &&
+                child.getEnd() >= offsetWithinSubdocument,
+        );
+
+        if (!childContainingPosition) {
+            return undefined;
+        }
+
+        const neededDepthReached = currentNode
+            .getChildren(sourceFile)
+            .some((child) =>
+                child
+                    .getChildren(sourceFile)
+                    .some(
+                        (grandChild) =>
+                            grandChild.getText(sourceFile) == textToSearch,
+                    ),
+            );
+
+        if (
+            neededDepthReached &&
+            childContainingPosition.kind == SyntaxKind.SyntaxList
+        ) {
+            const resultNode = childContainingPosition
+                .getChildren(sourceFile)
+                .find((child) => child.kind == SyntaxKind.StringLiteral);
+
+            return resultNode
+                ? resultNode.getText(sourceFile).match(/\w+/)?.[0]
+                : undefined;
+        }
+
+        currentNode = childContainingPosition;
+    } while (currentNode.getText(sourceFile).includes(textToSearch));
+
+    return undefined;
 }
 
 function getHoverForVariable(
