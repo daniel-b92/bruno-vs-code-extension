@@ -111,7 +111,7 @@ function getHoverForNonCodeBlocks({
     const variableName = getVariableNameForPositionInNonCodeBlock(hoverRequest);
 
     if (token.isCancellationRequested) {
-        logger?.debug(`Cancellation requested for hover provider.`);
+        addLogEntryForCancellation(logger);
         return undefined;
     }
 
@@ -131,7 +131,7 @@ async function getHoverForCodeBlocks(
     } = params;
 
     if (token.isCancellationRequested) {
-        logger?.debug(`Cancellation requested for hover provider.`);
+        addLogEntryForCancellation(logger);
         return undefined;
     }
 
@@ -162,7 +162,7 @@ async function getHoverForCodeBlocks(
     }
 
     if (token.isCancellationRequested) {
-        logger?.debug(`Cancellation requested for hover provider.`);
+        addLogEntryForCancellation(logger);
         return undefined;
     }
 
@@ -198,6 +198,7 @@ async function getHoverForCodeBlocks(
 function getEnvVariableNameForRequest({
     file: { blockContainingPosition },
     hoverRequest: { document, position, token },
+    logger,
 }: ProviderParams) {
     const firstContentLine = blockContainingPosition.contentRange.start.line;
 
@@ -208,6 +209,20 @@ function getEnvVariableNameForRequest({
     );
 
     if (!parsedCodeBlock) {
+        return undefined;
+    }
+    if (token.isCancellationRequested) {
+        addLogEntryForCancellation(logger);
+        return undefined;
+    }
+
+    const baseIdentifier = "bru";
+    const functionName = "getEnvVar";
+
+    if (
+        !parsedCodeBlock.content.includes(baseIdentifier) ||
+        !parsedCodeBlock.content.includes(functionName)
+    ) {
         return undefined;
     }
 
@@ -222,14 +237,19 @@ function getEnvVariableNameForRequest({
         ScriptTarget.ES2020,
     );
 
-    let currentNode = blockAsNode;
-    const textToSearch = "getEnvVar";
-
-    if (!blockAsNode.getText(sourceFile).includes(textToSearch)) {
+    if (token.isCancellationRequested) {
+        addLogEntryForCancellation(logger);
         return undefined;
     }
 
+    let currentNode = blockAsNode;
+
     do {
+        if (token.isCancellationRequested) {
+            addLogEntryForCancellation(logger);
+            return undefined;
+        }
+
         const currentChildren = currentNode.getChildren(sourceFile);
 
         const childContainingPosition = currentChildren.find(
@@ -239,18 +259,17 @@ function getEnvVariableNameForRequest({
         );
 
         if (!childContainingPosition) {
+            addLogEntryForCancellation(logger);
             return undefined;
         }
 
         const neededDepthReached = currentNode
             .getChildren(sourceFile)
-            .some((child) =>
-                child
-                    .getChildren(sourceFile)
-                    .some(
-                        (grandChild) =>
-                            grandChild.getText(sourceFile) == textToSearch,
-                    ),
+            .some(
+                (child) =>
+                    child.kind == SyntaxKind.PropertyAccessExpression &&
+                    child.getText(sourceFile) ==
+                        baseIdentifier.concat(".", functionName),
             );
 
         if (
@@ -267,7 +286,7 @@ function getEnvVariableNameForRequest({
         }
 
         currentNode = childContainingPosition;
-    } while (currentNode.getText(sourceFile).includes(textToSearch));
+    } while (currentNode.getText(sourceFile).includes(functionName));
 
     return undefined;
 }
@@ -320,4 +339,8 @@ function getHoverForVariable(
             ),
         ),
     );
+}
+
+function addLogEntryForCancellation(logger?: OutputChannelLogger) {
+    logger?.debug(`Cancellation requested for hover provider.`);
 }
