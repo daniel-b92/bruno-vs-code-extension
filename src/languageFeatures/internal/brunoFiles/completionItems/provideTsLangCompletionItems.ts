@@ -31,7 +31,7 @@ type CompletionItemRange =
       }
     | undefined;
 
-export function provideCodeBlocksCompletionItems(
+export function provideTsLanguageCompletionItems(
     queue: TempJsFileUpdateQueue,
     collectionItemProvider: CollectionItemProvider,
     logger?: OutputChannelLogger,

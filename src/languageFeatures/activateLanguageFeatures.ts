@@ -37,7 +37,7 @@ import {
 import { BrunoLangDiagnosticsProvider } from "./internal/brunoFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/brunoFiles/autoUpdates/updateUrlToMatchQueryParams";
 import { updatePathParamsKeysToMatchUrl } from "./internal/brunoFiles/autoUpdates/updatePathParamsKeysToMatchUrl";
-import { provideCodeBlocksCompletionItems } from "./internal/brunoFiles/completionItems/provideCodeBlocksCompletionItems";
+import { provideTsLanguageCompletionItems } from "./internal/brunoFiles/completionItems/provideTsLangCompletionItems";
 import { provideInfosOnHover as provideInfosOnHoverForBruFiles } from "./internal/brunoFiles/hover/provideInfosOnHover";
 import { provideSignatureHelp as provideSignatureHelpForBruFiles } from "./internal/brunoFiles/signatureHelp/provideSignatureHelp";
 import { provideDefinitions as provideDefinitionsForBruFiles } from "./internal/brunoFiles/definitionProvider/provideDefinitions";
@@ -86,7 +86,7 @@ export async function activateLanguageFeatures(
         tempJsFilesUpdateQueue,
         tempJsFilesProvider,
         provideBrunoLangCompletionItems(collectionItemProvider, logger),
-        provideCodeBlocksCompletionItems(
+        provideTsLanguageCompletionItems(
             tempJsFilesUpdateQueue,
             collectionItemProvider,
             logger,
