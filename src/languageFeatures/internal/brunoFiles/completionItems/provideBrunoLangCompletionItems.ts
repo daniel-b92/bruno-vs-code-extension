@@ -30,12 +30,12 @@ import {
 } from "../../../../shared";
 import { basename, dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
-import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockVariables/getNonCodeBlocksWithoutVariableSupport";
+import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockUtils/getNonCodeBlocksWithoutVariableSupport";
 import { LanguageFeatureRequest } from "../shared/interfaces";
 import {
     EnvVariableNameMatchingMode,
     getMatchingEnvironmentVariableDefinitions,
-} from "../shared/nonCodeBlockVariables/getMatchingEnvironmentVariableDefinitions";
+} from "../shared/getMatchingEnvironmentVariableDefinitions";
 
 export function provideBrunoLangCompletionItems(
     itemProvider: CollectionItemProvider,

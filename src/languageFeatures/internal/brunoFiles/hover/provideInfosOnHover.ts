@@ -27,13 +27,13 @@ import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWit
 import { waitForTempJsFileToBeInSyncWithBruFile } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { basename } from "path";
-import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockVariables/getNonCodeBlocksWithoutVariableSupport";
+import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockUtils/getNonCodeBlocksWithoutVariableSupport";
 import { LanguageFeatureRequest } from "../shared/interfaces";
-import { getVariableNameForPositionInNonCodeBlock } from "../shared/nonCodeBlockVariables/getVariableNameForPositionInNonCodeBlock";
+import { getVariableNameForPositionInNonCodeBlock } from "../shared/nonCodeBlockUtils/getVariableNameForPositionInNonCodeBlock";
 import {
     EnvVariableNameMatchingMode,
     getMatchingEnvironmentVariableDefinitions,
-} from "../shared/nonCodeBlockVariables/getMatchingEnvironmentVariableDefinitions";
+} from "../shared/getMatchingEnvironmentVariableDefinitions";
 import { createSourceFile, ScriptTarget, SyntaxKind } from "typescript";
 
 interface ProviderParams {
@@ -297,8 +297,8 @@ function getHoverForVariable(
     token: CancellationToken,
     logger?: OutputChannelLogger,
 ) {
-    const tableHeader = `| value | environment name |
-| --------------- | ---------------- |\n`;
+    const tableHeader = `| value | environment | configured |
+| :--------------- | :----------------: | :----------------: | \n`;
 
     const configuredEnvironmentName = getConfiguredTestEnvironment();
     const matchingVariableDefinitions =
@@ -322,7 +322,13 @@ function getHoverForVariable(
         new MarkdownString(
             tableHeader.concat(
                 matchingVariableDefinitions
-                    .map(({ file, matchingVariables }) => {
+                    .sort(
+                        (
+                            { isConfiguredEnv: configured1 },
+                            { isConfiguredEnv: configured2 },
+                        ) => (configured1 ? -1 : configured2 ? 1 : 0),
+                    )
+                    .map(({ file, matchingVariables, isConfiguredEnv }) => {
                         const environmentName = basename(
                             file,
                             getExtensionForBrunoFiles(),
@@ -331,7 +337,7 @@ function getHoverForVariable(
                         return matchingVariables
                             .map(
                                 ({ value }) =>
-                                    `| ${value} | ${environmentName}  |`,
+                                    `| ${value} | ${environmentName}  | ${isConfiguredEnv ? "&#x2611;" : "&#x2612;"} |`,
                             )
                             .join("\n");
                     })
