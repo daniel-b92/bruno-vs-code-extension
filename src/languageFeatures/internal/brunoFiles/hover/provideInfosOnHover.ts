@@ -322,12 +322,6 @@ function getHoverForVariable(
         new MarkdownString(
             tableHeader.concat(
                 matchingVariableDefinitions
-                    .sort(
-                        (
-                            { isConfiguredEnv: configured1 },
-                            { isConfiguredEnv: configured2 },
-                        ) => (configured1 ? -1 : configured2 ? 1 : 0),
-                    )
                     .map(({ file, matchingVariables, isConfiguredEnv }) => {
                         const environmentName = basename(
                             file,
@@ -337,7 +331,7 @@ function getHoverForVariable(
                         return matchingVariables
                             .map(
                                 ({ value }) =>
-                                    `| ${value} | ${environmentName}  | ${isConfiguredEnv ? "&#x2611;" : "&#x2612;"} |`,
+                                    `| ${value} | ${environmentName}  | ${isConfiguredEnv ? "&#x2611;" : ""} |`,
                             )
                             .join("\n");
                     })

@@ -37,6 +37,12 @@ export function getMatchingEnvironmentVariableDefinitions(
     }
 
     return matchingEnvironmentFiles
+        .sort(
+            (
+                { isConfigured: isConfigured1 },
+                { isConfigured: isConfigured2 },
+            ) => (isConfigured1 ? -1 : isConfigured2 ? 1 : 0),
+        )
         .map(({ item, isConfigured: isConfiguredEnv }) => {
             const matchingVariables = item
                 .getVariables()

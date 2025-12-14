@@ -148,14 +148,17 @@ function getNonBlockSpecificCompletions(
     }
 
     return matchingEnvVariableDefinitions.flatMap(
-        ({ file, matchingVariables }) =>
+        ({ file, matchingVariables, isConfiguredEnv }) =>
             matchingVariables.map(({ key }) => {
-                const completionItem = new CompletionItem(key);
+                const completionItem = new CompletionItem({
+                    label: key,
+                    description: `Environment: '${basename(
+                        file,
+                        getExtensionForBrunoFiles(),
+                    )}'`,
+                });
                 completionItem.kind = CompletionItemKind.Constant;
-                completionItem.detail = `Environment: '${basename(
-                    file,
-                    getExtensionForBrunoFiles(),
-                )}'`;
+                completionItem.sortText = isConfiguredEnv ? "a" : "b";
                 return completionItem;
             }),
     );
