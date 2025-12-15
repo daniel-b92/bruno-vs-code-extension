@@ -4,7 +4,6 @@ import {
     Hover,
     languages,
     MarkdownString,
-    Position,
 } from "vscode";
 import {
     Block,
@@ -34,7 +33,8 @@ import {
     EnvVariableNameMatchingMode,
     getMatchingEnvironmentVariableDefinitions,
 } from "../shared/getMatchingEnvironmentVariableDefinitions";
-import { createSourceFile, ScriptTarget, SyntaxKind } from "typescript";
+import { SyntaxKind } from "typescript";
+import { getParameterNameForRequest } from "../shared/codeBlocksUtils/getParameterNameForRequest";
 
 interface ProviderParams {
     file: {
@@ -196,11 +196,15 @@ async function getHoverForCodeBlocks(
 }
 
 function getEnvVariableNameForRequest({
-    file: { blockContainingPosition },
-    hoverRequest: { document, position, token },
+    file: {
+        collection,
+        blockContainingPosition: { contentRange },
+    },
+    hoverRequest,
     logger,
 }: ProviderParams) {
-    const firstContentLine = blockContainingPosition.contentRange.start.line;
+    const { document, token } = hoverRequest;
+    const firstContentLine = contentRange.start.line;
 
     const parsedCodeBlock = parseCodeBlock(
         new TextDocumentHelper(document.getText()),
@@ -216,79 +220,16 @@ function getEnvVariableNameForRequest({
         return undefined;
     }
 
-    const baseIdentifier = "bru";
-    const functionName = "getEnvVar";
+    const paramName = getParameterNameForRequest({
+        file: {
+            collection,
+            blockContainingPosition: parsedCodeBlock,
+        },
+        request: hoverRequest,
+        logger,
+    });
 
-    if (
-        !parsedCodeBlock.content.includes(baseIdentifier) ||
-        !parsedCodeBlock.content.includes(functionName)
-    ) {
-        return undefined;
-    }
-
-    const offsetWithinSubdocument =
-        document.offsetAt(position) -
-        document.offsetAt(new Position(firstContentLine - 1, 0));
-
-    const { blockAsTsNode: blockAsNode } = parsedCodeBlock;
-    const sourceFile = createSourceFile(
-        "__temp.js",
-        blockAsNode.getText(),
-        ScriptTarget.ES2020,
-    );
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return undefined;
-    }
-
-    let currentNode = blockAsNode;
-
-    do {
-        if (token.isCancellationRequested) {
-            addLogEntryForCancellation(logger);
-            return undefined;
-        }
-
-        const currentChildren = currentNode.getChildren(sourceFile);
-
-        const childContainingPosition = currentChildren.find(
-            (child) =>
-                child.getStart(sourceFile) <= offsetWithinSubdocument &&
-                child.getEnd() >= offsetWithinSubdocument,
-        );
-
-        if (!childContainingPosition) {
-            addLogEntryForCancellation(logger);
-            return undefined;
-        }
-
-        const neededDepthReached = currentNode
-            .getChildren(sourceFile)
-            .some(
-                (child) =>
-                    child.kind == SyntaxKind.PropertyAccessExpression &&
-                    child.getText(sourceFile) ==
-                        baseIdentifier.concat(".", functionName),
-            );
-
-        if (
-            neededDepthReached &&
-            childContainingPosition.kind == SyntaxKind.SyntaxList
-        ) {
-            const resultNode = childContainingPosition
-                .getChildren(sourceFile)
-                .find((child) => child.kind == SyntaxKind.StringLiteral);
-
-            return resultNode
-                ? resultNode.getText(sourceFile).match(/\w+/)?.[0]
-                : undefined;
-        }
-
-        currentNode = childContainingPosition;
-    } while (currentNode.getText(sourceFile).includes(functionName));
-
-    return undefined;
+    return paramName?.match(/\w+/)?.[0];
 }
 
 function getHoverForVariable(

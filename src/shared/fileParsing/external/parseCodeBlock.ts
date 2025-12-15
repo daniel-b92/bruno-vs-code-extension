@@ -1,11 +1,12 @@
 import { createSourceFile, Node, ScriptTarget, SyntaxKind } from "typescript";
 import { Position, Range, TextDocumentHelper } from "../..";
+import { CodeBlockWithTsNode } from "../../../languageFeatures/internal/brunoFiles/shared/interfaces";
 
 export function parseCodeBlock(
     document: TextDocumentHelper,
     firstContentLine: number,
     blockSyntaxKind: SyntaxKind,
-) {
+): CodeBlockWithTsNode | undefined {
     const blockStartLine = firstContentLine - 1;
 
     const subDocument = new TextDocumentHelper(
