@@ -78,7 +78,12 @@ export function getParameterNameForRequest({
         ) {
             const resultNode = childContainingPosition
                 .getChildren(sourceFile)
-                .find((child) => child.kind == SyntaxKind.StringLiteral);
+                .find((child) =>
+                    [
+                        SyntaxKind.NoSubstitutionTemplateLiteral,
+                        SyntaxKind.StringLiteral,
+                    ].includes(child.kind),
+                );
 
             return resultNode?.getText(sourceFile);
         }
