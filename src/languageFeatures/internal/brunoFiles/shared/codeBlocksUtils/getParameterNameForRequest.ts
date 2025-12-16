@@ -1,7 +1,7 @@
-import { Position as VsCodePosition } from "vscode";
+import { TextDocument, Position as VsCodePosition } from "vscode";
 import { LanguageFeatureRequestWithAdditionalData } from "../interfaces";
 import { createSourceFile, ScriptTarget, SyntaxKind } from "typescript";
-import { OutputChannelLogger } from "../../../../../shared";
+import { OutputChannelLogger, Range } from "../../../../../shared";
 
 // ToDo: Find better name
 export function getParameterNameForRequest({
@@ -15,8 +15,6 @@ export function getParameterNameForRequest({
     request: { document, position, token },
     logger,
 }: LanguageFeatureRequestWithAdditionalData) {
-    const firstContentLine = blockContentRange.start.line;
-
     const baseIdentifier = "bru";
     const functionName = "getEnvVar";
 
@@ -29,7 +27,7 @@ export function getParameterNameForRequest({
 
     const offsetWithinSubdocument =
         document.offsetAt(position) -
-        document.offsetAt(new VsCodePosition(firstContentLine - 1, 0));
+        getDefaultOffsetForBlockContent(document, blockContentRange);
 
     const sourceFile = createSourceFile(
         "__temp.js",
@@ -88,7 +86,23 @@ export function getParameterNameForRequest({
                     ].includes(child.kind),
                 );
 
-            return resultNode?.getText(sourceFile);
+            return resultNode
+                ? {
+                      text: resultNode.getText(sourceFile),
+                      start: document.positionAt(
+                          getDefaultOffsetForBlockContent(
+                              document,
+                              blockContentRange,
+                          ) + resultNode.getStart(sourceFile, true),
+                      ),
+                      end: document.positionAt(
+                          getDefaultOffsetForBlockContent(
+                              document,
+                              blockContentRange,
+                          ) + resultNode.getEnd(),
+                      ),
+                  }
+                : undefined;
         }
 
         currentNode = childContainingPosition;
@@ -99,4 +113,13 @@ export function getParameterNameForRequest({
 
 function addLogEntryForCancellation(logger?: OutputChannelLogger) {
     logger?.debug(`Cancellation requested for language feature.`);
+}
+
+function getDefaultOffsetForBlockContent(
+    document: TextDocument,
+    blockContentRange: Range,
+) {
+    const firstContentLine = blockContentRange.start.line;
+
+    return document.offsetAt(new VsCodePosition(firstContentLine - 1, 0));
 }

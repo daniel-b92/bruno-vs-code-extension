@@ -6,7 +6,6 @@ import {
     TextEdit,
     Range as VsCodeRange,
     Position as VsCodePosition,
-    CancellationToken,
     CompletionItemKind,
 } from "vscode";
 import {
@@ -39,6 +38,7 @@ import {
     getMatchingEnvironmentVariableDefinitions,
 } from "../shared/getMatchingEnvironmentVariableDefinitions";
 import { basename } from "path";
+import { LanguageFeatureRequest } from "../shared/interfaces";
 
 type CompletionItemRange =
     | VsCodeRange
@@ -107,7 +107,7 @@ export function provideTsLanguageCompletionItems(
                     return getResultsForEnvironmentVariable(
                         collection,
                         envVariableNameForRequest,
-                        token,
+                        { document, position, token },
                         logger,
                     );
                 }
@@ -136,22 +136,24 @@ export function provideTsLanguageCompletionItems(
 
 function getResultsForEnvironmentVariable(
     collection: Collection,
-    parameterText: string,
-    token: CancellationToken,
+    parameter: { text: string; start: VsCodePosition; end: VsCodePosition },
+    { token, position }: LanguageFeatureRequest,
     logger?: OutputChannelLogger,
 ) {
-    // ToDo: Only provide completions if position is between the opening and closing quotes.
-    const startsWithQuotes = /^("|'|`)/.test(parameterText);
-    const endsWithQuotes = /("|'|`)$/.test(parameterText);
+    const { text, start, end } = parameter;
+    const startsWithQuotes = /^("|'|`)/.test(text);
+    const endsWithQuotes = /("|'|`)$/.test(text);
 
-    if (!startsWithQuotes || !endsWithQuotes) {
+    if (
+        !startsWithQuotes ||
+        !endsWithQuotes ||
+        position.compareTo(start) <= 0 ||
+        position.compareTo(end) >= 0
+    ) {
         return undefined;
     }
 
-    const parameterWithoutQuotes = parameterText.substring(
-        1,
-        parameterText.length - 1,
-    );
+    const parameterWithoutQuotes = text.substring(1, text.length - 1);
     const matchingEnvVariableDefinitions =
         getMatchingEnvironmentVariableDefinitions(
             collection,

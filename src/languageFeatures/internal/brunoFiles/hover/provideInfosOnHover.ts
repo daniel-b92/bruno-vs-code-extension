@@ -229,7 +229,7 @@ function getEnvVariableNameForRequest({
         logger,
     });
 
-    return paramName?.match(/\w+/)?.[0];
+    return paramName?.text.match(/\w+/)?.[0];
 }
 
 function getHoverForVariable(
