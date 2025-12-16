@@ -65,12 +65,15 @@ export function getParameterNameForRequest({
 
         const neededDepthReached = currentNode
             .getChildren(sourceFile)
-            .some(
-                (child) =>
+            .some((child) => {
+                const childText = child.getText(sourceFile);
+                return (
                     child.kind == SyntaxKind.PropertyAccessExpression &&
-                    child.getText(sourceFile) ==
-                        baseIdentifier.concat(".", functionName),
-            );
+                    childText.startsWith(baseIdentifier) &&
+                    childText.includes(".") &&
+                    childText.endsWith(functionName)
+                );
+            });
 
         if (
             neededDepthReached &&
