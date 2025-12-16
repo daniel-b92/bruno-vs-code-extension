@@ -31,7 +31,7 @@ import {
     waitForTempJsFileToBeInSyncWithBruFile,
 } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
-import { getParameterNameForRequest } from "../shared/codeBlocksUtils/getParameterNameForRequest";
+import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../shared/codeBlocksUtils/getStringLiteralParameterForGetEnvVarInbuiltFunction";
 import { SyntaxKind } from "typescript";
 import {
     EnvVariableNameMatchingMode,
@@ -93,7 +93,7 @@ export function provideTsLanguageCompletionItems(
                 );
 
                 const envVariableNameForRequest = parsedCodeBlock
-                    ? getParameterNameForRequest({
+                    ? getStringLiteralParameterForGetEnvVarInbuiltFunction({
                           file: {
                               collection,
                               blockContainingPosition: parsedCodeBlock,

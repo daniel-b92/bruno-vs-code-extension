@@ -3,8 +3,7 @@ import { LanguageFeatureRequestWithAdditionalData } from "../interfaces";
 import { createSourceFile, ScriptTarget, SyntaxKind } from "typescript";
 import { OutputChannelLogger, Range } from "../../../../../shared";
 
-// ToDo: Find better name
-export function getParameterNameForRequest({
+export function getStringLiteralParameterForGetEnvVarInbuiltFunction({
     file: {
         blockContainingPosition: {
             content: blockContent,

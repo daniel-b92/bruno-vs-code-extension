@@ -34,7 +34,7 @@ import {
     getMatchingEnvironmentVariableDefinitions,
 } from "../shared/getMatchingEnvironmentVariableDefinitions";
 import { SyntaxKind } from "typescript";
-import { getParameterNameForRequest } from "../shared/codeBlocksUtils/getParameterNameForRequest";
+import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../shared/codeBlocksUtils/getStringLiteralParameterForGetEnvVarInbuiltFunction";
 
 interface ProviderParams {
     file: {
@@ -220,7 +220,7 @@ function getEnvVariableNameForRequest({
         return undefined;
     }
 
-    const paramName = getParameterNameForRequest({
+    const paramName = getStringLiteralParameterForGetEnvVarInbuiltFunction({
         file: {
             collection,
             blockContainingPosition: parsedCodeBlock,
