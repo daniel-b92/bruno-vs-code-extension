@@ -6,7 +6,6 @@ import {
     TextEdit,
     Range as VsCodeRange,
     Position as VsCodePosition,
-    CompletionItemKind,
 } from "vscode";
 import {
     CollectionItemProvider,
@@ -20,7 +19,6 @@ import {
     parseCodeBlock,
     Collection,
     getConfiguredTestEnvironment,
-    getExtensionForBrunoFiles,
 } from "../../../../shared";
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
@@ -37,8 +35,8 @@ import {
     EnvVariableNameMatchingMode,
     getMatchingEnvironmentVariableDefinitions,
 } from "../shared/getMatchingEnvironmentVariableDefinitions";
-import { basename } from "path";
 import { LanguageFeatureRequest } from "../shared/interfaces";
+import { mapEnvironmentVariablesToCompletions } from "./util/mapEnvironmentVariablesToCompletions";
 
 type CompletionItemRange =
     | VsCodeRange
@@ -171,21 +169,14 @@ function getResultsForEnvironmentVariable(
         return [];
     }
 
-    return matchingEnvVariableDefinitions.flatMap(
-        ({ file, matchingVariables, isConfiguredEnv }) =>
-            matchingVariables.map(({ key }) => {
-                const environmentName = basename(
-                    file,
-                    getExtensionForBrunoFiles(),
-                );
-                const completionItem = new CompletionItem({
-                    label: key,
-                    description: `Environment: '${environmentName}'`,
-                });
-                completionItem.kind = CompletionItemKind.Constant;
-                completionItem.sortText = `${isConfiguredEnv ? "a" : "b"}_${environmentName}_${key}`;
-                return completionItem;
+    return mapEnvironmentVariablesToCompletions(
+        matchingEnvVariableDefinitions.map(
+            ({ file, matchingVariables, isConfiguredEnv }) => ({
+                environmentFile: file,
+                matchingVariableKeys: matchingVariables.map(({ key }) => key),
+                isConfiguredEnv,
             }),
+        ),
     );
 }
 
