@@ -272,7 +272,7 @@ function getHoverForVariable(
                         return matchingVariables
                             .map(
                                 ({ value }) =>
-                                    `| ${value} | ${environmentName}  | ${isConfiguredEnv ? "&#x2611;" : ""} |`,
+                                    `| ${value} | ${environmentName}  | ${isConfiguredEnv ? "&#x2611;" : "no"} |`,
                             )
                             .join("\n");
                     })
