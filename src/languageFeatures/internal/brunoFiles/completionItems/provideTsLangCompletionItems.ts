@@ -174,15 +174,16 @@ function getResultsForEnvironmentVariable(
     return matchingEnvVariableDefinitions.flatMap(
         ({ file, matchingVariables, isConfiguredEnv }) =>
             matchingVariables.map(({ key }) => {
+                const environmentName = basename(
+                    file,
+                    getExtensionForBrunoFiles(),
+                );
                 const completionItem = new CompletionItem({
                     label: key,
-                    description: `Environment: '${basename(
-                        file,
-                        getExtensionForBrunoFiles(),
-                    )}'`,
+                    description: `Environment: '${environmentName}'`,
                 });
                 completionItem.kind = CompletionItemKind.Constant;
-                completionItem.sortText = isConfiguredEnv ? "a" : "b";
+                completionItem.sortText = `${isConfiguredEnv ? "a" : "b"}_${environmentName}_${key}`;
                 return completionItem;
             }),
     );
