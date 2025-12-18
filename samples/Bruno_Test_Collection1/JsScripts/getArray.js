@@ -1,5 +1,5 @@
 function getArray() {
-    bru.setEnvVar("test", 33);
+    bru.setEnvVar("test", `33-${bru.getEnvVar("example")}`);
     return [12, 44, 55];
 }
 

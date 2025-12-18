@@ -34,8 +34,8 @@ import { SyntaxKind } from "typescript";
 import {
     EnvVariableNameMatchingMode,
     getMatchingEnvironmentVariableDefinitions,
-} from "../shared/getMatchingEnvironmentVariableDefinitions";
-import { LanguageFeatureRequest } from "../shared/interfaces";
+} from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitions";
+import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { mapEnvironmentVariablesToCompletions } from "./util/mapEnvironmentVariablesToCompletions";
 
 type CompletionItemRange =

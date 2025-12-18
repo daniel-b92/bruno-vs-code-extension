@@ -1,16 +1,8 @@
-import {
-    CancellationToken,
-    commands,
-    Hover,
-    languages,
-    MarkdownString,
-} from "vscode";
+import { commands, Hover, languages } from "vscode";
 import {
     Block,
     Collection,
     CollectionItemProvider,
-    getConfiguredTestEnvironment,
-    getExtensionForBrunoFiles,
     mapFromVsCodePosition,
     mapToVsCodeRange,
     OutputChannelLogger,
@@ -25,16 +17,12 @@ import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositi
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { waitForTempJsFileToBeInSyncWithBruFile } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
-import { basename } from "path";
 import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockUtils/getNonCodeBlocksWithoutVariableSupport";
-import { LanguageFeatureRequest } from "../shared/interfaces";
+import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { getVariableNameForPositionInNonCodeBlock } from "../shared/nonCodeBlockUtils/getVariableNameForPositionInNonCodeBlock";
-import {
-    EnvVariableNameMatchingMode,
-    getMatchingEnvironmentVariableDefinitions,
-} from "../shared/getMatchingEnvironmentVariableDefinitions";
 import { SyntaxKind } from "typescript";
 import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../shared/codeBlocksUtils/getStringLiteralParameterForGetEnvVarInbuiltFunction";
+import { getHoverForEnvironmentVariable } from "../../shared/environmentVariables/getHoverForEnvironmentVariable";
 
 interface ProviderParams {
     file: {
@@ -116,7 +104,12 @@ function getHoverForNonCodeBlocks({
     }
 
     return variableName
-        ? getHoverForVariable(collection, variableName, token, logger)
+        ? getHoverForEnvironmentVariable(
+              collection,
+              variableName,
+              token,
+              logger,
+          )
         : undefined;
 }
 
@@ -138,7 +131,7 @@ async function getHoverForCodeBlocks(
     const envVariableNameForRequest = getEnvVariableNameForRequest(params);
 
     if (envVariableNameForRequest) {
-        return getHoverForVariable(
+        return getHoverForEnvironmentVariable(
             collection,
             envVariableNameForRequest,
             token,
@@ -230,56 +223,6 @@ function getEnvVariableNameForRequest({
     });
 
     return paramName?.text.match(/\w+/)?.[0];
-}
-
-function getHoverForVariable(
-    collection: Collection,
-    variableName: string,
-    token: CancellationToken,
-    logger?: OutputChannelLogger,
-) {
-    const tableHeader = `| value | environment | configured |
-| :--------------- | :----------------: | :----------------: | \n`;
-
-    const configuredEnvironmentName = getConfiguredTestEnvironment();
-    const matchingVariableDefinitions =
-        getMatchingEnvironmentVariableDefinitions(
-            collection,
-            variableName,
-            EnvVariableNameMatchingMode.Exact,
-            configuredEnvironmentName,
-        );
-
-    if (matchingVariableDefinitions.length == 0) {
-        return undefined;
-    }
-
-    if (token.isCancellationRequested) {
-        logger?.debug(`Cancellation requested for hover provider.`);
-        return undefined;
-    }
-
-    return new Hover(
-        new MarkdownString(
-            tableHeader.concat(
-                matchingVariableDefinitions
-                    .map(({ file, matchingVariables, isConfiguredEnv }) => {
-                        const environmentName = basename(
-                            file,
-                            getExtensionForBrunoFiles(),
-                        );
-
-                        return matchingVariables
-                            .map(
-                                ({ value }) =>
-                                    `| ${value} | ${environmentName}  | ${isConfiguredEnv ? "&#x2611;" : "-"} |`,
-                            )
-                            .join("\n");
-                    })
-                    .join("\n"),
-            ),
-        ),
-    );
 }
 
 function addLogEntryForCancellation(logger?: OutputChannelLogger) {
