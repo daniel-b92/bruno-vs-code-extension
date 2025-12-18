@@ -2,7 +2,7 @@
 
 ### Features
 
-- Add basic intellisense for environment variables for non code blocks (hovers and completions).
+- Add basic intellisense for static environment variables (hovers and completions).
 
 ## [0.17.11] (2025-11-23)
 

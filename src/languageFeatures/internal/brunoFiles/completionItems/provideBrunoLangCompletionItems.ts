@@ -1,4 +1,4 @@
-import { CompletionItem, CompletionItemKind, languages } from "vscode";
+import { CompletionItem, languages } from "vscode";
 import {
     ApiKeyAuthBlockKey,
     ApiKeyAuthBlockPlacementValue,
@@ -7,7 +7,6 @@ import {
     Collection,
     CollectionItemProvider,
     getConfiguredTestEnvironment,
-    getExtensionForBrunoFiles,
     getMatchingTextContainingPosition,
     getMaxSequenceForRequests,
     getPossibleMethodBlocks,
@@ -28,14 +27,15 @@ import {
     SettingsBlockKey,
     TextDocumentHelper,
 } from "../../../../shared";
-import { basename, dirname } from "path";
+import { dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
-import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockVariables/getNonCodeBlocksWithoutVariableSupport";
+import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockUtils/getNonCodeBlocksWithoutVariableSupport";
 import { LanguageFeatureRequest } from "../shared/interfaces";
 import {
     EnvVariableNameMatchingMode,
     getMatchingEnvironmentVariableDefinitions,
-} from "../shared/nonCodeBlockVariables/getMatchingEnvironmentVariableDefinitions";
+} from "../shared/getMatchingEnvironmentVariableDefinitions";
+import { mapEnvironmentVariablesToCompletions } from "./util/mapEnvironmentVariablesToCompletions";
 
 export function provideBrunoLangCompletionItems(
     itemProvider: CollectionItemProvider,
@@ -147,17 +147,14 @@ function getNonBlockSpecificCompletions(
         return [];
     }
 
-    return matchingEnvVariableDefinitions.flatMap(
-        ({ file, matchingVariables }) =>
-            matchingVariables.map(({ key }) => {
-                const completionItem = new CompletionItem(key);
-                completionItem.kind = CompletionItemKind.Constant;
-                completionItem.detail = `Environment: '${basename(
-                    file,
-                    getExtensionForBrunoFiles(),
-                )}'`;
-                return completionItem;
+    return mapEnvironmentVariablesToCompletions(
+        matchingEnvVariableDefinitions.map(
+            ({ file, matchingVariables, isConfiguredEnv }) => ({
+                environmentFile: file,
+                matchingVariableKeys: matchingVariables.map(({ key }) => key),
+                isConfiguredEnv,
             }),
+        ),
     );
 }
 

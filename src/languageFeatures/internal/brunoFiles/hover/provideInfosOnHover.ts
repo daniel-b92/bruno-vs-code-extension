@@ -15,6 +15,7 @@ import {
     mapToVsCodeRange,
     OutputChannelLogger,
     parseBruFile,
+    parseCodeBlock,
     RequestFileBlockName,
     shouldBeCodeBlock,
     TextDocumentHelper,
@@ -25,13 +26,15 @@ import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWit
 import { waitForTempJsFileToBeInSyncWithBruFile } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { basename } from "path";
-import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockVariables/getNonCodeBlocksWithoutVariableSupport";
+import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockUtils/getNonCodeBlocksWithoutVariableSupport";
 import { LanguageFeatureRequest } from "../shared/interfaces";
-import { getVariableNameForPositionInNonCodeBlock } from "../shared/nonCodeBlockVariables/getVariableNameForPositionInNonCodeBlock";
+import { getVariableNameForPositionInNonCodeBlock } from "../shared/nonCodeBlockUtils/getVariableNameForPositionInNonCodeBlock";
 import {
     EnvVariableNameMatchingMode,
     getMatchingEnvironmentVariableDefinitions,
-} from "../shared/nonCodeBlockVariables/getMatchingEnvironmentVariableDefinitions";
+} from "../shared/getMatchingEnvironmentVariableDefinitions";
+import { SyntaxKind } from "typescript";
+import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../shared/codeBlocksUtils/getStringLiteralParameterForGetEnvVarInbuiltFunction";
 
 interface ProviderParams {
     file: {
@@ -108,7 +111,7 @@ function getHoverForNonCodeBlocks({
     const variableName = getVariableNameForPositionInNonCodeBlock(hoverRequest);
 
     if (token.isCancellationRequested) {
-        logger?.debug(`Cancellation requested for hover provider.`);
+        addLogEntryForCancellation(logger);
         return undefined;
     }
 
@@ -119,15 +122,28 @@ function getHoverForNonCodeBlocks({
 
 async function getHoverForCodeBlocks(
     tempJsUpdateQueue: TempJsFileUpdateQueue,
-    {
-        file: { collection, blockContainingPosition },
+    params: ProviderParams,
+) {
+    const {
+        file: { blockContainingPosition, collection },
         hoverRequest: { document, position, token },
         logger,
-    }: ProviderParams,
-) {
+    } = params;
+
     if (token.isCancellationRequested) {
-        logger?.debug(`Cancellation requested for hover provider.`);
+        addLogEntryForCancellation(logger);
         return undefined;
+    }
+
+    const envVariableNameForRequest = getEnvVariableNameForRequest(params);
+
+    if (envVariableNameForRequest) {
+        return getHoverForVariable(
+            collection,
+            envVariableNameForRequest,
+            token,
+            logger,
+        );
     }
 
     const temporaryJsDoc = await waitForTempJsFileToBeInSyncWithBruFile(
@@ -146,7 +162,7 @@ async function getHoverForCodeBlocks(
     }
 
     if (token.isCancellationRequested) {
-        logger?.debug(`Cancellation requested for hover provider.`);
+        addLogEntryForCancellation(logger);
         return undefined;
     }
 
@@ -179,14 +195,51 @@ async function getHoverForCodeBlocks(
           : resultFromJsFile[0];
 }
 
+function getEnvVariableNameForRequest({
+    file: {
+        collection,
+        blockContainingPosition: { contentRange },
+    },
+    hoverRequest,
+    logger,
+}: ProviderParams) {
+    const { document, token } = hoverRequest;
+    const firstContentLine = contentRange.start.line;
+
+    const parsedCodeBlock = parseCodeBlock(
+        new TextDocumentHelper(document.getText()),
+        firstContentLine,
+        SyntaxKind.Block,
+    );
+
+    if (!parsedCodeBlock) {
+        return undefined;
+    }
+    if (token.isCancellationRequested) {
+        addLogEntryForCancellation(logger);
+        return undefined;
+    }
+
+    const paramName = getStringLiteralParameterForGetEnvVarInbuiltFunction({
+        file: {
+            collection,
+            blockContainingPosition: parsedCodeBlock,
+        },
+        request: hoverRequest,
+        logger,
+    });
+
+    return paramName?.text.match(/\w+/)?.[0];
+}
+
 function getHoverForVariable(
     collection: Collection,
     variableName: string,
     token: CancellationToken,
     logger?: OutputChannelLogger,
 ) {
-    const tableHeader = `| value | environment name |
-| --------------- | ---------------- |\n`;
+    const tableHeader = `| value | environment | configured |
+| :--------------- | :----------------: | :----------------: | \n`;
 
     const configuredEnvironmentName = getConfiguredTestEnvironment();
     const matchingVariableDefinitions =
@@ -210,7 +263,7 @@ function getHoverForVariable(
         new MarkdownString(
             tableHeader.concat(
                 matchingVariableDefinitions
-                    .map(({ file, matchingVariables }) => {
+                    .map(({ file, matchingVariables, isConfiguredEnv }) => {
                         const environmentName = basename(
                             file,
                             getExtensionForBrunoFiles(),
@@ -219,7 +272,7 @@ function getHoverForVariable(
                         return matchingVariables
                             .map(
                                 ({ value }) =>
-                                    `| ${value} | ${environmentName}  |`,
+                                    `| ${value} | ${environmentName}  | ${isConfiguredEnv ? "&#x2611;" : "-"} |`,
                             )
                             .join("\n");
                     })
@@ -227,4 +280,8 @@ function getHoverForVariable(
             ),
         ),
     );
+}
+
+function addLogEntryForCancellation(logger?: OutputChannelLogger) {
+    logger?.debug(`Cancellation requested for hover provider.`);
 }

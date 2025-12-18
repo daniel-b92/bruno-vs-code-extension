@@ -5,6 +5,7 @@ import {
     CompletionItem,
     TextEdit,
     Range as VsCodeRange,
+    Position as VsCodePosition,
 } from "vscode";
 import {
     CollectionItemProvider,
@@ -15,13 +16,27 @@ import {
     OutputChannelLogger,
     mapFromVsCodePosition,
     Block,
+    parseCodeBlock,
+    Collection,
+    getConfiguredTestEnvironment,
 } from "../../../../shared";
 import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
-import { waitForTempJsFileToBeInSyncWithBruFile } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
+import {
+    TempJsSyncRequestForBruFile,
+    waitForTempJsFileToBeInSyncWithBruFile,
+} from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
+import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../shared/codeBlocksUtils/getStringLiteralParameterForGetEnvVarInbuiltFunction";
+import { SyntaxKind } from "typescript";
+import {
+    EnvVariableNameMatchingMode,
+    getMatchingEnvironmentVariableDefinitions,
+} from "../shared/getMatchingEnvironmentVariableDefinitions";
+import { LanguageFeatureRequest } from "../shared/interfaces";
+import { mapEnvironmentVariablesToCompletions } from "./util/mapEnvironmentVariablesToCompletions";
 
 type CompletionItemRange =
     | VsCodeRange
@@ -31,7 +46,7 @@ type CompletionItemRange =
       }
     | undefined;
 
-export function provideCodeBlocksCompletionItems(
+export function provideTsLangCompletionItems(
     queue: TempJsFileUpdateQueue,
     collectionItemProvider: CollectionItemProvider,
     logger?: OutputChannelLogger,
@@ -69,101 +84,191 @@ export function provideCodeBlocksCompletionItems(
                     return undefined;
                 }
 
-                const temporaryJsDoc =
-                    await waitForTempJsFileToBeInSyncWithBruFile(
-                        queue,
-                        {
-                            collection,
-                            bruFileContentSnapshot: document.getText(),
-                            bruFilePath: document.fileName,
-                            token,
-                        },
+                const parsedCodeBlock = parseCodeBlock(
+                    new TextDocumentHelper(document.getText()),
+                    blockInBruFile.contentRange.start.line,
+                    SyntaxKind.Block,
+                );
+
+                const envVariableNameForRequest = parsedCodeBlock
+                    ? getStringLiteralParameterForGetEnvVarInbuiltFunction({
+                          file: {
+                              collection,
+                              blockContainingPosition: parsedCodeBlock,
+                          },
+                          request: { document, position, token },
+                          logger,
+                      })
+                    : undefined;
+
+                if (envVariableNameForRequest) {
+                    return getResultsForEnvironmentVariable(
+                        collection,
+                        envVariableNameForRequest,
+                        { document, position, token },
                         logger,
                     );
-
-                if (!temporaryJsDoc) {
-                    return undefined;
                 }
 
-                if (token.isCancellationRequested) {
-                    logger?.debug(
-                        `Cancellation requested for completion provider for code blocks.`,
-                    );
-                    return undefined;
-                }
-
-                const startTimeForFetchingCompletions = performance.now();
-
-                const resultFromJsFile =
-                    await commands.executeCommand<CompletionList>(
-                        "vscode.executeCompletionItemProvider",
-                        temporaryJsDoc.uri,
-                        getPositionWithinTempJsFile(
-                            temporaryJsDoc.getText(),
-                            blockInBruFile.name as RequestFileBlockName,
-                            mapFromVsCodePosition(
-                                position.translate(
-                                    -blockInBruFile.contentRange.start.line,
-                                ),
-                            ),
-                        ),
-                    );
-
-                logger?.trace(
-                    `Fetching completion items from temp JS file duration: ${Math.round(
-                        performance.now() - startTimeForFetchingCompletions,
-                    )} ms`,
+                return getResultsViaTempJsFile(
+                    queue,
+                    {
+                        collection,
+                        bruFileContentSnapshot: document.getText(),
+                        bruFilePath: document.fileName,
+                        token,
+                    },
+                    blockInBruFile,
+                    position,
+                    logger,
                 );
-
-                if (token.isCancellationRequested) {
-                    logger?.debug(
-                        `Cancellation requested for completion provider for code blocks while fetching completons from temp JS file.`,
-                    );
-                    return undefined;
-                }
-
-                const startTimeForMappingCompletions = performance.now();
-
-                const currentTempJsContent = temporaryJsDoc.getText();
-
-                const knownRangeMappings: {
-                    rangeInTempJsFile: VsCodeRange;
-                    rangeInBruFile: VsCodeRange;
-                }[] = [];
-
-                const result = new CompletionList<CompletionItem>(
-                    resultFromJsFile.items
-                        .map((item) =>
-                            getMappedItem(
-                                item,
-                                blockInBruFile,
-                                currentTempJsContent,
-                                knownRangeMappings,
-                                logger,
-                            ),
-                        )
-                        .filter((mappedItem) => mappedItem != undefined),
-                    resultFromJsFile.isIncomplete,
-                );
-
-                logger?.trace(
-                    `Mapping completion items from temp JS file to bru file duration: ${Math.round(
-                        performance.now() - startTimeForMappingCompletions,
-                    )} ms`,
-                );
-
-                if (result.items.length < resultFromJsFile.items.length) {
-                    logger?.debug(
-                        `Only managed to map ${result.items.length} / ${resultFromJsFile.items.length} completion items from temp JS file.`,
-                    );
-                }
-
-                return result;
             },
         },
         ".",
         "/",
+        '"',
+        "'",
+        "`",
     );
+}
+
+function getResultsForEnvironmentVariable(
+    collection: Collection,
+    parameter: { text: string; start: VsCodePosition; end: VsCodePosition },
+    { token, position }: LanguageFeatureRequest,
+    logger?: OutputChannelLogger,
+) {
+    const { text, start, end } = parameter;
+    const startsWithQuotes = /^("|'|`)/.test(text);
+    const endsWithQuotes = /("|'|`)$/.test(text);
+
+    if (
+        !startsWithQuotes ||
+        !endsWithQuotes ||
+        position.compareTo(start) <= 0 ||
+        position.compareTo(end) >= 0
+    ) {
+        return undefined;
+    }
+
+    const parameterWithoutQuotes = text.substring(1, text.length - 1);
+    const matchingEnvVariableDefinitions =
+        getMatchingEnvironmentVariableDefinitions(
+            collection,
+            parameterWithoutQuotes,
+            EnvVariableNameMatchingMode.Substring,
+            getConfiguredTestEnvironment(),
+        );
+
+    if (matchingEnvVariableDefinitions.length == 0) {
+        return [];
+    }
+
+    if (token.isCancellationRequested) {
+        logger?.debug(`Cancellation requested for hover provider.`);
+        return [];
+    }
+
+    return mapEnvironmentVariablesToCompletions(
+        matchingEnvVariableDefinitions.map(
+            ({ file, matchingVariables, isConfiguredEnv }) => ({
+                environmentFile: file,
+                matchingVariableKeys: matchingVariables.map(({ key }) => key),
+                isConfiguredEnv,
+            }),
+        ),
+    );
+}
+
+async function getResultsViaTempJsFile(
+    queue: TempJsFileUpdateQueue,
+    tempJsRequest: TempJsSyncRequestForBruFile,
+    blockInBruFile: Block,
+    position: VsCodePosition,
+    logger?: OutputChannelLogger,
+) {
+    const { token } = tempJsRequest;
+    const temporaryJsDoc = await waitForTempJsFileToBeInSyncWithBruFile(
+        queue,
+        tempJsRequest,
+        logger,
+    );
+
+    if (!temporaryJsDoc) {
+        return undefined;
+    }
+
+    if (token != undefined && token.isCancellationRequested) {
+        logger?.debug(
+            `Cancellation requested for completion provider for code blocks.`,
+        );
+        return undefined;
+    }
+
+    const startTimeForFetchingCompletions = performance.now();
+
+    const resultFromJsFile = await commands.executeCommand<CompletionList>(
+        "vscode.executeCompletionItemProvider",
+        temporaryJsDoc.uri,
+        getPositionWithinTempJsFile(
+            temporaryJsDoc.getText(),
+            blockInBruFile.name as RequestFileBlockName,
+            mapFromVsCodePosition(
+                position.translate(-blockInBruFile.contentRange.start.line),
+            ),
+        ),
+    );
+
+    logger?.trace(
+        `Fetching completion items from temp JS file duration: ${Math.round(
+            performance.now() - startTimeForFetchingCompletions,
+        )} ms`,
+    );
+
+    if (token != undefined && token.isCancellationRequested) {
+        logger?.debug(
+            `Cancellation requested for completion provider for code blocks while fetching completons from temp JS file.`,
+        );
+        return undefined;
+    }
+
+    const startTimeForMappingCompletions = performance.now();
+
+    const currentTempJsContent = temporaryJsDoc.getText();
+
+    const knownRangeMappings: {
+        rangeInTempJsFile: VsCodeRange;
+        rangeInBruFile: VsCodeRange;
+    }[] = [];
+
+    const result = new CompletionList<CompletionItem>(
+        resultFromJsFile.items
+            .map((item) =>
+                getMappedItem(
+                    item,
+                    blockInBruFile,
+                    currentTempJsContent,
+                    knownRangeMappings,
+                    logger,
+                ),
+            )
+            .filter((mappedItem) => mappedItem != undefined),
+        resultFromJsFile.isIncomplete,
+    );
+
+    logger?.trace(
+        `Mapping completion items from temp JS file to bru file duration: ${Math.round(
+            performance.now() - startTimeForMappingCompletions,
+        )} ms`,
+    );
+
+    if (result.items.length < resultFromJsFile.items.length) {
+        logger?.debug(
+            `Only managed to map ${result.items.length} / ${resultFromJsFile.items.length} completion items from temp JS file.`,
+        );
+    }
+
+    return result;
 }
 
 /**

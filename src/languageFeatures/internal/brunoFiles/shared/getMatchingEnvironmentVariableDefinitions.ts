@@ -4,7 +4,7 @@ import {
     BrunoFileType,
     Collection,
     getExtensionForBrunoFiles,
-} from "../../../../../shared";
+} from "../../../../shared";
 
 export enum EnvVariableNameMatchingMode {
     Exact = 1,
@@ -20,23 +20,30 @@ export function getMatchingEnvironmentVariableDefinitions(
     const matchingEnvironmentFiles = collection
         .getAllStoredDataForCollection()
         .filter(
-            ({ item }) =>
-                item.getItemType() == BrunoFileType.EnvironmentFile &&
-                (environmentName &&
-                // In case no environment is configured or no matching environment file is found, use all existing environment files.
+            ({ item }) => item.getItemType() == BrunoFileType.EnvironmentFile,
+        )
+        .map(({ item }) => ({
+            item,
+            isConfigured:
+                environmentName != undefined &&
                 environmentName ==
                     basename(item.getPath(), getExtensionForBrunoFiles())
-                    ? environmentName
-                    : true),
-        )
-        .map(({ item }) => item as BrunoEnvironmentFile);
+                    ? true
+                    : false,
+        })) as { item: BrunoEnvironmentFile; isConfigured: boolean }[];
 
     if (matchingEnvironmentFiles.length == 0) {
         return [];
     }
 
     return matchingEnvironmentFiles
-        .map((item) => {
+        .sort(
+            (
+                { isConfigured: isConfigured1 },
+                { isConfigured: isConfigured2 },
+            ) => (isConfigured1 ? -1 : isConfigured2 ? 1 : 0),
+        )
+        .map(({ item, isConfigured: isConfiguredEnv }) => {
             const matchingVariables = item
                 .getVariables()
                 .filter(({ key }) => matches(key, name, matchingMode));
@@ -45,6 +52,7 @@ export function getMatchingEnvironmentVariableDefinitions(
                 ? {
                       file: item.getPath(),
                       matchingVariables,
+                      isConfiguredEnv,
                   }
                 : undefined;
         })

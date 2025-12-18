@@ -1,16 +1,12 @@
-import { createSourceFile, ScriptTarget, Node, SourceFile } from "typescript";
+import { createSourceFile, Node, ScriptTarget, SyntaxKind } from "typescript";
 import { Position, Range, TextDocumentHelper } from "../..";
+import { CodeBlockWithTsNode } from "../../../languageFeatures/internal/brunoFiles/shared/interfaces";
 
 export function parseCodeBlock(
     document: TextDocumentHelper,
     firstContentLine: number,
-    callbackForGettingBlockNode: (sourceFile: SourceFile) => Node | undefined,
-):
-    | {
-          content: string;
-          contentRange: Range;
-      }
-    | undefined {
+    blockSyntaxKind: SyntaxKind,
+): CodeBlockWithTsNode | undefined {
     const blockStartLine = firstContentLine - 1;
 
     const subDocument = new TextDocumentHelper(
@@ -23,7 +19,10 @@ export function parseCodeBlock(
         ScriptTarget.ES2020,
     );
 
-    const blockNode = callbackForGettingBlockNode(sourceFile);
+    const blockNode = (sourceFile as Node)
+        .getChildAt(0, sourceFile)
+        .getChildren(sourceFile)
+        .find(({ kind }) => kind == blockSyntaxKind);
 
     if (!blockNode) {
         return undefined;
@@ -51,5 +50,6 @@ export function parseCodeBlock(
     return {
         content: document.getText(contentRange),
         contentRange,
+        blockAsTsNode: sourceFile as Node,
     };
 }

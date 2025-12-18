@@ -8,7 +8,7 @@ export function getVariableNameForPositionInNonCodeBlock({
     document,
     position,
 }: LanguageFeatureRequest) {
-    const pattern = /{{\S+}}/;
+    const pattern = /{{\S+?}}/;
 
     const matchingText = getMatchingTextContainingPosition(
         document,
