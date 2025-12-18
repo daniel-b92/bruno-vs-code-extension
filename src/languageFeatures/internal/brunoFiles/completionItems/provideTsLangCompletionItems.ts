@@ -46,7 +46,7 @@ type CompletionItemRange =
       }
     | undefined;
 
-export function provideTsLanguageCompletionItems(
+export function provideTsLangCompletionItems(
     queue: TempJsFileUpdateQueue,
     collectionItemProvider: CollectionItemProvider,
     logger?: OutputChannelLogger,

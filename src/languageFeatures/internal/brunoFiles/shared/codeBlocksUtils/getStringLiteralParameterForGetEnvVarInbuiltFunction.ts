@@ -47,16 +47,15 @@ export function getStringLiteralParameterForGetEnvVarInbuiltFunction({
             return undefined;
         }
 
-        const currentChildren = currentNode.getChildren(sourceFile);
-
-        const childContainingPosition = currentChildren.find(
-            (child) =>
-                child.getStart(sourceFile) <= offsetWithinSubdocument &&
-                child.getEnd() >= offsetWithinSubdocument,
-        );
+        const childContainingPosition = currentNode
+            .getChildren(sourceFile)
+            .find(
+                (child) =>
+                    child.getStart(sourceFile) <= offsetWithinSubdocument &&
+                    child.getEnd() >= offsetWithinSubdocument,
+            );
 
         if (!childContainingPosition) {
-            addLogEntryForCancellation(logger);
             return undefined;
         }
 
@@ -80,25 +79,23 @@ export function getStringLiteralParameterForGetEnvVarInbuiltFunction({
                 .getChildren(sourceFile)
                 .find((child) =>
                     [
-                        SyntaxKind.NoSubstitutionTemplateLiteral,
-                        SyntaxKind.StringLiteral,
+                        SyntaxKind.NoSubstitutionTemplateLiteral, // String quoted via '`'
+                        SyntaxKind.StringLiteral, // String quoted via '"' or "'"
                     ].includes(child.kind),
                 );
+
+            const defaultOffsetForBlockContent =
+                getDefaultOffsetForBlockContent(document, blockContentRange);
 
             return resultNode
                 ? {
                       text: resultNode.getText(sourceFile),
                       start: document.positionAt(
-                          getDefaultOffsetForBlockContent(
-                              document,
-                              blockContentRange,
-                          ) + resultNode.getStart(sourceFile, true),
+                          defaultOffsetForBlockContent +
+                              resultNode.getStart(sourceFile, true),
                       ),
                       end: document.positionAt(
-                          getDefaultOffsetForBlockContent(
-                              document,
-                              blockContentRange,
-                          ) + resultNode.getEnd(),
+                          defaultOffsetForBlockContent + resultNode.getEnd(),
                       ),
                   }
                 : undefined;
