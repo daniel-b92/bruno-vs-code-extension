@@ -49,6 +49,7 @@ import { getTempJsFileContentForBruFile } from "./internal/brunoFiles/shared/cod
 import { TempJsFilesProvider } from "../shared/fileSystemCache/externalHelpers/tempJsFilesProvider";
 import { getDefinitionsForInbuiltLibraries } from "./internal/shared/temporaryJsFilesUpdates/external/getDefinitionsForInbuiltLibraries";
 import { provideInfosOnHover as provideInfosOnHoverForJsFiles } from "./internal/jsFiles/hover/provideInfosOnHover";
+import { provideCompletionItems as provideCompletionItemsForJsFiles } from "./internal/jsFiles/completionItems/provideCompletionItems";
 
 export async function activateLanguageFeatures(
     context: ExtensionContext,
@@ -109,6 +110,7 @@ export async function activateLanguageFeatures(
         ),
         registerCodeBlockFormatter(logger),
         provideInfosOnHoverForJsFiles(collectionItemProvider, logger),
+        provideCompletionItemsForJsFiles(collectionItemProvider, logger),
         brunoLangDiagnosticsProvider,
         tempJsFilesUpdateQueue,
         window.onDidChangeActiveTextEditor(async (editor) => {

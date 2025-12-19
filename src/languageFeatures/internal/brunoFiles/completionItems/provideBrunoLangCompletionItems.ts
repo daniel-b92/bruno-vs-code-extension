@@ -35,7 +35,7 @@ import {
     EnvVariableNameMatchingMode,
     getMatchingEnvironmentVariableDefinitions,
 } from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitions";
-import { mapEnvironmentVariablesToCompletions } from "./util/mapEnvironmentVariablesToCompletions";
+import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
 
 export function provideBrunoLangCompletionItems(
     itemProvider: CollectionItemProvider,

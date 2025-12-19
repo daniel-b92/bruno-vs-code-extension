@@ -4,7 +4,7 @@ import {
     CollectionItemProvider,
     OutputChannelLogger,
 } from "../../../../shared";
-import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
+import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { getHoverForEnvironmentVariable } from "../../shared/environmentVariables/getHoverForEnvironmentVariable";
 import { parseEnvVariableNameFromTsSourceFile } from "../../shared/environmentVariables/parseEnvVariableNameFromTsSourceFile";
@@ -13,7 +13,7 @@ export function provideInfosOnHover(
     collectionItemProvider: CollectionItemProvider,
     logger?: OutputChannelLogger,
 ) {
-    return languages.registerHoverProvider(getRequestFileDocumentSelector(), {
+    return languages.registerHoverProvider(getJsFileDocumentSelector(), {
         async provideHover(document, position, token) {
             const collection =
                 collectionItemProvider.getAncestorCollectionForPath(

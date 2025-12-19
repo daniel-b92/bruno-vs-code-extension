@@ -1,5 +1,5 @@
 import { DocumentSelector } from "vscode";
 
-export function getRequestFileDocumentSelector(): DocumentSelector {
+export function getJsFileDocumentSelector(): DocumentSelector {
     return { scheme: "file", pattern: "**/*.js" };
 }

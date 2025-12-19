@@ -34,7 +34,7 @@ import {
     getMatchingEnvironmentVariableDefinitions,
 } from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitions";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
-import { mapEnvironmentVariablesToCompletions } from "./util/mapEnvironmentVariablesToCompletions";
+import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
 
 type CompletionItemRange =
     | VsCodeRange

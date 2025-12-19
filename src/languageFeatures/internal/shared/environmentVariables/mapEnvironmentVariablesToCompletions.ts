@@ -1,6 +1,6 @@
 import { basename } from "path";
 import { CompletionItem, CompletionItemKind } from "vscode";
-import { getExtensionForBrunoFiles } from "../../../../../shared";
+import { getExtensionForBrunoFiles } from "../../../../shared";
 
 export function mapEnvironmentVariablesToCompletions(
     matchingEnvVariableDefinitions: {
