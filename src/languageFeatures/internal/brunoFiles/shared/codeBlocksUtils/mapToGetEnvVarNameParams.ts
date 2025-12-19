@@ -1,9 +1,8 @@
 import { TextDocument, Position as VsCodePosition } from "vscode";
 import { BruLanguageFeatureRequestWithAdditionalData } from "../interfaces";
 import { Range } from "../../../../../shared";
-import { parseEnvVariableNameFromTsSourceFile } from "../../../shared/environmentVariables/parseEnvVariableNameFromTsSourceFile";
 
-export function getStringLiteralParameterForGetEnvVarInbuiltFunction(
+export function mapToGetEnvVarNameParams(
     params: BruLanguageFeatureRequestWithAdditionalData,
 ) {
     const {
@@ -14,17 +13,15 @@ export function getStringLiteralParameterForGetEnvVarInbuiltFunction(
         logger,
     } = params;
 
-    return parseEnvVariableNameFromTsSourceFile(
-        {
-            relevantContent: content as string,
-            defaultOffsetWithinDocument: getDefaultOffsetForBlockContent(
-                document,
-                contentRange,
-            ),
-        },
-        params.request,
+    return {
+        relevantContent: content as string,
+        defaultOffsetWithinDocument: getDefaultOffsetForBlockContent(
+            document,
+            contentRange,
+        ),
+        request: params.request,
         logger,
-    );
+    };
 }
 
 function getDefaultOffsetForBlockContent(

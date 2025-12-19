@@ -2,21 +2,18 @@ import { createSourceFile, Node, ScriptTarget, SyntaxKind } from "typescript";
 import { OutputChannelLogger } from "../../../../shared";
 import { LanguageFeatureRequest } from "../interfaces";
 
-// ToDo: Find better name
-export function parseEnvVariableNameFromTsSourceFile(
-    file: {
-        relevantContent: string;
-        defaultOffsetWithinDocument?: number;
-    },
-    request: LanguageFeatureRequest,
-    logger?: OutputChannelLogger,
-) {
+export function getStringLiteralParameterForGetEnvVarInbuiltFunction(params: {
+    relevantContent: string;
+    defaultOffsetWithinDocument?: number;
+    request: LanguageFeatureRequest;
+    logger?: OutputChannelLogger;
+}) {
     const {
         relevantContent,
-
+        request: { document, position, token },
         defaultOffsetWithinDocument,
-    } = file;
-    const { document, position, token } = request;
+        logger,
+    } = params;
     const { baseIdentifier, functionName } = getIdentifiers();
     const defaultOffsetToUse =
         defaultOffsetWithinDocument != undefined

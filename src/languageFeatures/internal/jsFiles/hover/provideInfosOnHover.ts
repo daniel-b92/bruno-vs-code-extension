@@ -7,7 +7,7 @@ import {
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { getHoverForEnvironmentVariable } from "../../shared/environmentVariables/getHoverForEnvironmentVariable";
-import { parseEnvVariableNameFromTsSourceFile } from "../../shared/environmentVariables/parseEnvVariableNameFromTsSourceFile";
+import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
 
 export function provideInfosOnHover(
     collectionItemProvider: CollectionItemProvider,
@@ -76,13 +76,12 @@ function getEnvVariableNameForRequest(params: {
         return undefined;
     }
 
-    const paramName = parseEnvVariableNameFromTsSourceFile(
-        {
-            relevantContent: document.getText(),
-        },
-        params.baseRequest,
+    const paramName = getStringLiteralParameterForGetEnvVarInbuiltFunction({
+        relevantContent: document.getText(),
+
+        request: params.baseRequest,
         logger,
-    );
+    });
 
     return paramName?.text.match(/\w+/)?.[0];
 }

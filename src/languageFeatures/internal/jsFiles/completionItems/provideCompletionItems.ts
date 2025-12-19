@@ -11,7 +11,7 @@ import {
     getMatchingEnvironmentVariableDefinitions,
 } from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitions";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
-import { parseEnvVariableNameFromTsSourceFile } from "../../shared/environmentVariables/parseEnvVariableNameFromTsSourceFile";
+import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
 import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
 
 export function provideCompletionItems(
@@ -77,13 +77,12 @@ function getEnvVariableNameForRequest(params: {
         return undefined;
     }
 
-    const fullParameter = parseEnvVariableNameFromTsSourceFile(
-        {
-            relevantContent: document.getText(),
-        },
-        params.baseRequest,
+    const fullParameter = getStringLiteralParameterForGetEnvVarInbuiltFunction({
+        relevantContent: document.getText(),
+
+        request: params.baseRequest,
         logger,
-    );
+    });
 
     if (!fullParameter) {
         return undefined;

@@ -28,13 +28,14 @@ import {
     waitForTempJsFileToBeInSyncWithBruFile,
 } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
-import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../shared/codeBlocksUtils/getStringLiteralParameterForGetEnvVarInbuiltFunction";
+import { mapToGetEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
 import {
     EnvVariableNameMatchingMode,
     getMatchingEnvironmentVariableDefinitions,
 } from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitions";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
+import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
 
 type CompletionItemRange =
     | VsCodeRange
@@ -83,14 +84,16 @@ export function provideTsLangCompletionItems(
                 }
 
                 const envVariableNameForRequest =
-                    getStringLiteralParameterForGetEnvVarInbuiltFunction({
-                        file: {
-                            collection,
-                            blockContainingPosition: blockInBruFile,
-                        },
-                        request: { document, position, token },
-                        logger,
-                    });
+                    getStringLiteralParameterForGetEnvVarInbuiltFunction(
+                        mapToGetEnvVarNameParams({
+                            file: {
+                                collection,
+                                blockContainingPosition: blockInBruFile,
+                            },
+                            request: { document, position, token },
+                            logger,
+                        }),
+                    );
 
                 if (envVariableNameForRequest) {
                     return getResultsForEnvironmentVariable(

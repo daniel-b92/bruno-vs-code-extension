@@ -19,8 +19,9 @@ import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/exte
 import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockUtils/getNonCodeBlocksWithoutVariableSupport";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { getVariableNameForPositionInNonCodeBlock } from "../shared/nonCodeBlockUtils/getVariableNameForPositionInNonCodeBlock";
-import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../shared/codeBlocksUtils/getStringLiteralParameterForGetEnvVarInbuiltFunction";
+import { mapToGetEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
 import { getHoverForEnvironmentVariable } from "../../shared/environmentVariables/getHoverForEnvironmentVariable";
+import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
 
 interface ProviderParams {
     file: {
@@ -198,14 +199,16 @@ function getEnvVariableNameForRequest({
         return undefined;
     }
 
-    const paramName = getStringLiteralParameterForGetEnvVarInbuiltFunction({
-        file: {
-            collection,
-            blockContainingPosition,
-        },
-        request: hoverRequest,
-        logger,
-    });
+    const paramName = getStringLiteralParameterForGetEnvVarInbuiltFunction(
+        mapToGetEnvVarNameParams({
+            file: {
+                collection,
+                blockContainingPosition,
+            },
+            request: hoverRequest,
+            logger,
+        }),
+    );
 
     return paramName?.text.match(/\w+/)?.[0];
 }
