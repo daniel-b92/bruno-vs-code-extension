@@ -199,7 +199,7 @@ function getEnvVariableNameForRequest({
         return undefined;
     }
 
-    const paramName = getStringLiteralParameterForGetEnvVarInbuiltFunction(
+    return getStringLiteralParameterForGetEnvVarInbuiltFunction(
         mapToGetEnvVarNameParams({
             file: {
                 collection,
@@ -209,8 +209,6 @@ function getEnvVariableNameForRequest({
             logger,
         }),
     );
-
-    return paramName?.text.match(/\w+/)?.[0];
 }
 
 function addLogEntryForCancellation(logger?: OutputChannelLogger) {

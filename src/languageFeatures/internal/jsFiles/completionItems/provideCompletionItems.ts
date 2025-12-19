@@ -68,7 +68,7 @@ function getEnvVariableNameForRequest(params: {
     logger?: OutputChannelLogger;
 }) {
     const {
-        baseRequest: { document, position, token },
+        baseRequest: { document, token },
         logger,
     } = params;
 
@@ -77,27 +77,12 @@ function getEnvVariableNameForRequest(params: {
         return undefined;
     }
 
-    const fullParameter = getStringLiteralParameterForGetEnvVarInbuiltFunction({
+    return getStringLiteralParameterForGetEnvVarInbuiltFunction({
         relevantContent: document.getText(),
 
         request: params.baseRequest,
         logger,
     });
-
-    if (!fullParameter) {
-        return undefined;
-    }
-
-    const { text, start, end } = fullParameter;
-    const startsWithQuotes = /^("|'|`)/.test(text);
-    const endsWithQuotes = /("|'|`)$/.test(text);
-
-    return startsWithQuotes &&
-        endsWithQuotes &&
-        position.compareTo(start) > 0 &&
-        position.compareTo(end) < 0
-        ? text.substring(1, text.length - 1)
-        : undefined;
 }
 
 function getResultsForEnvironmentVariable(

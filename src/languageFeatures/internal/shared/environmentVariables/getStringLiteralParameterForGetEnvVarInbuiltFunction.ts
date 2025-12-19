@@ -1,4 +1,10 @@
-import { createSourceFile, Node, ScriptTarget, SyntaxKind } from "typescript";
+import {
+    createSourceFile,
+    Node,
+    ScriptTarget,
+    SourceFile,
+    SyntaxKind,
+} from "typescript";
 import { OutputChannelLogger } from "../../../../shared";
 import { LanguageFeatureRequest } from "../interfaces";
 
@@ -88,16 +94,12 @@ export function getStringLiteralParameterForGetEnvVarInbuiltFunction(params: {
                 );
 
             return resultNode
-                ? {
-                      text: resultNode.getText(sourceFile),
-                      start: document.positionAt(
-                          defaultOffsetToUse +
-                              resultNode.getStart(sourceFile, true),
-                      ),
-                      end: document.positionAt(
-                          defaultOffsetToUse + resultNode.getEnd(),
-                      ),
-                  }
+                ? extractVariableNameFromResultNode(
+                      resultNode,
+                      sourceFile,
+                      params.request,
+                      defaultOffsetToUse,
+                  )
                 : undefined;
         }
 
@@ -109,6 +111,36 @@ export function getStringLiteralParameterForGetEnvVarInbuiltFunction(params: {
     );
 
     return undefined;
+}
+
+function extractVariableNameFromResultNode(
+    resultNode: Node,
+    sourceFile: SourceFile,
+    { document, position }: LanguageFeatureRequest,
+    defaultOffsetToUse: number,
+) {
+    const fullParameter = {
+        text: resultNode.getText(sourceFile),
+        start: document.positionAt(
+            defaultOffsetToUse + resultNode.getStart(sourceFile, true),
+        ),
+        end: document.positionAt(defaultOffsetToUse + resultNode.getEnd()),
+    };
+
+    if (!fullParameter) {
+        return undefined;
+    }
+
+    const { text, start, end } = fullParameter;
+    const startsWithQuotes = /^("|'|`)/.test(text);
+    const endsWithQuotes = /("|'|`)$/.test(text);
+
+    return startsWithQuotes &&
+        endsWithQuotes &&
+        position.compareTo(start) > 0 &&
+        position.compareTo(end) < 0
+        ? text.substring(1, text.length - 1)
+        : undefined;
 }
 
 function addLogEntryForCancellation(logger?: OutputChannelLogger) {

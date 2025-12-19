@@ -128,28 +128,14 @@ export function provideTsLangCompletionItems(
 
 function getResultsForEnvironmentVariable(
     collection: Collection,
-    parameter: { text: string; start: VsCodePosition; end: VsCodePosition },
-    { token, position }: LanguageFeatureRequest,
+    name: string,
+    { token }: LanguageFeatureRequest,
     logger?: OutputChannelLogger,
 ) {
-    const { text, start, end } = parameter;
-    const startsWithQuotes = /^("|'|`)/.test(text);
-    const endsWithQuotes = /("|'|`)$/.test(text);
-
-    if (
-        !startsWithQuotes ||
-        !endsWithQuotes ||
-        position.compareTo(start) <= 0 ||
-        position.compareTo(end) >= 0
-    ) {
-        return undefined;
-    }
-
-    const parameterWithoutQuotes = text.substring(1, text.length - 1);
     const matchingEnvVariableDefinitions =
         getMatchingEnvironmentVariableDefinitions(
             collection,
-            parameterWithoutQuotes,
+            name,
             EnvVariableNameMatchingMode.Substring,
             getConfiguredTestEnvironment(),
         );

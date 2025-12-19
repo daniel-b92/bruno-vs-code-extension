@@ -51,14 +51,14 @@ async function getHover(params: {
 
     const envVariableNameForRequest = getEnvVariableNameForRequest(params);
 
-    if (envVariableNameForRequest) {
-        return getHoverForEnvironmentVariable(
-            collection,
-            envVariableNameForRequest,
-            token,
-            logger,
-        );
-    }
+    return envVariableNameForRequest != undefined
+        ? getHoverForEnvironmentVariable(
+              collection,
+              envVariableNameForRequest,
+              token,
+              logger,
+          )
+        : undefined;
 }
 
 function getEnvVariableNameForRequest(params: {
@@ -76,14 +76,11 @@ function getEnvVariableNameForRequest(params: {
         return undefined;
     }
 
-    const paramName = getStringLiteralParameterForGetEnvVarInbuiltFunction({
+    return getStringLiteralParameterForGetEnvVarInbuiltFunction({
         relevantContent: document.getText(),
-
         request: params.baseRequest,
         logger,
     });
-
-    return paramName?.text.match(/\w+/)?.[0];
 }
 
 function addLogEntryForCancellation(logger?: OutputChannelLogger) {
