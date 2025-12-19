@@ -8,7 +8,7 @@ export function getStringLiteralParameterForGetEnvVarInbuiltFunction(
 ) {
     const {
         file: {
-            blockContainingPosition: { content, contentRange, blockAsTsNode },
+            blockContainingPosition: { content, contentRange },
         },
         request: { document },
         logger,
@@ -16,8 +16,7 @@ export function getStringLiteralParameterForGetEnvVarInbuiltFunction(
 
     return parseEnvVariableNameFromTsSourceFile(
         {
-            relevantContent: content,
-            relevantContentAsTsNode: blockAsTsNode,
+            relevantContent: content as string,
             defaultOffsetWithinDocument: getDefaultOffsetForBlockContent(
                 document,
                 contentRange,
@@ -34,5 +33,5 @@ function getDefaultOffsetForBlockContent(
 ) {
     const firstContentLine = blockContentRange.start.line;
 
-    return document.offsetAt(new VsCodePosition(firstContentLine - 1, 0));
+    return document.offsetAt(new VsCodePosition(firstContentLine, 0));
 }

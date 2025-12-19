@@ -6,7 +6,6 @@ import { LanguageFeatureRequest } from "../interfaces";
 export function parseEnvVariableNameFromTsSourceFile(
     file: {
         relevantContent: string;
-        relevantContentAsTsNode: Node;
         defaultOffsetWithinDocument?: number;
     },
     request: LanguageFeatureRequest,
@@ -14,7 +13,7 @@ export function parseEnvVariableNameFromTsSourceFile(
 ) {
     const {
         relevantContent,
-        relevantContentAsTsNode,
+
         defaultOffsetWithinDocument,
     } = file;
     const { document, position, token } = request;
@@ -35,7 +34,7 @@ export function parseEnvVariableNameFromTsSourceFile(
 
     const sourceFile = createSourceFile(
         "__temp.js",
-        relevantContentAsTsNode.getText(),
+        relevantContent,
         ScriptTarget.ES2020,
     );
 
@@ -44,13 +43,15 @@ export function parseEnvVariableNameFromTsSourceFile(
         return undefined;
     }
 
-    let currentNode = relevantContentAsTsNode;
+    const checkedNodes: Node[] = [sourceFile as Node];
 
     do {
         if (token.isCancellationRequested) {
             addLogEntryForCancellation(logger);
             return undefined;
         }
+
+        const currentNode = checkedNodes[checkedNodes.length - 1];
 
         const childContainingPosition = currentNode
             .getChildren(sourceFile)
@@ -103,8 +104,12 @@ export function parseEnvVariableNameFromTsSourceFile(
                 : undefined;
         }
 
-        currentNode = childContainingPosition;
-    } while (currentNode.getText(sourceFile).includes(functionName));
+        checkedNodes.push(childContainingPosition);
+    } while (
+        checkedNodes[checkedNodes.length - 1]
+            .getText(sourceFile)
+            .includes(functionName)
+    );
 
     return undefined;
 }

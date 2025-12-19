@@ -6,7 +6,6 @@ import {
 } from "../../../../shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
-import { createSourceFile, Node, ScriptTarget } from "typescript";
 import { getHoverForEnvironmentVariable } from "../../shared/environmentVariables/getHoverForEnvironmentVariable";
 import { parseEnvVariableNameFromTsSourceFile } from "../../shared/environmentVariables/parseEnvVariableNameFromTsSourceFile";
 
@@ -72,12 +71,6 @@ function getEnvVariableNameForRequest(params: {
         logger,
     } = params;
 
-    const contentAsTsNode = createSourceFile(
-        "__temp.js",
-        document.getText(),
-        ScriptTarget.ES2020,
-    ) as Node;
-
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return undefined;
@@ -86,7 +79,6 @@ function getEnvVariableNameForRequest(params: {
     const paramName = parseEnvVariableNameFromTsSourceFile(
         {
             relevantContent: document.getText(),
-            relevantContentAsTsNode: contentAsTsNode,
         },
         params.baseRequest,
         logger,

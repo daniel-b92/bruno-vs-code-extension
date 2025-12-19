@@ -16,7 +16,6 @@ import {
     OutputChannelLogger,
     mapFromVsCodePosition,
     Block,
-    parseCodeBlock,
     Collection,
     getConfiguredTestEnvironment,
 } from "../../../../shared";
@@ -30,7 +29,6 @@ import {
 } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../shared/codeBlocksUtils/getStringLiteralParameterForGetEnvVarInbuiltFunction";
-import { SyntaxKind } from "typescript";
 import {
     EnvVariableNameMatchingMode,
     getMatchingEnvironmentVariableDefinitions,
@@ -84,22 +82,15 @@ export function provideTsLangCompletionItems(
                     return undefined;
                 }
 
-                const parsedCodeBlock = parseCodeBlock(
-                    new TextDocumentHelper(document.getText()),
-                    blockInBruFile.contentRange.start.line,
-                    SyntaxKind.Block,
-                );
-
-                const envVariableNameForRequest = parsedCodeBlock
-                    ? getStringLiteralParameterForGetEnvVarInbuiltFunction({
-                          file: {
-                              collection,
-                              blockContainingPosition: parsedCodeBlock,
-                          },
-                          request: { document, position, token },
-                          logger,
-                      })
-                    : undefined;
+                const envVariableNameForRequest =
+                    getStringLiteralParameterForGetEnvVarInbuiltFunction({
+                        file: {
+                            collection,
+                            blockContainingPosition: blockInBruFile,
+                        },
+                        request: { document, position, token },
+                        logger,
+                    });
 
                 if (envVariableNameForRequest) {
                     return getResultsForEnvironmentVariable(

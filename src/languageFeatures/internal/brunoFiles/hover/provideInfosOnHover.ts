@@ -7,7 +7,6 @@ import {
     mapToVsCodeRange,
     OutputChannelLogger,
     parseBruFile,
-    parseCodeBlock,
     RequestFileBlockName,
     shouldBeCodeBlock,
     TextDocumentHelper,
@@ -20,7 +19,6 @@ import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/exte
 import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockUtils/getNonCodeBlocksWithoutVariableSupport";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { getVariableNameForPositionInNonCodeBlock } from "../shared/nonCodeBlockUtils/getVariableNameForPositionInNonCodeBlock";
-import { SyntaxKind } from "typescript";
 import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../shared/codeBlocksUtils/getStringLiteralParameterForGetEnvVarInbuiltFunction";
 import { getHoverForEnvironmentVariable } from "../../shared/environmentVariables/getHoverForEnvironmentVariable";
 
@@ -189,25 +187,12 @@ async function getHoverForCodeBlocks(
 }
 
 function getEnvVariableNameForRequest({
-    file: {
-        collection,
-        blockContainingPosition: { contentRange },
-    },
+    file: { collection, blockContainingPosition },
     hoverRequest,
     logger,
 }: ProviderParams) {
-    const { document, token } = hoverRequest;
-    const firstContentLine = contentRange.start.line;
+    const { token } = hoverRequest;
 
-    const parsedCodeBlock = parseCodeBlock(
-        new TextDocumentHelper(document.getText()),
-        firstContentLine,
-        SyntaxKind.Block,
-    );
-
-    if (!parsedCodeBlock) {
-        return undefined;
-    }
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return undefined;
@@ -216,7 +201,7 @@ function getEnvVariableNameForRequest({
     const paramName = getStringLiteralParameterForGetEnvVarInbuiltFunction({
         file: {
             collection,
-            blockContainingPosition: parsedCodeBlock,
+            blockContainingPosition,
         },
         request: hoverRequest,
         logger,
