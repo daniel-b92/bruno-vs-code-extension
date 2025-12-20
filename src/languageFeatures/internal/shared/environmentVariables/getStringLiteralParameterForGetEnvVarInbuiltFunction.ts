@@ -35,6 +35,7 @@ export function getStringLiteralParameterForGetEnvVarInbuiltFunction(params: {
         return undefined;
     }
 
+    // ToDo: Use already parsed block content from parsed block (instead of parsing as TS node again here).
     const sourceFile = createSourceFile(
         "__temp.js",
         relevantContent,
