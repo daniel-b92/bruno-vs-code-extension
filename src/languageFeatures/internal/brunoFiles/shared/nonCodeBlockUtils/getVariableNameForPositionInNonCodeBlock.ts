@@ -2,7 +2,7 @@ import {
     getMatchingTextContainingPosition,
     mapFromVsCodePosition,
 } from "../../../../../shared";
-import { LanguageFeatureRequest } from "../interfaces";
+import { LanguageFeatureRequest } from "../../../shared/interfaces";
 
 export function getVariableNameForPositionInNonCodeBlock({
     document,

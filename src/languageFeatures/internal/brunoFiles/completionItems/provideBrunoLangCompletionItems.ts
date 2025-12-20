@@ -30,12 +30,12 @@ import {
 import { dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockUtils/getNonCodeBlocksWithoutVariableSupport";
-import { LanguageFeatureRequest } from "../shared/interfaces";
+import { LanguageFeatureRequest } from "../../shared/interfaces";
 import {
     EnvVariableNameMatchingMode,
     getMatchingEnvironmentVariableDefinitions,
-} from "../shared/getMatchingEnvironmentVariableDefinitions";
-import { mapEnvironmentVariablesToCompletions } from "./util/mapEnvironmentVariablesToCompletions";
+} from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitions";
+import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
 
 export function provideBrunoLangCompletionItems(
     itemProvider: CollectionItemProvider,
@@ -46,9 +46,7 @@ export function provideBrunoLangCompletionItems(
         {
             async provideCompletionItems(document, position, token) {
                 if (token.isCancellationRequested) {
-                    logger?.debug(
-                        `Cancellation requested for completion provider for bruno language.`,
-                    );
+                    addLogEntryForCancellation(logger);
                     return undefined;
                 }
                 const request: LanguageFeatureRequest = {
@@ -71,9 +69,7 @@ export function provideBrunoLangCompletionItems(
                 }
 
                 if (token.isCancellationRequested) {
-                    logger?.debug(
-                        `Cancellation requested for completion provider for bruno language.`,
-                    );
+                    addLogEntryForCancellation(logger);
                     return undefined;
                 }
                 const collection = itemProvider.getAncestorCollectionForPath(
@@ -126,7 +122,7 @@ function getNonBlockSpecificCompletions(
     }
 
     if (token.isCancellationRequested) {
-        logger?.debug(`Cancellation requested for hover provider.`);
+        addLogEntryForCancellation(logger);
         return [];
     }
 
@@ -143,7 +139,7 @@ function getNonBlockSpecificCompletions(
     }
 
     if (token.isCancellationRequested) {
-        logger?.debug(`Cancellation requested for hover provider.`);
+        addLogEntryForCancellation(logger);
         return [];
     }
 
@@ -332,4 +328,10 @@ function getTriggerChars() {
 
 function getLinePatternForDictionaryField(key: string) {
     return new RegExp(`^\\s*${key}:\\s*$`);
+}
+
+function addLogEntryForCancellation(logger?: OutputChannelLogger) {
+    logger?.debug(
+        `Cancellation requested for completion provider for bruno language.`,
+    );
 }

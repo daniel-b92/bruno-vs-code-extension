@@ -16,7 +16,6 @@ import {
     OutputChannelLogger,
     mapFromVsCodePosition,
     Block,
-    parseCodeBlock,
     Collection,
     getConfiguredTestEnvironment,
 } from "../../../../shared";
@@ -29,14 +28,14 @@ import {
     waitForTempJsFileToBeInSyncWithBruFile,
 } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
-import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../shared/codeBlocksUtils/getStringLiteralParameterForGetEnvVarInbuiltFunction";
-import { SyntaxKind } from "typescript";
+import { mapToGetEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
 import {
     EnvVariableNameMatchingMode,
     getMatchingEnvironmentVariableDefinitions,
-} from "../shared/getMatchingEnvironmentVariableDefinitions";
-import { LanguageFeatureRequest } from "../shared/interfaces";
-import { mapEnvironmentVariablesToCompletions } from "./util/mapEnvironmentVariablesToCompletions";
+} from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitions";
+import { LanguageFeatureRequest } from "../../shared/interfaces";
+import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
+import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
 
 type CompletionItemRange =
     | VsCodeRange
@@ -78,28 +77,21 @@ export function provideTsLangCompletionItems(
                 }
 
                 if (token.isCancellationRequested) {
-                    logger?.debug(
-                        `Cancellation requested for completion provider for code blocks.`,
-                    );
+                    addLogEntryForCancellation(logger);
                     return undefined;
                 }
 
-                const parsedCodeBlock = parseCodeBlock(
-                    new TextDocumentHelper(document.getText()),
-                    blockInBruFile.contentRange.start.line,
-                    SyntaxKind.Block,
-                );
-
-                const envVariableNameForRequest = parsedCodeBlock
-                    ? getStringLiteralParameterForGetEnvVarInbuiltFunction({
-                          file: {
-                              collection,
-                              blockContainingPosition: parsedCodeBlock,
-                          },
-                          request: { document, position, token },
-                          logger,
-                      })
-                    : undefined;
+                const envVariableNameForRequest =
+                    getStringLiteralParameterForGetEnvVarInbuiltFunction(
+                        mapToGetEnvVarNameParams({
+                            file: {
+                                collection,
+                                blockContainingPosition: blockInBruFile,
+                            },
+                            request: { document, position, token },
+                            logger,
+                        }),
+                    );
 
                 if (envVariableNameForRequest) {
                     return getResultsForEnvironmentVariable(
@@ -134,28 +126,14 @@ export function provideTsLangCompletionItems(
 
 function getResultsForEnvironmentVariable(
     collection: Collection,
-    parameter: { text: string; start: VsCodePosition; end: VsCodePosition },
-    { token, position }: LanguageFeatureRequest,
+    name: string,
+    { token }: LanguageFeatureRequest,
     logger?: OutputChannelLogger,
 ) {
-    const { text, start, end } = parameter;
-    const startsWithQuotes = /^("|'|`)/.test(text);
-    const endsWithQuotes = /("|'|`)$/.test(text);
-
-    if (
-        !startsWithQuotes ||
-        !endsWithQuotes ||
-        position.compareTo(start) <= 0 ||
-        position.compareTo(end) >= 0
-    ) {
-        return undefined;
-    }
-
-    const parameterWithoutQuotes = text.substring(1, text.length - 1);
     const matchingEnvVariableDefinitions =
         getMatchingEnvironmentVariableDefinitions(
             collection,
-            parameterWithoutQuotes,
+            name,
             EnvVariableNameMatchingMode.Substring,
             getConfiguredTestEnvironment(),
         );
@@ -165,7 +143,7 @@ function getResultsForEnvironmentVariable(
     }
 
     if (token.isCancellationRequested) {
-        logger?.debug(`Cancellation requested for hover provider.`);
+        addLogEntryForCancellation(logger);
         return [];
     }
 
@@ -199,9 +177,7 @@ async function getResultsViaTempJsFile(
     }
 
     if (token != undefined && token.isCancellationRequested) {
-        logger?.debug(
-            `Cancellation requested for completion provider for code blocks.`,
-        );
+        addLogEntryForCancellation(logger);
         return undefined;
     }
 
@@ -226,9 +202,7 @@ async function getResultsViaTempJsFile(
     );
 
     if (token != undefined && token.isCancellationRequested) {
-        logger?.debug(
-            `Cancellation requested for completion provider for code blocks while fetching completons from temp JS file.`,
-        );
+        addLogEntryForCancellation(logger);
         return undefined;
     }
 
@@ -439,4 +413,10 @@ function mapTempJsRangeToBruFileRange(
     });
 
     return mappedRange;
+}
+
+function addLogEntryForCancellation(logger?: OutputChannelLogger) {
+    logger?.debug(
+        `Cancellation requested for completion provider for code blocks.`,
+    );
 }
