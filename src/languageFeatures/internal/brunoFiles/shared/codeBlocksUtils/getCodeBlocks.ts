@@ -1,5 +1,5 @@
-import { Block, shouldBeCodeBlock } from "../../../../../shared";
+import { Block, isBlockCodeBlock } from "../../../../../shared";
 
 export function getCodeBlocks(allBlocks: Block[]) {
-    return allBlocks.filter(({ name }) => shouldBeCodeBlock(name));
+    return allBlocks.filter((block) => isBlockCodeBlock(block));
 }

@@ -1,5 +1,6 @@
 import {
     ArrayBlockField,
+    CodeBlockContent,
     DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
     PlainTextWithinBlock,
@@ -26,7 +27,8 @@ export const getBlockContent = (
                     | DictionaryBlockArrayField
                     | PlainTextWithinBlock
                 )[]
-              | (ArrayBlockField | PlainTextWithinBlock)[];
+              | (ArrayBlockField | PlainTextWithinBlock)[]
+              | CodeBlockContent;
           contentRange: Range;
       }
     | undefined => {

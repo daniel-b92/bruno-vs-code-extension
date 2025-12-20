@@ -1,12 +1,11 @@
 import { createSourceFile, Node, ScriptTarget, SyntaxKind } from "typescript";
-import { Position, Range, TextDocumentHelper } from "../..";
-import { CodeBlockWithTsNode } from "../../../languageFeatures/internal/brunoFiles/shared/interfaces";
+import { CodeBlockContent, Position, Range, TextDocumentHelper } from "../..";
 
 export function parseCodeBlock(
     document: TextDocumentHelper,
     firstContentLine: number,
     blockSyntaxKind: SyntaxKind,
-): CodeBlockWithTsNode | undefined {
+): { content: CodeBlockContent; contentRange: Range } | undefined {
     const blockStartLine = firstContentLine - 1;
 
     const subDocument = new TextDocumentHelper(
@@ -46,12 +45,19 @@ export function parseCodeBlock(
             blockContentEndInSubDocument.character,
         ),
     );
+    const blockContentNode = blockNode
+        .getChildren(sourceFile)
+        .find((node) => node.kind == SyntaxKind.SyntaxList);
 
-    return {
-        content: contentRange.start.equals(contentRange.end)
-            ? ""
-            : document.getText(contentRange), // `document.getText()` only works correctly, if the start and end position of the range are not the same.
-        contentRange,
-        blockAsTsNode: sourceFile as Node,
-    };
+    return blockContentNode != undefined
+        ? {
+              content: {
+                  asPlainText: contentRange.start.equals(contentRange.end)
+                      ? ""
+                      : document.getText(contentRange), // `document.getText()` only works correctly, if the start and end position of the range are not the same.
+                  asTsNode: blockContentNode,
+              },
+              contentRange,
+          }
+        : undefined;
 }

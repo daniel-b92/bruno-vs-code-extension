@@ -79,7 +79,6 @@ function getEnvVariableNameForRequest(params: {
 
     return getStringLiteralParameterForGetEnvVarInbuiltFunction({
         relevantContent: document.getText(),
-
         request: params.baseRequest,
         logger,
     });

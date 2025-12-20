@@ -1,9 +1,9 @@
 import { TextDocument, Position as VsCodePosition } from "vscode";
-import { BruLanguageFeatureRequestWithAdditionalData } from "../interfaces";
+import { CodeBlockLanguageFeatureRequestWithAdditionalData } from "../interfaces";
 import { Range } from "../../../../../shared";
 
 export function mapToGetEnvVarNameParams(
-    params: BruLanguageFeatureRequestWithAdditionalData,
+    params: CodeBlockLanguageFeatureRequestWithAdditionalData,
 ) {
     const {
         file: {
@@ -14,7 +14,7 @@ export function mapToGetEnvVarNameParams(
     } = params;
 
     return {
-        relevantContent: content as string,
+        relevantContent: content.asPlainText,
         defaultOffsetWithinDocument: getDefaultOffsetForBlockContent(
             document,
             contentRange,
