@@ -48,7 +48,9 @@ export function parseCodeBlock(
     );
 
     return {
-        content: document.getText(contentRange),
+        content: contentRange.start.equals(contentRange.end)
+            ? ""
+            : document.getText(contentRange), // `document.getText()` only works correctly, if the start and end position of the range are not the same.
         contentRange,
         blockAsTsNode: sourceFile as Node,
     };

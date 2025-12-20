@@ -65,6 +65,11 @@ async function getTextEditForBlock(block: Block, documentLineBreak: string) {
         ),
     );
 
+    // If the only line is the function declaration line, there is nothing to format inside the block.
+    if (docHelperForDummyFunctionReplacement.getLineCount() < 2) {
+        return undefined;
+    }
+
     const lastLineIndex =
         docHelperForDummyFunctionReplacement.getLineCount() - 1;
 
