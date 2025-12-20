@@ -77,9 +77,7 @@ export function provideTsLangCompletionItems(
                 }
 
                 if (token.isCancellationRequested) {
-                    logger?.debug(
-                        `Cancellation requested for completion provider for code blocks.`,
-                    );
+                    addLogEntryForCancellation(logger);
                     return undefined;
                 }
 
@@ -145,7 +143,7 @@ function getResultsForEnvironmentVariable(
     }
 
     if (token.isCancellationRequested) {
-        logger?.debug(`Cancellation requested for hover provider.`);
+        addLogEntryForCancellation(logger);
         return [];
     }
 
@@ -179,9 +177,7 @@ async function getResultsViaTempJsFile(
     }
 
     if (token != undefined && token.isCancellationRequested) {
-        logger?.debug(
-            `Cancellation requested for completion provider for code blocks.`,
-        );
+        addLogEntryForCancellation(logger);
         return undefined;
     }
 
@@ -206,9 +202,7 @@ async function getResultsViaTempJsFile(
     );
 
     if (token != undefined && token.isCancellationRequested) {
-        logger?.debug(
-            `Cancellation requested for completion provider for code blocks while fetching completons from temp JS file.`,
-        );
+        addLogEntryForCancellation(logger);
         return undefined;
     }
 
@@ -419,4 +413,10 @@ function mapTempJsRangeToBruFileRange(
     });
 
     return mappedRange;
+}
+
+function addLogEntryForCancellation(logger?: OutputChannelLogger) {
+    logger?.debug(
+        `Cancellation requested for completion provider for code blocks.`,
+    );
 }
