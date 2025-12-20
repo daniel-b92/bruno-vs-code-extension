@@ -3,6 +3,8 @@
 ### Features
 
 - Add basic intellisense for static environment variables within `.bru` and `.js` files (hovers and completions).
+- Fix incorrect insertion of text when formatting code blocks that only contain a linebreak.
+- Fix exception being thrown when trying to format code block that is completely empty, by fixing the block parsing.
 
 ## [0.17.11] (2025-11-23)
 
