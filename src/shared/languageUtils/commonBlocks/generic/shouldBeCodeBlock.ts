@@ -1,4 +1,4 @@
-import { RequestFileBlockName } from "../..";
+import { RequestFileBlockName } from "../../..";
 
 export function shouldBeCodeBlock(blockName: string) {
     return (

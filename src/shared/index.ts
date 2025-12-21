@@ -27,13 +27,8 @@ export * from "./fileParsing/external/requestFiles/metaBlock/getMaxSequenceForRe
 export * from "./fileParsing/external/requestFiles/metaBlock/getSequencesForRequests";
 export * from "./fileParsing/external/parseBruFile";
 export * from "./fileParsing/external/parseCodeBlock";
-export * from "./fileParsing/external/interfaces";
-export * from "./fileParsing/external/shouldBeDictionaryBlock";
-export * from "./languageUtils/commonFields/shouldBeDictionaryArrayField";
+export * from "./languageUtils/interfaces";
 export * from "./fileParsing/external/shared/getBlockType";
-export * from "./fileParsing/external/getValidDictionaryBlocksWithName";
-export * from "./fileParsing/external/requestFiles/authBlocks/getAuthTypeFromBlockName";
-export * from "./fileParsing/external/requestFiles/authBlocks/isAuthBlock";
 export * from "./fileParsing/external/requestFiles/bodyBlocks/getBodyTypeFromBlockName";
 export * from "./fileParsing/external/requestFiles/bodyBlocks/isBodyBlock";
 export * from "./fileParsing/external/shared/getSequenceFieldFromMetaBlock";
@@ -44,20 +39,17 @@ export * from "./fileParsing/external/requestFiles/methodBlocks/getUrlFieldFromM
 export * from "./fileParsing/external/requestFiles/methodBlocks/getMethodBlockIfValid";
 export * from "./fileParsing/external/requestFiles/paramsBlocks/isParamsBlock";
 export { isVarsBlock as isVarsBlockInRequestFile } from "./fileParsing/external/requestFiles/varsBlocks/isVarsBlock";
-export { isVarsBlock as isVarsBlockInEnvironmentFile } from "./fileParsing/external/environmentFiles/varsBlocks/isVarsBlock";
-export * from "./fileParsing/external/isBlockDictionaryBlock";
-export * from "./fileParsing/external/isBlockArrayBlock";
 export * from "./fileParsing/external/parseBlockFromFile";
 export * from "./fileParsing/external/folderSettings/getSequenceForFolder";
 export * from "./fileParsing/external/folderSettings/getSequencesForFolders";
 export * from "./fileParsing/external/folderSettings/getMaxSequenceForFolders";
 export * from "./fileParsing/external/folderSettings/getFolderSettingsFilePath";
-export * from "./fileParsing/external/isBlockCodeBlock";
 
 // language utils
 export * from "./languageUtils/booleanFieldValueEnum";
 export * from "./languageUtils/requestFiles/requestFileBlockNameEnum";
 export * from "./languageUtils/environmentFiles/environmentFileBlockNameEnum";
+export { isVarsBlock as isVarsBlockInEnvironmentFile } from "./languageUtils/environmentFiles/isVarsBlock";
 export * from "./languageUtils/commonBlocks/metaBlock/metaBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/metaBlock/requestTypeEnum";
 export * from "./languageUtils/commonBlocks/metaBlock/getFieldFromMetaBlock";
@@ -67,7 +59,12 @@ export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockAuthEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockBodyEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/getPossibleMethodBlocks";
 export * from "./languageUtils/commonBlocks/methodBlocks/getFieldFromMethodBlock";
-export * from "./languageUtils/commonBlocks/shouldBeCodeBlock";
+export * from "./languageUtils/commonBlocks/generic/shouldBeCodeBlock";
+export * from "./languageUtils/commonBlocks/generic/getValidDictionaryBlocksWithName";
+export * from "./languageUtils/commonBlocks/generic/shouldBeDictionaryBlock";
+export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockDictionaryBlock";
+export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockCodeBlock";
+export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockArrayBlock";
 export * from "./languageUtils/urls/getQueryParamsFromUrl";
 export * from "./languageUtils/urls/getPathParamsFromUrl";
 export * from "./languageUtils/urls/getUrlSubstringForQueryParams";
@@ -78,11 +75,13 @@ export * from "./languageUtils/commonBlocks/authBlocks/apiKeyAuthBlockValuesEnum
 export * from "./languageUtils/commonBlocks/authBlocks/oAuth2BlockCommonFieldsValuesEnums";
 export * from "./languageUtils/commonBlocks/authBlocks/getMandatoryKeysForNonOAuth2Block";
 export * from "./languageUtils/commonBlocks/authBlocks/getMandatoryKeysForOAuth2Block";
+export * from "./languageUtils/commonBlocks/authBlocks/getAuthTypeFromBlockName";
+export * from "./languageUtils/commonBlocks/authBlocks/isAuthBlock";
 export * from "./languageUtils/commonBlocks/getMethodBlockBodyFieldValueForBodyName";
 export * from "./languageUtils/commonBlocks/getExpectedUrlQueryParamsForQueryParamsBlock";
 export * from "./languageUtils/commonBlocks/getPathParamsFromPathParamsBlock";
-export * from "./languageUtils/commonBlocks/getDefaultIndentationForDictionaryBlockFields";
-export * from "./languageUtils/commonBlocks/getFieldFromDictionaryBlock";
+export * from "./languageUtils/commonBlocks/generic/getDefaultIndentationForDictionaryBlockFields";
+export * from "./languageUtils/commonBlocks/generic/getFieldFromDictionaryBlock";
 export * from "./languageUtils/commonBlocks/settingsFileSpecificBlockEnum";
 export { getValidBlockNames as getValidBlockNamesForFolderSettingsFile } from "./languageUtils/folderSettingsFiles/getValidBlockNames";
 export { getValidBlockNames as getValidBlockNamesForCollectionSettingsFile } from "./languageUtils/collectionSettingsFiles/getValidBlockNames";
@@ -92,6 +91,7 @@ export * from "./languageUtils/commonBlocks/settingsBlock/settingsBlockKeyEnum";
 export * from "./languageUtils/commonFields/isDictionaryBlockField";
 export * from "./languageUtils/commonFields/isDictionaryBlockSimpleField";
 export * from "./languageUtils/commonFields/isDictionaryBlockArrayField";
+export * from "./languageUtils/commonFields/shouldBeDictionaryArrayField";
 
 // test file writing
 export * from "./testFileWriting/getContentForMetaBlock";

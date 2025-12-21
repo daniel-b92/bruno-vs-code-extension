@@ -1,11 +1,11 @@
-import { DictionaryBlock } from "../..";
+import { DictionaryBlock } from "../../..";
 
 export function getFieldFromDictionaryBlock(
     methodBlock: DictionaryBlock,
-    fieldName: string
+    fieldName: string,
 ) {
     const matchingFields = methodBlock.content.filter(
-        ({ key }) => key == fieldName
+        ({ key }) => key == fieldName,
     );
 
     return matchingFields.length == 1 ? matchingFields[0] : undefined;

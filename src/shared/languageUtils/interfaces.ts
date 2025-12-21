@@ -1,5 +1,5 @@
 import { Node } from "typescript";
-import { Range } from "../../fileSystem/util/range";
+import { Range } from "../fileSystem/util/range";
 
 export interface Block {
     name: string;

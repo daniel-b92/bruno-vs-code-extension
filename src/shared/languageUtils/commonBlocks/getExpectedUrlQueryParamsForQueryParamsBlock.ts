@@ -1,4 +1,4 @@
-import { DictionaryBlockSimpleField } from "../../fileParsing/external/interfaces";
+import { DictionaryBlockSimpleField } from "../interfaces";
 
 export function getExpectedUrlQueryParamsForQueryParamsBlock(
     queryParamsBlockFields: DictionaryBlockSimpleField[],

@@ -1,6 +1,9 @@
-import { isBlockDictionaryBlock } from "../..";
-import { RequestFileBlockName } from "../../languageUtils/requestFiles/requestFileBlockNameEnum";
-import { DictionaryBlock, Block } from "./interfaces";
+import {
+    RequestFileBlockName,
+    DictionaryBlock,
+    Block,
+    isBlockDictionaryBlock,
+} from "../../..";
 
 export function getValidDictionaryBlocksWithName(
     allBlocks: Block[],

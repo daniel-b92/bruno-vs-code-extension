@@ -1,4 +1,4 @@
-import { isAuthBlock } from "./isAuthBlock";
+import { isAuthBlock } from "../../..";
 
 export function getAuthTypeFromBlockName(blockName: string) {
     return isAuthBlock(blockName)

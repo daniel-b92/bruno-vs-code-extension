@@ -7,15 +7,15 @@ import {
     isVarsBlockInEnvironmentFile,
     EnvironmentFileBlockName,
     SettingsFileSpecificBlock,
-} from "../..";
+} from "../../..";
 
 export function shouldBeDictionaryBlock(blockName: string) {
     const allBlockNames = (
         Object.values(RequestFileBlockName) as string[]
     ).concat(
         (Object.values(EnvironmentFileBlockName) as string[]).concat(
-            Object.values(SettingsFileSpecificBlock)
-        )
+            Object.values(SettingsFileSpecificBlock),
+        ),
     );
 
     if (!allBlockNames.includes(blockName)) {

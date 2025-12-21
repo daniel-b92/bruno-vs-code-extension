@@ -4,7 +4,7 @@ import {
     DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
     PlainTextWithinBlock,
-} from "../external/interfaces";
+} from "../../languageUtils/interfaces";
 import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
 import { parseCodeBlock, Position, Range } from "../..";
 import { BlockType } from "./util/BlockTypeEnum";

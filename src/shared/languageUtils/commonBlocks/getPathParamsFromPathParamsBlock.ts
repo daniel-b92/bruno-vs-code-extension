@@ -1,7 +1,7 @@
-import { DictionaryBlock } from "../../fileParsing/external/interfaces";
+import { DictionaryBlock } from "../interfaces";
 
 export function getPathParamsFromPathParamsBlock(
-    pathParamsBlock: DictionaryBlock
+    pathParamsBlock: DictionaryBlock,
 ) {
     return pathParamsBlock.content.map(({ key }) => key);
 }

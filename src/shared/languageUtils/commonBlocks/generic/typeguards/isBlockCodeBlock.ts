@@ -1,5 +1,4 @@
-import { shouldBeCodeBlock } from "../../languageUtils/commonBlocks/shouldBeCodeBlock";
-import { Block, CodeBlock } from "./interfaces";
+import { Block, CodeBlock, shouldBeCodeBlock } from "../../../..";
 
 export function isBlockCodeBlock(block: Block): block is CodeBlock {
     return (
