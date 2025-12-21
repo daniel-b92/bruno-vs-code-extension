@@ -4,6 +4,7 @@ import { Block, CodeBlock } from "./interfaces";
 export function isBlockCodeBlock(block: Block): block is CodeBlock {
     return (
         shouldBeCodeBlock(block.name) &&
-        Object.keys(block).includes("contentAsTsNode")
+        block.content instanceof Object &&
+        Object.keys(block.content).includes("asTsNode")
     );
 }

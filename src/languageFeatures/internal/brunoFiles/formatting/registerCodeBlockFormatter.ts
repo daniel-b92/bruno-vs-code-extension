@@ -1,6 +1,6 @@
 import { languages, TextEdit } from "vscode";
 import {
-    Block,
+    CodeBlock,
     getLineBreak,
     mapToVsCodeRange,
     OutputChannelLogger,
@@ -30,7 +30,7 @@ export function registerCodeBlockFormatter(_logger?: OutputChannelLogger) {
                 const textEdits: Promise<TextEdit | undefined>[] = [];
 
                 for (const block of codeBlocks) {
-                    textEdits.push(getTextEditForBlock(block, lineBreak));
+                    textEdits.push(getTextEditForCodeBlock(block, lineBreak));
                 }
 
                 return (await Promise.all(textEdits)).filter(
@@ -41,8 +41,11 @@ export function registerCodeBlockFormatter(_logger?: OutputChannelLogger) {
     );
 }
 
-async function getTextEditForBlock(block: Block, documentLineBreak: string) {
-    const toFormat = `${mapBlockNameToJsFileLine(block.name)}${documentLineBreak}${block.content.toString()}}`;
+async function getTextEditForCodeBlock(
+    block: CodeBlock,
+    documentLineBreak: string,
+) {
+    const toFormat = `${mapBlockNameToJsFileLine(block.name)}${documentLineBreak}${block.content.asPlainText}}`;
 
     const formattedWithDummyFunctionReplacement = await format(toFormat, {
         parser: "typescript",

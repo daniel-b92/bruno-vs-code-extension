@@ -10,7 +10,7 @@ export function getTempJsFileContentForBruFile(bruFileContent: string) {
 
     const functionsForTempJsFile = getCodeBlocks(parsedBlocks).map(
         ({ name, content }) => `${mapBlockNameToJsFileLine(name)}
-${content}}`,
+${content.asPlainText}}`,
     );
 
     return getDefinitionsForInbuiltLibraries()
