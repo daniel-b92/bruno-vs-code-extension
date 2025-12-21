@@ -22,7 +22,7 @@ import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { getVariableNameForPositionInNonCodeBlock } from "../shared/nonCodeBlockUtils/getVariableNameForPositionInNonCodeBlock";
 import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
 import { getHoverForEnvironmentVariable } from "../../shared/environmentVariables/getHoverForEnvironmentVariable";
-import { getStringLiteralParameterForEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForEnvVarInbuiltFunction";
+import { getStringLiteralParameterForInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForEnvVarInbuiltFunction";
 import { getInbuiltFunctionsForEnvironmentVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
 
 interface ProviderParamsForNonCodeBlock {
@@ -136,12 +136,12 @@ async function getHoverForCodeBlocks(
         return undefined;
     }
 
-    const envVariableNameForRequest = getEnvVariableNameFromCodeBlock(params);
+    const envVariableResult = getEnvVariableNameFromCodeBlock(params);
 
-    if (envVariableNameForRequest) {
+    if (envVariableResult) {
         return getHoverForEnvironmentVariable(
             collection,
-            envVariableNameForRequest,
+            envVariableResult.variableName,
             token,
             logger,
         );
@@ -208,7 +208,7 @@ function getEnvVariableNameFromCodeBlock({
         return undefined;
     }
 
-    return getStringLiteralParameterForEnvVarInbuiltFunction(
+    return getStringLiteralParameterForInbuiltFunction(
         mapToEnvVarNameParams(
             {
                 file: {
@@ -218,7 +218,10 @@ function getEnvVariableNameFromCodeBlock({
                 request: hoverRequest,
                 logger,
             },
-            getInbuiltFunctionsForEnvironmentVariables().getEnvironmentVariable,
+            [
+                getInbuiltFunctionsForEnvironmentVariables()
+                    .getEnvironmentVariable,
+            ],
         ),
     );
 }

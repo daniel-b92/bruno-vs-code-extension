@@ -11,16 +11,16 @@ import {
     LanguageFeatureRequest,
 } from "../interfaces";
 
-export function getStringLiteralParameterForEnvVarInbuiltFunction(params: {
+export function getStringLiteralParameterForInbuiltFunction(params: {
     relevantContent: string;
-    inbuiltFunction: InbuiltFunctionIdentifier;
+    functionsToSearchFor: InbuiltFunctionIdentifier[];
     defaultOffsetWithinDocument?: number;
     request: LanguageFeatureRequest;
     logger?: OutputChannelLogger;
 }) {
     const {
         relevantContent,
-        inbuiltFunction: { baseIdentifier, functionName },
+        functionsToSearchFor,
         request,
         defaultOffsetWithinDocument,
         logger,
@@ -34,8 +34,11 @@ export function getStringLiteralParameterForEnvVarInbuiltFunction(params: {
         parseAsTsNode(relevantContent);
 
     if (
-        !relevantContent.includes(baseIdentifier) ||
-        !relevantContent.includes(functionName)
+        functionsToSearchFor.every(
+            ({ baseIdentifier, functionName }) =>
+                !relevantContent.includes(baseIdentifier) ||
+                !relevantContent.includes(functionName),
+        )
     ) {
         return undefined;
     }
@@ -46,6 +49,7 @@ export function getStringLiteralParameterForEnvVarInbuiltFunction(params: {
     }
 
     const checkedNodes: Node[] = [contentAsTsNode];
+    let inbuiltFunctionForRequest: InbuiltFunctionIdentifier | undefined;
 
     do {
         if (token.isCancellationRequested) {
@@ -71,11 +75,17 @@ export function getStringLiteralParameterForEnvVarInbuiltFunction(params: {
             .getChildren(sourceFile)
             .some((child) => {
                 const childText = child.getText(sourceFile);
+
+                inbuiltFunctionForRequest = functionsToSearchFor.find(
+                    ({ baseIdentifier, functionName }) =>
+                        childText.startsWith(baseIdentifier) &&
+                        childText.includes(".") &&
+                        childText.endsWith(functionName),
+                );
+
                 return (
                     child.kind == SyntaxKind.PropertyAccessExpression &&
-                    childText.startsWith(baseIdentifier) &&
-                    childText.includes(".") &&
-                    childText.endsWith(functionName)
+                    inbuiltFunctionForRequest != undefined
                 );
             });
 
@@ -94,20 +104,28 @@ export function getStringLiteralParameterForEnvVarInbuiltFunction(params: {
                 );
 
             return resultNode
-                ? extractVariableNameFromResultNode(
-                      resultNode,
-                      sourceFile,
-                      params.request,
-                      defaultOffsetToUse,
-                  )
+                ? ({
+                      inbuiltFunction: inbuiltFunctionForRequest,
+                      variableName: extractVariableNameFromResultNode(
+                          resultNode,
+                          sourceFile,
+                          params.request,
+                          defaultOffsetToUse,
+                      ),
+                  } as {
+                      inbuiltFunction: InbuiltFunctionIdentifier;
+                      variableName: string;
+                  })
                 : undefined;
         }
 
         checkedNodes.push(childContainingPosition);
     } while (
-        checkedNodes[checkedNodes.length - 1]
-            .getText(sourceFile)
-            .includes(functionName)
+        functionsToSearchFor.some(({ functionName }) =>
+            checkedNodes[checkedNodes.length - 1]
+                .getText(sourceFile)
+                .includes(functionName),
+        )
     );
 
     return undefined;

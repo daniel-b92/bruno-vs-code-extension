@@ -7,7 +7,7 @@ import {
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { getHoverForEnvironmentVariable } from "../../shared/environmentVariables/getHoverForEnvironmentVariable";
-import { getStringLiteralParameterForEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForEnvVarInbuiltFunction";
+import { getStringLiteralParameterForInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForEnvVarInbuiltFunction";
 import { getInbuiltFunctionsForEnvironmentVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
 
 export function provideInfosOnHover(
@@ -45,17 +45,17 @@ async function getHover(params: {
         logger,
     } = params;
 
-    const envVariableNameForRequest = getEnvVariableNameForRequest(params);
+    const envVariableResult = getEnvVariableNameForRequest(params);
 
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return undefined;
     }
 
-    return envVariableNameForRequest != undefined
+    return envVariableResult != undefined
         ? getHoverForEnvironmentVariable(
               collection,
-              envVariableNameForRequest,
+              envVariableResult.variableName,
               token,
               logger,
           )
@@ -72,10 +72,11 @@ function getEnvVariableNameForRequest(params: {
         logger,
     } = params;
 
-    return getStringLiteralParameterForEnvVarInbuiltFunction({
+    return getStringLiteralParameterForInbuiltFunction({
         relevantContent: document.getText(),
-        inbuiltFunction:
+        functionsToSearchFor: [
             getInbuiltFunctionsForEnvironmentVariables().getEnvironmentVariable,
+        ],
         request: params.baseRequest,
         logger,
     });

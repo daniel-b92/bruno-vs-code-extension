@@ -35,7 +35,7 @@ import {
 } from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitionsFromEnvFiles";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
-import { getStringLiteralParameterForEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForEnvVarInbuiltFunction";
+import { getStringLiteralParameterForInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForEnvVarInbuiltFunction";
 import { getInbuiltFunctionsForEnvironmentVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
 
 type CompletionItemRange =
@@ -82,8 +82,8 @@ export function provideTsLangCompletionItems(
                     return undefined;
                 }
 
-                const envVariableNameForRequest =
-                    getStringLiteralParameterForEnvVarInbuiltFunction(
+                const envVariableResult =
+                    getStringLiteralParameterForInbuiltFunction(
                         mapToEnvVarNameParams(
                             {
                                 file: {
@@ -93,15 +93,17 @@ export function provideTsLangCompletionItems(
                                 request: { document, position, token },
                                 logger,
                             },
-                            getInbuiltFunctionsForEnvironmentVariables()
-                                .getEnvironmentVariable,
+                            [
+                                getInbuiltFunctionsForEnvironmentVariables()
+                                    .getEnvironmentVariable,
+                            ],
                         ),
                     );
 
-                if (envVariableNameForRequest) {
+                if (envVariableResult) {
                     return getResultsForEnvironmentVariable(
                         collection,
-                        envVariableNameForRequest,
+                        envVariableResult.variableName,
                         { document, position, token },
                         logger,
                     );

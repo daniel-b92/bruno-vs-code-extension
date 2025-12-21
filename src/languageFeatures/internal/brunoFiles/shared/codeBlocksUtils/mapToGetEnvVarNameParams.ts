@@ -5,7 +5,7 @@ import { InbuiltFunctionIdentifier } from "../../../shared/interfaces";
 
 export function mapToEnvVarNameParams(
     params: CodeBlockLanguageFeatureRequestWithAdditionalData,
-    inbuiltFunction: InbuiltFunctionIdentifier,
+    functionsToSearchFor: InbuiltFunctionIdentifier[],
 ) {
     const {
         file: {
@@ -17,7 +17,7 @@ export function mapToEnvVarNameParams(
 
     return {
         relevantContent: content.asPlainText,
-        inbuiltFunction,
+        functionsToSearchFor,
         defaultOffsetWithinDocument: getDefaultOffsetForBlockContent(
             document,
             contentRange,

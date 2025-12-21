@@ -11,7 +11,7 @@ import {
     getMatchingEnvironmentVariableDefinitionsFromEnvFiles,
 } from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitionsFromEnvFiles";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
-import { getStringLiteralParameterForEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForEnvVarInbuiltFunction";
+import { getStringLiteralParameterForInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForEnvVarInbuiltFunction";
 import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
 import { getInbuiltFunctionsForEnvironmentVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
 
@@ -37,7 +37,7 @@ export function provideCompletionItems(
                     return undefined;
                 }
 
-                const envVariableNameForRequest = getEnvVariableNameForRequest({
+                const envVariableResult = getEnvVariableNameForRequest({
                     file: {
                         collection,
                     },
@@ -45,10 +45,10 @@ export function provideCompletionItems(
                     logger,
                 });
 
-                return envVariableNameForRequest != undefined
+                return envVariableResult != undefined
                     ? getResultsForEnvironmentVariable(
                           collection,
-                          envVariableNameForRequest,
+                          envVariableResult.variableName,
                           { document, position, token },
                           logger,
                       )
@@ -78,10 +78,11 @@ function getEnvVariableNameForRequest(params: {
         return undefined;
     }
 
-    return getStringLiteralParameterForEnvVarInbuiltFunction({
+    return getStringLiteralParameterForInbuiltFunction({
         relevantContent: document.getText(),
-        inbuiltFunction:
+        functionsToSearchFor: [
             getInbuiltFunctionsForEnvironmentVariables().getEnvironmentVariable,
+        ],
         request: params.baseRequest,
         logger,
     });
