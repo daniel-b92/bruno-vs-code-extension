@@ -3,7 +3,7 @@ import {
     DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
     PlainTextWithinBlock,
-} from "../..";
+} from "../../..";
 
 export function isDictionaryBlockField(
     field:

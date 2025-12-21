@@ -6,8 +6,8 @@ import {
     Position,
     Range,
     TextDocumentHelper,
+    BlockBracket,
 } from "../..";
-import { BlockBracket } from "./util/blockBracketEnum";
 import { getContentRangeForArrayOrDictionaryBlock } from "./util/getContentRangeForArrayOrDictionaryBlock";
 
 type ParsedLine =

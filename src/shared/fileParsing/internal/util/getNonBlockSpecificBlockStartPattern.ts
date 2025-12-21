@@ -1,4 +1,4 @@
-import { BlockBracket } from "./blockBracketEnum";
+import { BlockBracket } from "../../..";
 
 export function getNonBlockSpecificBlockStartPattern() {
     return new RegExp(

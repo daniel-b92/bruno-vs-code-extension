@@ -6,8 +6,7 @@ import {
     PlainTextWithinBlock,
 } from "../../languageUtils/interfaces";
 import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
-import { parseCodeBlock, Position, Range } from "../..";
-import { BlockType } from "./util/BlockTypeEnum";
+import { BlockType, parseCodeBlock, Position, Range } from "../..";
 import { parseJsonBlock } from "./parseJsonBlock";
 import { parsePlainTextBlock } from "./parsePlainTextBlock";
 import { parseDictionaryBlock } from "./parseDictionaryBlock";

@@ -66,6 +66,8 @@ export * from "./languageUtils/commonBlocks/generic/shouldBeCodeBlock";
 export * from "./languageUtils/commonBlocks/generic/getValidDictionaryBlocksWithName";
 export * from "./languageUtils/commonBlocks/generic/shouldBeDictionaryBlock";
 export * from "./languageUtils/commonBlocks/generic/getBlockType";
+export * from "./languageUtils/commonBlocks/generic/blockTypeEnum";
+export * from "./languageUtils/commonBlocks/generic/blockBracketEnum";
 export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockDictionaryBlock";
 export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockCodeBlock";
 export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockArrayBlock";
@@ -90,10 +92,11 @@ export { isVarsBlock as isVarsBlockInRequestFile } from "./languageUtils/commonB
 
 // language utils - generic fields
 export * from "./languageUtils/genericFields/booleanFieldValueEnum";
-export * from "./languageUtils/genericFields/isDictionaryBlockField";
-export * from "./languageUtils/genericFields/isDictionaryBlockSimpleField";
-export * from "./languageUtils/genericFields/isDictionaryBlockArrayField";
 export * from "./languageUtils/genericFields/shouldBeDictionaryArrayField";
+export * from "./languageUtils/genericFields/typeguards/isArrayBlockField";
+export * from "./languageUtils/genericFields/typeguards/isDictionaryBlockField";
+export * from "./languageUtils/genericFields/typeguards/isDictionaryBlockSimpleField";
+export * from "./languageUtils/genericFields/typeguards/isDictionaryBlockArrayField";
 
 // language utils - urls
 export * from "./languageUtils/urls/getQueryParamsFromUrl";

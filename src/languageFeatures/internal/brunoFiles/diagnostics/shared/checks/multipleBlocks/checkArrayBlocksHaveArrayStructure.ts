@@ -6,6 +6,7 @@ import {
 } from "vscode";
 import {
     Block,
+    isArrayBlockField,
     isBlockArrayBlock,
     mapToVsCodePosition,
     mapToVsCodeRange,
@@ -14,7 +15,6 @@ import {
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
-import { isArrayBlockField } from "../../../../../../../shared/fileParsing/internal/util/isArrayBlockField";
 import { getSortedPlainTextLinesByPosition } from "../../util/getSortedPlainTextLinesByPosition";
 
 export function checkArrayBlocksHaveArrayStructure(

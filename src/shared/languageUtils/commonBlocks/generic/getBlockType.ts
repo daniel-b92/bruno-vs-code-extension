@@ -2,9 +2,9 @@ import {
     RequestFileBlockName,
     shouldBeCodeBlock,
     shouldBeDictionaryBlock,
+    BlockBracket,
 } from "../../..";
-import { BlockBracket } from "../../../fileParsing/internal/util/blockBracketEnum";
-import { BlockType } from "../../../fileParsing/internal/util/BlockTypeEnum";
+import { BlockType } from "./blockTypeEnum";
 
 export function getBlockType(blockStartingLine: string, blockName: string) {
     if (blockStartingLine.includes(BlockBracket.OpeningBracketForArrayBlock)) {
