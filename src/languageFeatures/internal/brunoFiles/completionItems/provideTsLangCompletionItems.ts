@@ -28,14 +28,15 @@ import {
     waitForTempJsFileToBeInSyncWithBruFile,
 } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
-import { mapToGetEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
+import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
 import {
     EnvVariableNameMatchingMode,
     getMatchingEnvironmentVariableDefinitions,
 } from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitions";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
-import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
+import { getStringLiteralParameterForEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
+import { getInbuiltFunctionsForEnvironmentVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
 
 type CompletionItemRange =
     | VsCodeRange
@@ -82,15 +83,19 @@ export function provideTsLangCompletionItems(
                 }
 
                 const envVariableNameForRequest =
-                    getStringLiteralParameterForGetEnvVarInbuiltFunction(
-                        mapToGetEnvVarNameParams({
-                            file: {
-                                collection,
-                                blockContainingPosition: blockInBruFile,
+                    getStringLiteralParameterForEnvVarInbuiltFunction(
+                        mapToEnvVarNameParams(
+                            {
+                                file: {
+                                    collection,
+                                    blockContainingPosition: blockInBruFile,
+                                },
+                                request: { document, position, token },
+                                logger,
                             },
-                            request: { document, position, token },
-                            logger,
-                        }),
+                            getInbuiltFunctionsForEnvironmentVariables()
+                                .getEnvironmentVariable,
+                        ),
                     );
 
                 if (envVariableNameForRequest) {

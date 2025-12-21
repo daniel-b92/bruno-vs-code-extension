@@ -6,18 +6,26 @@ import {
     SyntaxKind,
 } from "typescript";
 import { OutputChannelLogger } from "../../../../shared";
-import { LanguageFeatureRequest } from "../interfaces";
+import {
+    InbuiltFunctionIdentifier,
+    LanguageFeatureRequest,
+} from "../interfaces";
 
-export function getStringLiteralParameterForGetEnvVarInbuiltFunction(params: {
+export function getStringLiteralParameterForEnvVarInbuiltFunction(params: {
     relevantContent: string;
+    inbuiltFunction: InbuiltFunctionIdentifier;
     defaultOffsetWithinDocument?: number;
     request: LanguageFeatureRequest;
     logger?: OutputChannelLogger;
 }) {
-    const { relevantContent, request, defaultOffsetWithinDocument, logger } =
-        params;
+    const {
+        relevantContent,
+        inbuiltFunction: { baseIdentifier, functionName },
+        request,
+        defaultOffsetWithinDocument,
+        logger,
+    } = params;
     const { token } = request;
-    const { baseIdentifier, functionName } = getIdentifiers();
     const { defaultOffsetToUse, offsetWithinSubdocument } = getOffsetsToUse(
         request,
         defaultOffsetWithinDocument,
@@ -75,6 +83,7 @@ export function getStringLiteralParameterForGetEnvVarInbuiltFunction(params: {
             neededDepthReached &&
             childContainingPosition.kind == SyntaxKind.SyntaxList
         ) {
+            // ToDo: Always only check the first parameter from the list of parameters since this is the name of the environment variable for all inbuilt functions.
             const resultNode = childContainingPosition
                 .getChildren(sourceFile)
                 .find((child) =>
@@ -164,8 +173,4 @@ function parseAsTsNode(relevantContent: string) {
 
 function addLogEntryForCancellation(logger?: OutputChannelLogger) {
     logger?.debug(`Cancellation requested for language feature.`);
-}
-
-function getIdentifiers() {
-    return { baseIdentifier: "bru", functionName: "getEnvVar" };
 }

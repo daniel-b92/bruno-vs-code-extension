@@ -7,7 +7,8 @@ import {
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { getHoverForEnvironmentVariable } from "../../shared/environmentVariables/getHoverForEnvironmentVariable";
-import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
+import { getStringLiteralParameterForEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
+import { getInbuiltFunctionsForEnvironmentVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
 
 export function provideInfosOnHover(
     collectionItemProvider: CollectionItemProvider,
@@ -71,8 +72,10 @@ function getEnvVariableNameForRequest(params: {
         logger,
     } = params;
 
-    return getStringLiteralParameterForGetEnvVarInbuiltFunction({
+    return getStringLiteralParameterForEnvVarInbuiltFunction({
         relevantContent: document.getText(),
+        inbuiltFunction:
+            getInbuiltFunctionsForEnvironmentVariables().getEnvironmentVariable,
         request: params.baseRequest,
         logger,
     });

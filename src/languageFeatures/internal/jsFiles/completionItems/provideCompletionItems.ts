@@ -11,8 +11,9 @@ import {
     getMatchingEnvironmentVariableDefinitions,
 } from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitions";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
-import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
+import { getStringLiteralParameterForEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
 import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
+import { getInbuiltFunctionsForEnvironmentVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
 
 export function provideCompletionItems(
     collectionItemProvider: CollectionItemProvider,
@@ -77,8 +78,10 @@ function getEnvVariableNameForRequest(params: {
         return undefined;
     }
 
-    return getStringLiteralParameterForGetEnvVarInbuiltFunction({
+    return getStringLiteralParameterForEnvVarInbuiltFunction({
         relevantContent: document.getText(),
+        inbuiltFunction:
+            getInbuiltFunctionsForEnvironmentVariables().getEnvironmentVariable,
         request: params.baseRequest,
         logger,
     });
