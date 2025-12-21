@@ -59,17 +59,17 @@ export function getStringLiteralParameterForInbuiltFunction(params: {
 
         const currentNode = checkedNodes[checkedNodes.length - 1];
 
-        const childContainingPosition = currentNode
-            .getChildren(sourceFile)
-            .find(
-                (child) =>
-                    child.getStart(sourceFile) <= offsetWithinSubdocument &&
-                    child.getEnd() >= offsetWithinSubdocument,
-            );
+        const childContainingPosition = getChildNodeContainingPosition(
+            currentNode,
+            sourceFile,
+            offsetWithinSubdocument,
+        );
 
         if (!childContainingPosition) {
             return undefined;
         }
+
+        const { node: childNodeContainingPosition } = childContainingPosition;
 
         const neededDepthReached = currentNode
             .getChildren(sourceFile)
@@ -91,19 +91,29 @@ export function getStringLiteralParameterForInbuiltFunction(params: {
 
         if (
             neededDepthReached &&
-            childContainingPosition.kind == SyntaxKind.SyntaxList
+            childNodeContainingPosition.kind == SyntaxKind.SyntaxList
         ) {
-            // ToDo: Always only check the first parameter from the list of parameters since this is the name of the environment variable for all inbuilt functions.
-            const resultNode = childContainingPosition
-                .getChildren(sourceFile)
-                .find((child) =>
-                    [
-                        SyntaxKind.NoSubstitutionTemplateLiteral, // String quoted via '`'
-                        SyntaxKind.StringLiteral, // String quoted via '"' or "'"
-                    ].includes(child.kind),
-                );
+            const grandChildContainingPosition = getChildNodeContainingPosition(
+                childNodeContainingPosition,
+                sourceFile,
+                offsetWithinSubdocument,
+            );
 
-            return resultNode
+            if (
+                grandChildContainingPosition == undefined ||
+                grandChildContainingPosition.childIndex != 0 // The first parameter is always the environment variable name for all inbuilt functions.
+            ) {
+                return undefined;
+            }
+
+            const { node: resultNode } = grandChildContainingPosition;
+
+            const canHandleNodeType = [
+                SyntaxKind.NoSubstitutionTemplateLiteral, // String quoted via '`'
+                SyntaxKind.StringLiteral, // String quoted via '"' or "'"
+            ].includes(resultNode.kind);
+
+            return canHandleNodeType
                 ? ({
                       inbuiltFunction: inbuiltFunctionForRequest,
                       variableName: extractVariableNameFromResultNode(
@@ -119,7 +129,7 @@ export function getStringLiteralParameterForInbuiltFunction(params: {
                 : undefined;
         }
 
-        checkedNodes.push(childContainingPosition);
+        checkedNodes.push(childNodeContainingPosition);
     } while (
         functionsToSearchFor.some(({ functionName }) =>
             checkedNodes[checkedNodes.length - 1]
@@ -158,6 +168,24 @@ function extractVariableNameFromResultNode(
         position.compareTo(start) > 0 &&
         position.compareTo(end) < 0
         ? text.substring(1, text.length - 1)
+        : undefined;
+}
+
+function getChildNodeContainingPosition(
+    currentNode: Node,
+    sourceFile: SourceFile,
+    offset: number,
+) {
+    const index = currentNode
+        .getChildren(sourceFile)
+        .findIndex(
+            (child) =>
+                child.getStart(sourceFile) <= offset &&
+                child.getEnd() >= offset,
+        );
+
+    return index > -1
+        ? { childIndex: index, node: currentNode.getChildAt(index, sourceFile) }
         : undefined;
 }
 
