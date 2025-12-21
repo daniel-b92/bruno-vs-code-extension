@@ -132,6 +132,7 @@ export * from "./model/typeguards/isCollectionItemWithSequence";
 export * from "./fileSystemCache/externalHelpers/collectionItemProvider";
 export * from "./fileSystemCache/externalHelpers/testRunnerDataHelper";
 export * from "./fileSystemCache/externalHelpers/isBrunoFileType";
+export * from "./fileSystemCache/externalHelpers/tempJsFilesProvider";
 
 // vsCodeSettings
 export * from "./vsCodeSettings/getLinkToUserSetting";
