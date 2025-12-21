@@ -1,5 +1,5 @@
-import { isBlockDictionaryBlock, getAllMethodBlocks } from "../../../..";
-import { Block } from "../../../../languageUtils/interfaces";
+import { isBlockDictionaryBlock, getAllMethodBlocks } from "../../..";
+import { Block } from "../../interfaces";
 
 export function getMethodBlockIfValid(allBlocks: Block[]) {
     const methodBlocks = getAllMethodBlocks(allBlocks);

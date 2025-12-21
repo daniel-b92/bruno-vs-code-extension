@@ -3,8 +3,8 @@ import {
     shouldBeCodeBlock,
     shouldBeDictionaryBlock,
 } from "../../..";
-import { BlockBracket } from "../../internal/util/blockBracketEnum";
-import { BlockType } from "../../internal/util/BlockTypeEnum";
+import { BlockBracket } from "../../../fileParsing/internal/util/blockBracketEnum";
+import { BlockType } from "../../../fileParsing/internal/util/BlockTypeEnum";
 
 export function getBlockType(blockStartingLine: string, blockName: string) {
     if (blockStartingLine.includes(BlockBracket.OpeningBracketForArrayBlock)) {

@@ -1,4 +1,4 @@
-import { Block, MethodBlockKey } from "../../../../../shared";
+import { Block, MethodBlockKey } from "../../..";
 import { getMethodBlockIfValid } from "./getMethodBlockIfValid";
 
 export function getUrlFieldFromMethodBlock(allBlocks: Block[]) {
@@ -9,7 +9,7 @@ export function getUrlFieldFromMethodBlock(allBlocks: Block[]) {
     }
 
     const urlFieldsInMethodBlock = methodBlock.content.filter(
-        ({ key }) => key == MethodBlockKey.Url
+        ({ key }) => key == MethodBlockKey.Url,
     );
 
     return urlFieldsInMethodBlock.length == 1
