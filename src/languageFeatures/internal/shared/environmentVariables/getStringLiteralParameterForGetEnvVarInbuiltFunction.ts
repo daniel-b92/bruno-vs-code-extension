@@ -14,19 +14,16 @@ export function getStringLiteralParameterForGetEnvVarInbuiltFunction(params: {
     request: LanguageFeatureRequest;
     logger?: OutputChannelLogger;
 }) {
-    const {
-        relevantContent,
-        request: { document, position, token },
-        defaultOffsetWithinDocument,
-        logger,
-    } = params;
+    const { relevantContent, request, defaultOffsetWithinDocument, logger } =
+        params;
+    const { token } = request;
     const { baseIdentifier, functionName } = getIdentifiers();
-    const defaultOffsetToUse =
-        defaultOffsetWithinDocument != undefined
-            ? defaultOffsetWithinDocument
-            : 0;
-    const offsetWithinSubdocument =
-        document.offsetAt(position) - defaultOffsetToUse;
+    const { defaultOffsetToUse, offsetWithinSubdocument } = getOffsetsToUse(
+        request,
+        defaultOffsetWithinDocument,
+    );
+    const { asTsNode: contentAsTsNode, sourceFile } =
+        parseAsTsNode(relevantContent);
 
     if (
         !relevantContent.includes(baseIdentifier) ||
@@ -35,19 +32,12 @@ export function getStringLiteralParameterForGetEnvVarInbuiltFunction(params: {
         return undefined;
     }
 
-    // ToDo: Use already parsed block content from parsed block (instead of parsing as TS node again here).
-    const sourceFile = createSourceFile(
-        "__temp.js",
-        relevantContent,
-        ScriptTarget.ES2020,
-    );
-
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return undefined;
     }
 
-    const checkedNodes: Node[] = [sourceFile as Node];
+    const checkedNodes: Node[] = [contentAsTsNode];
 
     do {
         if (token.isCancellationRequested) {
@@ -142,6 +132,34 @@ function extractVariableNameFromResultNode(
         position.compareTo(end) < 0
         ? text.substring(1, text.length - 1)
         : undefined;
+}
+
+function getOffsetsToUse(
+    { document, position }: LanguageFeatureRequest,
+    defaultOffsetWithinDocument?: number,
+) {
+    const defaultOffsetToUse =
+        defaultOffsetWithinDocument != undefined
+            ? defaultOffsetWithinDocument
+            : 0;
+
+    const offsetWithinSubdocument =
+        document.offsetAt(position) - defaultOffsetToUse;
+
+    return { defaultOffsetToUse, offsetWithinSubdocument };
+}
+
+function parseAsTsNode(relevantContent: string) {
+    const sourceFile = createSourceFile(
+        "__temp.js",
+        relevantContent,
+        ScriptTarget.ES2020,
+    );
+
+    return {
+        asTsNode: sourceFile as Node,
+        sourceFile,
+    };
 }
 
 function addLogEntryForCancellation(logger?: OutputChannelLogger) {
