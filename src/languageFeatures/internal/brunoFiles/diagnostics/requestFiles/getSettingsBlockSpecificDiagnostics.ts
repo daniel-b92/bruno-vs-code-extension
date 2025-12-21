@@ -1,6 +1,6 @@
 import {
     Block,
-    castBlockToDictionaryBlock,
+    isBlockDictionaryBlock,
     SettingsBlockKey,
     BooleanFieldValue,
     isDictionaryBlockSimpleField,
@@ -16,9 +16,7 @@ import { RelevantWithinSettingsBlockDiagnosticCode } from "../shared/diagnosticC
 export function getSettingsBlockSpecificDiagnostics(
     settingsBlock: Block,
 ): (DiagnosticWithCode | undefined)[] {
-    const castedBlock = castBlockToDictionaryBlock(settingsBlock);
-
-    if (!castedBlock) {
+    if (!isBlockDictionaryBlock(settingsBlock)) {
         return [];
     }
 
@@ -28,7 +26,7 @@ export function getSettingsBlockSpecificDiagnostics(
 
     result.push(
         checkNoKeysAreMissingForDictionaryBlock(
-            castedBlock,
+            settingsBlock,
             mandatoryKeys,
             RelevantWithinMetaBlockDiagnosticCode.KeysMissingInMetaBlock,
         ),
@@ -36,7 +34,7 @@ export function getSettingsBlockSpecificDiagnostics(
 
     result.push(
         checkNoUnknownKeysAreDefinedInDictionaryBlock(
-            castedBlock,
+            settingsBlock,
             mandatoryKeys,
             RelevantWithinMetaBlockDiagnosticCode.UnknownKeysDefinedInMetaBlock,
         ),
@@ -44,13 +42,13 @@ export function getSettingsBlockSpecificDiagnostics(
 
     result.push(
         checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-            castedBlock,
+            settingsBlock,
             mandatoryKeys,
             RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
         ),
     );
 
-    const encodeUrlFields = castedBlock.content.filter(
+    const encodeUrlFields = settingsBlock.content.filter(
         ({ key }) => key == SettingsBlockKey.EncodeUrl,
     );
 

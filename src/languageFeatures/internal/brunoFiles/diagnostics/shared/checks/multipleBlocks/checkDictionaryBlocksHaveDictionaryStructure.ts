@@ -6,7 +6,7 @@ import {
 } from "vscode";
 import {
     Block,
-    castBlockToDictionaryBlock,
+    isBlockDictionaryBlock,
     isDictionaryBlockField,
     mapToVsCodePosition,
     mapToVsCodeRange,
@@ -22,7 +22,7 @@ export function checkDictionaryBlocksHaveDictionaryStructure(
     blocksToCheck: Block[],
 ): DiagnosticWithCode | undefined {
     const sortedBlocksWithoutCorrectStructure = getSortedBlocksByPosition(
-        blocksToCheck.filter((block) => !castBlockToDictionaryBlock(block)),
+        blocksToCheck.filter((block) => !isBlockDictionaryBlock(block)),
     );
 
     if (sortedBlocksWithoutCorrectStructure.length == 0) {

@@ -1,5 +1,5 @@
 import {
-    castBlockToDictionaryBlock,
+    isBlockDictionaryBlock,
     getFieldFromDictionaryBlock,
     MethodBlockKey,
     Block,
@@ -7,13 +7,9 @@ import {
 
 export function getFieldFromMethodBlock(
     methodBlock: Block,
-    key: MethodBlockKey
+    key: MethodBlockKey,
 ) {
-    const castedMethodBlock = castBlockToDictionaryBlock(methodBlock);
-
-    if (!castedMethodBlock) {
-        return undefined;
-    }
-
-    return getFieldFromDictionaryBlock(castedMethodBlock, key);
+    return isBlockDictionaryBlock(methodBlock)
+        ? getFieldFromDictionaryBlock(methodBlock, key)
+        : undefined;
 }

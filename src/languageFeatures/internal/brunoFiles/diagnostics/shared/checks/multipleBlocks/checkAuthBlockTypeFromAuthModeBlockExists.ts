@@ -7,7 +7,7 @@ import {
     mapToVsCodeRange,
     SettingsFileSpecificBlock,
     getFieldFromDictionaryBlock,
-    castBlockToDictionaryBlock,
+    isBlockDictionaryBlock,
     AuthModeBlockKey,
     isDictionaryBlockSimpleField,
 } from "../../../../../../../shared";
@@ -27,14 +27,14 @@ export function checkAuthBlockTypeFromAuthModeBlockExists(
         return undefined;
     }
 
-    const castedAuthModeBlock = castBlockToDictionaryBlock(authModeBlocks[0]);
+    const authModeBlock = authModeBlocks[0];
 
-    if (!castedAuthModeBlock) {
+    if (!isBlockDictionaryBlock(authModeBlock)) {
         return undefined;
     }
 
     const authModeField = getFieldFromDictionaryBlock(
-        castedAuthModeBlock,
+        authModeBlock,
         AuthModeBlockKey.Mode,
     );
 

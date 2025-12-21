@@ -4,9 +4,9 @@ import {
     Position,
     Range,
     TextDocumentHelper,
+    BlockBracket,
 } from "../..";
-import { BlockBracket } from "./util/blockBracketEnum";
-import { getContentRangeForArrayOrDictionaryBlock } from "./util/getContentRangeForArrayOrDictionaryBlock";
+import { getContentRangeForArrayOrDictionaryBlock } from "../external/shared/util/getContentRangeForArrayOrDictionaryBlock";
 
 export function parseArrayBlock(
     document: TextDocumentHelper,

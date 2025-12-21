@@ -1,6 +1,7 @@
 import { DiagnosticSeverity } from "vscode";
 import {
     Block,
+    BlockBracket,
     mapToVsCodeRange,
     parseBruFile,
     TextDocumentHelper,
@@ -9,7 +10,6 @@ import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { getCodeBlocks } from "../../../../shared/codeBlocksUtils/getCodeBlocks";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
-import { BlockBracket } from "../../../../../../../shared/fileParsing/internal/util/blockBracketEnum";
 
 export function checkCodeBlocksHaveClosingBracket(
     documentHelper: TextDocumentHelper,

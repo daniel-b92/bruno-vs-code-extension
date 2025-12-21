@@ -10,7 +10,7 @@ import {
     CollectionItemProvider,
     Block,
     TextOutsideOfBlocks,
-    castBlockToDictionaryBlock,
+    isBlockDictionaryBlock,
     DictionaryBlock,
     shouldBeDictionaryArrayField,
 } from "../../../../../shared";
@@ -77,8 +77,8 @@ function collectCommonDiagnostics(
     );
 
     const validDictionaryBlocks = blocksThatShouldBeDictionaryBlocks.filter(
-        castBlockToDictionaryBlock,
-    ) as DictionaryBlock[];
+        isBlockDictionaryBlock,
+    );
 
     const results: (DiagnosticWithCode | undefined)[] = [];
 
@@ -164,16 +164,16 @@ async function collectBlockSpecificDiagnostics(
     );
 
     if (metaBlocks.length == 1) {
-        const castedMetaBlock = castBlockToDictionaryBlock(metaBlocks[0]);
+        const metaBlock = metaBlocks[0];
 
-        if (castedMetaBlock) {
+        if (isBlockDictionaryBlock(metaBlock)) {
             results.push(
                 ...(await getMetaBlockSpecificDiagnostics(
                     itemProvider,
                     relatedFilesHelper,
                     documentUri,
                     documentHelper,
-                    castedMetaBlock,
+                    metaBlock,
                 )),
             );
         }

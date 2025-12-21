@@ -1,7 +1,6 @@
 import { createSourceFile, ScriptTarget, Node } from "typescript";
-import { Position, Range, TextDocumentHelper } from "../..";
-import { BlockBracket } from "./util/blockBracketEnum";
-import { getNonBlockSpecificBlockStartPattern } from "./util/getNonBlockSpecificBlockStartPattern";
+import { Position, Range, TextDocumentHelper, BlockBracket } from "../..";
+import { getNonBlockSpecificBlockStartPattern } from "../external/shared/util/getNonBlockSpecificBlockStartPattern";
 
 export function parseJsonBlock(
     document: TextDocumentHelper,

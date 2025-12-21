@@ -1,6 +1,8 @@
 import { DiagnosticSeverity, Range, Uri } from "vscode";
 import {
     EnvironmentFileBlockName,
+    getBlockStartPatternByName,
+    getNonBlockSpecificBlockStartPattern,
     mapToVsCodePosition,
     mapToVsCodeRange,
     RequestFileBlockName,
@@ -10,8 +12,6 @@ import {
 } from "../../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
-import { getNonBlockSpecificBlockStartPattern } from "../../../../../../../shared/fileParsing/internal/util/getNonBlockSpecificBlockStartPattern";
-import { getBlockStartPatternByName } from "../../../../../../../shared/fileParsing/internal/util/getBlockStartPatternByName";
 
 export function checkThatNoTextExistsOutsideOfBlocks(
     documentUri: Uri,

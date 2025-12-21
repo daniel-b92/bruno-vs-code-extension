@@ -1,13 +1,15 @@
+import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
+import { getBlockContent } from "../internal/getBlockContent";
+import { getNonBlockSpecificBlockStartPattern } from "./shared/util/getNonBlockSpecificBlockStartPattern";
 import {
+    getBlockType,
+    Position,
+    Range,
     DictionaryBlockSimpleField,
     Block,
     TextOutsideOfBlocks,
     ArrayBlockField,
-} from "./interfaces";
-import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
-import { getBlockContent } from "../internal/getBlockContent";
-import { getNonBlockSpecificBlockStartPattern } from "../internal/util/getNonBlockSpecificBlockStartPattern";
-import { getBlockType, Position, Range } from "../..";
+} from "../..";
 
 export const parseBruFile = (document: TextDocumentHelper) => {
     const result: {

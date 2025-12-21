@@ -6,7 +6,8 @@ import {
 } from "vscode";
 import {
     Block,
-    castBlockToArrayBlock,
+    isArrayBlockField,
+    isBlockArrayBlock,
     mapToVsCodePosition,
     mapToVsCodeRange,
     PlainTextWithinBlock,
@@ -14,7 +15,6 @@ import {
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
-import { isArrayBlockField } from "../../../../../../../shared/fileParsing/internal/util/isArrayBlockField";
 import { getSortedPlainTextLinesByPosition } from "../../util/getSortedPlainTextLinesByPosition";
 
 export function checkArrayBlocksHaveArrayStructure(
@@ -22,7 +22,7 @@ export function checkArrayBlocksHaveArrayStructure(
     blocksToCheck: Block[],
 ): DiagnosticWithCode | undefined {
     const sortedBlocksWithoutCorrectStructure = getSortedBlocksByPosition(
-        blocksToCheck.filter((block) => !castBlockToArrayBlock(block)),
+        blocksToCheck.filter((block) => !isBlockArrayBlock(block)),
     );
 
     if (sortedBlocksWithoutCorrectStructure.length > 0) {

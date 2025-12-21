@@ -33,6 +33,7 @@ import {
     CollectionWatcher,
     getTemporaryJsFileBasename,
     getItemType,
+    TempJsFilesProvider,
 } from "../shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/brunoFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/brunoFiles/autoUpdates/updateUrlToMatchQueryParams";
@@ -46,7 +47,6 @@ import { registerCodeBlockFormatter } from "./internal/brunoFiles/formatting/reg
 import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "./internal/shared/temporaryJsFilesUpdates/internal/interfaces";
 import { getTempJsFileContentForBruFile } from "./internal/brunoFiles/shared/codeBlocksUtils/getTempJsFileContentForBruFile";
-import { TempJsFilesProvider } from "../shared/fileSystemCache/externalHelpers/tempJsFilesProvider";
 import { getDefinitionsForInbuiltLibraries } from "./internal/shared/temporaryJsFilesUpdates/external/getDefinitionsForInbuiltLibraries";
 import { provideInfosOnHover as provideInfosOnHoverForJsFiles } from "./internal/jsFiles/hover/provideInfosOnHover";
 import { provideCompletionItems as provideCompletionItemsForJsFiles } from "./internal/jsFiles/completionItems/provideCompletionItems";

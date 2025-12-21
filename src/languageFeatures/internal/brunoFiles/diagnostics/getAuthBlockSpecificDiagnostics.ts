@@ -1,6 +1,6 @@
 import {
     Block,
-    castBlockToDictionaryBlock,
+    isBlockDictionaryBlock,
     AuthBlockName,
     getMandatoryKeysForNonOAuth2Block,
     ApiKeyAuthBlockKey,
@@ -24,9 +24,7 @@ import { RelevantWithinAuthBlockDiagnosticCode } from "./shared/diagnosticCodes/
 export function getAuthBlockSpecificDiagnostics(
     authBlock: Block,
 ): (DiagnosticWithCode | undefined)[] {
-    const castedAuthBlock = castBlockToDictionaryBlock(authBlock);
-
-    if (!castedAuthBlock) {
+    if (!isBlockDictionaryBlock(authBlock)) {
         return [];
     }
 
@@ -34,14 +32,12 @@ export function getAuthBlockSpecificDiagnostics(
     const diagnostics: (DiagnosticWithCode | undefined)[] = [];
 
     if (
-        (Object.values(AuthBlockName) as string[]).includes(
-            castedAuthBlock.name,
-        ) &&
-        castedAuthBlock.name != AuthBlockName.OAuth2Auth
+        (Object.values(AuthBlockName) as string[]).includes(authBlock.name) &&
+        authBlock.name != AuthBlockName.OAuth2Auth
     ) {
         mandatoryKeys.push(
             ...getMandatoryKeysForNonOAuth2Block(
-                castedAuthBlock.name as
+                authBlock.name as
                     | AuthBlockName.ApiKeyAuth
                     | AuthBlockName.AwsSigV4Auth
                     | AuthBlockName.BasicAuth
@@ -53,29 +49,29 @@ export function getAuthBlockSpecificDiagnostics(
         );
         diagnostics.push(
             checkNoKeysAreMissingForDictionaryBlock(
-                castedAuthBlock,
+                authBlock,
                 mandatoryKeys,
                 RelevantWithinAuthBlockDiagnosticCode.KeysMissingInAuthBlock,
             ),
             checkNoUnknownKeysAreDefinedInDictionaryBlock(
-                castedAuthBlock,
+                authBlock,
                 mandatoryKeys,
                 RelevantWithinAuthBlockDiagnosticCode.UnknownKeysDefinedInAuthBlock,
             ),
             checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-                castedAuthBlock,
+                authBlock,
                 mandatoryKeys,
                 RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock,
             ),
         );
 
         if (
-            castedAuthBlock.name == AuthBlockName.ApiKeyAuth &&
-            castedAuthBlock.content.some(
+            authBlock.name == AuthBlockName.ApiKeyAuth &&
+            authBlock.content.some(
                 ({ key }) => key == ApiKeyAuthBlockKey.Placement,
             )
         ) {
-            const field = castedAuthBlock.content.find(
+            const field = authBlock.content.find(
                 ({ key }) => key == ApiKeyAuthBlockKey.Placement,
             );
 
@@ -89,8 +85,8 @@ export function getAuthBlockSpecificDiagnostics(
                 );
             }
         }
-    } else if (castedAuthBlock.name == AuthBlockName.OAuth2Auth) {
-        diagnostics.push(...getDiagnosticsForOAuth2AuthBlock(castedAuthBlock));
+    } else if (authBlock.name == AuthBlockName.OAuth2Auth) {
+        diagnostics.push(...getDiagnosticsForOAuth2AuthBlock(authBlock));
     }
 
     return diagnostics;

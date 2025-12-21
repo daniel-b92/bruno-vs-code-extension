@@ -8,8 +8,7 @@ import {
     RequestFileBlockName,
     isAuthBlock,
     CollectionItemProvider,
-    castBlockToDictionaryBlock,
-    DictionaryBlock,
+    isBlockDictionaryBlock,
 } from "../../../../../shared";
 import { DiagnosticWithCode } from "../definitions";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
@@ -44,8 +43,8 @@ export async function determineDiagnosticsForFolderSettingsFile(
     );
 
     const validDictionaryBlocks = blocksThatShouldBeDictionaryBlocks.filter(
-        castBlockToDictionaryBlock,
-    ) as DictionaryBlock[];
+        isBlockDictionaryBlock,
+    );
 
     const results: (DiagnosticWithCode | undefined)[] = [];
 

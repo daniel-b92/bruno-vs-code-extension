@@ -8,7 +8,7 @@ import {
     RequestFileBlockName,
     TextDocumentHelper,
     MetaBlockKey,
-    castBlockToDictionaryBlock,
+    isBlockDictionaryBlock,
     getSequenceFieldFromMetaBlock,
     mapToVsCodeRange,
     BrunoFileType,
@@ -34,14 +34,12 @@ export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
         diagnosticCurrentFile: DiagnosticWithCode;
     };
 }> {
-    const castedBlock = castBlockToDictionaryBlock(metaBlock);
-
     if (
-        !castedBlock ||
-        castedBlock.content.filter(({ key }) => key == MetaBlockKey.Sequence)
+        !isBlockDictionaryBlock(metaBlock) ||
+        metaBlock.content.filter(({ key }) => key == MetaBlockKey.Sequence)
             .length != 1 ||
         !isSequenceValid(
-            castedBlock.content.find(
+            metaBlock.content.find(
                 ({ key }) => key == MetaBlockKey.Sequence,
             ) as DictionaryBlockSimpleField,
         )
@@ -49,7 +47,7 @@ export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
         return { code: getDiagnosticCode() };
     }
 
-    const sequenceField = castedBlock.content.find(
+    const sequenceField = metaBlock.content.find(
         ({ key }) => key == MetaBlockKey.Sequence,
     ) as DictionaryBlockSimpleField;
 
