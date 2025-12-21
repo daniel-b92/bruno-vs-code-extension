@@ -45,24 +45,25 @@ async function getHover(params: {
         logger,
     } = params;
 
-    const envVariableResult = getEnvVariableNameForRequest(params);
+    const envVariableRelatedFunction =
+        getEnvVariableRelatedFunctionForRequest(params);
 
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return undefined;
     }
 
-    return envVariableResult != undefined
+    return envVariableRelatedFunction != undefined
         ? getHoverForEnvironmentVariable(
               collection,
-              envVariableResult.variableName,
+              envVariableRelatedFunction.variableName,
               token,
               logger,
           )
         : undefined;
 }
 
-function getEnvVariableNameForRequest(params: {
+function getEnvVariableRelatedFunctionForRequest(params: {
     file: { collection: Collection };
     baseRequest: LanguageFeatureRequest;
     logger?: OutputChannelLogger;
@@ -71,11 +72,16 @@ function getEnvVariableNameForRequest(params: {
         baseRequest: { document },
         logger,
     } = params;
+    const {
+        getEnvironmentVariable: getEnvironmentVariableFunction,
+        setEnvironmentVariable: setEnvironmentVariableFunction,
+    } = getInbuiltFunctionsForEnvironmentVariables();
 
     return getStringLiteralParameterForInbuiltFunction({
         relevantContent: document.getText(),
         functionsToSearchFor: [
-            getInbuiltFunctionsForEnvironmentVariables().getEnvironmentVariable,
+            getEnvironmentVariableFunction,
+            setEnvironmentVariableFunction,
         ],
         request: params.baseRequest,
         logger,

@@ -37,18 +37,19 @@ export function provideCompletionItems(
                     return undefined;
                 }
 
-                const envVariableResult = getEnvVariableNameForRequest({
-                    file: {
-                        collection,
-                    },
-                    baseRequest: { document, position, token },
-                    logger,
-                });
+                const envVariableRelatedFunction =
+                    getEnvVariableRelatedFunctionForRequest({
+                        file: {
+                            collection,
+                        },
+                        baseRequest: { document, position, token },
+                        logger,
+                    });
 
-                return envVariableResult != undefined
+                return envVariableRelatedFunction != undefined
                     ? getResultsForEnvironmentVariable(
                           collection,
-                          envVariableResult.variableName,
+                          envVariableRelatedFunction.variableName,
                           { document, position, token },
                           logger,
                       )
@@ -63,7 +64,7 @@ export function provideCompletionItems(
     );
 }
 
-function getEnvVariableNameForRequest(params: {
+function getEnvVariableRelatedFunctionForRequest(params: {
     file: { collection: Collection };
     baseRequest: LanguageFeatureRequest;
     logger?: OutputChannelLogger;
@@ -72,6 +73,10 @@ function getEnvVariableNameForRequest(params: {
         baseRequest: { document, token },
         logger,
     } = params;
+    const {
+        getEnvironmentVariable: getEnvironmentVariableFunction,
+        setEnvironmentVariable: setEnvironmentVariableFunction,
+    } = getInbuiltFunctionsForEnvironmentVariables();
 
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
@@ -81,7 +86,8 @@ function getEnvVariableNameForRequest(params: {
     return getStringLiteralParameterForInbuiltFunction({
         relevantContent: document.getText(),
         functionsToSearchFor: [
-            getInbuiltFunctionsForEnvironmentVariables().getEnvironmentVariable,
+            getEnvironmentVariableFunction,
+            setEnvironmentVariableFunction,
         ],
         request: params.baseRequest,
         logger,
