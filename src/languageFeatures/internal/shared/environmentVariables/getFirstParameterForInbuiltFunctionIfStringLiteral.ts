@@ -11,7 +11,7 @@ import {
     LanguageFeatureRequest,
 } from "../interfaces";
 
-export function getStringLiteralParameterForInbuiltFunction(params: {
+export function getFirstParameterForInbuiltFunctionIfStringLiteral(params: {
     relevantContent: string;
     functionsToSearchFor: InbuiltFunctionIdentifier[];
     defaultOffsetWithinDocument?: number;

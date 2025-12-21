@@ -11,7 +11,7 @@ import {
     getMatchingEnvironmentVariableDefinitionsFromEnvFiles,
 } from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitionsFromEnvFiles";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
-import { getStringLiteralParameterForInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForEnvVarInbuiltFunction";
+import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
 import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
 import { getInbuiltFunctionsForEnvironmentVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
 
@@ -85,7 +85,7 @@ function getEnvVariableRelatedFunctionForRequest(params: {
         return undefined;
     }
 
-    return getStringLiteralParameterForInbuiltFunction({
+    return getFirstParameterForInbuiltFunctionIfStringLiteral({
         relevantContent: document.getText(),
         functionsToSearchFor: [
             getEnvironmentVariableFunction,

@@ -35,7 +35,7 @@ import {
 } from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitionsFromEnvFiles";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
-import { getStringLiteralParameterForInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForEnvVarInbuiltFunction";
+import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
 import { getInbuiltFunctionsForEnvironmentVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
 
 type CompletionItemRange =
@@ -83,7 +83,7 @@ export function provideTsLangCompletionItems(
                 }
 
                 const envVariableResult =
-                    getStringLiteralParameterForInbuiltFunction(
+                    getFirstParameterForInbuiltFunctionIfStringLiteral(
                         mapToEnvVarNameParams(
                             {
                                 file: {

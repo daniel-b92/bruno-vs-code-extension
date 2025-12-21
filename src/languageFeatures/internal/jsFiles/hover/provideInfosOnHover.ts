@@ -7,7 +7,7 @@ import {
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { getHoverForEnvironmentVariable } from "../../shared/environmentVariables/getHoverForEnvironmentVariable";
-import { getStringLiteralParameterForInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForEnvVarInbuiltFunction";
+import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
 import { getInbuiltFunctionsForEnvironmentVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
 
 export function provideInfosOnHover(
@@ -77,7 +77,7 @@ function getEnvVariableRelatedFunctionForRequest(params: {
         setEnvironmentVariable: setEnvironmentVariableFunction,
     } = getInbuiltFunctionsForEnvironmentVariables();
 
-    return getStringLiteralParameterForInbuiltFunction({
+    return getFirstParameterForInbuiltFunctionIfStringLiteral({
         relevantContent: document.getText(),
         functionsToSearchFor: [
             getEnvironmentVariableFunction,
