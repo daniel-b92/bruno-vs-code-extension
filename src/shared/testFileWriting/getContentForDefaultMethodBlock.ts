@@ -1,5 +1,4 @@
-import { LineBreakType } from "../fileSystem/util/getLineBreak";
-import { MethodBlockKey } from "../languageUtils/commonBlocks/methodBlocks/methodBlockKeyEnum";
+import { LineBreakType, MethodBlockKey } from "..";
 import { MethodBlockContent } from "./interfaces";
 import { getContentForDictionaryBlock } from "./internal/getContentForDictionaryBlock";
 

@@ -1,7 +1,11 @@
 import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
 import { getBlockContent } from "../internal/getBlockContent";
-import { getBlockStartPatternByName } from "../internal/util/getBlockStartPatternByName";
-import { getBlockType, Position, BlockBracket } from "../..";
+import {
+    getBlockType,
+    Position,
+    BlockBracket,
+    getBlockStartPatternByName,
+} from "../..";
 
 export const parseBlockFromFile = (
     document: TextDocumentHelper,

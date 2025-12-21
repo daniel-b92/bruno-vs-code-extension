@@ -1,4 +1,4 @@
-import { Position, Range, BlockBracket } from "../../..";
+import { Position, Range, BlockBracket } from "../../../..";
 
 export function getContentRangeForArrayOrDictionaryBlock(
     firstLineIndex: number,

@@ -1,12 +1,15 @@
+import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
 import {
+    BlockType,
+    parseCodeBlock,
+    Position,
+    Range,
     ArrayBlockField,
     CodeBlockContent,
     DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
     PlainTextWithinBlock,
-} from "../../languageUtils/interfaces";
-import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
-import { BlockType, parseCodeBlock, Position, Range } from "../..";
+} from "../..";
 import { parseJsonBlock } from "./parseJsonBlock";
 import { parsePlainTextBlock } from "./parsePlainTextBlock";
 import { parseDictionaryBlock } from "./parseDictionaryBlock";

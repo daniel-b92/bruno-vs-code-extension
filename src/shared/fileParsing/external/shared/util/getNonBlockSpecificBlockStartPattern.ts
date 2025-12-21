@@ -1,4 +1,4 @@
-import { BlockBracket } from "../../..";
+import { BlockBracket } from "../../../..";
 
 export function getNonBlockSpecificBlockStartPattern() {
     return new RegExp(

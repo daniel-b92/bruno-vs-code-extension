@@ -8,7 +8,7 @@ import {
     TextDocumentHelper,
     BlockBracket,
 } from "../..";
-import { getContentRangeForArrayOrDictionaryBlock } from "./util/getContentRangeForArrayOrDictionaryBlock";
+import { getContentRangeForArrayOrDictionaryBlock } from "../external/shared/util/getContentRangeForArrayOrDictionaryBlock";
 
 type ParsedLine =
     | DictionaryBlockArrayField
