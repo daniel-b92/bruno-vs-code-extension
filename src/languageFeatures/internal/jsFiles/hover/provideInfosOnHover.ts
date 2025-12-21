@@ -7,7 +7,7 @@ import {
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { getHoverForEnvironmentVariable } from "../../shared/environmentVariables/getHoverForEnvironmentVariable";
-import { getStringLiteralParameterForEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
+import { getStringLiteralParameterForEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForEnvVarInbuiltFunction";
 import { getInbuiltFunctionsForEnvironmentVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
 
 export function provideInfosOnHover(

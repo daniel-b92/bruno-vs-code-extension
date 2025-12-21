@@ -33,8 +33,8 @@ import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockUt
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import {
     EnvVariableNameMatchingMode,
-    getMatchingEnvironmentVariableDefinitions,
-} from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitions";
+    getMatchingEnvironmentVariableDefinitionsFromEnvFiles,
+} from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitionsFromEnvFiles";
 import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
 
 export function provideBrunoLangCompletionItems(
@@ -127,7 +127,7 @@ function getNonBlockSpecificCompletions(
     }
 
     const matchingEnvVariableDefinitions =
-        getMatchingEnvironmentVariableDefinitions(
+        getMatchingEnvironmentVariableDefinitionsFromEnvFiles(
             collection,
             matchingText.substring(2),
             EnvVariableNameMatchingMode.Substring,

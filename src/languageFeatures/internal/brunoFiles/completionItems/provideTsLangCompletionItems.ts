@@ -31,11 +31,11 @@ import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/exte
 import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
 import {
     EnvVariableNameMatchingMode,
-    getMatchingEnvironmentVariableDefinitions,
-} from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitions";
+    getMatchingEnvironmentVariableDefinitionsFromEnvFiles,
+} from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitionsFromEnvFiles";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
-import { getStringLiteralParameterForEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
+import { getStringLiteralParameterForEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForEnvVarInbuiltFunction";
 import { getInbuiltFunctionsForEnvironmentVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
 
 type CompletionItemRange =
@@ -136,7 +136,7 @@ function getResultsForEnvironmentVariable(
     logger?: OutputChannelLogger,
 ) {
     const matchingEnvVariableDefinitions =
-        getMatchingEnvironmentVariableDefinitions(
+        getMatchingEnvironmentVariableDefinitionsFromEnvFiles(
             collection,
             name,
             EnvVariableNameMatchingMode.Substring,

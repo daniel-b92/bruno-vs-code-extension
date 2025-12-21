@@ -8,10 +8,10 @@ import {
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import {
     EnvVariableNameMatchingMode,
-    getMatchingEnvironmentVariableDefinitions,
-} from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitions";
+    getMatchingEnvironmentVariableDefinitionsFromEnvFiles,
+} from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitionsFromEnvFiles";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
-import { getStringLiteralParameterForEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
+import { getStringLiteralParameterForEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForEnvVarInbuiltFunction";
 import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
 import { getInbuiltFunctionsForEnvironmentVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
 
@@ -94,7 +94,7 @@ function getResultsForEnvironmentVariable(
     logger?: OutputChannelLogger,
 ) {
     const matchingEnvVariableDefinitions =
-        getMatchingEnvironmentVariableDefinitions(
+        getMatchingEnvironmentVariableDefinitionsFromEnvFiles(
             collection,
             envVariableName,
             EnvVariableNameMatchingMode.Substring,

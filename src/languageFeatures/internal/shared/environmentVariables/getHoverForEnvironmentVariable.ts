@@ -7,9 +7,9 @@ import {
     getExtensionForBrunoFiles,
 } from "../../../../shared";
 import {
-    getMatchingEnvironmentVariableDefinitions,
+    getMatchingEnvironmentVariableDefinitionsFromEnvFiles,
     EnvVariableNameMatchingMode,
-} from "./getMatchingEnvironmentVariableDefinitions";
+} from "./getMatchingEnvironmentVariableDefinitionsFromEnvFiles";
 
 export function getHoverForEnvironmentVariable(
     collection: Collection,
@@ -22,7 +22,7 @@ export function getHoverForEnvironmentVariable(
 
     const configuredEnvironmentName = getConfiguredTestEnvironment();
     const matchingVariableDefinitions =
-        getMatchingEnvironmentVariableDefinitions(
+        getMatchingEnvironmentVariableDefinitionsFromEnvFiles(
             collection,
             variableName,
             EnvVariableNameMatchingMode.Exact,
