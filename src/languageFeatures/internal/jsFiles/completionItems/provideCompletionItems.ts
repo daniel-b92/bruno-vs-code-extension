@@ -47,7 +47,9 @@ export function provideCompletionItems(
                     });
 
                 return envVariableRelatedFunction != undefined
-                    ? getResultsForEnvironmentVariable(
+                    ? /* ToDo:  Distinguish between 'getEnvVar' and 'setEnvVar' functions and prefer dynamic variables for 'setEnvVar' function.
+                                Usually, the user will not want to overwrite a static environment variable via a runtime function (at least I would assume so).*/
+                      getResultsForEnvironmentVariable(
                           collection,
                           envVariableRelatedFunction.variableName,
                           { document, position, token },
