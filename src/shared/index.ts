@@ -52,6 +52,7 @@ export * from "./fileParsing/external/folderSettings/getSequenceForFolder";
 export * from "./fileParsing/external/folderSettings/getSequencesForFolders";
 export * from "./fileParsing/external/folderSettings/getMaxSequenceForFolders";
 export * from "./fileParsing/external/folderSettings/getFolderSettingsFilePath";
+export * from "./fileParsing/external/isBlockCodeBlock";
 
 // language utils
 export * from "./languageUtils/booleanFieldValueEnum";

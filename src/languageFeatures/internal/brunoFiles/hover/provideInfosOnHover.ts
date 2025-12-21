@@ -1,14 +1,15 @@
 import { commands, Hover, languages } from "vscode";
 import {
     Block,
+    CodeBlock,
     Collection,
     CollectionItemProvider,
+    isBlockCodeBlock,
     mapFromVsCodePosition,
     mapToVsCodeRange,
     OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
-    shouldBeCodeBlock,
     TextDocumentHelper,
 } from "../../../../shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
@@ -23,13 +24,20 @@ import { mapToGetEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvV
 import { getHoverForEnvironmentVariable } from "../../shared/environmentVariables/getHoverForEnvironmentVariable";
 import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
 
-interface ProviderParams {
+interface ProviderParamsForNonCodeBlock {
     file: {
         collection: Collection;
         blockContainingPosition: Block;
     };
     hoverRequest: LanguageFeatureRequest;
     logger?: OutputChannelLogger;
+}
+
+interface ProviderParamsForCodeBlock extends ProviderParamsForNonCodeBlock {
+    file: {
+        collection: Collection;
+        blockContainingPosition: CodeBlock;
+    };
 }
 
 export function provideInfosOnHover(
@@ -61,7 +69,7 @@ export function provideInfosOnHover(
                 return undefined;
             }
 
-            if (shouldBeCodeBlock(blockContainingPosition.name)) {
+            if (isBlockCodeBlock(blockContainingPosition)) {
                 return getHoverForCodeBlocks(queue, {
                     file: { collection, blockContainingPosition },
                     hoverRequest: { document, position, token },
@@ -85,7 +93,7 @@ function getHoverForNonCodeBlocks({
     },
     hoverRequest,
     logger,
-}: ProviderParams) {
+}: ProviderParamsForNonCodeBlock) {
     const { token } = hoverRequest;
     if (
         (getNonCodeBlocksWithoutVariableSupport() as string[]).includes(
@@ -114,7 +122,7 @@ function getHoverForNonCodeBlocks({
 
 async function getHoverForCodeBlocks(
     tempJsUpdateQueue: TempJsFileUpdateQueue,
-    params: ProviderParams,
+    params: ProviderParamsForCodeBlock,
 ) {
     const {
         file: { blockContainingPosition, collection },
@@ -127,7 +135,7 @@ async function getHoverForCodeBlocks(
         return undefined;
     }
 
-    const envVariableNameForRequest = getEnvVariableNameForRequest(params);
+    const envVariableNameForRequest = getEnvVariableNameFromCodeBlock(params);
 
     if (envVariableNameForRequest) {
         return getHoverForEnvironmentVariable(
@@ -187,11 +195,11 @@ async function getHoverForCodeBlocks(
           : resultFromJsFile[0];
 }
 
-function getEnvVariableNameForRequest({
+function getEnvVariableNameFromCodeBlock({
     file: { collection, blockContainingPosition },
     hoverRequest,
     logger,
-}: ProviderParams) {
+}: ProviderParamsForCodeBlock) {
     const { token } = hoverRequest;
 
     if (token.isCancellationRequested) {

@@ -1,23 +1,11 @@
-import { Node } from "typescript";
-import {
-    Block,
-    Collection,
-    OutputChannelLogger,
-    Range,
-} from "../../../../shared";
+import { CodeBlock, Collection, OutputChannelLogger } from "../../../../shared";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 
-export interface BruLanguageFeatureRequestWithAdditionalData {
+export interface CodeBlockLanguageFeatureRequestWithAdditionalData {
     request: LanguageFeatureRequest;
     file: {
         collection: Collection;
-        blockContainingPosition: Block;
+        blockContainingPosition: CodeBlock;
     };
     logger?: OutputChannelLogger;
-}
-
-export interface CodeBlockWithTsNode {
-    content: string;
-    contentRange: Range;
-    blockAsTsNode: Node;
 }

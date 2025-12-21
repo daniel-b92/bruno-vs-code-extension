@@ -1,3 +1,4 @@
+import { Node } from "typescript";
 import { Range } from "../../fileSystem/util/range";
 
 export interface Block {
@@ -10,7 +11,8 @@ export interface Block {
               | DictionaryBlockArrayField
               | PlainTextWithinBlock
           )[]
-        | (ArrayBlockField | PlainTextWithinBlock)[];
+        | (ArrayBlockField | PlainTextWithinBlock)[]
+        | CodeBlockContent;
     contentRange: Range;
 }
 
@@ -45,6 +47,15 @@ export interface ArrayBlock {
 export interface ArrayBlockField {
     entry: string;
     entryRange: Range;
+}
+
+export interface CodeBlock extends Block {
+    content: CodeBlockContent;
+}
+
+export interface CodeBlockContent {
+    asPlainText: string;
+    asTsNode: Node;
 }
 
 export interface PlainTextWithinBlock {
