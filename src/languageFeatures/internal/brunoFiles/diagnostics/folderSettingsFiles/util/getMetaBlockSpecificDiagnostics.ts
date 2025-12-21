@@ -1,7 +1,7 @@
 import {
     TextDocumentHelper,
     Block,
-    castBlockToDictionaryBlock,
+    isBlockDictionaryBlock,
     MetaBlockKey,
     CollectionItemProvider,
 } from "../../../../../../shared";
@@ -24,43 +24,35 @@ export async function getMetaBlockSpecificDiagnostics(
     documentHelper: TextDocumentHelper,
     metaBlock: Block,
 ): Promise<(DiagnosticWithCode | undefined)[]> {
-    const castedMetaBlock = castBlockToDictionaryBlock(metaBlock);
     const metaBlockKeys = [MetaBlockKey.Name, MetaBlockKey.Sequence];
 
-    const diagnostics = [
-        checkSequenceInMetaBlockIsValid(metaBlock),
-        castedMetaBlock
-            ? checkNoKeysAreMissingForDictionaryBlock(
-                  castedMetaBlock,
-                  metaBlockKeys,
-                  RelevantWithinMetaBlockDiagnosticCode.KeysMissingInMetaBlock,
-              )
-            : undefined,
-        castedMetaBlock
-            ? checkNoUnknownKeysAreDefinedInDictionaryBlock(
-                  castedMetaBlock,
-                  metaBlockKeys,
-                  RelevantWithinMetaBlockDiagnosticCode.UnknownKeysDefinedInMetaBlock,
-              )
-            : undefined,
-        castedMetaBlock
-            ? checkNoMandatoryValuesAreMissingForDictionaryBlock(
-                  castedMetaBlock,
-                  [MetaBlockKey.Name],
-                  RelevantWithinMetaBlockDiagnosticCode.MandatoryValuesMissingInMetaBlock,
-              )
-            : undefined,
-        castedMetaBlock
-            ? checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-                  castedMetaBlock,
-                  metaBlockKeys,
-                  RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
-              )
-            : undefined,
-        castedMetaBlock
-            ? checkMetaBlockStartsInFirstLine(documentHelper, metaBlock)
-            : undefined,
-    ];
+    const diagnostics = [checkSequenceInMetaBlockIsValid(metaBlock)].concat(
+        isBlockDictionaryBlock(metaBlock)
+            ? [
+                  (checkNoKeysAreMissingForDictionaryBlock(
+                      metaBlock,
+                      metaBlockKeys,
+                      RelevantWithinMetaBlockDiagnosticCode.KeysMissingInMetaBlock,
+                  ),
+                  checkNoUnknownKeysAreDefinedInDictionaryBlock(
+                      metaBlock,
+                      metaBlockKeys,
+                      RelevantWithinMetaBlockDiagnosticCode.UnknownKeysDefinedInMetaBlock,
+                  ),
+                  checkNoMandatoryValuesAreMissingForDictionaryBlock(
+                      metaBlock,
+                      [MetaBlockKey.Name],
+                      RelevantWithinMetaBlockDiagnosticCode.MandatoryValuesMissingInMetaBlock,
+                  ),
+                  checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+                      metaBlock,
+                      metaBlockKeys,
+                      RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
+                  ),
+                  checkMetaBlockStartsInFirstLine(documentHelper, metaBlock)),
+              ]
+            : [],
+    );
 
     for (const results of await provideRelatedFilesDiagnosticsForMetaBlock(
         itemProvider,

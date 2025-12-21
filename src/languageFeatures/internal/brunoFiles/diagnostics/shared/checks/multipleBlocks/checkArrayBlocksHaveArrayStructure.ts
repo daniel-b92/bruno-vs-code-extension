@@ -6,7 +6,7 @@ import {
 } from "vscode";
 import {
     Block,
-    castBlockToArrayBlock,
+    isBlockArrayBlock,
     mapToVsCodePosition,
     mapToVsCodeRange,
     PlainTextWithinBlock,
@@ -22,7 +22,7 @@ export function checkArrayBlocksHaveArrayStructure(
     blocksToCheck: Block[],
 ): DiagnosticWithCode | undefined {
     const sortedBlocksWithoutCorrectStructure = getSortedBlocksByPosition(
-        blocksToCheck.filter((block) => !castBlockToArrayBlock(block)),
+        blocksToCheck.filter((block) => !isBlockArrayBlock(block)),
     );
 
     if (sortedBlocksWithoutCorrectStructure.length > 0) {

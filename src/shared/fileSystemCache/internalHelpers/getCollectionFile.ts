@@ -12,7 +12,7 @@ import {
     parseBruFile,
     TextDocumentHelper,
     EnvironmentFileBlockName,
-    castBlockToDictionaryBlock,
+    isBlockDictionaryBlock,
     isDictionaryBlockSimpleField,
 } from "../..";
 import { readFile } from "fs";
@@ -57,15 +57,15 @@ async function createEnvironmentFileInstance(path: string) {
         return new BrunoEnvironmentFile(path, []);
     }
 
-    const castedBlock = castBlockToDictionaryBlock(varsBlocks[0]);
+    const varsBlock = varsBlocks[0];
 
-    if (!castedBlock) {
+    if (!isBlockDictionaryBlock(varsBlock)) {
         return new BrunoEnvironmentFile(path, []);
     }
 
     return new BrunoEnvironmentFile(
         path,
-        castedBlock.content.filter((field) =>
+        varsBlock.content.filter((field) =>
             isDictionaryBlockSimpleField(field),
         ),
     );

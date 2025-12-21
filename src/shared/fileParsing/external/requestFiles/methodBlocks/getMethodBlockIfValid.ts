@@ -1,12 +1,12 @@
-import { castBlockToDictionaryBlock, getAllMethodBlocks } from "../../../..";
+import { isBlockDictionaryBlock, getAllMethodBlocks } from "../../../..";
 import { Block } from "../../interfaces";
 
 export function getMethodBlockIfValid(allBlocks: Block[]) {
     const methodBlocks = getAllMethodBlocks(allBlocks);
 
-    if (methodBlocks.length != 1) {
+    if (methodBlocks.length != 1 || !isBlockDictionaryBlock(methodBlocks[0])) {
         return undefined;
     }
 
-    return castBlockToDictionaryBlock(methodBlocks[0]);
+    return methodBlocks[0];
 }

@@ -3,8 +3,7 @@ import {
     TextDocumentHelper,
     parseBruFile,
     EnvironmentFileBlockName,
-    castBlockToDictionaryBlock,
-    DictionaryBlock,
+    isBlockDictionaryBlock,
 } from "../../../../../shared";
 import { DiagnosticWithCode } from "../definitions";
 import { checkArrayBlocksHaveArrayStructure } from "../shared/checks/multipleBlocks/checkArrayBlocksHaveArrayStructure";
@@ -27,8 +26,8 @@ export function determineDiagnosticsForEnvironmentFile(
     );
 
     const validDictionaryBlocks = blocksThatShouldBeDictionaryBlocks.filter(
-        castBlockToDictionaryBlock,
-    ) as DictionaryBlock[];
+        isBlockDictionaryBlock,
+    );
 
     const results: (DiagnosticWithCode | undefined)[] = [];
 

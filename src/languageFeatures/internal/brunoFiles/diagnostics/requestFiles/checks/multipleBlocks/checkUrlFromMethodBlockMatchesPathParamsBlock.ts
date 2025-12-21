@@ -1,6 +1,6 @@
 import { DiagnosticSeverity, Uri } from "vscode";
 import {
-    castBlockToDictionaryBlock,
+    isBlockDictionaryBlock,
     DictionaryBlock,
     DictionaryBlockSimpleField,
     getPathParamsFromPathParamsBlock,
@@ -41,9 +41,9 @@ export function checkUrlFromMethodBlockMatchesPathParamsBlock(
             : undefined;
     }
 
-    const pathParamsBlock = castBlockToDictionaryBlock(pathParamsBlocks[0]);
+    const pathParamsBlock = pathParamsBlocks[0];
 
-    if (!pathParamsBlock) {
+    if (!isBlockDictionaryBlock(pathParamsBlock)) {
         return undefined;
     }
 

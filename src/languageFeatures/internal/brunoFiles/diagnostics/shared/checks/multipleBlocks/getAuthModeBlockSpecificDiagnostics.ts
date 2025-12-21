@@ -4,17 +4,15 @@ import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "../singleBlocks/c
 import { DiagnosticWithCode } from "../../../definitions";
 import {
     Block,
-    castBlockToDictionaryBlock,
+    isBlockDictionaryBlock,
     AuthModeBlockKey,
 } from "../../../../../../../shared";
 import { RelevantWithinAuthModeBlockDiagnosticCode } from "../../diagnosticCodes/relevantWithinAuthModeBlockDiagnosticCodeEnum";
 
 export function getAuthModeBlockSpecificDiagnostics(
-    authBlock: Block
+    authBlock: Block,
 ): (DiagnosticWithCode | undefined)[] {
-    const castedAuthBlock = castBlockToDictionaryBlock(authBlock);
-
-    if (!castedAuthBlock) {
+    if (!isBlockDictionaryBlock(authBlock)) {
         return [];
     }
 
@@ -23,20 +21,20 @@ export function getAuthModeBlockSpecificDiagnostics(
 
     diagnostics.push(
         checkNoKeysAreMissingForDictionaryBlock(
-            castedAuthBlock,
+            authBlock,
             mandatoryKeys,
-            RelevantWithinAuthModeBlockDiagnosticCode.KeysMissingInAuthModeBlock
+            RelevantWithinAuthModeBlockDiagnosticCode.KeysMissingInAuthModeBlock,
         ),
         checkNoUnknownKeysAreDefinedInDictionaryBlock(
-            castedAuthBlock,
+            authBlock,
             mandatoryKeys,
-            RelevantWithinAuthModeBlockDiagnosticCode.UnknownKeysDefinedInAuthModeBlock
+            RelevantWithinAuthModeBlockDiagnosticCode.UnknownKeysDefinedInAuthModeBlock,
         ),
         checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-            castedAuthBlock,
+            authBlock,
             mandatoryKeys,
-            RelevantWithinAuthModeBlockDiagnosticCode.DuplicateKeysDefinedInAuthModeBlock
-        )
+            RelevantWithinAuthModeBlockDiagnosticCode.DuplicateKeysDefinedInAuthModeBlock,
+        ),
     );
 
     return diagnostics;

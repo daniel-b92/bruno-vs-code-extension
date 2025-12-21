@@ -45,8 +45,8 @@ export * from "./fileParsing/external/requestFiles/methodBlocks/getMethodBlockIf
 export * from "./fileParsing/external/requestFiles/paramsBlocks/isParamsBlock";
 export { isVarsBlock as isVarsBlockInRequestFile } from "./fileParsing/external/requestFiles/varsBlocks/isVarsBlock";
 export { isVarsBlock as isVarsBlockInEnvironmentFile } from "./fileParsing/external/environmentFiles/varsBlocks/isVarsBlock";
-export * from "./fileParsing/external/castBlockToDictionaryBlock";
-export * from "./fileParsing/external/castBlockToArrayBlock";
+export * from "./fileParsing/external/isBlockDictionaryBlock";
+export * from "./fileParsing/external/isBlockArrayBlock";
 export * from "./fileParsing/external/parseBlockFromFile";
 export * from "./fileParsing/external/folderSettings/getSequenceForFolder";
 export * from "./fileParsing/external/folderSettings/getSequencesForFolders";

@@ -1,6 +1,6 @@
 import {
     Block,
-    castBlockToDictionaryBlock,
+    isBlockDictionaryBlock,
     MethodBlockKey,
 } from "../../../../../shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
@@ -12,9 +12,7 @@ import { RelevantWithinMethodBlockDiagnosticCode } from "../shared/diagnosticCod
 export function getMethodBlockSpecificDiagnostics(
     methodBlock: Block,
 ): (DiagnosticWithCode | undefined)[] {
-    const castedMethodBlock = castBlockToDictionaryBlock(methodBlock);
-
-    if (!castedMethodBlock) {
+    if (!isBlockDictionaryBlock(methodBlock)) {
         return [];
     }
 
@@ -22,17 +20,17 @@ export function getMethodBlockSpecificDiagnostics(
 
     return [
         checkNoKeysAreMissingForDictionaryBlock(
-            castedMethodBlock,
+            methodBlock,
             methodBlockKeys,
             RelevantWithinMethodBlockDiagnosticCode.KeysMissingInMethodBlock,
         ),
         checkNoUnknownKeysAreDefinedInDictionaryBlock(
-            castedMethodBlock,
+            methodBlock,
             methodBlockKeys,
             RelevantWithinMethodBlockDiagnosticCode.UnknownKeysDefinedInMethodBlock,
         ),
         checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-            castedMethodBlock,
+            methodBlock,
             methodBlockKeys,
             RelevantWithinMethodBlockDiagnosticCode.DuplicateKeysDefinedInMethodBlock,
         ),
