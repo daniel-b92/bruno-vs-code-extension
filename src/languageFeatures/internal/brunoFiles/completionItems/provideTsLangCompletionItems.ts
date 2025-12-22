@@ -23,6 +23,7 @@ import {
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
     getInbuiltFunctions,
+    BrunoVariableReference,
 } from "../../../../shared";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
@@ -66,10 +67,11 @@ export function provideTsLangCompletionItems(
                     return [];
                 }
 
-                const blocksToCheck = getCodeBlocks(
-                    parseBruFile(new TextDocumentHelper(document.getText()))
-                        .blocks,
+                const { blocks: allBlocks } = parseBruFile(
+                    new TextDocumentHelper(document.getText()),
                 );
+
+                const blocksToCheck = getCodeBlocks(allBlocks);
 
                 const blockInBruFile = blocksToCheck.find(({ contentRange }) =>
                     mapToVsCodeRange(contentRange).contains(position),
@@ -110,6 +112,10 @@ export function provideTsLangCompletionItems(
                         {
                             collection,
                             functionType,
+                            variableReferences: allBlocks.flatMap(
+                                ({ variableRerences }) =>
+                                    variableRerences ?? [],
+                            ),
                         },
                         { document, position, token },
                         logger,
@@ -143,11 +149,12 @@ function getResultsForEnvironmentVariable(
     additionalData: {
         collection: Collection;
         functionType: VariableReferenceType;
+        variableReferences?: BrunoVariableReference[];
     },
     { token }: LanguageFeatureRequest,
     logger?: OutputChannelLogger,
 ) {
-    const { collection, functionType } = additionalData;
+    const { collection, functionType, variableReferences } = additionalData;
 
     const matchingStaticEnvVariableDefinitions =
         getMatchingDefinitionsFromEnvFiles(
@@ -174,7 +181,7 @@ function getResultsForEnvironmentVariable(
                 isConfiguredEnv,
             }),
         ),
-        [],
+        variableReferences ?? [],
         functionType,
     );
 }
