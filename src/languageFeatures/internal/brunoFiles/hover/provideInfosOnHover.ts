@@ -20,9 +20,10 @@ import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/exte
 import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockUtils/getNonCodeBlocksWithoutVariableSupport";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { getVariableNameForPositionInNonCodeBlock } from "../shared/nonCodeBlockUtils/getVariableNameForPositionInNonCodeBlock";
-import { mapToGetEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
-import { getHoverForEnvironmentVariable } from "../../shared/environmentVariables/getHoverForEnvironmentVariable";
-import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
+import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
+import { getHoverForEnvVariable } from "../../shared/environmentVariables/getHoverForEnvVariable";
+import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
+import { getInbuiltFunctionIdentifiers } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
 
 interface ProviderParamsForNonCodeBlock {
     file: {
@@ -111,12 +112,7 @@ function getHoverForNonCodeBlocks({
     }
 
     return variableName
-        ? getHoverForEnvironmentVariable(
-              collection,
-              variableName,
-              token,
-              logger,
-          )
+        ? getHoverForEnvVariable(collection, variableName, token, logger)
         : undefined;
 }
 
@@ -135,12 +131,12 @@ async function getHoverForCodeBlocks(
         return undefined;
     }
 
-    const envVariableNameForRequest = getEnvVariableNameFromCodeBlock(params);
+    const envVariableResult = getEnvVariableNameFromCodeBlock(params);
 
-    if (envVariableNameForRequest) {
-        return getHoverForEnvironmentVariable(
+    if (envVariableResult) {
+        return getHoverForEnvVariable(
             collection,
-            envVariableNameForRequest,
+            envVariableResult.variableName,
             token,
             logger,
         );
@@ -207,15 +203,18 @@ function getEnvVariableNameFromCodeBlock({
         return undefined;
     }
 
-    return getStringLiteralParameterForGetEnvVarInbuiltFunction(
-        mapToGetEnvVarNameParams({
-            file: {
-                collection,
-                blockContainingPosition,
+    return getFirstParameterForInbuiltFunctionIfStringLiteral(
+        mapToEnvVarNameParams(
+            {
+                file: {
+                    collection,
+                    blockContainingPosition,
+                },
+                request: hoverRequest,
+                logger,
             },
-            request: hoverRequest,
-            logger,
-        }),
+            getInbuiltFunctionIdentifiers(),
+        ),
     );
 }
 

@@ -6,8 +6,9 @@ import {
 } from "../../../../shared";
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
-import { getHoverForEnvironmentVariable } from "../../shared/environmentVariables/getHoverForEnvironmentVariable";
-import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
+import { getHoverForEnvVariable } from "../../shared/environmentVariables/getHoverForEnvVariable";
+import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
+import { getInbuiltFunctionIdentifiers } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
 
 export function provideInfosOnHover(
     collectionItemProvider: CollectionItemProvider,
@@ -44,24 +45,25 @@ async function getHover(params: {
         logger,
     } = params;
 
-    const envVariableNameForRequest = getEnvVariableNameForRequest(params);
+    const envVariableRelatedFunction =
+        getEnvVariableRelatedFunctionForRequest(params);
 
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return undefined;
     }
 
-    return envVariableNameForRequest != undefined
-        ? getHoverForEnvironmentVariable(
+    return envVariableRelatedFunction != undefined
+        ? getHoverForEnvVariable(
               collection,
-              envVariableNameForRequest,
+              envVariableRelatedFunction.variableName,
               token,
               logger,
           )
         : undefined;
 }
 
-function getEnvVariableNameForRequest(params: {
+function getEnvVariableRelatedFunctionForRequest(params: {
     file: { collection: Collection };
     baseRequest: LanguageFeatureRequest;
     logger?: OutputChannelLogger;
@@ -71,8 +73,9 @@ function getEnvVariableNameForRequest(params: {
         logger,
     } = params;
 
-    return getStringLiteralParameterForGetEnvVarInbuiltFunction({
+    return getFirstParameterForInbuiltFunctionIfStringLiteral({
         relevantContent: document.getText(),
+        functionsToSearchFor: getInbuiltFunctionIdentifiers(),
         request: params.baseRequest,
         logger,
     });

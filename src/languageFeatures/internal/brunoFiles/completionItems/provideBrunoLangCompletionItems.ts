@@ -33,9 +33,9 @@ import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockUt
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import {
     EnvVariableNameMatchingMode,
-    getMatchingEnvironmentVariableDefinitions,
-} from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitions";
-import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
+    getMatchingDefinitionsFromEnvFiles,
+} from "../../shared/environmentVariables/getMatchingDefinitionsFromEnvFiles";
+import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
 
 export function provideBrunoLangCompletionItems(
     itemProvider: CollectionItemProvider,
@@ -126,13 +126,12 @@ function getNonBlockSpecificCompletions(
         return [];
     }
 
-    const matchingEnvVariableDefinitions =
-        getMatchingEnvironmentVariableDefinitions(
-            collection,
-            matchingText.substring(2),
-            EnvVariableNameMatchingMode.Substring,
-            getConfiguredTestEnvironment(),
-        );
+    const matchingEnvVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
+        collection,
+        matchingText.substring(2),
+        EnvVariableNameMatchingMode.Substring,
+        getConfiguredTestEnvironment(),
+    );
 
     if (matchingEnvVariableDefinitions.length == 0) {
         return [];
@@ -143,7 +142,7 @@ function getNonBlockSpecificCompletions(
         return [];
     }
 
-    return mapEnvironmentVariablesToCompletions(
+    return mapEnvVariablesToCompletions(
         matchingEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
                 environmentFile: file,

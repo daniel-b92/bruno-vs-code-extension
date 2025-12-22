@@ -8,11 +8,16 @@ import {
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import {
     EnvVariableNameMatchingMode,
-    getMatchingEnvironmentVariableDefinitions,
-} from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitions";
-import { LanguageFeatureRequest } from "../../shared/interfaces";
-import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
-import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
+    getMatchingDefinitionsFromEnvFiles,
+} from "../../shared/environmentVariables/getMatchingDefinitionsFromEnvFiles";
+import {
+    EnvVariableFunctionType,
+    LanguageFeatureRequest,
+} from "../../shared/interfaces";
+import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
+import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
+import { getInbuiltFunctionIdentifiers } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
+import { getInbuiltFunctions } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctions";
 
 export function provideCompletionItems(
     collectionItemProvider: CollectionItemProvider,
@@ -36,18 +41,22 @@ export function provideCompletionItems(
                     return undefined;
                 }
 
-                const envVariableNameForRequest = getEnvVariableNameForRequest({
-                    file: {
-                        collection,
-                    },
-                    baseRequest: { document, position, token },
-                    logger,
-                });
+                const envVariableRelatedFunction =
+                    getEnvVariableRelatedFunctionForRequest({
+                        file: {
+                            collection,
+                        },
+                        baseRequest: { document, position, token },
+                        logger,
+                    });
 
-                return envVariableNameForRequest != undefined
+                return envVariableRelatedFunction != undefined
                     ? getResultsForEnvironmentVariable(
-                          collection,
-                          envVariableNameForRequest,
+                          envVariableRelatedFunction.variableName,
+                          {
+                              collection,
+                              functionType: envVariableRelatedFunction.type,
+                          },
                           { document, position, token },
                           logger,
                       )
@@ -62,7 +71,7 @@ export function provideCompletionItems(
     );
 }
 
-function getEnvVariableNameForRequest(params: {
+function getEnvVariableRelatedFunctionForRequest(params: {
     file: { collection: Collection };
     baseRequest: LanguageFeatureRequest;
     logger?: OutputChannelLogger;
@@ -77,26 +86,39 @@ function getEnvVariableNameForRequest(params: {
         return undefined;
     }
 
-    return getStringLiteralParameterForGetEnvVarInbuiltFunction({
+    const found = getFirstParameterForInbuiltFunctionIfStringLiteral({
         relevantContent: document.getText(),
+        functionsToSearchFor: getInbuiltFunctionIdentifiers(),
         request: params.baseRequest,
         logger,
     });
+
+    return found
+        ? {
+              ...found,
+              type: getInbuiltFunctions()[found.inbuiltFunction.functionName]
+                  .type,
+          }
+        : undefined;
 }
 
 function getResultsForEnvironmentVariable(
-    collection: Collection,
     envVariableName: string,
+    additionalData: {
+        collection: Collection;
+        functionType: EnvVariableFunctionType;
+    },
     { token }: LanguageFeatureRequest,
     logger?: OutputChannelLogger,
 ) {
-    const matchingEnvVariableDefinitions =
-        getMatchingEnvironmentVariableDefinitions(
-            collection,
-            envVariableName,
-            EnvVariableNameMatchingMode.Substring,
-            getConfiguredTestEnvironment(),
-        );
+    const { collection, functionType } = additionalData;
+
+    const matchingEnvVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
+        collection,
+        envVariableName,
+        EnvVariableNameMatchingMode.Substring,
+        getConfiguredTestEnvironment(),
+    );
 
     if (matchingEnvVariableDefinitions.length == 0) {
         return [];
@@ -107,7 +129,7 @@ function getResultsForEnvironmentVariable(
         return [];
     }
 
-    return mapEnvironmentVariablesToCompletions(
+    return mapEnvVariablesToCompletions(
         matchingEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
                 environmentFile: file,
@@ -115,6 +137,7 @@ function getResultsForEnvironmentVariable(
                 isConfiguredEnv,
             }),
         ),
+        functionType,
     );
 }
 

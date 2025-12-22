@@ -28,14 +28,19 @@ import {
     waitForTempJsFileToBeInSyncWithBruFile,
 } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
-import { mapToGetEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
+import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
 import {
     EnvVariableNameMatchingMode,
-    getMatchingEnvironmentVariableDefinitions,
-} from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitions";
-import { LanguageFeatureRequest } from "../../shared/interfaces";
-import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
-import { getStringLiteralParameterForGetEnvVarInbuiltFunction } from "../../shared/environmentVariables/getStringLiteralParameterForGetEnvVarInbuiltFunction";
+    getMatchingDefinitionsFromEnvFiles,
+} from "../../shared/environmentVariables/getMatchingDefinitionsFromEnvFiles";
+import {
+    EnvVariableFunctionType,
+    LanguageFeatureRequest,
+} from "../../shared/interfaces";
+import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
+import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
+import { getInbuiltFunctionIdentifiers } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
+import { getInbuiltFunctions } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctions";
 
 type CompletionItemRange =
     | VsCodeRange
@@ -81,22 +86,33 @@ export function provideTsLangCompletionItems(
                     return undefined;
                 }
 
-                const envVariableNameForRequest =
-                    getStringLiteralParameterForGetEnvVarInbuiltFunction(
-                        mapToGetEnvVarNameParams({
-                            file: {
-                                collection,
-                                blockContainingPosition: blockInBruFile,
+                const envVariableResult =
+                    getFirstParameterForInbuiltFunctionIfStringLiteral(
+                        mapToEnvVarNameParams(
+                            {
+                                file: {
+                                    collection,
+                                    blockContainingPosition: blockInBruFile,
+                                },
+                                request: { document, position, token },
+                                logger,
                             },
-                            request: { document, position, token },
-                            logger,
-                        }),
+                            getInbuiltFunctionIdentifiers(),
+                        ),
                     );
 
-                if (envVariableNameForRequest) {
+                if (envVariableResult) {
+                    const functionType =
+                        getInbuiltFunctions()[
+                            envVariableResult.inbuiltFunction.functionName
+                        ].type;
+
                     return getResultsForEnvironmentVariable(
-                        collection,
-                        envVariableNameForRequest,
+                        envVariableResult.variableName,
+                        {
+                            collection,
+                            functionType,
+                        },
                         { document, position, token },
                         logger,
                     );
@@ -125,18 +141,22 @@ export function provideTsLangCompletionItems(
 }
 
 function getResultsForEnvironmentVariable(
-    collection: Collection,
-    name: string,
+    variableName: string,
+    additionalData: {
+        collection: Collection;
+        functionType: EnvVariableFunctionType;
+    },
     { token }: LanguageFeatureRequest,
     logger?: OutputChannelLogger,
 ) {
-    const matchingEnvVariableDefinitions =
-        getMatchingEnvironmentVariableDefinitions(
-            collection,
-            name,
-            EnvVariableNameMatchingMode.Substring,
-            getConfiguredTestEnvironment(),
-        );
+    const { collection, functionType } = additionalData;
+
+    const matchingEnvVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
+        collection,
+        variableName,
+        EnvVariableNameMatchingMode.Substring,
+        getConfiguredTestEnvironment(),
+    );
 
     if (matchingEnvVariableDefinitions.length == 0) {
         return [];
@@ -147,7 +167,7 @@ function getResultsForEnvironmentVariable(
         return [];
     }
 
-    return mapEnvironmentVariablesToCompletions(
+    return mapEnvVariablesToCompletions(
         matchingEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
                 environmentFile: file,
@@ -155,6 +175,7 @@ function getResultsForEnvironmentVariable(
                 isConfiguredEnv,
             }),
         ),
+        functionType,
     );
 }
 

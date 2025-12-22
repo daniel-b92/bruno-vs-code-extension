@@ -1,9 +1,11 @@
 import { TextDocument, Position as VsCodePosition } from "vscode";
 import { CodeBlockLanguageFeatureRequestWithAdditionalData } from "../interfaces";
 import { Range } from "../../../../../shared";
+import { InbuiltFunctionIdentifier } from "../../../shared/interfaces";
 
-export function mapToGetEnvVarNameParams(
+export function mapToEnvVarNameParams(
     params: CodeBlockLanguageFeatureRequestWithAdditionalData,
+    functionsToSearchFor: InbuiltFunctionIdentifier[],
 ) {
     const {
         file: {
@@ -15,6 +17,7 @@ export function mapToGetEnvVarNameParams(
 
     return {
         relevantContent: content.asPlainText,
+        functionsToSearchFor,
         defaultOffsetWithinDocument: getDefaultOffsetForBlockContent(
             document,
             contentRange,

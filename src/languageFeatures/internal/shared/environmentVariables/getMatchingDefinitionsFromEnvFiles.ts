@@ -11,7 +11,7 @@ export enum EnvVariableNameMatchingMode {
     Substring = 2,
 }
 
-export function getMatchingEnvironmentVariableDefinitions(
+export function getMatchingDefinitionsFromEnvFiles(
     collection: Collection,
     name: string,
     matchingMode: EnvVariableNameMatchingMode,
