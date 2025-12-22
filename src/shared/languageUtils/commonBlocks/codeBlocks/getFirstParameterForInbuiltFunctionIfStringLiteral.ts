@@ -5,11 +5,8 @@ import {
     SourceFile,
     SyntaxKind,
 } from "typescript";
-import { OutputChannelLogger } from "../../../../shared";
-import {
-    InbuiltFunctionIdentifier,
-    LanguageFeatureRequest,
-} from "../interfaces";
+import { OutputChannelLogger, InbuiltFunctionIdentifier } from "../../..";
+import { LanguageFeatureRequest } from "../../../../languageFeatures/internal/shared/interfaces";
 
 export function getFirstParameterForInbuiltFunctionIfStringLiteral(params: {
     relevantContent: string;

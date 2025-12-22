@@ -1,7 +1,6 @@
 import { TextDocument, Position as VsCodePosition } from "vscode";
 import { CodeBlockLanguageFeatureRequestWithAdditionalData } from "../interfaces";
-import { Range } from "../../../../../shared";
-import { InbuiltFunctionIdentifier } from "../../../shared/interfaces";
+import { Range, InbuiltFunctionIdentifier } from "../../../../../shared";
 
 export function mapToEnvVarNameParams(
     params: CodeBlockLanguageFeatureRequestWithAdditionalData,

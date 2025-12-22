@@ -1,14 +1,14 @@
 import {
     InbuiltEnvVariableFunctionName,
     InbuiltFunctionIdentifier,
-    EnvVariableFunctionType,
+    VariableReferenceType,
     InbuiltFunctionBaseIdentifierEnum,
-} from "../../interfaces";
+} from "../../../..";
 
 export function getInbuiltFunctions(): {
     [identifier in InbuiltEnvVariableFunctionName]: {
         identifier: InbuiltFunctionIdentifier;
-        type: EnvVariableFunctionType;
+        type: VariableReferenceType;
     };
 } {
     return {
@@ -17,14 +17,14 @@ export function getInbuiltFunctions(): {
                 baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,
                 functionName: InbuiltEnvVariableFunctionName.GetEnvVar,
             },
-            type: EnvVariableFunctionType.Read,
+            type: VariableReferenceType.Read,
         },
         [InbuiltEnvVariableFunctionName.SetEnvVar]: {
             identifier: {
                 baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,
                 functionName: InbuiltEnvVariableFunctionName.SetEnvVar,
             },
-            type: EnvVariableFunctionType.ModifyOrDelete,
+            type: VariableReferenceType.ModifyOrDelete,
         },
     };
 }

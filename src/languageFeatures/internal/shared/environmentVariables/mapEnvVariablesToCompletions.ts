@@ -1,7 +1,9 @@
 import { basename } from "path";
 import { CompletionItem, CompletionItemKind } from "vscode";
-import { getExtensionForBrunoFiles } from "../../../../shared";
-import { EnvVariableFunctionType } from "../interfaces";
+import {
+    getExtensionForBrunoFiles,
+    VariableReferenceType,
+} from "../../../../shared";
 
 export function mapEnvVariablesToCompletions(
     matchingEnvVariableDefinitions: {
@@ -9,7 +11,7 @@ export function mapEnvVariablesToCompletions(
         matchingVariableKeys: string[];
         isConfiguredEnv: boolean;
     }[],
-    functionType?: EnvVariableFunctionType,
+    functionType?: VariableReferenceType,
 ) {
     return matchingEnvVariableDefinitions.flatMap(
         ({ environmentFile, matchingVariableKeys, isConfiguredEnv }) =>
@@ -20,7 +22,7 @@ export function mapEnvVariablesToCompletions(
                 );
                 const completionItem = new CompletionItem({
                     label: key,
-                    description: `${functionType === EnvVariableFunctionType.ModifyOrDelete ? "!Static variable in Env!" : "Env"} '${environmentName}'`,
+                    description: `${functionType === VariableReferenceType.ModifyOrDelete ? "!Static variable in Env!" : "Env"} '${environmentName}'`,
                 });
                 completionItem.kind = CompletionItemKind.Constant;
                 completionItem.sortText = `${isConfiguredEnv ? "a" : "b"}_${environmentName}_${key}`;

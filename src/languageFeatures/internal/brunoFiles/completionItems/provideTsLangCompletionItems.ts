@@ -19,6 +19,10 @@ import {
     Collection,
     getConfiguredTestEnvironment,
     getCodeBlocks,
+    VariableReferenceType,
+    getFirstParameterForInbuiltFunctionIfStringLiteral,
+    getInbuiltFunctionIdentifiers,
+    getInbuiltFunctions,
 } from "../../../../shared";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
@@ -33,14 +37,8 @@ import {
     EnvVariableNameMatchingMode,
     getMatchingDefinitionsFromEnvFiles,
 } from "../../shared/environmentVariables/getMatchingDefinitionsFromEnvFiles";
-import {
-    EnvVariableFunctionType,
-    LanguageFeatureRequest,
-} from "../../shared/interfaces";
+import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
-import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
-import { getInbuiltFunctionIdentifiers } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
-import { getInbuiltFunctions } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctions";
 
 type CompletionItemRange =
     | VsCodeRange
@@ -144,7 +142,7 @@ function getResultsForEnvironmentVariable(
     variableName: string,
     additionalData: {
         collection: Collection;
-        functionType: EnvVariableFunctionType;
+        functionType: VariableReferenceType;
     },
     { token }: LanguageFeatureRequest,
     logger?: OutputChannelLogger,

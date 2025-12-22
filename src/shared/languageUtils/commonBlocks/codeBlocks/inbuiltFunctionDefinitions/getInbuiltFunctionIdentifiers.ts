@@ -1,10 +1,10 @@
 import {
-    EnvVariableFunctionType,
+    VariableReferenceType,
     InbuiltEnvVariableFunctionName,
-} from "../../interfaces";
-import { getInbuiltFunctions } from "./getInbuiltFunctions";
+    getInbuiltFunctions,
+} from "../../../..";
 
-export function getInbuiltFunctionIdentifiers(type?: EnvVariableFunctionType) {
+export function getInbuiltFunctionIdentifiers(type?: VariableReferenceType) {
     const allFunctions = Object.values(InbuiltEnvVariableFunctionName).map(
         (functionName) => getInbuiltFunctions()[functionName],
     );

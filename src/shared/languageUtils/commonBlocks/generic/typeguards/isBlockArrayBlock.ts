@@ -1,5 +1,5 @@
 import { isArrayBlockField } from "../../../genericFields/typeguards/isArrayBlockField";
-import { Block, ArrayBlock } from "../../../interfaces";
+import { Block, ArrayBlock } from "../../../..";
 
 export function isBlockArrayBlock(block: Block): block is ArrayBlock {
     return (

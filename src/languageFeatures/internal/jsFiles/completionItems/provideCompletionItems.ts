@@ -4,20 +4,18 @@ import {
     OutputChannelLogger,
     Collection,
     getConfiguredTestEnvironment,
+    VariableReferenceType,
+    getFirstParameterForInbuiltFunctionIfStringLiteral,
+    getInbuiltFunctionIdentifiers,
+    getInbuiltFunctions,
 } from "../../../../shared";
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import {
     EnvVariableNameMatchingMode,
     getMatchingDefinitionsFromEnvFiles,
 } from "../../shared/environmentVariables/getMatchingDefinitionsFromEnvFiles";
-import {
-    EnvVariableFunctionType,
-    LanguageFeatureRequest,
-} from "../../shared/interfaces";
-import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
+import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
-import { getInbuiltFunctionIdentifiers } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
-import { getInbuiltFunctions } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctions";
 
 export function provideCompletionItems(
     collectionItemProvider: CollectionItemProvider,
@@ -106,7 +104,7 @@ function getResultsForEnvironmentVariable(
     envVariableName: string,
     additionalData: {
         collection: Collection;
-        functionType: EnvVariableFunctionType;
+        functionType: VariableReferenceType;
     },
     { token }: LanguageFeatureRequest,
     logger?: OutputChannelLogger,
