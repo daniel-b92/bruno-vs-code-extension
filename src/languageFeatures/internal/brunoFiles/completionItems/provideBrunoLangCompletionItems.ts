@@ -27,6 +27,7 @@ import {
     RequestType,
     SettingsBlockKey,
     TextDocumentHelper,
+    VariableReferenceType,
 } from "../../../../shared";
 import { dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
@@ -150,6 +151,8 @@ function getNonBlockSpecificCompletions(
                 isConfiguredEnv,
             }),
         ),
+        [],
+        VariableReferenceType.Read,
     );
 }
 

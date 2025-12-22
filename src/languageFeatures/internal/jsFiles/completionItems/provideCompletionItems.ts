@@ -135,6 +135,7 @@ function getResultsForEnvironmentVariable(
                 isConfiguredEnv,
             }),
         ),
+        [],
         functionType,
     );
 }

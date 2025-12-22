@@ -149,14 +149,15 @@ function getResultsForEnvironmentVariable(
 ) {
     const { collection, functionType } = additionalData;
 
-    const matchingEnvVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
-        collection,
-        variableName,
-        EnvVariableNameMatchingMode.Ignore,
-        getConfiguredTestEnvironment(),
-    );
+    const matchingStaticEnvVariableDefinitions =
+        getMatchingDefinitionsFromEnvFiles(
+            collection,
+            variableName,
+            EnvVariableNameMatchingMode.Ignore,
+            getConfiguredTestEnvironment(),
+        );
 
-    if (matchingEnvVariableDefinitions.length == 0) {
+    if (matchingStaticEnvVariableDefinitions.length == 0) {
         return [];
     }
 
@@ -166,13 +167,14 @@ function getResultsForEnvironmentVariable(
     }
 
     return mapEnvVariablesToCompletions(
-        matchingEnvVariableDefinitions.map(
+        matchingStaticEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
                 environmentFile: file,
                 matchingVariableKeys: matchingVariables.map(({ key }) => key),
                 isConfiguredEnv,
             }),
         ),
+        [],
         functionType,
     );
 }

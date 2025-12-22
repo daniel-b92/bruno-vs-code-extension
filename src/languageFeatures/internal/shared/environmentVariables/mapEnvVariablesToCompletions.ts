@@ -1,19 +1,21 @@
 import { basename } from "path";
 import { CompletionItem, CompletionItemKind } from "vscode";
 import {
+    BrunoVariableReference,
     getExtensionForBrunoFiles,
     VariableReferenceType,
 } from "../../../../shared";
 
 export function mapEnvVariablesToCompletions(
-    matchingEnvVariableDefinitions: {
+    matchingStaticEnvVariables: {
         environmentFile: string;
         matchingVariableKeys: string[];
         isConfiguredEnv: boolean;
     }[],
-    functionType?: VariableReferenceType,
+    matchingDynamicEnvVariables: BrunoVariableReference[],
+    functionType: VariableReferenceType,
 ) {
-    return matchingEnvVariableDefinitions.flatMap(
+    return matchingStaticEnvVariables.flatMap(
         ({ environmentFile, matchingVariableKeys, isConfiguredEnv }) =>
             matchingVariableKeys.map((key) => {
                 const environmentName = basename(
