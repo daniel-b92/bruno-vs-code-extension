@@ -114,7 +114,7 @@ function getResultsForEnvironmentVariable(
     const matchingEnvVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
         collection,
         envVariableName,
-        EnvVariableNameMatchingMode.Substring,
+        EnvVariableNameMatchingMode.Ignore,
         getConfiguredTestEnvironment(),
     );
 

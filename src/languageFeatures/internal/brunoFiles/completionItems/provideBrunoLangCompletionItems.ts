@@ -101,9 +101,12 @@ function getNonBlockSpecificCompletions(
     file: { block: Block; collection: Collection },
     logger?: OutputChannelLogger,
 ) {
-    const { block, collection } = file;
+    const {
+        block: { name: blockName },
+        collection,
+    } = file;
     const { document, position, token } = request;
-    if ((getBlocksWithoutVariableSupport() as string[]).includes(block.name)) {
+    if ((getBlocksWithoutVariableSupport() as string[]).includes(blockName)) {
         return [];
     }
 
@@ -122,14 +125,15 @@ function getNonBlockSpecificCompletions(
         return [];
     }
 
-    const matchingEnvVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
-        collection,
-        matchingText.substring(2),
-        EnvVariableNameMatchingMode.Substring,
-        getConfiguredTestEnvironment(),
-    );
+    const matchingStaticEnvVariableDefinitions =
+        getMatchingDefinitionsFromEnvFiles(
+            collection,
+            matchingText.substring(2),
+            EnvVariableNameMatchingMode.Ignore,
+            getConfiguredTestEnvironment(),
+        );
 
-    if (matchingEnvVariableDefinitions.length == 0) {
+    if (matchingStaticEnvVariableDefinitions.length == 0) {
         return [];
     }
 
@@ -139,7 +143,7 @@ function getNonBlockSpecificCompletions(
     }
 
     return mapEnvVariablesToCompletions(
-        matchingEnvVariableDefinitions.map(
+        matchingStaticEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
                 environmentFile: file,
                 matchingVariableKeys: matchingVariables.map(({ key }) => key),
