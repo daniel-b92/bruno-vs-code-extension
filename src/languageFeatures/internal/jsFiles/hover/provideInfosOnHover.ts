@@ -8,7 +8,7 @@ import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { getHoverForEnvironmentVariable } from "../../shared/environmentVariables/getHoverForEnvironmentVariable";
 import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
-import { getInbuiltFunctionsForEnvironmentVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
+import { getInbuiltFunctionIdentifiersForEnvVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
 
 export function provideInfosOnHover(
     collectionItemProvider: CollectionItemProvider,
@@ -72,17 +72,10 @@ function getEnvVariableRelatedFunctionForRequest(params: {
         baseRequest: { document },
         logger,
     } = params;
-    const {
-        getEnvironmentVariable: getEnvironmentVariableFunction,
-        setEnvironmentVariable: setEnvironmentVariableFunction,
-    } = getInbuiltFunctionsForEnvironmentVariables();
 
     return getFirstParameterForInbuiltFunctionIfStringLiteral({
         relevantContent: document.getText(),
-        functionsToSearchFor: [
-            getEnvironmentVariableFunction,
-            setEnvironmentVariableFunction,
-        ],
+        functionsToSearchFor: getInbuiltFunctionIdentifiersForEnvVariables(),
         request: params.baseRequest,
         logger,
     });

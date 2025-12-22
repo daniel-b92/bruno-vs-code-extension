@@ -10,10 +10,16 @@ import {
     EnvVariableNameMatchingMode,
     getMatchingEnvironmentVariableDefinitionsFromEnvFiles,
 } from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitionsFromEnvFiles";
-import { LanguageFeatureRequest } from "../../shared/interfaces";
+import {
+    EnvVariableFunctionType,
+    LanguageFeatureRequest,
+} from "../../shared/interfaces";
 import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
 import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
-import { getInbuiltFunctionsForEnvironmentVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
+import {
+    getInbuiltFunctionIdentifiersForEnvVariables,
+    getInbuiltFunctionsForEnvironmentVariables,
+} from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
 
 export function provideCompletionItems(
     collectionItemProvider: CollectionItemProvider,
@@ -47,11 +53,12 @@ export function provideCompletionItems(
                     });
 
                 return envVariableRelatedFunction != undefined
-                    ? /* ToDo:  Distinguish between 'getEnvVar' and 'setEnvVar' functions and prefer dynamic variables for 'setEnvVar' function.
-                                Usually, the user will not want to overwrite a static environment variable via a runtime function (at least I would assume so).*/
-                      getResultsForEnvironmentVariable(
-                          collection,
+                    ? getResultsForEnvironmentVariable(
                           envVariableRelatedFunction.variableName,
+                          {
+                              collection,
+                              functionType: envVariableRelatedFunction.type,
+                          },
                           { document, position, token },
                           logger,
                       )
@@ -75,33 +82,40 @@ function getEnvVariableRelatedFunctionForRequest(params: {
         baseRequest: { document, token },
         logger,
     } = params;
-    const {
-        getEnvironmentVariable: getEnvironmentVariableFunction,
-        setEnvironmentVariable: setEnvironmentVariableFunction,
-    } = getInbuiltFunctionsForEnvironmentVariables();
 
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return undefined;
     }
 
-    return getFirstParameterForInbuiltFunctionIfStringLiteral({
+    const found = getFirstParameterForInbuiltFunctionIfStringLiteral({
         relevantContent: document.getText(),
-        functionsToSearchFor: [
-            getEnvironmentVariableFunction,
-            setEnvironmentVariableFunction,
-        ],
+        functionsToSearchFor: getInbuiltFunctionIdentifiersForEnvVariables(),
         request: params.baseRequest,
         logger,
     });
+
+    return found
+        ? {
+              ...found,
+              type: getInbuiltFunctionsForEnvironmentVariables()[
+                  found.inbuiltFunction.functionName
+              ].type,
+          }
+        : undefined;
 }
 
 function getResultsForEnvironmentVariable(
-    collection: Collection,
     envVariableName: string,
+    additionalData: {
+        collection: Collection;
+        functionType: EnvVariableFunctionType;
+    },
     { token }: LanguageFeatureRequest,
     logger?: OutputChannelLogger,
 ) {
+    const { collection, functionType } = additionalData;
+
     const matchingEnvVariableDefinitions =
         getMatchingEnvironmentVariableDefinitionsFromEnvFiles(
             collection,
@@ -127,6 +141,7 @@ function getResultsForEnvironmentVariable(
                 isConfiguredEnv,
             }),
         ),
+        functionType,
     );
 }
 

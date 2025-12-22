@@ -33,10 +33,16 @@ import {
     EnvVariableNameMatchingMode,
     getMatchingEnvironmentVariableDefinitionsFromEnvFiles,
 } from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitionsFromEnvFiles";
-import { LanguageFeatureRequest } from "../../shared/interfaces";
+import {
+    EnvVariableFunctionType,
+    LanguageFeatureRequest,
+} from "../../shared/interfaces";
 import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
 import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
-import { getInbuiltFunctionsForEnvironmentVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
+import {
+    getInbuiltFunctionIdentifiersForEnvVariables,
+    getInbuiltFunctionsForEnvironmentVariables,
+} from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
 
 type CompletionItemRange =
     | VsCodeRange
@@ -93,17 +99,22 @@ export function provideTsLangCompletionItems(
                                 request: { document, position, token },
                                 logger,
                             },
-                            [
-                                getInbuiltFunctionsForEnvironmentVariables()
-                                    .getEnvironmentVariable,
-                            ],
+                            getInbuiltFunctionIdentifiersForEnvVariables(),
                         ),
                     );
 
                 if (envVariableResult) {
+                    const functionType =
+                        getInbuiltFunctionsForEnvironmentVariables()[
+                            envVariableResult.inbuiltFunction.functionName
+                        ].type;
+
                     return getResultsForEnvironmentVariable(
-                        collection,
                         envVariableResult.variableName,
+                        {
+                            collection,
+                            functionType,
+                        },
                         { document, position, token },
                         logger,
                     );
@@ -132,15 +143,20 @@ export function provideTsLangCompletionItems(
 }
 
 function getResultsForEnvironmentVariable(
-    collection: Collection,
-    name: string,
+    variableName: string,
+    additionalData: {
+        collection: Collection;
+        functionType: EnvVariableFunctionType;
+    },
     { token }: LanguageFeatureRequest,
     logger?: OutputChannelLogger,
 ) {
+    const { collection, functionType } = additionalData;
+
     const matchingEnvVariableDefinitions =
         getMatchingEnvironmentVariableDefinitionsFromEnvFiles(
             collection,
-            name,
+            variableName,
             EnvVariableNameMatchingMode.Substring,
             getConfiguredTestEnvironment(),
         );
@@ -162,6 +178,7 @@ function getResultsForEnvironmentVariable(
                 isConfiguredEnv,
             }),
         ),
+        functionType,
     );
 }
 

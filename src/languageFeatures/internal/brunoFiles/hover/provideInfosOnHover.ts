@@ -23,7 +23,7 @@ import { getVariableNameForPositionInNonCodeBlock } from "../shared/nonCodeBlock
 import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
 import { getHoverForEnvironmentVariable } from "../../shared/environmentVariables/getHoverForEnvironmentVariable";
 import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
-import { getInbuiltFunctionsForEnvironmentVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
+import { getInbuiltFunctionIdentifiersForEnvVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
 
 interface ProviderParamsForNonCodeBlock {
     file: {
@@ -218,10 +218,7 @@ function getEnvVariableNameFromCodeBlock({
                 request: hoverRequest,
                 logger,
             },
-            [
-                getInbuiltFunctionsForEnvironmentVariables()
-                    .getEnvironmentVariable,
-            ],
+            getInbuiltFunctionIdentifiersForEnvVariables(),
         ),
     );
 }
