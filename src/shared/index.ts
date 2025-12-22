@@ -79,14 +79,17 @@ export * from "./languageUtils/commonBlocks/generic/shouldBeDictionaryBlock";
 export * from "./languageUtils/commonBlocks/generic/getBlockType";
 export * from "./languageUtils/commonBlocks/generic/blockTypeEnum";
 export * from "./languageUtils/commonBlocks/generic/blockBracketEnum";
-export * from "./languageUtils/commonBlocks/generic/getBlocksWithoutVariableSupport";
-export * from "./languageUtils/commonBlocks/generic/getVariableNameForPositionInNonCodeBlock";
 export * from "./languageUtils/commonBlocks/generic/getCodeBlocks";
+export * from "./languageUtils/commonBlocks/generic/getDefaultIndentationForDictionaryBlockFields";
+export * from "./languageUtils/commonBlocks/generic/getFieldFromDictionaryBlock";
+
 export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockDictionaryBlock";
 export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockCodeBlock";
 export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockArrayBlock";
-export * from "./languageUtils/commonBlocks/generic/getDefaultIndentationForDictionaryBlockFields";
-export * from "./languageUtils/commonBlocks/generic/getFieldFromDictionaryBlock";
+
+export * from "./languageUtils/commonBlocks/generic/variables/getPatternForVariablesInNonCodeBlock";
+export * from "./languageUtils/commonBlocks/generic/variables/getBlocksWithoutVariableSupport";
+export * from "./languageUtils/commonBlocks/generic/variables/getVariableNameForPositionInNonCodeBlock";
 
 export * from "./languageUtils/commonBlocks/authBlocks/authBlockNameEnum";
 export * from "./languageUtils/commonBlocks/authBlocks/authBlocksKeyEnums";

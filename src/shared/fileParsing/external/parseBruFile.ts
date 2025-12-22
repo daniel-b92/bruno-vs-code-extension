@@ -61,7 +61,7 @@ export const parseBruFile = (document: TextDocumentHelper) => {
                 return result;
             }
 
-            const { contentRange, content } = blockContent;
+            const { contentRange, content, variableRerences } = blockContent;
 
             result.blocks.push({
                 name: blockName,
@@ -77,6 +77,7 @@ export const parseBruFile = (document: TextDocumentHelper) => {
                     | DictionaryBlockSimpleField[]
                     | ArrayBlockField[],
                 contentRange,
+                variableRerences,
             });
 
             // Skip the rest of the already parsed block
