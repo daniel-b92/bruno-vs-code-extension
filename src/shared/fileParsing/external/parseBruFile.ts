@@ -9,6 +9,7 @@ import {
     Block,
     TextOutsideOfBlocks,
     ArrayBlockField,
+    getBlocksWithoutVariableSupport,
 } from "../..";
 
 export const parseBruFile = (document: TextDocumentHelper) => {
@@ -47,6 +48,9 @@ export const parseBruFile = (document: TextDocumentHelper) => {
                 document,
                 startingPosition,
                 getBlockType(matches[0], blockName),
+                !(getBlocksWithoutVariableSupport() as string[]).includes(
+                    blockName,
+                ),
             );
 
             if (!blockContent) {
