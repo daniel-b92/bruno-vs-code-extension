@@ -31,18 +31,16 @@ import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/exte
 import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
 import {
     EnvVariableNameMatchingMode,
-    getMatchingEnvironmentVariableDefinitionsFromEnvFiles,
-} from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitionsFromEnvFiles";
+    getMatchingDefinitionsFromEnvFiles,
+} from "../../shared/environmentVariables/getMatchingDefinitionsFromEnvFiles";
 import {
     EnvVariableFunctionType,
     LanguageFeatureRequest,
 } from "../../shared/interfaces";
-import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
+import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
 import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
-import {
-    getInbuiltFunctionIdentifiersForEnvVariables,
-    getInbuiltFunctionsForEnvironmentVariables,
-} from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
+import { getInbuiltFunctionIdentifiers } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
+import { getInbuiltFunctions } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctions";
 
 type CompletionItemRange =
     | VsCodeRange
@@ -99,13 +97,13 @@ export function provideTsLangCompletionItems(
                                 request: { document, position, token },
                                 logger,
                             },
-                            getInbuiltFunctionIdentifiersForEnvVariables(),
+                            getInbuiltFunctionIdentifiers(),
                         ),
                     );
 
                 if (envVariableResult) {
                     const functionType =
-                        getInbuiltFunctionsForEnvironmentVariables()[
+                        getInbuiltFunctions()[
                             envVariableResult.inbuiltFunction.functionName
                         ].type;
 
@@ -153,13 +151,12 @@ function getResultsForEnvironmentVariable(
 ) {
     const { collection, functionType } = additionalData;
 
-    const matchingEnvVariableDefinitions =
-        getMatchingEnvironmentVariableDefinitionsFromEnvFiles(
-            collection,
-            variableName,
-            EnvVariableNameMatchingMode.Substring,
-            getConfiguredTestEnvironment(),
-        );
+    const matchingEnvVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
+        collection,
+        variableName,
+        EnvVariableNameMatchingMode.Substring,
+        getConfiguredTestEnvironment(),
+    );
 
     if (matchingEnvVariableDefinitions.length == 0) {
         return [];
@@ -170,7 +167,7 @@ function getResultsForEnvironmentVariable(
         return [];
     }
 
-    return mapEnvironmentVariablesToCompletions(
+    return mapEnvVariablesToCompletions(
         matchingEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
                 environmentFile: file,

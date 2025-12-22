@@ -8,18 +8,16 @@ import {
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import {
     EnvVariableNameMatchingMode,
-    getMatchingEnvironmentVariableDefinitionsFromEnvFiles,
-} from "../../shared/environmentVariables/getMatchingEnvironmentVariableDefinitionsFromEnvFiles";
+    getMatchingDefinitionsFromEnvFiles,
+} from "../../shared/environmentVariables/getMatchingDefinitionsFromEnvFiles";
 import {
     EnvVariableFunctionType,
     LanguageFeatureRequest,
 } from "../../shared/interfaces";
 import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
-import { mapEnvironmentVariablesToCompletions } from "../../shared/environmentVariables/mapEnvironmentVariablesToCompletions";
-import {
-    getInbuiltFunctionIdentifiersForEnvVariables,
-    getInbuiltFunctionsForEnvironmentVariables,
-} from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
+import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
+import { getInbuiltFunctionIdentifiers } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
+import { getInbuiltFunctions } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctions";
 
 export function provideCompletionItems(
     collectionItemProvider: CollectionItemProvider,
@@ -90,7 +88,7 @@ function getEnvVariableRelatedFunctionForRequest(params: {
 
     const found = getFirstParameterForInbuiltFunctionIfStringLiteral({
         relevantContent: document.getText(),
-        functionsToSearchFor: getInbuiltFunctionIdentifiersForEnvVariables(),
+        functionsToSearchFor: getInbuiltFunctionIdentifiers(),
         request: params.baseRequest,
         logger,
     });
@@ -98,9 +96,8 @@ function getEnvVariableRelatedFunctionForRequest(params: {
     return found
         ? {
               ...found,
-              type: getInbuiltFunctionsForEnvironmentVariables()[
-                  found.inbuiltFunction.functionName
-              ].type,
+              type: getInbuiltFunctions()[found.inbuiltFunction.functionName]
+                  .type,
           }
         : undefined;
 }
@@ -116,13 +113,12 @@ function getResultsForEnvironmentVariable(
 ) {
     const { collection, functionType } = additionalData;
 
-    const matchingEnvVariableDefinitions =
-        getMatchingEnvironmentVariableDefinitionsFromEnvFiles(
-            collection,
-            envVariableName,
-            EnvVariableNameMatchingMode.Substring,
-            getConfiguredTestEnvironment(),
-        );
+    const matchingEnvVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
+        collection,
+        envVariableName,
+        EnvVariableNameMatchingMode.Substring,
+        getConfiguredTestEnvironment(),
+    );
 
     if (matchingEnvVariableDefinitions.length == 0) {
         return [];
@@ -133,7 +129,7 @@ function getResultsForEnvironmentVariable(
         return [];
     }
 
-    return mapEnvironmentVariablesToCompletions(
+    return mapEnvVariablesToCompletions(
         matchingEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
                 environmentFile: file,

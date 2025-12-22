@@ -21,9 +21,9 @@ import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockUt
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { getVariableNameForPositionInNonCodeBlock } from "../shared/nonCodeBlockUtils/getVariableNameForPositionInNonCodeBlock";
 import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
-import { getHoverForEnvironmentVariable } from "../../shared/environmentVariables/getHoverForEnvironmentVariable";
+import { getHoverForEnvVariable } from "../../shared/environmentVariables/getHoverForEnvVariable";
 import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
-import { getInbuiltFunctionIdentifiersForEnvVariables } from "../../shared/environmentVariables/getInbuiltFunctionsForEnvironmentVariables";
+import { getInbuiltFunctionIdentifiers } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
 
 interface ProviderParamsForNonCodeBlock {
     file: {
@@ -112,12 +112,7 @@ function getHoverForNonCodeBlocks({
     }
 
     return variableName
-        ? getHoverForEnvironmentVariable(
-              collection,
-              variableName,
-              token,
-              logger,
-          )
+        ? getHoverForEnvVariable(collection, variableName, token, logger)
         : undefined;
 }
 
@@ -139,7 +134,7 @@ async function getHoverForCodeBlocks(
     const envVariableResult = getEnvVariableNameFromCodeBlock(params);
 
     if (envVariableResult) {
-        return getHoverForEnvironmentVariable(
+        return getHoverForEnvVariable(
             collection,
             envVariableResult.variableName,
             token,
@@ -218,7 +213,7 @@ function getEnvVariableNameFromCodeBlock({
                 request: hoverRequest,
                 logger,
             },
-            getInbuiltFunctionIdentifiersForEnvVariables(),
+            getInbuiltFunctionIdentifiers(),
         ),
     );
 }

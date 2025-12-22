@@ -3,7 +3,7 @@ import { CompletionItem, CompletionItemKind } from "vscode";
 import { getExtensionForBrunoFiles } from "../../../../shared";
 import { EnvVariableFunctionType } from "../interfaces";
 
-export function mapEnvironmentVariablesToCompletions(
+export function mapEnvVariablesToCompletions(
     matchingEnvVariableDefinitions: {
         environmentFile: string;
         matchingVariableKeys: string[];

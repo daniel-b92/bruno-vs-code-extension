@@ -1,24 +1,11 @@
 import {
-    EnvVariableFunctionType,
     InbuiltEnvVariableFunctionName,
-    InbuiltFunctionBaseIdentifierEnum,
     InbuiltFunctionIdentifier,
-} from "../interfaces";
+    EnvVariableFunctionType,
+    InbuiltFunctionBaseIdentifierEnum,
+} from "../../interfaces";
 
-export function getInbuiltFunctionIdentifiersForEnvVariables(
-    type?: EnvVariableFunctionType,
-) {
-    const allFunctions = Object.values(InbuiltEnvVariableFunctionName).map(
-        (functionName) =>
-            getInbuiltFunctionsForEnvironmentVariables()[functionName],
-    );
-
-    return allFunctions
-        .filter(({ type: t }) => (type != undefined ? t == type : true))
-        .map(({ identifier }) => identifier);
-}
-
-export function getInbuiltFunctionsForEnvironmentVariables(): {
+export function getInbuiltFunctions(): {
     [identifier in InbuiltEnvVariableFunctionName]: {
         identifier: InbuiltFunctionIdentifier;
         type: EnvVariableFunctionType;
