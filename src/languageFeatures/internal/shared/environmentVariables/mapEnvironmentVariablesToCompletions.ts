@@ -20,7 +20,7 @@ export function mapEnvironmentVariablesToCompletions(
                 );
                 const completionItem = new CompletionItem({
                     label: key,
-                    description: `${functionType == EnvVariableFunctionType.ModifyOrDelete ? "!Static variable in Env!" : "Env"} '${environmentName}'`,
+                    description: `${functionType === EnvVariableFunctionType.ModifyOrDelete ? "!Static variable in Env!" : "Env"} '${environmentName}'`,
                 });
                 completionItem.kind = CompletionItemKind.Constant;
                 completionItem.sortText = `${isConfiguredEnv ? "a" : "b"}_${environmentName}_${key}`;
