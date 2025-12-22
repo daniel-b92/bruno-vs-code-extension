@@ -3,8 +3,8 @@ import {
     mapToVsCodeRange,
     parseBruFile,
     TextDocumentHelper,
+    getCodeBlocks,
 } from "../../../../../shared";
-import { getCodeBlocks } from "./getCodeBlocks";
 
 export function getCodeBlockContainingPosition(
     bruFileContent: string,

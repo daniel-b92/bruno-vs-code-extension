@@ -6,6 +6,7 @@ import {
     BooleanFieldValue,
     Collection,
     CollectionItemProvider,
+    getBlocksWithoutVariableSupport,
     getConfiguredTestEnvironment,
     getMatchingTextContainingPosition,
     getMaxSequenceForRequests,
@@ -29,7 +30,6 @@ import {
 } from "../../../../shared";
 import { dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
-import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockUtils/getNonCodeBlocksWithoutVariableSupport";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import {
     EnvVariableNameMatchingMode,
@@ -103,11 +103,7 @@ function getNonBlockSpecificCompletions(
 ) {
     const { block, collection } = file;
     const { document, position, token } = request;
-    if (
-        (getNonCodeBlocksWithoutVariableSupport() as string[]).includes(
-            block.name,
-        )
-    ) {
+    if ((getBlocksWithoutVariableSupport() as string[]).includes(block.name)) {
         return [];
     }
 

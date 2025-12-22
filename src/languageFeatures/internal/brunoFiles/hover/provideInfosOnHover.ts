@@ -4,6 +4,8 @@ import {
     CodeBlock,
     Collection,
     CollectionItemProvider,
+    getBlocksWithoutVariableSupport,
+    getVariableNameForPositionInNonCodeBlock,
     isBlockCodeBlock,
     mapFromVsCodePosition,
     mapToVsCodeRange,
@@ -17,9 +19,7 @@ import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositi
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { waitForTempJsFileToBeInSyncWithBruFile } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
-import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockUtils/getNonCodeBlocksWithoutVariableSupport";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
-import { getVariableNameForPositionInNonCodeBlock } from "../shared/nonCodeBlockUtils/getVariableNameForPositionInNonCodeBlock";
 import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
 import { getHoverForEnvVariable } from "../../shared/environmentVariables/getHoverForEnvVariable";
 import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
@@ -96,11 +96,7 @@ function getHoverForNonCodeBlocks({
     logger,
 }: ProviderParamsForNonCodeBlock) {
     const { token } = hoverRequest;
-    if (
-        (getNonCodeBlocksWithoutVariableSupport() as string[]).includes(
-            blockName,
-        )
-    ) {
+    if ((getBlocksWithoutVariableSupport() as string[]).includes(blockName)) {
         return undefined;
     }
 

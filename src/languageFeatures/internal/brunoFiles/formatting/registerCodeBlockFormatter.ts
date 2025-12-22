@@ -9,9 +9,9 @@ import {
     Range,
     TextDocumentHelper,
     BlockBracket,
+    getCodeBlocks,
 } from "../../../../shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
-import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { format } from "prettier";
 import { mapBlockNameToJsFileLine } from "../shared/codeBlocksUtils/mapBlockNameToJsFileFunctionName";
 

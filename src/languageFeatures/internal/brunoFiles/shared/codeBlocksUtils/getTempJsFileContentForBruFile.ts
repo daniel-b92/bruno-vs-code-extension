@@ -1,6 +1,9 @@
-import { parseBruFile, TextDocumentHelper } from "../../../../../shared";
+import {
+    parseBruFile,
+    TextDocumentHelper,
+    getCodeBlocks,
+} from "../../../../../shared";
 import { getDefinitionsForInbuiltLibraries } from "../../../shared/temporaryJsFilesUpdates/external/getDefinitionsForInbuiltLibraries";
-import { getCodeBlocks } from "./getCodeBlocks";
 import { mapBlockNameToJsFileLine } from "./mapBlockNameToJsFileFunctionName";
 
 export function getTempJsFileContentForBruFile(bruFileContent: string) {

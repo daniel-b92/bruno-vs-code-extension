@@ -5,10 +5,10 @@ import {
     mapToVsCodeRange,
     parseBruFile,
     TextDocumentHelper,
+    getCodeBlocks,
 } from "../../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
-import { getCodeBlocks } from "../../../../shared/codeBlocksUtils/getCodeBlocks";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 
 export function checkCodeBlocksHaveClosingBracket(
