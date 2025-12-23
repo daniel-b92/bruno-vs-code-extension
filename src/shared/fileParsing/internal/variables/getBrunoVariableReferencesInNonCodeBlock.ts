@@ -6,7 +6,7 @@ import {
     Range,
     TextDocumentHelper,
     VariableReferenceType,
-} from "../..";
+} from "../../..";
 
 export function getBrunoVariableReferencesInNonCodeBlock(
     fullDocumentHelper: TextDocumentHelper,

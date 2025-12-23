@@ -16,7 +16,7 @@ import { parsePlainTextBlock } from "./parsePlainTextBlock";
 import { parseDictionaryBlock } from "./parseDictionaryBlock";
 import { parseArrayBlock } from "./parseArrayBlock";
 import { SyntaxKind } from "typescript";
-import { getBrunoVariableReferencesInNonCodeBlock } from "./getBrunoVariableReferencesInNonCodeBlock";
+import { getBrunoVariableReferencesInNonCodeBlock } from "./variables/getBrunoVariableReferencesInNonCodeBlock";
 
 export const getBlockContent = (
     document: TextDocumentHelper,
