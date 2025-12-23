@@ -3,7 +3,9 @@ import {
     Collection,
     CollectionItemProvider,
     OutputChannelLogger,
+    Position,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
+    mapFromVsCodePosition,
 } from "../../../../shared";
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
@@ -66,18 +68,18 @@ async function getHover(params: {
 function getEnvVariableRelatedFunctionForRequest(params: {
     file: { collection: Collection };
     baseRequest: LanguageFeatureRequest;
-    logger?: OutputChannelLogger;
 }) {
     const {
-        baseRequest: { document },
-        logger,
+        baseRequest: { document, position },
     } = params;
 
     return getFirstParameterForInbuiltFunctionIfStringLiteral({
-        relevantContent: document.getText(),
+        relevantContent: {
+            asString: document.getText(),
+            startPosition: new Position(0, 0),
+        },
         functionsToSearchFor: getInbuiltFunctionIdentifiers(),
-        request: params.baseRequest,
-        logger,
+        position: mapFromVsCodePosition(position),
     });
 }
 

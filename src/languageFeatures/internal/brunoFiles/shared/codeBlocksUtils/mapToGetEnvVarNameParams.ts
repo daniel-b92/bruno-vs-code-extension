@@ -1,28 +1,34 @@
 import { TextDocument, Position as VsCodePosition } from "vscode";
 import { CodeBlockLanguageFeatureRequestWithAdditionalData } from "../interfaces";
-import { Range, InbuiltFunctionIdentifier } from "../../../../../shared";
+import {
+    Range,
+    InbuiltFunctionIdentifier,
+    InbuiltFunctionParsingParams,
+    mapFromVsCodePosition,
+} from "../../../../../shared";
 
 export function mapToEnvVarNameParams(
     params: CodeBlockLanguageFeatureRequestWithAdditionalData,
     functionsToSearchFor: InbuiltFunctionIdentifier[],
-) {
+): InbuiltFunctionParsingParams {
     const {
         file: {
             blockContainingPosition: { content, contentRange },
         },
-        request: { document },
-        logger,
+        request: { document, position },
     } = params;
 
     return {
-        relevantContent: content.asPlainText,
+        relevantContent: {
+            asString: content.asPlainText,
+            startPosition: contentRange.start,
+            offsetInFullDocument: getDefaultOffsetForBlockContent(
+                document,
+                contentRange,
+            ),
+        },
         functionsToSearchFor,
-        defaultOffsetWithinDocument: getDefaultOffsetForBlockContent(
-            document,
-            contentRange,
-        ),
-        request: params.request,
-        logger,
+        position: mapFromVsCodePosition(position),
     };
 }
 

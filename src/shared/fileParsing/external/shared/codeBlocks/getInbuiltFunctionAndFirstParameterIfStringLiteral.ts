@@ -12,7 +12,7 @@ import {
     TextDocumentHelper,
 } from "../../../..";
 
-export function getInbuiltFunctionAndFirstParameterIfStringLiteral(params: {
+export interface InbuiltFunctionParsingParams {
     relevantContent: {
         asString: string;
         startPosition: Position;
@@ -20,7 +20,19 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(params: {
     };
     functionsToSearchFor: InbuiltFunctionIdentifier[];
     position: Position;
-}) {
+}
+
+export function getInbuiltFunctionAndFirstParameterIfStringLiteral(
+    params: InbuiltFunctionParsingParams,
+):
+    | {
+          inbuiltFunction: {
+              identifier: InbuiltFunctionIdentifier;
+              nodeContainsPosition: boolean;
+          };
+          firstParameter: { name: string; nodeContainsPosition: boolean };
+      }
+    | undefined {
     const {
         relevantContent: {
             asString: relevantContent,
@@ -31,7 +43,7 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(params: {
         position,
     } = params;
     const subDocumentHelper = new TextDocumentHelper(relevantContent);
-    const { defaultOffsetToUse, offsetWithinSubdocument } = getOffsetsToUse(
+    const { offsetWithinSubdocument } = getOffsetsToUse(
         position,
         subDocumentHelper,
         contentStartPosition,
@@ -52,7 +64,11 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(params: {
 
     const traversedNodes: Node[] = [contentAsTsNode];
     let inbuiltFunctionForRequest:
-        | { identifier: InbuiltFunctionIdentifier; childNodeIndex: number }
+        | {
+              identifier: InbuiltFunctionIdentifier;
+              node: Node;
+              childNodeIndex: number;
+          }
         | undefined;
     let neededDepthReached = false;
 
@@ -84,18 +100,22 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(params: {
             });
 
         if (childNodeForFunctionIdentifier != undefined) {
-            const { childNodeIndex, functionIdentifier: identifier } =
-                childNodeForFunctionIdentifier;
+            const {
+                childNodeIndex,
+                child: node,
+                functionIdentifier: identifier,
+            } = childNodeForFunctionIdentifier;
 
             inbuiltFunctionForRequest = {
                 identifier,
+                node,
                 childNodeIndex,
             };
             neededDepthReached = true;
         }
 
         if (!neededDepthReached) {
-            const childContainingPosition = getChildNodeContainingPosition(
+            const childContainingPosition = getChildNodeContainingOffset(
                 currentNode,
                 sourceFile,
                 offsetWithinSubdocument,
@@ -117,99 +137,120 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(params: {
     );
 
     const lastReachedNode = traversedNodes[traversedNodes.length - 1];
-
-    if (!neededDepthReached || lastReachedNode.kind != SyntaxKind.SyntaxList) {
-        return undefined;
-    }
-
-    const childContainingPosition = getChildNodeContainingPosition(
-        lastReachedNode,
-        sourceFile,
-        offsetWithinSubdocument,
-    );
-
-    const grandChildContainingPosition = getChildNodeContainingPosition(
-        lastReachedNode,
-        sourceFile,
-        offsetWithinSubdocument,
-    );
+    const nodeForSyntaxList = lastReachedNode
+        .getChildren(sourceFile)
+        .find(({ kind }) => kind == SyntaxKind.SyntaxList);
 
     if (
-        grandChildContainingPosition == undefined ||
-        grandChildContainingPosition.childIndex != 0 // The first parameter is always the environment variable name for all inbuilt functions.
+        !neededDepthReached ||
+        !inbuiltFunctionForRequest ||
+        !nodeForSyntaxList
     ) {
         return undefined;
     }
 
-    const { node: resultNode } = grandChildContainingPosition;
+    const firstParameterNode = nodeForSyntaxList.getChildAt(0, sourceFile);
 
     const canHandleNodeType = [
         SyntaxKind.NoSubstitutionTemplateLiteral, // String quoted via '`'
         SyntaxKind.StringLiteral, // String quoted via '"' or "'"
-    ].includes(resultNode.kind);
+    ].includes(firstParameterNode.kind);
 
-    return canHandleNodeType
-        ? ({
-              inbuiltFunction: inbuiltFunctionForRequest,
-              variableName: extractVariableNameFromResultNode(
-                  resultNode,
-                  sourceFile,
-                  params.request,
-                  defaultOffsetToUse,
-              ),
-          } as {
-              inbuiltFunction: InbuiltFunctionIdentifier;
-              variableName: string;
-          })
+    const firstParameterParsedName = extractVariableNameFromResultNode(
+        {
+            startPosition: contentStartPosition,
+            subDocumentHelper,
+        },
+        firstParameterNode,
+        sourceFile,
+        position,
+    );
+
+    return canHandleNodeType && firstParameterParsedName
+        ? {
+              inbuiltFunction: {
+                  identifier: inbuiltFunctionForRequest.identifier,
+                  nodeContainsPosition: doesNodeContainOffset(
+                      inbuiltFunctionForRequest.node,
+                      sourceFile,
+                      offsetWithinSubdocument,
+                  ),
+              },
+              firstParameter: {
+                  name: firstParameterParsedName,
+                  nodeContainsPosition: doesNodeContainOffset(
+                      firstParameterNode,
+                      sourceFile,
+                      offsetWithinSubdocument,
+                  ),
+              },
+          }
         : undefined;
 }
 
 function extractVariableNameFromResultNode(
+    relevantContent: {
+        subDocumentHelper: TextDocumentHelper;
+        startPosition: Position;
+    },
     resultNode: Node,
     sourceFile: SourceFile,
-    { document, position }: LanguageFeatureRequest,
-    defaultOffsetToUse: number,
+    position: Position,
 ) {
-    const fullParameter = {
-        text: resultNode.getText(sourceFile),
-        start: document.positionAt(
-            defaultOffsetToUse + resultNode.getStart(sourceFile, true),
-        ),
-        end: document.positionAt(defaultOffsetToUse + resultNode.getEnd()),
-    };
+    const { subDocumentHelper, startPosition: contentStartPosition } =
+        relevantContent;
 
-    if (!fullParameter) {
+    const start = subDocumentHelper.getPositionForOffset(
+        contentStartPosition,
+        resultNode.getStart(sourceFile, true),
+    );
+    const end = subDocumentHelper.getPositionForOffset(
+        contentStartPosition,
+        resultNode.getEnd(),
+    );
+
+    if (!start || !end) {
         return undefined;
     }
 
-    const { text, start, end } = fullParameter;
+    const fullParameter = {
+        text: resultNode.getText(sourceFile),
+        start,
+        end,
+    };
+
+    const { text } = fullParameter;
     const startsWithQuotes = /^("|'|`)/.test(text);
     const endsWithQuotes = /("|'|`)$/.test(text);
 
     return startsWithQuotes &&
         endsWithQuotes &&
-        position.compareTo(start) > 0 &&
-        position.compareTo(end) < 0
+        position.isAfter(start) &&
+        position.isBefore(end)
         ? text.substring(1, text.length - 1)
         : undefined;
 }
 
-function getChildNodeContainingPosition(
+function getChildNodeContainingOffset(
     currentNode: Node,
     sourceFile: SourceFile,
     offset: number,
 ) {
     const index = currentNode
         .getChildren(sourceFile)
-        .findIndex(
-            (child) =>
-                child.getStart(sourceFile) <= offset &&
-                child.getEnd() >= offset,
-        );
+        .findIndex((child) => doesNodeContainOffset(child, sourceFile, offset));
 
     return index >= 0
         ? { childIndex: index, node: currentNode.getChildAt(index, sourceFile) }
         : undefined;
+}
+
+function doesNodeContainOffset(
+    node: Node,
+    sourceFile: SourceFile,
+    offset: number,
+) {
+    return node.getStart(sourceFile) <= offset && node.getEnd() >= offset;
 }
 
 function getOffsetsToUse(

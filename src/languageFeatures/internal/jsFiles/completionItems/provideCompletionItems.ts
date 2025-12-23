@@ -8,6 +8,8 @@ import {
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
     getInbuiltFunctions,
+    Position,
+    mapFromVsCodePosition,
 } from "../../../../shared";
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import {
@@ -75,7 +77,7 @@ function getEnvVariableRelatedFunctionForRequest(params: {
     logger?: OutputChannelLogger;
 }) {
     const {
-        baseRequest: { document, token },
+        baseRequest: { document, token, position },
         logger,
     } = params;
 
@@ -85,10 +87,12 @@ function getEnvVariableRelatedFunctionForRequest(params: {
     }
 
     const found = getFirstParameterForInbuiltFunctionIfStringLiteral({
-        relevantContent: document.getText(),
+        relevantContent: {
+            asString: document.getText(),
+            startPosition: new Position(0, 0),
+        },
         functionsToSearchFor: getInbuiltFunctionIdentifiers(),
-        request: params.baseRequest,
-        logger,
+        position: mapFromVsCodePosition(position),
     });
 
     return found

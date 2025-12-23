@@ -31,6 +31,7 @@ export * from "./fileParsing/external/shared/getSequenceFieldFromMetaBlock";
 export * from "./fileParsing/external/shared/parseSequenceFromMetaBlock";
 export * from "./fileParsing/external/shared/getSequenceForFile";
 export * from "./fileParsing/external/shared/util/getBlockStartPatternByName";
+export * from "./fileParsing/external/shared/codeBlocks/getInbuiltFunctionAndFirstParameterIfStringLiteral";
 export * from "./fileParsing/external/shared/util/getContentRangeForArrayOrDictionaryBlock";
 export * from "./fileParsing/external/shared/util/getNonBlockSpecificBlockStartPattern";
 export * from "./fileParsing/external/parseBlockFromFile";
