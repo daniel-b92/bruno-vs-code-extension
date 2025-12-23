@@ -36,9 +36,24 @@ export function mapEnvVariablesToCompletions(
         dynamicVariablesData
             ? mapDynamicEnvVariables(requestData, dynamicVariablesData, "a")
             : []
-    ).concat(
-        mapStaticEnvVariables(matchingStaticEnvVariables, functionType, "b"),
-    );
+    )
+        .filter(
+            ({ label }) =>
+                !matchingStaticEnvVariables
+                    .flatMap(({ matchingVariableKeys }) => matchingVariableKeys)
+                    .some((key) =>
+                        typeof label == "string"
+                            ? key == label
+                            : key == label.label,
+                    ),
+        )
+        .concat(
+            mapStaticEnvVariables(
+                matchingStaticEnvVariables,
+                functionType,
+                "b",
+            ),
+        );
 }
 
 function mapDynamicEnvVariables(
@@ -64,7 +79,7 @@ function mapDynamicEnvVariables(
         ({ blockName, variableReference: { variableName, referenceType } }) => {
             const completionItem = new CompletionItem({
                 label: variableName,
-                detail: `Block '${blockName}'`,
+                detail: `  Block '${blockName}'`,
             });
             completionItem.kind =
                 referenceType == VariableReferenceType.Read
