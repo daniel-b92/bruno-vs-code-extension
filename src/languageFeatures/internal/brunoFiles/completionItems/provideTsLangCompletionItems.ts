@@ -181,8 +181,10 @@ function getResultsForEnvironmentVariable(
                 isConfiguredEnv,
             }),
         ),
-        functionType,
-        position,
+        {
+            functionType,
+            requestPosition: position,
+        },
         {
             blockContainingPosition,
             allBlocks,

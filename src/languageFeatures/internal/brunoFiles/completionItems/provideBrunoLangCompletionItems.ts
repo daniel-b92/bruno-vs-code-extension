@@ -157,8 +157,10 @@ function getNonBlockSpecificCompletions(
                 isConfiguredEnv,
             }),
         ),
-        VariableReferenceType.Read,
-        position,
+        {
+            functionType: VariableReferenceType.Read,
+            requestPosition: position,
+        },
         { blockContainingPosition, allBlocks },
     );
 }

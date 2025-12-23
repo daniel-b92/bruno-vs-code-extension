@@ -8,6 +8,7 @@ import {
     Block,
     BrunoVariableType,
     getBlocksWithEarlierExecutionGroups,
+    getBlocksWithLaterExecutionGroups,
     getExtensionForBrunoFiles,
     isBlockCodeBlock,
     mapFromVsCodePosition,
@@ -20,21 +21,20 @@ export function mapEnvVariablesToCompletions(
         matchingVariableKeys: string[];
         isConfiguredEnv: boolean;
     }[],
-    functionType: VariableReferenceType,
-    requestPosition: VsCodePosition,
+    requestData: {
+        functionType: VariableReferenceType;
+        requestPosition: VsCodePosition;
+    },
     dynamicVariablesData?: {
         blockContainingPosition: Block;
         allBlocks: Block[];
     },
 ) {
+    const { functionType } = requestData;
+
     return (
         dynamicVariablesData
-            ? mapDynamicEnvVariables(
-                  functionType,
-                  requestPosition,
-                  dynamicVariablesData,
-                  "a",
-              )
+            ? mapDynamicEnvVariables(requestData, dynamicVariablesData, "a")
             : []
     ).concat(
         mapStaticEnvVariables(matchingStaticEnvVariables, functionType, "b"),
@@ -42,8 +42,10 @@ export function mapEnvVariablesToCompletions(
 }
 
 function mapDynamicEnvVariables(
-    functionType: VariableReferenceType,
-    requestPosition: VsCodePosition,
+    requestData: {
+        functionType: VariableReferenceType;
+        requestPosition: VsCodePosition;
+    },
     dynamicVariablesData: {
         blockContainingPosition: Block;
         allBlocks: Block[];
@@ -52,14 +54,11 @@ function mapDynamicEnvVariables(
 ) {
     const { allBlocks, blockContainingPosition } = dynamicVariablesData;
 
-    const variableReferences =
-        functionType == VariableReferenceType.Read
-            ? getDynamicVariableReferencesForReadReferenceType(
-                  blockContainingPosition,
-                  allBlocks,
-                  requestPosition,
-              )
-            : [];
+    const variableReferences = getDynamicVariableReferences(
+        requestData,
+        blockContainingPosition,
+        allBlocks,
+    );
 
     return variableReferences.map(
         ({ blockName, variableReference: { variableName, referenceType } }) => {
@@ -104,10 +103,63 @@ function mapStaticEnvVariables(
     );
 }
 
-function getDynamicVariableReferencesForReadReferenceType(
+function getDynamicVariableReferences(
+    requestData: {
+        functionType: VariableReferenceType;
+        requestPosition: VsCodePosition;
+    },
     blockContainingPosition: Block,
     allBlocks: Block[],
+) {
+    const { functionType, requestPosition } = requestData;
+    const { otherRelevantBlocks, relevantReferencesInOwnBlock } =
+        functionType == VariableReferenceType.Read
+            ? getDynamicVariableReferencesForReadReferenceType(
+                  requestPosition,
+                  blockContainingPosition,
+                  allBlocks,
+              )
+            : getDynamicVariableReferencesForSetReferenceType(
+                  requestPosition,
+                  blockContainingPosition,
+                  allBlocks,
+              );
+
+    if (
+        otherRelevantBlocks.length == 0 &&
+        relevantReferencesInOwnBlock.length == 0
+    ) {
+        return [];
+    }
+
+    return relevantReferencesInOwnBlock
+        .map((variableReference) => ({
+            blockName: blockContainingPosition.name,
+            variableReference,
+        }))
+        .concat(
+            otherRelevantBlocks.flatMap(
+                ({ name: blockName, variableReferences }) =>
+                    variableReferences != undefined &&
+                    variableReferences.length > 0
+                        ? variableReferences.map((ref) => ({
+                              blockName,
+                              variableReference: ref,
+                          }))
+                        : [],
+            ),
+        )
+        .filter(
+            ({ variableReference: { variableType } }) =>
+                variableType == BrunoVariableType.Unknown ||
+                variableType == BrunoVariableType.Environment,
+        );
+}
+
+function getDynamicVariableReferencesForReadReferenceType(
     requestPosition: VsCodePosition,
+    blockContainingPosition: Block,
+    allBlocks: Block[],
 ) {
     const blocksWithEarlierExecutionGroups =
         getBlocksWithEarlierExecutionGroups(
@@ -127,33 +179,36 @@ function getDynamicVariableReferencesForReadReferenceType(
               )
             : [];
 
-    if (
-        blocksWithEarlierExecutionGroups.length == 0 &&
-        relevantReferencesInOwnBlock.length == 0
-    ) {
-        return [];
-    }
+    return {
+        otherRelevantBlocks: blocksWithEarlierExecutionGroups,
+        relevantReferencesInOwnBlock,
+    };
+}
 
-    return relevantReferencesInOwnBlock
-        .map((variableReference) => ({
-            blockName: blockContainingPosition.name,
-            variableReference,
-        }))
-        .concat(
-            blocksWithEarlierExecutionGroups.flatMap(
-                ({ name: blockName, variableReferences }) =>
-                    variableReferences != undefined &&
-                    variableReferences.length > 0
-                        ? variableReferences.map((ref) => ({
-                              blockName,
-                              variableReference: ref,
-                          }))
-                        : [],
-            ),
-        )
-        .filter(
-            ({ variableReference: { variableType } }) =>
-                variableType == BrunoVariableType.Unknown ||
-                variableType == BrunoVariableType.Environment,
-        );
+function getDynamicVariableReferencesForSetReferenceType(
+    requestPosition: VsCodePosition,
+    blockContainingPosition: Block,
+    allBlocks: Block[],
+) {
+    const blocksWithLaterExecutionGroups = getBlocksWithLaterExecutionGroups(
+        blockContainingPosition.name,
+        allBlocks,
+    );
+
+    const relevantReferencesInOwnBlock =
+        isBlockCodeBlock(blockContainingPosition) &&
+        blockContainingPosition.variableReferences != undefined
+            ? blockContainingPosition.variableReferences.filter(
+                  ({ referenceType, variableNameRange }) =>
+                      referenceType == VariableReferenceType.Read &&
+                      mapFromVsCodePosition(requestPosition).isBefore(
+                          variableNameRange.start,
+                      ),
+              )
+            : [];
+
+    return {
+        otherRelevantBlocks: blocksWithLaterExecutionGroups,
+        relevantReferencesInOwnBlock,
+    };
 }
