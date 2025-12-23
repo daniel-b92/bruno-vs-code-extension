@@ -14,7 +14,7 @@ export interface Block {
         | (ArrayBlockField | PlainTextWithinBlock)[]
         | CodeBlockContent;
     contentRange: Range;
-    variableRerences?: BrunoVariableReference[];
+    variableReferences?: BrunoVariableReference[];
 }
 
 export interface DictionaryBlock {
@@ -72,4 +72,10 @@ export interface PlainTextWithinDictionaryArrayValue {
 export interface TextOutsideOfBlocks {
     text: string;
     range: Range;
+}
+
+export enum BlockRuntimeExecutionGroup {
+    PreRequest = 1,
+    Request = 2,
+    PostResponse = 3,
 }

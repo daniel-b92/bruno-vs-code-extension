@@ -83,6 +83,10 @@ export * from "./languageUtils/commonBlocks/generic/getCodeBlocks";
 export * from "./languageUtils/commonBlocks/generic/getDefaultIndentationForDictionaryBlockFields";
 export * from "./languageUtils/commonBlocks/generic/getFieldFromDictionaryBlock";
 
+export * from "./languageUtils/commonBlocks/generic/runtimeBehavior/getBlockRuntimeExecutionGroup";
+export * from "./languageUtils/commonBlocks/generic/runtimeBehavior/getBlocksWithEarlierExecutionGroups";
+export * from "./languageUtils/commonBlocks/generic/runtimeBehavior/getBlocksWithLaterExecutionGroups";
+
 export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockDictionaryBlock";
 export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockCodeBlock";
 export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockArrayBlock";

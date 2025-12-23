@@ -106,7 +106,7 @@ function getResultsForEnvironmentVariable(
         collection: Collection;
         functionType: VariableReferenceType;
     },
-    { token }: LanguageFeatureRequest,
+    { position, token }: LanguageFeatureRequest,
     logger?: OutputChannelLogger,
 ) {
     const { collection, functionType } = additionalData;
@@ -135,8 +135,8 @@ function getResultsForEnvironmentVariable(
                 isConfiguredEnv,
             }),
         ),
-        [],
         functionType,
+        position,
     );
 }
 

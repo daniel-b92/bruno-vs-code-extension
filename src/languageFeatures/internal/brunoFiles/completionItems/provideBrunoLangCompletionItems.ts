@@ -56,11 +56,11 @@ export function provideBrunoLangCompletionItems(
                     token,
                 };
 
-                const { blocks: parsedBlocks } = parseBruFile(
+                const { blocks: allBlocks } = parseBruFile(
                     new TextDocumentHelper(document.getText()),
                 );
 
-                const blockContainingPosition = parsedBlocks.find(
+                const blockContainingPosition = allBlocks.find(
                     ({ contentRange }) =>
                         mapToVsCodeRange(contentRange).contains(position),
                 );
@@ -86,7 +86,8 @@ export function provideBrunoLangCompletionItems(
                 ).concat(
                     collection
                         ? getNonBlockSpecificCompletions(request, {
-                              block: blockContainingPosition,
+                              blockContainingPosition,
+                              allBlocks,
                               collection,
                           })
                         : [],
@@ -99,15 +100,20 @@ export function provideBrunoLangCompletionItems(
 
 function getNonBlockSpecificCompletions(
     request: LanguageFeatureRequest,
-    file: { block: Block; collection: Collection },
+    file: {
+        blockContainingPosition: Block;
+        allBlocks: Block[];
+        collection: Collection;
+    },
     logger?: OutputChannelLogger,
 ) {
-    const {
-        block: { name: blockName },
-        collection,
-    } = file;
+    const { blockContainingPosition, allBlocks, collection } = file;
     const { document, position, token } = request;
-    if ((getBlocksWithoutVariableSupport() as string[]).includes(blockName)) {
+    if (
+        (getBlocksWithoutVariableSupport() as string[]).includes(
+            blockContainingPosition.name,
+        )
+    ) {
         return [];
     }
 
@@ -151,8 +157,9 @@ function getNonBlockSpecificCompletions(
                 isConfiguredEnv,
             }),
         ),
-        [],
         VariableReferenceType.Read,
+        position,
+        { blockContainingPosition, allBlocks },
     );
 }
 

@@ -24,7 +24,7 @@ export function getInbuiltFunctions(): {
                 baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,
                 functionName: InbuiltEnvVariableFunctionName.SetEnvVar,
             },
-            type: VariableReferenceType.ModifyOrDelete,
+            type: VariableReferenceType.Set,
         },
     };
 }

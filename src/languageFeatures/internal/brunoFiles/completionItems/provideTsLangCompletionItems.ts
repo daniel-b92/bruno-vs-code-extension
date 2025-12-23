@@ -23,7 +23,6 @@ import {
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
     getInbuiltFunctions,
-    BrunoVariableReference,
 } from "../../../../shared";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
@@ -73,11 +72,12 @@ export function provideTsLangCompletionItems(
 
                 const blocksToCheck = getCodeBlocks(allBlocks);
 
-                const blockInBruFile = blocksToCheck.find(({ contentRange }) =>
-                    mapToVsCodeRange(contentRange).contains(position),
+                const blockContainingPosition = blocksToCheck.find(
+                    ({ contentRange }) =>
+                        mapToVsCodeRange(contentRange).contains(position),
                 );
 
-                if (!blockInBruFile) {
+                if (!blockContainingPosition) {
                     return undefined;
                 }
 
@@ -92,7 +92,7 @@ export function provideTsLangCompletionItems(
                             {
                                 file: {
                                     collection,
-                                    blockContainingPosition: blockInBruFile,
+                                    blockContainingPosition,
                                 },
                                 request: { document, position, token },
                                 logger,
@@ -112,10 +112,8 @@ export function provideTsLangCompletionItems(
                         {
                             collection,
                             functionType,
-                            variableReferences: allBlocks.flatMap(
-                                ({ variableRerences }) =>
-                                    variableRerences ?? [],
-                            ),
+                            blockContainingPosition,
+                            allBlocks,
                         },
                         { document, position, token },
                         logger,
@@ -130,7 +128,7 @@ export function provideTsLangCompletionItems(
                         bruFilePath: document.fileName,
                         token,
                     },
-                    blockInBruFile,
+                    blockContainingPosition,
                     position,
                     logger,
                 );
@@ -149,12 +147,14 @@ function getResultsForEnvironmentVariable(
     additionalData: {
         collection: Collection;
         functionType: VariableReferenceType;
-        variableReferences?: BrunoVariableReference[];
+        blockContainingPosition: Block;
+        allBlocks: Block[];
     },
-    { token }: LanguageFeatureRequest,
+    { position, token }: LanguageFeatureRequest,
     logger?: OutputChannelLogger,
 ) {
-    const { collection, functionType, variableReferences } = additionalData;
+    const { collection, functionType, allBlocks, blockContainingPosition } =
+        additionalData;
 
     const matchingStaticEnvVariableDefinitions =
         getMatchingDefinitionsFromEnvFiles(
@@ -181,8 +181,12 @@ function getResultsForEnvironmentVariable(
                 isConfiguredEnv,
             }),
         ),
-        variableReferences ?? [],
         functionType,
+        position,
+        {
+            blockContainingPosition,
+            allBlocks,
+        },
     );
 }
 

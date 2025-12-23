@@ -81,7 +81,7 @@ export const parseBruFile = (document: TextDocumentHelper) => {
                     | DictionaryBlockSimpleField[]
                     | ArrayBlockField[],
                 contentRange,
-                variableRerences,
+                variableReferences: variableRerences,
             });
 
             // Skip the rest of the already parsed block
