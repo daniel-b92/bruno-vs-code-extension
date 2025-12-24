@@ -166,7 +166,7 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(
         position,
     );
 
-    return canHandleNodeType && firstParameterParsedName
+    return canHandleNodeType && firstParameterParsedName != undefined
         ? {
               inbuiltFunction: {
                   identifier: inbuiltFunctionForRequest.identifier,
@@ -200,26 +200,32 @@ function extractVariableNameFromResultNode(
     const { subDocumentHelper, startPosition: contentStartPosition } =
         relevantContent;
 
-    const start = subDocumentHelper.getPositionForOffset(
-        contentStartPosition,
+    const startInSubdocument = subDocumentHelper.getPositionForOffset(
+        new Position(0, 0),
         resultNode.getStart(sourceFile, true),
     );
-    const end = subDocumentHelper.getPositionForOffset(
-        contentStartPosition,
+    const endInSubdocument = subDocumentHelper.getPositionForOffset(
+        new Position(0, 0),
         resultNode.getEnd(),
     );
 
-    if (!start || !end) {
+    if (!startInSubdocument || !endInSubdocument) {
         return undefined;
     }
 
     const fullParameter = {
         text: resultNode.getText(sourceFile),
-        start,
-        end,
+        start: new Position(
+            startInSubdocument.line + contentStartPosition.line,
+            startInSubdocument.character,
+        ),
+        end: new Position(
+            endInSubdocument.line + contentStartPosition.line,
+            endInSubdocument.character,
+        ),
     };
 
-    const { text } = fullParameter;
+    const { text, start, end } = fullParameter;
     const startsWithQuotes = /^("|'|`)/.test(text);
     const endsWithQuotes = /("|'|`)$/.test(text);
 
@@ -250,7 +256,7 @@ function doesNodeContainOffset(
     sourceFile: SourceFile,
     offset: number,
 ) {
-    return node.getStart(sourceFile) <= offset && node.getEnd() >= offset;
+    return node.getStart(sourceFile, true) <= offset && node.getEnd() >= offset;
 }
 
 function getOffsetsToUse(
@@ -265,7 +271,13 @@ function getOffsetsToUse(
             : 0;
 
     const offsetWithinSubdocument = subDocumentHelper.getText(
-        new Range(contentStartPosition, position),
+        new Range(
+            new Position(0, 0),
+            new Position(
+                position.line - contentStartPosition.line,
+                position.character,
+            ),
+        ),
     ).length;
 
     return { defaultOffsetToUse, offsetWithinSubdocument };
