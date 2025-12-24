@@ -183,12 +183,14 @@ function getResultsForEnvironmentVariable(
         ),
         {
             functionType,
-            requestPosition: position,
+            position,
+            token,
         },
         {
             blockContainingPosition,
             allBlocks,
         },
+        logger,
     );
 }
 

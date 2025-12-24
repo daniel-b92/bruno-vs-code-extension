@@ -88,15 +88,16 @@ export function provideInfosOnHover(
 }
 
 function getHoverForNonCodeBlocks({
-    file: {
-        collection,
-        blockContainingPosition: { name: blockName },
-    },
+    file: { collection, blockContainingPosition },
     hoverRequest,
     logger,
 }: ProviderParamsForNonCodeBlock) {
     const { token } = hoverRequest;
-    if ((getBlocksWithoutVariableSupport() as string[]).includes(blockName)) {
+    if (
+        (getBlocksWithoutVariableSupport() as string[]).includes(
+            blockContainingPosition.name,
+        )
+    ) {
         return undefined;
     }
 
@@ -108,7 +109,13 @@ function getHoverForNonCodeBlocks({
     }
 
     return variableName
-        ? getHoverForEnvVariable(collection, variableName, token, logger)
+        ? getHoverForEnvVariable({
+              blockContainingPosition,
+              collection,
+              variableName,
+              token,
+              logger,
+          })
         : undefined;
 }
 
@@ -130,12 +137,13 @@ async function getHoverForCodeBlocks(
     const envVariableResult = getEnvVariableNameFromCodeBlock(params);
 
     if (envVariableResult) {
-        return getHoverForEnvVariable(
+        return getHoverForEnvVariable({
             collection,
-            envVariableResult.variableName,
+            blockContainingPosition,
+            variableName: envVariableResult.variableName,
             token,
             logger,
-        );
+        });
     }
 
     const temporaryJsDoc = await waitForTempJsFileToBeInSyncWithBruFile(

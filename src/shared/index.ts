@@ -95,6 +95,7 @@ export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockArrayBlock
 export * from "./languageUtils/commonBlocks/generic/variables/getPatternForVariablesInNonCodeBlock";
 export * from "./languageUtils/commonBlocks/generic/variables/getBlocksWithoutVariableSupport";
 export * from "./languageUtils/commonBlocks/generic/variables/getVariableNameForPositionInNonCodeBlock";
+export * from "./languageUtils/commonBlocks/generic/variables/groupReferencesByName";
 
 export * from "./languageUtils/commonBlocks/authBlocks/authBlockNameEnum";
 export * from "./languageUtils/commonBlocks/authBlocks/authBlocksKeyEnums";

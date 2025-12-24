@@ -1,19 +1,18 @@
 import { basename } from "path";
 import {
+    CancellationToken,
     CompletionItem,
     CompletionItemKind,
     Position as VsCodePosition,
 } from "vscode";
 import {
     Block,
-    BrunoVariableType,
-    getBlocksWithEarlierExecutionGroups,
-    getBlocksWithLaterExecutionGroups,
+    groupReferencesByName,
     getExtensionForBrunoFiles,
-    isBlockCodeBlock,
-    mapFromVsCodePosition,
+    OutputChannelLogger,
     VariableReferenceType,
 } from "../../../../shared";
+import { getDynamicVariableReferences } from "./getDynamicVariableReferences";
 
 export function mapEnvVariablesToCompletions(
     matchingStaticEnvVariables: {
@@ -23,18 +22,25 @@ export function mapEnvVariablesToCompletions(
     }[],
     requestData: {
         functionType: VariableReferenceType;
-        requestPosition: VsCodePosition;
+        position: VsCodePosition;
+        token: CancellationToken;
     },
     dynamicVariablesData?: {
         blockContainingPosition: Block;
         allBlocks: Block[];
     },
+    logger?: OutputChannelLogger,
 ) {
     const { functionType } = requestData;
 
     return (
         dynamicVariablesData
-            ? mapDynamicEnvVariables(requestData, dynamicVariablesData, "a")
+            ? mapDynamicEnvVariables(
+                  requestData,
+                  dynamicVariablesData,
+                  "a",
+                  logger,
+              )
             : []
     )
         .filter(
@@ -59,76 +65,66 @@ export function mapEnvVariablesToCompletions(
 function mapDynamicEnvVariables(
     requestData: {
         functionType: VariableReferenceType;
-        requestPosition: VsCodePosition;
+        position: VsCodePosition;
+        token: CancellationToken;
     },
     dynamicVariablesData: {
         blockContainingPosition: Block;
         allBlocks: Block[];
     },
     prefixForSortText: string,
+    logger?: OutputChannelLogger,
 ) {
     const { allBlocks, blockContainingPosition } = dynamicVariablesData;
+    const { functionType, position: requestPosition, token } = requestData;
 
     const variableReferences = getDynamicVariableReferences(
-        requestData,
+        {
+            functionType,
+            requestPosition,
+            token,
+        },
         blockContainingPosition,
         allBlocks,
+        logger,
     );
 
-    const duplicateReferences: { variableName: string; blockName: string }[] =
-        [];
+    if (token.isCancellationRequested) {
+        addLogEntryForCancellation(logger);
+        return [];
+    }
 
-    return variableReferences
-        .filter(({ blockName, variableReference: { variableName } }, index) => {
-            const isUnique =
-                variableReferences.findIndex(
-                    ({ variableReference: { variableName: n } }) =>
-                        n == variableName,
-                ) == index;
-
-            if (!isUnique) {
-                duplicateReferences.push({ blockName, variableName });
-            }
-
-            return isUnique;
-        })
-        .map(
-            ({
-                blockName,
-                variableReference: { variableName, referenceType },
-            }) => {
-                const blocksWithDuplicateReferences = duplicateReferences
-                    .filter(({ variableName: name }) => name == variableName)
-                    .map(({ blockName }) => blockName);
-
-                const hasDuplicateReferences =
-                    blocksWithDuplicateReferences.length > 0;
-                const allBlocksWithReferences =
-                    blocksWithDuplicateReferences.concat(blockName);
-                const distinctBlocks = allBlocksWithReferences.filter(
-                    (block, index) =>
-                        allBlocksWithReferences.indexOf(block) == index,
-                );
-
-                const completionItem = new CompletionItem({
-                    label: variableName,
-                    detail:
-                        hasDuplicateReferences && distinctBlocks.length > 1
-                            ? `  Blocks '${distinctBlocks.join("','")}'`
-                            : `  Block '${blockName}'`,
-                });
-                completionItem.kind =
-                    referenceType == VariableReferenceType.Read
-                        ? CompletionItemKind.Field
-                        : CompletionItemKind.Function;
-                completionItem.detail =
-                    blocksWithDuplicateReferences.length > 0
-                        ? `Found a total of ${duplicateReferences.length + 1} relevant references in ${distinctBlocks.length > 1 ? `blocks ${JSON.stringify(distinctBlocks)}` : `block '${blockName}'`}.`
-                        : undefined;
-                completionItem.sortText = `${prefixForSortText}_${blockName}_${variableName}`;
-                return completionItem;
+    return groupReferencesByName(variableReferences).map(
+        ({
+            blockName,
+            variableName,
+            referenceType,
+            references: {
+                distinctBlocks,
+                hasDuplicateReferences,
+                totalNumberOfReferences,
             },
-        );
+        }) => {
+            const completionItem = new CompletionItem({
+                label: variableName,
+                detail:
+                    hasDuplicateReferences && distinctBlocks.length > 1
+                        ? `  Blocks '${distinctBlocks.join("','")}'`
+                        : `  Block '${blockName}'`,
+            });
+
+            completionItem.kind =
+                referenceType == VariableReferenceType.Read
+                    ? CompletionItemKind.Field
+                    : CompletionItemKind.Function;
+            completionItem.detail = hasDuplicateReferences
+                ? `Found a total of ${totalNumberOfReferences} relevant references in ${distinctBlocks.length > 1 ? `blocks ${JSON.stringify(distinctBlocks)}` : `block '${blockName}'`}.`
+                : undefined;
+            completionItem.sortText = `${prefixForSortText}_${blockName}_${variableName}`;
+
+            return completionItem;
+        },
+    );
 }
 
 function mapStaticEnvVariables(
@@ -162,121 +158,6 @@ function mapStaticEnvVariables(
     );
 }
 
-function getDynamicVariableReferences(
-    requestData: {
-        functionType: VariableReferenceType;
-        requestPosition: VsCodePosition;
-    },
-    blockContainingPosition: Block,
-    allBlocks: Block[],
-) {
-    const { functionType, requestPosition } = requestData;
-    const relevantReferenceType =
-        functionType == VariableReferenceType.Set
-            ? VariableReferenceType.Read
-            : VariableReferenceType.Set;
-    const { otherRelevantBlocks, fromOwnBlock } =
-        functionType == VariableReferenceType.Read
-            ? getDynamicVariableReferencesForEarlierExecutionTimes(
-                  requestPosition,
-                  blockContainingPosition,
-                  allBlocks,
-                  VariableReferenceType.Set,
-              )
-            : getDynamicVariableReferencesForLaterExecutionTimes(
-                  requestPosition,
-                  blockContainingPosition,
-                  allBlocks,
-                  VariableReferenceType.Read,
-              );
-
-    if (otherRelevantBlocks.length == 0) {
-        return [];
-    }
-
-    return fromOwnBlock
-        .map((variableReference) => ({
-            blockName: blockContainingPosition.name,
-            variableReference,
-        }))
-        .concat(
-            otherRelevantBlocks
-                .flatMap(({ name: blockName, variableReferences: refs }) =>
-                    refs && refs.length > 0
-                        ? refs
-                              .filter(
-                                  ({ referenceType }) =>
-                                      referenceType == relevantReferenceType,
-                              )
-                              .map((ref) => ({
-                                  blockName,
-                                  variableReference: ref,
-                              }))
-                        : undefined,
-                )
-                .filter((v) => v != undefined),
-        )
-        .filter(
-            ({ variableReference: { variableType } }) =>
-                variableType == BrunoVariableType.Unknown ||
-                variableType == BrunoVariableType.Environment,
-        );
-}
-
-function getDynamicVariableReferencesForEarlierExecutionTimes(
-    requestPosition: VsCodePosition,
-    blockContainingPosition: Block,
-    allBlocks: Block[],
-    relevantReferenceType: VariableReferenceType,
-) {
-    const otherRelevantBlocks = getBlocksWithEarlierExecutionGroups(
-        blockContainingPosition.name,
-        allBlocks,
-    );
-
-    const fromOwnBlock =
-        isBlockCodeBlock(blockContainingPosition) &&
-        blockContainingPosition.variableReferences != undefined
-            ? blockContainingPosition.variableReferences.filter(
-                  ({ referenceType, variableNameRange }) =>
-                      referenceType == relevantReferenceType &&
-                      variableNameRange.end.isBefore(
-                          mapFromVsCodePosition(requestPosition),
-                      ),
-              )
-            : [];
-
-    return {
-        otherRelevantBlocks,
-        fromOwnBlock,
-    };
-}
-
-function getDynamicVariableReferencesForLaterExecutionTimes(
-    requestPosition: VsCodePosition,
-    blockContainingPosition: Block,
-    allBlocks: Block[],
-    relevantReferenceType: VariableReferenceType,
-) {
-    const otherRelevantBlocks = getBlocksWithLaterExecutionGroups(
-        blockContainingPosition.name,
-        allBlocks,
-    );
-
-    const fromOwnBlock =
-        isBlockCodeBlock(blockContainingPosition) &&
-        blockContainingPosition.variableReferences != undefined
-            ? blockContainingPosition.variableReferences.filter(
-                  ({ referenceType, variableNameRange }) =>
-                      referenceType == relevantReferenceType &&
-                      mapFromVsCodePosition(requestPosition).isBefore(
-                          variableNameRange.start,
-                      ),
-              )
-            : [];
-
-    return {
-        otherRelevantBlocks,
-        fromOwnBlock,
-    };
+function addLogEntryForCancellation(logger?: OutputChannelLogger) {
+    logger?.debug(`Cancellation requested for completion provider.`);
 }

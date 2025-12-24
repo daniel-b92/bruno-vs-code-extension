@@ -159,9 +159,11 @@ function getNonBlockSpecificCompletions(
         ),
         {
             functionType: VariableReferenceType.Read,
-            requestPosition: position,
+            position,
+            token,
         },
         { blockContainingPosition, allBlocks },
+        logger,
     );
 }
 

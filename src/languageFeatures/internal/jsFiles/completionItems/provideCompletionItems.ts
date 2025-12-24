@@ -141,8 +141,11 @@ function getResultsForEnvironmentVariable(
         ),
         {
             functionType,
-            requestPosition: position,
+            position,
+            token,
         },
+        undefined,
+        logger,
     );
 }
 
