@@ -172,7 +172,6 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(
         },
         firstParameterNode,
         sourceFile,
-        position,
     );
 
     return canHandleNodeType && firstParameter != undefined
@@ -204,7 +203,6 @@ function extractVariableNameFromResultNode(
     },
     resultNode: Node,
     sourceFile: SourceFile,
-    position: Position,
 ) {
     const { subDocumentHelper, startPosition: contentStartPosition } =
         relevantContent;
@@ -238,10 +236,7 @@ function extractVariableNameFromResultNode(
     const startsWithQuotes = /^("|'|`)/.test(text);
     const endsWithQuotes = /("|'|`)$/.test(text);
 
-    return startsWithQuotes &&
-        endsWithQuotes &&
-        position.isAfter(start) &&
-        position.isBefore(end)
+    return startsWithQuotes && endsWithQuotes
         ? { name: text.substring(1, text.length - 1), start, end }
         : undefined;
 }

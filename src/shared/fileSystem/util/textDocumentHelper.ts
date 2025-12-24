@@ -204,6 +204,13 @@ export class TextDocumentHelper {
             );
         }
 
+        if (range.start.line == range.end.line) {
+            return this.getLineByIndex(range.start.line).substring(
+                range.start.character,
+                range.end.character,
+            );
+        }
+
         const firstLine = `${this.lines.fullLines[
             range.start.line
         ].content.substring(range.start.character)}${
