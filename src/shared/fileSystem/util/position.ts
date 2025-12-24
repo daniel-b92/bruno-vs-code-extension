@@ -14,11 +14,4 @@ export class Position {
             (this.line == other.line && this.character < other.character)
         );
     }
-
-    public isAfter(other: Position) {
-        return (
-            this.line > other.line ||
-            (this.line == other.line && this.character > other.character)
-        );
-    }
 }
