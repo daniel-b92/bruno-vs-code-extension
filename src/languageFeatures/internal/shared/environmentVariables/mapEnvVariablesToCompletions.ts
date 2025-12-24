@@ -75,20 +75,32 @@ function mapDynamicEnvVariables(
         allBlocks,
     );
 
-    return variableReferences.map(
-        ({ blockName, variableReference: { variableName, referenceType } }) => {
-            const completionItem = new CompletionItem({
-                label: variableName,
-                detail: `  Block '${blockName}'`,
-            });
-            completionItem.kind =
-                referenceType == VariableReferenceType.Read
-                    ? CompletionItemKind.Field
-                    : CompletionItemKind.Function;
-            completionItem.sortText = `${prefixForSortText}_${blockName}_${variableName}`;
-            return completionItem;
-        },
-    );
+    return variableReferences
+        .filter(
+            // Filter out duplicate entries for the same variable name.
+            ({ variableReference: { variableName } }, index) =>
+                variableReferences.findIndex(
+                    ({ variableReference: { variableName: n } }) =>
+                        n == variableName,
+                ) == index,
+        )
+        .map(
+            ({
+                blockName,
+                variableReference: { variableName, referenceType },
+            }) => {
+                const completionItem = new CompletionItem({
+                    label: variableName,
+                    detail: `  Block '${blockName}'`,
+                });
+                completionItem.kind =
+                    referenceType == VariableReferenceType.Read
+                        ? CompletionItemKind.Field
+                        : CompletionItemKind.Function;
+                completionItem.sortText = `${prefixForSortText}_${blockName}_${variableName}`;
+                return completionItem;
+            },
+        );
 }
 
 function mapStaticEnvVariables(
@@ -109,8 +121,12 @@ function mapStaticEnvVariables(
                 );
                 const completionItem = new CompletionItem({
                     label: key,
-                    description: `${functionType === VariableReferenceType.Set ? "!Static variable in Env!" : "Env"} '${environmentName}'`,
+                    description: `${functionType === VariableReferenceType.Set ? "!Env!" : "Env"} '${environmentName}'`,
                 });
+                completionItem.detail =
+                    functionType == VariableReferenceType.Set
+                        ? `WARNING: Will overwrite static environment variable from env '${environmentName}'`
+                        : undefined;
                 completionItem.kind = CompletionItemKind.Constant;
                 completionItem.sortText = `${prefixForSortText}_${isConfiguredEnv ? "a" : "b"}_${environmentName}_${key}`;
                 return completionItem;
