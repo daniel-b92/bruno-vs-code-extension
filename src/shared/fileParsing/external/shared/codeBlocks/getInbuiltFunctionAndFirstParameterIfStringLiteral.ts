@@ -30,7 +30,12 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(
               identifier: InbuiltFunctionIdentifier;
               nodeContainsPosition: boolean;
           };
-          firstParameter: { name: string; nodeContainsPosition: boolean };
+          firstParameter: {
+              name: string;
+              start: Position;
+              end: Position;
+              nodeContainsPosition: boolean;
+          };
       }
     | undefined {
     const {
@@ -149,6 +154,10 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(
         return undefined;
     }
 
+    if (nodeForSyntaxList.getChildCount(sourceFile) == 0) {
+        return undefined;
+    }
+
     const firstParameterNode = nodeForSyntaxList.getChildAt(0, sourceFile);
 
     const canHandleNodeType = [
@@ -156,7 +165,7 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(
         SyntaxKind.StringLiteral, // String quoted via '"' or "'"
     ].includes(firstParameterNode.kind);
 
-    const firstParameterParsedName = extractVariableNameFromResultNode(
+    const firstParameter = extractVariableNameFromResultNode(
         {
             startPosition: contentStartPosition,
             subDocumentHelper,
@@ -166,7 +175,7 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(
         position,
     );
 
-    return canHandleNodeType && firstParameterParsedName != undefined
+    return canHandleNodeType && firstParameter != undefined
         ? {
               inbuiltFunction: {
                   identifier: inbuiltFunctionForRequest.identifier,
@@ -177,7 +186,7 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(
                   ),
               },
               firstParameter: {
-                  name: firstParameterParsedName,
+                  ...firstParameter,
                   nodeContainsPosition: doesNodeContainOffset(
                       firstParameterNode,
                       sourceFile,
@@ -233,7 +242,7 @@ function extractVariableNameFromResultNode(
         endsWithQuotes &&
         position.isAfter(start) &&
         position.isBefore(end)
-        ? text.substring(1, text.length - 1)
+        ? { name: text.substring(1, text.length - 1), start, end }
         : undefined;
 }
 

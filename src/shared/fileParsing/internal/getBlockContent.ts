@@ -17,6 +17,7 @@ import { parseDictionaryBlock } from "./parseDictionaryBlock";
 import { parseArrayBlock } from "./parseArrayBlock";
 import { SyntaxKind } from "typescript";
 import { getBrunoVariableReferencesInNonCodeBlock } from "./variables/getBrunoVariableReferencesInNonCodeBlock";
+import { getBrunoVariableReferencesInCodeBlock } from "./variables/getBrunoVariableReferencesInCodeBlock";
 
 export const getBlockContent = (
     document: TextDocumentHelper,
@@ -61,13 +62,27 @@ export const getBlockContent = (
                   }
                 : dictionaryBlockWithoutParsedVars;
         case BlockType.Code:
-            return parseCodeBlock(document, firstContentLine, SyntaxKind.Block);
+            const codeBlockWithoutParsedVars = parseCodeBlock(
+                document,
+                firstContentLine,
+                SyntaxKind.Block,
+            );
+
+            return codeBlockWithoutParsedVars && searchVariableReferences
+                ? {
+                      ...codeBlockWithoutParsedVars,
+                      variableRerences: getBrunoVariableReferencesInCodeBlock(
+                          document,
+                          codeBlockWithoutParsedVars.contentRange,
+                      ),
+                  }
+                : codeBlockWithoutParsedVars;
         case BlockType.Json:
             const jsonBlockWithoutParsedVars = parseJsonBlock(
                 document,
                 firstContentLine,
             );
-            return jsonBlockWithoutParsedVars
+            return jsonBlockWithoutParsedVars && searchVariableReferences
                 ? {
                       ...jsonBlockWithoutParsedVars,
                       variableRerences:
@@ -82,7 +97,7 @@ export const getBlockContent = (
                 document,
                 firstContentLine,
             );
-            return plainTextBlockWithoutParsedVars
+            return plainTextBlockWithoutParsedVars && searchVariableReferences
                 ? {
                       ...plainTextBlockWithoutParsedVars,
                       variableRerences:
