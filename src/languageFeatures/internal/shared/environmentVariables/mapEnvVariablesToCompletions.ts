@@ -85,7 +85,7 @@ function mapDynamicEnvVariables(
                 referenceType == VariableReferenceType.Read
                     ? CompletionItemKind.Field
                     : CompletionItemKind.Function;
-            completionItem.sortText = `${prefixForSortText}_${variableName}`;
+            completionItem.sortText = `${prefixForSortText}_${blockName}_${variableName}`;
             return completionItem;
         },
     );
