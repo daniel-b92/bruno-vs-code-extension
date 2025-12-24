@@ -22,5 +22,7 @@ function getAllBlocksFromPostResponseGroup() {
     return [
         RequestFileBlockName.PostResponseScript,
         RequestFileBlockName.PostResponseVars,
+        RequestFileBlockName.Tests,
+        RequestFileBlockName.Assertions,
     ];
 }

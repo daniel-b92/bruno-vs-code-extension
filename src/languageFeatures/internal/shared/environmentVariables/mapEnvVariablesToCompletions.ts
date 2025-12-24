@@ -127,42 +127,50 @@ function getDynamicVariableReferences(
     allBlocks: Block[],
 ) {
     const { functionType, requestPosition } = requestData;
-    const { otherRelevantBlocks, relevantReferencesInOwnBlock } =
+    const relevantReferenceType =
+        functionType == VariableReferenceType.Set
+            ? VariableReferenceType.Read
+            : VariableReferenceType.Set;
+    const { otherRelevantBlocks, fromOwnBlock } =
         functionType == VariableReferenceType.Read
-            ? getDynamicVariableReferencesForReadReferenceType(
+            ? getDynamicVariableReferencesForEarlierExecutionTimes(
                   requestPosition,
                   blockContainingPosition,
                   allBlocks,
+                  VariableReferenceType.Set,
               )
-            : getDynamicVariableReferencesForSetReferenceType(
+            : getDynamicVariableReferencesForLaterExecutionTimes(
                   requestPosition,
                   blockContainingPosition,
                   allBlocks,
+                  VariableReferenceType.Read,
               );
 
-    if (
-        otherRelevantBlocks.length == 0 &&
-        relevantReferencesInOwnBlock.length == 0
-    ) {
+    if (otherRelevantBlocks.length == 0) {
         return [];
     }
 
-    return relevantReferencesInOwnBlock
+    return fromOwnBlock
         .map((variableReference) => ({
             blockName: blockContainingPosition.name,
             variableReference,
         }))
         .concat(
-            otherRelevantBlocks.flatMap(
-                ({ name: blockName, variableReferences }) =>
-                    variableReferences != undefined &&
-                    variableReferences.length > 0
-                        ? variableReferences.map((ref) => ({
-                              blockName,
-                              variableReference: ref,
-                          }))
-                        : [],
-            ),
+            otherRelevantBlocks
+                .flatMap(({ name: blockName, variableReferences: refs }) =>
+                    refs && refs.length > 0
+                        ? refs
+                              .filter(
+                                  ({ referenceType }) =>
+                                      referenceType == relevantReferenceType,
+                              )
+                              .map((ref) => ({
+                                  blockName,
+                                  variableReference: ref,
+                              }))
+                        : undefined,
+                )
+                .filter((v) => v != undefined),
         )
         .filter(
             ({ variableReference: { variableType } }) =>
@@ -171,23 +179,23 @@ function getDynamicVariableReferences(
         );
 }
 
-function getDynamicVariableReferencesForReadReferenceType(
+function getDynamicVariableReferencesForEarlierExecutionTimes(
     requestPosition: VsCodePosition,
     blockContainingPosition: Block,
     allBlocks: Block[],
+    relevantReferenceType: VariableReferenceType,
 ) {
-    const blocksWithEarlierExecutionGroups =
-        getBlocksWithEarlierExecutionGroups(
-            blockContainingPosition.name,
-            allBlocks,
-        );
+    const otherRelevantBlocks = getBlocksWithEarlierExecutionGroups(
+        blockContainingPosition.name,
+        allBlocks,
+    );
 
-    const relevantReferencesInOwnBlock =
+    const fromOwnBlock =
         isBlockCodeBlock(blockContainingPosition) &&
         blockContainingPosition.variableReferences != undefined
             ? blockContainingPosition.variableReferences.filter(
                   ({ referenceType, variableNameRange }) =>
-                      referenceType == VariableReferenceType.Set &&
+                      referenceType == relevantReferenceType &&
                       variableNameRange.end.isBefore(
                           mapFromVsCodePosition(requestPosition),
                       ),
@@ -195,27 +203,28 @@ function getDynamicVariableReferencesForReadReferenceType(
             : [];
 
     return {
-        otherRelevantBlocks: blocksWithEarlierExecutionGroups,
-        relevantReferencesInOwnBlock,
+        otherRelevantBlocks,
+        fromOwnBlock,
     };
 }
 
-function getDynamicVariableReferencesForSetReferenceType(
+function getDynamicVariableReferencesForLaterExecutionTimes(
     requestPosition: VsCodePosition,
     blockContainingPosition: Block,
     allBlocks: Block[],
+    relevantReferenceType: VariableReferenceType,
 ) {
-    const blocksWithLaterExecutionGroups = getBlocksWithLaterExecutionGroups(
+    const otherRelevantBlocks = getBlocksWithLaterExecutionGroups(
         blockContainingPosition.name,
         allBlocks,
     );
 
-    const relevantReferencesInOwnBlock =
+    const fromOwnBlock =
         isBlockCodeBlock(blockContainingPosition) &&
         blockContainingPosition.variableReferences != undefined
             ? blockContainingPosition.variableReferences.filter(
                   ({ referenceType, variableNameRange }) =>
-                      referenceType == VariableReferenceType.Read &&
+                      referenceType == relevantReferenceType &&
                       mapFromVsCodePosition(requestPosition).isBefore(
                           variableNameRange.start,
                       ),
@@ -223,7 +232,7 @@ function getDynamicVariableReferencesForSetReferenceType(
             : [];
 
     return {
-        otherRelevantBlocks: blocksWithLaterExecutionGroups,
-        relevantReferencesInOwnBlock,
+        otherRelevantBlocks,
+        fromOwnBlock,
     };
 }
