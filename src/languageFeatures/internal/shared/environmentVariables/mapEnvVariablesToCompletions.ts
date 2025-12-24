@@ -75,28 +75,56 @@ function mapDynamicEnvVariables(
         allBlocks,
     );
 
+    const duplicateReferences: { variableName: string; blockName: string }[] =
+        [];
+
     return variableReferences
-        .filter(
-            // Filter out duplicate entries for the same variable name.
-            ({ variableReference: { variableName } }, index) =>
+        .filter(({ blockName, variableReference: { variableName } }, index) => {
+            const isUnique =
                 variableReferences.findIndex(
                     ({ variableReference: { variableName: n } }) =>
                         n == variableName,
-                ) == index,
-        )
+                ) == index;
+
+            if (!isUnique) {
+                duplicateReferences.push({ blockName, variableName });
+            }
+
+            return isUnique;
+        })
         .map(
             ({
                 blockName,
                 variableReference: { variableName, referenceType },
             }) => {
+                const blocksWithDuplicateReferences = duplicateReferences
+                    .filter(({ variableName: name }) => name == variableName)
+                    .map(({ blockName }) => blockName);
+
+                const hasDuplicateReferences =
+                    blocksWithDuplicateReferences.length > 0;
+                const allBlocksWithReferences =
+                    blocksWithDuplicateReferences.concat(blockName);
+                const distinctBlocks = allBlocksWithReferences.filter(
+                    (block, index) =>
+                        allBlocksWithReferences.indexOf(block) == index,
+                );
+
                 const completionItem = new CompletionItem({
                     label: variableName,
-                    detail: `  Block '${blockName}'`,
+                    detail:
+                        hasDuplicateReferences && distinctBlocks.length > 1
+                            ? `  Blocks '${distinctBlocks.join("','")}'`
+                            : `  Block '${blockName}'`,
                 });
                 completionItem.kind =
                     referenceType == VariableReferenceType.Read
                         ? CompletionItemKind.Field
                         : CompletionItemKind.Function;
+                completionItem.detail =
+                    blocksWithDuplicateReferences.length > 0
+                        ? `Found a total of ${duplicateReferences.length + 1} relevant references in ${distinctBlocks.length > 1 ? `blocks ${JSON.stringify(distinctBlocks)}` : `block '${blockName}'`}.`
+                        : undefined;
                 completionItem.sortText = `${prefixForSortText}_${blockName}_${variableName}`;
                 return completionItem;
             },
