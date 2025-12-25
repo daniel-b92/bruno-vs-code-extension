@@ -35,8 +35,8 @@ export function getHoverForEnvVariable({
 
     const resultingMarkdownString =
         contentForDynamicReferences && contentForStaticReferences
-            ? new MarkdownString(
-                  contentForDynamicReferences.concat(
+            ? new MarkdownString(contentForDynamicReferences).appendMarkdown(
+                  "--------------------------".concat(
                       getLineBreak(),
                       contentForStaticReferences,
                   ),
@@ -122,18 +122,15 @@ function getContentForDynamicVariables(
         return undefined;
     }
 
-    const tableHeader = `| Block | Type |
-| :--------------- | :----------------: | ${getLineBreak()}`;
-
     return "**Dynamic references:**".concat(
         getLineBreak(),
-        tableHeader,
         variableReferences
             .map(
                 ({ blockName, variableReference: { referenceType } }) =>
-                    `| ${blockName} | ${referenceType} |`,
+                    `- Block '${blockName}'; Type: ${referenceType}`,
             )
             .join(getLineBreak()),
+        getLineBreak(),
     );
 }
 
