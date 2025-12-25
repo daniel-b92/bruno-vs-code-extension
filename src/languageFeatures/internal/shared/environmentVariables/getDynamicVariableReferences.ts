@@ -40,7 +40,7 @@ export function getDynamicVariableReferences(
                   VariableReferenceType.Read,
               );
 
-    if (otherRelevantBlocks.length == 0) {
+    if (fromOwnBlock.length == 0 && otherRelevantBlocks.length == 0) {
         return [];
     }
 
