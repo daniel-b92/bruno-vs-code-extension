@@ -1,15 +1,7 @@
 import { basename } from "path";
+import { Hover, MarkdownString } from "vscode";
 import {
-    CancellationToken,
-    Hover,
-    MarkdownString,
-    Position as VsCodePosition,
-} from "vscode";
-import {
-    Block,
-    Collection,
     OutputChannelLogger,
-    VariableReferenceType,
     getConfiguredTestEnvironment,
     getExtensionForBrunoFiles,
 } from "../../../../shared";
@@ -17,32 +9,18 @@ import {
     getMatchingDefinitionsFromEnvFiles,
     EnvVariableNameMatchingMode,
 } from "./getMatchingDefinitionsFromEnvFiles";
-import { getDynamicVariableReferences } from "./getDynamicVariableReferences";
-
-export interface EnvVariableHoverParams {
-    requestData: RequestData;
-    bruFileSpecificData?: BruFileSpecificData;
-    logger?: OutputChannelLogger;
-}
-
-interface RequestData {
-    collection: Collection;
-    variableName: string;
-    functionType: VariableReferenceType;
-    requestPosition: VsCodePosition;
-    token: CancellationToken;
-}
-
-interface BruFileSpecificData {
-    blockContainingPosition: Block;
-    allBlocks: Block[];
-}
+import { getDynamicVariableReferences } from "../../brunoFiles/shared/getDynamicVariableReferences";
+import {
+    EnvVariableBruFileSpecificData,
+    EnvVariableCommonRequestData,
+    EnvVariableRequest,
+} from "../interfaces";
 
 export function getHoverForEnvVariable({
     requestData,
     bruFileSpecificData,
     logger,
-}: EnvVariableHoverParams) {
+}: EnvVariableRequest) {
     const contentForDynamicReferences = bruFileSpecificData
         ? getContentForDynamicVariables(
               requestData,
@@ -75,7 +53,7 @@ export function getHoverForEnvVariable({
 }
 
 function getContentForStaticVariables(
-    requestData: RequestData,
+    requestData: EnvVariableCommonRequestData,
     logger?: OutputChannelLogger,
 ) {
     const { collection, token, variableName } = requestData;
@@ -121,8 +99,8 @@ function getContentForStaticVariables(
 }
 
 function getContentForDynamicVariables(
-    requestData: RequestData,
-    bruFileSpecificData: BruFileSpecificData,
+    requestData: EnvVariableCommonRequestData,
+    bruFileSpecificData: EnvVariableBruFileSpecificData,
     logger?: OutputChannelLogger,
 ) {
     const { variableName, token } = requestData;

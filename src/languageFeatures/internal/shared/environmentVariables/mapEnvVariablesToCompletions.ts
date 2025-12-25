@@ -1,18 +1,17 @@
 import { basename } from "path";
+import { CompletionItem, CompletionItemKind } from "vscode";
 import {
-    CancellationToken,
-    CompletionItem,
-    CompletionItemKind,
-    Position as VsCodePosition,
-} from "vscode";
-import {
-    Block,
     groupReferencesByName,
     getExtensionForBrunoFiles,
     OutputChannelLogger,
     VariableReferenceType,
 } from "../../../../shared";
-import { getDynamicVariableReferences } from "./getDynamicVariableReferences";
+import { getDynamicVariableReferences } from "../../brunoFiles/shared/getDynamicVariableReferences";
+import {
+    EnvVariableBruFileSpecificData,
+    EnvVariableCommonRequestData,
+    EnvVariableRequest,
+} from "../interfaces";
 
 export function mapEnvVariablesToCompletions(
     matchingStaticEnvVariables: {
@@ -20,63 +19,46 @@ export function mapEnvVariablesToCompletions(
         matchingVariableKeys: string[];
         isConfiguredEnv: boolean;
     }[],
-    requestData: {
-        functionType: VariableReferenceType;
-        position: VsCodePosition;
-        token: CancellationToken;
-    },
-    dynamicVariablesData?: {
-        blockContainingPosition: Block;
-        allBlocks: Block[];
-    },
-    logger?: OutputChannelLogger,
+    { requestData, bruFileSpecificData, logger }: EnvVariableRequest,
 ) {
-    const { functionType } = requestData;
+    const resultsForStaticVariables = mapStaticEnvVariables(
+        matchingStaticEnvVariables,
+        requestData.functionType,
+        "b",
+    );
 
-    return (
-        dynamicVariablesData
-            ? mapDynamicEnvVariables(
+    return resultsForStaticVariables.concat(
+        !bruFileSpecificData
+            ? []
+            : mapDynamicEnvVariables(
                   requestData,
-                  dynamicVariablesData,
+                  bruFileSpecificData,
                   "a",
                   logger,
-              )
-            : []
-    )
-        .filter(
-            ({ label }) =>
-                !matchingStaticEnvVariables
-                    .flatMap(({ matchingVariableKeys }) => matchingVariableKeys)
-                    .some((key) =>
-                        typeof label == "string"
-                            ? key == label
-                            : key == label.label,
-                    ),
-        )
-        .concat(
-            mapStaticEnvVariables(
-                matchingStaticEnvVariables,
-                functionType,
-                "b",
-            ),
-        );
+              ).filter(
+                  ({ label }) =>
+                      !matchingStaticEnvVariables
+                          .flatMap(
+                              ({ matchingVariableKeys }) =>
+                                  matchingVariableKeys,
+                          )
+                          .some((key) =>
+                              typeof label == "string"
+                                  ? key == label
+                                  : key == label.label,
+                          ),
+              ),
+    );
 }
 
 function mapDynamicEnvVariables(
-    requestData: {
-        functionType: VariableReferenceType;
-        position: VsCodePosition;
-        token: CancellationToken;
-    },
-    dynamicVariablesData: {
-        blockContainingPosition: Block;
-        allBlocks: Block[];
-    },
+    requestData: EnvVariableCommonRequestData,
+    bruFileSpecificData: EnvVariableBruFileSpecificData,
     prefixForSortText: string,
     logger?: OutputChannelLogger,
 ) {
-    const { allBlocks, blockContainingPosition } = dynamicVariablesData;
-    const { functionType, position: requestPosition, token } = requestData;
+    const { allBlocks, blockContainingPosition } = bruFileSpecificData;
+    const { functionType, requestPosition, token } = requestData;
 
     const variableReferences = getDynamicVariableReferences(
         {

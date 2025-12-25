@@ -139,12 +139,15 @@ function getResultsForEnvironmentVariable(
             }),
         ),
         {
-            functionType,
-            position,
-            token,
+            requestData: {
+                collection,
+                variableName: envVariableName,
+                functionType,
+                requestPosition: position,
+                token,
+            },
+            logger,
         },
-        undefined,
-        logger,
     );
 }
 

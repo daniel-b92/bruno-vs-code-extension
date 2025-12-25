@@ -162,10 +162,6 @@ function getResultsForEnvironmentVariable(
             getConfiguredTestEnvironment(),
         );
 
-    if (matchingStaticEnvVariableDefinitions.length == 0) {
-        return [];
-    }
-
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return [];
@@ -180,15 +176,16 @@ function getResultsForEnvironmentVariable(
             }),
         ),
         {
-            functionType,
-            position,
-            token,
+            requestData: {
+                collection,
+                functionType,
+                requestPosition: position,
+                variableName,
+                token,
+            },
+            bruFileSpecificData: { allBlocks, blockContainingPosition },
+            logger,
         },
-        {
-            blockContainingPosition,
-            allBlocks,
-        },
-        logger,
     );
 }
 

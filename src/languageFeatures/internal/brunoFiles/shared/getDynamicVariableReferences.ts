@@ -25,19 +25,20 @@ export function getDynamicVariableReferences(
         functionType == VariableReferenceType.Write
             ? VariableReferenceType.Read
             : VariableReferenceType.Write;
+
     const { otherRelevantBlocks, fromOwnBlock } =
         functionType == VariableReferenceType.Read
             ? getDynamicVariableReferencesForEarlierExecutionTimes(
                   requestPosition,
                   blockContainingPosition,
                   allBlocks,
-                  VariableReferenceType.Write,
+                  relevantReferenceType,
               )
             : getDynamicVariableReferencesForLaterExecutionTimes(
                   requestPosition,
                   blockContainingPosition,
                   allBlocks,
-                  VariableReferenceType.Read,
+                  relevantReferenceType,
               );
 
     if (fromOwnBlock.length == 0 && otherRelevantBlocks.length == 0) {

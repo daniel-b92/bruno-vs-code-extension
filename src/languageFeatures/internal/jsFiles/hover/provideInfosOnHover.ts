@@ -51,29 +51,26 @@ async function getHover(params: {
     const envVariableRelatedFunction =
         getEnvVariableRelatedFunctionForRequest(params);
 
+    if (envVariableRelatedFunction == undefined) {
+        return undefined;
+    }
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return undefined;
     }
 
-    if (envVariableRelatedFunction == undefined) {
-        return undefined;
-    }
-
     const { inbuiltFunction, variableName } = envVariableRelatedFunction;
 
-    return envVariableRelatedFunction != undefined
-        ? getHoverForEnvVariable({
-              requestData: {
-                  collection,
-                  functionType: getInbuiltFunctionType(inbuiltFunction),
-                  requestPosition,
-                  variableName,
-                  token,
-              },
-              logger,
-          })
-        : undefined;
+    return getHoverForEnvVariable({
+        requestData: {
+            collection,
+            functionType: getInbuiltFunctionType(inbuiltFunction),
+            requestPosition,
+            variableName,
+            token,
+        },
+        logger,
+    });
 }
 
 function getEnvVariableRelatedFunctionForRequest(params: {

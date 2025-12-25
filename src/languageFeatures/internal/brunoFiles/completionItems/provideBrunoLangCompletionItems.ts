@@ -131,11 +131,12 @@ function getNonBlockSpecificCompletions(
         addLogEntryForCancellation(logger);
         return [];
     }
+    const variableName = matchingText.substring(2);
 
     const matchingStaticEnvVariableDefinitions =
         getMatchingDefinitionsFromEnvFiles(
             collection,
-            matchingText.substring(2),
+            variableName,
             EnvVariableNameMatchingMode.Ignore,
             getConfiguredTestEnvironment(),
         );
@@ -158,12 +159,16 @@ function getNonBlockSpecificCompletions(
             }),
         ),
         {
-            functionType: VariableReferenceType.Read,
-            position,
-            token,
+            requestData: {
+                collection,
+                variableName,
+                functionType: VariableReferenceType.Read, // In non-code blocks, variables can only be read, not written.
+                requestPosition: position,
+                token,
+            },
+            bruFileSpecificData: { blockContainingPosition, allBlocks },
+            logger,
         },
-        { blockContainingPosition, allBlocks },
-        logger,
     );
 }
 
