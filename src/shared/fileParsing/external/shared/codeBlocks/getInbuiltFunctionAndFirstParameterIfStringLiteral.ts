@@ -260,7 +260,7 @@ function doesNodeContainOffset(
     sourceFile: SourceFile,
     offset: number,
 ) {
-    return node.getStart(sourceFile, true) <= offset && node.getEnd() >= offset;
+    return node.getStart(sourceFile, true) < offset && node.getEnd() > offset;
 }
 
 function getOffsetsToUse(
