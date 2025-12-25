@@ -3,6 +3,12 @@ import {
     Position as VsCodePosition,
     CancellationToken,
 } from "vscode";
+import {
+    Block,
+    Collection,
+    OutputChannelLogger,
+    VariableReferenceType,
+} from "../../../shared";
 
 export interface LanguageFeatureRequest {
     document: TextDocument;
@@ -10,23 +16,21 @@ export interface LanguageFeatureRequest {
     token: CancellationToken;
 }
 
-export interface InbuiltFunctionIdentifier {
-    baseIdentifier: InbuiltFunctionBaseIdentifierEnum;
-    functionName: InbuiltEnvVariableFunctionName;
+export interface EnvVariableRequest {
+    requestData: EnvVariableCommonRequestData;
+    bruFileSpecificData?: EnvVariableBruFileSpecificData;
+    logger?: OutputChannelLogger;
 }
 
-export enum InbuiltFunctionBaseIdentifierEnum {
-    Bru = "bru",
-    Req = "req",
-    Res = "res",
+export interface EnvVariableCommonRequestData {
+    collection: Collection;
+    variableName: string;
+    functionType: VariableReferenceType;
+    requestPosition: VsCodePosition;
+    token: CancellationToken;
 }
 
-export enum InbuiltEnvVariableFunctionName {
-    GetEnvVar = "getEnvVar",
-    SetEnvVar = "setEnvVar",
-}
-
-export enum EnvVariableFunctionType {
-    Read = 1,
-    ModifyOrDelete = 2,
+export interface EnvVariableBruFileSpecificData {
+    blockContainingPosition: Block;
+    allBlocks: Block[];
 }

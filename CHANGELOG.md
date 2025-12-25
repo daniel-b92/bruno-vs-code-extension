@@ -2,9 +2,12 @@
 
 ### Features
 
-- Add basic intellisense for static environment variables within `.bru` and `.js` files (hovers and completions) within non-code blocks and within code blocks for the following inbuilt functions:
+- Add basic intellisense for environment variables within `.bru` and `.js` files (hovers and completions) for the following inbuilt functions:
     - `bru.getEnvVar`
     - `bru.setEnvVar`
+
+### Fixes / Improvements
+
 - Fix incorrect insertion of text when formatting code blocks that only contain a linebreak.
 - Fix exception being thrown when trying to format code block that is completely empty, by fixing the block parsing.
 

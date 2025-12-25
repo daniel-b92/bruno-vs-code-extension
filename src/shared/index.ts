@@ -31,6 +31,7 @@ export * from "./fileParsing/external/shared/getSequenceFieldFromMetaBlock";
 export * from "./fileParsing/external/shared/parseSequenceFromMetaBlock";
 export * from "./fileParsing/external/shared/getSequenceForFile";
 export * from "./fileParsing/external/shared/util/getBlockStartPatternByName";
+export * from "./fileParsing/external/shared/codeBlocks/getInbuiltFunctionAndFirstParameterIfStringLiteral";
 export * from "./fileParsing/external/shared/util/getContentRangeForArrayOrDictionaryBlock";
 export * from "./fileParsing/external/shared/util/getNonBlockSpecificBlockStartPattern";
 export * from "./fileParsing/external/parseBlockFromFile";
@@ -40,7 +41,8 @@ export * from "./fileParsing/external/folderSettings/getMaxSequenceForFolders";
 export * from "./fileParsing/external/folderSettings/getFolderSettingsFilePath";
 
 // language utils
-export * from "./languageUtils/interfaces";
+export * from "./languageUtils/blockInterfaces";
+export * from "./languageUtils/contentInterfaces";
 
 // language utils - request files
 export * from "./languageUtils/requestFiles/requestFileBlockNameEnum";
@@ -56,24 +58,45 @@ export * from "./languageUtils/environmentFiles/environmentFileBlockNameEnum";
 export { isVarsBlock as isVarsBlockInEnvironmentFile } from "./languageUtils/environmentFiles/isVarsBlock";
 
 // language utils - common blocks
+export * from "./languageUtils/commonBlocks/getMethodBlockBodyFieldValueForBodyName";
+export * from "./languageUtils/commonBlocks/getExpectedUrlQueryParamsForQueryParamsBlock";
+export * from "./languageUtils/commonBlocks/getPathParamsFromPathParamsBlock";
+export * from "./languageUtils/commonBlocks/settingsFileSpecificBlockEnum";
+
 export * from "./languageUtils/commonBlocks/metaBlock/metaBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/metaBlock/requestTypeEnum";
 export * from "./languageUtils/commonBlocks/metaBlock/getFieldFromMetaBlock";
 export * from "./languageUtils/commonBlocks/metaBlock/metaBlockKeyEnum";
+
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockAuthEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockBodyEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/getPossibleMethodBlocks";
 export * from "./languageUtils/commonBlocks/methodBlocks/getFieldFromMethodBlock";
+
 export * from "./languageUtils/commonBlocks/generic/shouldBeCodeBlock";
 export * from "./languageUtils/commonBlocks/generic/getValidDictionaryBlocksWithName";
 export * from "./languageUtils/commonBlocks/generic/shouldBeDictionaryBlock";
 export * from "./languageUtils/commonBlocks/generic/getBlockType";
 export * from "./languageUtils/commonBlocks/generic/blockTypeEnum";
 export * from "./languageUtils/commonBlocks/generic/blockBracketEnum";
+export * from "./languageUtils/commonBlocks/generic/getCodeBlocks";
+export * from "./languageUtils/commonBlocks/generic/getDefaultIndentationForDictionaryBlockFields";
+export * from "./languageUtils/commonBlocks/generic/getFieldFromDictionaryBlock";
+
+export * from "./languageUtils/commonBlocks/generic/runtimeBehavior/getBlockRuntimeExecutionGroup";
+export * from "./languageUtils/commonBlocks/generic/runtimeBehavior/getBlocksWithEarlierExecutionGroups";
+export * from "./languageUtils/commonBlocks/generic/runtimeBehavior/getBlocksWithLaterExecutionGroups";
+
 export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockDictionaryBlock";
 export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockCodeBlock";
 export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockArrayBlock";
+
+export * from "./languageUtils/commonBlocks/generic/variables/getPatternForVariablesInNonCodeBlock";
+export * from "./languageUtils/commonBlocks/generic/variables/getBlocksWithoutVariableSupport";
+export * from "./languageUtils/commonBlocks/generic/variables/getVariableNameForPositionInNonCodeBlock";
+export * from "./languageUtils/commonBlocks/generic/variables/groupReferencesByName";
+
 export * from "./languageUtils/commonBlocks/authBlocks/authBlockNameEnum";
 export * from "./languageUtils/commonBlocks/authBlocks/authBlocksKeyEnums";
 export * from "./languageUtils/commonBlocks/authBlocks/oAuth2BlockValuesEnums";
@@ -83,14 +106,16 @@ export * from "./languageUtils/commonBlocks/authBlocks/getMandatoryKeysForNonOAu
 export * from "./languageUtils/commonBlocks/authBlocks/getMandatoryKeysForOAuth2Block";
 export * from "./languageUtils/commonBlocks/authBlocks/getAuthTypeFromBlockName";
 export * from "./languageUtils/commonBlocks/authBlocks/isAuthBlock";
-export * from "./languageUtils/commonBlocks/getMethodBlockBodyFieldValueForBodyName";
-export * from "./languageUtils/commonBlocks/getExpectedUrlQueryParamsForQueryParamsBlock";
-export * from "./languageUtils/commonBlocks/getPathParamsFromPathParamsBlock";
-export * from "./languageUtils/commonBlocks/generic/getDefaultIndentationForDictionaryBlockFields";
-export * from "./languageUtils/commonBlocks/generic/getFieldFromDictionaryBlock";
-export * from "./languageUtils/commonBlocks/settingsFileSpecificBlockEnum";
+
 export * from "./languageUtils/commonBlocks/authModeBlock/authModeBlockKeyEnum";
+
+export * from "./languageUtils/commonBlocks/codeBlocks/getFirstParameterForInbuiltFunctionIfStringLiteral";
+export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
+export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctions";
+export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionType";
+
 export * from "./languageUtils/commonBlocks/settingsBlock/settingsBlockKeyEnum";
+
 export { isVarsBlock as isVarsBlockInRequestFile } from "./languageUtils/commonBlocks/varsBlocks/isVarsBlock";
 
 // language utils - generic fields

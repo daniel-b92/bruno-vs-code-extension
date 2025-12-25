@@ -9,6 +9,7 @@ import {
     Block,
     TextOutsideOfBlocks,
     ArrayBlockField,
+    getBlocksWithoutVariableSupport,
 } from "../..";
 
 export const parseBruFile = (document: TextDocumentHelper) => {
@@ -47,6 +48,9 @@ export const parseBruFile = (document: TextDocumentHelper) => {
                 document,
                 startingPosition,
                 getBlockType(matches[0], blockName),
+                !(getBlocksWithoutVariableSupport() as string[]).includes(
+                    blockName,
+                ),
             );
 
             if (!blockContent) {
@@ -61,7 +65,7 @@ export const parseBruFile = (document: TextDocumentHelper) => {
                 return result;
             }
 
-            const { contentRange, content } = blockContent;
+            const { contentRange, content, variableRerences } = blockContent;
 
             result.blocks.push({
                 name: blockName,
@@ -77,6 +81,7 @@ export const parseBruFile = (document: TextDocumentHelper) => {
                     | DictionaryBlockSimpleField[]
                     | ArrayBlockField[],
                 contentRange,
+                variableReferences: variableRerences,
             });
 
             // Skip the rest of the already parsed block

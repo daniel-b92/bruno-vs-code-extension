@@ -1,19 +1,20 @@
+import { TextDocument, Position as VsCodePosition } from "vscode";
 import {
     getMatchingTextContainingPosition,
+    getPatternForVariablesInNonCodeBlock,
     mapFromVsCodePosition,
-} from "../../../../../shared";
-import { LanguageFeatureRequest } from "../../../shared/interfaces";
+} from "../../../..";
 
-export function getVariableNameForPositionInNonCodeBlock({
-    document,
-    position,
-}: LanguageFeatureRequest) {
-    const pattern = /{{\S+?}}/;
+export function getVariableNameForPositionInNonCodeBlock(params: {
+    document: TextDocument;
+    position: VsCodePosition;
+}) {
+    const { document, position } = params;
 
     const matchingText = getMatchingTextContainingPosition(
         document,
         mapFromVsCodePosition(position),
-        pattern,
+        new RegExp(getPatternForVariablesInNonCodeBlock()),
     );
 
     return matchingText

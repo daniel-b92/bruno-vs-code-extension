@@ -18,8 +18,12 @@ import {
     Block,
     Collection,
     getConfiguredTestEnvironment,
+    getCodeBlocks,
+    VariableReferenceType,
+    getFirstParameterForInbuiltFunctionIfStringLiteral,
+    getInbuiltFunctionIdentifiers,
+    getInbuiltFunctionType,
 } from "../../../../shared";
-import { getCodeBlocks } from "../shared/codeBlocksUtils/getCodeBlocks";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
@@ -33,14 +37,8 @@ import {
     EnvVariableNameMatchingMode,
     getMatchingDefinitionsFromEnvFiles,
 } from "../../shared/environmentVariables/getMatchingDefinitionsFromEnvFiles";
-import {
-    EnvVariableFunctionType,
-    LanguageFeatureRequest,
-} from "../../shared/interfaces";
+import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
-import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
-import { getInbuiltFunctionIdentifiers } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
-import { getInbuiltFunctions } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctions";
 
 type CompletionItemRange =
     | VsCodeRange
@@ -68,16 +66,18 @@ export function provideTsLangCompletionItems(
                     return [];
                 }
 
-                const blocksToCheck = getCodeBlocks(
-                    parseBruFile(new TextDocumentHelper(document.getText()))
-                        .blocks,
+                const { blocks: allBlocks } = parseBruFile(
+                    new TextDocumentHelper(document.getText()),
                 );
 
-                const blockInBruFile = blocksToCheck.find(({ contentRange }) =>
-                    mapToVsCodeRange(contentRange).contains(position),
+                const blocksToCheck = getCodeBlocks(allBlocks);
+
+                const blockContainingPosition = blocksToCheck.find(
+                    ({ contentRange }) =>
+                        mapToVsCodeRange(contentRange).contains(position),
                 );
 
-                if (!blockInBruFile) {
+                if (!blockContainingPosition) {
                     return undefined;
                 }
 
@@ -92,7 +92,7 @@ export function provideTsLangCompletionItems(
                             {
                                 file: {
                                     collection,
-                                    blockContainingPosition: blockInBruFile,
+                                    blockContainingPosition,
                                 },
                                 request: { document, position, token },
                                 logger,
@@ -102,16 +102,16 @@ export function provideTsLangCompletionItems(
                     );
 
                 if (envVariableResult) {
-                    const functionType =
-                        getInbuiltFunctions()[
-                            envVariableResult.inbuiltFunction.functionName
-                        ].type;
+                    const { inbuiltFunction, variableName } = envVariableResult;
 
                     return getResultsForEnvironmentVariable(
-                        envVariableResult.variableName,
+                        variableName,
                         {
                             collection,
-                            functionType,
+                            functionType:
+                                getInbuiltFunctionType(inbuiltFunction),
+                            blockContainingPosition,
+                            allBlocks,
                         },
                         { document, position, token },
                         logger,
@@ -126,7 +126,7 @@ export function provideTsLangCompletionItems(
                         bruFilePath: document.fileName,
                         token,
                     },
-                    blockInBruFile,
+                    blockContainingPosition,
                     position,
                     logger,
                 );
@@ -144,23 +144,23 @@ function getResultsForEnvironmentVariable(
     variableName: string,
     additionalData: {
         collection: Collection;
-        functionType: EnvVariableFunctionType;
+        functionType: VariableReferenceType;
+        blockContainingPosition: Block;
+        allBlocks: Block[];
     },
-    { token }: LanguageFeatureRequest,
+    { position, token }: LanguageFeatureRequest,
     logger?: OutputChannelLogger,
 ) {
-    const { collection, functionType } = additionalData;
+    const { collection, functionType, allBlocks, blockContainingPosition } =
+        additionalData;
 
-    const matchingEnvVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
-        collection,
-        variableName,
-        EnvVariableNameMatchingMode.Substring,
-        getConfiguredTestEnvironment(),
-    );
-
-    if (matchingEnvVariableDefinitions.length == 0) {
-        return [];
-    }
+    const matchingStaticEnvVariableDefinitions =
+        getMatchingDefinitionsFromEnvFiles(
+            collection,
+            variableName,
+            EnvVariableNameMatchingMode.Ignore,
+            getConfiguredTestEnvironment(),
+        );
 
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
@@ -168,14 +168,24 @@ function getResultsForEnvironmentVariable(
     }
 
     return mapEnvVariablesToCompletions(
-        matchingEnvVariableDefinitions.map(
+        matchingStaticEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
                 environmentFile: file,
                 matchingVariableKeys: matchingVariables.map(({ key }) => key),
                 isConfiguredEnv,
             }),
         ),
-        functionType,
+        {
+            requestData: {
+                collection,
+                functionType,
+                requestPosition: position,
+                variableName,
+                token,
+            },
+            bruFileSpecificData: { allBlocks, blockContainingPosition },
+            logger,
+        },
     );
 }
 

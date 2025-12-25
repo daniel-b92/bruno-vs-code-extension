@@ -1,4 +1,4 @@
-import { DictionaryBlock } from "../interfaces";
+import { DictionaryBlock } from "../..";
 
 export function getPathParamsFromPathParamsBlock(
     pathParamsBlock: DictionaryBlock,

@@ -3,12 +3,15 @@ import {
     Collection,
     CollectionItemProvider,
     OutputChannelLogger,
+    Position,
+    getFirstParameterForInbuiltFunctionIfStringLiteral,
+    getInbuiltFunctionType,
+    mapFromVsCodePosition,
 } from "../../../../shared";
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { getHoverForEnvVariable } from "../../shared/environmentVariables/getHoverForEnvVariable";
-import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
-import { getInbuiltFunctionIdentifiers } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
+import { getInbuiltFunctionIdentifiers } from "../../../../shared/languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
 
 export function provideInfosOnHover(
     collectionItemProvider: CollectionItemProvider,
@@ -41,43 +44,50 @@ async function getHover(params: {
 }) {
     const {
         file: { collection },
-        baseRequest: { token },
+        baseRequest: { position: requestPosition, token },
         logger,
     } = params;
 
     const envVariableRelatedFunction =
         getEnvVariableRelatedFunctionForRequest(params);
 
+    if (envVariableRelatedFunction == undefined) {
+        return undefined;
+    }
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return undefined;
     }
 
-    return envVariableRelatedFunction != undefined
-        ? getHoverForEnvVariable(
-              collection,
-              envVariableRelatedFunction.variableName,
-              token,
-              logger,
-          )
-        : undefined;
+    const { inbuiltFunction, variableName } = envVariableRelatedFunction;
+
+    return getHoverForEnvVariable({
+        requestData: {
+            collection,
+            functionType: getInbuiltFunctionType(inbuiltFunction),
+            requestPosition,
+            variableName,
+            token,
+        },
+        logger,
+    });
 }
 
 function getEnvVariableRelatedFunctionForRequest(params: {
     file: { collection: Collection };
     baseRequest: LanguageFeatureRequest;
-    logger?: OutputChannelLogger;
 }) {
     const {
-        baseRequest: { document },
-        logger,
+        baseRequest: { document, position },
     } = params;
 
     return getFirstParameterForInbuiltFunctionIfStringLiteral({
-        relevantContent: document.getText(),
+        relevantContent: {
+            asString: document.getText(),
+            startPosition: new Position(0, 0),
+        },
         functionsToSearchFor: getInbuiltFunctionIdentifiers(),
-        request: params.baseRequest,
-        logger,
+        position: mapFromVsCodePosition(position),
     });
 }
 

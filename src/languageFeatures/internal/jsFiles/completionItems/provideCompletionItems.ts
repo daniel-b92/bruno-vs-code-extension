@@ -4,20 +4,20 @@ import {
     OutputChannelLogger,
     Collection,
     getConfiguredTestEnvironment,
+    VariableReferenceType,
+    getFirstParameterForInbuiltFunctionIfStringLiteral,
+    getInbuiltFunctionIdentifiers,
+    Position,
+    mapFromVsCodePosition,
+    getInbuiltFunctionType,
 } from "../../../../shared";
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import {
     EnvVariableNameMatchingMode,
     getMatchingDefinitionsFromEnvFiles,
 } from "../../shared/environmentVariables/getMatchingDefinitionsFromEnvFiles";
-import {
-    EnvVariableFunctionType,
-    LanguageFeatureRequest,
-} from "../../shared/interfaces";
-import { getFirstParameterForInbuiltFunctionIfStringLiteral } from "../../shared/environmentVariables/getFirstParameterForInbuiltFunctionIfStringLiteral";
+import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
-import { getInbuiltFunctionIdentifiers } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
-import { getInbuiltFunctions } from "../../shared/environmentVariables/inbuiltFunctionDefinitions/getInbuiltFunctions";
 
 export function provideCompletionItems(
     collectionItemProvider: CollectionItemProvider,
@@ -77,7 +77,7 @@ function getEnvVariableRelatedFunctionForRequest(params: {
     logger?: OutputChannelLogger;
 }) {
     const {
-        baseRequest: { document, token },
+        baseRequest: { document, token, position },
         logger,
     } = params;
 
@@ -87,17 +87,18 @@ function getEnvVariableRelatedFunctionForRequest(params: {
     }
 
     const found = getFirstParameterForInbuiltFunctionIfStringLiteral({
-        relevantContent: document.getText(),
+        relevantContent: {
+            asString: document.getText(),
+            startPosition: new Position(0, 0),
+        },
         functionsToSearchFor: getInbuiltFunctionIdentifiers(),
-        request: params.baseRequest,
-        logger,
+        position: mapFromVsCodePosition(position),
     });
 
     return found
         ? {
               ...found,
-              type: getInbuiltFunctions()[found.inbuiltFunction.functionName]
-                  .type,
+              type: getInbuiltFunctionType(found.inbuiltFunction),
           }
         : undefined;
 }
@@ -106,9 +107,9 @@ function getResultsForEnvironmentVariable(
     envVariableName: string,
     additionalData: {
         collection: Collection;
-        functionType: EnvVariableFunctionType;
+        functionType: VariableReferenceType;
     },
-    { token }: LanguageFeatureRequest,
+    { position, token }: LanguageFeatureRequest,
     logger?: OutputChannelLogger,
 ) {
     const { collection, functionType } = additionalData;
@@ -116,7 +117,7 @@ function getResultsForEnvironmentVariable(
     const matchingEnvVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
         collection,
         envVariableName,
-        EnvVariableNameMatchingMode.Substring,
+        EnvVariableNameMatchingMode.Ignore,
         getConfiguredTestEnvironment(),
     );
 
@@ -137,7 +138,16 @@ function getResultsForEnvironmentVariable(
                 isConfiguredEnv,
             }),
         ),
-        functionType,
+        {
+            requestData: {
+                collection,
+                variableName: envVariableName,
+                functionType,
+                requestPosition: position,
+                token,
+            },
+            logger,
+        },
     );
 }
 

@@ -6,6 +6,7 @@ import {
     BooleanFieldValue,
     Collection,
     CollectionItemProvider,
+    getBlocksWithoutVariableSupport,
     getConfiguredTestEnvironment,
     getMatchingTextContainingPosition,
     getMaxSequenceForRequests,
@@ -26,10 +27,10 @@ import {
     RequestType,
     SettingsBlockKey,
     TextDocumentHelper,
+    VariableReferenceType,
 } from "../../../../shared";
 import { dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
-import { getNonCodeBlocksWithoutVariableSupport } from "../shared/nonCodeBlockUtils/getNonCodeBlocksWithoutVariableSupport";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import {
     EnvVariableNameMatchingMode,
@@ -55,11 +56,11 @@ export function provideBrunoLangCompletionItems(
                     token,
                 };
 
-                const { blocks: parsedBlocks } = parseBruFile(
+                const { blocks: allBlocks } = parseBruFile(
                     new TextDocumentHelper(document.getText()),
                 );
 
-                const blockContainingPosition = parsedBlocks.find(
+                const blockContainingPosition = allBlocks.find(
                     ({ contentRange }) =>
                         mapToVsCodeRange(contentRange).contains(position),
                 );
@@ -85,7 +86,8 @@ export function provideBrunoLangCompletionItems(
                 ).concat(
                     collection
                         ? getNonBlockSpecificCompletions(request, {
-                              block: blockContainingPosition,
+                              blockContainingPosition,
+                              allBlocks,
                               collection,
                           })
                         : [],
@@ -98,14 +100,18 @@ export function provideBrunoLangCompletionItems(
 
 function getNonBlockSpecificCompletions(
     request: LanguageFeatureRequest,
-    file: { block: Block; collection: Collection },
+    file: {
+        blockContainingPosition: Block;
+        allBlocks: Block[];
+        collection: Collection;
+    },
     logger?: OutputChannelLogger,
 ) {
-    const { block, collection } = file;
+    const { blockContainingPosition, allBlocks, collection } = file;
     const { document, position, token } = request;
     if (
-        (getNonCodeBlocksWithoutVariableSupport() as string[]).includes(
-            block.name,
+        (getBlocksWithoutVariableSupport() as string[]).includes(
+            blockContainingPosition.name,
         )
     ) {
         return [];
@@ -125,15 +131,17 @@ function getNonBlockSpecificCompletions(
         addLogEntryForCancellation(logger);
         return [];
     }
+    const variableName = matchingText.substring(2);
 
-    const matchingEnvVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
-        collection,
-        matchingText.substring(2),
-        EnvVariableNameMatchingMode.Substring,
-        getConfiguredTestEnvironment(),
-    );
+    const matchingStaticEnvVariableDefinitions =
+        getMatchingDefinitionsFromEnvFiles(
+            collection,
+            variableName,
+            EnvVariableNameMatchingMode.Ignore,
+            getConfiguredTestEnvironment(),
+        );
 
-    if (matchingEnvVariableDefinitions.length == 0) {
+    if (matchingStaticEnvVariableDefinitions.length == 0) {
         return [];
     }
 
@@ -143,13 +151,24 @@ function getNonBlockSpecificCompletions(
     }
 
     return mapEnvVariablesToCompletions(
-        matchingEnvVariableDefinitions.map(
+        matchingStaticEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
                 environmentFile: file,
                 matchingVariableKeys: matchingVariables.map(({ key }) => key),
                 isConfiguredEnv,
             }),
         ),
+        {
+            requestData: {
+                collection,
+                variableName,
+                functionType: VariableReferenceType.Read, // In non-code blocks, variables can not be set.
+                requestPosition: position,
+                token,
+            },
+            bruFileSpecificData: { blockContainingPosition, allBlocks },
+            logger,
+        },
     );
 }
 

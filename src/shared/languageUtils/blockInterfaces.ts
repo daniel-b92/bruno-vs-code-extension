@@ -1,5 +1,5 @@
 import { Node } from "typescript";
-import { Range } from "../fileSystem/util/range";
+import { BrunoVariableReference, Range } from "..";
 
 export interface Block {
     name: string;
@@ -14,6 +14,7 @@ export interface Block {
         | (ArrayBlockField | PlainTextWithinBlock)[]
         | CodeBlockContent;
     contentRange: Range;
+    variableReferences?: BrunoVariableReference[];
 }
 
 export interface DictionaryBlock {
@@ -71,4 +72,10 @@ export interface PlainTextWithinDictionaryArrayValue {
 export interface TextOutsideOfBlocks {
     text: string;
     range: Range;
+}
+
+export enum BlockRuntimeExecutionGroup {
+    PreRequest = 1,
+    Request = 2,
+    PostResponse = 3,
 }

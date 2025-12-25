@@ -9,17 +9,21 @@ import {
     DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
     PlainTextWithinBlock,
+    BrunoVariableReference,
 } from "../..";
 import { parseJsonBlock } from "./parseJsonBlock";
 import { parsePlainTextBlock } from "./parsePlainTextBlock";
 import { parseDictionaryBlock } from "./parseDictionaryBlock";
 import { parseArrayBlock } from "./parseArrayBlock";
 import { SyntaxKind } from "typescript";
+import { getBrunoVariableReferencesInNonCodeBlock } from "./variables/getBrunoVariableReferencesInNonCodeBlock";
+import { getBrunoVariableReferencesInCodeBlock } from "./variables/getBrunoVariableReferencesInCodeBlock";
 
 export const getBlockContent = (
     document: TextDocumentHelper,
     startingPosition: Position,
     blockType: BlockType,
+    searchVariableReferences = false,
 ):
     | {
           content:
@@ -32,6 +36,7 @@ export const getBlockContent = (
               | (ArrayBlockField | PlainTextWithinBlock)[]
               | CodeBlockContent;
           contentRange: Range;
+          variableRerences?: BrunoVariableReference[];
       }
     | undefined => {
     // the block content is exclusive of the block's opening bracket line
@@ -39,15 +44,70 @@ export const getBlockContent = (
 
     switch (blockType) {
         case BlockType.Array:
+            // Array blocks do not have variable references (currently they are only used within environment files afaik).
             return parseArrayBlock(document, firstContentLine);
         case BlockType.Dictionary:
-            return parseDictionaryBlock(document, firstContentLine);
+            const dictionaryBlockWithoutParsedVars = parseDictionaryBlock(
+                document,
+                firstContentLine,
+            );
+            return dictionaryBlockWithoutParsedVars && searchVariableReferences
+                ? {
+                      ...dictionaryBlockWithoutParsedVars,
+                      variableRerences:
+                          getBrunoVariableReferencesInNonCodeBlock(
+                              document,
+                              dictionaryBlockWithoutParsedVars.contentRange,
+                          ),
+                  }
+                : dictionaryBlockWithoutParsedVars;
         case BlockType.Code:
-            return parseCodeBlock(document, firstContentLine, SyntaxKind.Block);
+            const codeBlockWithoutParsedVars = parseCodeBlock(
+                document,
+                firstContentLine,
+                SyntaxKind.Block,
+            );
+
+            return codeBlockWithoutParsedVars && searchVariableReferences
+                ? {
+                      ...codeBlockWithoutParsedVars,
+                      variableRerences: getBrunoVariableReferencesInCodeBlock(
+                          document,
+                          codeBlockWithoutParsedVars.contentRange,
+                      ),
+                  }
+                : codeBlockWithoutParsedVars;
         case BlockType.Json:
-            return parseJsonBlock(document, firstContentLine);
+            const jsonBlockWithoutParsedVars = parseJsonBlock(
+                document,
+                firstContentLine,
+            );
+            return jsonBlockWithoutParsedVars && searchVariableReferences
+                ? {
+                      ...jsonBlockWithoutParsedVars,
+                      variableRerences:
+                          getBrunoVariableReferencesInNonCodeBlock(
+                              document,
+                              jsonBlockWithoutParsedVars.contentRange,
+                          ),
+                  }
+                : jsonBlockWithoutParsedVars;
         case BlockType.PlainText:
-            return parsePlainTextBlock(document, firstContentLine);
+            const plainTextBlockWithoutParsedVars = parsePlainTextBlock(
+                document,
+                firstContentLine,
+            );
+            return plainTextBlockWithoutParsedVars && searchVariableReferences
+                ? {
+                      ...plainTextBlockWithoutParsedVars,
+                      variableRerences:
+                          getBrunoVariableReferencesInNonCodeBlock(
+                              document,
+                              plainTextBlockWithoutParsedVars.contentRange,
+                          ),
+                  }
+                : plainTextBlockWithoutParsedVars;
+
         default:
             throw new Error(
                 `Cannot parse block with unknown type '${blockType}'. Known block types are ${JSON.stringify(
