@@ -14,7 +14,7 @@ export function getVariableNameForPositionInNonCodeBlock(params: {
     const matchingText = getMatchingTextContainingPosition(
         document,
         mapFromVsCodePosition(position),
-        getPatternForVariablesInNonCodeBlock(),
+        new RegExp(getPatternForVariablesInNonCodeBlock()),
     );
 
     return matchingText

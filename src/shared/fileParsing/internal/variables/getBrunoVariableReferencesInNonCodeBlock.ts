@@ -12,53 +12,45 @@ export function getBrunoVariableReferencesInNonCodeBlock(
     fullDocumentHelper: TextDocumentHelper,
     contentRange: Range,
 ): BrunoVariableReference[] {
-    const result: BrunoVariableReference[] = [];
-    let remainingContent = fullDocumentHelper.getText(contentRange);
+    const matches = Array.from(
+        fullDocumentHelper
+            .getText(contentRange)
+            .matchAll(new RegExp(getPatternForVariablesInNonCodeBlock(), "g")),
+    );
 
-    do {
-        const matches =
-            getPatternForVariablesInNonCodeBlock().exec(remainingContent);
+    if (matches.length == 0) {
+        return [];
+    }
 
-        if (matches == null || matches.length == 0) {
-            return result;
-        }
-        const matchingText = matches[0];
-        const variableStartOffsetWithinMatch = 2;
-        const variableName = matchingText.substring(
-            matchingText.indexOf("{{") + variableStartOffsetWithinMatch,
-            matchingText.indexOf("}}"),
-        );
-        const variableStartPositionInFullDocument =
-            fullDocumentHelper.getPositionForOffset(
-                contentRange.start,
-                matches.index + variableStartOffsetWithinMatch,
+    return matches
+        .map((match) => {
+            const matchingText = match[0];
+            const variableStartOffsetWithinMatch = 2;
+            const variableName = matchingText.substring(
+                matchingText.indexOf("{{") + variableStartOffsetWithinMatch,
+                matchingText.indexOf("}}"),
             );
+            const variableStartPositionInFullDocument =
+                fullDocumentHelper.getPositionForOffset(
+                    contentRange.start,
+                    match.index + variableStartOffsetWithinMatch,
+                );
 
-        if (!variableStartPositionInFullDocument) {
-            return result;
-        }
-
-        result.push({
-            variableName,
-            variableNameRange: new Range(
-                variableStartPositionInFullDocument,
-                new Position(
-                    variableStartPositionInFullDocument.line,
-                    variableStartPositionInFullDocument.character +
-                        variableName.length,
-                ),
-            ),
-            referenceType: VariableReferenceType.Read,
-            variableType: BrunoVariableType.Unknown,
-        });
-
-        remainingContent =
-            remainingContent.length > matches.index + matchingText.length
-                ? remainingContent.substring(
-                      matches.index + matchingText.length,
-                  )
-                : "";
-    } while (remainingContent.length > 0);
-
-    return result;
+            return variableStartPositionInFullDocument
+                ? {
+                      variableName,
+                      variableNameRange: new Range(
+                          variableStartPositionInFullDocument,
+                          new Position(
+                              variableStartPositionInFullDocument.line,
+                              variableStartPositionInFullDocument.character +
+                                  variableName.length,
+                          ),
+                      ),
+                      referenceType: VariableReferenceType.Read, // In non-code blocks, variables can not be set.
+                      variableType: BrunoVariableType.Unknown, // In non-code blocks, variables can only be accessed by name, not by any specific type.
+                  }
+                : undefined;
+        })
+        .filter((v) => v != undefined);
 }

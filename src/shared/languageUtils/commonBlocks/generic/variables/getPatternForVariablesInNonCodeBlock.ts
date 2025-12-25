@@ -1,3 +1,3 @@
 export function getPatternForVariablesInNonCodeBlock() {
-    return /{{\S+?}}/;
+    return "{{\\S+?}}";
 }

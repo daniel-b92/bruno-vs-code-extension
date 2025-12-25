@@ -162,7 +162,7 @@ function getNonBlockSpecificCompletions(
             requestData: {
                 collection,
                 variableName,
-                functionType: VariableReferenceType.Read, // In non-code blocks, variables can only be read, not written.
+                functionType: VariableReferenceType.Read, // In non-code blocks, variables can not be set.
                 requestPosition: position,
                 token,
             },
