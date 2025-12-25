@@ -14,8 +14,8 @@ export enum BrunoVariableType {
 }
 
 export enum VariableReferenceType {
-    Read = 1,
-    Set = 2,
+    Read = "Read",
+    Write = "Write",
 }
 
 export interface InbuiltFunctionIdentifier {

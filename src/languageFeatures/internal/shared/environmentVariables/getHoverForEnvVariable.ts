@@ -12,7 +12,6 @@ import {
     VariableReferenceType,
     getConfiguredTestEnvironment,
     getExtensionForBrunoFiles,
-    groupReferencesByName,
 } from "../../../../shared";
 import {
     getMatchingDefinitionsFromEnvFiles,
@@ -20,28 +19,66 @@ import {
 } from "./getMatchingDefinitionsFromEnvFiles";
 import { getDynamicVariableReferences } from "./getDynamicVariableReferences";
 
-export function getHoverForEnvVariable(params: {
+export interface EnvVariableHoverParams {
+    requestData: RequestData;
+    bruFileSpecificData?: BruFileSpecificData;
+    logger?: OutputChannelLogger;
+}
+
+interface RequestData {
     collection: Collection;
     variableName: string;
-    blockContainingPosition: Block;
+    functionType: VariableReferenceType;
+    requestPosition: VsCodePosition;
     token: CancellationToken;
-    logger?: OutputChannelLogger;
-}) {
-    const contentForDynamicReferences = getContentForDynamicReferences({});
-    const contentForStaticReferences = getContentForStaticReferences(params);
+}
 
-    return contentForStaticReferences
-        ? new Hover(contentForStaticReferences)
+interface BruFileSpecificData {
+    blockContainingPosition: Block;
+    allBlocks: Block[];
+}
+
+export function getHoverForEnvVariable({
+    requestData,
+    bruFileSpecificData,
+    logger,
+}: EnvVariableHoverParams) {
+    const contentForDynamicReferences = bruFileSpecificData
+        ? getContentForDynamicVariables(
+              requestData,
+              bruFileSpecificData,
+              logger,
+          )
+        : undefined;
+    const contentForStaticReferences = getContentForStaticVariables(
+        requestData,
+        logger,
+    );
+
+    const resultingMarkdownString =
+        contentForDynamicReferences && contentForStaticReferences
+            ? new MarkdownString(
+                  contentForDynamicReferences.concat(
+                      getLineBreak(),
+                      contentForStaticReferences,
+                  ),
+              )
+            : contentForDynamicReferences
+              ? new MarkdownString(contentForDynamicReferences)
+              : contentForStaticReferences
+                ? new MarkdownString(contentForStaticReferences)
+                : undefined;
+
+    return resultingMarkdownString
+        ? new Hover(resultingMarkdownString)
         : undefined;
 }
 
-function getContentForStaticReferences(params: {
-    collection: Collection;
-    variableName: string;
-    token: CancellationToken;
-    logger?: OutputChannelLogger;
-}) {
-    const { collection, token, variableName, logger } = params;
+function getContentForStaticVariables(
+    requestData: RequestData,
+    logger?: OutputChannelLogger,
+) {
+    const { collection, token, variableName } = requestData;
     const tableHeader = `| value | environment | configured |
 | :--------------- | :----------------: | :----------------: | ${getLineBreak()}`;
 
@@ -62,42 +99,34 @@ function getContentForStaticReferences(params: {
         return undefined;
     }
 
-    return new MarkdownString(
-        tableHeader.concat(
-            matchingVariableDefinitions
-                .map(({ file, matchingVariables, isConfiguredEnv }) => {
-                    const environmentName = basename(
-                        file,
-                        getExtensionForBrunoFiles(),
-                    );
+    return "**Static references:**".concat(
+        getLineBreak(),
+        tableHeader,
+        matchingVariableDefinitions
+            .map(({ file, matchingVariables, isConfiguredEnv }) => {
+                const environmentName = basename(
+                    file,
+                    getExtensionForBrunoFiles(),
+                );
 
-                    return matchingVariables
-                        .map(
-                            ({ value }) =>
-                                `| ${value} | ${environmentName}  | ${isConfiguredEnv ? "&#x2611;" : "-"} |`,
-                        )
-                        .join(getLineBreak());
-                })
-                .join(getLineBreak()),
-        ),
+                return matchingVariables
+                    .map(
+                        ({ value }) =>
+                            `| ${value} | ${environmentName}  | ${isConfiguredEnv ? "&#x2611;" : "-"} |`,
+                    )
+                    .join(getLineBreak());
+            })
+            .join(getLineBreak()),
     );
 }
 
-function getContentForDynamicReferences(
-    requestData: {
-        functionType: VariableReferenceType;
-        requestPosition: VsCodePosition;
-        token: CancellationToken;
-    },
-    additionalData: {
-        variableName: string;
-        blockContainingPosition: Block;
-        allBlocks: Block[];
-    },
+function getContentForDynamicVariables(
+    requestData: RequestData,
+    bruFileSpecificData: BruFileSpecificData,
     logger?: OutputChannelLogger,
 ) {
-    const { token } = requestData;
-    const { variableName, blockContainingPosition, allBlocks } = additionalData;
+    const { variableName, token } = requestData;
+    const { blockContainingPosition, allBlocks } = bruFileSpecificData;
 
     const variableReferences = getDynamicVariableReferences(
         requestData,
@@ -107,36 +136,27 @@ function getContentForDynamicReferences(
         ({ variableReference: { variableName: name } }) => name == variableName,
     );
 
+    if (variableReferences.length == 0) {
+        return undefined;
+    }
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
-        return [];
-    }
-
-    const referencesForVariable = groupReferencesByName(
-        variableReferences,
-    ).find(({ variableName: name }) => name == variableName);
-
-    if (!referencesForVariable) {
         return undefined;
     }
 
-    const {
-        references: {
-            hasDuplicateReferences,
-            distinctBlocks,
-            totalNumberOfReferences,
-        },
-    } = referencesForVariable;
+    const tableHeader = `| Block | Type |
+| :--------------- | :----------------: | ${getLineBreak()}`;
 
-    return hasDuplicateReferences
-        ? new MarkdownString(
-              `A total of ${totalNumberOfReferences} dynamic references exist in blocks ${JSON.stringify(distinctBlocks)}`,
-          )
-        : new MarkdownString(
-              distinctBlocks.length > 0
-                  ? `Dynamic reference exists in block '${distinctBlocks[0]}'`
-                  : undefined,
-          );
+    return "**Dynamic references:**".concat(
+        getLineBreak(),
+        tableHeader,
+        variableReferences
+            .map(
+                ({ blockName, variableReference: { referenceType } }) =>
+                    `| ${blockName} | ${referenceType} |`,
+            )
+            .join(getLineBreak()),
+    );
 }
 
 function addLogEntryForCancellation(logger?: OutputChannelLogger) {
@@ -144,5 +164,5 @@ function addLogEntryForCancellation(logger?: OutputChannelLogger) {
 }
 
 function getLineBreak() {
-    return "\\n";
+    return "\n";
 }

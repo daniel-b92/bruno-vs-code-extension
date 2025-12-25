@@ -3,7 +3,7 @@ import {
     BrunoVariableType,
     getInbuiltFunctionAndFirstParameterIfStringLiteral,
     getInbuiltFunctionIdentifiers,
-    getInbuiltFunctions,
+    getInbuiltFunctionType,
     Position,
     Range,
     TextDocumentHelper,
@@ -54,9 +54,7 @@ export function getBrunoVariableReferencesInCodeBlock(
         .filter((v) => v != undefined)
         .map(
             ({
-                inbuiltFunction: {
-                    identifier: { functionName },
-                },
+                inbuiltFunction: { identifier },
                 firstParameter: {
                     name: variableName,
                     start: variableStart,
@@ -65,7 +63,7 @@ export function getBrunoVariableReferencesInCodeBlock(
             }) => ({
                 variableName,
                 variableNameRange: new Range(variableStart, variableEnd),
-                referenceType: getInbuiltFunctions()[functionName].type,
+                referenceType: getInbuiltFunctionType(identifier),
                 variableType: BrunoVariableType.Environment,
             }),
         );

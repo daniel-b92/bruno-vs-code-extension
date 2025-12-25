@@ -112,6 +112,7 @@ export * from "./languageUtils/commonBlocks/authModeBlock/authModeBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/codeBlocks/getFirstParameterForInbuiltFunctionIfStringLiteral";
 export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
 export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctions";
+export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionType";
 
 export * from "./languageUtils/commonBlocks/settingsBlock/settingsBlockKeyEnum";
 

@@ -145,10 +145,10 @@ function mapStaticEnvVariables(
                 );
                 const completionItem = new CompletionItem({
                     label: key,
-                    description: `${functionType === VariableReferenceType.Set ? "!Env!" : "Env"} '${environmentName}'`,
+                    description: `${functionType === VariableReferenceType.Write ? "!Env!" : "Env"} '${environmentName}'`,
                 });
                 completionItem.detail =
-                    functionType == VariableReferenceType.Set
+                    functionType == VariableReferenceType.Write
                         ? `WARNING: Will overwrite static environment variable from env '${environmentName}'`
                         : undefined;
                 completionItem.kind = CompletionItemKind.Constant;

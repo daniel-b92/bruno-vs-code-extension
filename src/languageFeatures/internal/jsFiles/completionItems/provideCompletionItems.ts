@@ -7,9 +7,9 @@ import {
     VariableReferenceType,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
-    getInbuiltFunctions,
     Position,
     mapFromVsCodePosition,
+    getInbuiltFunctionType,
 } from "../../../../shared";
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import {
@@ -98,8 +98,7 @@ function getEnvVariableRelatedFunctionForRequest(params: {
     return found
         ? {
               ...found,
-              type: getInbuiltFunctions()[found.inbuiltFunction.functionName]
-                  .type,
+              type: getInbuiltFunctionType(found.inbuiltFunction),
           }
         : undefined;
 }

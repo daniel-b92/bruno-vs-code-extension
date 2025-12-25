@@ -22,7 +22,7 @@ import {
     VariableReferenceType,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
-    getInbuiltFunctions,
+    getInbuiltFunctionType,
 } from "../../../../shared";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
@@ -102,16 +102,14 @@ export function provideTsLangCompletionItems(
                     );
 
                 if (envVariableResult) {
-                    const functionType =
-                        getInbuiltFunctions()[
-                            envVariableResult.inbuiltFunction.functionName
-                        ].type;
+                    const { inbuiltFunction, variableName } = envVariableResult;
 
                     return getResultsForEnvironmentVariable(
-                        envVariableResult.variableName,
+                        variableName,
                         {
                             collection,
-                            functionType,
+                            functionType:
+                                getInbuiltFunctionType(inbuiltFunction),
                             blockContainingPosition,
                             allBlocks,
                         },

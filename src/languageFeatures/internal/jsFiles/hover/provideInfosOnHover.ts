@@ -5,6 +5,7 @@ import {
     OutputChannelLogger,
     Position,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
+    getInbuiltFunctionType,
     mapFromVsCodePosition,
 } from "../../../../shared";
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
@@ -43,7 +44,7 @@ async function getHover(params: {
 }) {
     const {
         file: { collection },
-        baseRequest: { token },
+        baseRequest: { position: requestPosition, token },
         logger,
     } = params;
 
@@ -55,13 +56,23 @@ async function getHover(params: {
         return undefined;
     }
 
+    if (envVariableRelatedFunction == undefined) {
+        return undefined;
+    }
+
+    const { inbuiltFunction, variableName } = envVariableRelatedFunction;
+
     return envVariableRelatedFunction != undefined
-        ? getHoverForEnvVariable(
-              collection,
-              envVariableRelatedFunction.variableName,
-              token,
+        ? getHoverForEnvVariable({
+              requestData: {
+                  collection,
+                  functionType: getInbuiltFunctionType(inbuiltFunction),
+                  requestPosition,
+                  variableName,
+                  token,
+              },
               logger,
-          )
+          })
         : undefined;
 }
 

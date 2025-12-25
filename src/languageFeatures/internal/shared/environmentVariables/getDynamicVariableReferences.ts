@@ -22,16 +22,16 @@ export function getDynamicVariableReferences(
 ) {
     const { functionType, requestPosition, token } = requestData;
     const relevantReferenceType =
-        functionType == VariableReferenceType.Set
+        functionType == VariableReferenceType.Write
             ? VariableReferenceType.Read
-            : VariableReferenceType.Set;
+            : VariableReferenceType.Write;
     const { otherRelevantBlocks, fromOwnBlock } =
         functionType == VariableReferenceType.Read
             ? getDynamicVariableReferencesForEarlierExecutionTimes(
                   requestPosition,
                   blockContainingPosition,
                   allBlocks,
-                  VariableReferenceType.Set,
+                  VariableReferenceType.Write,
               )
             : getDynamicVariableReferencesForLaterExecutionTimes(
                   requestPosition,
