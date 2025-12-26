@@ -5,6 +5,7 @@ import {
     CollectionItem,
     isCollectionItemWithSequence,
     isRequestFile,
+    BrunoRequestFile,
 } from "../..";
 import { BrunoTreeItem } from "../../../treeView/brunoTreeItem";
 
@@ -34,31 +35,42 @@ export function addItemToCollection(
         return data;
     }
 
-    const { item: registeredItem } = registeredDataWithSamePath;
-
-    const isSequenceOutdated =
-        registeredDataWithSamePath &&
-        isCollectionItemWithSequence(item) &&
-        isCollectionItemWithSequence(registeredItem) &&
-        registeredItem.getSequence() != item.getSequence();
-
-    if (isSequenceOutdated || areTagsOutdated(registeredItem, item)) {
-        collection.removeTestItemIfRegistered(
-            registeredDataWithSamePath.item.getPath(),
-        );
-        collection.addItem(data);
-    }
-
+    handleAlreadyRegisteredItemWithSamePath(
+        collection,
+        registeredDataWithSamePath,
+        data,
+    );
     return data;
 }
 
-function areTagsOutdated(oldItem: CollectionItem, newItem: CollectionItem) {
-    if (!isRequestFile(oldItem) || !isRequestFile(newItem)) {
-        return false;
+function handleAlreadyRegisteredItemWithSamePath(
+    collection: Collection,
+    { item: alreadyRegisteredItem }: CollectionData,
+    newData: CollectionData,
+) {
+    const { item: newItem } = newData;
+
+    const isSequenceOutdated =
+        isCollectionItemWithSequence(newItem) &&
+        isCollectionItemWithSequence(alreadyRegisteredItem) &&
+        alreadyRegisteredItem.getSequence() != newItem.getSequence();
+
+    if (!isRequestFile(alreadyRegisteredItem) || !isRequestFile(newItem)) {
+        return isSequenceOutdated;
     }
 
+    if (isSequenceOutdated || areTagsOutdated(alreadyRegisteredItem, newItem)) {
+        collection.removeTestItemIfRegistered(alreadyRegisteredItem.getPath());
+        collection.addItem(newData);
+    }
+}
+
+function areTagsOutdated(
+    alreadyRegisteredItem: BrunoRequestFile,
+    newItem: BrunoRequestFile,
+) {
     const newItemTags = newItem.getTags();
-    const oldItemTags = oldItem.getTags();
+    const oldItemTags = alreadyRegisteredItem.getTags();
 
     if (newItemTags === undefined || oldItemTags === undefined) {
         return newItemTags === undefined && oldItemTags === undefined;
