@@ -65,6 +65,7 @@ export class CollectionExplorer
         const treeView = vscode.window.createTreeView(this.treeViewId, {
             treeDataProvider,
             dragAndDropController: this,
+            showCollapseAll: true,
         });
 
         this.registerCommands(treeDataProvider, startTestRunEmitter);
