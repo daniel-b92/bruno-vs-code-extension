@@ -10,6 +10,7 @@ import {
     normalizeDirectoryPath,
     CollectionItem,
     isCollectionItemWithSequence,
+    isRequestFile,
 } from "../..";
 
 export class TestRunnerDataHelper {
@@ -23,13 +24,17 @@ export class TestRunnerDataHelper {
             uri,
         );
 
-        if (item.isFile()) {
-            testItem.canResolveChildren = false;
-        } else {
-            testItem.canResolveChildren = true;
-        }
-
+        testItem.canResolveChildren = !item.isFile();
         testItem.sortText = this.getVsCodeTestItemSortText(item);
+
+        if (isRequestFile(item) && item.getTags()) {
+            const tags = item.getTags() as string[];
+            testItem.tags = tags.map((tag) => new vscode.TestTag(tag));
+            testItem.description =
+                tags.length > 0
+                    ? "tags: ".concat(tags.map((t) => `'${t}'`).join(","))
+                    : undefined;
+        }
 
         return testItem;
     };

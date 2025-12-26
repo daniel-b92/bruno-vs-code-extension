@@ -4,6 +4,7 @@ import {
     TestRunnerDataHelper,
     CollectionItem,
     isCollectionItemWithSequence,
+    isRequestFile,
 } from "../..";
 import { BrunoTreeItem } from "../../../treeView/brunoTreeItem";
 
@@ -12,12 +13,14 @@ export function addItemToCollection(
     collection: Collection,
     item: CollectionItem,
 ) {
+    const isItemWithSequence = isCollectionItemWithSequence(item);
     const data: CollectionData = {
         item,
         treeItem: new BrunoTreeItem(
             item.getPath(),
             item.isFile(),
-            isCollectionItemWithSequence(item) ? item.getSequence() : undefined,
+            isItemWithSequence ? item.getSequence() : undefined,
+            isRequestFile(item) ? item.getTags() : undefined,
         ),
         testItem: testRunnerDataHelper.createVsCodeTestItem(item),
     };
@@ -28,12 +31,18 @@ export function addItemToCollection(
 
     if (!registeredDataWithSamePath) {
         collection.addItem(data);
-    } else if (
+        return data;
+    }
+
+    const { item: registeredItem } = registeredDataWithSamePath;
+
+    const isSequenceOutdated =
         registeredDataWithSamePath &&
         isCollectionItemWithSequence(item) &&
-        isCollectionItemWithSequence(registeredDataWithSamePath.item) &&
-        registeredDataWithSamePath.item.getSequence() != item.getSequence()
-    ) {
+        isCollectionItemWithSequence(registeredItem) &&
+        registeredItem.getSequence() != item.getSequence();
+
+    if (isSequenceOutdated || areTagsOutdated(registeredItem, item)) {
         collection.removeTestItemIfRegistered(
             registeredDataWithSamePath.item.getPath(),
         );
@@ -41,4 +50,22 @@ export function addItemToCollection(
     }
 
     return data;
+}
+
+function areTagsOutdated(oldItem: CollectionItem, newItem: CollectionItem) {
+    if (!isRequestFile(oldItem) || !isRequestFile(newItem)) {
+        return false;
+    }
+
+    const newItemTags = newItem.getTags();
+    const oldItemTags = oldItem.getTags();
+
+    if (newItemTags === undefined || oldItemTags === undefined) {
+        return newItemTags === undefined && oldItemTags === undefined;
+    }
+
+    return (
+        newItemTags.length == oldItemTags.length &&
+        newItemTags.every((t) => oldItemTags.includes(t))
+    );
 }

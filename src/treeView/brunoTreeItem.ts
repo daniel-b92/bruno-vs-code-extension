@@ -6,6 +6,7 @@ export class BrunoTreeItem extends vscode.TreeItem {
         public readonly path: string,
         public readonly isFile: boolean,
         private sequence?: number,
+        private tags?: string[],
     ) {
         super(
             basename(path),
@@ -14,11 +15,19 @@ export class BrunoTreeItem extends vscode.TreeItem {
                 : vscode.TreeItemCollapsibleState.Collapsed,
         );
 
+        const lineBreak = "\n";
         this.tooltip = sequence
-            ? `${this.label} (sequence: ${this.sequence})`
-            : `${this.label}`;
-
-        this.description = sequence ? `seq: ${this.sequence}` : undefined;
+            ? new vscode.MarkdownString(
+                  `${this.label} (seq: ${this.sequence})`.concat(
+                      tags && tags.length > 0
+                          ? `${lineBreak}${lineBreak}tags: ${tags.map((t) => `${lineBreak}- ${t}`)}`
+                          : "",
+                  ),
+              )
+            : this.label
+              ? this.label.toString()
+              : undefined;
+        this.description = this.getDescription();
 
         if (isFile) {
             this.command = {
@@ -35,5 +44,20 @@ export class BrunoTreeItem extends vscode.TreeItem {
 
     public getSequence() {
         return this.sequence;
+    }
+
+    private getDescription() {
+        if (!this.sequence && !this.tags) {
+            return undefined;
+        }
+
+        const forSequence = this.sequence ? `seq: ${this.sequence}` : undefined;
+        const forTags = this.tags
+            ? `tags: (${this.tags.map((t) => `'${t}'`).join(",")})`
+            : undefined;
+
+        return forSequence && forTags
+            ? `${forSequence}, ${forTags}`
+            : [forSequence, forTags].filter((v) => v != undefined)[0];
     }
 }
