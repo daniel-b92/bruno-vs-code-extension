@@ -5,7 +5,7 @@
 - Add basic intellisense for environment variables within `.bru` and `.js` files (hovers and completions) for the following inbuilt functions:
     - `bru.getEnvVar`
     - `bru.setEnvVar`
-- Display request tags in Collection explorer and in the tests view.
+- Display request tags in Collection explorer and in the testing view.
 - Enable filtering by request tags in the testing view.
 
 ### Fixes / Improvements
