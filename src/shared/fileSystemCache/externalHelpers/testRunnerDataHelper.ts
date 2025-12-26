@@ -30,10 +30,9 @@ export class TestRunnerDataHelper {
         if (isRequestFile(item) && item.getTags()) {
             const tags = item.getTags() as string[];
             testItem.tags = tags.map((tag) => new vscode.TestTag(tag));
-            testItem.description =
-                tags.length > 0
-                    ? "tags: ".concat(tags.map((t) => `'${t}'`).join(","))
-                    : undefined;
+            testItem.description = "tags: ".concat(
+                tags.map((t) => `'${t}'`).join(","),
+            );
         }
 
         return testItem;
