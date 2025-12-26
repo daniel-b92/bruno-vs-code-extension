@@ -3,7 +3,6 @@ import {
     Collection,
     BrunoRequestFile,
     getItemType,
-    getSequenceForFile,
     BrunoFileType,
     BrunoFolderSettingsFile,
     BrunoEnvironmentFile,
@@ -14,6 +13,11 @@ import {
     EnvironmentFileBlockName,
     isBlockDictionaryBlock,
     isDictionaryBlockSimpleField,
+    parseBlockFromFile,
+    RequestFileBlockName,
+    isDictionaryBlockField,
+    MetaBlockKey,
+    isDictionaryBlockArrayField,
 } from "../..";
 import { readFile } from "fs";
 
@@ -35,10 +39,7 @@ export async function getCollectionFile(collection: Collection, path: string) {
         case BrunoFileType.EnvironmentFile:
             return createEnvironmentFileInstance(path);
         case BrunoFileType.RequestFile:
-            return new BrunoRequestFile(
-                path,
-                await getSequenceForFile(collection, path),
-            );
+            return createRequestFileInstance(path);
         case NonBrunoSpecificItemType.OtherFileType:
             return new NonBrunoFile(path);
     }
@@ -68,5 +69,39 @@ async function createEnvironmentFileInstance(path: string) {
         varsBlock.content.filter((field) =>
             isDictionaryBlockSimpleField(field),
         ),
+    );
+}
+
+async function createRequestFileInstance(path: string) {
+    const metaBlockContent = parseBlockFromFile(
+        new TextDocumentHelper(await promisify(readFile)(path, "utf-8")),
+        RequestFileBlockName.Meta,
+    );
+
+    const isDictionaryBlock =
+        Array.isArray(metaBlockContent) &&
+        metaBlockContent.every((field) => isDictionaryBlockField(field));
+
+    if (!isDictionaryBlock) {
+        return new BrunoRequestFile(path);
+    }
+
+    const sequenceField = metaBlockContent.find(
+        ({ key }) => key == MetaBlockKey.Sequence,
+    );
+    const tagsField = metaBlockContent.find(
+        ({ key }) => key == MetaBlockKey.Tags,
+    );
+
+    return new BrunoRequestFile(
+        path,
+        sequenceField &&
+        isDictionaryBlockSimpleField(sequenceField) &&
+        !isNaN(Number(sequenceField.value))
+            ? Number(sequenceField.value)
+            : undefined,
+        tagsField && isDictionaryBlockArrayField(tagsField)
+            ? tagsField.values.map(({ content }) => content)
+            : undefined,
     );
 }

@@ -2,9 +2,11 @@
 
 ### Features
 
-- Add basic intellisense for environment variables within `.bru` and `.js` files (hovers and completions) for the following inbuilt functions:
+- Add basic intellisense for environment variables within `.bru` and `.js` files (hovers and completions) for references in non-code blocks and for the following inbuilt functions in code blocks (dynamic variable references are only considered if they are in the active file):
     - `bru.getEnvVar`
     - `bru.setEnvVar`
+- Display request tags in Collection explorer and in the testing view.
+- Enable filtering by request tags in the testing view.
 
 ### Fixes / Improvements
 

@@ -6,6 +6,7 @@ export class BrunoTreeItem extends vscode.TreeItem {
         public readonly path: string,
         public readonly isFile: boolean,
         private sequence?: number,
+        private tags?: string[],
     ) {
         super(
             basename(path),
@@ -14,11 +15,8 @@ export class BrunoTreeItem extends vscode.TreeItem {
                 : vscode.TreeItemCollapsibleState.Collapsed,
         );
 
-        this.tooltip = sequence
-            ? `${this.label} (sequence: ${this.sequence})`
-            : `${this.label}`;
-
-        this.description = sequence ? `seq: ${this.sequence}` : undefined;
+        this.tooltip = this.getTooltip();
+        this.description = this.getDescription();
 
         if (isFile) {
             this.command = {
@@ -35,5 +33,36 @@ export class BrunoTreeItem extends vscode.TreeItem {
 
     public getSequence() {
         return this.sequence;
+    }
+
+    private getDescription() {
+        if (!this.sequence && !this.tags) {
+            return undefined;
+        }
+
+        const forSequence = this.sequence ? `seq: ${this.sequence}` : undefined;
+        const forTags = this.tags
+            ? `tags: (${this.tags.map((t) => `'${t}'`).join(",")})`
+            : undefined;
+
+        return forSequence && forTags
+            ? `${forSequence}, ${forTags}`
+            : [forSequence, forTags].filter((v) => v != undefined)[0];
+    }
+
+    private getTooltip() {
+        const lineBreak = "\n";
+
+        return this.sequence
+            ? new vscode.MarkdownString(
+                  `${this.label} (seq: ${this.sequence})`.concat(
+                      this.tags && this.tags.length > 0
+                          ? `${lineBreak}${lineBreak}tags: ${this.tags.map((t) => `${lineBreak}- ${t}`)}`
+                          : "",
+                  ),
+              )
+            : this.label
+              ? this.label.toString()
+              : undefined;
     }
 }

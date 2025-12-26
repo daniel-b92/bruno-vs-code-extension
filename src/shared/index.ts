@@ -152,6 +152,7 @@ export * from "./model/files/brunoEnvironmentFile";
 export * from "./model/files/nonBrunoFile";
 export * from "./model/interfaces";
 export * from "./model/typeguards/isCollectionItemWithSequence";
+export * from "./model/typeguards/isRequestFile";
 
 // file system cache
 export * from "./fileSystemCache/externalHelpers/collectionItemProvider";

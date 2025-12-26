@@ -4,6 +4,7 @@ export class BrunoRequestFile implements CollectionItemWithSequence {
     constructor(
         private path: string,
         private sequence?: number,
+        private tags?: string[],
     ) {}
 
     public getPath() {
@@ -12,6 +13,10 @@ export class BrunoRequestFile implements CollectionItemWithSequence {
 
     public getSequence() {
         return this.sequence;
+    }
+
+    public getTags() {
+        return this.tags;
     }
 
     public isFile() {
