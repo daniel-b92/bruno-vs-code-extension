@@ -15,18 +15,7 @@ export class BrunoTreeItem extends vscode.TreeItem {
                 : vscode.TreeItemCollapsibleState.Collapsed,
         );
 
-        const lineBreak = "\n";
-        this.tooltip = sequence
-            ? new vscode.MarkdownString(
-                  `${this.label} (seq: ${this.sequence})`.concat(
-                      tags && tags.length > 0
-                          ? `${lineBreak}${lineBreak}tags: ${tags.map((t) => `${lineBreak}- ${t}`)}`
-                          : "",
-                  ),
-              )
-            : this.label
-              ? this.label.toString()
-              : undefined;
+        this.tooltip = this.getTooltip();
         this.description = this.getDescription();
 
         if (isFile) {
@@ -59,5 +48,21 @@ export class BrunoTreeItem extends vscode.TreeItem {
         return forSequence && forTags
             ? `${forSequence}, ${forTags}`
             : [forSequence, forTags].filter((v) => v != undefined)[0];
+    }
+
+    private getTooltip() {
+        const lineBreak = "\n";
+
+        return this.sequence
+            ? new vscode.MarkdownString(
+                  `${this.label} (seq: ${this.sequence})`.concat(
+                      this.tags && this.tags.length > 0
+                          ? `${lineBreak}${lineBreak}tags: ${this.tags.map((t) => `${lineBreak}- ${t}`)}`
+                          : "",
+                  ),
+              )
+            : this.label
+              ? this.label.toString()
+              : undefined;
     }
 }
