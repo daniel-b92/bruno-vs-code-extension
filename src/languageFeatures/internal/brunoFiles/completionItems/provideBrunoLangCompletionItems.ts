@@ -8,6 +8,7 @@ import {
     CollectionItemProvider,
     getBlocksWithoutVariableSupport,
     getConfiguredTestEnvironment,
+    getDictionaryBlockArrayField,
     getMatchingTextContainingPosition,
     getMaxSequenceForRequests,
     getPossibleMethodBlocks,
@@ -37,6 +38,7 @@ import {
     getMatchingDefinitionsFromEnvFiles,
 } from "../../shared/environmentVariables/getMatchingDefinitionsFromEnvFiles";
 import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
+import { getExistingRequestFileTags } from "../shared/getExistingRequestFileTags";
 
 export function provideBrunoLangCompletionItems(
     itemProvider: CollectionItemProvider,
@@ -81,7 +83,8 @@ export function provideBrunoLangCompletionItems(
                     await getBlockSpecificCompletions(
                         itemProvider,
                         request,
-                        blockContainingPosition.name,
+                        blockContainingPosition,
+                        collection,
                     )
                 ).concat(
                     collection
@@ -175,10 +178,18 @@ function getNonBlockSpecificCompletions(
 async function getBlockSpecificCompletions(
     itemProvider: CollectionItemProvider,
     request: LanguageFeatureRequest,
-    blockName: string,
+    blockContainingPosition: Block,
+    collection?: Collection,
 ) {
+    const { name: blockName } = blockContainingPosition;
+
     if (blockName == RequestFileBlockName.Meta) {
-        return await getMetaBlockSpecificCompletions(itemProvider, request);
+        return await getMetaBlockSpecificCompletions(
+            itemProvider,
+            request,
+            blockContainingPosition,
+            collection,
+        );
     }
     if ((getPossibleMethodBlocks() as string[]).includes(blockName)) {
         return getMethodBlockSpecificCompletions(request);
@@ -195,29 +206,54 @@ async function getBlockSpecificCompletions(
 async function getMetaBlockSpecificCompletions(
     itemProvider: CollectionItemProvider,
     request: LanguageFeatureRequest,
+    metaBlock: Block,
+    collection?: Collection,
 ) {
     const { document, position } = request;
 
-    const getSequenceFieldCompletions = async () => {
+    const getSequenceFieldCompletion = async () => {
         const currentText = document.lineAt(position.line).text;
         const sequencePattern = new RegExp(
-            `^\\s*${MetaBlockKey.Sequence}:\\s*$`,
+            `^\\s*${MetaBlockKey.Sequence}:\\s*\\d*`,
             "m",
         );
 
-        if (currentText.match(sequencePattern)) {
-            return [
-                new CompletionItem(
-                    `${currentText.endsWith(" ") ? "" : " "}${
-                        ((await getMaxSequenceForRequests(
-                            itemProvider,
-                            dirname(document.uri.fsPath),
-                        )) ?? 0) + 1
-                    }`,
-                ),
-            ];
+        if (!currentText.match(sequencePattern)) {
+            return [];
         }
-        return [];
+
+        const suggestedSequence =
+            ((await getMaxSequenceForRequests(
+                itemProvider,
+                dirname(document.fileName),
+            )) ?? 0) + 1;
+
+        const completion = new CompletionItem(suggestedSequence.toString());
+        completion.insertText = `${currentText.includes(": ") ? "" : " "}${suggestedSequence}`;
+
+        return [completion];
+    };
+
+    const getTagsFieldCompletions = () => {
+        const tagsField = getDictionaryBlockArrayField(
+            metaBlock,
+            MetaBlockKey.Tags,
+        );
+        if (!tagsField) {
+            return [];
+        }
+
+        const valueFieldContainingPosition = tagsField.values.find(
+            ({ range }) => mapToVsCodeRange(range).contains(position),
+        );
+
+        if (!valueFieldContainingPosition || !collection) {
+            return [];
+        }
+
+        return getExistingRequestFileTags(collection, document.fileName).map(
+            (tag) => new CompletionItem(tag),
+        );
     };
 
     const typeFieldCompletions = getFixedCompletionItems(
@@ -232,7 +268,10 @@ async function getMetaBlockSpecificCompletions(
         request,
     );
 
-    return (await getSequenceFieldCompletions()).concat(typeFieldCompletions);
+    return (await getSequenceFieldCompletion()).concat(
+        typeFieldCompletions,
+        getTagsFieldCompletions(),
+    );
 }
 
 function getMethodBlockSpecificCompletions(request: LanguageFeatureRequest) {
@@ -341,7 +380,7 @@ function getFixedCompletionItems(
 }
 
 function getTriggerChars() {
-    return [":", " ", "{"];
+    return [":", " ", "{", "["];
 }
 
 function getLinePatternForDictionaryField(key: string) {

@@ -121,6 +121,8 @@ export { isVarsBlock as isVarsBlockInRequestFile } from "./languageUtils/commonB
 // language utils - generic fields
 export * from "./languageUtils/genericFields/booleanFieldValueEnum";
 export * from "./languageUtils/genericFields/shouldBeDictionaryArrayField";
+export * from "./languageUtils/genericFields/getDictionaryBlockArrayField";
+
 export * from "./languageUtils/genericFields/typeguards/isArrayBlockField";
 export * from "./languageUtils/genericFields/typeguards/isDictionaryBlockField";
 export * from "./languageUtils/genericFields/typeguards/isDictionaryBlockSimpleField";
