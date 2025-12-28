@@ -384,7 +384,7 @@ function getFixedCompletionItems(
 }
 
 function getTriggerChars() {
-    return [":", " ", "{", "["];
+    return [":", " ", "{"];
 }
 
 function getLinePatternForDictionaryField(key: string) {
