@@ -243,17 +243,21 @@ async function getMetaBlockSpecificCompletions(
             return [];
         }
 
-        const valueFieldContainingPosition = tagsField.values.find(
-            ({ range }) => mapToVsCodeRange(range).contains(position),
-        );
+        const isWithinValues = tagsField.plainTextWithinValues
+            .map(({ range }) => range)
+            .concat(tagsField.values.map(({ range }) => range))
+            .some((range) => mapToVsCodeRange(range).contains(position));
 
-        if (!valueFieldContainingPosition || !collection) {
+        if (!isWithinValues || !collection) {
             return [];
         }
 
-        return getExistingRequestFileTags(collection, document.fileName).map(
-            (tag) => new CompletionItem(tag),
-        );
+        return getExistingRequestFileTags(collection, document.fileName)
+            .filter(
+                // Filter out already defined tags in the same document.
+                (tag) => tagsField.values.every(({ content: c }) => c != tag),
+            )
+            .map((tag) => new CompletionItem(tag));
     };
 
     const typeFieldCompletions = getFixedCompletionItems(
