@@ -1,4 +1,4 @@
-import { CompletionItem, languages } from "vscode";
+import { CompletionItem, CompletionItemKind, languages } from "vscode";
 import {
     ApiKeyAuthBlockKey,
     ApiKeyAuthBlockPlacementValue,
@@ -30,7 +30,7 @@ import {
     TextDocumentHelper,
     VariableReferenceType,
 } from "../../../../shared";
-import { dirname } from "path";
+import { basename, dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import {
@@ -252,12 +252,30 @@ async function getMetaBlockSpecificCompletions(
             return [];
         }
 
-        return getExistingRequestFileTags(collection, document.fileName)
+        const tagsByCollections = getExistingRequestFileTags(itemProvider, {
+            collection,
+            pathToIgnore: document.fileName,
+        });
+
+        return tagsByCollections
             .filter(
                 // Filter out already defined tags in the same document.
-                (tag) => tagsField.values.every(({ content: c }) => c != tag),
+                ({ tag }) =>
+                    tagsField.values.every(({ content: c }) => c != tag),
             )
-            .map((tag) => new CompletionItem(tag));
+            .map(({ tag, inOwnCollection, inOtherCollections }) => {
+                const completion = new CompletionItem({
+                    label: tag,
+                    description: inOwnCollection
+                        ? "own collection"
+                        : inOtherCollections.length == 1
+                          ? `From collection '${basename(inOtherCollections[0].getRootDirectory())}'`
+                          : `From ${inOtherCollections.length} other collections`,
+                });
+                completion.sortText = inOwnCollection ? `a_${tag}` : `b_${tag}`;
+                completion.kind = CompletionItemKind.Constant;
+                return completion;
+            });
     };
 
     const typeFieldCompletions = getFixedCompletionItems(
