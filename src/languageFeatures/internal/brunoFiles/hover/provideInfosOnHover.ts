@@ -1,4 +1,4 @@
-import { commands, Hover, languages } from "vscode";
+import { commands, Hover, languages, MarkdownString } from "vscode";
 import {
     Block,
     CodeBlock,
@@ -16,6 +16,9 @@ import {
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     VariableReferenceType,
     getInbuiltFunctionType,
+    getDictionaryBlockArrayField,
+    MetaBlockKey,
+    getLineBreak,
 } from "../../../../shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
@@ -26,6 +29,8 @@ import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
 import { getHoverForEnvVariable } from "../../shared/environmentVariables/getHoverForEnvVariable";
 import { getInbuiltFunctionIdentifiers } from "../../../../shared/languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
+import { getExistingRequestFileTags } from "../shared/getExistingRequestFileTags";
+import { basename } from "path";
 
 interface ProviderParamsForNonCodeBlock {
     file: {
@@ -47,15 +52,14 @@ interface ProviderParamsForCodeBlock extends ProviderParamsForNonCodeBlock {
 
 export function provideInfosOnHover(
     queue: TempJsFileUpdateQueue,
-    collectionItemProvider: CollectionItemProvider,
+    itemProvider: CollectionItemProvider,
     logger?: OutputChannelLogger,
 ) {
     return languages.registerHoverProvider(getRequestFileDocumentSelector(), {
         async provideHover(document, position, token) {
-            const collection =
-                collectionItemProvider.getAncestorCollectionForPath(
-                    document.fileName,
-                );
+            const collection = itemProvider.getAncestorCollectionForPath(
+                document.fileName,
+            );
 
             if (!collection) {
                 return null;
@@ -81,7 +85,7 @@ export function provideInfosOnHover(
                 });
             }
 
-            return getHoverForNonCodeBlocks({
+            return getHoverForNonCodeBlocks(itemProvider, {
                 file: { collection, allBlocks, blockContainingPosition },
                 hoverRequest: { document, position, token },
                 logger,
@@ -90,40 +94,14 @@ export function provideInfosOnHover(
     });
 }
 
-function getHoverForNonCodeBlocks({
-    file: { allBlocks, collection, blockContainingPosition },
-    hoverRequest,
-    logger,
-}: ProviderParamsForNonCodeBlock) {
-    const { position, token } = hoverRequest;
-    if (
-        (getBlocksWithoutVariableSupport() as string[]).includes(
-            blockContainingPosition.name,
-        )
-    ) {
-        return undefined;
-    }
-
-    const variableName = getVariableNameForPositionInNonCodeBlock(hoverRequest);
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return undefined;
-    }
-
-    return variableName
-        ? getHoverForEnvVariable({
-              requestData: {
-                  collection,
-                  variableName,
-                  functionType: VariableReferenceType.Read, // In non-code blocks, variables can not be set.
-                  requestPosition: position,
-                  token,
-              },
-              bruFileSpecificData: { allBlocks, blockContainingPosition },
-              logger,
-          })
-        : undefined;
+function getHoverForNonCodeBlocks(
+    itemProvider: CollectionItemProvider,
+    params: ProviderParamsForNonCodeBlock,
+) {
+    return (
+        getHoverForTagsInMetaBlock(itemProvider, params) ??
+        getHoverForVariablesInNonCodeBlocks(params)
+    );
 }
 
 async function getHoverForCodeBlocks(
@@ -220,6 +198,109 @@ async function getResultsViaTempJsFile(
                 ),
             )
           : resultFromJsFile[0];
+}
+
+function getHoverForTagsInMetaBlock(
+    itemProvider: CollectionItemProvider,
+    {
+        file: { collection, blockContainingPosition },
+        hoverRequest,
+        logger,
+    }: ProviderParamsForNonCodeBlock,
+) {
+    const { document, position, token } = hoverRequest;
+    const lineBreak = getLineBreak();
+
+    if (blockContainingPosition.name != RequestFileBlockName.Meta) {
+        return undefined;
+    }
+
+    const tagsField = getDictionaryBlockArrayField(
+        blockContainingPosition,
+        MetaBlockKey.Tags,
+    );
+    if (!tagsField || tagsField.values.length == 0) {
+        return undefined;
+    }
+
+    const tagValueField = tagsField.values.find(({ range }) =>
+        mapToVsCodeRange(range).contains(position),
+    );
+
+    if (token.isCancellationRequested) {
+        addLogEntryForCancellation(logger);
+        return undefined;
+    }
+    if (!tagValueField) {
+        return undefined;
+    }
+
+    const tagOccurences = getExistingRequestFileTags(itemProvider, {
+        collection,
+        pathToIgnore: document.fileName,
+    }).filter(({ tag }) => tag == tagValueField.content);
+
+    return tagOccurences.length == 1
+        ? new Hover(
+              new MarkdownString(
+                  (tagOccurences[0].inOwnCollection
+                      ? "More occurences in other files within same collection."
+                      : "No occurences in other files within same collection found."
+                  ).concat(
+                      lineBreak,
+                      lineBreak,
+                      tagOccurences[0].inOtherCollections.length > 0
+                          ? "Occurences in other collections:".concat(
+                                lineBreak,
+                                tagOccurences[0].inOtherCollections
+                                    .map(
+                                        (c) =>
+                                            `- ${basename(c.getRootDirectory())}`,
+                                    )
+                                    .join(lineBreak),
+                            )
+                          : "No occurences in other collections.",
+                  ),
+              ),
+          )
+        : new Hover("No other occurences found.");
+}
+
+function getHoverForVariablesInNonCodeBlocks({
+    file: { allBlocks, collection, blockContainingPosition },
+    hoverRequest,
+    logger,
+}: ProviderParamsForNonCodeBlock) {
+    const { position, token } = hoverRequest;
+
+    if (
+        (getBlocksWithoutVariableSupport() as string[]).includes(
+            blockContainingPosition.name,
+        )
+    ) {
+        return undefined;
+    }
+
+    const variableName = getVariableNameForPositionInNonCodeBlock(hoverRequest);
+
+    if (token.isCancellationRequested) {
+        addLogEntryForCancellation(logger);
+        return undefined;
+    }
+
+    return variableName
+        ? getHoverForEnvVariable({
+              requestData: {
+                  collection,
+                  variableName,
+                  functionType: VariableReferenceType.Read, // In non-code blocks, variables can not be set.
+                  requestPosition: position,
+                  token,
+              },
+              bruFileSpecificData: { allBlocks, blockContainingPosition },
+              logger,
+          })
+        : undefined;
 }
 
 function getEnvVariableNameFromCodeBlock({

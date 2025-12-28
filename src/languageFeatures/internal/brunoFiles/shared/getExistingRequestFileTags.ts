@@ -46,10 +46,10 @@ export function getExistingRequestFileTags(
 }
 
 function groupByTag(
-    tagWithCollection: { collection: Collection; tag: string }[],
+    tagsWithCollection: { collection: Collection; tag: string }[],
     inOwnCollectionResultValue: boolean,
 ): OccurencesGroupedByTag[] {
-    return tagWithCollection.reduce(
+    return tagsWithCollection.reduce(
         (prev, { collection: c, tag }) => {
             const matchingTagIndex = prev.findIndex(({ tag: t }) => t == tag);
 
