@@ -6,6 +6,8 @@ import {
     CollectionItemProvider,
     normalizeDirectoryPath,
     OutputChannelLogger,
+    getSequenceForFile,
+    getSequenceForFolder,
 } from "../../shared";
 import { BrunoTreeItem } from "../brunoTreeItem";
 
@@ -121,7 +123,26 @@ export class BrunoTreeItemProvider
                                     dirname(registeredItem.getPath()),
                                 ) == normalizeDirectoryPath(element.getPath()),
                         )
-                        .map(async ({ treeItem }) => treeItem),
+                        // ToDo: Use cached tree items whenever possible.
+                        // However, this lead to uncaught errors being thrown, when multiple folders and files were updated simultaneously (e.g. when switching git branches).
+                        // The issue seemed to be that `lstat` was being called on file system items, that did not exist anymore.
+                        .map(async ({ item: collectionItem }) => {
+                            const path = collectionItem.getPath();
+                            const isFile = collectionItem.isFile();
+
+                            const treeItem = new BrunoTreeItem(
+                                path,
+                                isFile,
+                                isFile
+                                    ? await getSequenceForFile(collection, path)
+                                    : await getSequenceForFolder(
+                                          collection.getRootDirectory(),
+                                          path,
+                                      ),
+                            );
+
+                            return treeItem;
+                        }),
                 ),
             );
         }
