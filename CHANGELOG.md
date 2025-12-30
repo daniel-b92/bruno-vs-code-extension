@@ -1,3 +1,9 @@
+## [0.18.1] (2025-12-29)
+
+### Fixes / Improvements
+
+- Fix an issue, where uncaught exceptions were thrown when trying to fetch child items in the explorer.
+
 ## [0.18.0] (2025-12-28)
 
 ### Features
