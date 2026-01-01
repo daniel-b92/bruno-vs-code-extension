@@ -242,7 +242,7 @@ function getHoverForTagsInMetaBlock(
         pathToIgnore: document.fileName,
     }).filter(({ tag }) => tag == tagValueField.content);
 
-    if (tagOccurences.length != 1) {
+    if (tagOccurences.length < 1) {
         return new Hover("No other usages found.");
     }
 
