@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Features
+
+- Add basic intellisense for tags in request files (hovers and completions).
+
 ## [0.18.1] (2025-12-29)
 
 ### Fixes / Improvements

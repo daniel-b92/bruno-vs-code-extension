@@ -86,6 +86,15 @@
                 }
             }
         },
+        "configurationDefaults": {
+            "[bru]": {
+                "editor.quickSuggestions": {
+                    "other": "on",
+                    "comments": "off",
+                    "strings": "on"
+                }
+            }
+        },
         "typescriptServerPlugins": [
             {
                 "enableForWorkspaceTypeScriptVersions": true,
