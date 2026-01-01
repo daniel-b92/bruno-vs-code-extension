@@ -12,6 +12,11 @@ export interface TagOccurences {
     inOtherCollections: { collection: Collection; paths: string[] }[];
 }
 
+interface itemIdentifier {
+    collection: Collection;
+    path: string;
+}
+
 export function getExistingRequestFileTags(
     itemProvider: CollectionItemProvider,
     forOwnCollection: {
@@ -31,9 +36,9 @@ export function getExistingRequestFileTags(
                 hasBaseDirectory(collection, ownCollection.getRootDirectory())
                     ? toIgnoreForOwnCollection
                     : undefined,
-            ).map(({ tag, itemIdentifier: identifierPath }) => ({
+            ).map(({ tag, path }) => ({
                 tag,
-                itemIdentifier: { ...identifierPath, collection },
+                itemIdentifier: { collection, path },
             })),
         ),
     );
@@ -45,36 +50,15 @@ export function getExistingRequestFileTags(
             )
             .map(({ path }) => path);
 
-        const inOtherCollections = items
-            .filter(
+        const inOtherCollections = groupByCollection(
+            items.filter(
                 ({ collection }) =>
                     !hasBaseDirectory(
                         collection,
                         ownCollection.getRootDirectory(),
                     ),
-            )
-            .reduce(
-                (prev, { collection, path }) => {
-                    const matchingCollectionIndex = prev.findIndex(
-                        ({ collection: c }) =>
-                            hasBaseDirectory(c, collection.getRootDirectory()),
-                    );
-
-                    if (matchingCollectionIndex < 0) {
-                        return prev.concat({ collection, paths: [path] });
-                    }
-
-                    return prev.map((val, index) =>
-                        index == matchingCollectionIndex
-                            ? {
-                                  ...val,
-                                  paths: val.paths.concat(path),
-                              }
-                            : val,
-                    );
-                },
-                [] as { collection: Collection; paths: string[] }[],
-            );
+            ),
+        );
 
         return { tag, pathsInOwnCollection, inOtherCollections };
     });
@@ -100,18 +84,13 @@ function getTagsForCollection(collection: Collection, pathToIgnore?: string) {
             // filter out duplicate tags within same files
             (tag, index) => tagsPerPath.indexOf(tag) == index,
         )
-        .flatMap(({ path, tags }) =>
-            tags.map((tag) => ({ itemIdentifier: { path }, tag })),
-        );
+        .flatMap(({ path, tags }) => tags.map((tag) => ({ path, tag })));
 }
 
 function groupByTag(
     tagsAndPaths: {
         tag: string;
-        itemIdentifier: {
-            collection: Collection;
-            path: string;
-        };
+        itemIdentifier: itemIdentifier;
     }[],
 ) {
     return tagsAndPaths.reduce(
@@ -136,11 +115,33 @@ function groupByTag(
         },
         [] as {
             tag: string;
-            items: {
-                collection: Collection;
-                path: string;
-            }[];
+            items: itemIdentifier[];
         }[],
+    );
+}
+
+function groupByCollection(items: itemIdentifier[]) {
+    return items.reduce(
+        (prev, { collection, path }) => {
+            const matchingCollectionIndex = prev.findIndex(
+                ({ collection: c }) =>
+                    hasBaseDirectory(c, collection.getRootDirectory()),
+            );
+
+            if (matchingCollectionIndex < 0) {
+                return prev.concat({ collection, paths: [path] });
+            }
+
+            return prev.map((val, index) =>
+                index == matchingCollectionIndex
+                    ? {
+                          ...val,
+                          paths: val.paths.concat(path),
+                      }
+                    : val,
+            );
+        },
+        [] as { collection: Collection; paths: string[] }[],
     );
 }
 
