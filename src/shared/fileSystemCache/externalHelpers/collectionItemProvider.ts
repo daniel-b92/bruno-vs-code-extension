@@ -28,12 +28,13 @@ import {
     ResultCode,
     waitForFilesFromFolderToBeInSync,
 } from "../internalHelpers/waitForFilesFromFolderToBeInSync";
+import { isModifiedItemOutdated } from "../internalHelpers/isModifiedItemOutdated";
 
 export interface NotificationData {
     collection: Collection;
     data: CollectionData;
     updateType: FileChangeType;
-    changedData?: { sequenceChanged?: boolean };
+    changedData?: { sequenceChanged?: boolean; tagsChanged?: boolean };
 }
 
 export class CollectionItemProvider {
@@ -490,19 +491,25 @@ export class CollectionItemProvider {
                 newItem,
             );
 
+            const {
+                details: {
+                    sequenceOutdated: isSequenceOutdated,
+                    tagsOutdated: areTagsOutdated,
+                },
+            } = isModifiedItemOutdated(modifiedItem, newItem);
+
             this.itemUpdateEmitter.fire([
                 {
                     collection: registeredCollectionForItem,
                     data: { item: newItem, treeItem, testItem },
                     updateType: FileChangeType.Modified,
-                    changedData: {
-                        sequenceChanged: isCollectionItemWithSequence(
-                            modifiedItem,
-                        )
-                            ? modifiedItem.getSequence() !=
-                              (await parseSequenceFromMetaBlock(itemPath))
+                    changedData:
+                        isSequenceOutdated || areTagsOutdated
+                            ? {
+                                  sequenceChanged: isSequenceOutdated,
+                                  tagsChanged: areTagsOutdated,
+                              }
                             : undefined,
-                    },
                 },
             ]);
         }

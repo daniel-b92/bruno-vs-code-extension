@@ -4,6 +4,10 @@
 
 - Add basic intellisense for tags in request files (hovers and completions).
 
+### Fixes / Improvements
+
+- Fix an issue, where request files in the Testing view were not reloaded after modifying the request tags.
+
 ## [0.18.1] (2025-12-29)
 
 ### Fixes / Improvements
