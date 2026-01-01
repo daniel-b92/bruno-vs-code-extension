@@ -65,7 +65,7 @@ export function getExistingRequestFileTags(
 }
 
 function getTagsForCollection(collection: Collection, pathToIgnore?: string) {
-    const tagsPerPath = collection
+    return collection
         .getAllStoredDataForCollection()
         .filter(
             ({ item }) =>
@@ -74,26 +74,27 @@ function getTagsForCollection(collection: Collection, pathToIgnore?: string) {
                 item.getTags() &&
                 (item.getTags() as string[]).length > 0,
         )
-        .flatMap(({ item }) => ({
-            path: item.getPath(),
-            tags: (item as BrunoRequestFile).getTags() as string[],
-        }));
+        .flatMap(({ item }) => {
+            const tags = (item as BrunoRequestFile).getTags() as string[];
 
-    return tagsPerPath
-        .filter(
-            // filter out duplicate tags within same files
-            (tag, index) => tagsPerPath.indexOf(tag) == index,
-        )
+            return {
+                path: item.getPath(),
+                tags: tags.filter(
+                    // filter out duplicate tags within same files
+                    (tag, index) => tags.indexOf(tag) == index,
+                ),
+            };
+        })
         .flatMap(({ path, tags }) => tags.map((tag) => ({ path, tag })));
 }
 
 function groupByTag(
-    tagsAndPaths: {
+    tagsAndItems: {
         tag: string;
         itemIdentifier: itemIdentifier;
     }[],
 ) {
-    return tagsAndPaths.reduce(
+    return tagsAndItems.reduce(
         (prev, { itemIdentifier, tag: newTag }) => {
             const matchingTagIndex = prev.findIndex(({ tag }) => tag == newTag);
 
