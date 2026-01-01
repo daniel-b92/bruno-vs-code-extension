@@ -26,7 +26,8 @@ export class BrunoTreeItemProvider
                         updateType == FileChangeType.Deleted ||
                         updateType == FileChangeType.Created ||
                         (updateType == FileChangeType.Modified &&
-                            changedData?.sequenceChanged),
+                            (changedData?.sequenceChanged ||
+                                changedData?.tagsChanged)),
                 )
             ) {
                 this.logger?.debug(

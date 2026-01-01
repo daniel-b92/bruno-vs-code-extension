@@ -5,9 +5,9 @@ import {
     CollectionItem,
     isCollectionItemWithSequence,
     isRequestFile,
-    BrunoRequestFile,
 } from "../..";
 import { BrunoTreeItem } from "../../../treeView/brunoTreeItem";
+import { isModifiedItemOutdated } from "./isModifiedItemOutdated";
 
 export function addItemToCollection(
     testRunnerDataHelper: TestRunnerDataHelper,
@@ -48,36 +48,10 @@ function handleAlreadyRegisteredItemWithSamePath(
     { item: alreadyRegisteredItem }: CollectionData,
     newData: CollectionData,
 ) {
-    const { item: newItem } = newData;
-
-    const isSequenceOutdated =
-        isCollectionItemWithSequence(newItem) &&
-        isCollectionItemWithSequence(alreadyRegisteredItem) &&
-        alreadyRegisteredItem.getSequence() != newItem.getSequence();
-
-    if (!isRequestFile(alreadyRegisteredItem) || !isRequestFile(newItem)) {
-        return isSequenceOutdated;
-    }
-
-    if (isSequenceOutdated || areTagsOutdated(alreadyRegisteredItem, newItem)) {
+    if (
+        isModifiedItemOutdated(alreadyRegisteredItem, newData.item).isOutdated
+    ) {
         collection.removeTestItemIfRegistered(alreadyRegisteredItem.getPath());
         collection.addItem(newData);
     }
-}
-
-function areTagsOutdated(
-    alreadyRegisteredItem: BrunoRequestFile,
-    newItem: BrunoRequestFile,
-) {
-    const newItemTags = newItem.getTags();
-    const oldItemTags = alreadyRegisteredItem.getTags();
-
-    if (newItemTags === undefined || oldItemTags === undefined) {
-        return newItemTags === undefined && oldItemTags === undefined;
-    }
-
-    return (
-        newItemTags.length == oldItemTags.length &&
-        newItemTags.every((t) => oldItemTags.includes(t))
-    );
 }
