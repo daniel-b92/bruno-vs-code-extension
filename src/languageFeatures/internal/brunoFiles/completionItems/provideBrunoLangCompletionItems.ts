@@ -263,19 +263,30 @@ async function getMetaBlockSpecificCompletions(
                 ({ tag }) =>
                     tagsField.values.every(({ content: c }) => c != tag),
             )
-            .map(({ tag, inOwnCollection, inOtherCollections }) => {
-                const completion = new CompletionItem({
-                    label: tag,
-                    description: inOwnCollection
-                        ? "own collection"
-                        : inOtherCollections.length == 1
-                          ? `From collection '${basename(inOtherCollections[0].getRootDirectory())}'`
-                          : `From ${inOtherCollections.length} other collections`,
-                });
-                completion.sortText = inOwnCollection ? `a_${tag}` : `b_${tag}`;
-                completion.kind = CompletionItemKind.Constant;
-                return completion;
-            });
+            .map(
+                ({
+                    tag,
+                    pathsInOwnCollection: inOwnCollection,
+                    inOtherCollections,
+                }) => {
+                    const alreadyUsedInOwnCollection =
+                        inOwnCollection.length > 0;
+
+                    const completion = new CompletionItem({
+                        label: tag,
+                        description: alreadyUsedInOwnCollection
+                            ? "Used in own collection"
+                            : inOtherCollections.length == 1
+                              ? `Used in collection '${basename(inOtherCollections[0].collection.getRootDirectory())}'`
+                              : `Used in ${inOtherCollections.length} other collections`,
+                    });
+                    completion.sortText = alreadyUsedInOwnCollection
+                        ? `a_${tag}`
+                        : `b_${tag}`;
+                    completion.kind = CompletionItemKind.Constant;
+                    return completion;
+                },
+            );
     };
 
     const typeFieldCompletions = getFixedCompletionItems(

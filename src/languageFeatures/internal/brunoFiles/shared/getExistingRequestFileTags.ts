@@ -6,10 +6,10 @@ import {
     normalizeDirectoryPath,
 } from "../../../../shared";
 
-interface OccurencesGroupedByTag {
+export interface TagOccurences {
     tag: string;
-    inOwnCollection: boolean;
-    inOtherCollections: Collection[];
+    pathsInOwnCollection: string[];
+    inOtherCollections: { collection: Collection; paths: string[] }[];
 }
 
 export function getExistingRequestFileTags(
@@ -18,68 +18,70 @@ export function getExistingRequestFileTags(
         collection: Collection;
         pathToIgnore: string;
     },
-): OccurencesGroupedByTag[] {
+): TagOccurences[] {
     const {
         collection: ownCollection,
         pathToIgnore: toIgnoreForOwnCollection,
     } = forOwnCollection;
 
-    const tagsForOwnCollection = getTagsForCollection(
-        ownCollection,
-        toIgnoreForOwnCollection,
-    );
-
-    const tagsForOtherCollections = itemProvider
-        .getRegisteredCollections()
-        .filter((c) => !hasBaseDirectory(c, ownCollection.getRootDirectory()))
-        .flatMap((c) =>
-            getTagsForCollection(c).map((tag) => ({
-                collection: c,
+    const tagsForAllCollections = groupByTag(
+        itemProvider.getRegisteredCollections().flatMap((collection) =>
+            getTagsForCollection(
+                collection,
+                hasBaseDirectory(collection, ownCollection.getRootDirectory())
+                    ? toIgnoreForOwnCollection
+                    : undefined,
+            ).map(({ tag, itemIdentifier: identifierPath }) => ({
                 tag,
+                itemIdentifier: { ...identifierPath, collection },
             })),
-        );
-
-    return groupByTag(
-        tagsForOwnCollection.map((tag) => ({ collection: ownCollection, tag })),
-        true,
-    ).concat(groupByTag(tagsForOtherCollections, false));
-}
-
-function groupByTag(
-    tagsWithCollection: { collection: Collection; tag: string }[],
-    inOwnCollectionResultValue: boolean,
-): OccurencesGroupedByTag[] {
-    return tagsWithCollection.reduce(
-        (prev, { collection: c, tag }) => {
-            const matchingTagIndex = prev.findIndex(({ tag: t }) => t == tag);
-
-            if (matchingTagIndex < 0) {
-                return prev.concat({
-                    tag,
-                    inOwnCollection: inOwnCollectionResultValue,
-                    inOtherCollections: [c],
-                });
-            }
-
-            const oldEntry = prev[matchingTagIndex];
-            return [
-                ...prev.filter((_, index) => index != matchingTagIndex),
-                {
-                    ...oldEntry,
-                    inOtherCollections: [...oldEntry.inOtherCollections, c],
-                },
-            ];
-        },
-        [] as {
-            tag: string;
-            inOwnCollection: boolean;
-            inOtherCollections: Collection[];
-        }[],
+        ),
     );
+
+    return tagsForAllCollections.map(({ tag, items }) => {
+        const pathsInOwnCollection = items
+            .filter(({ collection }) =>
+                hasBaseDirectory(collection, ownCollection.getRootDirectory()),
+            )
+            .map(({ path }) => path);
+
+        const inOtherCollections = items
+            .filter(
+                ({ collection }) =>
+                    !hasBaseDirectory(
+                        collection,
+                        ownCollection.getRootDirectory(),
+                    ),
+            )
+            .reduce(
+                (prev, { collection, path }) => {
+                    const matchingCollectionIndex = prev.findIndex(
+                        ({ collection: c }) =>
+                            hasBaseDirectory(c, collection.getRootDirectory()),
+                    );
+
+                    if (matchingCollectionIndex < 0) {
+                        return prev.concat({ collection, paths: [path] });
+                    }
+
+                    return prev.map((val, index) =>
+                        index == matchingCollectionIndex
+                            ? {
+                                  ...val,
+                                  paths: val.paths.concat(path),
+                              }
+                            : val,
+                    );
+                },
+                [] as { collection: Collection; paths: string[] }[],
+            );
+
+        return { tag, pathsInOwnCollection, inOtherCollections };
+    });
 }
 
 function getTagsForCollection(collection: Collection, pathToIgnore?: string) {
-    const allExistingTags = collection
+    const tagsPerPath = collection
         .getAllStoredDataForCollection()
         .filter(
             ({ item }) =>
@@ -88,13 +90,57 @@ function getTagsForCollection(collection: Collection, pathToIgnore?: string) {
                 item.getTags() &&
                 (item.getTags() as string[]).length > 0,
         )
-        .flatMap(
-            ({ item }) => (item as BrunoRequestFile).getTags() as string[],
-        );
+        .flatMap(({ item }) => ({
+            path: item.getPath(),
+            tags: (item as BrunoRequestFile).getTags() as string[],
+        }));
 
-    return allExistingTags.filter(
-        // filter out duplicate entries
-        (tag, index) => allExistingTags.indexOf(tag) == index,
+    return tagsPerPath
+        .filter(
+            // filter out duplicate tags within same files
+            (tag, index) => tagsPerPath.indexOf(tag) == index,
+        )
+        .flatMap(({ path, tags }) =>
+            tags.map((tag) => ({ itemIdentifier: { path }, tag })),
+        );
+}
+
+function groupByTag(
+    tagsAndPaths: {
+        tag: string;
+        itemIdentifier: {
+            collection: Collection;
+            path: string;
+        };
+    }[],
+) {
+    return tagsAndPaths.reduce(
+        (prev, { itemIdentifier, tag: newTag }) => {
+            const matchingTagIndex = prev.findIndex(({ tag }) => tag == newTag);
+
+            if (matchingTagIndex < 0) {
+                return prev.concat({
+                    tag: newTag,
+                    items: [itemIdentifier],
+                });
+            }
+
+            return prev.map((val, index) =>
+                index == matchingTagIndex
+                    ? {
+                          ...val,
+                          items: val.items.concat(itemIdentifier),
+                      }
+                    : val,
+            );
+        },
+        [] as {
+            tag: string;
+            items: {
+                collection: Collection;
+                path: string;
+            }[];
+        }[],
     );
 }
 

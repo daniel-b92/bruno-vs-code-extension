@@ -29,7 +29,10 @@ import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
 import { getHoverForEnvVariable } from "../../shared/environmentVariables/getHoverForEnvVariable";
 import { getInbuiltFunctionIdentifiers } from "../../../../shared/languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
-import { getExistingRequestFileTags } from "../shared/getExistingRequestFileTags";
+import {
+    getExistingRequestFileTags,
+    TagOccurences,
+} from "../shared/getExistingRequestFileTags";
 import { basename } from "path";
 
 interface ProviderParamsForNonCodeBlock {
@@ -209,7 +212,6 @@ function getHoverForTagsInMetaBlock(
     }: ProviderParamsForNonCodeBlock,
 ) {
     const { document, position, token } = hoverRequest;
-    const lineBreak = getLineBreak();
 
     if (blockContainingPosition.name != RequestFileBlockName.Meta) {
         return undefined;
@@ -240,30 +242,11 @@ function getHoverForTagsInMetaBlock(
         pathToIgnore: document.fileName,
     }).filter(({ tag }) => tag == tagValueField.content);
 
-    return tagOccurences.length == 1
-        ? new Hover(
-              new MarkdownString(
-                  (tagOccurences[0].inOwnCollection
-                      ? "More occurences in other files within same collection."
-                      : "No occurences in other files within same collection found."
-                  ).concat(
-                      lineBreak,
-                      lineBreak,
-                      tagOccurences[0].inOtherCollections.length > 0
-                          ? "Occurences in other collections:".concat(
-                                lineBreak,
-                                tagOccurences[0].inOtherCollections
-                                    .map(
-                                        (c) =>
-                                            `- ${basename(c.getRootDirectory())}`,
-                                    )
-                                    .join(lineBreak),
-                            )
-                          : "No occurences in other collections.",
-                  ),
-              ),
-          )
-        : new Hover("No other occurences found.");
+    if (tagOccurences.length != 1) {
+        return new Hover("No other usages found.");
+    }
+
+    return getHoverForTagOccurences(document.fileName, tagOccurences[0]);
 }
 
 function getHoverForVariablesInNonCodeBlocks({
@@ -301,6 +284,38 @@ function getHoverForVariablesInNonCodeBlocks({
               logger,
           })
         : undefined;
+}
+
+function getHoverForTagOccurences(
+    filePath: string,
+    { pathsInOwnCollection, inOtherCollections }: TagOccurences,
+) {
+    const lineBreak = getLineBreak();
+    const tableHeader = `| collection | usages |
+| :--------------- | ----------------: | ${getLineBreak()}`;
+
+    if (pathsInOwnCollection.length == 0 && inOtherCollections.length == 0) {
+        return new Hover(new MarkdownString("No other usages found."));
+    }
+
+    const content = tableHeader
+        .concat(
+            pathsInOwnCollection.length > 0
+                ? `| own | ${pathsInOwnCollection.filter((path) => path != filePath).length} other file(s) | ${lineBreak}`
+                : "",
+        )
+        .concat(
+            inOtherCollections.length > 0
+                ? inOtherCollections
+                      .map(
+                          ({ collection, paths }) =>
+                              `| ${basename(collection.getRootDirectory())} | ${paths.length} |`,
+                      )
+                      .join(lineBreak)
+                : "",
+        );
+
+    return new Hover(new MarkdownString(content));
 }
 
 function getEnvVariableNameFromCodeBlock({
