@@ -69,14 +69,22 @@ async function getRequestFilesFromFolderThatAreNotInSync(
         path: string,
     ) => CollectionData | undefined,
 ) {
-    const allItemsInFolder = (await readdir(folderPath)).map((name) =>
-        resolve(folderPath, name),
-    );
+    const allItemsInFolder = await readdir(folderPath)
+        .then((itemNames) => itemNames.map((name) => resolve(folderPath, name)))
+        .catch(() => undefined);
+
+    if (!allItemsInFolder) {
+        return [];
+    }
 
     const filesInFolder = await Promise.all(
         (
-            await filterAsync(allItemsInFolder, async (path) =>
-                (await lstat(path)).isFile(),
+            await filterAsync(
+                allItemsInFolder,
+                async (path) =>
+                    await lstat(path)
+                        .then((stats) => stats.isFile())
+                        .catch(() => false),
             )
         ).map(async (path) => ({
             path,

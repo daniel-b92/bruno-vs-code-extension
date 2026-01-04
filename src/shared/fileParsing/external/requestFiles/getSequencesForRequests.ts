@@ -16,14 +16,21 @@ export const getSequencesForRequests = async (
 
     return (
         await Promise.all(
-            (await promisify(readdir)(directory)).map(async (childName) => {
-                const fullPath = resolve(directory, childName);
+            await promisify(readdir)(directory)
+                .then((childNames) =>
+                    childNames.map(async (childName) => {
+                        const fullPath = resolve(directory, childName);
 
-                return {
-                    path: fullPath,
-                    sequence: await getSequenceForFile(collection, fullPath),
-                };
-            }),
+                        return {
+                            path: fullPath,
+                            sequence: await getSequenceForFile(
+                                collection,
+                                fullPath,
+                            ),
+                        };
+                    }),
+                )
+                .catch(() => []),
         )
     ).filter(({ sequence }) => sequence != undefined) as {
         path: string;

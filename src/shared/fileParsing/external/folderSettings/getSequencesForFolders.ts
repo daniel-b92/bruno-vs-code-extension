@@ -10,7 +10,7 @@ import { promisify } from "util";
 
 export async function getSequencesForFolders(
     itemProvider: CollectionItemProvider,
-    parentFolder: string
+    parentFolder: string,
 ): Promise<{ folderPath: string; settingsFile: string; sequence: number }[]> {
     const collection = itemProvider.getAncestorCollectionForPath(parentFolder);
 
@@ -18,12 +18,20 @@ export async function getSequencesForFolders(
         return [];
     }
 
-    const allChildFolderItems = await filterAsync(
-        (
-            await promisify(readdir)(parentFolder)
-        ).map((itemName) => resolve(parentFolder, itemName)),
-        async (item) => (await promisify(lstat)(item)).isDirectory()
-    );
+    const allChildItems = await promisify(readdir)(parentFolder)
+        .then((names) => names.map((name) => resolve(parentFolder, name)))
+        .catch(() => undefined);
+
+    const allChildFolderItems =
+        allChildItems && allChildItems.length > 0
+            ? await filterAsync(
+                  allChildItems,
+                  async (item) =>
+                      await promisify(lstat)(item)
+                          .then((stats) => stats.isDirectory())
+                          .catch(() => false),
+              )
+            : [];
 
     return (
         await Promise.all(
@@ -33,10 +41,10 @@ export async function getSequencesForFolders(
                     settingsFile: await getFolderSettingsFilePath(folderPath),
                     sequence: await getSequenceForFolder(
                         collection.getRootDirectory(),
-                        folderPath
+                        folderPath,
                     ),
                 };
-            })
+            }),
         )
     ).filter(({ sequence }) => sequence != undefined) as {
         folderPath: string;

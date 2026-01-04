@@ -9,11 +9,13 @@ import { promisify } from "util";
 
 export async function getSequenceForFolder(
     collectionRootDirectory: string,
-    folderPath: string
+    folderPath: string,
 ) {
     if (
         !(await checkIfPathExistsAsync(folderPath)) ||
-        !(await promisify(lstat)(folderPath)).isDirectory() ||
+        !(await promisify(lstat)(folderPath)
+            .then((stats) => stats.isDirectory())
+            .catch(() => undefined)) ||
         normalizeDirectoryPath(collectionRootDirectory) ==
             normalizeDirectoryPath(folderPath)
     ) {

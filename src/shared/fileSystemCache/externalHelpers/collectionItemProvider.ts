@@ -15,7 +15,6 @@ import {
     normalizeDirectoryPath,
     OutputChannelLogger,
     TestRunnerDataHelper,
-    CollectionItem,
     isCollectionItemWithSequence,
     MultiFileOperationWithStatus,
 } from "../..";
@@ -381,17 +380,23 @@ export class CollectionItemProvider {
         registeredCollection: Collection,
         itemPath: string,
     ) {
-        const item: CollectionItem = (
-            await promisify(lstat)(itemPath)
-        ).isDirectory()
-            ? new CollectionDirectory(
-                  itemPath,
-                  await getSequenceForFolder(
-                      registeredCollection.getRootDirectory(),
-                      itemPath,
-                  ),
-              )
-            : await getCollectionFile(registeredCollection, itemPath);
+        const item = await promisify(lstat)(itemPath)
+            .then(async (stats) =>
+                stats.isDirectory()
+                    ? new CollectionDirectory(
+                          itemPath,
+                          await getSequenceForFolder(
+                              registeredCollection.getRootDirectory(),
+                              itemPath,
+                          ),
+                      )
+                    : await getCollectionFile(registeredCollection, itemPath),
+            )
+            .catch(() => undefined);
+
+        if (!item) {
+            return;
+        }
 
         const collectionData = addItemToCollection(
             this.testRunnerDataHelper,
@@ -485,6 +490,10 @@ export class CollectionItemProvider {
                 modifiedItem,
             );
 
+            if (!newItem) {
+                return;
+            }
+
             addItemToCollection(
                 this.testRunnerDataHelper,
                 registeredCollectionForItem,
@@ -547,7 +556,13 @@ export class CollectionItemProvider {
         data: CollectionData,
     ) {
         const path = data.item.getPath();
-        const isDirectory = (await promisify(lstat)(path)).isDirectory();
+        const isDirectory = await promisify(lstat)(path)
+            .then((stats) => stats.isDirectory())
+            .catch(() => undefined);
+
+        if (isDirectory === undefined) {
+            return;
+        }
 
         if (
             this.notificationBatch.some(

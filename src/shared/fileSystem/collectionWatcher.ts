@@ -53,7 +53,13 @@ export class CollectionWatcher {
 
         watcher.onDidCreate(async (uri) => {
             const path = uri.fsPath;
-            const isFile = (await promisify(lstat)(path)).isFile();
+            const isFile = await promisify(lstat)(path)
+                .then((stats) => stats.isFile())
+                .catch(() => undefined);
+
+            if (isFile === undefined) {
+                return;
+            }
 
             if (isFile) {
                 this.logger?.debug(

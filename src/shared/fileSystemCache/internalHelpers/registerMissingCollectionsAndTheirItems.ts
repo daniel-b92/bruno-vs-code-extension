@@ -49,7 +49,13 @@ export async function registerMissingCollectionsAndTheirItems(
                           )
                         : await getCollectionFile(collection, path);
 
-                    addItemToCollection(testRunnerDataHelper, collection, item);
+                    if (item) {
+                        addItemToCollection(
+                            testRunnerDataHelper,
+                            collection,
+                            item,
+                        );
+                    }
                 }
 
                 if (

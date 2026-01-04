@@ -46,12 +46,16 @@ export async function getCollectionFile(collection: Collection, path: string) {
 }
 
 async function createEnvironmentFileInstance(path: string) {
+    const fileContent = await promisify(readFile)(path, {
+        encoding: "utf-8",
+    }).catch(() => undefined);
+
+    if (fileContent === undefined) {
+        return undefined;
+    }
+
     const varsBlocks = parseBruFile(
-        new TextDocumentHelper(
-            await promisify(readFile)(path, {
-                encoding: "utf-8",
-            }),
-        ),
+        new TextDocumentHelper(fileContent),
     ).blocks.filter(({ name }) => name == EnvironmentFileBlockName.Vars);
 
     if (varsBlocks.length != 1) {
@@ -73,8 +77,16 @@ async function createEnvironmentFileInstance(path: string) {
 }
 
 async function createRequestFileInstance(path: string) {
+    const fileContent = await promisify(readFile)(path, {
+        encoding: "utf-8",
+    }).catch(() => undefined);
+
+    if (fileContent === undefined) {
+        return undefined;
+    }
+
     const metaBlockContent = parseBlockFromFile(
-        new TextDocumentHelper(await promisify(readFile)(path, "utf-8")),
+        new TextDocumentHelper(fileContent),
         RequestFileBlockName.Meta,
     );
 

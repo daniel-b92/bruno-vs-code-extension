@@ -12,15 +12,21 @@ import { promisify } from "util";
 export async function parseSequenceFromMetaBlock(filePath: string) {
     if (
         !(await checkIfPathExistsAsync(filePath)) ||
-        !(await promisify(lstat)(filePath)).isFile() ||
+        !(await promisify(lstat)(filePath)
+            .then((stats) => stats.isFile())
+            .catch(() => undefined)) ||
         extname(filePath) != getExtensionForBrunoFiles()
     ) {
         return undefined;
     }
 
-    const sequence = getSequenceFieldFromMetaBlock(
-        new TextDocumentHelper(await promisify(readFile)(filePath, "utf-8")),
+    const content = await promisify(readFile)(filePath, "utf-8").catch(
+        () => undefined,
     );
+
+    const sequence = content
+        ? getSequenceFieldFromMetaBlock(new TextDocumentHelper(content))
+        : undefined;
 
     return sequence &&
         isDictionaryBlockSimpleField(sequence) &&
