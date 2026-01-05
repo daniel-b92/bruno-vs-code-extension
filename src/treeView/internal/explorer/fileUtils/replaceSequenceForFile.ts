@@ -1,6 +1,7 @@
 import { writeFile, readFile } from "fs";
 import { MetaBlockKey, parseSequenceFromMetaBlock } from "../../../../shared";
 import { promisify } from "util";
+import { window } from "vscode";
 
 export async function replaceSequenceForFile(
     filePath: string,
@@ -11,17 +12,32 @@ export async function replaceSequenceForFile(
     }
 
     const originalSequence = await parseSequenceFromMetaBlock(filePath);
+    const originalFileContent = await promisify(readFile)(
+        filePath,
+        "utf-8",
+    ).catch(() => undefined);
+
+    if (originalFileContent === undefined) {
+        window.showErrorMessage(
+            `An unexpected error occured while trying to read the file content.`,
+        );
+        return;
+    }
 
     if (originalSequence != undefined) {
         await promisify(writeFile)(
             filePath,
-            (await promisify(readFile)(filePath, "utf-8")).replace(
+            originalFileContent.replace(
                 new RegExp(
                     `${MetaBlockKey.Sequence}:\\s*${originalSequence}\\s*$`,
                     "m",
                 ),
                 `${MetaBlockKey.Sequence}: ${newSequence}`,
             ),
-        );
+        ).catch(() => {
+            window.showErrorMessage(
+                `An unexpected error occured while trying to replace the sequence.`,
+            );
+        });
     }
 }

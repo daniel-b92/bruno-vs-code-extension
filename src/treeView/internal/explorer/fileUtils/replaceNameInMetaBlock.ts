@@ -8,14 +8,22 @@ import {
     isDictionaryBlockSimpleField,
 } from "../../../../shared";
 import { readFile, writeFile } from "fs";
+import { window } from "vscode";
 
 export async function replaceNameInMetaBlock(
     filePath: string,
     newName: string,
 ) {
-    const documentHelper = new TextDocumentHelper(
-        await promisify(readFile)(filePath, "utf-8"),
+    const fileContent = await promisify(readFile)(filePath, "utf-8").catch(
+        () => undefined,
     );
+
+    if (fileContent === undefined) {
+        window.showErrorMessage(`An unexpected error occured.`);
+        return;
+    }
+
+    const documentHelper = new TextDocumentHelper(fileContent);
 
     const metaBlock = parseBruFile(documentHelper).blocks.find(
         ({ name }) => name == RequestFileBlockName.Meta,
@@ -35,7 +43,11 @@ export async function replaceNameInMetaBlock(
                     },
                     newName,
                 ),
-            );
+            ).catch(() => {
+                window.showErrorMessage(
+                    `An unexpected error occured while replacing name in meta block.`,
+                );
+            });
         }
     }
 }

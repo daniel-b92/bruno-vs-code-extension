@@ -46,9 +46,7 @@ export async function getCollectionFile(collection: Collection, path: string) {
 }
 
 async function createEnvironmentFileInstance(path: string) {
-    const fileContent = await promisify(readFile)(path, {
-        encoding: "utf-8",
-    }).catch(() => undefined);
+    const fileContent = await getFileContent(path);
 
     if (fileContent === undefined) {
         return undefined;
@@ -77,9 +75,7 @@ async function createEnvironmentFileInstance(path: string) {
 }
 
 async function createRequestFileInstance(path: string) {
-    const fileContent = await promisify(readFile)(path, {
-        encoding: "utf-8",
-    }).catch(() => undefined);
+    const fileContent = await getFileContent(path);
 
     if (fileContent === undefined) {
         return undefined;
@@ -116,4 +112,10 @@ async function createRequestFileInstance(path: string) {
             ? tagsField.values.map(({ content }) => content)
             : undefined,
     );
+}
+
+async function getFileContent(path: string) {
+    return await promisify(readFile)(path, {
+        encoding: "utf-8",
+    }).catch(() => undefined);
 }

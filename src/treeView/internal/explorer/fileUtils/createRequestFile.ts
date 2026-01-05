@@ -99,29 +99,26 @@ export async function createRequestFile(
                 parentFolderPath,
             )) ?? 0) + 1;
 
-        const toAwait: Promise<void | boolean>[] = [];
-
-        toAwait.push(
-            promisify(writeFile)(
+        const failed = await promisify(writeFile)(
+            filePath,
+            getFileContent(requestSequence, {
                 filePath,
-                getFileContent(requestSequence, {
-                    filePath,
-                    requestName,
-                    requestType: pickedLabels[0] as RequestType,
-                    methodBlockName: pickedLabels[1],
-                }),
-            ),
-        );
+                requestName,
+                requestType: pickedLabels[0] as RequestType,
+                methodBlockName: pickedLabels[1],
+            }),
+        ).catch(() => true);
+
+        if (failed) {
+            window.showErrorMessage(`An unexpected error occured.`);
+            return;
+        }
 
         // After the new file has been registered in the cache, the explorer should be able to reveal it when opened in the editor.
-        toAwait.push(
-            itemProvider.waitForFileToBeRegisteredInCache(
-                collection.getRootDirectory(),
-                filePath,
-            ),
+        await itemProvider.waitForFileToBeRegisteredInCache(
+            collection.getRootDirectory(),
+            filePath,
         );
-
-        await Promise.all(toAwait);
 
         commands.executeCommand("vscode.open", Uri.file(filePath));
     });
