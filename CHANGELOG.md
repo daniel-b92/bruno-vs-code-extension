@@ -7,6 +7,7 @@
 ### Fixes / Improvements
 
 - Fix an issue, where request files in the Testing view were not reloaded after modifying the request tags.
+- Improve resilience of file system operations by handling unexpected errors explicitly.
 
 ## [0.18.1] (2025-12-29)
 
