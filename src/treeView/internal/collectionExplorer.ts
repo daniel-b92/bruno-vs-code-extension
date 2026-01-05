@@ -345,7 +345,12 @@ export class CollectionExplorer
 
                 const filePath = resolve(parentFolderPath, fileName);
                 const failed = await promisify(writeFile)(filePath, "").catch(
-                    () => true,
+                    () => {
+                        vscode.window.showErrorMessage(
+                            `An unexpected error occured.`,
+                        );
+                        return true;
+                    },
                 );
 
                 if (!failed) {
@@ -382,7 +387,13 @@ export class CollectionExplorer
                     return;
                 }
 
-                await promisify(mkdir)(resolve(parentFolderPath, folderName));
+                await promisify(mkdir)(
+                    resolve(parentFolderPath, folderName),
+                ).catch(() => {
+                    vscode.window.showErrorMessage(
+                        `An unexpected error occured.`,
+                    );
+                });
             },
         );
 
@@ -641,7 +652,10 @@ export class CollectionExplorer
 
         if (
             !newPath ||
-            (await promisify(copyFile)(originalPath, newPath).catch(() => true))
+            (await promisify(copyFile)(originalPath, newPath).catch(() => {
+                vscode.window.showErrorMessage(`An unexpected error occured.`);
+                return true;
+            }))
         ) {
             return undefined;
         }
