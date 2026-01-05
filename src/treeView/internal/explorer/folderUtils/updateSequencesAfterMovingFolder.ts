@@ -19,16 +19,15 @@ export async function updateSequencesAfterMovingFolder(
     itemProvider: CollectionItemProvider,
     sourcePath: string,
     target: BrunoTreeItem,
-    insertionOption: FolderDropInsertionOption
+    insertionOption: FolderDropInsertionOption,
 ) {
     if (
         insertionOption == FolderDropInsertionOption.MoveIntoTargetAsSubfolder
     ) {
         const parentFolder = target.getPath();
         const newFolderPath = resolve(parentFolder, basename(sourcePath));
-        const newFolderSettingsFile = await getFolderSettingsFilePath(
-            newFolderPath
-        );
+        const newFolderSettingsFile =
+            await getFolderSettingsFilePath(newFolderPath);
 
         const newSequence =
             1 +
@@ -36,7 +35,7 @@ export async function updateSequencesAfterMovingFolder(
 
         if (!newFolderSettingsFile) {
             window.showErrorMessage(
-                `An unexpected error occured while trying to find the folder settings file for the folder '${newFolderPath}'`
+                `An unexpected error occured while trying to find the folder settings file for the folder '${newFolderPath}'`,
             );
             return;
         }
@@ -49,7 +48,7 @@ export async function updateSequencesAfterMovingFolder(
 
     const newFolderSettingsFile = await copyFolderSettingsFile(
         target,
-        sourcePath
+        sourcePath,
     );
 
     if (!newFolderSettingsFile) {
@@ -70,13 +69,13 @@ export async function updateSequencesAfterMovingFolder(
         await getSequencesForFolders(itemProvider, parentFolder)
     ).filter(
         ({ folderPath, sequence }) =>
-            folderPath != sourcePath && sequence >= newSequence
+            folderPath != sourcePath && sequence >= newSequence,
     );
 
     for (const { folderPath, sequence: initialSequence } of filtered) {
         await replaceSequenceForFile(
             (await getFolderSettingsFilePath(folderPath)) as string,
-            initialSequence + 1
+            initialSequence + 1,
         );
     }
 
@@ -85,32 +84,38 @@ export async function updateSequencesAfterMovingFolder(
 
 async function copyFolderSettingsFile(
     sourceFolderItem: BrunoTreeItem,
-    destinationFolder: string
+    destinationFolder: string,
 ) {
-    const targetFolderSettingsFile = await getFolderSettingsFilePath(
-        sourceFolderItem.getPath()
+    const targetFile = await getFolderSettingsFilePath(
+        sourceFolderItem.getPath(),
     );
 
-    if (!targetFolderSettingsFile) {
+    if (!targetFile) {
         window.showErrorMessage(
             `An unexpected error occured. Could not find settings file for target folder '${basename(
-                sourceFolderItem.getPath()
-            )}'`
+                sourceFolderItem.getPath(),
+            )}'`,
         );
         return;
     }
 
-    const newFolderSettingsFilePath = resolve(
-        destinationFolder,
-        basename(targetFolderSettingsFile)
-    );
+    const newPath = resolve(destinationFolder, basename(targetFile));
 
     const workspaceEdit = new WorkspaceEdit();
-    workspaceEdit.createFile(Uri.file(newFolderSettingsFilePath), {
+    const targetFileContent = await promisify(readFile)(targetFile).catch(
+        () => undefined,
+    );
+
+    if (targetFileContent === undefined) {
+        window.showErrorMessage(
+            `An unexpected error occured while trying to copy the folder settings file.`,
+        );
+        return undefined;
+    }
+
+    workspaceEdit.createFile(Uri.file(newPath), {
         overwrite: true,
-        contents: Buffer.from(
-            await promisify(readFile)(targetFolderSettingsFile)
-        ),
+        contents: Buffer.from(targetFileContent),
     });
     const wasSuccessful = await workspace.applyEdit(workspaceEdit);
 
@@ -118,10 +123,7 @@ async function copyFolderSettingsFile(
         return undefined;
     }
 
-    await replaceNameInMetaBlock(
-        newFolderSettingsFilePath,
-        basename(destinationFolder)
-    );
+    await replaceNameInMetaBlock(newPath, basename(destinationFolder));
 
-    return newFolderSettingsFilePath;
+    return newPath;
 }

@@ -28,12 +28,23 @@ export async function registerMissingCollectionsAndTheirItems(
 
         while (currentPaths.length > 0) {
             const currentPath = currentPaths.splice(0, 1)[0];
+            const childrenNames = await promisify(readdir)(currentPath).catch(
+                () => undefined,
+            );
 
-            for (const childItem of await promisify(readdir)(currentPath)) {
+            if (childrenNames === undefined) {
+                continue;
+            }
+
+            for (const childItem of childrenNames) {
                 const path = resolve(currentPath, childItem);
-                const isDirectory = (
-                    await promisify(lstat)(path)
-                ).isDirectory();
+                const isDirectory = await promisify(lstat)(path)
+                    .then((stats) => stats.isDirectory())
+                    .catch(() => undefined);
+
+                if (isDirectory === undefined) {
+                    continue;
+                }
 
                 if (
                     !collection.getStoredDataForPath(path) &&
@@ -49,7 +60,13 @@ export async function registerMissingCollectionsAndTheirItems(
                           )
                         : await getCollectionFile(collection, path);
 
-                    addItemToCollection(testRunnerDataHelper, collection, item);
+                    if (item) {
+                        addItemToCollection(
+                            testRunnerDataHelper,
+                            collection,
+                            item,
+                        );
+                    }
                 }
 
                 if (

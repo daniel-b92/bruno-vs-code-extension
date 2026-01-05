@@ -4,10 +4,16 @@ import { resolve } from "path";
 import { promisify } from "util";
 
 export async function getFolderSettingsFilePath(folderPath: string) {
-    const childItems = await promisify(readdir)(folderPath);
+    const childItems = await promisify(readdir)(folderPath).catch(
+        () => undefined,
+    );
+
+    if (!childItems || childItems.length == 0) {
+        return undefined;
+    }
 
     const settingsFileName = childItems.find(
-        doesFileNameMatchFolderSettingsFileName
+        doesFileNameMatchFolderSettingsFileName,
     );
 
     return settingsFileName ? resolve(folderPath, settingsFileName) : undefined;

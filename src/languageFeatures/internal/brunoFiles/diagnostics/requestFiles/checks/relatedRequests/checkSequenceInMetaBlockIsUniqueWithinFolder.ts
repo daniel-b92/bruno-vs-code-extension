@@ -5,23 +5,18 @@ import {
     DictionaryBlockSimpleField,
     normalizeDirectoryPath,
     Block,
-    RequestFileBlockName,
-    TextDocumentHelper,
     MetaBlockKey,
     isBlockDictionaryBlock,
-    getSequenceFieldFromMetaBlock,
     mapToVsCodeRange,
     BrunoFileType,
     filterAsync,
-    isDictionaryBlockSimpleField,
     isCollectionItemWithSequence,
 } from "../../../../../../../shared";
 import { dirname } from "path";
 import { DiagnosticWithCode } from "../../../definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { isSequenceValid } from "../../../shared/util/isSequenceValid";
-import { promisify } from "util";
-import { readFile } from "fs";
+import { getRangeForSequenceValue } from "../../../shared/util/getRangeForSequenceValue";
 
 export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
     itemProvider: CollectionItemProvider,
@@ -94,35 +89,24 @@ async function getDiagnostic(
         range: mapToVsCodeRange(sequenceField.valueRange),
         severity: DiagnosticSeverity.Error,
         code: getDiagnosticCode(),
-        relatedInformation: await Promise.all(
-            otherRequestsWithSameSequence.map(async (path) => ({
-                message: `Request with same sequence`,
-                location: {
-                    uri: Uri.file(path),
-                    range: await getRangeForSequence(path),
-                },
-            })),
-        ),
+        relatedInformation: (
+            await Promise.all(
+                otherRequestsWithSameSequence.map(async (path) => {
+                    const range = await getRangeForSequenceValue(path);
+
+                    return range
+                        ? {
+                              message: `Request with same sequence`,
+                              location: {
+                                  uri: Uri.file(path),
+                                  range,
+                              },
+                          }
+                        : undefined;
+                }),
+            )
+        ).filter((val) => val != undefined),
     };
-}
-
-async function getRangeForSequence(filePath: string) {
-    const readFileAsync = promisify(readFile);
-    const sequenceField = getSequenceFieldFromMetaBlock(
-        new TextDocumentHelper(await readFileAsync(filePath, "utf-8")),
-    );
-
-    if (!sequenceField || !isDictionaryBlockSimpleField(sequenceField)) {
-        throw new Error(
-            `'${
-                RequestFileBlockName.Meta
-            }' block did not have expected format for file '${filePath}'. Got field for '${
-                MetaBlockKey.Sequence
-            }': ${JSON.stringify(sequenceField, null, 2)}.`,
-        );
-    }
-
-    return mapToVsCodeRange(sequenceField.valueRange);
 }
 
 async function getSequencesForOtherRequestsInFolder(

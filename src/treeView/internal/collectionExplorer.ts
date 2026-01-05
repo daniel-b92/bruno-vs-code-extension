@@ -344,12 +344,16 @@ export class CollectionExplorer
                 }
 
                 const filePath = resolve(parentFolderPath, fileName);
-                await promisify(writeFile)(filePath, "");
-
-                await vscode.commands.executeCommand(
-                    "vscode.open",
-                    vscode.Uri.file(filePath),
+                const failed = await promisify(writeFile)(filePath, "").catch(
+                    () => true,
                 );
+
+                if (!failed) {
+                    await vscode.commands.executeCommand(
+                        "vscode.open",
+                        vscode.Uri.file(filePath),
+                    );
+                }
             },
         );
 
@@ -468,21 +472,25 @@ export class CollectionExplorer
                         item.getPath(),
                     );
 
-                if (!collection) {
+                const newFolderPath =
+                    await getPathForDuplicatedItem(originalPath);
+
+                if (!collection || newFolderPath === undefined) {
                     vscode.window.showErrorMessage(
-                        `An unexpected error occured. Failed to determine collection for item with path '${item.getPath()}'`,
+                        `An unexpected error occured.`,
                     );
                     return;
                 }
 
-                const newFolderPath =
-                    await getPathForDuplicatedItem(originalPath);
-
-                // @ts-expect-error The TS server somehow does not understand
-                // that there is a `cp` function with up to 4 parameters when using `promisify`.
-                await promisify(cp)(item.getPath(), newFolderPath, {
-                    recursive: true,
-                });
+                await promisify(cp)(
+                    item.getPath(),
+                    newFolderPath,
+                    // @ts-expect-error The TS server somehow does not understand
+                    // that there is a `cp` function with up to 4 parameters when using `promisify`.
+                    {
+                        recursive: true,
+                    },
+                );
 
                 const newFolderSettingsFile =
                     await getFolderSettingsFilePath(newFolderPath);
@@ -536,6 +544,10 @@ export class CollectionExplorer
                         treeItem,
                     );
 
+                    if (newPath === undefined) {
+                        return;
+                    }
+
                     await replaceNameInMetaBlock(
                         newPath,
                         basename(newPath).replace(
@@ -587,7 +599,7 @@ export class CollectionExplorer
                         ? itemDataWithCollection.data.item.getItemType()
                         : undefined;
 
-                await promisify(rm)(item.getPath(), {
+                await promisify(rm)(path, {
                     recursive: item.isFile ? false : true,
                 });
 
@@ -627,7 +639,12 @@ export class CollectionExplorer
         const originalPath = item.getPath();
         const newPath = await getPathForDuplicatedItem(originalPath);
 
-        await promisify(copyFile)(originalPath, newPath);
+        if (
+            !newPath ||
+            (await promisify(copyFile)(originalPath, newPath).catch(() => true))
+        ) {
+            return undefined;
+        }
 
         if (await getSequenceForFile(collection, originalPath)) {
             await replaceSequenceForFile(

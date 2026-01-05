@@ -26,9 +26,13 @@ export async function getItemType(
         path.startsWith(normalizeDirectoryPath(collection.getRootDirectory()));
 
     if (!isValidBruFile) {
-        return (await promisify(lstat)(path)).isFile()
-            ? NonBrunoSpecificItemType.OtherFileType
-            : NonBrunoSpecificItemType.Directory;
+        return promisify(lstat)(path)
+            .then((stats) =>
+                stats.isFile()
+                    ? NonBrunoSpecificItemType.OtherFileType
+                    : NonBrunoSpecificItemType.Directory,
+            )
+            .catch(() => undefined);
     }
 
     if (isInFolderForEnvironmentFiles(path)) {

@@ -5,23 +5,18 @@ import {
     DictionaryBlockSimpleField,
     normalizeDirectoryPath,
     Block,
-    RequestFileBlockName,
-    TextDocumentHelper,
     MetaBlockKey,
     isBlockDictionaryBlock,
-    getSequenceFieldFromMetaBlock,
     mapToVsCodeRange,
     BrunoFileType,
     filterAsync,
-    isDictionaryBlockSimpleField,
     isCollectionItemWithSequence,
 } from "../../../../../../shared";
 import { basename, dirname } from "path";
-import { readFile } from "fs";
 import { DiagnosticWithCode } from "../../definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { isSequenceValid } from "../../shared/util/isSequenceValid";
-import { promisify } from "util";
+import { getRangeForSequenceValue } from "../../shared/util/getRangeForSequenceValue";
 
 export async function checkFolderSequenceInMetaBlockIsUnique(
     itemProvider: CollectionItemProvider,
@@ -103,41 +98,29 @@ async function getDiagnostic(
         range: mapToVsCodeRange(sequenceField.valueRange),
         severity: DiagnosticSeverity.Error,
         code: getDiagnosticCode(),
-        relatedInformation: await Promise.all(
-            otherFoldersWithSameSequence.map(
-                async ({ folderPath, folderSettingsFile }) => ({
-                    message: `Folder '${basename(
-                        folderPath,
-                    )}' with same sequence`,
-                    location: {
-                        uri: Uri.file(folderSettingsFile),
-                        range: await getRangeForSequence(folderSettingsFile),
+        relatedInformation: (
+            await Promise.all(
+                otherFoldersWithSameSequence.map(
+                    async ({ folderPath, folderSettingsFile }) => {
+                        const range =
+                            await getRangeForSequenceValue(folderSettingsFile);
+
+                        return range
+                            ? {
+                                  message: `Folder '${basename(
+                                      folderPath,
+                                  )}' with same sequence`,
+                                  location: {
+                                      uri: Uri.file(folderSettingsFile),
+                                      range,
+                                  },
+                              }
+                            : undefined;
                     },
-                }),
-            ),
-        ),
+                ),
+            )
+        ).filter((val) => val != undefined),
     };
-}
-
-async function getRangeForSequence(filePath: string) {
-    const readFileAsync = promisify(readFile);
-    const fileContent = await readFileAsync(filePath, "utf-8");
-
-    const sequenceField = getSequenceFieldFromMetaBlock(
-        new TextDocumentHelper(fileContent),
-    );
-
-    if (!sequenceField || !isDictionaryBlockSimpleField(sequenceField)) {
-        throw new Error(
-            `'${
-                RequestFileBlockName.Meta
-            }' block did not have expected format for file '${filePath}'. Got field for '${
-                MetaBlockKey.Sequence
-            }': ${JSON.stringify(sequenceField, null, 2)}.`,
-        );
-    }
-
-    return mapToVsCodeRange(sequenceField.valueRange);
 }
 
 async function getSequencesForOtherFoldersWithSameParent(

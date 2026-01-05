@@ -5,12 +5,24 @@ import { lstat } from "fs";
 
 export async function validateNewItemNameIsUnique(
     newItemPath: string,
-    originalItemPath?: string
+    originalItemPath?: string,
 ) {
-    return (await checkIfPathExistsAsync(newItemPath)) &&
-        (!originalItemPath || newItemPath != originalItemPath)
-        ? `${
-              (await promisify(lstat)(newItemPath)).isFile() ? "File" : "Folder"
-          } with name '${basename(newItemPath)}' already exists`
-        : undefined;
+    if (
+        !(await checkIfPathExistsAsync(newItemPath)) ||
+        (originalItemPath && newItemPath == originalItemPath)
+    ) {
+        const isFile = await promisify(lstat)(newItemPath)
+            .then((stats) => stats.isFile())
+            .catch(() => undefined);
+
+        if (isFile === undefined) {
+            return undefined;
+        }
+
+        return `${
+            isFile ? "File" : "Folder"
+        } with name '${basename(newItemPath)}' already exists`;
+    }
+
+    return undefined;
 }
