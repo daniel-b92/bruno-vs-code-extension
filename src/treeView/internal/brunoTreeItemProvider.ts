@@ -6,8 +6,7 @@ import {
     CollectionItemProvider,
     normalizeDirectoryPath,
     OutputChannelLogger,
-    getSequenceForFile,
-    getSequenceForFolder,
+    Collection,
 } from "../../shared";
 import { BrunoTreeItem } from "../brunoTreeItem";
 
@@ -20,26 +19,82 @@ export class BrunoTreeItemProvider
         private logger?: OutputChannelLogger,
     ) {
         collectionItemProvider.subscribeToUpdates()((updates) => {
-            if (
-                updates.some(
-                    ({ updateType, changedData }) =>
-                        updateType == FileChangeType.Deleted ||
-                        updateType == FileChangeType.Created ||
-                        (updateType == FileChangeType.Modified &&
-                            (changedData?.sequenceChanged ||
-                                changedData?.tagsChanged)),
-                )
-            ) {
+            const relevantUpdates = updates.filter(
+                ({ updateType, changedData }) =>
+                    updateType == FileChangeType.Deleted ||
+                    updateType == FileChangeType.Created ||
+                    (updateType == FileChangeType.Modified &&
+                        (changedData?.sequenceChanged ||
+                            changedData?.tagsChanged)),
+            );
+            if (relevantUpdates.length == 0) {
+                return;
+            }
+
+            this.logger?.debug(
+                `${this.commonIdentifierForLogging} Collection tree view refresh due to events for ${relevantUpdates.length} items.`,
+            );
+
+            const allParents = relevantUpdates.map(
+                ({ collection, data: { item } }) => ({
+                    collection,
+                    data: collectionItemProvider.getRegisteredItem(
+                        collection,
+                        dirname(item.getPath()),
+                    ),
+                }),
+            );
+
+            if (allParents.some(({ data }) => data == undefined)) {
                 this.logger?.debug(
-                    `Collection tree view root refresh due to events for ${updates.length} items.`,
+                    `${this.commonIdentifierForLogging} Triggering tree view refresh at root level because some items do not have registered parents.`,
                 );
 
-                // Always update all items when items have to be deleted from / created for the tree view.
-                // When only triggering an update for the parent item, there were issues with the refresh mechanism.
                 this._onDidChangeTreeData.fire(undefined);
+                return;
+            }
+
+            const distinctParentItems = (
+                allParents as { collection: Collection; data: CollectionData }[]
+            ).reduce(
+                (prev, curr) => {
+                    const {
+                        collection: currentCollection,
+                        data: { item: currentItem },
+                    } = curr;
+                    const collectionRoot = currentCollection.getRootDirectory();
+
+                    const ancestorAlreadyAdded = prev.some(
+                        ({ collection: c, data: { item: i } }) =>
+                            c.isRootDirectory(collectionRoot) &&
+                            normalizeDirectoryPath(
+                                currentItem.getPath(),
+                            ).startsWith(normalizeDirectoryPath(i.getPath())),
+                    );
+
+                    return ancestorAlreadyAdded ? prev : prev.concat(curr);
+                },
+                [] as {
+                    collection: Collection;
+                    data: CollectionData;
+                }[],
+            );
+
+            if (relevantUpdates.length > 1) {
+                this.logger?.debug(
+                    `${this.commonIdentifierForLogging} Triggering a tree view refresh for each of ${distinctParentItems.length} distinct parent items.`,
+                );
+            }
+
+            for (const {
+                data: { treeItem },
+            } of distinctParentItems) {
+                this._onDidChangeTreeData.fire(treeItem);
             }
         });
     }
+
+    private commonIdentifierForLogging = "[TreeItemProvider]";
 
     getTreeItem(element: BrunoTreeItem): vscode.TreeItem {
         return element as unknown as vscode.TreeItem;
@@ -58,7 +113,7 @@ export class BrunoTreeItemProvider
 
     public refresh() {
         this.logger?.info(
-            `Triggering full cache refresh and afterwards a refresh of the collection explorer tree.`,
+            `${this.commonIdentifierForLogging} Triggering full cache refresh and afterwards a refresh of the collection explorer tree.`,
         );
 
         return new Promise<void>((resolve) => {
@@ -79,7 +134,7 @@ export class BrunoTreeItemProvider
 
         if (!element) {
             this.logger?.debug(
-                `Fetching root items for collection explorer tree.`,
+                `${this.commonIdentifierForLogging} Fetching root items for collection explorer tree.`,
             );
 
             return this.collectionItemProvider
@@ -103,13 +158,13 @@ export class BrunoTreeItemProvider
 
             if (!collection) {
                 this.logger?.debug(
-                    `Could not determine collection for tree item ${element.getPath()}. Returning an empty list for the requested child items.`,
+                    `${this.commonIdentifierForLogging} Could not determine collection for tree item ${element.getPath()}. Returning an empty list for the requested child items.`,
                 );
                 return [];
             }
 
             this.logger?.debug(
-                `Fetching child explorer tree items for item '${element.getPath()}' for collection '${basename(
+                `${this.commonIdentifierForLogging} Fetching child explorer tree items for item '${element.getPath()}' for collection '${basename(
                     collection.getRootDirectory(),
                 )}' collection.`,
             );
@@ -124,26 +179,7 @@ export class BrunoTreeItemProvider
                                     dirname(registeredItem.getPath()),
                                 ) == normalizeDirectoryPath(element.getPath()),
                         )
-                        // ToDo: Use cached tree items whenever possible.
-                        // However, this lead to uncaught errors being thrown, when multiple folders and files were updated simultaneously (e.g. when switching git branches).
-                        // The issue seemed to be that `lstat` was being called on file system items, that did not exist anymore.
-                        .map(async ({ item: collectionItem }) => {
-                            const path = collectionItem.getPath();
-                            const isFile = collectionItem.isFile();
-
-                            const treeItem = new BrunoTreeItem(
-                                path,
-                                isFile,
-                                isFile
-                                    ? await getSequenceForFile(collection, path)
-                                    : await getSequenceForFolder(
-                                          collection.getRootDirectory(),
-                                          path,
-                                      ),
-                            );
-
-                            return treeItem;
-                        }),
+                        .map(async ({ treeItem }) => treeItem),
                 ),
             );
         }

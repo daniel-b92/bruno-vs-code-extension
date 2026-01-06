@@ -298,15 +298,14 @@ export class CollectionItemProvider {
         if (
             !this.collectionRegistry
                 .getRegisteredCollections()
-                .some(
-                    (registered) =>
-                        normalizeDirectoryPath(registered.getRootDirectory()) ==
-                        normalizeDirectoryPath(collection.getRootDirectory()),
+                .some((registered) =>
+                    registered.isRootDirectory(collection.getRootDirectory()),
                 )
         ) {
-            throw new Error(
+            this.logger?.warn(
                 `Given collection with root directory '${collection.getRootDirectory()}' is not registered. Cannot search for registered items within the given collection.`,
             );
+            return undefined;
         }
 
         return collection.getStoredDataForPath(itemPath);

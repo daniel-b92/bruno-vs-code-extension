@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.19.0] (2026-01-06)
 
 ### Features
 
@@ -8,6 +8,8 @@
 
 - Fix an issue, where request files in the Testing view were not reloaded after modifying the request tags.
 - Improve resilience of file system operations by handling unexpected errors explicitly.
+- Improve response times of collection explorer by using only cached items.
+- Show request tags in collection explorer again, after this did not work correctly for some time.
 
 ## [0.18.1] (2025-12-29)
 
