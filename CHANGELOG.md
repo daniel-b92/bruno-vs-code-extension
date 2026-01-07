@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Improvements
+
+- Fix an issue, where errors were thrown when trying to access data from a file that was deleted in the meantime.
+
 ## [0.19.0] (2026-01-06)
 
 ### Features
