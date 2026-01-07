@@ -363,15 +363,13 @@ export class CollectionItemProvider {
             this.collectionRegistry.unregisterCollection(collectionUri.fsPath);
 
         if (registeredCollection) {
-            this.itemUpdateEmitter.fire([
-                {
-                    collection: registeredCollection,
-                    data: registeredCollection.getStoredDataForPath(
-                        registeredCollection.getRootDirectory(),
-                    ) as CollectionData,
-                    updateType: FileChangeType.Deleted,
-                },
-            ]);
+            this.handleOutboundNotification({
+                collection: registeredCollection,
+                data: registeredCollection.getStoredDataForPath(
+                    registeredCollection.getRootDirectory(),
+                ) as CollectionData,
+                updateType: FileChangeType.Deleted,
+            });
         }
     }
 
@@ -403,10 +401,11 @@ export class CollectionItemProvider {
             item,
         );
 
-        await this.addToNotificationBatchForItemCreation(
-            registeredCollection,
-            collectionData,
-        );
+        await this.handleOutboundNotification({
+            collection: registeredCollection,
+            data: collectionData,
+            updateType: FileChangeType.Created,
+        });
     }
 
     private async handleItemDeletion(
@@ -438,13 +437,11 @@ export class CollectionItemProvider {
 
         registeredCollectionForItem.removeTestItemAndDescendants(item);
 
-        this.itemUpdateEmitter.fire([
-            {
-                collection: registeredCollectionForItem,
-                data,
-                updateType: FileChangeType.Deleted,
-            },
-        ]);
+        await this.handleOutboundNotification({
+            collection: registeredCollectionForItem,
+            data,
+            updateType: FileChangeType.Deleted,
+        });
     }
 
     private async handleModificationOfRegisteredItem(
@@ -506,20 +503,18 @@ export class CollectionItemProvider {
                 },
             } = isModifiedItemOutdated(modifiedItem, newItem);
 
-            this.itemUpdateEmitter.fire([
-                {
-                    collection: registeredCollectionForItem,
-                    data: { item: newItem, treeItem, testItem },
-                    updateType: FileChangeType.Modified,
-                    changedData:
-                        isSequenceOutdated || areTagsOutdated
-                            ? {
-                                  sequenceChanged: isSequenceOutdated,
-                                  tagsChanged: areTagsOutdated,
-                              }
-                            : undefined,
-                },
-            ]);
+            await this.handleOutboundNotification({
+                collection: registeredCollectionForItem,
+                data: { item: newItem, treeItem, testItem },
+                updateType: FileChangeType.Modified,
+                changedData:
+                    isSequenceOutdated || areTagsOutdated
+                        ? {
+                              sequenceChanged: isSequenceOutdated,
+                              tagsChanged: areTagsOutdated,
+                          }
+                        : undefined,
+            });
         }
     }
 
@@ -536,72 +531,51 @@ export class CollectionItemProvider {
 
         const newFolderItem = new CollectionDirectory(folderPath, newSequence);
 
-        this.itemUpdateEmitter.fire([
-            {
+        this.handleOutboundNotification({
+            collection,
+            data: addItemToCollection(
+                testRunnerDataHelper,
                 collection,
-                data: addItemToCollection(
-                    testRunnerDataHelper,
-                    collection,
-                    newFolderItem,
-                ),
-                updateType: FileChangeType.Modified,
-                changedData: { sequenceChanged: oldSequence != newSequence },
-            },
-        ]);
+                newFolderItem,
+            ),
+            updateType: FileChangeType.Modified,
+            changedData: { sequenceChanged: oldSequence != newSequence },
+        });
     }
 
-    private async addToNotificationBatchForItemCreation(
-        collection: Collection,
-        data: CollectionData,
+    private async handleOutboundNotification(
+        notificationData: NotificationData,
     ) {
-        const path = data.item.getPath();
-        const isDirectory = await promisify(lstat)(path)
-            .then((stats) => stats.isDirectory())
-            .catch(() => undefined);
-
-        if (isDirectory === undefined) {
-            return;
-        }
+        const {
+            collection,
+            data: { item },
+            updateType,
+        } = notificationData;
+        const path = item.getPath();
+        const isFile = item.isFile();
 
         if (
             this.notificationBatch.some(
-                ({ data: { item } }) =>
-                    normalizeDirectoryPath(item.getPath()) ==
-                    normalizeDirectoryPath(path),
+                ({ data: { item: i }, updateType: type }) =>
+                    normalizeDirectoryPath(i.getPath()) ==
+                        normalizeDirectoryPath(path) && type == updateType,
             )
         ) {
             return;
         }
 
         if (
-            !isDirectory &&
+            isFile &&
+            updateType == FileChangeType.Created &&
             collection.getStoredDataForPath(dirname(path)) &&
             this.notificationBatch.length == 0
         ) {
             // If the item is only a file and the parent folder is already registered and no notification batch is active,
             // chances are that only a file was created, so we just immediatly fire the notification.
-            this.itemUpdateEmitter.fire([
-                {
-                    collection,
-                    data,
-                    updateType: FileChangeType.Created,
-                },
-            ]);
+            this.itemUpdateEmitter.fire([notificationData]);
         } else {
-            this.notificationBatch.push({
-                collection,
-                data,
-                updateType: FileChangeType.Created,
-            });
-
-            if (
-                isDirectory ||
-                !collection.getStoredDataForPath(dirname(path))
-            ) {
-                // If the item is folder or a file without a registered parent folder,
-                // it's most likely a folder that has been created with several descendant items where more creation events are most likely still to come.
-                this.resetSendEventTimer();
-            }
+            this.notificationBatch.push(notificationData);
+            this.resetSendEventTimer();
         }
     }
 
@@ -620,7 +594,7 @@ export class CollectionItemProvider {
                     );
 
                 this.logger?.debug(
-                    `${this.commonPreMessageForLogging} Firing event for a batch of ${notificationData.length} created items.`,
+                    `${this.commonPreMessageForLogging} Firing event for a batch of ${notificationData.length} updated items.`,
                 );
 
                 this.itemUpdateEmitter.fire(notificationData);
