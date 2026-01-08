@@ -547,12 +547,10 @@ export class CollectionItemProvider {
         notificationData: NotificationData,
     ) {
         const {
-            collection,
             data: { item },
             updateType,
         } = notificationData;
         const path = item.getPath();
-        const isFile = item.isFile();
 
         if (
             this.notificationBatch.some(
@@ -564,19 +562,8 @@ export class CollectionItemProvider {
             return;
         }
 
-        if (
-            isFile &&
-            updateType == FileChangeType.Created &&
-            collection.getStoredDataForPath(dirname(path)) &&
-            this.notificationBatch.length == 0
-        ) {
-            // If the item is only a file and the parent folder is already registered and no notification batch is active,
-            // chances are that only a file was created, so we just immediatly fire the notification.
-            this.itemUpdateEmitter.fire([notificationData]);
-        } else {
-            this.notificationBatch.push(notificationData);
-            this.resetSendEventTimer();
-        }
+        this.notificationBatch.push(notificationData);
+        this.resetSendEventTimer();
     }
 
     private resetSendEventTimer() {
