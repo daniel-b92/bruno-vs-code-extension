@@ -1,3 +1,11 @@
+## [0.19.2] (2026-01-09)
+
+### Fixes / Improvements
+
+- Fix issues that occured for documents where CRLF line breaks were used.
+    - Incorrect diagnostics were shown for code blocks saying that there was text outside of blocks.
+    - Language features did not work correctly for code blocks and only were shown as loading continuously.
+
 ## [0.19.1] (2026-01-07)
 
 ### Fixes / Improvements

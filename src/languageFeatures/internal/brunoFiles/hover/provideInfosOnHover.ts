@@ -23,7 +23,6 @@ import {
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
-import { waitForTempJsFileToBeInSyncWithBruFile } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
@@ -34,6 +33,7 @@ import {
     TagOccurences,
 } from "../shared/getExistingRequestFileTags";
 import { basename } from "path";
+import { waitForTempJsFileToBeInSync } from "../../shared/temporaryJsFilesUpdates/external/waitForTempJsFileToBeInSync";
 
 interface ProviderParamsForNonCodeBlock {
     file: {
@@ -154,12 +154,13 @@ async function getResultsViaTempJsFile(
         logger,
     }: ProviderParamsForCodeBlock,
 ) {
-    const temporaryJsDoc = await waitForTempJsFileToBeInSyncWithBruFile(
+    const temporaryJsDoc = await waitForTempJsFileToBeInSync(
         tempJsUpdateQueue,
         {
             collection,
             bruFileContentSnapshot: document.getText(),
             bruFilePath: document.fileName,
+            bruFileEol: document.eol,
             token,
         },
         logger,

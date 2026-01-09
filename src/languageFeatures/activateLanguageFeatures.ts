@@ -50,6 +50,7 @@ import { getTempJsFileContentForBruFile } from "./internal/brunoFiles/shared/cod
 import { getDefinitionsForInbuiltLibraries } from "./internal/shared/temporaryJsFilesUpdates/external/getDefinitionsForInbuiltLibraries";
 import { provideInfosOnHover as provideInfosOnHoverForJsFiles } from "./internal/jsFiles/hover/provideInfosOnHover";
 import { provideCompletionItems as provideCompletionItemsForJsFiles } from "./internal/jsFiles/completionItems/provideCompletionItems";
+import { getCharacterForLineBreak } from "./internal/brunoFiles/shared/codeBlocksUtils/getCharacterForLineBreak";
 
 export async function activateLanguageFeatures(
     context: ExtensionContext,
@@ -290,7 +291,7 @@ async function handleOpeningOfBruDocument(
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     itemProvider: CollectionItemProvider,
     tempJsFilesProvider: TempJsFilesProvider,
-    { fileName, getText, uri }: TextDocument,
+    { fileName, getText, uri, eol }: TextDocument,
 ) {
     const toDispose: Disposable[] = [];
     let shouldAbort = false;
@@ -377,7 +378,7 @@ async function handleOpeningOfBruDocument(
         update: {
             type: TempJsUpdateType.Creation,
             filePath: getTemporaryJsFileNameInFolder(collectionRootFolder),
-            tempJsFileContent: getTempJsFileContentForBruFile(getText()),
+            tempJsFileContent: getTempJsFileContentForBruFile(getText(), eol),
         },
     });
 
@@ -412,8 +413,10 @@ async function handleOpeningOfJsDocument(
         update: {
             type: TempJsUpdateType.Creation,
             filePath: getTemporaryJsFileNameInFolder(collectionRootFolder),
-            tempJsFileContent:
-                getDefinitionsForInbuiltLibraries(true).join("\n\n"),
+            tempJsFileContent: getDefinitionsForInbuiltLibraries(
+                document.eol,
+                true,
+            ).join(getCharacterForLineBreak(document.eol).repeat(2)),
         },
     });
 }

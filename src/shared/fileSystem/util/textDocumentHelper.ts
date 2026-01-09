@@ -12,7 +12,7 @@ export class TextDocumentHelper {
             const linebreakIndex = remainingText.search(
                 new RegExp(`(${LinebreakType.lf}|${LinebreakType.crlf})`),
             );
-            const linebreak = remainingText
+            const lineBreak = remainingText
                 .substring(linebreakIndex)
                 .startsWith(LinebreakType.lf)
                 ? LinebreakType.lf
@@ -20,10 +20,10 @@ export class TextDocumentHelper {
 
             this.lines.fullLines.push({
                 content: remainingText.substring(0, linebreakIndex),
-                linebreak,
+                lineBreak,
             });
             remainingText = remainingText.substring(
-                linebreakIndex + linebreak.length,
+                linebreakIndex + lineBreak.length,
             );
         }
 
@@ -31,7 +31,7 @@ export class TextDocumentHelper {
     }
 
     private lines: {
-        fullLines: { content: string; linebreak: LinebreakType }[];
+        fullLines: { content: string; lineBreak: LinebreakType }[];
         lastLine: string | undefined;
     } = { fullLines: [], lastLine: undefined };
 
@@ -127,10 +127,10 @@ export class TextDocumentHelper {
 
         return this.lines.fullLines
             .map(
-                ({ content, linebreak }, index) =>
+                ({ content, lineBreak }, index) =>
                     `${
                         index == toReplace.lineIndex ? adjustedLine : content
-                    }${linebreak}`,
+                    }${lineBreak}`,
             )
             .join("")
             .concat(
@@ -159,9 +159,9 @@ export class TextDocumentHelper {
 
         const lineContainingPosition = this.getAllLines(startLine).find(
             ({ content, index }) => {
-                // add 1 for the line break at the end of each line
+                // add length of respective line breaks at the end of each line.
                 const currentTextLengthWithLineBreak =
-                    content.length + (index < lastLineIndex ? 1 : 0);
+                    content.length + (this.getLineBreakLength(index) ?? 0);
 
                 if (
                     (index < lastLineIndex &&
@@ -214,7 +214,7 @@ export class TextDocumentHelper {
         const firstLine = `${this.lines.fullLines[
             range.start.line
         ].content.substring(range.start.character)}${
-            this.lines.fullLines[range.start.line].linebreak
+            this.lines.fullLines[range.start.line].lineBreak
         }`;
         const lastLine =
             range.end.line < this.lines.fullLines.length
@@ -233,11 +233,19 @@ export class TextDocumentHelper {
 
         return linesBetween
             .reduce(
-                (prev, { content, linebreak }) =>
-                    prev.concat(content.concat(linebreak)),
+                (prev, { content, lineBreak }) =>
+                    prev.concat(content.concat(lineBreak)),
                 firstLine,
             )
             .concat(lastLine);
+    }
+
+    private getLineBreakLength(lineIndex: number) {
+        return this.lines.fullLines.length <= lineIndex
+            ? undefined
+            : this.lines.fullLines[lineIndex].lineBreak == LinebreakType.lf
+              ? 1
+              : 2;
     }
 }
 

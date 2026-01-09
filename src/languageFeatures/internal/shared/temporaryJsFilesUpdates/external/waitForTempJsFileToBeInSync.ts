@@ -1,20 +1,27 @@
 import {
     CancellationToken,
     Disposable,
+    EndOfLine,
     TextDocument,
     Uri,
     workspace,
 } from "vscode";
-import { OutputChannelLogger } from "../../../../../shared";
+import {
+    Collection,
+    getTemporaryJsFileNameInFolder,
+    OutputChannelLogger,
+    TextDocumentHelper,
+} from "../../../../../shared";
 import { TempJsFileUpdateQueue } from "../../temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "../../temporaryJsFilesUpdates/internal/interfaces";
 import { basename } from "path";
+import { getTempJsFileContentForBruFile } from "../../../brunoFiles/shared/codeBlocksUtils/getTempJsFileContentForBruFile";
 
 export interface TempJsSyncRequest {
-    sourceFilePath: string;
-    sourceFileContentSnapshot: string;
-    tempJsFilePath: string;
-    getDesiredTempJsFileContent: (sourceFileContentSnapshot: string) => string;
+    collection: Collection;
+    bruFileContentSnapshot: string;
+    bruFilePath: string;
+    bruFileEol: EndOfLine;
     token?: CancellationToken;
 }
 
@@ -24,15 +31,19 @@ export async function waitForTempJsFileToBeInSync(
     logger?: OutputChannelLogger,
 ): Promise<TextDocument | undefined> {
     const {
-        sourceFilePath,
-        sourceFileContentSnapshot,
-        tempJsFilePath,
-        getDesiredTempJsFileContent,
+        bruFilePath,
+        bruFileContentSnapshot,
+        bruFileEol,
+        collection,
         token,
     } = request;
+    const tempJsFilePath = getTemporaryJsFileNameInFolder(
+        collection.getRootDirectory(),
+    );
 
-    const desiredTempJsFileContentInitially = getDesiredTempJsFileContent(
-        sourceFileContentSnapshot,
+    const desiredTempJsFileContentInitially = getTempJsFileContentForBruFile(
+        bruFileContentSnapshot,
+        bruFileEol,
     );
 
     if (shouldAbort(token)) {
@@ -65,7 +76,9 @@ export async function waitForTempJsFileToBeInSync(
     const jsDocInitially = await workspace.openTextDocument(virtualJsFileUri);
 
     // Sometimes it takes a short while until VS Code notices that the Javascript file has been modified externally
-    if (jsDocInitially.getText() == desiredTempJsFileContentInitially) {
+    if (
+        isConditionFulfilled(jsDocInitially, desiredTempJsFileContentInitially)
+    ) {
         logger?.trace(`Temp JS file in sync on first check.`);
         return jsDocInitially;
     }
@@ -97,8 +110,10 @@ export async function waitForTempJsFileToBeInSync(
                 if (
                     e.document.uri.toString() == virtualJsFileUri.toString() &&
                     e.contentChanges.length > 0 &&
-                    jsDocInitially.getText() ==
-                        desiredTempJsFileContentInitially
+                    isConditionFulfilled(
+                        jsDocInitially,
+                        desiredTempJsFileContentInitially,
+                    )
                 ) {
                     logger?.trace(
                         `Temp JS file in sync after waiting for ${Math.round(
@@ -107,11 +122,11 @@ export async function waitForTempJsFileToBeInSync(
                     );
                     resolve({ document: e.document });
                 } else if (
-                    e.document.uri.fsPath == sourceFilePath &&
+                    e.document.uri.fsPath == bruFilePath &&
                     e.contentChanges.length > 0
                 ) {
                     logger?.debug(
-                        `Aborting waiting for temp Js file to be in sync because source file '${basename(sourceFilePath)}' has been modified.`,
+                        `Aborting waiting for temp Js file to be in sync because source file '${basename(bruFilePath)}' has been modified.`,
                     );
                     resolve({ shouldRetry: true });
                 }
@@ -121,9 +136,9 @@ export async function waitForTempJsFileToBeInSync(
         // If the source file is modified or deleted in the meantime, the request will be outdated, so it can be canceled.
         toDispose.push(
             workspace.onDidDeleteFiles((e) => {
-                if (e.files.some(({ fsPath }) => fsPath == sourceFilePath)) {
+                if (e.files.some(({ fsPath }) => fsPath == bruFilePath)) {
                     logger?.debug(
-                        `Aborting waiting for temp Js file to be in sync because source file '${basename(sourceFilePath)}' has been deleted.`,
+                        `Aborting waiting for temp Js file to be in sync because source file '${basename(bruFilePath)}' has been deleted.`,
                     );
                     resolve({ shouldRetry: false });
                 }
@@ -152,23 +167,43 @@ export async function waitForTempJsFileToBeInSync(
             return undefined;
         }
 
-        const currentSourceFileDoc = await workspace.openTextDocument(
-            Uri.file(sourceFilePath),
+        const currentBruFileDoc = await workspace.openTextDocument(
+            Uri.file(bruFilePath),
         );
 
-        const newSourceFileContentSnapshot = currentSourceFileDoc.getText();
+        const newBruFileContentSnapshot = currentBruFileDoc.getText();
 
         return await waitForTempJsFileToBeInSync(
             queue,
             {
                 ...request,
-                sourceFileContentSnapshot: newSourceFileContentSnapshot,
+                bruFileContentSnapshot: newBruFileContentSnapshot,
             },
             logger,
         );
     } else {
         return currentJsDoc;
     }
+}
+
+function isConditionFulfilled(
+    currentJsDocument: TextDocument,
+    desiredTempJsContent: string,
+) {
+    const actualLines = new TextDocumentHelper(
+        currentJsDocument.getText(),
+    ).getAllLines();
+    const desiredLines = new TextDocumentHelper(
+        desiredTempJsContent,
+    ).getAllLines();
+
+    return (
+        actualLines.length == desiredLines.length &&
+        actualLines.every(
+            ({ content: actual }, index) =>
+                actual == desiredLines[index].content,
+        )
+    );
 }
 
 function shouldAbort(token?: CancellationToken) {

@@ -7,9 +7,9 @@ import {
 } from "../../../../shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
-import { waitForTempJsFileToBeInSyncWithBruFile } from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { getCodeBlockContainingPosition } from "../shared/codeBlocksUtils/getCodeBlockContainingPosition";
+import { waitForTempJsFileToBeInSync } from "../../shared/temporaryJsFilesUpdates/external/waitForTempJsFileToBeInSync";
 
 export function provideSignatureHelp(
     queue: TempJsFileUpdateQueue,
@@ -45,17 +45,17 @@ export function provideSignatureHelp(
                     return undefined;
                 }
 
-                const temporaryJsDoc =
-                    await waitForTempJsFileToBeInSyncWithBruFile(
-                        queue,
-                        {
-                            collection,
-                            bruFileContentSnapshot: document.getText(),
-                            bruFilePath: document.fileName,
-                            token,
-                        },
-                        logger,
-                    );
+                const temporaryJsDoc = await waitForTempJsFileToBeInSync(
+                    queue,
+                    {
+                        collection,
+                        bruFileContentSnapshot: document.getText(),
+                        bruFilePath: document.fileName,
+                        bruFileEol: document.eol,
+                        token,
+                    },
+                    logger,
+                );
 
                 if (!temporaryJsDoc) {
                     return undefined;

@@ -27,10 +27,6 @@ import {
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
-import {
-    TempJsSyncRequestForBruFile,
-    waitForTempJsFileToBeInSyncWithBruFile,
-} from "../shared/codeBlocksUtils/waitForTempJsFileToBeInSyncWithBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
 import {
@@ -39,6 +35,10 @@ import {
 } from "../../shared/environmentVariables/getMatchingDefinitionsFromEnvFiles";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
+import {
+    TempJsSyncRequest,
+    waitForTempJsFileToBeInSync,
+} from "../../shared/temporaryJsFilesUpdates/external/waitForTempJsFileToBeInSync";
 
 type CompletionItemRange =
     | VsCodeRange
@@ -124,6 +124,7 @@ export function provideTsLangCompletionItems(
                         collection,
                         bruFileContentSnapshot: document.getText(),
                         bruFilePath: document.fileName,
+                        bruFileEol: document.eol,
                         token,
                     },
                     blockContainingPosition,
@@ -191,13 +192,13 @@ function getResultsForEnvironmentVariable(
 
 async function getResultsViaTempJsFile(
     queue: TempJsFileUpdateQueue,
-    tempJsRequest: TempJsSyncRequestForBruFile,
+    tempJsRequest: TempJsSyncRequest,
     blockInBruFile: Block,
     position: VsCodePosition,
     logger?: OutputChannelLogger,
 ) {
     const { token } = tempJsRequest;
-    const temporaryJsDoc = await waitForTempJsFileToBeInSyncWithBruFile(
+    const temporaryJsDoc = await waitForTempJsFileToBeInSync(
         queue,
         tempJsRequest,
         logger,
