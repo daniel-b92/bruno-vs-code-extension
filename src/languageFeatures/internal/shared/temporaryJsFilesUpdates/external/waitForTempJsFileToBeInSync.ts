@@ -1,6 +1,7 @@
 import {
     CancellationToken,
     Disposable,
+    EndOfLine,
     TextDocument,
     Uri,
     workspace,
@@ -9,6 +10,7 @@ import {
     Collection,
     getTemporaryJsFileNameInFolder,
     OutputChannelLogger,
+    TextDocumentHelper,
 } from "../../../../../shared";
 import { TempJsFileUpdateQueue } from "../../temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "../../temporaryJsFilesUpdates/internal/interfaces";
@@ -19,6 +21,7 @@ export interface TempJsSyncRequest {
     collection: Collection;
     bruFileContentSnapshot: string;
     bruFilePath: string;
+    bruFileEol: EndOfLine;
     token?: CancellationToken;
 }
 
@@ -27,13 +30,20 @@ export async function waitForTempJsFileToBeInSync(
     request: TempJsSyncRequest,
     logger?: OutputChannelLogger,
 ): Promise<TextDocument | undefined> {
-    const { bruFilePath, bruFileContentSnapshot, collection, token } = request;
+    const {
+        bruFilePath,
+        bruFileContentSnapshot,
+        bruFileEol,
+        collection,
+        token,
+    } = request;
     const tempJsFilePath = getTemporaryJsFileNameInFolder(
         collection.getRootDirectory(),
     );
 
     const desiredTempJsFileContentInitially = getTempJsFileContentForBruFile(
         bruFileContentSnapshot,
+        bruFileEol,
     );
 
     if (shouldAbort(token)) {
@@ -66,7 +76,9 @@ export async function waitForTempJsFileToBeInSync(
     const jsDocInitially = await workspace.openTextDocument(virtualJsFileUri);
 
     // Sometimes it takes a short while until VS Code notices that the Javascript file has been modified externally
-    if (jsDocInitially.getText() == desiredTempJsFileContentInitially) {
+    if (
+        isConditionFulfilled(jsDocInitially, desiredTempJsFileContentInitially)
+    ) {
         logger?.trace(`Temp JS file in sync on first check.`);
         return jsDocInitially;
     }
@@ -98,8 +110,10 @@ export async function waitForTempJsFileToBeInSync(
                 if (
                     e.document.uri.toString() == virtualJsFileUri.toString() &&
                     e.contentChanges.length > 0 &&
-                    jsDocInitially.getText() ==
-                        desiredTempJsFileContentInitially
+                    isConditionFulfilled(
+                        jsDocInitially,
+                        desiredTempJsFileContentInitially,
+                    )
                 ) {
                     logger?.trace(
                         `Temp JS file in sync after waiting for ${Math.round(
@@ -170,6 +184,26 @@ export async function waitForTempJsFileToBeInSync(
     } else {
         return currentJsDoc;
     }
+}
+
+function isConditionFulfilled(
+    currentJsDocument: TextDocument,
+    desiredTempJsContent: string,
+) {
+    const actualLines = new TextDocumentHelper(
+        currentJsDocument.getText(),
+    ).getAllLines();
+    const desiredLines = new TextDocumentHelper(
+        desiredTempJsContent,
+    ).getAllLines();
+
+    return (
+        actualLines.length == desiredLines.length &&
+        actualLines.every(
+            ({ content: actual }, index) =>
+                actual == desiredLines[index].content,
+        )
+    );
 }
 
 function shouldAbort(token?: CancellationToken) {

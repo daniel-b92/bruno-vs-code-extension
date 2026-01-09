@@ -1,3 +1,6 @@
+import { EndOfLine } from "vscode";
+import { getCharacterForLineBreak } from "../../../brunoFiles/shared/codeBlocksUtils/getCharacterForLineBreak";
+
 /** The Bru class is globally available in Bruno but not exposed.
 * There are also no types for it.
 * This is a temporary workaround to get stop typescript from complaining and get intellisense.
@@ -5,6 +8,7 @@
 * Official javascript API reference:
 * https://docs.usebruno.com/testing/script/javascript-reference*/
 export function getDefinitionsForInbuiltLibraries(
+    eol: EndOfLine,
     assignToGlobalObject = false,
 ) {
     const bruUtilities = `/**
@@ -394,5 +398,9 @@ globalThis.test = test;`;
         requestUtilities,
         responseUtilities,
         chaiAndMochaTestUtils,
-    ].concat(assignToGlobalObject ? [globalAssignments] : []);
+    ]
+        .concat(assignToGlobalObject ? [globalAssignments] : [])
+        .map((text) =>
+            text.replace(/(\r\n|\n)/g, getCharacterForLineBreak(eol)),
+        );
 }

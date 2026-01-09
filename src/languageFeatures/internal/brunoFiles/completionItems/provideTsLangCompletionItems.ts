@@ -124,6 +124,7 @@ export function provideTsLangCompletionItems(
                         collection,
                         bruFileContentSnapshot: document.getText(),
                         bruFilePath: document.fileName,
+                        bruFileEol: document.eol,
                         token,
                     },
                     blockContainingPosition,

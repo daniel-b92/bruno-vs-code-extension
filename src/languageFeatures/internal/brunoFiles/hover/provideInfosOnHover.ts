@@ -160,6 +160,7 @@ async function getResultsViaTempJsFile(
             collection,
             bruFileContentSnapshot: document.getText(),
             bruFilePath: document.fileName,
+            bruFileEol: document.eol,
             token,
         },
         logger,
