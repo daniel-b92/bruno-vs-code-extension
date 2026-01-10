@@ -2,6 +2,7 @@ import {
     Block,
     isBlockDictionaryBlock,
     MethodBlockKey,
+    RequestFileBlockName,
 } from "../../../../../shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
@@ -16,23 +17,30 @@ export function getMethodBlockSpecificDiagnostics(
         return [];
     }
 
-    const methodBlockKeys = Object.values(MethodBlockKey);
+    const mandatoryKeys = getMandatoryKeys(methodBlock.name);
 
     return [
         checkNoKeysAreMissingForDictionaryBlock(
             methodBlock,
-            methodBlockKeys,
+            mandatoryKeys,
             RelevantWithinMethodBlockDiagnosticCode.KeysMissingInMethodBlock,
         ),
         checkNoUnknownKeysAreDefinedInDictionaryBlock(
             methodBlock,
-            methodBlockKeys,
+            mandatoryKeys,
             RelevantWithinMethodBlockDiagnosticCode.UnknownKeysDefinedInMethodBlock,
         ),
         checkNoDuplicateKeysAreDefinedForDictionaryBlock(
             methodBlock,
-            methodBlockKeys,
+            mandatoryKeys,
             RelevantWithinMethodBlockDiagnosticCode.DuplicateKeysDefinedInMethodBlock,
         ),
     ];
+}
+
+function getMandatoryKeys(blockName: string) {
+    const allKeys = Object.values(MethodBlockKey);
+    return blockName == RequestFileBlockName.Http
+        ? allKeys
+        : allKeys.filter((key) => key != MethodBlockKey.Method);
 }

@@ -9,5 +9,6 @@ export function getPossibleMethodBlocks() {
         RequestFileBlockName.Patch,
         RequestFileBlockName.Head,
         RequestFileBlockName.Options,
+        RequestFileBlockName.Http,
     ];
 }
