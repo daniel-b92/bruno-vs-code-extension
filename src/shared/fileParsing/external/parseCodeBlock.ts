@@ -1,5 +1,11 @@
 import { createSourceFile, Node, ScriptTarget, SyntaxKind } from "typescript";
-import { CodeBlockContent, Position, Range, TextDocumentHelper } from "../..";
+import {
+    BlockBracket,
+    CodeBlockContent,
+    Position,
+    Range,
+    TextDocumentHelper,
+} from "../..";
 
 export function parseCodeBlock(
     document: TextDocumentHelper,
@@ -23,7 +29,17 @@ export function parseCodeBlock(
         .getChildren(sourceFile)
         .find(({ kind }) => kind == blockSyntaxKind);
 
-    if (!blockNode) {
+    if (
+        !blockNode ||
+        !blockNode
+            .getText(sourceFile)
+            .match(
+                new RegExp(
+                    `${BlockBracket.ClosingBracketForDictionaryOrTextBlock}\s*`,
+                    "m",
+                ),
+            )
+    ) {
         return undefined;
     }
 
