@@ -45,7 +45,7 @@ async function getTextEditForCodeBlock(
     block: CodeBlock,
     documentLineBreak: string,
 ) {
-    const toFormat = `${mapBlockNameToJsFileLine(block.name)}${documentLineBreak}${block.content.asPlainText}}`;
+    const toFormat = `${mapBlockNameToJsFileLine(block.name)}${documentLineBreak}${block.content}}`;
 
     const formattedWithDummyFunctionReplacement = await format(toFormat, {
         parser: "typescript",

@@ -18,7 +18,7 @@ export function getTempJsFileContentForBruFile(
 
     const functionsForTempJsFile = getCodeBlocks(parsedBlocks).map(
         ({ name, content }) => `${mapBlockNameToJsFileLine(name)}
-${content.asPlainText}}`,
+${content}}`,
     );
 
     return getDefinitionsForInbuiltLibraries(eol)

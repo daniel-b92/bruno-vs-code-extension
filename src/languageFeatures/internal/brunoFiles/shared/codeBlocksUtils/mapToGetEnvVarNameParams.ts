@@ -20,7 +20,7 @@ export function mapToEnvVarNameParams(
 
     return {
         relevantContent: {
-            asString: content.asPlainText,
+            asString: content,
             startPosition: contentRange.start,
             offsetInFullDocument: getDefaultOffsetForBlockContent(
                 document,
