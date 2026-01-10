@@ -51,9 +51,7 @@ export function parseJsonBlock(
                 ),
             )
     ) {
-        throw new Error(
-            `Could not find JSON block within given subdocument: ${fullRemainingText}`,
-        );
+        return undefined;
     }
 
     const blockContentEndInSubDocument = subDocument.getPositionForOffset(
