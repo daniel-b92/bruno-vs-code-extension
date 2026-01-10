@@ -10,6 +10,7 @@ export enum RequestFileBlockName {
     Options = "options",
     Patch = "patch",
     Head = "head",
+    Http = "http",
 
     // params
     QueryParams = "params:query",

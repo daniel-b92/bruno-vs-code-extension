@@ -24,11 +24,7 @@
 
     "tags field for meta block request file": {
         "prefix": "tags",
-        "body": [
-            "tags: [",
-            "\t${0}",
-            "]"
-        ],
+        "body": ["tags: [", "\t${0}", "]"],
         "description": "Add tags field in meta block for a request file"
     },
 
@@ -102,6 +98,19 @@
             "}"
         ],
         "description": "Add PATCH method block"
+    },
+
+    "custom method block": {
+        "prefix": "http",
+        "body": [
+            "http {",
+            "\tmethod: ${1:post}",
+            "\turl: ${2:http://}",
+            "\tbody: ${3|none,json,xml,multipartForm,formUrlEncoded,text,sparql,file|}",
+            "\tauth: ${4|none,inherit,basic,bearer,awsv4,digest,ntlm,oauth2,wsse,apikey|}",
+            "}"
+        ],
+        "description": "Add custom method block"
     },
 
     "head block": {
