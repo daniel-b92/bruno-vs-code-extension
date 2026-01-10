@@ -1,11 +1,11 @@
 import { createSourceFile, Node, ScriptTarget, SyntaxKind } from "typescript";
-import { CodeBlockContent, Position, Range, TextDocumentHelper } from "../..";
+import { BlockBracket, Position, Range, TextDocumentHelper } from "../..";
 
 export function parseCodeBlock(
     document: TextDocumentHelper,
     firstContentLine: number,
     blockSyntaxKind: SyntaxKind,
-): { content: CodeBlockContent; contentRange: Range } | undefined {
+): { content: string; contentRange: Range } | undefined {
     const blockStartLine = firstContentLine - 1;
 
     const subDocument = new TextDocumentHelper(
@@ -23,7 +23,17 @@ export function parseCodeBlock(
         .getChildren(sourceFile)
         .find(({ kind }) => kind == blockSyntaxKind);
 
-    if (!blockNode) {
+    if (
+        !blockNode ||
+        !blockNode
+            .getText(sourceFile)
+            .match(
+                new RegExp(
+                    `${BlockBracket.ClosingBracketForDictionaryOrTextBlock}\s*`,
+                    "m",
+                ),
+            )
+    ) {
         return undefined;
     }
 
@@ -51,12 +61,9 @@ export function parseCodeBlock(
 
     return blockContentNode != undefined
         ? {
-              content: {
-                  asPlainText: contentRange.start.equals(contentRange.end)
-                      ? ""
-                      : document.getText(contentRange), // `document.getText()` only works correctly, if the start and end position of the range are not the same.
-                  asTsNode: blockContentNode,
-              },
+              content: contentRange.start.equals(contentRange.end)
+                  ? ""
+                  : document.getText(contentRange), // `document.getText()` only works correctly, if the start and end position of the range are not the same.
               contentRange,
           }
         : undefined;

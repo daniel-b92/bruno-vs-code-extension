@@ -28,7 +28,7 @@ export function getTempJsFileBlockContent(
 
     return parsedBlock
         ? {
-              content: parsedBlock.content.asPlainText,
+              content: parsedBlock.content,
               range: parsedBlock.contentRange,
           }
         : undefined;

@@ -40,10 +40,18 @@ export function parseJsonBlock(
 
     const blockNode = (sourceFile as Node).getChildAt(0, sourceFile);
 
-    if (!blockNode) {
-        throw new Error(
-            `Could not find JSON block within given subdocument: ${fullRemainingText}`,
-        );
+    if (
+        !blockNode ||
+        !blockNode
+            .getText(sourceFile)
+            .match(
+                new RegExp(
+                    `${BlockBracket.ClosingBracketForDictionaryOrTextBlock}\s*`,
+                    "m",
+                ),
+            )
+    ) {
+        return undefined;
     }
 
     const blockContentEndInSubDocument = subDocument.getPositionForOffset(

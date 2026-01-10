@@ -5,7 +5,6 @@ import {
     Position,
     Range,
     ArrayBlockField,
-    CodeBlockContent,
     DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
     PlainTextWithinBlock,
@@ -33,8 +32,7 @@ export const getBlockContent = (
                     | DictionaryBlockArrayField
                     | PlainTextWithinBlock
                 )[]
-              | (ArrayBlockField | PlainTextWithinBlock)[]
-              | CodeBlockContent;
+              | (ArrayBlockField | PlainTextWithinBlock)[];
           contentRange: Range;
           variableRerences?: BrunoVariableReference[];
       }

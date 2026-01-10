@@ -1,4 +1,3 @@
-import { Node } from "typescript";
 import { BrunoVariableReference, Range } from "..";
 
 export interface Block {
@@ -11,8 +10,7 @@ export interface Block {
               | DictionaryBlockArrayField
               | PlainTextWithinBlock
           )[]
-        | (ArrayBlockField | PlainTextWithinBlock)[]
-        | CodeBlockContent;
+        | (ArrayBlockField | PlainTextWithinBlock)[];
     contentRange: Range;
     variableReferences?: BrunoVariableReference[];
 }
@@ -51,14 +49,8 @@ export interface ArrayBlockField {
 }
 
 export interface CodeBlock extends Block {
-    content: CodeBlockContent;
+    content: string;
 }
-
-export interface CodeBlockContent {
-    asPlainText: string;
-    asTsNode: Node;
-}
-
 export interface PlainTextWithinBlock {
     text: string;
     range: Range;
