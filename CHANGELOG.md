@@ -4,6 +4,7 @@
 
 - Fix an issue, where formatting a `bru` file with a code block with a missing closing bracket would insert text (by making code block parsing more restrictive).
 - Add support for custom HTTP method blocks (Syntax highlighting, Diagnostics, Snippets).
+- Add support for new fields `timeout`, `followRedirects` and `maxRedirects` in settings block (Diagnostics, Snippets, Completions).
 
 ## [0.19.2] (2026-01-09)
 

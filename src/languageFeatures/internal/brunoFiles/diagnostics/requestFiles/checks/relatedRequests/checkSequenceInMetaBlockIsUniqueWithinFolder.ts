@@ -15,7 +15,7 @@ import {
 import { dirname } from "path";
 import { DiagnosticWithCode } from "../../../definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
-import { isSequenceValid } from "../../../shared/util/isSequenceValid";
+import { doesDictionaryBlockFieldHaveValidIntegerValue } from "../../../shared/util/doesDictionaryBlockFieldHaveValidIntegerValue";
 import { getRangeForSequenceValue } from "../../../shared/util/getRangeForSequenceValue";
 
 export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
@@ -33,10 +33,11 @@ export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
         !isBlockDictionaryBlock(metaBlock) ||
         metaBlock.content.filter(({ key }) => key == MetaBlockKey.Sequence)
             .length != 1 ||
-        !isSequenceValid(
+        !doesDictionaryBlockFieldHaveValidIntegerValue(
             metaBlock.content.find(
                 ({ key }) => key == MetaBlockKey.Sequence,
             ) as DictionaryBlockSimpleField,
+            1,
         )
     ) {
         return { code: getDiagnosticCode() };

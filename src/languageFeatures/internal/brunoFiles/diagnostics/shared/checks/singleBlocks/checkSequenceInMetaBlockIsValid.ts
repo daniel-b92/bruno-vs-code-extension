@@ -8,7 +8,7 @@ import {
     isDictionaryBlockSimpleField,
 } from "../../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
-import { isSequenceValid } from "../../util/isSequenceValid";
+import { doesDictionaryBlockFieldHaveValidIntegerValue } from "../../util/doesDictionaryBlockFieldHaveValidIntegerValue";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 
 export function checkSequenceInMetaBlockIsValid(
@@ -22,7 +22,7 @@ export function checkSequenceInMetaBlockIsValid(
     if (
         sequenceField &&
         isDictionaryBlockSimpleField(sequenceField) &&
-        !isSequenceValid(sequenceField)
+        !doesDictionaryBlockFieldHaveValidIntegerValue(sequenceField, 1)
     ) {
         return getDiagnostic(sequenceField);
     } else {
