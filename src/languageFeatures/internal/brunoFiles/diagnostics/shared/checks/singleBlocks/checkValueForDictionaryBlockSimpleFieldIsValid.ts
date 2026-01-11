@@ -1,10 +1,7 @@
-import { DiagnosticSeverity } from "vscode";
-import {
-    DictionaryBlockSimpleField,
-    mapToVsCodeRange,
-} from "../../../../../../../shared";
+import { DictionaryBlockSimpleField } from "../../../../../../../shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
+import { getDiagnosticForInvalidDictionaryBlockSimpleFieldValue } from "../../util/getDiagnosticForInvalidDictionaryBlockSimpleFieldValue";
 
 export function checkValueForDictionaryBlockSimpleFieldIsValid(
     field: DictionaryBlockSimpleField,
@@ -12,23 +9,12 @@ export function checkValueForDictionaryBlockSimpleFieldIsValid(
     diagnosticCode: KnownDiagnosticCode,
 ): DiagnosticWithCode | undefined {
     if (!allowedValues.includes(field.value)) {
-        return getDiagnostic(field, allowedValues, diagnosticCode);
+        return getDiagnosticForInvalidDictionaryBlockSimpleFieldValue(
+            field,
+            `Allowed values are ${JSON.stringify(allowedValues, null, 2)}`,
+            diagnosticCode,
+        );
     } else {
         return undefined;
     }
-}
-
-function getDiagnostic(
-    field: DictionaryBlockSimpleField,
-    allowedValues: string[],
-    diagnosticCode: KnownDiagnosticCode,
-) {
-    return {
-        message: `Invalid value '${
-            field.value
-        }'. Allowed values are ${JSON.stringify(allowedValues, null, 2)}`,
-        range: mapToVsCodeRange(field.valueRange),
-        severity: DiagnosticSeverity.Error,
-        code: diagnosticCode,
-    };
 }
