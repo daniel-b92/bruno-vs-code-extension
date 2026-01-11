@@ -380,6 +380,18 @@ function getSettingsBlockSpecificCompletions(request: LanguageFeatureRequest) {
                 ),
                 choices: Object.values(BooleanFieldValue),
             },
+            {
+                linePattern: getLinePatternForDictionaryField(
+                    SettingsBlockKey.FollowRedirects,
+                ),
+                choices: Object.values(BooleanFieldValue),
+            },
+            {
+                linePattern: getLinePatternForDictionaryField(
+                    SettingsBlockKey.Timeout,
+                ),
+                choices: ["inherit"],
+            },
         ],
         request,
     );
