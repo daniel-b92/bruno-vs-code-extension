@@ -406,7 +406,14 @@
 
     "settings block": {
         "prefix": "settings",
-        "body": ["settings {", "\tencodeUrl: ${1|true,false|}", "}"],
+        "body": [
+            "settings {",
+            "\tencodeUrl: ${1|true,false|}",
+            "\ttimeout: ${2|inherit,1000,5000,10000|}",
+            "\tfollowRedirects: ${3|true,false|}",
+            "\tmaxRedirects: ${4:0}",
+            "}"
+        ],
         "description": "Add settings block"
     },
 
