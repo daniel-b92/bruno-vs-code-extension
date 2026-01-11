@@ -57,8 +57,6 @@ function runChecksForSpecificFields(settingsBlock: DictionaryBlock) {
         isDictionaryBlockSimpleField,
     );
 
-    // ToDo: Check if all fields are DIctionary block simple fields?
-
     const result = [
         {
             key: SettingsBlockKey.EncodeUrl,
