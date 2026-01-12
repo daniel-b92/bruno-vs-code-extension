@@ -139,7 +139,7 @@ export const startTestRun = async (
 };
 
 const prepareAndRunTest = async (
-    { test, abortEmitter }: QueuedTest,
+    { test, abortEmitter, request: { profile } }: QueuedTest,
     run: TestRun,
     collectionRootDirectory: string,
     htmlReportPath: string,
@@ -165,12 +165,17 @@ const prepareAndRunTest = async (
 
     const passed = await runTestStructure(
         test,
-        run,
-        abortEmitter,
-        collectionRootDirectory,
-        htmlReportPath,
-        testEnvironment,
-        logger,
+        {
+            options: run,
+            abortEmitter,
+            collectionRootDirectory,
+        },
+        {
+            htmlReportPath,
+            testEnvironment,
+            logger,
+            requestTag: profile?.tag?.id,
+        },
     );
 
     return { didRun: true, passed };

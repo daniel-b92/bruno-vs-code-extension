@@ -10,6 +10,7 @@ import {
     window,
     ProgressLocation,
     ExtensionContext,
+    TestTag,
 } from "vscode";
 import { startTestRun } from "./internal/startTestRun";
 import { TestRunQueue } from "./internal/testRunQueue";
@@ -28,7 +29,9 @@ import {
     getLoggerFromSubscriptions,
     someAsync,
     isCollectionItemWithSequence,
+    isRequestFile,
 } from "../shared";
+import { TestRunProfileWithTagRegistry } from "./internal/testRunProfileWithTagRegistry";
 
 export async function activateRunner(
     context: ExtensionContext,
@@ -43,8 +46,10 @@ export async function activateRunner(
     const queue = new TestRunQueue(ctrl);
     const testRunnerDataHelper = new TestRunnerDataHelper(ctrl);
     const logger = getLoggerFromSubscriptions(context);
+    const profileRegistry = new TestRunProfileWithTagRegistry();
 
     context.subscriptions.push(
+        profileRegistry,
         handleTestTreeUpdates(
             ctrl,
             collectionItemProvider,
@@ -108,6 +113,8 @@ export async function activateRunner(
         cancellation: CancellationToken,
     ) => {
         if (!request.continuous) {
+            const profile = request.profile;
+            const tag = profile?.tag;
             return await startTestRun(
                 ctrl,
                 request,
@@ -170,7 +177,7 @@ export async function activateRunner(
         "Run Bruno Tests",
         TestRunProfileKind.Run,
         runHandler,
-        true,
+        false,
         undefined,
         true,
     );
@@ -181,6 +188,12 @@ export async function activateRunner(
                 ctrl,
                 testRunnerDataHelper,
                 collectionItemProvider.getRegisteredCollections(),
+            );
+            registerProfilesForAllRequestTags(
+                ctrl,
+                runHandler,
+                profileRegistry,
+                collectionItemProvider,
             );
             return;
         }
@@ -267,6 +280,43 @@ async function addMissingTestCollectionsAndItemsToTestTree(
         // The test tree view is only updated correctly, if you re-add the collection on top level again
         addCollectionTestItemToTestTree(controller, collection);
     }
+}
+
+function registerProfilesForAllRequestTags(
+    controller: TestController,
+    runHandler: (
+        request: TestRunRequest,
+        token: CancellationToken,
+    ) => Thenable<void> | void,
+    profileRegistry: TestRunProfileWithTagRegistry,
+    itemProvider: CollectionItemProvider,
+) {
+    itemProvider.getRegisteredCollections().forEach((collection) => {
+        const allTags = collection
+            .getAllStoredDataForCollection()
+            .map(({ item }) => item)
+            .filter((item) => isRequestFile(item))
+            .flatMap((item) => item.getTags())
+            .filter((tag) => tag != undefined);
+
+        const distinctTags = allTags.filter(
+            (tag, index) => allTags.indexOf(tag) == index,
+        );
+
+        for (const tag of distinctTags) {
+            profileRegistry.registerProfile({
+                runProfile: controller.createRunProfile(
+                    `Run Bruno Tests- for tag '${tag}'`,
+                    TestRunProfileKind.Run,
+                    runHandler,
+                    false,
+                    new TestTag(tag),
+                    true,
+                ),
+                tag,
+            });
+        }
+    });
 }
 
 function handleTestTreeUpdates(
