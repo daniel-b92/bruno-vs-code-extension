@@ -10,7 +10,6 @@ import {
     window,
     ProgressLocation,
     ExtensionContext,
-    TestTag,
 } from "vscode";
 import { startTestRun } from "./internal/startTestRun";
 import { TestRunQueue } from "./internal/testRunQueue";
@@ -27,11 +26,9 @@ import {
     getExtensionForBrunoFiles,
     CollectionItemWithSequence,
     getLoggerFromSubscriptions,
-    someAsync,
     isCollectionItemWithSequence,
-    isRequestFile,
 } from "../shared";
-import { TestRunProfileWithTagRegistry } from "./internal/testRunProfileWithTagRegistry";
+import { askUserForTestrunParameters } from "./internal/askUserForRunParameters";
 
 export async function activateRunner(
     context: ExtensionContext,
@@ -46,10 +43,8 @@ export async function activateRunner(
     const queue = new TestRunQueue(ctrl);
     const testRunnerDataHelper = new TestRunnerDataHelper(ctrl);
     const logger = getLoggerFromSubscriptions(context);
-    const profileRegistry = new TestRunProfileWithTagRegistry();
 
     context.subscriptions.push(
-        profileRegistry,
         handleTestTreeUpdates(
             ctrl,
             collectionItemProvider,
@@ -71,9 +66,11 @@ export async function activateRunner(
                             watchingTests.get("ALL"),
                             true,
                         ),
-                        collectionItemProvider,
-                        queue,
-                        logger,
+                        {
+                            collectionItemProvider,
+                            queue,
+                            logger,
+                        },
                     );
                     return;
                 }
@@ -99,9 +96,11 @@ export async function activateRunner(
                     await startTestRun(
                         ctrl,
                         new TestRunRequest(include, undefined, profile, true),
-                        collectionItemProvider,
-                        queue,
-                        logger,
+                        {
+                            collectionItemProvider,
+                            queue,
+                            logger,
+                        },
                     );
                 }
             }
@@ -113,15 +112,11 @@ export async function activateRunner(
         cancellation: CancellationToken,
     ) => {
         if (!request.continuous) {
-            const profile = request.profile;
-            const tag = profile?.tag;
-            return await startTestRun(
-                ctrl,
-                request,
+            return await startTestRun(ctrl, request, {
                 collectionItemProvider,
                 queue,
                 logger,
-            );
+            });
         }
 
         if (request.include === undefined) {
@@ -189,12 +184,6 @@ export async function activateRunner(
                 testRunnerDataHelper,
                 collectionItemProvider.getRegisteredCollections(),
             );
-            registerProfilesForAllRequestTags(
-                ctrl,
-                runHandler,
-                profileRegistry,
-                collectionItemProvider,
-            );
             return;
         }
         const path = (item.uri as Uri).fsPath;
@@ -220,48 +209,52 @@ export async function activateRunner(
     };
 
     startTestRunEvent(async (uri) => {
-        let testItem: VscodeTestItem | undefined;
-
-        const isRunnable = await someAsync(
-            collectionItemProvider.getRegisteredCollections().slice(),
-            async (collection) => {
-                const maybeData = collection.getStoredDataForPath(uri.fsPath);
-
-                if (
-                    maybeData &&
-                    isCollectionItemWithSequence(maybeData.item) &&
-                    (await isRelevantForTestTree(
-                        testRunnerDataHelper,
-                        collection,
-                        maybeData.item,
-                    ))
-                ) {
-                    testItem = maybeData.testItem;
-                    return true;
-                } else {
-                    return false;
-                }
-            },
-        );
-
-        if (isRunnable) {
-            await startTestRun(
-                ctrl,
-                new TestRunRequest(
-                    [testItem as VscodeTestItem],
-                    undefined,
-                    defaultProfile,
-                    false,
-                ),
-                collectionItemProvider,
-                queue,
-                logger,
-            );
-        } else {
+        const showMessageForNonRunnableItem = () =>
             window.showInformationMessage(
                 "No bruno tests found for selected item.",
             );
+        const maybeData = collectionItemProvider.getRegisteredItemAndCollection(
+            uri.fsPath,
+        );
+
+        if (!maybeData) {
+            showMessageForNonRunnableItem();
+            return;
         }
+
+        const {
+            collection,
+            data: { item, testItem },
+        } = maybeData;
+
+        if (
+            !isCollectionItemWithSequence(item) ||
+            !(await isRelevantForTestTree(
+                testRunnerDataHelper,
+                collection,
+                item,
+            ))
+        ) {
+            showMessageForNonRunnableItem();
+            return;
+        }
+
+        const userInput = await askUserForTestrunParameters(collection);
+
+        if (!userInput) {
+            return;
+        }
+
+        await startTestRun(
+            ctrl,
+            new TestRunRequest([testItem], undefined, defaultProfile, false),
+            {
+                collectionItemProvider,
+                queue,
+                logger,
+                userInput,
+            },
+        );
     });
 }
 
@@ -280,43 +273,6 @@ async function addMissingTestCollectionsAndItemsToTestTree(
         // The test tree view is only updated correctly, if you re-add the collection on top level again
         addCollectionTestItemToTestTree(controller, collection);
     }
-}
-
-function registerProfilesForAllRequestTags(
-    controller: TestController,
-    runHandler: (
-        request: TestRunRequest,
-        token: CancellationToken,
-    ) => Thenable<void> | void,
-    profileRegistry: TestRunProfileWithTagRegistry,
-    itemProvider: CollectionItemProvider,
-) {
-    itemProvider.getRegisteredCollections().forEach((collection) => {
-        const allTags = collection
-            .getAllStoredDataForCollection()
-            .map(({ item }) => item)
-            .filter((item) => isRequestFile(item))
-            .flatMap((item) => item.getTags())
-            .filter((tag) => tag != undefined);
-
-        const distinctTags = allTags.filter(
-            (tag, index) => allTags.indexOf(tag) == index,
-        );
-
-        for (const tag of distinctTags) {
-            profileRegistry.registerProfile({
-                runProfile: controller.createRunProfile(
-                    `Run Bruno Tests- for tag '${tag}'`,
-                    TestRunProfileKind.Run,
-                    runHandler,
-                    false,
-                    new TestTag(tag),
-                    true,
-                ),
-                tag,
-            });
-        }
-    });
 }
 
 function handleTestTreeUpdates(

@@ -19,12 +19,13 @@ import {
 } from "../../shared";
 import { existsSync, lstatSync, unlink, unlinkSync } from "fs";
 import { promisify } from "util";
+import { UserInputData } from "./interfaces";
 
 interface ReportingAndOptionalData {
     htmlReportPath: string;
     testEnvironment?: string;
-    requestTag?: string;
     logger?: OutputChannelLogger;
+    userInput?: UserInputData;
 }
 
 export async function runTestStructure(
@@ -37,8 +38,8 @@ export async function runTestStructure(
     {
         htmlReportPath,
         logger,
-        requestTag,
         testEnvironment,
+        userInput,
     }: ReportingAndOptionalData,
 ): Promise<boolean> {
     const { abortEmitter, collectionRootDirectory, options } = additionalData;
@@ -69,7 +70,7 @@ export async function runTestStructure(
             path,
             collectionRootDirectory,
             jsonReportPath,
-            { htmlReportPath, testEnvironment, logger, requestTag },
+            { htmlReportPath, testEnvironment, logger, userInput },
         );
 
         if (!canUseNpx()) {
@@ -341,7 +342,7 @@ const spawnChildProcess = (
     {
         htmlReportPath,
         logger,
-        requestTag,
+        userInput,
         testEnvironment,
     }: ReportingAndOptionalData,
 ) => {
@@ -349,10 +350,22 @@ const spawnChildProcess = (
 
     const shouldUseNpxForTriggeringTests = shouldUseNpx(logger);
     const command = shouldUseNpxForTriggeringTests ? "npx" : "bru";
+
     const argForRunCommand =
         testPath == collectionRootDirectory
             ? `${shouldUseNpxForTriggeringTests ? "bru " : ""}run`
             : `${shouldUseNpxForTriggeringTests ? "bru " : ""}run ${testPath}`;
+
+    const argsForTags = userInput
+        ? (userInput.includedTags.length > 0
+              ? ["--tags"].concat(userInput.includedTags)
+              : []
+          ).concat(
+              userInput.excludedTags.length > 0
+                  ? ["--exclude-tags"].concat(userInput.excludedTags)
+                  : [],
+          )
+        : [];
 
     const commandArguments: string[] = ([] as string[]).concat(
         shouldUseNpxForTriggeringTests
@@ -360,7 +373,7 @@ const spawnChildProcess = (
             : [],
         argForRunCommand,
         "-r",
-        requestTag ? ["--tags", requestTag] : [],
+        argsForTags,
         "--reporter-html",
         htmlReportPath,
         "--reporter-json",
