@@ -1,7 +1,7 @@
-import { window } from "vscode";
+import { Disposable, EventEmitter, QuickPickItem, window } from "vscode";
 import { Collection, getDistinctTagsForCollection } from "../../shared";
 
-enum ButtonLabels {
+enum ButtonLabel {
     Run = "Run",
     IncludeTags = "Include tags",
     ExcludeTags = "Exclude tags",
@@ -9,61 +9,139 @@ enum ButtonLabels {
 
 export async function askUserForTestrunParameters(collection: Collection) {
     const selectedTagsProvider = new SelectedTagsProvider();
+    const handleBaseModalNotifier = new EventEmitter<void>();
+    const handleTagsDialogNotifier = new EventEmitter<
+        ButtonLabel.IncludeTags | ButtonLabel.ExcludeTags
+    >();
+    const toDispose: Disposable[] = [];
 
-    const pickedOption = await showBaseModal();
+    const userInputPromise = new Promise<
+        | {
+              includedTags: string[];
+              excludedTags: string[];
+          }
+        | undefined
+    >((resolve) => {
+        toDispose.push(
+            handleBaseModalNotifier.event(() => {
+                handleBaseModalInteractions(
+                    selectedTagsProvider,
+                    handleTagsDialogNotifier,
+                ).then(({ shouldContinue, value }) => {
+                    if (!shouldContinue) {
+                        resolve(value);
+                    }
+                });
+            }),
+            handleTagsDialogNotifier.event((selectedButton) => {
+                handleDialogForTags(
+                    selectedButton,
+                    collection,
+                    selectedTagsProvider,
+                    handleBaseModalNotifier,
+                );
+            }),
+        );
+    });
+    handleBaseModalNotifier.fire();
+
+    const userInput = await userInputPromise;
+    toDispose.forEach((d) => d.dispose());
+    return userInput;
+}
+
+async function handleBaseModalInteractions(
+    selectedTagsProvider: SelectedTagsProvider,
+    tagsDialogNotifier: EventEmitter<
+        ButtonLabel.IncludeTags | ButtonLabel.ExcludeTags
+    >,
+): Promise<{
+    shouldContinue: boolean;
+    value?: { includedTags: string[]; excludedTags: string[] };
+}> {
+    const { included: includedTags, excluded: excludedTags } =
+        selectedTagsProvider.getSelectedTags();
+
+    const pickedOption = await window.showInformationMessage(
+        `Do you want to add additional config options?`,
+        {
+            modal: true,
+            detail: `Current selection: ${includedTags.length} included tags - ${excludedTags.length} excluded tags`,
+        },
+        ...Object.values(ButtonLabel),
+    );
 
     if (pickedOption == undefined) {
-        return undefined;
+        return { shouldContinue: false };
     }
 
-    if (pickedOption == ButtonLabels.Run) {
+    if (pickedOption == ButtonLabel.Run) {
         const { included: includedTags, excluded: excludedTags } =
             selectedTagsProvider.getSelectedTags();
-        return { includedTags, excludedTags };
+        return { shouldContinue: false, value: { includedTags, excludedTags } };
     }
 
-    await handleOptionForTags(pickedOption, collection, selectedTagsProvider);
+    tagsDialogNotifier.fire(pickedOption);
+    return { shouldContinue: true };
 }
 
-async function showBaseModal() {
-    return await window.showInformationMessage(
-        `Select additional config options`,
-        { modal: true },
-        ...Object.values(ButtonLabels),
-    );
-}
-
-async function handleOptionForTags(
-    selectedButton: ButtonLabels.IncludeTags | ButtonLabels.ExcludeTags,
+async function handleDialogForTags(
+    selectedButton: ButtonLabel.IncludeTags | ButtonLabel.ExcludeTags,
     collection: Collection,
     selectedTagsProvider: SelectedTagsProvider,
+    baseModalNotifier: EventEmitter<void>,
 ) {
     const { included: includedTags, excluded: excludedTags } =
         selectedTagsProvider.getSelectedTags();
 
-    const tagsToChoose = getDistinctTagsForCollection(collection).filter(
-        (tag) =>
-            selectedButton == ButtonLabels.IncludeTags
+    const items: QuickPickItem[] = getDistinctTagsForCollection(collection)
+        .filter((tag) =>
+            selectedButton == ButtonLabel.IncludeTags
                 ? !excludedTags.includes(tag)
                 : !includedTags.includes(tag),
+        )
+        .map((tag) => ({
+            label: tag,
+        }));
+
+    const quickPick = window.createQuickPick();
+    quickPick.canSelectMany = true;
+    quickPick.items = items;
+    quickPick.selectedItems = items.filter(({ label }) =>
+        selectedButton == ButtonLabel.IncludeTags
+            ? includedTags.includes(label)
+            : excludedTags.includes(label),
     );
+    quickPick.title = `Tags to ${selectedButton == ButtonLabel.IncludeTags ? "include" : "exclude"}`;
 
-    const selectedTags = await window.showQuickPick(tagsToChoose, {
-        title: `Tags to ${selectedButton == ButtonLabels.IncludeTags ? "include" : "exclude"}`,
-        canPickMany: true,
+    const toDispose: Disposable[] = [];
+
+    const shouldNotifyPromise = new Promise<{
+        shouldNotify: boolean;
+    }>((resolve) => {
+        toDispose.push(
+            quickPick.onDidAccept(() => {
+                const selectedTags = quickPick.selectedItems.map(
+                    ({ label }) => label,
+                );
+                selectedButton == ButtonLabel.IncludeTags
+                    ? selectedTagsProvider.setIncludedTags(selectedTags)
+                    : selectedTagsProvider.setExcludedTags(selectedTags);
+                resolve({ shouldNotify: true });
+            }),
+            quickPick.onDidHide(() => {
+                resolve({ shouldNotify: false });
+            }),
+        );
     });
+    quickPick.show();
 
-    if (!selectedTags) {
-        return;
+    const shouldNotify = (await shouldNotifyPromise).shouldNotify;
+    toDispose.forEach((d) => d.dispose());
+    quickPick.dispose();
+    if (shouldNotify) {
+        baseModalNotifier.fire();
     }
-
-    if (selectedButton == ButtonLabels.IncludeTags) {
-        selectedTagsProvider.addIncludedTags(selectedTags);
-        return;
-    }
-
-    selectedTagsProvider.addExcludedTags(selectedTags);
-    return;
 }
 
 class SelectedTagsProvider {
@@ -79,28 +157,17 @@ class SelectedTagsProvider {
         };
     }
 
-    public addIncludedTags(newTags: string[]) {
-        SelectedTagsProvider.validateTagsAreNew(newTags, this.includedTags);
+    public setIncludedTags(newTags: string[]) {
+        if (this.includedTags.length > 0) {
+            this.includedTags.splice(0);
+        }
         this.includedTags.push(...newTags);
     }
 
-    public addExcludedTags(newTags: string[]) {
-        SelectedTagsProvider.validateTagsAreNew(newTags, this.excludedTags);
-        this.excludedTags.push(...newTags);
-    }
-
-    private static validateTagsAreNew(
-        newTags: string[],
-        existingTags: string[],
-    ) {
-        const alreadyExistingTags = newTags.filter((tag) =>
-            existingTags.includes(tag),
-        );
-
-        if (alreadyExistingTags.length > 0) {
-            throw new Error(
-                `Some tags were already stored before: ${JSON.stringify(alreadyExistingTags)}`,
-            );
+    public setExcludedTags(newTags: string[]) {
+        if (this.excludedTags.length > 0) {
+            this.excludedTags.splice(0);
         }
+        this.excludedTags.push(...newTags);
     }
 }
