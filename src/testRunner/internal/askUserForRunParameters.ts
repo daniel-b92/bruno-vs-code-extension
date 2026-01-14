@@ -66,7 +66,7 @@ async function handleBaseModalInteractions(
         `Do you want to add additional config options?`,
         {
             modal: true,
-            detail: `Current selection: ${includedTags.length} included tags - ${excludedTags.length} excluded tags`,
+            detail: `Currently ${includedTags.length} included tags, ${excludedTags.length} excluded tags`,
         },
         ...Object.values(ButtonLabel),
     );
@@ -105,6 +105,7 @@ async function handleDialogForTags(
         }));
 
     const quickPick = window.createQuickPick();
+    quickPick.ignoreFocusOut = true;
     quickPick.canSelectMany = true;
     quickPick.items = items;
     quickPick.selectedItems = items.filter(({ label }) =>
