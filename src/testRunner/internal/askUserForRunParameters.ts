@@ -102,47 +102,34 @@ async function handleDialogForTags(
         )
         .map((tag) => ({
             label: tag,
+            picked:
+                selectedButton == ButtonLabel.IncludeTags
+                    ? includedTags.includes(tag)
+                    : excludedTags.includes(tag),
         }));
 
-    const quickPick = window.createQuickPick();
-    quickPick.ignoreFocusOut = true;
-    quickPick.canSelectMany = true;
-    quickPick.items = items;
-    quickPick.selectedItems = items.filter(({ label }) =>
-        selectedButton == ButtonLabel.IncludeTags
-            ? includedTags.includes(label)
-            : excludedTags.includes(label),
-    );
-    quickPick.title = `Tags to ${selectedButton == ButtonLabel.IncludeTags ? "include" : "exclude"}`;
-
-    const toDispose: Disposable[] = [];
-
-    const shouldNotifyPromise = new Promise<{
-        shouldNotify: boolean;
-    }>((resolve) => {
-        toDispose.push(
-            quickPick.onDidAccept(() => {
-                const selectedTags = quickPick.selectedItems.map(
-                    ({ label }) => label,
-                );
-                selectedButton == ButtonLabel.IncludeTags
-                    ? selectedTagsProvider.setIncludedTags(selectedTags)
-                    : selectedTagsProvider.setExcludedTags(selectedTags);
-                resolve({ shouldNotify: true });
-            }),
-            quickPick.onDidHide(() => {
-                resolve({ shouldNotify: false });
-            }),
-        );
+    const selectedItems = await window.showQuickPick(items, {
+        canPickMany: true,
+        ignoreFocusOut: true,
+        title: `Tags to ${selectedButton == ButtonLabel.IncludeTags ? "include" : "exclude"}`,
     });
-    quickPick.show();
 
-    const shouldNotify = (await shouldNotifyPromise).shouldNotify;
-    toDispose.forEach((d) => d.dispose());
-    quickPick.dispose();
-    if (shouldNotify) {
-        baseModalNotifier.fire();
+    if (!selectedItems) {
+        return;
     }
+
+    const selectedTags = selectedItems.map(({ label }) => label);
+
+    switch (selectedButton) {
+        case ButtonLabel.IncludeTags:
+            selectedTagsProvider.setIncludedTags(selectedTags);
+            break;
+        case ButtonLabel.ExcludeTags:
+            selectedTagsProvider.setExcludedTags(selectedTags);
+            break;
+    }
+
+    baseModalNotifier.fire();
 }
 
 class SelectedTagsProvider {
