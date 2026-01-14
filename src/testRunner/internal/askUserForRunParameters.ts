@@ -100,6 +100,7 @@ async function handleDialogForTags(
                 ? !excludedTags.includes(tag)
                 : !includedTags.includes(tag),
         )
+        .sort((tag1, tag2) => (tag1 < tag2 ? -1 : 1))
         .map((tag) => ({
             label: tag,
             picked:
