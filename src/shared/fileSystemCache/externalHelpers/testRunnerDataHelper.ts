@@ -28,10 +28,9 @@ export class TestRunnerDataHelper {
         testItem.sortText = this.getVsCodeTestItemSortText(item);
 
         if (isRequestFile(item) && item.getTags()) {
-            const tags = item.getTags() as string[];
-            testItem.tags = tags.map((tag) => new vscode.TestTag(tag));
-            testItem.description = "tags: ".concat(
-                tags.map((t) => `'${t}'`).join(","),
+            testItem.description = "tags: (".concat(
+                (item.getTags() as string[]).map((t) => `'${t}'`).join(","),
+                ")",
             );
         }
 
