@@ -1,4 +1,10 @@
-import { Disposable, EventEmitter, QuickPickItem, window } from "vscode";
+import {
+    Disposable,
+    EventEmitter,
+    QuickPickItem,
+    window,
+    workspace,
+} from "vscode";
 import { Collection, getDistinctTagsForCollection } from "../../../shared";
 import { OtherConfigData, UserInputData } from "../interfaces";
 
@@ -173,10 +179,18 @@ async function handleDialogForOtherConfigs(
 
     const items: QuickPickItem[] = Object.keys(initialSelection)
         .sort((key1, key2) => (key1 < key2 ? -1 : 1))
-        .map((key) => ({
-            label: key,
-            picked: initialSelection[key as keyof OtherConfigData],
-        }));
+        .map((label) => {
+            const key = label as keyof OtherConfigData;
+
+            return {
+                label: label,
+                picked: initialSelection[key],
+                detail:
+                    key == "sandboxModeDeveloper"
+                        ? `Default can be configured via user setting '${getConfigKeyForSandboxDeveloperMode()}'`
+                        : undefined,
+            };
+        });
 
     const newSelection = await window.showQuickPick(items, {
         canPickMany: true,
@@ -234,7 +248,9 @@ class SelectedOtherConfigsProvider {
 
     private readonly defaultValues: OtherConfigData = {
         recursive: true,
-        sandboxModeDeveloper: false,
+        sandboxModeDeveloper: workspace
+            .getConfiguration()
+            .get<boolean>(getConfigKeyForSandboxDeveloperMode(), false),
     };
     private values: OtherConfigData;
 
@@ -245,4 +261,8 @@ class SelectedOtherConfigsProvider {
     public getValues() {
         return this.values;
     }
+}
+
+function getConfigKeyForSandboxDeveloperMode() {
+    return "bru-as-code.sandboxDeveloperMode";
 }
