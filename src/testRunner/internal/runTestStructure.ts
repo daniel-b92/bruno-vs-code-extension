@@ -1,4 +1,3 @@
-import { exec, spawn } from "child_process";
 import { dirname, resolve } from "path";
 import {
     EventEmitter,
@@ -12,21 +11,13 @@ import { getTestFilesWithFailures } from "./jsonReportParser";
 import { getTestItemDescendants } from "../testTreeUtils/getTestItemDescendants";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import treeKill = require("tree-kill");
-import {
-    checkIfPathExistsAsync,
-    getLinkToUserSetting,
-    OutputChannelLogger,
-} from "../../shared";
-import { existsSync, lstatSync, unlink, unlinkSync } from "fs";
+import { checkIfPathExistsAsync, getLinkToUserSetting } from "../../shared";
+import { existsSync, unlink, unlinkSync } from "fs";
 import { promisify } from "util";
-import { UserInputData } from "./interfaces";
-
-interface ReportingAndOptionalData {
-    htmlReportPath: string;
-    testEnvironment?: string;
-    logger?: OutputChannelLogger;
-    userInput?: UserInputData;
-}
+import { TestRunReportingAndOptionalData } from "./interfaces";
+import { spawnChildProcess } from "./testExecution/spawnChildProcess";
+import { setStatusForDescendantItems } from "./testExecution/setStatusForDescendantItems";
+import { getTestMessageForFailedTest } from "./testExecution/getTestMessageForFailedTest";
 
 export async function runTestStructure(
     item: vscodeTestItem,
@@ -40,7 +31,7 @@ export async function runTestStructure(
         logger,
         testEnvironment,
         userInput,
-    }: ReportingAndOptionalData,
+    }: TestRunReportingAndOptionalData,
 ): Promise<boolean> {
     const { abortEmitter, collectionRootDirectory, options } = additionalData;
     const path = (item.uri as Uri).fsPath;
@@ -66,12 +57,18 @@ export async function runTestStructure(
         let duration = 0;
 
         const start = Date.now();
-        const { childProcess, usingNpx } = spawnChildProcess(
-            path,
+        const { childProcess, usingNpx } = spawnChildProcess({
+            testPath: path,
             collectionRootDirectory,
             jsonReportPath,
-            { htmlReportPath, testEnvironment, logger, userInput },
-        );
+            canUseNpx: canUseNpx(),
+            reportingAndOptionalData: {
+                htmlReportPath,
+                testEnvironment,
+                logger,
+                userInput,
+            },
+        });
 
         if (!canUseNpx()) {
             options.appendOutput(lineBreak);
@@ -157,12 +154,22 @@ export async function runTestStructure(
             } else if (exitCode == null) {
                 options.skipped(item);
                 if (isDirectory) {
-                    setStatusForDescendantItems(item, jsonReportPath, options);
+                    setStatusForDescendantItems(
+                        item,
+                        jsonReportPath,
+                        options,
+                        getLineBreakForTestRunOutput(),
+                    );
                 }
             } else {
                 if (isDirectory) {
                     options.failed(item, [new TestMessage("Testrun failed")]);
-                    setStatusForDescendantItems(item, jsonReportPath, options);
+                    setStatusForDescendantItems(
+                        item,
+                        jsonReportPath,
+                        options,
+                        getLineBreakForTestRunOutput(),
+                    );
                 } else {
                     const testFilesWithFailures =
                         getTestFilesWithFailures(jsonReportPath);
@@ -180,11 +187,20 @@ export async function runTestStructure(
                         } = testFilesWithFailures[0];
                         options.failed(item, [
                             getTestMessageForFailedTest(
-                                testResults,
-                                assertionResults,
-                                request as Record<string, string | object>,
-                                response as Record<string, string | object>,
-                                error,
+                                {
+                                    testResults,
+                                    assertionResults,
+                                    request: request as Record<
+                                        string,
+                                        string | object
+                                    >,
+                                    response: response as Record<
+                                        string,
+                                        string | object
+                                    >,
+                                    error,
+                                },
+                                getLineBreakForTestRunOutput(),
                             ),
                         ]);
                     }
@@ -198,240 +214,15 @@ export async function runTestStructure(
     });
 }
 
-const setStatusForDescendantItems = (
-    testDirectoryItem: vscodeTestItem,
-    jsonReportPath: string,
-    options: TestRun,
-) => {
-    if (!existsSync(jsonReportPath)) {
-        options.appendOutput(
-            `Could not find JSON report file.${getLineBreakForTestRunOutput()}`,
-        );
-        options.appendOutput(
-            `Therefore cannot determine status of descendant test items. Will set status 'skipped' for all.${getLineBreakForTestRunOutput()}`,
-        );
-        getTestItemDescendants(testDirectoryItem).forEach((child) => {
-            child.busy = false;
-            options.skipped(child);
-        });
-        return;
-    }
-
-    const testFileDescendants = getTestItemDescendants(
-        testDirectoryItem,
-    ).filter((descendant) => lstatSync(descendant.uri!.fsPath).isFile());
-
-    const failedTests = getTestFilesWithFailures(jsonReportPath)
-        .map((failedTest) => ({
-            // 'testfile' field from the JSON report does not always match the absolute file path
-            item: testFileDescendants.find((descendant) =>
-                descendant.uri!.fsPath.includes(failedTest.file),
-            ),
-            request: failedTest.request,
-            response: failedTest.response,
-            testResults: failedTest.testResults,
-            assertionResults: failedTest.assertionResults,
-            error: failedTest.error,
-        }))
-        .filter((failed) => failed.item != undefined) as {
-        item: vscodeTestItem;
-        request: Record<string, string | object>;
-        response: Record<string, string | number | object>;
-        testResults: Record<string, string>[];
-        assertionResults: Record<string, string>[];
-        error?: string;
-    }[];
-
-    getTestItemDescendants(testDirectoryItem).forEach((child) => {
-        if (!child.uri) {
-            throw new Error(
-                `Child directory item to run does not have a URI! Item: ${JSON.stringify(
-                    child,
-                    null,
-                    2,
-                )}`,
-            );
-        }
-        const childPath = child.uri.fsPath!;
-        child.busy = false;
-
-        const maybeTestFailure = failedTests.find((failed) =>
-            failed.item.uri?.fsPath.includes(childPath),
-        );
-
-        if (!maybeTestFailure) {
-            options.passed(child);
-        } else if (maybeTestFailure && lstatSync(child.uri!.fsPath).isFile()) {
-            // Only log details on failure for failed test file
-            options.failed(
-                child,
-                getTestMessageForFailedTest(
-                    maybeTestFailure.testResults,
-                    maybeTestFailure.assertionResults,
-                    maybeTestFailure.request,
-                    maybeTestFailure.response,
-                    maybeTestFailure.error,
-                ),
-            );
-        } else {
-            // For ancestor test directories only log generic message
-            options.failed(
-                child,
-                new TestMessage("A test in the directory failed."),
-            );
-        }
-    });
-};
-
-const getTestMessageForFailedTest = (
-    testResults: Record<string, string | number | object>[],
-    assertionResults: Record<string, string | number | object>[],
-    request: Record<string, string | number | object>,
-    response: Record<string, string | number | object>,
-    error?: string,
-) => {
-    const linebreak = getLineBreakForTestRunOutput();
-
-    const stringifyField = (
-        reportField: Record<string, string | number | object>,
-    ) =>
-        Object.keys(reportField)
-            .map((key) =>
-                typeof reportField[key] == "string"
-                    ? `${key}: ${reportField[key].replace(/\n/g, linebreak)}`
-                    : `${key}: ${JSON.stringify(
-                          reportField[key],
-                          null,
-                          2,
-                      ).replace(/\n/g, linebreak)}`,
-            )
-            .join(linebreak);
-
-    const formattedRequest = stringifyField(request);
-    const formattedResponse = stringifyField(response);
-    const formattedTestResults = testResults
-        .map((result) => stringifyField(result))
-        .join(linebreak);
-    const formattedAssertionResults = assertionResults
-        .map((result) => stringifyField(result))
-        .join(linebreak);
-    const dividerAndLinebreak = `---------------------------------------------${linebreak}`;
-
-    return new TestMessage(
-        (testResults.length > 0
-            ? `${dividerAndLinebreak}testResults:${linebreak}${formattedTestResults}${linebreak}${dividerAndLinebreak}`
-            : ""
-        ).concat(
-            assertionResults.length > 0
-                ? `assertionResults:${linebreak}${formattedAssertionResults}${linebreak}${dividerAndLinebreak}`
-                : "",
-            error ? `error: ${error}${linebreak}${dividerAndLinebreak}` : "",
-            `request:${linebreak}${formattedRequest}${linebreak}${dividerAndLinebreak}`,
-            `response:${linebreak}${formattedResponse}${linebreak}${dividerAndLinebreak}`,
-        ),
-    );
-};
-
 const getJsonReportPath = (collectionRootDir: string) =>
     resolve(dirname(collectionRootDir), "results.json");
-
-const spawnChildProcess = (
-    testPath: string,
-    collectionRootDirectory: string,
-    jsonReportPath: string,
-    {
-        htmlReportPath,
-        logger,
-        userInput,
-        testEnvironment,
-    }: ReportingAndOptionalData,
-) => {
-    const npmPackageForUsingViaNpx = `${getNpmPackageNameWithoutSpecificVersion()}@2.13.2`;
-
-    const shouldUseNpxForTriggeringTests = shouldUseNpx(logger);
-    const command = shouldUseNpxForTriggeringTests ? "npx" : "bru";
-
-    const argForRunCommand =
-        testPath == collectionRootDirectory
-            ? `${shouldUseNpxForTriggeringTests ? "bru " : ""}run`
-            : `${shouldUseNpxForTriggeringTests ? "bru " : ""}run ${testPath}`;
-
-    const argsForTags = userInput
-        ? (userInput.includedTags.length > 0
-              ? ["--tags"].concat(userInput.includedTags)
-              : []
-          ).concat(
-              userInput.excludedTags.length > 0
-                  ? ["--exclude-tags"].concat(userInput.excludedTags)
-                  : [],
-          )
-        : [];
-
-    const commandArguments: string[] = ([] as string[]).concat(
-        shouldUseNpxForTriggeringTests
-            ? `--package=${npmPackageForUsingViaNpx}`
-            : [],
-        argForRunCommand,
-        "-r",
-        argsForTags,
-        "--reporter-html",
-        htmlReportPath,
-        "--reporter-json",
-        jsonReportPath,
-    );
-
-    if (testEnvironment) {
-        commandArguments.push(...["--env", testEnvironment]);
-    }
-
-    logger?.debug(
-        `Using command '${command}' and command arguments ${JSON.stringify(
-            commandArguments,
-            null,
-            2,
-        )} for triggering test run via CLI.`,
-    );
-
-    const childProcess = spawn(command, commandArguments as string[], {
-        cwd: collectionRootDirectory,
-        shell: true,
-    });
-
-    return { childProcess, usingNpx: shouldUseNpxForTriggeringTests };
-};
-
-const shouldUseNpx = (logger?: OutputChannelLogger) => {
-    if (!canUseNpx()) {
-        return false;
-    }
-
-    let isPackageInstalledGlobally = false;
-
-    exec("npm list -g --depth=0", (err, stdOut) => {
-        if (err) {
-            logger?.warn(
-                `Got an unexpected error when trying to determine globally installed NPM packages: '${err.message}'`,
-            );
-            isPackageInstalledGlobally = false;
-        } else {
-            isPackageInstalledGlobally = stdOut.includes(
-                getNpmPackageNameWithoutSpecificVersion(),
-            );
-        }
-    });
-
-    return !isPackageInstalledGlobally;
-};
 
 const canUseNpx = () => {
     return workspace
         .getConfiguration()
         .get<boolean>(getConfigKeyForAllowingUsageOfNpx(), false);
 };
-
-const getLineBreakForTestRunOutput = () => "\r\n";
-
-const getNpmPackageNameWithoutSpecificVersion = () => "@usebruno/cli";
-
 const getConfigKeyForAllowingUsageOfNpx = () =>
     "bru-as-code.allowInstallationOfBrunoCliViaNpx";
+
+const getLineBreakForTestRunOutput = () => "\r\n";
