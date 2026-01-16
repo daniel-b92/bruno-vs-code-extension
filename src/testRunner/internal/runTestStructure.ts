@@ -7,7 +7,7 @@ import {
     TestItem as vscodeTestItem,
     workspace,
 } from "vscode";
-import { getTestFilesWithFailures } from "./jsonReportParser";
+import { getTestFilesWithFailures } from "./testExecutionUtils/jsonReportParser";
 import { getTestItemDescendants } from "../testTreeUtils/getTestItemDescendants";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import treeKill = require("tree-kill");
@@ -15,9 +15,9 @@ import { checkIfPathExistsAsync, getLinkToUserSetting } from "../../shared";
 import { existsSync, unlink, unlinkSync } from "fs";
 import { promisify } from "util";
 import { TestRunReportingAndOptionalData } from "./interfaces";
-import { spawnChildProcess } from "./testExecution/spawnChildProcess";
-import { setStatusForDescendantItems } from "./testExecution/setStatusForDescendantItems";
-import { getTestMessageForFailedTest } from "./testExecution/getTestMessageForFailedTest";
+import { spawnChildProcess } from "./testExecutionUtils/spawnChildProcess";
+import { setStatusForDescendantItems } from "./testExecutionUtils/setStatusForDescendantItems";
+import { getTestMessageForFailedTest } from "./testExecutionUtils/getTestMessageForFailedTest";
 
 export async function runTestStructure(
     item: vscodeTestItem,

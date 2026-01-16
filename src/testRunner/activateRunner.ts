@@ -29,7 +29,7 @@ import {
     isCollectionItemWithSequence,
     getDistinctTagsForCollection,
 } from "../shared";
-import { askUserForTestrunParameters } from "./internal/testExecution/askUserForRunParameters";
+import { askUserForTestrunParameters } from "./internal/testExecutionUtils/askUserForRunParameters";
 import { UserInputData } from "./internal/interfaces";
 
 export async function activateRunner(

@@ -1,4 +1,4 @@
-import { showHtmlReport } from "./showHtmlReport";
+import { showHtmlReport } from "./testExecutionUtils/showHtmlReport";
 import {
     EventEmitter,
     TestController,

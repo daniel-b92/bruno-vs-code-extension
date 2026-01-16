@@ -1,7 +1,7 @@
 import { existsSync, lstatSync } from "fs";
 import { TestMessage, TestRun, TestItem as vscodeTestItem } from "vscode";
 import { getTestItemDescendants } from "../../testTreeUtils/getTestItemDescendants";
-import { getTestFilesWithFailures } from "../jsonReportParser";
+import { getTestFilesWithFailures } from "./jsonReportParser";
 import { getTestMessageForFailedTest } from "./getTestMessageForFailedTest";
 
 export function setStatusForDescendantItems(
