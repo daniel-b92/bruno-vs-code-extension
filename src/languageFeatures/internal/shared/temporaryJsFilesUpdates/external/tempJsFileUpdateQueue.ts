@@ -6,12 +6,7 @@ import {
 } from "../../../../../shared";
 import { createTemporaryJsFile } from "../internal/createTemporaryJsFile";
 import { deleteTemporaryJsFiles } from "../internal/deleteTemporaryJsFile";
-import {
-    CancellationToken,
-    EventEmitter,
-    Uri,
-    Event as VsCodeEvent,
-} from "vscode";
+import { CancellationToken, EventEmitter, Event as VsCodeEvent } from "vscode";
 import { QueueUpdateHandler } from "../internal/queueUpdateHandler";
 import { basename, dirname } from "path";
 import { v4 as uuid } from "uuid";
@@ -19,7 +14,7 @@ import { PendingRequestNotifier } from "../internal/pendingRequestNotifier";
 
 export class TempJsFileUpdateQueue {
     constructor(
-        private testRunStartedEvent: VsCodeEvent<Uri>,
+        private testRunStartedEvent: VsCodeEvent<unknown>,
         private logger?: OutputChannelLogger,
     ) {
         this.activeUpdate = undefined;

@@ -36,7 +36,10 @@ export async function activateRunner(
     context: ExtensionContext,
     ctrl: TestController,
     collectionItemProvider: CollectionItemProvider,
-    startTestRunEvent: VscodeEvent<Uri>,
+    startTestRunEvent: VscodeEvent<{
+        uri: Uri;
+        withDialog: boolean;
+    }>,
 ) {
     const watchingTests = new Map<
         VscodeTestItem | "ALL",
@@ -210,7 +213,7 @@ export async function activateRunner(
         }
     };
 
-    startTestRunEvent(async (uri) => {
+    startTestRunEvent(async ({ uri, withDialog }) => {
         const showMessageForNonRunnableItem = () =>
             window.showInformationMessage(
                 "No bruno tests found for selected item.",
@@ -243,11 +246,13 @@ export async function activateRunner(
 
         let userInput: UserInputData | undefined = undefined;
 
-        if (getDistinctTagsForCollection(collection).length > 0) {
-            userInput = await askUserForTestrunParameters(collection);
+        if (withDialog) {
+            if (getDistinctTagsForCollection(collection).length > 0) {
+                userInput = await askUserForTestrunParameters(collection);
 
-            if (!userInput) {
-                return;
+                if (!userInput) {
+                    return;
+                }
             }
         }
 

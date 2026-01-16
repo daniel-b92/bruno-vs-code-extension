@@ -56,7 +56,7 @@ export async function activateLanguageFeatures(
     context: ExtensionContext,
     collectionWatcher: CollectionWatcher,
     collectionItemProvider: CollectionItemProvider,
-    testRunStartedEvent: VsCodeEvent<Uri>,
+    testRunStartedEvent: VsCodeEvent<unknown>,
 ) {
     const logger = getLoggerFromSubscriptions(context);
 

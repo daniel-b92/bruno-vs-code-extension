@@ -187,7 +187,13 @@
             },
             {
                 "command": "brunoCollectionsView.startTestRun",
-                "title": "Start test run",
+                "title": "Start test run directly",
+                "category": "Bru-as-Code",
+                "enablement": "view == brunoCollectionsView"
+            },
+            {
+                "command": "brunoCollectionsView.openDialogForTestRun",
+                "title": "Open test run dialog",
                 "category": "Bru-as-Code",
                 "enablement": "view == brunoCollectionsView"
             },
@@ -220,6 +226,11 @@
                     "command": "brunoCollectionsView.startTestRun",
                     "when": "view == brunoCollectionsView",
                     "group": "navigation@1"
+                },
+                {
+                    "command": "brunoCollectionsView.openDialogForTestRun",
+                    "when": "view == brunoCollectionsView",
+                    "group": "navigation@2"
                 },
                 {
                     "command": "brunoCollectionsView.openInNewTabgroup",
