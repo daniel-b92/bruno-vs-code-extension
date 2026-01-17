@@ -233,11 +233,7 @@ export async function activateRunner(
 
         if (
             !isCollectionItemWithSequence(item) ||
-            !(await isRelevantForTestTree(
-                testRunnerDataHelper,
-                collection,
-                item,
-            ))
+            !isRelevantForTestTree(testRunnerDataHelper, collection, item)
         ) {
             showMessageForNonRunnableItem();
             return;
@@ -288,7 +284,7 @@ function handleTestTreeUpdates(
     collectionItemProvider: CollectionItemProvider,
     testRunnerDataHelper: TestRunnerDataHelper,
 ) {
-    return collectionItemProvider.subscribeToUpdates()(async (updates) => {
+    return collectionItemProvider.subscribeToUpdates()((updates) => {
         for (const {
             collection,
             data: { item, testItem },
@@ -301,11 +297,7 @@ function handleTestTreeUpdates(
 
             if (
                 updateType == FileChangeType.Created &&
-                (await isRelevantForTestTree(
-                    testRunnerDataHelper,
-                    collection,
-                    item,
-                ))
+                isRelevantForTestTree(testRunnerDataHelper, collection, item)
             ) {
                 addTestItemAndAncestorsToTestTree(controller, collection, item);
                 // ToDo: Fix handling of creation of Collection directories
@@ -338,11 +330,7 @@ function handleTestTreeUpdates(
                 }
             } else if (
                 updateType == FileChangeType.Deleted &&
-                (await isRelevantForTestTree(
-                    testRunnerDataHelper,
-                    collection,
-                    item,
-                ))
+                isRelevantForTestTree(testRunnerDataHelper, collection, item)
             ) {
                 removeTestItemFromTree(
                     controller,
@@ -387,7 +375,7 @@ function removeTestItemFromTree(
     }
 }
 
-async function isRelevantForTestTree(
+function isRelevantForTestTree(
     testRunnerDataHelper: TestRunnerDataHelper,
     collection: Collection,
     item: CollectionItemWithSequence,
@@ -397,11 +385,7 @@ async function isRelevantForTestTree(
             extname(item.getPath()) == getExtensionForBrunoFiles() &&
             item.getSequence() != undefined) ||
         (item instanceof CollectionDirectory &&
-            (
-                await testRunnerDataHelper.getTestFileDescendants(
-                    collection,
-                    item,
-                )
-            ).length > 0)
+            testRunnerDataHelper.getTestFileDescendants(collection, item)
+                .length > 0)
     );
 }
