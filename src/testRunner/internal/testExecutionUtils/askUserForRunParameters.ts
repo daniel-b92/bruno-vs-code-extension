@@ -1,12 +1,6 @@
-import {
-    Disposable,
-    EventEmitter,
-    QuickPickItem,
-    window,
-    workspace,
-} from "vscode";
+import { Disposable, EventEmitter, QuickPickItem, window } from "vscode";
 import { Collection, getDistinctTagsForCollection } from "../../../shared";
-import { OtherConfigData, UserInputData } from "../interfaces";
+import { OtherExecutionConfigData, UserInputData } from "../interfaces";
 
 enum ButtonLabel {
     Run = "Run",
@@ -16,8 +10,7 @@ enum ButtonLabel {
 }
 
 export async function askUserForTestrunParameters(collection: Collection) {
-    const selectedTagsProvider = new SelectedTagsProvider();
-    const selectedOtherConfigsProvider = new SelectedOtherConfigsProvider();
+    const selectionHolder = new SelectionHolder();
     const handleBaseModalNotifier = new EventEmitter<void>();
     const handleTagsDialogNotifier = new EventEmitter<
         ButtonLabel.IncludeTags | ButtonLabel.ExcludeTags
@@ -30,8 +23,7 @@ export async function askUserForTestrunParameters(collection: Collection) {
             toDispose.push(
                 handleBaseModalNotifier.event(() => {
                     handleBaseModalInteractions(
-                        selectedTagsProvider,
-                        selectedOtherConfigsProvider,
+                        selectionHolder,
                         handleTagsDialogNotifier,
                         handleOtherConfigsDialogNotifier,
                     ).then(({ shouldContinue, value }) => {
@@ -44,13 +36,13 @@ export async function askUserForTestrunParameters(collection: Collection) {
                     handleDialogForTags(
                         selectedButton,
                         collection,
-                        selectedTagsProvider,
+                        selectionHolder,
                         handleBaseModalNotifier,
                     );
                 }),
                 handleOtherConfigsDialogNotifier.event(() => {
                     handleDialogForOtherConfigs(
-                        selectedOtherConfigsProvider,
+                        selectionHolder,
                         handleBaseModalNotifier,
                     );
                 }),
@@ -65,8 +57,7 @@ export async function askUserForTestrunParameters(collection: Collection) {
 }
 
 async function handleBaseModalInteractions(
-    selectedTagsProvider: SelectedTagsProvider,
-    otherConfigsProvider: SelectedOtherConfigsProvider,
+    selectionHolder: SelectionHolder,
     tagsDialogNotifier: EventEmitter<
         ButtonLabel.IncludeTags | ButtonLabel.ExcludeTags
     >,
@@ -75,8 +66,7 @@ async function handleBaseModalInteractions(
     shouldContinue: boolean;
     value?: UserInputData;
 }> {
-    const { included: includedTags, excluded: excludedTags } =
-        selectedTagsProvider.getSelectedTags();
+    const { includedTags, excludedTags } = selectionHolder.getSelectedOptions();
 
     const pickedOption = await window.showInformationMessage(
         `Do you want to add additional config options?`,
@@ -93,16 +83,9 @@ async function handleBaseModalInteractions(
 
     switch (pickedOption) {
         case ButtonLabel.Run:
-            const { included: includedTags, excluded: excludedTags } =
-                selectedTagsProvider.getSelectedTags();
-            const selectedOtherConfigs = otherConfigsProvider.getValues();
             return {
                 shouldContinue: false,
-                value: {
-                    includedTags,
-                    excludedTags,
-                    otherConfigs: selectedOtherConfigs,
-                },
+                value: selectionHolder.getSelectedOptions(),
             };
 
         case ButtonLabel.OtherConfigs:
@@ -119,11 +102,11 @@ async function handleBaseModalInteractions(
 async function handleDialogForTags(
     selectedButton: ButtonLabel.IncludeTags | ButtonLabel.ExcludeTags,
     collection: Collection,
-    selectedTagsProvider: SelectedTagsProvider,
+    selectionHolder: SelectionHolder,
     baseModalNotifier: EventEmitter<void>,
 ) {
-    const { included: includedTags, excluded: excludedTags } =
-        selectedTagsProvider.getSelectedTags();
+    const { includedTags: includedTags, excludedTags: excludedTags } =
+        selectionHolder.getSelectedOptions();
 
     const items: QuickPickItem[] = getDistinctTagsForCollection(collection)
         .filter((tag) =>
@@ -154,10 +137,10 @@ async function handleDialogForTags(
 
     switch (selectedButton) {
         case ButtonLabel.IncludeTags:
-            selectedTagsProvider.setIncludedTags(selectedTags);
+            selectionHolder.setIncludedTags(selectedTags);
             break;
         case ButtonLabel.ExcludeTags:
-            selectedTagsProvider.setExcludedTags(selectedTags);
+            selectionHolder.setExcludedTags(selectedTags);
             break;
     }
 
@@ -165,30 +148,33 @@ async function handleDialogForTags(
 }
 
 async function handleDialogForOtherConfigs(
-    configsProvider: SelectedOtherConfigsProvider,
+    selectionHolder: SelectionHolder,
     baseModalNotifier: EventEmitter<void>,
 ) {
-    const initialSelection = configsProvider.getValues();
-    const getValueForProvider = (
-        key: keyof OtherConfigData,
+    const { otherConfigs: initialSelection } =
+        selectionHolder.getSelectedOptions();
+    const getValueForSelectionHolder = (
+        key: keyof OtherExecutionConfigData,
         selectedItems: QuickPickItem[],
     ) =>
         selectedItems.some(
-            ({ label }) => (label as keyof OtherConfigData) == key,
+            ({ label }) => (label as keyof OtherExecutionConfigData) == key,
         );
 
     const items: QuickPickItem[] = Object.keys(initialSelection)
         .sort((key1, key2) => (key1 < key2 ? -1 : 1))
         .map((label) => {
-            const key = label as keyof OtherConfigData;
+            const key = label as keyof OtherExecutionConfigData;
 
             return {
                 label: label,
                 picked: initialSelection[key],
-                detail:
-                    key == "sandboxModeDeveloper"
-                        ? `Default can be configured via user setting '${getConfigKeyForSandboxDeveloperMode()}'`
-                        : undefined,
+                description:
+                    key == "bail"
+                        ? "Abort execution on the first failed request, test or assertion."
+                        : key == "parallel"
+                          ? "Run requests in parallel."
+                          : undefined,
             };
         });
 
@@ -202,27 +188,33 @@ async function handleDialogForOtherConfigs(
         return;
     }
 
-    configsProvider.setValues({
-        recursive: getValueForProvider("recursive", newSelection),
-        sandboxModeDeveloper: getValueForProvider(
-            "sandboxModeDeveloper",
-            newSelection,
-        ),
+    selectionHolder.setOtherConfigs({
+        recursive: getValueForSelectionHolder("recursive", newSelection),
+        bail: getValueForSelectionHolder("bail", newSelection),
+        parallel: getValueForSelectionHolder("parallel", newSelection),
     });
 
     baseModalNotifier.fire();
 }
 
-class SelectedTagsProvider {
+class SelectionHolder {
     constructor() {}
 
     private includedTags: string[] = [];
     private excludedTags: string[] = [];
+    private recursive = true;
+    private bail = false;
+    private parallel = false;
 
-    public getSelectedTags() {
+    public getSelectedOptions(): UserInputData {
         return {
-            included: this.includedTags.slice(),
-            excluded: this.excludedTags.slice(),
+            includedTags: this.includedTags.slice(),
+            excludedTags: this.excludedTags.slice(),
+            otherConfigs: {
+                recursive: this.recursive,
+                bail: this.bail,
+                parallel: this.parallel,
+            },
         };
     }
 
@@ -239,30 +231,14 @@ class SelectedTagsProvider {
         }
         this.excludedTags.push(...newTags);
     }
-}
 
-class SelectedOtherConfigsProvider {
-    constructor() {
-        this.values = this.defaultValues;
+    public setOtherConfigs({
+        bail,
+        parallel,
+        recursive,
+    }: OtherExecutionConfigData) {
+        this.bail = bail;
+        this.parallel = parallel;
+        this.recursive = recursive;
     }
-
-    private readonly defaultValues: OtherConfigData = {
-        recursive: true,
-        sandboxModeDeveloper: workspace
-            .getConfiguration()
-            .get<boolean>(getConfigKeyForSandboxDeveloperMode(), false),
-    };
-    private values: OtherConfigData;
-
-    public setValues(newVals: OtherConfigData) {
-        this.values = newVals;
-    }
-
-    public getValues() {
-        return this.values;
-    }
-}
-
-function getConfigKeyForSandboxDeveloperMode() {
-    return "bru-as-code.sandboxDeveloperMode";
 }

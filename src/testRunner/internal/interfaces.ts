@@ -3,12 +3,13 @@ import { OutputChannelLogger } from "../../shared";
 export interface UserInputData {
     includedTags: string[];
     excludedTags: string[];
-    otherConfigs: OtherConfigData;
+    otherConfigs: OtherExecutionConfigData;
 }
 
-export interface OtherConfigData {
+export interface OtherExecutionConfigData {
     recursive: boolean;
-    sandboxModeDeveloper: boolean;
+    bail: boolean;
+    parallel: boolean;
 }
 
 export interface ChildProcessData {
@@ -16,6 +17,7 @@ export interface ChildProcessData {
     collectionRootDirectory: string;
     jsonReportPath: string;
     canUseNpx: boolean;
+    useDeveloperSandbox: boolean;
     reportingAndOptionalData: TestRunReportingAndOptionalData;
 }
 

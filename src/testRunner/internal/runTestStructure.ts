@@ -62,6 +62,7 @@ export async function runTestStructure(
             collectionRootDirectory,
             jsonReportPath,
             canUseNpx: canUseNpx(),
+            useDeveloperSandbox: canUseDeveloperSandbox(),
             reportingAndOptionalData: {
                 htmlReportPath,
                 testEnvironment,
@@ -90,6 +91,10 @@ export async function runTestStructure(
                 } for triggering the test run.${lineBreak}`,
             );
         }
+
+        options.appendOutput(
+            `${canUseDeveloperSandbox() ? "Using" : "Not using"} Javascript sandbox developer mode due to user setting ${getLinkToUserSetting(getConfigKeyForSandboxDeveloperMode())}`,
+        );
 
         abortEmitter.event(() => {
             while (!childProcess.pid) {
@@ -214,15 +219,28 @@ export async function runTestStructure(
     });
 }
 
-const getJsonReportPath = (collectionRootDir: string) =>
-    resolve(dirname(collectionRootDir), "results.json");
+function getJsonReportPath(collectionRootDir: string) {
+    return resolve(dirname(collectionRootDir), "results.json");
+}
 
-const canUseNpx = () => {
+function canUseNpx() {
     return workspace
         .getConfiguration()
         .get<boolean>(getConfigKeyForAllowingUsageOfNpx(), false);
-};
-const getConfigKeyForAllowingUsageOfNpx = () =>
-    "bru-as-code.allowInstallationOfBrunoCliViaNpx";
+}
+
+function canUseDeveloperSandbox() {
+    return workspace
+        .getConfiguration()
+        .get<boolean>(getConfigKeyForSandboxDeveloperMode(), false);
+}
+
+function getConfigKeyForAllowingUsageOfNpx() {
+    return "bru-as-code.allowInstallationOfBrunoCliViaNpx";
+}
+
+function getConfigKeyForSandboxDeveloperMode() {
+    return "bru-as-code.sandboxDeveloperMode";
+}
 
 const getLineBreakForTestRunOutput = () => "\r\n";

@@ -30,6 +30,7 @@ function getCommandForCli({
     collectionRootDirectory,
     jsonReportPath,
     testPath,
+    useDeveloperSandbox,
     reportingAndOptionalData: {
         htmlReportPath,
         logger,
@@ -53,6 +54,7 @@ function getCommandForCli({
             : [],
         argForRunCommand,
         ...mapUserInputDataToCommandArgs(userInput),
+        useDeveloperSandbox ? "--sandbox=developer" : [], // The CLI uses the sandbox 'safe' per default.
         "--reporter-html",
         htmlReportPath,
         "--reporter-json",
@@ -97,7 +99,7 @@ function mapUserInputDataToCommandArgs(userInput?: UserInputData) {
     const {
         excludedTags,
         includedTags,
-        otherConfigs: { recursive, sandboxModeDeveloper },
+        otherConfigs: { recursive, bail, parallel },
     } = userInput;
 
     const argsForTags = (
@@ -107,7 +109,8 @@ function mapUserInputDataToCommandArgs(userInput?: UserInputData) {
     );
 
     const argsForOtherConfigs = (recursive ? ["--r"] : []).concat(
-        sandboxModeDeveloper ? "--sandbox=developer" : [],
+        bail ? ["--bail"] : [],
+        parallel ? ["--parallel"] : [],
     );
 
     return argsForTags.concat(argsForOtherConfigs);
