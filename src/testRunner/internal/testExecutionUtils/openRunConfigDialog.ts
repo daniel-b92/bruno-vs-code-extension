@@ -1,6 +1,6 @@
 import { Disposable, EventEmitter, QuickPickItem, window } from "vscode";
 import { Collection, getDistinctTagsForCollection } from "../../../shared";
-import { OtherExecutionConfigData, UserInputData } from "../interfaces";
+import { OtherExecutionConfigData, TestRunUserInputData } from "../interfaces";
 
 enum NonTagRelatedButtonLabel {
     Run = "Run",
@@ -12,7 +12,7 @@ enum TagRelatedButtonLabel {
     ExcludeTags = "Exclude tags",
 }
 
-export async function askUserForTestrunParameters(collection: Collection) {
+export async function openRunConfigDialog(collection: Collection) {
     const selectionHolder = new SelectionHolder();
     const handleBaseModalNotifier = new EventEmitter<void>();
     const handleTagsDialogNotifier = new EventEmitter<
@@ -21,7 +21,7 @@ export async function askUserForTestrunParameters(collection: Collection) {
     const handleOtherConfigsDialogNotifier = new EventEmitter<void>();
     const toDispose: Disposable[] = [];
 
-    const userInputPromise = new Promise<UserInputData | undefined>(
+    const userInputPromise = new Promise<TestRunUserInputData | undefined>(
         (resolve) => {
             toDispose.push(
                 handleBaseModalNotifier.event(() => {
@@ -69,7 +69,7 @@ async function handleBaseModalInteractions(
     >,
 ): Promise<{
     shouldContinue: boolean;
-    value?: UserInputData;
+    value?: TestRunUserInputData;
 }> {
     const { includedTags, excludedTags } = selectionHolder.getSelectedOptions();
 
@@ -224,7 +224,7 @@ class SelectionHolder {
     private bail = false;
     private parallel = false;
 
-    public getSelectedOptions(): UserInputData {
+    public getSelectedOptions(): TestRunUserInputData {
         return {
             includedTags: this.includedTags.slice(),
             excludedTags: this.excludedTags.slice(),

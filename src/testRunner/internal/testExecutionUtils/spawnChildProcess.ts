@@ -1,8 +1,8 @@
 import { OutputChannelLogger } from "../../../shared";
-import { ChildProcessData, UserInputData } from "../interfaces";
+import { TestRunChildProcessData, TestRunUserInputData } from "../interfaces";
 import { exec, spawn } from "child_process";
 
-export function spawnChildProcess(childProcessData: ChildProcessData) {
+export function spawnChildProcess(childProcessData: TestRunChildProcessData) {
     const { collectionRootDirectory, reportingAndOptionalData } =
         childProcessData;
 
@@ -37,7 +37,7 @@ function getCommandForCli({
         testEnvironment,
         userInput,
     },
-}: ChildProcessData) {
+}: TestRunChildProcessData) {
     const npmPackageForUsingViaNpx = `${getNpmPackageNameWithoutSpecificVersion()}@2.13.2`;
 
     const shouldUseNpxForTriggeringTests = shouldUseNpx(canUseNpx, logger);
@@ -91,7 +91,7 @@ function shouldUseNpx(canUseNpx: boolean, logger?: OutputChannelLogger) {
     return !isPackageInstalledGlobally;
 }
 
-function mapUserInputDataToCommandArgs(userInput?: UserInputData) {
+function mapUserInputDataToCommandArgs(userInput?: TestRunUserInputData) {
     if (!userInput) {
         return [];
     }

@@ -28,8 +28,8 @@ import {
     getLoggerFromSubscriptions,
     isCollectionItemWithSequence,
 } from "../shared";
-import { askUserForTestrunParameters } from "./internal/testExecutionUtils/askUserForRunParameters";
-import { UserInputData } from "./internal/interfaces";
+import { openRunConfigDialog } from "./internal/testExecutionUtils/openRunConfigDialog";
+import { TestRunUserInputData } from "./internal/interfaces";
 
 export async function activateRunner(
     context: ExtensionContext,
@@ -159,24 +159,22 @@ export async function activateRunner(
 
             const alreadyKnown = prev.some((collection) => {
                 return (
-                    !currentCollection ||
+                    currentCollection &&
                     collection.isRootDirectory(
                         currentCollection.getRootDirectory(),
                     )
                 );
             });
 
-            return alreadyKnown
+            return !currentCollection || alreadyKnown
                 ? prev
                 : prev.concat(currentCollection as Collection);
         }, [] as Collection[]);
 
-        let userInput: UserInputData | undefined = undefined;
+        let userInput: TestRunUserInputData | undefined = undefined;
 
         if (collectionsForRequest.length == 1) {
-            userInput = await askUserForTestrunParameters(
-                collectionsForRequest[0],
-            );
+            userInput = await openRunConfigDialog(collectionsForRequest[0]);
 
             if (!userInput) {
                 return;
@@ -233,7 +231,7 @@ export async function activateRunner(
         "Run Bruno Tests",
         TestRunProfileKind.Run,
         runHandler,
-        false,
+        true,
         undefined,
         true,
     );
@@ -296,10 +294,10 @@ export async function activateRunner(
             return;
         }
 
-        let userInput: UserInputData | undefined = undefined;
+        let userInput: TestRunUserInputData | undefined = undefined;
 
         if (withDialog) {
-            userInput = await askUserForTestrunParameters(collection);
+            userInput = await openRunConfigDialog(collection);
 
             if (!userInput) {
                 return;

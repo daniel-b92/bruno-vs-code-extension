@@ -22,7 +22,7 @@ import {
     getLinkToUserSetting,
     OutputChannelLogger,
 } from "../../shared";
-import { UserInputData } from "./interfaces";
+import { TestRunUserInputData } from "./interfaces";
 
 export const startTestRun = async (
     ctrl: TestController,
@@ -31,7 +31,7 @@ export const startTestRun = async (
         collectionItemProvider: CollectionItemProvider;
         queue: TestRunQueue;
         logger?: OutputChannelLogger;
-        userInput?: UserInputData;
+        userInput?: TestRunUserInputData;
     },
 ) => {
     const { collectionItemProvider, queue, logger, userInput } = additionalData;
@@ -154,7 +154,7 @@ const prepareAndRunTest = async (
         collectionRootDirectory: string;
         htmlReportPath: string;
         logger?: OutputChannelLogger;
-        userInput?: UserInputData;
+        userInput?: TestRunUserInputData;
     },
 ): Promise<{ didRun: boolean; passed?: boolean }> => {
     const { collectionRootDirectory, htmlReportPath, logger, userInput } =

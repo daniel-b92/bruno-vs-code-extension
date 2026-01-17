@@ -1,6 +1,6 @@
 import { OutputChannelLogger } from "../../shared";
 
-export interface UserInputData {
+export interface TestRunUserInputData {
     includedTags: string[];
     excludedTags: string[];
     otherConfigs: OtherExecutionConfigData;
@@ -12,7 +12,7 @@ export interface OtherExecutionConfigData {
     parallel: boolean;
 }
 
-export interface ChildProcessData {
+export interface TestRunChildProcessData {
     testPath: string;
     collectionRootDirectory: string;
     jsonReportPath: string;
@@ -25,5 +25,5 @@ export interface TestRunReportingAndOptionalData {
     htmlReportPath: string;
     testEnvironment?: string;
     logger?: OutputChannelLogger;
-    userInput?: UserInputData;
+    userInput?: TestRunUserInputData;
 }
