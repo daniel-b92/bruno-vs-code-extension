@@ -230,7 +230,7 @@
                 {
                     "command": "brunoCollectionsView.openDialogForTestRun",
                     "when": "view == brunoCollectionsView",
-                    "group": "navigation@2"
+                    "group": "navigation@3"
                 },
                 {
                     "command": "brunoCollectionsView.openInNewTabgroup",
