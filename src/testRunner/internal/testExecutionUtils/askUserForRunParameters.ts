@@ -2,18 +2,21 @@ import { Disposable, EventEmitter, QuickPickItem, window } from "vscode";
 import { Collection, getDistinctTagsForCollection } from "../../../shared";
 import { OtherExecutionConfigData, UserInputData } from "../interfaces";
 
-enum ButtonLabel {
+enum NonTagRelatedButtonLabel {
     Run = "Run",
+    OtherConfigs = "Other configs",
+}
+
+enum TagRelatedButtonLabel {
     IncludeTags = "Include tags",
     ExcludeTags = "Exclude tags",
-    OtherConfigs = "Other configs",
 }
 
 export async function askUserForTestrunParameters(collection: Collection) {
     const selectionHolder = new SelectionHolder();
     const handleBaseModalNotifier = new EventEmitter<void>();
     const handleTagsDialogNotifier = new EventEmitter<
-        ButtonLabel.IncludeTags | ButtonLabel.ExcludeTags
+        TagRelatedButtonLabel.IncludeTags | TagRelatedButtonLabel.ExcludeTags
     >();
     const handleOtherConfigsDialogNotifier = new EventEmitter<void>();
     const toDispose: Disposable[] = [];
@@ -24,8 +27,10 @@ export async function askUserForTestrunParameters(collection: Collection) {
                 handleBaseModalNotifier.event(() => {
                     handleBaseModalInteractions(
                         selectionHolder,
-                        handleTagsDialogNotifier,
                         handleOtherConfigsDialogNotifier,
+                        getDistinctTagsForCollection(collection).length > 0 // Only allow editing of included/excluded tags, if there are some tags defined in the collection.
+                            ? handleTagsDialogNotifier
+                            : undefined,
                     ).then(({ shouldContinue, value }) => {
                         if (!shouldContinue) {
                             resolve(value);
@@ -58,10 +63,10 @@ export async function askUserForTestrunParameters(collection: Collection) {
 
 async function handleBaseModalInteractions(
     selectionHolder: SelectionHolder,
-    tagsDialogNotifier: EventEmitter<
-        ButtonLabel.IncludeTags | ButtonLabel.ExcludeTags
-    >,
     handleOtherConfigsDialogNotifier: EventEmitter<void>,
+    tagsDialogNotifier?: EventEmitter<
+        TagRelatedButtonLabel.IncludeTags | TagRelatedButtonLabel.ExcludeTags
+    >,
 ): Promise<{
     shouldContinue: boolean;
     value?: UserInputData;
@@ -72,9 +77,18 @@ async function handleBaseModalInteractions(
         `Do you want to add additional config options?`,
         {
             modal: true,
-            detail: `Currently ${includedTags.length} included tags, ${excludedTags.length} excluded tags`,
+            detail: tagsDialogNotifier
+                ? `Currently ${includedTags.length} included tags, ${excludedTags.length} excluded tags`
+                : undefined,
         },
-        ...Object.values(ButtonLabel),
+        ...(
+            Object.values(NonTagRelatedButtonLabel) as (
+                | NonTagRelatedButtonLabel
+                | TagRelatedButtonLabel
+            )[]
+        ).concat(
+            tagsDialogNotifier ? Object.values(TagRelatedButtonLabel) : [],
+        ),
     );
 
     if (pickedOption == undefined) {
@@ -82,25 +96,29 @@ async function handleBaseModalInteractions(
     }
 
     switch (pickedOption) {
-        case ButtonLabel.Run:
+        case NonTagRelatedButtonLabel.Run:
             return {
                 shouldContinue: false,
                 value: selectionHolder.getSelectedOptions(),
             };
 
-        case ButtonLabel.OtherConfigs:
+        case NonTagRelatedButtonLabel.OtherConfigs:
             handleOtherConfigsDialogNotifier.fire();
             break;
 
         default:
-            tagsDialogNotifier.fire(pickedOption);
+            if (tagsDialogNotifier) {
+                tagsDialogNotifier.fire(pickedOption);
+            }
     }
 
     return { shouldContinue: true };
 }
 
 async function handleDialogForTags(
-    selectedButton: ButtonLabel.IncludeTags | ButtonLabel.ExcludeTags,
+    selectedButton:
+        | TagRelatedButtonLabel.IncludeTags
+        | TagRelatedButtonLabel.ExcludeTags,
     collection: Collection,
     selectionHolder: SelectionHolder,
     baseModalNotifier: EventEmitter<void>,
@@ -110,7 +128,7 @@ async function handleDialogForTags(
 
     const items: QuickPickItem[] = getDistinctTagsForCollection(collection)
         .filter((tag) =>
-            selectedButton == ButtonLabel.IncludeTags
+            selectedButton == TagRelatedButtonLabel.IncludeTags
                 ? !excludedTags.includes(tag)
                 : !includedTags.includes(tag),
         )
@@ -118,7 +136,7 @@ async function handleDialogForTags(
         .map((tag) => ({
             label: tag,
             picked:
-                selectedButton == ButtonLabel.IncludeTags
+                selectedButton == TagRelatedButtonLabel.IncludeTags
                     ? includedTags.includes(tag)
                     : excludedTags.includes(tag),
         }));
@@ -126,7 +144,7 @@ async function handleDialogForTags(
     const selectedItems = await window.showQuickPick(items, {
         canPickMany: true,
         ignoreFocusOut: true,
-        title: `Tags to ${selectedButton == ButtonLabel.IncludeTags ? "include" : "exclude"}`,
+        title: `Tags to ${selectedButton == TagRelatedButtonLabel.IncludeTags ? "include" : "exclude"}`,
     });
 
     if (!selectedItems) {
@@ -136,10 +154,10 @@ async function handleDialogForTags(
     const selectedTags = selectedItems.map(({ label }) => label);
 
     switch (selectedButton) {
-        case ButtonLabel.IncludeTags:
+        case TagRelatedButtonLabel.IncludeTags:
             selectionHolder.setIncludedTags(selectedTags);
             break;
-        case ButtonLabel.ExcludeTags:
+        case TagRelatedButtonLabel.ExcludeTags:
             selectionHolder.setExcludedTags(selectedTags);
             break;
     }

@@ -27,7 +27,6 @@ import {
     CollectionItemWithSequence,
     getLoggerFromSubscriptions,
     isCollectionItemWithSequence,
-    getDistinctTagsForCollection,
 } from "../shared";
 import { askUserForTestrunParameters } from "./internal/testExecutionUtils/askUserForRunParameters";
 import { UserInputData } from "./internal/interfaces";
@@ -247,12 +246,10 @@ export async function activateRunner(
         let userInput: UserInputData | undefined = undefined;
 
         if (withDialog) {
-            if (getDistinctTagsForCollection(collection).length > 0) {
-                userInput = await askUserForTestrunParameters(collection);
+            userInput = await askUserForTestrunParameters(collection);
 
-                if (!userInput) {
-                    return;
-                }
+            if (!userInput) {
+                return;
             }
         }
 
