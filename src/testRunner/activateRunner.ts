@@ -111,32 +111,89 @@ export async function activateRunner(
         }),
     );
 
-    const runHandler = async (
+    async function runHandler(
         request: TestRunRequest,
         cancellation: CancellationToken,
-    ) => {
-        if (!request.continuous) {
-            return await startTestRun(ctrl, request, {
-                collectionItemProvider,
-                queue,
-                logger,
-            });
+    ) {
+        const { include, continuous } = request;
+
+        if (!continuous) {
+            await handleNonContinuousRunRequest(request);
         }
 
-        if (request.include === undefined) {
+        if (include === undefined) {
             watchingTests.set("ALL", request.profile);
             cancellation.onCancellationRequested(() =>
                 watchingTests.delete("ALL"),
             );
         } else {
-            request.include.forEach((item) =>
-                watchingTests.set(item, request.profile),
-            );
+            include.forEach((item) => watchingTests.set(item, request.profile));
             cancellation.onCancellationRequested(() =>
-                request.include!.forEach((item) => watchingTests.delete(item)),
+                include.forEach((item) => watchingTests.delete(item)),
             );
         }
-    };
+    }
+
+    async function handleNonContinuousRunRequest(request: TestRunRequest) {
+        const { exclude, include } = request;
+        const includedPaths = include
+            ? include
+                  .map(({ uri }) => uri?.fsPath)
+                  .filter((val) => val != undefined)
+            : collectionItemProvider
+                  .getRegisteredCollections()
+                  .map((c) => c.getRootDirectory());
+
+        const excludedPaths = exclude
+            ? exclude
+                  .map(({ uri }) => uri?.fsPath)
+                  .filter((val) => val != undefined)
+            : [];
+
+        const remainingPaths = includedPaths.filter(
+            (path) => !excludedPaths.includes(path),
+        );
+        const collectionsForRequest = remainingPaths.reduce((prev, curr) => {
+            const currentCollection =
+                collectionItemProvider.getAncestorCollectionForPath(curr);
+
+            const alreadyKnown = prev.some((collection) => {
+                return (
+                    !currentCollection ||
+                    collection.isRootDirectory(
+                        currentCollection.getRootDirectory(),
+                    )
+                );
+            });
+
+            return alreadyKnown
+                ? prev
+                : prev.concat(currentCollection as Collection);
+        }, [] as Collection[]);
+
+        let userInput: UserInputData | undefined = undefined;
+
+        if (collectionsForRequest.length == 1) {
+            userInput = await askUserForTestrunParameters(
+                collectionsForRequest[0],
+            );
+
+            if (!userInput) {
+                return;
+            }
+        } else if (collectionsForRequest.length > 1) {
+            window.showInformationMessage(
+                `Skipping run configuration dialog because items from multiple collections are selected.`,
+            );
+        }
+
+        return await startTestRun(ctrl, request, {
+            collectionItemProvider,
+            queue,
+            logger,
+            userInput,
+        });
+    }
 
     ctrl.refreshHandler = () => {
         window.withProgress(
