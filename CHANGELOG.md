@@ -1,10 +1,18 @@
 ## [Unreleased]
 
+### Features
+
+- Add option for configuring test run via dialog (included tags, excluded tags, recursive, parallel, bail).
+    - When triggered via Testing explorer, the dialog will always be shown (if selected items are only from a single collection).
+    - In the collection explorer, the new dialog can be opened via a new context menu option.
+- Add new user setting `bru-as-code.sandboxDeveloperMode` for using Javascript sandbox `developer` during test execution.
+
 ### Fixes / Improvements
 
 - Fix an issue, where formatting a `bru` file with a code block with a missing closing bracket would insert text (by making code block parsing more restrictive).
 - Add support for custom HTTP method blocks (Syntax highlighting, Diagnostics, Snippets).
 - Add support for new fields `timeout`, `followRedirects` and `maxRedirects` in settings block (Diagnostics, Snippets, Completions).
+- Remove non-working filtering option by request tags in testing explorer.
 
 ## [0.19.2] (2026-01-09)
 
