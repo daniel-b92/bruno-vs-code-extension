@@ -44,7 +44,10 @@ export class CollectionExplorer
 
     constructor(
         private itemProvider: CollectionItemProvider,
-        startTestRunEmitter: vscode.EventEmitter<vscode.Uri>,
+        startTestRunEmitter: vscode.EventEmitter<{
+            uri: vscode.Uri;
+            withDialog: boolean;
+        }>,
         private multiFileOperationNotifier: vscode.EventEmitter<MultiFileOperationWithStatus>,
         private logger?: OutputChannelLogger,
     ) {
@@ -303,7 +306,10 @@ export class CollectionExplorer
 
     private registerCommands(
         treeDataProvider: BrunoTreeItemProvider,
-        startTestRunEmitter: vscode.EventEmitter<vscode.Uri>,
+        startTestRunEmitter: vscode.EventEmitter<{
+            uri: vscode.Uri;
+            withDialog: boolean;
+        }>,
     ) {
         vscode.commands.registerCommand(`${this.treeViewId}.refresh`, () => {
             vscode.window.withProgress(
@@ -641,7 +647,20 @@ export class CollectionExplorer
         vscode.commands.registerCommand(
             `${this.treeViewId}.startTestRun`,
             (item: BrunoTreeItem) => {
-                startTestRunEmitter.fire(vscode.Uri.file(item.getPath()));
+                startTestRunEmitter.fire({
+                    uri: vscode.Uri.file(item.getPath()),
+                    withDialog: false,
+                });
+            },
+        );
+
+        vscode.commands.registerCommand(
+            `${this.treeViewId}.openDialogForTestRun`,
+            (item: BrunoTreeItem) => {
+                startTestRunEmitter.fire({
+                    uri: vscode.Uri.file(item.getPath()),
+                    withDialog: true,
+                });
             },
         );
     }

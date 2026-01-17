@@ -9,7 +9,10 @@ import {
 export function activateTreeView(
     context: ExtensionContext,
     itemProvider: CollectionItemProvider,
-    startTestRunEmitter: EventEmitter<Uri>,
+    startTestRunEmitter: EventEmitter<{
+        uri: Uri;
+        withDialog: boolean;
+    }>,
     multiFileOperationNotifier: EventEmitter<MultiFileOperationWithStatus>,
 ) {
     context.subscriptions.push(

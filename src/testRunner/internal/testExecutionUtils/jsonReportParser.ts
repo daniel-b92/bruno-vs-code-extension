@@ -19,18 +19,19 @@ export const getTestFilesWithFailures = (jsonReportPath: string) => {
     }
 
     const reportData = JSON.parse(
-        readFileSync(jsonReportPath).toString()
+        readFileSync(jsonReportPath).toString(),
     ) as JsonReportData;
 
     const resultsWithFailures = reportData[0].results.filter(
         (result) =>
             result.testResults.some(
-                (testResult) => testResult.status == "fail"
+                (testResult) => testResult.status == "fail",
             ) ||
             result.assertionResults.some(
-                (result) => result.status == "fail" || result.error != undefined
+                (result) =>
+                    result.status == "fail" || result.error != undefined,
             ) ||
-            result.error != undefined
+            result.error != undefined,
     );
 
     return resultsWithFailures.map((res) => ({

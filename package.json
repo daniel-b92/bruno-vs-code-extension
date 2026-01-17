@@ -79,6 +79,11 @@
                     "default": false,
                     "markdownDescription": "Allow the Bruno CLI npm package to be installed temporarily via npx, if it's not already installed globally. See [npm docs](https://docs.npmjs.com/cli/v11/commands/npx) for further infos on npx."
                 },
+                "bru-as-code.sandboxDeveloperMode": {
+                    "type": "boolean",
+                    "default": false,
+                    "markdownDescription": "Use the 'developer' Javascript sandbox for running tests via Bruno CLI. See option `--sandbox` in the [Bruno_docs](https://docs.usebruno.com/bru-cli/commandOptions) for further infos."
+                },
                 "bru-as-code.suggestCreatingTsConfigsForCollections": {
                     "type": "boolean",
                     "default": true,
@@ -182,7 +187,13 @@
             },
             {
                 "command": "brunoCollectionsView.startTestRun",
-                "title": "Start test run",
+                "title": "Start test run directly",
+                "category": "Bru-as-Code",
+                "enablement": "view == brunoCollectionsView"
+            },
+            {
+                "command": "brunoCollectionsView.openDialogForTestRun",
+                "title": "Open test run dialog",
                 "category": "Bru-as-Code",
                 "enablement": "view == brunoCollectionsView"
             },
@@ -215,6 +226,11 @@
                     "command": "brunoCollectionsView.startTestRun",
                     "when": "view == brunoCollectionsView",
                     "group": "navigation@1"
+                },
+                {
+                    "command": "brunoCollectionsView.openDialogForTestRun",
+                    "when": "view == brunoCollectionsView",
+                    "group": "navigation@3"
                 },
                 {
                     "command": "brunoCollectionsView.openInNewTabgroup",

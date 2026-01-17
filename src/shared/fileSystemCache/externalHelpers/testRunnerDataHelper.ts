@@ -2,11 +2,9 @@ import * as vscode from "vscode";
 import { getTestId, getTestLabel } from "../../../testRunner";
 import { addTestItemAndAncestorsToTestTree } from "../../../testRunner";
 import {
-    BrunoFileType,
     Collection,
     CollectionDirectory,
     CollectionItemWithSequence,
-    filterAsync,
     normalizeDirectoryPath,
     CollectionItem,
     isCollectionItemWithSequence,
@@ -28,10 +26,9 @@ export class TestRunnerDataHelper {
         testItem.sortText = this.getVsCodeTestItemSortText(item);
 
         if (isRequestFile(item) && item.getTags()) {
-            const tags = item.getTags() as string[];
-            testItem.tags = tags.map((tag) => new vscode.TestTag(tag));
-            testItem.description = "tags: ".concat(
-                tags.map((t) => `'${t}'`).join(","),
+            testItem.description = "tags: (".concat(
+                (item.getTags() as string[]).map((t) => `'${t}'`).join(","),
+                ")",
             );
         }
 
@@ -42,7 +39,7 @@ export class TestRunnerDataHelper {
         collectionForDirectory: Collection,
         directory: CollectionDirectory,
     ) {
-        const relevantFiles = await this.getTestFileDescendants(
+        const relevantFiles = this.getTestFileDescendants(
             collectionForDirectory,
             directory,
         );
@@ -56,24 +53,25 @@ export class TestRunnerDataHelper {
         }
     }
 
-    public async getTestFileDescendants(
+    public getTestFileDescendants(
         collectionForDirectory: Collection,
         directory: CollectionDirectory,
     ) {
-        return (await filterAsync(
-            collectionForDirectory
-                .getAllStoredDataForCollection()
-                .slice()
-                .map(({ item }) => item),
-            async (item) =>
-                item.isFile() &&
-                item.getItemType() == BrunoFileType.RequestFile &&
-                isCollectionItemWithSequence(item) &&
-                item.getSequence() != undefined &&
-                item
-                    .getPath()
-                    .startsWith(normalizeDirectoryPath(directory.getPath())),
-        )) as CollectionItemWithSequence[];
+        const normalizedDirectoryPath = normalizeDirectoryPath(
+            directory.getPath(),
+        );
+
+        return collectionForDirectory
+            .getAllStoredDataForCollection()
+            .slice()
+            .map(({ item }) => item)
+            .filter(
+                (item) =>
+                    item.isFile() &&
+                    item.getPath().startsWith(normalizedDirectoryPath) &&
+                    isCollectionItemWithSequence(item) &&
+                    item.getSequence() != undefined,
+            ) as CollectionItemWithSequence[];
     }
 
     public dispose() {}

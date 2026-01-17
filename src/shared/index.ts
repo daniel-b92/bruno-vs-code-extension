@@ -161,6 +161,7 @@ export * from "./fileSystemCache/externalHelpers/collectionItemProvider";
 export * from "./fileSystemCache/externalHelpers/testRunnerDataHelper";
 export * from "./fileSystemCache/externalHelpers/isBrunoFileType";
 export * from "./fileSystemCache/externalHelpers/tempJsFilesProvider";
+export * from "./fileSystemCache/externalHelpers/getDistinctTagsForCollection";
 
 // vsCodeSettings
 export * from "./vsCodeSettings/getLinkToUserSetting";
