@@ -19,7 +19,7 @@ export enum NonBlockSpecificDiagnosticCode {
     BodyBlockNotMatchingTypeFromMethodBlock = "bru9",
     BlocksWithUnknownNamesDefined = "bru10",
     DictionaryBlocksNotStructuredCorrectly = "bru11",
-    NoAssertOrTestsBlockDefined = "bru12",
+    NoBlockForResponseValidationDefined = "bru12",
     BlocksNotAllSeparatedBySingleEmptyLine = "bru13",
     UrlFromMethodBlockNotMatchingQueryParamsBlock = "bru14",
     UrlFromMethodBlockMissingPathParams = "bru15",

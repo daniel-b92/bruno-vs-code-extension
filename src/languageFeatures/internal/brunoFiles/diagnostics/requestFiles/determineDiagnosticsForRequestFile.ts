@@ -26,7 +26,7 @@ import { checkThatNoTextExistsOutsideOfBlocks } from "../shared/checks/multipleB
 import { checkAtMostOneBodyBlockExists } from "./checks/multipleBlocks/checkAtMostOneBodyBlockExists";
 import { checkAuthBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks/checkAuthBlockTypeFromMethodBlockExists";
 import { checkBodyBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks/checkBodyBlockTypeFromMethodBlockExists";
-import { checkEitherAssertOrTestsBlockExists } from "./checks/multipleBlocks/checkEitherAssertOrTestsBlockExists";
+import { checkBlockForResponseValidationExists } from "./checks/multipleBlocks/checkBlockForResponseValidationExists";
 import { checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests } from "./checks/multipleBlocks/checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests";
 import { checkUrlFromMethodBlockMatchesPathParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesPathParamsBlock";
 import { checkUrlFromMethodBlockMatchesQueryParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesQueryParamsBlock";
@@ -118,7 +118,7 @@ function collectCommonDiagnostics(
         checkUrlFromMethodBlockMatchesQueryParamsBlock(documentUri, blocks),
         checkUrlFromMethodBlockMatchesPathParamsBlock(documentUri, blocks),
         checkCodeBlocksHaveClosingBracket(documentHelper, blocks),
-        checkEitherAssertOrTestsBlockExists(documentHelper, blocks),
+        checkBlockForResponseValidationExists(documentHelper, blocks),
         checkBlocksAreSeparatedBySingleEmptyLine(
             documentUri,
             blocks,
