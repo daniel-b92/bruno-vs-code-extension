@@ -26,15 +26,19 @@ import {
     getExtensionForBrunoFiles,
     CollectionItemWithSequence,
     getLoggerFromSubscriptions,
-    someAsync,
     isCollectionItemWithSequence,
 } from "../shared";
+import { openRunConfigDialog } from "./internal/testExecutionUtils/openRunConfigDialog";
+import { TestRunUserInputData } from "./internal/interfaces";
 
 export async function activateRunner(
     context: ExtensionContext,
     ctrl: TestController,
     collectionItemProvider: CollectionItemProvider,
-    startTestRunEvent: VscodeEvent<Uri>,
+    startTestRunEvent: VscodeEvent<{
+        uri: Uri;
+        withDialog: boolean;
+    }>,
 ) {
     const watchingTests = new Map<
         VscodeTestItem | "ALL",
@@ -66,9 +70,11 @@ export async function activateRunner(
                             watchingTests.get("ALL"),
                             true,
                         ),
-                        collectionItemProvider,
-                        queue,
-                        logger,
+                        {
+                            collectionItemProvider,
+                            queue,
+                            logger,
+                        },
                     );
                     return;
                 }
@@ -94,43 +100,98 @@ export async function activateRunner(
                     await startTestRun(
                         ctrl,
                         new TestRunRequest(include, undefined, profile, true),
-                        collectionItemProvider,
-                        queue,
-                        logger,
+                        {
+                            collectionItemProvider,
+                            queue,
+                            logger,
+                        },
                     );
                 }
             }
         }),
     );
 
-    const runHandler = async (
+    async function runHandler(
         request: TestRunRequest,
         cancellation: CancellationToken,
-    ) => {
-        if (!request.continuous) {
-            return await startTestRun(
-                ctrl,
-                request,
-                collectionItemProvider,
-                queue,
-                logger,
-            );
+    ) {
+        const { include, continuous } = request;
+
+        if (!continuous) {
+            await handleNonContinuousRunRequest(request);
         }
 
-        if (request.include === undefined) {
+        if (include === undefined) {
             watchingTests.set("ALL", request.profile);
             cancellation.onCancellationRequested(() =>
                 watchingTests.delete("ALL"),
             );
         } else {
-            request.include.forEach((item) =>
-                watchingTests.set(item, request.profile),
-            );
+            include.forEach((item) => watchingTests.set(item, request.profile));
             cancellation.onCancellationRequested(() =>
-                request.include!.forEach((item) => watchingTests.delete(item)),
+                include.forEach((item) => watchingTests.delete(item)),
             );
         }
-    };
+    }
+
+    async function handleNonContinuousRunRequest(request: TestRunRequest) {
+        const { exclude, include } = request;
+        const includedPaths = include
+            ? include
+                  .map(({ uri }) => uri?.fsPath)
+                  .filter((val) => val != undefined)
+            : collectionItemProvider
+                  .getRegisteredCollections()
+                  .map((c) => c.getRootDirectory());
+
+        const excludedPaths = exclude
+            ? exclude
+                  .map(({ uri }) => uri?.fsPath)
+                  .filter((val) => val != undefined)
+            : [];
+
+        const remainingPaths = includedPaths.filter(
+            (path) => !excludedPaths.includes(path),
+        );
+        const collectionsForRequest = remainingPaths.reduce((prev, curr) => {
+            const currentCollection =
+                collectionItemProvider.getAncestorCollectionForPath(curr);
+
+            const alreadyKnown = prev.some((collection) => {
+                return (
+                    currentCollection &&
+                    collection.isRootDirectory(
+                        currentCollection.getRootDirectory(),
+                    )
+                );
+            });
+
+            return !currentCollection || alreadyKnown
+                ? prev
+                : prev.concat(currentCollection as Collection);
+        }, [] as Collection[]);
+
+        let userInput: TestRunUserInputData | undefined = undefined;
+
+        if (collectionsForRequest.length == 1) {
+            userInput = await openRunConfigDialog(collectionsForRequest[0]);
+
+            if (!userInput) {
+                return;
+            }
+        } else if (collectionsForRequest.length > 1) {
+            window.showInformationMessage(
+                `Skipping run configuration dialog because items from multiple collections are selected.`,
+            );
+        }
+
+        return await startTestRun(ctrl, request, {
+            collectionItemProvider,
+            queue,
+            logger,
+            userInput,
+        });
+    }
 
     ctrl.refreshHandler = () => {
         window.withProgress(
@@ -206,49 +267,53 @@ export async function activateRunner(
         }
     };
 
-    startTestRunEvent(async (uri) => {
-        let testItem: VscodeTestItem | undefined;
-
-        const isRunnable = await someAsync(
-            collectionItemProvider.getRegisteredCollections().slice(),
-            async (collection) => {
-                const maybeData = collection.getStoredDataForPath(uri.fsPath);
-
-                if (
-                    maybeData &&
-                    isCollectionItemWithSequence(maybeData.item) &&
-                    (await isRelevantForTestTree(
-                        testRunnerDataHelper,
-                        collection,
-                        maybeData.item,
-                    ))
-                ) {
-                    testItem = maybeData.testItem;
-                    return true;
-                } else {
-                    return false;
-                }
-            },
-        );
-
-        if (isRunnable) {
-            await startTestRun(
-                ctrl,
-                new TestRunRequest(
-                    [testItem as VscodeTestItem],
-                    undefined,
-                    defaultProfile,
-                    false,
-                ),
-                collectionItemProvider,
-                queue,
-                logger,
-            );
-        } else {
+    startTestRunEvent(async ({ uri, withDialog }) => {
+        const showMessageForNonRunnableItem = () =>
             window.showInformationMessage(
                 "No bruno tests found for selected item.",
             );
+        const maybeData = collectionItemProvider.getRegisteredItemAndCollection(
+            uri.fsPath,
+        );
+
+        if (!maybeData) {
+            showMessageForNonRunnableItem();
+            return;
         }
+
+        const {
+            collection,
+            data: { item, testItem },
+        } = maybeData;
+
+        if (
+            !isCollectionItemWithSequence(item) ||
+            !isRelevantForTestTree(testRunnerDataHelper, collection, item)
+        ) {
+            showMessageForNonRunnableItem();
+            return;
+        }
+
+        let userInput: TestRunUserInputData | undefined = undefined;
+
+        if (withDialog) {
+            userInput = await openRunConfigDialog(collection);
+
+            if (!userInput) {
+                return;
+            }
+        }
+
+        await startTestRun(
+            ctrl,
+            new TestRunRequest([testItem], undefined, defaultProfile, false),
+            {
+                collectionItemProvider,
+                queue,
+                logger,
+                userInput,
+            },
+        );
     });
 }
 
@@ -274,7 +339,7 @@ function handleTestTreeUpdates(
     collectionItemProvider: CollectionItemProvider,
     testRunnerDataHelper: TestRunnerDataHelper,
 ) {
-    return collectionItemProvider.subscribeToUpdates()(async (updates) => {
+    return collectionItemProvider.subscribeToUpdates()((updates) => {
         for (const {
             collection,
             data: { item, testItem },
@@ -287,11 +352,7 @@ function handleTestTreeUpdates(
 
             if (
                 updateType == FileChangeType.Created &&
-                (await isRelevantForTestTree(
-                    testRunnerDataHelper,
-                    collection,
-                    item,
-                ))
+                isRelevantForTestTree(testRunnerDataHelper, collection, item)
             ) {
                 addTestItemAndAncestorsToTestTree(controller, collection, item);
                 // ToDo: Fix handling of creation of Collection directories
@@ -324,11 +385,7 @@ function handleTestTreeUpdates(
                 }
             } else if (
                 updateType == FileChangeType.Deleted &&
-                (await isRelevantForTestTree(
-                    testRunnerDataHelper,
-                    collection,
-                    item,
-                ))
+                isRelevantForTestTree(testRunnerDataHelper, collection, item)
             ) {
                 removeTestItemFromTree(
                     controller,
@@ -373,7 +430,7 @@ function removeTestItemFromTree(
     }
 }
 
-async function isRelevantForTestTree(
+function isRelevantForTestTree(
     testRunnerDataHelper: TestRunnerDataHelper,
     collection: Collection,
     item: CollectionItemWithSequence,
@@ -383,11 +440,7 @@ async function isRelevantForTestTree(
             extname(item.getPath()) == getExtensionForBrunoFiles() &&
             item.getSequence() != undefined) ||
         (item instanceof CollectionDirectory &&
-            (
-                await testRunnerDataHelper.getTestFileDescendants(
-                    collection,
-                    item,
-                )
-            ).length > 0)
+            testRunnerDataHelper.getTestFileDescendants(collection, item)
+                .length > 0)
     );
 }

@@ -51,7 +51,10 @@ export async function activate(context: ExtensionContext) {
         logger,
     );
 
-    const startTestRunEmitter = new EventEmitter<Uri>();
+    const startTestRunEmitter = new EventEmitter<{
+        uri: Uri;
+        withDialog: boolean;
+    }>();
 
     context.subscriptions.push(
         startTestRunEmitter,

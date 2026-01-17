@@ -1,11 +1,11 @@
 import { promisify } from "util";
-import { getTestLabel } from "../testTreeUtils/testTreeHelper";
+import { getTestLabel } from "../../testTreeUtils/testTreeHelper";
 import { Uri, ViewColumn, window } from "vscode";
 import { readFile } from "fs";
 
 export async function showHtmlReport(
     htmlReportPath: string,
-    testItemPath: string
+    testItemPath: string,
 ) {
     const column = window.activeTextEditor
         ? window.activeTextEditor.viewColumn
@@ -20,7 +20,7 @@ export async function showHtmlReport(
             enableFindWidget: true,
             enableScripts: true,
             retainContextWhenHidden: true,
-        }
+        },
     );
 
     panel.webview.html = await promisify(readFile)(htmlReportPath, "utf-8");

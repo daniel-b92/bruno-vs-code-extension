@@ -1,4 +1,4 @@
-import { showHtmlReport } from "./showHtmlReport";
+import { showHtmlReport } from "./testExecutionUtils/showHtmlReport";
 import {
     EventEmitter,
     TestController,
@@ -22,14 +22,20 @@ import {
     getLinkToUserSetting,
     OutputChannelLogger,
 } from "../../shared";
+import { TestRunUserInputData } from "./interfaces";
 
 export const startTestRun = async (
     ctrl: TestController,
     request: TestRunRequest,
-    collectionItemProvider: CollectionItemProvider,
-    queue: TestRunQueue,
-    logger?: OutputChannelLogger,
+    additionalData: {
+        collectionItemProvider: CollectionItemProvider;
+        queue: TestRunQueue;
+        logger?: OutputChannelLogger;
+        userInput?: TestRunUserInputData;
+    },
 ) => {
+    const { collectionItemProvider, queue, logger, userInput } = additionalData;
+
     const discoverTests = (tests: Iterable<vscodeTestItem>) => {
         const result: QueuedTest[] = [];
 
@@ -97,9 +103,12 @@ export const startTestRun = async (
             const { didRun, passed } = await prepareAndRunTest(
                 { test, abortEmitter, id, request },
                 run,
-                collectionRootDir,
-                htmlReportPath,
-                logger,
+                {
+                    collectionRootDirectory: collectionRootDir,
+                    htmlReportPath,
+                    logger,
+                    userInput,
+                },
             );
 
             if (!didRun) {
@@ -141,10 +150,16 @@ export const startTestRun = async (
 const prepareAndRunTest = async (
     { test, abortEmitter }: QueuedTest,
     run: TestRun,
-    collectionRootDirectory: string,
-    htmlReportPath: string,
-    logger?: OutputChannelLogger,
+    additionalData: {
+        collectionRootDirectory: string;
+        htmlReportPath: string;
+        logger?: OutputChannelLogger;
+        userInput?: TestRunUserInputData;
+    },
 ): Promise<{ didRun: boolean; passed?: boolean }> => {
+    const { collectionRootDirectory, htmlReportPath, logger, userInput } =
+        additionalData;
+
     if (checkForRequestedCancellation(run)) {
         run.end();
         return { didRun: false };
@@ -165,12 +180,17 @@ const prepareAndRunTest = async (
 
     const passed = await runTestStructure(
         test,
-        run,
-        abortEmitter,
-        collectionRootDirectory,
-        htmlReportPath,
-        testEnvironment,
-        logger,
+        {
+            options: run,
+            abortEmitter,
+            collectionRootDirectory,
+        },
+        {
+            htmlReportPath,
+            testEnvironment,
+            logger,
+            userInput,
+        },
     );
 
     return { didRun: true, passed };
