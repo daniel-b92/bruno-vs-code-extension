@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.20.0] (2026-01-18)
 
 ### Features
 
@@ -12,6 +12,8 @@
 - Fix an issue, where formatting a `bru` file with a code block with a missing closing bracket would insert text (by making code block parsing more restrictive).
 - Add support for custom HTTP method blocks (Syntax highlighting, Diagnostics, Snippets).
 - Add support for new fields `timeout`, `followRedirects` and `maxRedirects` in settings block (Diagnostics, Snippets, Completions).
+- Adjust diagnostic for no existing `tests` or `assert` block to also check for a `post-response` block.
+- Add diagnostic for cases where the same request tag is defined multiple times.
 - Remove non-working filtering option by request tags in testing explorer.
 
 ## [0.19.2] (2026-01-09)
