@@ -7,4 +7,5 @@ export enum RelevantWithinMetaBlockDiagnosticCode {
     DuplicateKeysDefinedInMetaBlock = "bru105",
     MandatoryValuesMissingInMetaBlock = "bru106",
     FolderSequenceNotUniqueWithinParentFolder = "bru107",
+    DuplicateTagsDefined = "bru108",
 }

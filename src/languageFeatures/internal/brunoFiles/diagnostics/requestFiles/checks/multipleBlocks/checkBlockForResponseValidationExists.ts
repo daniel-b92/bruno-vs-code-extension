@@ -7,15 +7,16 @@ import {
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
-export function checkEitherAssertOrTestsBlockExists(
+export function checkBlockForResponseValidationExists(
     documentHelper: TextDocumentHelper,
-    blocks: Block[]
+    blocks: Block[],
 ): DiagnosticWithCode | undefined {
     if (
         blocks.filter(
             ({ name }) =>
                 name == RequestFileBlockName.Tests ||
-                name == RequestFileBlockName.Assertions
+                name == RequestFileBlockName.Assertions ||
+                name == RequestFileBlockName.PostResponseScript,
         ).length == 0
     ) {
         return getDiagnostic(documentHelper);
@@ -26,16 +27,16 @@ export function checkEitherAssertOrTestsBlockExists(
 
 function getDiagnostic(documentHelper: TextDocumentHelper): DiagnosticWithCode {
     const lastLine = documentHelper.getLineByIndex(
-        documentHelper.getLineCount() - 1
+        documentHelper.getLineCount() - 1,
     );
 
     return {
-        message: `No '${RequestFileBlockName.Assertions}' or '${RequestFileBlockName.Tests}' block is defined.`,
+        message: `No '${RequestFileBlockName.Assertions}', '${RequestFileBlockName.PostResponseScript}' or '${RequestFileBlockName.Tests}' block is defined.`,
         range: new Range(
             new Position(documentHelper.getLineCount() - 1, 0),
-            new Position(documentHelper.getLineCount() - 1, lastLine.length)
+            new Position(documentHelper.getLineCount() - 1, lastLine.length),
         ),
         severity: DiagnosticSeverity.Warning,
-        code: NonBlockSpecificDiagnosticCode.NoAssertOrTestsBlockDefined,
+        code: NonBlockSpecificDiagnosticCode.NoBlockForResponseValidationDefined,
     };
 }

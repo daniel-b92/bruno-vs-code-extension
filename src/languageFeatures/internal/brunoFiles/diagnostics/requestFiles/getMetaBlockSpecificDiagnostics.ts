@@ -10,6 +10,7 @@ import {
     RequestFileBlockName,
     DictionaryBlock,
     isDictionaryBlockArrayField,
+    DictionaryBlockArrayField,
 } from "../../../../../shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
@@ -24,6 +25,7 @@ import { checkSequenceInMetaBlockIsValid } from "../shared/checks/singleBlocks/c
 import { checkSequenceInMetaBlockIsUniqueWithinFolder } from "./checks/relatedRequests/checkSequenceInMetaBlockIsUniqueWithinFolder";
 import { checkDictionaryBlockArrayFieldsStructure } from "../shared/checks/singleBlocks/checkDictionaryBlockArrayFieldsStructure";
 import { checkDictionaryBlockArrayFieldsValues } from "../shared/checks/singleBlocks/checkDictionaryBlockArrayFieldsValues";
+import { checkNoDuplicateTagsAreDefined } from "./checks/singleBlocks/checkNoDuplicateTagsAreDefined";
 
 export async function getMetaBlockSpecificDiagnostics(
     itemProvider: CollectionItemProvider,
@@ -79,11 +81,6 @@ export async function getMetaBlockSpecificDiagnostics(
                     ),
                 ),
         ),
-        tagsFields.length == 1 && isDictionaryBlockArrayField(tagsFields[0])
-            ? checkDictionaryBlockArrayFieldsValues(documentUri, [
-                  tagsFields[0],
-              ])
-            : undefined,
         typeFields.length == 1 && isDictionaryBlockSimpleField(typeFields[0])
             ? checkValueForDictionaryBlockSimpleFieldIsValid(
                   typeFields[0],
@@ -92,7 +89,11 @@ export async function getMetaBlockSpecificDiagnostics(
               )
             : undefined,
         checkMetaBlockStartsInFirstLine(documentHelper, metaBlock),
-    ];
+    ].concat(
+        tagsFields.length == 1 && isDictionaryBlockArrayField(tagsFields[0])
+            ? runChecksForTagsField(documentUri, tagsFields[0])
+            : [],
+    );
 
     for (const results of await provideRelatedFilesDiagnosticsForMetaBlock(
         itemProvider,
@@ -134,4 +135,13 @@ async function provideRelatedFilesDiagnosticsForMetaBlock(
         relatedRequestsHelper.unregisterDiagnostic(documentUri.fsPath, code);
         return [];
     }
+}
+
+function runChecksForTagsField(
+    documentUri: Uri,
+    tagsField: DictionaryBlockArrayField,
+) {
+    return [
+        checkDictionaryBlockArrayFieldsValues(documentUri, [tagsField]),
+    ].concat(checkNoDuplicateTagsAreDefined(documentUri, tagsField));
 }
