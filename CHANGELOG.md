@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Improvements
+
+- Do not open test run dialog when triggering tests via Testing explorer, since this lead to unwanted side effects (test run duration started running before the run was actually triggered).
+
 ## [0.20.0] (2026-01-18)
 
 ### Features
