@@ -5,6 +5,7 @@
 - Do not open test run dialog when triggering tests via Testing explorer, since this lead to unwanted side effects (test run duration started running before the run was actually triggered).
 - Try to stabilize revelation of items in collection explorer by removing check if item exists in the file system, because this caused the process to get stuck for a few seconds.
 - Add additional subscriptions to events for revealing item in collection explorer.
+- Update used Bruno CLI version to `3.0.2` for triggering testruns via npx.
 
 ## [0.20.0] (2026-01-18)
 
