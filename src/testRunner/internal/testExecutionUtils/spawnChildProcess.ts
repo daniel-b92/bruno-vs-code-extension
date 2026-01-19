@@ -38,7 +38,7 @@ function getCommandForCli({
         userInput,
     },
 }: TestRunChildProcessData) {
-    const npmPackageForUsingViaNpx = `${getNpmPackageNameWithoutSpecificVersion()}@2.13.2`;
+    const npmPackageForUsingViaNpx = `${getNpmPackageNameWithoutSpecificVersion()}@3.0.2`;
 
     const shouldUseNpxForTriggeringTests = shouldUseNpx(canUseNpx, logger);
     const command = shouldUseNpxForTriggeringTests ? "npx" : "bru";
