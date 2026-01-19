@@ -118,7 +118,11 @@ export async function activateRunner(
         const { include, continuous } = request;
 
         if (!continuous) {
-            await handleNonContinuousRunRequest(request);
+            return await startTestRun(ctrl, request, {
+                collectionItemProvider,
+                queue,
+                logger,
+            });
         }
 
         if (include === undefined) {
@@ -132,65 +136,6 @@ export async function activateRunner(
                 include.forEach((item) => watchingTests.delete(item)),
             );
         }
-    }
-
-    async function handleNonContinuousRunRequest(request: TestRunRequest) {
-        const { exclude, include } = request;
-        const includedPaths = include
-            ? include
-                  .map(({ uri }) => uri?.fsPath)
-                  .filter((val) => val != undefined)
-            : collectionItemProvider
-                  .getRegisteredCollections()
-                  .map((c) => c.getRootDirectory());
-
-        const excludedPaths = exclude
-            ? exclude
-                  .map(({ uri }) => uri?.fsPath)
-                  .filter((val) => val != undefined)
-            : [];
-
-        const remainingPaths = includedPaths.filter(
-            (path) => !excludedPaths.includes(path),
-        );
-        const collectionsForRequest = remainingPaths.reduce((prev, curr) => {
-            const currentCollection =
-                collectionItemProvider.getAncestorCollectionForPath(curr);
-
-            const alreadyKnown = prev.some((collection) => {
-                return (
-                    currentCollection &&
-                    collection.isRootDirectory(
-                        currentCollection.getRootDirectory(),
-                    )
-                );
-            });
-
-            return !currentCollection || alreadyKnown
-                ? prev
-                : prev.concat(currentCollection as Collection);
-        }, [] as Collection[]);
-
-        let userInput: TestRunUserInputData | undefined = undefined;
-
-        if (collectionsForRequest.length == 1) {
-            userInput = await openRunConfigDialog(collectionsForRequest[0]);
-
-            if (!userInput) {
-                return;
-            }
-        } else if (collectionsForRequest.length > 1) {
-            window.showInformationMessage(
-                `Skipping run configuration dialog because items from multiple collections are selected.`,
-            );
-        }
-
-        return await startTestRun(ctrl, request, {
-            collectionItemProvider,
-            queue,
-            logger,
-            userInput,
-        });
     }
 
     ctrl.refreshHandler = () => {
