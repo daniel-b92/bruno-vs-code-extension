@@ -709,11 +709,7 @@ export class CollectionExplorer
         e: vscode.TextEditor | undefined,
         treeView: vscode.TreeView<BrunoTreeItem>,
     ) {
-        if (
-            e &&
-            treeView.visible &&
-            (await checkIfPathExistsAsync(e.document.uri.fsPath))
-        ) {
+        if (e && treeView.visible) {
             const maybeCollection =
                 this.itemProvider.getAncestorCollectionForPath(
                     e.document.uri.fsPath,
@@ -731,31 +727,14 @@ export class CollectionExplorer
                 ).treeItem;
 
                 this.logger?.debug(
-                    `Starting first attempt of revealing item '${
+                    `Starting attempt of revealing item '${
                         treeItem.path
-                    }' in explorer for collection '${basename(
+                    }' in collection explorer for collection '${basename(
                         maybeCollection.getRootDirectory(),
                     )}'.`,
                 );
 
                 await treeView.reveal(treeItem);
-
-                // Sometimes the 'reveal' command does not actually reveal the item, in that case it is retried once
-                if (
-                    !treeView.selection.some(
-                        (item) => item.getPath() == e.document.uri.fsPath,
-                    )
-                ) {
-                    this.logger?.debug(
-                        `Starting second attempt of revealing item '${
-                            treeItem.path
-                        }' in explorer for collection '${basename(
-                            maybeCollection.getRootDirectory(),
-                        )}'.`,
-                    );
-
-                    await treeView.reveal(treeItem);
-                }
             }
         }
     }
