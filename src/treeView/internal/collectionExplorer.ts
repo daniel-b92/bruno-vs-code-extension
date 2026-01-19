@@ -75,7 +75,31 @@ export class CollectionExplorer
 
         this.disposables.push(
             vscode.window.onDidChangeActiveTextEditor(async (e) => {
-                await this.handleChangedTextEditor(e, treeView);
+                if (treeView.visible && e) {
+                    await this.tryToRevealItem(e.document.fileName, treeView);
+                }
+            }),
+            treeView.onDidChangeVisibility(async (e) => {
+                if (e.visible && vscode.window.activeTextEditor) {
+                    await this.tryToRevealItem(
+                        vscode.window.activeTextEditor.document.fileName,
+                        treeView,
+                    );
+                }
+            }),
+            vscode.window.onDidChangeTextEditorSelection(async (e) => {
+                if (
+                    treeView.visible &&
+                    treeView.selection.every(
+                        (treeItem) =>
+                            treeItem.getPath() !=
+                            e.textEditor.document.fileName,
+                    )
+                )
+                    await this.tryToRevealItem(
+                        e.textEditor.document.fileName,
+                        treeView,
+                    );
             }),
         );
     }
@@ -705,37 +729,31 @@ export class CollectionExplorer
         return picked == this.confirmationOptionForModals;
     }
 
-    private async handleChangedTextEditor(
-        e: vscode.TextEditor | undefined,
+    private async tryToRevealItem(
+        path: string,
         treeView: vscode.TreeView<BrunoTreeItem>,
     ) {
-        if (e && treeView.visible) {
-            const maybeCollection =
-                this.itemProvider.getAncestorCollectionForPath(
-                    e.document.uri.fsPath,
-                );
+        const maybeCollection =
+            this.itemProvider.getAncestorCollectionForPath(path);
 
-            if (
-                maybeCollection &&
-                // Sometimes when e.g. renaming a folder, the descendant file paths may not have been updated in the collection yet.
-                maybeCollection.getStoredDataForPath(e.document.uri.fsPath)
-            ) {
-                const treeItem = (
-                    maybeCollection.getStoredDataForPath(
-                        e.document.uri.fsPath,
-                    ) as CollectionData
-                ).treeItem;
+        if (
+            maybeCollection &&
+            // Sometimes when e.g. renaming a folder, the descendant file paths may not have been updated in the collection yet.
+            maybeCollection.getStoredDataForPath(path)
+        ) {
+            const treeItem = (
+                maybeCollection.getStoredDataForPath(path) as CollectionData
+            ).treeItem;
 
-                this.logger?.debug(
-                    `Starting attempt of revealing item '${
-                        treeItem.path
-                    }' in collection explorer for collection '${basename(
-                        maybeCollection.getRootDirectory(),
-                    )}'.`,
-                );
+            this.logger?.debug(
+                `Starting attempt of revealing item '${
+                    treeItem.path
+                }' in collection explorer for collection '${basename(
+                    maybeCollection.getRootDirectory(),
+                )}'.`,
+            );
 
-                await treeView.reveal(treeItem);
-            }
+            await treeView.reveal(treeItem);
         }
     }
 }
