@@ -1,3 +1,10 @@
+## [Unreleased]
+
+### Fixes / Improvements
+
+- Do not show errors for `example` blocks in request files.
+- Improve syntax highlighting for plain-text blocks and for dictionary blocks.
+
 ## [0.20.1] (2026-01-19)
 
 ### Fixes / Improvements
