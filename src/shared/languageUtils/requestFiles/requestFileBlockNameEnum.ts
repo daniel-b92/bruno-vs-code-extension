@@ -55,4 +55,5 @@ export enum RequestFileBlockName {
     // Other
     Settings = "settings",
     Docs = "docs",
+    Example = "example",
 }

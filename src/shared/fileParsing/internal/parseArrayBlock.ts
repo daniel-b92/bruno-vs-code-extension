@@ -5,8 +5,10 @@ import {
     Range,
     TextDocumentHelper,
     BlockBracket,
+    BlockType,
 } from "../..";
 import { getContentRangeForArrayOrDictionaryBlock } from "../external/shared/util/getContentRangeForArrayOrDictionaryBlock";
+import { findBlockEnd } from "./findBlockEnd";
 
 export function parseArrayBlock(
     document: TextDocumentHelper,
@@ -14,18 +16,20 @@ export function parseArrayBlock(
 ) {
     const allRemainingLines = document.getAllLines(firstContentLine);
 
-    const lastLineForBlock = allRemainingLines.find(({ content }) =>
-        content.includes(BlockBracket.ClosingBracketForArrayBlock),
+    const blockEndPosition = findBlockEnd(
+        document,
+        firstContentLine,
+        BlockType.Array,
     );
 
-    if (lastLineForBlock == undefined) {
+    if (!blockEndPosition) {
         return undefined;
     }
 
     const linesWithBlockContent = allRemainingLines.slice(
         0,
         allRemainingLines.findIndex(
-            ({ index }) => index == lastLineForBlock.index,
+            ({ index }) => index == blockEndPosition.line,
         ),
     );
 
@@ -88,8 +92,8 @@ export function parseArrayBlock(
         contentRange: getContentRangeForArrayOrDictionaryBlock(
             firstContentLine,
             BlockBracket.ClosingBracketForArrayBlock,
-            lastLineForBlock.index,
-            lastLineForBlock.content,
+            blockEndPosition.line,
+            document.getLineByIndex(blockEndPosition.line),
         ),
     };
 }

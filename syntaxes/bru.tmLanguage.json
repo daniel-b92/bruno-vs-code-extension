@@ -7,7 +7,7 @@
             "include": "#dictionary-block"
         },
         {
-            "include": "#script-or-test-block"
+            "include": "#code-block"
         },
 
         {
@@ -23,7 +23,7 @@
             "include": "#graphql-body-block"
         },
         {
-            "include": "#text-body-or-docs-block"
+            "include": "#plain-text-block"
         },
         {
             "include": "#array-block"
@@ -36,12 +36,12 @@
         "dictionary-block": {
             "name": "meta.dictionary-block.bru",
             "begin": "^\\s*(meta|get|post|put|delete|options|patch|http|head|params:\\S+|headers|auth|auth:\\S+|body:multipart-form|body:form-urlencoded|body:file|vars:\\S+|assert|vars|settings)\\s*{\\s*$",
-            "end": "^\\s*}\\s*$",
+            "end": "^}\\s*$",
             "beginCaptures": { "0": { "name": "keyword.bru" } },
             "patterns": [{ "include": "#dictionary" }]
         },
-        "script-or-test-block": {
-            "name": "meta.script-or-test-block.bru",
+        "code-block": {
+            "name": "meta.code-block.bru",
             "begin": "^(tests|script:\\S+)\\s*{$",
             "end": "^}\\s*$",
             "beginCaptures": {
@@ -115,20 +115,16 @@
                 }
             ]
         },
-        "text-body-or-docs-block": {
-            "name": "meta.text-body-or-docs-block.bru",
-            "begin": "^(body:text|docs)\\s*{$",
+        "plain-text-block": {
+            "name": "meta.plain-text-block.bru",
+            "begin": "^(body:text|docs|example)\\s*{$",
             "end": "^}\\s*$",
             "beginCaptures": {
                 "0": {
                     "name": "keyword.bru"
                 }
             },
-            "patterns": [
-                {
-                    "include": "text.html.markdown"
-                }
-            ]
+            "contentName": "string.bru"
         },
         "array-block": {
             "name": "meta.array-block.bru",
