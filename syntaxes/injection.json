@@ -1,0 +1,15 @@
+{
+    "scopeName": "json-block.injection",
+    "injectionSelector": "L:meta.structure.dictionary.json",
+    "patterns": [
+        {
+            "include": "#variable-reference"
+        }
+    ],
+    "repository": {
+        "variable-reference": {
+            "match": "{{\\S+}}",
+            "name": "variable.language"
+        }
+    }
+}
