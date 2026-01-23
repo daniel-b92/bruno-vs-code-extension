@@ -134,6 +134,13 @@
                 "language": "bru",
                 "scopeName": "source.bru",
                 "path": "./syntaxes/bru.tmLanguage.json"
+            },
+            {
+                "path": "./syntaxes/injection.json",
+                "scopeName": "json-block.injection",
+                "injectTo": [
+                    "source.bru"
+                ]
             }
         ],
         "commands": [

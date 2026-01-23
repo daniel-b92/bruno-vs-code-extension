@@ -4,6 +4,7 @@
 
 - Do not show errors for `example` blocks in request files.
 - Improve syntax highlighting for plain-text blocks and for dictionary blocks.
+- Fix syntax highlighting for variables outside of strings in JSON request body blocks.
 
 ## [0.20.1] (2026-01-19)
 
