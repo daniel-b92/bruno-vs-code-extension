@@ -10,6 +10,7 @@ import {
     TextDocumentHelper,
     BlockBracket,
     getCodeBlocks,
+    LineBreakType,
 } from "../../../../shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { format } from "prettier";
@@ -43,12 +44,13 @@ export function registerCodeBlockFormatter(_logger?: OutputChannelLogger) {
 
 async function getTextEditForCodeBlock(
     block: CodeBlock,
-    documentLineBreak: string,
+    documentLineBreak: LineBreakType,
 ) {
     const toFormat = `${mapBlockNameToJsFileLine(block.name)}${documentLineBreak}${block.content}}`;
 
     const formattedWithDummyFunctionReplacement = await format(toFormat, {
         parser: "typescript",
+        endOfLine: documentLineBreak == LineBreakType.Lf ? "lf" : "crlf",
     });
 
     if (
