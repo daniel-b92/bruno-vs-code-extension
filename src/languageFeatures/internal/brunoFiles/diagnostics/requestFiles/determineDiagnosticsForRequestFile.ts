@@ -182,13 +182,17 @@ async function collectBlockSpecificDiagnostics(
     const methodBlocks = getAllMethodBlocks(blocks);
 
     if (methodBlocks.length == 1) {
-        results.push(...getMethodBlockSpecificDiagnostics(methodBlocks[0]));
+        results.push(
+            ...getMethodBlockSpecificDiagnostics(documentUri, methodBlocks[0]),
+        );
     }
 
     const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
 
     if (authBlocks.length == 1) {
-        results.push(...getAuthBlockSpecificDiagnostics(authBlocks[0]));
+        results.push(
+            ...getAuthBlockSpecificDiagnostics(documentUri, authBlocks[0]),
+        );
     }
 
     const bodyBlocks = blocks.filter(({ name }) => isBodyBlock(name));
@@ -202,7 +206,12 @@ async function collectBlockSpecificDiagnostics(
     );
 
     if (settingsBlocks.length == 1) {
-        results.push(...getSettingsBlockSpecificDiagnostics(settingsBlocks[0]));
+        results.push(
+            ...getSettingsBlockSpecificDiagnostics(
+                documentUri,
+                settingsBlocks[0],
+            ),
+        );
     }
 
     return results;

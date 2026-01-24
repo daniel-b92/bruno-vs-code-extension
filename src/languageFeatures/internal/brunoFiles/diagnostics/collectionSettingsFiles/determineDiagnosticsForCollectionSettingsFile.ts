@@ -87,7 +87,9 @@ export function determineDiagnosticsForCollectionSettingsFile(
     const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
 
     if (authBlocks.length == 1) {
-        results.push(...getAuthBlockSpecificDiagnostics(authBlocks[0]));
+        results.push(
+            ...getAuthBlockSpecificDiagnostics(documentUri, authBlocks[0]),
+        );
     }
 
     const authModeBlocks = blocks.filter(
@@ -95,7 +97,12 @@ export function determineDiagnosticsForCollectionSettingsFile(
     );
 
     if (authModeBlocks.length == 1) {
-        results.push(...getAuthModeBlockSpecificDiagnostics(authModeBlocks[0]));
+        results.push(
+            ...getAuthModeBlockSpecificDiagnostics(
+                documentUri,
+                authModeBlocks[0],
+            ),
+        );
     }
 
     return results.filter((val) => val != undefined) as DiagnosticWithCode[];

@@ -11,10 +11,10 @@ export interface FieldsWithSameKey {
 
 export function getValidDuplicateKeysFromDictionaryBlock(
     block: DictionaryBlock,
-    allValidKeys: string[],
+    allValidKeys?: string[],
 ) {
     const foundValidKeysSorted = block.content
-        .filter(({ key }) => allValidKeys.includes(key))
+        .filter(({ key }) => (allValidKeys ? allValidKeys.includes(key) : true))
         .sort(({ key: key1 }, { key: key2 }) => (key1 > key2 ? 1 : -1));
 
     if (foundValidKeysSorted.length == 0) {

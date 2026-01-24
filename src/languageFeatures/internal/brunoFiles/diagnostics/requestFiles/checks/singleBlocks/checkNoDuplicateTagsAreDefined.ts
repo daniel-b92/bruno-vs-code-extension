@@ -1,7 +1,6 @@
-import { DiagnosticSeverity, Uri, Range as VsCodeRange } from "vscode";
+import { DiagnosticSeverity, Uri } from "vscode";
 import {
     DictionaryBlockArrayField,
-    mapToVsCodePosition,
     mapToVsCodeRange,
     Range,
 } from "../../../../../../../shared";
@@ -11,35 +10,30 @@ import { RelevantWithinMetaBlockDiagnosticCode } from "../../../shared/diagnosti
 export function checkNoDuplicateTagsAreDefined(
     documentUri: Uri,
     tagsField: DictionaryBlockArrayField,
-): DiagnosticWithCode | undefined {
+): DiagnosticWithCode[] | undefined {
     const duplicateValues = getDuplicateValues(tagsField);
 
     if (duplicateValues.length == 0) {
         return undefined;
     }
 
-    return {
-        message: `Some values are defined multiple times: '${duplicateValues
-            .map(({ value }) => value)
-            .join("', '")}'.`,
-        range: getRangeForDuplicateTagsDiagnostic(duplicateValues),
-        severity: DiagnosticSeverity.Error,
-        code: RelevantWithinMetaBlockDiagnosticCode.DuplicateTagsDefined,
-        relatedInformation: duplicateValues
-            .map(({ value, ranges }) => ({
-                value,
-                ranges: ranges.sort(compareRanges).slice(0, -1),
-            }))
-            .flatMap(({ value, ranges }) =>
-                ranges.map((range) => ({
-                    message: `Previous definition for tag '${value}'`,
-                    location: {
-                        uri: documentUri,
-                        range: mapToVsCodeRange(range),
-                    },
-                })),
-            ),
-    };
+    return duplicateValues.map(({ value, ranges }) => {
+        const sortedRanges = ranges.slice().sort(compareRanges);
+
+        return {
+            message: `Value '${value}' is defined ${ranges.length} times`,
+            range: mapToVsCodeRange(sortedRanges[sortedRanges.length - 1]),
+            severity: DiagnosticSeverity.Error,
+            code: RelevantWithinMetaBlockDiagnosticCode.DuplicateTagsDefined,
+            relatedInformation: sortedRanges.slice(0, -1).map((range) => ({
+                message: `Previous definition for tag '${value}'`,
+                location: {
+                    uri: documentUri,
+                    range: mapToVsCodeRange(range),
+                },
+            })),
+        };
+    });
 }
 
 function getDuplicateValues(tagsField: DictionaryBlockArrayField) {
@@ -74,26 +68,6 @@ function getDuplicateValues(tagsField: DictionaryBlockArrayField) {
                   });
         },
         [] as { value: string; ranges: Range[] }[],
-    );
-}
-
-function getRangeForDuplicateTagsDiagnostic(
-    duplicateValues: { value: string; ranges: Range[] }[],
-) {
-    const onlyLatestRangesSortedByPostion = duplicateValues
-        .map(({ value, ranges }) => ({
-            value,
-            range: ranges.sort(compareRanges).slice(-1)[0],
-        }))
-        .sort(({ range: range1 }, { range: range2 }) =>
-            compareRanges(range1, range2),
-        );
-
-    return new VsCodeRange(
-        mapToVsCodePosition(onlyLatestRangesSortedByPostion[0].range.start),
-        mapToVsCodePosition(
-            onlyLatestRangesSortedByPostion.slice(-1)[0].range.end,
-        ),
     );
 }
 

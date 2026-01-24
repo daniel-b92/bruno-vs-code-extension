@@ -8,8 +8,10 @@ import {
     AuthModeBlockKey,
 } from "../../../../../../../shared";
 import { RelevantWithinAuthModeBlockDiagnosticCode } from "../../diagnosticCodes/relevantWithinAuthModeBlockDiagnosticCodeEnum";
+import { Uri } from "vscode";
 
 export function getAuthModeBlockSpecificDiagnostics(
+    documentUri: Uri,
     authBlock: Block,
 ): (DiagnosticWithCode | undefined)[] {
     if (!isBlockDictionaryBlock(authBlock)) {
@@ -30,11 +32,12 @@ export function getAuthModeBlockSpecificDiagnostics(
             mandatoryKeys,
             RelevantWithinAuthModeBlockDiagnosticCode.UnknownKeysDefinedInAuthModeBlock,
         ),
-        checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+            documentUri,
             authBlock,
-            mandatoryKeys,
             RelevantWithinAuthModeBlockDiagnosticCode.DuplicateKeysDefinedInAuthModeBlock,
-        ),
+            mandatoryKeys,
+        ) ?? []),
     );
 
     return diagnostics;

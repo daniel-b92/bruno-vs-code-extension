@@ -64,11 +64,12 @@ export async function getMetaBlockSpecificDiagnostics(
             [MetaBlockKey.Name],
             RelevantWithinMetaBlockDiagnosticCode.MandatoryValuesMissingInMetaBlock,
         ),
-        checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+            documentUri,
             metaBlock,
-            mandatoryBlockKeys.concat(optionalBlockKeys),
             RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
-        ),
+            mandatoryBlockKeys.concat(optionalBlockKeys),
+        ) ?? []),
         checkDictionaryBlockArrayFieldsStructure(
             documentUri,
             metaBlock,
