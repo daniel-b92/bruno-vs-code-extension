@@ -13,6 +13,8 @@ import { checkNoBlocksHaveUnknownNames } from "../shared/checks/multipleBlocks/c
 import { checkThatNoBlocksAreDefinedMultipleTimes } from "../shared/checks/multipleBlocks/checkThatNoBlocksAreDefinedMultipleTimes";
 import { checkThatNoTextExistsOutsideOfBlocks } from "../shared/checks/multipleBlocks/checkThatNoTextExistsOutsideOfBlocks";
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
+import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
+import { RelevantWithinEnvironmentFileDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinEnvironmentFileDiagnosticCodeEnum";
 
 export function determineDiagnosticsForEnvironmentFile(
     documentUri: Uri,
@@ -61,6 +63,14 @@ export function determineDiagnosticsForEnvironmentFile(
         checkDictionaryBlocksAreNotEmpty(
             documentUri,
             blocksThatShouldBeDictionaryBlocks,
+        ),
+        ...validDictionaryBlocks.flatMap(
+            (block) =>
+                checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+                    documentUri,
+                    block,
+                    RelevantWithinEnvironmentFileDiagnosticCode.EnvironmentVariableDefinedMultipleTimes,
+                ) ?? [],
         ),
     );
 

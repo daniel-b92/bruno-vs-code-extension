@@ -1,10 +1,5 @@
-import { DiagnosticSeverity, Range } from "vscode";
-import {
-    DictionaryBlockSimpleField,
-    DictionaryBlock,
-    mapToVsCodePosition,
-    DictionaryBlockArrayField,
-} from "../../../../../../../shared";
+import { DiagnosticSeverity, Uri } from "vscode";
+import { DictionaryBlock, mapToVsCodeRange } from "../../../../../../../shared";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 import {
     FieldsWithSameKey,
@@ -14,51 +9,49 @@ import { DiagnosticWithCode } from "../../../definitions";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
 
 export function checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+    documentUri: Uri,
     block: DictionaryBlock,
-    expectedKeys: string[],
     diagnosticCode: KnownDiagnosticCode,
-): DiagnosticWithCode | undefined {
+    expectedKeys?: string[],
+): DiagnosticWithCode[] | undefined {
     const fieldsWithDuplicateKeys = getValidDuplicateKeysFromDictionaryBlock(
         block,
         expectedKeys,
     );
 
-    if (fieldsWithDuplicateKeys.length > 0) {
-        return getDiagnostic(fieldsWithDuplicateKeys, diagnosticCode);
-    } else {
+    if (fieldsWithDuplicateKeys.length == 0) {
         return undefined;
     }
+
+    return getDiagnostics(documentUri, fieldsWithDuplicateKeys, diagnosticCode);
 }
 
-function getDiagnostic(
+function getDiagnostics(
+    documentUri: Uri,
     fieldsWithDuplicateKeys: FieldsWithSameKey[],
     diagnosticCode: KnownDiagnosticCode,
 ) {
-    const sortedFieldsByPosition = getSortedDictionaryBlockFieldsByPosition(
-        fieldsWithDuplicateKeys.map(({ fields }) => fields).flat(),
-    );
+    return fieldsWithDuplicateKeys.map(({ key, fields }) => {
+        const sortedFieldsByPosition =
+            getSortedDictionaryBlockFieldsByPosition(fields);
 
-    return {
-        message: `Some keys are defined multiple times: '${fieldsWithDuplicateKeys
-            .map(({ key }) => key)
-            .join("', '")}'.`,
-        range: getRange(sortedFieldsByPosition),
-        severity: DiagnosticSeverity.Error,
-        code: diagnosticCode,
-    };
-}
-
-function getRange(
-    sortedDuplicateFields: (
-        | DictionaryBlockSimpleField
-        | DictionaryBlockArrayField
-    )[],
-): Range {
-    return new Range(
-        mapToVsCodePosition(sortedDuplicateFields[0].keyRange.start),
-        mapToVsCodePosition(
-            sortedDuplicateFields[sortedDuplicateFields.length - 1].keyRange
-                .end,
-        ),
-    );
+        return {
+            message: `Key '${key}' is defined ${fields.length} times`,
+            range: mapToVsCodeRange(
+                sortedFieldsByPosition[sortedFieldsByPosition.length - 1]
+                    .keyRange,
+            ),
+            severity: DiagnosticSeverity.Error,
+            code: diagnosticCode,
+            relatedInformation: sortedFieldsByPosition
+                .slice(0, -1)
+                .map(({ keyRange }) => ({
+                    message: `Previous definition for key '${key}'`,
+                    location: {
+                        uri: documentUri,
+                        range: mapToVsCodeRange(keyRange),
+                    },
+                })),
+        };
+    });
 }

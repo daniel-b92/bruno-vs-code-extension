@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.20.2] (2026-01-24)
 
 ### Fixes / Improvements
 
@@ -6,6 +6,7 @@
 - Improve syntax highlighting for plain-text blocks and for dictionary blocks.
 - Fix syntax highlighting for variables outside of strings in JSON request body blocks.
 - Use same end of line character(s) for formatting as for current document.
+- Add diagnostic (error) for environment variables with multiple definitions in same file.
 
 ## [0.20.1] (2026-01-19)
 

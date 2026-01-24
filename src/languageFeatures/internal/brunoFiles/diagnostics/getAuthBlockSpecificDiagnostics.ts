@@ -20,8 +20,10 @@ import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "./shared/checks/s
 import { checkValueForDictionaryBlockSimpleFieldIsValid } from "./shared/checks/singleBlocks/checkValueForDictionaryBlockSimpleFieldIsValid";
 import { DiagnosticWithCode } from "./definitions";
 import { RelevantWithinAuthBlockDiagnosticCode } from "./shared/diagnosticCodes/relevantWithinAuthBlockDiagnosticCodeEnum";
+import { Uri } from "vscode";
 
 export function getAuthBlockSpecificDiagnostics(
+    documentUri: Uri,
     authBlock: Block,
 ): (DiagnosticWithCode | undefined)[] {
     if (!isBlockDictionaryBlock(authBlock)) {
@@ -58,11 +60,12 @@ export function getAuthBlockSpecificDiagnostics(
                 mandatoryKeys,
                 RelevantWithinAuthBlockDiagnosticCode.UnknownKeysDefinedInAuthBlock,
             ),
-            checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+            ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+                documentUri,
                 authBlock,
-                mandatoryKeys,
                 RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock,
-            ),
+                mandatoryKeys,
+            ) ?? []),
         );
 
         if (
@@ -86,13 +89,16 @@ export function getAuthBlockSpecificDiagnostics(
             }
         }
     } else if (authBlock.name == AuthBlockName.OAuth2Auth) {
-        diagnostics.push(...getDiagnosticsForOAuth2AuthBlock(authBlock));
+        diagnostics.push(
+            ...getDiagnosticsForOAuth2AuthBlock(documentUri, authBlock),
+        );
     }
 
     return diagnostics;
 }
 
 function getDiagnosticsForOAuth2AuthBlock(
+    documentUri: Uri,
     authBlock: DictionaryBlock,
 ): (DiagnosticWithCode | undefined)[] {
     const diagnostics: (DiagnosticWithCode | undefined)[] = [];
@@ -109,11 +115,12 @@ function getDiagnosticsForOAuth2AuthBlock(
             [OAuth2ViaAuthorizationCodeBlockKey.GrantType],
             RelevantWithinAuthBlockDiagnosticCode.KeysMissingInAuthBlock,
         ),
-        checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+            documentUri,
             authBlock,
-            [OAuth2ViaAuthorizationCodeBlockKey.GrantType],
             RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock,
-        ),
+            [OAuth2ViaAuthorizationCodeBlockKey.GrantType],
+        ) ?? []),
         grantTypeFields.length == 1 &&
             isDictionaryBlockSimpleField(grantTypeFields[0])
             ? checkValueForDictionaryBlockSimpleFieldIsValid(
@@ -142,7 +149,11 @@ function getDiagnosticsForOAuth2AuthBlock(
     const grantType = grantTypeFields[0].value as OAuth2GrantType;
 
     diagnostics.push(
-        ...checkValuesForOAuth2FieldsDependingOnGrantType(authBlock, grantType),
+        ...checkValuesForOAuth2FieldsDependingOnGrantType(
+            documentUri,
+            authBlock,
+            grantType,
+        ),
     );
 
     return diagnostics;
@@ -218,6 +229,7 @@ function checkValuesForOAuth2FieldsCommonForAllGrantTypes(
 }
 
 function checkValuesForOAuth2FieldsDependingOnGrantType(
+    documentUri: Uri,
     authBlock: DictionaryBlock,
     grantType: OAuth2GrantType,
 ) {
@@ -236,11 +248,12 @@ function checkValuesForOAuth2FieldsDependingOnGrantType(
             mandatoryKeys,
             RelevantWithinAuthBlockDiagnosticCode.UnknownKeysDefinedInAuthBlock,
         ),
-        checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+            documentUri,
             authBlock,
-            mandatoryKeys,
             RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock,
-        ),
+            mandatoryKeys,
+        ) ?? []),
     );
 
     if (grantType == OAuth2GrantType.AuthorizationCode) {

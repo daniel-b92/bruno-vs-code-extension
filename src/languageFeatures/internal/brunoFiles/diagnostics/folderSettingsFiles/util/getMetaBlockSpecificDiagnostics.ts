@@ -45,9 +45,10 @@ export async function getMetaBlockSpecificDiagnostics(
                       RelevantWithinMetaBlockDiagnosticCode.MandatoryValuesMissingInMetaBlock,
                   ),
                   checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+                      documentUri,
                       metaBlock,
-                      metaBlockKeys,
                       RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
+                      metaBlockKeys,
                   ),
                   checkMetaBlockStartsInFirstLine(documentHelper, metaBlock)),
               ]
