@@ -8,7 +8,7 @@
     ],
     "repository": {
         "variable-reference": {
-            "match": "{{\\S+}}",
+            "match": "{{\\S+?}}",
             "name": "variable.language"
         }
     }
