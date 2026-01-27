@@ -1,8 +1,9 @@
-## [Unreleased]
+## [0.20.3] (2026-01-27)
 
 ### Fixes / Improvements
 
 - Use recursive option per default when triggering test run via collection explorer without using dialog.
+- Fix syntax highlighting in JSON blocks for cases where multiple variables are referenced in the same line.
 
 ## [0.20.2] (2026-01-24)
 
