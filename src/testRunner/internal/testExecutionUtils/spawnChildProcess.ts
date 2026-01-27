@@ -92,8 +92,11 @@ function shouldUseNpx(canUseNpx: boolean, logger?: OutputChannelLogger) {
 }
 
 function mapUserInputDataToCommandArgs(userInput?: TestRunUserInputData) {
+    const recursiveOption = "-r";
+
     if (!userInput) {
-        return [];
+        // Use recursive option per default
+        return [recursiveOption];
     }
 
     const {
@@ -108,7 +111,7 @@ function mapUserInputDataToCommandArgs(userInput?: TestRunUserInputData) {
         excludedTags.length > 0 ? ["--exclude-tags"].concat(excludedTags) : [],
     );
 
-    const argsForOtherConfigs = (recursive ? ["--r"] : []).concat(
+    const argsForOtherConfigs = (recursive ? [recursiveOption] : []).concat(
         bail ? ["--bail"] : [],
         parallel ? ["--parallel"] : [],
     );

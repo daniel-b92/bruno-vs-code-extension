@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Improvements
+
+- Use recursive option per default when triggering test run via collection explorer without using dialog.
+
 ## [0.20.2] (2026-01-24)
 
 ### Fixes / Improvements
