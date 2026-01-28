@@ -1,10 +1,7 @@
-import {
-    checkIfPathExistsAsync,
-    everyAsync,
-    OutputChannelLogger,
-} from "../../../../../shared";
+import { checkIfPathExistsAsync, OutputChannelLogger } from "@shared";
 import { Uri, workspace, WorkspaceEdit } from "vscode";
 import { basename, dirname } from "path";
+import { everyAsync } from "@global_shared";
 
 export async function deleteTemporaryJsFiles(
     filePaths: string[],

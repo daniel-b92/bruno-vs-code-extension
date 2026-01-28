@@ -34,6 +34,11 @@ const config = {
         extensions: [".ts", ".js"],
         alias: {
             // provides alternate implementation for node module and source files
+            "@global_shared": path.resolve(
+                path.dirname(__dirname),
+                "shared/index.ts",
+            ),
+            "@shared": path.resolve(__dirname, "src/shared/index.ts"),
         },
         fallback: {
             // Webpack 5 no longer polyfills Node.js core modules automatically.

@@ -1,9 +1,5 @@
 import { TempJsUpdateRequest, TempJsUpdateType } from "../internal/interfaces";
-import {
-    checkIfPathExistsAsync,
-    everyAsync,
-    OutputChannelLogger,
-} from "../../../../../shared";
+import { checkIfPathExistsAsync, OutputChannelLogger } from "@shared";
 import { createTemporaryJsFile } from "../internal/createTemporaryJsFile";
 import { deleteTemporaryJsFiles } from "../internal/deleteTemporaryJsFile";
 import { CancellationToken, EventEmitter, Event as VsCodeEvent } from "vscode";
@@ -11,6 +7,7 @@ import { QueueUpdateHandler } from "../internal/queueUpdateHandler";
 import { basename, dirname } from "path";
 import { v4 as uuid } from "uuid";
 import { PendingRequestNotifier } from "../internal/pendingRequestNotifier";
+import { everyAsync } from "@global_shared";
 
 export class TempJsFileUpdateQueue {
     constructor(

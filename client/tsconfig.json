@@ -1,22 +1,11 @@
 {
+    "extends": "../tsconfig.json",
     "compilerOptions": {
-        "module": "commonjs",
-        "target": "es2020",
-        "lib": ["es2020"],
-        "outDir": "out",
-        "sourceMap": true,
-        "strict": true,
-        "rootDir": "src",
-        // for using local ts plugin: "plugins": [{ "name": "typescript-for-bruno" }],
-        "plugins": [{ "name": "@zentryc5t/ts-plugin-for-bruno" }],
-
-        "allowUnreachableCode": false,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "strictFunctionTypes": true,
-        "strictNullChecks": true,
-        "strictPropertyInitialization": true
+        "rootDir": "..",
+        "paths": {
+            "@global_shared": ["../shared/index.ts"],
+            "@shared": ["./src/shared/index.ts"]
+        }
     },
-    "exclude": ["node_modules", ".vscode-test", "**/*.md"],
-    "include": ["**/*", "../shared"]
+    "include": [".", "../shared"]
 }

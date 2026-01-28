@@ -20,7 +20,6 @@ export * from "./fileSystem/util/isInFolderForEnvironmentFiles";
 // array utils
 export * from "./arrayUtils/filterAsync";
 export * from "./arrayUtils/someAsync";
-export * from "./arrayUtils/everyAsync";
 
 // file parsing
 export * from "./fileParsing/external/requestFiles/getMaxSequenceForRequests";

@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es2024",
+        "lib": ["es2024"],
+        "outDir": "out",
+        "sourceMap": true,
+        "strict": true,
+        "paths": {
+            "global_shared": ["./shared/index.ts"]
+        },
+
+        "allowUnreachableCode": false,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "strictFunctionTypes": true,
+        "strictNullChecks": true,
+        "strictPropertyInitialization": true
+    },
+    "exclude": ["node_modules", ".vscode-test", "**/*.md"]
+}
