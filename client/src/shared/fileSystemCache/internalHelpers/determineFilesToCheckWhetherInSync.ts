@@ -1,15 +1,17 @@
 import { dirname, resolve } from "path";
 import {
+    normalizeDirectoryPath,
+    parseSequenceFromMetaBlock,
+} from "@global_shared";
+import {
     BrunoFileType,
     Collection,
     CollectionData,
     filterAsync,
     getItemType,
     isCollectionItemWithSequence,
-    normalizeDirectoryPath,
     OutputChannelLogger,
-    parseSequenceFromMetaBlock,
-} from "../..";
+} from "@shared";
 import { lstat, readdir } from "fs/promises";
 import { Event, Disposable } from "vscode";
 

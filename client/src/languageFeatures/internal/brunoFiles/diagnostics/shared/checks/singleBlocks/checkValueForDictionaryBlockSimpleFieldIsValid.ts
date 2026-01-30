@@ -1,4 +1,4 @@
-import { DictionaryBlockSimpleField } from "../../../../../../../shared";
+import { DictionaryBlockSimpleField } from "@global_shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
 import { getDiagnosticForInvalidDictionaryBlockSimpleFieldValue } from "../../util/getDiagnosticForInvalidDictionaryBlockSimpleFieldValue";

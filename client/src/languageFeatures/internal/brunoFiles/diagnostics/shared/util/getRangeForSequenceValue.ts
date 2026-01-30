@@ -3,11 +3,11 @@ import { promisify } from "util";
 import {
     getSequenceFieldFromMetaBlock,
     isDictionaryBlockSimpleField,
-    mapToVsCodeRange,
     MetaBlockKey,
     RequestFileBlockName,
     TextDocumentHelper,
-} from "../../../../../../shared";
+} from "@global_shared";
+import { mapToVsCodeRange } from "@shared";
 
 export async function getRangeForSequenceValue(filePath: string) {
     const readFileAsync = promisify(readFile);

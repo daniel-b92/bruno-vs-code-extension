@@ -1,23 +1,25 @@
 import * as vscode from "vscode";
 import { BrunoTreeItemProvider } from "./brunoTreeItemProvider";
 import {
-    getMaxSequenceForRequests,
-    CollectionItemProvider,
-    CollectionData,
-    normalizeDirectoryPath,
     getExtensionForBrunoFiles,
-    OutputChannelLogger,
-    getSequenceForFile,
-    BrunoFileType,
-    Collection,
     getSequenceForFolder,
-    getMaxSequenceForFolders,
     getFolderSettingsFilePath,
     checkIfPathExistsAsync,
+    normalizeDirectoryPath,
+} from "@global_shared";
+import {
+    CollectionItemProvider,
+    CollectionData,
+    OutputChannelLogger,
+    BrunoFileType,
+    Collection,
     isBrunoFileType,
     DialogOptionLabelEnum,
     MultiFileOperationWithStatus,
-} from "../../shared";
+    getMaxSequenceForRequests,
+    getSequenceForFile,
+    getMaxSequenceForFolders,
+} from "@shared";
 import { basename, dirname, extname, resolve } from "path";
 import { BrunoTreeItem } from "../brunoTreeItem";
 import { validateNewItemNameIsUnique } from "./explorer/validateNewItemNameIsUnique";
@@ -35,9 +37,7 @@ import { promisify } from "util";
 import { copyFile, cp, mkdir, rm, writeFile } from "fs";
 import { closeTabsRelatedToItem } from "./explorer/closeTabsRelatedToItem";
 
-export class CollectionExplorer
-    implements vscode.TreeDragAndDropController<BrunoTreeItem>
-{
+export class CollectionExplorer implements vscode.TreeDragAndDropController<BrunoTreeItem> {
     private treeViewId = "brunoCollectionsView";
     dragMimeTypes = ["text/uri-list"];
     dropMimeTypes = [`application/vnd.code.tree.${this.treeViewId}`];

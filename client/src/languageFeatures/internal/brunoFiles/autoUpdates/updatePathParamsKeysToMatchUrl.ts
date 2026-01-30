@@ -9,11 +9,10 @@ import {
     getDefaultIndentationForDictionaryBlockFields,
     getMethodBlockIfValid,
     DictionaryBlock,
-    mapToVsCodePosition,
-    getLineBreak,
     DictionaryBlockSimpleField,
     isDictionaryBlockSimpleField,
-} from "../../../../shared";
+} from "@global_shared";
+import { mapToVsCodePosition, getLineBreak } from "@shared";
 import { getSortedBlocksByPosition } from "../diagnostics/shared/util/getSortedBlocksByPosition";
 
 export function updatePathParamsKeysToMatchUrl(
@@ -144,9 +143,8 @@ function removeEntriesFromPathParamsBlock(
             ({ valueRange }) =>
                 new Range(
                     new Position(valueRange.start.line, 0),
-                    document.lineAt(
-                        valueRange.end.line,
-                    ).rangeIncludingLineBreak.end,
+                    document.lineAt(valueRange.end.line).rangeIncludingLineBreak
+                        .end,
                 ),
         );
 

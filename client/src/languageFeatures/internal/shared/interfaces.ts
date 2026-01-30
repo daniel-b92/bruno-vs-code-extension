@@ -3,12 +3,8 @@ import {
     Position as VsCodePosition,
     CancellationToken,
 } from "vscode";
-import {
-    Block,
-    Collection,
-    OutputChannelLogger,
-    VariableReferenceType,
-} from "../../../shared";
+import { Block, VariableReferenceType } from "@global_shared";
+import { Collection, OutputChannelLogger } from "@shared";
 
 export interface LanguageFeatureRequest {
     document: TextDocument;

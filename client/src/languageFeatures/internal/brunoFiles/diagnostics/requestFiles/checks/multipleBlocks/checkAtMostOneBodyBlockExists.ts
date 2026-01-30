@@ -1,9 +1,6 @@
 import { DiagnosticSeverity, Uri } from "vscode";
-import {
-    Block,
-    isBodyBlock,
-    mapToVsCodeRange,
-} from "../../../../../../../shared";
+import { Block, isBodyBlock } from "@global_shared";
+import { mapToVsCodeRange } from "@shared";
 import { getSortedBlocksByPosition } from "../../../shared/util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";

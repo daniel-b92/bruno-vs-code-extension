@@ -2,7 +2,7 @@ import {
     DictionaryBlock,
     DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
-} from "../../../../../../shared";
+} from "@global_shared";
 
 export interface FieldsWithSameKey {
     key: string;

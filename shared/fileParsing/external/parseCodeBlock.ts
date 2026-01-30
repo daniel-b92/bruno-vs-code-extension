@@ -29,7 +29,7 @@ export function parseCodeBlock(
             .getText(sourceFile)
             .match(
                 new RegExp(
-                    `${BlockBracket.ClosingBracketForDictionaryOrTextBlock}\s*`,
+                    `${BlockBracket.ClosingBracketForDictionaryOrTextBlock}\\s*`,
                     "m",
                 ),
             )

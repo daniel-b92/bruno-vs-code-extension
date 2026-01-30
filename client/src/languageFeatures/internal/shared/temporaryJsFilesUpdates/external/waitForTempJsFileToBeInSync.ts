@@ -6,12 +6,12 @@ import {
     Uri,
     workspace,
 } from "vscode";
+import { TextDocumentHelper } from "@global_shared";
 import {
     Collection,
     getTemporaryJsFileNameInFolder,
     OutputChannelLogger,
-    TextDocumentHelper,
-} from "../../../../../shared";
+} from "@shared";
 import { TempJsFileUpdateQueue } from "./tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "../internal/interfaces";
 import { basename } from "path";

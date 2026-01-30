@@ -1,4 +1,4 @@
-import { Block, Range } from "../../../../../../shared";
+import { Block, Range } from "@global_shared";
 
 export function getRangeContainingBlocksSortedByPosition(
     blocksSortedByPosition: Block[],

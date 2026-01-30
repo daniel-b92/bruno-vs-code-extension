@@ -3,8 +3,8 @@ import {
     TextDocumentHelper,
     Block,
     RequestFileBlockName,
-    mapToVsCodeRange,
-} from "../../../../../../shared";
+} from "@global_shared";
+import { mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 

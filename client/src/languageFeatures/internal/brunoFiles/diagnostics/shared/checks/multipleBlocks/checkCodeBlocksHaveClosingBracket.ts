@@ -2,11 +2,11 @@ import { DiagnosticSeverity } from "vscode";
 import {
     Block,
     BlockBracket,
-    mapToVsCodeRange,
     parseBruFile,
     TextDocumentHelper,
     getCodeBlocks,
-} from "../../../../../../../shared";
+} from "@global_shared";
+import { mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";

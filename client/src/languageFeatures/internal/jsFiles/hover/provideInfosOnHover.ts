@@ -1,17 +1,19 @@
 import { languages } from "vscode";
 import {
-    Collection,
-    CollectionItemProvider,
-    OutputChannelLogger,
     Position,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionType,
+    getInbuiltFunctionIdentifiers,
+} from "@global_shared";
+import {
+    Collection,
+    CollectionItemProvider,
+    OutputChannelLogger,
     mapFromVsCodePosition,
-} from "../../../../shared";
+} from "@shared";
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { getHoverForEnvVariable } from "../../shared/environmentVariables/getHoverForEnvVariable";
-import { getInbuiltFunctionIdentifiers } from "../../../../shared/languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
 
 export function provideInfosOnHover(
     collectionItemProvider: CollectionItemProvider,

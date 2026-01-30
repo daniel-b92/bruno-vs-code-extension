@@ -1,11 +1,11 @@
 import { BrunoTreeItem } from "../../treeView/brunoTreeItem";
+import { normalizeDirectoryPath } from "@global_shared";
 import {
     CollectionData,
     CollectionDirectory,
     CollectionItem,
-    normalizeDirectoryPath,
     TestRunnerDataHelper,
-} from "..";
+} from "@shared";
 
 export class Collection {
     constructor(

@@ -1,8 +1,6 @@
 import { DiagnosticSeverity } from "vscode";
-import {
-    DictionaryBlockSimpleField,
-    mapToVsCodeRange,
-} from "../../../../../../shared";
+import { DictionaryBlockSimpleField } from "@global_shared";
+import { mapToVsCodeRange } from "@shared";
 import { KnownDiagnosticCode } from "../diagnosticCodes/knownDiagnosticCodeDefinition";
 
 export function getDiagnosticForInvalidDictionaryBlockSimpleFieldValue(

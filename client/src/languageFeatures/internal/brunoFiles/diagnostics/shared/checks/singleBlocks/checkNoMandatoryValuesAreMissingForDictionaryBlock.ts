@@ -4,8 +4,8 @@ import {
     DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
     isDictionaryBlockSimpleField,
-    mapToVsCodePosition,
-} from "../../../../../../../shared";
+} from "@global_shared";
+import { mapToVsCodePosition } from "@shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";

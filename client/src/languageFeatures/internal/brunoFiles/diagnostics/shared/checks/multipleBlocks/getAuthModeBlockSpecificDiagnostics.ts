@@ -6,7 +6,7 @@ import {
     Block,
     isBlockDictionaryBlock,
     AuthModeBlockKey,
-} from "../../../../../../../shared";
+} from "@global_shared";
 import { RelevantWithinAuthModeBlockDiagnosticCode } from "../../diagnosticCodes/relevantWithinAuthModeBlockDiagnosticCodeEnum";
 import { Uri } from "vscode";
 

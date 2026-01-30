@@ -3,7 +3,7 @@ import {
     parseBruFile,
     TextDocumentHelper,
     getCodeBlocks,
-} from "../../../../../shared";
+} from "@global_shared";
 import { getDefinitionsForInbuiltLibraries } from "../../../shared/temporaryJsFilesUpdates/external/getDefinitionsForInbuiltLibraries";
 import { mapBlockNameToJsFileLine } from "./mapBlockNameToJsFileFunctionName";
 import { getCharacterForLineBreak } from "./getCharacterForLineBreak";

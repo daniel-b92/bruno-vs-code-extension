@@ -1,4 +1,4 @@
-import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
+import { TextDocumentHelper } from "../../fileSystem/textDocumentHelper";
 import { getBlockContent } from "../internal/getBlockContent";
 import {
     getBlockType,

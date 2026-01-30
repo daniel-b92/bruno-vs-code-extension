@@ -2,9 +2,9 @@ import { DiagnosticSeverity, Range as VsCodeRange } from "vscode";
 import {
     DictionaryBlockSimpleField,
     DictionaryBlock,
-    mapToVsCodePosition,
     DictionaryBlockArrayField,
-} from "../../../../../../../shared";
+} from "@global_shared";
+import { mapToVsCodePosition } from "@shared";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 import { DiagnosticWithCode } from "../../../definitions";

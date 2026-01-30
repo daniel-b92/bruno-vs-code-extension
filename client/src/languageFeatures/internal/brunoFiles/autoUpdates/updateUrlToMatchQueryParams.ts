@@ -7,9 +7,9 @@ import {
     getExpectedUrlQueryParamsForQueryParamsBlock,
     getUrlSubstringForQueryParams,
     Block,
-    mapToVsCodePosition,
     isDictionaryBlockSimpleField,
-} from "../../../../shared";
+} from "@global_shared";
+import { mapToVsCodePosition } from "@shared";
 
 export function updateUrlToMatchQueryParams(
     editBuilder: TextEditorEdit,

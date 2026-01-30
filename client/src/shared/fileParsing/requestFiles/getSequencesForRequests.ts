@@ -1,6 +1,5 @@
 import { resolve } from "path";
-import { CollectionItemProvider } from "../../../fileSystemCache/externalHelpers/collectionItemProvider";
-import { getSequenceForFile } from "../shared/getSequenceForFile";
+import { CollectionItemProvider, getSequenceForFile } from "@shared";
 import { promisify } from "util";
 import { readdir } from "fs";
 

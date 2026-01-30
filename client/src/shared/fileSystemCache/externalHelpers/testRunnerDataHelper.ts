@@ -1,15 +1,18 @@
 import * as vscode from "vscode";
-import { getTestId, getTestLabel } from "../../../testRunner";
-import { addTestItemAndAncestorsToTestTree } from "../../../testRunner";
+import {
+    getTestId,
+    getTestLabel,
+    addTestItemAndAncestorsToTestTree,
+} from "../../../testRunner";
+import { normalizeDirectoryPath } from "@global_shared";
 import {
     Collection,
     CollectionDirectory,
     CollectionItemWithSequence,
-    normalizeDirectoryPath,
     CollectionItem,
     isCollectionItemWithSequence,
     isRequestFile,
-} from "../..";
+} from "@shared";
 
 export class TestRunnerDataHelper {
     constructor(private testController: vscode.TestController) {}

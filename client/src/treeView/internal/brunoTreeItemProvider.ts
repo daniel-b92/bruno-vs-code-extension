@@ -1,18 +1,16 @@
 import { basename, dirname } from "path";
 import * as vscode from "vscode";
+import { normalizeDirectoryPath } from "@global_shared";
 import {
     CollectionData,
     FileChangeType,
     CollectionItemProvider,
-    normalizeDirectoryPath,
     OutputChannelLogger,
     Collection,
-} from "../../shared";
+} from "@shared";
 import { BrunoTreeItem } from "../brunoTreeItem";
 
-export class BrunoTreeItemProvider
-    implements vscode.TreeDataProvider<BrunoTreeItem>
-{
+export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeItem> {
     constructor(
         private workspaceRoot: string,
         private collectionItemProvider: CollectionItemProvider,

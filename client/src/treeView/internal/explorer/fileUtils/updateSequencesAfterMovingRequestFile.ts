@@ -3,7 +3,7 @@ import {
     CollectionItemProvider,
     getMaxSequenceForRequests,
     getSequencesForRequests,
-} from "../../../../shared";
+} from "@shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { normalizeSequencesForRequestFiles } from "./normalizeSequencesForRequestFiles";
 import { replaceSequenceForFile } from "./replaceSequenceForFile";

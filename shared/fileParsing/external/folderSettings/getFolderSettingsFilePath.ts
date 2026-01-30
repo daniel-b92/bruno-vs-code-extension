@@ -1,5 +1,5 @@
 import { readdir } from "fs";
-import { doesFileNameMatchFolderSettingsFileName } from "../../..";
+import { doesFileNameMatchFolderSettingsFileName } from "../../../../client/src/shared";
 import { resolve } from "path";
 import { promisify } from "util";
 

@@ -8,10 +8,9 @@ import {
     Block,
     isBlockDictionaryBlock,
     isDictionaryBlockField,
-    mapToVsCodePosition,
-    mapToVsCodeRange,
     PlainTextWithinBlock,
-} from "../../../../../../../shared";
+} from "@global_shared";
+import { mapToVsCodePosition, mapToVsCodeRange } from "@shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";

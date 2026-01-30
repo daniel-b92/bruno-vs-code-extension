@@ -2,16 +2,18 @@ import { basename, dirname, extname } from "path";
 import {
     BrunoFileType,
     Collection,
-    getExtensionForBrunoFiles,
     doesFileNameMatchFolderSettingsFileName,
-    normalizeDirectoryPath,
-    checkIfPathExistsAsync,
     ItemType,
     NonBrunoSpecificItemType,
     isInFolderForEnvironmentFiles,
-} from "../..";
+} from "@shared";
 import { promisify } from "util";
 import { lstat } from "fs";
+import {
+    checkIfPathExistsAsync,
+    getExtensionForBrunoFiles,
+    normalizeDirectoryPath,
+} from "@global_shared";
 
 export async function getItemType(
     collection: Collection,

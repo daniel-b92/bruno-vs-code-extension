@@ -4,9 +4,9 @@ import {
     Block,
     MetaBlockKey,
     getFieldFromMetaBlock,
-    mapToVsCodeRange,
     isDictionaryBlockSimpleField,
-} from "../../../../../../../shared";
+} from "@global_shared";
+import { mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { doesDictionaryBlockFieldHaveValidIntegerValue } from "../../util/doesDictionaryBlockFieldHaveValidIntegerValue";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";

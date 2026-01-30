@@ -1,4 +1,4 @@
-import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
+import { TextDocumentHelper } from "../../fileSystem/textDocumentHelper";
 import {
     BlockType,
     Position,

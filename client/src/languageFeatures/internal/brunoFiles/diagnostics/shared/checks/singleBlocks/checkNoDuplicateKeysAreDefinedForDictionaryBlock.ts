@@ -1,5 +1,6 @@
 import { DiagnosticSeverity, Uri } from "vscode";
-import { DictionaryBlock, mapToVsCodeRange } from "../../../../../../../shared";
+import { DictionaryBlock } from "@global_shared";
+import { mapToVsCodeRange } from "@shared";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 import {
     FieldsWithSameKey,

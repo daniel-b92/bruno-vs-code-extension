@@ -1,5 +1,5 @@
 import { TextDocument } from "vscode";
-import { Position } from "../..";
+import { Position } from "@global_shared";
 
 export function getMatchingTextContainingPosition(
     document: TextDocument,

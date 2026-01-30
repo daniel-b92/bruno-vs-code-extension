@@ -3,9 +3,9 @@ import { CompletionItem, CompletionItemKind } from "vscode";
 import {
     groupReferencesByName,
     getExtensionForBrunoFiles,
-    OutputChannelLogger,
     VariableReferenceType,
-} from "../../../../shared";
+} from "@global_shared";
+import { OutputChannelLogger } from "@shared";
 import { getDynamicVariableReferences } from "../../brunoFiles/shared/getDynamicVariableReferences";
 import {
     EnvVariableBruFileSpecificData,

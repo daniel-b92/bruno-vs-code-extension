@@ -5,10 +5,9 @@ import {
     getBlocksWithEarlierExecutionGroups,
     getBlocksWithLaterExecutionGroups,
     isBlockCodeBlock,
-    mapFromVsCodePosition,
-    OutputChannelLogger,
     VariableReferenceType,
-} from "../../../../shared";
+} from "@global_shared";
+import { mapFromVsCodePosition, OutputChannelLogger } from "@shared";
 
 export function getDynamicVariableReferences(
     requestData: {

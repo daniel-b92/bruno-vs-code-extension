@@ -4,8 +4,8 @@ import {
     Range,
     InbuiltFunctionIdentifier,
     InbuiltFunctionParsingParams,
-    mapFromVsCodePosition,
-} from "../../../../../shared";
+} from "@global_shared";
+import { mapFromVsCodePosition } from "@shared";
 
 export function mapToEnvVarNameParams(
     params: CodeBlockLanguageFeatureRequestWithAdditionalData,

@@ -9,9 +9,9 @@ import {
     DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
     isDictionaryBlockSimpleField,
-    mapToVsCodeRange,
     Range,
-} from "../../../../../../../shared";
+} from "@global_shared";
+import { mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 

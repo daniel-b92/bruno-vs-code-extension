@@ -3,6 +3,11 @@ import { CollectionRegistry } from "../internalHelpers/collectionRegistry";
 import { addItemToCollection } from "../internalHelpers/addItemToCollection";
 import { registerMissingCollectionsAndTheirItems } from "../internalHelpers/registerMissingCollectionsAndTheirItems";
 import {
+    getSequenceForFolder,
+    parseSequenceFromMetaBlock,
+    normalizeDirectoryPath,
+} from "@global_shared";
+import {
     BrunoFileType,
     Collection,
     CollectionData,
@@ -10,14 +15,11 @@ import {
     CollectionItemWithSequence,
     CollectionWatcher,
     FileChangeType,
-    getSequenceForFolder,
-    parseSequenceFromMetaBlock,
-    normalizeDirectoryPath,
     OutputChannelLogger,
     TestRunnerDataHelper,
     isCollectionItemWithSequence,
     MultiFileOperationWithStatus,
-} from "../..";
+} from "@shared";
 import { basename, dirname } from "path";
 import { promisify } from "util";
 import { lstat } from "fs";

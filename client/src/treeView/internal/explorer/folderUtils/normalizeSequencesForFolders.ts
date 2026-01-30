@@ -1,7 +1,4 @@
-import {
-    CollectionItemProvider,
-    getSequencesForFolders,
-} from "../../../../shared";
+import { CollectionItemProvider, getSequencesForFolders } from "@shared";
 import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
 
 export async function normalizeSequencesForFolders(

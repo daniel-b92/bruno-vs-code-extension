@@ -1,9 +1,6 @@
 import { DiagnosticSeverity, Uri } from "vscode";
-import {
-    DictionaryBlockArrayField,
-    mapToVsCodeRange,
-    Range,
-} from "../../../../../../../shared";
+import { DictionaryBlockArrayField, Range } from "@global_shared";
+import { mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 

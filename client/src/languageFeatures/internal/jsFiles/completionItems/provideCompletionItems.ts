@@ -1,16 +1,18 @@
 import { languages } from "vscode";
 import {
-    CollectionItemProvider,
-    OutputChannelLogger,
-    Collection,
-    getConfiguredTestEnvironment,
     VariableReferenceType,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
     Position,
-    mapFromVsCodePosition,
     getInbuiltFunctionType,
-} from "../../../../shared";
+} from "@global_shared";
+import {
+    CollectionItemProvider,
+    OutputChannelLogger,
+    Collection,
+    getConfiguredTestEnvironment,
+    mapFromVsCodePosition,
+} from "@shared";
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import {
     EnvVariableNameMatchingMode,

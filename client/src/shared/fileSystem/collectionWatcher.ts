@@ -8,7 +8,7 @@ import {
 } from "vscode";
 import { FileChangedEvent, FileChangeType } from "./interfaces";
 import { basename } from "path";
-import { normalizeDirectoryPath } from "./util/normalizeDirectoryPath";
+import { normalizeDirectoryPath } from "@global_shared";
 import { OutputChannelLogger } from "../logging/outputChannelLogger";
 import { lstat } from "fs";
 import { promisify } from "util";
@@ -163,7 +163,7 @@ export class CollectionWatcher {
         return new RelativePattern(
             maybeWorkspaceFolder,
             normalizeDirectoryPath(collectionRootDir) !=
-            normalizeDirectoryPath(maybeWorkspaceFolder.uri.fsPath)
+                normalizeDirectoryPath(maybeWorkspaceFolder.uri.fsPath)
                 ? `{**/${basename(collectionRootDir)},**/${basename(
                       collectionRootDir,
                   )}/**/*}`

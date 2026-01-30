@@ -1,7 +1,7 @@
 import { lstat } from "fs";
 import { basename, extname } from "path";
 import { promisify } from "util";
-import { checkIfPathExistsAsync } from "../../../shared";
+import { checkIfPathExistsAsync } from "@global_shared";
 
 export async function getPathForDuplicatedItem(originalPath: string) {
     const maxAttempts = 100;

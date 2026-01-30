@@ -3,13 +3,12 @@ import {
     EnvironmentFileBlockName,
     getBlockStartPatternByName,
     getNonBlockSpecificBlockStartPattern,
-    mapToVsCodePosition,
-    mapToVsCodeRange,
     RequestFileBlockName,
     SettingsFileSpecificBlock,
     TextDocumentHelper,
     TextOutsideOfBlocks,
-} from "../../../../../../../shared";
+} from "@global_shared";
+import { mapToVsCodePosition, mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 

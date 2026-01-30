@@ -1,20 +1,23 @@
 import { CompletionItem, CompletionItemKind, languages } from "vscode";
 import {
+    Collection,
+    CollectionItemProvider,
+    getConfiguredTestEnvironment,
+    getMatchingTextContainingPosition,
+    mapFromVsCodePosition,
+    mapToVsCodeRange,
+    OutputChannelLogger,
+    getMaxSequenceForRequests,
+} from "@shared";
+import {
     ApiKeyAuthBlockKey,
     ApiKeyAuthBlockPlacementValue,
     Block,
     BooleanFieldValue,
-    Collection,
-    CollectionItemProvider,
     getBlocksWithoutVariableSupport,
-    getConfiguredTestEnvironment,
     getDictionaryBlockArrayField,
-    getMatchingTextContainingPosition,
-    getMaxSequenceForRequests,
     getPossibleMethodBlocks,
     isAuthBlock,
-    mapFromVsCodePosition,
-    mapToVsCodeRange,
     MetaBlockKey,
     MethodBlockAuth,
     MethodBlockBody,
@@ -22,14 +25,13 @@ import {
     OAuth2BlockCredentialsPlacementValue,
     OAuth2BlockTokenPlacementValue,
     OAuth2ViaAuthorizationCodeBlockKey,
-    OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
     RequestType,
     SettingsBlockKey,
     TextDocumentHelper,
     VariableReferenceType,
-} from "../../../../shared";
+} from "@global_shared";
 import { basename, dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { LanguageFeatureRequest } from "../../shared/interfaces";

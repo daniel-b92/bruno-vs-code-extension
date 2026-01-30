@@ -4,7 +4,7 @@ import {
     parseBruFile,
     EnvironmentFileBlockName,
     isBlockDictionaryBlock,
-} from "../../../../../shared";
+} from "@global_shared";
 import { DiagnosticWithCode } from "../definitions";
 import { checkArrayBlocksHaveArrayStructure } from "../shared/checks/multipleBlocks/checkArrayBlocksHaveArrayStructure";
 import { checkDictionaryBlocksAreNotEmpty } from "../shared/checks/multipleBlocks/checkDictionaryBlocksAreNotEmpty";

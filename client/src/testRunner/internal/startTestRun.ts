@@ -14,14 +14,14 @@ import { dirname, extname, isAbsolute, resolve } from "path";
 import { runTestStructure } from "./runTestStructure";
 import { QueuedTest, TestRunQueue } from "./testRunQueue";
 import {
-    checkIfPathExistsAsync,
     Collection,
     CollectionItemProvider,
     getConfiguredTestEnvironment,
     getEnvironmentSettingsKey,
     getLinkToUserSetting,
     OutputChannelLogger,
-} from "../../shared";
+} from "@shared";
+import { checkIfPathExistsAsync } from "@global_shared";
 import { TestRunUserInputData } from "./interfaces";
 
 export const startTestRun = async (

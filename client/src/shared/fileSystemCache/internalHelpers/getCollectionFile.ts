@@ -8,6 +8,8 @@ import {
     BrunoEnvironmentFile,
     NonBrunoSpecificItemType,
     NonBrunoFile,
+} from "@shared";
+import {
     parseBruFile,
     TextDocumentHelper,
     EnvironmentFileBlockName,
@@ -18,7 +20,7 @@ import {
     isDictionaryBlockField,
     MetaBlockKey,
     isDictionaryBlockArrayField,
-} from "../..";
+} from "@global_shared";
 import { readFile } from "fs";
 
 export async function getCollectionFile(collection: Collection, path: string) {
@@ -104,8 +106,8 @@ async function createRequestFileInstance(path: string) {
     return new BrunoRequestFile(
         path,
         sequenceField &&
-        isDictionaryBlockSimpleField(sequenceField) &&
-        !isNaN(Number(sequenceField.value))
+            isDictionaryBlockSimpleField(sequenceField) &&
+            !isNaN(Number(sequenceField.value))
             ? Number(sequenceField.value)
             : undefined,
         tagsField && isDictionaryBlockArrayField(tagsField)

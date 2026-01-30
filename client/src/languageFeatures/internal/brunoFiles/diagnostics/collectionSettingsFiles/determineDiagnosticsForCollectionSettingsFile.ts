@@ -8,7 +8,7 @@ import {
     getValidBlockNamesForCollectionSettingsFile,
     getNamesForRedundantBlocksForCollectionSettingsFile,
     isBlockDictionaryBlock,
-} from "../../../../../shared";
+} from "@global_shared";
 import { DiagnosticWithCode } from "../definitions";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
 import { checkAtMostOneAuthBlockExists } from "../shared/checks/multipleBlocks/checkAtMostOneAuthBlockExists";

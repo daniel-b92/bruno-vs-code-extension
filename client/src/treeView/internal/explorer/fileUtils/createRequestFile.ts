@@ -3,15 +3,17 @@ import {
     getExtensionForBrunoFiles,
     RequestType,
     RequestFileBlockName,
+    MethodBlockAuth,
+    MethodBlockBody,
+} from "@global_shared";
+import {
     CollectionItemProvider,
     getMaxSequenceForRequests,
     getContentForMetaBlock,
     getContentForDefaultMethodBlock,
-    MethodBlockAuth,
-    MethodBlockBody,
     getLineBreak,
     Collection,
-} from "../../../../shared";
+} from "@shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { commands, Uri, window } from "vscode";
 import { validateNewItemNameIsUnique } from "../validateNewItemNameIsUnique";

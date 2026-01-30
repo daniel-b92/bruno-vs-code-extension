@@ -11,7 +11,8 @@ import { getTestFilesWithFailures } from "./testExecutionUtils/jsonReportParser"
 import { getTestItemDescendants } from "../testTreeUtils/getTestItemDescendants";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import treeKill = require("tree-kill");
-import { checkIfPathExistsAsync, getLinkToUserSetting } from "../../shared";
+import { getLinkToUserSetting } from "@shared";
+import { checkIfPathExistsAsync } from "@global_shared";
 import { existsSync, unlink, unlinkSync } from "fs";
 import { promisify } from "util";
 import { TestRunReportingAndOptionalData } from "./interfaces";

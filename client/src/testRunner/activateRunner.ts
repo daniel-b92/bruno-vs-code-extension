@@ -17,17 +17,19 @@ import { addTestItemAndAncestorsToTestTree } from "./testTreeUtils/addTestItemAn
 import { getTestId } from "./testTreeUtils/testTreeHelper";
 import { dirname, extname } from "path";
 import {
+    normalizeDirectoryPath,
+    getExtensionForBrunoFiles,
+} from "@global_shared";
+import {
     TestRunnerDataHelper,
     CollectionDirectory,
     Collection,
-    normalizeDirectoryPath,
     CollectionItemProvider,
     FileChangeType,
-    getExtensionForBrunoFiles,
     CollectionItemWithSequence,
     getLoggerFromSubscriptions,
     isCollectionItemWithSequence,
-} from "../shared";
+} from "@shared";
 import { openRunConfigDialog } from "./internal/testExecutionUtils/openRunConfigDialog";
 import { TestRunUserInputData } from "./internal/interfaces";
 

@@ -1,7 +1,7 @@
 import {
     DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
-} from "../../../../../../shared";
+} from "@global_shared";
 
 export function getSortedDictionaryBlockFieldsByPosition(
     unsorted: (DictionaryBlockSimpleField | DictionaryBlockArrayField)[],

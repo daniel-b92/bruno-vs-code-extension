@@ -1,5 +1,5 @@
-import { Position } from "./position";
-import { Range } from "./range";
+import { Position } from "../../../../../shared/fileSystem/position";
+import { Range } from "../../../../../shared/fileSystem/range";
 import { Position as VsCodePosition, Range as VsCodeRange } from "vscode";
 
 export function mapToVsCodeRange(range: Range): VsCodeRange {

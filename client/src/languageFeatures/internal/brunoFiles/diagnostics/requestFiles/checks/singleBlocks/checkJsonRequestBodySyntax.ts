@@ -1,13 +1,12 @@
 import { DiagnosticSeverity, Range as VsCodeRange } from "vscode";
 import {
     Block,
-    mapToVsCodeRange,
     RequestFileBlockName,
     Range,
     TextDocumentHelper,
-    mapToVsCodePosition,
     Position,
-} from "../../../../../../../shared";
+} from "@global_shared";
+import { mapToVsCodePosition, mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { RelevantWithinBodyBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinBodyBlockDiagnosticCodeEnum";
 

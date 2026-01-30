@@ -1,6 +1,4 @@
-import { TextDocumentHelper } from "../../fileSystem/util/textDocumentHelper";
 import { getBlockContent } from "../internal/getBlockContent";
-import { getNonBlockSpecificBlockStartPattern } from "./shared/util/getNonBlockSpecificBlockStartPattern";
 import {
     getBlockType,
     Position,
@@ -10,6 +8,8 @@ import {
     TextOutsideOfBlocks,
     ArrayBlockField,
     getBlocksWithoutVariableSupport,
+    TextDocumentHelper,
+    getNonBlockSpecificBlockStartPattern,
 } from "../..";
 
 export const parseBruFile = (document: TextDocumentHelper) => {

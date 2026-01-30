@@ -6,7 +6,7 @@ import {
     getFieldFromMetaBlock,
     MetaBlockKey,
     isDictionaryBlockSimpleField,
-} from "../../../../shared";
+} from "@global_shared";
 import { readFile, writeFile } from "fs";
 import { window } from "vscode";
 

@@ -1,10 +1,10 @@
 import { basename, dirname, resolve } from "path";
+import { getFolderSettingsFilePath } from "@global_shared";
 import {
     CollectionItemProvider,
-    getFolderSettingsFilePath,
     getMaxSequenceForFolders,
     getSequencesForFolders,
-} from "../../../../shared";
+} from "@shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
 import { normalizeSequencesForFolders } from "./normalizeSequencesForFolders";

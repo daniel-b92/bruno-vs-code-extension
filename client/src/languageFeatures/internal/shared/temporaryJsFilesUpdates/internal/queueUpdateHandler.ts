@@ -1,5 +1,5 @@
 import { EventEmitter } from "vscode";
-import { OutputChannelLogger } from "../../../../../shared";
+import { OutputChannelLogger } from "@shared";
 import { TempJsUpdateRequest, TempJsUpdateType } from "./interfaces";
 
 export class QueueUpdateHandler {

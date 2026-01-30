@@ -1,4 +1,4 @@
-import { Block } from "../../../../../shared";
+import { Block } from "@global_shared";
 import { DiagnosticWithCode } from "../definitions";
 import { checkJsonRequestBodySyntax } from "./checks/singleBlocks/checkJsonRequestBodySyntax";
 

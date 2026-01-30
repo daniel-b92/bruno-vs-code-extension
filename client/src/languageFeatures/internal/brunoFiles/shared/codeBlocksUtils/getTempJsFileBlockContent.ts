@@ -1,9 +1,5 @@
 import { SyntaxKind } from "typescript";
-import {
-    parseCodeBlock,
-    Range,
-    TextDocumentHelper,
-} from "../../../../../shared";
+import { parseCodeBlock, Range, TextDocumentHelper } from "@global_shared";
 import { mapBlockNameToJsFileLine } from "./mapBlockNameToJsFileFunctionName";
 
 export function getTempJsFileBlockContent(

@@ -1,9 +1,9 @@
 import { TextDocument, Position as VsCodePosition } from "vscode";
+import { getPatternForVariablesInNonCodeBlock } from "@global_shared";
 import {
     getMatchingTextContainingPosition,
-    getPatternForVariablesInNonCodeBlock,
     mapFromVsCodePosition,
-} from "../../../..";
+} from "@shared";
 
 export function getVariableNameForPositionInNonCodeBlock(params: {
     document: TextDocument;

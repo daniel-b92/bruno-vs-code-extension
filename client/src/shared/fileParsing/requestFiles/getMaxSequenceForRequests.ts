@@ -1,4 +1,4 @@
-import { CollectionItemProvider } from "../../../fileSystemCache/externalHelpers/collectionItemProvider";
+import { CollectionItemProvider } from "@shared";
 import { getSequencesForRequests } from "./getSequencesForRequests";
 
 export async function getMaxSequenceForRequests(

@@ -1,17 +1,19 @@
 import { languages, TextEdit } from "vscode";
 import {
     CodeBlock,
-    getLineBreak,
-    mapToVsCodeRange,
-    OutputChannelLogger,
-    parseBruFile,
     Position,
     Range,
     TextDocumentHelper,
     BlockBracket,
     getCodeBlocks,
+    parseBruFile,
+} from "@global_shared";
+import {
+    getLineBreak,
+    mapToVsCodeRange,
+    OutputChannelLogger,
     LineBreakType,
-} from "../../../../shared";
+} from "@shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { format } from "prettier";
 import { mapBlockNameToJsFileLine } from "../shared/codeBlocksUtils/mapBlockNameToJsFileFunctionName";

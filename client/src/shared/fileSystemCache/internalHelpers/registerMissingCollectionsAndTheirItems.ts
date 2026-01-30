@@ -1,11 +1,10 @@
+import { getSequenceForFolder, normalizeDirectoryPath } from "@global_shared";
 import {
     Collection,
     CollectionDirectory,
     getAllCollectionRootDirectories,
-    getSequenceForFolder,
-    normalizeDirectoryPath,
     TestRunnerDataHelper,
-} from "../..";
+} from "@shared";
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
 import { addItemToCollection } from "./addItemToCollection";

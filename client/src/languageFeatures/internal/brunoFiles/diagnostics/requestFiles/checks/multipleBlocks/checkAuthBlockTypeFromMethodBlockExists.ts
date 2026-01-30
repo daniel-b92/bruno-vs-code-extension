@@ -7,9 +7,9 @@ import {
     isAuthBlock,
     MethodBlockKey,
     Block,
-    mapToVsCodeRange,
     isDictionaryBlockSimpleField,
-} from "../../../../../../../shared";
+} from "@global_shared";
+import { mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 

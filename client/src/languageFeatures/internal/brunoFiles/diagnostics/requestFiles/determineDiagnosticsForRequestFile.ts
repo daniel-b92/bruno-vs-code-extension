@@ -7,13 +7,13 @@ import {
     getAllMethodBlocks,
     isAuthBlock,
     isBodyBlock,
-    CollectionItemProvider,
     Block,
     TextOutsideOfBlocks,
     isBlockDictionaryBlock,
     DictionaryBlock,
     shouldBeDictionaryArrayField,
-} from "../../../../../shared";
+} from "@global_shared";
+import { CollectionItemProvider } from "@shared";
 import { DiagnosticWithCode } from "../definitions";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
 import { checkAtMostOneAuthBlockExists } from "../shared/checks/multipleBlocks/checkAtMostOneAuthBlockExists";

@@ -1,10 +1,6 @@
 import { DiagnosticSeverity, Range, Uri } from "vscode";
-import {
-    Block,
-    mapToVsCodePosition,
-    mapToVsCodeRange,
-    TextOutsideOfBlocks,
-} from "../../../../../../../shared";
+import { Block, TextOutsideOfBlocks } from "@global_shared";
+import { mapToVsCodePosition, mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { getSortedTextOutsideOfBlocksByPosition } from "../../util/getSortedTextOutsideOfBlocksByPosition";

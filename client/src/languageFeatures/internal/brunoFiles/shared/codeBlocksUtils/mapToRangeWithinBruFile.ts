@@ -1,8 +1,5 @@
-import {
-    Block,
-    mapToVsCodeRange,
-    OutputChannelLogger,
-} from "../../../../../shared";
+import { Block } from "@global_shared";
+import { mapToVsCodeRange, OutputChannelLogger } from "@shared";
 import { Range as VsCodeRange, Position as VsCodePosition } from "vscode";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
 

@@ -1,10 +1,10 @@
 import { Position as VsCodePosition } from "vscode";
 import {
-    mapToVsCodeRange,
     parseBruFile,
     TextDocumentHelper,
     getCodeBlocks,
-} from "../../../../../shared";
+} from "@global_shared";
+import { mapToVsCodeRange } from "@shared";
 
 export function getCodeBlockContainingPosition(
     bruFileContent: string,

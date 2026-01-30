@@ -3,7 +3,7 @@ import {
     Block,
     RequestFileBlockName,
     TextDocumentHelper,
-} from "../../../../../../../shared";
+} from "@global_shared";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 

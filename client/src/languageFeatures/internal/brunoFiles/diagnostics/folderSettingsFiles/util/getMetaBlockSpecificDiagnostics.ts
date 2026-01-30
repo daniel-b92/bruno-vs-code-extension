@@ -3,8 +3,8 @@ import {
     Block,
     isBlockDictionaryBlock,
     MetaBlockKey,
-    CollectionItemProvider,
-} from "../../../../../../shared";
+} from "@global_shared";
+import { CollectionItemProvider } from "@shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "../../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
 import { checkNoMandatoryValuesAreMissingForDictionaryBlock } from "../../shared/checks/singleBlocks/checkNoMandatoryValuesAreMissingForDictionaryBlock";

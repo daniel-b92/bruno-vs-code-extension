@@ -1,8 +1,8 @@
-import { CollectionItemProvider, getSequencesForFolders } from "../../..";
+import { CollectionItemProvider, getSequencesForFolders } from "../..";
 
 export async function getMaxSequenceForFolders(
     itemProvider: CollectionItemProvider,
-    parentFolder: string
+    parentFolder: string,
 ) {
     const sequences = (
         await getSequencesForFolders(itemProvider, parentFolder)

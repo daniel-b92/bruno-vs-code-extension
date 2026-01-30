@@ -9,21 +9,23 @@ import {
 } from "vscode";
 import {
     CollectionItemProvider,
-    parseBruFile,
-    TextDocumentHelper,
     mapToVsCodeRange,
-    RequestFileBlockName,
     OutputChannelLogger,
     mapFromVsCodePosition,
-    Block,
     Collection,
     getConfiguredTestEnvironment,
+} from "@shared";
+import {
+    parseBruFile,
+    TextDocumentHelper,
+    RequestFileBlockName,
+    Block,
     getCodeBlocks,
     VariableReferenceType,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
     getInbuiltFunctionType,
-} from "../../../../shared";
+} from "@global_shared";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";

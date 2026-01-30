@@ -1,17 +1,19 @@
 import { DiagnosticSeverity, Uri } from "vscode";
 import {
-    BrunoRequestFile,
-    CollectionItemProvider,
     DictionaryBlockSimpleField,
     normalizeDirectoryPath,
     Block,
     MetaBlockKey,
     isBlockDictionaryBlock,
+} from "@global_shared";
+import {
+    BrunoRequestFile,
+    CollectionItemProvider,
     mapToVsCodeRange,
     BrunoFileType,
     filterAsync,
     isCollectionItemWithSequence,
-} from "../../../../../../shared";
+} from "@shared";
 import { basename, dirname } from "path";
 import { DiagnosticWithCode } from "../../definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";

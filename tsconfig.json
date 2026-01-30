@@ -6,9 +6,6 @@
         "outDir": "out",
         "sourceMap": true,
         "strict": true,
-        "paths": {
-            "global_shared": ["./shared/index.ts"]
-        },
 
         "allowUnreachableCode": false,
         "noUnusedLocals": true,

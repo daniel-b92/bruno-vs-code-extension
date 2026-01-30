@@ -1,10 +1,7 @@
 import { basename } from "path";
 import { Hover, MarkdownString } from "vscode";
-import {
-    OutputChannelLogger,
-    getConfiguredTestEnvironment,
-    getExtensionForBrunoFiles,
-} from "../../../../shared";
+import { getExtensionForBrunoFiles } from "@global_shared";
+import { OutputChannelLogger, getConfiguredTestEnvironment } from "@shared";
 import {
     getMatchingDefinitionsFromEnvFiles,
     EnvVariableNameMatchingMode,

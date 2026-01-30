@@ -1,10 +1,10 @@
 import { commands, languages, SignatureHelp } from "vscode";
+import { RequestFileBlockName } from "@global_shared";
 import {
     CollectionItemProvider,
     mapFromVsCodePosition,
     OutputChannelLogger,
-    RequestFileBlockName,
-} from "../../../../shared";
+} from "@shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";

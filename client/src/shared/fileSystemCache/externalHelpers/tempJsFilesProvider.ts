@@ -1,12 +1,12 @@
 import { basename } from "path";
+import { normalizeDirectoryPath } from "@global_shared";
 import {
     CollectionWatcher,
     FileChangeType,
-    normalizeDirectoryPath,
     OutputChannelLogger,
     getTemporaryJsFileBasenameWithoutExtension,
     getTemporaryJsFileBasename,
-} from "../..";
+} from "@shared";
 import { glob } from "glob";
 import { Disposable } from "vscode";
 

@@ -1,4 +1,4 @@
-import { MethodBlockAuth, MethodBlockBody, RequestType } from "..";
+import { MethodBlockAuth, MethodBlockBody, RequestType } from "@global_shared";
 
 export interface MetaBlockContent {
     name: string;

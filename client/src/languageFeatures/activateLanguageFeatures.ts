@@ -21,12 +21,7 @@ import {
     CollectionDirectory,
     CollectionItemProvider,
     FileChangeType,
-    getExtensionForBrunoFiles,
     getLoggerFromSubscriptions,
-    normalizeDirectoryPath,
-    parseBruFile,
-    TextDocumentHelper,
-    checkIfPathExistsAsync,
     isBrunoFileType,
     getTemporaryJsFileNameInFolder,
     filterAsync,
@@ -34,7 +29,14 @@ import {
     getTemporaryJsFileBasename,
     getItemType,
     TempJsFilesProvider,
-} from "../shared";
+} from "@shared";
+import {
+    parseBruFile,
+    TextDocumentHelper,
+    checkIfPathExistsAsync,
+    getExtensionForBrunoFiles,
+    normalizeDirectoryPath,
+} from "@global_shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/brunoFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/brunoFiles/autoUpdates/updateUrlToMatchQueryParams";
 import { updatePathParamsKeysToMatchUrl } from "./internal/brunoFiles/autoUpdates/updatePathParamsKeysToMatchUrl";

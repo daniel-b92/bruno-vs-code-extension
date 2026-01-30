@@ -2,14 +2,8 @@ import { commands, Hover, languages, MarkdownString } from "vscode";
 import {
     Block,
     CodeBlock,
-    Collection,
-    CollectionItemProvider,
     getBlocksWithoutVariableSupport,
-    getVariableNameForPositionInNonCodeBlock,
     isBlockCodeBlock,
-    mapFromVsCodePosition,
-    mapToVsCodeRange,
-    OutputChannelLogger,
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
@@ -18,8 +12,9 @@ import {
     getInbuiltFunctionType,
     getDictionaryBlockArrayField,
     MetaBlockKey,
-    getLineBreak,
-} from "../../../../shared";
+    getInbuiltFunctionIdentifiers,
+} from "@global_shared";
+import { getVariableNameForPositionInNonCodeBlock } from "@shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
@@ -27,7 +22,14 @@ import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/exte
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
 import { getHoverForEnvVariable } from "../../shared/environmentVariables/getHoverForEnvVariable";
-import { getInbuiltFunctionIdentifiers } from "../../../../shared/languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
+import {
+    getLineBreak,
+    mapFromVsCodePosition,
+    mapToVsCodeRange,
+    OutputChannelLogger,
+    Collection,
+    CollectionItemProvider,
+} from "@shared";
 import {
     getExistingRequestFileTags,
     TagOccurences,

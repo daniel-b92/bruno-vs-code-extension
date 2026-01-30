@@ -4,12 +4,8 @@ import {
     Range,
     Uri,
 } from "vscode";
-import {
-    Block,
-    mapToVsCodePosition,
-    mapToVsCodeRange,
-    RequestFileBlockName,
-} from "../../../../../../../shared";
+import { Block, RequestFileBlockName } from "@global_shared";
+import { mapToVsCodePosition, mapToVsCodeRange } from "@shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../definitions";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";

@@ -1,4 +1,4 @@
-import { DictionaryBlockSimpleField } from "../../../../../../shared";
+import { DictionaryBlockSimpleField } from "@global_shared";
 
 export function doesDictionaryBlockFieldHaveValidIntegerValue(
     field: DictionaryBlockSimpleField,
