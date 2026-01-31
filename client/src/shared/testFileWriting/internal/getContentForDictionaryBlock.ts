@@ -1,4 +1,5 @@
-import { getLineBreak, LineBreakType } from "../..";
+import { LineBreakType } from "@global_shared";
+import { getLineBreak } from "../..";
 import { getNumberOfWhitespacesForIndentation } from "./writerUtils";
 
 export function getContentForDictionaryBlock(

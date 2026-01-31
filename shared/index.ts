@@ -1,10 +1,12 @@
 // array utils
 export * from "./arrayUtils/everyAsync";
+export * from "./arrayUtils/filterAsync";
 
 // file system
 export * from "./fileSystem/textDocumentHelper";
 export * from "./fileSystem/range";
 export * from "./fileSystem/position";
+export * from "./fileSystem/lineBreakTypeEnum";
 export * from "./fileSystem/util/checkIfPathExistsAsync";
 export * from "./fileSystem/util/getExtensionForBrunoFiles";
 export * from "./fileSystem/util/normalizeDirectoryPath";

@@ -1,5 +1,5 @@
 import { MethodBlockKey } from "@global_shared";
-import { LineBreakType } from "@shared";
+import { LineBreakType } from "@global_shared";
 import { MethodBlockContent } from "./interfaces";
 import { getContentForDictionaryBlock } from "./internal/getContentForDictionaryBlock";
 

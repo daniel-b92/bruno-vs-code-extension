@@ -1,3 +1,4 @@
+import { LineBreakType } from "./lineBreakTypeEnum";
 import { Position } from "./position";
 import { Range } from "./range";
 
@@ -6,17 +7,17 @@ export class TextDocumentHelper {
         let remainingText = text;
 
         while (
-            remainingText.includes(LinebreakType.lf) ||
-            remainingText.includes(LinebreakType.crlf)
+            remainingText.includes(LineBreakType.Lf) ||
+            remainingText.includes(LineBreakType.Crlf)
         ) {
             const linebreakIndex = remainingText.search(
-                new RegExp(`(${LinebreakType.lf}|${LinebreakType.crlf})`),
+                new RegExp(`(${LineBreakType.Lf}|${LineBreakType.Crlf})`),
             );
             const lineBreak = remainingText
                 .substring(linebreakIndex)
-                .startsWith(LinebreakType.lf)
-                ? LinebreakType.lf
-                : LinebreakType.crlf;
+                .startsWith(LineBreakType.Lf)
+                ? LineBreakType.Lf
+                : LineBreakType.Crlf;
 
             this.lines.fullLines.push({
                 content: remainingText.substring(0, linebreakIndex),
@@ -31,7 +32,7 @@ export class TextDocumentHelper {
     }
 
     private lines: {
-        fullLines: { content: string; lineBreak: LinebreakType }[];
+        fullLines: { content: string; lineBreak: LineBreakType }[];
         lastLine: string | undefined;
     } = { fullLines: [], lastLine: undefined };
 
@@ -240,16 +241,41 @@ export class TextDocumentHelper {
             .concat(lastLine);
     }
 
+    public getMostUsedLineBreak() {
+        if (this.lines.fullLines.length == 0) {
+            return undefined;
+        }
+
+        const usedLineBreaks = this.lines.fullLines.reduce(
+            (prev, { lineBreak }) => {
+                const indexForLineBreak = prev.findIndex(
+                    ({ lineBreak: l }) => lineBreak == l,
+                );
+
+                if (indexForLineBreak < 0) {
+                    return prev.concat({ lineBreak, occurences: 1 });
+                }
+
+                return prev.map((v, index) =>
+                    index == indexForLineBreak
+                        ? { ...v, occurences: v.occurences + 1 }
+                        : v,
+                );
+            },
+            [] as { lineBreak: LineBreakType; occurences: number }[],
+        );
+
+        return usedLineBreaks.sort(
+            ({ occurences: occurences1 }, { occurences: occurences2 }) =>
+                occurences1 - occurences2,
+        )[usedLineBreaks.length - 1].lineBreak;
+    }
+
     private getLineBreakLength(lineIndex: number) {
         return this.lines.fullLines.length <= lineIndex
             ? undefined
-            : this.lines.fullLines[lineIndex].lineBreak == LinebreakType.lf
+            : this.lines.fullLines[lineIndex].lineBreak == LineBreakType.Lf
               ? 1
               : 2;
     }
-}
-
-enum LinebreakType {
-    lf = "\n",
-    crlf = "\r\n",
 }

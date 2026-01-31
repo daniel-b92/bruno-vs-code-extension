@@ -1,4 +1,3 @@
-import { languages, TextEdit } from "vscode";
 import {
     CodeBlock,
     Position,
@@ -7,52 +6,41 @@ import {
     BlockBracket,
     getCodeBlocks,
     parseBruFile,
-} from "@global_shared";
-import {
-    getLineBreak,
-    mapToVsCodeRange,
-    OutputChannelLogger,
     LineBreakType,
-} from "@shared";
-import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
+} from "@global_shared";
 import { format } from "prettier";
-import { mapBlockNameToJsFileLine } from "../shared/codeBlocksUtils/mapBlockNameToJsFileFunctionName";
+import { DocumentFormattingParams, TextEdit } from "vscode-languageserver/node";
+import { URI } from "vscode-uri";
+import { mapBlockNameToJsFileLine } from "../shared/mapBlockNameToJsFileLine";
 
-export function registerCodeBlockFormatter(_logger?: OutputChannelLogger) {
-    return languages.registerDocumentFormattingEditProvider(
-        getRequestFileDocumentSelector(),
-        {
-            async provideDocumentFormattingEdits(document, _options, _token) {
-                const { blocks } = parseBruFile(
-                    new TextDocumentHelper(document.getText()),
-                );
+export async function getHandlerForFormatting({
+    textDocument: { uri: uriAsString },
+}: DocumentFormattingParams): Promise<TextEdit[]> {
+    const filePath = URI.parse(uriAsString).fsPath;
+    const documentHelper = new TextDocumentHelper(filePath);
+    const codeBlocks = getCodeBlocks(parseBruFile(documentHelper).blocks);
 
-                const codeBlocks = getCodeBlocks(blocks);
-                const lineBreak = getLineBreak(document);
+    const lineBreak = documentHelper.getMostUsedLineBreak();
 
-                const textEdits: Promise<TextEdit | undefined>[] = [];
-
-                for (const block of codeBlocks) {
-                    textEdits.push(getTextEditForCodeBlock(block, lineBreak));
-                }
-
-                return (await Promise.all(textEdits)).filter(
-                    (edit) => edit,
-                ) as TextEdit[];
-            },
-        },
-    );
+    return Promise.all(
+        codeBlocks.map((block) => getTextEditForCodeBlock(block, lineBreak)),
+    ).then((textEdits) => textEdits.filter((val) => val != undefined));
 }
 
 async function getTextEditForCodeBlock(
     block: CodeBlock,
-    documentLineBreak: LineBreakType,
-) {
+    documentLineBreak?: LineBreakType,
+): Promise<TextEdit | undefined> {
     const toFormat = `${mapBlockNameToJsFileLine(block.name)}${documentLineBreak}${block.content}}`;
 
     const formattedWithDummyFunctionReplacement = await format(toFormat, {
         parser: "typescript",
-        endOfLine: documentLineBreak == LineBreakType.Lf ? "lf" : "crlf",
+        endOfLine:
+            documentLineBreak == LineBreakType.Lf
+                ? "lf"
+                : documentLineBreak == LineBreakType.Crlf
+                  ? "crlf"
+                  : undefined,
     });
 
     if (
@@ -80,17 +68,15 @@ async function getTextEditForCodeBlock(
     const lastLineIndex =
         docHelperForDummyFunctionReplacement.getLineCount() - 1;
 
-    return new TextEdit(
-        mapToVsCodeRange(
-            new Range(
-                block.contentRange.start,
-                new Position(
-                    block.contentRange.end.line,
-                    block.contentRange.end.character + 1, // block content does not end until the closing bracket char is reached
-                ),
+    return {
+        range: new Range(
+            block.contentRange.start,
+            new Position(
+                block.contentRange.end.line,
+                block.contentRange.end.character + 1, // block content does not end until the closing bracket char is reached
             ),
         ),
-        docHelperForDummyFunctionReplacement.getText(
+        newText: docHelperForDummyFunctionReplacement.getText(
             new Range(
                 new Position(1, 0),
                 new Position(
@@ -101,5 +87,5 @@ async function getTextEditForCodeBlock(
                 ),
             ),
         ),
-    );
+    };
 }

@@ -9,13 +9,12 @@ import {
 } from "vscode";
 import {
     CollectionItemProvider,
-    filterAsync,
     Collection,
     getLineBreakFromSettings,
     getTemporaryJsFileNameInFolder,
     DialogOptionLabelEnum,
 } from "../shared";
-import { checkIfPathExistsAsync } from "@global_shared";
+import { checkIfPathExistsAsync, filterAsync } from "@global_shared";
 
 export async function suggestCreatingTsConfigsForCollections(
     itemProvider: CollectionItemProvider,

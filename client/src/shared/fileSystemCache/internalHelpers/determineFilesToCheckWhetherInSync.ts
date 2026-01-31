@@ -2,12 +2,12 @@ import { dirname, resolve } from "path";
 import {
     normalizeDirectoryPath,
     parseSequenceFromMetaBlock,
+    filterAsync,
 } from "@global_shared";
 import {
     BrunoFileType,
     Collection,
     CollectionData,
-    filterAsync,
     getItemType,
     isCollectionItemWithSequence,
     OutputChannelLogger,

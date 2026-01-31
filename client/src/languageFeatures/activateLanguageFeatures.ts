@@ -24,7 +24,6 @@ import {
     getLoggerFromSubscriptions,
     isBrunoFileType,
     getTemporaryJsFileNameInFolder,
-    filterAsync,
     CollectionWatcher,
     getTemporaryJsFileBasename,
     getItemType,
@@ -36,6 +35,7 @@ import {
     checkIfPathExistsAsync,
     getExtensionForBrunoFiles,
     normalizeDirectoryPath,
+    filterAsync,
 } from "@global_shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/brunoFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/brunoFiles/autoUpdates/updateUrlToMatchQueryParams";
@@ -45,7 +45,6 @@ import { provideInfosOnHover as provideInfosOnHoverForBruFiles } from "./interna
 import { provideSignatureHelp as provideSignatureHelpForBruFiles } from "./internal/brunoFiles/signatureHelp/provideSignatureHelp";
 import { provideDefinitions as provideDefinitionsForBruFiles } from "./internal/brunoFiles/definitionProvider/provideDefinitions";
 import { extname } from "path";
-import { registerCodeBlockFormatter } from "./internal/brunoFiles/formatting/registerCodeBlockFormatter";
 import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "./internal/shared/temporaryJsFilesUpdates/internal/interfaces";
 import { getTempJsFileContentForBruFile } from "./internal/brunoFiles/shared/codeBlocksUtils/getTempJsFileContentForBruFile";
@@ -111,7 +110,6 @@ export async function activateLanguageFeatures(
             collectionItemProvider,
             logger,
         ),
-        registerCodeBlockFormatter(logger),
         provideInfosOnHoverForJsFiles(collectionItemProvider, logger),
         provideCompletionItemsForJsFiles(collectionItemProvider, logger),
         brunoLangDiagnosticsProvider,

@@ -1,5 +1,5 @@
 import { MetaBlockKey, RequestFileBlockName } from "@global_shared";
-import { LineBreakType } from "@shared";
+import { LineBreakType } from "@global_shared";
 import { MetaBlockContent } from "./interfaces";
 import { getContentForDictionaryBlock } from "./internal/getContentForDictionaryBlock";
 

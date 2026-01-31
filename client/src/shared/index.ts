@@ -21,7 +21,6 @@ export * from "./fileParsing/folderSettings/getSequencesForFolders";
 export * from "./fileParsing/folderSettings/getMaxSequenceForFolders";
 
 // array utils
-export * from "./arrayUtils/filterAsync";
 export * from "./arrayUtils/someAsync";
 
 // test file writing

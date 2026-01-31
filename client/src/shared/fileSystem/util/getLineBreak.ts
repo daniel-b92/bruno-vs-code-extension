@@ -1,12 +1,10 @@
 import { EndOfLine, TextDocument, workspace } from "vscode";
 import { getLineBreakFromSettings } from "../..";
+import { LineBreakType } from "@global_shared";
 
-export enum LineBreakType {
-    Lf = "\n",
-    Crlf = "\r\n"
-}
-
-export function getLineBreak(referenceFile?: string | TextDocument): LineBreakType {
+export function getLineBreak(
+    referenceFile?: string | TextDocument,
+): LineBreakType {
     if (referenceFile) {
         const document =
             typeof referenceFile == "string"

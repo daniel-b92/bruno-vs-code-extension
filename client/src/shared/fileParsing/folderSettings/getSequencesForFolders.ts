@@ -2,8 +2,9 @@ import { lstat, readdir } from "fs";
 import {
     getFolderSettingsFilePath,
     getSequenceForFolder,
+    filterAsync,
 } from "@global_shared";
-import { CollectionItemProvider, filterAsync } from "@shared";
+import { CollectionItemProvider } from "@shared";
 import { resolve } from "path";
 import { promisify } from "util";
 

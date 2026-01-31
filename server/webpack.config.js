@@ -32,6 +32,13 @@ const config = {
         // support reading TypeScript and JavaScript files, 📖 -> https://github.com/TypeStrong/ts-loader
         mainFields: ["browser", "module", "main"], // look for `browser` entry point in imported node modules
         extensions: [".ts", ".js"],
+        alias: {
+            // provides alternate implementation for node module and source files
+            "@global_shared": path.resolve(
+                path.dirname(__dirname),
+                "shared/index.ts",
+            ),
+        },
         fallback: {
             // Webpack 5 no longer polyfills Node.js core modules automatically.
             // see https://webpack.js.org/configuration/resolve/#resolvefallback
@@ -44,11 +51,12 @@ const config = {
             {
                 test: /\.ts$/,
                 exclude: /node_modules/,
-                use: [
-                    {
-                        loader: "ts-loader",
+                use: {
+                    loader: "ts-loader",
+                    options: {
+                        projectReferences: true,
                     },
-                ],
+                },
             },
         ],
     },

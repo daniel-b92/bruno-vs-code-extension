@@ -25,7 +25,6 @@ const config = {
         child_process: "commonjs child_process",
         util: "commonjs util",
         glob: "commonjs glob",
-        prettier: "commonjs prettier",
         "timers/promises": "commonjs timers/promises",
     },
     resolve: {

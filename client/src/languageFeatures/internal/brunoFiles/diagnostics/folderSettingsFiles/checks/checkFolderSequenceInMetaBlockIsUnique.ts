@@ -5,13 +5,13 @@ import {
     Block,
     MetaBlockKey,
     isBlockDictionaryBlock,
+    filterAsync,
 } from "@global_shared";
 import {
     BrunoRequestFile,
     CollectionItemProvider,
     mapToVsCodeRange,
     BrunoFileType,
-    filterAsync,
     isCollectionItemWithSequence,
 } from "@shared";
 import { basename, dirname } from "path";
