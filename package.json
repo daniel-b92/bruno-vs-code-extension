@@ -29,7 +29,7 @@
     "main": "./client/dist/extension",
     "scripts": {
         "vscode:prepublish": "npm run package",
-        "compile": "webpack --mode development --config ./client/webpack.config.js",
+        "compile": "webpack --mode development --config ./client/webpack.config.js && webpack --mode development --config ./server/webpack.config.js",
         "compileWithLocalTsPlugin": "cd tsPlugin && tsc --project tsconfig.json && mkdir -p ../node_modules/typescript-for-bruno && cp ./out/index.js ../node_modules/typescript-for-bruno && cd .. && webpack --mode development --config ./client/webpack.config.js",
         "lint": "eslint",
         "watch": "cd client && webpack --mode development --config ./client/webpack.config.js --watch",

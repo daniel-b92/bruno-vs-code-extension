@@ -5,6 +5,7 @@ import {
     tests,
     Uri,
     window,
+    workspace,
 } from "vscode";
 import { activateRunner } from "./testRunner";
 import { activateTreeView } from "./treeView";
@@ -19,53 +20,28 @@ import {
 } from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures";
 import { suggestCreatingTsConfigsForCollections } from "./languageFeatures/suggestCreatingTsConfigsForCollections";
+import { join } from "path";
+import {
+    LanguageClient,
+    LanguageClientOptions,
+    ServerOptions,
+    TransportKind,
+} from "vscode-languageclient/node";
+
+let client: LanguageClient;
 
 export async function activate(context: ExtensionContext) {
-    const extensionNameLabel = "BruAsCode";
+    client = createLanguagClient(context);
+    // Start the client. This will also launch the server
+    client.start();
 
-    const ctrl = tests.createTestController(
-        "bruAsCodeTestController",
-        extensionNameLabel,
-    );
-
-    const logger = new OutputChannelLogger(
-        window.createOutputChannel(extensionNameLabel, { log: true }),
-    );
-
-    const fileChangedEmitter = new EventEmitter<FileChangedEvent>();
-    const collectionWatcher = new CollectionWatcher(
-        context,
-        fileChangedEmitter,
-        logger,
-    );
-
-    const multiFileOperationNotifier =
-        new EventEmitter<MultiFileOperationWithStatus>();
-
-    const testRunnerDataHelper = new TestRunnerDataHelper(ctrl);
-    const collectionItemProvider = new CollectionItemProvider(
-        collectionWatcher,
-        testRunnerDataHelper,
-        getPathsToIgnoreForCollections(),
-        multiFileOperationNotifier.event,
-        logger,
-    );
-
-    const startTestRunEmitter = new EventEmitter<{
-        uri: Uri;
-        withDialog: boolean;
-    }>();
-
-    context.subscriptions.push(
-        startTestRunEmitter,
-        fileChangedEmitter,
-        multiFileOperationNotifier,
+    const {
         collectionItemProvider,
+        testController: ctrl,
+        startTestRunEmitter,
+        multiFileOperationNotifier,
         collectionWatcher,
-        testRunnerDataHelper,
-        logger,
-        ctrl,
-    );
+    } = createNeededHandlers(context);
 
     window.withProgress(
         {
@@ -107,10 +83,113 @@ export async function activate(context: ExtensionContext) {
     );
 }
 
+export function deactivate() {
+    if (!client) {
+        return undefined;
+    }
+    return client.stop();
+}
+
+function createLanguagClient(context: ExtensionContext) {
+    // The server is implemented in node
+    const serverModule = context.asAbsolutePath(
+        join("server", "dist", "server.js"),
+    );
+
+    // If the extension is launched in debug mode then the debug server options are used
+    // Otherwise the run options are used
+    const serverOptions: ServerOptions = {
+        run: { module: serverModule, transport: TransportKind.ipc },
+        debug: {
+            module: serverModule,
+            transport: TransportKind.ipc,
+        },
+    };
+
+    // Options to control the language client
+    const clientOptions: LanguageClientOptions = {
+        // Register the server for plain text documents
+        documentSelector: [{ scheme: "file", language: "bru" }],
+        synchronize: {
+            // Notify the server about file changes to '.clientrc files contained in the workspace
+            fileEvents: workspace.createFileSystemWatcher("**/.clientrc"),
+        },
+    };
+
+    return new LanguageClient(
+        getExtensionNameLabel(),
+        getExtensionNameLabel(),
+        serverOptions,
+        clientOptions,
+    );
+}
+
+function createNeededHandlers(context: ExtensionContext) {
+    const testController = tests.createTestController(
+        "bruAsCodeTestController",
+        getExtensionNameLabel(),
+    );
+
+    const logger = new OutputChannelLogger(
+        window.createOutputChannel(getExtensionNameLabel(), { log: true }),
+    );
+
+    const fileChangedEmitter = new EventEmitter<FileChangedEvent>();
+    const collectionWatcher = new CollectionWatcher(
+        context,
+        fileChangedEmitter,
+        logger,
+    );
+
+    const multiFileOperationNotifier =
+        new EventEmitter<MultiFileOperationWithStatus>();
+
+    const testRunnerDataHelper = new TestRunnerDataHelper(testController);
+    const collectionItemProvider = new CollectionItemProvider(
+        collectionWatcher,
+        testRunnerDataHelper,
+        getPathsToIgnoreForCollections(),
+        multiFileOperationNotifier.event,
+        logger,
+    );
+
+    const startTestRunEmitter = new EventEmitter<{
+        uri: Uri;
+        withDialog: boolean;
+    }>();
+
+    context.subscriptions.push(
+        client,
+        startTestRunEmitter,
+        fileChangedEmitter,
+        multiFileOperationNotifier,
+        collectionItemProvider,
+        collectionWatcher,
+        testRunnerDataHelper,
+        logger,
+        testController,
+    );
+
+    return {
+        testController,
+        logger,
+        fileChangedEmitter,
+        collectionWatcher,
+        multiFileOperationNotifier,
+        testRunnerDataHelper,
+        collectionItemProvider,
+        startTestRunEmitter,
+    };
+}
+
 function getPathsToIgnoreForCollections() {
     return [
         new RegExp(
             `(/|\\\\)${getTemporaryJsFileBasenameWithoutExtension()}\\.js`,
         ),
     ];
+}
+
+function getExtensionNameLabel() {
+    return "BruAsCode";
 }
