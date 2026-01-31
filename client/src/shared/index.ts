@@ -7,7 +7,6 @@ export * from "./fileSystem/util/collectionRootFolderHelper";
 export * from "./fileSystem/util/getTestFileDescendants";
 export * from "./fileSystem/util/getLineBreak";
 export * from "./fileSystem/util/positionAndRangeMapper";
-export * from "./fileSystem/util/doesFileNameMatchFolderSettingsFileName";
 export * from "./fileSystem/util/getItemType";
 export * from "./fileSystem/util/isInFolderForEnvironmentFiles";
 

@@ -2,7 +2,6 @@ import { basename, dirname, extname } from "path";
 import {
     BrunoFileType,
     Collection,
-    doesFileNameMatchFolderSettingsFileName,
     ItemType,
     NonBrunoSpecificItemType,
     isInFolderForEnvironmentFiles,
@@ -13,6 +12,7 @@ import {
     checkIfPathExistsAsync,
     getExtensionForBrunoFiles,
     normalizeDirectoryPath,
+    doesFileNameMatchFolderSettingsFileName,
 } from "@global_shared";
 
 export async function getItemType(

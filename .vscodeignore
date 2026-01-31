@@ -1,12 +1,12 @@
 .vscode
-node_modules/tree-kill
-node_modules/**/src
+**/node_modules/tree-kill
+**/node_modules/**/src
 # files from node_modules are actually only needed for the npm package @zentryc5t/ts-plugin-for-bruno
 
-src/**/*.ts
-src/tsPlugin
+**/src/**/*.ts
+tsPlugin
 
 **/tsconfig.json
 samples/
-webpack.config.js
+**/webpack.config.js
 *.vsix

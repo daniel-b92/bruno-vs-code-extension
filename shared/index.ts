@@ -8,6 +8,7 @@ export * from "./fileSystem/position";
 export * from "./fileSystem/util/checkIfPathExistsAsync";
 export * from "./fileSystem/util/getExtensionForBrunoFiles";
 export * from "./fileSystem/util/normalizeDirectoryPath";
+export * from "./fileSystem/util/doesFileNameMatchFolderSettingsFileName";
 
 // file parsing
 export * from "./fileParsing/external/parseBruFile";
