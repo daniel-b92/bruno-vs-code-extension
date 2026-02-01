@@ -76,7 +76,11 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         this.disposables.push(
             vscode.window.onDidChangeActiveTextEditor(async (e) => {
                 if (treeView.visible && e) {
-                    await this.tryToRevealItem(e.document.fileName, treeView);
+                    await this.tryToRevealItem(
+                        e.document.fileName,
+                        treeView,
+                        logger,
+                    );
                 }
             }),
             treeView.onDidChangeVisibility(async (e) => {
@@ -84,6 +88,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     await this.tryToRevealItem(
                         vscode.window.activeTextEditor.document.fileName,
                         treeView,
+                        logger,
                     );
                 }
             }),
@@ -99,6 +104,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     await this.tryToRevealItem(
                         e.textEditor.document.fileName,
                         treeView,
+                        logger,
                     );
             }),
         );
@@ -732,6 +738,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
     private async tryToRevealItem(
         path: string,
         treeView: vscode.TreeView<BrunoTreeItem>,
+        logger?: OutputChannelLogger,
     ) {
         const maybeCollection =
             this.itemProvider.getAncestorCollectionForPath(path);
@@ -753,7 +760,19 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 )}'.`,
             );
 
-            await treeView.reveal(treeItem);
+            try {
+                await treeView.reveal(treeItem);
+            } catch (e) {
+                if (e instanceof Error) {
+                    logger?.warn(
+                        `Caught error while trying to reveal treeItem '${treeItem.getPath()}': ${e.message}`,
+                    );
+                } else {
+                    logger?.warn(
+                        `Caught unkown type of exception while trying to reveal item '${treeItem.getPath()}'`,
+                    );
+                }
+            }
         }
     }
 }
