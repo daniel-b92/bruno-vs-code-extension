@@ -3,6 +3,7 @@
 ### Fixes / Improvements
 
 - Migrate formatter to newly created language server, which should help reduce delays.
+- Fix commad args for Bruno CLI when running requests with multiple included/excluded tags.
 
 ## [0.20.3] (2026-01-27)
 
