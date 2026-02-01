@@ -3,7 +3,6 @@
 **/node_modules/**/src
 # files from node_modules are actually only needed for the npm package @zentryc5t/ts-plugin-for-bruno
 
-server/node_modules
 shared/out
 **/src/**/*.ts
 tsPlugin
