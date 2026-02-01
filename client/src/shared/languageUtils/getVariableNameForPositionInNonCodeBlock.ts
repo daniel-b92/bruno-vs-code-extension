@@ -11,16 +11,20 @@ export function getVariableNameForPositionInNonCodeBlock(params: {
 }) {
     const { document, position } = params;
 
-    const matchingText = getMatchingTextContainingPosition(
+    const matchingTextResult = getMatchingTextContainingPosition(
         document,
         mapFromVsCodePosition(position),
         new RegExp(getPatternForVariablesInNonCodeBlock()),
     );
 
-    return matchingText
-        ? matchingText.substring(
-              matchingText.indexOf("{{") + 2,
-              matchingText.indexOf("}}"),
-          )
-        : undefined;
+    if (!matchingTextResult) {
+        return undefined;
+    }
+
+    const { text: matchingText } = matchingTextResult;
+
+    return matchingText.substring(
+        matchingText.indexOf("{{") + 2,
+        matchingText.indexOf("}}"),
+    );
 }

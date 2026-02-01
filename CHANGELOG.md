@@ -6,6 +6,7 @@
 - Fix commad args for Bruno CLI when running requests with multiple included/excluded tags.
 - Make functions for determining test results per descendant item more resilient by avoiding fetching data from filesystem.
 - Increase resilience for function that should reveal item in collection explorer by improving error handling.
+- Restrict completions for variables in non-code blocks to only be provided, when the position is within a variable reference.
 
 ## [0.20.3] (2026-01-27)
 
