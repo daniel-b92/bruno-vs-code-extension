@@ -1,0 +1,14 @@
+{
+    "name": "language_server",
+    "version": "1.0.0",
+    "scripts": {},
+    "author": "daniel-b92",
+    "private": true,
+    "license": "MIT",
+    "repository": "https://github.com/daniel-b92/bruno-vs-code-extension",
+    "dependencies": {
+        "prettier": "^3.8.1",
+        "vscode-languageserver": "^9.0.1",
+        "vscode-languageserver-textdocument": "^1.0.12"
+    }
+}

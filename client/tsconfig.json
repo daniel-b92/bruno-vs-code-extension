@@ -1,0 +1,13 @@
+{
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "baseUrl": ".",
+        "rootDir": ".",
+        "outDir": "out",
+        "paths": {
+            "@global_shared": ["../shared/index.ts"],
+            "@shared": ["./src/shared/index.ts"]
+        }
+    },
+    "references": [{ "path": "../shared" }]
+}

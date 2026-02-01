@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Improvements
+
+- Migrate formatter to newly created language server, which should help reduce delays.
+
 ## [0.20.3] (2026-01-27)
 
 ### Fixes / Improvements
