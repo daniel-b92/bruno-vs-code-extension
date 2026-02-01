@@ -106,9 +106,11 @@ function mapUserInputDataToCommandArgs(userInput?: TestRunUserInputData) {
     } = userInput;
 
     const argsForTags = (
-        includedTags.length > 0 ? ["--tags"].concat(includedTags) : []
+        includedTags.length > 0 ? ["--tags"].concat(includedTags.join(",")) : []
     ).concat(
-        excludedTags.length > 0 ? ["--exclude-tags"].concat(excludedTags) : [],
+        excludedTags.length > 0
+            ? ["--exclude-tags"].concat(excludedTags.join(","))
+            : [],
     );
 
     const argsForOtherConfigs = (recursive ? [recursiveOption] : []).concat(
