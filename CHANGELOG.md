@@ -4,6 +4,7 @@
 
 - Migrate formatter to newly created language server, which should help reduce delays.
 - Fix commad args for Bruno CLI when running requests with multiple included/excluded tags.
+- Make functions for determining test results per descendant item more resilient by avoiding fetching data from filesystem.
 
 ## [0.20.3] (2026-01-27)
 
