@@ -9,15 +9,14 @@ import {
     LineBreakType,
 } from "@global_shared";
 import { format } from "prettier";
-import { DocumentFormattingParams, TextEdit } from "vscode-languageserver/node";
-import { URI } from "vscode-uri";
+import { TextEdit } from "vscode-languageserver/node";
 import { mapBlockNameToJsFileLine } from "../shared/mapBlockNameToJsFileLine";
+import { TextDocument } from "vscode-languageserver-textdocument";
 
-export async function getHandlerForFormatting({
-    textDocument: { uri: uriAsString },
-}: DocumentFormattingParams): Promise<TextEdit[]> {
-    const filePath = URI.parse(uriAsString).fsPath;
-    const documentHelper = new TextDocumentHelper(filePath);
+export async function getHandlerForFormatting(
+    textDocument: TextDocument,
+): Promise<TextEdit[]> {
+    const documentHelper = new TextDocumentHelper(textDocument.getText());
     const codeBlocks = getCodeBlocks(parseBruFile(documentHelper).blocks);
 
     const lineBreak = documentHelper.getMostUsedLineBreak();

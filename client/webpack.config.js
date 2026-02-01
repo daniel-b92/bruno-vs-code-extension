@@ -9,7 +9,7 @@ const webpack = require("webpack");
 const config = {
     target: "node", // target 'node' is needed for using functions from typescript library 📖 -> https://webpack.js.org/configuration/target/#target
 
-    entry: path.resolve(__dirname, "src/extension.ts"), // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
+    entry: "./src/extension.ts", // the entry point of this extension, 📖 -> https://webpack.js.org/configuration/entry-context/
     output: {
         // the bundle is stored in the 'dist' folder (check package.json), 📖 -> https://webpack.js.org/configuration/output/
         path: path.resolve(__dirname, "dist"),

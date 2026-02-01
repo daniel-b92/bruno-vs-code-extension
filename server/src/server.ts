@@ -27,7 +27,10 @@ connection.onInitialize(() => {
     return result;
 });
 
-connection.onDocumentFormatting(getHandlerForFormatting);
+connection.onDocumentFormatting(({ textDocument: { uri } }) => {
+    const document = documents.get(uri);
+    return document ? getHandlerForFormatting(document) : undefined;
+});
 
 // Make the text document manager listen on the connection
 // for open, change and close text document events
