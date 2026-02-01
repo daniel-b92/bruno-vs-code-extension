@@ -116,12 +116,9 @@ function createLanguagClient(context: ExtensionContext) {
         },
     };
 
-    return new LanguageClient(
-        getExtensionNameLabel(),
-        getExtensionNameLabel(),
-        serverOptions,
-        clientOptions,
-    );
+    const clientId = `${getExtensionNameLabel()}_LanguageClient`;
+
+    return new LanguageClient(clientId, clientId, serverOptions, clientOptions);
 }
 
 function createNeededHandlers(context: ExtensionContext) {

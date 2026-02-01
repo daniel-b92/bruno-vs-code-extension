@@ -113,7 +113,9 @@ function getNonBlockSpecificCompletions(
     logger?: OutputChannelLogger,
 ) {
     const { blockContainingPosition, allBlocks, collection } = file;
-    const { document, position, token } = request;
+    const { document, position: vsCodePosition, token } = request;
+    const position = mapFromVsCodePosition(vsCodePosition);
+
     if (
         (getBlocksWithoutVariableSupport() as string[]).includes(
             blockContainingPosition.name,
@@ -122,13 +124,19 @@ function getNonBlockSpecificCompletions(
         return [];
     }
 
-    const matchingText = getMatchingTextContainingPosition(
+    const matchingTextResult = getMatchingTextContainingPosition(
         document,
-        mapFromVsCodePosition(position),
-        /{{\w*/,
+        position,
+        /{{(\w|-|_|\.|\d)*/,
     );
 
-    if (!matchingText) {
+    if (!matchingTextResult) {
+        return [];
+    }
+
+    const { text: matchingText, startChar, endChar } = matchingTextResult;
+    // If the position is not after both starting brackets, provided completions would be inserted in an invalid location.
+    if (position.character < startChar + 2 || position.character > endChar) {
         return [];
     }
 
@@ -168,7 +176,7 @@ function getNonBlockSpecificCompletions(
                 collection,
                 variableName,
                 functionType: VariableReferenceType.Read, // In non-code blocks, variables can not be set.
-                requestPosition: position,
+                requestPosition: vsCodePosition,
                 token,
             },
             bruFileSpecificData: { blockContainingPosition, allBlocks },

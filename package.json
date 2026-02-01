@@ -2,7 +2,7 @@
     "name": "bru-as-code",
     "displayName": "bru-as-code",
     "description": "Enables working with '.bru' files in a manner like working with code",
-    "version": "0.20.3",
+    "version": "0.20.4",
     "publisher": "daniel-b92",
     "private": true,
     "license": "MIT",
@@ -33,7 +33,7 @@
         "compileWithLocalTsPlugin": "cd tsPlugin && tsc --project tsconfig.json && mkdir -p ../node_modules/typescript-for-bruno && cp ./out/index.js ../node_modules/typescript-for-bruno && cd ../client && webpack --mode development && cd ../server && webpack --mode development && cd ..",
         "lint": "eslint",
         "watch": "cd client && webpack --mode development --watch",
-        "package": "cd client && webpack --mode production --devtool hidden-source-map && cd ..server && webpack --mode production --devtool hidden-source-map && cd .."
+        "package": "cd client && webpack --mode production --devtool hidden-source-map && cd ../server && webpack --mode production --devtool hidden-source-map && cd .."
     },
     "dependencies": {
         "@zentryc5t/ts-plugin-for-bruno": "^3.0.3"

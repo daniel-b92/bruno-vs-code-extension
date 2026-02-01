@@ -16,13 +16,19 @@ export function getMatchingTextContainingPosition(
             return undefined;
         }
 
-        const containsPosition =
-            position.character >= alreadyCheckedText.length + matches.index &&
-            position.character <=
-                alreadyCheckedText.length + matches.index + matches[0].length;
+        const startChar = alreadyCheckedText.length + matches.index;
+        const endChar =
+            alreadyCheckedText.length + matches.index + matches[0].length;
 
+        const containsPosition =
+            position.character >= startChar && position.character <= endChar;
         if (containsPosition) {
-            return matches[0];
+            return {
+                text: matches[0],
+                line: position.line,
+                startChar,
+                endChar,
+            };
         }
         const currentSectionEnd = matches.index + matches[0].length;
         alreadyCheckedText = alreadyCheckedText.concat(

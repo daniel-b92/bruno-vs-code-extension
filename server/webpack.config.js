@@ -19,12 +19,9 @@ const config = {
     },
     devtool: "source-map",
     externals: {
-        vscode: "commonjs vscode", // the vscode-module is created on-the-fly and must be excluded. Add other modules that cannot be webpack'ed, 📖 -> https://webpack.js.org/configuration/externals/
         fs: "commonjs fs",
         path: "commonjs path",
-        child_process: "commonjs child_process",
         util: "commonjs util",
-        glob: "commonjs glob",
         prettier: "commonjs prettier",
         "timers/promises": "commonjs timers/promises",
     },
