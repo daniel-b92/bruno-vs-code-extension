@@ -1,4 +1,4 @@
-import { existsSync, lstatSync } from "fs";
+import { existsSync } from "fs";
 import { TestMessage, TestRun, TestItem as vscodeTestItem } from "vscode";
 import { getTestItemDescendants } from "../../testTreeUtils/getTestItemDescendants";
 import { getTestFilesWithFailures } from "./jsonReportParser";
@@ -26,7 +26,7 @@ export function setStatusForDescendantItems(
 
     const testFileDescendants = getTestItemDescendants(
         testDirectoryItem,
-    ).filter((descendant) => lstatSync(descendant.uri!.fsPath).isFile());
+    ).filter((descendant) => !isFolder(descendant));
 
     const failedTests = getTestFilesWithFailures(jsonReportPath)
         .map((failedTest) => ({
@@ -68,7 +68,7 @@ export function setStatusForDescendantItems(
 
         if (!maybeTestFailure) {
             options.passed(child);
-        } else if (maybeTestFailure && lstatSync(child.uri!.fsPath).isFile()) {
+        } else if (maybeTestFailure && !isFolder(child)) {
             // Only log details on failure for failed test file
             options.failed(
                 child,
@@ -87,4 +87,8 @@ export function setStatusForDescendantItems(
             );
         }
     });
+}
+
+function isFolder(testItem: vscodeTestItem) {
+    return testItem.canResolveChildren;
 }
