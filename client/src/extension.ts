@@ -27,6 +27,7 @@ import {
     ServerOptions,
     TransportKind,
 } from "vscode-languageclient/node";
+import { Evt } from "evt";
 
 let client: LanguageClient;
 
@@ -131,10 +132,10 @@ function createNeededHandlers(context: ExtensionContext) {
         window.createOutputChannel(getExtensionNameLabel(), { log: true }),
     );
 
-    const fileChangedEmitter = new EventEmitter<FileChangedEvent>();
+    const fileChangedEmitter = Evt.create<FileChangedEvent>();
     const collectionWatcher = new CollectionWatcher(
-        context,
         fileChangedEmitter,
+        workspace.workspaceFolders?.map((folder) => folder.uri.fsPath) ?? [],
         logger,
     );
 
@@ -158,7 +159,6 @@ function createNeededHandlers(context: ExtensionContext) {
     context.subscriptions.push(
         client,
         startTestRunEmitter,
-        fileChangedEmitter,
         multiFileOperationNotifier,
         collectionItemProvider,
         collectionWatcher,

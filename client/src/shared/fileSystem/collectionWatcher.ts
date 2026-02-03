@@ -1,31 +1,25 @@
-import {
-    EventEmitter,
-    ExtensionContext,
-    FileSystemWatcher,
-    RelativePattern,
-    Uri,
-    workspace,
-} from "vscode";
 import { FileChangedEvent, FileChangeType } from "./interfaces";
 import { basename } from "path";
 import { normalizeDirectoryPath } from "@global_shared";
 import { OutputChannelLogger } from "../logging/outputChannelLogger";
-import { lstat } from "fs";
-import { promisify } from "util";
 import { glob } from "glob";
+import { Evt } from "evt";
+import Watcher from "watcher";
+import { TargetEvent } from "watcher/dist/enums";
 
 export class CollectionWatcher {
     constructor(
-        private context: ExtensionContext,
-        private fileChangedEmitter: EventEmitter<FileChangedEvent>,
+        private fileChangedEmitter: Evt<FileChangedEvent>,
+        private workSpaceFolders: string[],
         private logger?: OutputChannelLogger,
     ) {}
 
     private preMessageForLogging = "[CollectionWatcher]";
+    private fileChangeEmitterContext = Evt.newCtx();
 
     private watchers: {
         rootDirectory: string;
-        watcher: FileSystemWatcher;
+        watcher: Watcher;
     }[] = [];
 
     public startWatchingCollection(rootDirectory: string) {
@@ -36,87 +30,86 @@ export class CollectionWatcher {
                 rootDirectory,
             )}' for changes.`,
         );
-        const testPattern =
-            this.getPatternForTestitemsInCollection(rootDirectory);
 
         if (
+            !this.isWithinWorkspaceFolders(rootDirectory) ||
             this.watchers.some(
                 ({ rootDirectory: watched }) =>
                     normalizeDirectoryPath(watched) ==
                     normalizeDirectoryPath(rootDirectory),
-            ) ||
-            !testPattern
+            )
         ) {
             return;
         }
-        const watcher = workspace.createFileSystemWatcher(testPattern);
+        const watcher = new Watcher(
+            rootDirectory,
+            {
+                depth: 100,
+                recursive: true,
+            },
+            async (event, path) => {
+                switch (event) {
+                    case TargetEvent.ADD:
+                        this.logger?.debug(
+                            `${this.preMessageForLogging} Creation event for file '${path}'.`,
+                        );
 
-        watcher.onDidCreate(async (uri) => {
-            const path = uri.fsPath;
-            const isFile = await promisify(lstat)(path)
-                .then((stats) => stats.isFile())
-                .catch(() => undefined);
+                        this.fileChangedEmitter.post({
+                            path,
+                            changeType: FileChangeType.Created,
+                        });
 
-            if (isFile === undefined) {
-                return;
-            }
+                        break;
 
-            if (isFile) {
-                this.logger?.debug(
-                    `${this.preMessageForLogging} Creation event for file '${path}'.`,
-                );
+                    case TargetEvent.ADD_DIR:
+                        const descendants = await glob(
+                            `${
+                                path == normalizeDirectoryPath(path)
+                                    ? path.substring(0, path.length - 1)
+                                    : path
+                            }/**/*`,
+                        );
 
-                this.fileChangedEmitter.fire({
-                    uri,
-                    changeType: FileChangeType.Created,
-                });
+                        this.logger?.debug(
+                            `${this.preMessageForLogging} Creation event for directory '${path}' with a total of ${descendants.length} descendants.`,
+                        );
 
-                return;
-            }
+                        // When renaming a directory with descendant items, the file system watcher only sends a notification that a directory has been created.
+                        // It shouldn't hurt to additionally send a notification for each descendant item here (even if it may in some cases be sent multiple times, then).
+                        [path].concat(descendants).forEach((path) => {
+                            this.fileChangedEmitter.post({
+                                path,
+                                changeType: FileChangeType.Created,
+                            });
+                        });
+                        break;
 
-            const descendants = await glob(
-                `${
-                    path == normalizeDirectoryPath(path)
-                        ? path.substring(0, path.length - 1)
-                        : path
-                }/**/*`,
-            );
+                    case TargetEvent.CHANGE:
+                        this.logger?.debug(
+                            `${this.preMessageForLogging} Modification event for path '${path}'.`,
+                        );
 
-            this.logger?.debug(
-                `${this.preMessageForLogging} Creation event for directory '${uri.fsPath}' with a total of ${descendants.length} descendants.`,
-            );
+                        this.fileChangedEmitter.post({
+                            path,
+                            changeType: FileChangeType.Modified,
+                        });
+                        break;
 
-            // When renaming a directory with descendant items, the file system watcher only sends a notification that a directory has been created.
-            // It shouldn't hurt to additionally send a notification for each descendant item here (even if it may in some cases be sent multiple times, then).
-            [path].concat(descendants).forEach((path) => {
-                this.fileChangedEmitter.fire({
-                    uri: Uri.file(path),
-                    changeType: FileChangeType.Created,
-                });
-            });
-        });
-        watcher.onDidChange((uri) => {
-            this.logger?.debug(
-                `${this.preMessageForLogging} Modification event for path '${uri.fsPath}'.`,
-            );
-
-            this.fileChangedEmitter.fire({
-                uri,
-                changeType: FileChangeType.Modified,
-            });
-        });
-        watcher.onDidDelete((uri) => {
-            this.logger?.debug(
-                `${this.preMessageForLogging} Deletion event for path '${uri.fsPath}'.`,
-            );
-            this.fileChangedEmitter.fire({
-                uri,
-                changeType: FileChangeType.Deleted,
-            });
-        });
+                    case TargetEvent.UNLINK:
+                    case TargetEvent.UNLINK_DIR:
+                        this.logger?.debug(
+                            `${this.preMessageForLogging} Deletion event for path '${path}'.`,
+                        );
+                        this.fileChangedEmitter.post({
+                            path,
+                            changeType: FileChangeType.Deleted,
+                        });
+                        break;
+                }
+            },
+        );
 
         this.watchers.push({ rootDirectory, watcher });
-        this.context.subscriptions.push(watcher);
     }
 
     public stopWatchingCollection(path: string) {
@@ -127,47 +120,29 @@ export class CollectionWatcher {
                 ),
                 1,
             )[0];
-            watcher.dispose();
+            watcher.close();
         }
     }
 
-    public subscribeToUpdates() {
-        return this.fileChangedEmitter.event;
+    public subscribeToUpdates(callback: (e: FileChangedEvent) => void) {
+        this.fileChangedEmitter.attach(this.fileChangeEmitterContext, callback);
     }
 
     public dispose() {
-        this.fileChangedEmitter.dispose();
+        this.fileChangeEmitterContext.done();
 
         for (const { watcher } of this.watchers.splice(0)) {
-            watcher.dispose();
+            watcher.close();
         }
 
         this.logger?.dispose();
     }
 
-    private getPatternForTestitemsInCollection(collectionRootDir: string) {
-        if (!workspace.workspaceFolders) {
-            return undefined;
-        }
-
-        const maybeWorkspaceFolder = workspace.workspaceFolders.find((folder) =>
+    private isWithinWorkspaceFolders(collectionRootDir: string) {
+        return this.workSpaceFolders.some((folder) =>
             normalizeDirectoryPath(collectionRootDir).includes(
-                normalizeDirectoryPath(folder.uri.fsPath),
+                normalizeDirectoryPath(folder),
             ),
-        );
-
-        if (!maybeWorkspaceFolder) {
-            return undefined;
-        }
-
-        return new RelativePattern(
-            maybeWorkspaceFolder,
-            normalizeDirectoryPath(collectionRootDir) !=
-                normalizeDirectoryPath(maybeWorkspaceFolder.uri.fsPath)
-                ? `{**/${basename(collectionRootDir)},**/${basename(
-                      collectionRootDir,
-                  )}/**/*}`
-                : `{*/,**/*}`,
         );
     }
 }

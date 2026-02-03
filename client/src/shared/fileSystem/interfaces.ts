@@ -1,5 +1,3 @@
-import { Uri } from "vscode";
-
 export enum FileChangeType {
     Created = "Created",
     Modified = "Modified",
@@ -7,7 +5,7 @@ export enum FileChangeType {
 }
 
 export interface FileChangedEvent {
-    uri: Uri;
+    path: string;
     changeType: FileChangeType;
 }
 

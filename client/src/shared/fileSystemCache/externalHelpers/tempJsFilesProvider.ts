@@ -16,38 +16,34 @@ export class TempJsFilesProvider {
         private logger?: OutputChannelLogger,
     ) {
         this.disposables = [];
-        this.disposables.push(
-            collectionWatcher.subscribeToUpdates()(
-                ({ uri: { fsPath }, changeType: fileChangeType }) => {
-                    if (
-                        fileChangeType == FileChangeType.Deleted &&
-                        this.registeredTempJsFiles
-                    ) {
-                        const index = this.registeredTempJsFiles.findIndex(
-                            (registered) =>
-                                fsPath == registered ||
-                                registered.startsWith(
-                                    normalizeDirectoryPath(fsPath),
-                                ),
-                        );
+        collectionWatcher.subscribeToUpdates(
+            ({ path, changeType: fileChangeType }) => {
+                if (
+                    fileChangeType == FileChangeType.Deleted &&
+                    this.registeredTempJsFiles
+                ) {
+                    const index = this.registeredTempJsFiles.findIndex(
+                        (registered) =>
+                            path == registered ||
+                            registered.startsWith(normalizeDirectoryPath(path)),
+                    );
 
-                        if (index >= 0) {
-                            this.registeredTempJsFiles.splice(index, 1);
-                        }
-                    } else if (
-                        fileChangeType == FileChangeType.Created &&
-                        basename(fsPath) == getTemporaryJsFileBasename() &&
-                        (!this.registeredTempJsFiles ||
-                            !this.registeredTempJsFiles.includes(fsPath))
-                    ) {
-                        if (!this.registeredTempJsFiles) {
-                            this.registeredTempJsFiles = [];
-                        }
-
-                        this.registeredTempJsFiles.push(fsPath);
+                    if (index >= 0) {
+                        this.registeredTempJsFiles.splice(index, 1);
                     }
-                },
-            ),
+                } else if (
+                    fileChangeType == FileChangeType.Created &&
+                    basename(path) == getTemporaryJsFileBasename() &&
+                    (!this.registeredTempJsFiles ||
+                        !this.registeredTempJsFiles.includes(path))
+                ) {
+                    if (!this.registeredTempJsFiles) {
+                        this.registeredTempJsFiles = [];
+                    }
+
+                    this.registeredTempJsFiles.push(path);
+                }
+            },
         );
     }
     private disposables: Disposable[];
