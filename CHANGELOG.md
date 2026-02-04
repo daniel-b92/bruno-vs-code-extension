@@ -1,3 +1,9 @@
+## [0.20.5] (2026-02-04)
+
+### Fixes / Improvements
+
+- Apply auto fix for high severity vulnerability in `@isaacs/brace-expansion`.
+
 ## [0.20.4] (2026-02-01)
 
 ### Fixes / Improvements
