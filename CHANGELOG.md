@@ -1,3 +1,9 @@
+## [0.20.6] (2026-02-05)
+
+### Fixes / Improvements
+
+- Add workaround for avoiding error due to `lstat` not recognizing certain files as files (occured for a file when using the external npm package `@readme/openapi-parser`).
+
 ## [0.20.5] (2026-02-04)
 
 ### Fixes / Improvements
