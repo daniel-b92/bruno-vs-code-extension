@@ -47,6 +47,7 @@ export class CollectionWatcher {
         const watcher = new Watcher(
             rootDirectory,
             {
+                ignoreInitial: true,
                 debounce: 200,
                 depth: 100,
                 recursive: true,
