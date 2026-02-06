@@ -15,9 +15,6 @@ export * from "./fileParsing/getSequenceForFile";
 export * from "./fileParsing/folderSettings/getSequencesForFolders";
 export * from "./fileParsing/folderSettings/getMaxSequenceForFolders";
 
-// array utils
-export * from "./arrayUtils/someAsync";
-
 // test file writing
 export * from "./testFileWriting/getContentForMetaBlock";
 export * from "./testFileWriting/getContentForDefaultMethodBlock";
