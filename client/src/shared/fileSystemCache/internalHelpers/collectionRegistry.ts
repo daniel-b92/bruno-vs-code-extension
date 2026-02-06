@@ -1,5 +1,4 @@
-import { CollectionWatcher } from "../../fileSystem/collectionWatcher";
-import { normalizeDirectoryPath } from "@global_shared";
+import { normalizeDirectoryPath, CollectionWatcher } from "@global_shared";
 import { Collection } from "../../model/collection";
 
 export class CollectionRegistry {

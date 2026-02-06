@@ -1,9 +1,8 @@
 import { basename, dirname } from "path";
 import * as vscode from "vscode";
-import { normalizeDirectoryPath } from "@global_shared";
+import { normalizeDirectoryPath, FileChangeType } from "@global_shared";
 import {
     CollectionData,
-    FileChangeType,
     CollectionItemProvider,
     OutputChannelLogger,
     Collection,

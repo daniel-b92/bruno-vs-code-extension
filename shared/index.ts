@@ -3,6 +3,8 @@ export * from "./arrayUtils/everyAsync";
 export * from "./arrayUtils/filterAsync";
 
 // file system
+export * from "./fileSystem/interfaces";
+export * from "./fileSystem/collectionWatcher";
 export * from "./fileSystem/textDocumentHelper";
 export * from "./fileSystem/range";
 export * from "./fileSystem/position";
@@ -24,6 +26,9 @@ export * from "./fileParsing/external/shared/util/getNonBlockSpecificBlockStartP
 export * from "./fileParsing/external/parseBlockFromFile";
 export * from "./fileParsing/external/folderSettings/getSequenceForFolder";
 export * from "./fileParsing/external/folderSettings/getFolderSettingsFilePath";
+
+// logging
+export * from "./logging/interfaces";
 
 // language utils
 export * from "./languageUtils/blockInterfaces";

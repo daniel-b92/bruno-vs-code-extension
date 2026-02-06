@@ -1,8 +1,10 @@
 import { basename } from "path";
-import { normalizeDirectoryPath } from "@global_shared";
 import {
+    normalizeDirectoryPath,
     CollectionWatcher,
     FileChangeType,
+} from "@global_shared";
+import {
     OutputChannelLogger,
     getTemporaryJsFileBasenameWithoutExtension,
     getTemporaryJsFileBasename,

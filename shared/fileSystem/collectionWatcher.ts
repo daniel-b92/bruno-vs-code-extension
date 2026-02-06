@@ -1,7 +1,10 @@
-import { FileChangedEvent, FileChangeType } from "./interfaces";
+import {
+    FileChangedEvent,
+    FileChangeType,
+    Logger,
+    normalizeDirectoryPath,
+} from "..";
 import { basename } from "path";
-import { normalizeDirectoryPath } from "@global_shared";
-import { OutputChannelLogger } from "../logging/outputChannelLogger";
 import { glob } from "glob";
 import { Evt } from "evt";
 import Watcher from "watcher";
@@ -11,7 +14,7 @@ export class CollectionWatcher {
     constructor(
         private fileChangedEmitter: Evt<FileChangedEvent>,
         private workSpaceFolders: string[],
-        private logger?: OutputChannelLogger,
+        private logger?: Logger,
     ) {}
 
     private preMessageForLogging = "[CollectionWatcher]";
@@ -44,6 +47,7 @@ export class CollectionWatcher {
         const watcher = new Watcher(
             rootDirectory,
             {
+                debounce: 200,
                 depth: 100,
                 recursive: true,
             },
@@ -114,6 +118,14 @@ export class CollectionWatcher {
 
     public stopWatchingCollection(path: string) {
         if (this.watchers.some(({ rootDirectory }) => path == rootDirectory)) {
+            this.logger?.info(
+                `${
+                    this.preMessageForLogging
+                } Will stop watching collection '${basename(
+                    path,
+                )}' for changes.`,
+            );
+
             const { watcher } = this.watchers.splice(
                 this.watchers.findIndex(
                     ({ rootDirectory }) => rootDirectory == path,

@@ -10,8 +10,6 @@ import {
 import { activateRunner } from "./testRunner";
 import { activateTreeView } from "./treeView";
 import {
-    CollectionWatcher,
-    FileChangedEvent,
     CollectionItemProvider,
     TestRunnerDataHelper,
     OutputChannelLogger,
@@ -28,6 +26,7 @@ import {
     TransportKind,
 } from "vscode-languageclient/node";
 import { Evt } from "evt";
+import { CollectionWatcher, FileChangedEvent } from "@global_shared";
 
 let client: LanguageClient;
 

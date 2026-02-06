@@ -36,7 +36,10 @@
         "package": "cd client && webpack --mode production --devtool hidden-source-map && cd ../server && webpack --mode production --devtool hidden-source-map && cd .."
     },
     "dependencies": {
-        "@zentryc5t/ts-plugin-for-bruno": "^3.0.3"
+        "@zentryc5t/ts-plugin-for-bruno": "^3.0.3",
+        "evt": "^2.5.9",
+        "glob": "^13.0.1",
+        "watcher": "^2.3.1"
     },
     "devDependencies": {
         "@eslint/js": "^9.13.0",

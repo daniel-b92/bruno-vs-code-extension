@@ -1,6 +1,7 @@
+import { Logger } from "@global_shared";
 import { LogOutputChannel } from "vscode";
 
-export class OutputChannelLogger {
+export class OutputChannelLogger implements Logger {
     constructor(private vsCodeLogger: LogOutputChannel) {}
 
     public info(message: string) {

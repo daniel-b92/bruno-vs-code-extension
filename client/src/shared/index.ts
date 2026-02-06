@@ -1,5 +1,4 @@
 // file system
-export * from "./fileSystem/collectionWatcher";
 export * from "./fileSystem/interfaces";
 export * from "./fileSystem/documents/getMatchingTextContainingPosition";
 export * from "./fileSystem/util/getTemporaryJsFileName";

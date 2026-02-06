@@ -6,6 +6,8 @@ import {
     getSequenceForFolder,
     parseSequenceFromMetaBlock,
     normalizeDirectoryPath,
+    CollectionWatcher,
+    FileChangeType,
 } from "@global_shared";
 import {
     BrunoFileType,
@@ -13,8 +15,6 @@ import {
     CollectionData,
     CollectionDirectory,
     CollectionItemWithSequence,
-    CollectionWatcher,
-    FileChangeType,
     OutputChannelLogger,
     TestRunnerDataHelper,
     isCollectionItemWithSequence,
@@ -566,6 +566,8 @@ export class CollectionItemProvider {
         if (this.notificationSendEventTimer) {
             this.notificationSendEventTimer.refresh();
         } else {
+            const timeout = 300;
+
             this.notificationSendEventTimer = setTimeout(() => {
                 const notificationData = this.notificationBatch
                     .splice(0)
@@ -581,7 +583,7 @@ export class CollectionItemProvider {
                 );
 
                 this.itemUpdateEmitter.fire(notificationData);
-            }, 500);
+            }, timeout);
         }
     }
 
