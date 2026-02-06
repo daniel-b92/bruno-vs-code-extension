@@ -48,7 +48,7 @@ export class CollectionWatcher {
             rootDirectory,
             {
                 ignoreInitial: true,
-                debounce: 200,
+                debounce: 300,
                 depth: 100,
                 recursive: true,
             },

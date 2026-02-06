@@ -569,7 +569,7 @@ export class CollectionItemProvider {
         if (this.notificationSendEventTimer) {
             this.notificationSendEventTimer.refresh();
         } else {
-            const timeout = 300;
+            const timeout = 200;
 
             this.notificationSendEventTimer = setTimeout(() => {
                 const notificationData = this.notificationBatch
