@@ -1,12 +1,9 @@
 // file system
 export * from "./fileSystem/interfaces";
 export * from "./fileSystem/documents/getMatchingTextContainingPosition";
-export * from "./fileSystem/util/collectionRootFolderHelper";
-export * from "./fileSystem/util/getTestFileDescendants";
 export * from "./fileSystem/util/getLineBreak";
 export * from "./fileSystem/util/positionAndRangeMapper";
 export * from "./fileSystem/util/getItemType";
-export * from "./fileSystem/util/isInFolderForEnvironmentFiles";
 
 // language utils
 export * from "./languageUtils/getVariableNameForPositionInNonCodeBlock";

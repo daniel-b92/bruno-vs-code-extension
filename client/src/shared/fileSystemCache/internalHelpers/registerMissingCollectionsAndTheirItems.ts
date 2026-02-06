@@ -1,10 +1,9 @@
-import { getSequenceForFolder, normalizeDirectoryPath } from "@global_shared";
 import {
-    Collection,
-    CollectionDirectory,
+    getSequenceForFolder,
+    normalizeDirectoryPath,
     getAllCollectionRootDirectories,
-    TestRunnerDataHelper,
-} from "@shared";
+} from "@global_shared";
+import { Collection, CollectionDirectory, TestRunnerDataHelper } from "@shared";
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
 import { addItemToCollection } from "./addItemToCollection";
@@ -15,11 +14,13 @@ import { getCollectionFile } from "./getCollectionFile";
 export async function registerMissingCollectionsAndTheirItems(
     testRunnerDataHelper: TestRunnerDataHelper,
     collectionRegistry: CollectionRegistry,
+    workspaceFolders: string[],
     filePathsToIgnore: RegExp[],
 ) {
     const allCollections = await registerAllExistingCollections(
         testRunnerDataHelper,
         collectionRegistry,
+        workspaceFolders,
     );
 
     for (const collection of allCollections) {
@@ -82,24 +83,31 @@ export async function registerMissingCollectionsAndTheirItems(
 async function registerAllExistingCollections(
     testRunnerDataHelper: TestRunnerDataHelper,
     registry: CollectionRegistry,
+    workspaceFolders: string[],
 ) {
-    return (await getAllCollectionRootDirectories()).map((rootDirectory) => {
-        const collection = new Collection(rootDirectory, testRunnerDataHelper);
+    return (await getAllCollectionRootDirectories(workspaceFolders)).map(
+        (rootDirectory) => {
+            const collection = new Collection(
+                rootDirectory,
+                testRunnerDataHelper,
+            );
 
-        if (
-            !registry
-                .getRegisteredCollections()
-                .some(
-                    (registered) =>
-                        normalizeDirectoryPath(registered.getRootDirectory()) ==
-                        normalizeDirectoryPath(rootDirectory),
-                )
-        ) {
-            registry.registerCollection(collection);
-        }
+            if (
+                !registry
+                    .getRegisteredCollections()
+                    .some(
+                        (registered) =>
+                            normalizeDirectoryPath(
+                                registered.getRootDirectory(),
+                            ) == normalizeDirectoryPath(rootDirectory),
+                    )
+            ) {
+                registry.registerCollection(collection);
+            }
 
-        return collection;
-    });
+            return collection;
+        },
+    );
 }
 
 function shouldPathBeIgnored(filePathsToIgnore: RegExp[], path: string) {

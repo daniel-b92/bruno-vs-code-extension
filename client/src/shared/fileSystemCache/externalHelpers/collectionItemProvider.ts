@@ -329,6 +329,9 @@ export class CollectionItemProvider {
         await registerMissingCollectionsAndTheirItems(
             this.testRunnerDataHelper,
             this.collectionRegistry,
+            vscode.workspace.workspaceFolders?.map(
+                (folder) => folder.uri.fsPath,
+            ) ?? [],
             this.filePathsToIgnore,
         );
 

@@ -14,6 +14,9 @@ export * from "./fileSystem/util/checkIfPathExistsAsync";
 export * from "./fileSystem/util/getExtensionForBrunoFiles";
 export * from "./fileSystem/util/normalizeDirectoryPath";
 export * from "./fileSystem/util/doesFileNameMatchFolderSettingsFileName";
+export * from "./fileSystem/util/getTestFileDescendants";
+export * from "./fileSystem/util/isInFolderForEnvironmentFiles";
+export * from "./fileSystem/util/collectionRootFolderHelper";
 
 // file system cache
 export * from "./fileSystemCache/tempJsFilesProvider";
