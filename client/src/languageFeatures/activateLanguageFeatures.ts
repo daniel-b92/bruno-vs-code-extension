@@ -22,10 +22,7 @@ import {
     CollectionItemProvider,
     getLoggerFromSubscriptions,
     isBrunoFileType,
-    getTemporaryJsFileNameInFolder,
-    getTemporaryJsFileBasename,
     getItemType,
-    TempJsFilesProvider,
 } from "@shared";
 import {
     parseBruFile,
@@ -36,6 +33,9 @@ import {
     filterAsync,
     CollectionWatcher,
     FileChangeType,
+    getTemporaryJsFileNameInFolder,
+    getTemporaryJsFileBasename,
+    TempJsFilesProvider,
 } from "@global_shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/brunoFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/brunoFiles/autoUpdates/updateUrlToMatchQueryParams";

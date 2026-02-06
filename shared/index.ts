@@ -5,6 +5,7 @@ export * from "./arrayUtils/filterAsync";
 // file system
 export * from "./fileSystem/interfaces";
 export * from "./fileSystem/collectionWatcher";
+export * from "./fileSystem/getTemporaryJsFileName";
 export * from "./fileSystem/textDocumentHelper";
 export * from "./fileSystem/range";
 export * from "./fileSystem/position";
@@ -13,6 +14,9 @@ export * from "./fileSystem/util/checkIfPathExistsAsync";
 export * from "./fileSystem/util/getExtensionForBrunoFiles";
 export * from "./fileSystem/util/normalizeDirectoryPath";
 export * from "./fileSystem/util/doesFileNameMatchFolderSettingsFileName";
+
+// file system cache
+export * from "./fileSystemCache/tempJsFilesProvider";
 
 // file parsing
 export * from "./fileParsing/external/parseBruFile";

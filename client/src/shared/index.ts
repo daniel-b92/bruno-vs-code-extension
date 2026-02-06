@@ -1,7 +1,6 @@
 // file system
 export * from "./fileSystem/interfaces";
 export * from "./fileSystem/documents/getMatchingTextContainingPosition";
-export * from "./fileSystem/util/getTemporaryJsFileName";
 export * from "./fileSystem/util/collectionRootFolderHelper";
 export * from "./fileSystem/util/getTestFileDescendants";
 export * from "./fileSystem/util/getLineBreak";
@@ -42,7 +41,6 @@ export * from "./model/typeguards/isRequestFile";
 export * from "./fileSystemCache/externalHelpers/collectionItemProvider";
 export * from "./fileSystemCache/externalHelpers/testRunnerDataHelper";
 export * from "./fileSystemCache/externalHelpers/isBrunoFileType";
-export * from "./fileSystemCache/externalHelpers/tempJsFilesProvider";
 export * from "./fileSystemCache/externalHelpers/getDistinctTagsForCollection";
 
 // vsCodeSettings

@@ -11,10 +11,13 @@ import {
     CollectionItemProvider,
     Collection,
     getLineBreakFromSettings,
-    getTemporaryJsFileNameInFolder,
     DialogOptionLabelEnum,
 } from "../shared";
-import { checkIfPathExistsAsync, filterAsync } from "@global_shared";
+import {
+    checkIfPathExistsAsync,
+    filterAsync,
+    getTemporaryJsFileNameInFolder,
+} from "@global_shared";
 
 export async function suggestCreatingTsConfigsForCollections(
     itemProvider: CollectionItemProvider,

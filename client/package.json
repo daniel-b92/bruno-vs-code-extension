@@ -8,7 +8,6 @@
     "repository": "https://github.com/daniel-b92/bruno-vs-code-extension",
     "dependencies": {
         "evt": "^2.5.9",
-        "glob": "^13.0.0",
         "process": "^0.11.10",
         "tree-kill": "^1.2.2",
         "typescript": "^5.9.3",

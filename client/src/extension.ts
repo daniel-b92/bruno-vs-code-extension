@@ -13,7 +13,6 @@ import {
     CollectionItemProvider,
     TestRunnerDataHelper,
     OutputChannelLogger,
-    getTemporaryJsFileBasenameWithoutExtension,
     MultiFileOperationWithStatus,
 } from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures";
@@ -26,7 +25,11 @@ import {
     TransportKind,
 } from "vscode-languageclient/node";
 import { Evt } from "evt";
-import { CollectionWatcher, FileChangedEvent } from "@global_shared";
+import {
+    CollectionWatcher,
+    FileChangedEvent,
+    getTemporaryJsFileBasenameWithoutExtension,
+} from "@global_shared";
 
 let client: LanguageClient;
 

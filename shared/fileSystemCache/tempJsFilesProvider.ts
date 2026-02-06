@@ -3,21 +3,17 @@ import {
     normalizeDirectoryPath,
     CollectionWatcher,
     FileChangeType,
-} from "@global_shared";
-import {
-    OutputChannelLogger,
+    Logger,
     getTemporaryJsFileBasenameWithoutExtension,
     getTemporaryJsFileBasename,
-} from "@shared";
+} from "..";
 import { glob } from "glob";
-import { Disposable } from "vscode";
 
 export class TempJsFilesProvider {
     constructor(
         collectionWatcher: CollectionWatcher,
-        private logger?: OutputChannelLogger,
+        private logger?: Logger,
     ) {
-        this.disposables = [];
         collectionWatcher.subscribeToUpdates(
             ({ path, changeType: fileChangeType }) => {
                 if (
@@ -48,7 +44,6 @@ export class TempJsFilesProvider {
             },
         );
     }
-    private disposables: Disposable[];
     private registeredTempJsFiles: string[] | undefined = undefined;
     private readonly commonPreMessageForLogging = "[TempJsFilesProvider]";
 
@@ -107,10 +102,6 @@ export class TempJsFilesProvider {
     public dispose() {
         if (this.registeredTempJsFiles) {
             this.registeredTempJsFiles.splice(0);
-        }
-
-        for (const d of this.disposables) {
-            d.dispose();
         }
     }
 }
