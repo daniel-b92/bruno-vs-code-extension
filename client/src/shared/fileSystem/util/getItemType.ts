@@ -32,7 +32,10 @@ export async function getItemType(
             .then((stats) =>
                 stats.isFile()
                     ? NonBrunoSpecificItemType.OtherFileType
-                    : NonBrunoSpecificItemType.Directory,
+                    : stats.isDirectory()
+                      ? // Some files from external packages are neither seen as files nor directories.
+                        NonBrunoSpecificItemType.Directory
+                      : undefined,
             )
             .catch(() => undefined);
     }
