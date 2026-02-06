@@ -6,6 +6,8 @@ import {
     getSequenceForFolder,
     parseSequenceFromMetaBlock,
     normalizeDirectoryPath,
+    CollectionWatcher,
+    FileChangeType,
 } from "@global_shared";
 import {
     BrunoFileType,
@@ -13,8 +15,6 @@ import {
     CollectionData,
     CollectionDirectory,
     CollectionItemWithSequence,
-    CollectionWatcher,
-    FileChangeType,
     OutputChannelLogger,
     TestRunnerDataHelper,
     isCollectionItemWithSequence,
@@ -50,89 +50,83 @@ export class CollectionItemProvider {
         this.itemUpdateEmitter = new vscode.EventEmitter<NotificationData[]>();
         this.disposables = [];
 
-        this.disposables.push(
-            collectionWatcher.subscribeToUpdates()(
-                async ({ uri, changeType: fileChangeType }) => {
-                    const registeredCollection =
-                        this.getAncestorCollectionForPath(uri.fsPath);
+        collectionWatcher.subscribeToUpdates(
+            async ({ path, changeType: fileChangeType }) => {
+                const registeredCollection =
+                    this.getAncestorCollectionForPath(path);
 
-                    if (!registeredCollection) {
-                        return;
-                    }
+                if (!registeredCollection) {
+                    return;
+                }
 
-                    if (
-                        registeredCollection.isRootDirectory(uri.fsPath) &&
-                        fileChangeType == FileChangeType.Deleted &&
-                        !this.shouldPathBeIgnored(uri.fsPath)
-                    ) {
-                        this.logger?.info(
-                            `${this.commonPreMessageForLogging} Handling deletion of collection '${uri.fsPath}'.`,
-                        );
-                        this.handleCollectionDeletion(uri);
-                        return;
-                    }
+                if (
+                    registeredCollection.isRootDirectory(path) &&
+                    fileChangeType == FileChangeType.Deleted &&
+                    !this.shouldPathBeIgnored(path)
+                ) {
+                    this.logger?.info(
+                        `${this.commonPreMessageForLogging} Handling deletion of collection '${path}'.`,
+                    );
+                    this.handleCollectionDeletion(path);
+                    return;
+                }
 
-                    const maybeRegisteredData =
-                        registeredCollection.getStoredDataForPath(uri.fsPath);
+                const maybeRegisteredData =
+                    registeredCollection.getStoredDataForPath(path);
 
-                    if (
-                        !maybeRegisteredData &&
-                        fileChangeType == FileChangeType.Created &&
-                        !this.shouldPathBeIgnored(uri.fsPath)
-                    ) {
-                        this.logger?.info(
-                            `${this.commonPreMessageForLogging} creation of item '${
-                                uri.fsPath
-                            }' in collection '${basename(
-                                registeredCollection.getRootDirectory(),
-                            )}'.`,
-                        );
+                if (
+                    !maybeRegisteredData &&
+                    fileChangeType == FileChangeType.Created &&
+                    !this.shouldPathBeIgnored(path)
+                ) {
+                    this.logger?.info(
+                        `${this.commonPreMessageForLogging} creation of item '${
+                            path
+                        }' in collection '${basename(
+                            registeredCollection.getRootDirectory(),
+                        )}'.`,
+                    );
 
-                        await this.handleItemCreation(
-                            registeredCollection,
-                            uri.fsPath,
-                        );
-                    } else if (
-                        maybeRegisteredData &&
-                        fileChangeType == FileChangeType.Deleted &&
-                        !this.shouldPathBeIgnored(uri.fsPath)
-                    ) {
-                        this.logger?.info(
-                            `${this.commonPreMessageForLogging} deletion of item '${
-                                uri.fsPath
-                            }' in collection '${basename(
-                                registeredCollection.getRootDirectory(),
-                            )}'.`,
-                        );
+                    await this.handleItemCreation(registeredCollection, path);
+                } else if (
+                    maybeRegisteredData &&
+                    fileChangeType == FileChangeType.Deleted &&
+                    !this.shouldPathBeIgnored(path)
+                ) {
+                    this.logger?.info(
+                        `${this.commonPreMessageForLogging} deletion of item '${
+                            path
+                        }' in collection '${basename(
+                            registeredCollection.getRootDirectory(),
+                        )}'.`,
+                    );
 
-                        await this.handleItemDeletion(
-                            testRunnerDataHelper,
-                            registeredCollection,
-                            maybeRegisteredData,
-                        );
-                    } else if (
-                        maybeRegisteredData &&
-                        fileChangeType == FileChangeType.Modified &&
-                        !this.shouldPathBeIgnored(uri.fsPath)
-                    ) {
-                        this.logger?.info(
-                            `${
-                                this.commonPreMessageForLogging
-                            } modification of item '${
-                                uri.fsPath
-                            }' in collection '${basename(
-                                registeredCollection.getRootDirectory(),
-                            )}'.`,
-                        );
+                    await this.handleItemDeletion(
+                        testRunnerDataHelper,
+                        registeredCollection,
+                        maybeRegisteredData,
+                    );
+                } else if (
+                    maybeRegisteredData &&
+                    fileChangeType == FileChangeType.Modified &&
+                    !this.shouldPathBeIgnored(path)
+                ) {
+                    this.logger?.info(
+                        `${this.commonPreMessageForLogging} modification of item '${
+                            path
+                        }' in collection '${basename(
+                            registeredCollection.getRootDirectory(),
+                        )}'.`,
+                    );
 
-                        await this.handleModificationOfRegisteredItem(
-                            registeredCollection,
-                            maybeRegisteredData,
-                        );
-                    }
-                },
-            ),
+                    await this.handleModificationOfRegisteredItem(
+                        registeredCollection,
+                        maybeRegisteredData,
+                    );
+                }
+            },
         );
+
         this.multiFileOperationFinishedNotifier =
             new vscode.EventEmitter<string>();
 
@@ -335,6 +329,9 @@ export class CollectionItemProvider {
         await registerMissingCollectionsAndTheirItems(
             this.testRunnerDataHelper,
             this.collectionRegistry,
+            vscode.workspace.workspaceFolders?.map(
+                (folder) => folder.uri.fsPath,
+            ) ?? [],
             this.filePathsToIgnore,
         );
 
@@ -360,9 +357,9 @@ export class CollectionItemProvider {
         }
     }
 
-    private handleCollectionDeletion(collectionUri: vscode.Uri) {
+    private handleCollectionDeletion(collectionRootDir: string) {
         const registeredCollection =
-            this.collectionRegistry.unregisterCollection(collectionUri.fsPath);
+            this.collectionRegistry.unregisterCollection(collectionRootDir);
 
         if (registeredCollection) {
             this.handleOutboundNotification({
@@ -572,6 +569,8 @@ export class CollectionItemProvider {
         if (this.notificationSendEventTimer) {
             this.notificationSendEventTimer.refresh();
         } else {
+            const timeout = 200;
+
             this.notificationSendEventTimer = setTimeout(() => {
                 const notificationData = this.notificationBatch
                     .splice(0)
@@ -587,7 +586,7 @@ export class CollectionItemProvider {
                 );
 
                 this.itemUpdateEmitter.fire(notificationData);
-            }, 500);
+            }, timeout);
         }
     }
 

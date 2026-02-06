@@ -7,11 +7,12 @@
     "license": "MIT",
     "repository": "https://github.com/daniel-b92/bruno-vs-code-extension",
     "dependencies": {
-        "glob": "^13.0.0",
+        "evt": "^2.5.9",
         "process": "^0.11.10",
         "tree-kill": "^1.2.2",
         "typescript": "^5.9.3",
         "uuid": "^13.0.0",
-        "vscode-languageclient": "^9.0.1"
+        "vscode-languageclient": "^9.0.1",
+        "watcher": "^2.3.1"
     }
 }

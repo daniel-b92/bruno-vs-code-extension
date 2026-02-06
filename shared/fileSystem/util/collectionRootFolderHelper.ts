@@ -1,16 +1,23 @@
 import { basename, dirname } from "path";
-import { getTestFileDescendants } from "./getTestFileDescendants";
-import { workspace } from "vscode";
+import { getTestFileDescendants } from "../..";
 import { promisify } from "util";
 import { lstat, readdir } from "fs";
+import { glob } from "glob";
 
-export const getAllCollectionRootDirectories = async () => {
-    const maybeFilesInCollectionRootDirs =
-        await workspace.findFiles("**/bruno.json");
+export async function getAllCollectionRootDirectories(
+    workspaceFolders: string[],
+) {
+    const maybeFilesInCollectionRootDirs = (
+        await Promise.all(
+            workspaceFolders.map(
+                async (workspace) => await glob(`${workspace}/**/bruno.json`),
+            ),
+        )
+    ).flat();
     const result: string[] = [];
 
     for (const maybeCollectionRoot of maybeFilesInCollectionRootDirs.map(
-        (uri) => dirname(uri.fsPath),
+        (path) => dirname(path),
     )) {
         const isCollectionRoot = await isCollectionRootDir(maybeCollectionRoot);
         if (isCollectionRoot) {
@@ -19,9 +26,9 @@ export const getAllCollectionRootDirectories = async () => {
     }
 
     return result;
-};
+}
 
-const isCollectionRootDir = async (path: string) => {
+async function isCollectionRootDir(path: string) {
     const isDirectory = await promisify(lstat)(path)
         .then((stats) => stats.isDirectory())
         .catch(() => undefined);
@@ -43,4 +50,4 @@ const isCollectionRootDir = async (path: string) => {
 
     const testfileDescendants = await getTestFileDescendants(path);
     return testfileDescendants.length > 0;
-};
+}

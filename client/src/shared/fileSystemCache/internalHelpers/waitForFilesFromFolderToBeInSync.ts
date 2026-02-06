@@ -1,7 +1,8 @@
-import { FileChangeType, isCollectionItemWithSequence } from "../..";
+import { isCollectionItemWithSequence } from "../..";
 import { OutputChannelLogger } from "../../logging/outputChannelLogger";
 import { NotificationData } from "../externalHelpers/collectionItemProvider";
 import { Event, Disposable } from "vscode";
+import { FileChangeType } from "@global_shared";
 
 export enum ResultCode {
     Aborted = 1,

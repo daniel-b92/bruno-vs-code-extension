@@ -1,5 +1,5 @@
 import { dirname } from "path";
-import { normalizeDirectoryPath } from "@global_shared";
+import { normalizeDirectoryPath } from "../..";
 
 export function isInFolderForEnvironmentFiles(path: string) {
     return normalizeDirectoryPath(dirname(path)).match(

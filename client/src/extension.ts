@@ -10,12 +10,9 @@ import {
 import { activateRunner } from "./testRunner";
 import { activateTreeView } from "./treeView";
 import {
-    CollectionWatcher,
-    FileChangedEvent,
     CollectionItemProvider,
     TestRunnerDataHelper,
     OutputChannelLogger,
-    getTemporaryJsFileBasenameWithoutExtension,
     MultiFileOperationWithStatus,
 } from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures";
@@ -27,6 +24,12 @@ import {
     ServerOptions,
     TransportKind,
 } from "vscode-languageclient/node";
+import { Evt } from "evt";
+import {
+    CollectionWatcher,
+    FileChangedEvent,
+    getTemporaryJsFileBasenameWithoutExtension,
+} from "@global_shared";
 
 let client: LanguageClient;
 
@@ -131,10 +134,10 @@ function createNeededHandlers(context: ExtensionContext) {
         window.createOutputChannel(getExtensionNameLabel(), { log: true }),
     );
 
-    const fileChangedEmitter = new EventEmitter<FileChangedEvent>();
+    const fileChangedEmitter = Evt.create<FileChangedEvent>();
     const collectionWatcher = new CollectionWatcher(
-        context,
         fileChangedEmitter,
+        workspace.workspaceFolders?.map((folder) => folder.uri.fsPath) ?? [],
         logger,
     );
 
@@ -158,7 +161,6 @@ function createNeededHandlers(context: ExtensionContext) {
     context.subscriptions.push(
         client,
         startTestRunEmitter,
-        fileChangedEmitter,
         multiFileOperationNotifier,
         collectionItemProvider,
         collectionWatcher,

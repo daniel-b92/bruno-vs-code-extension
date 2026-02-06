@@ -19,13 +19,13 @@ import { dirname, extname } from "path";
 import {
     normalizeDirectoryPath,
     getExtensionForBrunoFiles,
+    FileChangeType,
 } from "@global_shared";
 import {
     TestRunnerDataHelper,
     CollectionDirectory,
     Collection,
     CollectionItemProvider,
-    FileChangeType,
     CollectionItemWithSequence,
     getLoggerFromSubscriptions,
     isCollectionItemWithSequence,

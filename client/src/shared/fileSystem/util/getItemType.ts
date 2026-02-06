@@ -4,7 +4,6 @@ import {
     Collection,
     ItemType,
     NonBrunoSpecificItemType,
-    isInFolderForEnvironmentFiles,
 } from "@shared";
 import { promisify } from "util";
 import { lstat } from "fs";
@@ -13,6 +12,7 @@ import {
     getExtensionForBrunoFiles,
     normalizeDirectoryPath,
     doesFileNameMatchFolderSettingsFileName,
+    isInFolderForEnvironmentFiles,
 } from "@global_shared";
 
 export async function getItemType(
