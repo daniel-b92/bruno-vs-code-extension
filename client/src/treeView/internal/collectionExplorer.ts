@@ -7,11 +7,11 @@ import {
     checkIfPathExistsAsync,
     normalizeDirectoryPath,
     BrunoFileType,
+    isBrunoFileType,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
     OutputChannelLogger,
-    isBrunoFileType,
     DialogOptionLabelEnum,
     MultiFileOperationWithStatus,
     getMaxSequenceForRequests,

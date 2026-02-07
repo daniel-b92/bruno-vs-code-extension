@@ -1,4 +1,4 @@
-import { Collection, isRequestFile } from "@global_shared";
+import { Collection, isRequestFile } from "../..";
 
 export function getDistinctTagsForCollection<T>(collection: Collection<T>) {
     const allTags = collection

@@ -17,10 +17,9 @@ import {
 import { provideBrunoLangCompletionItems } from "./internal/brunoFiles/completionItems/provideBrunoLangCompletionItems";
 import {
     getLoggerFromSubscriptions,
-    isBrunoFileType,
-    getItemType,
     TypedCollectionItemProvider,
     TypedCollection,
+    FileSystemCacheSyncingHelper,
 } from "@shared";
 import {
     parseBruFile,
@@ -36,6 +35,8 @@ import {
     TempJsFilesProvider,
     BrunoFileType,
     CollectionDirectory,
+    isBrunoFileType,
+    getItemType,
 } from "@global_shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/brunoFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/brunoFiles/autoUpdates/updateUrlToMatchQueryParams";
@@ -57,6 +58,7 @@ export async function activateLanguageFeatures(
     context: ExtensionContext,
     collectionWatcher: CollectionWatcher,
     collectionItemProvider: TypedCollectionItemProvider,
+    cacheSyncingHelper: FileSystemCacheSyncingHelper,
     testRunStartedEvent: VsCodeEvent<unknown>,
 ) {
     const logger = getLoggerFromSubscriptions(context);
@@ -83,6 +85,11 @@ export async function activateLanguageFeatures(
     const brunoLangDiagnosticsProvider = new BrunoLangDiagnosticsProvider(
         diagnosticCollection,
         collectionItemProvider,
+    );
+
+    handleDiagnosticUpdatesOnFileDeletionForBruFile(
+        collectionItemProvider,
+        diagnosticCollection,
     );
 
     context.subscriptions.push(
@@ -119,6 +126,7 @@ export async function activateLanguageFeatures(
                 tempJsFilesUpdateQueue,
                 brunoLangDiagnosticsProvider,
                 collectionItemProvider,
+                cacheSyncingHelper,
                 tempJsFilesProvider,
                 editor,
             );
@@ -127,6 +135,7 @@ export async function activateLanguageFeatures(
             await onDidChangeTextDocument(
                 brunoLangDiagnosticsProvider,
                 collectionItemProvider,
+                cacheSyncingHelper,
                 e,
             );
         }),
@@ -138,10 +147,6 @@ export async function activateLanguageFeatures(
                 e,
             );
         }),
-        handleDiagnosticUpdatesOnFileDeletionForBruFile(
-            collectionItemProvider,
-            diagnosticCollection,
-        ),
     );
 }
 
@@ -149,6 +154,7 @@ async function onDidChangeActiveTextEditor(
     queue: TempJsFileUpdateQueue,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     itemProvider: TypedCollectionItemProvider,
+    cacheSyncingHelper: FileSystemCacheSyncingHelper,
     tempJsFilesProvider: TempJsFilesProvider,
     editor: TextEditor | undefined,
 ) {
@@ -172,6 +178,7 @@ async function onDidChangeActiveTextEditor(
                 queue,
                 brunoLangDiagnosticsProvider,
                 itemProvider,
+                cacheSyncingHelper,
                 tempJsFilesProvider,
                 editor.document,
             );
@@ -191,6 +198,7 @@ async function onDidChangeActiveTextEditor(
 async function onDidChangeTextDocument(
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     itemProvider: TypedCollectionItemProvider,
+    cacheSyncingHelper: FileSystemCacheSyncingHelper,
     {
         contentChanges,
         document: { fileName, uri, getText },
@@ -219,7 +227,7 @@ async function onDidChangeTextDocument(
 
             if (brunoFileType == BrunoFileType.RequestFile) {
                 // Sometimes it can take a few seconds until the cache is up to date (e.g. when moving a file to a different folder).
-                await itemProvider.waitForFileToBeRegisteredInCache(
+                await cacheSyncingHelper.waitForFileToBeRegisteredInCache(
                     collection.getRootDirectory(),
                     fileName,
                 );
@@ -257,7 +265,7 @@ function handleDiagnosticUpdatesOnFileDeletionForBruFile(
     collectionItemProvider: TypedCollectionItemProvider,
     diagnosticCollection: DiagnosticCollection,
 ) {
-    return collectionItemProvider.subscribeToUpdates()((updates) => {
+    return collectionItemProvider.subscribeToUpdates((updates) => {
         for (const {
             data: { item },
             updateType,
@@ -290,6 +298,7 @@ async function handleOpeningOfBruDocument(
     queue: TempJsFileUpdateQueue,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     itemProvider: TypedCollectionItemProvider,
+    cacheSyncingHelper: FileSystemCacheSyncingHelper,
     tempJsFilesProvider: TempJsFilesProvider,
     { fileName, getText, uri, eol }: TextDocument,
 ) {
@@ -337,7 +346,7 @@ async function handleOpeningOfBruDocument(
 
     if (brunoFileType == BrunoFileType.RequestFile) {
         // Sometimes it can take a few seconds until the cache is up to date (e.g. when moving a file to a different folder).
-        await itemProvider.waitForFileToBeRegisteredInCache(
+        await cacheSyncingHelper.waitForFileToBeRegisteredInCache(
             collection.getRootDirectory(),
             fileName,
             shouldAbortNotifier.event,

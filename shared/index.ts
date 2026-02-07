@@ -17,9 +17,13 @@ export * from "./fileSystem/util/doesFileNameMatchFolderSettingsFileName";
 export * from "./fileSystem/util/getTestFileDescendants";
 export * from "./fileSystem/util/isInFolderForEnvironmentFiles";
 export * from "./fileSystem/util/collectionRootFolderHelper";
+export * from "./fileSystem/util/getItemType";
 
 // file system cache
-export * from "./fileSystemCache/tempJsFilesProvider";
+export * from "./fileSystemCache/external/tempJsFilesProvider";
+export * from "./fileSystemCache/external/collectionItemProvider";
+export * from "./fileSystemCache/external/isBrunoFileType";
+export * from "./fileSystemCache/external/getDistinctTagsForCollection";
 
 // file parsing
 export * from "./fileParsing/external/parseBruFile";

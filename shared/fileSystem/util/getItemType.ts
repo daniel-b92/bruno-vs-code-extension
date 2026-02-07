@@ -11,7 +11,7 @@ import {
     Collection,
     ItemType,
     NonBrunoSpecificItemType,
-} from "@global_shared";
+} from "../..";
 
 export async function getItemType<T>(
     collection: Collection<T>,

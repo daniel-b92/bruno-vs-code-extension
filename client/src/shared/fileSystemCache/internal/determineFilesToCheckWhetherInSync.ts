@@ -7,8 +7,9 @@ import {
     Collection,
     CollectionData,
     isCollectionItemWithSequence,
+    getItemType,
 } from "@global_shared";
-import { getItemType, OutputChannelLogger } from "@shared";
+import { OutputChannelLogger } from "@shared";
 import { lstat, readdir } from "fs/promises";
 import { Event, Disposable } from "vscode";
 

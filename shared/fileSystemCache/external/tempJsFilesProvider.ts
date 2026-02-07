@@ -6,7 +6,7 @@ import {
     Logger,
     getTemporaryJsFileBasenameWithoutExtension,
     getTemporaryJsFileBasename,
-} from "..";
+} from "../..";
 import { glob } from "glob";
 
 export class TempJsFilesProvider {
