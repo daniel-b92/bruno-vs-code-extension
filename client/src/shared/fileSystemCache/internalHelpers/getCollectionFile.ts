@@ -23,7 +23,10 @@ import {
 } from "@global_shared";
 import { readFile } from "fs";
 
-export async function getCollectionFile(collection: Collection, path: string) {
+export async function getCollectionFile<T>(
+    collection: Collection<T>,
+    path: string,
+) {
     const itemType = await getItemType(collection, path);
 
     if (!itemType) {

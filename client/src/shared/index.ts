@@ -28,10 +28,12 @@ export * from "./model/files/brunoFolderSettingsFile";
 export * from "./model/files/brunoEnvironmentFile";
 export * from "./model/files/nonBrunoFile";
 export * from "./model/interfaces";
+export * from "./model/interfaces_generic";
 export * from "./model/typeguards/isCollectionItemWithSequence";
 export * from "./model/typeguards/isRequestFile";
 
 // file system cache
+export * from "./fileSystemCache/externalHelpers/interfaces";
 export * from "./fileSystemCache/externalHelpers/collectionItemProvider";
 export * from "./fileSystemCache/externalHelpers/testRunnerDataHelper";
 export * from "./fileSystemCache/externalHelpers/isBrunoFileType";

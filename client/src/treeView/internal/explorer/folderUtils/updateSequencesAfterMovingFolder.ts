@@ -1,9 +1,9 @@
 import { basename, dirname, resolve } from "path";
 import { getFolderSettingsFilePath } from "@global_shared";
 import {
-    CollectionItemProvider,
     getMaxSequenceForFolders,
     getSequencesForFolders,
+    TypedCollectionItemProvider,
 } from "@shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
@@ -16,7 +16,7 @@ import { promisify } from "util";
 import { readFile } from "fs";
 
 export async function updateSequencesAfterMovingFolder(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     sourcePath: string,
     target: BrunoTreeItem,
     insertionOption: FolderDropInsertionOption,

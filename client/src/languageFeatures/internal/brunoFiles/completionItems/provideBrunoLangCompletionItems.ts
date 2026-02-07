@@ -1,13 +1,13 @@
 import { CompletionItem, CompletionItemKind, languages } from "vscode";
 import {
-    Collection,
-    CollectionItemProvider,
     getConfiguredTestEnvironment,
     getMatchingTextContainingPosition,
     mapFromVsCodePosition,
     mapToVsCodeRange,
     OutputChannelLogger,
     getMaxSequenceForRequests,
+    TypedCollectionItemProvider,
+    TypedCollection,
 } from "@shared";
 import {
     ApiKeyAuthBlockKey,
@@ -43,7 +43,7 @@ import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/
 import { getExistingRequestFileTags } from "../shared/getExistingRequestFileTags";
 
 export function provideBrunoLangCompletionItems(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     logger?: OutputChannelLogger,
 ) {
     return languages.registerCompletionItemProvider(
@@ -108,7 +108,7 @@ function getNonBlockSpecificCompletions(
     file: {
         blockContainingPosition: Block;
         allBlocks: Block[];
-        collection: Collection;
+        collection: TypedCollection;
     },
     logger?: OutputChannelLogger,
 ) {
@@ -186,10 +186,10 @@ function getNonBlockSpecificCompletions(
 }
 
 async function getBlockSpecificCompletions(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     request: LanguageFeatureRequest,
     blockContainingPosition: Block,
-    collection?: Collection,
+    collection?: TypedCollection,
 ) {
     const { name: blockName } = blockContainingPosition;
 
@@ -214,10 +214,10 @@ async function getBlockSpecificCompletions(
 }
 
 async function getMetaBlockSpecificCompletions(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     request: LanguageFeatureRequest,
     metaBlock: Block,
-    collection?: Collection,
+    collection?: TypedCollection,
 ) {
     const { document, position } = request;
 

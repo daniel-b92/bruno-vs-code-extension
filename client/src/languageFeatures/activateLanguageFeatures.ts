@@ -17,12 +17,12 @@ import {
 import { provideBrunoLangCompletionItems } from "./internal/brunoFiles/completionItems/provideBrunoLangCompletionItems";
 import {
     BrunoFileType,
-    Collection,
     CollectionDirectory,
-    CollectionItemProvider,
     getLoggerFromSubscriptions,
     isBrunoFileType,
     getItemType,
+    TypedCollectionItemProvider,
+    TypedCollection,
 } from "@shared";
 import {
     parseBruFile,
@@ -56,7 +56,7 @@ import { getCharacterForLineBreak } from "./internal/brunoFiles/shared/codeBlock
 export async function activateLanguageFeatures(
     context: ExtensionContext,
     collectionWatcher: CollectionWatcher,
-    collectionItemProvider: CollectionItemProvider,
+    collectionItemProvider: TypedCollectionItemProvider,
     testRunStartedEvent: VsCodeEvent<unknown>,
 ) {
     const logger = getLoggerFromSubscriptions(context);
@@ -148,7 +148,7 @@ export async function activateLanguageFeatures(
 async function onDidChangeActiveTextEditor(
     queue: TempJsFileUpdateQueue,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     tempJsFilesProvider: TempJsFilesProvider,
     editor: TextEditor | undefined,
 ) {
@@ -190,7 +190,7 @@ async function onDidChangeActiveTextEditor(
 
 async function onDidChangeTextDocument(
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     {
         contentChanges,
         document: { fileName, uri, getText },
@@ -237,7 +237,7 @@ async function onDidChangeTextDocument(
 
 async function onWillSaveTextDocument(
     queue: TempJsFileUpdateQueue,
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     tempJsFilesProvider: TempJsFilesProvider,
     event: TextDocumentWillSaveEvent,
 ) {
@@ -254,7 +254,7 @@ async function onWillSaveTextDocument(
 }
 
 function handleDiagnosticUpdatesOnFileDeletionForBruFile(
-    collectionItemProvider: CollectionItemProvider,
+    collectionItemProvider: TypedCollectionItemProvider,
     diagnosticCollection: DiagnosticCollection,
 ) {
     return collectionItemProvider.subscribeToUpdates()((updates) => {
@@ -289,7 +289,7 @@ function handleDiagnosticUpdatesOnFileDeletionForBruFile(
 async function handleOpeningOfBruDocument(
     queue: TempJsFileUpdateQueue,
     brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     tempJsFilesProvider: TempJsFilesProvider,
     { fileName, getText, uri, eol }: TextDocument,
 ) {
@@ -371,7 +371,7 @@ async function handleOpeningOfBruDocument(
     }
 
     const collectionRootFolder = (
-        itemProvider.getAncestorCollectionForPath(fileName) as Collection
+        itemProvider.getAncestorCollectionForPath(fileName) as TypedCollection
     ).getRootDirectory();
 
     await queue.addToQueue({
@@ -389,7 +389,7 @@ async function handleOpeningOfBruDocument(
 
 async function handleOpeningOfJsDocument(
     queue: TempJsFileUpdateQueue,
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     tempJsFilesProvider: TempJsFilesProvider,
     document: TextDocument,
 ) {
@@ -406,7 +406,7 @@ async function handleOpeningOfJsDocument(
     const collectionRootFolder = (
         itemProvider.getAncestorCollectionForPath(
             document.fileName,
-        ) as Collection
+        ) as TypedCollection
     ).getRootDirectory();
 
     await queue.addToQueue({
@@ -423,7 +423,7 @@ async function handleOpeningOfJsDocument(
 
 async function onWillSaveBruDocument(
     queue: TempJsFileUpdateQueue,
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     tempJsFilesProvider: TempJsFilesProvider,
     document: TextDocument,
 ) {
@@ -528,7 +528,7 @@ function getBrunoFileTypesThatCanHaveCodeBlocks() {
 }
 
 async function getBrunoFileTypeIfExists(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     filePath: string,
 ) {
     const collection = itemProvider.getAncestorCollectionForPath(filePath);
@@ -542,7 +542,7 @@ async function getBrunoFileTypeIfExists(
 }
 
 function isJsFileFromBrunoCollection(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     fileName: string,
 ) {
     return (

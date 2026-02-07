@@ -1,8 +1,8 @@
-import { CollectionItemProvider, getSequencesForFolders } from "@shared";
+import { TypedCollectionItemProvider, getSequencesForFolders } from "@shared";
 import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
 
 export async function normalizeSequencesForFolders(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     parentFolder: string,
 ) {
     const initialSequences = await getSequencesForFolders(

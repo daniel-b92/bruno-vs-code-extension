@@ -8,10 +8,10 @@ import {
     ConfigurationTarget,
 } from "vscode";
 import {
-    CollectionItemProvider,
-    Collection,
     getLineBreakFromSettings,
     DialogOptionLabelEnum,
+    TypedCollectionItemProvider,
+    TypedCollection,
 } from "../shared";
 import {
     checkIfPathExistsAsync,
@@ -20,7 +20,7 @@ import {
 } from "@global_shared";
 
 export async function suggestCreatingTsConfigsForCollections(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
 ) {
     const collectionsMissingTsConfig =
         await getCollectionsWithoutTsConfigs(itemProvider);
@@ -73,8 +73,8 @@ ${JSON.stringify(
 }
 
 async function getCollectionsWithoutTsConfigs(
-    itemProvider: CollectionItemProvider,
-): Promise<undefined | Collection[]> {
+    itemProvider: TypedCollectionItemProvider,
+): Promise<undefined | TypedCollection[]> {
     if (
         !workspace
             .getConfiguration()
@@ -101,8 +101,8 @@ async function getCollectionsWithoutTsConfigs(
     );
 }
 
-async function createTsConfigs(collections: Collection[]) {
-    const results: { collection: Collection; success: boolean }[] = [];
+async function createTsConfigs(collections: TypedCollection[]) {
+    const results: { collection: TypedCollection; success: boolean }[] = [];
 
     for (const collection of collections) {
         const workspaceEdit = new WorkspaceEdit();
@@ -148,6 +148,6 @@ function getSettingsKeyForShowingSuggestion() {
     return "bru-as-code.suggestCreatingTsConfigsForCollections";
 }
 
-function getTsConfigPathForCollection(collection: Collection) {
+function getTsConfigPathForCollection(collection: TypedCollection) {
     return resolve(collection.getRootDirectory(), "tsconfig.json");
 }

@@ -1,27 +1,20 @@
-import { BrunoTreeItem } from "../../treeView/brunoTreeItem";
 import { normalizeDirectoryPath } from "@global_shared";
-import {
-    CollectionData,
-    CollectionDirectory,
-    CollectionItem,
-    TestRunnerDataHelper,
-} from "@shared";
+import { CollectionData, CollectionDirectory, CollectionItem } from "@shared";
 
-export class Collection {
+export class Collection<T> {
     constructor(
         private rootDirectory: string,
-        testRunnerDataHelper: TestRunnerDataHelper,
+        additionalDataCreator: (item: CollectionItem) => T,
     ) {
         const item = new CollectionDirectory(rootDirectory);
 
         this.testData.push({
             item,
-            treeItem: new BrunoTreeItem(rootDirectory, false),
-            testItem: testRunnerDataHelper.createVsCodeTestItem(item),
+            additionalData: additionalDataCreator(item),
         });
     }
 
-    private testData: CollectionData[] = [];
+    private testData: CollectionData<T>[] = [];
 
     public getRootDirectory() {
         return this.rootDirectory;
@@ -39,10 +32,10 @@ export class Collection {
     }
 
     public getAllStoredDataForCollection() {
-        return this.testData as readonly CollectionData[];
+        return this.testData as readonly CollectionData<T>[];
     }
 
-    public addItem(data: CollectionData) {
+    public addItem(data: CollectionData<T>) {
         this.testData.push(data);
     }
 

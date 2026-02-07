@@ -8,9 +8,9 @@ import {
 } from "vscode";
 import { RequestFileBlockName } from "@global_shared";
 import {
-    CollectionItemProvider,
     mapFromVsCodePosition,
     OutputChannelLogger,
+    TypedCollectionItemProvider,
 } from "@shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
@@ -20,7 +20,7 @@ import { waitForTempJsFileToBeInSync } from "../../shared/temporaryJsFilesUpdate
 
 export function provideDefinitions(
     queue: TempJsFileUpdateQueue,
-    collectionItemProvider: CollectionItemProvider,
+    collectionItemProvider: TypedCollectionItemProvider,
     logger?: OutputChannelLogger,
 ) {
     return languages.registerDefinitionProvider(

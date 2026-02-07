@@ -1,10 +1,10 @@
 import { resolve } from "path";
-import { CollectionItemProvider, getSequenceForFile } from "@shared";
+import { TypedCollectionItemProvider, getSequenceForFile } from "@shared";
 import { promisify } from "util";
 import { readdir } from "fs";
 
 export const getSequencesForRequests = async (
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     directory: string,
 ): Promise<{ path: string; sequence: number }[]> => {
     const collection = itemProvider.getAncestorCollectionForPath(directory);

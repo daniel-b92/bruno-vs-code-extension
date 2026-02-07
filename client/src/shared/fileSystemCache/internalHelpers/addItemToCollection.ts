@@ -1,29 +1,14 @@
-import {
-    Collection,
-    CollectionData,
-    TestRunnerDataHelper,
-    CollectionItem,
-    isCollectionItemWithSequence,
-    isRequestFile,
-} from "../..";
-import { BrunoTreeItem } from "../../../treeView/brunoTreeItem";
+import { Collection, CollectionData, CollectionItem } from "../..";
 import { isModifiedItemOutdated } from "./isModifiedItemOutdated";
 
-export function addItemToCollection(
-    testRunnerDataHelper: TestRunnerDataHelper,
-    collection: Collection,
+export function addItemToCollection<T>(
+    collection: Collection<T>,
     item: CollectionItem,
+    additionalDataCreator: (item: CollectionItem) => T,
 ) {
-    const isItemWithSequence = isCollectionItemWithSequence(item);
-    const data: CollectionData = {
+    const data: CollectionData<T> = {
         item,
-        treeItem: new BrunoTreeItem(
-            item.getPath(),
-            item.isFile(),
-            isItemWithSequence ? item.getSequence() : undefined,
-            isRequestFile(item) ? item.getTags() : undefined,
-        ),
-        testItem: testRunnerDataHelper.createVsCodeTestItem(item),
+        additionalData: additionalDataCreator(item),
     };
 
     const registeredDataWithSamePath = collection.getStoredDataForPath(
@@ -43,10 +28,10 @@ export function addItemToCollection(
     return data;
 }
 
-function handleAlreadyRegisteredItemWithSamePath(
-    collection: Collection,
-    { item: alreadyRegisteredItem }: CollectionData,
-    newData: CollectionData,
+function handleAlreadyRegisteredItemWithSamePath<T>(
+    collection: Collection<T>,
+    { item: alreadyRegisteredItem }: CollectionData<T>,
+    newData: CollectionData<T>,
 ) {
     if (
         isModifiedItemOutdated(alreadyRegisteredItem, newData.item).isOutdated

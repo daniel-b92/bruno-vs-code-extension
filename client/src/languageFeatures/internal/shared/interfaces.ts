@@ -4,7 +4,7 @@ import {
     CancellationToken,
 } from "vscode";
 import { Block, VariableReferenceType } from "@global_shared";
-import { Collection, OutputChannelLogger } from "@shared";
+import { OutputChannelLogger, TypedCollection } from "@shared";
 
 export interface LanguageFeatureRequest {
     document: TextDocument;
@@ -19,7 +19,7 @@ export interface EnvVariableRequest {
 }
 
 export interface EnvVariableCommonRequestData {
-    collection: Collection;
+    collection: TypedCollection;
     variableName: string;
     functionType: VariableReferenceType;
     requestPosition: VsCodePosition;

@@ -16,9 +16,9 @@ import {
     CollectionDirectory,
     CollectionItemWithSequence,
     OutputChannelLogger,
-    TestRunnerDataHelper,
     isCollectionItemWithSequence,
     MultiFileOperationWithStatus,
+    CollectionItem,
 } from "@shared";
 import { basename, dirname } from "path";
 import { promisify } from "util";
@@ -31,23 +31,25 @@ import {
 } from "../internalHelpers/waitForFilesFromFolderToBeInSync";
 import { isModifiedItemOutdated } from "../internalHelpers/isModifiedItemOutdated";
 
-export interface NotificationData {
-    collection: Collection;
-    data: CollectionData;
+export interface NotificationData<T> {
+    collection: Collection<T>;
+    data: CollectionData<T>;
     updateType: FileChangeType;
     changedData?: { sequenceChanged?: boolean; tagsChanged?: boolean };
 }
 
-export class CollectionItemProvider {
+export class CollectionItemProvider<T> {
     constructor(
         collectionWatcher: CollectionWatcher,
-        private testRunnerDataHelper: TestRunnerDataHelper,
+        private additionalCollectionDataCreator: (item: CollectionItem) => T,
         private filePathsToIgnore: RegExp[],
         multiFileOperationSubscription: vscode.Event<MultiFileOperationWithStatus>,
         private logger?: OutputChannelLogger,
     ) {
         this.collectionRegistry = new CollectionRegistry(collectionWatcher);
-        this.itemUpdateEmitter = new vscode.EventEmitter<NotificationData[]>();
+        this.itemUpdateEmitter = new vscode.EventEmitter<
+            NotificationData<T>[]
+        >();
         this.disposables = [];
 
         collectionWatcher.subscribeToUpdates(
@@ -102,7 +104,6 @@ export class CollectionItemProvider {
                     );
 
                     await this.handleItemDeletion(
-                        testRunnerDataHelper,
                         registeredCollection,
                         maybeRegisteredData,
                     );
@@ -150,9 +151,9 @@ export class CollectionItemProvider {
     }
 
     private disposables: vscode.Disposable[];
-    private collectionRegistry: CollectionRegistry;
-    private itemUpdateEmitter: vscode.EventEmitter<NotificationData[]>;
-    private notificationBatch: NotificationData[] = [];
+    private collectionRegistry: CollectionRegistry<T>;
+    private itemUpdateEmitter: vscode.EventEmitter<NotificationData<T>[]>;
+    private notificationBatch: NotificationData<T>[] = [];
     private notificationSendEventTimer: NodeJS.Timeout | undefined = undefined;
     private latestMultiFileOperation: {
         folderPath: string | undefined;
@@ -290,7 +291,7 @@ export class CollectionItemProvider {
             : undefined;
     }
 
-    public getRegisteredItem(collection: Collection, itemPath: string) {
+    public getRegisteredItem(collection: Collection<T>, itemPath: string) {
         if (
             !this.collectionRegistry
                 .getRegisteredCollections()
@@ -327,12 +328,12 @@ export class CollectionItemProvider {
             });
 
         await registerMissingCollectionsAndTheirItems(
-            this.testRunnerDataHelper,
             this.collectionRegistry,
             vscode.workspace.workspaceFolders?.map(
                 (folder) => folder.uri.fsPath,
             ) ?? [],
             this.filePathsToIgnore,
+            this.additionalCollectionDataCreator,
         );
 
         const endTime = performance.now();
@@ -366,14 +367,14 @@ export class CollectionItemProvider {
                 collection: registeredCollection,
                 data: registeredCollection.getStoredDataForPath(
                     registeredCollection.getRootDirectory(),
-                ) as CollectionData,
+                ) as CollectionData<T>,
                 updateType: FileChangeType.Deleted,
             });
         }
     }
 
     private async handleItemCreation(
-        registeredCollection: Collection,
+        registeredCollection: Collection<T>,
         itemPath: string,
     ) {
         const item = await promisify(lstat)(itemPath)
@@ -395,9 +396,9 @@ export class CollectionItemProvider {
         }
 
         const collectionData = addItemToCollection(
-            this.testRunnerDataHelper,
             registeredCollection,
             item,
+            this.additionalCollectionDataCreator,
         );
 
         await this.handleOutboundNotification({
@@ -408,9 +409,8 @@ export class CollectionItemProvider {
     }
 
     private async handleItemDeletion(
-        testRunnerDataHelper: TestRunnerDataHelper,
-        registeredCollectionForItem: Collection,
-        data: CollectionData,
+        registeredCollectionForItem: Collection<T>,
+        data: CollectionData<T>,
     ) {
         const { item } = data;
         if (
@@ -427,7 +427,6 @@ export class CollectionItemProvider {
                 isCollectionItemWithSequence(parentFolderData.item)
             ) {
                 this.handleFolderSequenceUpdate(
-                    testRunnerDataHelper,
                     registeredCollectionForItem,
                     parentFolderData.item,
                 );
@@ -444,10 +443,10 @@ export class CollectionItemProvider {
     }
 
     private async handleModificationOfRegisteredItem(
-        registeredCollectionForItem: Collection,
-        collectionData: CollectionData,
+        registeredCollectionForItem: Collection<T>,
+        collectionData: CollectionData<T>,
     ) {
-        const { item: modifiedItem, treeItem, testItem } = collectionData;
+        const { item: modifiedItem, additionalData } = collectionData;
         const itemPath = modifiedItem.getPath();
 
         if (!modifiedItem.isFile()) {
@@ -465,7 +464,6 @@ export class CollectionItemProvider {
                 isCollectionItemWithSequence(parentFolderData.item)
             ) {
                 this.handleFolderSequenceUpdate(
-                    this.testRunnerDataHelper,
                     registeredCollectionForItem,
                     parentFolderData.item,
                     await parseSequenceFromMetaBlock(itemPath),
@@ -490,9 +488,9 @@ export class CollectionItemProvider {
             }
 
             addItemToCollection(
-                this.testRunnerDataHelper,
                 registeredCollectionForItem,
                 newItem,
+                this.additionalCollectionDataCreator,
             );
 
             const {
@@ -504,7 +502,7 @@ export class CollectionItemProvider {
 
             await this.handleOutboundNotification({
                 collection: registeredCollectionForItem,
-                data: { item: newItem, treeItem, testItem },
+                data: { item: newItem, additionalData },
                 updateType: FileChangeType.Modified,
                 changedData:
                     isSequenceOutdated || areTagsOutdated
@@ -518,8 +516,7 @@ export class CollectionItemProvider {
     }
 
     private handleFolderSequenceUpdate(
-        testRunnerDataHelper: TestRunnerDataHelper,
-        collection: Collection,
+        collection: Collection<T>,
         oldFolderItem: CollectionItemWithSequence,
         newSequence?: number,
     ) {
@@ -533,9 +530,9 @@ export class CollectionItemProvider {
         this.handleOutboundNotification({
             collection,
             data: addItemToCollection(
-                testRunnerDataHelper,
                 collection,
                 newFolderItem,
+                this.additionalCollectionDataCreator,
             ),
             updateType: FileChangeType.Modified,
             changedData: { sequenceChanged: oldSequence != newSequence },
@@ -543,7 +540,7 @@ export class CollectionItemProvider {
     }
 
     private async handleOutboundNotification(
-        notificationData: NotificationData,
+        notificationData: NotificationData<T>,
     ) {
         const {
             data: { item },
@@ -624,7 +621,10 @@ export class CollectionItemProvider {
         );
     }
 
-    private async isCachedFileInSync(collection: Collection, filePath: string) {
+    private async isCachedFileInSync(
+        collection: Collection<T>,
+        filePath: string,
+    ) {
         const cachedData = collection.getStoredDataForPath(filePath);
 
         return (

@@ -1,6 +1,5 @@
-import { isCollectionItemWithSequence } from "../..";
+import { isCollectionItemWithSequence, NotificationData } from "../..";
 import { OutputChannelLogger } from "../../logging/outputChannelLogger";
-import { NotificationData } from "../externalHelpers/collectionItemProvider";
 import { Event, Disposable } from "vscode";
 import { FileChangeType } from "@global_shared";
 
@@ -10,11 +9,11 @@ export enum ResultCode {
     WaitingCompleted = 3,
 }
 
-export async function waitForFilesFromFolderToBeInSync(
+export async function waitForFilesFromFolderToBeInSync<T>(
     filesToCheckWithinFolder: readonly { path: string; sequence?: number }[],
     parentFolder: string,
     callbacks: {
-        getSubscriptionForCacheUpdates: () => Event<NotificationData[]>;
+        getSubscriptionForCacheUpdates: () => Event<NotificationData<T>[]>;
         shouldAbort: () => boolean;
     },
     timeoutInMillis: number,

@@ -1,7 +1,7 @@
 import { isRequestFile } from "../..";
 import { Collection } from "../../model/collection";
 
-export function getDistinctTagsForCollection(collection: Collection) {
+export function getDistinctTagsForCollection<T>(collection: Collection<T>) {
     const allTags = collection
         .getAllStoredDataForCollection()
         .map(({ item }) => item)

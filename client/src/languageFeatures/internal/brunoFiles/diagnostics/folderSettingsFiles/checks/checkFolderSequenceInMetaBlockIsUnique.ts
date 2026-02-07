@@ -9,10 +9,10 @@ import {
 } from "@global_shared";
 import {
     BrunoRequestFile,
-    CollectionItemProvider,
     mapToVsCodeRange,
     BrunoFileType,
     isCollectionItemWithSequence,
+    TypedCollectionItemProvider,
 } from "@shared";
 import { basename, dirname } from "path";
 import { DiagnosticWithCode } from "../../definitions";
@@ -21,7 +21,7 @@ import { doesDictionaryBlockFieldHaveValidIntegerValue } from "../../shared/util
 import { getRangeForSequenceValue } from "../../shared/util/getRangeForSequenceValue";
 
 export async function checkFolderSequenceInMetaBlockIsUnique(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     metaBlock: Block,
     documentUri: Uri,
 ): Promise<{
@@ -127,7 +127,7 @@ async function getDiagnostic(
 }
 
 async function getSequencesForOtherFoldersWithSameParent(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     documentUri: Uri,
     folderSettingsFile: string,
 ): Promise<
@@ -151,7 +151,7 @@ async function getSequencesForOtherFoldersWithSameParent(
 }
 
 async function getOtherFolderSettingsWithSameParentFolder(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     referenceFolderSettings: string,
     documentUri: Uri,
 ): Promise<{ folderPath: string; folderSettings: BrunoRequestFile }[]> {

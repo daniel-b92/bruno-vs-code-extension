@@ -1,16 +1,16 @@
 import { normalizeDirectoryPath, CollectionWatcher } from "@global_shared";
 import { Collection } from "../../model/collection";
 
-export class CollectionRegistry {
+export class CollectionRegistry<T> {
     constructor(private collectionWatcher: CollectionWatcher) {}
 
-    private collections: Collection[] = [];
+    private collections: Collection<T>[] = [];
 
     public getRegisteredCollections() {
-        return this.collections as readonly Collection[];
+        return this.collections as readonly Collection<T>[];
     }
 
-    public registerCollection(collection: Collection) {
+    public registerCollection(collection: Collection<T>) {
         if (!this.isCollectionRegistered(collection.getRootDirectory())) {
             this.collectionWatcher.startWatchingCollection(
                 collection.getRootDirectory(),

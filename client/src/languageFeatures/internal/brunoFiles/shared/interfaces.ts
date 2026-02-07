@@ -1,11 +1,11 @@
 import { CodeBlock } from "@global_shared";
-import { Collection, OutputChannelLogger } from "@shared";
+import { OutputChannelLogger, TypedCollection } from "@shared";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 
 export interface CodeBlockLanguageFeatureRequestWithAdditionalData {
     request: LanguageFeatureRequest;
     file: {
-        collection: Collection;
+        collection: TypedCollection;
         blockContainingPosition: CodeBlock;
     };
     logger?: OutputChannelLogger;

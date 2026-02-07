@@ -11,7 +11,7 @@ import {
     isDictionaryBlockArrayField,
     DictionaryBlockArrayField,
 } from "@global_shared";
-import { CollectionItemProvider } from "@shared";
+import { TypedCollectionItemProvider } from "@shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
 import { checkNoMandatoryValuesAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoMandatoryValuesAreMissingForDictionaryBlock";
@@ -28,7 +28,7 @@ import { checkDictionaryBlockArrayFieldsValues } from "../shared/checks/singleBl
 import { checkNoDuplicateTagsAreDefined } from "./checks/singleBlocks/checkNoDuplicateTagsAreDefined";
 
 export async function getMetaBlockSpecificDiagnostics(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
     documentUri: Uri,
     documentHelper: TextDocumentHelper,
@@ -109,7 +109,7 @@ export async function getMetaBlockSpecificDiagnostics(
 }
 
 async function provideRelatedFilesDiagnosticsForMetaBlock(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     metaBlock: Block,
     documentUri: Uri,
     relatedRequestsHelper: RelatedFilesDiagnosticsHelper,

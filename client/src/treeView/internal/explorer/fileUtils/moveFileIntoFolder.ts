@@ -1,6 +1,6 @@
 import {
     BrunoFileType,
-    CollectionItemProvider,
+    TypedCollectionItemProvider,
     ItemType,
 } from "../../../../shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
@@ -9,7 +9,7 @@ import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFail
 import { updateSequencesAfterMovingRequestFile } from "./updateSequencesAfterMovingRequestFile";
 
 export async function moveFileIntoFolder(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     sourcePath: string,
     newPath: string,
     target: BrunoTreeItem,

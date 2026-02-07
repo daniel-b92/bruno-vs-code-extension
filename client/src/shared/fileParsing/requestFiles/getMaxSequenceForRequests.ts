@@ -1,8 +1,8 @@
-import { CollectionItemProvider } from "@shared";
+import { TypedCollectionItemProvider } from "@shared";
 import { getSequencesForRequests } from "./getSequencesForRequests";
 
 export async function getMaxSequenceForRequests(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     directory: string,
 ) {
     const sequencesForRequests = await getSequencesForRequests(

@@ -6,12 +6,12 @@ import {
 } from "../../../testRunner";
 import { normalizeDirectoryPath } from "@global_shared";
 import {
-    Collection,
     CollectionDirectory,
     CollectionItemWithSequence,
     CollectionItem,
     isCollectionItemWithSequence,
     isRequestFile,
+    TypedCollection,
 } from "@shared";
 
 export class TestRunnerDataHelper {
@@ -39,7 +39,7 @@ export class TestRunnerDataHelper {
     };
 
     public async addTestTreeItemsForDirectoryAndDescendants(
-        collectionForDirectory: Collection,
+        collectionForDirectory: TypedCollection,
         directory: CollectionDirectory,
     ) {
         const relevantFiles = this.getTestFileDescendants(
@@ -57,7 +57,7 @@ export class TestRunnerDataHelper {
     }
 
     public getTestFileDescendants(
-        collectionForDirectory: Collection,
+        collectionForDirectory: TypedCollection,
         directory: CollectionDirectory,
     ) {
         const normalizedDirectoryPath = normalizeDirectoryPath(

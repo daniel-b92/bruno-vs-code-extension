@@ -15,8 +15,8 @@ import {
     isInFolderForEnvironmentFiles,
 } from "@global_shared";
 
-export async function getItemType(
-    collection: Collection,
+export async function getItemType<T>(
+    collection: Collection<T>,
     path: string,
 ): Promise<ItemType | undefined> {
     if (!(await checkIfPathExistsAsync(path))) {
@@ -57,8 +57,8 @@ export async function getItemType(
     }
 }
 
-function isChildElementOfCollectionRootDirectory(
-    collection: Collection,
+function isChildElementOfCollectionRootDirectory<T>(
+    collection: Collection<T>,
     path: string,
 ) {
     return (

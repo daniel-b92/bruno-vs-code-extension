@@ -1,5 +1,5 @@
 import { Range } from "../../../../../shared/fileSystem/range";
-import { BrunoFileType, CollectionItem } from "../interfaces";
+import { BrunoFileType, CollectionItem } from "../interfaces_generic";
 
 export class BrunoEnvironmentFile implements CollectionItem {
     constructor(

@@ -1,5 +1,5 @@
 import { DiagnosticCollection, Uri } from "vscode";
-import { CollectionItemProvider } from "../../../../shared";
+import { TypedCollectionItemProvider } from "../../../../shared";
 import { RelatedFilesDiagnosticsHelper } from "./shared/helpers/relatedFilesDiagnosticsHelper";
 import { determineDiagnosticsForFolderSettingsFile } from "./folderSettingsFiles/determineDiagnosticsForFolderSettingsFile";
 import { determineDiagnosticsForRequestFile } from "./requestFiles/determineDiagnosticsForRequestFile";
@@ -9,7 +9,7 @@ import { determineDiagnosticsForCollectionSettingsFile } from "./collectionSetti
 export class BrunoLangDiagnosticsProvider {
     constructor(
         private diagnosticCollection: DiagnosticCollection,
-        private itemProvider: CollectionItemProvider,
+        private itemProvider: TypedCollectionItemProvider,
     ) {
         this.relatedRequestsHelper = new RelatedFilesDiagnosticsHelper();
     }

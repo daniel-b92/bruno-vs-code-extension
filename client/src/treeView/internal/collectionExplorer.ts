@@ -8,17 +8,17 @@ import {
     normalizeDirectoryPath,
 } from "@global_shared";
 import {
-    CollectionItemProvider,
-    CollectionData,
+    TypedCollectionItemProvider,
     OutputChannelLogger,
     BrunoFileType,
-    Collection,
     isBrunoFileType,
     DialogOptionLabelEnum,
     MultiFileOperationWithStatus,
     getMaxSequenceForRequests,
     getSequenceForFile,
     getMaxSequenceForFolders,
+    TypedCollectionData,
+    TypedCollection,
 } from "@shared";
 import { basename, dirname, extname, resolve } from "path";
 import { BrunoTreeItem } from "../brunoTreeItem";
@@ -43,7 +43,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
     dropMimeTypes = [`application/vnd.code.tree.${this.treeViewId}`];
 
     constructor(
-        private itemProvider: CollectionItemProvider,
+        private itemProvider: TypedCollectionItemProvider,
         startTestRunEmitter: vscode.EventEmitter<{
             uri: vscode.Uri;
             withDialog: boolean;
@@ -152,7 +152,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         const {
             originalItemData: {
                 item: originalItem,
-                treeItem: originalTreeItem,
+                additionalData: { treeItem: originalTreeItem },
             },
             sourcePath,
             targetCollection,
@@ -297,7 +297,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
 
         const originalItemData = sourceCollection.getStoredDataForPath(
             sourcePath,
-        ) as CollectionData;
+        ) as TypedCollectionData;
 
         const targetCollection = this.itemProvider.getAncestorCollectionForPath(
             target.getPath(),
@@ -314,7 +314,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
     private async requestConfirmationForOverwritingItemIfNeeded(
         sourcePath: string,
         newPath: string,
-        targetCollection?: Collection,
+        targetCollection?: TypedCollection,
     ) {
         if (
             targetCollection &&
@@ -695,7 +695,10 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         );
     }
 
-    private async duplicateFile(collection: Collection, item: BrunoTreeItem) {
+    private async duplicateFile(
+        collection: TypedCollection,
+        item: BrunoTreeItem,
+    ) {
         const originalPath = item.getPath();
         const newPath = await getPathForDuplicatedItem(originalPath);
 
@@ -749,8 +752,10 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             maybeCollection.getStoredDataForPath(path)
         ) {
             const treeItem = (
-                maybeCollection.getStoredDataForPath(path) as CollectionData
-            ).treeItem;
+                maybeCollection.getStoredDataForPath(
+                    path,
+                ) as TypedCollectionData
+            ).additionalData.treeItem;
 
             this.logger?.debug(
                 `Starting attempt of revealing item '${

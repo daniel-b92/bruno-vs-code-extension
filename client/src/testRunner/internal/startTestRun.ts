@@ -14,12 +14,12 @@ import { dirname, extname, isAbsolute, resolve } from "path";
 import { runTestStructure } from "./runTestStructure";
 import { QueuedTest, TestRunQueue } from "./testRunQueue";
 import {
-    Collection,
-    CollectionItemProvider,
+    TypedCollectionItemProvider,
     getConfiguredTestEnvironment,
     getEnvironmentSettingsKey,
     getLinkToUserSetting,
     OutputChannelLogger,
+    TypedCollection,
 } from "@shared";
 import { checkIfPathExistsAsync } from "@global_shared";
 import { TestRunUserInputData } from "./interfaces";
@@ -28,7 +28,7 @@ export const startTestRun = async (
     ctrl: TestController,
     request: TestRunRequest,
     additionalData: {
-        collectionItemProvider: CollectionItemProvider;
+        collectionItemProvider: TypedCollectionItemProvider;
         queue: TestRunQueue;
         logger?: OutputChannelLogger;
         userInput?: TestRunUserInputData;
@@ -87,7 +87,7 @@ export const startTestRun = async (
             const collectionRootDir = (
                 collectionItemProvider.getAncestorCollectionForPath(
                     path,
-                ) as Collection
+                ) as TypedCollection
             ).getRootDirectory();
 
             const htmlReportPath = await getHtmlReportPath(collectionRootDir);

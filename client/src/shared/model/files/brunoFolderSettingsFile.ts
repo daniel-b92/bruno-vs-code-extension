@@ -1,5 +1,5 @@
 import { BrunoFileType } from "../..";
-import { CollectionItem } from "../interfaces";
+import { CollectionItem } from "../interfaces_generic";
 
 export class BrunoFolderSettingsFile implements CollectionItem {
     constructor(private path: string) {}

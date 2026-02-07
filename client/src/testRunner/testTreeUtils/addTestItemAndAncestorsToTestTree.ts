@@ -1,16 +1,17 @@
 import { TestController, TestItem, Uri } from "vscode";
 import { normalizeDirectoryPath } from "@global_shared";
 import {
-    Collection,
+    AdditionalCollectionData,
     CollectionData,
     CollectionItemWithSequence,
+    TypedCollection,
 } from "@shared";
 import { dirname } from "path";
 import { getTestId } from "./testTreeHelper";
 
 export function addTestItemAndAncestorsToTestTree(
     controller: TestController,
-    collection: Collection,
+    collection: TypedCollection,
     item: CollectionItemWithSequence,
 ) {
     const data = collection.getStoredDataForPath(item.getPath());
@@ -24,17 +25,17 @@ export function addTestItemAndAncestorsToTestTree(
 
     addMissingAncestorItemsToTestTree(controller, collection, item);
 
-    addTestItemToTestTreeOnTopLevel(controller, data.testItem);
+    addTestItemToTestTreeOnTopLevel(controller, data.additionalData.testItem);
 
     addTestItemToListOfChildrenFromParent(collection, data);
 }
 
 function addMissingAncestorItemsToTestTree(
     controller: TestController,
-    collection: Collection,
+    collection: TypedCollection,
     item: CollectionItemWithSequence,
 ) {
-    const missingAncestors: CollectionData[] = [];
+    const missingAncestors: CollectionData<AdditionalCollectionData>[] = [];
 
     const allAncestorsDescendingByPathLength = getAncestors(
         collection,
@@ -44,8 +45,10 @@ function addMissingAncestorItemsToTestTree(
     );
 
     for (let i = 0; i < allAncestorsDescendingByPathLength.length - 1; i++) {
-        const { item, testItem, treeItem } =
-            allAncestorsDescendingByPathLength[i];
+        const {
+            item,
+            additionalData: { testItem, treeItem },
+        } = allAncestorsDescendingByPathLength[i];
 
         if (!testItem) {
             console.warn(
@@ -54,8 +57,10 @@ function addMissingAncestorItemsToTestTree(
             break;
         }
 
-        const { item: parentItem, testItem: parentTestItem } =
-            allAncestorsDescendingByPathLength[i + 1];
+        const {
+            item: parentItem,
+            additionalData: { testItem: parentTestItem },
+        } = allAncestorsDescendingByPathLength[i + 1];
 
         if (!parentTestItem) {
             console.warn(
@@ -68,14 +73,20 @@ function addMissingAncestorItemsToTestTree(
             parentTestItem.children.get(getTestId(testItem.uri as Uri)) ==
             undefined
         ) {
-            missingAncestors.push({ item, treeItem, testItem });
+            missingAncestors.push({
+                item,
+                additionalData: { treeItem, testItem },
+            });
         } else {
             break;
         }
     }
 
     for (const ancestor of missingAncestors.reverse()) {
-        addTestItemToTestTreeOnTopLevel(controller, ancestor.testItem);
+        addTestItemToTestTreeOnTopLevel(
+            controller,
+            ancestor.additionalData.testItem,
+        );
         addTestItemToListOfChildrenFromParent(collection, ancestor);
     }
 }
@@ -88,20 +99,22 @@ function addTestItemToTestTreeOnTopLevel(
 }
 
 function addTestItemToListOfChildrenFromParent(
-    collection: Collection,
-    data: CollectionData,
+    collection: TypedCollection,
+    data: CollectionData<AdditionalCollectionData>,
 ) {
     const maybeRegisteredParent = collection.getStoredDataForPath(
         dirname(data.item.getPath()),
     );
 
     if (maybeRegisteredParent) {
-        maybeRegisteredParent.testItem.children.add(data.testItem);
+        maybeRegisteredParent.additionalData.testItem.children.add(
+            data.additionalData.testItem,
+        );
     }
 }
 
 function getAncestors(
-    collection: Collection,
+    collection: TypedCollection,
     item: CollectionItemWithSequence,
 ) {
     return collection.getAllStoredDataForCollection().filter(({ item: i }) => {
