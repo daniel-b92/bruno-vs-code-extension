@@ -1,5 +1,9 @@
-import { normalizeDirectoryPath } from "@global_shared";
-import { CollectionData, CollectionDirectory, CollectionItem } from "@shared";
+import {
+    CollectionData,
+    CollectionDirectory,
+    CollectionItem,
+    normalizeDirectoryPath,
+} from "..";
 
 export class Collection<T> {
     constructor(

@@ -1,11 +1,10 @@
 import { TestController, TestItem, Uri } from "vscode";
-import { normalizeDirectoryPath } from "@global_shared";
 import {
-    AdditionalCollectionData,
+    normalizeDirectoryPath,
     CollectionData,
     CollectionItemWithSequence,
-    TypedCollection,
-} from "@shared";
+} from "@global_shared";
+import { AdditionalCollectionData, TypedCollection } from "@shared";
 import { dirname } from "path";
 import { getTestId } from "./testTreeHelper";
 

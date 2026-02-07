@@ -6,11 +6,11 @@ import {
     getFolderSettingsFilePath,
     checkIfPathExistsAsync,
     normalizeDirectoryPath,
+    BrunoFileType,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
     OutputChannelLogger,
-    BrunoFileType,
     isBrunoFileType,
     DialogOptionLabelEnum,
     MultiFileOperationWithStatus,

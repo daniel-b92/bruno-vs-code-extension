@@ -1,5 +1,5 @@
-import { parseSequenceFromMetaBlock } from "@global_shared";
-import { BrunoFileType, getItemType, TypedCollection } from "@shared";
+import { parseSequenceFromMetaBlock, BrunoFileType } from "@global_shared";
+import { getItemType, TypedCollection } from "@shared";
 
 export async function getSequenceForFile(
     collection: TypedCollection,

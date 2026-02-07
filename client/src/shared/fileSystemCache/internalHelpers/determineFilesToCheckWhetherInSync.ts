@@ -3,15 +3,12 @@ import {
     normalizeDirectoryPath,
     parseSequenceFromMetaBlock,
     filterAsync,
-} from "@global_shared";
-import {
     BrunoFileType,
     Collection,
     CollectionData,
-    getItemType,
     isCollectionItemWithSequence,
-    OutputChannelLogger,
-} from "@shared";
+} from "@global_shared";
+import { getItemType, OutputChannelLogger } from "@shared";
 import { lstat, readdir } from "fs/promises";
 import { Event, Disposable } from "vscode";
 

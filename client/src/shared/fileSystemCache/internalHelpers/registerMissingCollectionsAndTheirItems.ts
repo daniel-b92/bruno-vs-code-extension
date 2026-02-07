@@ -2,8 +2,10 @@ import {
     getSequenceForFolder,
     normalizeDirectoryPath,
     getAllCollectionRootDirectories,
+    Collection,
+    CollectionDirectory,
+    CollectionItem,
 } from "@global_shared";
-import { Collection, CollectionDirectory, CollectionItem } from "@shared";
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
 import { addItemToCollection } from "./addItemToCollection";

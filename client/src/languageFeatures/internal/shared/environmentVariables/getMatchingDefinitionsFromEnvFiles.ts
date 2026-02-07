@@ -1,6 +1,10 @@
 import { basename } from "path";
-import { getExtensionForBrunoFiles } from "@global_shared";
-import { BrunoEnvironmentFile, BrunoFileType, TypedCollection } from "@shared";
+import {
+    getExtensionForBrunoFiles,
+    BrunoEnvironmentFile,
+    BrunoFileType,
+} from "@global_shared";
+import { TypedCollection } from "@shared";
 
 export enum EnvVariableNameMatchingMode {
     Exact = 1,

@@ -8,18 +8,15 @@ import {
     normalizeDirectoryPath,
     CollectionWatcher,
     FileChangeType,
-} from "@global_shared";
-import {
     BrunoFileType,
     Collection,
     CollectionData,
     CollectionDirectory,
     CollectionItemWithSequence,
-    OutputChannelLogger,
     isCollectionItemWithSequence,
-    MultiFileOperationWithStatus,
     CollectionItem,
-} from "@shared";
+} from "@global_shared";
+import { OutputChannelLogger, MultiFileOperationWithStatus } from "@shared";
 import { basename, dirname } from "path";
 import { promisify } from "util";
 import { lstat } from "fs";

@@ -16,8 +16,6 @@ import {
 } from "vscode";
 import { provideBrunoLangCompletionItems } from "./internal/brunoFiles/completionItems/provideBrunoLangCompletionItems";
 import {
-    BrunoFileType,
-    CollectionDirectory,
     getLoggerFromSubscriptions,
     isBrunoFileType,
     getItemType,
@@ -36,6 +34,8 @@ import {
     getTemporaryJsFileNameInFolder,
     getTemporaryJsFileBasename,
     TempJsFilesProvider,
+    BrunoFileType,
+    CollectionDirectory,
 } from "@global_shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/brunoFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { updateUrlToMatchQueryParams } from "./internal/brunoFiles/autoUpdates/updateUrlToMatchQueryParams";

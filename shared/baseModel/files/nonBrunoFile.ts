@@ -1,7 +1,4 @@
-import {
-    CollectionItem,
-    NonBrunoSpecificItemType,
-} from "../interfaces_generic";
+import { CollectionItem, NonBrunoSpecificItemType } from "../interfaces";
 
 export class NonBrunoFile implements CollectionItem {
     constructor(private readonly path: string) {}

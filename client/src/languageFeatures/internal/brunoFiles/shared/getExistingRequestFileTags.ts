@@ -1,10 +1,9 @@
-import { normalizeDirectoryPath } from "@global_shared";
 import {
+    normalizeDirectoryPath,
     BrunoRequestFile,
     isRequestFile,
-    TypedCollection,
-    TypedCollectionItemProvider,
-} from "@shared";
+} from "@global_shared";
+import { TypedCollection, TypedCollectionItemProvider } from "@shared";
 
 export interface TagOccurences {
     tag: string;

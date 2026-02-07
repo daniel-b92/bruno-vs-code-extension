@@ -1,10 +1,4 @@
 import { basename, dirname, extname } from "path";
-import {
-    BrunoFileType,
-    Collection,
-    ItemType,
-    NonBrunoSpecificItemType,
-} from "@shared";
 import { promisify } from "util";
 import { lstat } from "fs";
 import {
@@ -13,6 +7,10 @@ import {
     normalizeDirectoryPath,
     doesFileNameMatchFolderSettingsFileName,
     isInFolderForEnvironmentFiles,
+    BrunoFileType,
+    Collection,
+    ItemType,
+    NonBrunoSpecificItemType,
 } from "@global_shared";
 
 export async function getItemType<T>(

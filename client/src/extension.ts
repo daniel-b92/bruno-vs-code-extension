@@ -15,9 +15,6 @@ import {
     OutputChannelLogger,
     MultiFileOperationWithStatus,
     AdditionalCollectionData,
-    CollectionItem,
-    isRequestFile,
-    isCollectionItemWithSequence,
 } from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures";
 import { suggestCreatingTsConfigsForCollections } from "./languageFeatures/suggestCreatingTsConfigsForCollections";
@@ -33,6 +30,9 @@ import {
     CollectionWatcher,
     FileChangedEvent,
     getTemporaryJsFileBasenameWithoutExtension,
+    CollectionItem,
+    isRequestFile,
+    isCollectionItemWithSequence,
 } from "@global_shared";
 import { BrunoTreeItem } from "./treeView/brunoTreeItem";
 

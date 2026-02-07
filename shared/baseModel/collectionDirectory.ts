@@ -1,5 +1,5 @@
 import { BrunoFileType } from "..";
-import { CollectionItemWithSequence } from "./interfaces_generic";
+import { CollectionItemWithSequence } from "./interfaces";
 
 export class CollectionDirectory implements CollectionItemWithSequence {
     constructor(

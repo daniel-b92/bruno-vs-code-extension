@@ -1,4 +1,4 @@
-import { Collection, CollectionData, CollectionItem } from "../..";
+import { Collection, CollectionData, CollectionItem } from "@global_shared";
 import { isModifiedItemOutdated } from "./isModifiedItemOutdated";
 
 export function addItemToCollection<T>(

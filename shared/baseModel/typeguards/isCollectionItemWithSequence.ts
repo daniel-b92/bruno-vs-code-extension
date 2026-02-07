@@ -1,7 +1,4 @@
-import {
-    CollectionItem,
-    CollectionItemWithSequence,
-} from "../interfaces_generic";
+import { CollectionItem, CollectionItemWithSequence } from "../interfaces";
 
 export function isCollectionItemWithSequence(
     item: CollectionItem,

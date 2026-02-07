@@ -1,5 +1,5 @@
 import { normalizeDirectoryPath, CollectionWatcher } from "@global_shared";
-import { Collection } from "../../model/collection";
+import { Collection } from "../../../../../shared/baseModel/collection";
 
 export class CollectionRegistry<T> {
     constructor(private collectionWatcher: CollectionWatcher) {}

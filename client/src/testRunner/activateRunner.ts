@@ -20,14 +20,14 @@ import {
     normalizeDirectoryPath,
     getExtensionForBrunoFiles,
     FileChangeType,
+    CollectionDirectory,
+    CollectionItemWithSequence,
+    isCollectionItemWithSequence,
 } from "@global_shared";
 import {
     TestRunnerDataHelper,
-    CollectionDirectory,
     TypedCollectionItemProvider,
-    CollectionItemWithSequence,
     getLoggerFromSubscriptions,
-    isCollectionItemWithSequence,
     TypedCollection,
 } from "@shared";
 import { openRunConfigDialog } from "./internal/testExecutionUtils/openRunConfigDialog";

@@ -6,14 +6,11 @@ import {
     MetaBlockKey,
     isBlockDictionaryBlock,
     filterAsync,
-} from "@global_shared";
-import {
     BrunoRequestFile,
-    mapToVsCodeRange,
     BrunoFileType,
     isCollectionItemWithSequence,
-    TypedCollectionItemProvider,
-} from "@shared";
+} from "@global_shared";
+import { mapToVsCodeRange, TypedCollectionItemProvider } from "@shared";
 import { dirname } from "path";
 import { DiagnosticWithCode } from "../../../definitions";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";

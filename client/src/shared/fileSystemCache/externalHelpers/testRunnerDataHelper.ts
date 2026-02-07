@@ -4,15 +4,15 @@ import {
     getTestLabel,
     addTestItemAndAncestorsToTestTree,
 } from "../../../testRunner";
-import { normalizeDirectoryPath } from "@global_shared";
 import {
+    normalizeDirectoryPath,
     CollectionDirectory,
     CollectionItemWithSequence,
     CollectionItem,
     isCollectionItemWithSequence,
     isRequestFile,
-    TypedCollection,
-} from "@shared";
+} from "@global_shared";
+import { TypedCollection } from "@shared";
 
 export class TestRunnerDataHelper {
     constructor(private testController: vscode.TestController) {}
