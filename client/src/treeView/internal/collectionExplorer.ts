@@ -19,6 +19,7 @@ import {
     getMaxSequenceForFolders,
     TypedCollectionData,
     TypedCollection,
+    FileSystemCacheSyncingHelper,
 } from "@shared";
 import { basename, dirname, extname, resolve } from "path";
 import { BrunoTreeItem } from "../brunoTreeItem";
@@ -44,6 +45,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
 
     constructor(
         private itemProvider: TypedCollectionItemProvider,
+        private cacheSyncingHelper: FileSystemCacheSyncingHelper,
         startTestRunEmitter: vscode.EventEmitter<{
             uri: vscode.Uri;
             withDialog: boolean;
@@ -401,7 +403,11 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         vscode.commands.registerCommand(
             `${this.treeViewId}.createRequestFile`,
             (item: BrunoTreeItem) => {
-                createRequestFile(this.itemProvider, item);
+                createRequestFile(
+                    this.itemProvider,
+                    this.cacheSyncingHelper,
+                    item,
+                );
             },
         );
 

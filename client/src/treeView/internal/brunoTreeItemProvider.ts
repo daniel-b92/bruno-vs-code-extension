@@ -15,7 +15,7 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
         private collectionItemProvider: TypedCollectionItemProvider,
         private logger?: OutputChannelLogger,
     ) {
-        collectionItemProvider.subscribeToUpdates()((updates) => {
+        collectionItemProvider.subscribeToUpdates((updates) => {
             const relevantUpdates = updates.filter(
                 ({ updateType, changedData }) =>
                     updateType == FileChangeType.Deleted ||
@@ -121,10 +121,16 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
         );
 
         return new Promise<void>((resolve) => {
-            this.collectionItemProvider.refreshCache().then(() => {
-                this._onDidChangeTreeData.fire(undefined);
-                resolve();
-            });
+            this.collectionItemProvider
+                .refreshCache(
+                    vscode.workspace.workspaceFolders?.map(
+                        (f) => f.uri.fsPath,
+                    ) ?? [],
+                )
+                .then(() => {
+                    this._onDidChangeTreeData.fire(undefined);
+                    resolve();
+                });
         });
     }
 

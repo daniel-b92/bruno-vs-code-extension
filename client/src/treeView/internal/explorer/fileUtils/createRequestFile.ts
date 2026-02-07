@@ -13,6 +13,7 @@ import {
     getContentForDefaultMethodBlock,
     getLineBreak,
     TypedCollection,
+    FileSystemCacheSyncingHelper,
 } from "@shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { commands, Uri, window } from "vscode";
@@ -22,6 +23,7 @@ import { writeFile } from "fs";
 
 export async function createRequestFile(
     itemProvider: TypedCollectionItemProvider,
+    cacheSyncingHelper: FileSystemCacheSyncingHelper,
     item: BrunoTreeItem,
 ) {
     const parentFolderPath = item.getPath();
@@ -117,7 +119,7 @@ export async function createRequestFile(
         }
 
         // After the new file has been registered in the cache, the explorer should be able to reveal it when opened in the editor.
-        await itemProvider.waitForFileToBeRegisteredInCache(
+        await cacheSyncingHelper.waitForFileToBeRegisteredInCache(
             collection.getRootDirectory(),
             filePath,
         );

@@ -75,6 +75,7 @@ export async function activate(context: ExtensionContext) {
                             activateTreeView(
                                 context,
                                 collectionItemProvider,
+                                cacheSyncingHelper,
                                 startTestRunEmitter,
                                 multiFileOperationNotifier,
                             );
