@@ -5,7 +5,7 @@ import {
     Collection,
     CollectionDirectory,
     CollectionItem,
-} from "@global_shared";
+} from "../..";
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
 import { addItemToCollection } from "./addItemToCollection";
