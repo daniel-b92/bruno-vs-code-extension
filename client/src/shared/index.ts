@@ -3,7 +3,6 @@ export * from "./fileSystem/interfaces";
 export * from "./fileSystem/documents/getMatchingTextContainingPosition";
 export * from "./fileSystem/util/getLineBreak";
 export * from "./fileSystem/util/positionAndRangeMapper";
-export * from "./fileSystem/util/getItemType";
 
 // language utils
 export * from "./languageUtils/getVariableNameForPositionInNonCodeBlock";
@@ -24,11 +23,9 @@ export * from "./testFileWriting/interfaces";
 export * from "./model/interfaces";
 
 // file system cache
-export * from "./fileSystemCache/externalHelpers/interfaces";
-export * from "./fileSystemCache/externalHelpers/collectionItemProvider";
-export * from "./fileSystemCache/externalHelpers/testRunnerDataHelper";
-export * from "./fileSystemCache/externalHelpers/isBrunoFileType";
-export * from "./fileSystemCache/externalHelpers/getDistinctTagsForCollection";
+export * from "./fileSystemCache/external/interfaces";
+export * from "./fileSystemCache/external/testRunnerDataHelper";
+export * from "./fileSystemCache/external/fileSystemCacheSyncingHelper";
 
 // vsCodeSettings
 export * from "./vsCodeSettings/getLinkToUserSetting";

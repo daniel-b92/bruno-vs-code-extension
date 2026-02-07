@@ -10,6 +10,7 @@ import {
     window,
     ProgressLocation,
     ExtensionContext,
+    workspace,
 } from "vscode";
 import { startTestRun } from "./internal/startTestRun";
 import { TestRunQueue } from "./internal/testRunQueue";
@@ -50,69 +51,60 @@ export async function activateRunner(
     const testRunnerDataHelper = new TestRunnerDataHelper(ctrl);
     const logger = getLoggerFromSubscriptions(context);
 
-    context.subscriptions.push(
-        handleTestTreeUpdates(
-            ctrl,
-            collectionItemProvider,
-            testRunnerDataHelper,
-        ),
-    );
+    handleTestTreeUpdates(ctrl, collectionItemProvider, testRunnerDataHelper);
 
-    context.subscriptions.push(
-        collectionItemProvider.subscribeToUpdates()(async (updates) => {
-            for (const {
-                data: { item: changedItem },
-            } of updates) {
-                if (watchingTests.has("ALL")) {
-                    await startTestRun(
-                        ctrl,
-                        new TestRunRequest(
-                            undefined,
-                            undefined,
-                            watchingTests.get("ALL"),
-                            true,
-                        ),
-                        {
-                            collectionItemProvider,
-                            queue,
-                            logger,
-                        },
-                    );
-                    return;
-                }
+    collectionItemProvider.subscribeToUpdates(async (updates) => {
+        for (const {
+            data: { item: changedItem },
+        } of updates) {
+            if (watchingTests.has("ALL")) {
+                await startTestRun(
+                    ctrl,
+                    new TestRunRequest(
+                        undefined,
+                        undefined,
+                        watchingTests.get("ALL"),
+                        true,
+                    ),
+                    {
+                        collectionItemProvider,
+                        queue,
+                        logger,
+                    },
+                );
+                return;
+            }
 
-                const include: VscodeTestItem[] = [];
-                let profile: TestRunProfile | undefined;
+            const include: VscodeTestItem[] = [];
+            let profile: TestRunProfile | undefined;
 
-                for (const [watchedItem, thisProfile] of watchingTests) {
-                    const cast = watchedItem as VscodeTestItem;
+            for (const [watchedItem, thisProfile] of watchingTests) {
+                const cast = watchedItem as VscodeTestItem;
 
-                    // If the modified item is a descendant of a watched item, trigger a testrun for that watched item.
-                    if (
-                        cast.uri?.fsPath
-                            ? changedItem.getPath().includes(cast.uri.fsPath)
-                            : false
-                    ) {
-                        include.push(cast);
-                        profile = thisProfile;
-                    }
-                }
-
-                if (include.length) {
-                    await startTestRun(
-                        ctrl,
-                        new TestRunRequest(include, undefined, profile, true),
-                        {
-                            collectionItemProvider,
-                            queue,
-                            logger,
-                        },
-                    );
+                // If the modified item is a descendant of a watched item, trigger a testrun for that watched item.
+                if (
+                    cast.uri?.fsPath
+                        ? changedItem.getPath().includes(cast.uri.fsPath)
+                        : false
+                ) {
+                    include.push(cast);
+                    profile = thisProfile;
                 }
             }
-        }),
-    );
 
+            if (include.length) {
+                await startTestRun(
+                    ctrl,
+                    new TestRunRequest(include, undefined, profile, true),
+                    {
+                        collectionItemProvider,
+                        queue,
+                        logger,
+                    },
+                );
+            }
+        }
+    });
     async function runHandler(
         request: TestRunRequest,
         cancellation: CancellationToken,
@@ -150,25 +142,31 @@ export async function activateRunner(
                 return new Promise<void>((resolve) => {
                     ctrl.items.replace([]);
 
-                    collectionItemProvider.refreshCache().then(() => {
-                        const collections =
-                            collectionItemProvider.getRegisteredCollections();
+                    collectionItemProvider
+                        .refreshCache(
+                            workspace.workspaceFolders?.map(
+                                (f) => f.uri.fsPath,
+                            ) ?? [],
+                        )
+                        .then(() => {
+                            const collections =
+                                collectionItemProvider.getRegisteredCollections();
 
-                        addMissingTestCollectionsAndItemsToTestTree(
-                            ctrl,
-                            testRunnerDataHelper,
-                            collections,
-                        ).then(() => {
-                            // The displayed test tree view is only updated correctly, if you re-add the collection on top level again
-                            collections.forEach((collection) =>
-                                addCollectionTestItemToTestTree(
-                                    ctrl,
-                                    collection,
-                                ),
-                            );
-                            resolve();
+                            addMissingTestCollectionsAndItemsToTestTree(
+                                ctrl,
+                                testRunnerDataHelper,
+                                collections,
+                            ).then(() => {
+                                // The displayed test tree view is only updated correctly, if you re-add the collection on top level again
+                                collections.forEach((collection) =>
+                                    addCollectionTestItemToTestTree(
+                                        ctrl,
+                                        collection,
+                                    ),
+                                );
+                                resolve();
+                            });
                         });
-                    });
                 });
             },
         );
@@ -289,7 +287,7 @@ function handleTestTreeUpdates(
     collectionItemProvider: TypedCollectionItemProvider,
     testRunnerDataHelper: TestRunnerDataHelper,
 ) {
-    return collectionItemProvider.subscribeToUpdates()((updates) => {
+    collectionItemProvider.subscribeToUpdates((updates) => {
         for (const {
             collection,
             data: {

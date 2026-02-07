@@ -1,8 +1,4 @@
-import {
-    BrunoFileType,
-    ItemType,
-    NonBrunoSpecificItemType,
-} from "@global_shared";
+import { BrunoFileType, ItemType, NonBrunoSpecificItemType } from "../..";
 
 export function isBrunoFileType(itemType: ItemType): itemType is BrunoFileType {
     return (

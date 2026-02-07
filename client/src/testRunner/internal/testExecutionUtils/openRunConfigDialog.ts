@@ -1,5 +1,6 @@
 import { Disposable, EventEmitter, QuickPickItem, window } from "vscode";
-import { getDistinctTagsForCollection, TypedCollection } from "../../../shared";
+import { getDistinctTagsForCollection } from "@global_shared";
+import { TypedCollection } from "@shared";
 import { OtherExecutionConfigData, TestRunUserInputData } from "../interfaces";
 
 enum NonTagRelatedButtonLabel {

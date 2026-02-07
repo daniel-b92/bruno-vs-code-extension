@@ -10,11 +10,11 @@ import {
 import { activateRunner } from "./testRunner";
 import { activateTreeView } from "./treeView";
 import {
-    CollectionItemProvider,
     TestRunnerDataHelper,
     OutputChannelLogger,
     MultiFileOperationWithStatus,
     AdditionalCollectionData,
+    FileSystemCacheSyncingHelper,
 } from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures";
 import { suggestCreatingTsConfigsForCollections } from "./languageFeatures/suggestCreatingTsConfigsForCollections";
@@ -33,6 +33,7 @@ import {
     CollectionItem,
     isRequestFile,
     isCollectionItemWithSequence,
+    CollectionItemProvider,
 } from "@global_shared";
 import { BrunoTreeItem } from "./treeView/brunoTreeItem";
 
@@ -49,6 +50,7 @@ export async function activate(context: ExtensionContext) {
         startTestRunEmitter,
         multiFileOperationNotifier,
         collectionWatcher,
+        cacheSyncingHelper,
     } = createNeededHandlers(context);
 
     window.withProgress(
@@ -58,34 +60,41 @@ export async function activate(context: ExtensionContext) {
         },
         () => {
             return new Promise<void>((resolve) => {
-                collectionItemProvider.refreshCache().then(() => {
-                    activateRunner(
-                        context,
-                        ctrl,
-                        collectionItemProvider,
-                        startTestRunEmitter.event,
-                    ).then(() => {
-                        activateTreeView(
+                collectionItemProvider
+                    .refreshCache(
+                        workspace.workspaceFolders?.map((f) => f.uri.fsPath) ??
+                            [],
+                    )
+                    .then(() => {
+                        activateRunner(
                             context,
-                            collectionItemProvider,
-                            startTestRunEmitter,
-                            multiFileOperationNotifier,
-                        );
-
-                        activateLanguageFeatures(
-                            context,
-                            collectionWatcher,
+                            ctrl,
                             collectionItemProvider,
                             startTestRunEmitter.event,
                         ).then(() => {
-                            resolve();
-
-                            suggestCreatingTsConfigsForCollections(
+                            activateTreeView(
+                                context,
                                 collectionItemProvider,
+                                cacheSyncingHelper,
+                                startTestRunEmitter,
+                                multiFileOperationNotifier,
                             );
+
+                            activateLanguageFeatures(
+                                context,
+                                collectionWatcher,
+                                collectionItemProvider,
+                                cacheSyncingHelper,
+                                startTestRunEmitter.event,
+                            ).then(() => {
+                                resolve();
+
+                                suggestCreatingTsConfigsForCollections(
+                                    collectionItemProvider,
+                                );
+                            });
                         });
                     });
-                });
             });
         },
     );
@@ -155,9 +164,14 @@ function createNeededHandlers(context: ExtensionContext) {
             collectionWatcher,
             getAdditionalCollectionDataCreator(testRunnerDataHelper),
             getPathsToIgnoreForCollections(),
-            multiFileOperationNotifier.event,
             logger,
         );
+
+    const cacheSyncingHelper = new FileSystemCacheSyncingHelper(
+        collectionItemProvider,
+        multiFileOperationNotifier.event,
+        logger,
+    );
 
     const startTestRunEmitter = new EventEmitter<{
         uri: Uri;
@@ -173,6 +187,7 @@ function createNeededHandlers(context: ExtensionContext) {
         testRunnerDataHelper,
         logger,
         testController,
+        cacheSyncingHelper,
     );
 
     return {
@@ -184,6 +199,7 @@ function createNeededHandlers(context: ExtensionContext) {
         testRunnerDataHelper,
         collectionItemProvider,
         startTestRunEmitter,
+        cacheSyncingHelper,
     };
 }
 

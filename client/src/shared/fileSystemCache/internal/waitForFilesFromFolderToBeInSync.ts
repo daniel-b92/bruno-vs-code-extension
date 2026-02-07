@@ -1,7 +1,7 @@
-import { NotificationData } from "../..";
+import { NotificationData } from "../../../../../shared";
 import { OutputChannelLogger } from "../../logging/outputChannelLogger";
-import { Event, Disposable } from "vscode";
 import { FileChangeType, isCollectionItemWithSequence } from "@global_shared";
+import { AdditionalCollectionData } from "src/shared/model/interfaces";
 
 export enum ResultCode {
     Aborted = 1,
@@ -9,11 +9,13 @@ export enum ResultCode {
     WaitingCompleted = 3,
 }
 
-export async function waitForFilesFromFolderToBeInSync<T>(
+export async function waitForFilesFromFolderToBeInSync(
     filesToCheckWithinFolder: readonly { path: string; sequence?: number }[],
     parentFolder: string,
     callbacks: {
-        getSubscriptionForCacheUpdates: () => Event<NotificationData<T>[]>;
+        getSubscriptionForCacheUpdates: (
+            callback: (e: NotificationData<AdditionalCollectionData>[]) => void,
+        ) => void;
         shouldAbort: () => boolean;
     },
     timeoutInMillis: number,
@@ -22,7 +24,6 @@ export async function waitForFilesFromFolderToBeInSync<T>(
     const { getSubscriptionForCacheUpdates, shouldAbort } = callbacks;
     const remainingFilesToCheck = [...filesToCheckWithinFolder];
     let timeout: NodeJS.Timeout | undefined = undefined;
-    let disposable: Disposable | undefined = undefined;
 
     if (remainingFilesToCheck.length == 0) {
         logger?.debug(
@@ -33,7 +34,7 @@ export async function waitForFilesFromFolderToBeInSync<T>(
     }
 
     const toAwait = new Promise<ResultCode>((resolve) => {
-        disposable = getSubscriptionForCacheUpdates()((updates) => {
+        getSubscriptionForCacheUpdates((updates) => {
             if (shouldAbort()) {
                 logger?.debug(
                     `Aborting waiting for files from folder '${parentFolder}' to be registered in cache.`,
@@ -89,10 +90,6 @@ export async function waitForFilesFromFolderToBeInSync<T>(
     });
 
     const result = await toAwait;
-
-    if (disposable) {
-        (disposable as Disposable).dispose();
-    }
 
     clearTimeout(timeout);
 

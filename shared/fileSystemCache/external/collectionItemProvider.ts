@@ -1,7 +1,6 @@
-import * as vscode from "vscode";
-import { CollectionRegistry } from "../internalHelpers/collectionRegistry";
-import { addItemToCollection } from "../internalHelpers/addItemToCollection";
-import { registerMissingCollectionsAndTheirItems } from "../internalHelpers/registerMissingCollectionsAndTheirItems";
+import { CollectionRegistry } from "../internal/collectionRegistry";
+import { addItemToCollection } from "../internal/addItemToCollection";
+import { registerMissingCollectionsAndTheirItems } from "../internal/registerMissingCollectionsAndTheirItems";
 import {
     getSequenceForFolder,
     parseSequenceFromMetaBlock,
@@ -15,18 +14,14 @@ import {
     CollectionItemWithSequence,
     isCollectionItemWithSequence,
     CollectionItem,
-} from "@global_shared";
-import { OutputChannelLogger, MultiFileOperationWithStatus } from "@shared";
+    Logger,
+} from "../..";
 import { basename, dirname } from "path";
 import { promisify } from "util";
 import { lstat } from "fs";
-import { getCollectionFile } from "../internalHelpers/getCollectionFile";
-import { determineFilesToCheckWhetherInSync } from "../internalHelpers/determineFilesToCheckWhetherInSync";
-import {
-    ResultCode,
-    waitForFilesFromFolderToBeInSync,
-} from "../internalHelpers/waitForFilesFromFolderToBeInSync";
-import { isModifiedItemOutdated } from "../internalHelpers/isModifiedItemOutdated";
+import { getCollectionFile } from "../internal/getCollectionFile";
+import { isModifiedItemOutdated } from "../internal/isModifiedItemOutdated";
+import { Evt } from "evt";
 
 export interface NotificationData<T> {
     collection: Collection<T>;
@@ -40,14 +35,10 @@ export class CollectionItemProvider<T> {
         collectionWatcher: CollectionWatcher,
         private additionalCollectionDataCreator: (item: CollectionItem) => T,
         private filePathsToIgnore: RegExp[],
-        multiFileOperationSubscription: vscode.Event<MultiFileOperationWithStatus>,
-        private logger?: OutputChannelLogger,
+        private logger?: Logger,
     ) {
         this.collectionRegistry = new CollectionRegistry(collectionWatcher);
-        this.itemUpdateEmitter = new vscode.EventEmitter<
-            NotificationData<T>[]
-        >();
-        this.disposables = [];
+        this.itemUpdateEmitter = Evt.create<NotificationData<T>[]>();
 
         collectionWatcher.subscribeToUpdates(
             async ({ path, changeType: fileChangeType }) => {
@@ -124,152 +115,17 @@ export class CollectionItemProvider<T> {
                 }
             },
         );
-
-        this.multiFileOperationFinishedNotifier =
-            new vscode.EventEmitter<string>();
-
-        this.disposables.push(
-            this.multiFileOperationFinishedNotifier,
-            multiFileOperationSubscription(({ parentFolder, running }) => {
-                if (running) {
-                    this.latestMultiFileOperation = {
-                        folderPath: parentFolder,
-                        completionDate: undefined,
-                    };
-                } else {
-                    this.latestMultiFileOperation = {
-                        folderPath: parentFolder,
-                        completionDate: new Date(),
-                    };
-                    this.multiFileOperationFinishedNotifier.fire(parentFolder);
-                }
-            }),
-        );
     }
 
-    private disposables: vscode.Disposable[];
     private collectionRegistry: CollectionRegistry<T>;
-    private itemUpdateEmitter: vscode.EventEmitter<NotificationData<T>[]>;
+    private itemUpdateEmitter: Evt<NotificationData<T>[]>;
+    private itemUpdateEmitterContext = Evt.newCtx();
     private notificationBatch: NotificationData<T>[] = [];
     private notificationSendEventTimer: NodeJS.Timeout | undefined = undefined;
-    private latestMultiFileOperation: {
-        folderPath: string | undefined;
-        completionDate: Date | undefined;
-    } = { folderPath: undefined, completionDate: undefined };
-    private multiFileOperationFinishedNotifier: vscode.EventEmitter<string>;
     private readonly commonPreMessageForLogging = "[CollectionItemProvider]";
 
-    public async waitForFileToBeRegisteredInCache(
-        collectionRootFolder: string,
-        filePath: string,
-        shouldAbortEvent?: vscode.Event<void>,
-        timeoutInMillis = 5_000,
-    ) {
-        let shouldAbort = false;
-        if (shouldAbortEvent != undefined) {
-            shouldAbortEvent(() => {
-                shouldAbort = true;
-            });
-        }
-        const addLogEntryForAbortion = () => {
-            this.logger?.debug(
-                `${this.commonPreMessageForLogging} Aborting waiting for file '${filePath}' to be registered in cache.`,
-            );
-        };
-        const getCollection = () => {
-            return this.getRegisteredCollections().find(
-                (c) =>
-                    normalizeDirectoryPath(c.getRootDirectory()) ==
-                    normalizeDirectoryPath(collectionRootFolder),
-            );
-        };
-        const parentFolder = dirname(filePath);
-        const collection = getCollection();
-
-        if (!collection) {
-            this.logger?.warn(
-                `Collection with root folder '${collectionRootFolder}' not found in list of registered collections.`,
-            );
-            return Promise.resolve(false);
-        }
-
-        if (shouldAbort) {
-            addLogEntryForAbortion();
-            return false;
-        }
-
-        if (
-            !this.hasMultiFileOperationRecentlyBeenActive(parentFolder) &&
-            (await this.isCachedFileInSync(collection, filePath))
-        ) {
-            this.logger?.debug(
-                `Cached item '${filePath}' already up to date on first check.`,
-            );
-            return Promise.resolve(true);
-        }
-
-        if (shouldAbort) {
-            addLogEntryForAbortion();
-            return false;
-        }
-
-        const startTime = performance.now();
-
-        // Multi file operations often cause the cache to not be in sync with the file system for a little while.
-        // Therefore, wait until the operation is completed before continuing and afterwards we wait until all items for files in the folder are in sync.
-        const filesToCheck = await determineFilesToCheckWhetherInSync(
-            filePath,
-            parentFolder,
-            collection,
-            {
-                currentlyActive: (folder) =>
-                    this.isMultiFileOperationActive(folder),
-                recentlyActive: (folder) =>
-                    this.hasMultiFileOperationRecentlyBeenActive(folder),
-                multiFileOperationFinishedNotifier:
-                    this.multiFileOperationFinishedNotifier.event,
-            },
-            {
-                getRegisteredItem: (collection, path) =>
-                    this.getRegisteredItem(collection, path),
-            },
-            this.logger,
-        );
-
-        if (shouldAbort) {
-            addLogEntryForAbortion();
-            return false;
-        }
-
-        const resultCode = await waitForFilesFromFolderToBeInSync(
-            filesToCheck,
-            parentFolder,
-            {
-                shouldAbort: () => shouldAbort,
-                getSubscriptionForCacheUpdates: () => this.subscribeToUpdates(),
-            },
-            timeoutInMillis,
-            this.logger,
-        );
-
-        if (
-            resultCode == ResultCode.WaitingCompleted &&
-            filesToCheck.length > 0
-        ) {
-            this.logger?.trace(
-                `Waited for ${Math.round(performance.now() - startTime)} / ${timeoutInMillis} ms for items ${JSON.stringify(
-                    filesToCheck.map(({ path }) => path),
-                    null,
-                    2,
-                )} to be registered in cache.`,
-            );
-        }
-
-        return resultCode == ResultCode.WaitingCompleted;
-    }
-
-    public subscribeToUpdates() {
-        return this.itemUpdateEmitter.event;
+    public subscribeToUpdates(callback: (e: NotificationData<T>[]) => void) {
+        this.itemUpdateEmitter.attach(this.itemUpdateEmitterContext, callback);
     }
 
     public getRegisteredCollections() {
@@ -313,7 +169,7 @@ export class CollectionItemProvider<T> {
         );
     }
 
-    public async refreshCache() {
+    public async refreshCache(workSpaceFolders: string[]) {
         const startTime = performance.now();
 
         this.collectionRegistry
@@ -326,9 +182,7 @@ export class CollectionItemProvider<T> {
 
         await registerMissingCollectionsAndTheirItems(
             this.collectionRegistry,
-            vscode.workspace.workspaceFolders?.map(
-                (folder) => folder.uri.fsPath,
-            ) ?? [],
+            workSpaceFolders,
             this.filePathsToIgnore,
             this.additionalCollectionDataCreator,
         );
@@ -347,12 +201,8 @@ export class CollectionItemProvider<T> {
         }
 
         this.collectionRegistry.dispose();
-        this.itemUpdateEmitter.dispose();
+        this.itemUpdateEmitterContext.done();
         this.notificationBatch.splice(0);
-
-        for (const d of this.disposables) {
-            d.dispose();
-        }
     }
 
     private handleCollectionDeletion(collectionRootDir: string) {
@@ -579,7 +429,7 @@ export class CollectionItemProvider<T> {
                     `${this.commonPreMessageForLogging} Firing event for a batch of ${notificationData.length} updated items.`,
                 );
 
-                this.itemUpdateEmitter.fire(notificationData);
+                this.itemUpdateEmitter.post(notificationData);
             }, timeout);
         }
     }
@@ -587,48 +437,6 @@ export class CollectionItemProvider<T> {
     private shouldPathBeIgnored(path: string) {
         return this.filePathsToIgnore.some((patternToIgnore) =>
             path.match(patternToIgnore),
-        );
-    }
-
-    private hasMultiFileOperationRecentlyBeenActive(folderPath: string) {
-        const maxDiffInMillis = 3_000;
-
-        const hasRecentlyBeenActive =
-            this.latestMultiFileOperation.completionDate != undefined &&
-            new Date().getTime() <=
-                this.latestMultiFileOperation.completionDate.getTime() +
-                    maxDiffInMillis;
-
-        return (
-            this.isMultiFileOperationActive(folderPath) ||
-            (hasRecentlyBeenActive &&
-                this.latestMultiFileOperation.folderPath != undefined &&
-                normalizeDirectoryPath(
-                    this.latestMultiFileOperation.folderPath,
-                ) == normalizeDirectoryPath(folderPath))
-        );
-    }
-
-    private isMultiFileOperationActive(folderPath: string) {
-        return (
-            this.latestMultiFileOperation.completionDate == undefined &&
-            this.latestMultiFileOperation.folderPath != undefined &&
-            normalizeDirectoryPath(this.latestMultiFileOperation.folderPath) ==
-                normalizeDirectoryPath(folderPath)
-        );
-    }
-
-    private async isCachedFileInSync(
-        collection: Collection<T>,
-        filePath: string,
-    ) {
-        const cachedData = collection.getStoredDataForPath(filePath);
-
-        return (
-            cachedData != undefined &&
-            isCollectionItemWithSequence(cachedData.item) &&
-            (await parseSequenceFromMetaBlock(filePath)) ==
-                cachedData.item.getSequence()
         );
     }
 }

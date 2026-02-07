@@ -1,5 +1,4 @@
 import { promisify } from "util";
-import { getItemType } from "@shared";
 import {
     parseBruFile,
     TextDocumentHelper,
@@ -18,7 +17,8 @@ import {
     BrunoEnvironmentFile,
     NonBrunoSpecificItemType,
     NonBrunoFile,
-} from "@global_shared";
+    getItemType,
+} from "../..";
 import { readFile } from "fs";
 
 export async function getCollectionFile<T>(

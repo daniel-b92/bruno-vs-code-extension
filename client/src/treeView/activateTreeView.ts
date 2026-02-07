@@ -4,11 +4,13 @@ import {
     TypedCollectionItemProvider,
     getLoggerFromSubscriptions,
     MultiFileOperationWithStatus,
+    FileSystemCacheSyncingHelper,
 } from "../shared";
 
 export function activateTreeView(
     context: ExtensionContext,
     itemProvider: TypedCollectionItemProvider,
+    cacheSyncingHelper: FileSystemCacheSyncingHelper,
     startTestRunEmitter: EventEmitter<{
         uri: Uri;
         withDialog: boolean;
@@ -18,6 +20,7 @@ export function activateTreeView(
     context.subscriptions.push(
         new CollectionExplorer(
             itemProvider,
+            cacheSyncingHelper,
             startTestRunEmitter,
             multiFileOperationNotifier,
             getLoggerFromSubscriptions(context),
