@@ -1,14 +1,5 @@
 import { promisify } from "util";
-import {
-    Collection,
-    BrunoRequestFile,
-    getItemType,
-    BrunoFileType,
-    BrunoFolderSettingsFile,
-    BrunoEnvironmentFile,
-    NonBrunoSpecificItemType,
-    NonBrunoFile,
-} from "@shared";
+import { getItemType } from "@shared";
 import {
     parseBruFile,
     TextDocumentHelper,
@@ -20,10 +11,20 @@ import {
     isDictionaryBlockField,
     MetaBlockKey,
     isDictionaryBlockArrayField,
+    Collection,
+    BrunoRequestFile,
+    BrunoFileType,
+    BrunoFolderSettingsFile,
+    BrunoEnvironmentFile,
+    NonBrunoSpecificItemType,
+    NonBrunoFile,
 } from "@global_shared";
 import { readFile } from "fs";
 
-export async function getCollectionFile(collection: Collection, path: string) {
+export async function getCollectionFile<T>(
+    collection: Collection<T>,
+    path: string,
+) {
     const itemType = await getItemType(collection, path);
 
     if (!itemType) {

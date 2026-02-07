@@ -20,15 +20,15 @@ import {
     normalizeDirectoryPath,
     getExtensionForBrunoFiles,
     FileChangeType,
+    CollectionDirectory,
+    CollectionItemWithSequence,
+    isCollectionItemWithSequence,
 } from "@global_shared";
 import {
     TestRunnerDataHelper,
-    CollectionDirectory,
-    Collection,
-    CollectionItemProvider,
-    CollectionItemWithSequence,
+    TypedCollectionItemProvider,
     getLoggerFromSubscriptions,
-    isCollectionItemWithSequence,
+    TypedCollection,
 } from "@shared";
 import { openRunConfigDialog } from "./internal/testExecutionUtils/openRunConfigDialog";
 import { TestRunUserInputData } from "./internal/interfaces";
@@ -36,7 +36,7 @@ import { TestRunUserInputData } from "./internal/interfaces";
 export async function activateRunner(
     context: ExtensionContext,
     ctrl: TestController,
-    collectionItemProvider: CollectionItemProvider,
+    collectionItemProvider: TypedCollectionItemProvider,
     startTestRunEvent: VscodeEvent<{
         uri: Uri;
         withDialog: boolean;
@@ -230,7 +230,10 @@ export async function activateRunner(
 
         const {
             collection,
-            data: { item, testItem },
+            data: {
+                item,
+                additionalData: { testItem },
+            },
         } = maybeData;
 
         if (
@@ -267,7 +270,7 @@ export async function activateRunner(
 async function addMissingTestCollectionsAndItemsToTestTree(
     controller: TestController,
     testRunnerDataHelper: TestRunnerDataHelper,
-    registeredCollections: readonly Collection[],
+    registeredCollections: readonly TypedCollection[],
 ) {
     for (const collection of registeredCollections) {
         await testRunnerDataHelper.addTestTreeItemsForDirectoryAndDescendants(
@@ -283,13 +286,16 @@ async function addMissingTestCollectionsAndItemsToTestTree(
 
 function handleTestTreeUpdates(
     controller: TestController,
-    collectionItemProvider: CollectionItemProvider,
+    collectionItemProvider: TypedCollectionItemProvider,
     testRunnerDataHelper: TestRunnerDataHelper,
 ) {
     return collectionItemProvider.subscribeToUpdates()((updates) => {
         for (const {
             collection,
-            data: { item, testItem },
+            data: {
+                item,
+                additionalData: { testItem },
+            },
             updateType,
             changedData,
         } of updates) {
@@ -355,23 +361,23 @@ function handleTestTreeUpdates(
 
 function addCollectionTestItemToTestTree(
     controller: TestController,
-    collection: Collection,
+    collection: TypedCollection,
 ) {
     controller.items.add(
         collection.getStoredDataForPath(collection.getRootDirectory())
-            ?.testItem as VscodeTestItem,
+            ?.additionalData.testItem as VscodeTestItem,
     );
 }
 
 function removeTestItemFromTree(
     controller: TestController,
-    collection: Collection,
+    collection: TypedCollection,
     itemUri: Uri,
 ) {
     const parentItem = collection.getStoredDataForPath(dirname(itemUri.fsPath));
 
     if (parentItem) {
-        parentItem.testItem.children.delete(getTestId(itemUri));
+        parentItem.additionalData.testItem.children.delete(getTestId(itemUri));
     } else {
         controller.items.delete(getTestId(itemUri));
     }
@@ -379,7 +385,7 @@ function removeTestItemFromTree(
 
 function isRelevantForTestTree(
     testRunnerDataHelper: TestRunnerDataHelper,
-    collection: Collection,
+    collection: TypedCollection,
     item: CollectionItemWithSequence,
 ) {
     return (

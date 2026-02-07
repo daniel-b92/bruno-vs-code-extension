@@ -1,6 +1,6 @@
 import { basename, dirname, resolve } from "path";
 import {
-    CollectionItemProvider,
+    TypedCollectionItemProvider,
     getMaxSequenceForRequests,
     getSequencesForRequests,
 } from "@shared";
@@ -9,7 +9,7 @@ import { normalizeSequencesForRequestFiles } from "./normalizeSequencesForReques
 import { replaceSequenceForFile } from "./replaceSequenceForFile";
 
 export async function updateSequencesAfterMovingRequestFile(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     target: BrunoTreeItem,
     targetDirectory: string,
     sourcePath: string,

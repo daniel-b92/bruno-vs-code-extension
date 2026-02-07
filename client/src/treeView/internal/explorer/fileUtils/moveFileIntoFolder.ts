@@ -1,15 +1,12 @@
-import {
-    BrunoFileType,
-    CollectionItemProvider,
-    ItemType,
-} from "../../../../shared";
+import { BrunoFileType, ItemType } from "@global_shared";
+import { TypedCollectionItemProvider } from "../../../../shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { renameFileOrFolder } from "../renameFileOrFolder";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";
 import { updateSequencesAfterMovingRequestFile } from "./updateSequencesAfterMovingRequestFile";
 
 export async function moveFileIntoFolder(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     sourcePath: string,
     newPath: string,
     target: BrunoTreeItem,

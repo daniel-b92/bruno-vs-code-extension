@@ -9,7 +9,7 @@ import {
     isAuthBlock,
     isBlockDictionaryBlock,
 } from "@global_shared";
-import { CollectionItemProvider } from "@shared";
+import { TypedCollectionItemProvider } from "@shared";
 import { DiagnosticWithCode } from "../definitions";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
 import { checkAtMostOneAuthBlockExists } from "../shared/checks/multipleBlocks/checkAtMostOneAuthBlockExists";
@@ -30,7 +30,7 @@ import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/mul
 export async function determineDiagnosticsForFolderSettingsFile(
     documentUri: Uri,
     documentText: string,
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
 ): Promise<DiagnosticWithCode[]> {
     const document = new TextDocumentHelper(documentText);

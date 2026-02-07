@@ -2,8 +2,10 @@ import {
     getSequenceForFolder,
     normalizeDirectoryPath,
     getAllCollectionRootDirectories,
+    Collection,
+    CollectionDirectory,
+    CollectionItem,
 } from "@global_shared";
-import { Collection, CollectionDirectory, TestRunnerDataHelper } from "@shared";
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
 import { addItemToCollection } from "./addItemToCollection";
@@ -11,16 +13,16 @@ import { lstat, readdir } from "fs";
 import { promisify } from "util";
 import { getCollectionFile } from "./getCollectionFile";
 
-export async function registerMissingCollectionsAndTheirItems(
-    testRunnerDataHelper: TestRunnerDataHelper,
-    collectionRegistry: CollectionRegistry,
+export async function registerMissingCollectionsAndTheirItems<T>(
+    collectionRegistry: CollectionRegistry<T>,
     workspaceFolders: string[],
     filePathsToIgnore: RegExp[],
+    additionalDataCreator: (item: CollectionItem) => T,
 ) {
     const allCollections = await registerAllExistingCollections(
-        testRunnerDataHelper,
         collectionRegistry,
         workspaceFolders,
+        additionalDataCreator,
     );
 
     for (const collection of allCollections) {
@@ -61,10 +63,10 @@ export async function registerMissingCollectionsAndTheirItems(
                         : await getCollectionFile(collection, path);
 
                     if (item) {
-                        addItemToCollection(
-                            testRunnerDataHelper,
+                        addItemToCollection<T>(
                             collection,
                             item,
+                            additionalDataCreator,
                         );
                     }
                 }
@@ -80,16 +82,16 @@ export async function registerMissingCollectionsAndTheirItems(
     }
 }
 
-async function registerAllExistingCollections(
-    testRunnerDataHelper: TestRunnerDataHelper,
-    registry: CollectionRegistry,
+async function registerAllExistingCollections<T>(
+    registry: CollectionRegistry<T>,
     workspaceFolders: string[],
+    additionalDataCreator: (item: CollectionItem) => T,
 ) {
     return (await getAllCollectionRootDirectories(workspaceFolders)).map(
         (rootDirectory) => {
             const collection = new Collection(
                 rootDirectory,
-                testRunnerDataHelper,
+                additionalDataCreator,
             );
 
             if (

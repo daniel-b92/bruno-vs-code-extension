@@ -14,7 +14,11 @@ import {
     MetaBlockKey,
     getInbuiltFunctionIdentifiers,
 } from "@global_shared";
-import { getVariableNameForPositionInNonCodeBlock } from "@shared";
+import {
+    getVariableNameForPositionInNonCodeBlock,
+    TypedCollection,
+    TypedCollectionItemProvider,
+} from "@shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
@@ -27,8 +31,6 @@ import {
     mapFromVsCodePosition,
     mapToVsCodeRange,
     OutputChannelLogger,
-    Collection,
-    CollectionItemProvider,
 } from "@shared";
 import {
     getExistingRequestFileTags,
@@ -39,7 +41,7 @@ import { waitForTempJsFileToBeInSync } from "../../shared/temporaryJsFilesUpdate
 
 interface ProviderParamsForNonCodeBlock {
     file: {
-        collection: Collection;
+        collection: TypedCollection;
         allBlocks: Block[];
         blockContainingPosition: Block;
     };
@@ -49,7 +51,7 @@ interface ProviderParamsForNonCodeBlock {
 
 interface ProviderParamsForCodeBlock extends ProviderParamsForNonCodeBlock {
     file: {
-        collection: Collection;
+        collection: TypedCollection;
         allBlocks: Block[];
         blockContainingPosition: CodeBlock;
     };
@@ -57,7 +59,7 @@ interface ProviderParamsForCodeBlock extends ProviderParamsForNonCodeBlock {
 
 export function provideInfosOnHover(
     queue: TempJsFileUpdateQueue,
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     logger?: OutputChannelLogger,
 ) {
     return languages.registerHoverProvider(getRequestFileDocumentSelector(), {
@@ -100,7 +102,7 @@ export function provideInfosOnHover(
 }
 
 function getHoverForNonCodeBlocks(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     params: ProviderParamsForNonCodeBlock,
 ) {
     return (
@@ -207,7 +209,7 @@ async function getResultsViaTempJsFile(
 }
 
 function getHoverForTagsInMetaBlock(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     {
         file: { collection, blockContainingPosition },
         hoverRequest,

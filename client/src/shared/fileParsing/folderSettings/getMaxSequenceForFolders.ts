@@ -1,7 +1,7 @@
-import { CollectionItemProvider, getSequencesForFolders } from "../..";
+import { TypedCollectionItemProvider, getSequencesForFolders } from "../..";
 
 export async function getMaxSequenceForFolders(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     parentFolder: string,
 ) {
     const sequences = (

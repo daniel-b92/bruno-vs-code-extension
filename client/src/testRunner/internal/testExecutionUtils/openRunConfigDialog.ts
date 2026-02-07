@@ -1,5 +1,5 @@
 import { Disposable, EventEmitter, QuickPickItem, window } from "vscode";
-import { Collection, getDistinctTagsForCollection } from "../../../shared";
+import { getDistinctTagsForCollection, TypedCollection } from "../../../shared";
 import { OtherExecutionConfigData, TestRunUserInputData } from "../interfaces";
 
 enum NonTagRelatedButtonLabel {
@@ -12,7 +12,7 @@ enum TagRelatedButtonLabel {
     ExcludeTags = "Exclude tags",
 }
 
-export async function openRunConfigDialog(collection: Collection) {
+export async function openRunConfigDialog(collection: TypedCollection) {
     const selectionHolder = new SelectionHolder();
     const handleBaseModalNotifier = new EventEmitter<void>();
     const handleTagsDialogNotifier = new EventEmitter<
@@ -119,7 +119,7 @@ async function handleDialogForTags(
     selectedButton:
         | TagRelatedButtonLabel.IncludeTags
         | TagRelatedButtonLabel.ExcludeTags,
-    collection: Collection,
+    collection: TypedCollection,
     selectionHolder: SelectionHolder,
     baseModalNotifier: EventEmitter<void>,
 ) {

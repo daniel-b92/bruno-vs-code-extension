@@ -21,17 +21,10 @@ export * from "./testFileWriting/getContentForDefaultMethodBlock";
 export * from "./testFileWriting/interfaces";
 
 // model
-export * from "./model/collection";
-export * from "./model/collectionDirectory";
-export * from "./model/files/brunoRequestFile";
-export * from "./model/files/brunoFolderSettingsFile";
-export * from "./model/files/brunoEnvironmentFile";
-export * from "./model/files/nonBrunoFile";
 export * from "./model/interfaces";
-export * from "./model/typeguards/isCollectionItemWithSequence";
-export * from "./model/typeguards/isRequestFile";
 
 // file system cache
+export * from "./fileSystemCache/externalHelpers/interfaces";
 export * from "./fileSystemCache/externalHelpers/collectionItemProvider";
 export * from "./fileSystemCache/externalHelpers/testRunnerDataHelper";
 export * from "./fileSystemCache/externalHelpers/isBrunoFileType";

@@ -34,6 +34,17 @@ export * from "./fileParsing/external/parseBlockFromFile";
 export * from "./fileParsing/external/folderSettings/getSequenceForFolder";
 export * from "./fileParsing/external/folderSettings/getFolderSettingsFilePath";
 
+// model
+export * from "./baseModel/collection";
+export * from "./baseModel/collectionDirectory";
+export * from "./baseModel/files/brunoRequestFile";
+export * from "./baseModel/files/brunoFolderSettingsFile";
+export * from "./baseModel/files/brunoEnvironmentFile";
+export * from "./baseModel/files/nonBrunoFile";
+export * from "./baseModel/interfaces";
+export * from "./baseModel/typeguards/isCollectionItemWithSequence";
+export * from "./baseModel/typeguards/isRequestFile";
+
 // logging
 export * from "./logging/interfaces";
 

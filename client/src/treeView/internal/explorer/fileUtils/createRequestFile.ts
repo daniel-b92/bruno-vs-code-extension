@@ -7,12 +7,12 @@ import {
     MethodBlockBody,
 } from "@global_shared";
 import {
-    CollectionItemProvider,
+    TypedCollectionItemProvider,
     getMaxSequenceForRequests,
     getContentForMetaBlock,
     getContentForDefaultMethodBlock,
     getLineBreak,
-    Collection,
+    TypedCollection,
 } from "@shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { commands, Uri, window } from "vscode";
@@ -21,7 +21,7 @@ import { promisify } from "util";
 import { writeFile } from "fs";
 
 export async function createRequestFile(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     item: BrunoTreeItem,
 ) {
     const parentFolderPath = item.getPath();
@@ -94,7 +94,7 @@ export async function createRequestFile(
 
         const collection = itemProvider.getAncestorCollectionForPath(
             filePath,
-        ) as Collection;
+        ) as TypedCollection;
         const requestSequence =
             ((await getMaxSequenceForRequests(
                 itemProvider,

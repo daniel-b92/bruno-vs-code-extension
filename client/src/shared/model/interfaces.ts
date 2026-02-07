@@ -1,32 +1,17 @@
+import { BrunoTreeItem } from "src/treeView/brunoTreeItem";
 import { TestItem } from "vscode";
-import { BrunoTreeItem } from "../../treeView/brunoTreeItem";
+import { CollectionItemProvider } from "../fileSystemCache/externalHelpers/collectionItemProvider";
+import { Collection } from "../../../../shared/baseModel/collection";
+import { CollectionData } from "../../../../shared/baseModel/interfaces";
 
-export interface CollectionItemWithSequence extends CollectionItem {
-    getSequence: () => number | undefined;
-}
+export type TypedCollectionItemProvider =
+    CollectionItemProvider<AdditionalCollectionData>;
 
-export interface CollectionItem {
-    getPath: () => string;
-    isFile: () => boolean;
-    getItemType: () => ItemType;
-}
+export type TypedCollection = Collection<AdditionalCollectionData>;
 
-export type CollectionData = {
-    item: CollectionItem;
+export type TypedCollectionData = CollectionData<AdditionalCollectionData>;
+
+export interface AdditionalCollectionData {
     treeItem: BrunoTreeItem;
     testItem: TestItem;
-};
-
-export type ItemType = BrunoFileType | NonBrunoSpecificItemType;
-
-export enum NonBrunoSpecificItemType {
-    OtherFileType = "OtherFileType",
-    Directory = "Directory",
-}
-
-export enum BrunoFileType {
-    RequestFile = "RequestFile",
-    FolderSettingsFile = "FolderSettingsFile",
-    CollectionSettingsFile = "CollectionSettingsFile",
-    EnvironmentFile = "EnvironmentFile",
 }

@@ -14,6 +14,7 @@ import {
     TestRunnerDataHelper,
     OutputChannelLogger,
     MultiFileOperationWithStatus,
+    AdditionalCollectionData,
 } from "./shared";
 import { activateLanguageFeatures } from "./languageFeatures";
 import { suggestCreatingTsConfigsForCollections } from "./languageFeatures/suggestCreatingTsConfigsForCollections";
@@ -29,7 +30,11 @@ import {
     CollectionWatcher,
     FileChangedEvent,
     getTemporaryJsFileBasenameWithoutExtension,
+    CollectionItem,
+    isRequestFile,
+    isCollectionItemWithSequence,
 } from "@global_shared";
+import { BrunoTreeItem } from "./treeView/brunoTreeItem";
 
 let client: LanguageClient;
 
@@ -145,13 +150,14 @@ function createNeededHandlers(context: ExtensionContext) {
         new EventEmitter<MultiFileOperationWithStatus>();
 
     const testRunnerDataHelper = new TestRunnerDataHelper(testController);
-    const collectionItemProvider = new CollectionItemProvider(
-        collectionWatcher,
-        testRunnerDataHelper,
-        getPathsToIgnoreForCollections(),
-        multiFileOperationNotifier.event,
-        logger,
-    );
+    const collectionItemProvider =
+        new CollectionItemProvider<AdditionalCollectionData>(
+            collectionWatcher,
+            getAdditionalCollectionDataCreator(testRunnerDataHelper),
+            getPathsToIgnoreForCollections(),
+            multiFileOperationNotifier.event,
+            logger,
+        );
 
     const startTestRunEmitter = new EventEmitter<{
         uri: Uri;
@@ -179,6 +185,20 @@ function createNeededHandlers(context: ExtensionContext) {
         collectionItemProvider,
         startTestRunEmitter,
     };
+}
+
+function getAdditionalCollectionDataCreator(
+    testRunnerDataHelper: TestRunnerDataHelper,
+) {
+    return (item: CollectionItem) => ({
+        treeItem: new BrunoTreeItem(
+            item.getPath(),
+            item.isFile(),
+            isCollectionItemWithSequence(item) ? item.getSequence() : undefined,
+            isRequestFile(item) ? item.getTags() : undefined,
+        ),
+        testItem: testRunnerDataHelper.createVsCodeTestItem(item),
+    });
 }
 
 function getPathsToIgnoreForCollections() {

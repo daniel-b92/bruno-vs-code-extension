@@ -3,22 +3,19 @@ import {
     normalizeDirectoryPath,
     parseSequenceFromMetaBlock,
     filterAsync,
-} from "@global_shared";
-import {
     BrunoFileType,
     Collection,
     CollectionData,
-    getItemType,
     isCollectionItemWithSequence,
-    OutputChannelLogger,
-} from "@shared";
+} from "@global_shared";
+import { getItemType, OutputChannelLogger } from "@shared";
 import { lstat, readdir } from "fs/promises";
 import { Event, Disposable } from "vscode";
 
-export async function determineFilesToCheckWhetherInSync(
+export async function determineFilesToCheckWhetherInSync<T>(
     requestedFilePath: string,
     parentFolder: string,
-    collection: Collection,
+    collection: Collection<T>,
     multiFileOperationData: {
         currentlyActive: (folder: string) => boolean;
         recentlyActive: (folder: string) => boolean;
@@ -26,9 +23,9 @@ export async function determineFilesToCheckWhetherInSync(
     },
     cachedData: {
         getRegisteredItem: (
-            collection: Collection,
+            collection: Collection<T>,
             path: string,
-        ) => CollectionData | undefined;
+        ) => CollectionData<T> | undefined;
     },
     logger?: OutputChannelLogger,
 ) {
@@ -63,13 +60,13 @@ export async function determineFilesToCheckWhetherInSync(
     );
 }
 
-async function getRequestFilesFromFolderThatAreNotInSync(
+async function getRequestFilesFromFolderThatAreNotInSync<T>(
     folderPath: string,
-    collection: Collection,
+    collection: Collection<T>,
     getRegisteredItem: (
-        collection: Collection,
+        collection: Collection<T>,
         path: string,
-    ) => CollectionData | undefined,
+    ) => CollectionData<T> | undefined,
 ) {
     const allItemsInFolder = await readdir(folderPath)
         .then((itemNames) => itemNames.map((name) => resolve(folderPath, name)))

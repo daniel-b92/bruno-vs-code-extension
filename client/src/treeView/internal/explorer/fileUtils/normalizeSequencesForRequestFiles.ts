@@ -1,11 +1,11 @@
 import {
-    CollectionItemProvider,
+    TypedCollectionItemProvider,
     getSequencesForRequests,
 } from "../../../../shared";
 import { replaceSequenceForFile } from "./replaceSequenceForFile";
 
 export async function normalizeSequencesForRequestFiles(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     parentDirectoryPath: string,
 ) {
     const initialSequences = await getSequencesForRequests(

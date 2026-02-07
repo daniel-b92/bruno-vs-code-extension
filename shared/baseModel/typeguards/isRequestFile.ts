@@ -2,7 +2,7 @@ import {
     BrunoRequestFile,
     CollectionItem,
     isCollectionItemWithSequence,
-} from "../..";
+} from "../../";
 
 export function isRequestFile(item: CollectionItem): item is BrunoRequestFile {
     return item.isFile() && isCollectionItemWithSequence(item);

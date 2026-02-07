@@ -6,17 +6,17 @@ import {
     getInbuiltFunctionIdentifiers,
 } from "@global_shared";
 import {
-    Collection,
-    CollectionItemProvider,
+    TypedCollectionItemProvider,
     OutputChannelLogger,
     mapFromVsCodePosition,
+    TypedCollection,
 } from "@shared";
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { getHoverForEnvVariable } from "../../shared/environmentVariables/getHoverForEnvVariable";
 
 export function provideInfosOnHover(
-    collectionItemProvider: CollectionItemProvider,
+    collectionItemProvider: TypedCollectionItemProvider,
     logger?: OutputChannelLogger,
 ) {
     return languages.registerHoverProvider(getJsFileDocumentSelector(), {
@@ -40,7 +40,7 @@ export function provideInfosOnHover(
 }
 
 async function getHover(params: {
-    file: { collection: Collection };
+    file: { collection: TypedCollection };
     baseRequest: LanguageFeatureRequest;
     logger?: OutputChannelLogger;
 }) {
@@ -76,7 +76,7 @@ async function getHover(params: {
 }
 
 function getEnvVariableRelatedFunctionForRequest(params: {
-    file: { collection: Collection };
+    file: { collection: TypedCollection };
     baseRequest: LanguageFeatureRequest;
 }) {
     const {

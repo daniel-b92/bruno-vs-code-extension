@@ -7,11 +7,11 @@ import {
     getInbuiltFunctionType,
 } from "@global_shared";
 import {
-    CollectionItemProvider,
     OutputChannelLogger,
-    Collection,
     getConfiguredTestEnvironment,
     mapFromVsCodePosition,
+    TypedCollectionItemProvider,
+    TypedCollection,
 } from "@shared";
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
 import {
@@ -22,7 +22,7 @@ import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
 
 export function provideCompletionItems(
-    collectionItemProvider: CollectionItemProvider,
+    collectionItemProvider: TypedCollectionItemProvider,
     logger?: OutputChannelLogger,
 ) {
     return languages.registerCompletionItemProvider(
@@ -74,7 +74,7 @@ export function provideCompletionItems(
 }
 
 function getEnvVariableRelatedFunctionForRequest(params: {
-    file: { collection: Collection };
+    file: { collection: TypedCollection };
     baseRequest: LanguageFeatureRequest;
     logger?: OutputChannelLogger;
 }) {
@@ -108,7 +108,7 @@ function getEnvVariableRelatedFunctionForRequest(params: {
 function getResultsForEnvironmentVariable(
     envVariableName: string,
     additionalData: {
-        collection: Collection;
+        collection: TypedCollection;
         functionType: VariableReferenceType;
     },
     { position, token }: LanguageFeatureRequest,

@@ -3,7 +3,7 @@ import {
     CollectionItem,
     isCollectionItemWithSequence,
     isRequestFile,
-} from "../..";
+} from "@global_shared";
 
 export interface OutdatedPropertyDetails {
     sequenceOutdated: boolean;

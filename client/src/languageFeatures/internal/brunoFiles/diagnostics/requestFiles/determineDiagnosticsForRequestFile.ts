@@ -13,7 +13,7 @@ import {
     DictionaryBlock,
     shouldBeDictionaryArrayField,
 } from "@global_shared";
-import { CollectionItemProvider } from "@shared";
+import { TypedCollectionItemProvider } from "@shared";
 import { DiagnosticWithCode } from "../definitions";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
 import { checkAtMostOneAuthBlockExists } from "../shared/checks/multipleBlocks/checkAtMostOneAuthBlockExists";
@@ -42,7 +42,7 @@ import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/mul
 export async function determineDiagnosticsForRequestFile(
     documentUri: Uri,
     documentText: string,
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
 ): Promise<DiagnosticWithCode[]> {
     const documentHelper = new TextDocumentHelper(documentText);
@@ -151,7 +151,7 @@ function getDictionaryBlockFieldsThatShouldBeSimpleFields(
 }
 
 async function collectBlockSpecificDiagnostics(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
     documentUri: Uri,
     documentHelper: TextDocumentHelper,

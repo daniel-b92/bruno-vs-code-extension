@@ -4,12 +4,12 @@ import {
     getSequenceForFolder,
     filterAsync,
 } from "@global_shared";
-import { CollectionItemProvider } from "@shared";
+import { TypedCollectionItemProvider } from "@shared";
 import { resolve } from "path";
 import { promisify } from "util";
 
 export async function getSequencesForFolders(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     parentFolder: string,
 ): Promise<{ folderPath: string; settingsFile: string; sequence: number }[]> {
     const collection = itemProvider.getAncestorCollectionForPath(parentFolder);

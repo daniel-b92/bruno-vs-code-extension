@@ -2,17 +2,17 @@ import { basename, dirname } from "path";
 import * as vscode from "vscode";
 import { normalizeDirectoryPath, FileChangeType } from "@global_shared";
 import {
-    CollectionData,
-    CollectionItemProvider,
+    TypedCollectionItemProvider,
     OutputChannelLogger,
-    Collection,
+    TypedCollection,
+    TypedCollectionData,
 } from "@shared";
 import { BrunoTreeItem } from "../brunoTreeItem";
 
 export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeItem> {
     constructor(
         private workspaceRoot: string,
-        private collectionItemProvider: CollectionItemProvider,
+        private collectionItemProvider: TypedCollectionItemProvider,
         private logger?: OutputChannelLogger,
     ) {
         collectionItemProvider.subscribeToUpdates()((updates) => {
@@ -52,7 +52,10 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
             }
 
             const distinctParentItems = (
-                allParents as { collection: Collection; data: CollectionData }[]
+                allParents as {
+                    collection: TypedCollection;
+                    data: TypedCollectionData;
+                }[]
             ).reduce(
                 (prev, curr) => {
                     const {
@@ -72,8 +75,8 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
                     return ancestorAlreadyAdded ? prev : prev.concat(curr);
                 },
                 [] as {
-                    collection: Collection;
-                    data: CollectionData;
+                    collection: TypedCollection;
+                    data: TypedCollectionData;
                 }[],
             );
 
@@ -84,7 +87,9 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
             }
 
             for (const {
-                data: { treeItem },
+                data: {
+                    additionalData: { treeItem },
+                },
             } of distinctParentItems) {
                 this._onDidChangeTreeData.fire(treeItem);
             }
@@ -105,7 +110,9 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
             dirname(element.getPath()),
         );
 
-        return registeredParent ? registeredParent.treeItem : undefined;
+        return registeredParent
+            ? registeredParent.additionalData.treeItem
+            : undefined;
     }
 
     public refresh() {
@@ -141,8 +148,8 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
                         (
                             collection.getStoredDataForPath(
                                 collection.getRootDirectory(),
-                            ) as CollectionData
-                        ).treeItem,
+                            ) as TypedCollectionData
+                        ).additionalData.treeItem,
                 )
                 .sort((a, b) =>
                     (a.label as string) > (b.label as string) ? 1 : -1,
@@ -176,7 +183,10 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
                                     dirname(registeredItem.getPath()),
                                 ) == normalizeDirectoryPath(element.getPath()),
                         )
-                        .map(async ({ treeItem }) => treeItem),
+                        .map(
+                            async ({ additionalData: { treeItem } }) =>
+                                treeItem,
+                        ),
                 ),
             );
         }

@@ -1,6 +1,6 @@
 import { basename, dirname, resolve } from "path";
 import { normalizeDirectoryPath } from "@global_shared";
-import { CollectionItemProvider } from "@shared";
+import { TypedCollectionItemProvider } from "@shared";
 import { renameFileOrFolder } from "../renameFileOrFolder";
 import { updateSequencesAfterMovingFolder } from "./updateSequencesAfterMovingFolder";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";
@@ -8,7 +8,7 @@ import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { FolderDropInsertionOption } from "../folderDropInsertionOptionEnum";
 
 export async function moveFolderIntoTargetFolder(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     sourcePath: string,
     targetItem: BrunoTreeItem,
     insertionOption: FolderDropInsertionOption,

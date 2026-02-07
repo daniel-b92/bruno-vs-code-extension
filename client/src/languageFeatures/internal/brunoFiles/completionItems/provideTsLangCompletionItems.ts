@@ -8,12 +8,12 @@ import {
     Position as VsCodePosition,
 } from "vscode";
 import {
-    CollectionItemProvider,
     mapToVsCodeRange,
     OutputChannelLogger,
     mapFromVsCodePosition,
-    Collection,
     getConfiguredTestEnvironment,
+    TypedCollectionItemProvider,
+    TypedCollection,
 } from "@shared";
 import {
     parseBruFile,
@@ -52,7 +52,7 @@ type CompletionItemRange =
 
 export function provideTsLangCompletionItems(
     queue: TempJsFileUpdateQueue,
-    collectionItemProvider: CollectionItemProvider,
+    collectionItemProvider: TypedCollectionItemProvider,
     logger?: OutputChannelLogger,
 ) {
     return languages.registerCompletionItemProvider(
@@ -146,7 +146,7 @@ export function provideTsLangCompletionItems(
 function getResultsForEnvironmentVariable(
     variableName: string,
     additionalData: {
-        collection: Collection;
+        collection: TypedCollection;
         functionType: VariableReferenceType;
         blockContainingPosition: Block;
         allBlocks: Block[];

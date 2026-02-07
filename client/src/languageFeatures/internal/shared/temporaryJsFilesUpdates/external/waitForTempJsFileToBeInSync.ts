@@ -10,14 +10,14 @@ import {
     TextDocumentHelper,
     getTemporaryJsFileNameInFolder,
 } from "@global_shared";
-import { Collection, OutputChannelLogger } from "@shared";
+import { OutputChannelLogger, TypedCollection } from "@shared";
 import { TempJsFileUpdateQueue } from "./tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "../internal/interfaces";
 import { basename } from "path";
 import { getTempJsFileContentForBruFile } from "../../../brunoFiles/shared/codeBlocksUtils/getTempJsFileContentForBruFile";
 
 export interface TempJsSyncRequest {
-    collection: Collection;
+    collection: TypedCollection;
     bruFileContentSnapshot: string;
     bruFilePath: string;
     bruFileEol: EndOfLine;

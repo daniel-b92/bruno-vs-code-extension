@@ -4,15 +4,15 @@ import {
     getTestLabel,
     addTestItemAndAncestorsToTestTree,
 } from "../../../testRunner";
-import { normalizeDirectoryPath } from "@global_shared";
 import {
-    Collection,
+    normalizeDirectoryPath,
     CollectionDirectory,
     CollectionItemWithSequence,
     CollectionItem,
     isCollectionItemWithSequence,
     isRequestFile,
-} from "@shared";
+} from "@global_shared";
+import { TypedCollection } from "@shared";
 
 export class TestRunnerDataHelper {
     constructor(private testController: vscode.TestController) {}
@@ -39,7 +39,7 @@ export class TestRunnerDataHelper {
     };
 
     public async addTestTreeItemsForDirectoryAndDescendants(
-        collectionForDirectory: Collection,
+        collectionForDirectory: TypedCollection,
         directory: CollectionDirectory,
     ) {
         const relevantFiles = this.getTestFileDescendants(
@@ -57,7 +57,7 @@ export class TestRunnerDataHelper {
     }
 
     public getTestFileDescendants(
-        collectionForDirectory: Collection,
+        collectionForDirectory: TypedCollection,
         directory: CollectionDirectory,
     ) {
         const normalizedDirectoryPath = normalizeDirectoryPath(

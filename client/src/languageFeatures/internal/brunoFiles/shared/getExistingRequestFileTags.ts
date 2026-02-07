@@ -1,26 +1,25 @@
-import { normalizeDirectoryPath } from "@global_shared";
 import {
+    normalizeDirectoryPath,
     BrunoRequestFile,
-    Collection,
-    CollectionItemProvider,
     isRequestFile,
-} from "@shared";
+} from "@global_shared";
+import { TypedCollection, TypedCollectionItemProvider } from "@shared";
 
 export interface TagOccurences {
     tag: string;
     pathsInOwnCollection: string[];
-    inOtherCollections: { collection: Collection; paths: string[] }[];
+    inOtherCollections: { collection: TypedCollection; paths: string[] }[];
 }
 
 interface itemIdentifier {
-    collection: Collection;
+    collection: TypedCollection;
     path: string;
 }
 
 export function getExistingRequestFileTags(
-    itemProvider: CollectionItemProvider,
+    itemProvider: TypedCollectionItemProvider,
     forOwnCollection: {
-        collection: Collection;
+        collection: TypedCollection;
         pathToIgnore: string;
     },
 ): TagOccurences[] {
@@ -64,7 +63,10 @@ export function getExistingRequestFileTags(
     });
 }
 
-function getTagsForCollection(collection: Collection, pathToIgnore?: string) {
+function getTagsForCollection(
+    collection: TypedCollection,
+    pathToIgnore?: string,
+) {
     return collection
         .getAllStoredDataForCollection()
         .filter(
@@ -142,11 +144,11 @@ function groupByCollection(items: itemIdentifier[]) {
                     : val,
             );
         },
-        [] as { collection: Collection; paths: string[] }[],
+        [] as { collection: TypedCollection; paths: string[] }[],
     );
 }
 
-function hasBaseDirectory(collection: Collection, baseDirectory: string) {
+function hasBaseDirectory(collection: TypedCollection, baseDirectory: string) {
     return (
         normalizeDirectoryPath(collection.getRootDirectory()) ==
         normalizeDirectoryPath(baseDirectory)
