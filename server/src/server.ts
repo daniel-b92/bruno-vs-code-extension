@@ -8,9 +8,11 @@ import {
 
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { getHandlerForFormatting } from "./bruFiles/formatting/getHandlerForFormatting";
-import { HelperProvider } from "./shared";
+import { HelpersProvider } from "./shared";
+import { URI } from "vscode-uri";
+import { runUpdatesOnWillSave } from "./bruFiles/autoUpdates/runUpdatesOnWillSave";
 
-let helperProvider: HelperProvider;
+let helpersProvider: HelpersProvider;
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -23,7 +25,13 @@ connection.onInitialize(async () => {
     const result: InitializeResult = {
         capabilities: {
             workspace: { workspaceFolders: { supported: true } },
-            textDocumentSync: TextDocumentSyncKind.Full,
+            textDocumentSync: {
+                change: TextDocumentSyncKind.Full,
+                willSaveWaitUntil: true,
+                willSave: true,
+                openClose: true,
+                save: true,
+            },
             documentFormattingProvider: true,
         },
     };
@@ -32,10 +40,10 @@ connection.onInitialize(async () => {
 
 connection.onInitialized(async () => {
     const workspaceFolders = await getWorkspaceFolders();
-    helperProvider = new HelperProvider(workspaceFolders);
+    helpersProvider = new HelpersProvider(workspaceFolders);
 
     connection.console.info("Starting to refresh cache...");
-    await helperProvider.getItemProvider().refreshCache(workspaceFolders);
+    await helpersProvider.getItemProvider().refreshCache(workspaceFolders);
 
     connection.console.info("Done refreshing cache.");
 });
@@ -43,6 +51,17 @@ connection.onInitialized(async () => {
 connection.onDocumentFormatting(({ textDocument: { uri } }) => {
     const document = documents.get(uri);
     return document ? getHandlerForFormatting(document) : undefined;
+});
+
+documents.onWillSaveWaitUntil(async ({ document: { uri } }) => {
+    const document = documents.get(uri);
+    return document
+        ? runUpdatesOnWillSave(
+              uri,
+              document.getText(),
+              helpersProvider.getItemProvider(),
+          )
+        : [];
 });
 
 // Make the text document manager listen on the connection
@@ -55,7 +74,7 @@ connection.listen();
 async function getWorkspaceFolders() {
     return (
         (await connection.workspace.getWorkspaceFolders())?.map(
-            (f) => f.name,
+            ({ uri }) => URI.parse(uri).fsPath,
         ) ?? []
     );
 }

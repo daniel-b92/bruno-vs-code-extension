@@ -6,7 +6,7 @@ import {
 import { Evt } from "evt";
 import { AdditionalCollectionData, TypedCollectionItemProvider } from ".";
 
-export class HelperProvider {
+export class HelpersProvider {
     constructor(workspaceFolders: string[]) {
         this.fileChangedEmitter = Evt.create<FileChangedEvent>();
         this.collectionWatcher = new CollectionWatcher(

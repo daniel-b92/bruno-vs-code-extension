@@ -85,9 +85,11 @@ export class TextDocumentHelper {
               );
     }
 
-    public getLineByIndex(index: number) {
+    public getLineByIndex(index: number, withLineBreak = false) {
         return index < this.lines.fullLines.length
-            ? this.lines.fullLines[index].content
+            ? this.lines.fullLines[index].content.concat(
+                  withLineBreak ? this.lines.fullLines[index].lineBreak : "",
+              )
             : (this.lines.lastLine as string);
     }
 
