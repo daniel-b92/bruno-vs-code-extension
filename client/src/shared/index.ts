@@ -1,11 +1,7 @@
 // file system
 export * from "./fileSystem/interfaces";
-export * from "./fileSystem/documents/getMatchingTextContainingPosition";
 export * from "./fileSystem/util/getLineBreak";
 export * from "./fileSystem/util/positionAndRangeMapper";
-
-// language utils
-export * from "./languageUtils/getVariableNameForPositionInNonCodeBlock";
 
 // file parsing
 export * from "./fileParsing/requestFiles/getSequencesForRequests";

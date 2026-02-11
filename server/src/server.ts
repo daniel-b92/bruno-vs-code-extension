@@ -4,13 +4,21 @@ import {
     ProposedFeatures,
     TextDocumentSyncKind,
     InitializeResult,
+    TextDocumentPositionParams,
+    CancellationToken,
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { getHandlerForFormatting } from "./bruFiles/formatting/getHandlerForFormatting";
-import { HelpersProvider } from "./shared";
+import {
+    getDefaultLogger,
+    HelpersProvider,
+    LanguageFeatureBaseRequest,
+} from "./shared";
 import { URI } from "vscode-uri";
 import { runUpdatesOnWillSave } from "./bruFiles/autoUpdates/runUpdatesOnWillSave";
+import { Position, TextDocumentHelper } from "@global_shared";
+import { handleCompletion } from "./bruFiles/completions/handleCompletion";
 
 let helpersProvider: HelpersProvider;
 
@@ -50,6 +58,18 @@ connection.onDocumentFormatting(({ textDocument: { uri } }) => {
     return document ? getHandlerForFormatting(document) : undefined;
 });
 
+connection.onCompletion((params, token) => {
+    const request = mapToBaseLanguageRequest(params, token);
+
+    return request
+        ? handleCompletion(
+              request,
+              helpersProvider.getItemProvider(),
+              getDefaultLogger(),
+          )
+        : undefined;
+});
+
 documents.onWillSaveWaitUntil(async ({ document: { uri } }) => {
     const document = documents.get(uri);
     return document
@@ -74,4 +94,23 @@ async function getWorkspaceFolders() {
             ({ uri }) => URI.parse(uri).fsPath,
         ) ?? []
     );
+}
+
+function mapToBaseLanguageRequest(
+    {
+        textDocument: { uri },
+        position: { line, character },
+    }: TextDocumentPositionParams,
+    token: CancellationToken,
+): LanguageFeatureBaseRequest | undefined {
+    const document = documents.get(uri);
+
+    return document
+        ? {
+              filePath: URI.parse(uri).fsPath,
+              documentHelper: new TextDocumentHelper(document.getText()),
+              position: new Position(line, character),
+              token,
+          }
+        : undefined;
 }

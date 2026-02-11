@@ -1,12 +1,11 @@
-import { TextDocument } from "vscode";
-import { Position } from "@global_shared";
+import { Position } from "../..";
 
 export function getMatchingTextContainingPosition(
-    document: TextDocument,
     position: Position,
+    fullLineContent: string,
     pattern: RegExp,
 ) {
-    let remainingText = document.lineAt(position.line).text;
+    let remainingText = fullLineContent;
     let alreadyCheckedText = "";
 
     do {

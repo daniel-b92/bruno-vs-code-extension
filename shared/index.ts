@@ -18,6 +18,7 @@ export * from "./fileSystem/util/getTestFileDescendants";
 export * from "./fileSystem/util/isInFolderForEnvironmentFiles";
 export * from "./fileSystem/util/collectionRootFolderHelper";
 export * from "./fileSystem/util/getItemType";
+export * from "./fileSystem/util/getMatchingTextContainingPosition";
 
 // file system cache
 export * from "./fileSystemCache/external/tempJsFilesProvider";
@@ -109,6 +110,7 @@ export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockArrayBlock
 export * from "./languageUtils/commonBlocks/generic/variables/getPatternForVariablesInNonCodeBlock";
 export * from "./languageUtils/commonBlocks/generic/variables/getBlocksWithoutVariableSupport";
 export * from "./languageUtils/commonBlocks/generic/variables/groupReferencesByName";
+export * from "./languageUtils/commonBlocks/generic/variables/getVariableNameForPositionInNonCodeBlock";
 
 export * from "./languageUtils/commonBlocks/authBlocks/authBlockNameEnum";
 export * from "./languageUtils/commonBlocks/authBlocks/authBlocksKeyEnums";

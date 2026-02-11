@@ -1,105 +1,58 @@
-import { CompletionItem, CompletionItemKind, languages } from "vscode";
 import {
-    getConfiguredTestEnvironment,
-    mapFromVsCodePosition,
-    mapToVsCodeRange,
-    OutputChannelLogger,
-    getMaxSequenceForRequests,
-    TypedCollectionItemProvider,
-    TypedCollection,
-} from "@shared";
-import {
-    ApiKeyAuthBlockKey,
-    ApiKeyAuthBlockPlacementValue,
-    Block,
-    BooleanFieldValue,
     getBlocksWithoutVariableSupport,
-    getDictionaryBlockArrayField,
-    getPossibleMethodBlocks,
-    isAuthBlock,
-    MetaBlockKey,
-    MethodBlockAuth,
-    MethodBlockBody,
-    MethodBlockKey,
-    OAuth2BlockCredentialsPlacementValue,
-    OAuth2BlockTokenPlacementValue,
-    OAuth2ViaAuthorizationCodeBlockKey,
-    parseBruFile,
-    RequestFileBlockName,
-    RequestType,
-    SettingsBlockKey,
-    TextDocumentHelper,
-    VariableReferenceType,
     getMatchingTextContainingPosition,
+    Logger,
+    parseBruFile,
+    Position,
+    TextDocumentHelper,
 } from "@global_shared";
-import { basename, dirname } from "path";
-import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
-import { LanguageFeatureRequest } from "../../shared/interfaces";
 import {
-    EnvVariableNameMatchingMode,
-    getMatchingDefinitionsFromEnvFiles,
-} from "../../shared/environmentVariables/getMatchingDefinitionsFromEnvFiles";
-import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
-import { getExistingRequestFileTags } from "../shared/getExistingRequestFileTags";
+    CancellationToken,
+    CompletionItem,
+    CompletionParams,
+} from "vscode-languageserver";
+import { TextDocument } from "vscode-languageserver-textdocument";
+import {
+    LanguageFeatureBaseRequest,
+    TypedCollectionItemProvider,
+} from "../../shared";
 
-export function provideBrunoLangCompletionItems(
+export async function handleCompletion(
+    { filePath, documentHelper, position, token }: LanguageFeatureBaseRequest,
     itemProvider: TypedCollectionItemProvider,
-    logger?: OutputChannelLogger,
-) {
-    return languages.registerCompletionItemProvider(
-        getRequestFileDocumentSelector(),
-        {
-            async provideCompletionItems(document, position, token) {
-                if (token.isCancellationRequested) {
-                    addLogEntryForCancellation(logger);
-                    return undefined;
-                }
-                const request: LanguageFeatureRequest = {
-                    document,
-                    position,
-                    token,
-                };
+    logger?: Logger,
+): Promise<CompletionItem[] | undefined> {
+    const { blocks: allBlocks } = parseBruFile(documentHelper);
 
-                const { blocks: allBlocks } = parseBruFile(
-                    new TextDocumentHelper(document.getText()),
-                );
+    const blockContainingPosition = allBlocks.find(({ contentRange }) =>
+        contentRange.contains(position),
+    );
 
-                const blockContainingPosition = allBlocks.find(
-                    ({ contentRange }) =>
-                        mapToVsCodeRange(contentRange).contains(position),
-                );
+    if (!blockContainingPosition) {
+        return undefined;
+    }
 
-                if (!blockContainingPosition) {
-                    return undefined;
-                }
+    if (token.isCancellationRequested) {
+        addLogEntryForCancellation(logger);
+        return undefined;
+    }
+    const collection = itemProvider.getAncestorCollectionForPath(filePath);
 
-                if (token.isCancellationRequested) {
-                    addLogEntryForCancellation(logger);
-                    return undefined;
-                }
-                const collection = itemProvider.getAncestorCollectionForPath(
-                    document.fileName,
-                );
-
-                return (
-                    await getBlockSpecificCompletions(
-                        itemProvider,
-                        request,
-                        blockContainingPosition,
-                        collection,
-                    )
-                ).concat(
-                    collection
-                        ? getNonBlockSpecificCompletions(request, {
-                              blockContainingPosition,
-                              allBlocks,
-                              collection,
-                          })
-                        : [],
-                );
-            },
-        },
-        ...getTriggerChars(),
+    return (
+        await getBlockSpecificCompletions(
+            itemProvider,
+            request,
+            blockContainingPosition,
+            collection,
+        )
+    ).concat(
+        collection
+            ? getNonBlockSpecificCompletions(request, {
+                  blockContainingPosition,
+                  allBlocks,
+                  collection,
+              })
+            : [],
     );
 }
 
@@ -125,8 +78,8 @@ function getNonBlockSpecificCompletions(
     }
 
     const matchingTextResult = getMatchingTextContainingPosition(
+        document,
         position,
-        document.lineAt(position.line).text,
         /{{(\w|-|_|\.|\d)*/,
     );
 

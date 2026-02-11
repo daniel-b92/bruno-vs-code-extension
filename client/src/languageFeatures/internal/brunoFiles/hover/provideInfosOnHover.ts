@@ -13,12 +13,9 @@ import {
     getDictionaryBlockArrayField,
     MetaBlockKey,
     getInbuiltFunctionIdentifiers,
-} from "@global_shared";
-import {
     getVariableNameForPositionInNonCodeBlock,
-    TypedCollection,
-    TypedCollectionItemProvider,
-} from "@shared";
+} from "@global_shared";
+import { TypedCollection, TypedCollectionItemProvider } from "@shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
@@ -72,9 +69,8 @@ export function provideInfosOnHover(
                 return null;
             }
 
-            const { blocks: allBlocks } = parseBruFile(
-                new TextDocumentHelper(document.getText()),
-            );
+            const docHelper = new TextDocumentHelper(document.getText());
+            const { blocks: allBlocks } = parseBruFile(docHelper);
 
             const blockContainingPosition = allBlocks.find(({ contentRange }) =>
                 mapToVsCodeRange(contentRange).contains(position),
@@ -92,11 +88,15 @@ export function provideInfosOnHover(
                 });
             }
 
-            return getHoverForNonCodeBlocks(itemProvider, {
-                file: { collection, allBlocks, blockContainingPosition },
-                hoverRequest: { document, position, token },
-                logger,
-            });
+            return getHoverForNonCodeBlocks(
+                itemProvider,
+                {
+                    file: { collection, allBlocks, blockContainingPosition },
+                    hoverRequest: { document, position, token },
+                    logger,
+                },
+                docHelper,
+            );
         },
     });
 }
@@ -104,10 +104,11 @@ export function provideInfosOnHover(
 function getHoverForNonCodeBlocks(
     itemProvider: TypedCollectionItemProvider,
     params: ProviderParamsForNonCodeBlock,
+    docHelper: TextDocumentHelper,
 ) {
     return (
         getHoverForTagsInMetaBlock(itemProvider, params) ??
-        getHoverForVariablesInNonCodeBlocks(params)
+        getHoverForVariablesInNonCodeBlocks(params, docHelper)
     );
 }
 
@@ -254,11 +255,14 @@ function getHoverForTagsInMetaBlock(
     return getHoverForTagOccurences(document.fileName, tagOccurences[0]);
 }
 
-function getHoverForVariablesInNonCodeBlocks({
-    file: { allBlocks, collection, blockContainingPosition },
-    hoverRequest,
-    logger,
-}: ProviderParamsForNonCodeBlock) {
+function getHoverForVariablesInNonCodeBlocks(
+    {
+        file: { allBlocks, collection, blockContainingPosition },
+        hoverRequest,
+        logger,
+    }: ProviderParamsForNonCodeBlock,
+    docHelper: TextDocumentHelper,
+) {
     const { position, token } = hoverRequest;
 
     if (
@@ -269,7 +273,10 @@ function getHoverForVariablesInNonCodeBlocks({
         return undefined;
     }
 
-    const variableName = getVariableNameForPositionInNonCodeBlock(hoverRequest);
+    const variableName = getVariableNameForPositionInNonCodeBlock({
+        documentHelper: docHelper,
+        position: mapFromVsCodePosition(position),
+    });
 
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
