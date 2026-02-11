@@ -85,7 +85,6 @@ export function updatePathParamsKeysToMatchUrl(
             );
 
             return removeEntriesFromPathParamsBlock(
-                docHelper,
                 paramsToRemove,
                 pathParamsBlocks[0].content,
             );
@@ -129,7 +128,6 @@ function removeBlock(allBlocks: Block[], pathParamsBlock: DictionaryBlock) {
 }
 
 function removeEntriesFromPathParamsBlock(
-    docHelper: TextDocumentHelper,
     paramsToRemove: string[],
     pathParamsBlockFields: DictionaryBlockSimpleField[],
 ) {
@@ -139,11 +137,7 @@ function removeEntriesFromPathParamsBlock(
             ({ valueRange }) =>
                 new Range(
                     new Position(valueRange.start.line, 0),
-                    new Position(
-                        valueRange.end.line,
-                        docHelper.getLineByIndex(valueRange.end.line, true)
-                            .length,
-                    ),
+                    new Position(valueRange.end.line + 1, 0),
                 ),
         );
 
