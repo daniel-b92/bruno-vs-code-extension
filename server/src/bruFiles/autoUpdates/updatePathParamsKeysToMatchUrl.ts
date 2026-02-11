@@ -14,9 +14,9 @@ import {
     Range,
     Position,
     LineBreakType,
+    getSortedBlocksByPosition,
 } from "@global_shared";
 import { TextEdit } from "vscode-languageserver";
-import { getSortedBlocksByPosition } from "../shared/getSortedBlocksByPosition";
 
 export function updatePathParamsKeysToMatchUrl(
     docHelper: TextDocumentHelper,

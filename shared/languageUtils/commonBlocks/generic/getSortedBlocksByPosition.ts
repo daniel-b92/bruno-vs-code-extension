@@ -1,4 +1,4 @@
-import { Block } from "@global_shared";
+import { Block } from "../../..";
 
 export function getSortedBlocksByPosition(unsorted: Block[]) {
     return unsorted.slice().sort(

@@ -95,6 +95,7 @@ export * from "./languageUtils/commonBlocks/generic/blockBracketEnum";
 export * from "./languageUtils/commonBlocks/generic/getCodeBlocks";
 export * from "./languageUtils/commonBlocks/generic/getDefaultIndentationForDictionaryBlockFields";
 export * from "./languageUtils/commonBlocks/generic/getFieldFromDictionaryBlock";
+export * from "./languageUtils/commonBlocks/generic/getSortedBlocksByPosition";
 
 export * from "./languageUtils/commonBlocks/generic/runtimeBehavior/getBlockRuntimeExecutionGroup";
 export * from "./languageUtils/commonBlocks/generic/runtimeBehavior/getBlocksWithEarlierExecutionGroups";
