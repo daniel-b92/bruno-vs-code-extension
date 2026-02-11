@@ -42,10 +42,7 @@ connection.onInitialized(async () => {
     const workspaceFolders = await getWorkspaceFolders();
     helpersProvider = new HelpersProvider(workspaceFolders);
 
-    connection.console.info("Starting to refresh cache...");
     await helpersProvider.getItemProvider().refreshCache(workspaceFolders);
-
-    connection.console.info("Done refreshing cache.");
 });
 
 connection.onDocumentFormatting(({ textDocument: { uri } }) => {
