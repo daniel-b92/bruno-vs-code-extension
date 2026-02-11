@@ -22,8 +22,6 @@ import {
     FileSystemCacheSyncingHelper,
 } from "@shared";
 import {
-    parseBruFile,
-    TextDocumentHelper,
     checkIfPathExistsAsync,
     getExtensionForBrunoFiles,
     normalizeDirectoryPath,
@@ -39,8 +37,6 @@ import {
     getItemType,
 } from "@global_shared";
 import { BrunoLangDiagnosticsProvider } from "./internal/brunoFiles/diagnostics/brunoLangDiagnosticsProvider";
-import { updateUrlToMatchQueryParams } from "./internal/brunoFiles/autoUpdates/updateUrlToMatchQueryParams";
-import { updatePathParamsKeysToMatchUrl } from "./internal/brunoFiles/autoUpdates/updatePathParamsKeysToMatchUrl";
 import { provideTsLangCompletionItems } from "./internal/brunoFiles/completionItems/provideTsLangCompletionItems";
 import { provideInfosOnHover as provideInfosOnHoverForBruFiles } from "./internal/brunoFiles/hover/provideInfosOnHover";
 import { provideSignatureHelp as provideSignatureHelpForBruFiles } from "./internal/brunoFiles/signatureHelp/provideSignatureHelp";
@@ -443,34 +439,10 @@ async function onWillSaveBruDocument(
 
     if (
         brunoFileType != undefined &&
-        getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType)
+        getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType) &&
+        itemProvider.getAncestorCollectionForPath(document.fileName)
     ) {
-        const collection = itemProvider.getAncestorCollectionForPath(
-            document.fileName,
-        );
-
-        if (collection) {
-            deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
-        }
-
-        if (
-            window.activeTextEditor &&
-            window.activeTextEditor.document.uri.toString() ==
-                document.uri.toString()
-        ) {
-            const { blocks: parsedBlocks } = parseBruFile(
-                new TextDocumentHelper(document.getText()),
-            );
-
-            window.activeTextEditor.edit((editBuilder) => {
-                updateUrlToMatchQueryParams(editBuilder, parsedBlocks);
-                updatePathParamsKeysToMatchUrl(
-                    document,
-                    editBuilder,
-                    parsedBlocks,
-                );
-            });
-        }
+        deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
     }
 }
 

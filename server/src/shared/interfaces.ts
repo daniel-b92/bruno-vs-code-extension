@@ -1,5 +1,3 @@
-import { BrunoTreeItem } from "src/treeView/brunoTreeItem";
-import { TestItem } from "vscode";
 import {
     Collection,
     CollectionData,
@@ -13,7 +11,4 @@ export type TypedCollection = Collection<AdditionalCollectionData>;
 
 export type TypedCollectionData = CollectionData<AdditionalCollectionData>;
 
-export interface AdditionalCollectionData {
-    treeItem: BrunoTreeItem;
-    testItem: TestItem;
-}
+export type AdditionalCollectionData = void;

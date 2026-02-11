@@ -29,11 +29,11 @@ import { Evt } from "evt";
 import {
     CollectionWatcher,
     FileChangedEvent,
-    getTemporaryJsFileBasenameWithoutExtension,
     CollectionItem,
     isRequestFile,
     isCollectionItemWithSequence,
     CollectionItemProvider,
+    getPathsToIgnoreForCollections,
 } from "@global_shared";
 import { BrunoTreeItem } from "./treeView/brunoTreeItem";
 
@@ -215,14 +215,6 @@ function getAdditionalCollectionDataCreator(
         ),
         testItem: testRunnerDataHelper.createVsCodeTestItem(item),
     });
-}
-
-function getPathsToIgnoreForCollections() {
-    return [
-        new RegExp(
-            `(/|\\\\)${getTemporaryJsFileBasenameWithoutExtension()}\\.js`,
-        ),
-    ];
 }
 
 function getExtensionNameLabel() {
