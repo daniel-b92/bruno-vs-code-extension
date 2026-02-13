@@ -11,9 +11,7 @@ import {
     mapToVsCodeRange,
     OutputChannelLogger,
     mapFromVsCodePosition,
-    getConfiguredTestEnvironment,
     TypedCollectionItemProvider,
-    TypedCollection,
 } from "@shared";
 import {
     parseBruFile,
@@ -21,20 +19,11 @@ import {
     RequestFileBlockName,
     Block,
     getCodeBlocks,
-    VariableReferenceType,
-    getFirstParameterForInbuiltFunctionIfStringLiteral,
-    getInbuiltFunctionIdentifiers,
-    getInbuiltFunctionType,
-    getMatchingDefinitionsFromEnvFiles,
-    EnvVariableNameMatchingMode,
 } from "@global_shared";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
-import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
-import { LanguageFeatureRequest } from "../../shared/interfaces";
-import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
 import {
     TempJsSyncRequest,
     waitForTempJsFileToBeInSync,
@@ -86,38 +75,7 @@ export function provideTsLangCompletionItems(
                     return undefined;
                 }
 
-                const envVariableResult =
-                    getFirstParameterForInbuiltFunctionIfStringLiteral(
-                        mapToEnvVarNameParams(
-                            {
-                                file: {
-                                    collection,
-                                    blockContainingPosition,
-                                },
-                                request: { document, position, token },
-                                logger,
-                            },
-                            getInbuiltFunctionIdentifiers(),
-                        ),
-                    );
-
-                if (envVariableResult) {
-                    const { inbuiltFunction, variableName } = envVariableResult;
-
-                    return getResultsForEnvironmentVariable(
-                        variableName,
-                        {
-                            collection,
-                            functionType:
-                                getInbuiltFunctionType(inbuiltFunction),
-                            blockContainingPosition,
-                            allBlocks,
-                        },
-                        { document, position, token },
-                        logger,
-                    );
-                }
-
+                // ToDo: Do not fetch completions from temp JS file, if completions are already provided by the server (for environment variables e.g.).
                 return getResultsViaTempJsFile(
                     queue,
                     {
@@ -138,55 +96,6 @@ export function provideTsLangCompletionItems(
         '"',
         "'",
         "`",
-    );
-}
-
-function getResultsForEnvironmentVariable(
-    variableName: string,
-    additionalData: {
-        collection: TypedCollection;
-        functionType: VariableReferenceType;
-        blockContainingPosition: Block;
-        allBlocks: Block[];
-    },
-    { position, token }: LanguageFeatureRequest,
-    logger?: OutputChannelLogger,
-) {
-    const { collection, functionType, allBlocks, blockContainingPosition } =
-        additionalData;
-
-    const matchingStaticEnvVariableDefinitions =
-        getMatchingDefinitionsFromEnvFiles(
-            collection,
-            variableName,
-            EnvVariableNameMatchingMode.Ignore,
-            getConfiguredTestEnvironment(),
-        );
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return [];
-    }
-
-    return mapEnvVariablesToCompletions(
-        matchingStaticEnvVariableDefinitions.map(
-            ({ file, matchingVariables, isConfiguredEnv }) => ({
-                environmentFile: file,
-                matchingVariableKeys: matchingVariables.map(({ key }) => key),
-                isConfiguredEnv,
-            }),
-        ),
-        {
-            requestData: {
-                collection,
-                functionType,
-                requestPosition: position,
-                variableName,
-                token,
-            },
-            bruFileSpecificData: { allBlocks, blockContainingPosition },
-            logger,
-        },
     );
 }
 
