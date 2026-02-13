@@ -26,10 +26,12 @@ export * from "./fileSystemCache/external/collectionItemProvider";
 export * from "./fileSystemCache/external/isBrunoFileType";
 export * from "./fileSystemCache/external/getDistinctTagsForCollection";
 export * from "./fileSystemCache/external/getPathsToIgnoreForCollections";
+export * from "./fileSystemCache/external/getExistingRequestFileTags";
 
 // file parsing
 export * from "./fileParsing/external/parseBruFile";
 export * from "./fileParsing/external/parseCodeBlock";
+export * from "./fileParsing/external/getSequenceForFile";
 export * from "./fileParsing/external/shared/getSequenceFieldFromMetaBlock";
 export * from "./fileParsing/external/shared/parseSequenceFromMetaBlock";
 export * from "./fileParsing/external/shared/util/getBlockStartPatternByName";
@@ -39,6 +41,8 @@ export * from "./fileParsing/external/shared/util/getNonBlockSpecificBlockStartP
 export * from "./fileParsing/external/parseBlockFromFile";
 export * from "./fileParsing/external/folderSettings/getSequenceForFolder";
 export * from "./fileParsing/external/folderSettings/getFolderSettingsFilePath";
+export * from "./fileParsing/external/requestFiles/getSequencesForRequests";
+export * from "./fileParsing/external/requestFiles/getMaxSequenceForRequests";
 
 // model
 export * from "./baseModel/collection";
@@ -53,6 +57,9 @@ export * from "./baseModel/typeguards/isRequestFile";
 
 // logging
 export * from "./logging/interfaces";
+
+// vscode settings
+export * from "./vsCodeSettings/getEnvironmentSettingsKey";
 
 // language utils
 export * from "./languageUtils/blockInterfaces";
@@ -70,6 +77,7 @@ export * from "./languageUtils/requestFiles/paramsBlocks/isParamsBlock";
 // language utils - environment files
 export * from "./languageUtils/environmentFiles/environmentFileBlockNameEnum";
 export { isVarsBlock as isVarsBlockInEnvironmentFile } from "./languageUtils/environmentFiles/isVarsBlock";
+export * from "./languageUtils/environmentFiles/getMatchingDefinitionsFromEnvFiles";
 
 // language utils - common blocks
 export * from "./languageUtils/commonBlocks/getMethodBlockBodyFieldValueForBodyName";

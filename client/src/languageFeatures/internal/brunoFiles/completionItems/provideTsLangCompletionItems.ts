@@ -25,16 +25,14 @@ import {
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
     getInbuiltFunctionType,
+    getMatchingDefinitionsFromEnvFiles,
+    EnvVariableNameMatchingMode,
 } from "@global_shared";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
-import {
-    EnvVariableNameMatchingMode,
-    getMatchingDefinitionsFromEnvFiles,
-} from "../../shared/environmentVariables/getMatchingDefinitionsFromEnvFiles";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
 import {

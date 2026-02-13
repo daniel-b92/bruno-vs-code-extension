@@ -4,14 +4,14 @@ import {
     groupReferencesByName,
     getExtensionForBrunoFiles,
     VariableReferenceType,
+    Logger,
 } from "@global_shared";
-import { OutputChannelLogger } from "@shared";
+import { getDynamicVariableReferences } from "../bruFiles/shared/getDynamicVariableReferences";
 import {
     EnvVariableBruFileSpecificData,
     EnvVariableCommonRequestData,
     EnvVariableRequest,
-} from "../interfaces";
-import { getDynamicVariableReferences } from "../../brunoFiles/shared/getDynamicVariableReferences";
+} from "./interfaces";
 
 export function mapEnvVariablesToCompletions(
     matchingStaticEnvVariables: {
@@ -55,7 +55,7 @@ function mapDynamicEnvVariables(
     requestData: EnvVariableCommonRequestData,
     bruFileSpecificData: EnvVariableBruFileSpecificData,
     prefixForSortText: string,
-    logger?: OutputChannelLogger,
+    logger?: Logger,
 ) {
     const { allBlocks, blockContainingPosition } = bruFileSpecificData;
     const { functionType, requestPosition, token } = requestData;
@@ -140,6 +140,6 @@ function mapStaticEnvVariables(
     );
 }
 
-function addLogEntryForCancellation(logger?: OutputChannelLogger) {
+function addLogEntryForCancellation(logger?: Logger) {
     logger?.debug(`Cancellation requested for completion provider.`);
 }

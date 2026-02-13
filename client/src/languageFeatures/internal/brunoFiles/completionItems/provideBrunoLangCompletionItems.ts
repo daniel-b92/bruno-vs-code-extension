@@ -4,7 +4,6 @@ import {
     mapFromVsCodePosition,
     mapToVsCodeRange,
     OutputChannelLogger,
-    getMaxSequenceForRequests,
     TypedCollectionItemProvider,
     TypedCollection,
 } from "@shared";
@@ -31,16 +30,15 @@ import {
     TextDocumentHelper,
     VariableReferenceType,
     getMatchingTextContainingPosition,
+    getMatchingDefinitionsFromEnvFiles,
+    EnvVariableNameMatchingMode,
+    getMaxSequenceForRequests,
+    getExistingRequestFileTags,
 } from "@global_shared";
 import { basename, dirname } from "path";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
-import {
-    EnvVariableNameMatchingMode,
-    getMatchingDefinitionsFromEnvFiles,
-} from "../../shared/environmentVariables/getMatchingDefinitionsFromEnvFiles";
 import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
-import { getExistingRequestFileTags } from "../shared/getExistingRequestFileTags";
 
 export function provideBrunoLangCompletionItems(
     itemProvider: TypedCollectionItemProvider,

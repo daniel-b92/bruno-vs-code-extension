@@ -1,27 +1,47 @@
 import {
+    ApiKeyAuthBlockKey,
+    ApiKeyAuthBlockPlacementValue,
+    Block,
+    BooleanFieldValue,
+    EnvVariableNameMatchingMode,
     getBlocksWithoutVariableSupport,
+    getDictionaryBlockArrayField,
+    getExistingRequestFileTags,
+    getMatchingDefinitionsFromEnvFiles,
     getMatchingTextContainingPosition,
+    getMaxSequenceForRequests,
+    getPossibleMethodBlocks,
+    isAuthBlock,
     Logger,
+    MetaBlockKey,
+    MethodBlockAuth,
+    MethodBlockBody,
+    MethodBlockKey,
+    OAuth2BlockCredentialsPlacementValue,
+    OAuth2BlockTokenPlacementValue,
+    OAuth2ViaAuthorizationCodeBlockKey,
     parseBruFile,
-    Position,
-    TextDocumentHelper,
+    RequestFileBlockName,
+    RequestType,
+    SettingsBlockKey,
+    VariableReferenceType,
 } from "@global_shared";
-import {
-    CancellationToken,
-    CompletionItem,
-    CompletionParams,
-} from "vscode-languageserver";
-import { TextDocument } from "vscode-languageserver-textdocument";
+import { CompletionItem } from "vscode-languageserver";
 import {
     LanguageFeatureBaseRequest,
+    mapEnvVariablesToCompletions,
+    TypedCollection,
     TypedCollectionItemProvider,
 } from "../../shared";
+import { dirname } from "path";
 
 export async function handleCompletion(
-    { filePath, documentHelper, position, token }: LanguageFeatureBaseRequest,
+    baseRequest: LanguageFeatureBaseRequest,
     itemProvider: TypedCollectionItemProvider,
+    configuredEnvironment?: string,
     logger?: Logger,
 ): Promise<CompletionItem[] | undefined> {
+    const { documentHelper, position, token, filePath } = baseRequest;
     const { blocks: allBlocks } = parseBruFile(documentHelper);
 
     const blockContainingPosition = allBlocks.find(({ contentRange }) =>
@@ -41,33 +61,38 @@ export async function handleCompletion(
     return (
         await getBlockSpecificCompletions(
             itemProvider,
-            request,
+            baseRequest,
             blockContainingPosition,
             collection,
         )
     ).concat(
         collection
-            ? getNonBlockSpecificCompletions(request, {
-                  blockContainingPosition,
-                  allBlocks,
-                  collection,
-              })
+            ? getNonBlockSpecificCompletions(
+                  baseRequest,
+                  {
+                      blockContainingPosition,
+                      allBlocks,
+                      collection,
+                  },
+                  configuredEnvironment,
+                  logger,
+              )
             : [],
     );
 }
 
 function getNonBlockSpecificCompletions(
-    request: LanguageFeatureRequest,
+    request: LanguageFeatureBaseRequest,
     file: {
         blockContainingPosition: Block;
         allBlocks: Block[];
         collection: TypedCollection;
     },
-    logger?: OutputChannelLogger,
+    configuredEnvironment?: string,
+    logger?: Logger,
 ) {
     const { blockContainingPosition, allBlocks, collection } = file;
-    const { document, position: vsCodePosition, token } = request;
-    const position = mapFromVsCodePosition(vsCodePosition);
+    const { documentHelper, position, token } = request;
 
     if (
         (getBlocksWithoutVariableSupport() as string[]).includes(
@@ -78,8 +103,8 @@ function getNonBlockSpecificCompletions(
     }
 
     const matchingTextResult = getMatchingTextContainingPosition(
-        document,
         position,
+        documentHelper.getLineByIndex(position.line),
         /{{(\w|-|_|\.|\d)*/,
     );
 
@@ -104,7 +129,7 @@ function getNonBlockSpecificCompletions(
             collection,
             variableName,
             EnvVariableNameMatchingMode.Ignore,
-            getConfiguredTestEnvironment(),
+            configuredEnvironment,
         );
 
     if (matchingStaticEnvVariableDefinitions.length == 0) {
@@ -129,7 +154,7 @@ function getNonBlockSpecificCompletions(
                 collection,
                 variableName,
                 functionType: VariableReferenceType.Read, // In non-code blocks, variables can not be set.
-                requestPosition: vsCodePosition,
+                requestPosition: position,
                 token,
             },
             bruFileSpecificData: { blockContainingPosition, allBlocks },
@@ -140,7 +165,7 @@ function getNonBlockSpecificCompletions(
 
 async function getBlockSpecificCompletions(
     itemProvider: TypedCollectionItemProvider,
-    request: LanguageFeatureRequest,
+    request: LanguageFeatureBaseRequest,
     blockContainingPosition: Block,
     collection?: TypedCollection,
 ) {
@@ -168,14 +193,14 @@ async function getBlockSpecificCompletions(
 
 async function getMetaBlockSpecificCompletions(
     itemProvider: TypedCollectionItemProvider,
-    request: LanguageFeatureRequest,
+    request: LanguageFeatureBaseRequest,
     metaBlock: Block,
     collection?: TypedCollection,
 ) {
-    const { document, position } = request;
+    const { documentHelper, filePath, position } = request;
 
     const getSequenceFieldCompletion = async () => {
-        const currentText = document.lineAt(position.line).text;
+        const currentText = documentHelper.getLineByIndex(position.line);
         const sequencePattern = new RegExp(
             `^\\s*${MetaBlockKey.Sequence}:\\s*\\d*`,
             "m",
@@ -188,7 +213,7 @@ async function getMetaBlockSpecificCompletions(
         const suggestedSequence =
             ((await getMaxSequenceForRequests(
                 itemProvider,
-                dirname(document.fileName),
+                dirname(filePath),
             )) ?? 0) + 1;
 
         const completion = new CompletionItem(suggestedSequence.toString());
@@ -209,7 +234,7 @@ async function getMetaBlockSpecificCompletions(
         const isWithinValues = tagsField.plainTextWithinValues
             .map(({ range }) => range)
             .concat(tagsField.values.map(({ range }) => range))
-            .some((range) => mapToVsCodeRange(range).contains(position));
+            .some((range) => range.contains(position));
 
         if (!isWithinValues || !collection) {
             return [];
@@ -217,7 +242,7 @@ async function getMetaBlockSpecificCompletions(
 
         const tagsByCollections = getExistingRequestFileTags(itemProvider, {
             collection,
-            pathToIgnore: document.fileName,
+            pathToIgnore: filePath,
         });
 
         return tagsByCollections
@@ -270,7 +295,9 @@ async function getMetaBlockSpecificCompletions(
     );
 }
 
-function getMethodBlockSpecificCompletions(request: LanguageFeatureRequest) {
+function getMethodBlockSpecificCompletions(
+    request: LanguageFeatureBaseRequest,
+) {
     return getFixedCompletionItems(
         [
             {
@@ -290,7 +317,7 @@ function getMethodBlockSpecificCompletions(request: LanguageFeatureRequest) {
     );
 }
 
-function getAuthBlockSpecificCompletions(request: LanguageFeatureRequest) {
+function getAuthBlockSpecificCompletions(request: LanguageFeatureBaseRequest) {
     return getFixedCompletionItems(
         [
             {
@@ -334,7 +361,9 @@ function getAuthBlockSpecificCompletions(request: LanguageFeatureRequest) {
     );
 }
 
-function getSettingsBlockSpecificCompletions(request: LanguageFeatureRequest) {
+function getSettingsBlockSpecificCompletions(
+    request: LanguageFeatureBaseRequest,
+) {
     return getFixedCompletionItems(
         [
             {
@@ -365,9 +394,9 @@ function getFixedCompletionItems(
         linePattern: RegExp;
         choices: string[];
     }[],
-    { document, position }: LanguageFeatureRequest,
+    { documentHelper, position }: LanguageFeatureBaseRequest,
 ) {
-    const currentText = document.lineAt(position.line).text;
+    const currentText = documentHelper.getLineByIndex(position.line);
 
     const items: CompletionItem[] = [];
 
@@ -387,15 +416,11 @@ function getFixedCompletionItems(
     return items;
 }
 
-function getTriggerChars() {
-    return [":", " ", "{"];
-}
-
 function getLinePatternForDictionaryField(key: string) {
     return new RegExp(`^\\s*${key}:\\s*$`);
 }
 
-function addLogEntryForCancellation(logger?: OutputChannelLogger) {
+function addLogEntryForCancellation(logger?: Logger) {
     logger?.debug(
         `Cancellation requested for completion provider for bruno language.`,
     );

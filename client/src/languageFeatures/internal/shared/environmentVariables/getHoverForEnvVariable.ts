@@ -1,17 +1,17 @@
 import { basename } from "path";
 import { Hover, MarkdownString } from "vscode";
-import { getExtensionForBrunoFiles } from "@global_shared";
-import { OutputChannelLogger, getConfiguredTestEnvironment } from "@shared";
 import {
-    getMatchingDefinitionsFromEnvFiles,
     EnvVariableNameMatchingMode,
-} from "./getMatchingDefinitionsFromEnvFiles";
-import { getDynamicVariableReferences } from "../../brunoFiles/shared/getDynamicVariableReferences";
+    getExtensionForBrunoFiles,
+    getMatchingDefinitionsFromEnvFiles,
+} from "@global_shared";
+import { OutputChannelLogger, getConfiguredTestEnvironment } from "@shared";
 import {
     EnvVariableBruFileSpecificData,
     EnvVariableCommonRequestData,
     EnvVariableRequest,
 } from "../interfaces";
+import { getDynamicVariableReferences } from "../../brunoFiles/shared/getDynamicVariableReferences";
 
 export function getHoverForEnvVariable({
     requestData,

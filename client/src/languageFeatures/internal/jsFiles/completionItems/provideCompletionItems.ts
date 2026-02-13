@@ -5,6 +5,8 @@ import {
     getInbuiltFunctionIdentifiers,
     Position,
     getInbuiltFunctionType,
+    getMatchingDefinitionsFromEnvFiles,
+    EnvVariableNameMatchingMode,
 } from "@global_shared";
 import {
     OutputChannelLogger,
@@ -14,10 +16,6 @@ import {
     TypedCollection,
 } from "@shared";
 import { getJsFileDocumentSelector } from "../shared/getJsFileDocumentSelector";
-import {
-    EnvVariableNameMatchingMode,
-    getMatchingDefinitionsFromEnvFiles,
-} from "../../shared/environmentVariables/getMatchingDefinitionsFromEnvFiles";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
 import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
 

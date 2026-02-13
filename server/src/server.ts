@@ -17,7 +17,11 @@ import {
 } from "./shared";
 import { URI } from "vscode-uri";
 import { runUpdatesOnWillSave } from "./bruFiles/autoUpdates/runUpdatesOnWillSave";
-import { Position, TextDocumentHelper } from "@global_shared";
+import {
+    getEnvironmentSettingsKey,
+    Position,
+    TextDocumentHelper,
+} from "@global_shared";
 import { handleCompletion } from "./bruFiles/completions/handleCompletion";
 
 let helpersProvider: HelpersProvider;
@@ -58,13 +62,17 @@ connection.onDocumentFormatting(({ textDocument: { uri } }) => {
     return document ? getHandlerForFormatting(document) : undefined;
 });
 
-connection.onCompletion((params, token) => {
+connection.onCompletion(async (params, token) => {
+    const configuredEnvironment = (await connection.workspace.getConfiguration(
+        getEnvironmentSettingsKey(),
+    )) as string | undefined;
     const request = mapToBaseLanguageRequest(params, token);
 
     return request
         ? handleCompletion(
               request,
               helpersProvider.getItemProvider(),
+              configuredEnvironment,
               getDefaultLogger(),
           )
         : undefined;

@@ -14,8 +14,14 @@ import {
     MetaBlockKey,
     getInbuiltFunctionIdentifiers,
     getVariableNameForPositionInNonCodeBlock,
+    getExistingRequestFileTags,
+    TagOccurences,
 } from "@global_shared";
-import { TypedCollection, TypedCollectionItemProvider } from "@shared";
+import {
+    AdditionalCollectionData,
+    TypedCollection,
+    TypedCollectionItemProvider,
+} from "@shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
@@ -29,10 +35,6 @@ import {
     mapToVsCodeRange,
     OutputChannelLogger,
 } from "@shared";
-import {
-    getExistingRequestFileTags,
-    TagOccurences,
-} from "../shared/getExistingRequestFileTags";
 import { basename } from "path";
 import { waitForTempJsFileToBeInSync } from "../../shared/temporaryJsFilesUpdates/external/waitForTempJsFileToBeInSync";
 
@@ -300,7 +302,10 @@ function getHoverForVariablesInNonCodeBlocks(
 
 function getHoverForTagOccurences(
     filePath: string,
-    { pathsInOwnCollection, inOtherCollections }: TagOccurences,
+    {
+        pathsInOwnCollection,
+        inOtherCollections,
+    }: TagOccurences<AdditionalCollectionData>,
 ) {
     const lineBreak = getLineBreak();
     const tableHeader = `| collection | usages |
