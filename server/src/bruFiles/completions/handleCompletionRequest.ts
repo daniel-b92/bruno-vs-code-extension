@@ -28,7 +28,11 @@ import {
     SettingsBlockKey,
     VariableReferenceType,
 } from "@global_shared";
-import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
+import {
+    CompletionItem,
+    CompletionItemKind,
+    TextEdit,
+} from "vscode-languageserver";
 import {
     LanguageFeatureBaseRequest,
     mapEnvVariablesToCompletions,
@@ -37,7 +41,7 @@ import {
 } from "../../shared";
 import { basename, dirname } from "path";
 
-export async function handleCompletion(
+export async function handleCompletionRequest(
     baseRequest: LanguageFeatureBaseRequest,
     itemProvider: TypedCollectionItemProvider,
     configuredEnvironment?: string,
@@ -205,7 +209,7 @@ async function getMetaBlockSpecificCompletions(
         const { line } = position;
         const currentText = documentHelper.getLineByIndex(line);
         const sequencePattern = new RegExp(
-            `^\\s*${MetaBlockKey.Sequence}:\\s*\\d*`,
+            `^\\s*${MetaBlockKey.Sequence}:.*$`,
             "m",
         );
 
@@ -224,7 +228,7 @@ async function getMetaBlockSpecificCompletions(
             textEdit: {
                 newText: ` ${suggestedSequence}`,
                 range: new Range(
-                    new Position(line, currentText.indexOf(":" + 1)),
+                    new Position(line, currentText.indexOf(":") + 1),
                     new Position(line, currentText.length),
                 ),
             },
@@ -406,27 +410,44 @@ function getFixedCompletionItems(
         linePattern: RegExp;
         choices: string[];
     }[],
-    { documentHelper, position }: LanguageFeatureBaseRequest,
-) {
-    const currentText = documentHelper.getLineByIndex(position.line);
+    { documentHelper, position: { line } }: LanguageFeatureBaseRequest,
+): CompletionItem[] {
+    const currentText = documentHelper.getLineByIndex(line);
 
-    const items: CompletionItem[] = [];
-
-    for (const { linePattern, choices } of params) {
-        if (currentText.match(linePattern)) {
-            items.push(
-                ...choices.map((choice) => ({
-                    label: `${currentText.endsWith(" ") ? "" : " "}${choice}`,
-                })),
-            );
+    return params.flatMap(({ linePattern, choices }) => {
+        if (!currentText.match(linePattern)) {
+            return [];
         }
-    }
 
-    return items;
+        return choices.map((choice) => ({
+            label: choice,
+            textEdit: getTextEditForDictionaryBlockSimpleValue(
+                line,
+                currentText,
+                choice,
+            ),
+        }));
+    });
+}
+
+function getTextEditForDictionaryBlockSimpleValue(
+    lineIndex: number,
+    textInLine: string,
+    value: string,
+): TextEdit | undefined {
+    return textInLine.includes(":")
+        ? {
+              newText: ` ${value}`,
+              range: new Range(
+                  new Position(lineIndex, textInLine.indexOf(":") + 1),
+                  new Position(lineIndex, textInLine.length),
+              ),
+          }
+        : undefined;
 }
 
 function getLinePatternForDictionaryField(key: string) {
-    return new RegExp(`^\\s*${key}:\\s*$`);
+    return new RegExp(`^\\s*${key}:.*$`, "m");
 }
 
 function addLogEntryForCancellation(logger?: Logger) {

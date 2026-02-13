@@ -22,7 +22,7 @@ import {
     Position,
     TextDocumentHelper,
 } from "@global_shared";
-import { handleCompletion } from "./bruFiles/completions/handleCompletion";
+import { handleCompletionRequest } from "./bruFiles/completions/handleCompletionRequest";
 
 let helpersProvider: HelpersProvider;
 
@@ -45,6 +45,10 @@ connection.onInitialize(async () => {
                 save: true,
             },
             documentFormattingProvider: true,
+            completionProvider: {
+                triggerCharacters: [":", " ", "{"],
+                completionItem: { labelDetailsSupport: true },
+            },
         },
     };
     return result;
@@ -69,7 +73,7 @@ connection.onCompletion(async (params, token) => {
     const request = mapToBaseLanguageRequest(params, token);
 
     return request
-        ? handleCompletion(
+        ? handleCompletionRequest(
               request,
               helpersProvider.getItemProvider(),
               configuredEnvironment,
