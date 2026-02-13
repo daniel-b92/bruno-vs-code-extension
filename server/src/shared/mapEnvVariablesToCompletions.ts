@@ -1,5 +1,4 @@
 import { basename } from "path";
-import { CompletionItem, CompletionItemKind } from "vscode";
 import {
     groupReferencesByName,
     getExtensionForBrunoFiles,
@@ -12,6 +11,7 @@ import {
     EnvVariableCommonRequestData,
     EnvVariableRequest,
 } from "./interfaces";
+import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 
 export function mapEnvVariablesToCompletions(
     matchingStaticEnvVariables: {
@@ -42,11 +42,7 @@ export function mapEnvVariablesToCompletions(
                               ({ matchingVariableKeys }) =>
                                   matchingVariableKeys,
                           )
-                          .some((key) =>
-                              typeof label == "string"
-                                  ? key == label
-                                  : key == label.label,
-                          ),
+                          .some((key) => key == label),
               ),
     );
 }
@@ -87,22 +83,23 @@ function mapDynamicEnvVariables(
                 totalNumberOfReferences,
             },
         }) => {
-            const completionItem = new CompletionItem({
+            const completionItem: CompletionItem = {
                 label: variableName,
-                detail:
-                    hasDuplicateReferences && distinctBlocks.length > 1
-                        ? `  Blocks '${distinctBlocks.join("','")}'`
-                        : `  Block '${blockName}'`,
-            });
-
-            completionItem.kind =
-                referenceType == VariableReferenceType.Read
-                    ? CompletionItemKind.Field
-                    : CompletionItemKind.Function;
-            completionItem.detail = hasDuplicateReferences
-                ? `Found a total of ${totalNumberOfReferences} relevant references in ${distinctBlocks.length > 1 ? `blocks ${JSON.stringify(distinctBlocks)}` : `block '${blockName}'`}.`
-                : undefined;
-            completionItem.sortText = `${prefixForSortText}_${blockName}_${variableName}`;
+                labelDetails: {
+                    description:
+                        hasDuplicateReferences && distinctBlocks.length > 1
+                            ? `  Blocks '${distinctBlocks.join("','")}'`
+                            : `  Block '${blockName}'`,
+                },
+                kind:
+                    referenceType == VariableReferenceType.Read
+                        ? CompletionItemKind.Field
+                        : CompletionItemKind.Function,
+                detail: hasDuplicateReferences
+                    ? `Found a total of ${totalNumberOfReferences} relevant references in ${distinctBlocks.length > 1 ? `blocks ${JSON.stringify(distinctBlocks)}` : `block '${blockName}'`}.`
+                    : undefined,
+                sortText: `${prefixForSortText}_${blockName}_${variableName}`,
+            };
 
             return completionItem;
         },
@@ -125,16 +122,18 @@ function mapStaticEnvVariables(
                     environmentFile,
                     getExtensionForBrunoFiles(),
                 );
-                const completionItem = new CompletionItem({
+                const completionItem: CompletionItem = {
                     label: key,
-                    description: `${functionType === VariableReferenceType.Write ? "!Env!" : "Env"} '${environmentName}'`,
-                });
-                completionItem.detail =
-                    functionType == VariableReferenceType.Write
-                        ? `WARNING: Will overwrite static environment variable from env '${environmentName}'`
-                        : undefined;
-                completionItem.kind = CompletionItemKind.Constant;
-                completionItem.sortText = `${prefixForSortText}_${isConfiguredEnv ? "a" : "b"}_${environmentName}_${key}`;
+                    labelDetails: {
+                        description: `${functionType === VariableReferenceType.Write ? "!Env!" : "Env"} '${environmentName}'`,
+                    },
+                    detail:
+                        functionType == VariableReferenceType.Write
+                            ? `WARNING: Will overwrite static environment variable from env '${environmentName}'`
+                            : undefined,
+                    kind: CompletionItemKind.Constant,
+                    sortText: `${prefixForSortText}_${isConfiguredEnv ? "a" : "b"}_${environmentName}_${key}`,
+                };
                 return completionItem;
             }),
     );

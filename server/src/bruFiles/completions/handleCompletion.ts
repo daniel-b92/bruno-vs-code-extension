@@ -21,19 +21,21 @@ import {
     OAuth2BlockTokenPlacementValue,
     OAuth2ViaAuthorizationCodeBlockKey,
     parseBruFile,
+    Position,
+    Range,
     RequestFileBlockName,
     RequestType,
     SettingsBlockKey,
     VariableReferenceType,
 } from "@global_shared";
-import { CompletionItem } from "vscode-languageserver";
+import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 import {
     LanguageFeatureBaseRequest,
     mapEnvVariablesToCompletions,
     TypedCollection,
     TypedCollectionItemProvider,
 } from "../../shared";
-import { dirname } from "path";
+import { basename, dirname } from "path";
 
 export async function handleCompletion(
     baseRequest: LanguageFeatureBaseRequest,
@@ -200,7 +202,8 @@ async function getMetaBlockSpecificCompletions(
     const { documentHelper, filePath, position } = request;
 
     const getSequenceFieldCompletion = async () => {
-        const currentText = documentHelper.getLineByIndex(position.line);
+        const { line } = position;
+        const currentText = documentHelper.getLineByIndex(line);
         const sequencePattern = new RegExp(
             `^\\s*${MetaBlockKey.Sequence}:\\s*\\d*`,
             "m",
@@ -216,8 +219,16 @@ async function getMetaBlockSpecificCompletions(
                 dirname(filePath),
             )) ?? 0) + 1;
 
-        const completion = new CompletionItem(suggestedSequence.toString());
-        completion.insertText = `${currentText.includes(": ") ? "" : " "}${suggestedSequence}`;
+        const completion: CompletionItem = {
+            label: suggestedSequence.toString(),
+            textEdit: {
+                newText: ` ${suggestedSequence}`,
+                range: new Range(
+                    new Position(line, currentText.indexOf(":" + 1)),
+                    new Position(line, currentText.length),
+                ),
+            },
+        };
 
         return [completion];
     };
@@ -260,19 +271,20 @@ async function getMetaBlockSpecificCompletions(
                     const alreadyUsedInOwnCollection =
                         inOwnCollection.length > 0;
 
-                    const completion = new CompletionItem({
+                    return {
                         label: tag,
-                        description: alreadyUsedInOwnCollection
-                            ? "Used in own collection"
-                            : inOtherCollections.length == 1
-                              ? `Used in collection '${basename(inOtherCollections[0].collection.getRootDirectory())}'`
-                              : `Used in ${inOtherCollections.length} other collections`,
-                    });
-                    completion.sortText = alreadyUsedInOwnCollection
-                        ? `a_${tag}`
-                        : `b_${tag}`;
-                    completion.kind = CompletionItemKind.Constant;
-                    return completion;
+                        labelDetails: {
+                            description: alreadyUsedInOwnCollection
+                                ? "Used in own collection"
+                                : inOtherCollections.length == 1
+                                  ? `Used in collection '${basename(inOtherCollections[0].collection.getRootDirectory())}'`
+                                  : `Used in ${inOtherCollections.length} other collections`,
+                        },
+                        sortText: alreadyUsedInOwnCollection
+                            ? `a_${tag}`
+                            : `b_${tag}`,
+                        kind: CompletionItemKind.Constant,
+                    };
                 },
             );
     };
@@ -403,12 +415,9 @@ function getFixedCompletionItems(
     for (const { linePattern, choices } of params) {
         if (currentText.match(linePattern)) {
             items.push(
-                ...choices.map(
-                    (choice) =>
-                        new CompletionItem(
-                            `${currentText.endsWith(" ") ? "" : " "}${choice}`,
-                        ),
-                ),
+                ...choices.map((choice) => ({
+                    label: `${currentText.endsWith(" ") ? "" : " "}${choice}`,
+                })),
             );
         }
     }
