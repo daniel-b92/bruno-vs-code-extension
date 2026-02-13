@@ -1,9 +1,9 @@
 import { basename, dirname, resolve } from "path";
 import {
-    TypedCollectionItemProvider,
     getMaxSequenceForRequests,
     getSequencesForRequests,
-} from "@shared";
+} from "@global_shared";
+import { TypedCollectionItemProvider } from "@shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { normalizeSequencesForRequestFiles } from "./normalizeSequencesForRequestFiles";
 import { replaceSequenceForFile } from "./replaceSequenceForFile";

@@ -8,14 +8,14 @@ import {
     normalizeDirectoryPath,
     BrunoFileType,
     isBrunoFileType,
+    getMaxSequenceForRequests,
+    getSequenceForFile,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
     OutputChannelLogger,
     DialogOptionLabelEnum,
     MultiFileOperationWithStatus,
-    getMaxSequenceForRequests,
-    getSequenceForFile,
     getMaxSequenceForFolders,
     TypedCollectionData,
     TypedCollection,
