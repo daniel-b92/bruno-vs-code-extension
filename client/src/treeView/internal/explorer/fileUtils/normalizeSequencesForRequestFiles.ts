@@ -1,7 +1,5 @@
-import {
-    TypedCollectionItemProvider,
-    getSequencesForRequests,
-} from "../../../../shared";
+import { getSequencesForRequests } from "@global_shared";
+import { TypedCollectionItemProvider } from "../../../../shared";
 import { replaceSequenceForFile } from "./replaceSequenceForFile";
 
 export async function normalizeSequencesForRequestFiles(

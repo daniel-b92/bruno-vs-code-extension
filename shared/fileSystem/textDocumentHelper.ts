@@ -193,6 +193,10 @@ export class TextDocumentHelper {
         );
     }
 
+    public getOffsetForPosition(position: Position) {
+        return this.getText(new Range(new Position(0, 0), position)).length;
+    }
+
     public getText(range?: Range) {
         if (!range) {
             return this.text;

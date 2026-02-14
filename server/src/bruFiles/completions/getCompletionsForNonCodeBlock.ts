@@ -1,23 +1,18 @@
-import { CompletionItem, CompletionItemKind, languages } from "vscode";
-import {
-    getConfiguredTestEnvironment,
-    getMatchingTextContainingPosition,
-    mapFromVsCodePosition,
-    mapToVsCodeRange,
-    OutputChannelLogger,
-    getMaxSequenceForRequests,
-    TypedCollectionItemProvider,
-    TypedCollection,
-} from "@shared";
 import {
     ApiKeyAuthBlockKey,
     ApiKeyAuthBlockPlacementValue,
     Block,
     BooleanFieldValue,
+    EnvVariableNameMatchingMode,
     getBlocksWithoutVariableSupport,
     getDictionaryBlockArrayField,
+    getExistingRequestFileTags,
+    getMatchingDefinitionsFromEnvFiles,
+    getMatchingTextContainingPosition,
+    getMaxSequenceForRequests,
     getPossibleMethodBlocks,
     isAuthBlock,
+    Logger,
     MetaBlockKey,
     MethodBlockAuth,
     MethodBlockBody,
@@ -25,96 +20,72 @@ import {
     OAuth2BlockCredentialsPlacementValue,
     OAuth2BlockTokenPlacementValue,
     OAuth2ViaAuthorizationCodeBlockKey,
-    parseBruFile,
+    Position,
+    Range,
     RequestFileBlockName,
     RequestType,
     SettingsBlockKey,
-    TextDocumentHelper,
     VariableReferenceType,
 } from "@global_shared";
-import { basename, dirname } from "path";
-import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
-import { LanguageFeatureRequest } from "../../shared/interfaces";
 import {
-    EnvVariableNameMatchingMode,
-    getMatchingDefinitionsFromEnvFiles,
-} from "../../shared/environmentVariables/getMatchingDefinitionsFromEnvFiles";
-import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
-import { getExistingRequestFileTags } from "../shared/getExistingRequestFileTags";
+    CompletionItem,
+    CompletionItemKind,
+    TextEdit,
+} from "vscode-languageserver";
+import {
+    LanguageFeatureBaseRequest,
+    mapEnvVariablesToCompletions,
+    NonCodeBlockRequestWithAdditionalData,
+    TypedCollection,
+    TypedCollectionItemProvider,
+} from "../../shared";
+import { basename, dirname } from "path";
 
-export function provideBrunoLangCompletionItems(
+export async function getCompletionsForNonCodeBlock(
+    {
+        request: baseRequest,
+        file: { blockContainingPosition, allBlocks, collection },
+        logger,
+    }: NonCodeBlockRequestWithAdditionalData,
     itemProvider: TypedCollectionItemProvider,
-    logger?: OutputChannelLogger,
-) {
-    return languages.registerCompletionItemProvider(
-        getRequestFileDocumentSelector(),
-        {
-            async provideCompletionItems(document, position, token) {
-                if (token.isCancellationRequested) {
-                    addLogEntryForCancellation(logger);
-                    return undefined;
-                }
-                const request: LanguageFeatureRequest = {
-                    document,
-                    position,
-                    token,
-                };
-
-                const { blocks: allBlocks } = parseBruFile(
-                    new TextDocumentHelper(document.getText()),
-                );
-
-                const blockContainingPosition = allBlocks.find(
-                    ({ contentRange }) =>
-                        mapToVsCodeRange(contentRange).contains(position),
-                );
-
-                if (!blockContainingPosition) {
-                    return undefined;
-                }
-
-                if (token.isCancellationRequested) {
-                    addLogEntryForCancellation(logger);
-                    return undefined;
-                }
-                const collection = itemProvider.getAncestorCollectionForPath(
-                    document.fileName,
-                );
-
-                return (
-                    await getBlockSpecificCompletions(
-                        itemProvider,
-                        request,
-                        blockContainingPosition,
-                        collection,
-                    )
-                ).concat(
-                    collection
-                        ? getNonBlockSpecificCompletions(request, {
-                              blockContainingPosition,
-                              allBlocks,
-                              collection,
-                          })
-                        : [],
-                );
-            },
-        },
-        ...getTriggerChars(),
+    configuredEnvironment?: string,
+): Promise<CompletionItem[] | undefined> {
+    return (
+        await getBlockSpecificCompletions(
+            itemProvider,
+            baseRequest,
+            blockContainingPosition,
+            collection,
+        )
+    ).concat(
+        collection
+            ? getNonBlockSpecificCompletions(
+                  baseRequest,
+                  {
+                      blockContainingPosition,
+                      allBlocks,
+                      collection,
+                  },
+                  configuredEnvironment,
+                  logger,
+              )
+            : [],
     );
 }
 
 function getNonBlockSpecificCompletions(
-    request: LanguageFeatureRequest,
+    request: LanguageFeatureBaseRequest,
     file: {
         blockContainingPosition: Block;
         allBlocks: Block[];
         collection: TypedCollection;
     },
-    logger?: OutputChannelLogger,
+    configuredEnvironment?: string,
+    logger?: Logger,
 ) {
     const { blockContainingPosition, allBlocks, collection } = file;
-    const { document, position: vsCodePosition, token } = request;
-    const position = mapFromVsCodePosition(vsCodePosition);
+    const { documentHelper, position, token } = request;
+    const { line, character } = position;
 
     if (
         (getBlocksWithoutVariableSupport() as string[]).includes(
@@ -125,8 +96,8 @@ function getNonBlockSpecificCompletions(
     }
 
     const matchingTextResult = getMatchingTextContainingPosition(
-        document,
         position,
+        documentHelper.getLineByIndex(line),
         /{{(\w|-|_|\.|\d)*/,
     );
 
@@ -136,7 +107,7 @@ function getNonBlockSpecificCompletions(
 
     const { text: matchingText, startChar, endChar } = matchingTextResult;
     // If the position is not after both starting brackets, provided completions would be inserted in an invalid location.
-    if (position.character < startChar + 2 || position.character > endChar) {
+    if (character < startChar + 2 || character > endChar) {
         return [];
     }
 
@@ -144,14 +115,18 @@ function getNonBlockSpecificCompletions(
         addLogEntryForCancellation(logger);
         return [];
     }
-    const variableName = matchingText.substring(2);
+    const variable = {
+        name: matchingText.substring(2),
+        start: new Position(line, startChar + 2),
+        end: new Position(line, endChar),
+    };
 
     const matchingStaticEnvVariableDefinitions =
         getMatchingDefinitionsFromEnvFiles(
             collection,
-            variableName,
+            variable.name,
             EnvVariableNameMatchingMode.Ignore,
-            getConfiguredTestEnvironment(),
+            configuredEnvironment,
         );
 
     if (matchingStaticEnvVariableDefinitions.length == 0) {
@@ -174,9 +149,9 @@ function getNonBlockSpecificCompletions(
         {
             requestData: {
                 collection,
-                variableName,
+                variable,
                 functionType: VariableReferenceType.Read, // In non-code blocks, variables can not be set.
-                requestPosition: vsCodePosition,
+                requestPosition: position,
                 token,
             },
             bruFileSpecificData: { blockContainingPosition, allBlocks },
@@ -187,7 +162,7 @@ function getNonBlockSpecificCompletions(
 
 async function getBlockSpecificCompletions(
     itemProvider: TypedCollectionItemProvider,
-    request: LanguageFeatureRequest,
+    request: LanguageFeatureBaseRequest,
     blockContainingPosition: Block,
     collection?: TypedCollection,
 ) {
@@ -215,16 +190,17 @@ async function getBlockSpecificCompletions(
 
 async function getMetaBlockSpecificCompletions(
     itemProvider: TypedCollectionItemProvider,
-    request: LanguageFeatureRequest,
+    request: LanguageFeatureBaseRequest,
     metaBlock: Block,
     collection?: TypedCollection,
 ) {
-    const { document, position } = request;
+    const { documentHelper, filePath, position } = request;
 
     const getSequenceFieldCompletion = async () => {
-        const currentText = document.lineAt(position.line).text;
+        const { line } = position;
+        const currentText = documentHelper.getLineByIndex(line);
         const sequencePattern = new RegExp(
-            `^\\s*${MetaBlockKey.Sequence}:\\s*\\d*`,
+            `^\\s*${MetaBlockKey.Sequence}:.*$`,
             "m",
         );
 
@@ -235,11 +211,19 @@ async function getMetaBlockSpecificCompletions(
         const suggestedSequence =
             ((await getMaxSequenceForRequests(
                 itemProvider,
-                dirname(document.fileName),
+                dirname(filePath),
             )) ?? 0) + 1;
 
-        const completion = new CompletionItem(suggestedSequence.toString());
-        completion.insertText = `${currentText.includes(": ") ? "" : " "}${suggestedSequence}`;
+        const completion: CompletionItem = {
+            label: suggestedSequence.toString(),
+            textEdit: {
+                newText: ` ${suggestedSequence}`,
+                range: new Range(
+                    new Position(line, currentText.indexOf(":") + 1),
+                    new Position(line, currentText.length),
+                ),
+            },
+        };
 
         return [completion];
     };
@@ -256,7 +240,7 @@ async function getMetaBlockSpecificCompletions(
         const isWithinValues = tagsField.plainTextWithinValues
             .map(({ range }) => range)
             .concat(tagsField.values.map(({ range }) => range))
-            .some((range) => mapToVsCodeRange(range).contains(position));
+            .some((range) => range.contains(position));
 
         if (!isWithinValues || !collection) {
             return [];
@@ -264,7 +248,7 @@ async function getMetaBlockSpecificCompletions(
 
         const tagsByCollections = getExistingRequestFileTags(itemProvider, {
             collection,
-            pathToIgnore: document.fileName,
+            pathToIgnore: filePath,
         });
 
         return tagsByCollections
@@ -282,19 +266,20 @@ async function getMetaBlockSpecificCompletions(
                     const alreadyUsedInOwnCollection =
                         inOwnCollection.length > 0;
 
-                    const completion = new CompletionItem({
+                    return {
                         label: tag,
-                        description: alreadyUsedInOwnCollection
-                            ? "Used in own collection"
-                            : inOtherCollections.length == 1
-                              ? `Used in collection '${basename(inOtherCollections[0].collection.getRootDirectory())}'`
-                              : `Used in ${inOtherCollections.length} other collections`,
-                    });
-                    completion.sortText = alreadyUsedInOwnCollection
-                        ? `a_${tag}`
-                        : `b_${tag}`;
-                    completion.kind = CompletionItemKind.Constant;
-                    return completion;
+                        labelDetails: {
+                            description: alreadyUsedInOwnCollection
+                                ? "Used in own collection"
+                                : inOtherCollections.length == 1
+                                  ? `Used in collection '${basename(inOtherCollections[0].collection.getRootDirectory())}'`
+                                  : `Used in ${inOtherCollections.length} other collections`,
+                        },
+                        sortText: alreadyUsedInOwnCollection
+                            ? `a_${tag}`
+                            : `b_${tag}`,
+                        kind: CompletionItemKind.Constant,
+                    };
                 },
             );
     };
@@ -317,7 +302,9 @@ async function getMetaBlockSpecificCompletions(
     );
 }
 
-function getMethodBlockSpecificCompletions(request: LanguageFeatureRequest) {
+function getMethodBlockSpecificCompletions(
+    request: LanguageFeatureBaseRequest,
+) {
     return getFixedCompletionItems(
         [
             {
@@ -337,7 +324,7 @@ function getMethodBlockSpecificCompletions(request: LanguageFeatureRequest) {
     );
 }
 
-function getAuthBlockSpecificCompletions(request: LanguageFeatureRequest) {
+function getAuthBlockSpecificCompletions(request: LanguageFeatureBaseRequest) {
     return getFixedCompletionItems(
         [
             {
@@ -381,7 +368,9 @@ function getAuthBlockSpecificCompletions(request: LanguageFeatureRequest) {
     );
 }
 
-function getSettingsBlockSpecificCompletions(request: LanguageFeatureRequest) {
+function getSettingsBlockSpecificCompletions(
+    request: LanguageFeatureBaseRequest,
+) {
     return getFixedCompletionItems(
         [
             {
@@ -412,37 +401,47 @@ function getFixedCompletionItems(
         linePattern: RegExp;
         choices: string[];
     }[],
-    { document, position }: LanguageFeatureRequest,
-) {
-    const currentText = document.lineAt(position.line).text;
+    { documentHelper, position: { line } }: LanguageFeatureBaseRequest,
+): CompletionItem[] {
+    const currentText = documentHelper.getLineByIndex(line);
 
-    const items: CompletionItem[] = [];
-
-    for (const { linePattern, choices } of params) {
-        if (currentText.match(linePattern)) {
-            items.push(
-                ...choices.map(
-                    (choice) =>
-                        new CompletionItem(
-                            `${currentText.endsWith(" ") ? "" : " "}${choice}`,
-                        ),
-                ),
-            );
+    return params.flatMap(({ linePattern, choices }) => {
+        if (!currentText.match(linePattern)) {
+            return [];
         }
-    }
 
-    return items;
+        return choices.map((choice) => ({
+            label: choice,
+            textEdit: getTextEditForDictionaryBlockSimpleValue(
+                line,
+                currentText,
+                choice,
+            ),
+        }));
+    });
 }
 
-function getTriggerChars() {
-    return [":", " ", "{"];
+function getTextEditForDictionaryBlockSimpleValue(
+    lineIndex: number,
+    textInLine: string,
+    value: string,
+): TextEdit | undefined {
+    return textInLine.includes(":")
+        ? {
+              newText: ` ${value}`,
+              range: new Range(
+                  new Position(lineIndex, textInLine.indexOf(":") + 1),
+                  new Position(lineIndex, textInLine.length),
+              ),
+          }
+        : undefined;
 }
 
 function getLinePatternForDictionaryField(key: string) {
-    return new RegExp(`^\\s*${key}:\\s*$`);
+    return new RegExp(`^\\s*${key}:.*$`, "m");
 }
 
-function addLogEntryForCancellation(logger?: OutputChannelLogger) {
+function addLogEntryForCancellation(logger?: Logger) {
     logger?.debug(
         `Cancellation requested for completion provider for bruno language.`,
     );

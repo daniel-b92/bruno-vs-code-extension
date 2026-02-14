@@ -209,11 +209,11 @@ function extractVariableNameFromResultNode(
 
     const startInSubdocument = subDocumentHelper.getPositionForOffset(
         new Position(0, 0),
-        resultNode.getStart(sourceFile, true),
+        resultNode.getStart(sourceFile, true) + 1,
     );
     const endInSubdocument = subDocumentHelper.getPositionForOffset(
         new Position(0, 0),
-        resultNode.getEnd(),
+        resultNode.getEnd() - 1,
     );
 
     if (!startInSubdocument || !endInSubdocument) {

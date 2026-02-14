@@ -16,12 +16,14 @@ import { QueuedTest, TestRunQueue } from "./testRunQueue";
 import {
     TypedCollectionItemProvider,
     getConfiguredTestEnvironment,
-    getEnvironmentSettingsKey,
     getLinkToUserSetting,
     OutputChannelLogger,
     TypedCollection,
 } from "@shared";
-import { checkIfPathExistsAsync } from "@global_shared";
+import {
+    checkIfPathExistsAsync,
+    getEnvironmentSettingsKey,
+} from "@global_shared";
 import { TestRunUserInputData } from "./interfaces";
 
 export const startTestRun = async (

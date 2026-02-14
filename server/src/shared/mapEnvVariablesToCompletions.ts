@@ -1,17 +1,18 @@
 import { basename } from "path";
-import { CompletionItem, CompletionItemKind } from "vscode";
 import {
     groupReferencesByName,
     getExtensionForBrunoFiles,
     VariableReferenceType,
+    Logger,
+    Range,
 } from "@global_shared";
-import { OutputChannelLogger } from "@shared";
+import { getDynamicVariableReferences } from "../bruFiles/shared/getDynamicVariableReferences";
 import {
     EnvVariableBruFileSpecificData,
     EnvVariableCommonRequestData,
     EnvVariableRequest,
-} from "../interfaces";
-import { getDynamicVariableReferences } from "../../brunoFiles/shared/getDynamicVariableReferences";
+} from "./interfaces";
+import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 
 export function mapEnvVariablesToCompletions(
     matchingStaticEnvVariables: {
@@ -22,8 +23,10 @@ export function mapEnvVariablesToCompletions(
     { requestData, bruFileSpecificData, logger }: EnvVariableRequest,
 ) {
     const resultsForStaticVariables = mapStaticEnvVariables(
+        requestData,
         matchingStaticEnvVariables,
         requestData.functionType,
+        // Display static environment variables below dynamic ones.
         "b",
     );
 
@@ -42,11 +45,7 @@ export function mapEnvVariablesToCompletions(
                               ({ matchingVariableKeys }) =>
                                   matchingVariableKeys,
                           )
-                          .some((key) =>
-                              typeof label == "string"
-                                  ? key == label
-                                  : key == label.label,
-                          ),
+                          .some((key) => key == label),
               ),
     );
 }
@@ -55,10 +54,15 @@ function mapDynamicEnvVariables(
     requestData: EnvVariableCommonRequestData,
     bruFileSpecificData: EnvVariableBruFileSpecificData,
     prefixForSortText: string,
-    logger?: OutputChannelLogger,
+    logger?: Logger,
 ) {
     const { allBlocks, blockContainingPosition } = bruFileSpecificData;
-    const { functionType, requestPosition, token } = requestData;
+    const {
+        functionType,
+        requestPosition,
+        token,
+        variable: { start, end },
+    } = requestData;
 
     const variableReferences = getDynamicVariableReferences(
         {
@@ -87,22 +91,27 @@ function mapDynamicEnvVariables(
                 totalNumberOfReferences,
             },
         }) => {
-            const completionItem = new CompletionItem({
+            const completionItem: CompletionItem = {
                 label: variableName,
-                detail:
-                    hasDuplicateReferences && distinctBlocks.length > 1
-                        ? `  Blocks '${distinctBlocks.join("','")}'`
-                        : `  Block '${blockName}'`,
-            });
-
-            completionItem.kind =
-                referenceType == VariableReferenceType.Read
-                    ? CompletionItemKind.Field
-                    : CompletionItemKind.Function;
-            completionItem.detail = hasDuplicateReferences
-                ? `Found a total of ${totalNumberOfReferences} relevant references in ${distinctBlocks.length > 1 ? `blocks ${JSON.stringify(distinctBlocks)}` : `block '${blockName}'`}.`
-                : undefined;
-            completionItem.sortText = `${prefixForSortText}_${blockName}_${variableName}`;
+                labelDetails: {
+                    description:
+                        hasDuplicateReferences && distinctBlocks.length > 1
+                            ? `  Blocks '${distinctBlocks.join("','")}'`
+                            : `  Block '${blockName}'`,
+                },
+                kind:
+                    referenceType == VariableReferenceType.Read
+                        ? CompletionItemKind.Field
+                        : CompletionItemKind.Function,
+                detail: hasDuplicateReferences
+                    ? `Found a total of ${totalNumberOfReferences} relevant references in ${distinctBlocks.length > 1 ? `blocks ${JSON.stringify(distinctBlocks)}` : `block '${blockName}'`}.`
+                    : undefined,
+                sortText: `${prefixForSortText}_${blockName}_${variableName}`,
+                textEdit: {
+                    newText: variableName,
+                    range: new Range(start, end),
+                },
+            };
 
             return completionItem;
         },
@@ -110,6 +119,7 @@ function mapDynamicEnvVariables(
 }
 
 function mapStaticEnvVariables(
+    { variable: { start, end } }: EnvVariableCommonRequestData,
     matchingStaticEnvVariables: {
         environmentFile: string;
         matchingVariableKeys: string[];
@@ -125,21 +135,27 @@ function mapStaticEnvVariables(
                     environmentFile,
                     getExtensionForBrunoFiles(),
                 );
-                const completionItem = new CompletionItem({
+                const completionItem: CompletionItem = {
                     label: key,
-                    description: `${functionType === VariableReferenceType.Write ? "!Env!" : "Env"} '${environmentName}'`,
-                });
-                completionItem.detail =
-                    functionType == VariableReferenceType.Write
-                        ? `WARNING: Will overwrite static environment variable from env '${environmentName}'`
-                        : undefined;
-                completionItem.kind = CompletionItemKind.Constant;
-                completionItem.sortText = `${prefixForSortText}_${isConfiguredEnv ? "a" : "b"}_${environmentName}_${key}`;
+                    labelDetails: {
+                        description: `${functionType === VariableReferenceType.Write ? "!Env!" : "Env"} '${environmentName}'`,
+                    },
+                    detail:
+                        functionType == VariableReferenceType.Write
+                            ? `WARNING: Will overwrite static environment variable from env '${environmentName}'`
+                            : undefined,
+                    kind: CompletionItemKind.Constant,
+                    sortText: `${prefixForSortText}_${isConfiguredEnv ? "a" : "b"}_${environmentName}_${key}`,
+                    textEdit: {
+                        newText: key,
+                        range: new Range(start, end),
+                    },
+                };
                 return completionItem;
             }),
     );
 }
 
-function addLogEntryForCancellation(logger?: OutputChannelLogger) {
+function addLogEntryForCancellation(logger?: Logger) {
     logger?.debug(`Cancellation requested for completion provider.`);
 }

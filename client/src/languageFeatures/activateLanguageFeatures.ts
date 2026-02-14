@@ -14,7 +14,6 @@ import {
     EventEmitter,
     Disposable,
 } from "vscode";
-import { provideBrunoLangCompletionItems } from "./internal/brunoFiles/completionItems/provideBrunoLangCompletionItems";
 import {
     getLoggerFromSubscriptions,
     TypedCollectionItemProvider,
@@ -92,7 +91,6 @@ export async function activateLanguageFeatures(
         diagnosticCollection,
         tempJsFilesUpdateQueue,
         tempJsFilesProvider,
-        provideBrunoLangCompletionItems(collectionItemProvider, logger),
         provideTsLangCompletionItems(
             tempJsFilesUpdateQueue,
             collectionItemProvider,

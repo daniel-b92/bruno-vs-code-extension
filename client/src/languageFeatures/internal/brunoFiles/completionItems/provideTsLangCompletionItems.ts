@@ -8,39 +8,26 @@ import {
     Position as VsCodePosition,
 } from "vscode";
 import {
-    mapToVsCodeRange,
     OutputChannelLogger,
     mapFromVsCodePosition,
-    getConfiguredTestEnvironment,
     TypedCollectionItemProvider,
-    TypedCollection,
 } from "@shared";
 import {
-    parseBruFile,
-    TextDocumentHelper,
     RequestFileBlockName,
     Block,
-    getCodeBlocks,
-    VariableReferenceType,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
-    getInbuiltFunctionType,
 } from "@global_shared";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
-import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
-import {
-    EnvVariableNameMatchingMode,
-    getMatchingDefinitionsFromEnvFiles,
-} from "../../shared/environmentVariables/getMatchingDefinitionsFromEnvFiles";
-import { LanguageFeatureRequest } from "../../shared/interfaces";
-import { mapEnvVariablesToCompletions } from "../../shared/environmentVariables/mapEnvVariablesToCompletions";
 import {
     TempJsSyncRequest,
     waitForTempJsFileToBeInSync,
 } from "../../shared/temporaryJsFilesUpdates/external/waitForTempJsFileToBeInSync";
+import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
+import { getCodeBlockContainingPosition } from "../shared/codeBlocksUtils/getCodeBlockContainingPosition";
 
 type CompletionItemRange =
     | VsCodeRange
@@ -68,15 +55,9 @@ export function provideTsLangCompletionItems(
                     return [];
                 }
 
-                const { blocks: allBlocks } = parseBruFile(
-                    new TextDocumentHelper(document.getText()),
-                );
-
-                const blocksToCheck = getCodeBlocks(allBlocks);
-
-                const blockContainingPosition = blocksToCheck.find(
-                    ({ contentRange }) =>
-                        mapToVsCodeRange(contentRange).contains(position),
+                const blockContainingPosition = getCodeBlockContainingPosition(
+                    document.getText(),
+                    position,
                 );
 
                 if (!blockContainingPosition) {
@@ -104,20 +85,9 @@ export function provideTsLangCompletionItems(
                     );
 
                 if (envVariableResult) {
-                    const { inbuiltFunction, variableName } = envVariableResult;
-
-                    return getResultsForEnvironmentVariable(
-                        variableName,
-                        {
-                            collection,
-                            functionType:
-                                getInbuiltFunctionType(inbuiltFunction),
-                            blockContainingPosition,
-                            allBlocks,
-                        },
-                        { document, position, token },
-                        logger,
-                    );
+                    // Completions for environment variables are already provided via the language server.
+                    // Since they are also provided in `.js` files, avoid fetching completions via temp js file in this case.
+                    return;
                 }
 
                 return getResultsViaTempJsFile(
@@ -140,55 +110,6 @@ export function provideTsLangCompletionItems(
         '"',
         "'",
         "`",
-    );
-}
-
-function getResultsForEnvironmentVariable(
-    variableName: string,
-    additionalData: {
-        collection: TypedCollection;
-        functionType: VariableReferenceType;
-        blockContainingPosition: Block;
-        allBlocks: Block[];
-    },
-    { position, token }: LanguageFeatureRequest,
-    logger?: OutputChannelLogger,
-) {
-    const { collection, functionType, allBlocks, blockContainingPosition } =
-        additionalData;
-
-    const matchingStaticEnvVariableDefinitions =
-        getMatchingDefinitionsFromEnvFiles(
-            collection,
-            variableName,
-            EnvVariableNameMatchingMode.Ignore,
-            getConfiguredTestEnvironment(),
-        );
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return [];
-    }
-
-    return mapEnvVariablesToCompletions(
-        matchingStaticEnvVariableDefinitions.map(
-            ({ file, matchingVariables, isConfiguredEnv }) => ({
-                environmentFile: file,
-                matchingVariableKeys: matchingVariables.map(({ key }) => key),
-                isConfiguredEnv,
-            }),
-        ),
-        {
-            requestData: {
-                collection,
-                functionType,
-                requestPosition: position,
-                variableName,
-                token,
-            },
-            bruFileSpecificData: { allBlocks, blockContainingPosition },
-            logger,
-        },
     );
 }
 

@@ -2,27 +2,28 @@ import {
     normalizeDirectoryPath,
     BrunoRequestFile,
     isRequestFile,
-} from "@global_shared";
-import { TypedCollection, TypedCollectionItemProvider } from "@shared";
+    Collection,
+    CollectionItemProvider,
+} from "../..";
 
-export interface TagOccurences {
+export interface TagOccurences<T> {
     tag: string;
     pathsInOwnCollection: string[];
-    inOtherCollections: { collection: TypedCollection; paths: string[] }[];
+    inOtherCollections: { collection: Collection<T>; paths: string[] }[];
 }
 
-interface itemIdentifier {
-    collection: TypedCollection;
+interface ItemIdentifier<T> {
+    collection: Collection<T>;
     path: string;
 }
 
-export function getExistingRequestFileTags(
-    itemProvider: TypedCollectionItemProvider,
+export function getExistingRequestFileTags<T>(
+    itemProvider: CollectionItemProvider<T>,
     forOwnCollection: {
-        collection: TypedCollection;
+        collection: Collection<T>;
         pathToIgnore: string;
     },
-): TagOccurences[] {
+): TagOccurences<T>[] {
     const {
         collection: ownCollection,
         pathToIgnore: toIgnoreForOwnCollection,
@@ -63,8 +64,8 @@ export function getExistingRequestFileTags(
     });
 }
 
-function getTagsForCollection(
-    collection: TypedCollection,
+function getTagsForCollection<T>(
+    collection: Collection<T>,
     pathToIgnore?: string,
 ) {
     return collection
@@ -90,10 +91,10 @@ function getTagsForCollection(
         .flatMap(({ path, tags }) => tags.map((tag) => ({ path, tag })));
 }
 
-function groupByTag(
+function groupByTag<T>(
     tagsAndItems: {
         tag: string;
-        itemIdentifier: itemIdentifier;
+        itemIdentifier: ItemIdentifier<T>;
     }[],
 ) {
     return tagsAndItems.reduce(
@@ -118,12 +119,12 @@ function groupByTag(
         },
         [] as {
             tag: string;
-            items: itemIdentifier[];
+            items: ItemIdentifier<T>[];
         }[],
     );
 }
 
-function groupByCollection(items: itemIdentifier[]) {
+function groupByCollection<T>(items: ItemIdentifier<T>[]) {
     return items.reduce(
         (prev, { collection, path }) => {
             const matchingCollectionIndex = prev.findIndex(
@@ -144,11 +145,11 @@ function groupByCollection(items: itemIdentifier[]) {
                     : val,
             );
         },
-        [] as { collection: TypedCollection; paths: string[] }[],
+        [] as { collection: Collection<T>; paths: string[] }[],
     );
 }
 
-function hasBaseDirectory(collection: TypedCollection, baseDirectory: string) {
+function hasBaseDirectory<T>(collection: Collection<T>, baseDirectory: string) {
     return (
         normalizeDirectoryPath(collection.getRootDirectory()) ==
         normalizeDirectoryPath(baseDirectory)

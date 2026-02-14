@@ -5,10 +5,10 @@ import {
     RequestFileBlockName,
     MethodBlockAuth,
     MethodBlockBody,
+    getMaxSequenceForRequests,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
-    getMaxSequenceForRequests,
     getContentForMetaBlock,
     getContentForDefaultMethodBlock,
     getLineBreak,

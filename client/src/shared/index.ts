@@ -1,16 +1,9 @@
 // file system
 export * from "./fileSystem/interfaces";
-export * from "./fileSystem/documents/getMatchingTextContainingPosition";
 export * from "./fileSystem/util/getLineBreak";
 export * from "./fileSystem/util/positionAndRangeMapper";
 
-// language utils
-export * from "./languageUtils/getVariableNameForPositionInNonCodeBlock";
-
 // file parsing
-export * from "./fileParsing/requestFiles/getSequencesForRequests";
-export * from "./fileParsing/requestFiles/getMaxSequenceForRequests";
-export * from "./fileParsing/getSequenceForFile";
 export * from "./fileParsing/folderSettings/getSequencesForFolders";
 export * from "./fileParsing/folderSettings/getMaxSequenceForFolders";
 
@@ -31,7 +24,6 @@ export * from "./fileSystemCache/external/fileSystemCacheSyncingHelper";
 export * from "./vsCodeSettings/getLinkToUserSetting";
 export * from "./vsCodeSettings/getLineBreakFromSettings";
 export * from "./vsCodeSettings/getConfiguredTestEnvironment";
-export * from "./vsCodeSettings/getEnvironmentSettingsKey";
 
 // logging
 export * from "./logging/outputChannelLogger";

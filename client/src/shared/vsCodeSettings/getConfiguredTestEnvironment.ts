@@ -1,5 +1,5 @@
+import { getEnvironmentSettingsKey } from "@global_shared";
 import { workspace } from "vscode";
-import { getEnvironmentSettingsKey } from "./getEnvironmentSettingsKey";
 
 export function getConfiguredTestEnvironment() {
     return workspace

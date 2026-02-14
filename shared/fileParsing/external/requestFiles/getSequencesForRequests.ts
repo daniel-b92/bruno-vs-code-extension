@@ -1,12 +1,12 @@
 import { resolve } from "path";
-import { TypedCollectionItemProvider, getSequenceForFile } from "@shared";
 import { promisify } from "util";
 import { readdir } from "fs";
+import { CollectionItemProvider, getSequenceForFile } from "../../..";
 
-export const getSequencesForRequests = async (
-    itemProvider: TypedCollectionItemProvider,
+export async function getSequencesForRequests<T>(
+    itemProvider: CollectionItemProvider<T>,
     directory: string,
-): Promise<{ path: string; sequence: number }[]> => {
+): Promise<{ path: string; sequence: number }[]> {
     const collection = itemProvider.getAncestorCollectionForPath(directory);
 
     if (!collection || !collection.getStoredDataForPath(directory)) {
@@ -22,7 +22,7 @@ export const getSequencesForRequests = async (
 
                         return {
                             path: fullPath,
-                            sequence: await getSequenceForFile(
+                            sequence: await getSequenceForFile<T>(
                                 collection,
                                 fullPath,
                             ),
@@ -35,4 +35,4 @@ export const getSequencesForRequests = async (
         path: string;
         sequence: number;
     }[];
-};
+}
