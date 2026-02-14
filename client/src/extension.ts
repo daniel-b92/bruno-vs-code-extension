@@ -140,6 +140,7 @@ function createLanguagClient(context: ExtensionContext) {
             // Notify the server about file changes to '.clientrc files contained in the workspace
             fileEvents: workspace.createFileSystemWatcher("**/.clientrc"),
         },
+        diagnosticPullOptions: { onChange: true, onSave: true },
     };
 
     const clientId = `${getExtensionNameLabel()}_LanguageClient`;

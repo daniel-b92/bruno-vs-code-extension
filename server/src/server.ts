@@ -94,6 +94,10 @@ disposables.push(
     }),
 );
 
+documents.onDidOpen(async ({ document: { uri } }) => {
+    await connection.sendDiagnostics({ uri, diagnostics: [] });
+});
+
 documents.onWillSaveWaitUntil(async ({ document: { uri } }) => {
     const document = documents.get(uri);
     return document
