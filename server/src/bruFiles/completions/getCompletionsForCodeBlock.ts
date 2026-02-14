@@ -7,6 +7,7 @@ import {
     getMatchingDefinitionsFromEnvFiles,
     EnvVariableNameMatchingMode,
     Logger,
+    Position,
 } from "@global_shared";
 import {
     CodeBlockRequestWithAdditionalData,
@@ -33,10 +34,10 @@ export function getCompletionsForCodeBlock(
         );
 
     if (envVariableResult) {
-        const { inbuiltFunction, variableName } = envVariableResult;
+        const { inbuiltFunction, variableName, start, end } = envVariableResult;
 
         return getResultsForEnvironmentVariable(
-            variableName,
+            { name: variableName, start, end },
             {
                 collection,
                 functionType: getInbuiltFunctionType(inbuiltFunction),
@@ -53,7 +54,11 @@ export function getCompletionsForCodeBlock(
 }
 
 function getResultsForEnvironmentVariable(
-    variableName: string,
+    variable: {
+        name: string;
+        start: Position;
+        end: Position;
+    },
     additionalData: {
         collection: TypedCollection;
         functionType: VariableReferenceType;
@@ -75,7 +80,7 @@ function getResultsForEnvironmentVariable(
     const matchingStaticEnvVariableDefinitions =
         getMatchingDefinitionsFromEnvFiles(
             collection,
-            variableName,
+            variable.name,
             EnvVariableNameMatchingMode.Ignore,
             configuredEnvironment,
         );
@@ -98,7 +103,7 @@ function getResultsForEnvironmentVariable(
                 collection,
                 functionType,
                 requestPosition: position,
-                variableName,
+                variable,
                 token,
             },
             bruFileSpecificData: { allBlocks, blockContainingPosition },

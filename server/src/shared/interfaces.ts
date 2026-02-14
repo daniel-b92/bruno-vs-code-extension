@@ -55,7 +55,11 @@ export interface EnvVariableRequest {
 
 export interface EnvVariableCommonRequestData {
     collection: TypedCollection;
-    variableName: string;
+    variable: {
+        name: string;
+        start: Position;
+        end: Position;
+    };
     functionType: VariableReferenceType;
     requestPosition: Position;
     token: CancellationToken;

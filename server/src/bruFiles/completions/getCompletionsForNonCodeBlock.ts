@@ -85,6 +85,7 @@ function getNonBlockSpecificCompletions(
 ) {
     const { blockContainingPosition, allBlocks, collection } = file;
     const { documentHelper, position, token } = request;
+    const { line, character } = position;
 
     if (
         (getBlocksWithoutVariableSupport() as string[]).includes(
@@ -96,7 +97,7 @@ function getNonBlockSpecificCompletions(
 
     const matchingTextResult = getMatchingTextContainingPosition(
         position,
-        documentHelper.getLineByIndex(position.line),
+        documentHelper.getLineByIndex(line),
         /{{(\w|-|_|\.|\d)*/,
     );
 
@@ -106,7 +107,7 @@ function getNonBlockSpecificCompletions(
 
     const { text: matchingText, startChar, endChar } = matchingTextResult;
     // If the position is not after both starting brackets, provided completions would be inserted in an invalid location.
-    if (position.character < startChar + 2 || position.character > endChar) {
+    if (character < startChar + 2 || character > endChar) {
         return [];
     }
 
@@ -114,12 +115,16 @@ function getNonBlockSpecificCompletions(
         addLogEntryForCancellation(logger);
         return [];
     }
-    const variableName = matchingText.substring(2);
+    const variable = {
+        name: matchingText.substring(2),
+        start: new Position(line, startChar + 2),
+        end: new Position(line, endChar),
+    };
 
     const matchingStaticEnvVariableDefinitions =
         getMatchingDefinitionsFromEnvFiles(
             collection,
-            variableName,
+            variable.name,
             EnvVariableNameMatchingMode.Ignore,
             configuredEnvironment,
         );
@@ -144,7 +149,7 @@ function getNonBlockSpecificCompletions(
         {
             requestData: {
                 collection,
-                variableName,
+                variable,
                 functionType: VariableReferenceType.Read, // In non-code blocks, variables can not be set.
                 requestPosition: position,
                 token,

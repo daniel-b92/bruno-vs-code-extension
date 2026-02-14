@@ -4,6 +4,7 @@ import {
     getExtensionForBrunoFiles,
     VariableReferenceType,
     Logger,
+    Range,
 } from "@global_shared";
 import { getDynamicVariableReferences } from "../bruFiles/shared/getDynamicVariableReferences";
 import {
@@ -22,8 +23,10 @@ export function mapEnvVariablesToCompletions(
     { requestData, bruFileSpecificData, logger }: EnvVariableRequest,
 ) {
     const resultsForStaticVariables = mapStaticEnvVariables(
+        requestData,
         matchingStaticEnvVariables,
         requestData.functionType,
+        // Display static environment variables below dynamic ones.
         "b",
     );
 
@@ -54,7 +57,12 @@ function mapDynamicEnvVariables(
     logger?: Logger,
 ) {
     const { allBlocks, blockContainingPosition } = bruFileSpecificData;
-    const { functionType, requestPosition, token } = requestData;
+    const {
+        functionType,
+        requestPosition,
+        token,
+        variable: { start, end },
+    } = requestData;
 
     const variableReferences = getDynamicVariableReferences(
         {
@@ -99,6 +107,10 @@ function mapDynamicEnvVariables(
                     ? `Found a total of ${totalNumberOfReferences} relevant references in ${distinctBlocks.length > 1 ? `blocks ${JSON.stringify(distinctBlocks)}` : `block '${blockName}'`}.`
                     : undefined,
                 sortText: `${prefixForSortText}_${blockName}_${variableName}`,
+                textEdit: {
+                    newText: variableName,
+                    range: new Range(start, end),
+                },
             };
 
             return completionItem;
@@ -107,6 +119,7 @@ function mapDynamicEnvVariables(
 }
 
 function mapStaticEnvVariables(
+    { variable: { start, end } }: EnvVariableCommonRequestData,
     matchingStaticEnvVariables: {
         environmentFile: string;
         matchingVariableKeys: string[];
@@ -133,6 +146,10 @@ function mapStaticEnvVariables(
                             : undefined,
                     kind: CompletionItemKind.Constant,
                     sortText: `${prefixForSortText}_${isConfiguredEnv ? "a" : "b"}_${environmentName}_${key}`,
+                    textEdit: {
+                        newText: key,
+                        range: new Range(start, end),
+                    },
                 };
                 return completionItem;
             }),

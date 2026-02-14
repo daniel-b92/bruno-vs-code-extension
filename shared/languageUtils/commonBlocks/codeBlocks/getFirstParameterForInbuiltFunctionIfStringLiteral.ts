@@ -1,13 +1,19 @@
 import {
     InbuiltFunctionIdentifier,
     InbuiltFunctionParsingParams,
+    Position,
     getInbuiltFunctionAndFirstParameterIfStringLiteral,
 } from "../../..";
 
 export function getFirstParameterForInbuiltFunctionIfStringLiteral(
     params: InbuiltFunctionParsingParams,
 ):
-    | { inbuiltFunction: InbuiltFunctionIdentifier; variableName: string }
+    | {
+          inbuiltFunction: InbuiltFunctionIdentifier;
+          variableName: string;
+          start: Position;
+          end: Position;
+      }
     | undefined {
     const resultData =
         getInbuiltFunctionAndFirstParameterIfStringLiteral(params);
@@ -18,10 +24,20 @@ export function getFirstParameterForInbuiltFunctionIfStringLiteral(
 
     const {
         inbuiltFunction: { identifier: InbuiltFunctionIdentifier },
-        firstParameter: { name: variableName, nodeContainsPosition },
+        firstParameter: {
+            name: variableName,
+            nodeContainsPosition,
+            start,
+            end,
+        },
     } = resultData;
 
     return nodeContainsPosition
-        ? { inbuiltFunction: InbuiltFunctionIdentifier, variableName }
+        ? {
+              inbuiltFunction: InbuiltFunctionIdentifier,
+              variableName,
+              start,
+              end,
+          }
         : undefined;
 }
