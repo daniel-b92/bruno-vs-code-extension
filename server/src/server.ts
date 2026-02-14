@@ -46,7 +46,7 @@ connection.onInitialize(async () => {
             },
             documentFormattingProvider: true,
             completionProvider: {
-                triggerCharacters: [":", " ", "{"],
+                triggerCharacters: [":", " ", "{", ".", "/", '"', "'", "`"],
                 completionItem: { labelDetailsSupport: true },
             },
         },

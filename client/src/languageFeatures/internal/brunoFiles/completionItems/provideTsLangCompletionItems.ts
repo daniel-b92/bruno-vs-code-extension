@@ -8,17 +8,15 @@ import {
     Position as VsCodePosition,
 } from "vscode";
 import {
-    mapToVsCodeRange,
     OutputChannelLogger,
     mapFromVsCodePosition,
     TypedCollectionItemProvider,
 } from "@shared";
 import {
-    parseBruFile,
-    TextDocumentHelper,
     RequestFileBlockName,
     Block,
-    getCodeBlocks,
+    getFirstParameterForInbuiltFunctionIfStringLiteral,
+    getInbuiltFunctionIdentifiers,
 } from "@global_shared";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
@@ -28,6 +26,8 @@ import {
     TempJsSyncRequest,
     waitForTempJsFileToBeInSync,
 } from "../../shared/temporaryJsFilesUpdates/external/waitForTempJsFileToBeInSync";
+import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
+import { getCodeBlockContainingPosition } from "../shared/codeBlocksUtils/getCodeBlockContainingPosition";
 
 type CompletionItemRange =
     | VsCodeRange
@@ -55,15 +55,9 @@ export function provideTsLangCompletionItems(
                     return [];
                 }
 
-                const { blocks: allBlocks } = parseBruFile(
-                    new TextDocumentHelper(document.getText()),
-                );
-
-                const blocksToCheck = getCodeBlocks(allBlocks);
-
-                const blockContainingPosition = blocksToCheck.find(
-                    ({ contentRange }) =>
-                        mapToVsCodeRange(contentRange).contains(position),
+                const blockContainingPosition = getCodeBlockContainingPosition(
+                    document.getText(),
+                    position,
                 );
 
                 if (!blockContainingPosition) {
@@ -75,7 +69,27 @@ export function provideTsLangCompletionItems(
                     return undefined;
                 }
 
-                // ToDo: Do not fetch completions from temp JS file, if completions are already provided by the server (for environment variables e.g.).
+                const envVariableResult =
+                    getFirstParameterForInbuiltFunctionIfStringLiteral(
+                        mapToEnvVarNameParams(
+                            {
+                                file: {
+                                    collection,
+                                    blockContainingPosition,
+                                },
+                                request: { document, position, token },
+                                logger,
+                            },
+                            getInbuiltFunctionIdentifiers(),
+                        ),
+                    );
+
+                if (envVariableResult) {
+                    // Completions for environment variables are already provided via the language server.
+                    // Since they are also provided in `.js` files, avoid fetching completions via temp js file in this case.
+                    return;
+                }
+
                 return getResultsViaTempJsFile(
                     queue,
                     {
