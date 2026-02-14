@@ -23,8 +23,10 @@ import {
     TextDocumentHelper,
 } from "@global_shared";
 import { handleCompletionRequest } from "./bruFiles/completions/handleCompletionRequest";
+import { Disposable } from "vscode-languageserver/node";
 
 let helpersProvider: HelpersProvider;
+const disposables: Disposable[] = [];
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -33,54 +35,64 @@ const connection = createConnection(ProposedFeatures.all);
 // Create a simple text document manager.
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
-connection.onInitialize(async () => {
-    const result: InitializeResult = {
-        capabilities: {
-            workspace: { workspaceFolders: { supported: true } },
-            textDocumentSync: {
-                change: TextDocumentSyncKind.Full,
-                willSaveWaitUntil: true,
-                willSave: true,
-                openClose: true,
-                save: true,
+disposables.push(
+    connection.onInitialize(async () => {
+        const result: InitializeResult = {
+            capabilities: {
+                workspace: { workspaceFolders: { supported: true } },
+                textDocumentSync: {
+                    change: TextDocumentSyncKind.Full,
+                    willSaveWaitUntil: true,
+                    willSave: true,
+                    openClose: true,
+                    save: true,
+                },
+                documentFormattingProvider: true,
+                completionProvider: {
+                    triggerCharacters: [":", " ", "{", ".", "/", '"', "'", "`"],
+                    completionItem: { labelDetailsSupport: true },
+                },
             },
-            documentFormattingProvider: true,
-            completionProvider: {
-                triggerCharacters: [":", " ", "{", ".", "/", '"', "'", "`"],
-                completionItem: { labelDetailsSupport: true },
-            },
-        },
-    };
-    return result;
-});
+        };
+        return result;
+    }),
+);
 
-connection.onInitialized(async () => {
-    const workspaceFolders = await getWorkspaceFolders();
-    helpersProvider = new HelpersProvider(workspaceFolders);
+disposables.push(
+    connection.onInitialized(async () => {
+        const workspaceFolders = await getWorkspaceFolders();
+        helpersProvider = new HelpersProvider(workspaceFolders);
+        disposables.push(helpersProvider);
 
-    await helpersProvider.getItemProvider().refreshCache(workspaceFolders);
-});
+        await helpersProvider.getItemProvider().refreshCache(workspaceFolders);
+    }),
+);
 
-connection.onDocumentFormatting(({ textDocument: { uri } }) => {
-    const document = documents.get(uri);
-    return document ? getHandlerForFormatting(document) : undefined;
-});
+disposables.push(
+    connection.onDocumentFormatting(({ textDocument: { uri } }) => {
+        const document = documents.get(uri);
+        return document ? getHandlerForFormatting(document) : undefined;
+    }),
+);
 
-connection.onCompletion(async (params, token) => {
-    const configuredEnvironment = (await connection.workspace.getConfiguration(
-        getEnvironmentSettingsKey(),
-    )) as string | undefined;
-    const request = mapToBaseLanguageRequest(params, token);
+disposables.push(
+    connection.onCompletion(async (params, token) => {
+        const configuredEnvironment =
+            (await connection.workspace.getConfiguration(
+                getEnvironmentSettingsKey(),
+            )) as string | undefined;
+        const request = mapToBaseLanguageRequest(params, token);
 
-    return request
-        ? handleCompletionRequest(
-              request,
-              helpersProvider.getItemProvider(),
-              configuredEnvironment,
-              getDefaultLogger(),
-          )
-        : undefined;
-});
+        return request
+            ? handleCompletionRequest(
+                  request,
+                  helpersProvider.getItemProvider(),
+                  configuredEnvironment,
+                  getDefaultLogger(),
+              )
+            : undefined;
+    }),
+);
 
 documents.onWillSaveWaitUntil(async ({ document: { uri } }) => {
     const document = documents.get(uri);
@@ -93,9 +105,17 @@ documents.onWillSaveWaitUntil(async ({ document: { uri } }) => {
         : [];
 });
 
+connection.onExit(() => {
+    dispose();
+});
+
+connection.onShutdown(() => {
+    dispose();
+});
+
 // Make the text document manager listen on the connection
 // for open, change and close text document events
-documents.listen(connection);
+disposables.push(documents.listen(connection));
 
 // Listen on the connection
 connection.listen();
@@ -106,6 +126,11 @@ async function getWorkspaceFolders() {
             ({ uri }) => URI.parse(uri).fsPath,
         ) ?? []
     );
+}
+
+function dispose() {
+    disposables.forEach((d) => d.dispose());
+    connection.dispose();
 }
 
 function mapToBaseLanguageRequest(
