@@ -35,4 +35,9 @@ export class HelpersProvider {
     public getItemProvider() {
         return this.itemProvider;
     }
+
+    public dispose() {
+        this.itemProvider.dispose();
+        this.collectionWatcher.dispose();
+    }
 }

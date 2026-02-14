@@ -1,4 +1,5 @@
 import {
+    commands,
     EventEmitter,
     ExtensionContext,
     ProgressLocation,
@@ -52,6 +53,14 @@ export async function activate(context: ExtensionContext) {
         collectionWatcher,
         cacheSyncingHelper,
     } = createNeededHandlers(context);
+
+    context.subscriptions.push(
+        commands.registerCommand("bruAsCode.restartLanguageServer", () => {
+            if (client) {
+                client.restart();
+            }
+        }),
+    );
 
     window.withProgress(
         {

@@ -207,6 +207,11 @@
                 "title": "Open to the side",
                 "category": "Bru-as-Code",
                 "enablement": "view == brunoCollectionsView"
+            },
+            {
+                "command": "bruAsCode.restartLanguageServer",
+                "title": "Restart language server",
+                "category": "Bru-as-Code"
             }
         ],
         "views": {
