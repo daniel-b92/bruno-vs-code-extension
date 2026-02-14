@@ -1,3 +1,10 @@
+## [Unreleased]
+
+### Fixes / Improvements
+
+- Migrate language features for auto updates on save and completions to dedicated language server.
+    - This should improve the performance and help reduce delays for language feature requests.
+
 ## [0.20.6] (2026-02-05)
 
 ### Fixes / Improvements
