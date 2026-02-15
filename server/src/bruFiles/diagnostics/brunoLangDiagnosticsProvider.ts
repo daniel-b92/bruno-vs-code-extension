@@ -8,6 +8,39 @@ import { determineDiagnosticsForCollectionSettingsFile } from "./collectionSetti
 export class BrunoLangDiagnosticsProvider {
     constructor(private itemProvider: TypedCollectionItemProvider) {
         this.relatedRequestsHelper = new RelatedFilesDiagnosticsHelper();
+
+        function handleDiagnosticUpdatesOnFileDeletionForBruFile(
+            collectionItemProvider: TypedCollectionItemProvider,
+            diagnosticCollection: DiagnosticCollection,
+        ) {
+            return collectionItemProvider.subscribeToUpdates((updates) => {
+                for (const {
+                    data: { item },
+                    updateType,
+                } of updates) {
+                    if (
+                        updateType == FileChangeType.Deleted &&
+                        item.isFile() &&
+                        extname(item.getPath()) == getExtensionForBrunoFiles()
+                    ) {
+                        diagnosticCollection.delete(Uri.file(item.getPath()));
+                    } else if (
+                        updateType == FileChangeType.Deleted &&
+                        item instanceof CollectionDirectory
+                    ) {
+                        const normalizedDirPath = normalizeDirectoryPath(
+                            item.getPath(),
+                        );
+
+                        diagnosticCollection.forEach((uri) => {
+                            if (uri.fsPath.startsWith(normalizedDirPath)) {
+                                diagnosticCollection.delete(uri);
+                            }
+                        });
+                    }
+                }
+            });
+        }
     }
 
     private relatedRequestsHelper: RelatedFilesDiagnosticsHelper;

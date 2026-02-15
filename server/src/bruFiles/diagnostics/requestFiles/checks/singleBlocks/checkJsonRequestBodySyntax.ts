@@ -1,4 +1,3 @@
-import { DiagnosticSeverity, Range as VsCodeRange } from "vscode";
 import {
     Block,
     RequestFileBlockName,
@@ -6,9 +5,9 @@ import {
     TextDocumentHelper,
     Position,
 } from "@global_shared";
-import { mapToVsCodePosition, mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { RelevantWithinBodyBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinBodyBlockDiagnosticCodeEnum";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 export function checkJsonRequestBodySyntax(
     requestBody: Block,
@@ -70,9 +69,11 @@ function getDiagnostic(
 
     if (startPositionWithinBlock) {
         const searchString = "at position ";
-        const positionInFullDocument = mapToVsCodePosition(
-            startPositionWithinBlock,
-        ).translate(actualRequestBody.contentRange.start.line);
+        const positionInFullDocument = new Position(
+            startPositionWithinBlock.line +
+                actualRequestBody.contentRange.start.line,
+            startPositionWithinBlock.character,
+        );
 
         return {
             message: errorInBlockWithReplacements.message.includes(searchString)
@@ -83,10 +84,7 @@ function getDiagnostic(
                       ),
                   )
                 : errorInBlockWithReplacements.message,
-            range: new VsCodeRange(
-                positionInFullDocument,
-                positionInFullDocument,
-            ),
+            range: new Range(positionInFullDocument, positionInFullDocument),
             severity: DiagnosticSeverity.Error,
             code: RelevantWithinBodyBlockDiagnosticCode.JsonSyntaxNotValid,
         };
@@ -198,7 +196,7 @@ function getDiagnosticForUnexpectedErrorWhileParsingJson(
                 ? `Got error message '${error.message}'.`
                 : "Failed to parse message from error."
         }`,
-        range: mapToVsCodeRange(blockContentRange),
+        range: blockContentRange,
         severity: DiagnosticSeverity.Error,
         code: RelevantWithinBodyBlockDiagnosticCode.UnexpectedErrorWhileParsingJson,
     };
@@ -210,7 +208,7 @@ function getDiagnosticForSyntaxErrorWithoutPosition(
 ) {
     return {
         message: error.message,
-        range: mapToVsCodeRange(blockContentRange),
+        range: blockContentRange,
         severity: DiagnosticSeverity.Error,
         code: RelevantWithinBodyBlockDiagnosticCode.JsonSyntaxNotValid,
     };

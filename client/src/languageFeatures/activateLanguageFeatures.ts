@@ -1,13 +1,10 @@
 import {
-    DiagnosticCollection,
     ExtensionContext,
-    languages,
     TabInputText,
     TextDocument,
     TextDocumentChangeEvent,
     TextDocumentWillSaveEvent,
     TextEditor,
-    Uri,
     window,
     workspace,
     Event as VsCodeEvent,
@@ -23,15 +20,12 @@ import {
 import {
     checkIfPathExistsAsync,
     getExtensionForBrunoFiles,
-    normalizeDirectoryPath,
     filterAsync,
     CollectionWatcher,
-    FileChangeType,
     getTemporaryJsFileNameInFolder,
     getTemporaryJsFileBasename,
     TempJsFilesProvider,
     BrunoFileType,
-    CollectionDirectory,
     isBrunoFileType,
     getItemType,
 } from "@global_shared";
@@ -73,16 +67,7 @@ export async function activateLanguageFeatures(
             .map((collection) => collection.getRootDirectory()),
     );
 
-    const diagnosticCollection =
-        languages.createDiagnosticCollection("bru-as-code");
-
-    handleDiagnosticUpdatesOnFileDeletionForBruFile(
-        collectionItemProvider,
-        diagnosticCollection,
-    );
-
     context.subscriptions.push(
-        diagnosticCollection,
         tempJsFilesUpdateQueue,
         tempJsFilesProvider,
         provideTsLangCompletionItems(
@@ -231,39 +216,6 @@ async function onWillSaveTextDocument(
             document,
         );
     }
-}
-
-function handleDiagnosticUpdatesOnFileDeletionForBruFile(
-    collectionItemProvider: TypedCollectionItemProvider,
-    diagnosticCollection: DiagnosticCollection,
-) {
-    return collectionItemProvider.subscribeToUpdates((updates) => {
-        for (const {
-            data: { item },
-            updateType,
-        } of updates) {
-            if (
-                updateType == FileChangeType.Deleted &&
-                item.isFile() &&
-                extname(item.getPath()) == getExtensionForBrunoFiles()
-            ) {
-                diagnosticCollection.delete(Uri.file(item.getPath()));
-            } else if (
-                updateType == FileChangeType.Deleted &&
-                item instanceof CollectionDirectory
-            ) {
-                const normalizedDirPath = normalizeDirectoryPath(
-                    item.getPath(),
-                );
-
-                diagnosticCollection.forEach((uri) => {
-                    if (uri.fsPath.startsWith(normalizedDirPath)) {
-                        diagnosticCollection.delete(uri);
-                    }
-                });
-            }
-        }
-    });
 }
 
 async function handleOpeningOfBruDocument(
