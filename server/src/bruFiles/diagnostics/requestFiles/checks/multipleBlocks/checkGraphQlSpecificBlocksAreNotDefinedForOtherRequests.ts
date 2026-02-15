@@ -1,4 +1,3 @@
-import { DiagnosticSeverity, Uri } from "vscode";
 import {
     DictionaryBlockSimpleField,
     getFieldFromMetaBlock,
@@ -8,13 +7,14 @@ import {
     RequestType,
     isDictionaryBlockSimpleField,
 } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { getSortedBlocksByPosition } from "../../../shared/util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import { DiagnosticSeverity } from "vscode-languageserver";
+import { URI } from "vscode-uri";
 
 export function checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
-    documentUri: Uri,
+    filePath: string,
     blocks: Block[],
 ): DiagnosticWithCode | undefined {
     const graphQlSpecificBlockNames = [
@@ -50,23 +50,23 @@ export function checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
     );
 
     if (invalidBlocks.length > 0) {
-        return getDiagnostic(documentUri, invalidBlocks, requestTypeField);
+        return getDiagnostic(filePath, invalidBlocks, requestTypeField);
     } else {
         return undefined;
     }
 }
 
 function getDiagnostic(
-    documentUri: Uri,
+    filePath: string,
     sortedInvalidBlocks: Block[],
     requestTypeField: DictionaryBlockSimpleField,
 ): DiagnosticWithCode {
     return {
         message: `GraphQL specific blocks defined without using request type '${RequestType.Graphql}'.`,
-        range: mapToVsCodeRange(requestTypeField.valueRange),
+        range: requestTypeField.valueRange,
         relatedInformation: sortedInvalidBlocks.map(({ name, nameRange }) => ({
             message: `Block with GraphQl specific name '${name}'`,
-            location: { uri: documentUri, range: mapToVsCodeRange(nameRange) },
+            location: { uri: URI.file(filePath).toString(), range: nameRange },
         })),
         severity: DiagnosticSeverity.Error,
         code: NonBlockSpecificDiagnosticCode.GraphQlBlocksDefinedForNonGraphQlRequestType,

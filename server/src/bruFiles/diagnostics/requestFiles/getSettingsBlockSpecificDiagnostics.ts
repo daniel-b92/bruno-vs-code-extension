@@ -15,23 +15,22 @@ import { DiagnosticWithCode } from "../interfaces";
 import { RelevantWithinSettingsBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinSettingsBlockDiagnosticCodeEnum";
 import { doesDictionaryBlockFieldHaveValidIntegerValue } from "../shared/util/doesDictionaryBlockFieldHaveValidIntegerValue";
 import { getDiagnosticForInvalidDictionaryBlockSimpleFieldValue } from "../shared/util/getDiagnosticForInvalidDictionaryBlockSimpleFieldValue";
-import { Uri } from "vscode";
 
 export function getSettingsBlockSpecificDiagnostics(
-    documentUri: Uri,
+    filePath: string,
     settingsBlock: Block,
 ): (DiagnosticWithCode | undefined)[] {
     if (!isBlockDictionaryBlock(settingsBlock)) {
         return [];
     }
 
-    return runGenericChecksForAllFields(documentUri, settingsBlock).concat(
+    return runGenericChecksForAllFields(filePath, settingsBlock).concat(
         runChecksForSpecificFields(settingsBlock),
     );
 }
 
 function runGenericChecksForAllFields(
-    documentUri: Uri,
+    filePath: string,
     settingsBlock: DictionaryBlock,
 ) {
     const mandatoryKeys = getMandatoryKeys();
@@ -49,7 +48,7 @@ function runGenericChecksForAllFields(
             RelevantWithinSettingsBlockDiagnosticCode.UnknownKeysDefinedInSettingsBlock,
         ),
         checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-            documentUri,
+            filePath,
             settingsBlock,
             RelevantWithinSettingsBlockDiagnosticCode.DuplicateKeysDefinedInSettingsdBlock,
             mandatoryKeys,

@@ -4,7 +4,6 @@ import {
     isBlockDictionaryBlock,
     MetaBlockKey,
 } from "@global_shared";
-import { TypedCollectionItemProvider } from "@shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "../../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
 import { checkNoMandatoryValuesAreMissingForDictionaryBlock } from "../../shared/checks/singleBlocks/checkNoMandatoryValuesAreMissingForDictionaryBlock";
@@ -13,14 +12,14 @@ import { checkMetaBlockStartsInFirstLine } from "../../shared/checks/singleBlock
 import { DiagnosticWithCode } from "../../interfaces";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { checkSequenceInMetaBlockIsValid } from "../../shared/checks/singleBlocks/checkSequenceInMetaBlockIsValid";
-import { Uri } from "vscode";
 import { RelatedFilesDiagnosticsHelper } from "../../shared/helpers/relatedFilesDiagnosticsHelper";
 import { checkFolderSequenceInMetaBlockIsUnique } from "../checks/checkFolderSequenceInMetaBlockIsUnique";
+import { TypedCollectionItemProvider } from "../../../../shared";
 
 export async function getMetaBlockSpecificDiagnostics(
     itemProvider: TypedCollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
-    documentUri: Uri,
+    filePath: string,
     documentHelper: TextDocumentHelper,
     metaBlock: Block,
 ): Promise<(DiagnosticWithCode | undefined)[]> {
@@ -45,7 +44,7 @@ export async function getMetaBlockSpecificDiagnostics(
                       RelevantWithinMetaBlockDiagnosticCode.MandatoryValuesMissingInMetaBlock,
                   ),
                   checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-                      documentUri,
+                      filePath,
                       metaBlock,
                       RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
                       metaBlockKeys,
@@ -58,7 +57,7 @@ export async function getMetaBlockSpecificDiagnostics(
     for (const results of await provideRelatedFilesDiagnosticsForMetaBlock(
         itemProvider,
         metaBlock,
-        documentUri,
+        filePath,
         relatedFilesHelper,
     )) {
         diagnostics.push(results.result);
@@ -70,18 +69,18 @@ export async function getMetaBlockSpecificDiagnostics(
 async function provideRelatedFilesDiagnosticsForMetaBlock(
     itemProvider: TypedCollectionItemProvider,
     metaBlock: Block,
-    documentUri: Uri,
+    filePath: string,
     relatedRequestsHelper: RelatedFilesDiagnosticsHelper,
 ): Promise<
     {
-        uri: Uri;
+        filePath: string;
         result: DiagnosticWithCode;
     }[]
 > {
     const { code, toAdd } = await checkFolderSequenceInMetaBlockIsUnique(
         itemProvider,
         metaBlock,
-        documentUri,
+        filePath,
     );
 
     if (toAdd) {
@@ -90,9 +89,9 @@ async function provideRelatedFilesDiagnosticsForMetaBlock(
             diagnosticCode: code,
         });
 
-        return [{ uri: documentUri, result: toAdd.diagnosticCurrentFile }];
+        return [{ filePath, result: toAdd.diagnosticCurrentFile }];
     } else {
-        relatedRequestsHelper.unregisterDiagnostic(documentUri.fsPath, code);
+        relatedRequestsHelper.unregisterDiagnostic(filePath, code);
         return [];
     }
 }

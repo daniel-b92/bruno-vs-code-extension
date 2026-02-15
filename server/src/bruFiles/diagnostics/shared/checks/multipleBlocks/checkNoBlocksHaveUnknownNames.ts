@@ -1,13 +1,13 @@
-import { DiagnosticSeverity, Uri } from "vscode";
 import { Block } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { getRangeContainingBlocksSortedByPosition } from "../../util/getRangeContainingBlocksSortedByPosition";
+import { URI } from "vscode-uri";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 export function checkNoBlocksHaveUnknownNames(
-    documentUri: Uri,
+    filePath: string,
     blocks: Block[],
     validNames: string[],
 ): DiagnosticWithCode | undefined {
@@ -16,14 +16,14 @@ export function checkNoBlocksHaveUnknownNames(
     );
 
     if (blocksWithUnknownNames.length > 0) {
-        return getDiagnostic(documentUri, blocksWithUnknownNames, validNames);
+        return getDiagnostic(filePath, blocksWithUnknownNames, validNames);
     } else {
         return undefined;
     }
 }
 
 function getDiagnostic(
-    documentUri: Uri,
+    filePath: string,
     sortedBlocksWithUnknownNames: Block[],
     validNames: string[],
 ): DiagnosticWithCode {
@@ -33,17 +33,15 @@ function getDiagnostic(
             null,
             2,
         )}`,
-        range: mapToVsCodeRange(
-            getRangeContainingBlocksSortedByPosition(
-                sortedBlocksWithUnknownNames,
-            ),
+        range: getRangeContainingBlocksSortedByPosition(
+            sortedBlocksWithUnknownNames,
         ),
         relatedInformation: sortedBlocksWithUnknownNames.map(
             ({ name, nameRange }) => ({
                 message: `Block with invalid name '${name}'`,
                 location: {
-                    uri: documentUri,
-                    range: mapToVsCodeRange(nameRange),
+                    uri: URI.file(filePath).toString(),
+                    range: nameRange,
                 },
             }),
         ),

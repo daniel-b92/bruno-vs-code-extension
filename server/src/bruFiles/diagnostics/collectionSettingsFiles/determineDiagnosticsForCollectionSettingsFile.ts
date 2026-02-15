@@ -24,7 +24,7 @@ import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBloc
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 
 export function determineDiagnosticsForCollectionSettingsFile(
-    documentUri: Uri,
+    filePath: string,
     documentText: string,
 ): DiagnosticWithCode[] {
     const document = new TextDocumentHelper(documentText);
@@ -42,30 +42,30 @@ export function determineDiagnosticsForCollectionSettingsFile(
     const results: (DiagnosticWithCode | undefined)[] = [];
 
     results.push(
-        checkThatNoBlocksAreDefinedMultipleTimes(documentUri, blocks),
-        checkThatNoTextExistsOutsideOfBlocks(documentUri, textOutsideOfBlocks),
-        checkAuthBlockTypeFromAuthModeBlockExists(documentUri, blocks),
-        checkAtMostOneAuthBlockExists(documentUri, blocks),
+        checkThatNoBlocksAreDefinedMultipleTimes(filePath, blocks),
+        checkThatNoTextExistsOutsideOfBlocks(filePath, textOutsideOfBlocks),
+        checkAuthBlockTypeFromAuthModeBlockExists(filePath, blocks),
+        checkAtMostOneAuthBlockExists(filePath, blocks),
         checkNoBlocksHaveUnknownNames(
-            documentUri,
+            filePath,
             blocks,
             getValidBlockNamesForCollectionSettingsFile().concat(
                 getNamesForRedundantBlocksForCollectionSettingsFile(),
             ),
         ),
         checkNoRedundantBlocksExist(
-            documentUri,
+            filePath,
             blocks,
             getNamesForRedundantBlocksForCollectionSettingsFile(),
         ),
         validDictionaryBlocks.length < blocksThatShouldBeDictionaryBlocks.length
             ? checkDictionaryBlocksHaveDictionaryStructure(
-                  documentUri,
+                  filePath,
                   blocksThatShouldBeDictionaryBlocks,
               )
             : undefined,
         checkDictionaryBlocksSimpleFieldsStructure(
-            documentUri,
+            filePath,
             validDictionaryBlocks.map((block) => ({
                 block,
                 keys: block.content.map(({ key }) => key),
@@ -73,11 +73,11 @@ export function determineDiagnosticsForCollectionSettingsFile(
         ),
         checkCodeBlocksHaveClosingBracket(document, blocks),
         checkDictionaryBlocksAreNotEmpty(
-            documentUri,
+            filePath,
             blocksThatShouldBeDictionaryBlocks,
         ),
         checkBlocksAreSeparatedBySingleEmptyLine(
-            documentUri,
+            filePath,
             blocks,
             textOutsideOfBlocks,
         ),
@@ -87,7 +87,7 @@ export function determineDiagnosticsForCollectionSettingsFile(
 
     if (authBlocks.length == 1) {
         results.push(
-            ...getAuthBlockSpecificDiagnostics(documentUri, authBlocks[0]),
+            ...getAuthBlockSpecificDiagnostics(filePath, authBlocks[0]),
         );
     }
 
@@ -97,10 +97,7 @@ export function determineDiagnosticsForCollectionSettingsFile(
 
     if (authModeBlocks.length == 1) {
         results.push(
-            ...getAuthModeBlockSpecificDiagnostics(
-                documentUri,
-                authModeBlocks[0],
-            ),
+            ...getAuthModeBlockSpecificDiagnostics(filePath, authModeBlocks[0]),
         );
     }
 

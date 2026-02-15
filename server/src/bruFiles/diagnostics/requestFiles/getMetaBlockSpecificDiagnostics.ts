@@ -1,4 +1,3 @@
-import { Uri } from "vscode";
 import {
     TextDocumentHelper,
     Block,
@@ -11,7 +10,6 @@ import {
     isDictionaryBlockArrayField,
     DictionaryBlockArrayField,
 } from "@global_shared";
-import { TypedCollectionItemProvider } from "@shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
 import { checkNoMandatoryValuesAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoMandatoryValuesAreMissingForDictionaryBlock";
@@ -26,11 +24,12 @@ import { checkSequenceInMetaBlockIsUniqueWithinFolder } from "./checks/relatedRe
 import { checkDictionaryBlockArrayFieldsStructure } from "../shared/checks/singleBlocks/checkDictionaryBlockArrayFieldsStructure";
 import { checkDictionaryBlockArrayFieldsValues } from "../shared/checks/singleBlocks/checkDictionaryBlockArrayFieldsValues";
 import { checkNoDuplicateTagsAreDefined } from "./checks/singleBlocks/checkNoDuplicateTagsAreDefined";
+import { TypedCollectionItemProvider } from "../../../shared";
 
 export async function getMetaBlockSpecificDiagnostics(
     itemProvider: TypedCollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
-    documentUri: Uri,
+    filePath: string,
     documentHelper: TextDocumentHelper,
     metaBlock: DictionaryBlock,
 ): Promise<(DiagnosticWithCode | undefined)[]> {
@@ -65,13 +64,13 @@ export async function getMetaBlockSpecificDiagnostics(
             RelevantWithinMetaBlockDiagnosticCode.MandatoryValuesMissingInMetaBlock,
         ),
         ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-            documentUri,
+            filePath,
             metaBlock,
             RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
             mandatoryBlockKeys.concat(optionalBlockKeys),
         ) ?? []),
         checkDictionaryBlockArrayFieldsStructure(
-            documentUri,
+            filePath,
             metaBlock,
             metaBlock.content
                 .map(({ key }) => key)
@@ -92,14 +91,14 @@ export async function getMetaBlockSpecificDiagnostics(
         checkMetaBlockStartsInFirstLine(documentHelper, metaBlock),
     ].concat(
         tagsFields.length == 1 && isDictionaryBlockArrayField(tagsFields[0])
-            ? runChecksForTagsField(documentUri, tagsFields[0])
+            ? runChecksForTagsField(filePath, tagsFields[0])
             : [],
     );
 
     for (const results of await provideRelatedFilesDiagnosticsForMetaBlock(
         itemProvider,
         metaBlock,
-        documentUri,
+        filePath,
         relatedFilesHelper,
     )) {
         diagnostics.push(results.result);
@@ -111,18 +110,18 @@ export async function getMetaBlockSpecificDiagnostics(
 async function provideRelatedFilesDiagnosticsForMetaBlock(
     itemProvider: TypedCollectionItemProvider,
     metaBlock: Block,
-    documentUri: Uri,
+    filePath: string,
     relatedRequestsHelper: RelatedFilesDiagnosticsHelper,
 ): Promise<
     {
-        uri: Uri;
+        filePath: string;
         result: DiagnosticWithCode;
     }[]
 > {
     const { code, toAdd } = await checkSequenceInMetaBlockIsUniqueWithinFolder(
         itemProvider,
         metaBlock,
-        documentUri,
+        filePath,
     );
 
     if (toAdd) {
@@ -131,18 +130,18 @@ async function provideRelatedFilesDiagnosticsForMetaBlock(
             diagnosticCode: code,
         });
 
-        return [{ uri: documentUri, result: toAdd.diagnosticCurrentFile }];
+        return [{ filePath, result: toAdd.diagnosticCurrentFile }];
     } else {
-        relatedRequestsHelper.unregisterDiagnostic(documentUri.fsPath, code);
+        relatedRequestsHelper.unregisterDiagnostic(filePath, code);
         return [];
     }
 }
 
 function runChecksForTagsField(
-    documentUri: Uri,
+    filePath: string,
     tagsField: DictionaryBlockArrayField,
 ) {
     return [
-        checkDictionaryBlockArrayFieldsValues(documentUri, [tagsField]),
-    ].concat(checkNoDuplicateTagsAreDefined(documentUri, tagsField));
+        checkDictionaryBlockArrayFieldsValues(filePath, [tagsField]),
+    ].concat(checkNoDuplicateTagsAreDefined(filePath, tagsField));
 }

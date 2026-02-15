@@ -1,23 +1,22 @@
 import {
-    DiagnosticRelatedInformation,
-    DiagnosticSeverity,
-    Range,
-    Uri,
-} from "vscode";
-import {
     Block,
     isArrayBlockField,
     isBlockArrayBlock,
     PlainTextWithinBlock,
+    Range,
 } from "@global_shared";
-import { mapToVsCodePosition, mapToVsCodeRange } from "@shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { getSortedPlainTextLinesByPosition } from "../../util/getSortedPlainTextLinesByPosition";
+import { URI } from "vscode-uri";
+import {
+    DiagnosticRelatedInformation,
+    DiagnosticSeverity,
+} from "vscode-languageserver";
 
 export function checkArrayBlocksHaveArrayStructure(
-    documentUri: Uri,
+    filePath: string,
     blocksToCheck: Block[],
 ): DiagnosticWithCode | undefined {
     const sortedBlocksWithoutCorrectStructure = getSortedBlocksByPosition(
@@ -26,7 +25,7 @@ export function checkArrayBlocksHaveArrayStructure(
 
     if (sortedBlocksWithoutCorrectStructure.length > 0) {
         return getDiagnostic(
-            documentUri,
+            filePath,
             sortedBlocksWithoutCorrectStructure.map((block) => ({
                 blockName: block.name,
                 invalidLines: getLinesWithInvalidStructure(
@@ -40,7 +39,7 @@ export function checkArrayBlocksHaveArrayStructure(
 }
 
 function getDiagnostic(
-    documentUri: Uri,
+    filePath: string,
     sortedBlocksWithIncorrectStructure: {
         blockName: string;
         invalidLines: PlainTextWithinBlock[];
@@ -63,8 +62,8 @@ function getDiagnostic(
                               curr.invalidLines.map(({ range }) => ({
                                   message: `Invalid line in block '${curr.blockName}'`,
                                   location: {
-                                      uri: documentUri,
-                                      range: mapToVsCodeRange(range),
+                                      uri: URI.file(filePath).toString(),
+                                      range,
                                   },
                               })),
                           ),
@@ -87,16 +86,12 @@ function getRange(
             sortedBlocksWithIncorrectStructure.length - 1
         ];
     return new Range(
-        mapToVsCodePosition(
-            getSortedPlainTextLinesByPosition(
-                sortedBlocksWithIncorrectStructure[0].invalidLines,
-            )[0].range.start,
-        ),
-        mapToVsCodePosition(
-            getSortedPlainTextLinesByPosition(lastBlock.invalidLines)[
-                lastBlock.invalidLines.length - 1
-            ].range.end,
-        ),
+        getSortedPlainTextLinesByPosition(
+            sortedBlocksWithIncorrectStructure[0].invalidLines,
+        )[0].range.start,
+        getSortedPlainTextLinesByPosition(lastBlock.invalidLines)[
+            lastBlock.invalidLines.length - 1
+        ].range.end,
     );
 }
 

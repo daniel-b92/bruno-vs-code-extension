@@ -1,4 +1,3 @@
-import { DiagnosticSeverity, Uri } from "vscode";
 import {
     DictionaryBlockSimpleField,
     getAllMethodBlocks,
@@ -9,12 +8,13 @@ import {
     Block,
     isDictionaryBlockSimpleField,
 } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import { URI } from "vscode-uri";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 export function checkAuthBlockTypeFromMethodBlockExists(
-    documentUri: Uri,
+    filePath: string,
     blocks: Block[],
 ): DiagnosticWithCode | undefined {
     const methodBlocks = getAllMethodBlocks(blocks);
@@ -47,7 +47,7 @@ export function checkAuthBlockTypeFromMethodBlockExists(
         getAuthTypesForNoDefinedAuthBlock().includes(methodBlockField.value)
     ) {
         return getDiagnosticInCaseOfNonExpectedAuthBlock(
-            documentUri,
+            filePath,
             methodBlockField,
             authTypeFromAuthBlock.authBlock,
         );
@@ -56,7 +56,7 @@ export function checkAuthBlockTypeFromMethodBlockExists(
         methodBlockField.value != authTypeFromAuthBlock.value
     ) {
         return getDiagnostic(
-            documentUri,
+            filePath,
             methodBlockField,
             authTypeFromAuthBlock.authBlock,
         );
@@ -66,21 +66,21 @@ export function checkAuthBlockTypeFromMethodBlockExists(
 }
 
 function getDiagnostic(
-    documentUri: Uri,
+    filePath: string,
     methodBlockField: DictionaryBlockSimpleField,
     authBlock: Block,
 ): DiagnosticWithCode {
     return {
         message: "Auth type does not match name of auth block.",
-        range: mapToVsCodeRange(methodBlockField.valueRange),
+        range: methodBlockField.valueRange,
         relatedInformation: [
             {
                 message: `Defined auth type in auth block: '${getAuthTypeFromBlockName(
                     authBlock.name,
                 )}'`,
                 location: {
-                    uri: documentUri,
-                    range: mapToVsCodeRange(authBlock.nameRange),
+                    uri: URI.file(filePath).toString(),
+                    range: authBlock.nameRange,
                 },
             },
         ],
@@ -95,28 +95,28 @@ function getDiagnosticInCaseOfMissingAuthBlock(
     return {
         message:
             "Missing auth block despite definition of auth type in method block.",
-        range: mapToVsCodeRange(methodBlockField.valueRange),
+        range: methodBlockField.valueRange,
         severity: DiagnosticSeverity.Error,
         code: getCode(),
     };
 }
 
 function getDiagnosticInCaseOfNonExpectedAuthBlock(
-    documentUri: Uri,
+    filePath: string,
     methodBlockField: DictionaryBlockSimpleField,
     authBlock: Block,
 ): DiagnosticWithCode {
     return {
         message: `An auth block is defined although the auth type is '${methodBlockField.value}'.`,
-        range: mapToVsCodeRange(methodBlockField.valueRange),
+        range: methodBlockField.valueRange,
         relatedInformation: [
             {
                 message: `Defined auth type in auth block: '${getAuthTypeFromBlockName(
                     authBlock.name,
                 )}'`,
                 location: {
-                    uri: documentUri,
-                    range: mapToVsCodeRange(authBlock.nameRange),
+                    uri: URI.file(filePath).toString(),
+                    range: authBlock.nameRange,
                 },
             },
         ],

@@ -1,12 +1,15 @@
-import { DiagnosticRelatedInformation, DiagnosticSeverity, Uri } from "vscode";
 import { Block, Range } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import { URI } from "vscode-uri";
+import {
+    DiagnosticRelatedInformation,
+    DiagnosticSeverity,
+} from "vscode-languageserver";
 
 export function checkDictionaryBlocksAreNotEmpty(
-    documentUri: Uri,
+    filePath: string,
     blocksToCheck: Block[],
 ): DiagnosticWithCode | undefined {
     const sortedEmptyBlocks = getSortedBlocksByPosition(
@@ -20,29 +23,27 @@ export function checkDictionaryBlocksAreNotEmpty(
     }
 
     return sortedEmptyBlocks.length > 0
-        ? getDiagnostic(documentUri, sortedEmptyBlocks)
+        ? getDiagnostic(filePath, sortedEmptyBlocks)
         : undefined;
 }
 
 function getDiagnostic(
-    documentUri: Uri,
+    filePath: string,
     sortedEmptyBlocks: Block[],
 ): DiagnosticWithCode {
     return {
         message: `Dictionary blocks without content are invalid`,
-        range: mapToVsCodeRange(
-            new Range(
-                sortedEmptyBlocks[0].nameRange.start,
-                sortedEmptyBlocks[sortedEmptyBlocks.length - 1].nameRange.end,
-            ),
+        range: new Range(
+            sortedEmptyBlocks[0].nameRange.start,
+            sortedEmptyBlocks[sortedEmptyBlocks.length - 1].nameRange.end,
         ),
         relatedInformation:
             sortedEmptyBlocks.length > 1
                 ? (sortedEmptyBlocks.map(({ name, nameRange }) => ({
                       message: `Dictionary block '${name}' without any content`,
                       location: {
-                          uri: documentUri,
-                          range: mapToVsCodeRange(nameRange),
+                          uri: URI.file(filePath).toString(),
+                          range: nameRange,
                       },
                   })) as DiagnosticRelatedInformation[])
                 : undefined,

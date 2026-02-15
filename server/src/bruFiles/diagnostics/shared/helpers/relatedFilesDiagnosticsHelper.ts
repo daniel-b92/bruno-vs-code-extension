@@ -20,8 +20,8 @@ export class RelatedFilesDiagnosticsHelper {
             ) {
                 knownFiles.push(
                     ...newDiagnostic.files.filter(
-                        (newFile) => !knownFiles.includes(newFile)
-                    )
+                        (newFile) => !knownFiles.includes(newFile),
+                    ),
                 );
                 return;
             }
@@ -32,7 +32,7 @@ export class RelatedFilesDiagnosticsHelper {
 
     public unregisterDiagnostic(
         file: string,
-        diagnosticCode: KnownDiagnosticCode
+        diagnosticCode: KnownDiagnosticCode,
     ) {
         const toAdjust = this.diagnosticsForRelatedFiles
             .map((val, index) => ({ diagnostic: val, index }))
@@ -44,7 +44,7 @@ export class RelatedFilesDiagnosticsHelper {
                     },
                 }) =>
                     registeredFiles.includes(file) &&
-                    registeredCode == diagnosticCode
+                    registeredCode == diagnosticCode,
             );
 
         if (toAdjust.length > 1) {
@@ -52,8 +52,8 @@ export class RelatedFilesDiagnosticsHelper {
                 `Found more than one entry for file '${file}' and diagnostic code '${diagnosticCode}' to unregister. Found entries: ${JSON.stringify(
                     toAdjust,
                     null,
-                    2
-                )}`
+                    2,
+                )}`,
             );
         } else if (toAdjust.length == 0) {
             return;
@@ -65,7 +65,7 @@ export class RelatedFilesDiagnosticsHelper {
         // Therefore, there would not be multiple affected files anymore. So the whole entry can be removed in this case.
         if (diagnostic.files.length > 2) {
             diagnostic.files = diagnostic.files.filter(
-                (registered) => registered != file
+                (registered) => registered != file,
             );
         } else {
             this.diagnosticsForRelatedFiles.splice(index, 1);

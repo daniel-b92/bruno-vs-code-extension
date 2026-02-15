@@ -1,12 +1,11 @@
-import { DiagnosticSeverity } from "vscode";
 import {
     TextDocumentHelper,
     Block,
     RequestFileBlockName,
 } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 export function checkOccurencesOfMandatoryBlocks(
     document: TextDocumentHelper,
@@ -20,7 +19,7 @@ export function checkOccurencesOfMandatoryBlocks(
 function getDiagnostic(document: TextDocumentHelper): DiagnosticWithCode {
     return {
         message: "No 'meta' block defined.",
-        range: mapToVsCodeRange(document.getTextRange()), // Use full text of file as range for diagnostics
+        range: document.getTextRange(), // Use full text of file as range for diagnostics
         severity: DiagnosticSeverity.Error,
         code: NonBlockSpecificDiagnosticCode.MissingMetaBlock,
     };

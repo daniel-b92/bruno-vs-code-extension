@@ -1,8 +1,10 @@
-import { DiagnosticRelatedInformation, DiagnosticSeverity, Uri } from "vscode";
 import { DictionaryBlockArrayField, Range } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import {
+    DiagnosticRelatedInformation,
+    DiagnosticSeverity,
+} from "vscode-languageserver";
 
 interface ValuesForArrayField {
     field: DictionaryBlockArrayField;
@@ -13,7 +15,7 @@ interface ValuesForArrayField {
 }
 
 export function checkDictionaryBlockArrayFieldsValues(
-    documentUri: Uri,
+    filePath: string,
     fieldsToCheck: DictionaryBlockArrayField[],
 ): DiagnosticWithCode | undefined {
     const invalidValuesWithFields =
@@ -23,11 +25,11 @@ export function checkDictionaryBlockArrayFieldsValues(
         return undefined;
     }
 
-    return getDiagnostic(documentUri, invalidValuesWithFields);
+    return getDiagnostic(filePath, invalidValuesWithFields);
 }
 
 function getDiagnostic(
-    documentUri: Uri,
+    filePath: string,
     invalidValuesSortedByPosition: ValuesForArrayField[],
 ): DiagnosticWithCode {
     return {
@@ -44,8 +46,8 @@ function getDiagnostic(
                               curr.values.map((val) => ({
                                   message: `Invalid value for '${curr.field.key}'`,
                                   location: {
-                                      uri: documentUri,
-                                      range: mapToVsCodeRange(val.range),
+                                      uri: filePath,
+                                      range: val.range,
                                   },
                               })),
                           ),
@@ -93,10 +95,8 @@ function getRange(invalidValuesSortedByPosition: ValuesForArrayField[]) {
     const lastInvalidValueForLastField =
         lastInvalidField.values[lastInvalidField.values.length - 1];
 
-    return mapToVsCodeRange(
-        new Range(
-            invalidValuesSortedByPosition[0].values[0].range.start,
-            lastInvalidValueForLastField.range.end,
-        ),
+    return new Range(
+        invalidValuesSortedByPosition[0].values[0].range.start,
+        lastInvalidValueForLastField.range.end,
     );
 }

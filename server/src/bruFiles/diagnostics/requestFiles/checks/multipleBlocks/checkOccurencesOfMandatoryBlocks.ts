@@ -1,4 +1,3 @@
-import { DiagnosticSeverity } from "vscode";
 import {
     TextDocumentHelper,
     Block,
@@ -6,9 +5,9 @@ import {
     getAllMethodBlocks,
     getPossibleMethodBlocks,
 } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 export function checkOccurencesOfMandatoryBlocks(
     document: TextDocumentHelper,
@@ -21,7 +20,7 @@ export function checkOccurencesOfMandatoryBlocks(
 
     const missingMetaBlockDiagnostic: DiagnosticWithCode = {
         message: "No 'meta' block defined.",
-        range: mapToVsCodeRange(range),
+        range,
         severity: DiagnosticSeverity.Error,
         code: NonBlockSpecificDiagnosticCode.MissingMetaBlock,
     };
@@ -37,7 +36,7 @@ export function checkOccurencesOfMandatoryBlocks(
         message: `Too many or too few HTTP method blocks defined. Exactly one of the following blocks needs to be present: '${getPossibleMethodBlocks().join(
             "', '",
         )}'`,
-        range: mapToVsCodeRange(range),
+        range,
         severity: DiagnosticSeverity.Error,
         code: NonBlockSpecificDiagnosticCode.IncorrectNumberofHttpMethodBlocks,
     };

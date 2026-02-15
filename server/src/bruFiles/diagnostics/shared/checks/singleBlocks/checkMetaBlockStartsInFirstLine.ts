@@ -1,7 +1,7 @@
-import { DiagnosticSeverity, Position, Range } from "vscode";
-import { Block, TextDocumentHelper } from "@global_shared";
+import { Block, Position, Range, TextDocumentHelper } from "@global_shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 export function checkMetaBlockStartsInFirstLine(
     document: TextDocumentHelper,

@@ -1,9 +1,8 @@
-import { DiagnosticSeverity } from "vscode";
 import { DictionaryBlock } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { getMissingKeysForDictionaryBlock } from "../../util/getMissingKeysForDictionaryBlock";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 export function checkNoKeysAreMissingForDictionaryBlock(
     block: DictionaryBlock,
@@ -29,7 +28,7 @@ function getDiagnostic(
             missingFields.length == 1
                 ? `Mandatory key '${missingFields[0]}' is missing.`
                 : `Mandatory keys '${missingFields.join("', '")}' are missing.`,
-        range: mapToVsCodeRange(block.contentRange),
+        range: block.contentRange,
         severity: DiagnosticSeverity.Error,
         code: diagnosticCode,
     };

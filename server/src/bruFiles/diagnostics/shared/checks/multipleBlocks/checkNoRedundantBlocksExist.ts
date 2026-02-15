@@ -1,13 +1,13 @@
-import { DiagnosticSeverity, Uri } from "vscode";
 import { Block } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { getRangeContainingBlocksSortedByPosition } from "../../util/getRangeContainingBlocksSortedByPosition";
+import { URI } from "vscode-uri";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 export function checkNoRedundantBlocksExist(
-    documentUri: Uri,
+    filePath: string,
     blocks: Block[],
     redundantBlockNames: string[],
 ): DiagnosticWithCode | undefined {
@@ -16,14 +16,14 @@ export function checkNoRedundantBlocksExist(
     );
 
     if (redundantBlocks.length > 0) {
-        return getDiagnostic(documentUri, redundantBlocks);
+        return getDiagnostic(filePath, redundantBlocks);
     } else {
         return undefined;
     }
 }
 
 function getDiagnostic(
-    documentUri: Uri,
+    filePath: string,
     sortedRedundantBlocks: Block[],
 ): DiagnosticWithCode {
     return {
@@ -31,16 +31,14 @@ function getDiagnostic(
             sortedRedundantBlocks.length > 1
                 ? "Redundant blocks are defined."
                 : "Redundant block.",
-        range: mapToVsCodeRange(
-            getRangeContainingBlocksSortedByPosition(sortedRedundantBlocks),
-        ),
+        range: getRangeContainingBlocksSortedByPosition(sortedRedundantBlocks),
         relatedInformation:
             sortedRedundantBlocks.length > 1
                 ? sortedRedundantBlocks.map(({ name, nameRange }) => ({
                       message: `Redundant block '${name}'`,
                       location: {
-                          uri: documentUri,
-                          range: mapToVsCodeRange(nameRange),
+                          uri: URI.file(filePath).toString(),
+                          range: nameRange,
                       },
                   }))
                 : undefined,

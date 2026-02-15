@@ -1,18 +1,18 @@
-import { DiagnosticSeverity } from "vscode";
 import { DictionaryBlockSimpleField } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { KnownDiagnosticCode } from "../diagnosticCodes/knownDiagnosticCodeDefinition";
+import { DiagnosticSeverity } from "vscode-languageserver";
+import { DiagnosticWithCode } from "../../interfaces";
 
 export function getDiagnosticForInvalidDictionaryBlockSimpleFieldValue(
     field: DictionaryBlockSimpleField,
     messageDescribingWhichValuesAreAllowed: string,
     diagnosticCode: KnownDiagnosticCode,
-) {
+): DiagnosticWithCode {
     return {
         message: `Invalid value '${
             field.value
         }'. ${messageDescribingWhichValuesAreAllowed}`,
-        range: mapToVsCodeRange(field.valueRange),
+        range: field.valueRange,
         severity: DiagnosticSeverity.Error,
         code: diagnosticCode,
     };

@@ -1,12 +1,12 @@
-import { DiagnosticSeverity, Uri } from "vscode";
 import { Block, isBodyBlock } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { getSortedBlocksByPosition } from "../../../shared/util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import { URI } from "vscode-uri";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 export function checkAtMostOneBodyBlockExists(
-    documentUri: Uri,
+    filePath: string,
     blocks: Block[],
 ): DiagnosticWithCode | undefined {
     const sortedBodyBlocks = getSortedBlocksByPosition(
@@ -14,28 +14,26 @@ export function checkAtMostOneBodyBlockExists(
     );
 
     if (sortedBodyBlocks.length > 1) {
-        return getDiagnostic(documentUri, sortedBodyBlocks);
+        return getDiagnostic(filePath, sortedBodyBlocks);
     } else {
         return undefined;
     }
 }
 
 function getDiagnostic(
-    documentUri: Uri,
+    filePath: string,
     sortedBodyBlocks: Block[],
 ): DiagnosticWithCode {
     return {
         message: "Too many 'body' blocks are defined.",
-        range: mapToVsCodeRange(
-            sortedBodyBlocks[sortedBodyBlocks.length - 1].nameRange,
-        ),
+        range: sortedBodyBlocks[sortedBodyBlocks.length - 1].nameRange,
         relatedInformation: sortedBodyBlocks
             .slice(0, sortedBodyBlocks.length - 1)
             .map(({ name, nameRange }) => ({
                 message: `Other body block with name '${name}'`,
                 location: {
-                    uri: documentUri,
-                    range: mapToVsCodeRange(nameRange),
+                    uri: URI.file(filePath).toString(),
+                    range: nameRange,
                 },
             })),
         severity: DiagnosticSeverity.Error,

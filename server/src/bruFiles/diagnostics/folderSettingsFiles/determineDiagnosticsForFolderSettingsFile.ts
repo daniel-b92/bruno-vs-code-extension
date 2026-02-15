@@ -1,4 +1,3 @@
-import { Uri } from "vscode";
 import {
     TextDocumentHelper,
     parseBruFile,
@@ -9,7 +8,6 @@ import {
     isAuthBlock,
     isBlockDictionaryBlock,
 } from "@global_shared";
-import { TypedCollectionItemProvider } from "@shared";
 import { DiagnosticWithCode } from "../interfaces";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
 import { checkAtMostOneAuthBlockExists } from "../shared/checks/multipleBlocks/checkAtMostOneAuthBlockExists";
@@ -26,9 +24,10 @@ import { getMetaBlockSpecificDiagnostics } from "./util/getMetaBlockSpecificDiag
 import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDiagnosticsHelper";
 import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBlocks/checkCodeBlocksHaveClosingBracket";
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
+import { TypedCollectionItemProvider } from "../../../shared";
 
 export async function determineDiagnosticsForFolderSettingsFile(
-    documentUri: Uri,
+    filePath: string,
     documentText: string,
     itemProvider: TypedCollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
@@ -50,23 +49,23 @@ export async function determineDiagnosticsForFolderSettingsFile(
 
     results.push(
         checkOccurencesOfMandatoryBlocks(document, blocks),
-        checkThatNoBlocksAreDefinedMultipleTimes(documentUri, blocks),
-        checkThatNoTextExistsOutsideOfBlocks(documentUri, textOutsideOfBlocks),
-        checkAuthBlockTypeFromAuthModeBlockExists(documentUri, blocks),
-        checkAtMostOneAuthBlockExists(documentUri, blocks),
+        checkThatNoBlocksAreDefinedMultipleTimes(filePath, blocks),
+        checkThatNoTextExistsOutsideOfBlocks(filePath, textOutsideOfBlocks),
+        checkAuthBlockTypeFromAuthModeBlockExists(filePath, blocks),
+        checkAtMostOneAuthBlockExists(filePath, blocks),
         checkNoBlocksHaveUnknownNames(
-            documentUri,
+            filePath,
             blocks,
             Object.values(getValidBlockNamesForFolderSettingsFile()),
         ),
         validDictionaryBlocks.length < blocksThatShouldBeDictionaryBlocks.length
             ? checkDictionaryBlocksHaveDictionaryStructure(
-                  documentUri,
+                  filePath,
                   blocksThatShouldBeDictionaryBlocks,
               )
             : undefined,
         checkDictionaryBlocksSimpleFieldsStructure(
-            documentUri,
+            filePath,
             validDictionaryBlocks.map((block) => ({
                 block,
                 keys: block.content.map(({ key }) => key),
@@ -74,11 +73,11 @@ export async function determineDiagnosticsForFolderSettingsFile(
         ),
         checkCodeBlocksHaveClosingBracket(document, blocks),
         checkDictionaryBlocksAreNotEmpty(
-            documentUri,
+            filePath,
             blocksThatShouldBeDictionaryBlocks,
         ),
         checkBlocksAreSeparatedBySingleEmptyLine(
-            documentUri,
+            filePath,
             blocks,
             textOutsideOfBlocks,
         ),
@@ -93,7 +92,7 @@ export async function determineDiagnosticsForFolderSettingsFile(
             ...(await getMetaBlockSpecificDiagnostics(
                 itemProvider,
                 relatedFilesHelper,
-                documentUri,
+                filePath,
                 document,
                 metaBlocks[0],
             )),
@@ -104,7 +103,7 @@ export async function determineDiagnosticsForFolderSettingsFile(
 
     if (authBlocks.length == 1) {
         results.push(
-            ...getAuthBlockSpecificDiagnostics(documentUri, authBlocks[0]),
+            ...getAuthBlockSpecificDiagnostics(filePath, authBlocks[0]),
         );
     }
 
@@ -114,10 +113,7 @@ export async function determineDiagnosticsForFolderSettingsFile(
 
     if (authModeBlocks.length == 1) {
         results.push(
-            ...getAuthModeBlockSpecificDiagnostics(
-                documentUri,
-                authModeBlocks[0],
-            ),
+            ...getAuthModeBlockSpecificDiagnostics(filePath, authModeBlocks[0]),
         );
     }
 

@@ -1,4 +1,3 @@
-import { DiagnosticSeverity, Uri } from "vscode";
 import {
     DictionaryBlock,
     DictionaryBlockArrayField,
@@ -6,12 +5,12 @@ import {
     isDictionaryBlockArrayField,
     Range,
 } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 export function checkDictionaryBlockArrayFieldsStructure(
-    documentUri: Uri,
+    filePath: string,
     block: DictionaryBlock,
     keysToCheck: string[],
 ): DiagnosticWithCode | undefined {
@@ -24,11 +23,11 @@ export function checkDictionaryBlockArrayFieldsStructure(
         return undefined;
     }
 
-    return getDiagnostic(documentUri, invalidFieldsSortedByPosition);
+    return getDiagnostic(filePath, invalidFieldsSortedByPosition);
 }
 
 function getDiagnostic(
-    documentUri: Uri,
+    filePath: string,
     invalidFieldsSortedByPosition: (
         | DictionaryBlockSimpleField
         | DictionaryBlockArrayField
@@ -48,8 +47,8 @@ function getDiagnostic(
                 ? invalidFieldsSortedByPosition.map(({ key, keyRange }) => ({
                       message: `Invalid field '${key}'`,
                       location: {
-                          uri: documentUri,
-                          range: mapToVsCodeRange(keyRange),
+                          uri: filePath,
+                          range: keyRange,
                       },
                   }))
                 : undefined,
@@ -80,12 +79,9 @@ function getRange(
         | DictionaryBlockArrayField
     )[],
 ) {
-    return mapToVsCodeRange(
-        new Range(
-            invalidFieldsSortedByPosition[0].keyRange.start,
-            invalidFieldsSortedByPosition[
-                invalidFieldsSortedByPosition.length - 1
-            ].keyRange.end,
-        ),
+    return new Range(
+        invalidFieldsSortedByPosition[0].keyRange.start,
+        invalidFieldsSortedByPosition[invalidFieldsSortedByPosition.length - 1]
+            .keyRange.end,
     );
 }

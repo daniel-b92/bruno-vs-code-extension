@@ -1,4 +1,3 @@
-import { DiagnosticSeverity } from "vscode";
 import {
     DictionaryBlockSimpleField,
     Block,
@@ -6,10 +5,10 @@ import {
     getFieldFromMetaBlock,
     isDictionaryBlockSimpleField,
 } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { doesDictionaryBlockFieldHaveValidIntegerValue } from "../../util/doesDictionaryBlockFieldHaveValidIntegerValue";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 export function checkSequenceInMetaBlockIsValid(
     metaBlock: Block,
@@ -34,7 +33,7 @@ function getDiagnostic(sequenceField: DictionaryBlockSimpleField) {
     return {
         message:
             "Sequence is not valid. It needs to be an integer with a value of at least 1.",
-        range: mapToVsCodeRange(sequenceField.valueRange),
+        range: sequenceField.valueRange,
         severity: DiagnosticSeverity.Error,
         code: RelevantWithinMetaBlockDiagnosticCode.SequenceNotValid,
     };

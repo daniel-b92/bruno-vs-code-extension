@@ -66,7 +66,7 @@ export async function determineDiagnosticsForRequestFile(
 }
 
 function collectCommonDiagnostics(
-    documentUri: Uri,
+    filePath: string,
     documentHelper: TextDocumentHelper,
     blocks: Block[],
     textOutsideOfBlocks: TextOutsideOfBlocks[],
@@ -83,43 +83,43 @@ function collectCommonDiagnostics(
 
     results.push(
         ...checkOccurencesOfMandatoryBlocks(documentHelper, blocks),
-        checkThatNoBlocksAreDefinedMultipleTimes(documentUri, blocks),
-        checkThatNoTextExistsOutsideOfBlocks(documentUri, textOutsideOfBlocks),
-        checkAtMostOneAuthBlockExists(documentUri, blocks),
-        checkAtMostOneBodyBlockExists(documentUri, blocks),
-        checkAuthBlockTypeFromMethodBlockExists(documentUri, blocks),
-        checkBodyBlockTypeFromMethodBlockExists(documentUri, blocks),
+        checkThatNoBlocksAreDefinedMultipleTimes(filePath, blocks),
+        checkThatNoTextExistsOutsideOfBlocks(filePath, textOutsideOfBlocks),
+        checkAtMostOneAuthBlockExists(filePath, blocks),
+        checkAtMostOneBodyBlockExists(filePath, blocks),
+        checkAuthBlockTypeFromMethodBlockExists(filePath, blocks),
+        checkBodyBlockTypeFromMethodBlockExists(filePath, blocks),
         checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
-            documentUri,
+            filePath,
             blocks,
         ),
         checkNoBlocksHaveUnknownNames(
-            documentUri,
+            filePath,
             blocks,
             Object.values(RequestFileBlockName) as string[],
         ),
         validDictionaryBlocks.length < blocksThatShouldBeDictionaryBlocks.length
             ? checkDictionaryBlocksHaveDictionaryStructure(
-                  documentUri,
+                  filePath,
                   blocksThatShouldBeDictionaryBlocks,
               )
             : undefined,
         checkDictionaryBlocksSimpleFieldsStructure(
-            documentUri,
+            filePath,
             getDictionaryBlockFieldsThatShouldBeSimpleFields(
                 validDictionaryBlocks,
             ),
         ),
         checkDictionaryBlocksAreNotEmpty(
-            documentUri,
+            filePath,
             blocksThatShouldBeDictionaryBlocks,
         ),
-        checkUrlFromMethodBlockMatchesQueryParamsBlock(documentUri, blocks),
-        checkUrlFromMethodBlockMatchesPathParamsBlock(documentUri, blocks),
+        checkUrlFromMethodBlockMatchesQueryParamsBlock(filePath, blocks),
+        checkUrlFromMethodBlockMatchesPathParamsBlock(filePath, blocks),
         checkCodeBlocksHaveClosingBracket(documentHelper, blocks),
         checkBlockForResponseValidationExists(documentHelper, blocks),
         checkBlocksAreSeparatedBySingleEmptyLine(
-            documentUri,
+            filePath,
             blocks,
             textOutsideOfBlocks,
         ),
@@ -152,7 +152,7 @@ function getDictionaryBlockFieldsThatShouldBeSimpleFields(
 async function collectBlockSpecificDiagnostics(
     itemProvider: TypedCollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
-    documentUri: Uri,
+    filePath: string,
     documentHelper: TextDocumentHelper,
     blocks: Block[],
 ): Promise<(DiagnosticWithCode | undefined)[]> {
@@ -170,7 +170,7 @@ async function collectBlockSpecificDiagnostics(
                 ...(await getMetaBlockSpecificDiagnostics(
                     itemProvider,
                     relatedFilesHelper,
-                    documentUri,
+                    filePath,
                     documentHelper,
                     metaBlock,
                 )),
@@ -182,7 +182,7 @@ async function collectBlockSpecificDiagnostics(
 
     if (methodBlocks.length == 1) {
         results.push(
-            ...getMethodBlockSpecificDiagnostics(documentUri, methodBlocks[0]),
+            ...getMethodBlockSpecificDiagnostics(filePath, methodBlocks[0]),
         );
     }
 
@@ -190,7 +190,7 @@ async function collectBlockSpecificDiagnostics(
 
     if (authBlocks.length == 1) {
         results.push(
-            ...getAuthBlockSpecificDiagnostics(documentUri, authBlocks[0]),
+            ...getAuthBlockSpecificDiagnostics(filePath, authBlocks[0]),
         );
     }
 
@@ -206,10 +206,7 @@ async function collectBlockSpecificDiagnostics(
 
     if (settingsBlocks.length == 1) {
         results.push(
-            ...getSettingsBlockSpecificDiagnostics(
-                documentUri,
-                settingsBlocks[0],
-            ),
+            ...getSettingsBlockSpecificDiagnostics(filePath, settingsBlocks[0]),
         );
     }
 

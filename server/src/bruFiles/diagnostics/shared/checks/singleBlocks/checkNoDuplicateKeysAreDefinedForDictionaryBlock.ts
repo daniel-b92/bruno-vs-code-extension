@@ -1,6 +1,4 @@
-import { DiagnosticSeverity, Uri } from "vscode";
 import { DictionaryBlock } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 import {
     FieldsWithSameKey,
@@ -8,9 +6,11 @@ import {
 } from "../../util/getValidDuplicateKeysFromDictionaryBlock";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
+import { DiagnosticSeverity } from "vscode-languageserver";
+import { URI } from "vscode-uri";
 
 export function checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-    documentUri: Uri,
+    filePath: string,
     block: DictionaryBlock,
     diagnosticCode: KnownDiagnosticCode,
     expectedKeys?: string[],
@@ -24,11 +24,11 @@ export function checkNoDuplicateKeysAreDefinedForDictionaryBlock(
         return undefined;
     }
 
-    return getDiagnostics(documentUri, fieldsWithDuplicateKeys, diagnosticCode);
+    return getDiagnostics(filePath, fieldsWithDuplicateKeys, diagnosticCode);
 }
 
 function getDiagnostics(
-    documentUri: Uri,
+    filePath: string,
     fieldsWithDuplicateKeys: FieldsWithSameKey[],
     diagnosticCode: KnownDiagnosticCode,
 ) {
@@ -38,10 +38,8 @@ function getDiagnostics(
 
         return {
             message: `Key '${key}' is defined ${fields.length} times`,
-            range: mapToVsCodeRange(
-                sortedFieldsByPosition[sortedFieldsByPosition.length - 1]
-                    .keyRange,
-            ),
+            range: sortedFieldsByPosition[sortedFieldsByPosition.length - 1]
+                .keyRange,
             severity: DiagnosticSeverity.Error,
             code: diagnosticCode,
             relatedInformation: sortedFieldsByPosition
@@ -49,8 +47,8 @@ function getDiagnostics(
                 .map(({ keyRange }) => ({
                     message: `Previous definition for key '${key}'`,
                     location: {
-                        uri: documentUri,
-                        range: mapToVsCodeRange(keyRange),
+                        uri: URI.file(filePath).toString(),
+                        range: keyRange,
                     },
                 })),
         };

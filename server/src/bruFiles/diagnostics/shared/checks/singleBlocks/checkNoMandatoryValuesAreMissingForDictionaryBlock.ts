@@ -1,14 +1,14 @@
-import { DiagnosticSeverity, Range as VsCodeRange } from "vscode";
 import {
     DictionaryBlock,
     DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
     isDictionaryBlockSimpleField,
+    Range,
 } from "@global_shared";
-import { mapToVsCodePosition } from "@shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 export function checkNoMandatoryValuesAreMissingForDictionaryBlock(
     block: DictionaryBlock,
@@ -50,10 +50,10 @@ function getDiagnostic(
 
 function getRange(
     sortedFields: (DictionaryBlockSimpleField | DictionaryBlockArrayField)[],
-): VsCodeRange {
-    return new VsCodeRange(
-        mapToVsCodePosition(sortedFields[0].keyRange.start),
-        mapToVsCodePosition(sortedFields[sortedFields.length - 1].keyRange.end),
+): Range {
+    return new Range(
+        sortedFields[0].keyRange.start,
+        sortedFields[sortedFields.length - 1].keyRange.end,
     );
 }
 

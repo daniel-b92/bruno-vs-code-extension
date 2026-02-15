@@ -1,4 +1,3 @@
-import { DiagnosticSeverity } from "vscode";
 import {
     Block,
     BlockBracket,
@@ -6,10 +5,10 @@ import {
     TextDocumentHelper,
     getCodeBlocks,
 } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 export function checkCodeBlocksHaveClosingBracket(
     documentHelper: TextDocumentHelper,
@@ -60,7 +59,7 @@ function getDiagnostic(
 ): DiagnosticWithCode {
     return {
         message: `Block '${codeBlockWithoutClosingBracket.name}' seems to be missing a closing bracket.`,
-        range: mapToVsCodeRange(codeBlockWithoutClosingBracket.contentRange),
+        range: codeBlockWithoutClosingBracket.contentRange,
         severity: DiagnosticSeverity.Error,
         code: NonBlockSpecificDiagnosticCode.CodeBlockMissingClosingBracket,
     };

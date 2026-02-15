@@ -1,13 +1,13 @@
-import { DiagnosticSeverity, Range as VsCodeRange } from "vscode";
 import {
     DictionaryBlockSimpleField,
     DictionaryBlock,
     DictionaryBlockArrayField,
+    Range,
 } from "@global_shared";
-import { mapToVsCodePosition } from "@shared";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 import { DiagnosticWithCode } from "../../../interfaces";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 export function checkNoUnknownKeysAreDefinedInDictionaryBlock(
     block: DictionaryBlock,
@@ -58,12 +58,10 @@ function getRange(
         | DictionaryBlockSimpleField
         | DictionaryBlockArrayField
     )[],
-): VsCodeRange {
-    return new VsCodeRange(
-        mapToVsCodePosition(sortedUnknownFields[0].keyRange.start),
-        mapToVsCodePosition(
-            sortedUnknownFields[sortedUnknownFields.length - 1].keyRange.end,
-        ),
+): Range {
+    return new Range(
+        sortedUnknownFields[0].keyRange.start,
+        sortedUnknownFields[sortedUnknownFields.length - 1].keyRange.end,
     );
 }
 

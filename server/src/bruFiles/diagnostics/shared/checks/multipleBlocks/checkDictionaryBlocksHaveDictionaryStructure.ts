@@ -1,23 +1,22 @@
 import {
-    DiagnosticRelatedInformation,
-    DiagnosticSeverity,
-    Range,
-    Uri,
-} from "vscode";
-import {
     Block,
     isBlockDictionaryBlock,
     isDictionaryBlockField,
     PlainTextWithinBlock,
+    Range,
 } from "@global_shared";
-import { mapToVsCodePosition, mapToVsCodeRange } from "@shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { getSortedPlainTextLinesByPosition } from "../../util/getSortedPlainTextLinesByPosition";
+import { URI } from "vscode-uri";
+import {
+    DiagnosticRelatedInformation,
+    DiagnosticSeverity,
+} from "vscode-languageserver";
 
 export function checkDictionaryBlocksHaveDictionaryStructure(
-    documentUri: Uri,
+    filePath: string,
     blocksToCheck: Block[],
 ): DiagnosticWithCode | undefined {
     const sortedBlocksWithoutCorrectStructure = getSortedBlocksByPosition(
@@ -36,12 +35,12 @@ export function checkDictionaryBlocksHaveDictionaryStructure(
         .filter(({ invalidLines }) => invalidLines.length > 0);
 
     return invalidBlocksSorted.length > 0
-        ? getDiagnostic(documentUri, invalidBlocksSorted)
+        ? getDiagnostic(filePath, invalidBlocksSorted)
         : undefined;
 }
 
 function getDiagnostic(
-    documentUri: Uri,
+    filePath: string,
     sortedBlocksWithIncorrectStructure: {
         blockName: string;
         invalidLines: PlainTextWithinBlock[];
@@ -67,8 +66,8 @@ function getDiagnostic(
                               curr.invalidLines.map(({ range }) => ({
                                   message: `Invalid line in block '${curr.blockName}'`,
                                   location: {
-                                      uri: documentUri,
-                                      range: mapToVsCodeRange(range),
+                                      uri: URI.file(filePath).toString(),
+                                      range,
                                   },
                               })),
                           ),
@@ -99,16 +98,12 @@ function getRange(
             sortedBlocksWithIncorrectStructure.length - 1
         ];
     return new Range(
-        mapToVsCodePosition(
-            getSortedPlainTextLinesByPosition(
-                sortedBlocksWithIncorrectStructure[0].invalidLines,
-            )[0].range.start,
-        ),
-        mapToVsCodePosition(
-            getSortedPlainTextLinesByPosition(lastBlock.invalidLines)[
-                lastBlock.invalidLines.length - 1
-            ].range.end,
-        ),
+        getSortedPlainTextLinesByPosition(
+            sortedBlocksWithIncorrectStructure[0].invalidLines,
+        )[0].range.start,
+        getSortedPlainTextLinesByPosition(lastBlock.invalidLines)[
+            lastBlock.invalidLines.length - 1
+        ].range.end,
     );
 }
 

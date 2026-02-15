@@ -1,19 +1,17 @@
 import {
-    DiagnosticRelatedInformation,
-    DiagnosticSeverity,
-    Range as VsCodeRange,
-    Uri,
-} from "vscode";
-import {
     DictionaryBlock,
     DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
     isDictionaryBlockSimpleField,
     Range,
 } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import { URI } from "vscode-uri";
+import {
+    DiagnosticRelatedInformation,
+    DiagnosticSeverity,
+} from "vscode-languageserver";
 
 interface DictionaryFieldsForBlock {
     block: DictionaryBlock;
@@ -21,7 +19,7 @@ interface DictionaryFieldsForBlock {
 }
 
 export function checkDictionaryBlocksSimpleFieldsStructure(
-    documentUri: Uri,
+    filePath: string,
     fieldsToCheck: { block: DictionaryBlock; keys: string[] }[],
 ): DiagnosticWithCode | undefined {
     const invalidFieldsSortedByPosition =
@@ -31,11 +29,11 @@ export function checkDictionaryBlocksSimpleFieldsStructure(
         return undefined;
     }
 
-    return getDiagnostic(documentUri, invalidFieldsSortedByPosition);
+    return getDiagnostic(filePath, invalidFieldsSortedByPosition);
 }
 
 function getDiagnostic(
-    documentUri: Uri,
+    filePath: string,
     sortedFieldsWithIncorrectStructure: DictionaryFieldsForBlock[],
 ): DiagnosticWithCode {
     return {
@@ -54,8 +52,8 @@ function getDiagnostic(
                               curr.fields.map(({ key, keyRange }) => ({
                                   message: `Invalid field '${key}' in block '${curr.block.name}'`,
                                   location: {
-                                      uri: documentUri,
-                                      range: mapToVsCodeRange(keyRange),
+                                      uri: URI.file(filePath).toString(),
+                                      range: keyRange,
                                   },
                               })),
                           ),
@@ -97,7 +95,7 @@ function getInvalidFieldsSortedByPosition(
 
 function getRange(
     sortedFieldsWithIncorrectStructure: DictionaryFieldsForBlock[],
-): VsCodeRange {
+): Range {
     const lastBlockWithInvalidFields =
         sortedFieldsWithIncorrectStructure[
             sortedFieldsWithIncorrectStructure.length - 1
@@ -107,10 +105,8 @@ function getRange(
             lastBlockWithInvalidFields.fields.length - 1
         ].keyRange.end;
 
-    return mapToVsCodeRange(
-        new Range(
-            sortedFieldsWithIncorrectStructure[0].fields[0].keyRange.start,
-            keyRangeEndOfLastField,
-        ),
+    return new Range(
+        sortedFieldsWithIncorrectStructure[0].fields[0].keyRange.start,
+        keyRangeEndOfLastField,
     );
 }

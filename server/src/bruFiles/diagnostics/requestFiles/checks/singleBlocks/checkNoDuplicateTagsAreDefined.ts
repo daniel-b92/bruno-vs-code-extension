@@ -1,11 +1,11 @@
-import { DiagnosticSeverity, Uri } from "vscode";
 import { DictionaryBlockArrayField, Range } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
+import { DiagnosticSeverity } from "vscode-languageserver";
+import { URI } from "vscode-uri";
 
 export function checkNoDuplicateTagsAreDefined(
-    documentUri: Uri,
+    filePath: string,
     tagsField: DictionaryBlockArrayField,
 ): DiagnosticWithCode[] | undefined {
     const duplicateValues = getDuplicateValues(tagsField);
@@ -19,14 +19,14 @@ export function checkNoDuplicateTagsAreDefined(
 
         return {
             message: `Value '${value}' is defined ${ranges.length} times`,
-            range: mapToVsCodeRange(sortedRanges[sortedRanges.length - 1]),
+            range: sortedRanges[sortedRanges.length - 1],
             severity: DiagnosticSeverity.Error,
             code: RelevantWithinMetaBlockDiagnosticCode.DuplicateTagsDefined,
             relatedInformation: sortedRanges.slice(0, -1).map((range) => ({
                 message: `Previous definition for tag '${value}'`,
                 location: {
-                    uri: documentUri,
-                    range: mapToVsCodeRange(range),
+                    uri: URI.file(filePath).toString(),
+                    range: range,
                 },
             })),
         };

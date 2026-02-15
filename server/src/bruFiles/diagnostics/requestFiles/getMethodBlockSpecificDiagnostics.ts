@@ -9,10 +9,9 @@ import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/single
 import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "../shared/checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
 import { DiagnosticWithCode } from "../interfaces";
 import { RelevantWithinMethodBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinMethodBlockDiagnosticCodeEnum";
-import { Uri } from "vscode";
 
 export function getMethodBlockSpecificDiagnostics(
-    documentUri: Uri,
+    filePath: string,
     methodBlock: Block,
 ): (DiagnosticWithCode | undefined)[] {
     if (!isBlockDictionaryBlock(methodBlock)) {
@@ -33,7 +32,7 @@ export function getMethodBlockSpecificDiagnostics(
             RelevantWithinMethodBlockDiagnosticCode.UnknownKeysDefinedInMethodBlock,
         ),
         ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-            documentUri,
+            filePath,
             methodBlock,
             RelevantWithinMethodBlockDiagnosticCode.DuplicateKeysDefinedInMethodBlock,
             mandatoryKeys,

@@ -35,7 +35,6 @@ import {
     isBrunoFileType,
     getItemType,
 } from "@global_shared";
-import { BrunoLangDiagnosticsProvider } from "./internal/brunoFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { provideTsLangCompletionItems } from "./internal/brunoFiles/completionItems/provideTsLangCompletionItems";
 import { provideInfosOnHover as provideInfosOnHoverForBruFiles } from "./internal/brunoFiles/hover/provideInfosOnHover";
 import { provideSignatureHelp as provideSignatureHelpForBruFiles } from "./internal/brunoFiles/signatureHelp/provideSignatureHelp";
@@ -77,11 +76,6 @@ export async function activateLanguageFeatures(
     const diagnosticCollection =
         languages.createDiagnosticCollection("bru-as-code");
 
-    const brunoLangDiagnosticsProvider = new BrunoLangDiagnosticsProvider(
-        diagnosticCollection,
-        collectionItemProvider,
-    );
-
     handleDiagnosticUpdatesOnFileDeletionForBruFile(
         collectionItemProvider,
         diagnosticCollection,
@@ -113,12 +107,10 @@ export async function activateLanguageFeatures(
         ),
         provideInfosOnHoverForJsFiles(collectionItemProvider, logger),
         provideCompletionItemsForJsFiles(collectionItemProvider, logger),
-        brunoLangDiagnosticsProvider,
         tempJsFilesUpdateQueue,
         window.onDidChangeActiveTextEditor(async (editor) => {
             await onDidChangeActiveTextEditor(
                 tempJsFilesUpdateQueue,
-                brunoLangDiagnosticsProvider,
                 collectionItemProvider,
                 cacheSyncingHelper,
                 tempJsFilesProvider,
@@ -127,7 +119,6 @@ export async function activateLanguageFeatures(
         }),
         workspace.onDidChangeTextDocument(async (e) => {
             await onDidChangeTextDocument(
-                brunoLangDiagnosticsProvider,
                 collectionItemProvider,
                 cacheSyncingHelper,
                 e,
@@ -146,7 +137,6 @@ export async function activateLanguageFeatures(
 
 async function onDidChangeActiveTextEditor(
     queue: TempJsFileUpdateQueue,
-    brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     itemProvider: TypedCollectionItemProvider,
     cacheSyncingHelper: FileSystemCacheSyncingHelper,
     tempJsFilesProvider: TempJsFilesProvider,
@@ -170,7 +160,6 @@ async function onDidChangeActiveTextEditor(
         if (extname(path) == getExtensionForBrunoFiles()) {
             handleOpeningOfBruDocument(
                 queue,
-                brunoLangDiagnosticsProvider,
                 itemProvider,
                 cacheSyncingHelper,
                 tempJsFilesProvider,
@@ -190,13 +179,9 @@ async function onDidChangeActiveTextEditor(
 }
 
 async function onDidChangeTextDocument(
-    brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     itemProvider: TypedCollectionItemProvider,
     cacheSyncingHelper: FileSystemCacheSyncingHelper,
-    {
-        contentChanges,
-        document: { fileName, uri, getText },
-    }: TextDocumentChangeEvent,
+    { contentChanges, document: { fileName, uri } }: TextDocumentChangeEvent,
 ) {
     if (contentChanges.length > 0) {
         // If the document has been modified externally (not via VS Code), skip all actions
@@ -226,13 +211,6 @@ async function onDidChangeTextDocument(
                     fileName,
                 );
             }
-
-            await fetchBrunoSpecificDiagnostics(
-                uri,
-                getText(),
-                brunoLangDiagnosticsProvider,
-                brunoFileType,
-            );
         }
     }
 }
@@ -290,11 +268,10 @@ function handleDiagnosticUpdatesOnFileDeletionForBruFile(
 
 async function handleOpeningOfBruDocument(
     queue: TempJsFileUpdateQueue,
-    brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
     itemProvider: TypedCollectionItemProvider,
     cacheSyncingHelper: FileSystemCacheSyncingHelper,
     tempJsFilesProvider: TempJsFilesProvider,
-    { fileName, getText, uri, eol }: TextDocument,
+    { fileName, getText, eol }: TextDocument,
 ) {
     const toDispose: Disposable[] = [];
     let shouldAbort = false;
@@ -353,13 +330,6 @@ async function handleOpeningOfBruDocument(
         }
         return;
     }
-
-    await fetchBrunoSpecificDiagnostics(
-        uri,
-        getText(),
-        brunoLangDiagnosticsProvider,
-        brunoFileType,
-    );
 
     if (shouldAbort) {
         for (const d of toDispose) {
@@ -441,39 +411,6 @@ async function onWillSaveBruDocument(
         itemProvider.getAncestorCollectionForPath(document.fileName)
     ) {
         deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
-    }
-}
-
-async function fetchBrunoSpecificDiagnostics(
-    uri: Uri,
-    content: string,
-    brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider,
-    brunoFileType: BrunoFileType,
-) {
-    if (brunoFileType == BrunoFileType.RequestFile) {
-        await brunoLangDiagnosticsProvider.provideDiagnosticsForRequestFile(
-            uri,
-            content,
-        );
-    } else if (brunoFileType == BrunoFileType.EnvironmentFile) {
-        brunoLangDiagnosticsProvider.provideDiagnosticsForEnvironmentFile(
-            uri,
-            content,
-        );
-    } else if (brunoFileType == BrunoFileType.FolderSettingsFile) {
-        await brunoLangDiagnosticsProvider.provideDiagnosticsForFolderSettingsFile(
-            uri,
-            content,
-        );
-    } else if (brunoFileType == BrunoFileType.CollectionSettingsFile) {
-        brunoLangDiagnosticsProvider.provideDiagnosticsForCollectionSettingsFile(
-            uri,
-            content,
-        );
-    } else {
-        throw new Error(
-            `Fetching Bruno specific diagnostics not implemented for file type '${brunoFileType}'.`,
-        );
     }
 }
 

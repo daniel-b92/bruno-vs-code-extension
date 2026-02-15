@@ -1,13 +1,13 @@
-import { DiagnosticSeverity, Range, Uri } from "vscode";
-import { Block, TextOutsideOfBlocks } from "@global_shared";
-import { mapToVsCodePosition, mapToVsCodeRange } from "@shared";
+import { Block, Range, TextOutsideOfBlocks } from "@global_shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { getSortedTextOutsideOfBlocksByPosition } from "../../util/getSortedTextOutsideOfBlocksByPosition";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
+import { DiagnosticSeverity } from "vscode-languageserver";
+import { URI } from "vscode-uri";
 
 export function checkBlocksAreSeparatedBySingleEmptyLine(
-    documentUri: Uri,
+    filePath: string,
     blocks: Block[],
     textOutsideOfBlocks: TextOutsideOfBlocks[],
 ): DiagnosticWithCode | undefined {
@@ -28,14 +28,14 @@ export function checkBlocksAreSeparatedBySingleEmptyLine(
     );
 
     if (problematicTextOutsideOfBlocks.length > 0) {
-        return getDiagnostic(documentUri, problematicTextOutsideOfBlocks);
+        return getDiagnostic(filePath, problematicTextOutsideOfBlocks);
     } else {
         return undefined;
     }
 }
 
 function getDiagnostic(
-    documentUri: Uri,
+    filePath: string,
     problematicTextOutsideOfBlocks: TextOutsideOfBlocks[],
 ): DiagnosticWithCode {
     const sortedTextOutsideOfBlocks = getSortedTextOutsideOfBlocksByPosition(
@@ -52,8 +52,8 @@ function getDiagnostic(
                 : sortedTextOutsideOfBlocks.map(({ range }) => ({
                       message: "Problematic text outside of blocks.",
                       location: {
-                          uri: documentUri,
-                          range: mapToVsCodeRange(range),
+                          uri: URI.file(filePath).toString(),
+                          range: range,
                       },
                   })),
         code: NonBlockSpecificDiagnosticCode.BlocksNotAllSeparatedBySingleEmptyLine,
@@ -64,13 +64,9 @@ function getRange(
     problematicTextOutsideOfBlocksSortedByPosition: TextOutsideOfBlocks[],
 ): Range {
     return new Range(
-        mapToVsCodePosition(
-            problematicTextOutsideOfBlocksSortedByPosition[0].range.start,
-        ),
-        mapToVsCodePosition(
-            problematicTextOutsideOfBlocksSortedByPosition[
-                problematicTextOutsideOfBlocksSortedByPosition.length - 1
-            ].range.end,
-        ),
+        problematicTextOutsideOfBlocksSortedByPosition[0].range.start,
+        problematicTextOutsideOfBlocksSortedByPosition[
+            problematicTextOutsideOfBlocksSortedByPosition.length - 1
+        ].range.end,
     );
 }

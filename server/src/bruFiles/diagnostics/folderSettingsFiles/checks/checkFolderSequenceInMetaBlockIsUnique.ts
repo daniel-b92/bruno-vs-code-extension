@@ -1,4 +1,3 @@
-import { DiagnosticSeverity, Uri } from "vscode";
 import {
     DictionaryBlockSimpleField,
     normalizeDirectoryPath,
@@ -10,17 +9,19 @@ import {
     BrunoFileType,
     isCollectionItemWithSequence,
 } from "@global_shared";
-import { mapToVsCodeRange, TypedCollectionItemProvider } from "@shared";
 import { basename, dirname } from "path";
 import { DiagnosticWithCode } from "../../interfaces";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { doesDictionaryBlockFieldHaveValidIntegerValue } from "../../shared/util/doesDictionaryBlockFieldHaveValidIntegerValue";
 import { getRangeForSequenceValue } from "../../shared/util/getRangeForSequenceValue";
+import { TypedCollectionItemProvider } from "../../../../shared";
+import { DiagnosticSeverity } from "vscode-languageserver";
+import { URI } from "vscode-uri";
 
 export async function checkFolderSequenceInMetaBlockIsUnique(
     itemProvider: TypedCollectionItemProvider,
     metaBlock: Block,
-    documentUri: Uri,
+    filePath: string,
 ): Promise<{
     code: RelevantWithinMetaBlockDiagnosticCode;
     toAdd?: {
@@ -48,8 +49,7 @@ export async function checkFolderSequenceInMetaBlockIsUnique(
 
     const otherFolderSettings = await getSequencesForOtherFoldersWithSameParent(
         itemProvider,
-        documentUri,
-        documentUri.fsPath,
+        filePath,
     );
 
     const otherFoldersWithSameSequence = otherFolderSettings
@@ -64,8 +64,8 @@ export async function checkFolderSequenceInMetaBlockIsUnique(
 
     if (otherFoldersWithSameSequence.length > 0) {
         const allAffectedFiles = otherFoldersWithSameSequence.concat({
-            folderSettingsFile: documentUri.fsPath,
-            folderPath: dirname(documentUri.fsPath),
+            folderSettingsFile: filePath,
+            folderPath: dirname(filePath),
         });
 
         return {
@@ -95,7 +95,7 @@ async function getDiagnostic(
     return {
         message:
             "Other folders with the same sequence already exist for the same parent folder.",
-        range: mapToVsCodeRange(sequenceField.valueRange),
+        range: sequenceField.valueRange,
         severity: DiagnosticSeverity.Error,
         code: getDiagnosticCode(),
         relatedInformation: (
@@ -111,7 +111,9 @@ async function getDiagnostic(
                                       folderPath,
                                   )}' with same sequence`,
                                   location: {
-                                      uri: Uri.file(folderSettingsFile),
+                                      uri: URI.file(
+                                          folderSettingsFile,
+                                      ).toString(),
                                       range,
                                   },
                               }
@@ -125,7 +127,6 @@ async function getDiagnostic(
 
 async function getSequencesForOtherFoldersWithSameParent(
     itemProvider: TypedCollectionItemProvider,
-    documentUri: Uri,
     folderSettingsFile: string,
 ): Promise<
     {
@@ -138,7 +139,6 @@ async function getSequencesForOtherFoldersWithSameParent(
         await getOtherFolderSettingsWithSameParentFolder(
             itemProvider,
             folderSettingsFile,
-            documentUri,
         )
     ).map(({ folderSettings, folderPath }) => ({
         folderSettingsFile: folderSettings.getPath(),
@@ -150,7 +150,6 @@ async function getSequencesForOtherFoldersWithSameParent(
 async function getOtherFolderSettingsWithSameParentFolder(
     itemProvider: TypedCollectionItemProvider,
     referenceFolderSettings: string,
-    documentUri: Uri,
 ): Promise<{ folderPath: string; folderSettings: BrunoRequestFile }[]> {
     const collection = itemProvider.getAncestorCollectionForPath(
         referenceFolderSettings,
@@ -178,7 +177,9 @@ async function getOtherFolderSettingsWithSameParentFolder(
                     isCollectionItemWithSequence(item) &&
                     item.getSequence() != undefined &&
                     normalizeDirectoryPath(dirname(itemPath)) !=
-                        normalizeDirectoryPath(dirname(documentUri.fsPath)) &&
+                        normalizeDirectoryPath(
+                            dirname(referenceFolderSettings),
+                        ) &&
                     item.getItemType() == BrunoFileType.FolderSettingsFile
                 );
             },

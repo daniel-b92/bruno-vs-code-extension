@@ -7,7 +7,6 @@ import {
     RequestFileBlockName,
     TextDocumentHelper,
 } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 
 export async function getRangeForSequenceValue(filePath: string) {
     const readFileAsync = promisify(readFile);
@@ -31,5 +30,5 @@ export async function getRangeForSequenceValue(filePath: string) {
         return undefined;
     }
 
-    return mapToVsCodeRange(sequenceField.valueRange);
+    return sequenceField.valueRange;
 }

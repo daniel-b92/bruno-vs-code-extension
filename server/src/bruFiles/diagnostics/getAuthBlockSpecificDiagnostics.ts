@@ -22,7 +22,7 @@ import { DiagnosticWithCode } from "./interfaces";
 import { RelevantWithinAuthBlockDiagnosticCode } from "./shared/diagnosticCodes/relevantWithinAuthBlockDiagnosticCodeEnum";
 
 export function getAuthBlockSpecificDiagnostics(
-    documentUri: Uri,
+    filePath: string,
     authBlock: Block,
 ): (DiagnosticWithCode | undefined)[] {
     if (!isBlockDictionaryBlock(authBlock)) {
@@ -60,7 +60,7 @@ export function getAuthBlockSpecificDiagnostics(
                 RelevantWithinAuthBlockDiagnosticCode.UnknownKeysDefinedInAuthBlock,
             ),
             ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-                documentUri,
+                filePath,
                 authBlock,
                 RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock,
                 mandatoryKeys,
@@ -89,7 +89,7 @@ export function getAuthBlockSpecificDiagnostics(
         }
     } else if (authBlock.name == AuthBlockName.OAuth2Auth) {
         diagnostics.push(
-            ...getDiagnosticsForOAuth2AuthBlock(documentUri, authBlock),
+            ...getDiagnosticsForOAuth2AuthBlock(filePath, authBlock),
         );
     }
 
@@ -97,7 +97,7 @@ export function getAuthBlockSpecificDiagnostics(
 }
 
 function getDiagnosticsForOAuth2AuthBlock(
-    documentUri: Uri,
+    filePath: string,
     authBlock: DictionaryBlock,
 ): (DiagnosticWithCode | undefined)[] {
     const diagnostics: (DiagnosticWithCode | undefined)[] = [];
@@ -115,7 +115,7 @@ function getDiagnosticsForOAuth2AuthBlock(
             RelevantWithinAuthBlockDiagnosticCode.KeysMissingInAuthBlock,
         ),
         ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-            documentUri,
+            filePath,
             authBlock,
             RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock,
             [OAuth2ViaAuthorizationCodeBlockKey.GrantType],
@@ -149,7 +149,7 @@ function getDiagnosticsForOAuth2AuthBlock(
 
     diagnostics.push(
         ...checkValuesForOAuth2FieldsDependingOnGrantType(
-            documentUri,
+            filePath,
             authBlock,
             grantType,
         ),
@@ -228,7 +228,7 @@ function checkValuesForOAuth2FieldsCommonForAllGrantTypes(
 }
 
 function checkValuesForOAuth2FieldsDependingOnGrantType(
-    documentUri: Uri,
+    filePath: string,
     authBlock: DictionaryBlock,
     grantType: OAuth2GrantType,
 ) {
@@ -248,7 +248,7 @@ function checkValuesForOAuth2FieldsDependingOnGrantType(
             RelevantWithinAuthBlockDiagnosticCode.UnknownKeysDefinedInAuthBlock,
         ),
         ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-            documentUri,
+            filePath,
             authBlock,
             RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock,
             mandatoryKeys,

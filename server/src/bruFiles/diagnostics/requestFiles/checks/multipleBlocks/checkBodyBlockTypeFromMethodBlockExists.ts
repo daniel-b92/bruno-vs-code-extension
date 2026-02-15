@@ -1,4 +1,3 @@
-import { DiagnosticSeverity, Uri } from "vscode";
 import {
     DictionaryBlockSimpleField,
     getAllMethodBlocks,
@@ -12,12 +11,13 @@ import {
     getBodyTypeFromBlockName,
     isDictionaryBlockSimpleField,
 } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import { URI } from "vscode-uri";
+import { DiagnosticSeverity } from "vscode-languageserver";
 
 export function checkBodyBlockTypeFromMethodBlockExists(
-    documentUri: Uri,
+    filePath: string,
     blocks: Block[],
 ): DiagnosticWithCode | undefined {
     const methodBlocks = getAllMethodBlocks(blocks);
@@ -49,7 +49,7 @@ export function checkBodyBlockTypeFromMethodBlockExists(
 
     if (methodBlockField.value == getBodyBlockTypeForNoDefinedBodyBlock()) {
         return getDiagnosticInCaseOfNonExpectedBodyBlock(
-            documentUri,
+            filePath,
             methodBlockField,
             bodyBlock,
         );
@@ -65,7 +65,7 @@ export function checkBodyBlockTypeFromMethodBlockExists(
 
         return methodBlockField.value != expectedMethodBlockFieldValue
             ? getDiagnostic(
-                  documentUri,
+                  filePath,
                   methodBlockField,
                   bodyBlock,
                   expectedMethodBlockFieldValue,
@@ -77,22 +77,22 @@ export function checkBodyBlockTypeFromMethodBlockExists(
 }
 
 function getDiagnostic(
-    documentUri: Uri,
+    filePath: string,
     methodBlockField: DictionaryBlockSimpleField,
     bodyBlock: Block,
     expectedMethodBlockFieldValue: MethodBlockBody,
 ): DiagnosticWithCode {
     return {
         message: `Does not match name of body block. Expected value: '${expectedMethodBlockFieldValue}'.`,
-        range: mapToVsCodeRange(methodBlockField.valueRange),
+        range: methodBlockField.valueRange,
         relatedInformation: [
             {
                 message: `Defined body type in body block: '${getBodyTypeFromBlockName(
                     bodyBlock.name,
                 )}'`,
                 location: {
-                    uri: documentUri,
-                    range: mapToVsCodeRange(bodyBlock.nameRange),
+                    uri: URI.file(filePath).toString(),
+                    range: bodyBlock.nameRange,
                 },
             },
         ],
@@ -107,28 +107,28 @@ function getDiagnosticInCaseOfMissingBodyBlock(
     return {
         message:
             "Missing body block despite definition of body type in method block.",
-        range: mapToVsCodeRange(methodBlockField.valueRange),
+        range: methodBlockField.valueRange,
         severity: DiagnosticSeverity.Error,
         code: getCode(),
     };
 }
 
 function getDiagnosticInCaseOfNonExpectedBodyBlock(
-    documentUri: Uri,
+    filePath: string,
     methodBlockField: DictionaryBlockSimpleField,
     bodyBlock: Block,
 ): DiagnosticWithCode {
     return {
         message: `A body block is defined although the body type in the method block is '${methodBlockField.value}'.`,
-        range: mapToVsCodeRange(methodBlockField.valueRange),
+        range: methodBlockField.valueRange,
         relatedInformation: [
             {
                 message: `Defined body type in body block: '${getBodyTypeFromBlockName(
                     bodyBlock.name,
                 )}'`,
                 location: {
-                    uri: documentUri,
-                    range: mapToVsCodeRange(bodyBlock.nameRange),
+                    uri: URI.file(filePath).toString(),
+                    range: bodyBlock.nameRange,
                 },
             },
         ],

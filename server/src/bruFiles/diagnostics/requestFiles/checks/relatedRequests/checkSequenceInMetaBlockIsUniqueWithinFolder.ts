@@ -1,4 +1,3 @@
-import { DiagnosticSeverity, Uri } from "vscode";
 import {
     DictionaryBlockSimpleField,
     normalizeDirectoryPath,
@@ -10,17 +9,19 @@ import {
     BrunoFileType,
     isCollectionItemWithSequence,
 } from "@global_shared";
-import { mapToVsCodeRange, TypedCollectionItemProvider } from "@shared";
 import { dirname } from "path";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { doesDictionaryBlockFieldHaveValidIntegerValue } from "../../../shared/util/doesDictionaryBlockFieldHaveValidIntegerValue";
 import { getRangeForSequenceValue } from "../../../shared/util/getRangeForSequenceValue";
+import { TypedCollectionItemProvider } from "../../../../../shared";
+import { DiagnosticSeverity } from "vscode-languageserver";
+import { URI } from "vscode-uri";
 
 export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
     itemProvider: TypedCollectionItemProvider,
     metaBlock: Block,
-    documentUri: Uri,
+    filePath: string,
 ): Promise<{
     code: RelevantWithinMetaBlockDiagnosticCode;
     toAdd?: {
@@ -48,8 +49,8 @@ export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
 
     const otherRequestsInFolder = await getSequencesForOtherRequestsInFolder(
         itemProvider,
-        documentUri,
-        dirname(documentUri.fsPath),
+        filePath,
+        dirname(filePath),
     );
 
     const otherRequestsWithSameSequence = otherRequestsInFolder
@@ -60,9 +61,7 @@ export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
         .map(({ file }) => file);
 
     if (otherRequestsWithSameSequence.length > 0) {
-        const allAffectedFiles = otherRequestsWithSameSequence.concat(
-            documentUri.fsPath,
-        );
+        const allAffectedFiles = otherRequestsWithSameSequence.concat(filePath);
 
         return {
             code: getDiagnosticCode(),
@@ -86,7 +85,7 @@ async function getDiagnostic(
     return {
         message:
             "Other requests with the same sequence already exists within this folder.",
-        range: mapToVsCodeRange(sequenceField.valueRange),
+        range: sequenceField.valueRange,
         severity: DiagnosticSeverity.Error,
         code: getDiagnosticCode(),
         relatedInformation: (
@@ -98,7 +97,7 @@ async function getDiagnostic(
                         ? {
                               message: `Request with same sequence`,
                               location: {
-                                  uri: Uri.file(path),
+                                  uri: URI.file(path).toString(),
                                   range,
                               },
                           }
@@ -111,7 +110,7 @@ async function getDiagnostic(
 
 async function getSequencesForOtherRequestsInFolder(
     itemProvider: TypedCollectionItemProvider,
-    documentUri: Uri,
+    filePath: string,
     directoryPath: string,
 ) {
     const result: { file: string; sequence: number }[] = [];
@@ -119,7 +118,7 @@ async function getSequencesForOtherRequestsInFolder(
     const otherRequestsInFolder = await getOtherRequestsInFolder(
         itemProvider,
         directoryPath,
-        documentUri,
+        filePath,
     );
 
     result.push(
@@ -135,7 +134,7 @@ async function getSequencesForOtherRequestsInFolder(
 async function getOtherRequestsInFolder(
     itemProvider: TypedCollectionItemProvider,
     directoryPath: string,
-    documentUri: Uri,
+    filePath: string,
 ): Promise<BrunoRequestFile[]> {
     const result: BrunoRequestFile[] = [];
 
@@ -160,7 +159,7 @@ async function getOtherRequestsInFolder(
                         normalizeDirectoryPath(directoryPath) &&
                     isCollectionItemWithSequence(item) &&
                     item.getSequence() != undefined &&
-                    itemPath != documentUri.fsPath &&
+                    itemPath != filePath &&
                     item.getItemType() == BrunoFileType.RequestFile
                 );
             },

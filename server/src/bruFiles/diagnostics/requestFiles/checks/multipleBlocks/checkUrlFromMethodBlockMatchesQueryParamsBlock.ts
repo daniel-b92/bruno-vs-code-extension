@@ -1,4 +1,3 @@
-import { DiagnosticSeverity, Uri } from "vscode";
 import {
     DictionaryBlockSimpleField,
     getExpectedUrlQueryParamsForQueryParamsBlock,
@@ -11,13 +10,14 @@ import {
     isDictionaryBlockSimpleField,
     Range,
 } from "@global_shared";
-import { mapToVsCodeRange } from "@shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../../shared/util/getSortedDictionaryBlockFieldsByPosition";
+import { DiagnosticSeverity } from "vscode-languageserver";
+import { URI } from "vscode-uri";
 
 export function checkUrlFromMethodBlockMatchesQueryParamsBlock(
-    documentUri: Uri,
+    filePath: string,
     blocks: Block[],
 ): DiagnosticWithCode | undefined {
     const queryParamsBlocks = getValidDictionaryBlocksWithName(
@@ -68,7 +68,7 @@ export function checkUrlFromMethodBlockMatchesQueryParamsBlock(
                 queryParamsFromQueryParamsBlock.toString())
     ) {
         return getDiagnosticForUrlNotMatchingQueryParamsBlock(
-            documentUri,
+            filePath,
             urlField,
             queryParamsBlockFields,
             queryParamsFromQueryParamsBlock,
@@ -80,7 +80,7 @@ export function checkUrlFromMethodBlockMatchesQueryParamsBlock(
 }
 
 function getDiagnosticForUrlNotMatchingQueryParamsBlock(
-    documentUri: Uri,
+    filePath: string,
     urlFieldInMethodBlock: DictionaryBlockSimpleField,
     queryParamsBlockFields: DictionaryBlockSimpleField[],
     queryParamsFromQueryParamsBlock: URLSearchParams,
@@ -94,13 +94,13 @@ function getDiagnosticForUrlNotMatchingQueryParamsBlock(
         }' block '${getUrlSubstringForQueryParams(
             queryParamsFromQueryParamsBlock,
         )}'. Saving may fix this issue since the url will be automatically updated, to match the query params on saving.`,
-        range: mapToVsCodeRange(urlFieldInMethodBlock.valueRange),
+        range: urlFieldInMethodBlock.valueRange,
         severity: DiagnosticSeverity.Error,
         relatedInformation: [
             {
                 message: `'${RequestFileBlockName.QueryParams}' block`,
                 location: {
-                    uri: documentUri,
+                    uri: URI.file(filePath).toString(),
                     range: getRangeForFieldsInDictionaryBlock(
                         queryParamsBlockFields,
                     ),
@@ -118,11 +118,9 @@ function getRangeForFieldsInDictionaryBlock(
         fields,
     ) as DictionaryBlockSimpleField[];
 
-    return mapToVsCodeRange(
-        new Range(
-            sortedFields[0].keyRange.start,
-            sortedFields[sortedFields.length - 1].valueRange.end,
-        ),
+    return new Range(
+        sortedFields[0].keyRange.start,
+        sortedFields[sortedFields.length - 1].valueRange.end,
     );
 }
 
@@ -140,7 +138,7 @@ function getDiagnosticForMissingQueryParamsBlock(
             null,
             2,
         )}.`,
-        range: mapToVsCodeRange(urlFieldInMethodBlock.valueRange),
+        range: urlFieldInMethodBlock.valueRange,
         severity: DiagnosticSeverity.Warning,
         code: NonBlockSpecificDiagnosticCode.QueryParamsBlockMissing,
     };
