@@ -1,10 +1,12 @@
-import { DiagnosticSeverity, Position, Range } from "vscode";
 import {
     Block,
+    Position,
+    Range,
     RequestFileBlockName,
     TextDocumentHelper,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../../../interfaces";
+import { DiagnosticSeverity } from "vscode-languageserver";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 export function checkBlockForResponseValidationExists(

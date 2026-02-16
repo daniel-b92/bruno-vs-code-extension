@@ -14,18 +14,23 @@ import {
     getDefaultLogger,
     HelpersProvider,
     LanguageFeatureBaseRequest,
+    TypedCollectionItemProvider,
 } from "./shared";
 import { URI } from "vscode-uri";
 import { runUpdatesOnWillSave } from "./bruFiles/autoUpdates/runUpdatesOnWillSave";
 import {
     getEnvironmentSettingsKey,
+    getItemType,
+    isBrunoFileType,
     Position,
     TextDocumentHelper,
 } from "@global_shared";
 import { handleCompletionRequest } from "./bruFiles/completions/handleCompletionRequest";
 import { Disposable } from "vscode-languageserver/node";
+import { BrunoLangDiagnosticsProvider } from "./bruFiles/diagnostics/brunoLangDiagnosticsProvider";
 
 let helpersProvider: HelpersProvider;
+let brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider;
 const disposables: Disposable[] = [];
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -52,6 +57,10 @@ disposables.push(
                     triggerCharacters: [":", " ", "{", ".", "/", '"', "'", "`"],
                     completionItem: { labelDetailsSupport: true },
                 },
+                diagnosticProvider: {
+                    interFileDependencies: false,
+                    workspaceDiagnostics: false,
+                },
             },
         };
         return result;
@@ -64,7 +73,14 @@ disposables.push(
         helpersProvider = new HelpersProvider(workspaceFolders);
         disposables.push(helpersProvider);
 
-        await helpersProvider.getItemProvider().refreshCache(workspaceFolders);
+        const itemProvider = helpersProvider.getItemProvider();
+
+        await itemProvider.refreshCache(workspaceFolders);
+        brunoLangDiagnosticsProvider = new BrunoLangDiagnosticsProvider(
+            itemProvider,
+        );
+
+        disposables.push(brunoLangDiagnosticsProvider);
     }),
 );
 
@@ -83,7 +99,7 @@ disposables.push(
             )) as string | undefined;
         const request = mapToBaseLanguageRequest(params, token);
 
-        return request
+        return request && helpersProvider
             ? handleCompletionRequest(
                   request,
                   helpersProvider.getItemProvider(),
@@ -94,13 +110,43 @@ disposables.push(
     }),
 );
 
-documents.onDidOpen(async ({ document: { uri } }) => {
-    await connection.sendDiagnostics({ uri, diagnostics: [] });
-});
+disposables.push(
+    connection.languages.diagnostics.on(async ({ textDocument: { uri } }) => {
+        const document = documents.get(uri);
+
+        const items = document
+            ? ((await getDiagnosticsForBruFile(
+                  URI.parse(uri).fsPath,
+                  document.getText(),
+              )) ?? [])
+            : [];
+
+        return {
+            kind: "full",
+            items,
+        };
+    }),
+);
+
+disposables.push(
+    connection.onDidOpenTextDocument(
+        async ({ textDocument: { uri, text } }) => {
+            const diagnostics = await getDiagnosticsForBruFile(
+                URI.parse(uri).fsPath,
+                text,
+            );
+
+            await connection.sendDiagnostics({
+                uri,
+                diagnostics: diagnostics ?? [],
+            });
+        },
+    ),
+);
 
 documents.onWillSaveWaitUntil(async ({ document: { uri } }) => {
     const document = documents.get(uri);
-    return document
+    return document && helpersProvider
         ? runUpdatesOnWillSave(
               uri,
               document.getText(),
@@ -154,4 +200,37 @@ function mapToBaseLanguageRequest(
               token,
           }
         : undefined;
+}
+
+async function getDiagnosticsForBruFile(filePath: string, text: string) {
+    const brunoFileType = helpersProvider
+        ? await getBrunoFileTypeIfExists(
+              helpersProvider.getItemProvider(),
+              filePath,
+          )
+        : undefined;
+
+    if (!brunoLangDiagnosticsProvider || !brunoFileType) {
+        return undefined;
+    }
+
+    return await brunoLangDiagnosticsProvider.getDiagnostics(
+        filePath,
+        text,
+        brunoFileType,
+    );
+}
+
+async function getBrunoFileTypeIfExists(
+    itemProvider: TypedCollectionItemProvider,
+    filePath: string,
+) {
+    const collection = itemProvider.getAncestorCollectionForPath(filePath);
+
+    if (!collection) {
+        return undefined;
+    }
+
+    const itemType = await getItemType(collection, filePath);
+    return itemType && isBrunoFileType(itemType) ? itemType : undefined;
 }

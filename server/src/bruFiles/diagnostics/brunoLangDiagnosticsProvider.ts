@@ -4,89 +4,53 @@ import { determineDiagnosticsForFolderSettingsFile } from "./folderSettingsFiles
 import { determineDiagnosticsForRequestFile } from "./requestFiles/determineDiagnosticsForRequestFile";
 import { determineDiagnosticsForEnvironmentFile } from "./environmentFiles/determineDiagnosticsForEnvironmentFile";
 import { determineDiagnosticsForCollectionSettingsFile } from "./collectionSettingsFiles/determineDiagnosticsForCollectionSettingsFile";
+import { BrunoFileType } from "@global_shared";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(private itemProvider: TypedCollectionItemProvider) {
         this.relatedRequestsHelper = new RelatedFilesDiagnosticsHelper();
-
-        function handleDiagnosticUpdatesOnFileDeletionForBruFile(
-            collectionItemProvider: TypedCollectionItemProvider,
-            diagnosticCollection: DiagnosticCollection,
-        ) {
-            return collectionItemProvider.subscribeToUpdates((updates) => {
-                for (const {
-                    data: { item },
-                    updateType,
-                } of updates) {
-                    if (
-                        updateType == FileChangeType.Deleted &&
-                        item.isFile() &&
-                        extname(item.getPath()) == getExtensionForBrunoFiles()
-                    ) {
-                        diagnosticCollection.delete(Uri.file(item.getPath()));
-                    } else if (
-                        updateType == FileChangeType.Deleted &&
-                        item instanceof CollectionDirectory
-                    ) {
-                        const normalizedDirPath = normalizeDirectoryPath(
-                            item.getPath(),
-                        );
-
-                        diagnosticCollection.forEach((uri) => {
-                            if (uri.fsPath.startsWith(normalizedDirPath)) {
-                                diagnosticCollection.delete(uri);
-                            }
-                        });
-                    }
-                }
-            });
-        }
     }
 
     private relatedRequestsHelper: RelatedFilesDiagnosticsHelper;
 
+    public async getDiagnostics(
+        filePath: string,
+        content: string,
+        brunoFileType: BrunoFileType,
+    ) {
+        switch (brunoFileType) {
+            case BrunoFileType.RequestFile:
+                return await determineDiagnosticsForRequestFile(
+                    filePath,
+                    content,
+                    this.itemProvider,
+                    this.relatedRequestsHelper,
+                );
+            case BrunoFileType.EnvironmentFile:
+                return determineDiagnosticsForEnvironmentFile(
+                    filePath,
+                    content,
+                );
+            case BrunoFileType.FolderSettingsFile:
+                return await determineDiagnosticsForFolderSettingsFile(
+                    filePath,
+                    content,
+                    this.itemProvider,
+                    this.relatedRequestsHelper,
+                );
+            case BrunoFileType.CollectionSettingsFile:
+                return determineDiagnosticsForCollectionSettingsFile(
+                    filePath,
+                    content,
+                );
+            default:
+                throw new Error(
+                    `Fetching Bruno specific diagnostics not implemented for file type '${brunoFileType}'.`,
+                );
+        }
+    }
+
     public dispose() {
         this.relatedRequestsHelper.dispose();
-    }
-
-    public async provideDiagnosticsForRequestFile(
-        filePath: string,
-        documentText: string,
-    ) {
-        return await determineDiagnosticsForRequestFile(
-            filePath,
-            documentText,
-            this.itemProvider,
-            this.relatedRequestsHelper,
-        );
-    }
-
-    public provideDiagnosticsForEnvironmentFile(
-        filePath: string,
-        documentText: string,
-    ) {
-        return determineDiagnosticsForEnvironmentFile(filePath, documentText);
-    }
-
-    public provideDiagnosticsForCollectionSettingsFile(
-        filePath: string,
-        documentText: string,
-    ) {
-        return determineDiagnosticsForCollectionSettingsFile(
-            filePath,
-            documentText,
-        );
-    }
-
-    public async provideDiagnosticsForFolderSettingsFile(
-        filePath: string,
-        documentText: string,
-    ) {
-        return await determineDiagnosticsForFolderSettingsFile(
-            filePath,
-            documentText,
-            this.itemProvider,
-            this.relatedRequestsHelper,
-        );
     }
 }
