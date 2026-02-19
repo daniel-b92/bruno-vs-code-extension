@@ -58,7 +58,7 @@ disposables.push(
                     completionItem: { labelDetailsSupport: true },
                 },
                 diagnosticProvider: {
-                    interFileDependencies: false,
+                    interFileDependencies: true,
                     workspaceDiagnostics: false,
                 },
             },
@@ -81,6 +81,18 @@ disposables.push(
         );
 
         disposables.push(brunoLangDiagnosticsProvider);
+
+        itemProvider.subscribeToUpdates((changes) => {
+            if (
+                changes.some(
+                    ({ changedData }) =>
+                        changedData && changedData.sequenceChanged,
+                )
+            ) {
+                // Needed for keeping diagnostics for duplicate sequences in sync.
+                connection.languages.diagnostics.refresh();
+            }
+        });
     }),
 );
 
@@ -126,22 +138,6 @@ disposables.push(
             items,
         };
     }),
-);
-
-disposables.push(
-    connection.onDidOpenTextDocument(
-        async ({ textDocument: { uri, text } }) => {
-            const diagnostics = await getDiagnosticsForBruFile(
-                URI.parse(uri).fsPath,
-                text,
-            );
-
-            await connection.sendDiagnostics({
-                uri,
-                diagnostics: diagnostics ?? [],
-            });
-        },
-    ),
 );
 
 documents.onWillSaveWaitUntil(async ({ document: { uri } }) => {
