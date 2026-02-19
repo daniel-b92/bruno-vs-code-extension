@@ -105,17 +105,13 @@ disposables.push(
 
 disposables.push(
     connection.onCompletion(async (params, token) => {
-        const configuredEnvironment =
-            (await connection.workspace.getConfiguration(
-                getEnvironmentSettingsKey(),
-            )) as string | undefined;
         const request = mapToBaseLanguageRequest(params, token);
 
         return request && helpersProvider
             ? handleCompletionRequest(
                   request,
                   helpersProvider.getItemProvider(),
-                  configuredEnvironment,
+                  await getConfiguredTestEnvironment(),
                   getDefaultLogger(),
               )
             : undefined;
@@ -139,6 +135,10 @@ disposables.push(
         };
     }),
 );
+
+connection.onHover((params) => {
+    mapToBaseLanguageRequest(params);
+});
 
 documents.onWillSaveWaitUntil(async ({ document: { uri } }) => {
     const document = documents.get(uri);
@@ -196,6 +196,12 @@ function mapToBaseLanguageRequest(
               token,
           }
         : undefined;
+}
+
+async function getConfiguredTestEnvironment() {
+    return (await connection.workspace.getConfiguration(
+        getEnvironmentSettingsKey(),
+    )) as string | undefined;
 }
 
 async function getDiagnosticsForBruFile(filePath: string, text: string) {
