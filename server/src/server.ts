@@ -62,6 +62,7 @@ disposables.push(
                     interFileDependencies: true,
                     workspaceDiagnostics: false,
                 },
+                hoverProvider: true,
             },
         };
         return result;

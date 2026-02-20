@@ -2,6 +2,8 @@ import { commands, Hover, languages } from "vscode";
 import {
     Block,
     CodeBlock,
+    getFirstParameterForInbuiltFunctionIfStringLiteral,
+    getInbuiltFunctionIdentifiers,
     isBlockCodeBlock,
     parseBruFile,
     RequestFileBlockName,
@@ -19,6 +21,7 @@ import {
     OutputChannelLogger,
 } from "@shared";
 import { waitForTempJsFileToBeInSync } from "../../shared/temporaryJsFilesUpdates/external/waitForTempJsFileToBeInSync";
+import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
 
 interface ProviderParamsForNonCodeBlock {
     file: {
@@ -64,8 +67,16 @@ export function provideInfosOnHover(
                 return undefined;
             }
 
-            if (isBlockCodeBlock(blockContainingPosition)) {
-                return getHoverForCodeBlock(queue, {
+            if (
+                isBlockCodeBlock(blockContainingPosition) &&
+                // The hover content is printed twice when also providing hovers via client (even if the provided content is different).
+                !isCodeBlockRequestHandledByServer({
+                    file: { collection, allBlocks, blockContainingPosition },
+                    hoverRequest: { document, position, token },
+                    logger,
+                })
+            ) {
+                return getResultsViaTempJsFile(queue, {
                     file: { collection, allBlocks, blockContainingPosition },
                     hoverRequest: { document, position, token },
                     logger,
@@ -75,13 +86,6 @@ export function provideInfosOnHover(
             return undefined;
         },
     });
-}
-
-async function getHoverForCodeBlock(
-    tempJsUpdateQueue: TempJsFileUpdateQueue,
-    params: ProviderParamsForCodeBlock,
-) {
-    return await getResultsViaTempJsFile(tempJsUpdateQueue, params);
 }
 
 async function getResultsViaTempJsFile(
@@ -140,6 +144,36 @@ async function getResultsViaTempJsFile(
                 ),
             )
           : resultFromJsFile[0];
+}
+
+function isCodeBlockRequestHandledByServer({
+    file: { collection, blockContainingPosition },
+    hoverRequest,
+    logger,
+}: ProviderParamsForCodeBlock) {
+    const { token } = hoverRequest;
+
+    if (token.isCancellationRequested) {
+        addLogEntryForCancellation(logger);
+        return undefined;
+    }
+
+    // For environment variables, the language server already provides hovers.
+    return (
+        getFirstParameterForInbuiltFunctionIfStringLiteral(
+            mapToEnvVarNameParams(
+                {
+                    file: {
+                        collection,
+                        blockContainingPosition,
+                    },
+                    request: hoverRequest,
+                    logger,
+                },
+                getInbuiltFunctionIdentifiers(),
+            ),
+        ) != undefined
+    );
 }
 
 function addLogEntryForCancellation(logger?: OutputChannelLogger) {
