@@ -10,9 +10,7 @@ export function getFirstParameterForInbuiltFunctionIfStringLiteral(
 ):
     | {
           inbuiltFunction: InbuiltFunctionIdentifier;
-          variableName: string;
-          start: Position;
-          end: Position;
+          variable: { name: string; start: Position; end: Position };
       }
     | undefined {
     const resultData =
@@ -35,9 +33,7 @@ export function getFirstParameterForInbuiltFunctionIfStringLiteral(
     return nodeContainsPosition
         ? {
               inbuiltFunction: InbuiltFunctionIdentifier,
-              variableName,
-              start,
-              end,
+              variable: { name: variableName, start, end },
           }
         : undefined;
 }

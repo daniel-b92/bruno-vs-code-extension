@@ -2,7 +2,7 @@ import {
     getBlocksWithoutVariableSupport,
     getDictionaryBlockArrayField,
     getExistingRequestFileTags,
-    getVariableNameForPositionInNonCodeBlock,
+    getVariableForPositionInNonCodeBlock,
     Logger,
     MetaBlockKey,
     RequestFileBlockName,
@@ -19,14 +19,18 @@ import { NonCodeBlockRequestWithAdditionalData } from "../shared/interfaces";
 import { basename } from "path";
 import { Hover } from "vscode-languageserver";
 
-export function getHoverForNonCodeBlocks(
+export function getHoverForNonCodeBlock(
     itemProvider: TypedCollectionItemProvider,
     params: NonCodeBlockRequestWithAdditionalData,
     configuredEnvironmentName?: string,
 ) {
     return (
         getHoverForTagsInMetaBlock(itemProvider, params) ??
-        getHoverForVariablesInNonCodeBlocks(params)
+        getHoverForVariablesInNonCodeBlocks(
+            params,
+            params.request.documentHelper,
+            configuredEnvironmentName,
+        )
     );
 }
 
@@ -83,6 +87,7 @@ function getHoverForVariablesInNonCodeBlocks(
         logger,
     }: NonCodeBlockRequestWithAdditionalData,
     docHelper: TextDocumentHelper,
+    configuredEnvironmentName?: string,
 ): Hover | undefined {
     const { position, token } = request;
 
@@ -94,7 +99,7 @@ function getHoverForVariablesInNonCodeBlocks(
         return undefined;
     }
 
-    const variableName = getVariableNameForPositionInNonCodeBlock({
+    const variable = getVariableForPositionInNonCodeBlock({
         documentHelper: docHelper,
         position,
     });
@@ -104,18 +109,21 @@ function getHoverForVariablesInNonCodeBlocks(
         return undefined;
     }
 
-    return variableName
-        ? getHoverForEnvVariable({
-              requestData: {
-                  collection,
-                  variableName,
-                  functionType: VariableReferenceType.Read, // In non-code blocks, variables can not be set.
-                  requestPosition: position,
-                  token,
+    return variable
+        ? getHoverForEnvVariable(
+              {
+                  requestData: {
+                      collection,
+                      variable,
+                      functionType: VariableReferenceType.Read, // In non-code blocks, variables can not be set.
+                      requestPosition: position,
+                      token,
+                  },
+                  bruFileSpecificData: { allBlocks, blockContainingPosition },
+                  logger,
               },
-              bruFileSpecificData: { allBlocks, blockContainingPosition },
-              logger,
-          })
+              configuredEnvironmentName,
+          )
         : undefined;
 }
 
@@ -156,5 +164,7 @@ function getHoverForTagOccurences(
 }
 
 function addLogEntryForCancellation(logger?: Logger) {
-    logger?.debug(`Cancellation requested for hover provider.`);
+    logger?.debug(
+        "Cancellation requested while trying to determine hover for position in non-code block.",
+    );
 }

@@ -1,7 +1,6 @@
 import { basename } from "path";
 import {
     EnvVariableNameMatchingMode,
-    getEnvironmentSettingsKey,
     getExtensionForBrunoFiles,
     getMatchingDefinitionsFromEnvFiles,
     Logger,
@@ -14,11 +13,10 @@ import {
 import { getDynamicVariableReferences } from "../../bruFiles/shared/getDynamicVariableReferences";
 import { Hover, MarkupContent } from "vscode-languageserver";
 
-export function getHoverForEnvVariable({
-    requestData,
-    bruFileSpecificData,
-    logger,
-}: EnvVariableRequest): Hover | undefined {
+export function getHoverForEnvVariable(
+    { requestData, bruFileSpecificData, logger }: EnvVariableRequest,
+    configuredEnvironmentName?: string,
+): Hover | undefined {
     const contentForDynamicReferences = bruFileSpecificData
         ? getContentForDynamicVariables(
               requestData,
@@ -28,6 +26,7 @@ export function getHoverForEnvVariable({
         : undefined;
     const contentForStaticReferences = getContentForStaticVariables(
         requestData,
+        configuredEnvironmentName,
         logger,
     );
 
@@ -54,6 +53,7 @@ export function getHoverForEnvVariable({
 
 function getContentForStaticVariables(
     requestData: EnvVariableCommonRequestData,
+    configuredEnvironmentName?: string,
     logger?: Logger,
 ) {
     const {
@@ -64,7 +64,6 @@ function getContentForStaticVariables(
     const tableHeader = `| value | environment | configured |
 | :--------------- | :----------------: | :----------------: | ${getLineBreak()}`;
 
-    const configuredEnvironmentName = getEnvironmentSettingsKey();
     const matchingVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
         collection,
         variableName,

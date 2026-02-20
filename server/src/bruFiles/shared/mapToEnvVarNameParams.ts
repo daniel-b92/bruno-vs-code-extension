@@ -5,7 +5,7 @@ import {
     TextDocumentHelper,
     Position,
 } from "@global_shared";
-import { CodeBlockRequestWithAdditionalData } from "../../shared";
+import { CodeBlockRequestWithAdditionalData } from "./interfaces";
 
 export function mapToEnvVarNameParams(
     params: CodeBlockRequestWithAdditionalData,

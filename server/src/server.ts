@@ -28,6 +28,7 @@ import {
 import { handleCompletionRequest } from "./bruFiles/completions/handleCompletionRequest";
 import { Disposable } from "vscode-languageserver/node";
 import { BrunoLangDiagnosticsProvider } from "./bruFiles/diagnostics/brunoLangDiagnosticsProvider";
+import { handleHoverRequest } from "./bruFiles/hover/handleHoverRequest";
 
 let helpersProvider: HelpersProvider;
 let brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider;
@@ -136,8 +137,17 @@ disposables.push(
     }),
 );
 
-connection.onHover((params) => {
-    mapToBaseLanguageRequest(params);
+connection.onHover(async (params, token) => {
+    const baseRequest = mapToBaseLanguageRequest(params, token);
+
+    return baseRequest && helpersProvider
+        ? handleHoverRequest(
+              baseRequest,
+              helpersProvider.getItemProvider(),
+              await getConfiguredTestEnvironment(),
+              getDefaultLogger(),
+          )
+        : undefined;
 });
 
 documents.onWillSaveWaitUntil(async ({ document: { uri } }) => {

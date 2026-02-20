@@ -6,9 +6,6 @@ import {
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
-    getFirstParameterForInbuiltFunctionIfStringLiteral,
-    getInbuiltFunctionType,
-    getInbuiltFunctionIdentifiers,
 } from "@global_shared";
 import { TypedCollection, TypedCollectionItemProvider } from "@shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
@@ -16,8 +13,6 @@ import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositi
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
-import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
-import { getHoverForEnvVariable } from "../../shared/environmentVariables/getHoverForEnvVariable";
 import {
     mapFromVsCodePosition,
     mapToVsCodeRange,
@@ -70,7 +65,7 @@ export function provideInfosOnHover(
             }
 
             if (isBlockCodeBlock(blockContainingPosition)) {
-                return getHoverForCodeBlocks(queue, {
+                return getHoverForCodeBlock(queue, {
                     file: { collection, allBlocks, blockContainingPosition },
                     hoverRequest: { document, position, token },
                     logger,
@@ -82,42 +77,10 @@ export function provideInfosOnHover(
     });
 }
 
-async function getHoverForCodeBlocks(
+async function getHoverForCodeBlock(
     tempJsUpdateQueue: TempJsFileUpdateQueue,
     params: ProviderParamsForCodeBlock,
 ) {
-    const {
-        file: { blockContainingPosition, allBlocks, collection },
-        hoverRequest: { token, position },
-        logger,
-    } = params;
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return undefined;
-    }
-
-    const envVariableResult = getEnvVariableNameFromCodeBlock(params);
-
-    if (envVariableResult) {
-        const { inbuiltFunction, variableName } = envVariableResult;
-
-        return getHoverForEnvVariable({
-            requestData: {
-                collection,
-                functionType: getInbuiltFunctionType(inbuiltFunction),
-                variableName,
-                requestPosition: position,
-                token,
-            },
-            bruFileSpecificData: {
-                blockContainingPosition,
-                allBlocks,
-            },
-            logger,
-        });
-    }
-
     return await getResultsViaTempJsFile(tempJsUpdateQueue, params);
 }
 
@@ -177,33 +140,6 @@ async function getResultsViaTempJsFile(
                 ),
             )
           : resultFromJsFile[0];
-}
-
-function getEnvVariableNameFromCodeBlock({
-    file: { collection, blockContainingPosition },
-    hoverRequest,
-    logger,
-}: ProviderParamsForCodeBlock) {
-    const { token } = hoverRequest;
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return undefined;
-    }
-
-    return getFirstParameterForInbuiltFunctionIfStringLiteral(
-        mapToEnvVarNameParams(
-            {
-                file: {
-                    collection,
-                    blockContainingPosition,
-                },
-                request: hoverRequest,
-                logger,
-            },
-            getInbuiltFunctionIdentifiers(),
-        ),
-    );
 }
 
 function addLogEntryForCancellation(logger?: OutputChannelLogger) {

@@ -61,7 +61,10 @@ async function getHover(params: {
         return undefined;
     }
 
-    const { inbuiltFunction, variableName } = envVariableRelatedFunction;
+    const {
+        inbuiltFunction,
+        variable: { name: variableName },
+    } = envVariableRelatedFunction;
 
     return getHoverForEnvVariable({
         requestData: {
