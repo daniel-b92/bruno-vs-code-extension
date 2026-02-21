@@ -137,7 +137,7 @@ function createLanguagClient(context: ExtensionContext) {
         // Register the server for `.bru` files
         documentSelector: [
             { scheme: "file", language: "bru" },
-            { scheme: "file", pattern: "**/*.js" },
+            { scheme: "file", language: "javascript" },
         ],
         synchronize: {
             // Notify the server about file changes to '.clientrc files contained in the workspace

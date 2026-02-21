@@ -10,18 +10,20 @@ import {
 } from "@global_shared";
 import {
     LanguageFeatureBaseRequest,
+    LanguageRequestWithTestEnvironmentInfo,
     mapEnvVariablesToCompletions,
     TypedCollection,
-    TypedCollectionItemProvider,
 } from "../../shared";
 import { CompletionItem } from "vscode-languageserver";
 
-export async function handleCompletionRequest(
-    baseRequest: LanguageFeatureBaseRequest,
-    itemProvider: TypedCollectionItemProvider,
-    configuredEnvironment?: string,
-    logger?: Logger,
-): Promise<CompletionItem[] | undefined> {
+export async function handleCompletionRequest({
+    baseRequest,
+    itemProvider,
+    configuredEnvironmentName,
+    logger,
+}: LanguageRequestWithTestEnvironmentInfo): Promise<
+    CompletionItem[] | undefined
+> {
     const { token, filePath } = baseRequest;
     const collection = itemProvider.getAncestorCollectionForPath(filePath);
 
@@ -50,7 +52,7 @@ export async function handleCompletionRequest(
                   functionType: envVariableRelatedFunction.type,
               },
               baseRequest,
-              configuredEnvironment,
+              configuredEnvironmentName,
               logger,
           )
         : undefined;

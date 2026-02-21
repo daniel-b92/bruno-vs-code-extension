@@ -13,6 +13,7 @@ import {
     getDefaultLogger,
     HelpersProvider,
     LanguageFeatureBaseRequest,
+    LanguageRequestWithTestEnvironmentInfo,
     TypedCollectionItemProvider,
 } from "./shared";
 import { URI } from "vscode-uri";
@@ -28,9 +29,10 @@ import {
 import { handleCompletionRequest as handleCompletionRequestForBruFile } from "./bruFiles/completions/handleCompletionRequest";
 import { Disposable } from "vscode-languageserver/node";
 import { BrunoLangDiagnosticsProvider } from "./bruFiles/diagnostics/brunoLangDiagnosticsProvider";
-import { handleHoverRequest } from "./bruFiles/hover/handleHoverRequest";
+import { handleHoverRequest as handleHoverRequestForBruFile } from "./bruFiles/hover/handleHoverRequest";
 import { extname } from "path";
 import { handleCompletionRequest as handleCompletionRequestForJsFile } from "./jsFiles/completionItems/handleCompletionRequest";
+import { handleHoverRequest as handleHoverRequestForJsFile } from "./jsFiles/hover/handleHoverRequest";
 
 let helpersProvider: HelpersProvider;
 let brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider;
@@ -130,21 +132,18 @@ disposables.push(
                 return undefined;
             }
 
+            const params: LanguageRequestWithTestEnvironmentInfo = {
+                baseRequest,
+                itemProvider: helpersProvider.getItemProvider(),
+                configuredEnvironmentName: await getConfiguredTestEnvironment(),
+                logger: getDefaultLogger(),
+            };
+
             switch (type) {
                 case FileTypeByExtension.Bru:
-                    return handleCompletionRequestForBruFile(
-                        baseRequest,
-                        helpersProvider.getItemProvider(),
-                        await getConfiguredTestEnvironment(),
-                        getDefaultLogger(),
-                    );
+                    return handleCompletionRequestForBruFile(params);
                 case FileTypeByExtension.Js:
-                    return handleCompletionRequestForJsFile(
-                        baseRequest,
-                        helpersProvider.getItemProvider(),
-                        await getConfiguredTestEnvironment(),
-                        getDefaultLogger(),
-                    );
+                    return handleCompletionRequestForJsFile(params);
             }
         },
     ),
@@ -174,9 +173,6 @@ disposables.push(
 
 connection.onHover(async ({ textDocument: { uri }, position }, token) => {
     const { filePath, type } = getFilePathAndType(uri);
-    if (type != FileTypeByExtension.Bru) {
-        return undefined;
-    }
 
     const baseRequest = mapToBaseLanguageRequest(
         uri,
@@ -184,14 +180,23 @@ connection.onHover(async ({ textDocument: { uri }, position }, token) => {
         token,
     );
 
-    return baseRequest && helpersProvider
-        ? handleHoverRequest(
-              baseRequest,
-              helpersProvider.getItemProvider(),
-              await getConfiguredTestEnvironment(),
-              getDefaultLogger(),
-          )
-        : undefined;
+    if (!baseRequest || !helpersProvider) {
+        return undefined;
+    }
+
+    const params: LanguageRequestWithTestEnvironmentInfo = {
+        baseRequest,
+        itemProvider: helpersProvider.getItemProvider(),
+        configuredEnvironmentName: await getConfiguredTestEnvironment(),
+        logger: getDefaultLogger(),
+    };
+
+    switch (type) {
+        case FileTypeByExtension.Bru:
+            return handleHoverRequestForBruFile(params);
+        case FileTypeByExtension.Js:
+            return handleHoverRequestForJsFile(params);
+    }
 });
 
 documents.onWillSaveWaitUntil(async ({ document: { uri } }) => {
