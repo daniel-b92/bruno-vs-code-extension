@@ -39,7 +39,6 @@ import { TempJsUpdateType } from "./internal/shared/temporaryJsFilesUpdates/inte
 import { getTempJsFileContentForBruFile } from "./internal/brunoFiles/shared/codeBlocksUtils/getTempJsFileContentForBruFile";
 import { getDefinitionsForInbuiltLibraries } from "./internal/shared/temporaryJsFilesUpdates/external/getDefinitionsForInbuiltLibraries";
 import { provideInfosOnHover as provideInfosOnHoverForJsFiles } from "./internal/jsFiles/hover/provideInfosOnHover";
-import { provideCompletionItems as provideCompletionItemsForJsFiles } from "./internal/jsFiles/completionItems/provideCompletionItems";
 import { getCharacterForLineBreak } from "./internal/brunoFiles/shared/codeBlocksUtils/getCharacterForLineBreak";
 
 export async function activateLanguageFeatures(
@@ -91,7 +90,6 @@ export async function activateLanguageFeatures(
             logger,
         ),
         provideInfosOnHoverForJsFiles(collectionItemProvider, logger),
-        provideCompletionItemsForJsFiles(collectionItemProvider, logger),
         tempJsFilesUpdateQueue,
         window.onDidChangeActiveTextEditor(async (editor) => {
             await onDidChangeActiveTextEditor(
