@@ -111,6 +111,7 @@ function getContentForDynamicVariables(
         token,
     } = requestData;
     const { blockContainingPosition, allBlocks } = bruFileSpecificData;
+    const lineBreak = getLineBreak();
 
     const variableReferences = getDynamicVariableReferences(
         requestData,
@@ -128,15 +129,19 @@ function getContentForDynamicVariables(
         return undefined;
     }
 
+    const tableHeader = `| block | reference type | ${lineBreak} | :--------------- | :----------------: | ${lineBreak}`;
+
     return "**Dynamic references:**".concat(
-        getLineBreak(),
+        lineBreak,
+        tableHeader,
         variableReferences
             .map(
                 ({ blockName, variableReference: { referenceType } }) =>
-                    `- Block '${blockName}'; Type: ${referenceType}`,
+                    `| ${blockName} | ${referenceType} |`,
             )
-            .join(getLineBreak()),
-        getLineBreak(),
+            .join(lineBreak),
+        lineBreak,
+        lineBreak,
     );
 }
 
