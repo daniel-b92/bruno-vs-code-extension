@@ -25,11 +25,12 @@ import {
     Position,
     TextDocumentHelper,
 } from "@global_shared";
-import { handleCompletionRequest } from "./bruFiles/completions/handleCompletionRequest";
+import { handleCompletionRequest as handleCompletionRequestForBruFile } from "./bruFiles/completions/handleCompletionRequest";
 import { Disposable } from "vscode-languageserver/node";
 import { BrunoLangDiagnosticsProvider } from "./bruFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { handleHoverRequest } from "./bruFiles/hover/handleHoverRequest";
 import { extname } from "path";
+import { handleCompletionRequest as handleCompletionRequestForJsFile } from "./jsFiles/completionItems/handleCompletionRequest";
 
 let helpersProvider: HelpersProvider;
 let brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider;
@@ -118,24 +119,33 @@ disposables.push(
     connection.onCompletion(
         async ({ textDocument: { uri }, position }, token) => {
             const { filePath, type } = getFilePathAndType(uri);
-            if (type != FileTypeByExtension.Bru) {
-                return undefined;
-            }
 
-            const request = mapToBaseLanguageRequest(
+            const baseRequest = mapToBaseLanguageRequest(
                 uri,
                 { filePathAndType: { filePath, type }, position },
                 token,
             );
 
-            return request && helpersProvider
-                ? handleCompletionRequest(
-                      request,
-                      helpersProvider.getItemProvider(),
-                      await getConfiguredTestEnvironment(),
-                      getDefaultLogger(),
-                  )
-                : undefined;
+            if (!baseRequest || !helpersProvider) {
+                return undefined;
+            }
+
+            switch (type) {
+                case FileTypeByExtension.Bru:
+                    return handleCompletionRequestForBruFile(
+                        baseRequest,
+                        helpersProvider.getItemProvider(),
+                        await getConfiguredTestEnvironment(),
+                        getDefaultLogger(),
+                    );
+                case FileTypeByExtension.Js:
+                    return handleCompletionRequestForJsFile(
+                        baseRequest,
+                        helpersProvider.getItemProvider(),
+                        await getConfiguredTestEnvironment(),
+                        getDefaultLogger(),
+                    );
+            }
         },
     ),
 );
