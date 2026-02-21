@@ -165,7 +165,7 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(
         SyntaxKind.StringLiteral, // String quoted via '"' or "'"
     ].includes(firstParameterNode.kind);
 
-    const firstParameter = extractVariableNameFromResultNode(
+    const firstParameter = extractVariableFromResultNode(
         {
             startPosition: contentStartPosition,
             subDocumentHelper,
@@ -196,7 +196,7 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(
         : undefined;
 }
 
-function extractVariableNameFromResultNode(
+function extractVariableFromResultNode(
     relevantContent: {
         subDocumentHelper: TextDocumentHelper;
         startPosition: Position;

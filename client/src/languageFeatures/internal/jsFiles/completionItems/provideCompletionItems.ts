@@ -52,7 +52,7 @@ export function provideCompletionItems(
 
                 return envVariableRelatedFunction != undefined
                     ? getResultsForEnvironmentVariable(
-                          envVariableRelatedFunction.variableName,
+                          envVariableRelatedFunction.variable.name,
                           {
                               collection,
                               functionType: envVariableRelatedFunction.type,

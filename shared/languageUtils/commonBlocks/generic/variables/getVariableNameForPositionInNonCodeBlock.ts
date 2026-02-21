@@ -5,15 +5,16 @@ import {
     TextDocumentHelper,
 } from "../../../..";
 
-export function getVariableNameForPositionInNonCodeBlock(params: {
+export function getVariableForPositionInNonCodeBlock(params: {
     documentHelper: TextDocumentHelper;
     position: Position;
 }) {
     const { documentHelper, position } = params;
+    const { line } = position;
 
     const matchingTextResult = getMatchingTextContainingPosition(
         position,
-        documentHelper.getLineByIndex(position.line),
+        documentHelper.getLineByIndex(line),
         new RegExp(getPatternForVariablesInNonCodeBlock()),
     );
 
@@ -22,9 +23,12 @@ export function getVariableNameForPositionInNonCodeBlock(params: {
     }
 
     const { text: matchingText } = matchingTextResult;
+    const variableStartChar = matchingText.indexOf("{{") + 2;
+    const variableEndChar = matchingText.indexOf("}}");
 
-    return matchingText.substring(
-        matchingText.indexOf("{{") + 2,
-        matchingText.indexOf("}}"),
-    );
+    return {
+        start: new Position(line, variableStartChar),
+        end: new Position(line, variableEndChar),
+        name: matchingText.substring(variableStartChar, variableEndChar),
+    };
 }

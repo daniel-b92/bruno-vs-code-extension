@@ -26,12 +26,16 @@ export async function handleCompletionRequest(
 
     const collection = itemProvider.getAncestorCollectionForPath(filePath);
 
+    if (!collection) {
+        return undefined;
+    }
+
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return undefined;
     }
 
-    return isBlockCodeBlock(blockContainingPosition) && collection
+    return isBlockCodeBlock(blockContainingPosition)
         ? getCompletionsForCodeBlock(
               {
                   request: baseRequest,

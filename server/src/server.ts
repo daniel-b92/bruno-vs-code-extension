@@ -28,6 +28,7 @@ import {
 import { handleCompletionRequest } from "./bruFiles/completions/handleCompletionRequest";
 import { Disposable } from "vscode-languageserver/node";
 import { BrunoLangDiagnosticsProvider } from "./bruFiles/diagnostics/brunoLangDiagnosticsProvider";
+import { handleHoverRequest } from "./bruFiles/hover/handleHoverRequest";
 
 let helpersProvider: HelpersProvider;
 let brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider;
@@ -61,6 +62,7 @@ disposables.push(
                     interFileDependencies: true,
                     workspaceDiagnostics: false,
                 },
+                hoverProvider: true,
             },
         };
         return result;
@@ -105,17 +107,13 @@ disposables.push(
 
 disposables.push(
     connection.onCompletion(async (params, token) => {
-        const configuredEnvironment =
-            (await connection.workspace.getConfiguration(
-                getEnvironmentSettingsKey(),
-            )) as string | undefined;
         const request = mapToBaseLanguageRequest(params, token);
 
         return request && helpersProvider
             ? handleCompletionRequest(
                   request,
                   helpersProvider.getItemProvider(),
-                  configuredEnvironment,
+                  await getConfiguredTestEnvironment(),
                   getDefaultLogger(),
               )
             : undefined;
@@ -139,6 +137,19 @@ disposables.push(
         };
     }),
 );
+
+connection.onHover(async (params, token) => {
+    const baseRequest = mapToBaseLanguageRequest(params, token);
+
+    return baseRequest && helpersProvider
+        ? handleHoverRequest(
+              baseRequest,
+              helpersProvider.getItemProvider(),
+              await getConfiguredTestEnvironment(),
+              getDefaultLogger(),
+          )
+        : undefined;
+});
 
 documents.onWillSaveWaitUntil(async ({ document: { uri } }) => {
     const document = documents.get(uri);
@@ -196,6 +207,12 @@ function mapToBaseLanguageRequest(
               token,
           }
         : undefined;
+}
+
+async function getConfiguredTestEnvironment() {
+    return (await connection.workspace.getConfiguration(
+        getEnvironmentSettingsKey(),
+    )) as string | undefined;
 }
 
 async function getDiagnosticsForBruFile(filePath: string, text: string) {

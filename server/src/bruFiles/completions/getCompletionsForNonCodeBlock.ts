@@ -35,11 +35,11 @@ import {
 import {
     LanguageFeatureBaseRequest,
     mapEnvVariablesToCompletions,
-    NonCodeBlockRequestWithAdditionalData,
     TypedCollection,
     TypedCollectionItemProvider,
 } from "../../shared";
 import { basename, dirname } from "path";
+import { NonCodeBlockRequestWithAdditionalData } from "../shared/interfaces";
 
 export async function getCompletionsForNonCodeBlock(
     {

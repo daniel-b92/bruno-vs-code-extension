@@ -1,42 +1,27 @@
-import { commands, Hover, languages, MarkdownString } from "vscode";
+import { commands, Hover, languages } from "vscode";
 import {
     Block,
     CodeBlock,
-    getBlocksWithoutVariableSupport,
+    getFirstParameterForInbuiltFunctionIfStringLiteral,
+    getInbuiltFunctionIdentifiers,
     isBlockCodeBlock,
     parseBruFile,
     RequestFileBlockName,
     TextDocumentHelper,
-    getFirstParameterForInbuiltFunctionIfStringLiteral,
-    VariableReferenceType,
-    getInbuiltFunctionType,
-    getDictionaryBlockArrayField,
-    MetaBlockKey,
-    getInbuiltFunctionIdentifiers,
-    getVariableNameForPositionInNonCodeBlock,
-    getExistingRequestFileTags,
-    TagOccurences,
 } from "@global_shared";
-import {
-    AdditionalCollectionData,
-    TypedCollection,
-    TypedCollectionItemProvider,
-} from "@shared";
+import { TypedCollection, TypedCollectionItemProvider } from "@shared";
 import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
-import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
-import { getHoverForEnvVariable } from "../../shared/environmentVariables/getHoverForEnvVariable";
 import {
-    getLineBreak,
     mapFromVsCodePosition,
     mapToVsCodeRange,
     OutputChannelLogger,
 } from "@shared";
-import { basename } from "path";
 import { waitForTempJsFileToBeInSync } from "../../shared/temporaryJsFilesUpdates/external/waitForTempJsFileToBeInSync";
+import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
 
 interface ProviderParamsForNonCodeBlock {
     file: {
@@ -82,75 +67,25 @@ export function provideInfosOnHover(
                 return undefined;
             }
 
-            if (isBlockCodeBlock(blockContainingPosition)) {
-                return getHoverForCodeBlocks(queue, {
+            if (
+                isBlockCodeBlock(blockContainingPosition) &&
+                // The hover content is printed twice when also providing hovers via client (even if the provided content is different).
+                !isCodeBlockRequestHandledByServer({
+                    file: { collection, allBlocks, blockContainingPosition },
+                    hoverRequest: { document, position, token },
+                    logger,
+                })
+            ) {
+                return getResultsViaTempJsFile(queue, {
                     file: { collection, allBlocks, blockContainingPosition },
                     hoverRequest: { document, position, token },
                     logger,
                 });
             }
 
-            return getHoverForNonCodeBlocks(
-                itemProvider,
-                {
-                    file: { collection, allBlocks, blockContainingPosition },
-                    hoverRequest: { document, position, token },
-                    logger,
-                },
-                docHelper,
-            );
+            return undefined;
         },
     });
-}
-
-function getHoverForNonCodeBlocks(
-    itemProvider: TypedCollectionItemProvider,
-    params: ProviderParamsForNonCodeBlock,
-    docHelper: TextDocumentHelper,
-) {
-    return (
-        getHoverForTagsInMetaBlock(itemProvider, params) ??
-        getHoverForVariablesInNonCodeBlocks(params, docHelper)
-    );
-}
-
-async function getHoverForCodeBlocks(
-    tempJsUpdateQueue: TempJsFileUpdateQueue,
-    params: ProviderParamsForCodeBlock,
-) {
-    const {
-        file: { blockContainingPosition, allBlocks, collection },
-        hoverRequest: { token, position },
-        logger,
-    } = params;
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return undefined;
-    }
-
-    const envVariableResult = getEnvVariableNameFromCodeBlock(params);
-
-    if (envVariableResult) {
-        const { inbuiltFunction, variableName } = envVariableResult;
-
-        return getHoverForEnvVariable({
-            requestData: {
-                collection,
-                functionType: getInbuiltFunctionType(inbuiltFunction),
-                variableName,
-                requestPosition: position,
-                token,
-            },
-            bruFileSpecificData: {
-                blockContainingPosition,
-                allBlocks,
-            },
-            logger,
-        });
-    }
-
-    return await getResultsViaTempJsFile(tempJsUpdateQueue, params);
 }
 
 async function getResultsViaTempJsFile(
@@ -211,131 +146,7 @@ async function getResultsViaTempJsFile(
           : resultFromJsFile[0];
 }
 
-function getHoverForTagsInMetaBlock(
-    itemProvider: TypedCollectionItemProvider,
-    {
-        file: { collection, blockContainingPosition },
-        hoverRequest,
-        logger,
-    }: ProviderParamsForNonCodeBlock,
-) {
-    const { document, position, token } = hoverRequest;
-
-    if (blockContainingPosition.name != RequestFileBlockName.Meta) {
-        return undefined;
-    }
-
-    const tagsField = getDictionaryBlockArrayField(
-        blockContainingPosition,
-        MetaBlockKey.Tags,
-    );
-    if (!tagsField || tagsField.values.length == 0) {
-        return undefined;
-    }
-
-    const tagValueField = tagsField.values.find(({ range }) =>
-        mapToVsCodeRange(range).contains(position),
-    );
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return undefined;
-    }
-    if (!tagValueField) {
-        return undefined;
-    }
-
-    const tagOccurences = getExistingRequestFileTags(itemProvider, {
-        collection,
-        pathToIgnore: document.fileName,
-    }).filter(({ tag }) => tag == tagValueField.content);
-
-    if (tagOccurences.length < 1) {
-        return new Hover("No other usages found.");
-    }
-
-    return getHoverForTagOccurences(document.fileName, tagOccurences[0]);
-}
-
-function getHoverForVariablesInNonCodeBlocks(
-    {
-        file: { allBlocks, collection, blockContainingPosition },
-        hoverRequest,
-        logger,
-    }: ProviderParamsForNonCodeBlock,
-    docHelper: TextDocumentHelper,
-) {
-    const { position, token } = hoverRequest;
-
-    if (
-        (getBlocksWithoutVariableSupport() as string[]).includes(
-            blockContainingPosition.name,
-        )
-    ) {
-        return undefined;
-    }
-
-    const variableName = getVariableNameForPositionInNonCodeBlock({
-        documentHelper: docHelper,
-        position: mapFromVsCodePosition(position),
-    });
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return undefined;
-    }
-
-    return variableName
-        ? getHoverForEnvVariable({
-              requestData: {
-                  collection,
-                  variableName,
-                  functionType: VariableReferenceType.Read, // In non-code blocks, variables can not be set.
-                  requestPosition: position,
-                  token,
-              },
-              bruFileSpecificData: { allBlocks, blockContainingPosition },
-              logger,
-          })
-        : undefined;
-}
-
-function getHoverForTagOccurences(
-    filePath: string,
-    {
-        pathsInOwnCollection,
-        inOtherCollections,
-    }: TagOccurences<AdditionalCollectionData>,
-) {
-    const lineBreak = getLineBreak();
-    const tableHeader = `| collection | usages |
-| :--------------- | ----------------: | ${getLineBreak()}`;
-
-    if (pathsInOwnCollection.length == 0 && inOtherCollections.length == 0) {
-        return new Hover(new MarkdownString("No other usages found."));
-    }
-
-    const content = tableHeader
-        .concat(
-            pathsInOwnCollection.length > 0
-                ? `| own | ${pathsInOwnCollection.filter((path) => path != filePath).length} other file(s) | ${lineBreak}`
-                : "",
-        )
-        .concat(
-            inOtherCollections.length > 0
-                ? inOtherCollections
-                      .map(
-                          ({ collection, paths }) =>
-                              `| ${basename(collection.getRootDirectory())} | ${paths.length} |`,
-                      )
-                      .join(lineBreak)
-                : "",
-        );
-
-    return new Hover(new MarkdownString(content));
-}
-
-function getEnvVariableNameFromCodeBlock({
+function isCodeBlockRequestHandledByServer({
     file: { collection, blockContainingPosition },
     hoverRequest,
     logger,
@@ -347,18 +158,21 @@ function getEnvVariableNameFromCodeBlock({
         return undefined;
     }
 
-    return getFirstParameterForInbuiltFunctionIfStringLiteral(
-        mapToEnvVarNameParams(
-            {
-                file: {
-                    collection,
-                    blockContainingPosition,
+    // For environment variables, the language server already provides hovers.
+    return (
+        getFirstParameterForInbuiltFunctionIfStringLiteral(
+            mapToEnvVarNameParams(
+                {
+                    file: {
+                        collection,
+                        blockContainingPosition,
+                    },
+                    request: hoverRequest,
+                    logger,
                 },
-                request: hoverRequest,
-                logger,
-            },
-            getInbuiltFunctionIdentifiers(),
-        ),
+                getInbuiltFunctionIdentifiers(),
+            ),
+        ) != undefined
     );
 }
 

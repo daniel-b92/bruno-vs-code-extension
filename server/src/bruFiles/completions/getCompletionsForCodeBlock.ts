@@ -10,13 +10,13 @@ import {
     Position,
 } from "@global_shared";
 import {
-    CodeBlockRequestWithAdditionalData,
     LanguageFeatureBaseRequest,
     mapEnvVariablesToCompletions,
     TypedCollection,
 } from "../../shared";
 import { mapToEnvVarNameParams } from "../shared/mapToEnvVarNameParams";
 import { CompletionItem } from "vscode-languageserver";
+import { CodeBlockRequestWithAdditionalData } from "../shared/interfaces";
 
 export function getCompletionsForCodeBlock(
     fullRequest: CodeBlockRequestWithAdditionalData,
@@ -34,10 +34,10 @@ export function getCompletionsForCodeBlock(
         );
 
     if (envVariableResult) {
-        const { inbuiltFunction, variableName, start, end } = envVariableResult;
+        const { inbuiltFunction, variable } = envVariableResult;
 
         return getResultsForEnvironmentVariable(
-            { name: variableName, start, end },
+            variable,
             {
                 collection,
                 functionType: getInbuiltFunctionType(inbuiltFunction),
