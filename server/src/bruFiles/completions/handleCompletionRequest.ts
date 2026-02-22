@@ -1,18 +1,17 @@
 import { isBlockCodeBlock, Logger, parseBruFile } from "@global_shared";
 import { CompletionItem } from "vscode-languageserver";
-import {
-    LanguageFeatureBaseRequest,
-    TypedCollectionItemProvider,
-} from "../../shared";
+import { LanguageRequestWithTestEnvironmentInfo } from "../../shared";
 import { getCompletionsForCodeBlock } from "./getCompletionsForCodeBlock";
 import { getCompletionsForNonCodeBlock } from "./getCompletionsForNonCodeBlock";
 
-export async function handleCompletionRequest(
-    baseRequest: LanguageFeatureBaseRequest,
-    itemProvider: TypedCollectionItemProvider,
-    configuredEnvironment?: string,
-    logger?: Logger,
-): Promise<CompletionItem[] | undefined> {
+export async function handleCompletionRequest({
+    baseRequest,
+    itemProvider,
+    configuredEnvironmentName,
+    logger,
+}: LanguageRequestWithTestEnvironmentInfo): Promise<
+    CompletionItem[] | undefined
+> {
     const { documentHelper, position, token, filePath } = baseRequest;
     const { blocks: allBlocks } = parseBruFile(documentHelper);
 
@@ -42,7 +41,7 @@ export async function handleCompletionRequest(
                   file: { allBlocks, blockContainingPosition, collection },
                   logger,
               },
-              configuredEnvironment,
+              configuredEnvironmentName,
           )
         : getCompletionsForNonCodeBlock(
               {
@@ -51,7 +50,7 @@ export async function handleCompletionRequest(
                   logger,
               },
               itemProvider,
-              configuredEnvironment,
+              configuredEnvironmentName,
           );
 }
 

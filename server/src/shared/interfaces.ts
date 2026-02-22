@@ -19,6 +19,13 @@ export type TypedCollectionData = CollectionData<AdditionalCollectionData>;
 
 export type AdditionalCollectionData = void;
 
+export interface LanguageRequestWithTestEnvironmentInfo {
+    baseRequest: LanguageFeatureBaseRequest;
+    itemProvider: TypedCollectionItemProvider;
+    configuredEnvironmentName?: string;
+    logger?: Logger;
+}
+
 export interface LanguageFeatureBaseRequest {
     filePath: string;
     documentHelper: TextDocumentHelper;

@@ -4,7 +4,6 @@ import {
     ProposedFeatures,
     TextDocumentSyncKind,
     InitializeResult,
-    TextDocumentPositionParams,
     CancellationToken,
 } from "vscode-languageserver/node";
 
@@ -14,25 +13,34 @@ import {
     getDefaultLogger,
     HelpersProvider,
     LanguageFeatureBaseRequest,
+    LanguageRequestWithTestEnvironmentInfo,
     TypedCollectionItemProvider,
 } from "./shared";
 import { URI } from "vscode-uri";
 import { runUpdatesOnWillSave } from "./bruFiles/autoUpdates/runUpdatesOnWillSave";
 import {
     getEnvironmentSettingsKey,
+    getExtensionForBrunoFiles,
     getItemType,
     isBrunoFileType,
     Position,
     TextDocumentHelper,
 } from "@global_shared";
-import { handleCompletionRequest } from "./bruFiles/completions/handleCompletionRequest";
+import { handleCompletionRequest as handleCompletionRequestForBruFile } from "./bruFiles/completions/handleCompletionRequest";
 import { Disposable } from "vscode-languageserver/node";
 import { BrunoLangDiagnosticsProvider } from "./bruFiles/diagnostics/brunoLangDiagnosticsProvider";
-import { handleHoverRequest } from "./bruFiles/hover/handleHoverRequest";
+import { handleHoverRequest as handleHoverRequestForBruFile } from "./bruFiles/hover/handleHoverRequest";
+import { extname } from "path";
+import { handleCompletionRequest as handleCompletionRequestForJsFile } from "./jsFiles/completionItems/handleCompletionRequest";
+import { handleHoverRequest as handleHoverRequestForJsFile } from "./jsFiles/hover/handleHoverRequest";
 
 let helpersProvider: HelpersProvider;
 let brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider;
 const disposables: Disposable[] = [];
+enum FileTypeByExtension {
+    Bru = ".bru",
+    Js = ".js",
+}
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -100,35 +108,60 @@ disposables.push(
 
 disposables.push(
     connection.onDocumentFormatting(({ textDocument: { uri } }) => {
+        if (getFilePathAndType(uri).type != FileTypeByExtension.Bru) {
+            return undefined;
+        }
+
         const document = documents.get(uri);
         return document ? getHandlerForFormatting(document) : undefined;
     }),
 );
 
 disposables.push(
-    connection.onCompletion(async (params, token) => {
-        const request = mapToBaseLanguageRequest(params, token);
+    connection.onCompletion(
+        async ({ textDocument: { uri }, position }, token) => {
+            const { filePath, type } = getFilePathAndType(uri);
 
-        return request && helpersProvider
-            ? handleCompletionRequest(
-                  request,
-                  helpersProvider.getItemProvider(),
-                  await getConfiguredTestEnvironment(),
-                  getDefaultLogger(),
-              )
-            : undefined;
-    }),
+            const baseRequest = mapToBaseLanguageRequest(
+                uri,
+                { filePathAndType: { filePath, type }, position },
+                token,
+            );
+
+            if (!baseRequest || !helpersProvider) {
+                return undefined;
+            }
+
+            const params: LanguageRequestWithTestEnvironmentInfo = {
+                baseRequest,
+                itemProvider: helpersProvider.getItemProvider(),
+                configuredEnvironmentName: await getConfiguredTestEnvironment(),
+                logger: getDefaultLogger(),
+            };
+
+            switch (type) {
+                case FileTypeByExtension.Bru:
+                    return handleCompletionRequestForBruFile(params);
+                case FileTypeByExtension.Js:
+                    return handleCompletionRequestForJsFile(params);
+            }
+        },
+    ),
 );
 
 disposables.push(
     connection.languages.diagnostics.on(async ({ textDocument: { uri } }) => {
+        const { filePath, type } = getFilePathAndType(uri);
+
+        if (type != FileTypeByExtension.Bru) {
+            return { kind: "full", items: [] };
+        }
+
         const document = documents.get(uri);
 
         const items = document
-            ? ((await getDiagnosticsForBruFile(
-                  URI.parse(uri).fsPath,
-                  document.getText(),
-              )) ?? [])
+            ? ((await getDiagnosticsForBruFile(filePath, document.getText())) ??
+              [])
             : [];
 
         return {
@@ -138,20 +171,39 @@ disposables.push(
     }),
 );
 
-connection.onHover(async (params, token) => {
-    const baseRequest = mapToBaseLanguageRequest(params, token);
+connection.onHover(async ({ textDocument: { uri }, position }, token) => {
+    const { filePath, type } = getFilePathAndType(uri);
 
-    return baseRequest && helpersProvider
-        ? handleHoverRequest(
-              baseRequest,
-              helpersProvider.getItemProvider(),
-              await getConfiguredTestEnvironment(),
-              getDefaultLogger(),
-          )
-        : undefined;
+    const baseRequest = mapToBaseLanguageRequest(
+        uri,
+        { filePathAndType: { filePath, type }, position },
+        token,
+    );
+
+    if (!baseRequest || !helpersProvider) {
+        return undefined;
+    }
+
+    const params: LanguageRequestWithTestEnvironmentInfo = {
+        baseRequest,
+        itemProvider: helpersProvider.getItemProvider(),
+        configuredEnvironmentName: await getConfiguredTestEnvironment(),
+        logger: getDefaultLogger(),
+    };
+
+    switch (type) {
+        case FileTypeByExtension.Bru:
+            return handleHoverRequestForBruFile(params);
+        case FileTypeByExtension.Js:
+            return handleHoverRequestForJsFile(params);
+    }
 });
 
 documents.onWillSaveWaitUntil(async ({ document: { uri } }) => {
+    if (getFilePathAndType(uri).type != FileTypeByExtension.Bru) {
+        return [];
+    }
+
     const document = documents.get(uri);
     return document && helpersProvider
         ? runUpdatesOnWillSave(
@@ -191,17 +243,22 @@ function dispose() {
 }
 
 function mapToBaseLanguageRequest(
-    {
-        textDocument: { uri },
-        position: { line, character },
-    }: TextDocumentPositionParams,
+    uri: string,
+    file: {
+        filePathAndType: { filePath: string; type: FileTypeByExtension };
+        position: { line: number; character: number };
+    },
     token: CancellationToken,
 ): LanguageFeatureBaseRequest | undefined {
+    const {
+        filePathAndType: { filePath },
+        position: { line, character },
+    } = file;
     const document = documents.get(uri);
 
     return document
         ? {
-              filePath: URI.parse(uri).fsPath,
+              filePath,
               documentHelper: new TextDocumentHelper(document.getText()),
               position: new Position(line, character),
               token,
@@ -246,4 +303,16 @@ async function getBrunoFileTypeIfExists(
 
     const itemType = await getItemType(collection, filePath);
     return itemType && isBrunoFileType(itemType) ? itemType : undefined;
+}
+
+function getFilePathAndType(uri: string) {
+    const filePath = URI.parse(uri).fsPath;
+
+    return {
+        filePath,
+        type:
+            extname(filePath) == getExtensionForBrunoFiles()
+                ? FileTypeByExtension.Bru
+                : FileTypeByExtension.Js,
+    };
 }

@@ -1,17 +1,14 @@
-import { isBlockCodeBlock, parseBruFile, Logger } from "@global_shared";
-import {
-    LanguageFeatureBaseRequest,
-    TypedCollectionItemProvider,
-} from "../../shared";
+import { isBlockCodeBlock, parseBruFile } from "@global_shared";
+import { LanguageRequestWithTestEnvironmentInfo } from "../../shared";
 import { getHoverForNonCodeBlock } from "./getHoverForNonCodeBlock";
 import { getHoverForCodeBlock } from "./getHoverForCodeBlock";
 
-export function handleHoverRequest(
-    baseRequest: LanguageFeatureBaseRequest,
-    itemProvider: TypedCollectionItemProvider,
-    configuredEnvironmentName?: string,
-    logger?: Logger,
-) {
+export function handleHoverRequest({
+    baseRequest,
+    itemProvider,
+    configuredEnvironmentName,
+    logger,
+}: LanguageRequestWithTestEnvironmentInfo) {
     const { filePath, documentHelper, position } = baseRequest;
     const collection = itemProvider.getAncestorCollectionForPath(filePath);
 
