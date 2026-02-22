@@ -85,7 +85,12 @@ disposables.push(
 
         const itemProvider = helpersProvider.getItemProvider();
 
+        const reporter = await connection.window.createWorkDoneProgress();
+
+        reporter.begin("Refreshing bru-as-code server-side cache...");
         await itemProvider.refreshCache(workspaceFolders);
+        reporter.done();
+
         brunoLangDiagnosticsProvider = new BrunoLangDiagnosticsProvider(
             itemProvider,
         );
