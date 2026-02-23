@@ -5,6 +5,7 @@
 - Migrate language features for auto updates on save, completions and diagnostics for `.bru` files to a dedicated language server.
 - Also migrate all language features for `.js` files to the language server.
     - This should improve the performance and help reduce delays for language feature requests.
+- Add insertion of closing brackets for environment variable completions in non code blocks, when missing.
 
 ## [0.20.6] (2026-02-05)
 
