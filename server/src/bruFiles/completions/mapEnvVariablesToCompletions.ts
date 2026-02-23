@@ -20,19 +20,20 @@ export function mapEnvVariablesToCompletions(
         isConfiguredEnv: boolean;
     }[],
     { requestData, bruFileSpecificData, logger }: BruFileEnvVariableRequest,
+    appendOnInsertion?: string,
 ) {
     const resultsForStaticVariables = mapStaticEnvVariablesToCompletions(
         requestData,
         matchingStaticEnvVariables,
         // Display static environment variables below dynamic ones.
-        "b",
+        { prefixForSortText: "b", appendOnInsertion },
     );
 
     return resultsForStaticVariables.concat(
         mapDynamicEnvVariables(
             requestData,
             bruFileSpecificData,
-            "a",
+            { prefixForSortText: "a", appendOnInsertion },
             logger,
         ).filter(
             ({ label }) =>
@@ -46,7 +47,10 @@ export function mapEnvVariablesToCompletions(
 function mapDynamicEnvVariables(
     requestData: EnvVariableCommonRequestData,
     bruFileSpecificData: EnvVariableBruFileSpecificData,
-    prefixForSortText: string,
+    modifications: {
+        prefixForSortText: string;
+        appendOnInsertion?: string;
+    },
     logger?: Logger,
 ) {
     const { allBlocks, blockContainingPosition } = bruFileSpecificData;
@@ -99,9 +103,9 @@ function mapDynamicEnvVariables(
                 detail: hasDuplicateReferences
                     ? `Found a total of ${totalNumberOfReferences} relevant references in ${distinctBlocks.length > 1 ? `blocks ${JSON.stringify(distinctBlocks)}` : `block '${blockName}'`}.`
                     : undefined,
-                sortText: `${prefixForSortText}_${blockName}_${variableName}`,
+                sortText: `${modifications?.prefixForSortText ?? ""}_${blockName}_${variableName}`,
                 textEdit: {
-                    newText: variableName,
+                    newText: `${variableName}${modifications.appendOnInsertion ?? ""}`,
                     range: new Range(start, end),
                 },
             };

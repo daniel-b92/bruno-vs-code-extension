@@ -14,7 +14,10 @@ export function mapStaticEnvVariablesToCompletions(
         matchingVariableKeys: string[];
         isConfiguredEnv: boolean;
     }[],
-    prefixForSortText?: string,
+    modifications?: {
+        prefixForSortText?: string;
+        appendOnInsertion?: string;
+    },
 ) {
     return matchingStaticEnvVariables.flatMap(
         ({ environmentFile, matchingVariableKeys, isConfiguredEnv }) =>
@@ -33,9 +36,9 @@ export function mapStaticEnvVariablesToCompletions(
                             ? `WARNING: Will overwrite static environment variable from env '${environmentName}'`
                             : undefined,
                     kind: CompletionItemKind.Constant,
-                    sortText: `${prefixForSortText}_${isConfiguredEnv ? "a" : "b"}_${environmentName}_${key}`,
+                    sortText: `${modifications?.prefixForSortText ?? ""}_${isConfiguredEnv ? "a" : "b"}_${environmentName}_${key}`,
                     textEdit: {
-                        newText: key,
+                        newText: `${key}${modifications?.appendOnInsertion ?? ""}`,
                         range: new Range(start, end),
                     },
                 };
