@@ -1,7 +1,7 @@
 export * from "./interfaces";
 export * from "./helpersProvider";
 export * from "./getDefaultLogger";
-export * from "./mapEnvVariablesToCompletions";
+export * from "./environmentVariables/mapStaticEnvVariablesToCompletions";
 
 // environment variables
-export * from "./environmentVariables/getHoverForEnvVariable";
+export * from "./environmentVariables/getHoverContentForStaticEnvVariables";

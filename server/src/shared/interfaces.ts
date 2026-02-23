@@ -33,9 +33,12 @@ export interface LanguageFeatureBaseRequest {
     token: CancellationToken;
 }
 
-export interface EnvVariableRequest {
+export type BruFileEnvVariableRequest = EnvVariableBaseRequest & {
+    bruFileSpecificData: EnvVariableBruFileSpecificData;
+};
+
+export interface EnvVariableBaseRequest {
     requestData: EnvVariableCommonRequestData;
-    bruFileSpecificData?: EnvVariableBruFileSpecificData;
     logger?: Logger;
 }
 

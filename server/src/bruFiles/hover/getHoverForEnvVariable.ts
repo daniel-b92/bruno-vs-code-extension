@@ -1,20 +1,15 @@
-import { basename } from "path";
-import {
-    EnvVariableNameMatchingMode,
-    getExtensionForBrunoFiles,
-    getMatchingDefinitionsFromEnvFiles,
-    Logger,
-} from "@global_shared";
+import { Logger } from "@global_shared";
 import {
     EnvVariableBruFileSpecificData,
     EnvVariableCommonRequestData,
-    EnvVariableRequest,
-} from "../interfaces";
-import { getDynamicVariableReferences } from "../../bruFiles/shared/getDynamicVariableReferences";
+    BruFileEnvVariableRequest,
+} from "../../shared/interfaces";
+import { getDynamicVariableReferences } from "../shared/getDynamicVariableReferences";
 import { Hover, MarkupContent } from "vscode-languageserver";
+import { getHoverContentForStaticEnvVariables } from "../../shared";
 
 export function getHoverForEnvVariable(
-    { requestData, bruFileSpecificData, logger }: EnvVariableRequest,
+    { requestData, bruFileSpecificData, logger }: BruFileEnvVariableRequest,
     configuredEnvironmentName?: string,
 ): Hover | undefined {
     const contentForDynamicReferences = bruFileSpecificData
@@ -24,7 +19,7 @@ export function getHoverForEnvVariable(
               logger,
           )
         : undefined;
-    const contentForStaticReferences = getContentForStaticVariables(
+    const contentForStaticReferences = getHoverContentForStaticEnvVariables(
         requestData,
         configuredEnvironmentName,
         logger,
@@ -49,56 +44,6 @@ export function getHoverForEnvVariable(
     return resultingMarkdownString
         ? { contents: resultingMarkdownString }
         : undefined;
-}
-
-function getContentForStaticVariables(
-    requestData: EnvVariableCommonRequestData,
-    configuredEnvironmentName?: string,
-    logger?: Logger,
-) {
-    const {
-        collection,
-        token,
-        variable: { name: variableName },
-    } = requestData;
-    const tableHeader = `| value | environment | configured |
-| :--------------- | :----------------: | :----------------: | ${getLineBreak()}`;
-
-    const matchingVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
-        collection,
-        variableName,
-        EnvVariableNameMatchingMode.Exact,
-        configuredEnvironmentName,
-    );
-
-    if (matchingVariableDefinitions.length == 0) {
-        return undefined;
-    }
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return undefined;
-    }
-
-    return "**Static references:**".concat(
-        getLineBreak(),
-        tableHeader,
-        matchingVariableDefinitions
-            .map(({ file, matchingVariables, isConfiguredEnv }) => {
-                const environmentName = basename(
-                    file,
-                    getExtensionForBrunoFiles(),
-                );
-
-                return matchingVariables
-                    .map(
-                        ({ value }) =>
-                            `| ${value} | ${environmentName}  | ${isConfiguredEnv ? "&#x2611;" : "-"} |`,
-                    )
-                    .join(getLineBreak());
-            })
-            .join(getLineBreak()),
-    );
 }
 
 function getContentForDynamicVariables(

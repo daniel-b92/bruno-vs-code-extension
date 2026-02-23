@@ -12,12 +12,12 @@ import {
 } from "@global_shared";
 import {
     AdditionalCollectionData,
-    getHoverForEnvVariable,
     TypedCollectionItemProvider,
 } from "../../shared";
 import { NonCodeBlockRequestWithAdditionalData } from "../shared/interfaces";
 import { basename } from "path";
 import { Hover } from "vscode-languageserver";
+import { getHoverForEnvVariable } from "./getHoverForEnvVariable";
 
 export function getHoverForNonCodeBlock(
     itemProvider: TypedCollectionItemProvider,

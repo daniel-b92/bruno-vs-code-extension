@@ -6,11 +6,12 @@ import {
     Logger,
 } from "@global_shared";
 import {
-    getHoverForEnvVariable,
+    getHoverContentForStaticEnvVariables,
     LanguageFeatureBaseRequest,
     LanguageRequestWithTestEnvironmentInfo,
     TypedCollection,
 } from "../../shared";
+import { Hover } from "vscode-languageserver";
 
 export function handleHoverRequest({
     baseRequest,
@@ -39,7 +40,7 @@ async function getHover(params: {
     baseRequest: LanguageFeatureBaseRequest;
     logger?: Logger;
     configuredEnvironmentName?: string;
-}) {
+}): Promise<Hover | undefined> {
     const {
         file: { collection },
         baseRequest: { position: requestPosition, token },
@@ -60,19 +61,20 @@ async function getHover(params: {
 
     const { inbuiltFunction, variable } = envVariableRelatedFunction;
 
-    return getHoverForEnvVariable(
+    const content = getHoverContentForStaticEnvVariables(
         {
-            requestData: {
-                collection,
-                functionType: getInbuiltFunctionType(inbuiltFunction),
-                requestPosition,
-                variable,
-                token,
-            },
-            logger,
+            collection,
+            functionType: getInbuiltFunctionType(inbuiltFunction),
+            requestPosition,
+            variable,
+            token,
         },
         configuredEnvironmentName,
     );
+
+    return content
+        ? { contents: { kind: "markdown", value: content } }
+        : undefined;
 }
 
 function getEnvVariableRelatedFunctionForRequest(params: {

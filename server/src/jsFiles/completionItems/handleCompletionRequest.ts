@@ -11,7 +11,7 @@ import {
 import {
     LanguageFeatureBaseRequest,
     LanguageRequestWithTestEnvironmentInfo,
-    mapEnvVariablesToCompletions,
+    mapStaticEnvVariablesToCompletions,
     TypedCollection,
 } from "../../shared";
 import { CompletionItem } from "vscode-languageserver";
@@ -96,11 +96,12 @@ function getResultsForEnvironmentVariable(
         collection: TypedCollection;
         functionType: VariableReferenceType;
     },
-    { position, token }: LanguageFeatureBaseRequest,
+    baseRequest: LanguageFeatureBaseRequest,
     configuredEnvironmentName?: string,
     logger?: Logger,
 ) {
     const { collection, functionType } = additionalData;
+    const { token, position: requestPosition } = baseRequest;
 
     const matchingEnvVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
         collection,
@@ -118,7 +119,14 @@ function getResultsForEnvironmentVariable(
         return [];
     }
 
-    return mapEnvVariablesToCompletions(
+    return mapStaticEnvVariablesToCompletions(
+        {
+            collection,
+            variable,
+            functionType,
+            requestPosition,
+            token,
+        },
         matchingEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
                 environmentFile: file,
@@ -126,16 +134,7 @@ function getResultsForEnvironmentVariable(
                 isConfiguredEnv,
             }),
         ),
-        {
-            requestData: {
-                collection,
-                variable,
-                functionType,
-                requestPosition: position,
-                token,
-            },
-            logger,
-        },
+        functionType,
     );
 }
 

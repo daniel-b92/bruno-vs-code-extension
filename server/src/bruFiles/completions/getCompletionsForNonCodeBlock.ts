@@ -34,7 +34,7 @@ import {
 } from "vscode-languageserver";
 import {
     LanguageFeatureBaseRequest,
-    mapEnvVariablesToCompletions,
+    mapStaticEnvVariablesToCompletions,
     TypedCollection,
     TypedCollectionItemProvider,
 } from "../../shared";
@@ -83,7 +83,7 @@ function getNonBlockSpecificCompletions(
     configuredEnvironment?: string,
     logger?: Logger,
 ) {
-    const { blockContainingPosition, allBlocks, collection } = file;
+    const { blockContainingPosition, collection } = file;
     const { documentHelper, position, token } = request;
     const { line, character } = position;
 
@@ -138,7 +138,15 @@ function getNonBlockSpecificCompletions(
         return [];
     }
 
-    return mapEnvVariablesToCompletions(
+    return mapStaticEnvVariablesToCompletions(
+        {
+            collection,
+            variable,
+            // In non-code blocks, variables can not be set.
+            functionType: VariableReferenceType.Read,
+            requestPosition: position,
+            token,
+        },
         matchingStaticEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
                 environmentFile: file,
@@ -146,17 +154,6 @@ function getNonBlockSpecificCompletions(
                 isConfiguredEnv,
             }),
         ),
-        {
-            requestData: {
-                collection,
-                variable,
-                functionType: VariableReferenceType.Read, // In non-code blocks, variables can not be set.
-                requestPosition: position,
-                token,
-            },
-            bruFileSpecificData: { blockContainingPosition, allBlocks },
-            logger,
-        },
     );
 }
 
