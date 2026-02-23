@@ -5,8 +5,8 @@ import {
     Logger,
 } from "@global_shared";
 import { CodeBlockRequestWithAdditionalData } from "../shared/interfaces";
-import { getHoverForEnvVariable } from "../../shared";
 import { mapToEnvVarNameParams } from "../shared/mapToEnvVarNameParams";
+import { getHoverForEnvVariable } from "./getHoverForEnvVariable";
 
 export async function getHoverForCodeBlock(
     fullRequest: CodeBlockRequestWithAdditionalData,

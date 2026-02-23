@@ -34,12 +34,12 @@ import {
 } from "vscode-languageserver";
 import {
     LanguageFeatureBaseRequest,
-    mapEnvVariablesToCompletions,
     TypedCollection,
     TypedCollectionItemProvider,
 } from "../../shared";
 import { basename, dirname } from "path";
 import { NonCodeBlockRequestWithAdditionalData } from "../shared/interfaces";
+import { mapEnvVariablesToCompletions } from "./mapEnvVariablesToCompletions";
 
 export async function getCompletionsForNonCodeBlock(
     {
@@ -86,6 +86,7 @@ function getNonBlockSpecificCompletions(
     const { blockContainingPosition, allBlocks, collection } = file;
     const { documentHelper, position, token } = request;
     const { line, character } = position;
+    const lineContent = documentHelper.getLineByIndex(line);
 
     if (
         (getBlocksWithoutVariableSupport() as string[]).includes(
@@ -97,7 +98,7 @@ function getNonBlockSpecificCompletions(
 
     const matchingTextResult = getMatchingTextContainingPosition(
         position,
-        documentHelper.getLineByIndex(line),
+        lineContent,
         /{{(\w|-|_|\.|\d)*/,
     );
 
@@ -120,6 +121,9 @@ function getNonBlockSpecificCompletions(
         start: new Position(line, startChar + 2),
         end: new Position(line, endChar),
     };
+    const toAppendOnInsertion = !lineContent.substring(endChar).startsWith("}")
+        ? "}}"
+        : "";
 
     const matchingStaticEnvVariableDefinitions =
         getMatchingDefinitionsFromEnvFiles(
@@ -157,6 +161,7 @@ function getNonBlockSpecificCompletions(
             bruFileSpecificData: { blockContainingPosition, allBlocks },
             logger,
         },
+        toAppendOnInsertion,
     );
 }
 

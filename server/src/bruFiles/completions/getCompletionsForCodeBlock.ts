@@ -9,14 +9,11 @@ import {
     Logger,
     Position,
 } from "@global_shared";
-import {
-    LanguageFeatureBaseRequest,
-    mapEnvVariablesToCompletions,
-    TypedCollection,
-} from "../../shared";
+import { LanguageFeatureBaseRequest, TypedCollection } from "../../shared";
 import { mapToEnvVarNameParams } from "../shared/mapToEnvVarNameParams";
 import { CompletionItem } from "vscode-languageserver";
 import { CodeBlockRequestWithAdditionalData } from "../shared/interfaces";
+import { mapEnvVariablesToCompletions } from "./mapEnvVariablesToCompletions";
 
 export function getCompletionsForCodeBlock(
     fullRequest: CodeBlockRequestWithAdditionalData,
