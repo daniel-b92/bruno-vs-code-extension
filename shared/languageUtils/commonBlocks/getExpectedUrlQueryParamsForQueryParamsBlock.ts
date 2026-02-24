@@ -5,6 +5,7 @@ export function getExpectedUrlQueryParamsForQueryParamsBlock(
 ) {
     return new URLSearchParams(
         queryParamsBlockFields
+            .filter(({ disabled }) => !disabled)
             .map(({ key, value }) => `${key}=${value}`)
             .join("&"),
     );

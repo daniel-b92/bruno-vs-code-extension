@@ -23,6 +23,7 @@ export function updateUrlToMatchQueryParams(
 
     if (
         !urlField ||
+        urlField.disabled ||
         !isDictionaryBlockSimpleField(urlField) ||
         queryParamsBlocks.length != 1 ||
         !queryParamsBlocks[0].content.every((field) =>
