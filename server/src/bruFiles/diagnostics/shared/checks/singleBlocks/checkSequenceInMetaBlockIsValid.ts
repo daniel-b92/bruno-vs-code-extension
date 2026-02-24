@@ -2,7 +2,7 @@ import {
     DictionaryBlockSimpleField,
     Block,
     MetaBlockKey,
-    getFieldFromMetaBlock,
+    getActiveFieldFromMetaBlock,
     isDictionaryBlockSimpleField,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../../../interfaces";
@@ -13,7 +13,7 @@ import { DiagnosticSeverity } from "vscode-languageserver";
 export function checkSequenceInMetaBlockIsValid(
     metaBlock: Block,
 ): DiagnosticWithCode | undefined {
-    const sequenceField = getFieldFromMetaBlock(
+    const sequenceField = getActiveFieldFromMetaBlock(
         metaBlock,
         MetaBlockKey.Sequence,
     );

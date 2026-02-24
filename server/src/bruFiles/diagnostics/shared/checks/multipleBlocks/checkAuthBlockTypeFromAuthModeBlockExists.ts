@@ -4,7 +4,7 @@ import {
     isAuthBlock,
     Block,
     SettingsFileSpecificBlock,
-    getFieldFromDictionaryBlock,
+    getActiveFieldFromDictionaryBlock,
     isBlockDictionaryBlock,
     AuthModeBlockKey,
     isDictionaryBlockSimpleField,
@@ -33,7 +33,7 @@ export function checkAuthBlockTypeFromAuthModeBlockExists(
         return undefined;
     }
 
-    const authModeField = getFieldFromDictionaryBlock(
+    const authModeField = getActiveFieldFromDictionaryBlock(
         authModeBlock,
         AuthModeBlockKey.Mode,
     );

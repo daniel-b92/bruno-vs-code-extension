@@ -1,7 +1,7 @@
 import {
     DictionaryBlockSimpleField,
     getAllMethodBlocks,
-    getFieldFromMethodBlock,
+    getActiveFieldFromMethodBlock,
     getMethodBlockBodyFieldValueForBodyName,
     MethodBlockBody,
     Block,
@@ -27,7 +27,7 @@ export function checkBodyBlockTypeFromMethodBlockExists(
         return undefined;
     }
 
-    const methodBlockField = getFieldFromMethodBlock(
+    const methodBlockField = getActiveFieldFromMethodBlock(
         methodBlocks[0],
         MethodBlockKey.Body,
     );

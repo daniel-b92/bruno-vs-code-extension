@@ -62,6 +62,8 @@ function getSimpleFieldsWithEmptyValuesForDictionaryBlock(
 ) {
     return block.content.filter(
         (field) =>
-            isDictionaryBlockSimpleField(field) && /^\s*$/.test(field.value),
+            !field.disabled &&
+            isDictionaryBlockSimpleField(field) &&
+            /^\s*$/.test(field.value),
     ) as DictionaryBlockSimpleField[];
 }
