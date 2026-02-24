@@ -22,18 +22,20 @@ export interface DictionaryBlock {
     contentRange: Range;
 }
 
-export interface DictionaryBlockSimpleField {
-    key: string;
+export type DictionaryBlockSimpleField = DictionaryBlockField & {
     value: string;
-    keyRange: Range;
     valueRange: Range;
-}
+};
 
-export interface DictionaryBlockArrayField {
-    key: string;
-    keyRange: Range;
+export type DictionaryBlockArrayField = DictionaryBlockField & {
     values: { content: string; range: Range }[];
     plainTextWithinValues: PlainTextWithinDictionaryArrayValue[];
+};
+
+interface DictionaryBlockField {
+    disabled: boolean;
+    key: string;
+    keyRange: Range;
 }
 
 export interface ArrayBlock {
