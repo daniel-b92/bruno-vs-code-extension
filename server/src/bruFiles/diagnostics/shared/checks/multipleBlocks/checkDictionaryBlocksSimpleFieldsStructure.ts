@@ -73,6 +73,7 @@ function getInvalidFieldsSortedByPosition(
     for (const { block, keys } of fieldsToCheck) {
         const invalidFieldsForBlock = block.content.filter(
             (field) =>
+                !field.disabled &&
                 keys.includes(field.key) &&
                 !isDictionaryBlockSimpleField(field),
         );

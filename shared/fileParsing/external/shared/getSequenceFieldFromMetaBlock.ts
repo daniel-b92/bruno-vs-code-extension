@@ -19,7 +19,10 @@ export function getSequenceFieldFromMetaBlock(
         Array.isArray(metaBlockContent) &&
         metaBlockContent.length > 0 &&
         metaBlockContent.every((content) => isDictionaryBlockField(content))
-            ? metaBlockContent.find(({ key }) => key == MetaBlockKey.Sequence)
+            ? metaBlockContent.find(
+                  ({ key, disabled }) =>
+                      key == MetaBlockKey.Sequence && !disabled,
+              )
             : undefined;
 
     return sequence;
