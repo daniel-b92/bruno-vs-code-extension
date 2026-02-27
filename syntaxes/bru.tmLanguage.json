@@ -145,21 +145,6 @@
         "dictionary": {
             "patterns": [
                 {
-                    "match": "^\\s*([^\\s~][^\\:]+)[\\:]\\s+([^\\n\\[]+)\\s*$",
-                    "captures": {
-                        "1": {
-                            "name": "entity.name.tag.bru"
-                        },
-                        "2": {
-                            "name": "string.bru"
-                        }
-                    }
-                },
-                {
-                    "match": "^\\s*~.*[^(\\[|\\[\\s+)]$",
-                    "name": "comment.line.bru"
-                },
-                {
                     "begin": "^\\s*([^\\s~][^\\:]+)[\\:]\\s+(\\[)\\s*$",
                     "beginCaptures": {
                         "1": {
@@ -172,9 +157,24 @@
                     "contentName": "string.bru"
                 },
                 {
-                    "begin": "^\\s*~([^\\:]+)[\\:]\\s*\\[*\\s*$",
+                    "begin": "^\\s*~([^\\:]+)[\\:]\\s*\\[+\\s*$",
                     "end": "^\\s*(\\]|\\})\\s*$",
                     "name": "comment.block.bru"
+                },
+                {
+                    "match": "^\\s*([^\\s~][^\\:]+)[\\:]\\s*([^\\[ ]+)\\s*$",
+                    "captures": {
+                        "1": {
+                            "name": "entity.name.tag.bru"
+                        },
+                        "2": {
+                            "name": "string.bru"
+                        }
+                    }
+                },
+                {
+                    "match": "^\\s*~.*[^\\[ ]+\\s*$",
+                    "name": "comment.line.bru"
                 }
             ]
         },
