@@ -2,7 +2,7 @@
 
 ### Fixes / Minor Improvements
 
-- Add correct handling of commented out fields in Dictionary blocks.
+- Add correct handling of commented out fields in Dictionary blocks and Array blocks.
 
 ## [0.21.0] (2026-02-25)
 
