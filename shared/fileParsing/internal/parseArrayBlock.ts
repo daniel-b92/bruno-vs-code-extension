@@ -56,7 +56,7 @@ export function parseArrayBlock(
 
     const lastContentLine =
         linesWithBlockContent[linesWithBlockContent.length - 1];
-    const doesLastLineMatchBlockPattern = getLastArrayBlockLinePattern().test(
+    const doesLastLineMatchBlockPattern = getFinalLinePattern().test(
         lastContentLine.content,
     );
 
@@ -103,14 +103,20 @@ const getArrayEntryFromLine = (
     lineText: string,
     isLastArrayBlockLine: boolean,
 ): ArrayBlockField => {
+    const isDisabled = lineText.trimStart().startsWith("~");
+    const withTrimmedStart = isDisabled
+        ? lineText.trimStart().slice(1)
+        : lineText.trimStart();
+
     const entry = isLastArrayBlockLine
-        ? lineText.trim()
-        : lineText.replace(",", "").trim();
+        ? withTrimmedStart.trimEnd()
+        : withTrimmedStart.replace(",", "").trimEnd();
 
     const entryStartIndex = lineText.indexOf(entry);
     const entryEndIndex = entryStartIndex + entry.length;
 
     return {
+        disabled: isDisabled,
         entry,
         entryRange: new Range(
             new Position(lineIndex, entryStartIndex),
@@ -119,5 +125,16 @@ const getArrayEntryFromLine = (
     };
 };
 
-const getNonFinalArrayBlockLinePattern = () => /^\s*[a-zA-Z0-9-_\\.]*\s*,$/m;
-const getLastArrayBlockLinePattern = () => /^\s*[a-zA-Z0-9-_\\.]*\s*$/m;
+const getFinalLinePattern = () =>
+    new RegExp(
+        `(${getPatternForDisabledLine()}|${getCommonPatternStartForEnabledLine()}$)`,
+        "m",
+    );
+const getNonFinalArrayBlockLinePattern = () =>
+    new RegExp(
+        `(${getPatternForDisabledLine()}|${getCommonPatternStartForEnabledLine()},$)`,
+        "m",
+    );
+const getCommonPatternStartForEnabledLine = () =>
+    "^\\s*[a-zA-Z0-9-_\\\\.]*\\s*";
+const getPatternForDisabledLine = () => "^\\s*~.*$";

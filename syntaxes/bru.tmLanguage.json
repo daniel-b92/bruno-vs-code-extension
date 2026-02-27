@@ -133,12 +133,16 @@
             "beginCaptures": { "0": { "name": "keyword.bru" } },
             "patterns": [
                 {
-                    "match": "^\\s*([^,\\n\\]]+),?\\s*$",
+                    "match": "^\\s*([^\\s~]+[^,\\n\\]]+),?\\s*$",
                     "captures": {
                         "1": {
                             "name": "entity.name.tag.bru"
                         }
                     }
+                },
+                {
+                    "match": "^\\s*~.*$",
+                    "name": "comment.line.bru"
                 }
             ]
         },

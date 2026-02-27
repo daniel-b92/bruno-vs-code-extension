@@ -46,6 +46,7 @@ export interface ArrayBlock {
 }
 
 export interface ArrayBlockField {
+    disabled: boolean;
     entry: string;
     entryRange: Range;
 }
