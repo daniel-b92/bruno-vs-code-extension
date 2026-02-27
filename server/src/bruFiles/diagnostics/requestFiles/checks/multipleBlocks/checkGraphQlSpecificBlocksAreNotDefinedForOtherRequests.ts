@@ -1,6 +1,6 @@
 import {
     DictionaryBlockSimpleField,
-    getFieldFromMetaBlock,
+    getActiveFieldFromMetaBlock,
     MetaBlockKey,
     Block,
     RequestFileBlockName,
@@ -30,7 +30,7 @@ export function checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
         return undefined;
     }
 
-    const requestTypeField = getFieldFromMetaBlock(
+    const requestTypeField = getActiveFieldFromMetaBlock(
         metaBlocks[0],
         MetaBlockKey.Type,
     );

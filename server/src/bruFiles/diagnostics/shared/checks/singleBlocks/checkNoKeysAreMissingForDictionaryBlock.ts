@@ -1,5 +1,4 @@
 import { DictionaryBlock } from "@global_shared";
-import { getMissingKeysForDictionaryBlock } from "../../util/getMissingKeysForDictionaryBlock";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
 import { DiagnosticSeverity } from "vscode-languageserver";
@@ -32,4 +31,16 @@ function getDiagnostic(
         severity: DiagnosticSeverity.Error,
         code: diagnosticCode,
     };
+}
+
+function getMissingKeysForDictionaryBlock(
+    block: DictionaryBlock,
+    allExpectedKeys: string[],
+) {
+    return allExpectedKeys.filter(
+        (expectedKey) =>
+            !block.content.some(
+                ({ key, disabled }) => expectedKey == key && !disabled,
+            ),
+    );
 }

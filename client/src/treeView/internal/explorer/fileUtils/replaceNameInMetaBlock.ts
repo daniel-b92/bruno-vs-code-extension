@@ -3,9 +3,9 @@ import {
     TextDocumentHelper,
     parseBruFile,
     RequestFileBlockName,
-    getFieldFromMetaBlock,
     MetaBlockKey,
     isDictionaryBlockSimpleField,
+    getActiveFieldFromMetaBlock,
 } from "@global_shared";
 import { readFile, writeFile } from "fs";
 import { window } from "vscode";
@@ -30,7 +30,10 @@ export async function replaceNameInMetaBlock(
     );
 
     if (metaBlock) {
-        const nameField = getFieldFromMetaBlock(metaBlock, MetaBlockKey.Name);
+        const nameField = getActiveFieldFromMetaBlock(
+            metaBlock,
+            MetaBlockKey.Name,
+        );
 
         if (nameField && isDictionaryBlockSimpleField(nameField)) {
             await promisify(writeFile)(

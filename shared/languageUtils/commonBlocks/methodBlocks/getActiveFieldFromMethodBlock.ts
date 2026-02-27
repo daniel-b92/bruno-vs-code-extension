@@ -1,15 +1,15 @@
 import {
     isBlockDictionaryBlock,
-    getFieldFromDictionaryBlock,
+    getActiveFieldFromDictionaryBlock,
     MethodBlockKey,
     Block,
 } from "../../..";
 
-export function getFieldFromMethodBlock(
+export function getActiveFieldFromMethodBlock(
     methodBlock: Block,
     key: MethodBlockKey,
 ) {
     return isBlockDictionaryBlock(methodBlock)
-        ? getFieldFromDictionaryBlock(methodBlock, key)
+        ? getActiveFieldFromDictionaryBlock(methodBlock, key)
         : undefined;
 }

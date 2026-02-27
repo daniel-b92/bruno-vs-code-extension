@@ -31,6 +31,7 @@ export function updatePathParamsKeysToMatchUrl(
     if (
         !urlField ||
         !isDictionaryBlockSimpleField(urlField) ||
+        urlField.disabled ||
         pathParamsBlocks.length > 1
     ) {
         return [];

@@ -1,13 +1,18 @@
-import { DictionaryBlock } from "@global_shared";
-import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 import {
-    FieldsWithSameKey,
-    getValidDuplicateKeysFromDictionaryBlock,
-} from "../../util/getValidDuplicateKeysFromDictionaryBlock";
+    DictionaryBlock,
+    DictionaryBlockArrayField,
+    DictionaryBlockSimpleField,
+} from "@global_shared";
+import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { URI } from "vscode-uri";
+
+interface FieldsWithSameKey {
+    key: string;
+    fields: (DictionaryBlockSimpleField | DictionaryBlockArrayField)[];
+}
 
 export function checkNoDuplicateKeysAreDefinedForDictionaryBlock(
     filePath: string,
@@ -53,4 +58,44 @@ function getDiagnostics(
                 })),
         };
     });
+}
+
+function getValidDuplicateKeysFromDictionaryBlock(
+    block: DictionaryBlock,
+    allValidKeys?: string[],
+) {
+    const foundValidKeysSorted = block.content
+        .filter(
+            ({ key, disabled }) =>
+                (allValidKeys ? allValidKeys.includes(key) : true) && !disabled,
+        )
+        .sort(({ key: key1 }, { key: key2 }) => (key1 > key2 ? 1 : -1));
+
+    if (foundValidKeysSorted.length == 0) {
+        return [];
+    }
+
+    const result: FieldsWithSameKey[] = [];
+
+    foundValidKeysSorted.slice(1).forEach((currentField, index) => {
+        const previousFieldFromList = foundValidKeysSorted[index];
+
+        if (
+            currentField.key == previousFieldFromList.key &&
+            !result.some(({ key }) => key == currentField.key)
+        ) {
+            result.push({
+                key: currentField.key,
+                fields: [previousFieldFromList, currentField],
+            });
+        } else if (currentField.key == previousFieldFromList.key) {
+            const entryToUpdate = result.find(
+                ({ key }) => key == currentField.key,
+            ) as FieldsWithSameKey;
+
+            entryToUpdate.fields.push(currentField);
+        }
+    });
+
+    return result;
 }

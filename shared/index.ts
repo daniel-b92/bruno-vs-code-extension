@@ -87,14 +87,14 @@ export * from "./languageUtils/commonBlocks/settingsFileSpecificBlockEnum";
 
 export * from "./languageUtils/commonBlocks/metaBlock/metaBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/metaBlock/requestTypeEnum";
-export * from "./languageUtils/commonBlocks/metaBlock/getFieldFromMetaBlock";
+export * from "./languageUtils/commonBlocks/metaBlock/getActiveFieldFromMetaBlock";
 export * from "./languageUtils/commonBlocks/metaBlock/metaBlockKeyEnum";
 
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockAuthEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockBodyEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/getPossibleMethodBlocks";
-export * from "./languageUtils/commonBlocks/methodBlocks/getFieldFromMethodBlock";
+export * from "./languageUtils/commonBlocks/methodBlocks/getActiveFieldFromMethodBlock";
 
 export * from "./languageUtils/commonBlocks/generic/shouldBeCodeBlock";
 export * from "./languageUtils/commonBlocks/generic/getValidDictionaryBlocksWithName";
@@ -104,7 +104,7 @@ export * from "./languageUtils/commonBlocks/generic/blockTypeEnum";
 export * from "./languageUtils/commonBlocks/generic/blockBracketEnum";
 export * from "./languageUtils/commonBlocks/generic/getCodeBlocks";
 export * from "./languageUtils/commonBlocks/generic/getDefaultIndentationForDictionaryBlockFields";
-export * from "./languageUtils/commonBlocks/generic/getFieldFromDictionaryBlock";
+export * from "./languageUtils/commonBlocks/generic/getActiveFieldFromDictionaryBlock";
 export * from "./languageUtils/commonBlocks/generic/getSortedBlocksByPosition";
 
 export * from "./languageUtils/commonBlocks/generic/runtimeBehavior/getBlockRuntimeExecutionGroup";

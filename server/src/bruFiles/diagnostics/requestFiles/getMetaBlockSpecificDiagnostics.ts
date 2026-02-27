@@ -40,10 +40,10 @@ export async function getMetaBlockSpecificDiagnostics(
     ];
     const optionalBlockKeys = [MetaBlockKey.Tags];
     const typeFields = metaBlock.content.filter(
-        ({ key }) => key == MetaBlockKey.Type,
+        ({ key, disabled }) => key == MetaBlockKey.Type && !disabled,
     );
     const tagsFields = metaBlock.content.filter(
-        ({ key }) => key == MetaBlockKey.Tags,
+        ({ key, disabled }) => key == MetaBlockKey.Tags && !disabled,
     );
 
     const diagnostics = [

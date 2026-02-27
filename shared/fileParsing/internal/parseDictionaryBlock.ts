@@ -66,7 +66,7 @@ export function parseDictionaryBlock(
                 !line.includes(":");
 
             if (IsFirstValueLineWithinArrayField) {
-                // Remove previous line that was seen as a simple field since it makes more sense to be seen as thge start of an array field.
+                // Remove previous line that was seen as a simple field since it makes more sense to be seen as the start of an array field.
                 const fieldStartLine = lines.splice(
                     previousLineIndex,
                     1,
@@ -74,10 +74,11 @@ export function parseDictionaryBlock(
                     field: DictionaryBlockSimpleField;
                 };
 
-                const { key, keyRange } = fieldStartLine.field;
+                const { disabled, key, keyRange } = fieldStartLine.field;
 
                 const { field: arrayField, fieldEndLineIndex } =
                     parseArrayField(document, lineIndex, {
+                        disabled: disabled,
                         name: key,
                         range: keyRange,
                     });
@@ -145,7 +146,7 @@ export function parseDictionaryBlock(
 function parseArrayField(
     fullFileDocumentHelper: TextDocumentHelper,
     firstValueLineIndex: number,
-    parsedKey: { name: string; range: Range },
+    parsedKey: { disabled: boolean; name: string; range: Range },
 ): { field: DictionaryBlockArrayField; fieldEndLineIndex?: number } {
     let foundEndOfArrayField = false;
     let lineIndex = firstValueLineIndex;
@@ -200,6 +201,7 @@ function parseArrayField(
 
     return {
         field: {
+            disabled: parsedKey.disabled,
             key: parsedKey.name,
             keyRange: parsedKey.range,
             values: parsedValues.map(({ content, range }) => ({
@@ -238,7 +240,12 @@ function getKeyAndValueFromLine(
     const matches = getKeyValuePairLinePattern().exec(lineText);
 
     if (matches && matches.length > 2) {
-        const key = matches[1];
+        const isDisabled = matches[1].startsWith("~");
+        const key = isDisabled
+            ? matches[1].length > 1
+                ? matches[1].substring(1)
+                : ""
+            : matches[1];
         const value = matches[2];
         const keyStartIndex = lineText.indexOf(key);
         const keyEndIndex = keyStartIndex + key.length;
@@ -246,6 +253,7 @@ function getKeyAndValueFromLine(
             keyEndIndex + lineText.substring(keyEndIndex).indexOf(value);
 
         return {
+            disabled: isDisabled,
             key,
             value,
             keyRange: new Range(

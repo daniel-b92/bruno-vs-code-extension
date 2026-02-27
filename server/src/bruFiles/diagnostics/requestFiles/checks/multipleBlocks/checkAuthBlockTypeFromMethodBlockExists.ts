@@ -2,7 +2,7 @@ import {
     DictionaryBlockSimpleField,
     getAllMethodBlocks,
     getAuthTypeFromBlockName,
-    getFieldFromMethodBlock,
+    getActiveFieldFromMethodBlock,
     isAuthBlock,
     MethodBlockKey,
     Block,
@@ -24,7 +24,7 @@ export function checkAuthBlockTypeFromMethodBlockExists(
         return undefined;
     }
 
-    const methodBlockField = getFieldFromMethodBlock(
+    const methodBlockField = getActiveFieldFromMethodBlock(
         methodBlocks[0],
         MethodBlockKey.Auth,
     );

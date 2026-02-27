@@ -69,5 +69,7 @@ function getFieldsWithUnknownKeys(
     block: DictionaryBlock,
     allExpectedKeys: string[],
 ) {
-    return block.content.filter(({ key }) => !allExpectedKeys.includes(key));
+    return block.content.filter(
+        ({ key, disabled }) => !disabled && !allExpectedKeys.includes(key),
+    );
 }

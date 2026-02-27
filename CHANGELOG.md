@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Minor Improvements
+
+- Add correct handling of commented out fields in Dictionary blocks.
+
 ## [0.21.0] (2026-02-25)
 
 ### Features / Major Improvements

@@ -18,6 +18,7 @@ import {
     NonBrunoSpecificItemType,
     NonBrunoFile,
     getItemType,
+    DictionaryBlockSimpleField,
 } from "../..";
 import { readFile } from "fs";
 
@@ -71,9 +72,9 @@ async function createEnvironmentFileInstance(path: string) {
 
     return new BrunoEnvironmentFile(
         path,
-        varsBlock.content.filter((field) =>
-            isDictionaryBlockSimpleField(field),
-        ),
+        varsBlock.content.filter(
+            (field) => isDictionaryBlockSimpleField(field) && !field.disabled,
+        ) as DictionaryBlockSimpleField[],
     );
 }
 
@@ -98,10 +99,10 @@ async function createRequestFileInstance(path: string) {
     }
 
     const sequenceField = metaBlockContent.find(
-        ({ key }) => key == MetaBlockKey.Sequence,
+        ({ key, disabled }) => key == MetaBlockKey.Sequence && !disabled,
     );
     const tagsField = metaBlockContent.find(
-        ({ key }) => key == MetaBlockKey.Tags,
+        ({ key, disabled }) => key == MetaBlockKey.Tags && !disabled,
     );
 
     return new BrunoRequestFile(
