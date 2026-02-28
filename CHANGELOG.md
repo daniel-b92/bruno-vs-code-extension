@@ -3,6 +3,7 @@
 ### Fixes / Minor Improvements
 
 - Add correct handling of commented out fields in Dictionary blocks and Array blocks.
+- Provide error diagnostics, if a dictionary block array field is missing a closing bracket for the values.
 
 ## [0.21.0] (2026-02-25)
 
