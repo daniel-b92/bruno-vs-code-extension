@@ -11,8 +11,9 @@ import {
     TextDocumentHelper,
     getNonBlockSpecificBlockStartPattern,
 } from "../..";
+import { findBlockEnd } from "../internal/findBlockEnd";
 
-export const parseBruFile = (document: TextDocumentHelper) => {
+export const parseBruFile = (docHelper: TextDocumentHelper) => {
     const result: {
         blocks: Block[];
         textOutsideOfBlocks: TextOutsideOfBlocks[];
@@ -21,8 +22,8 @@ export const parseBruFile = (document: TextDocumentHelper) => {
     let lineIndex = 0;
     let currentTextOutsideOfBlocksStart: Position | undefined;
 
-    while (lineIndex < document.getLineCount()) {
-        const line = document.getLineByIndex(lineIndex);
+    while (lineIndex < docHelper.getLineCount()) {
+        const line = docHelper.getLineByIndex(lineIndex);
         const matches = getNonBlockSpecificBlockStartPattern().exec(line);
 
         if (matches && matches.length > 0) {
@@ -31,7 +32,7 @@ export const parseBruFile = (document: TextDocumentHelper) => {
                     getCurrentTextOutsideOfBlocks(
                         currentTextOutsideOfBlocksStart,
                         new Position(lineIndex, matches.index),
-                        document,
+                        docHelper,
                     ),
                 );
 
@@ -39,28 +40,42 @@ export const parseBruFile = (document: TextDocumentHelper) => {
             }
 
             const blockName = matches[1];
-            const startingPosition = new Position(
-                lineIndex,
-                matches[0].length + matches.index,
+            const blockType = getBlockType(matches[0], blockName);
+            const blockEndPosition = findBlockEnd(
+                docHelper,
+                lineIndex + 1,
+                blockType,
             );
 
-            const blockContent = getBlockContent(
-                document,
-                startingPosition,
-                getBlockType(matches[0], blockName),
-                !(getBlocksWithoutVariableSupport() as string[]).includes(
-                    blockName,
-                ),
-            );
+            const blockContent = blockEndPosition
+                ? getBlockContent(
+                      docHelper,
+                      new Range(
+                          // The block content starts in the line after the one with the block name.
+                          new Position(lineIndex + 1, 0),
+                          // The block content ends in the line before the one with closing bracket.
+                          new Position(
+                              blockEndPosition.line - 1,
+                              docHelper.getLineByIndex(
+                                  blockEndPosition.line - 1,
+                              ).length,
+                          ),
+                      ),
+                      blockType,
+                      !(getBlocksWithoutVariableSupport() as string[]).includes(
+                          blockName,
+                      ),
+                  )
+                : undefined;
 
             if (!blockContent) {
-                const remainingDocumentRange = document.getTextRange(
+                const remainingDocumentRange = docHelper.getTextRange(
                     new Position(lineIndex, 0),
                 );
 
                 result.textOutsideOfBlocks.push({
                     range: remainingDocumentRange,
-                    text: document.getText(remainingDocumentRange),
+                    text: docHelper.getText(remainingDocumentRange),
                 });
                 return result;
             }
@@ -95,15 +110,15 @@ export const parseBruFile = (document: TextDocumentHelper) => {
                 currentTextOutsideOfBlocksStart = new Position(lineIndex, 0);
             }
 
-            if (lineIndex == document.getLineCount() - 1) {
+            if (lineIndex == docHelper.getLineCount() - 1) {
                 result.textOutsideOfBlocks.push(
                     getCurrentTextOutsideOfBlocks(
                         currentTextOutsideOfBlocksStart,
                         new Position(
                             lineIndex,
-                            document.getLineByIndex(lineIndex).length,
+                            docHelper.getLineByIndex(lineIndex).length,
                         ),
-                        document,
+                        docHelper,
                     ),
                 );
             }

@@ -5,13 +5,15 @@ import {
     Position,
     BlockBracket,
     getBlockStartPatternByName,
+    Range,
 } from "../..";
+import { findBlockEnd } from "../internal/findBlockEnd";
 
 export const parseBlockFromFile = (
-    document: TextDocumentHelper,
+    fullDocHelper: TextDocumentHelper,
     blockName: string,
 ) => {
-    const maybeMatches = document
+    const maybeMatches = fullDocHelper
         .getText()
         .match(getBlockStartPatternByName(blockName));
 
@@ -28,7 +30,7 @@ export const parseBlockFromFile = (
         : BlockBracket.OpeningBracketForDictionaryOrTextBlock;
 
     const subDocumentUntilBlockStart = new TextDocumentHelper(
-        document
+        fullDocHelper
             .getText()
             .substring(
                 0,
@@ -39,15 +41,34 @@ export const parseBlockFromFile = (
     );
     const lineIndex = subDocumentUntilBlockStart.getLineCount() - 1;
 
-    const startingBracket = new Position(
+    const startingBracketPosition = new Position(
         lineIndex,
         subDocumentUntilBlockStart
             .getLineByIndex(lineIndex)
             .lastIndexOf(openingBracket),
     );
-    return getBlockContent(
-        document,
-        startingBracket,
-        getBlockType(maybeMatches[0], blockName),
-    )?.content;
+    const blockEndPosition = findBlockEnd(
+        fullDocHelper,
+        lineIndex + 1,
+        getBlockType(
+            subDocumentUntilBlockStart.getLineByIndex(lineIndex),
+            blockName,
+        ),
+    );
+    return blockEndPosition
+        ? getBlockContent(
+              fullDocHelper,
+              new Range(
+                  // The block content starts in the line after the one with the block name.
+                  new Position(startingBracketPosition.line + 1, 0),
+                  // The block content ends in the line before the one with closing bracket.
+                  new Position(
+                      blockEndPosition.line - 1,
+                      fullDocHelper.getLineByIndex(blockEndPosition.line - 1)
+                          .length,
+                  ),
+              ),
+              getBlockType(maybeMatches[0], blockName),
+          )?.content
+        : undefined;
 };

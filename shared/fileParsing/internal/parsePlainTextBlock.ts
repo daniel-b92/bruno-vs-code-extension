@@ -1,28 +1,20 @@
-import { BlockType, Position, Range, TextDocumentHelper } from "../..";
-import { findBlockEnd } from "./findBlockEnd";
+import { BlockBracket, Position, Range, TextDocumentHelper } from "../..";
 
 export function parsePlainTextBlock(
-    documentHelper: TextDocumentHelper,
+    docHelper: TextDocumentHelper,
     firstContentLine: number,
-    blockType: BlockType,
+    lastContentLine: number,
 ) {
-    const blockEndPosition = findBlockEnd(
-        documentHelper,
-        firstContentLine,
-        blockType,
-    );
-
-    if (!blockEndPosition) {
-        return undefined;
-    }
-
+    const blockEndCharacter = docHelper
+        .getLineByIndex(lastContentLine + 1)
+        .lastIndexOf(BlockBracket.ClosingBracketForDictionaryOrTextBlock);
     const contentRange = new Range(
         new Position(firstContentLine, 0),
-        blockEndPosition,
+        new Position(lastContentLine + 1, blockEndCharacter),
     );
 
     return {
-        content: documentHelper.getText(contentRange),
+        content: docHelper.getText(contentRange),
         contentRange,
     };
 }

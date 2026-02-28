@@ -5,33 +5,17 @@ import {
     Range,
     TextDocumentHelper,
     BlockBracket,
-    BlockType,
 } from "../..";
 import { getContentRangeForArrayOrDictionaryBlock } from "../external/shared/util/getContentRangeForArrayOrDictionaryBlock";
-import { findBlockEnd } from "./findBlockEnd";
 
 export function parseArrayBlock(
-    document: TextDocumentHelper,
+    docHelper: TextDocumentHelper,
     firstContentLine: number,
+    lastContentLine: number,
 ) {
-    const allRemainingLines = document.getAllLines(firstContentLine);
-
-    const blockEndPosition = findBlockEnd(
-        document,
-        firstContentLine,
-        BlockType.Array,
-    );
-
-    if (!blockEndPosition) {
-        return undefined;
-    }
-
-    const linesWithBlockContent = allRemainingLines.slice(
-        0,
-        allRemainingLines.findIndex(
-            ({ index }) => index == blockEndPosition.line,
-        ),
-    );
+    const linesWithBlockContent = docHelper
+        .getAllLines(firstContentLine)
+        .filter(({ index }) => index <= lastContentLine);
 
     const nonFinalBlockLines = linesWithBlockContent.slice(
         0,
@@ -47,18 +31,17 @@ export function parseArrayBlock(
             } else {
                 nonFinalLinesNotMatchingPattern.push({
                     text: content,
-                    range: document.getRangeForLine(index) as Range,
+                    range: docHelper.getRangeForLine(index) as Range,
                 });
                 return false;
             }
         },
     );
 
-    const lastContentLine =
-        linesWithBlockContent[linesWithBlockContent.length - 1];
-    const doesLastLineMatchBlockPattern = getFinalLinePattern().test(
-        lastContentLine.content,
-    );
+    const lastLineContent =
+        linesWithBlockContent[linesWithBlockContent.length - 1].content;
+    const doesLastLineMatchBlockPattern =
+        getFinalLinePattern().test(lastLineContent);
 
     return {
         content: (
@@ -75,16 +58,16 @@ export function parseArrayBlock(
                 doesLastLineMatchBlockPattern
                     ? [
                           getArrayEntryFromLine(
-                              lastContentLine.index,
-                              lastContentLine.content,
+                              lastContentLine,
+                              lastLineContent,
                               true,
                           ),
                       ]
                     : [
                           {
-                              text: lastContentLine.content,
-                              range: document.getRangeForLine(
-                                  lastContentLine.index,
+                              text: lastLineContent,
+                              range: docHelper.getRangeForLine(
+                                  lastContentLine,
                               ) as Range,
                           },
                       ],
@@ -92,8 +75,8 @@ export function parseArrayBlock(
         contentRange: getContentRangeForArrayOrDictionaryBlock(
             firstContentLine,
             BlockBracket.ClosingBracketForArrayBlock,
-            blockEndPosition.line,
-            document.getLineByIndex(blockEndPosition.line),
+            lastContentLine + 1,
+            docHelper.getLineByIndex(lastContentLine + 1),
         ),
     };
 }

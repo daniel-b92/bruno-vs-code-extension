@@ -1,7 +1,6 @@
 import { TextDocumentHelper } from "../../fileSystem/textDocumentHelper";
 import {
     BlockType,
-    Position,
     Range,
     ArrayBlockField,
     DictionaryBlockArrayField,
@@ -15,9 +14,9 @@ import { parseArrayBlock } from "./parseArrayBlock";
 import { parseDictionaryBlock } from "./parseDictionaryBlock";
 import { parsePlainTextBlock } from "./parsePlainTextBlock";
 
-export const getBlockContent = (
+export function getBlockContent(
     document: TextDocumentHelper,
-    startingPosition: Position,
+    blockContentRange: Range,
     blockType: BlockType,
     searchVariableReferences = false,
 ):
@@ -33,19 +32,21 @@ export const getBlockContent = (
           contentRange: Range;
           variableRerences?: BrunoVariableReference[];
       }
-    | undefined => {
+    | undefined {
     // the block content is exclusive of the block's opening bracket line
-    const firstContentLine = startingPosition.line + 1;
+    const firstContentLine = blockContentRange.start.line;
+    const lastContentLine = blockContentRange.end.line;
 
     switch (blockType) {
         case BlockType.Array:
             // Array blocks do not have variable references (currently they are only used within environment files afaik).
-            return parseArrayBlock(document, firstContentLine);
+            return parseArrayBlock(document, firstContentLine, lastContentLine);
 
         case BlockType.Dictionary:
             const dictionaryBlockWithoutParsedVars = parseDictionaryBlock(
                 document,
                 firstContentLine,
+                lastContentLine,
             );
             return dictionaryBlockWithoutParsedVars && searchVariableReferences
                 ? {
@@ -64,7 +65,7 @@ export const getBlockContent = (
             const plainTextBlockWithoutParsedVars = parsePlainTextBlock(
                 document,
                 firstContentLine,
-                blockType,
+                lastContentLine,
             );
             return plainTextBlockWithoutParsedVars && searchVariableReferences
                 ? {
@@ -86,7 +87,7 @@ export const getBlockContent = (
                 )}`,
             );
     }
-};
+}
 
 function getBrunoVariableReferences(
     documentHelper: TextDocumentHelper,

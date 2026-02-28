@@ -20,26 +20,24 @@ type ParsedLine =
     | PlainTextWithinBlock;
 
 export function parseDictionaryBlock(
-    document: TextDocumentHelper,
+    docHelper: TextDocumentHelper,
     firstContentLine: number,
+    lastContentLine: number,
 ) {
     const lines: ParsedLine[] = [];
 
-    let openBracketsOnBlockLevel = 1;
-    let lineIndex = firstContentLine;
-
-    while (
-        openBracketsOnBlockLevel > 0 &&
-        lineIndex < document.getLineCount()
+    for (
+        let lineIndex = firstContentLine;
+        lineIndex <= lastContentLine;
+        lineIndex++
     ) {
-        const line = document.getLineByIndex(lineIndex);
-
-        const hasKeyValueStructure = isKeyValuePair(line);
+        const lineContent = docHelper.getLineByIndex(lineIndex);
+        const hasKeyValueStructure = isKeyValuePair(lineContent);
 
         if (hasKeyValueStructure) {
             const keyAndValue = getKeyAndValueFromLine(
                 lineIndex,
-                line,
+                lineContent,
             ) as DictionaryBlockSimpleField;
 
             lines.push({
@@ -47,8 +45,6 @@ export function parseDictionaryBlock(
                 indexInFile: lineIndex,
                 couldBeStartofArrayField: keyAndValue.value.trim() == "[",
             });
-
-            lineIndex++;
         } else {
             const previousLineIndex = lines.findIndex(
                 (line) =>
@@ -63,7 +59,7 @@ export function parseDictionaryBlock(
                         couldBeStartofArrayField: boolean;
                     }
                 ).couldBeStartofArrayField &&
-                !line.includes(":");
+                !lineContent.includes(":");
 
             if (IsFirstValueLineWithinArrayField) {
                 // Remove previous line that was seen as a simple field since it makes more sense to be seen as the start of an array field.
@@ -77,7 +73,7 @@ export function parseDictionaryBlock(
                 const { disabled, key, keyRange } = fieldStartLine.field;
 
                 const { field: arrayField, fieldEndLineIndex } =
-                    parseArrayField(document, lineIndex, {
+                    parseArrayField(docHelper, lineIndex, {
                         disabled: disabled,
                         name: key,
                         range: keyRange,
@@ -88,46 +84,16 @@ export function parseDictionaryBlock(
                 // Skip lines that belong to the array field
                 lineIndex =
                     fieldEndLineIndex &&
-                    fieldEndLineIndex < document.getLineCount() - 1
-                        ? fieldEndLineIndex + 1
-                        : document.getLineCount() - 1;
+                    fieldEndLineIndex < docHelper.getLineCount() - 1
+                        ? fieldEndLineIndex
+                        : docHelper.getLineCount() - 1;
             } else {
-                const openingBracketsMatches = line.match(
-                    new RegExp(
-                        `\\${BlockBracket.OpeningBracketForDictionaryOrTextBlock}`,
-                    ),
-                );
-                const closingBracketsMatches = line.match(
-                    new RegExp(
-                        `\\${BlockBracket.ClosingBracketForDictionaryOrTextBlock}`,
-                    ),
-                );
-
-                // Only count brackets for block level, if they are not within a dictionary key or value entry.
-                openBracketsOnBlockLevel =
-                    openBracketsOnBlockLevel +
-                    (openingBracketsMatches
-                        ? openingBracketsMatches.length
-                        : 0) -
-                    (closingBracketsMatches
-                        ? closingBracketsMatches.length
-                        : 0);
-
-                // the block content is exclusive of the block's closing bracket line
-                if (openBracketsOnBlockLevel > 0) {
-                    lines.push({
-                        text: line,
-                        range: document.getRangeForLine(lineIndex) as Range,
-                    });
-
-                    lineIndex++;
-                }
+                lines.push({
+                    text: lineContent,
+                    range: docHelper.getRangeForLine(lineIndex) as Range,
+                });
             }
         }
-    }
-
-    if (openBracketsOnBlockLevel > 0) {
-        return undefined;
     }
 
     return {
@@ -137,8 +103,8 @@ export function parseDictionaryBlock(
         contentRange: getContentRangeForArrayOrDictionaryBlock(
             firstContentLine,
             BlockBracket.ClosingBracketForDictionaryOrTextBlock,
-            lineIndex,
-            document.getLineByIndex(lineIndex),
+            lastContentLine + 1,
+            docHelper.getLineByIndex(lastContentLine + 1),
         ),
     };
 }
