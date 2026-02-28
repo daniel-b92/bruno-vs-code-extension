@@ -20,26 +20,24 @@ type ParsedLine =
     | PlainTextWithinBlock;
 
 export function parseDictionaryBlock(
-    document: TextDocumentHelper,
+    docHelper: TextDocumentHelper,
     firstContentLine: number,
+    lastContentLine: number,
 ) {
     const lines: ParsedLine[] = [];
 
-    let openBracketsOnBlockLevel = 1;
-    let lineIndex = firstContentLine;
-
-    while (
-        openBracketsOnBlockLevel > 0 &&
-        lineIndex < document.getLineCount()
+    for (
+        let lineIndex = firstContentLine;
+        lineIndex <= lastContentLine;
+        lineIndex++
     ) {
-        const line = document.getLineByIndex(lineIndex);
-
-        const hasKeyValueStructure = isKeyValuePair(line);
+        const lineContent = docHelper.getLineByIndex(lineIndex);
+        const hasKeyValueStructure = isKeyValuePair(lineContent);
 
         if (hasKeyValueStructure) {
             const keyAndValue = getKeyAndValueFromLine(
                 lineIndex,
-                line,
+                lineContent,
             ) as DictionaryBlockSimpleField;
 
             lines.push({
@@ -48,86 +46,63 @@ export function parseDictionaryBlock(
                 couldBeStartofArrayField: keyAndValue.value.trim() == "[",
             });
 
-            lineIndex++;
-        } else {
-            const previousLineIndex = lines.findIndex(
-                (line) =>
-                    wasLineParsedAsValidSimpleField(line) &&
-                    line.indexInFile == lineIndex - 1,
-            );
-
-            const IsFirstValueLineWithinArrayField =
-                previousLineIndex >= 0 &&
-                (
-                    lines[previousLineIndex] as {
-                        couldBeStartofArrayField: boolean;
-                    }
-                ).couldBeStartofArrayField &&
-                !line.includes(":");
-
-            if (IsFirstValueLineWithinArrayField) {
-                // Remove previous line that was seen as a simple field since it makes more sense to be seen as the start of an array field.
-                const fieldStartLine = lines.splice(
-                    previousLineIndex,
-                    1,
-                )[0] as {
-                    field: DictionaryBlockSimpleField;
-                };
-
-                const { disabled, key, keyRange } = fieldStartLine.field;
-
-                const { field: arrayField, fieldEndLineIndex } =
-                    parseArrayField(document, lineIndex, {
-                        disabled: disabled,
-                        name: key,
-                        range: keyRange,
-                    });
-
-                lines.push(arrayField);
-
-                // Skip lines that belong to the array field
-                lineIndex =
-                    fieldEndLineIndex &&
-                    fieldEndLineIndex < document.getLineCount() - 1
-                        ? fieldEndLineIndex + 1
-                        : document.getLineCount() - 1;
-            } else {
-                const openingBracketsMatches = line.match(
-                    new RegExp(
-                        `\\${BlockBracket.OpeningBracketForDictionaryOrTextBlock}`,
-                    ),
-                );
-                const closingBracketsMatches = line.match(
-                    new RegExp(
-                        `\\${BlockBracket.ClosingBracketForDictionaryOrTextBlock}`,
-                    ),
-                );
-
-                // Only count brackets for block level, if they are not within a dictionary key or value entry.
-                openBracketsOnBlockLevel =
-                    openBracketsOnBlockLevel +
-                    (openingBracketsMatches
-                        ? openingBracketsMatches.length
-                        : 0) -
-                    (closingBracketsMatches
-                        ? closingBracketsMatches.length
-                        : 0);
-
-                // the block content is exclusive of the block's closing bracket line
-                if (openBracketsOnBlockLevel > 0) {
-                    lines.push({
-                        text: line,
-                        range: document.getRangeForLine(lineIndex) as Range,
-                    });
-
-                    lineIndex++;
-                }
-            }
+            continue;
         }
-    }
 
-    if (openBracketsOnBlockLevel > 0) {
-        return undefined;
+        const previousLineIndex = lines.findIndex(
+            (line) =>
+                wasLineParsedAsValidSimpleField(line) &&
+                line.indexInFile == lineIndex - 1,
+        );
+
+        const IsFirstValueLineWithinArrayField =
+            previousLineIndex >= 0 &&
+            (
+                lines[previousLineIndex] as {
+                    couldBeStartofArrayField: boolean;
+                }
+            ).couldBeStartofArrayField &&
+            !lineContent.includes(":");
+
+        if (!IsFirstValueLineWithinArrayField) {
+            lines.push({
+                text: lineContent,
+                range: docHelper.getRangeForLine(lineIndex) as Range,
+            });
+            continue;
+        }
+
+        // Remove previous line that was seen as a simple field since it makes more sense to be seen as the start of an array field.
+        const fieldStartLine = lines.splice(previousLineIndex, 1)[0] as {
+            field: DictionaryBlockSimpleField;
+        };
+
+        const {
+            disabled,
+            key,
+            keyRange,
+            valueRange: { end: valueRangeStart },
+        } = fieldStartLine.field;
+
+        const { field: arrayField } = parseArrayField(
+            docHelper,
+            valueRangeStart,
+            lastContentLine,
+            {
+                disabled: disabled,
+                name: key,
+                range: keyRange,
+            },
+        );
+        const fieldEndLineIndex = arrayField.arrayRange.end?.line ?? undefined;
+
+        lines.push(arrayField);
+
+        // Skip lines that belong to the array field
+        lineIndex =
+            fieldEndLineIndex && fieldEndLineIndex < lastContentLine
+                ? fieldEndLineIndex
+                : lastContentLine;
     }
 
     return {
@@ -137,19 +112,20 @@ export function parseDictionaryBlock(
         contentRange: getContentRangeForArrayOrDictionaryBlock(
             firstContentLine,
             BlockBracket.ClosingBracketForDictionaryOrTextBlock,
-            lineIndex,
-            document.getLineByIndex(lineIndex),
+            lastContentLine + 1,
+            docHelper.getLineByIndex(lastContentLine + 1),
         ),
     };
 }
 
 function parseArrayField(
     fullFileDocumentHelper: TextDocumentHelper,
-    firstValueLineIndex: number,
+    arrayStart: Position,
+    lastBlockContentLine: number,
     parsedKey: { disabled: boolean; name: string; range: Range },
-): { field: DictionaryBlockArrayField; fieldEndLineIndex?: number } {
-    let foundEndOfArrayField = false;
-    let lineIndex = firstValueLineIndex;
+): { field: DictionaryBlockArrayField } {
+    let arrayEndPosition: Position | undefined = undefined;
+    let lineIndex = arrayStart.line + 1;
 
     const parsedValues: { content: string; range: Range; lineIndex: number }[] =
         [];
@@ -159,12 +135,12 @@ function parseArrayField(
         lineIndex: number;
     }[] = [];
 
-    while (lineIndex < fullFileDocumentHelper.getLineCount()) {
+    while (lineIndex <= lastBlockContentLine) {
         const line = fullFileDocumentHelper.getLineByIndex(lineIndex);
         const isEndOfArrayField = line.trim() == "]";
 
         if (isEndOfArrayField) {
-            foundEndOfArrayField = true;
+            arrayEndPosition = new Position(lineIndex, line.indexOf("]"));
         } else if (line.match(/^\s*$/)) {
             // Do not count a line that only contains whitespaces as a line with a real value.
             parsedPlainTextLines.push({
@@ -192,7 +168,7 @@ function parseArrayField(
             });
         }
 
-        if (foundEndOfArrayField) {
+        if (arrayEndPosition) {
             break;
         }
 
@@ -204,6 +180,7 @@ function parseArrayField(
             disabled: parsedKey.disabled,
             key: parsedKey.name,
             keyRange: parsedKey.range,
+            arrayRange: { start: arrayStart, end: arrayEndPosition },
             values: parsedValues.map(({ content, range }) => ({
                 content,
                 range,
@@ -212,10 +189,6 @@ function parseArrayField(
                 ({ parsedLine: line }) => line,
             ),
         },
-        fieldEndLineIndex:
-            lineIndex < fullFileDocumentHelper.getLineCount()
-                ? lineIndex
-                : undefined,
     };
 }
 

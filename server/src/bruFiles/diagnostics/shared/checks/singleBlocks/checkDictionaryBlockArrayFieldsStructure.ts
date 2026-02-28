@@ -65,7 +65,8 @@ function getInvalidFieldsSortedByPosition(
         (field) =>
             keysToCheck.includes(field.key) &&
             !field.disabled &&
-            !isDictionaryBlockArrayField(field),
+            (!isDictionaryBlockArrayField(field) ||
+                field.arrayRange.end == undefined),
     );
 
     return invalidFields.sort(
