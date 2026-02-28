@@ -1,4 +1,4 @@
-import { BrunoVariableReference, Range } from "..";
+import { BrunoVariableReference, Position, Range } from "..";
 
 export interface Block {
     name: string;
@@ -29,6 +29,7 @@ export type DictionaryBlockSimpleField = DictionaryBlockField & {
 
 export type DictionaryBlockArrayField = DictionaryBlockField & {
     values: { content: string; range: Range }[];
+    arrayRange: { start: Position; end?: Position };
     plainTextWithinValues: PlainTextWithinDictionaryArrayValue[];
 };
 

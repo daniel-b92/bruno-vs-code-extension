@@ -70,14 +70,25 @@ export function parseDictionaryBlock(
                     field: DictionaryBlockSimpleField;
                 };
 
-                const { disabled, key, keyRange } = fieldStartLine.field;
+                const {
+                    disabled,
+                    key,
+                    keyRange,
+                    valueRange: { end: valueRangeStart },
+                } = fieldStartLine.field;
 
-                const { field: arrayField, fieldEndLineIndex } =
-                    parseArrayField(docHelper, lineIndex, lastContentLine, {
+                const { field: arrayField } = parseArrayField(
+                    docHelper,
+                    valueRangeStart,
+                    lastContentLine,
+                    {
                         disabled: disabled,
                         name: key,
                         range: keyRange,
-                    });
+                    },
+                );
+                const fieldEndLineIndex =
+                    arrayField.arrayRange.end?.line ?? undefined;
 
                 lines.push(arrayField);
 
@@ -110,12 +121,12 @@ export function parseDictionaryBlock(
 
 function parseArrayField(
     fullFileDocumentHelper: TextDocumentHelper,
-    firstValueLineIndex: number,
+    arrayStart: Position,
     lastBlockContentLine: number,
     parsedKey: { disabled: boolean; name: string; range: Range },
-): { field: DictionaryBlockArrayField; fieldEndLineIndex?: number } {
-    let foundEndOfArrayField = false;
-    let lineIndex = firstValueLineIndex;
+): { field: DictionaryBlockArrayField } {
+    let arrayEndPosition: Position | undefined = undefined;
+    let lineIndex = arrayStart.line + 1;
 
     const parsedValues: { content: string; range: Range; lineIndex: number }[] =
         [];
@@ -130,7 +141,7 @@ function parseArrayField(
         const isEndOfArrayField = line.trim() == "]";
 
         if (isEndOfArrayField) {
-            foundEndOfArrayField = true;
+            arrayEndPosition = new Position(lineIndex, line.indexOf("]"));
         } else if (line.match(/^\s*$/)) {
             // Do not count a line that only contains whitespaces as a line with a real value.
             parsedPlainTextLines.push({
@@ -158,7 +169,7 @@ function parseArrayField(
             });
         }
 
-        if (foundEndOfArrayField) {
+        if (arrayEndPosition) {
             break;
         }
 
@@ -170,6 +181,7 @@ function parseArrayField(
             disabled: parsedKey.disabled,
             key: parsedKey.name,
             keyRange: parsedKey.range,
+            arrayRange: { start: arrayStart, end: arrayEndPosition },
             values: parsedValues.map(({ content, range }) => ({
                 content,
                 range,
@@ -178,7 +190,6 @@ function parseArrayField(
                 ({ parsedLine: line }) => line,
             ),
         },
-        fieldEndLineIndex: foundEndOfArrayField ? lineIndex : undefined,
     };
 }
 
