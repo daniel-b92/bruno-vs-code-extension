@@ -83,10 +83,9 @@ export function parseDictionaryBlock(
 
                 // Skip lines that belong to the array field
                 lineIndex =
-                    fieldEndLineIndex &&
-                    fieldEndLineIndex < docHelper.getLineCount() - 1
+                    fieldEndLineIndex && fieldEndLineIndex < lastContentLine
                         ? fieldEndLineIndex
-                        : docHelper.getLineCount() - 1;
+                        : lastContentLine;
             } else {
                 lines.push({
                     text: lineContent,
@@ -179,10 +178,7 @@ function parseArrayField(
                 ({ parsedLine: line }) => line,
             ),
         },
-        fieldEndLineIndex:
-            lineIndex < fullFileDocumentHelper.getLineCount()
-                ? lineIndex
-                : undefined,
+        fieldEndLineIndex: foundEndOfArrayField ? lineIndex : undefined,
     };
 }
 

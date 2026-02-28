@@ -156,7 +156,7 @@
                         },
                         "2": { "name": "keyword.bru" }
                     },
-                    "end": "^\\s*(\\])\\s*$",
+                    "end": "^\\s*(\\]|\\})\\s*$",
                     "endCaptures": { "1": { "name": "keyword.bru" } },
                     "contentName": "string.bru"
                 },
