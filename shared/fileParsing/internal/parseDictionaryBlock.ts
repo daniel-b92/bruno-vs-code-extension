@@ -45,65 +45,64 @@ export function parseDictionaryBlock(
                 indexInFile: lineIndex,
                 couldBeStartofArrayField: keyAndValue.value.trim() == "[",
             });
-        } else {
-            const previousLineIndex = lines.findIndex(
-                (line) =>
-                    wasLineParsedAsValidSimpleField(line) &&
-                    line.indexInFile == lineIndex - 1,
-            );
 
-            const IsFirstValueLineWithinArrayField =
-                previousLineIndex >= 0 &&
-                (
-                    lines[previousLineIndex] as {
-                        couldBeStartofArrayField: boolean;
-                    }
-                ).couldBeStartofArrayField &&
-                !lineContent.includes(":");
-
-            if (IsFirstValueLineWithinArrayField) {
-                // Remove previous line that was seen as a simple field since it makes more sense to be seen as the start of an array field.
-                const fieldStartLine = lines.splice(
-                    previousLineIndex,
-                    1,
-                )[0] as {
-                    field: DictionaryBlockSimpleField;
-                };
-
-                const {
-                    disabled,
-                    key,
-                    keyRange,
-                    valueRange: { end: valueRangeStart },
-                } = fieldStartLine.field;
-
-                const { field: arrayField } = parseArrayField(
-                    docHelper,
-                    valueRangeStart,
-                    lastContentLine,
-                    {
-                        disabled: disabled,
-                        name: key,
-                        range: keyRange,
-                    },
-                );
-                const fieldEndLineIndex =
-                    arrayField.arrayRange.end?.line ?? undefined;
-
-                lines.push(arrayField);
-
-                // Skip lines that belong to the array field
-                lineIndex =
-                    fieldEndLineIndex && fieldEndLineIndex < lastContentLine
-                        ? fieldEndLineIndex
-                        : lastContentLine;
-            } else {
-                lines.push({
-                    text: lineContent,
-                    range: docHelper.getRangeForLine(lineIndex) as Range,
-                });
-            }
+            continue;
         }
+
+        const previousLineIndex = lines.findIndex(
+            (line) =>
+                wasLineParsedAsValidSimpleField(line) &&
+                line.indexInFile == lineIndex - 1,
+        );
+
+        const IsFirstValueLineWithinArrayField =
+            previousLineIndex >= 0 &&
+            (
+                lines[previousLineIndex] as {
+                    couldBeStartofArrayField: boolean;
+                }
+            ).couldBeStartofArrayField &&
+            !lineContent.includes(":");
+
+        if (!IsFirstValueLineWithinArrayField) {
+            lines.push({
+                text: lineContent,
+                range: docHelper.getRangeForLine(lineIndex) as Range,
+            });
+            continue;
+        }
+
+        // Remove previous line that was seen as a simple field since it makes more sense to be seen as the start of an array field.
+        const fieldStartLine = lines.splice(previousLineIndex, 1)[0] as {
+            field: DictionaryBlockSimpleField;
+        };
+
+        const {
+            disabled,
+            key,
+            keyRange,
+            valueRange: { end: valueRangeStart },
+        } = fieldStartLine.field;
+
+        const { field: arrayField } = parseArrayField(
+            docHelper,
+            valueRangeStart,
+            lastContentLine,
+            {
+                disabled: disabled,
+                name: key,
+                range: keyRange,
+            },
+        );
+        const fieldEndLineIndex = arrayField.arrayRange.end?.line ?? undefined;
+
+        lines.push(arrayField);
+
+        // Skip lines that belong to the array field
+        lineIndex =
+            fieldEndLineIndex && fieldEndLineIndex < lastContentLine
+                ? fieldEndLineIndex
+                : lastContentLine;
     }
 
     return {
