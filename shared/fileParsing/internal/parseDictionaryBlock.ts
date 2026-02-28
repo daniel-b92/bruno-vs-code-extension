@@ -73,7 +73,7 @@ export function parseDictionaryBlock(
                 const { disabled, key, keyRange } = fieldStartLine.field;
 
                 const { field: arrayField, fieldEndLineIndex } =
-                    parseArrayField(docHelper, lineIndex, {
+                    parseArrayField(docHelper, lineIndex, lastContentLine, {
                         disabled: disabled,
                         name: key,
                         range: keyRange,
@@ -112,6 +112,7 @@ export function parseDictionaryBlock(
 function parseArrayField(
     fullFileDocumentHelper: TextDocumentHelper,
     firstValueLineIndex: number,
+    lastBlockContentLine: number,
     parsedKey: { disabled: boolean; name: string; range: Range },
 ): { field: DictionaryBlockArrayField; fieldEndLineIndex?: number } {
     let foundEndOfArrayField = false;
@@ -125,7 +126,7 @@ function parseArrayField(
         lineIndex: number;
     }[] = [];
 
-    while (lineIndex < fullFileDocumentHelper.getLineCount()) {
+    while (lineIndex <= lastBlockContentLine) {
         const line = fullFileDocumentHelper.getLineByIndex(lineIndex);
         const isEndOfArrayField = line.trim() == "]";
 
