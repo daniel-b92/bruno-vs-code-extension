@@ -89,6 +89,7 @@ export * from "./languageUtils/commonBlocks/metaBlock/metaBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/metaBlock/requestTypeEnum";
 export * from "./languageUtils/commonBlocks/metaBlock/getActiveFieldFromMetaBlock";
 export * from "./languageUtils/commonBlocks/metaBlock/metaBlockKeyEnum";
+export * from "./languageUtils/commonBlocks/metaBlock/getSequenceValueFromMetaBlock";
 
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockAuthEnum";

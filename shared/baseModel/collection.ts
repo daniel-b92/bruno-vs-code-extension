@@ -1,4 +1,5 @@
 import {
+    AdditionalCollectionDataProvider,
     CollectionData,
     CollectionDirectory,
     CollectionItem,
@@ -8,13 +9,15 @@ import {
 export class Collection<T> {
     constructor(
         private rootDirectory: string,
-        additionalDataCreator: (item: CollectionItem) => T,
+        additionalDataCreator: (
+            params: AdditionalCollectionDataProvider<T>,
+        ) => T,
     ) {
         const item = new CollectionDirectory(rootDirectory);
 
         this.testData.push({
             item,
-            additionalData: additionalDataCreator(item),
+            additionalData: additionalDataCreator({ item }),
         });
     }
 

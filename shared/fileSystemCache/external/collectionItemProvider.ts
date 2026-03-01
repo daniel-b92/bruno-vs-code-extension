@@ -13,8 +13,8 @@ import {
     CollectionDirectory,
     CollectionItemWithSequence,
     isCollectionItemWithSequence,
-    CollectionItem,
     Logger,
+    AdditionalCollectionDataProvider,
 } from "../..";
 import { basename, dirname } from "path";
 import { promisify } from "util";
@@ -33,7 +33,7 @@ export interface NotificationData<T> {
 export class CollectionItemProvider<T> {
     constructor(
         collectionWatcher: CollectionWatcher,
-        private additionalCollectionDataCreator: (item: CollectionItem) => T,
+        private additionalCollectionDataProviders: AdditionalCollectionDataProvider<T>,
         private filePathsToIgnore: RegExp[],
         private logger?: Logger,
     ) {
@@ -184,7 +184,7 @@ export class CollectionItemProvider<T> {
             this.collectionRegistry,
             workSpaceFolders,
             this.filePathsToIgnore,
-            this.additionalCollectionDataCreator,
+            this.additionalCollectionDataProviders,
         );
 
         const endTime = performance.now();
@@ -245,7 +245,7 @@ export class CollectionItemProvider<T> {
         const collectionData = addItemToCollection(
             registeredCollection,
             item,
-            this.additionalCollectionDataCreator,
+            this.additionalCollectionDataProviders,
         );
 
         await this.handleOutboundNotification({
@@ -337,7 +337,7 @@ export class CollectionItemProvider<T> {
             addItemToCollection(
                 registeredCollectionForItem,
                 newItem,
-                this.additionalCollectionDataCreator,
+                this.additionalCollectionDataProviders,
             );
 
             const {
@@ -379,7 +379,7 @@ export class CollectionItemProvider<T> {
             data: addItemToCollection(
                 collection,
                 newFolderItem,
-                this.additionalCollectionDataCreator,
+                this.additionalCollectionDataProviders,
             ),
             updateType: FileChangeType.Modified,
             changedData: { sequenceChanged: oldSequence != newSequence },
