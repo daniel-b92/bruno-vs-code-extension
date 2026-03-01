@@ -5,6 +5,7 @@ import {
     Collection,
     CollectionDirectory,
     CollectionItem,
+    AdditionalCollectionDataProvider,
 } from "../..";
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
@@ -17,7 +18,7 @@ export async function registerMissingCollectionsAndTheirItems<T>(
     collectionRegistry: CollectionRegistry<T>,
     workspaceFolders: string[],
     filePathsToIgnore: RegExp[],
-    additionalDataCreator: (item: CollectionItem) => T,
+    additionalDataCreator: (params: AdditionalCollectionDataProvider<T>) => T,
 ) {
     const allCollections = await registerAllExistingCollections(
         collectionRegistry,
@@ -85,7 +86,7 @@ export async function registerMissingCollectionsAndTheirItems<T>(
 async function registerAllExistingCollections<T>(
     registry: CollectionRegistry<T>,
     workspaceFolders: string[],
-    additionalDataCreator: (item: CollectionItem) => T,
+    additionalDataCreator: (params: AdditionalCollectionDataProvider<T>) => T,
 ) {
     return (await getAllCollectionRootDirectories(workspaceFolders)).map(
         (rootDirectory) => {
@@ -110,6 +111,26 @@ async function registerAllExistingCollections<T>(
             return collection;
         },
     );
+}
+
+async function addItemWithAdditionalDataToCollection<T>(params: {
+    isDirectory: boolean;
+    path: string;
+    collection: Collection<T>;
+    additionalDataCreator: (params: AdditionalCollectionDataProvider<T>) => T;
+}) {
+    const { additionalDataCreator, collection, isDirectory, path } = params;
+
+    const item = isDirectory
+        ? new CollectionDirectory(
+              path,
+              await getSequenceForFolder(collection.getRootDirectory(), path),
+          )
+        : await getCollectionFile(collection, path);
+
+    if (item) {
+        addItemToCollection<T>(collection, item, additionalDataCreator);
+    }
 }
 
 function shouldPathBeIgnored(filePathsToIgnore: RegExp[], path: string) {
