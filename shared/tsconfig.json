@@ -4,5 +4,6 @@
         "rootDir": ".",
         "outDir": "out",
         "composite": true
-    }
+    },
+    "exclude": ["node_modules", ".vscode-test", "**/*.md", "out"]
 }
