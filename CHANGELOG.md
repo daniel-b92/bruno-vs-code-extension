@@ -4,6 +4,7 @@
 
 - Add correct handling of commented out fields in Dictionary blocks and Array blocks.
 - Provide error diagnostics, if a dictionary block array field is missing a closing bracket for the values.
+- Try to stabilize flaky diagnostics provider for multiple request files with same sequence in same folder.
 
 ## [0.21.0] (2026-02-25)
 
