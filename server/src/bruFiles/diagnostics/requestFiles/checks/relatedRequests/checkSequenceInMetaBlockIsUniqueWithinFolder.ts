@@ -4,7 +4,6 @@ import {
     Block,
     MetaBlockKey,
     isBlockDictionaryBlock,
-    filterAsync,
     BrunoRequestFile,
     BrunoFileType,
     isCollectionItemWithSequence,
@@ -15,7 +14,10 @@ import { RelevantWithinMetaBlockDiagnosticCode } from "../../../shared/diagnosti
 import { doesDictionaryBlockFieldHaveValidIntegerValue } from "../../../shared/util/doesDictionaryBlockFieldHaveValidIntegerValue";
 import { getRangeForSequenceValue } from "../../../shared/util/getRangeForSequenceValue";
 import { TypedCollectionItemProvider } from "../../../../../shared";
-import { DiagnosticSeverity } from "vscode-languageserver";
+import {
+    DiagnosticRelatedInformation,
+    DiagnosticSeverity,
+} from "vscode-languageserver";
 import { URI } from "vscode-uri";
 
 export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
@@ -47,7 +49,7 @@ export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
         ({ key }) => key == MetaBlockKey.Sequence,
     ) as DictionaryBlockSimpleField;
 
-    const otherRequestsInFolder = await getSequencesForOtherRequestsInFolder(
+    const otherRequestsInFolder = getSequencesForOtherRequestsInFolder(
         itemProvider,
         filePath,
         dirname(filePath),
@@ -60,62 +62,59 @@ export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
         )
         .map(({ file }) => file);
 
-    if (otherRequestsWithSameSequence.length > 0) {
-        const allAffectedFiles = otherRequestsWithSameSequence.concat(filePath);
-
-        return {
-            code: getDiagnosticCode(),
-            toAdd: {
-                affectedFiles: allAffectedFiles,
-                diagnosticCurrentFile: await getDiagnostic(
-                    sequenceField,
-                    otherRequestsWithSameSequence,
-                ),
-            },
-        };
-    } else {
+    if (otherRequestsWithSameSequence.length == 0) {
         return { code: getDiagnosticCode() };
     }
+
+    const allAffectedFiles = otherRequestsWithSameSequence.concat(filePath);
+
+    const relatedInformation = await getDiagnosticRelatedInformation(
+        otherRequestsWithSameSequence,
+    );
+
+    if (relatedInformation.length == 0) {
+        // This case seems to occur sometimes directly after a drag-and-drop operation in the explorer.
+        // Maybe it's related to the way multiple sequences are updated in the same folder.
+        console.warn(
+            "Could not determine related information for diagnostic for multiple requests with same sequence.",
+        );
+        return { code: getDiagnosticCode() };
+    }
+
+    return {
+        code: getDiagnosticCode(),
+        toAdd: {
+            affectedFiles: allAffectedFiles,
+            diagnosticCurrentFile: getDiagnostic(
+                sequenceField,
+                relatedInformation,
+            ),
+        },
+    };
 }
 
-async function getDiagnostic(
+function getDiagnostic(
     sequenceField: DictionaryBlockSimpleField,
-    otherRequestsWithSameSequence: string[],
-): Promise<DiagnosticWithCode> {
+    relatedInformation: DiagnosticRelatedInformation[],
+): DiagnosticWithCode {
     return {
         message:
             "Other requests with the same sequence already exists within this folder.",
         range: sequenceField.valueRange,
         severity: DiagnosticSeverity.Error,
         code: getDiagnosticCode(),
-        relatedInformation: (
-            await Promise.all(
-                otherRequestsWithSameSequence.map(async (path) => {
-                    const range = await getRangeForSequenceValue(path);
-
-                    return range
-                        ? {
-                              message: `Request with same sequence`,
-                              location: {
-                                  uri: URI.file(path).toString(),
-                                  range,
-                              },
-                          }
-                        : undefined;
-                }),
-            )
-        ).filter((val) => val != undefined),
+        relatedInformation,
     };
 }
 
-async function getSequencesForOtherRequestsInFolder(
+function getSequencesForOtherRequestsInFolder(
     itemProvider: TypedCollectionItemProvider,
     filePath: string,
     directoryPath: string,
 ) {
     const result: { file: string; sequence: number }[] = [];
 
-    const otherRequestsInFolder = await getOtherRequestsInFolder(
+    const otherRequestsInFolder = getOtherRequestsInFolder(
         itemProvider,
         directoryPath,
         filePath,
@@ -131,11 +130,11 @@ async function getSequencesForOtherRequestsInFolder(
     return result;
 }
 
-async function getOtherRequestsInFolder(
+function getOtherRequestsInFolder(
     itemProvider: TypedCollectionItemProvider,
     directoryPath: string,
     filePath: string,
-): Promise<BrunoRequestFile[]> {
+): BrunoRequestFile[] {
     const result: BrunoRequestFile[] = [];
 
     const collection = itemProvider.getAncestorCollectionForPath(directoryPath);
@@ -147,24 +146,45 @@ async function getOtherRequestsInFolder(
         return result;
     }
 
-    return (
-        await filterAsync(
-            collection.getAllStoredDataForCollection().slice(),
-            async ({ item }) => {
-                const itemPath = item.getPath();
+    return collection
+        .getAllStoredDataForCollection()
+        .slice()
+        .filter(({ item }) => {
+            const itemPath = item.getPath();
 
-                return (
-                    item.isFile() &&
-                    normalizeDirectoryPath(dirname(itemPath)) ==
-                        normalizeDirectoryPath(directoryPath) &&
-                    isCollectionItemWithSequence(item) &&
-                    item.getSequence() != undefined &&
-                    itemPath != filePath &&
-                    item.getItemType() == BrunoFileType.RequestFile
-                );
-            },
+            return (
+                item.isFile() &&
+                normalizeDirectoryPath(dirname(itemPath)) ==
+                    normalizeDirectoryPath(directoryPath) &&
+                isCollectionItemWithSequence(item) &&
+                item.getSequence() != undefined &&
+                itemPath != filePath &&
+                item.getItemType() == BrunoFileType.RequestFile
+            );
+        })
+        .map(({ item }) => item as BrunoRequestFile);
+}
+
+async function getDiagnosticRelatedInformation(
+    otherRequestsWithSameSequence: string[],
+) {
+    return (
+        await Promise.all(
+            otherRequestsWithSameSequence.map(async (path) => {
+                const range = await getRangeForSequenceValue(path);
+
+                return range
+                    ? {
+                          message: `Request with same sequence`,
+                          location: {
+                              uri: URI.file(path).toString(),
+                              range,
+                          },
+                      }
+                    : undefined;
+            }),
         )
-    ).map(({ item }) => item as BrunoRequestFile);
+    ).filter((val) => val != undefined);
 }
 
 function getDiagnosticCode() {
