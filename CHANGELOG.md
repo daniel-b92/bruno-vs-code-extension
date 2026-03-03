@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Minor Improvements
+
+- Fix vulnerability in transitive dependency `serialize-javascript` via version bump.
+
 ## [0.21.1] (2026-03-02)
 
 ### Fixes / Minor Improvements
