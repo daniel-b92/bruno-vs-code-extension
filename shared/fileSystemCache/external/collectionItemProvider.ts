@@ -19,7 +19,7 @@ import {
 import { basename, dirname } from "path";
 import { promisify } from "util";
 import { lstat } from "fs";
-import { getCollectionFile } from "../internal/getCollectionFile";
+import { getCollectionItem } from "../internal/getCollectionItem";
 import { isModifiedItemOutdated } from "../internal/isModifiedItemOutdated";
 import { Evt } from "evt";
 
@@ -234,7 +234,7 @@ export class CollectionItemProvider<T> {
                               itemPath,
                           ),
                       )
-                    : await getCollectionFile(registeredCollection, itemPath),
+                    : await getCollectionItem(registeredCollection, itemPath),
             )
             .catch(() => undefined);
 
@@ -321,7 +321,7 @@ export class CollectionItemProvider<T> {
             (isCollectionItemWithSequence(modifiedItem) &&
                 modifiedItem.getItemType() == BrunoFileType.RequestFile)
         ) {
-            const newItem = await getCollectionFile(
+            const newItem = await getCollectionItem(
                 registeredCollectionForItem,
                 itemPath,
             );

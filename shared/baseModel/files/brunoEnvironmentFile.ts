@@ -1,7 +1,17 @@
 import { Range } from "../../fileSystem/range";
-import { BrunoFileType, CollectionItem } from "../interfaces";
+import {
+    BrunoVariableType,
+    VariableReferenceType,
+} from "../../languageUtils/contentInterfaces";
+import {
+    BrunoFileType,
+    CollectionItem,
+    CollectionItemWithBruVariables,
+} from "../interfaces";
 
-export class BrunoEnvironmentFile implements CollectionItem {
+export class BrunoEnvironmentFile
+    implements CollectionItem, CollectionItemWithBruVariables
+{
     constructor(
         private readonly path: string,
         private variables: {
@@ -26,5 +36,14 @@ export class BrunoEnvironmentFile implements CollectionItem {
 
     public getItemType() {
         return BrunoFileType.EnvironmentFile;
+    }
+
+    public getVariableReferences() {
+        return this.variables.map(({ key, keyRange }) => ({
+            variableName: key,
+            variableNameRange: keyRange,
+            variableType: BrunoVariableType.Environment,
+            referenceType: VariableReferenceType.Write,
+        }));
     }
 }

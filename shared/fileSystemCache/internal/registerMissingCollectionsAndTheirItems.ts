@@ -12,7 +12,7 @@ import { resolve } from "path";
 import { addItemToCollection } from "./addItemToCollection";
 import { lstat, readdir } from "fs";
 import { promisify } from "util";
-import { getCollectionFile } from "./getCollectionFile";
+import { getCollectionItem } from "./getCollectionItem";
 
 export async function registerMissingCollectionsAndTheirItems<T>(
     collectionRegistry: CollectionRegistry<T>,
@@ -61,7 +61,7 @@ export async function registerMissingCollectionsAndTheirItems<T>(
                                   path,
                               ),
                           )
-                        : await getCollectionFile(collection, path);
+                        : await getCollectionItem(collection, path);
 
                     if (item) {
                         addItemToCollection<T>(
@@ -126,7 +126,7 @@ async function addItemWithAdditionalDataToCollection<T>(params: {
               path,
               await getSequenceForFolder(collection.getRootDirectory(), path),
           )
-        : await getCollectionFile(collection, path);
+        : await getCollectionItem(collection, path);
 
     if (item) {
         addItemToCollection<T>(collection, item, additionalDataCreator);

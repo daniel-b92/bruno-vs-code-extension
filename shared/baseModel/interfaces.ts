@@ -1,7 +1,11 @@
-import { Block, TextOutsideOfBlocks } from "..";
+import { BrunoVariableReference } from "..";
 
 export interface CollectionItemWithSequence extends CollectionItem {
     getSequence: () => number | undefined;
+}
+
+export interface CollectionItemWithBruVariables extends CollectionItem {
+    getVariableReferences: () => BrunoVariableReference[];
 }
 
 export interface CollectionItem {
@@ -10,22 +14,22 @@ export interface CollectionItem {
     getItemType: () => ItemType;
 }
 
-export enum AdditionalCollectionDataProviderParamType {
-    CollectionItem = 1,
-    ParsedBruFileData = 2,
+export enum AdditionalCollectionDataProviderType {
+    SimpleCollectionItem = 1,
+    WithAdditionalData = 2,
 }
 
 export type AdditionalCollectionDataProvider<T> =
     | {
-          paramType: AdditionalCollectionDataProviderParamType.CollectionItem;
+          paramType: AdditionalCollectionDataProviderType.SimpleCollectionItem;
           callback: (item: CollectionItem) => T;
       }
     | {
-          paramType: AdditionalCollectionDataProviderParamType.ParsedBruFileData;
-          callback: (parsedBruFileData: {
-              blocks: Block[];
-              textOutsideOfBlocks: TextOutsideOfBlocks[];
-          }) => T;
+          paramType: AdditionalCollectionDataProviderType.WithAdditionalData;
+          callbackForItemsWithVariables: (
+              item: CollectionItemWithBruVariables,
+          ) => T;
+          callbackForOtherItems: (item: CollectionItem) => T;
       };
 
 export type CollectionData<T> = {

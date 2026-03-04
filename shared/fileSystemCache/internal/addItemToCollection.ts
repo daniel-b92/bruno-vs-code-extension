@@ -1,50 +1,33 @@
-import { promisify } from "util";
 import {
-    AdditionalCollectionDataProviderParamType,
+    AdditionalCollectionDataProviderType,
     AdditionalCollectionDataProvider,
     Collection,
     CollectionData,
-    CollectionDirectory,
     CollectionItem,
-    getSequenceForFolder,
-    getFolderSettingsFilePath,
-    parseBruFile,
-    TextDocumentHelper,
-    getSequenceFieldFromMetaBlock,
-    RequestFileBlockName,
-    getSequenceValueFromMetaBlock,
+    CollectionItemWithBruVariables,
 } from "../..";
-import { getCollectionFile } from "./getCollectionFile";
+import { getCollectionItem } from "./getCollectionItem";
 import { isModifiedItemOutdated } from "./isModifiedItemOutdated";
-import { readFile } from "fs";
 
 export async function addItemToCollection<T>(params: {
-    isDirectory: boolean;
     path: string;
     collection: Collection<T>;
-    additionalCollectionDataProviders: AdditionalCollectionDataProvider<T>;
+    additionalDataProvider: AdditionalCollectionDataProvider<T>;
 }) {
-    const { additionalCollectionDataProviders, collection, isDirectory, path } =
-        params;
+    const { additionalDataProvider, collection, path } = params;
 
-    const item = isDirectory
-        ? new CollectionDirectory(
-              path,
-              await getSequenceForFolder(collection.getRootDirectory(), path),
-          )
-        : await getCollectionFile(collection, path);
+    const data = await getCollectionData({
+        path,
+        collection,
+        additionalDataProvider,
+    });
 
-    if (!item) {
-        return;
+    if (!data) {
+        return undefined;
     }
 
-    const data: CollectionData<T> = {
-        item,
-        additionalData,
-    };
-
     const registeredDataWithSamePath = collection.getStoredDataForPath(
-        item.getPath(),
+        data.item.getPath(),
     );
 
     if (!registeredDataWithSamePath) {
@@ -61,65 +44,45 @@ export async function addItemToCollection<T>(params: {
 }
 
 async function getCollectionData<T>(params: {
-    isDirectory: boolean;
     path: string;
     collection: Collection<T>;
     additionalDataProvider: AdditionalCollectionDataProvider<T>;
 }): Promise<CollectionData<T> | undefined> {
-    const { additionalDataProvider, collection, isDirectory, path } = params;
+    const { additionalDataProvider, collection, path } = params;
 
     if (
         additionalDataProvider.paramType ==
-        AdditionalCollectionDataProviderParamType.CollectionItem
+        AdditionalCollectionDataProviderType.SimpleCollectionItem
     ) {
-        const item = isDirectory
-            ? new CollectionDirectory(
-                  path,
-                  await getSequenceForFolder(
-                      collection.getRootDirectory(),
-                      path,
-                  ),
-              )
-            : await getCollectionFile(collection, path);
+        const item = await getCollectionItem(collection, path, false);
 
         return item
             ? { item, additionalData: additionalDataProvider.callback(item) }
             : undefined;
     }
 
-    if (isDirectory) {
-        const folderSettingsFile = await getFolderSettingsFilePath(path);
-        const folderSettingsFileContent = folderSettingsFile
-            ? await promisify(readFile)(folderSettingsFile, "utf-8").catch(
-                  () => undefined,
-              )
-            : undefined;
-
-        if (!folderSettingsFileContent) {
-            return undefined;
-        }
-
-        const parsedSettingsFile = parseBruFile(
-            new TextDocumentHelper(folderSettingsFileContent),
-        );
-        const metaBlocks = parsedSettingsFile.blocks.filter(
-            ({ name }) => name == RequestFileBlockName.Meta,
-        );
-        const sequence =
-            metaBlocks.length == 1
-                ? getSequenceValueFromMetaBlock(metaBlocks[0])
-                : undefined;
-
-        return {
-            item: new CollectionDirectory(path, sequence),
-            additionalData: additionalDataProvider.callback(parsedSettingsFile),
-        };
+    const item = await getCollectionItem(collection, path, true);
+    if (!item) {
+        return undefined;
     }
 
-    return {
-        item: await getCollectionFile(collection, path)
-        additionalData: additionalDataProvider.callback(parsedSettingsFile),
-    };
+    return doesItemSupportVariableReferences(item)
+        ? {
+              item,
+              additionalData:
+                  additionalDataProvider.callbackForItemsWithVariables(item),
+          }
+        : {
+              item,
+              additionalData:
+                  additionalDataProvider.callbackForOtherItems(item),
+          };
+}
+
+function doesItemSupportVariableReferences(
+    item: CollectionItem,
+): item is CollectionItemWithBruVariables {
+    return "getVariableReferences" in item;
 }
 
 function handleAlreadyRegisteredItemWithSamePath<T>(
