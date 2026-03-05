@@ -48,12 +48,12 @@ export * from "./fileParsing/external/requestFiles/getMaxSequenceForRequests";
 export * from "./baseModel/collection";
 export * from "./baseModel/collectionDirectory";
 export * from "./baseModel/files/brunoRequestFile";
-export * from "./baseModel/files/brunoFolderSettingsFile";
 export * from "./baseModel/files/brunoEnvironmentFile";
 export * from "./baseModel/files/nonBrunoFile";
 export * from "./baseModel/interfaces";
 export * from "./baseModel/typeguards/isCollectionItemWithSequence";
 export * from "./baseModel/typeguards/isRequestFile";
+export * from "./baseModel/typeguards/isCollectionItemWithBruVariables";
 
 // logging
 export * from "./logging/interfaces";
@@ -64,6 +64,7 @@ export * from "./vsCodeSettings/getEnvironmentSettingsKey";
 // language utils
 export * from "./languageUtils/blockInterfaces";
 export * from "./languageUtils/contentInterfaces";
+export * from "./languageUtils/areVariableReferencesEquivalent";
 
 // language utils - request files
 export * from "./languageUtils/requestFiles/requestFileBlockNameEnum";

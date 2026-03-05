@@ -18,12 +18,12 @@ export async function registerMissingCollectionsAndTheirItems<T>(
     collectionRegistry: CollectionRegistry<T>,
     workspaceFolders: string[],
     filePathsToIgnore: RegExp[],
-    additionalDataCreator: (params: AdditionalCollectionDataProvider<T>) => T,
+    additionalDataProvider: AdditionalCollectionDataProvider<T>,
 ) {
     const allCollections = await registerAllExistingCollections(
         collectionRegistry,
         workspaceFolders,
-        additionalDataCreator,
+        additionalDataProvider,
     );
 
     for (const collection of allCollections) {
@@ -86,13 +86,13 @@ export async function registerMissingCollectionsAndTheirItems<T>(
 async function registerAllExistingCollections<T>(
     registry: CollectionRegistry<T>,
     workspaceFolders: string[],
-    additionalDataCreator: (params: AdditionalCollectionDataProvider<T>) => T,
+    additionalDataProvider: AdditionalCollectionDataProvider<T>,
 ) {
     return (await getAllCollectionRootDirectories(workspaceFolders)).map(
         (rootDirectory) => {
             const collection = new Collection(
                 rootDirectory,
-                additionalDataCreator,
+                additionalDataProvider,
             );
 
             if (

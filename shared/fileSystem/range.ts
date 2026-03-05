@@ -12,4 +12,8 @@ export class Range {
             (position.isBefore(this.end) || position.equals(this.end))
         );
     }
+
+    public equals(range: Range) {
+        return this.start.equals(range.start) && this.end.equals(range.end);
+    }
 }

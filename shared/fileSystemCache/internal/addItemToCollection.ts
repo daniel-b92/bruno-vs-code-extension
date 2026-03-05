@@ -3,8 +3,7 @@ import {
     AdditionalCollectionDataProvider,
     Collection,
     CollectionData,
-    CollectionItem,
-    CollectionItemWithBruVariables,
+    isCollectionItemWithBruVariables,
 } from "../..";
 import { getCollectionItem } from "./getCollectionItem";
 import { isModifiedItemOutdated } from "./isModifiedItemOutdated";
@@ -39,6 +38,7 @@ export async function addItemToCollection<T>(params: {
         collection,
         registeredDataWithSamePath,
         data,
+        additionalDataProvider,
     );
     return data;
 }
@@ -66,7 +66,7 @@ async function getCollectionData<T>(params: {
         return undefined;
     }
 
-    return doesItemSupportVariableReferences(item)
+    return isCollectionItemWithBruVariables(item)
         ? {
               item,
               additionalData:
@@ -79,19 +79,18 @@ async function getCollectionData<T>(params: {
           };
 }
 
-function doesItemSupportVariableReferences(
-    item: CollectionItem,
-): item is CollectionItemWithBruVariables {
-    return "getVariableReferences" in item;
-}
-
 function handleAlreadyRegisteredItemWithSamePath<T>(
     collection: Collection<T>,
     { item: alreadyRegisteredItem }: CollectionData<T>,
     newData: CollectionData<T>,
+    additionalDataProvider: AdditionalCollectionDataProvider<T>,
 ) {
     if (
-        isModifiedItemOutdated(alreadyRegisteredItem, newData.item).isOutdated
+        isModifiedItemOutdated(
+            alreadyRegisteredItem,
+            newData.item,
+            additionalDataProvider.paramType,
+        )
     ) {
         collection.removeTestItemIfRegistered(alreadyRegisteredItem.getPath());
         collection.addItem(newData);
