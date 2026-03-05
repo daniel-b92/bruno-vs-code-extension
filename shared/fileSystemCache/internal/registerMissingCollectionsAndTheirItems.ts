@@ -53,23 +53,11 @@ export async function registerMissingCollectionsAndTheirItems<T>(
                     !collection.getStoredDataForPath(path) &&
                     !shouldPathBeIgnored(filePathsToIgnore, path)
                 ) {
-                    const item = isDirectory
-                        ? new CollectionDirectory(
-                              path,
-                              await getSequenceForFolder(
-                                  collection.getRootDirectory(),
-                                  path,
-                              ),
-                          )
-                        : await getCollectionItem(collection, path);
-
-                    if (item) {
-                        addItemToCollection<T>(
-                            collection,
-                            item,
-                            additionalDataCreator,
-                        );
-                    }
+                    addItemToCollection<T>({
+                        collection,
+                        path,
+                        additionalDataProvider,
+                    });
                 }
 
                 if (
