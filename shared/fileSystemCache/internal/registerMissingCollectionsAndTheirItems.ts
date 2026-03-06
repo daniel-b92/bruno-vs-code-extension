@@ -1,18 +1,17 @@
 import {
-    getSequenceForFolder,
     normalizeDirectoryPath,
     getAllCollectionRootDirectories,
     Collection,
-    CollectionDirectory,
-    CollectionItem,
     AdditionalCollectionDataProvider,
+    AdditionalCollectionDataProviderType,
+    getFolderSettingsFilePath,
 } from "../..";
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
 import { addItemToCollection } from "./addItemToCollection";
 import { lstat, readdir } from "fs";
 import { promisify } from "util";
-import { getCollectionItem } from "./getCollectionItem";
+import { createCollectionDirectoryInstance } from "./createCollectionDirectoryInstance";
 
 export async function registerMissingCollectionsAndTheirItems<T>(
     collectionRegistry: CollectionRegistry<T>,
@@ -76,49 +75,43 @@ async function registerAllExistingCollections<T>(
     workspaceFolders: string[],
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
 ) {
-    return (await getAllCollectionRootDirectories(workspaceFolders)).map(
-        (rootDirectory) => {
-            const collection = new Collection(
-                rootDirectory,
-                additionalDataProvider,
-            );
+    const rootFolders = await getAllCollectionRootDirectories(workspaceFolders);
 
-            if (
-                !registry
-                    .getRegisteredCollections()
-                    .some(
-                        (registered) =>
-                            normalizeDirectoryPath(
-                                registered.getRootDirectory(),
-                            ) == normalizeDirectoryPath(rootDirectory),
-                    )
-            ) {
-                registry.registerCollection(collection);
-            }
+    return (
+        await Promise.all(
+            rootFolders.map(async (rootDirectory) => {
+                const rootFolderItem = await createCollectionDirectoryInstance(
+                    rootDirectory,
+                    additionalDataProvider.paramType ==
+                        AdditionalCollectionDataProviderType.WithAdditionalData,
+                    await getFolderSettingsFilePath(true, rootDirectory),
+                );
+                if (!rootFolderItem) {
+                    return undefined;
+                }
 
-            return collection;
-        },
-    );
-}
+                const collection = new Collection(
+                    rootFolderItem,
+                    additionalDataProvider,
+                );
 
-async function addItemWithAdditionalDataToCollection<T>(params: {
-    isDirectory: boolean;
-    path: string;
-    collection: Collection<T>;
-    additionalDataCreator: (params: AdditionalCollectionDataProvider<T>) => T;
-}) {
-    const { additionalDataCreator, collection, isDirectory, path } = params;
+                if (
+                    !registry
+                        .getRegisteredCollections()
+                        .some(
+                            (registered) =>
+                                normalizeDirectoryPath(
+                                    registered.getRootDirectory(),
+                                ) == normalizeDirectoryPath(rootDirectory),
+                        )
+                ) {
+                    registry.registerCollection(collection);
+                }
 
-    const item = isDirectory
-        ? new CollectionDirectory(
-              path,
-              await getSequenceForFolder(collection.getRootDirectory(), path),
-          )
-        : await getCollectionItem(collection, path);
-
-    if (item) {
-        addItemToCollection<T>(collection, item, additionalDataCreator);
-    }
+                return collection;
+            }),
+        )
+    ).filter((val) => val != undefined);
 }
 
 function shouldPathBeIgnored(filePathsToIgnore: RegExp[], path: string) {

@@ -9,21 +9,25 @@ import {
 
 export class Collection<T> {
     constructor(
-        private rootDirectory: string,
+        private rootFolderItem: CollectionDirectory,
         additionalDataProvider: AdditionalCollectionDataProvider<T>,
     ) {
-        const item = new CollectionDirectory(rootDirectory);
-
         this.testData.push({
-            item,
-            additionalData: { item },
+            item: rootFolderItem,
+            additionalData:
+                additionalDataProvider.paramType ==
+                AdditionalCollectionDataProviderType.SimpleCollectionItem
+                    ? additionalDataProvider.callback(rootFolderItem)
+                    : additionalDataProvider.callbackForItemsWithVariables(
+                          rootFolderItem,
+                      ),
         });
     }
 
     private testData: CollectionData<T>[] = [];
 
     public getRootDirectory() {
-        return this.rootDirectory;
+        return this.rootFolderItem.getPath();
     }
 
     public isRootDirectory(path: string) {
@@ -49,7 +53,7 @@ export class Collection<T> {
         if (!this.removeTestItemIfRegistered(item.getPath())) {
             console.warn(
                 `Did not find collection item to be removed with path '${item.getPath()}' for collection root directory '${
-                    this.rootDirectory
+                    this.rootFolderItem
                 }'.`,
             );
             return;

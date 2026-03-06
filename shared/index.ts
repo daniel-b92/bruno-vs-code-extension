@@ -50,10 +50,12 @@ export * from "./baseModel/collectionDirectory";
 export * from "./baseModel/files/brunoRequestFile";
 export * from "./baseModel/files/brunoEnvironmentFile";
 export * from "./baseModel/files/nonBrunoFile";
+export * from "./baseModel/files/brunoFolderSettingsFile";
 export * from "./baseModel/interfaces";
 export * from "./baseModel/typeguards/isCollectionItemWithSequence";
 export * from "./baseModel/typeguards/isRequestFile";
 export * from "./baseModel/typeguards/isCollectionItemWithBruVariables";
+export * from "./baseModel/typeguards/isCollectionDirectory";
 
 // logging
 export * from "./logging/interfaces";
@@ -85,12 +87,14 @@ export * from "./languageUtils/commonBlocks/getMethodBlockBodyFieldValueForBodyN
 export * from "./languageUtils/commonBlocks/getExpectedUrlQueryParamsForQueryParamsBlock";
 export * from "./languageUtils/commonBlocks/getPathParamsFromPathParamsBlock";
 export * from "./languageUtils/commonBlocks/settingsFileSpecificBlockEnum";
+export * from "./languageUtils/commonBlocks/getAllVariablesFromBlocks";
 
 export * from "./languageUtils/commonBlocks/metaBlock/metaBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/metaBlock/requestTypeEnum";
 export * from "./languageUtils/commonBlocks/metaBlock/getActiveFieldFromMetaBlock";
 export * from "./languageUtils/commonBlocks/metaBlock/metaBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/metaBlock/getSequenceValueFromMetaBlock";
+export * from "./languageUtils/commonBlocks/metaBlock/getSequenceAndTagsFromMetaBlock";
 
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockAuthEnum";

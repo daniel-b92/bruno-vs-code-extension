@@ -3,7 +3,6 @@ import { addItemToCollection } from "../internal/addItemToCollection";
 import { registerMissingCollectionsAndTheirItems } from "../internal/registerMissingCollectionsAndTheirItems";
 import {
     getSequenceForFolder,
-    parseSequenceFromMetaBlock,
     normalizeDirectoryPath,
     CollectionWatcher,
     FileChangeType,
@@ -15,6 +14,7 @@ import {
     isCollectionItemWithSequence,
     Logger,
     AdditionalCollectionDataProvider,
+    getFolderSettingsFilePath,
 } from "../..";
 import { basename, dirname } from "path";
 import { promisify } from "util";
@@ -27,13 +27,17 @@ export interface NotificationData<T> {
     collection: Collection<T>;
     data: CollectionData<T>;
     updateType: FileChangeType;
-    changedData?: { sequenceChanged?: boolean; tagsChanged?: boolean };
+    changedData?: {
+        sequenceChanged?: boolean;
+        tagsChanged?: boolean;
+        additionalDataChanged?: boolean;
+    };
 }
 
 export class CollectionItemProvider<T> {
     constructor(
         collectionWatcher: CollectionWatcher,
-        private additionalCollectionDataProviders: AdditionalCollectionDataProvider<T>,
+        private additionalDataProvider: AdditionalCollectionDataProvider<T>,
         private filePathsToIgnore: RegExp[],
         private logger?: Logger,
     ) {
@@ -184,7 +188,7 @@ export class CollectionItemProvider<T> {
             this.collectionRegistry,
             workSpaceFolders,
             this.filePathsToIgnore,
-            this.additionalCollectionDataProviders,
+            this.additionalDataProvider,
         );
 
         const endTime = performance.now();
@@ -229,6 +233,7 @@ export class CollectionItemProvider<T> {
                 stats.isDirectory()
                     ? new CollectionDirectory(
                           itemPath,
+                          await getFolderSettingsFilePath(false, itemPath),
                           await getSequenceForFolder(
                               registeredCollection.getRootDirectory(),
                               itemPath,
@@ -242,11 +247,14 @@ export class CollectionItemProvider<T> {
             return;
         }
 
-        const collectionData = addItemToCollection(
-            registeredCollection,
-            item,
-            this.additionalCollectionDataProviders,
-        );
+        const collectionData = await addItemToCollection({
+            collection: registeredCollection,
+            path: itemPath,
+            additionalDataProvider: this.additionalDataProvider,
+        });
+        if (!collectionData) {
+            return;
+        }
 
         await this.handleOutboundNotification({
             collection: registeredCollection,
@@ -273,7 +281,7 @@ export class CollectionItemProvider<T> {
                 parentFolderData &&
                 isCollectionItemWithSequence(parentFolderData.item)
             ) {
-                this.handleFolderSequenceUpdate(
+                await this.handleFolderSettingsUpdate(
                     registeredCollectionForItem,
                     parentFolderData.item,
                 );
@@ -310,10 +318,9 @@ export class CollectionItemProvider<T> {
                 parentFolderData &&
                 isCollectionItemWithSequence(parentFolderData.item)
             ) {
-                this.handleFolderSequenceUpdate(
+                await this.handleFolderSettingsUpdate(
                     registeredCollectionForItem,
                     parentFolderData.item,
-                    await parseSequenceFromMetaBlock(itemPath),
                 );
             }
         } else if (
@@ -334,55 +341,74 @@ export class CollectionItemProvider<T> {
                 return;
             }
 
-            addItemToCollection(
-                registeredCollectionForItem,
-                newItem,
-                this.additionalCollectionDataProviders,
-            );
+            addItemToCollection({
+                collection: registeredCollectionForItem,
+                path: itemPath,
+                additionalDataProvider: this.additionalDataProvider,
+            });
 
             const {
                 details: {
                     sequenceOutdated: isSequenceOutdated,
                     tagsOutdated: areTagsOutdated,
+                    additionalDataOutdated: isAdditionalDataOutdated,
                 },
-            } = isModifiedItemOutdated(modifiedItem, newItem);
+            } = isModifiedItemOutdated(
+                modifiedItem,
+                newItem,
+                this.additionalDataProvider.paramType,
+            );
 
             await this.handleOutboundNotification({
                 collection: registeredCollectionForItem,
                 data: { item: newItem, additionalData },
                 updateType: FileChangeType.Modified,
                 changedData:
-                    isSequenceOutdated || areTagsOutdated
+                    isSequenceOutdated ||
+                    areTagsOutdated ||
+                    isAdditionalDataOutdated
                         ? {
                               sequenceChanged: isSequenceOutdated,
                               tagsChanged: areTagsOutdated,
+                              additionalDataChanged: isAdditionalDataOutdated,
                           }
                         : undefined,
             });
         }
     }
 
-    private handleFolderSequenceUpdate(
+    private async handleFolderSettingsUpdate(
         collection: Collection<T>,
         oldFolderItem: CollectionItemWithSequence,
-        newSequence?: number,
     ) {
         const folderPath = oldFolderItem.getPath();
-        const oldSequence = oldFolderItem.getSequence();
 
         collection.removeTestItemIfRegistered(folderPath);
+        const newCollectionData = await addItemToCollection({
+            collection,
+            path: folderPath,
+            additionalDataProvider: this.additionalDataProvider,
+        });
+        if (!newCollectionData) {
+            return;
+        }
 
-        const newFolderItem = new CollectionDirectory(folderPath, newSequence);
+        const {
+            details: { sequenceOutdated, additionalDataOutdated },
+        } = isModifiedItemOutdated(
+            oldFolderItem,
+            newCollectionData.item,
+            this.additionalDataProvider.paramType,
+        );
 
         this.handleOutboundNotification({
             collection,
-            data: addItemToCollection(
-                collection,
-                newFolderItem,
-                this.additionalCollectionDataProviders,
-            ),
+            data: newCollectionData,
             updateType: FileChangeType.Modified,
-            changedData: { sequenceChanged: oldSequence != newSequence },
+            changedData: {
+                sequenceChanged: sequenceOutdated,
+                additionalDataChanged: additionalDataOutdated,
+            },
         });
     }
 

@@ -77,17 +77,10 @@ function isAdditionalDataUpToDate(
     return (
         isCollectionItemWithBruVariables(alreadyRegisteredItem) &&
         isCollectionItemWithBruVariables(newItem) &&
-        alreadyRegisteredItem.getVariableReferences().length ==
-            newItem.getVariableReferences().length &&
-        alreadyRegisteredItem
-            .getVariableReferences()
-            .every((oldRef) =>
-                newItem
-                    .getVariableReferences()
-                    .some((newRef) =>
-                        areVariableReferencesEquivalent(oldRef, newRef),
-                    ),
-            )
+        areVariableReferencesEquivalent(
+            alreadyRegisteredItem.getVariableReferences(),
+            newItem.getVariableReferences(),
+        )
     );
 }
 

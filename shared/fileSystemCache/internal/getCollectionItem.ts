@@ -8,8 +8,6 @@ import {
     parseBlockFromFile,
     RequestFileBlockName,
     isDictionaryBlockField,
-    MetaBlockKey,
-    isDictionaryBlockArrayField,
     Collection,
     BrunoRequestFile,
     BrunoFileType,
@@ -18,14 +16,14 @@ import {
     NonBrunoFile,
     getItemType,
     DictionaryBlockSimpleField,
-    Block,
-    DictionaryBlockArrayField,
     getValidDictionaryBlocksWithName,
-    CollectionDirectory,
     getFolderSettingsFilePath,
+    BrunoFolderSettingsFile,
+    getSequenceAndTagsFromMetaBlock,
+    getAllVariablesFromBlocks,
 } from "../..";
 import { readFile } from "fs";
-import { dirname } from "path";
+import { createCollectionDirectoryInstance } from "./createCollectionDirectoryInstance";
 
 export async function getCollectionItem<T>(
     collection: Collection<T>,
@@ -43,15 +41,11 @@ export async function getCollectionItem<T>(
             return await createCollectionDirectoryInstance(
                 path,
                 includeAdditionalData,
-                await getFolderSettingsFilePath(path),
+                await getFolderSettingsFilePath(false, path),
             );
         case BrunoFileType.CollectionSettingsFile:
         case BrunoFileType.FolderSettingsFile:
-            return await createCollectionDirectoryInstance(
-                dirname(path),
-                includeAdditionalData,
-                path,
-            );
+            return new BrunoFolderSettingsFile(path);
         case BrunoFileType.EnvironmentFile:
             return await createEnvironmentFileInstance(path);
         case BrunoFileType.RequestFile:
@@ -59,64 +53,6 @@ export async function getCollectionItem<T>(
         case NonBrunoSpecificItemType.OtherFileType:
             return new NonBrunoFile(path);
     }
-}
-
-async function createCollectionDirectoryInstance(
-    folderPath: string,
-    includeAdditionalData: boolean,
-    folderSettingsFilePath?: string,
-) {
-    if (!folderSettingsFilePath) {
-        return new CollectionDirectory(folderPath);
-    }
-
-    if (!includeAdditionalData) {
-        const settingsContent = await getFileContent(folderSettingsFilePath);
-
-        if (settingsContent === undefined) {
-            return undefined;
-        }
-
-        const metaBlockContent = parseBlockFromFile(
-            new TextDocumentHelper(settingsContent),
-            RequestFileBlockName.Meta,
-        );
-
-        const isDictionaryBlock =
-            Array.isArray(metaBlockContent) &&
-            metaBlockContent.every((field) => isDictionaryBlockField(field));
-
-        if (!isDictionaryBlock) {
-            return new CollectionDirectory(folderPath);
-        }
-
-        const { sequence } = getSequenceAndTagsFromMetaBlock(metaBlockContent);
-        return new CollectionDirectory(folderPath, sequence);
-    }
-
-    const settingsFileBlocks = await parseFile(folderSettingsFilePath);
-    const metaBlocks = settingsFileBlocks
-        ? getValidDictionaryBlocksWithName(
-              settingsFileBlocks,
-              RequestFileBlockName.Meta,
-          )
-        : [];
-
-    if (
-        !settingsFileBlocks ||
-        metaBlocks.length != 1 ||
-        !Array.isArray(metaBlocks[0].content) ||
-        metaBlocks[0].content.some((field) => !isDictionaryBlockField(field))
-    ) {
-        return new CollectionDirectory(folderPath);
-    }
-
-    const { sequence } = getSequenceAndTagsFromMetaBlock(metaBlocks[0].content);
-
-    const variables = settingsFileBlocks
-        ? getAllVariablesFromBlocks(settingsFileBlocks)
-        : [];
-    return new CollectionDirectory(folderPath, sequence, variables);
 }
 
 async function createEnvironmentFileInstance(path: string) {
@@ -210,32 +146,4 @@ async function getFileContent(path: string) {
     return await promisify(readFile)(path, {
         encoding: "utf-8",
     }).catch(() => undefined);
-}
-
-function getSequenceAndTagsFromMetaBlock(
-    fields: (DictionaryBlockSimpleField | DictionaryBlockArrayField)[],
-) {
-    const sequenceField = fields.find(
-        ({ key, disabled }) => key == MetaBlockKey.Sequence && !disabled,
-    );
-    const tagsField = fields.find(
-        ({ key, disabled }) => key == MetaBlockKey.Tags && !disabled,
-    );
-
-    return {
-        sequence:
-            sequenceField &&
-            isDictionaryBlockSimpleField(sequenceField) &&
-            !isNaN(Number(sequenceField.value))
-                ? Number(sequenceField.value)
-                : undefined,
-        tags:
-            tagsField && isDictionaryBlockArrayField(tagsField)
-                ? tagsField.values.map(({ content }) => content)
-                : undefined,
-    };
-}
-
-function getAllVariablesFromBlocks(blocks: Block[]) {
-    return blocks.flatMap(({ variableReferences }) => variableReferences ?? []);
 }
