@@ -1,9 +1,8 @@
 import {
+    AdditionalCollectionDataProvider,
     AdditionalCollectionDataProviderType,
-    areVariableReferencesEquivalent,
     BrunoRequestFile,
-    CollectionItem,
-    isCollectionItemWithBruVariables,
+    CollectionData,
     isCollectionItemWithSequence,
     isRequestFile,
 } from "../..";
@@ -14,33 +13,33 @@ export interface OutdatedPropertyDetails {
     tagsOutdated?: boolean;
 }
 
-export function isModifiedItemOutdated(
-    alreadyRegisteredItem: CollectionItem,
-    newItem: CollectionItem,
-    additionalDataProviderType: AdditionalCollectionDataProviderType,
-): { isOutdated: boolean; details: OutdatedPropertyDetails } {
-    const isSequenceOutdated =
-        isCollectionItemWithSequence(newItem) &&
-        isCollectionItemWithSequence(alreadyRegisteredItem) &&
-        alreadyRegisteredItem.getSequence() != newItem.getSequence();
+export function isModifiedItemOutdated<T>(
+    alreadyRegisteredData: CollectionData<T>,
+    newData: CollectionData<T>,
+    additionalDataProvider: AdditionalCollectionDataProvider<T>,
+): { isOutdated: boolean; details?: OutdatedPropertyDetails } {
+    const { item: oldItem } = alreadyRegisteredData;
+    const { item: newItem } = newData;
 
-    const isOutdatedDueToAdditionaData = !isAdditionalDataUpToDate(
-        alreadyRegisteredItem,
-        newItem,
-        additionalDataProviderType,
-    );
-
-    if (!isRequestFile(alreadyRegisteredItem) || !isRequestFile(newItem)) {
-        return {
-            isOutdated: isSequenceOutdated || isOutdatedDueToAdditionaData,
-            details: {
-                sequenceOutdated: isSequenceOutdated,
-                additionalDataOutdated: isOutdatedDueToAdditionaData,
-            },
-        };
+    if (oldItem.getItemType() != newItem.getItemType()) {
+        return { isOutdated: true };
     }
 
-    const areTagsOutdated = !areTagsUpToDate(alreadyRegisteredItem, newItem);
+    const isSequenceOutdated =
+        isCollectionItemWithSequence(newItem) &&
+        isCollectionItemWithSequence(oldItem) &&
+        oldItem.getSequence() != newItem.getSequence();
+
+    const areTagsOutdated =
+        isRequestFile(oldItem) &&
+        isRequestFile(newItem) &&
+        !areTagsUpToDate(oldItem, newItem);
+
+    const isOutdatedDueToAdditionaData = !isAdditionalDataUpToDate(
+        alreadyRegisteredData.additionalData,
+        newData.additionalData,
+        additionalDataProvider,
+    );
 
     return {
         isOutdated:
@@ -55,33 +54,22 @@ export function isModifiedItemOutdated(
     };
 }
 
-function isAdditionalDataUpToDate(
-    alreadyRegisteredItem: CollectionItem,
-    newItem: CollectionItem,
-    additionalDataProviderType: AdditionalCollectionDataProviderType,
+function isAdditionalDataUpToDate<T>(
+    oldData: T,
+    newData: T,
+    additionalDataProvider: AdditionalCollectionDataProvider<T>,
 ) {
     if (
-        additionalDataProviderType !=
-        AdditionalCollectionDataProviderType.WithAdditionalData
+        additionalDataProvider.paramType ==
+        AdditionalCollectionDataProviderType.SimpleCollectionItem
     ) {
+        // For the simple collection item provider type, the additional data only depends on the item.
+        // So the additional data cannot be outdated while the item isn't.
         return true;
     }
 
-    if (
-        !isCollectionItemWithBruVariables(alreadyRegisteredItem) &&
-        !isCollectionItemWithBruVariables(newItem)
-    ) {
-        return true;
-    }
-
-    return (
-        isCollectionItemWithBruVariables(alreadyRegisteredItem) &&
-        isCollectionItemWithBruVariables(newItem) &&
-        areVariableReferencesEquivalent(
-            alreadyRegisteredItem.getVariableReferences(),
-            newItem.getVariableReferences(),
-        )
-    );
+    const { isAdditionalDataOutdated } = additionalDataProvider;
+    return isAdditionalDataOutdated(oldData, newData);
 }
 
 function areTagsUpToDate(

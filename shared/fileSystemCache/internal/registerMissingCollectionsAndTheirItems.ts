@@ -3,11 +3,9 @@ import {
     getAllCollectionRootDirectories,
     Collection,
     AdditionalCollectionDataProvider,
-    AdditionalCollectionDataProviderType,
     getFolderSettingsFilePath,
-    parseBruFile,
-    TextDocumentHelper,
     CollectionDirectory,
+    getAdditionalCollectionData,
 } from "../..";
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
@@ -87,14 +85,17 @@ async function registerAllExistingCollections<T>(
                     rootDirectory,
                     await getFolderSettingsFilePath(true, rootDirectory),
                 );
-                if (!rootFolderItem) {
+
+                const collection = rootFolderItem
+                    ? await createCollectionInstance(
+                          rootFolderItem,
+                          additionalDataProvider,
+                      )
+                    : undefined;
+
+                if (!collection) {
                     return undefined;
                 }
-
-                const collection = createCollectionInstance(
-                    rootFolderItem,
-                    additionalDataProvider,
-                );
 
                 if (
                     !registry
@@ -121,20 +122,16 @@ function shouldPathBeIgnored(filePathsToIgnore: RegExp[], path: string) {
     );
 }
 
-function createCollectionInstance<T>(
+async function createCollectionInstance<T>(
     rootFolderItem: CollectionDirectory,
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
 ) {
-    if (
-        additionalDataProvider.paramType ==
-        AdditionalCollectionDataProviderType.SimpleCollectionItem
-    ) {
-        return new Collection(rootFolderItem, {
-            provider: additionalDataProvider,
-        });
-    }
-    new Collection(rootFolderItem, {
-        parsedFileData: parseBruFile(new TextDocumentHelper(a)),
-        provider: additionalDataProvider,
-    });
+    const additionalData = await getAdditionalCollectionData(
+        rootFolderItem,
+        additionalDataProvider,
+    );
+
+    return additionalData
+        ? new Collection(rootFolderItem, additionalData)
+        : undefined;
 }

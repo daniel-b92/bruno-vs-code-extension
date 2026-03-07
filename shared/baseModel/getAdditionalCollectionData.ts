@@ -1,42 +1,48 @@
+import { promisify } from "util";
 import {
     AdditionalCollectionComplexDataProvider,
     AdditionalCollectionDataProviderType,
     AdditionalCollectionSimpleDataProvider,
     CollectionItem,
-    ParsedFileDataForComplexProvider,
+    parseBruFile,
+    TextDocumentHelper,
 } from "..";
+import { readFile } from "fs";
 
-export function getAdditionalCollectionData<T>(
+export async function getAdditionalCollectionData<T>(
     item: CollectionItem,
     additionalDataProvider:
-        | { provider: AdditionalCollectionSimpleDataProvider<T> }
-        | {
-              parsedFileData: ParsedFileDataForComplexProvider;
-              provider: AdditionalCollectionComplexDataProvider<T>;
-          },
+        | AdditionalCollectionSimpleDataProvider<T>
+        | AdditionalCollectionComplexDataProvider<T>,
 ) {
-    const { provider } = additionalDataProvider;
-
-    switch (provider.paramType) {
+    switch (additionalDataProvider.paramType) {
         case AdditionalCollectionDataProviderType.SimpleCollectionItem:
-            return provider.callback(item);
+            return additionalDataProvider.callback(item);
         case AdditionalCollectionDataProviderType.WithAdditionalData:
             const {
-                parsedFileData,
-                provider: {
-                    callbacksForItemsRequiringFullParsing: { getData },
-                    callbackForOtherItems,
-                    itemTypesRequiringFullFileParsing,
+                callbacksForItemsRequiringFullParsing: {
+                    getData,
+                    getFilePathForParsing,
                 },
-            } = additionalDataProvider as {
-                parsedFileData: ParsedFileDataForComplexProvider;
-                provider: AdditionalCollectionComplexDataProvider<T>;
-            };
+                callbackForOtherItems,
+                itemTypesRequiringFullFileParsing,
+            } = additionalDataProvider;
 
-            return itemTypesRequiringFullFileParsing.includes(
-                item.getItemType(),
-            )
-                ? getData(parsedFileData)
-                : callbackForOtherItems(item);
+            if (
+                !itemTypesRequiringFullFileParsing.includes(item.getItemType())
+            ) {
+                return callbackForOtherItems(item);
+            }
+
+            const parsedFileData = await parseFile(getFilePathForParsing(item));
+            return parsedFileData ? getData(parsedFileData) : undefined;
     }
+}
+
+async function parseFile(path: string) {
+    const content = await promisify(readFile)(path, {
+        encoding: "utf-8",
+    }).catch(() => undefined);
+
+    return content ? parseBruFile(new TextDocumentHelper(content)) : undefined;
 }

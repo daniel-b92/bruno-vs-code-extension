@@ -1,30 +1,18 @@
 import {
-    AdditionalCollectionComplexDataProvider,
-    AdditionalCollectionSimpleDataProvider,
     CollectionData,
     CollectionDirectory,
     CollectionItem,
-    getAdditionalCollectionData,
     normalizeDirectoryPath,
-    ParsedFileDataForComplexProvider,
 } from "..";
 
 export class Collection<T> {
     constructor(
         private rootFolderItem: CollectionDirectory,
-        additionalDataProvider:
-            | { provider: AdditionalCollectionSimpleDataProvider<T> }
-            | {
-                  parsedFileData: ParsedFileDataForComplexProvider;
-                  provider: AdditionalCollectionComplexDataProvider<T>;
-              },
+        rootFolderAdditionalData: T,
     ) {
         this.testData.push({
             item: rootFolderItem,
-            additionalData: getAdditionalCollectionData(
-                rootFolderItem,
-                additionalDataProvider,
-            ),
+            additionalData: rootFolderAdditionalData,
         });
     }
 

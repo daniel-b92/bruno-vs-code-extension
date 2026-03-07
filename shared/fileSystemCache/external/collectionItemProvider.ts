@@ -10,7 +10,6 @@ import {
     Collection,
     CollectionData,
     CollectionDirectory,
-    CollectionItemWithSequence,
     isCollectionItemWithSequence,
     Logger,
     AdditionalCollectionDataProvider,
@@ -283,7 +282,7 @@ export class CollectionItemProvider<T> {
             ) {
                 await this.handleFolderSettingsUpdate(
                     registeredCollectionForItem,
-                    parentFolderData.item,
+                    parentFolderData,
                 );
             }
         }
@@ -301,7 +300,7 @@ export class CollectionItemProvider<T> {
         registeredCollectionForItem: Collection<T>,
         collectionData: CollectionData<T>,
     ) {
-        const { item: modifiedItem, additionalData } = collectionData;
+        const { item: modifiedItem } = collectionData;
         const itemPath = modifiedItem.getPath();
 
         if (!modifiedItem.isFile()) {
@@ -320,7 +319,7 @@ export class CollectionItemProvider<T> {
             ) {
                 await this.handleFolderSettingsUpdate(
                     registeredCollectionForItem,
-                    parentFolderData.item,
+                    parentFolderData,
                 );
             }
         } else if (
@@ -328,60 +327,51 @@ export class CollectionItemProvider<T> {
             (isCollectionItemWithSequence(modifiedItem) &&
                 modifiedItem.getItemType() == BrunoFileType.RequestFile)
         ) {
-            const newItem = await getCollectionItem(
-                registeredCollectionForItem,
-                itemPath,
-            );
-
             registeredCollectionForItem.removeTestItemAndDescendants(
                 modifiedItem,
             );
 
-            if (!newItem) {
-                return;
-            }
-
-            addItemToCollection({
+            const newData = await addItemToCollection({
                 collection: registeredCollectionForItem,
                 path: itemPath,
                 additionalDataProvider: this.additionalDataProvider,
             });
 
-            const {
-                details: {
-                    sequenceOutdated: isSequenceOutdated,
-                    tagsOutdated: areTagsOutdated,
-                    additionalDataOutdated: isAdditionalDataOutdated,
-                },
-            } = isModifiedItemOutdated(
-                modifiedItem,
-                newItem,
-                this.additionalDataProvider.paramType,
+            if (!newData) {
+                return;
+            }
+
+            const { details } = isModifiedItemOutdated(
+                collectionData,
+                newData,
+                this.additionalDataProvider,
             );
 
             await this.handleOutboundNotification({
                 collection: registeredCollectionForItem,
-                data: { item: newItem, additionalData },
+                data: newData,
                 updateType: FileChangeType.Modified,
-                changedData:
-                    isSequenceOutdated ||
-                    areTagsOutdated ||
-                    isAdditionalDataOutdated
-                        ? {
-                              sequenceChanged: isSequenceOutdated,
-                              tagsChanged: areTagsOutdated,
-                              additionalDataChanged: isAdditionalDataOutdated,
-                          }
-                        : undefined,
+                changedData: !details
+                    ? undefined
+                    : details.sequenceOutdated ||
+                        details.tagsOutdated ||
+                        details.additionalDataOutdated
+                      ? {
+                            sequenceChanged: details.sequenceOutdated,
+                            tagsChanged: details.tagsOutdated,
+                            additionalDataChanged:
+                                details.additionalDataOutdated,
+                        }
+                      : undefined,
             });
         }
     }
 
     private async handleFolderSettingsUpdate(
         collection: Collection<T>,
-        oldFolderItem: CollectionItemWithSequence,
+        oldFolderData: CollectionData<T>,
     ) {
-        const folderPath = oldFolderItem.getPath();
+        const folderPath = oldFolderData.item.getPath();
 
         collection.removeTestItemIfRegistered(folderPath);
         const newCollectionData = await addItemToCollection({
@@ -393,22 +383,22 @@ export class CollectionItemProvider<T> {
             return;
         }
 
-        const {
-            details: { sequenceOutdated, additionalDataOutdated },
-        } = isModifiedItemOutdated(
-            oldFolderItem,
-            newCollectionData.item,
-            this.additionalDataProvider.paramType,
+        const { details } = isModifiedItemOutdated(
+            oldFolderData,
+            newCollectionData,
+            this.additionalDataProvider,
         );
 
         this.handleOutboundNotification({
             collection,
             data: newCollectionData,
             updateType: FileChangeType.Modified,
-            changedData: {
-                sequenceChanged: sequenceOutdated,
-                additionalDataChanged: additionalDataOutdated,
-            },
+            changedData: !details
+                ? undefined
+                : {
+                      sequenceChanged: details.sequenceOutdated,
+                      additionalDataChanged: details.additionalDataOutdated,
+                  },
         });
     }
 

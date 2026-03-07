@@ -32,6 +32,7 @@ export interface AdditionalCollectionComplexDataProvider<T> {
         getData: (parsedFile: ParsedFileDataForComplexProvider) => T;
     };
     callbackForOtherItems: (item: CollectionItem) => T;
+    isAdditionalDataOutdated: (oldData: T, newData: T) => boolean;
 }
 
 export interface ParsedFileDataForComplexProvider {

@@ -86,18 +86,12 @@ async function getCollectionData<T>(params: {
 
 function handleAlreadyRegisteredItemWithSamePath<T>(
     collection: Collection<T>,
-    { item: alreadyRegisteredItem }: CollectionData<T>,
+    oldData: CollectionData<T>,
     newData: CollectionData<T>,
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
 ) {
-    if (
-        isModifiedItemOutdated(
-            alreadyRegisteredItem,
-            newData.item,
-            additionalDataProvider.paramType,
-        )
-    ) {
-        collection.removeTestItemIfRegistered(alreadyRegisteredItem.getPath());
+    if (isModifiedItemOutdated(oldData, newData, additionalDataProvider)) {
+        collection.removeTestItemIfRegistered(oldData.item.getPath());
         collection.addItem(newData);
     }
 }

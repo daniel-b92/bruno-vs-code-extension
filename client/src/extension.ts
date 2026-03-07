@@ -35,6 +35,8 @@ import {
     isCollectionItemWithSequence,
     CollectionItemProvider,
     getPathsToIgnoreForCollections,
+    AdditionalCollectionSimpleDataProvider,
+    AdditionalCollectionDataProviderType,
 } from "@global_shared";
 import { BrunoTreeItem } from "./treeView/brunoTreeItem";
 
@@ -174,7 +176,7 @@ function createNeededHandlers(context: ExtensionContext) {
     const collectionItemProvider =
         new CollectionItemProvider<AdditionalCollectionData>(
             collectionWatcher,
-            getAdditionalCollectionDataCreator(testRunnerDataHelper),
+            getAdditionalCollectionDataProvider(testRunnerDataHelper),
             getPathsToIgnoreForCollections(),
             logger,
         );
@@ -215,18 +217,23 @@ function createNeededHandlers(context: ExtensionContext) {
     };
 }
 
-function getAdditionalCollectionDataCreator(
+function getAdditionalCollectionDataProvider(
     testRunnerDataHelper: TestRunnerDataHelper,
-) {
-    return (item: CollectionItem) => ({
-        treeItem: new BrunoTreeItem(
-            item.getPath(),
-            item.isFile(),
-            isCollectionItemWithSequence(item) ? item.getSequence() : undefined,
-            isRequestFile(item) ? item.getTags() : undefined,
-        ),
-        testItem: testRunnerDataHelper.createVsCodeTestItem(item),
-    });
+): AdditionalCollectionSimpleDataProvider<AdditionalCollectionData> {
+    return {
+        paramType: AdditionalCollectionDataProviderType.SimpleCollectionItem,
+        callback: (item: CollectionItem) => ({
+            treeItem: new BrunoTreeItem(
+                item.getPath(),
+                item.isFile(),
+                isCollectionItemWithSequence(item)
+                    ? item.getSequence()
+                    : undefined,
+                isRequestFile(item) ? item.getTags() : undefined,
+            ),
+            testItem: testRunnerDataHelper.createVsCodeTestItem(item),
+        }),
+    };
 }
 
 function getExtensionNameLabel() {
