@@ -7,6 +7,7 @@ import {
     Block,
     Logger,
     VariableReferenceType,
+    BrunoVariableReference,
 } from "@global_shared";
 import { CancellationToken } from "vscode-languageserver";
 
@@ -17,7 +18,10 @@ export type TypedCollection = Collection<AdditionalCollectionData>;
 
 export type TypedCollectionData = CollectionData<AdditionalCollectionData>;
 
-export type AdditionalCollectionData = void;
+export type AdditionalCollectionData = {
+    blockName: string;
+    references: BrunoVariableReference[];
+}[];
 
 export interface LanguageRequestWithTestEnvironmentInfo {
     baseRequest: LanguageFeatureBaseRequest;

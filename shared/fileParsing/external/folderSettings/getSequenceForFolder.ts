@@ -22,7 +22,10 @@ export async function getSequenceForFolder(
         return undefined;
     }
 
-    const folderSettingsFile = await getFolderSettingsFilePath(folderPath);
+    const folderSettingsFile = await getFolderSettingsFilePath(
+        false,
+        folderPath,
+    );
 
     return folderSettingsFile
         ? await parseSequenceFromMetaBlock(folderSettingsFile)

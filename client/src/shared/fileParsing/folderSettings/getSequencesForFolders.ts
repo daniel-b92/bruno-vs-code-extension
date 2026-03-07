@@ -38,7 +38,10 @@ export async function getSequencesForFolders(
             allChildFolderItems.map(async (folderPath) => {
                 return {
                     folderPath,
-                    settingsFile: await getFolderSettingsFilePath(folderPath),
+                    settingsFile: await getFolderSettingsFilePath(
+                        false,
+                        folderPath,
+                    ),
                     sequence: await getSequenceForFolder(
                         collection.getRootDirectory(),
                         folderPath,

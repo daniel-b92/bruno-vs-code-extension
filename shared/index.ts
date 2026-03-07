@@ -47,11 +47,12 @@ export * from "./fileParsing/external/requestFiles/getMaxSequenceForRequests";
 // model
 export * from "./baseModel/collection";
 export * from "./baseModel/collectionDirectory";
+export * from "./baseModel/interfaces";
+export * from "./baseModel/getAdditionalCollectionData";
 export * from "./baseModel/files/brunoRequestFile";
-export * from "./baseModel/files/brunoFolderSettingsFile";
 export * from "./baseModel/files/brunoEnvironmentFile";
 export * from "./baseModel/files/nonBrunoFile";
-export * from "./baseModel/interfaces";
+export * from "./baseModel/files/brunoFolderSettingsFile";
 export * from "./baseModel/typeguards/isCollectionItemWithSequence";
 export * from "./baseModel/typeguards/isRequestFile";
 
@@ -64,6 +65,7 @@ export * from "./vsCodeSettings/getEnvironmentSettingsKey";
 // language utils
 export * from "./languageUtils/blockInterfaces";
 export * from "./languageUtils/contentInterfaces";
+export * from "./languageUtils/areVariableReferencesEquivalent";
 
 // language utils - request files
 export * from "./languageUtils/requestFiles/requestFileBlockNameEnum";
@@ -84,11 +86,14 @@ export * from "./languageUtils/commonBlocks/getMethodBlockBodyFieldValueForBodyN
 export * from "./languageUtils/commonBlocks/getExpectedUrlQueryParamsForQueryParamsBlock";
 export * from "./languageUtils/commonBlocks/getPathParamsFromPathParamsBlock";
 export * from "./languageUtils/commonBlocks/settingsFileSpecificBlockEnum";
+export * from "./languageUtils/commonBlocks/getAllVariablesFromBlocks";
 
 export * from "./languageUtils/commonBlocks/metaBlock/metaBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/metaBlock/requestTypeEnum";
 export * from "./languageUtils/commonBlocks/metaBlock/getActiveFieldFromMetaBlock";
 export * from "./languageUtils/commonBlocks/metaBlock/metaBlockKeyEnum";
+export * from "./languageUtils/commonBlocks/metaBlock/getSequenceValueFromMetaBlock";
+export * from "./languageUtils/commonBlocks/metaBlock/getSequenceAndTagsFromMetaBlock";
 
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockAuthEnum";

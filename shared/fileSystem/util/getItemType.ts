@@ -1,4 +1,4 @@
-import { basename, dirname, extname } from "path";
+import { dirname, extname } from "path";
 import { promisify } from "util";
 import { lstat } from "fs";
 import {
@@ -12,6 +12,7 @@ import {
     ItemType,
     NonBrunoSpecificItemType,
 } from "../..";
+import { doesFileNameMatchCollectionSettingsFile } from "./doesFileNameMatchCollectionSettingsFile";
 
 export async function getItemType<T>(
     collection: Collection<T>,
@@ -42,7 +43,7 @@ export async function getItemType<T>(
         return BrunoFileType.EnvironmentFile;
     } else if (
         isChildElementOfCollectionRootDirectory(collection, path) &&
-        doesNameMatchCollectionSettingsFile(path)
+        doesFileNameMatchCollectionSettingsFile(path)
     ) {
         return BrunoFileType.CollectionSettingsFile;
     } else if (
@@ -63,8 +64,4 @@ function isChildElementOfCollectionRootDirectory<T>(
         normalizeDirectoryPath(collection.getRootDirectory()) ==
         normalizeDirectoryPath(dirname(path))
     );
-}
-
-function doesNameMatchCollectionSettingsFile(path: string) {
-    return basename(path) == "collection.bru";
 }

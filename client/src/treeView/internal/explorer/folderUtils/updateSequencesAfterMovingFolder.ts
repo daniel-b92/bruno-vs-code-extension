@@ -26,8 +26,10 @@ export async function updateSequencesAfterMovingFolder(
     ) {
         const parentFolder = target.getPath();
         const newFolderPath = resolve(parentFolder, basename(sourcePath));
-        const newFolderSettingsFile =
-            await getFolderSettingsFilePath(newFolderPath);
+        const newFolderSettingsFile = await getFolderSettingsFilePath(
+            false,
+            newFolderPath,
+        );
 
         const newSequence =
             1 +
@@ -74,7 +76,7 @@ export async function updateSequencesAfterMovingFolder(
 
     for (const { folderPath, sequence: initialSequence } of filtered) {
         await replaceSequenceForFile(
-            (await getFolderSettingsFilePath(folderPath)) as string,
+            (await getFolderSettingsFilePath(false, folderPath)) as string,
             initialSequence + 1,
         );
     }
@@ -87,6 +89,7 @@ async function copyFolderSettingsFile(
     destinationFolder: string,
 ) {
     const targetFile = await getFolderSettingsFilePath(
+        false,
         sourceFolderItem.getPath(),
     );
 

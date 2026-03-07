@@ -1,28 +1,31 @@
 import {
-    getSequenceForFolder,
     normalizeDirectoryPath,
     getAllCollectionRootDirectories,
     Collection,
+    AdditionalCollectionDataProvider,
+    AdditionalCollectionDataProviderType,
+    getFolderSettingsFilePath,
+    parseBruFile,
+    TextDocumentHelper,
     CollectionDirectory,
-    CollectionItem,
 } from "../..";
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
 import { addItemToCollection } from "./addItemToCollection";
 import { lstat, readdir } from "fs";
 import { promisify } from "util";
-import { getCollectionFile } from "./getCollectionFile";
+import { createCollectionDirectoryInstance } from "./createCollectionDirectoryInstance";
 
 export async function registerMissingCollectionsAndTheirItems<T>(
     collectionRegistry: CollectionRegistry<T>,
     workspaceFolders: string[],
     filePathsToIgnore: RegExp[],
-    additionalDataCreator: (item: CollectionItem) => T,
+    additionalDataProvider: AdditionalCollectionDataProvider<T>,
 ) {
     const allCollections = await registerAllExistingCollections(
         collectionRegistry,
         workspaceFolders,
-        additionalDataCreator,
+        additionalDataProvider,
     );
 
     for (const collection of allCollections) {
@@ -52,23 +55,11 @@ export async function registerMissingCollectionsAndTheirItems<T>(
                     !collection.getStoredDataForPath(path) &&
                     !shouldPathBeIgnored(filePathsToIgnore, path)
                 ) {
-                    const item = isDirectory
-                        ? new CollectionDirectory(
-                              path,
-                              await getSequenceForFolder(
-                                  collection.getRootDirectory(),
-                                  path,
-                              ),
-                          )
-                        : await getCollectionFile(collection, path);
-
-                    if (item) {
-                        addItemToCollection<T>(
-                            collection,
-                            item,
-                            additionalDataCreator,
-                        );
-                    }
+                    addItemToCollection<T>({
+                        collection,
+                        path,
+                        additionalDataProvider,
+                    });
                 }
 
                 if (
@@ -85,35 +76,65 @@ export async function registerMissingCollectionsAndTheirItems<T>(
 async function registerAllExistingCollections<T>(
     registry: CollectionRegistry<T>,
     workspaceFolders: string[],
-    additionalDataCreator: (item: CollectionItem) => T,
+    additionalDataProvider: AdditionalCollectionDataProvider<T>,
 ) {
-    return (await getAllCollectionRootDirectories(workspaceFolders)).map(
-        (rootDirectory) => {
-            const collection = new Collection(
-                rootDirectory,
-                additionalDataCreator,
-            );
+    const rootFolders = await getAllCollectionRootDirectories(workspaceFolders);
 
-            if (
-                !registry
-                    .getRegisteredCollections()
-                    .some(
-                        (registered) =>
-                            normalizeDirectoryPath(
-                                registered.getRootDirectory(),
-                            ) == normalizeDirectoryPath(rootDirectory),
-                    )
-            ) {
-                registry.registerCollection(collection);
-            }
+    return (
+        await Promise.all(
+            rootFolders.map(async (rootDirectory) => {
+                const rootFolderItem = await createCollectionDirectoryInstance(
+                    rootDirectory,
+                    await getFolderSettingsFilePath(true, rootDirectory),
+                );
+                if (!rootFolderItem) {
+                    return undefined;
+                }
 
-            return collection;
-        },
-    );
+                const collection = createCollectionInstance(
+                    rootFolderItem,
+                    additionalDataProvider,
+                );
+
+                if (
+                    !registry
+                        .getRegisteredCollections()
+                        .some(
+                            (registered) =>
+                                normalizeDirectoryPath(
+                                    registered.getRootDirectory(),
+                                ) == normalizeDirectoryPath(rootDirectory),
+                        )
+                ) {
+                    registry.registerCollection(collection);
+                }
+
+                return collection;
+            }),
+        )
+    ).filter((val) => val != undefined);
 }
 
 function shouldPathBeIgnored(filePathsToIgnore: RegExp[], path: string) {
     return filePathsToIgnore.some((patternToIgnore) =>
         path.match(patternToIgnore),
     );
+}
+
+function createCollectionInstance<T>(
+    rootFolderItem: CollectionDirectory,
+    additionalDataProvider: AdditionalCollectionDataProvider<T>,
+) {
+    if (
+        additionalDataProvider.paramType ==
+        AdditionalCollectionDataProviderType.SimpleCollectionItem
+    ) {
+        return new Collection(rootFolderItem, {
+            provider: additionalDataProvider,
+        });
+    }
+    new Collection(rootFolderItem, {
+        parsedFileData: parseBruFile(new TextDocumentHelper(a)),
+        provider: additionalDataProvider,
+    });
 }

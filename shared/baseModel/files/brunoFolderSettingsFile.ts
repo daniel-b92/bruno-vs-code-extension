@@ -1,8 +1,7 @@
-import { BrunoFileType } from "../..";
-import { CollectionItem } from "../interfaces";
+import { BrunoFileType, CollectionItem } from "../interfaces";
 
 export class BrunoFolderSettingsFile implements CollectionItem {
-    constructor(private path: string) {}
+    constructor(private readonly path: string) {}
 
     public getPath() {
         return this.path;

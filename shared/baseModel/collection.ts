@@ -1,27 +1,37 @@
 import {
+    AdditionalCollectionComplexDataProvider,
+    AdditionalCollectionSimpleDataProvider,
     CollectionData,
     CollectionDirectory,
     CollectionItem,
+    getAdditionalCollectionData,
     normalizeDirectoryPath,
+    ParsedFileDataForComplexProvider,
 } from "..";
 
 export class Collection<T> {
     constructor(
-        private rootDirectory: string,
-        additionalDataCreator: (item: CollectionItem) => T,
+        private rootFolderItem: CollectionDirectory,
+        additionalDataProvider:
+            | { provider: AdditionalCollectionSimpleDataProvider<T> }
+            | {
+                  parsedFileData: ParsedFileDataForComplexProvider;
+                  provider: AdditionalCollectionComplexDataProvider<T>;
+              },
     ) {
-        const item = new CollectionDirectory(rootDirectory);
-
         this.testData.push({
-            item,
-            additionalData: additionalDataCreator(item),
+            item: rootFolderItem,
+            additionalData: getAdditionalCollectionData(
+                rootFolderItem,
+                additionalDataProvider,
+            ),
         });
     }
 
     private testData: CollectionData<T>[] = [];
 
     public getRootDirectory() {
-        return this.rootDirectory;
+        return this.rootFolderItem.getPath();
     }
 
     public isRootDirectory(path: string) {
@@ -47,7 +57,7 @@ export class Collection<T> {
         if (!this.removeTestItemIfRegistered(item.getPath())) {
             console.warn(
                 `Did not find collection item to be removed with path '${item.getPath()}' for collection root directory '${
-                    this.rootDirectory
+                    this.rootFolderItem
                 }'.`,
             );
             return;

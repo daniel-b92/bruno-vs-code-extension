@@ -1,18 +1,35 @@
-import { Collection, CollectionData, CollectionItem } from "../..";
+import { promisify } from "util";
+import {
+    AdditionalCollectionDataProviderType,
+    AdditionalCollectionDataProvider,
+    Collection,
+    CollectionData,
+    parseBruFile,
+    TextDocumentHelper,
+} from "../..";
+import { getCollectionItem } from "./getCollectionItem";
 import { isModifiedItemOutdated } from "./isModifiedItemOutdated";
+import { readFile } from "fs";
 
-export function addItemToCollection<T>(
-    collection: Collection<T>,
-    item: CollectionItem,
-    additionalDataCreator: (item: CollectionItem) => T,
-) {
-    const data: CollectionData<T> = {
-        item,
-        additionalData: additionalDataCreator(item),
-    };
+export async function addItemToCollection<T>(params: {
+    path: string;
+    collection: Collection<T>;
+    additionalDataProvider: AdditionalCollectionDataProvider<T>;
+}) {
+    const { additionalDataProvider, collection, path } = params;
+
+    const data = await getCollectionData({
+        path,
+        collection,
+        additionalDataProvider,
+    });
+
+    if (!data) {
+        return undefined;
+    }
 
     const registeredDataWithSamePath = collection.getStoredDataForPath(
-        item.getPath(),
+        data.item.getPath(),
     );
 
     if (!registeredDataWithSamePath) {
@@ -24,19 +41,71 @@ export function addItemToCollection<T>(
         collection,
         registeredDataWithSamePath,
         data,
+        additionalDataProvider,
     );
     return data;
+}
+
+async function getCollectionData<T>(params: {
+    path: string;
+    collection: Collection<T>;
+    additionalDataProvider: AdditionalCollectionDataProvider<T>;
+}): Promise<CollectionData<T> | undefined> {
+    const { additionalDataProvider, collection, path } = params;
+    const item = await getCollectionItem(collection, path);
+
+    if (!item) {
+        return undefined;
+    }
+
+    if (
+        additionalDataProvider.paramType ==
+        AdditionalCollectionDataProviderType.SimpleCollectionItem
+    ) {
+        return { item, additionalData: additionalDataProvider.callback(item) };
+    }
+
+    const {
+        callbacksForItemsRequiringFullParsing: {
+            getData,
+            getFilePathForParsing,
+        },
+        callbackForOtherItems,
+        itemTypesRequiringFullFileParsing,
+    } = additionalDataProvider;
+
+    if (itemTypesRequiringFullFileParsing.includes(item.getItemType())) {
+        const parsedFile = await parseFile(getFilePathForParsing(item));
+        return parsedFile
+            ? { item, additionalData: getData(parsedFile) }
+            : undefined;
+    }
+
+    return { item, additionalData: callbackForOtherItems(item) };
 }
 
 function handleAlreadyRegisteredItemWithSamePath<T>(
     collection: Collection<T>,
     { item: alreadyRegisteredItem }: CollectionData<T>,
     newData: CollectionData<T>,
+    additionalDataProvider: AdditionalCollectionDataProvider<T>,
 ) {
     if (
-        isModifiedItemOutdated(alreadyRegisteredItem, newData.item).isOutdated
+        isModifiedItemOutdated(
+            alreadyRegisteredItem,
+            newData.item,
+            additionalDataProvider.paramType,
+        )
     ) {
         collection.removeTestItemIfRegistered(alreadyRegisteredItem.getPath());
         collection.addItem(newData);
     }
+}
+
+async function parseFile(path: string) {
+    const content = await promisify(readFile)(path, {
+        encoding: "utf-8",
+    }).catch(() => undefined);
+
+    return content ? parseBruFile(new TextDocumentHelper(content)) : undefined;
 }

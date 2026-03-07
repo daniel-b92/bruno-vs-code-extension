@@ -1,10 +1,15 @@
-import { BrunoFileType, CollectionItemWithSequence } from "../..";
+import {
+    BrunoFileType,
+    BrunoVariableReference,
+    CollectionItemWithSequence,
+} from "../..";
 
 export class BrunoRequestFile implements CollectionItemWithSequence {
     constructor(
         private path: string,
         private sequence?: number,
         private tags?: string[],
+        private variableReferences?: BrunoVariableReference[],
     ) {}
 
     public getPath() {
@@ -25,5 +30,9 @@ export class BrunoRequestFile implements CollectionItemWithSequence {
 
     public getItemType() {
         return BrunoFileType.RequestFile;
+    }
+
+    public getVariableReferences() {
+        return this.variableReferences ?? [];
     }
 }
