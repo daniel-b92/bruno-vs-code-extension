@@ -16,11 +16,9 @@ import {
     NonBrunoFile,
     getItemType,
     DictionaryBlockSimpleField,
-    getValidDictionaryBlocksWithName,
     getFolderSettingsFilePath,
     BrunoFolderSettingsFile,
     getSequenceAndTagsFromMetaBlock,
-    getAllVariablesFromBlocks,
 } from "../..";
 import { readFile } from "fs";
 import { createCollectionDirectoryInstance } from "./createCollectionDirectoryInstance";
@@ -28,7 +26,6 @@ import { createCollectionDirectoryInstance } from "./createCollectionDirectoryIn
 export async function getCollectionItem<T>(
     collection: Collection<T>,
     path: string,
-    includeAdditionalData = false,
 ) {
     const itemType = await getItemType(collection, path);
 
@@ -40,7 +37,6 @@ export async function getCollectionItem<T>(
         case NonBrunoSpecificItemType.Directory:
             return await createCollectionDirectoryInstance(
                 path,
-                includeAdditionalData,
                 await getFolderSettingsFilePath(false, path),
             );
         case BrunoFileType.CollectionSettingsFile:
@@ -49,7 +45,7 @@ export async function getCollectionItem<T>(
         case BrunoFileType.EnvironmentFile:
             return await createEnvironmentFileInstance(path);
         case BrunoFileType.RequestFile:
-            return await createRequestFileInstance(path, includeAdditionalData);
+            return await createRequestFileInstance(path);
         case NonBrunoSpecificItemType.OtherFileType:
             return new NonBrunoFile(path);
     }
@@ -80,58 +76,29 @@ async function createEnvironmentFileInstance(path: string) {
     );
 }
 
-async function createRequestFileInstance(
-    path: string,
-    includeAdditionalData: boolean,
-) {
-    if (!includeAdditionalData) {
-        const fileContent = await getFileContent(path);
+async function createRequestFileInstance(path: string) {
+    const fileContent = await getFileContent(path);
 
-        if (fileContent === undefined) {
-            return undefined;
-        }
-
-        const metaBlockContent = parseBlockFromFile(
-            new TextDocumentHelper(fileContent),
-            RequestFileBlockName.Meta,
-        );
-
-        const isDictionaryBlock =
-            Array.isArray(metaBlockContent) &&
-            metaBlockContent.every((field) => isDictionaryBlockField(field));
-
-        if (!isDictionaryBlock) {
-            return new BrunoRequestFile(path);
-        }
-
-        const { sequence, tags } =
-            getSequenceAndTagsFromMetaBlock(metaBlockContent);
-        return new BrunoRequestFile(path, sequence, tags);
+    if (fileContent === undefined) {
+        return undefined;
     }
 
-    const blocks = await parseFile(path);
-    const metaBlocks = blocks
-        ? getValidDictionaryBlocksWithName(blocks, RequestFileBlockName.Meta)
-        : [];
+    const metaBlockContent = parseBlockFromFile(
+        new TextDocumentHelper(fileContent),
+        RequestFileBlockName.Meta,
+    );
 
-    if (
-        !blocks ||
-        metaBlocks.length != 1 ||
-        !Array.isArray(metaBlocks[0].content) ||
-        metaBlocks[0].content.some((field) => !isDictionaryBlockField(field))
-    ) {
+    const isDictionaryBlock =
+        Array.isArray(metaBlockContent) &&
+        metaBlockContent.every((field) => isDictionaryBlockField(field));
+
+    if (!isDictionaryBlock) {
         return new BrunoRequestFile(path);
     }
 
-    const { sequence, tags } = getSequenceAndTagsFromMetaBlock(
-        metaBlocks[0].content,
-    );
-    return new BrunoRequestFile(
-        path,
-        sequence,
-        tags,
-        getAllVariablesFromBlocks(blocks),
-    );
+    const { sequence, tags } =
+        getSequenceAndTagsFromMetaBlock(metaBlockContent);
+    return new BrunoRequestFile(path, sequence, tags);
 }
 
 async function parseFile(path: string) {

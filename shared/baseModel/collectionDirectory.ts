@@ -1,18 +1,13 @@
-import { BrunoVariableReference } from "..";
 import {
-    CollectionItemWithBruVariables,
     CollectionItemWithSequence,
     NonBrunoSpecificItemType,
 } from "./interfaces";
 
-export class CollectionDirectory
-    implements CollectionItemWithSequence, CollectionItemWithBruVariables
-{
+export class CollectionDirectory implements CollectionItemWithSequence {
     constructor(
         private path: string,
         private settingsFilePath?: string,
         private sequence?: number,
-        private variableReferences?: BrunoVariableReference[],
     ) {}
 
     public getPath() {
@@ -29,10 +24,6 @@ export class CollectionDirectory
 
     public getItemType() {
         return NonBrunoSpecificItemType.Directory;
-    }
-
-    public getVariableReferences() {
-        return this.variableReferences ?? [];
     }
 
     public getSettingsFilePath() {

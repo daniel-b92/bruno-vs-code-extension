@@ -1,11 +1,7 @@
-import { BrunoVariableReference } from "..";
+import { Block, TextOutsideOfBlocks } from "..";
 
 export interface CollectionItemWithSequence extends CollectionItem {
     getSequence: () => number | undefined;
-}
-
-export interface CollectionItemWithBruVariables extends CollectionItem {
-    getVariableReferences: () => BrunoVariableReference[];
 }
 
 export interface CollectionItem {
@@ -20,17 +16,28 @@ export enum AdditionalCollectionDataProviderType {
 }
 
 export type AdditionalCollectionDataProvider<T> =
-    | {
-          paramType: AdditionalCollectionDataProviderType.SimpleCollectionItem;
-          callback: (item: CollectionItem) => T;
-      }
-    | {
-          paramType: AdditionalCollectionDataProviderType.WithAdditionalData;
-          callbackForItemsWithVariables: (
-              item: CollectionItemWithBruVariables,
-          ) => T;
-          callbackForOtherItems: (item: CollectionItem) => T;
-      };
+    | AdditionalCollectionSimpleDataProvider<T>
+    | AdditionalCollectionComplexDataProvider<T>;
+
+export interface AdditionalCollectionSimpleDataProvider<T> {
+    paramType: AdditionalCollectionDataProviderType.SimpleCollectionItem;
+    callback: (item: CollectionItem) => T;
+}
+
+export interface AdditionalCollectionComplexDataProvider<T> {
+    paramType: AdditionalCollectionDataProviderType.WithAdditionalData;
+    itemTypesRequiringFullFileParsing: ItemType[];
+    callbacksForItemsRequiringFullParsing: {
+        getFilePathForParsing: (item: CollectionItem) => string;
+        getData: (parsedFile: ParsedFileDataForComplexProvider) => T;
+    };
+    callbackForOtherItems: (item: CollectionItem) => T;
+}
+
+export interface ParsedFileDataForComplexProvider {
+    blocks: Block[];
+    textOutsideOfBlocks: TextOutsideOfBlocks[];
+}
 
 export type CollectionData<T> = {
     item: CollectionItem;

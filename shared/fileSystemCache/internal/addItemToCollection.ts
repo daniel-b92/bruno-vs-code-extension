@@ -1,12 +1,15 @@
+import { promisify } from "util";
 import {
     AdditionalCollectionDataProviderType,
     AdditionalCollectionDataProvider,
     Collection,
     CollectionData,
-    isCollectionItemWithBruVariables,
+    parseBruFile,
+    TextDocumentHelper,
 } from "../..";
 import { getCollectionItem } from "./getCollectionItem";
 import { isModifiedItemOutdated } from "./isModifiedItemOutdated";
+import { readFile } from "fs";
 
 export async function addItemToCollection<T>(params: {
     path: string;
@@ -49,34 +52,36 @@ async function getCollectionData<T>(params: {
     additionalDataProvider: AdditionalCollectionDataProvider<T>;
 }): Promise<CollectionData<T> | undefined> {
     const { additionalDataProvider, collection, path } = params;
+    const item = await getCollectionItem(collection, path);
+
+    if (!item) {
+        return undefined;
+    }
 
     if (
         additionalDataProvider.paramType ==
         AdditionalCollectionDataProviderType.SimpleCollectionItem
     ) {
-        const item = await getCollectionItem(collection, path, false);
+        return { item, additionalData: additionalDataProvider.callback(item) };
+    }
 
-        return item
-            ? { item, additionalData: additionalDataProvider.callback(item) }
+    const {
+        callbacksForItemsRequiringFullParsing: {
+            getData,
+            getFilePathForParsing,
+        },
+        callbackForOtherItems,
+        itemTypesRequiringFullFileParsing,
+    } = additionalDataProvider;
+
+    if (itemTypesRequiringFullFileParsing.includes(item.getItemType())) {
+        const parsedFile = await parseFile(getFilePathForParsing(item));
+        return parsedFile
+            ? { item, additionalData: getData(parsedFile) }
             : undefined;
     }
 
-    const item = await getCollectionItem(collection, path, true);
-    if (!item) {
-        return undefined;
-    }
-
-    return isCollectionItemWithBruVariables(item)
-        ? {
-              item,
-              additionalData:
-                  additionalDataProvider.callbackForItemsWithVariables(item),
-          }
-        : {
-              item,
-              additionalData:
-                  additionalDataProvider.callbackForOtherItems(item),
-          };
+    return { item, additionalData: callbackForOtherItems(item) };
 }
 
 function handleAlreadyRegisteredItemWithSamePath<T>(
@@ -95,4 +100,12 @@ function handleAlreadyRegisteredItemWithSamePath<T>(
         collection.removeTestItemIfRegistered(alreadyRegisteredItem.getPath());
         collection.addItem(newData);
     }
+}
+
+async function parseFile(path: string) {
+    const content = await promisify(readFile)(path, {
+        encoding: "utf-8",
+    }).catch(() => undefined);
+
+    return content ? parseBruFile(new TextDocumentHelper(content)) : undefined;
 }

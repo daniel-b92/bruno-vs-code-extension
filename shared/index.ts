@@ -47,15 +47,14 @@ export * from "./fileParsing/external/requestFiles/getMaxSequenceForRequests";
 // model
 export * from "./baseModel/collection";
 export * from "./baseModel/collectionDirectory";
+export * from "./baseModel/interfaces";
+export * from "./baseModel/getAdditionalCollectionData";
 export * from "./baseModel/files/brunoRequestFile";
 export * from "./baseModel/files/brunoEnvironmentFile";
 export * from "./baseModel/files/nonBrunoFile";
 export * from "./baseModel/files/brunoFolderSettingsFile";
-export * from "./baseModel/interfaces";
 export * from "./baseModel/typeguards/isCollectionItemWithSequence";
 export * from "./baseModel/typeguards/isRequestFile";
-export * from "./baseModel/typeguards/isCollectionItemWithBruVariables";
-export * from "./baseModel/typeguards/isCollectionDirectory";
 
 // logging
 export * from "./logging/interfaces";

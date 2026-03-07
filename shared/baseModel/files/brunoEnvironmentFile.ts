@@ -3,15 +3,9 @@ import {
     BrunoVariableType,
     VariableReferenceType,
 } from "../../languageUtils/contentInterfaces";
-import {
-    BrunoFileType,
-    CollectionItem,
-    CollectionItemWithBruVariables,
-} from "../interfaces";
+import { BrunoFileType, CollectionItem } from "../interfaces";
 
-export class BrunoEnvironmentFile
-    implements CollectionItem, CollectionItemWithBruVariables
-{
+export class BrunoEnvironmentFile implements CollectionItem {
     constructor(
         private readonly path: string,
         private variables: {

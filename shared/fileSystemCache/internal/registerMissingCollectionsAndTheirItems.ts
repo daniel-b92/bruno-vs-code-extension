@@ -5,6 +5,9 @@ import {
     AdditionalCollectionDataProvider,
     AdditionalCollectionDataProviderType,
     getFolderSettingsFilePath,
+    parseBruFile,
+    TextDocumentHelper,
+    CollectionDirectory,
 } from "../..";
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
@@ -82,15 +85,13 @@ async function registerAllExistingCollections<T>(
             rootFolders.map(async (rootDirectory) => {
                 const rootFolderItem = await createCollectionDirectoryInstance(
                     rootDirectory,
-                    additionalDataProvider.paramType ==
-                        AdditionalCollectionDataProviderType.WithAdditionalData,
                     await getFolderSettingsFilePath(true, rootDirectory),
                 );
                 if (!rootFolderItem) {
                     return undefined;
                 }
 
-                const collection = new Collection(
+                const collection = createCollectionInstance(
                     rootFolderItem,
                     additionalDataProvider,
                 );
@@ -118,4 +119,22 @@ function shouldPathBeIgnored(filePathsToIgnore: RegExp[], path: string) {
     return filePathsToIgnore.some((patternToIgnore) =>
         path.match(patternToIgnore),
     );
+}
+
+function createCollectionInstance<T>(
+    rootFolderItem: CollectionDirectory,
+    additionalDataProvider: AdditionalCollectionDataProvider<T>,
+) {
+    if (
+        additionalDataProvider.paramType ==
+        AdditionalCollectionDataProviderType.SimpleCollectionItem
+    ) {
+        return new Collection(rootFolderItem, {
+            provider: additionalDataProvider,
+        });
+    }
+    new Collection(rootFolderItem, {
+        parsedFileData: parseBruFile(new TextDocumentHelper(a)),
+        provider: additionalDataProvider,
+    });
 }
