@@ -68,6 +68,7 @@ function getAdditionalCollectionDataProvider(): AdditionalCollectionComplexDataP
                     : (item as CollectionDirectory).getSettingsFilePath();
             },
         },
+        fallbackDataForNonParseableFilePath: { variableReferences: [] },
         callbackForOtherItems: () => ({ variableReferences: [] }),
         isAdditionalDataOutdated: (oldData, newData) => {
             return !areVariableReferencesEquivalent(

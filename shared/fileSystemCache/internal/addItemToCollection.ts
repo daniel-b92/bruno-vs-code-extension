@@ -74,6 +74,7 @@ async function getCollectionData<T>(params: {
             getData,
             getFilePathForParsing,
         },
+        fallbackDataForNonParseableFilePath,
         callbackForOtherItems,
         itemTypesRequiringFullFileParsing,
     } = additionalDataProvider;
@@ -81,9 +82,12 @@ async function getCollectionData<T>(params: {
     if (itemTypesRequiringFullFileParsing.includes(item.getItemType())) {
         const toParse = getFilePathForParsing(item);
         const parsedFile = toParse ? await parseFile(toParse) : undefined;
-        return parsedFile
-            ? { item, additionalData: getData(parsedFile) }
-            : undefined;
+        return {
+            item,
+            additionalData: parsedFile
+                ? getData(parsedFile)
+                : fallbackDataForNonParseableFilePath,
+        };
     }
 
     return { item, additionalData: callbackForOtherItems(item) };
