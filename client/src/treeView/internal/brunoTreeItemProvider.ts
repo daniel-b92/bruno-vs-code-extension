@@ -17,12 +17,12 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
     ) {
         collectionItemProvider.subscribeToUpdates((updates) => {
             const relevantUpdates = updates.filter(
-                ({ updateType, changedData }) =>
-                    updateType == FileChangeType.Deleted ||
-                    updateType == FileChangeType.Created ||
-                    (updateType == FileChangeType.Modified &&
-                        (changedData?.sequenceChanged ||
-                            changedData?.tagsChanged)),
+                (update) =>
+                    update.updateType == FileChangeType.Deleted ||
+                    update.updateType == FileChangeType.Created ||
+                    (update.updateType == FileChangeType.Modified &&
+                        (update.changedData?.sequenceChanged ||
+                            update.changedData?.tagsChanged)),
             );
             if (relevantUpdates.length == 0) {
                 return;

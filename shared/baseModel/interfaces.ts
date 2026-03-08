@@ -28,7 +28,7 @@ export interface AdditionalCollectionComplexDataProvider<T> {
     paramType: AdditionalCollectionDataProviderType.WithAdditionalData;
     itemTypesRequiringFullFileParsing: ItemType[];
     callbacksForItemsRequiringFullParsing: {
-        getFilePathForParsing: (item: CollectionItem) => string;
+        getFilePathForParsing: (item: CollectionItem) => string | undefined;
         getData: (parsedFile: ParsedFileDataForComplexProvider) => T;
     };
     callbackForOtherItems: (item: CollectionItem) => T;

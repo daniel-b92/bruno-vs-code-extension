@@ -19,6 +19,7 @@ import {
 import { URI } from "vscode-uri";
 import { runUpdatesOnWillSave } from "./bruFiles/autoUpdates/runUpdatesOnWillSave";
 import {
+    FileChangeType,
     getEnvironmentSettingsKey,
     getExtensionForBrunoFiles,
     getItemType,
@@ -100,8 +101,9 @@ disposables.push(
         itemProvider.subscribeToUpdates((changes) => {
             if (
                 changes.some(
-                    ({ changedData }) =>
-                        changedData && changedData.sequenceChanged,
+                    (change) =>
+                        change.updateType == FileChangeType.Modified &&
+                        change.changedData?.sequenceChanged,
                 )
             ) {
                 // Needed for keeping diagnostics for duplicate sequences in sync.

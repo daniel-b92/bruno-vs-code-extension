@@ -34,7 +34,10 @@ export async function getAdditionalCollectionData<T>(
                 return callbackForOtherItems(item);
             }
 
-            const parsedFileData = await parseFile(getFilePathForParsing(item));
+            const toParse = getFilePathForParsing(item);
+            const parsedFileData = toParse
+                ? await parseFile(toParse)
+                : undefined;
             return parsedFileData ? getData(parsedFileData) : undefined;
     }
 }

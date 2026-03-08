@@ -10,20 +10,16 @@ import {
 export interface OutdatedPropertyDetails {
     sequenceOutdated: boolean;
     additionalDataOutdated: boolean;
-    tagsOutdated?: boolean;
+    tagsOutdated: boolean;
 }
 
 export function isModifiedItemOutdated<T>(
     alreadyRegisteredData: CollectionData<T>,
     newData: CollectionData<T>,
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
-): { isOutdated: boolean; details?: OutdatedPropertyDetails } {
+): { isOutdated: boolean; details: OutdatedPropertyDetails } {
     const { item: oldItem } = alreadyRegisteredData;
     const { item: newItem } = newData;
-
-    if (oldItem.getItemType() != newItem.getItemType()) {
-        return { isOutdated: true };
-    }
 
     const isSequenceOutdated =
         isCollectionItemWithSequence(newItem) &&
@@ -35,7 +31,7 @@ export function isModifiedItemOutdated<T>(
         isRequestFile(newItem) &&
         !areTagsUpToDate(oldItem, newItem);
 
-    const isOutdatedDueToAdditionaData = !isAdditionalDataUpToDate(
+    const isOutdatedDueToAdditionaData = isAdditionalDataOutdated(
         alreadyRegisteredData.additionalData,
         newData.additionalData,
         additionalDataProvider,
@@ -54,7 +50,7 @@ export function isModifiedItemOutdated<T>(
     };
 }
 
-function isAdditionalDataUpToDate<T>(
+function isAdditionalDataOutdated<T>(
     oldData: T,
     newData: T,
     additionalDataProvider: AdditionalCollectionDataProvider<T>,

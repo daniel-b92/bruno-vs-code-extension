@@ -29,6 +29,4 @@ export class CollectionDirectory implements CollectionItemWithSequence {
     public getSettingsFilePath() {
         return this.settingsFilePath;
     }
-
-    // ToDo: Add method for setting folder settings file path after updates.
 }

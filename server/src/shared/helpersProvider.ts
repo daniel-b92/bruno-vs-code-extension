@@ -7,10 +7,9 @@ import {
     AdditionalCollectionDataProviderType,
     BrunoFileType,
     NonBrunoSpecificItemType,
-    CollectionItem,
     areVariableReferencesEquivalent,
-    getFolderSettingsFilePath,
     CollectionDirectory,
+    getAllVariablesFromBlocks,
 } from "@global_shared";
 import { Evt } from "evt";
 import {
@@ -30,7 +29,7 @@ export class HelpersProvider {
         this.itemProvider =
             new CollectionItemProvider<AdditionalCollectionData>(
                 this.collectionWatcher,
-                () => {},
+                getAdditionalCollectionDataProvider(),
                 getPathsToIgnoreForCollections(),
                 getDefaultLogger(),
             );
@@ -58,18 +57,22 @@ function getAdditionalCollectionDataProvider(): AdditionalCollectionComplexDataP
             NonBrunoSpecificItemType.Directory,
         ],
         callbacksForItemsRequiringFullParsing: {
-            getData,
+            getData({ blocks }) {
+                return {
+                    variableReferences: getAllVariablesFromBlocks(blocks),
+                };
+            },
             getFilePathForParsing(item) {
                 return item.isFile()
                     ? item.getPath()
                     : (item as CollectionDirectory).getSettingsFilePath();
             },
         },
-        callbackForOtherItems: (item) => [],
+        callbackForOtherItems: () => ({ variableReferences: [] }),
         isAdditionalDataOutdated: (oldData, newData) => {
-            return areVariableReferencesEquivalent(
-                oldData.flatMap(({ references }) => references),
-                newData.flatMap(({ references }) => references),
+            return !areVariableReferencesEquivalent(
+                oldData.variableReferences,
+                newData.variableReferences,
             );
         },
     };

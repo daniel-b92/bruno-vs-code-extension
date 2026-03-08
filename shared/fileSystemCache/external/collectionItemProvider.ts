@@ -2,14 +2,12 @@ import { CollectionRegistry } from "../internal/collectionRegistry";
 import { addItemToCollection } from "../internal/addItemToCollection";
 import { registerMissingCollectionsAndTheirItems } from "../internal/registerMissingCollectionsAndTheirItems";
 import {
-    getSequenceForFolder,
     normalizeDirectoryPath,
     CollectionWatcher,
     FileChangeType,
     BrunoFileType,
     Collection,
     CollectionData,
-    CollectionDirectory,
     isCollectionItemWithSequence,
     Logger,
     AdditionalCollectionDataProvider,
@@ -21,16 +19,26 @@ import { lstat } from "fs";
 import { getCollectionItem } from "../internal/getCollectionItem";
 import { isModifiedItemOutdated } from "../internal/isModifiedItemOutdated";
 import { Evt } from "evt";
+import { createCollectionDirectoryInstance } from "../internal/createCollectionDirectoryInstance";
 
-export interface NotificationData<T> {
+export type NotificationData<T> = NotificationBaseData<T> &
+    (
+        | {
+              updateType: FileChangeType.Created | FileChangeType.Deleted;
+          }
+        | {
+              updateType: FileChangeType.Modified;
+              changedData?: {
+                  sequenceChanged: boolean;
+                  tagsChanged: boolean;
+                  additionalDataChanged: boolean;
+              };
+          }
+    );
+
+interface NotificationBaseData<T> {
     collection: Collection<T>;
     data: CollectionData<T>;
-    updateType: FileChangeType;
-    changedData?: {
-        sequenceChanged?: boolean;
-        tagsChanged?: boolean;
-        additionalDataChanged?: boolean;
-    };
 }
 
 export class CollectionItemProvider<T> {
@@ -230,13 +238,9 @@ export class CollectionItemProvider<T> {
         const item = await promisify(lstat)(itemPath)
             .then(async (stats) =>
                 stats.isDirectory()
-                    ? new CollectionDirectory(
+                    ? await createCollectionDirectoryInstance(
                           itemPath,
                           await getFolderSettingsFilePath(false, itemPath),
-                          await getSequenceForFolder(
-                              registeredCollection.getRootDirectory(),
-                              itemPath,
-                          ),
                       )
                     : await getCollectionItem(registeredCollection, itemPath),
             )
@@ -307,7 +311,10 @@ export class CollectionItemProvider<T> {
             return;
         }
 
-        if (modifiedItem.getItemType() == BrunoFileType.FolderSettingsFile) {
+        if (
+            modifiedItem.getItemType() == BrunoFileType.FolderSettingsFile ||
+            modifiedItem.getItemType() == BrunoFileType.CollectionSettingsFile
+        ) {
             const parentFolderData =
                 registeredCollectionForItem.getStoredDataForPath(
                     dirname(itemPath),
@@ -341,7 +348,13 @@ export class CollectionItemProvider<T> {
                 return;
             }
 
-            const { details } = isModifiedItemOutdated(
+            const {
+                details: {
+                    sequenceOutdated,
+                    tagsOutdated,
+                    additionalDataOutdated,
+                },
+            } = isModifiedItemOutdated(
                 collectionData,
                 newData,
                 this.additionalDataProvider,
@@ -351,18 +364,14 @@ export class CollectionItemProvider<T> {
                 collection: registeredCollectionForItem,
                 data: newData,
                 updateType: FileChangeType.Modified,
-                changedData: !details
-                    ? undefined
-                    : details.sequenceOutdated ||
-                        details.tagsOutdated ||
-                        details.additionalDataOutdated
-                      ? {
-                            sequenceChanged: details.sequenceOutdated,
-                            tagsChanged: details.tagsOutdated,
-                            additionalDataChanged:
-                                details.additionalDataOutdated,
-                        }
-                      : undefined,
+                changedData:
+                    sequenceOutdated || tagsOutdated || additionalDataOutdated
+                        ? {
+                              sequenceChanged: sequenceOutdated,
+                              tagsChanged: tagsOutdated,
+                              additionalDataChanged: additionalDataOutdated,
+                          }
+                        : undefined,
             });
         }
     }
@@ -373,7 +382,8 @@ export class CollectionItemProvider<T> {
     ) {
         const folderPath = oldFolderData.item.getPath();
 
-        collection.removeTestItemIfRegistered(folderPath);
+        // All data from folder settings files currently only affects the respective collection directory item.
+        // So only the directory item needs to be updated on changes.
         const newCollectionData = await addItemToCollection({
             collection,
             path: folderPath,
@@ -383,7 +393,9 @@ export class CollectionItemProvider<T> {
             return;
         }
 
-        const { details } = isModifiedItemOutdated(
+        const {
+            details: { sequenceOutdated, tagsOutdated, additionalDataOutdated },
+        } = isModifiedItemOutdated(
             oldFolderData,
             newCollectionData,
             this.additionalDataProvider,
@@ -393,12 +405,11 @@ export class CollectionItemProvider<T> {
             collection,
             data: newCollectionData,
             updateType: FileChangeType.Modified,
-            changedData: !details
-                ? undefined
-                : {
-                      sequenceChanged: details.sequenceOutdated,
-                      additionalDataChanged: details.additionalDataOutdated,
-                  },
+            changedData: {
+                sequenceChanged: sequenceOutdated,
+                tagsChanged: tagsOutdated,
+                additionalDataChanged: additionalDataOutdated,
+            },
         });
     }
 

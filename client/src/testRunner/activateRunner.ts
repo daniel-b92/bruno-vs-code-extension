@@ -288,15 +288,16 @@ function handleTestTreeUpdates(
     testRunnerDataHelper: TestRunnerDataHelper,
 ) {
     collectionItemProvider.subscribeToUpdates((updates) => {
-        for (const {
-            collection,
-            data: {
-                item,
-                additionalData: { testItem },
-            },
-            updateType,
-            changedData,
-        } of updates) {
+        for (const update of updates) {
+            const {
+                collection,
+                data: {
+                    item,
+                    additionalData: { testItem },
+                },
+                updateType,
+            } = update;
+
             if (!isCollectionItemWithSequence(item)) {
                 return;
             }
@@ -311,7 +312,8 @@ function handleTestTreeUpdates(
                 updateType == FileChangeType.Modified &&
                 item.isFile() &&
                 extname(item.getPath()) == getExtensionForBrunoFiles() &&
-                (changedData?.sequenceChanged || changedData?.tagsChanged)
+                (update.changedData?.sequenceChanged ||
+                    update.changedData?.tagsChanged)
             ) {
                 /* For directories, no changes are ever registered because renaming a directory is seen as a creation of a new directory with the
                 new name and a deletion of the directory with the old name. */

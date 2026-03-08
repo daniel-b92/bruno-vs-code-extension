@@ -37,7 +37,10 @@ export async function getCollectionItem<T>(
         case NonBrunoSpecificItemType.Directory:
             return await createCollectionDirectoryInstance(
                 path,
-                await getFolderSettingsFilePath(false, path),
+                await getFolderSettingsFilePath(
+                    collection.isRootDirectory(path),
+                    path,
+                ),
             );
         case BrunoFileType.CollectionSettingsFile:
         case BrunoFileType.FolderSettingsFile:

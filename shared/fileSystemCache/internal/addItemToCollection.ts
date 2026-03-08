@@ -11,12 +11,15 @@ import { getCollectionItem } from "./getCollectionItem";
 import { isModifiedItemOutdated } from "./isModifiedItemOutdated";
 import { readFile } from "fs";
 
-export async function addItemToCollection<T>(params: {
-    path: string;
-    collection: Collection<T>;
-    additionalDataProvider: AdditionalCollectionDataProvider<T>;
-}) {
-    const { additionalDataProvider, collection, path } = params;
+export async function addItemToCollection<T>(
+    newItem: {
+        path: string;
+        collection: Collection<T>;
+        additionalDataProvider: AdditionalCollectionDataProvider<T>;
+    },
+    replaceExistingItem = true,
+) {
+    const { additionalDataProvider, collection, path } = newItem;
 
     const data = await getCollectionData({
         path,
@@ -42,6 +45,7 @@ export async function addItemToCollection<T>(params: {
         registeredDataWithSamePath,
         data,
         additionalDataProvider,
+        replaceExistingItem,
     );
     return data;
 }
@@ -75,7 +79,8 @@ async function getCollectionData<T>(params: {
     } = additionalDataProvider;
 
     if (itemTypesRequiringFullFileParsing.includes(item.getItemType())) {
-        const parsedFile = await parseFile(getFilePathForParsing(item));
+        const toParse = getFilePathForParsing(item);
+        const parsedFile = toParse ? await parseFile(toParse) : undefined;
         return parsedFile
             ? { item, additionalData: getData(parsedFile) }
             : undefined;
@@ -89,7 +94,12 @@ function handleAlreadyRegisteredItemWithSamePath<T>(
     oldData: CollectionData<T>,
     newData: CollectionData<T>,
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
+    replaceExistingItem: boolean,
 ) {
+    if (!replaceExistingItem) {
+        return;
+    }
+
     if (isModifiedItemOutdated(oldData, newData, additionalDataProvider)) {
         collection.removeTestItemIfRegistered(oldData.item.getPath());
         collection.addItem(newData);

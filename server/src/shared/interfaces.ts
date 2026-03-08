@@ -19,9 +19,8 @@ export type TypedCollection = Collection<AdditionalCollectionData>;
 export type TypedCollectionData = CollectionData<AdditionalCollectionData>;
 
 export type AdditionalCollectionData = {
-    blockName: string;
-    references: BrunoVariableReference[];
-}[];
+    variableReferences: BrunoVariableReference[];
+};
 
 export interface LanguageRequestWithTestEnvironmentInfo {
     baseRequest: LanguageFeatureBaseRequest;
