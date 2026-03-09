@@ -1,3 +1,5 @@
+import { Block, TextOutsideOfBlocks } from "..";
+
 export interface CollectionItemWithSequence extends CollectionItem {
     getSequence: () => number | undefined;
 }
@@ -6,6 +8,36 @@ export interface CollectionItem {
     getPath: () => string;
     isFile: () => boolean;
     getItemType: () => ItemType;
+}
+
+export enum AdditionalCollectionDataProviderType {
+    SimpleCollectionItem = 1,
+    WithAdditionalFullParsing = 2,
+}
+
+export type AdditionalCollectionDataProvider<T> =
+    | AdditionalCollectionSimpleDataProvider<T>
+    | AdditionalCollectionComplexDataProvider<T>;
+
+export interface AdditionalCollectionSimpleDataProvider<T> {
+    paramType: AdditionalCollectionDataProviderType.SimpleCollectionItem;
+    callback: (item: CollectionItem) => T;
+}
+
+export interface AdditionalCollectionComplexDataProvider<T> {
+    paramType: AdditionalCollectionDataProviderType.WithAdditionalFullParsing;
+    itemTypesRequiringFullFileParsing: ItemType[];
+    callbacksForItemsRequiringFullParsing: {
+        getFilePathForParsing: (item: CollectionItem) => string | undefined;
+        getData: (parsedFile?: ParsedFileDataForComplexProvider) => T;
+    };
+    callbackForOtherItems: (item: CollectionItem) => T;
+    isAdditionalDataOutdated: (oldData: T, newData: T) => boolean;
+}
+
+export interface ParsedFileDataForComplexProvider {
+    blocks: Block[];
+    textOutsideOfBlocks: TextOutsideOfBlocks[];
 }
 
 export type CollectionData<T> = {

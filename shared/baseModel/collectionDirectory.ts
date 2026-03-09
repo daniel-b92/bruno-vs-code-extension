@@ -1,9 +1,12 @@
-import { BrunoFileType } from "..";
-import { CollectionItemWithSequence } from "./interfaces";
+import {
+    CollectionItemWithSequence,
+    NonBrunoSpecificItemType,
+} from "./interfaces";
 
 export class CollectionDirectory implements CollectionItemWithSequence {
     constructor(
         private path: string,
+        private settingsFilePath?: string,
         private sequence?: number,
     ) {}
 
@@ -20,6 +23,10 @@ export class CollectionDirectory implements CollectionItemWithSequence {
     }
 
     public getItemType() {
-        return BrunoFileType.FolderSettingsFile;
+        return NonBrunoSpecificItemType.Directory;
+    }
+
+    public getSettingsFilePath() {
+        return this.settingsFilePath;
     }
 }

@@ -1,40 +1,71 @@
 import {
+    AdditionalCollectionDataProvider,
+    AdditionalCollectionDataProviderType,
     BrunoRequestFile,
-    CollectionItem,
+    CollectionData,
     isCollectionItemWithSequence,
     isRequestFile,
 } from "../..";
 
 export interface OutdatedPropertyDetails {
     sequenceOutdated: boolean;
-    tagsOutdated?: boolean;
+    additionalDataOutdated: boolean;
+    tagsOutdated: boolean;
 }
 
-export function isModifiedItemOutdated(
-    alreadyRegisteredItem: CollectionItem,
-    newItem: CollectionItem,
+export function isModifiedItemOutdated<T>(
+    alreadyRegisteredData: CollectionData<T>,
+    newData: CollectionData<T>,
+    additionalDataProvider: AdditionalCollectionDataProvider<T>,
 ): { isOutdated: boolean; details: OutdatedPropertyDetails } {
+    const { item: oldItem } = alreadyRegisteredData;
+    const { item: newItem } = newData;
+
     const isSequenceOutdated =
         isCollectionItemWithSequence(newItem) &&
-        isCollectionItemWithSequence(alreadyRegisteredItem) &&
-        alreadyRegisteredItem.getSequence() != newItem.getSequence();
+        isCollectionItemWithSequence(oldItem) &&
+        oldItem.getSequence() != newItem.getSequence();
 
-    if (!isRequestFile(alreadyRegisteredItem) || !isRequestFile(newItem)) {
-        return {
-            isOutdated: isSequenceOutdated,
-            details: { sequenceOutdated: isSequenceOutdated },
-        };
-    }
+    const areTagsOutdated =
+        isRequestFile(oldItem) &&
+        isRequestFile(newItem) &&
+        !areTagsUpToDate(oldItem, newItem);
 
-    const areTagsOutdated = !areTagsUpToDate(alreadyRegisteredItem, newItem);
+    const isOutdatedDueToAdditionaData = isAdditionalDataOutdated(
+        alreadyRegisteredData.additionalData,
+        newData.additionalData,
+        additionalDataProvider,
+    );
 
     return {
-        isOutdated: isSequenceOutdated || areTagsOutdated,
+        isOutdated:
+            isSequenceOutdated ||
+            areTagsOutdated ||
+            isOutdatedDueToAdditionaData,
         details: {
             sequenceOutdated: isSequenceOutdated,
             tagsOutdated: areTagsOutdated,
+            additionalDataOutdated: isOutdatedDueToAdditionaData,
         },
     };
+}
+
+function isAdditionalDataOutdated<T>(
+    oldData: T,
+    newData: T,
+    additionalDataProvider: AdditionalCollectionDataProvider<T>,
+) {
+    if (
+        additionalDataProvider.paramType ==
+        AdditionalCollectionDataProviderType.SimpleCollectionItem
+    ) {
+        // For the simple collection item provider type, the additional data only depends on the item.
+        // So the additional data cannot be outdated while the item isn't.
+        return false;
+    }
+
+    const { isAdditionalDataOutdated } = additionalDataProvider;
+    return isAdditionalDataOutdated(oldData, newData);
 }
 
 function areTagsUpToDate(

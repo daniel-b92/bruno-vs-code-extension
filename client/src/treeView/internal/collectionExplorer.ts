@@ -502,8 +502,10 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         newItemName.replace(getExtensionForBrunoFiles(), ""),
                     );
                 } else if (!isFile) {
-                    const folderSettingsPath =
-                        await getFolderSettingsFilePath(newPath);
+                    const folderSettingsPath = await getFolderSettingsFilePath(
+                        false,
+                        newPath,
+                    );
 
                     if (folderSettingsPath) {
                         await replaceNameInMetaBlock(
@@ -545,8 +547,10 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     },
                 );
 
-                const newFolderSettingsFile =
-                    await getFolderSettingsFilePath(newFolderPath);
+                const newFolderSettingsFile = await getFolderSettingsFilePath(
+                    false,
+                    newFolderPath,
+                );
 
                 if (
                     (await getSequenceForFolder(
