@@ -1,8 +1,10 @@
 import { readdir } from "fs";
-import { doesFileNameMatchFolderSettingsFileName } from "../../..";
+import {
+    doesFileNameMatchCollectionSettingsFile,
+    doesFileNameMatchFolderSettingsFileName,
+} from "../../..";
 import { resolve } from "path";
 import { promisify } from "util";
-import { doesFileNameMatchCollectionSettingsFile } from "../../../fileSystem/util/doesFileNameMatchCollectionSettingsFile";
 
 export async function getFolderSettingsFilePath(
     isCollectionRootFolder: boolean,

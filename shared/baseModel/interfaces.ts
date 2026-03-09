@@ -12,7 +12,7 @@ export interface CollectionItem {
 
 export enum AdditionalCollectionDataProviderType {
     SimpleCollectionItem = 1,
-    WithAdditionalData = 2,
+    WithAdditionalFullParsing = 2,
 }
 
 export type AdditionalCollectionDataProvider<T> =
@@ -25,7 +25,7 @@ export interface AdditionalCollectionSimpleDataProvider<T> {
 }
 
 export interface AdditionalCollectionComplexDataProvider<T> {
-    paramType: AdditionalCollectionDataProviderType.WithAdditionalData;
+    paramType: AdditionalCollectionDataProviderType.WithAdditionalFullParsing;
     itemTypesRequiringFullFileParsing: ItemType[];
     callbacksForItemsRequiringFullParsing: {
         getFilePathForParsing: (item: CollectionItem) => string | undefined;

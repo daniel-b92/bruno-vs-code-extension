@@ -1,5 +1,5 @@
 import { CollectionRegistry } from "../internal/collectionRegistry";
-import { addItemToCollection } from "../internal/addItemToCollection";
+import { addOrReplaceItemInCollection } from "../internal/addOrReplaceItemInCollection";
 import { registerMissingCollectionsAndTheirItems } from "../internal/registerMissingCollectionsAndTheirItems";
 import {
     normalizeDirectoryPath,
@@ -250,7 +250,7 @@ export class CollectionItemProvider<T> {
             return;
         }
 
-        const collectionData = await addItemToCollection({
+        const collectionData = await addOrReplaceItemInCollection({
             collection: registeredCollection,
             path: itemPath,
             additionalDataProvider: this.additionalDataProvider,
@@ -338,7 +338,7 @@ export class CollectionItemProvider<T> {
                 modifiedItem,
             );
 
-            const newData = await addItemToCollection({
+            const newData = await addOrReplaceItemInCollection({
                 collection: registeredCollectionForItem,
                 path: itemPath,
                 additionalDataProvider: this.additionalDataProvider,
@@ -384,7 +384,7 @@ export class CollectionItemProvider<T> {
 
         // All data from folder settings files currently only affects the respective collection directory item.
         // So only the directory item needs to be updated on changes.
-        const newCollectionData = await addItemToCollection({
+        const newCollectionData = await addOrReplaceItemInCollection({
             collection,
             path: folderPath,
             additionalDataProvider: this.additionalDataProvider,

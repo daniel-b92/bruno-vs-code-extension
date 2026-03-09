@@ -11,14 +11,11 @@ import { getCollectionItem } from "./getCollectionItem";
 import { isModifiedItemOutdated } from "./isModifiedItemOutdated";
 import { readFile } from "fs";
 
-export async function addItemToCollection<T>(
-    newItem: {
-        path: string;
-        collection: Collection<T>;
-        additionalDataProvider: AdditionalCollectionDataProvider<T>;
-    },
-    replaceExistingItem = true,
-) {
+export async function addOrReplaceItemInCollection<T>(newItem: {
+    path: string;
+    collection: Collection<T>;
+    additionalDataProvider: AdditionalCollectionDataProvider<T>;
+}) {
     const { additionalDataProvider, collection, path } = newItem;
 
     const data = await getCollectionData({
@@ -45,7 +42,6 @@ export async function addItemToCollection<T>(
         registeredDataWithSamePath,
         data,
         additionalDataProvider,
-        replaceExistingItem,
     );
     return data;
 }
@@ -96,12 +92,7 @@ function handleAlreadyRegisteredItemWithSamePath<T>(
     oldData: CollectionData<T>,
     newData: CollectionData<T>,
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
-    replaceExistingItem: boolean,
 ) {
-    if (!replaceExistingItem) {
-        return;
-    }
-
     if (isModifiedItemOutdated(oldData, newData, additionalDataProvider)) {
         collection.removeTestItemIfRegistered(oldData.item.getPath());
         collection.addItem(newData);

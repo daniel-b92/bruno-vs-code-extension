@@ -61,7 +61,7 @@ function isAdditionalDataOutdated<T>(
     ) {
         // For the simple collection item provider type, the additional data only depends on the item.
         // So the additional data cannot be outdated while the item isn't.
-        return true;
+        return false;
     }
 
     const { isAdditionalDataOutdated } = additionalDataProvider;

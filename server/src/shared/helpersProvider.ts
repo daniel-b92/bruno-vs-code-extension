@@ -51,7 +51,8 @@ export class HelpersProvider {
 
 function getAdditionalCollectionDataProvider(): AdditionalCollectionComplexDataProvider<AdditionalCollectionData> {
     return {
-        paramType: AdditionalCollectionDataProviderType.WithAdditionalData,
+        paramType:
+            AdditionalCollectionDataProviderType.WithAdditionalFullParsing,
         itemTypesRequiringFullFileParsing: [
             BrunoFileType.RequestFile,
             NonBrunoSpecificItemType.Directory,

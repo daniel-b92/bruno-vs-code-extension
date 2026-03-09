@@ -9,7 +9,7 @@ import {
 } from "../..";
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
-import { addItemToCollection } from "./addItemToCollection";
+import { addOrReplaceItemInCollection } from "./addOrReplaceItemInCollection";
 import { lstat, readdir } from "fs";
 import { promisify } from "util";
 import { createCollectionDirectoryInstance } from "./createCollectionDirectoryInstance";
@@ -53,7 +53,7 @@ export async function registerMissingCollectionsAndTheirItems<T>(
                     !collection.getStoredDataForPath(path) &&
                     !shouldPathBeIgnored(filePathsToIgnore, path)
                 ) {
-                    addItemToCollection<T>({
+                    await addOrReplaceItemInCollection<T>({
                         collection,
                         path,
                         additionalDataProvider,

@@ -19,6 +19,7 @@ export * from "./fileSystem/util/isInFolderForEnvironmentFiles";
 export * from "./fileSystem/util/collectionRootFolderHelper";
 export * from "./fileSystem/util/getItemType";
 export * from "./fileSystem/util/getMatchingTextContainingPosition";
+export * from "./fileSystem/util/doesFileNameMatchCollectionSettingsFile";
 
 // file system cache
 export * from "./fileSystemCache/external/tempJsFilesProvider";
@@ -48,7 +49,7 @@ export * from "./fileParsing/external/requestFiles/getMaxSequenceForRequests";
 export * from "./baseModel/collection";
 export * from "./baseModel/collectionDirectory";
 export * from "./baseModel/interfaces";
-export * from "./baseModel/getAdditionalCollectionData";
+export * from "./fileSystemCache/internal/getAdditionalCollectionData";
 export * from "./baseModel/files/brunoRequestFile";
 export * from "./baseModel/files/brunoEnvironmentFile";
 export * from "./baseModel/files/nonBrunoFile";

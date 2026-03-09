@@ -11,8 +11,8 @@ import {
     Collection,
     ItemType,
     NonBrunoSpecificItemType,
+    doesFileNameMatchCollectionSettingsFile,
 } from "../..";
-import { doesFileNameMatchCollectionSettingsFile } from "./doesFileNameMatchCollectionSettingsFile";
 
 export async function getItemType<T>(
     collection: Collection<T>,

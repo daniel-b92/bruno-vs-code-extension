@@ -6,7 +6,7 @@ import {
     CollectionItem,
     parseBruFile,
     TextDocumentHelper,
-} from "..";
+} from "../..";
 import { readFile } from "fs";
 
 export async function getAdditionalCollectionData<T>(
@@ -18,7 +18,7 @@ export async function getAdditionalCollectionData<T>(
     switch (additionalDataProvider.paramType) {
         case AdditionalCollectionDataProviderType.SimpleCollectionItem:
             return additionalDataProvider.callback(item);
-        case AdditionalCollectionDataProviderType.WithAdditionalData:
+        case AdditionalCollectionDataProviderType.WithAdditionalFullParsing:
             const {
                 callbacksForItemsRequiringFullParsing: {
                     getData,
