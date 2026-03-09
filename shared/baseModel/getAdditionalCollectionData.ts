@@ -35,10 +35,7 @@ export async function getAdditionalCollectionData<T>(
             }
 
             const toParse = getFilePathForParsing(item);
-            const parsedFileData = toParse
-                ? await parseFile(toParse)
-                : undefined;
-            return parsedFileData ? getData(parsedFileData) : undefined;
+            return getData(toParse ? await parseFile(toParse) : undefined);
     }
 }
 

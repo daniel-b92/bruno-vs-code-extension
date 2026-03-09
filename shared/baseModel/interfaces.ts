@@ -29,9 +29,8 @@ export interface AdditionalCollectionComplexDataProvider<T> {
     itemTypesRequiringFullFileParsing: ItemType[];
     callbacksForItemsRequiringFullParsing: {
         getFilePathForParsing: (item: CollectionItem) => string | undefined;
-        getData: (parsedFile: ParsedFileDataForComplexProvider) => T;
+        getData: (parsedFile?: ParsedFileDataForComplexProvider) => T;
     };
-    fallbackDataForNonParseableFilePath: T;
     callbackForOtherItems: (item: CollectionItem) => T;
     isAdditionalDataOutdated: (oldData: T, newData: T) => boolean;
 }

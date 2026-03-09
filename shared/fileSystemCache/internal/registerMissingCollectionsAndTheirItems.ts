@@ -131,7 +131,5 @@ async function createCollectionInstance<T>(
         additionalDataProvider,
     );
 
-    return additionalData
-        ? new Collection(rootFolderItem, additionalData)
-        : undefined;
+    return new Collection(rootFolderItem, additionalData);
 }

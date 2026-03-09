@@ -57,10 +57,10 @@ function getAdditionalCollectionDataProvider(): AdditionalCollectionComplexDataP
             NonBrunoSpecificItemType.Directory,
         ],
         callbacksForItemsRequiringFullParsing: {
-            getData({ blocks }) {
-                return {
-                    variableReferences: getAllVariablesFromBlocks(blocks),
-                };
+            getData(parsedData) {
+                return parsedData
+                    ? getAllVariablesFromBlocks(parsedData.blocks)
+                    : undefined;
             },
             getFilePathForParsing(item) {
                 return item.isFile()
@@ -68,12 +68,11 @@ function getAdditionalCollectionDataProvider(): AdditionalCollectionComplexDataP
                     : (item as CollectionDirectory).getSettingsFilePath();
             },
         },
-        fallbackDataForNonParseableFilePath: { variableReferences: [] },
-        callbackForOtherItems: () => ({ variableReferences: [] }),
+        callbackForOtherItems: () => undefined,
         isAdditionalDataOutdated: (oldData, newData) => {
             return !areVariableReferencesEquivalent(
-                oldData.variableReferences,
-                newData.variableReferences,
+                oldData ?? [],
+                newData ?? [],
             );
         },
     };
