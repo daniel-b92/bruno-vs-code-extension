@@ -8,16 +8,17 @@ import {
     EnvVariableNameMatchingMode,
     Logger,
     Position,
+    CodeBlock,
 } from "@global_shared";
 import { LanguageFeatureBaseRequest, TypedCollection } from "../../shared";
 import { mapToEnvVarNameParams } from "../shared/mapToEnvVarNameParams";
 import { CompletionItem } from "vscode-languageserver";
-import { CodeBlockRequestWithAdditionalData } from "../shared/interfaces";
 import { mapEnvVariablesToCompletions } from "./mapEnvVariablesToCompletions";
 import { getDynamicVariableReferences } from "../shared/getDynamicVariableReferences";
+import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 
 export function getCompletionsForCodeBlock(
-    fullRequest: CodeBlockRequestWithAdditionalData,
+    fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
     configuredEnvironment?: string,
 ): CompletionItem[] {
     const {
@@ -64,7 +65,7 @@ function getResultsForEnvironmentVariable(
         allBlocks: Block[];
         configuredEnvironment?: string;
     },
-    { position, token }: LanguageFeatureBaseRequest,
+    baseRequest: LanguageFeatureBaseRequest,
     logger?: Logger,
 ) {
     const {
@@ -74,6 +75,7 @@ function getResultsForEnvironmentVariable(
         blockContainingPosition,
         configuredEnvironment,
     } = additionalData;
+    const { position, token } = baseRequest;
 
     const matchingStaticEnvVariableDefinitions =
         getMatchingDefinitionsFromEnvFiles(
@@ -90,13 +92,11 @@ function getResultsForEnvironmentVariable(
 
     const dynamicVariableReferences = getDynamicVariableReferences(
         {
-            functionType,
-            requestPosition: position,
-            token,
+            request: baseRequest,
+            file: { allBlocks, blockContainingPosition, collection },
+            logger,
         },
-        blockContainingPosition,
-        allBlocks,
-        logger,
+        functionType,
     );
 
     if (token.isCancellationRequested) {

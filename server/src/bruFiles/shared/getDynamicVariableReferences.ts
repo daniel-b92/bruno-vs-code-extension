@@ -5,22 +5,18 @@ import {
     getBlocksWithLaterExecutionGroups,
     isBlockCodeBlock,
     VariableReferenceType,
-    Logger,
     Position,
 } from "@global_shared";
-import { CancellationToken } from "vscode-languageserver";
+import { BlockRequestWithAdditionalData } from "./interfaces";
 
 export function getDynamicVariableReferences(
-    requestData: {
-        functionType: VariableReferenceType;
-        requestPosition: Position;
-        token: CancellationToken;
-    },
-    blockContainingPosition: Block,
-    allBlocks: Block[],
-    logger?: Logger,
+    {
+        request: { position: requestPosition, token },
+        file: { allBlocks, blockContainingPosition },
+        logger,
+    }: BlockRequestWithAdditionalData<Block>,
+    functionType: VariableReferenceType,
 ) {
-    const { functionType, requestPosition, token } = requestData;
     const relevantReferenceType =
         functionType == VariableReferenceType.Write
             ? VariableReferenceType.Read

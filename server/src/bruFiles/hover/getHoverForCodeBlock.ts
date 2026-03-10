@@ -1,15 +1,16 @@
 import {
+    CodeBlock,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
     getInbuiltFunctionType,
     Logger,
 } from "@global_shared";
-import { CodeBlockRequestWithAdditionalData } from "../shared/interfaces";
 import { mapToEnvVarNameParams } from "../shared/mapToEnvVarNameParams";
 import { getHoverForEnvVariable } from "./getHoverForEnvVariable";
+import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 
 export async function getHoverForCodeBlock(
-    fullRequest: CodeBlockRequestWithAdditionalData,
+    fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
     configuredEnvironmentName?: string,
 ) {
     const {
@@ -51,7 +52,7 @@ export async function getHoverForCodeBlock(
 }
 
 function getEnvVariableNameFromCodeBlock(
-    fullRequest: CodeBlockRequestWithAdditionalData,
+    fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
 ) {
     const {
         request: { token },

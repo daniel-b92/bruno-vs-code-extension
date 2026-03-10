@@ -38,19 +38,20 @@ import {
     TypedCollectionItemProvider,
 } from "../../shared";
 import { basename, dirname } from "path";
-import { NonCodeBlockRequestWithAdditionalData } from "../shared/interfaces";
+import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 import { mapEnvVariablesToCompletions } from "./mapEnvVariablesToCompletions";
 import { getDynamicVariableReferences } from "../shared/getDynamicVariableReferences";
 
 export async function getCompletionsForNonCodeBlock(
-    {
-        request: baseRequest,
-        file: { blockContainingPosition, allBlocks, collection },
-        logger,
-    }: NonCodeBlockRequestWithAdditionalData,
+    fullRequest: BlockRequestWithAdditionalData<Block>,
     itemProvider: TypedCollectionItemProvider,
     configuredEnvironment?: string,
 ): Promise<CompletionItem[] | undefined> {
+    const {
+        request: baseRequest,
+        file: { blockContainingPosition, collection },
+    } = fullRequest;
+
     return (
         await getBlockSpecificCompletions(
             itemProvider,
@@ -60,31 +61,20 @@ export async function getCompletionsForNonCodeBlock(
         )
     ).concat(
         collection
-            ? getNonBlockSpecificCompletions(
-                  baseRequest,
-                  {
-                      blockContainingPosition,
-                      allBlocks,
-                      collection,
-                  },
-                  configuredEnvironment,
-                  logger,
-              )
+            ? getNonBlockSpecificCompletions(fullRequest, configuredEnvironment)
             : [],
     );
 }
 
 function getNonBlockSpecificCompletions(
-    request: LanguageFeatureBaseRequest,
-    file: {
-        blockContainingPosition: Block;
-        allBlocks: Block[];
-        collection: TypedCollection;
-    },
+    fullRequest: BlockRequestWithAdditionalData<Block>,
     configuredEnvironment?: string,
-    logger?: Logger,
 ) {
-    const { blockContainingPosition, allBlocks, collection } = file;
+    const {
+        request,
+        file: { allBlocks, blockContainingPosition, collection },
+        logger,
+    } = fullRequest;
     const { documentHelper, position, token } = request;
     const { line } = position;
     // In non-code blocks, variables cannot be set.
@@ -123,14 +113,8 @@ function getNonBlockSpecificCompletions(
     }
 
     const dynamicVariableReferences = getDynamicVariableReferences(
-        {
-            functionType,
-            requestPosition: position,
-            token,
-        },
-        blockContainingPosition,
-        allBlocks,
-        logger,
+        fullRequest,
+        functionType,
     );
 
     if (token.isCancellationRequested) {

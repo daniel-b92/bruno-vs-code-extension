@@ -1,22 +1,12 @@
-import { Block, Logger, CodeBlock } from "@global_shared";
+import { Block, Logger } from "@global_shared";
 import { LanguageFeatureBaseRequest, TypedCollection } from "../../shared";
 
-export interface CodeBlockRequestWithAdditionalData {
+export interface BlockRequestWithAdditionalData<T extends Block> {
     request: LanguageFeatureBaseRequest;
     file: {
         collection: TypedCollection;
         allBlocks: Block[];
-        blockContainingPosition: CodeBlock;
-    };
-    logger?: Logger;
-}
-
-export interface NonCodeBlockRequestWithAdditionalData {
-    request: LanguageFeatureBaseRequest;
-    file: {
-        allBlocks: Block[];
-        blockContainingPosition: Block;
-        collection: TypedCollection;
+        blockContainingPosition: T;
     };
     logger?: Logger;
 }
