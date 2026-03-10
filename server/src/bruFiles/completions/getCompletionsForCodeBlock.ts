@@ -14,6 +14,7 @@ import { mapToEnvVarNameParams } from "../shared/mapToEnvVarNameParams";
 import { CompletionItem } from "vscode-languageserver";
 import { CodeBlockRequestWithAdditionalData } from "../shared/interfaces";
 import { mapEnvVariablesToCompletions } from "./mapEnvVariablesToCompletions";
+import { getDynamicVariableReferences } from "../shared/getDynamicVariableReferences";
 
 export function getCompletionsForCodeBlock(
     fullRequest: CodeBlockRequestWithAdditionalData,
@@ -87,6 +88,22 @@ function getResultsForEnvironmentVariable(
         return [];
     }
 
+    const dynamicVariableReferences = getDynamicVariableReferences(
+        {
+            functionType,
+            requestPosition: position,
+            token,
+        },
+        blockContainingPosition,
+        allBlocks,
+        logger,
+    );
+
+    if (token.isCancellationRequested) {
+        addLogEntryForCancellation(logger);
+        return [];
+    }
+
     return mapEnvVariablesToCompletions(
         matchingStaticEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
@@ -95,6 +112,7 @@ function getResultsForEnvironmentVariable(
                 isConfiguredEnv,
             }),
         ),
+        dynamicVariableReferences,
         {
             requestData: {
                 collection,
