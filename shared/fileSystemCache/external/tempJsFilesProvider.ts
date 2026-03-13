@@ -6,6 +6,7 @@ import {
     Logger,
     getTemporaryJsFileBasenameWithoutExtension,
     getTemporaryJsFileBasename,
+    convertToGlobPattern,
 } from "../..";
 import { glob } from "glob";
 
@@ -68,11 +69,9 @@ export class TempJsFilesProvider {
                 parentDirectoriesToSearchIn.map(
                     async (dir) =>
                         await glob(
-                            `${
-                                dir == normalizeDirectoryPath(dir)
-                                    ? dir.substring(0, dir.length - 1)
-                                    : dir
-                            }/**/${getTemporaryJsFileBasenameWithoutExtension()}.js`,
+                            `${convertToGlobPattern(
+                                dir,
+                            )}/**/${getTemporaryJsFileBasenameWithoutExtension()}.js`,
                         ),
                 ),
             )

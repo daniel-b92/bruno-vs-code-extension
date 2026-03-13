@@ -20,6 +20,7 @@ export * from "./fileSystem/util/collectionRootFolderHelper";
 export * from "./fileSystem/util/getItemType";
 export * from "./fileSystem/util/getMatchingTextContainingPosition";
 export * from "./fileSystem/util/doesFileNameMatchCollectionSettingsFile";
+export * from "./fileSystem/util/convertToGlobPattern";
 
 // file system cache
 export * from "./fileSystemCache/external/tempJsFilesProvider";
