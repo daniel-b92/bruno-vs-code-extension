@@ -3,6 +3,7 @@
 ### Fixes / Minor Improvements
 
 - Fix vulnerability in transitive dependency `serialize-javascript` via version bump.
+- Try to fix issue with missing collections under Windows by making used glob patterns independent from type of path separator.
 
 ## [0.21.1] (2026-03-02)
 
