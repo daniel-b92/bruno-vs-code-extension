@@ -3,6 +3,7 @@
 ### Fixes / Minor Improvements
 
 - Fix vulnerability in transitive dependency `serialize-javascript` via version bump.
+- Fix issue with incorrect completions generated from Typescript Plugin outside of code blocks.
 
 ## [0.21.1] (2026-03-02)
 
