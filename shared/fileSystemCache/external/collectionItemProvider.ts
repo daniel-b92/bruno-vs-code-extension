@@ -173,6 +173,9 @@ export class CollectionItemProvider<T> {
     }
 
     public getAncestorCollectionForPath(itemPath: string) {
+        this.logger?.debug(
+            `Trying to determine ancestor collection for path '${itemPath}'.`,
+        );
         return this.getRegisteredCollections().find((collection) =>
             normalizeDirectoryPath(itemPath).startsWith(
                 normalizeDirectoryPath(collection.getRootDirectory()),
@@ -196,6 +199,7 @@ export class CollectionItemProvider<T> {
             workSpaceFolders,
             this.filePathsToIgnore,
             this.additionalDataProvider,
+            this.logger,
         );
 
         const endTime = performance.now();

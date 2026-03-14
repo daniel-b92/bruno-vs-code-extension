@@ -1,3 +1,9 @@
+## [0.21.4] (2026-03-14)
+
+### Fixes / Minor Improvements
+
+- Improve debug logging for determining collection root folders and finding ancestor collection root for path.
+
 ## [0.21.3] (2026-03-14)
 
 ### Fixes / Minor Improvements
