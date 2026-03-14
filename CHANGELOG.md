@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Minor Improvements
+
+- Try to fix remaining issues with `.bru` files not being matched with cached items under Windows by normalizing the paths before comparing them.
+
 ## [0.21.5] (2026-03-14)
 
 ### Fixes / Minor Improvements
