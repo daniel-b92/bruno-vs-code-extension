@@ -6,6 +6,7 @@ import {
     getFolderSettingsFilePath,
     CollectionDirectory,
     getAdditionalCollectionData,
+    Logger,
 } from "../..";
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
@@ -19,11 +20,20 @@ export async function registerMissingCollectionsAndTheirItems<T>(
     workspaceFolders: string[],
     filePathsToIgnore: RegExp[],
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
+    logger?: Logger,
 ) {
     const allCollections = await registerAllExistingCollections(
         collectionRegistry,
         workspaceFolders,
         additionalDataProvider,
+    );
+
+    logger?.debug(
+        `Found collection root folders: ${JSON.stringify(
+            allCollections.map((col) => col.getRootDirectory()),
+            null,
+            2,
+        )}`,
     );
 
     for (const collection of allCollections) {
