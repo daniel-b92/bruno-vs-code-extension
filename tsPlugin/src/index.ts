@@ -87,6 +87,11 @@ function init(_modules: {
         };
 
         proxy.getCompletionsAtPosition = (fileName, position, options) => {
+            // All completions are provided by the extension implementation for '.bru' files.
+            if (isBrunoFile(fileName)) {
+                return undefined;
+            }
+
             const defaultCompletions =
                 info.languageService.getCompletionsAtPosition(
                     fileName,

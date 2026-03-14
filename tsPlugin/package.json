@@ -1,6 +1,6 @@
 {
     "name": "@zentryc5t/ts-plugin-for-bruno",
-    "version": "3.0.3",
+    "version": "3.0.4",
     "main": "./out/index.js",
     "scripts": {
         "compile": "tsc --project tsconfig.json"
@@ -9,7 +9,7 @@
     "license": "MIT",
     "description": "",
     "repository": {
-        "url": "https://github.com/daniel-b92/bruno-vs-code-extension/tree/main/src/tsPlugin"
+        "url": "git+https://github.com/daniel-b92/bruno-vs-code-extension.git#main"
     },
     "dependencies": {
         "typescript": "^5.9.2"

@@ -1,5 +1,5 @@
 import { basename, dirname } from "path";
-import { getTestFileDescendants } from "../..";
+import { convertToGlobPattern, getTestFileDescendants } from "../..";
 import { promisify } from "util";
 import { lstat, readdir } from "fs";
 import { glob } from "glob";
@@ -10,7 +10,10 @@ export async function getAllCollectionRootDirectories(
     const maybeFilesInCollectionRootDirs = (
         await Promise.all(
             workspaceFolders.map(
-                async (workspace) => await glob(`${workspace}/**/bruno.json`),
+                async (workspace) =>
+                    await glob(
+                        `${convertToGlobPattern(workspace)}/**/bruno.json`,
+                    ),
             ),
         )
     ).flat();

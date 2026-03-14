@@ -1,4 +1,5 @@
 import {
+    convertToGlobPattern,
     FileChangedEvent,
     FileChangeType,
     Logger,
@@ -68,11 +69,7 @@ export class CollectionWatcher {
 
                     case TargetEvent.ADD_DIR:
                         const descendants = await glob(
-                            `${
-                                path == normalizeDirectoryPath(path)
-                                    ? path.substring(0, path.length - 1)
-                                    : path
-                            }/**/*`,
+                            `${convertToGlobPattern(path)}/**/*`,
                         );
 
                         this.logger?.debug(
