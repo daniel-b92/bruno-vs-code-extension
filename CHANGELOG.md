@@ -1,3 +1,9 @@
+## [0.21.5] (2026-03-14)
+
+### Fixes / Minor Improvements
+
+- Try to fix issue with `.bru` not being recognized as descendants of collections folders under Windows by using normalized drive lettter casing when comparing paths.
+
 ## [0.21.4] (2026-03-14)
 
 ### Fixes / Minor Improvements
