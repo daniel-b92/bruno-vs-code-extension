@@ -49,10 +49,8 @@ export class CollectionRegistry<T> {
     }
 
     private isCollectionRegistered(rootDirectory: string) {
-        return this.collections.some(
-            (registered) =>
-                normalizeDirectoryPath(registered.getRootDirectory()) ==
-                normalizeDirectoryPath(rootDirectory),
+        return this.collections.some((registered) =>
+            registered.isRootDirectory(rootDirectory),
         );
     }
 }

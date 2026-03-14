@@ -13,6 +13,7 @@ export async function getAllCollectionRootDirectories(
                 async (workspace) =>
                     await glob(
                         `${convertToGlobPattern(workspace)}/**/bruno.json`,
+                        { absolute: true },
                     ),
             ),
         )
