@@ -70,6 +70,7 @@ export class CollectionWatcher {
                     case TargetEvent.ADD_DIR:
                         const descendants = await glob(
                             `${convertToGlobPattern(path)}/**/*`,
+                            { absolute: true },
                         );
 
                         this.logger?.debug(

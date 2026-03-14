@@ -72,6 +72,7 @@ export class TempJsFilesProvider {
                             `${convertToGlobPattern(
                                 dir,
                             )}/**/${getTemporaryJsFileBasenameWithoutExtension()}.js`,
+                            { absolute: true },
                         ),
                 ),
             )
