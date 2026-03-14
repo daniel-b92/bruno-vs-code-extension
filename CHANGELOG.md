@@ -1,3 +1,9 @@
+## [0.21.3] (2026-03-14)
+
+### Fixes / Minor Improvements
+
+- Try to fix issue with `.bru` not being recognized as descendants of collections folders under Windows by adjusting options for globs.
+
 ## [0.21.2] (2026-03-14)
 
 ### Fixes / Minor Improvements
