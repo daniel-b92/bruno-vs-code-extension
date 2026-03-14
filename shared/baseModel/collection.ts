@@ -30,7 +30,11 @@ export class Collection<T> {
     }
 
     public getStoredDataForPath(path: string) {
-        return this.testData.find(({ item }) => item.getPath() == path);
+        return this.testData.find(
+            ({ item }) =>
+                normalizeDirectoryPath(item.getPath()) ==
+                normalizeDirectoryPath(path),
+        );
     }
 
     public getAllStoredDataForCollection() {

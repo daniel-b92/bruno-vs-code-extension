@@ -24,7 +24,9 @@ export async function getItemType<T>(
 
     const isValidBruFile =
         extname(path) == getExtensionForBrunoFiles() &&
-        path.startsWith(normalizeDirectoryPath(collection.getRootDirectory()));
+        normalizeDirectoryPath(path).startsWith(
+            normalizeDirectoryPath(collection.getRootDirectory()),
+        );
 
     if (!isValidBruFile) {
         return promisify(lstat)(path)
@@ -60,8 +62,5 @@ function isChildElementOfCollectionRootDirectory<T>(
     collection: Collection<T>,
     path: string,
 ) {
-    return (
-        normalizeDirectoryPath(collection.getRootDirectory()) ==
-        normalizeDirectoryPath(dirname(path))
-    );
+    return collection.isRootDirectory(dirname(path));
 }
