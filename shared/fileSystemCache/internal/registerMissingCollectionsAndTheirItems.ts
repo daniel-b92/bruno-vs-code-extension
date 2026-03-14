@@ -91,8 +91,9 @@ async function registerAllExistingCollections<T>(
     return (
         await Promise.all(
             rootFolders.map(async (rootDirectory) => {
+                const normalizedRootDir = normalizeDirectoryPath(rootDirectory);
                 const rootFolderItem = await createCollectionDirectoryInstance(
-                    rootDirectory,
+                    normalizedRootDir,
                     await getFolderSettingsFilePath(true, rootDirectory),
                 );
 
@@ -114,7 +115,7 @@ async function registerAllExistingCollections<T>(
                             (registered) =>
                                 normalizeDirectoryPath(
                                     registered.getRootDirectory(),
-                                ) == normalizeDirectoryPath(rootDirectory),
+                                ) == normalizedRootDir,
                         )
                 ) {
                     registry.registerCollection(collection);
