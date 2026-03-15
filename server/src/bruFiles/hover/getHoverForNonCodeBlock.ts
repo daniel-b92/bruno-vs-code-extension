@@ -1,4 +1,5 @@
 import {
+    Block,
     getBlocksWithoutVariableSupport,
     getDictionaryBlockArrayField,
     getExistingRequestFileTags,
@@ -14,14 +15,14 @@ import {
     AdditionalCollectionData,
     TypedCollectionItemProvider,
 } from "../../shared";
-import { NonCodeBlockRequestWithAdditionalData } from "../shared/interfaces";
 import { basename } from "path";
 import { Hover } from "vscode-languageserver";
 import { getHoverForEnvVariable } from "./getHoverForEnvVariable";
+import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 
 export function getHoverForNonCodeBlock(
     itemProvider: TypedCollectionItemProvider,
-    params: NonCodeBlockRequestWithAdditionalData,
+    params: BlockRequestWithAdditionalData<Block>,
     configuredEnvironmentName?: string,
 ) {
     return (
@@ -40,7 +41,7 @@ function getHoverForTagsInMetaBlock(
         file: { collection, blockContainingPosition },
         request,
         logger,
-    }: NonCodeBlockRequestWithAdditionalData,
+    }: BlockRequestWithAdditionalData<Block>,
 ): Hover | undefined {
     const { position, token, filePath, documentHelper } = request;
 
@@ -81,15 +82,15 @@ function getHoverForTagsInMetaBlock(
 }
 
 function getHoverForVariablesInNonCodeBlocks(
-    {
-        file: { allBlocks, collection, blockContainingPosition },
-        request,
-        logger,
-    }: NonCodeBlockRequestWithAdditionalData,
+    fullRequest: BlockRequestWithAdditionalData<Block>,
     docHelper: TextDocumentHelper,
     configuredEnvironmentName?: string,
 ): Hover | undefined {
-    const { position, token } = request;
+    const {
+        file: { blockContainingPosition },
+        request: { position, token },
+        logger,
+    } = fullRequest;
 
     if (
         (getBlocksWithoutVariableSupport() as string[]).includes(
@@ -104,27 +105,22 @@ function getHoverForVariablesInNonCodeBlocks(
         position,
     });
 
+    if (!variable) {
+        return undefined;
+    }
+
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return undefined;
     }
 
-    return variable
-        ? getHoverForEnvVariable(
-              {
-                  requestData: {
-                      collection,
-                      variable,
-                      functionType: VariableReferenceType.Read, // In non-code blocks, variables can not be set.
-                      requestPosition: position,
-                      token,
-                  },
-                  bruFileSpecificData: { allBlocks, blockContainingPosition },
-                  logger,
-              },
-              configuredEnvironmentName,
-          )
-        : undefined;
+    return getHoverForEnvVariable(
+        fullRequest,
+        variable.name,
+        // In non-code blocks, variables can not be set.
+        VariableReferenceType.Read,
+        configuredEnvironmentName,
+    );
 }
 
 function getHoverForTagOccurences(

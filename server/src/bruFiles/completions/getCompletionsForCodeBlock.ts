@@ -8,15 +8,17 @@ import {
     EnvVariableNameMatchingMode,
     Logger,
     Position,
+    CodeBlock,
 } from "@global_shared";
 import { LanguageFeatureBaseRequest, TypedCollection } from "../../shared";
 import { mapToEnvVarNameParams } from "../shared/mapToEnvVarNameParams";
 import { CompletionItem } from "vscode-languageserver";
-import { CodeBlockRequestWithAdditionalData } from "../shared/interfaces";
 import { mapEnvVariablesToCompletions } from "./mapEnvVariablesToCompletions";
+import { getDynamicVariableReferences } from "../shared/getDynamicVariableReferences";
+import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 
 export function getCompletionsForCodeBlock(
-    fullRequest: CodeBlockRequestWithAdditionalData,
+    fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
     configuredEnvironment?: string,
 ): CompletionItem[] {
     const {
@@ -63,7 +65,7 @@ function getResultsForEnvironmentVariable(
         allBlocks: Block[];
         configuredEnvironment?: string;
     },
-    { position, token }: LanguageFeatureBaseRequest,
+    baseRequest: LanguageFeatureBaseRequest,
     logger?: Logger,
 ) {
     const {
@@ -73,6 +75,7 @@ function getResultsForEnvironmentVariable(
         blockContainingPosition,
         configuredEnvironment,
     } = additionalData;
+    const { position, token } = baseRequest;
 
     const matchingStaticEnvVariableDefinitions =
         getMatchingDefinitionsFromEnvFiles(
@@ -87,6 +90,20 @@ function getResultsForEnvironmentVariable(
         return [];
     }
 
+    const dynamicVariableReferences = getDynamicVariableReferences(
+        {
+            request: baseRequest,
+            file: { allBlocks, blockContainingPosition, collection },
+            logger,
+        },
+        functionType,
+    );
+
+    if (token.isCancellationRequested) {
+        addLogEntryForCancellation(logger);
+        return [];
+    }
+
     return mapEnvVariablesToCompletions(
         matchingStaticEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
@@ -95,16 +112,13 @@ function getResultsForEnvironmentVariable(
                 isConfiguredEnv,
             }),
         ),
+        dynamicVariableReferences,
         {
-            requestData: {
-                collection,
-                functionType,
-                requestPosition: position,
-                variable,
-                token,
-            },
-            bruFileSpecificData: { allBlocks, blockContainingPosition },
-            logger,
+            collection,
+            functionType,
+            requestPosition: position,
+            variable,
+            token,
         },
     );
 }

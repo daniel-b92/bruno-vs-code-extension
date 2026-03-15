@@ -4,11 +4,12 @@ import {
     InbuiltFunctionParsingParams,
     TextDocumentHelper,
     Position,
+    CodeBlock,
 } from "@global_shared";
-import { CodeBlockRequestWithAdditionalData } from "./interfaces";
+import { BlockRequestWithAdditionalData } from "./interfaces";
 
 export function mapToEnvVarNameParams(
-    params: CodeBlockRequestWithAdditionalData,
+    fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
     functionsToSearchFor: InbuiltFunctionIdentifier[],
 ): InbuiltFunctionParsingParams {
     const {
@@ -16,7 +17,7 @@ export function mapToEnvVarNameParams(
             blockContainingPosition: { content, contentRange },
         },
         request: { documentHelper, position },
-    } = params;
+    } = fullRequest;
 
     return {
         relevantContent: {

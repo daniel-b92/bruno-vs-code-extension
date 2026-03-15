@@ -38,18 +38,20 @@ import {
     TypedCollectionItemProvider,
 } from "../../shared";
 import { basename, dirname } from "path";
-import { NonCodeBlockRequestWithAdditionalData } from "../shared/interfaces";
+import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 import { mapEnvVariablesToCompletions } from "./mapEnvVariablesToCompletions";
+import { getDynamicVariableReferences } from "../shared/getDynamicVariableReferences";
 
 export async function getCompletionsForNonCodeBlock(
-    {
-        request: baseRequest,
-        file: { blockContainingPosition, allBlocks, collection },
-        logger,
-    }: NonCodeBlockRequestWithAdditionalData,
+    fullRequest: BlockRequestWithAdditionalData<Block>,
     itemProvider: TypedCollectionItemProvider,
     configuredEnvironment?: string,
 ): Promise<CompletionItem[] | undefined> {
+    const {
+        request: baseRequest,
+        file: { blockContainingPosition, collection },
+    } = fullRequest;
+
     return (
         await getBlockSpecificCompletions(
             itemProvider,
@@ -59,33 +61,24 @@ export async function getCompletionsForNonCodeBlock(
         )
     ).concat(
         collection
-            ? getNonBlockSpecificCompletions(
-                  baseRequest,
-                  {
-                      blockContainingPosition,
-                      allBlocks,
-                      collection,
-                  },
-                  configuredEnvironment,
-                  logger,
-              )
+            ? getNonBlockSpecificCompletions(fullRequest, configuredEnvironment)
             : [],
     );
 }
 
 function getNonBlockSpecificCompletions(
-    request: LanguageFeatureBaseRequest,
-    file: {
-        blockContainingPosition: Block;
-        allBlocks: Block[];
-        collection: TypedCollection;
-    },
+    fullRequest: BlockRequestWithAdditionalData<Block>,
     configuredEnvironment?: string,
-    logger?: Logger,
 ) {
-    const { blockContainingPosition, allBlocks, collection } = file;
+    const {
+        request,
+        file: { blockContainingPosition, collection },
+        logger,
+    } = fullRequest;
     const { documentHelper, position, token } = request;
-    const { line, character } = position;
+    const { line } = position;
+    // In non-code blocks, variables cannot be set.
+    const functionType = VariableReferenceType.Read;
     const lineContent = documentHelper.getLineByIndex(line);
 
     if (
@@ -95,35 +88,12 @@ function getNonBlockSpecificCompletions(
     ) {
         return [];
     }
-
-    const matchingTextResult = getMatchingTextContainingPosition(
-        position,
-        lineContent,
-        /{{(\w|-|_|\.|\d)*/,
-    );
-
-    if (!matchingTextResult) {
+    const variableParsingResult = getVariable(request, lineContent, logger);
+    if (!variableParsingResult) {
         return [];
     }
 
-    const { text: matchingText, startChar, endChar } = matchingTextResult;
-    // If the position is not after both starting brackets, provided completions would be inserted in an invalid location.
-    if (character < startChar + 2 || character > endChar) {
-        return [];
-    }
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return [];
-    }
-    const variable = {
-        name: matchingText.substring(2),
-        start: new Position(line, startChar + 2),
-        end: new Position(line, endChar),
-    };
-    const toAppendOnInsertion = !lineContent.substring(endChar).startsWith("}")
-        ? "}}"
-        : "";
+    const { variable, toAppendOnInsertion } = variableParsingResult;
 
     const matchingStaticEnvVariableDefinitions =
         getMatchingDefinitionsFromEnvFiles(
@@ -142,6 +112,16 @@ function getNonBlockSpecificCompletions(
         return [];
     }
 
+    const dynamicVariableReferences = getDynamicVariableReferences(
+        fullRequest,
+        functionType,
+    );
+
+    if (token.isCancellationRequested) {
+        addLogEntryForCancellation(logger);
+        return [];
+    }
+
     return mapEnvVariablesToCompletions(
         matchingStaticEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
@@ -150,16 +130,13 @@ function getNonBlockSpecificCompletions(
                 isConfiguredEnv,
             }),
         ),
+        dynamicVariableReferences,
         {
-            requestData: {
-                collection,
-                variable,
-                functionType: VariableReferenceType.Read, // In non-code blocks, variables can not be set.
-                requestPosition: position,
-                token,
-            },
-            bruFileSpecificData: { blockContainingPosition, allBlocks },
-            logger,
+            collection,
+            variable,
+            functionType,
+            requestPosition: position,
+            token,
         },
         toAppendOnInsertion,
     );
@@ -424,6 +401,45 @@ function getFixedCompletionItems(
             ),
         }));
     });
+}
+
+function getVariable(
+    { position, token }: LanguageFeatureBaseRequest,
+    lineContent: string,
+    logger?: Logger,
+) {
+    const { character, line } = position;
+    const matchingTextResult = getMatchingTextContainingPosition(
+        position,
+        lineContent,
+        /{{(\w|-|_|\.|\d)*/,
+    );
+
+    if (!matchingTextResult) {
+        return undefined;
+    }
+
+    const { text: matchingText, startChar, endChar } = matchingTextResult;
+    // If the position is not after both starting brackets, provided completions would be inserted in an invalid location.
+    if (character < startChar + 2 || character > endChar) {
+        return undefined;
+    }
+
+    if (token.isCancellationRequested) {
+        addLogEntryForCancellation(logger);
+        return undefined;
+    }
+
+    return {
+        variable: {
+            name: matchingText.substring(2),
+            start: new Position(line, startChar + 2),
+            end: new Position(line, endChar),
+        },
+        toAppendOnInsertion: !lineContent.substring(endChar).startsWith("}")
+            ? "}}"
+            : "",
+    };
 }
 
 function getTextEditForDictionaryBlockSimpleValue(

@@ -1,14 +1,11 @@
 import {
     groupReferencesByName,
     VariableReferenceType,
-    Logger,
     Range,
+    BrunoVariableReference,
 } from "@global_shared";
-import { getDynamicVariableReferences } from "../../bruFiles/shared/getDynamicVariableReferences";
 import {
-    EnvVariableBruFileSpecificData,
     EnvVariableCommonRequestData,
-    BruFileEnvVariableRequest,
     mapStaticEnvVariablesToCompletions,
 } from "../../shared";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
@@ -19,7 +16,11 @@ export function mapEnvVariablesToCompletions(
         matchingVariableKeys: string[];
         isConfiguredEnv: boolean;
     }[],
-    { requestData, bruFileSpecificData, logger }: BruFileEnvVariableRequest,
+    matchingDynamicEnvVariables: {
+        blockName: string;
+        variableReference: BrunoVariableReference;
+    }[],
+    requestData: EnvVariableCommonRequestData,
     appendOnInsertion?: string,
 ) {
     const resultsForStaticVariables = mapStaticEnvVariablesToCompletions(
@@ -30,12 +31,10 @@ export function mapEnvVariablesToCompletions(
     );
 
     return resultsForStaticVariables.concat(
-        mapDynamicEnvVariables(
-            requestData,
-            bruFileSpecificData,
-            { prefixForSortText: "a", appendOnInsertion },
-            logger,
-        ).filter(
+        mapDynamicEnvVariables(requestData, matchingDynamicEnvVariables, {
+            prefixForSortText: "a",
+            appendOnInsertion,
+        }).filter(
             ({ label }) =>
                 !matchingStaticEnvVariables
                     .flatMap(({ matchingVariableKeys }) => matchingVariableKeys)
@@ -46,38 +45,20 @@ export function mapEnvVariablesToCompletions(
 
 function mapDynamicEnvVariables(
     requestData: EnvVariableCommonRequestData,
-    bruFileSpecificData: EnvVariableBruFileSpecificData,
+    matchingDynamicEnvVariables: {
+        blockName: string;
+        variableReference: BrunoVariableReference;
+    }[],
     modifications: {
         prefixForSortText: string;
         appendOnInsertion?: string;
     },
-    logger?: Logger,
 ) {
-    const { allBlocks, blockContainingPosition } = bruFileSpecificData;
     const {
-        functionType,
-        requestPosition,
-        token,
         variable: { start, end },
     } = requestData;
 
-    const variableReferences = getDynamicVariableReferences(
-        {
-            functionType,
-            requestPosition,
-            token,
-        },
-        blockContainingPosition,
-        allBlocks,
-        logger,
-    );
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return [];
-    }
-
-    return groupReferencesByName(variableReferences).map(
+    return groupReferencesByName(matchingDynamicEnvVariables).map(
         ({
             blockName,
             variableName,
@@ -113,8 +94,4 @@ function mapDynamicEnvVariables(
             return completionItem;
         },
     );
-}
-
-function addLogEntryForCancellation(logger?: Logger) {
-    logger?.debug(`Cancellation requested for completion provider.`);
 }

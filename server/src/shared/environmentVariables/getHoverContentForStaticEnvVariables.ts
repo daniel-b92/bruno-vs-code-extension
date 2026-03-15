@@ -1,45 +1,29 @@
 import { basename } from "path";
-import {
-    EnvVariableNameMatchingMode,
-    getExtensionForBrunoFiles,
-    getMatchingDefinitionsFromEnvFiles,
-    Logger,
-} from "@global_shared";
-import { EnvVariableCommonRequestData } from "../interfaces";
+import { getExtensionForBrunoFiles, Range } from "@global_shared";
 
 export function getHoverContentForStaticEnvVariables(
-    requestData: EnvVariableCommonRequestData,
-    configuredEnvironmentName?: string,
-    logger?: Logger,
+    matches: {
+        file: string;
+        matchingVariables: {
+            key: string;
+            keyRange: Range;
+            value: string;
+            valueRange: Range;
+        }[];
+        isConfiguredEnv: boolean;
+    }[],
 ) {
-    const {
-        collection,
-        token,
-        variable: { name: variableName },
-    } = requestData;
     const tableHeader = `| value | environment | configured |
 | :--------------- | :----------------: | :----------------: | ${getLineBreak()}`;
 
-    const matchingVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
-        collection,
-        variableName,
-        EnvVariableNameMatchingMode.Exact,
-        configuredEnvironmentName,
-    );
-
-    if (matchingVariableDefinitions.length == 0) {
-        return undefined;
-    }
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
+    if (matches.length == 0) {
         return undefined;
     }
 
     return "**Static references:**".concat(
         getLineBreak(),
         tableHeader,
-        matchingVariableDefinitions
+        matches
             .map(({ file, matchingVariables, isConfiguredEnv }) => {
                 const environmentName = basename(
                     file,
@@ -55,10 +39,6 @@ export function getHoverContentForStaticEnvVariables(
             })
             .join(getLineBreak()),
     );
-}
-
-function addLogEntryForCancellation(logger?: Logger) {
-    logger?.debug(`Cancellation requested for hover provider.`);
 }
 
 function getLineBreak() {
