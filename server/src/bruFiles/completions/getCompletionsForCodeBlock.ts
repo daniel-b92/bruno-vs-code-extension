@@ -14,7 +14,7 @@ import { LanguageFeatureBaseRequest, TypedCollection } from "../../shared";
 import { mapToEnvVarNameParams } from "../shared/mapToEnvVarNameParams";
 import { CompletionItem } from "vscode-languageserver";
 import { mapEnvVariablesToCompletions } from "./mapEnvVariablesToCompletions";
-import { getDynamicVariableReferences } from "../shared/getDynamicVariableReferences";
+import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 
 export function getCompletionsForCodeBlock(
@@ -90,7 +90,7 @@ function getResultsForEnvironmentVariable(
         return [];
     }
 
-    const dynamicVariableReferences = getDynamicVariableReferences(
+    const dynamicVariableReferences = getDynamicVariableReferencesWithinFile(
         {
             request: baseRequest,
             file: { allBlocks, blockContainingPosition, collection },

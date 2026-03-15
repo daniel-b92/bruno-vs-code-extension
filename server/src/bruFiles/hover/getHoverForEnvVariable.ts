@@ -6,7 +6,7 @@ import {
     Logger,
     VariableReferenceType,
 } from "@global_shared";
-import { getDynamicVariableReferences } from "../shared/getDynamicVariableReferences";
+import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
 import { Hover, MarkupContent } from "vscode-languageserver";
 import { getHoverContentForStaticEnvVariables } from "../../shared";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
@@ -23,7 +23,7 @@ export function getHoverForEnvVariable(
         logger,
     } = fullRequest;
 
-    const dynamicReferences = getDynamicVariableReferences(
+    const dynamicReferences = getDynamicVariableReferencesWithinFile(
         fullRequest,
         functionType,
     ).filter(

@@ -40,7 +40,7 @@ import {
 import { basename, dirname } from "path";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 import { mapEnvVariablesToCompletions } from "./mapEnvVariablesToCompletions";
-import { getDynamicVariableReferences } from "../shared/getDynamicVariableReferences";
+import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
 
 export async function getCompletionsForNonCodeBlock(
     fullRequest: BlockRequestWithAdditionalData<Block>,
@@ -112,7 +112,7 @@ function getNonBlockSpecificCompletions(
         return [];
     }
 
-    const dynamicVariableReferences = getDynamicVariableReferences(
+    const dynamicVariableReferences = getDynamicVariableReferencesWithinFile(
         fullRequest,
         functionType,
     );
