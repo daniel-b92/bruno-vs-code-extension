@@ -4,7 +4,7 @@ import { lstat } from "fs";
 import {
     checkIfPathExistsAsync,
     getExtensionForBrunoFiles,
-    normalizeDirectoryPath,
+    normalizePath,
     doesFileNameMatchFolderSettingsFileName,
     isInFolderForEnvironmentFiles,
     BrunoFileType,
@@ -24,8 +24,8 @@ export async function getItemType<T>(
 
     const isValidBruFile =
         extname(path) == getExtensionForBrunoFiles() &&
-        normalizeDirectoryPath(path).startsWith(
-            normalizeDirectoryPath(collection.getRootDirectory()),
+        normalizePath(path).startsWith(
+            normalizePath(collection.getRootDirectory()),
         );
 
     if (!isValidBruFile) {

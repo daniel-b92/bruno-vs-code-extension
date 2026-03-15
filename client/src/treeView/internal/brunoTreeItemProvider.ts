@@ -1,6 +1,6 @@
 import { basename, dirname } from "path";
 import * as vscode from "vscode";
-import { normalizeDirectoryPath, FileChangeType } from "@global_shared";
+import { normalizePath, FileChangeType } from "@global_shared";
 import {
     TypedCollectionItemProvider,
     OutputChannelLogger,
@@ -67,9 +67,9 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
                     const ancestorAlreadyAdded = prev.some(
                         ({ collection: c, data: { item: i } }) =>
                             c.isRootDirectory(collectionRoot) &&
-                            normalizeDirectoryPath(
-                                currentItem.getPath(),
-                            ).startsWith(normalizeDirectoryPath(i.getPath())),
+                            normalizePath(currentItem.getPath()).startsWith(
+                                normalizePath(i.getPath()),
+                            ),
                     );
 
                     return ancestorAlreadyAdded ? prev : prev.concat(curr);
@@ -185,9 +185,9 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
                         .getAllStoredDataForCollection()
                         .filter(
                             ({ item: registeredItem }) =>
-                                normalizeDirectoryPath(
+                                normalizePath(
                                     dirname(registeredItem.getPath()),
-                                ) == normalizeDirectoryPath(element.getPath()),
+                                ) == normalizePath(element.getPath()),
                         )
                         .map(
                             async ({ additionalData: { treeItem } }) =>

@@ -1,6 +1,6 @@
 import { TestController, TestItem, Uri } from "vscode";
 import {
-    normalizeDirectoryPath,
+    normalizePath,
     CollectionData,
     CollectionItemWithSequence,
 } from "@global_shared";
@@ -117,10 +117,8 @@ function getAncestors(
     item: CollectionItemWithSequence,
 ) {
     return collection.getAllStoredDataForCollection().filter(({ item: i }) => {
-        const normalizedDescendantItemPath = normalizeDirectoryPath(
-            item.getPath(),
-        );
-        const normalizedStoredItemPath = normalizeDirectoryPath(i.getPath());
+        const normalizedDescendantItemPath = normalizePath(item.getPath());
+        const normalizedStoredItemPath = normalizePath(i.getPath());
 
         return (
             normalizedDescendantItemPath.startsWith(normalizedStoredItemPath) &&

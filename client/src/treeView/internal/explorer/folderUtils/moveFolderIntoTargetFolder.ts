@@ -1,5 +1,5 @@
 import { basename, dirname, resolve } from "path";
-import { normalizeDirectoryPath } from "@global_shared";
+import { normalizePath } from "@global_shared";
 import { TypedCollectionItemProvider } from "@shared";
 import { renameFileOrFolder } from "../renameFileOrFolder";
 import { updateSequencesAfterMovingFolder } from "./updateSequencesAfterMovingFolder";
@@ -45,12 +45,12 @@ async function moveFolderIfNecessary(
     if (
         (insertionOption ==
             FolderDropInsertionOption.MoveIntoTargetAsSubfolder &&
-            normalizeDirectoryPath(targetItem.getPath()) ==
-                normalizeDirectoryPath(dirname(sourcePath))) ||
+            normalizePath(targetItem.getPath()) ==
+                normalizePath(dirname(sourcePath))) ||
         (insertionOption !=
             FolderDropInsertionOption.MoveIntoTargetAsSubfolder &&
-            normalizeDirectoryPath(dirname(targetItem.getPath())) ==
-                normalizeDirectoryPath(dirname(sourcePath)))
+            normalizePath(dirname(targetItem.getPath())) ==
+                normalizePath(dirname(sourcePath)))
     ) {
         return true;
     }

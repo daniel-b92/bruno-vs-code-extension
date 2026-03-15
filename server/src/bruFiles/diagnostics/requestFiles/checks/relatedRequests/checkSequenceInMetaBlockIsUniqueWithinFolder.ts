@@ -1,6 +1,6 @@
 import {
     DictionaryBlockSimpleField,
-    normalizeDirectoryPath,
+    normalizePath,
     Block,
     MetaBlockKey,
     isBlockDictionaryBlock,
@@ -154,11 +154,11 @@ function getOtherRequestsInFolder(
 
             return (
                 item.isFile() &&
-                normalizeDirectoryPath(dirname(itemPath)) ==
-                    normalizeDirectoryPath(directoryPath) &&
+                normalizePath(dirname(itemPath)) ==
+                    normalizePath(directoryPath) &&
                 isCollectionItemWithSequence(item) &&
                 item.getSequence() != undefined &&
-                itemPath != filePath &&
+                normalizePath(itemPath) != normalizePath(filePath) &&
                 item.getItemType() == BrunoFileType.RequestFile
             );
         })

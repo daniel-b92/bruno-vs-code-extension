@@ -1,6 +1,6 @@
 import {
     DictionaryBlockSimpleField,
-    normalizeDirectoryPath,
+    normalizePath,
     Block,
     MetaBlockKey,
     isBlockDictionaryBlock,
@@ -170,16 +170,14 @@ async function getOtherFolderSettingsWithSameParentFolder(
 
                 return (
                     item.isFile() &&
-                    normalizeDirectoryPath(dirname(dirname(itemPath))) ==
-                        normalizeDirectoryPath(
+                    normalizePath(dirname(dirname(itemPath))) ==
+                        normalizePath(
                             dirname(dirname(referenceFolderSettings)),
                         ) &&
                     isCollectionItemWithSequence(item) &&
                     item.getSequence() != undefined &&
-                    normalizeDirectoryPath(dirname(itemPath)) !=
-                        normalizeDirectoryPath(
-                            dirname(referenceFolderSettings),
-                        ) &&
+                    normalizePath(dirname(itemPath)) !=
+                        normalizePath(dirname(referenceFolderSettings)) &&
                     item.getItemType() == BrunoFileType.FolderSettingsFile
                 );
             },

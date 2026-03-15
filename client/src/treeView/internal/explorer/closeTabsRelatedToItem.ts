@@ -1,5 +1,5 @@
 import { Tab, window, TabInputText } from "vscode";
-import { normalizeDirectoryPath } from "@global_shared";
+import { normalizePath } from "@global_shared";
 import { BrunoTreeItem } from "../../brunoTreeItem";
 
 export async function closeTabsRelatedToItem(item: BrunoTreeItem) {
@@ -13,9 +13,7 @@ export async function closeTabsRelatedToItem(item: BrunoTreeItem) {
                     tab.input instanceof TabInputText &&
                     (item.isFile
                         ? tab.input.uri.fsPath == path
-                        : tab.input.uri.fsPath.startsWith(
-                              normalizeDirectoryPath(path),
-                          )),
+                        : tab.input.uri.fsPath.startsWith(normalizePath(path))),
             ),
         );
     }
