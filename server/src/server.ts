@@ -110,6 +110,8 @@ disposables.push(
                 connection.languages.diagnostics.refresh();
             }
         });
+
+        connection.languages.diagnostics.refresh();
     }),
 );
 
