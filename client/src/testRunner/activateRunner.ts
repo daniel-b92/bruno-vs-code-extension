@@ -18,7 +18,7 @@ import { addTestItemAndAncestorsToTestTree } from "./testTreeUtils/addTestItemAn
 import { getTestId } from "./testTreeUtils/testTreeHelper";
 import { dirname, extname } from "path";
 import {
-    normalizeDirectoryPath,
+    normalizePath,
     getExtensionForBrunoFiles,
     FileChangeType,
     CollectionDirectory,
@@ -350,8 +350,8 @@ function handleTestTreeUpdates(
             // The test tree view is only updated correctly, if you re-add the collection on top level again
             if (
                 updateType != FileChangeType.Deleted ||
-                normalizeDirectoryPath(item.getPath()) !=
-                    normalizeDirectoryPath(collection.getRootDirectory())
+                normalizePath(item.getPath()) !=
+                    normalizePath(collection.getRootDirectory())
             ) {
                 addCollectionTestItemToTestTree(controller, collection);
             }

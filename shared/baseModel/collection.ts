@@ -2,7 +2,7 @@ import {
     CollectionData,
     CollectionDirectory,
     CollectionItem,
-    normalizeDirectoryPath,
+    normalizePath,
 } from "..";
 
 export class Collection<T> {
@@ -23,17 +23,12 @@ export class Collection<T> {
     }
 
     public isRootDirectory(path: string) {
-        return (
-            normalizeDirectoryPath(path) ==
-            normalizeDirectoryPath(this.getRootDirectory())
-        );
+        return normalizePath(path) == normalizePath(this.getRootDirectory());
     }
 
     public getStoredDataForPath(path: string) {
         return this.testData.find(
-            ({ item }) =>
-                normalizeDirectoryPath(item.getPath()) ==
-                normalizeDirectoryPath(path),
+            ({ item }) => normalizePath(item.getPath()) == normalizePath(path),
         );
     }
 
@@ -60,7 +55,7 @@ export class Collection<T> {
                 ({ item: registered }) =>
                     registered
                         .getPath()
-                        .startsWith(normalizeDirectoryPath(item.getPath())),
+                        .startsWith(normalizePath(item.getPath())),
             );
             for (const { item: toRemove } of descendantsToRemove) {
                 this.removeTestItemIfRegistered(toRemove.getPath());
@@ -71,8 +66,7 @@ export class Collection<T> {
     public removeTestItemIfRegistered(itemPath: string) {
         const itemIndex = this.testData.findIndex(
             ({ item: registered }) =>
-                normalizeDirectoryPath(registered.getPath()) ==
-                normalizeDirectoryPath(itemPath),
+                normalizePath(registered.getPath()) == normalizePath(itemPath),
         );
 
         if (itemIndex != -1) {

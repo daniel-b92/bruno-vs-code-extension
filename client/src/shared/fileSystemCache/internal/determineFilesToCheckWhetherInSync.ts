@@ -1,6 +1,6 @@
 import { dirname, resolve } from "path";
 import {
-    normalizeDirectoryPath,
+    normalizePath,
     parseSequenceFromMetaBlock,
     filterAsync,
     BrunoFileType,
@@ -114,7 +114,7 @@ async function waitForActiveMultiFileOperationToFinish(
 
     await new Promise<void>((resolve) => {
         subscription = multiFileOperationFinishedNotifier((f) => {
-            if (normalizeDirectoryPath(folderPath) == normalizeDirectoryPath(f))
+            if (normalizePath(folderPath) == normalizePath(f))
                 logger?.debug(`Multi file operation completed.`);
             resolve();
         });

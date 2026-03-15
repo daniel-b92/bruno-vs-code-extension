@@ -1,7 +1,10 @@
-export const normalizeDirectoryPath = (directoryPath: string) => {
+export const normalizePath = (
+    directoryPath: string,
+    withTrailingSeparator = true,
+) => {
     const usesSlashes = directoryPath.includes("/");
 
-    if (usesSlashes) {
+    if (usesSlashes && withTrailingSeparator) {
         return directoryPath.endsWith("/")
             ? directoryPath
             : `${directoryPath}/`;
@@ -14,6 +17,10 @@ export const normalizeDirectoryPath = (directoryPath: string) => {
               .toUpperCase()
               .concat(directoryPath.substring(1))
         : directoryPath;
+
+    if (!withTrailingSeparator) {
+        return withNormalizedDrive;
+    }
 
     return withNormalizedDrive.endsWith("\\")
         ? withNormalizedDrive

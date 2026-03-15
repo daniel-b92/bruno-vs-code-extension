@@ -64,6 +64,7 @@ export class TempJsFileUpdateQueue {
 
         const toAwait = new Promise<number | boolean>((resolve) => {
             const timeoutForAbortion = setTimeout(() => {
+                this.pendingRequestNotifier.stopShowingPendingRequestInfo();
                 resolve(timeoutIdentifier);
             }, timeoutInMs);
 

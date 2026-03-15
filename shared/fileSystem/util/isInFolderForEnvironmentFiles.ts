@@ -1,8 +1,6 @@
 import { dirname } from "path";
-import { normalizeDirectoryPath } from "../..";
+import { normalizePath } from "../..";
 
 export function isInFolderForEnvironmentFiles(path: string) {
-    return normalizeDirectoryPath(dirname(path)).match(
-        /(\/|\\)environments(\/|\\)$/,
-    );
+    return normalizePath(dirname(path)).match(/(\/|\\)environments(\/|\\)$/);
 }

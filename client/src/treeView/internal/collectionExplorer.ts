@@ -5,7 +5,7 @@ import {
     getSequenceForFolder,
     getFolderSettingsFilePath,
     checkIfPathExistsAsync,
-    normalizeDirectoryPath,
+    normalizePath,
     BrunoFileType,
     isBrunoFileType,
     getMaxSequenceForRequests,
@@ -321,8 +321,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         if (
             targetCollection &&
             this.itemProvider.getRegisteredItem(targetCollection, newPath) &&
-            normalizeDirectoryPath(newPath) !=
-                normalizeDirectoryPath(sourcePath) // confirmation should not be required when moving a request within the same folder (e.g. to update the sequence)
+            normalizePath(newPath) != normalizePath(sourcePath) // confirmation should not be required when moving a request within the same folder (e.g. to update the sequence)
         ) {
             const pickedOption = await vscode.window.showInformationMessage(
                 `An item with the path '${newPath}' already exists. Do you want to overwrite it?`,

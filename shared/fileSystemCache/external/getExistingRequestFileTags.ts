@@ -1,5 +1,5 @@
 import {
-    normalizeDirectoryPath,
+    normalizePath,
     BrunoRequestFile,
     isRequestFile,
     Collection,
@@ -151,7 +151,7 @@ function groupByCollection<T>(items: ItemIdentifier<T>[]) {
 
 function hasBaseDirectory<T>(collection: Collection<T>, baseDirectory: string) {
     return (
-        normalizeDirectoryPath(collection.getRootDirectory()) ==
-        normalizeDirectoryPath(baseDirectory)
+        normalizePath(collection.getRootDirectory()) ==
+        normalizePath(baseDirectory)
     );
 }

@@ -1,5 +1,5 @@
 import {
-    normalizeDirectoryPath,
+    normalizePath,
     getAllCollectionRootDirectories,
     Collection,
     AdditionalCollectionDataProvider,
@@ -91,7 +91,7 @@ async function registerAllExistingCollections<T>(
     return (
         await Promise.all(
             rootFolders.map(async (rootDirectory) => {
-                const normalizedRootDir = normalizeDirectoryPath(rootDirectory);
+                const normalizedRootDir = normalizePath(rootDirectory);
                 const rootFolderItem = await createCollectionDirectoryInstance(
                     normalizedRootDir,
                     await getFolderSettingsFilePath(true, rootDirectory),
@@ -113,9 +113,8 @@ async function registerAllExistingCollections<T>(
                         .getRegisteredCollections()
                         .some(
                             (registered) =>
-                                normalizeDirectoryPath(
-                                    registered.getRootDirectory(),
-                                ) == normalizedRootDir,
+                                normalizePath(registered.getRootDirectory()) ==
+                                normalizedRootDir,
                         )
                 ) {
                     registry.registerCollection(collection);

@@ -1,8 +1,16 @@
-## [Unreleased]
+## [0.21.7] (2026-03-15)
+
+### Fixes / Minor Improvements
+
+- Fix issue with incorrect diagnostics being shown that requests with same sequence exist in same folder.
+- Trigger a refresh of diagnostics initially after language server initialization.
+
+## [0.21.6] (2026-03-15)
 
 ### Fixes / Minor Improvements
 
 - Try to fix remaining issues with `.bru` files not being matched with cached items under Windows by normalizing the paths before comparing them.
+- Try to fix issue with info popup for pending language request not being closed properly sometimes.
 
 ## [0.21.5] (2026-03-14)
 

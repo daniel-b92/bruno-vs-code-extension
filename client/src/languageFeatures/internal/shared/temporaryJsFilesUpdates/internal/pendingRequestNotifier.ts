@@ -40,6 +40,7 @@ export class PendingRequestNotifier {
     }
 
     public dispose() {
+        this.stopShowingPendingRequestInfo();
         this.stopShowingNotificationNotifier.dispose();
     }
 }
