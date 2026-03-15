@@ -5,7 +5,7 @@ import {
     addTestItemAndAncestorsToTestTree,
 } from "../../../testRunner";
 import {
-    normalizeDirectoryPath,
+    normalizePath,
     CollectionDirectory,
     CollectionItemWithSequence,
     CollectionItem,
@@ -60,9 +60,7 @@ export class TestRunnerDataHelper {
         collectionForDirectory: TypedCollection,
         directory: CollectionDirectory,
     ) {
-        const normalizedDirectoryPath = normalizeDirectoryPath(
-            directory.getPath(),
-        );
+        const normalizedDirectoryPath = normalizePath(directory.getPath());
 
         return collectionForDirectory
             .getAllStoredDataForCollection()

@@ -1,6 +1,6 @@
 import { basename } from "path";
 import {
-    normalizeDirectoryPath,
+    normalizePath,
     CollectionWatcher,
     FileChangeType,
     Logger,
@@ -24,7 +24,7 @@ export class TempJsFilesProvider {
                     const index = this.registeredTempJsFiles.findIndex(
                         (registered) =>
                             path == registered ||
-                            registered.startsWith(normalizeDirectoryPath(path)),
+                            registered.startsWith(normalizePath(path)),
                     );
 
                     if (index >= 0) {

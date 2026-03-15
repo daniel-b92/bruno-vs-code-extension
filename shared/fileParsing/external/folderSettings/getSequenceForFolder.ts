@@ -3,7 +3,7 @@ import { parseSequenceFromMetaBlock } from "../shared/parseSequenceFromMetaBlock
 import {
     checkIfPathExistsAsync,
     getFolderSettingsFilePath,
-    normalizeDirectoryPath,
+    normalizePath,
 } from "../../..";
 import { promisify } from "util";
 
@@ -16,8 +16,7 @@ export async function getSequenceForFolder(
         !(await promisify(lstat)(folderPath)
             .then((stats) => stats.isDirectory())
             .catch(() => undefined)) ||
-        normalizeDirectoryPath(collectionRootDirectory) ==
-            normalizeDirectoryPath(folderPath)
+        normalizePath(collectionRootDirectory) == normalizePath(folderPath)
     ) {
         return undefined;
     }

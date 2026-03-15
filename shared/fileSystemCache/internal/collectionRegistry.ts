@@ -1,4 +1,4 @@
-import { normalizeDirectoryPath, CollectionWatcher, Collection } from "../..";
+import { normalizePath, CollectionWatcher, Collection } from "../..";
 
 export class CollectionRegistry<T> {
     constructor(private collectionWatcher: CollectionWatcher) {}
@@ -28,8 +28,8 @@ export class CollectionRegistry<T> {
             const collection = this.collections.splice(
                 this.collections.findIndex(
                     (collection) =>
-                        normalizeDirectoryPath(collection.getRootDirectory()) ==
-                        normalizeDirectoryPath(rootDirectory),
+                        normalizePath(collection.getRootDirectory()) ==
+                        normalizePath(rootDirectory),
                 ),
                 1,
             )[0];

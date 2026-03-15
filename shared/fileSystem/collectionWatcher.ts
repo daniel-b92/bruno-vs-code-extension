@@ -3,7 +3,7 @@ import {
     FileChangedEvent,
     FileChangeType,
     Logger,
-    normalizeDirectoryPath,
+    normalizePath,
 } from "..";
 import { basename } from "path";
 import { glob } from "glob";
@@ -39,8 +39,7 @@ export class CollectionWatcher {
             !this.isWithinWorkspaceFolders(rootDirectory) ||
             this.watchers.some(
                 ({ rootDirectory: watched }) =>
-                    normalizeDirectoryPath(watched) ==
-                    normalizeDirectoryPath(rootDirectory),
+                    normalizePath(watched) == normalizePath(rootDirectory),
             )
         ) {
             return;
@@ -151,9 +150,7 @@ export class CollectionWatcher {
 
     private isWithinWorkspaceFolders(collectionRootDir: string) {
         return this.workSpaceFolders.some((folder) =>
-            normalizeDirectoryPath(collectionRootDir).includes(
-                normalizeDirectoryPath(folder),
-            ),
+            normalizePath(collectionRootDir).includes(normalizePath(folder)),
         );
     }
 }

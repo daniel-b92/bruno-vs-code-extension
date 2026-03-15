@@ -2,7 +2,7 @@ import { CollectionRegistry } from "../internal/collectionRegistry";
 import { addOrReplaceItemInCollection } from "../internal/addOrReplaceItemInCollection";
 import { registerMissingCollectionsAndTheirItems } from "../internal/registerMissingCollectionsAndTheirItems";
 import {
-    normalizeDirectoryPath,
+    normalizePath,
     CollectionWatcher,
     FileChangeType,
     BrunoFileType,
@@ -177,8 +177,8 @@ export class CollectionItemProvider<T> {
             `Trying to determine ancestor collection for path '${itemPath}'.`,
         );
         return this.getRegisteredCollections().find((collection) =>
-            normalizeDirectoryPath(itemPath).startsWith(
-                normalizeDirectoryPath(collection.getRootDirectory()),
+            normalizePath(itemPath).startsWith(
+                normalizePath(collection.getRootDirectory()),
             ),
         );
     }
@@ -429,8 +429,8 @@ export class CollectionItemProvider<T> {
         if (
             this.notificationBatch.some(
                 ({ data: { item: i }, updateType: type }) =>
-                    normalizeDirectoryPath(i.getPath()) ==
-                        normalizeDirectoryPath(path) && type == updateType,
+                    normalizePath(i.getPath()) == normalizePath(path) &&
+                    type == updateType,
             )
         ) {
             return;

@@ -7,7 +7,7 @@ import {
 } from "../../model/interfaces";
 import {
     isCollectionItemWithSequence,
-    normalizeDirectoryPath,
+    normalizePath,
     parseSequenceFromMetaBlock,
 } from "@global_shared";
 import { dirname } from "path";
@@ -74,8 +74,8 @@ export class FileSystemCacheSyncingHelper {
                 .getRegisteredCollections()
                 .find(
                     (c) =>
-                        normalizeDirectoryPath(c.getRootDirectory()) ==
-                        normalizeDirectoryPath(collectionRootFolder),
+                        normalizePath(c.getRootDirectory()) ==
+                        normalizePath(collectionRootFolder),
                 );
         };
         const parentFolder = dirname(filePath);
@@ -183,9 +183,8 @@ export class FileSystemCacheSyncingHelper {
             this.isMultiFileOperationActive(folderPath) ||
             (hasRecentlyBeenActive &&
                 this.latestMultiFileOperation.folderPath != undefined &&
-                normalizeDirectoryPath(
-                    this.latestMultiFileOperation.folderPath,
-                ) == normalizeDirectoryPath(folderPath))
+                normalizePath(this.latestMultiFileOperation.folderPath) ==
+                    normalizePath(folderPath))
         );
     }
 
@@ -193,8 +192,8 @@ export class FileSystemCacheSyncingHelper {
         return (
             this.latestMultiFileOperation.completionDate == undefined &&
             this.latestMultiFileOperation.folderPath != undefined &&
-            normalizeDirectoryPath(this.latestMultiFileOperation.folderPath) ==
-                normalizeDirectoryPath(folderPath)
+            normalizePath(this.latestMultiFileOperation.folderPath) ==
+                normalizePath(folderPath)
         );
     }
 
