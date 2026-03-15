@@ -114,15 +114,11 @@ function getResultsForEnvironmentVariable(
         ),
         dynamicVariableReferences,
         {
-            requestData: {
-                collection,
-                functionType,
-                requestPosition: position,
-                variable,
-                token,
-            },
-            bruFileSpecificData: { allBlocks, blockContainingPosition },
-            logger,
+            collection,
+            functionType,
+            requestPosition: position,
+            variable,
+            token,
         },
     );
 }

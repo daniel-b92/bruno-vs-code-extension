@@ -82,15 +82,15 @@ function getHoverForTagsInMetaBlock(
 }
 
 function getHoverForVariablesInNonCodeBlocks(
-    {
-        file: { allBlocks, collection, blockContainingPosition },
-        request,
-        logger,
-    }: BlockRequestWithAdditionalData<Block>,
+    fullRequest: BlockRequestWithAdditionalData<Block>,
     docHelper: TextDocumentHelper,
     configuredEnvironmentName?: string,
 ): Hover | undefined {
-    const { position, token } = request;
+    const {
+        file: { blockContainingPosition },
+        request: { position, token },
+        logger,
+    } = fullRequest;
 
     if (
         (getBlocksWithoutVariableSupport() as string[]).includes(
@@ -105,27 +105,22 @@ function getHoverForVariablesInNonCodeBlocks(
         position,
     });
 
+    if (!variable) {
+        return undefined;
+    }
+
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return undefined;
     }
 
-    return variable
-        ? getHoverForEnvVariable(
-              {
-                  requestData: {
-                      collection,
-                      variable,
-                      functionType: VariableReferenceType.Read, // In non-code blocks, variables can not be set.
-                      requestPosition: position,
-                      token,
-                  },
-                  bruFileSpecificData: { allBlocks, blockContainingPosition },
-                  logger,
-              },
-              configuredEnvironmentName,
-          )
-        : undefined;
+    return getHoverForEnvVariable(
+        fullRequest,
+        variable.name,
+        // In non-code blocks, variables can not be set.
+        VariableReferenceType.Read,
+        configuredEnvironmentName,
+    );
 }
 
 function getHoverForTagOccurences(

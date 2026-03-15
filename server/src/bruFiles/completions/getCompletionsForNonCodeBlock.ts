@@ -72,7 +72,7 @@ function getNonBlockSpecificCompletions(
 ) {
     const {
         request,
-        file: { allBlocks, blockContainingPosition, collection },
+        file: { blockContainingPosition, collection },
         logger,
     } = fullRequest;
     const { documentHelper, position, token } = request;
@@ -132,15 +132,11 @@ function getNonBlockSpecificCompletions(
         ),
         dynamicVariableReferences,
         {
-            requestData: {
-                collection,
-                variable,
-                functionType,
-                requestPosition: position,
-                token,
-            },
-            bruFileSpecificData: { blockContainingPosition, allBlocks },
-            logger,
+            collection,
+            variable,
+            functionType,
+            requestPosition: position,
+            token,
         },
         toAppendOnInsertion,
     );

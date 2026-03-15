@@ -1,28 +1,53 @@
-import { Logger } from "@global_shared";
 import {
-    EnvVariableBruFileSpecificData,
-    EnvVariableCommonRequestData,
-    BruFileEnvVariableRequest,
-} from "../../shared/interfaces";
+    Block,
+    BrunoVariableReference,
+    EnvVariableNameMatchingMode,
+    getMatchingDefinitionsFromEnvFiles,
+    Logger,
+    VariableReferenceType,
+} from "@global_shared";
 import { getDynamicVariableReferences } from "../shared/getDynamicVariableReferences";
 import { Hover, MarkupContent } from "vscode-languageserver";
 import { getHoverContentForStaticEnvVariables } from "../../shared";
+import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 
 export function getHoverForEnvVariable(
-    { requestData, bruFileSpecificData, logger }: BruFileEnvVariableRequest,
+    fullRequest: BlockRequestWithAdditionalData<Block>,
+    variableName: string,
+    functionType: VariableReferenceType,
     configuredEnvironmentName?: string,
 ): Hover | undefined {
-    const contentForDynamicReferences = bruFileSpecificData
-        ? getContentForDynamicVariables(
-              requestData,
-              bruFileSpecificData,
-              logger,
-          )
-        : undefined;
-    const contentForStaticReferences = getHoverContentForStaticEnvVariables(
-        requestData,
-        configuredEnvironmentName,
+    const {
+        request: { token },
+        file: { collection },
         logger,
+    } = fullRequest;
+
+    const dynamicReferences = getDynamicVariableReferences(
+        fullRequest,
+        functionType,
+    ).filter(
+        ({ variableReference: { variableName: name } }) => name == variableName,
+    );
+
+    if (token.isCancellationRequested) {
+        addLogEntryForCancellation(logger);
+        return undefined;
+    }
+
+    const contentForDynamicReferences =
+        getContentForDynamicVariables(dynamicReferences);
+
+    const matchingStaticEnvVariableDefinitions =
+        getMatchingDefinitionsFromEnvFiles(
+            collection,
+            variableName,
+            EnvVariableNameMatchingMode.Exact,
+            configuredEnvironmentName,
+        );
+
+    const contentForStaticReferences = getHoverContentForStaticEnvVariables(
+        matchingStaticEnvVariableDefinitions,
     );
 
     const resultingMarkdownString: MarkupContent | undefined =
@@ -47,30 +72,14 @@ export function getHoverForEnvVariable(
 }
 
 function getContentForDynamicVariables(
-    requestData: EnvVariableCommonRequestData,
-    bruFileSpecificData: EnvVariableBruFileSpecificData,
-    logger?: Logger,
+    references: {
+        blockName: string;
+        variableReference: BrunoVariableReference;
+    }[],
 ) {
-    const {
-        variable: { name: variableName },
-        token,
-    } = requestData;
-    const { blockContainingPosition, allBlocks } = bruFileSpecificData;
     const lineBreak = getLineBreak();
 
-    const variableReferences = getDynamicVariableReferences(
-        requestData,
-        blockContainingPosition,
-        allBlocks,
-    ).filter(
-        ({ variableReference: { variableName: name } }) => name == variableName,
-    );
-
-    if (variableReferences.length == 0) {
-        return undefined;
-    }
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
+    if (references.length == 0) {
         return undefined;
     }
 
@@ -79,7 +88,7 @@ function getContentForDynamicVariables(
     return "**Dynamic references:**".concat(
         lineBreak,
         tableHeader,
-        variableReferences
+        references
             .map(
                 ({ blockName, variableReference: { referenceType } }) =>
                     `| ${blockName} | ${referenceType} |`,

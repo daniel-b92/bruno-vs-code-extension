@@ -4,7 +4,6 @@ import {
     CollectionItemProvider,
     Position,
     TextDocumentHelper,
-    Block,
     Logger,
     VariableReferenceType,
     BrunoVariableReference,
@@ -34,10 +33,6 @@ export interface LanguageFeatureBaseRequest {
     token: CancellationToken;
 }
 
-export type BruFileEnvVariableRequest = EnvVariableBaseRequest & {
-    bruFileSpecificData: EnvVariableBruFileSpecificData;
-};
-
 export interface EnvVariableBaseRequest {
     requestData: EnvVariableCommonRequestData;
     logger?: Logger;
@@ -53,9 +48,4 @@ export interface EnvVariableCommonRequestData {
     functionType: VariableReferenceType;
     requestPosition: Position;
     token: CancellationToken;
-}
-
-export interface EnvVariableBruFileSpecificData {
-    blockContainingPosition: Block;
-    allBlocks: Block[];
 }

@@ -14,41 +14,32 @@ export async function getHoverForCodeBlock(
     configuredEnvironmentName?: string,
 ) {
     const {
-        file: { blockContainingPosition, allBlocks, collection },
-        request: { token, position },
+        request: { token },
         logger,
     } = fullRequest;
+
+    const envVariableResult = getEnvVariableNameFromCodeBlock(fullRequest);
+
+    if (!envVariableResult) {
+        return undefined;
+    }
 
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return undefined;
     }
 
-    const envVariableResult = getEnvVariableNameFromCodeBlock(fullRequest);
+    const {
+        inbuiltFunction,
+        variable: { name: variableName },
+    } = envVariableResult;
 
-    if (envVariableResult) {
-        const { inbuiltFunction, variable } = envVariableResult;
-
-        return getHoverForEnvVariable(
-            {
-                requestData: {
-                    collection,
-                    functionType: getInbuiltFunctionType(inbuiltFunction),
-                    variable,
-                    requestPosition: position,
-                    token,
-                },
-                bruFileSpecificData: {
-                    blockContainingPosition,
-                    allBlocks,
-                },
-                logger,
-            },
-            configuredEnvironmentName,
-        );
-    }
-
-    return undefined;
+    return getHoverForEnvVariable(
+        fullRequest,
+        variableName,
+        getInbuiltFunctionType(inbuiltFunction),
+        configuredEnvironmentName,
+    );
 }
 
 function getEnvVariableNameFromCodeBlock(

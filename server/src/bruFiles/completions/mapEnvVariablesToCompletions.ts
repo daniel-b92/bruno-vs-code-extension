@@ -1,13 +1,11 @@
 import {
     groupReferencesByName,
     VariableReferenceType,
-    Logger,
     Range,
     BrunoVariableReference,
 } from "@global_shared";
 import {
     EnvVariableCommonRequestData,
-    BruFileEnvVariableRequest,
     mapStaticEnvVariablesToCompletions,
 } from "../../shared";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
@@ -22,7 +20,7 @@ export function mapEnvVariablesToCompletions(
         blockName: string;
         variableReference: BrunoVariableReference;
     }[],
-    { requestData, logger }: BruFileEnvVariableRequest,
+    requestData: EnvVariableCommonRequestData,
     appendOnInsertion?: string,
 ) {
     const resultsForStaticVariables = mapStaticEnvVariablesToCompletions(
@@ -33,12 +31,10 @@ export function mapEnvVariablesToCompletions(
     );
 
     return resultsForStaticVariables.concat(
-        mapDynamicEnvVariables(
-            requestData,
-            matchingDynamicEnvVariables,
-            { prefixForSortText: "a", appendOnInsertion },
-            logger,
-        ).filter(
+        mapDynamicEnvVariables(requestData, matchingDynamicEnvVariables, {
+            prefixForSortText: "a",
+            appendOnInsertion,
+        }).filter(
             ({ label }) =>
                 !matchingStaticEnvVariables
                     .flatMap(({ matchingVariableKeys }) => matchingVariableKeys)
@@ -57,17 +53,10 @@ function mapDynamicEnvVariables(
         prefixForSortText: string;
         appendOnInsertion?: string;
     },
-    logger?: Logger,
 ) {
     const {
-        token,
         variable: { start, end },
     } = requestData;
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return [];
-    }
 
     return groupReferencesByName(matchingDynamicEnvVariables).map(
         ({
@@ -105,8 +94,4 @@ function mapDynamicEnvVariables(
             return completionItem;
         },
     );
-}
-
-function addLogEntryForCancellation(logger?: Logger) {
-    logger?.debug(`Cancellation requested for completion provider.`);
 }

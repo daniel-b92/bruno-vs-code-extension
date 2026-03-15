@@ -1,9 +1,10 @@
 import {
     Position,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
-    getInbuiltFunctionType,
     getInbuiltFunctionIdentifiers,
     Logger,
+    getMatchingDefinitionsFromEnvFiles,
+    EnvVariableNameMatchingMode,
 } from "@global_shared";
 import {
     getHoverContentForStaticEnvVariables,
@@ -43,7 +44,7 @@ async function getHover(params: {
 }): Promise<Hover | undefined> {
     const {
         file: { collection },
-        baseRequest: { position: requestPosition, token },
+        baseRequest: { token },
         logger,
         configuredEnvironmentName,
     } = params;
@@ -59,17 +60,20 @@ async function getHover(params: {
         return undefined;
     }
 
-    const { inbuiltFunction, variable } = envVariableRelatedFunction;
+    const {
+        variable: { name: variableName },
+    } = envVariableRelatedFunction;
+
+    const matchingStaticEnvVariableDefinitions =
+        getMatchingDefinitionsFromEnvFiles(
+            collection,
+            variableName,
+            EnvVariableNameMatchingMode.Exact,
+            configuredEnvironmentName,
+        );
 
     const content = getHoverContentForStaticEnvVariables(
-        {
-            collection,
-            functionType: getInbuiltFunctionType(inbuiltFunction),
-            requestPosition,
-            variable,
-            token,
-        },
-        configuredEnvironmentName,
+        matchingStaticEnvVariableDefinitions,
     );
 
     return content
