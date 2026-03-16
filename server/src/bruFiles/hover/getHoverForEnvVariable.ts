@@ -23,7 +23,7 @@ export function getHoverForEnvVariable(
         logger,
     } = fullRequest;
 
-    const dynamicReferences = getDynamicVariableReferencesWithinFile(
+    const dynamicReferencesWithinFile = getDynamicVariableReferencesWithinFile(
         fullRequest,
         functionType,
     ).filter(
@@ -35,8 +35,9 @@ export function getHoverForEnvVariable(
         return undefined;
     }
 
-    const contentForDynamicReferences =
-        getContentForDynamicVariables(dynamicReferences);
+    const contentForDynamicReferences = getContentForDynamicVariables(
+        dynamicReferencesWithinFile,
+    );
 
     const matchingStaticEnvVariableDefinitions =
         getMatchingDefinitionsFromEnvFiles(
