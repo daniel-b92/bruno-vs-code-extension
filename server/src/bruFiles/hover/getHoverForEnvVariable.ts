@@ -10,6 +10,7 @@ import { getDynamicVariableReferencesWithinFile } from "../shared/VariableRefere
 import { Hover, MarkupContent } from "vscode-languageserver";
 import { getHoverContentForStaticEnvVariables } from "../../shared";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
+import { getDynamicVariableReferencesFromOtherFiles } from "../shared/VariableReferences/getDynamicVariableReferencesFromOtherFiles";
 
 export function getHoverForEnvVariable(
     fullRequest: BlockRequestWithAdditionalData<Block>,
@@ -18,7 +19,7 @@ export function getHoverForEnvVariable(
     configuredEnvironmentName?: string,
 ): Hover | undefined {
     const {
-        request: { token },
+        request: { token, filePath },
         file: { collection },
         logger,
     } = fullRequest;
@@ -35,9 +36,32 @@ export function getHoverForEnvVariable(
         return undefined;
     }
 
-    const contentForDynamicReferences = getContentForDynamicVariables(
-        dynamicReferencesWithinFile,
-    );
+    const dynamicReferencesFromOtherFiles =
+        getDynamicVariableReferencesFromOtherFiles(
+            filePath,
+            collection,
+            functionType,
+        ).filter(({ reference: { variableName: n } }) => n == variableName);
+
+    if (token.isCancellationRequested) {
+        addLogEntryForCancellation(logger);
+        return undefined;
+    }
+
+    const hasDynamicReferences =
+        dynamicReferencesWithinFile.length > 0 ||
+        dynamicReferencesFromOtherFiles.length > 0;
+    const contentForDynamicReferences = !hasDynamicReferences
+        ? undefined
+        : getContentForDynamicReferences(
+              dynamicReferencesWithinFile,
+              dynamicReferencesFromOtherFiles.map(
+                  ({ relativePathToCollectionRoot: itemPath, reference }) => ({
+                      itemPath,
+                      variableReference: reference,
+                  }),
+              ),
+          );
 
     const matchingStaticEnvVariableDefinitions =
         getMatchingDefinitionsFromEnvFiles(
@@ -46,7 +70,6 @@ export function getHoverForEnvVariable(
             EnvVariableNameMatchingMode.Exact,
             configuredEnvironmentName,
         );
-
     const contentForStaticReferences = getHoverContentForStaticEnvVariables(
         matchingStaticEnvVariableDefinitions,
     );
@@ -62,7 +85,10 @@ export function getHoverForEnvVariable(
                   ),
               }
             : contentForDynamicReferences
-              ? { kind: "markdown", value: contentForDynamicReferences }
+              ? {
+                    kind: "markdown",
+                    value: contentForDynamicReferences,
+                }
               : contentForStaticReferences
                 ? { kind: "markdown", value: contentForStaticReferences }
                 : undefined;
@@ -72,27 +98,38 @@ export function getHoverForEnvVariable(
         : undefined;
 }
 
-function getContentForDynamicVariables(
-    references: {
+function getContentForDynamicReferences(
+    fromOwnFile: {
         blockName: string;
+        variableReference: BrunoVariableReference;
+    }[],
+    fromOtherFiles: {
+        itemPath: string;
         variableReference: BrunoVariableReference;
     }[],
 ) {
     const lineBreak = getLineBreak();
 
-    if (references.length == 0) {
+    if (fromOwnFile.length == 0 && fromOtherFiles.length == 0) {
         return undefined;
     }
 
-    const tableHeader = `| block | reference type | ${lineBreak} | :--------------- | :----------------: | ${lineBreak}`;
+    const tableHeader = `| file | block | reference type | ${lineBreak} | :--------------- | :----------------: | :----------------: | ${lineBreak}`;
 
     return "**Dynamic references:**".concat(
         lineBreak,
         tableHeader,
-        references
+        fromOwnFile
             .map(
                 ({ blockName, variableReference: { referenceType } }) =>
-                    `| ${blockName} | ${referenceType} |`,
+                    `| - | ${blockName} | ${referenceType} |`,
+            )
+            .join(lineBreak),
+        fromOwnFile.length > 0 ? lineBreak : "",
+        fromOtherFiles
+            .map(
+                ({ itemPath, variableReference: { referenceType } }) =>
+                    `| ${itemPath} | - | ${referenceType} |`,
             )
             .join(lineBreak),
         lineBreak,

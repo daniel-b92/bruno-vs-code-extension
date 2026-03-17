@@ -9,7 +9,7 @@ import {
     isCollectionItemWithSequence,
 } from "@global_shared";
 import { TypedCollection, TypedCollectionData } from "../../../shared";
-import { dirname } from "path";
+import { dirname, relative } from "path";
 
 export function getDynamicVariableReferencesFromOtherFiles(
     filePath: string,
@@ -57,15 +57,17 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
     }
 
     const result: {
+        relativePathToCollectionRoot: string;
         indirectionLevel: number;
         reference: BrunoVariableReference;
     }[] = [];
-    let currentChildItem = sourceItem;
-    let currentParentFolderPath: string | undefined = undefined;
+    let currentItem: CollectionItem | undefined = undefined;
+    let nextItem = sourceItem;
     let ascensionIndex = 0;
 
     do {
-        currentParentFolderPath = dirname(currentChildItem.getPath());
+        currentItem = nextItem;
+        const currentParentFolderPath = dirname(currentItem.getPath());
         ascensionIndex++;
         const parentFolderData = collection.getStoredDataForPath(
             currentParentFolderPath,
@@ -78,31 +80,40 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
             break;
         }
 
+        nextItem = parentFolderData.item;
+
         result.push(
             // Use indirectionLevel '0' because the steps in ancestor folders are always executed directly before the steps in the given item itself.
             ...getReferencesFromAncestorFolder(
                 parentFolderData,
                 relevantReferenceType,
-            ).map((reference) => ({ indirectionLevel: 0, reference })),
+            ).map((reference) => ({
+                relativePathToCollectionRoot: relative(
+                    collection.getRootDirectory(),
+                    parentFolderData.item.getPath(),
+                ),
+                indirectionLevel: 0,
+                reference,
+            })),
         );
 
-        if (isCollectionItemWithSequence(currentChildItem)) {
+        if (isCollectionItemWithSequence(currentItem)) {
             result.push(
                 ...getReferencesFromFolderDescendants(
                     {
                         parentFolder: parentFolderData.item,
-                        referenceChildItem: currentChildItem,
+                        referenceChildItem: currentItem,
                     },
                     collection,
                     relevantReferenceType,
                     forEarlierExecutionTimes,
-                ).map((reference) => ({
+                ).map((data) => ({
+                    ...data,
                     indirectionLevel: ascensionIndex,
-                    reference,
                 })),
             );
         }
-    } while (!collection.isRootDirectory(currentParentFolderPath));
+    } while (!collection.isRootDirectory(currentItem.getPath()));
 
     return result;
 }
@@ -112,7 +123,7 @@ function getReferencesFromAncestorFolder(
     relevantReferenceType: VariableReferenceType,
 ) {
     return folderData.additionalData
-        ? folderData.additionalData.filter(
+        ? filterOutDuplicateReferences(folderData.additionalData).filter(
               ({ referenceType }) => referenceType == relevantReferenceType,
           )
         : [];
@@ -151,7 +162,7 @@ function getReferencesFromFolderDescendants(
                 return false;
             }
 
-            forEarlierExecutionTimes
+            return forEarlierExecutionTimes
                 ? itemSequence < childItemSequence
                 : itemSequence > childItemSequence;
         });
@@ -170,13 +181,44 @@ function getReferencesFromFolderDescendants(
             });
         });
 
-    return [...relevantSiblings, ...descendantsOfSiblings].flatMap(
-        ({ additionalData }) =>
-            additionalData
-                ? additionalData.filter(
-                      ({ referenceType }) =>
-                          referenceType == relevantReferenceType,
-                  )
-                : [],
+    return [...relevantSiblings, ...descendantsOfSiblings].reduce(
+        (prev, { item, additionalData }) => {
+            if (!additionalData) {
+                return prev;
+            }
+
+            const currentRelativePath = relative(
+                collection.getRootDirectory(),
+                item.getPath(),
+            );
+
+            return filterOutDuplicateReferences(additionalData)
+                .map((reference) => ({
+                    relativePathToCollectionRoot: currentRelativePath,
+                    reference,
+                }))
+                .filter(
+                    ({ reference: { referenceType } }) =>
+                        referenceType == relevantReferenceType,
+                );
+        },
+        [] as {
+            relativePathToCollectionRoot: string;
+            reference: BrunoVariableReference;
+        }[],
+    );
+}
+
+function filterOutDuplicateReferences(references: BrunoVariableReference[]) {
+    return references.filter(
+        (data, index) =>
+            references.findIndex(
+                ({
+                    referenceType: existingRefType,
+                    variableName: existingVarName,
+                }) =>
+                    existingRefType == data.referenceType &&
+                    existingVarName == data.variableName,
+            ) == index,
     );
 }
