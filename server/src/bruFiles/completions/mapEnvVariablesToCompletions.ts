@@ -1,14 +1,23 @@
 import {
-    groupReferencesByName,
     VariableReferenceType,
     Range,
     BrunoVariableReference,
 } from "@global_shared";
 import {
     EnvVariableCommonRequestData,
+    groupReferencesByName,
     mapStaticEnvVariablesToCompletions,
 } from "../../shared";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
+import { EquivalentDynamicReferencesFromOtherFiles } from "../shared/interfaces";
+
+interface MatchingDynamicEnvVariables {
+    fromSameFile: {
+        blockName: string;
+        variableReference: BrunoVariableReference;
+    }[];
+    fromOtherFiles: EquivalentDynamicReferencesFromOtherFiles[];
+}
 
 export function mapEnvVariablesToCompletions(
     matchingStaticEnvVariables: {
@@ -16,10 +25,7 @@ export function mapEnvVariablesToCompletions(
         matchingVariableKeys: string[];
         isConfiguredEnv: boolean;
     }[],
-    matchingDynamicEnvVariables: {
-        blockName: string;
-        variableReference: BrunoVariableReference;
-    }[],
+    matchingDynamicEnvVariables: MatchingDynamicEnvVariables,
     requestData: EnvVariableCommonRequestData,
     appendOnInsertion?: string,
 ) {
@@ -45,10 +51,7 @@ export function mapEnvVariablesToCompletions(
 
 function mapDynamicEnvVariables(
     requestData: EnvVariableCommonRequestData,
-    matchingDynamicEnvVariables: {
-        blockName: string;
-        variableReference: BrunoVariableReference;
-    }[],
+    { fromSameFile, fromOtherFiles }: MatchingDynamicEnvVariables,
     modifications: {
         prefixForSortText: string;
         appendOnInsertion?: string;
@@ -58,7 +61,9 @@ function mapDynamicEnvVariables(
         variable: { start, end },
     } = requestData;
 
-    return groupReferencesByName(matchingDynamicEnvVariables).map(
+    const groupedRefsFromOwnFile = groupReferencesByName(fromSameFile);
+
+    return groupedRefsFromOwnFile.map(
         ({
             blockName,
             variableName,

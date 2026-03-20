@@ -16,6 +16,7 @@ import { CompletionItem } from "vscode-languageserver";
 import { mapEnvVariablesToCompletions } from "./mapEnvVariablesToCompletions";
 import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
+import { getDynamicVariableReferencesFromOtherFiles } from "../shared/VariableReferences/getDynamicVariableReferencesFromOtherFiles";
 
 export function getCompletionsForCodeBlock(
     fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
@@ -75,7 +76,7 @@ function getResultsForEnvironmentVariable(
         blockContainingPosition,
         configuredEnvironment,
     } = additionalData;
-    const { position, token } = baseRequest;
+    const { position, token, filePath } = baseRequest;
 
     const matchingStaticEnvVariableDefinitions =
         getMatchingDefinitionsFromEnvFiles(
@@ -90,14 +91,27 @@ function getResultsForEnvironmentVariable(
         return [];
     }
 
-    const dynamicVariableReferences = getDynamicVariableReferencesWithinFile(
-        {
-            request: baseRequest,
-            file: { allBlocks, blockContainingPosition, collection },
-            logger,
-        },
-        functionType,
-    );
+    const dynamicVariableReferencesWithinFile =
+        getDynamicVariableReferencesWithinFile(
+            {
+                request: baseRequest,
+                file: { allBlocks, blockContainingPosition, collection },
+                logger,
+            },
+            functionType,
+        );
+
+    if (token.isCancellationRequested) {
+        addLogEntryForCancellation(logger);
+        return [];
+    }
+
+    const dynamicVariableReferencesFromOtherFiles =
+        getDynamicVariableReferencesFromOtherFiles(
+            filePath,
+            collection,
+            functionType,
+        );
 
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
@@ -112,7 +126,10 @@ function getResultsForEnvironmentVariable(
                 isConfiguredEnv,
             }),
         ),
-        dynamicVariableReferences,
+        {
+            fromSameFile: dynamicVariableReferencesWithinFile,
+            fromOtherFiles: dynamicVariableReferencesFromOtherFiles,
+        },
         {
             collection,
             functionType,
