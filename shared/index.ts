@@ -57,6 +57,7 @@ export * from "./baseModel/files/nonBrunoFile";
 export * from "./baseModel/files/brunoFolderSettingsFile";
 export * from "./baseModel/typeguards/isCollectionItemWithSequence";
 export * from "./baseModel/typeguards/isRequestFile";
+export * from "./baseModel/typeguards/isCollectionDirectory";
 
 // logging
 export * from "./logging/interfaces";
@@ -124,7 +125,6 @@ export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockArrayBlock
 
 export * from "./languageUtils/commonBlocks/generic/variables/getPatternForVariablesInNonCodeBlock";
 export * from "./languageUtils/commonBlocks/generic/variables/getBlocksWithoutVariableSupport";
-export * from "./languageUtils/commonBlocks/generic/variables/groupReferencesByName";
 export * from "./languageUtils/commonBlocks/generic/variables/getVariableNameForPositionInNonCodeBlock";
 
 export * from "./languageUtils/commonBlocks/authBlocks/authBlockNameEnum";

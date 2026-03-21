@@ -1,4 +1,4 @@
-import { Block, Logger } from "@global_shared";
+import { Block, BrunoVariableReference, Logger } from "@global_shared";
 import { LanguageFeatureBaseRequest, TypedCollection } from "../../shared";
 
 export interface BlockRequestWithAdditionalData<T extends Block> {
@@ -9,4 +9,15 @@ export interface BlockRequestWithAdditionalData<T extends Block> {
         blockContainingPosition: T;
     };
     logger?: Logger;
+}
+
+export interface EquivalentDynamicReferencesFromOtherFiles {
+    mostRelevantReference: DynamicReferenceFromOtherFile;
+    otherMatchingReferences: DynamicReferenceFromOtherFile[];
+}
+
+export interface DynamicReferenceFromOtherFile {
+    relativePathToSourceFile: string;
+    indirectionLevel: number;
+    reference: BrunoVariableReference;
 }

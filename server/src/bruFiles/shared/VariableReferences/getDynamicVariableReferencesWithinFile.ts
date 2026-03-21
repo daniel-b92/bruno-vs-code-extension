@@ -7,9 +7,9 @@ import {
     VariableReferenceType,
     Position,
 } from "@global_shared";
-import { BlockRequestWithAdditionalData } from "./interfaces";
+import { BlockRequestWithAdditionalData } from "../interfaces";
 
-export function getDynamicVariableReferences(
+export function getDynamicVariableReferencesWithinFile(
     {
         request: { position: requestPosition, token },
         file: { allBlocks, blockContainingPosition },
@@ -24,13 +24,13 @@ export function getDynamicVariableReferences(
 
     const { otherRelevantBlocks, fromOwnBlock } =
         functionType == VariableReferenceType.Read
-            ? getDynamicVariableReferencesForEarlierExecutionTimes(
+            ? getDynamicReferencesForEarlierExecutionTimesInFile(
                   requestPosition,
                   blockContainingPosition,
                   allBlocks,
                   relevantReferenceType,
               )
-            : getDynamicVariableReferencesForLaterExecutionTimes(
+            : getDynamicReferencesForLaterExecutionTimesInFile(
                   requestPosition,
                   blockContainingPosition,
                   allBlocks,
@@ -75,7 +75,7 @@ export function getDynamicVariableReferences(
         );
 }
 
-function getDynamicVariableReferencesForEarlierExecutionTimes(
+function getDynamicReferencesForEarlierExecutionTimesInFile(
     requestPosition: Position,
     blockContainingPosition: Block,
     allBlocks: Block[],
@@ -102,7 +102,7 @@ function getDynamicVariableReferencesForEarlierExecutionTimes(
     };
 }
 
-function getDynamicVariableReferencesForLaterExecutionTimes(
+function getDynamicReferencesForLaterExecutionTimesInFile(
     requestPosition: Position,
     blockContainingPosition: Block,
     allBlocks: Block[],

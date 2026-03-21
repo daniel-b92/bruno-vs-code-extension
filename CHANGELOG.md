@@ -1,3 +1,9 @@
+## [Unreleased] ()
+
+### Fixes / Minor Improvements
+
+- Add intellisense (Hover + Completions) for environment variables defined in other `.bru` files within the same collection.
+
 ## [0.21.7] (2026-03-15)
 
 ### Fixes / Minor Improvements

@@ -6,10 +6,14 @@ import {
     Logger,
     VariableReferenceType,
 } from "@global_shared";
-import { getDynamicVariableReferences } from "../shared/getDynamicVariableReferences";
+import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
 import { Hover, MarkupContent } from "vscode-languageserver";
 import { getHoverContentForStaticEnvVariables } from "../../shared";
-import { BlockRequestWithAdditionalData } from "../shared/interfaces";
+import {
+    BlockRequestWithAdditionalData,
+    EquivalentDynamicReferencesFromOtherFiles,
+} from "../shared/interfaces";
+import { getDynamicVariableReferencesFromOtherFiles } from "../shared/VariableReferences/getDynamicVariableReferencesFromOtherFiles";
 
 export function getHoverForEnvVariable(
     fullRequest: BlockRequestWithAdditionalData<Block>,
@@ -18,12 +22,12 @@ export function getHoverForEnvVariable(
     configuredEnvironmentName?: string,
 ): Hover | undefined {
     const {
-        request: { token },
+        request: { token, filePath },
         file: { collection },
         logger,
     } = fullRequest;
 
-    const dynamicReferences = getDynamicVariableReferences(
+    const dynamicReferencesWithinFile = getDynamicVariableReferencesWithinFile(
         fullRequest,
         functionType,
     ).filter(
@@ -35,8 +39,33 @@ export function getHoverForEnvVariable(
         return undefined;
     }
 
-    const contentForDynamicReferences =
-        getContentForDynamicVariables(dynamicReferences);
+    const dynamicReferencesFromOtherFiles =
+        getDynamicVariableReferencesFromOtherFiles(
+            filePath,
+            collection,
+            functionType,
+        ).filter(
+            ({
+                mostRelevantReference: {
+                    reference: { variableName: n },
+                },
+            }) => n == variableName,
+        );
+
+    if (token.isCancellationRequested) {
+        addLogEntryForCancellation(logger);
+        return undefined;
+    }
+
+    const hasDynamicReferences =
+        dynamicReferencesWithinFile.length > 0 ||
+        dynamicReferencesFromOtherFiles.length > 0;
+    const contentForDynamicReferences = !hasDynamicReferences
+        ? undefined
+        : getContentForDynamicReferences(
+              dynamicReferencesWithinFile,
+              dynamicReferencesFromOtherFiles,
+          );
 
     const matchingStaticEnvVariableDefinitions =
         getMatchingDefinitionsFromEnvFiles(
@@ -45,7 +74,6 @@ export function getHoverForEnvVariable(
             EnvVariableNameMatchingMode.Exact,
             configuredEnvironmentName,
         );
-
     const contentForStaticReferences = getHoverContentForStaticEnvVariables(
         matchingStaticEnvVariableDefinitions,
     );
@@ -61,7 +89,10 @@ export function getHoverForEnvVariable(
                   ),
               }
             : contentForDynamicReferences
-              ? { kind: "markdown", value: contentForDynamicReferences }
+              ? {
+                    kind: "markdown",
+                    value: contentForDynamicReferences,
+                }
               : contentForStaticReferences
                 ? { kind: "markdown", value: contentForStaticReferences }
                 : undefined;
@@ -71,27 +102,41 @@ export function getHoverForEnvVariable(
         : undefined;
 }
 
-function getContentForDynamicVariables(
-    references: {
+function getContentForDynamicReferences(
+    fromOwnFile: {
         blockName: string;
         variableReference: BrunoVariableReference;
     }[],
+    fromOtherFiles: EquivalentDynamicReferencesFromOtherFiles[],
 ) {
     const lineBreak = getLineBreak();
 
-    if (references.length == 0) {
+    if (fromOwnFile.length == 0 && fromOtherFiles.length == 0) {
         return undefined;
     }
 
-    const tableHeader = `| block | reference type | ${lineBreak} | :--------------- | :----------------: | ${lineBreak}`;
+    const tableHeader = `| file | block | reference type | ${lineBreak} | :--------------- | :----------------: | :----------------: | ${lineBreak}`;
 
     return "**Dynamic references:**".concat(
         lineBreak,
         tableHeader,
-        references
+        fromOwnFile
             .map(
                 ({ blockName, variableReference: { referenceType } }) =>
-                    `| ${blockName} | ${referenceType} |`,
+                    `| - | ${blockName} | ${referenceType} |`,
+            )
+            .join(lineBreak),
+        fromOwnFile.length > 0 ? lineBreak : "",
+        fromOtherFiles
+            .map(
+                ({
+                    mostRelevantReference: {
+                        relativePathToSourceFile,
+                        reference: { referenceType },
+                    },
+                    otherMatchingReferences,
+                }) =>
+                    `| ${relativePathToSourceFile.concat(otherMatchingReferences.length > 0 ? ` [+ ${otherMatchingReferences.length} others]` : "")} | - | ${referenceType} |`,
             )
             .join(lineBreak),
         lineBreak,

@@ -40,7 +40,8 @@ import {
 import { basename, dirname } from "path";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 import { mapEnvVariablesToCompletions } from "./mapEnvVariablesToCompletions";
-import { getDynamicVariableReferences } from "../shared/getDynamicVariableReferences";
+import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
+import { getDynamicVariableReferencesFromOtherFiles } from "../shared/VariableReferences/getDynamicVariableReferencesFromOtherFiles";
 
 export async function getCompletionsForNonCodeBlock(
     fullRequest: BlockRequestWithAdditionalData<Block>,
@@ -75,7 +76,7 @@ function getNonBlockSpecificCompletions(
         file: { blockContainingPosition, collection },
         logger,
     } = fullRequest;
-    const { documentHelper, position, token } = request;
+    const { documentHelper, position, token, filePath } = request;
     const { line } = position;
     // In non-code blocks, variables cannot be set.
     const functionType = VariableReferenceType.Read;
@@ -112,10 +113,20 @@ function getNonBlockSpecificCompletions(
         return [];
     }
 
-    const dynamicVariableReferences = getDynamicVariableReferences(
-        fullRequest,
-        functionType,
-    );
+    const dynamicVariableReferencesWithinFile =
+        getDynamicVariableReferencesWithinFile(fullRequest, functionType);
+
+    if (token.isCancellationRequested) {
+        addLogEntryForCancellation(logger);
+        return [];
+    }
+
+    const dynamicVariableReferencesFromOtherFiles =
+        getDynamicVariableReferencesFromOtherFiles(
+            filePath,
+            collection,
+            functionType,
+        );
 
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
@@ -130,7 +141,10 @@ function getNonBlockSpecificCompletions(
                 isConfiguredEnv,
             }),
         ),
-        dynamicVariableReferences,
+        {
+            fromSameFile: dynamicVariableReferencesWithinFile,
+            fromOtherFiles: dynamicVariableReferencesFromOtherFiles,
+        },
         {
             collection,
             variable,
