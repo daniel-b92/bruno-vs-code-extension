@@ -96,46 +96,47 @@ function getCombinedReferencesFromOwnFileAndOtherFiles(
     referencesFromOtherFiles?: EquivalentDynamicReferencesFromOtherFiles;
     detailsForOwnFileRefs?: ReferenceFromOwnFileDetails;
 }[] {
-    return fromOtherFiles.reduce(
-        (prev, curr) => {
-            const {
-                mostRelevantReference: {
-                    reference: { variableName, referenceType },
-                },
-            } = curr;
-
-            const matchingEntryIndex = prev.findIndex(
-                ({ variableName: v, referenceType: r }) =>
-                    v == variableName && r == referenceType,
-            );
-
-            return matchingEntryIndex < 0
-                ? prev.concat({
-                      variableName,
-                      referenceType,
-                      hasReferenceInOwnFile: false,
-                      referencesFromOtherFiles: curr,
-                      detailsForOwnFileRefs: undefined,
-                  })
-                : prev.map((entry, index) =>
-                      index != matchingEntryIndex ||
-                      entry.referencesFromOtherFiles != undefined
-                          ? entry
-                          : { ...entry, referencesFromOtherFiles: curr },
-                  );
-        },
-        fromOwnFile.map(({ variableName, referenceType, details }) => ({
+    const initialArray = fromOwnFile.map(
+        ({ variableName, referenceType, details }) => ({
             variableName,
             referenceType,
             hasReferenceInOwnFile: true,
             referencesFromOtherFiles: undefined,
             detailsForOwnFileRefs: details,
-        })) as {
-            variableName: string;
-            referenceType: VariableReferenceType;
-            hasReferenceInOwnFile: boolean;
-            referencesFromOtherFiles?: EquivalentDynamicReferencesFromOtherFiles;
-            detailsForOwnFileRefs?: ReferenceFromOwnFileDetails;
-        }[],
-    );
+        }),
+    ) as {
+        variableName: string;
+        referenceType: VariableReferenceType;
+        hasReferenceInOwnFile: boolean;
+        referencesFromOtherFiles?: EquivalentDynamicReferencesFromOtherFiles;
+        detailsForOwnFileRefs?: ReferenceFromOwnFileDetails;
+    }[];
+
+    return fromOtherFiles.reduce((prev, curr) => {
+        const {
+            mostRelevantReference: {
+                reference: { variableName, referenceType },
+            },
+        } = curr;
+
+        const matchingEntryIndex = prev.findIndex(
+            ({ variableName: v, referenceType: r }) =>
+                v == variableName && r == referenceType,
+        );
+
+        return matchingEntryIndex < 0
+            ? prev.concat({
+                  variableName,
+                  referenceType,
+                  hasReferenceInOwnFile: false,
+                  referencesFromOtherFiles: curr,
+                  detailsForOwnFileRefs: undefined,
+              })
+            : prev.map((entry, index) =>
+                  index != matchingEntryIndex ||
+                  entry.referencesFromOtherFiles != undefined
+                      ? entry
+                      : { ...entry, referencesFromOtherFiles: curr },
+              );
+    }, initialArray);
 }

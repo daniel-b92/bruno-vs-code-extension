@@ -117,7 +117,7 @@ function getCompletionForRefsWithinOwnFile(
             blockName,
             allDistinctBlocks,
             hasDuplicateReferences,
-            totalNumberOfReferences: numberOfResWithinFile,
+            totalNumberOfReferences: numberOfRefsWithinFile,
         },
         referenceType,
         variableName,
@@ -125,26 +125,27 @@ function getCompletionForRefsWithinOwnFile(
     } = groupedReferences;
 
     const totalNumberOfReferences =
-        numberOfResWithinFile +
-        (referencesFromOtherFiles?.otherMatchingReferences.length ?? -1 + 1);
+        numberOfRefsWithinFile +
+        (referencesFromOtherFiles?.otherMatchingReferences.length ?? -1) +
+        1;
 
     return {
         label: variableName,
         labelDetails: {
             description:
                 hasDuplicateReferences && allDistinctBlocks.length > 1
-                    ? `  Blocks '${allDistinctBlocks.join("','")}'`
-                    : `  Block '${blockName}'`,
+                    ? `Blocks '${allDistinctBlocks.join("','")}'`
+                    : `Block '${blockName}'`,
         },
         kind: getKind(referenceType),
         detail:
-            hasDuplicateReferences || referencesFromOtherFiles != undefined
-                ? `${totalNumberOfReferences} relevant references in ${allDistinctBlocks.length > 1 ? `blocks ${JSON.stringify(allDistinctBlocks)}` : `block '${blockName}'`}.`.concat(
+            !hasDuplicateReferences && referencesFromOtherFiles == undefined
+                ? undefined
+                : `${totalNumberOfReferences} relevant references in ${allDistinctBlocks.length > 1 ? `blocks ${JSON.stringify(allDistinctBlocks)}` : `block '${blockName}'`}.`.concat(
                       referencesFromOtherFiles == undefined
                           ? ""
                           : ` and in ${referencesFromOtherFiles.otherMatchingReferences.length + 1} other file(s)`,
-                  )
-                : undefined,
+                  ),
         sortText: getSortText(
             modifications.prefixForSortText,
             variableName,
@@ -184,7 +185,7 @@ function getCompletionForRefsFromOnlyOtherFiles(
     return {
         label: variableName,
         labelDetails: {
-            description: `  ${mostRelevantReference.relativePathToSourceFile}`,
+            description: `${mostRelevantReference.relativePathToSourceFile}`,
         },
         kind: getKind(referenceType),
         detail:

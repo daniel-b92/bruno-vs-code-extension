@@ -18,10 +18,10 @@ import {
 export function getDynamicVariableReferencesFromOtherFiles(
     filePath: string,
     collection: TypedCollection,
-    functionType: VariableReferenceType,
+    functionTypeInSourceFile: VariableReferenceType,
 ) {
     const relevantReferenceType =
-        functionType == VariableReferenceType.Write
+        functionTypeInSourceFile == VariableReferenceType.Write
             ? VariableReferenceType.Read
             : VariableReferenceType.Write;
 
@@ -31,7 +31,7 @@ export function getDynamicVariableReferencesFromOtherFiles(
         return [];
     }
 
-    switch (functionType) {
+    switch (functionTypeInSourceFile) {
         case VariableReferenceType.Read:
             return getReferencesFromAncestorFoldersAndTheirDescendants(
                 sourceData.item,
@@ -193,7 +193,7 @@ function getReferencesFromFolderDescendants(
                 return prev;
             }
 
-            const currentRelativePath = relative(
+            const relativePathToSourceFile = relative(
                 sourceFilePath,
                 item.getPath(),
             );
@@ -201,7 +201,7 @@ function getReferencesFromFolderDescendants(
             return prev.concat(
                 filterOutDuplicateReferences(additionalData)
                     .map((reference) => ({
-                        relativePathToSourceFile: currentRelativePath,
+                        relativePathToSourceFile,
                         reference,
                     }))
                     .filter(
@@ -236,16 +236,29 @@ function groupReferences(references: DynamicReferenceFromOtherFile[]) {
         const { reference, indirectionLevel } = curr;
 
         const matchingEntryIndex = prev.findIndex(
-            ({
-                mostRelevantReference: {
-                    reference: registeredReference,
-                    indirectionLevel: registeredIndirectionLevel,
-                },
-            }) =>
+            ({ mostRelevantReference: { reference: registeredReference } }) =>
                 reference.variableName == registeredReference.variableName &&
-                reference.referenceType == registeredReference.referenceType &&
-                indirectionLevel >= registeredIndirectionLevel,
+                reference.referenceType == registeredReference.referenceType,
         );
+
+        if (
+            matchingEntryIndex >= 0 &&
+            indirectionLevel <
+                prev[matchingEntryIndex].mostRelevantReference.indirectionLevel
+        ) {
+            // The reference with the minimum indirection level is always the most relevant one.
+            return prev.map((entry, index) =>
+                index != matchingEntryIndex
+                    ? entry
+                    : {
+                          mostRelevantReference: curr,
+                          otherMatchingReferences:
+                              entry.otherMatchingReferences.concat(
+                                  entry.mostRelevantReference,
+                              ),
+                      },
+            );
+        }
 
         return matchingEntryIndex < 0
             ? prev.concat({
@@ -253,13 +266,13 @@ function groupReferences(references: DynamicReferenceFromOtherFile[]) {
                   otherMatchingReferences: [],
               })
             : prev.map((entry, index) =>
-                  index == matchingEntryIndex
-                      ? {
+                  index != matchingEntryIndex
+                      ? entry
+                      : {
                             mostRelevantReference: entry.mostRelevantReference,
                             otherMatchingReferences:
                                 entry.otherMatchingReferences.concat(curr),
-                        }
-                      : entry,
+                        },
               );
     }, [] as EquivalentDynamicReferencesFromOtherFiles[]);
 }
