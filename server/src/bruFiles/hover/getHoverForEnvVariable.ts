@@ -131,12 +131,12 @@ function getContentForDynamicReferences(
             .map(
                 ({
                     mostRelevantReference: {
-                        relativePathToCollectionRoot,
+                        relativePathToSourceFile,
                         reference: { referenceType },
                     },
                     otherMatchingReferences,
                 }) =>
-                    `| ${relativePathToCollectionRoot.concat(otherMatchingReferences.length > 0 ? ` [+ ${otherMatchingReferences.length} others]` : "")} | - | ${referenceType} |`,
+                    `| ${relativePathToSourceFile.concat(otherMatchingReferences.length > 0 ? ` [+ ${otherMatchingReferences.length} others]` : "")} | - | ${referenceType} |`,
             )
             .join(lineBreak),
         lineBreak,

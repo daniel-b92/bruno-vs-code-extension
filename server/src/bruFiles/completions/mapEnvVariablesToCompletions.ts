@@ -184,7 +184,7 @@ function getCompletionForRefsFromOnlyOtherFiles(
     return {
         label: variableName,
         labelDetails: {
-            description: `  ${mostRelevantReference.relativePathToCollectionRoot}`,
+            description: `  ${mostRelevantReference.relativePathToSourceFile}`,
         },
         kind: getKind(referenceType),
         detail:

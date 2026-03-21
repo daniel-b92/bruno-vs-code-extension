@@ -17,7 +17,7 @@ export interface EquivalentDynamicReferencesFromOtherFiles {
 }
 
 export interface DynamicReferenceFromOtherFile {
-    relativePathToCollectionRoot: string;
+    relativePathToSourceFile: string;
     indirectionLevel: number;
     reference: BrunoVariableReference;
 }

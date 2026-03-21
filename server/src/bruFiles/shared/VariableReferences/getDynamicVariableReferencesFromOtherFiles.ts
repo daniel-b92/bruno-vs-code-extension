@@ -84,7 +84,7 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
 
         allReferences.push(
             ...getReferencesFromAncestorFolder(
-                collection,
+                sourceItem.getPath(),
                 parentFolderData,
                 relevantReferenceType,
             ),
@@ -98,6 +98,7 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
                         referenceChildItem: currentItem,
                     },
                     collection,
+                    sourceItem.getPath(),
                     relevantReferenceType,
                     forEarlierExecutionTimes,
                 ).map((data) => ({
@@ -112,7 +113,7 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
 }
 
 function getReferencesFromAncestorFolder(
-    collection: TypedCollection,
+    sourceFilePath: string,
     folderData: TypedCollectionData,
     relevantReferenceType: VariableReferenceType,
 ): DynamicReferenceFromOtherFile[] {
@@ -123,8 +124,8 @@ function getReferencesFromAncestorFolder(
     return filterOutDuplicateReferences(folderData.additionalData)
         .filter(({ referenceType }) => referenceType == relevantReferenceType)
         .map((reference) => ({
-            relativePathToCollectionRoot: relative(
-                collection.getRootDirectory(),
+            relativePathToSourceFile: relative(
+                sourceFilePath,
                 folderData.item.getPath(),
             ),
             // Use indirectionLevel '0' because the steps in ancestor folders are always executed directly before the steps in the given item itself.
@@ -139,6 +140,7 @@ function getReferencesFromFolderDescendants(
         referenceChildItem: CollectionItemWithSequence;
     },
     collection: TypedCollection,
+    sourceFilePath: string,
     relevantReferenceType: VariableReferenceType,
     forEarlierExecutionTimes: boolean,
 ) {
@@ -192,14 +194,14 @@ function getReferencesFromFolderDescendants(
             }
 
             const currentRelativePath = relative(
-                collection.getRootDirectory(),
+                sourceFilePath,
                 item.getPath(),
             );
 
             return prev.concat(
                 filterOutDuplicateReferences(additionalData)
                     .map((reference) => ({
-                        relativePathToCollectionRoot: currentRelativePath,
+                        relativePathToSourceFile: currentRelativePath,
                         reference,
                     }))
                     .filter(
@@ -209,7 +211,7 @@ function getReferencesFromFolderDescendants(
             );
         },
         [] as {
-            relativePathToCollectionRoot: string;
+            relativePathToSourceFile: string;
             reference: BrunoVariableReference;
         }[],
     );
