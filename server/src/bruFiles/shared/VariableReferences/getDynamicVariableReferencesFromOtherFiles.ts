@@ -196,15 +196,17 @@ function getReferencesFromFolderDescendants(
                 item.getPath(),
             );
 
-            return filterOutDuplicateReferences(additionalData)
-                .map((reference) => ({
-                    relativePathToCollectionRoot: currentRelativePath,
-                    reference,
-                }))
-                .filter(
-                    ({ reference: { referenceType } }) =>
-                        referenceType == relevantReferenceType,
-                );
+            return prev.concat(
+                filterOutDuplicateReferences(additionalData)
+                    .map((reference) => ({
+                        relativePathToCollectionRoot: currentRelativePath,
+                        reference,
+                    }))
+                    .filter(
+                        ({ reference: { referenceType } }) =>
+                            referenceType == relevantReferenceType,
+                    ),
+            );
         },
         [] as {
             relativePathToCollectionRoot: string;

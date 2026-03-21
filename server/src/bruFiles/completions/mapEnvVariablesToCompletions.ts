@@ -35,24 +35,26 @@ export function mapEnvVariablesToCompletions(
     requestData: EnvVariableCommonRequestData,
     appendOnInsertion?: string,
 ) {
+    const resultsForDynamicVariables = mapDynamicEnvVariables(
+        requestData,
+        matchingDynamicEnvVariables,
+        {
+            prefixForSortText: "a",
+            appendOnInsertion,
+        },
+    );
+
     const resultsForStaticVariables = mapStaticEnvVariablesToCompletions(
         requestData,
-        matchingStaticEnvVariables,
+        filterOutStaticVariablesWithDynamicReferences(
+            matchingStaticEnvVariables,
+            matchingDynamicEnvVariables,
+        ),
         // Display static environment variables below dynamic ones.
         { prefixForSortText: "b", appendOnInsertion },
     );
 
-    return resultsForStaticVariables.concat(
-        mapDynamicEnvVariables(requestData, matchingDynamicEnvVariables, {
-            prefixForSortText: "a",
-            appendOnInsertion,
-        }).filter(
-            ({ label }) =>
-                !matchingStaticEnvVariables
-                    .flatMap(({ matchingVariableKeys }) => matchingVariableKeys)
-                    .some((key) => key == label),
-        ),
-    );
+    return resultsForDynamicVariables.concat(resultsForStaticVariables);
 }
 
 function mapDynamicEnvVariables(
@@ -179,15 +181,16 @@ function getCompletionForRefsFromOnlyOtherFiles(
         },
     } = groupedReferences;
 
-    const totalNumberOfReferences = otherMatchingReferences.length + 1;
-
     return {
         label: variableName,
         labelDetails: {
             description: `  ${mostRelevantReference.relativePathToCollectionRoot}`,
         },
         kind: getKind(referenceType),
-        detail: `${totalNumberOfReferences} relevant references in ${totalNumberOfReferences} other file(s).`,
+        detail:
+            otherMatchingReferences.length == 0
+                ? undefined
+                : `${otherMatchingReferences.length} relevant references in ${otherMatchingReferences.length} other file(s).`,
         sortText: getSortText(
             modifications.prefixForSortText,
             variableName,
@@ -200,6 +203,42 @@ function getCompletionForRefsFromOnlyOtherFiles(
             modifications.appendOnInsertion,
         ),
     };
+}
+
+function filterOutStaticVariablesWithDynamicReferences(
+    matchingStaticEnvVariables: {
+        environmentFile: string;
+        matchingVariableKeys: string[];
+        isConfiguredEnv: boolean;
+    }[],
+    matchingDynamicEnvVariables: MatchingDynamicEnvVariables,
+) {
+    const allVariableNamesFromDynamicReferences =
+        matchingDynamicEnvVariables.fromSameFile
+            .map(({ variableReference: { variableName } }) => variableName)
+            .concat(
+                matchingDynamicEnvVariables.fromOtherFiles.map(
+                    ({
+                        mostRelevantReference: {
+                            reference: { variableName },
+                        },
+                    }) => variableName,
+                ),
+            );
+
+    return matchingStaticEnvVariables.map(
+        ({
+            environmentFile,
+            isConfiguredEnv,
+            matchingVariableKeys: allMatchingKeys,
+        }) => ({
+            environmentFile,
+            isConfiguredEnv,
+            matchingVariableKeys: allMatchingKeys.filter(
+                (key) => !allVariableNamesFromDynamicReferences.includes(key),
+            ),
+        }),
+    );
 }
 
 function getKind(referenceType: VariableReferenceType) {
