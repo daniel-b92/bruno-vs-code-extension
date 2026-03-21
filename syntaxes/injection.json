@@ -1,6 +1,6 @@
 {
     "scopeName": "json-block.injection",
-    "injectionSelector": "L:meta.structure.dictionary.json",
+    "injectionSelector": "L:meta.json-or-graphql-vars-body-block.bru",
     "patterns": [
         {
             "include": "#variable-reference"
@@ -8,7 +8,7 @@
     ],
     "repository": {
         "variable-reference": {
-            "match": "{{\\S+?}}",
+            "match": "{{[^{]*}}",
             "name": "variable.language"
         }
     }

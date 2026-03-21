@@ -3,6 +3,7 @@
 ### Fixes / Minor Improvements
 
 - Add intellisense (Hover + Completions) for environment variables defined in other `.bru` files within the same collection.
+- Fix issue with incorrect syntax highlighting for JSON request body blocks when using only a variable in the body.
 
 ## [0.21.7] (2026-03-15)
 
