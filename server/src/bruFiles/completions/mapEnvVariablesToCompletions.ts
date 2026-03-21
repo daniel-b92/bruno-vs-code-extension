@@ -191,7 +191,7 @@ function getCompletionForRefsFromOnlyOtherFiles(
         detail:
             otherMatchingReferences.length == 0
                 ? undefined
-                : `${otherMatchingReferences.length} relevant references in ${otherMatchingReferences.length} other file(s).`,
+                : `Relevant reference(s) in ${otherMatchingReferences.length} other file(s).`,
         sortText: getSortText(
             modifications.prefixForSortText,
             variableName,
