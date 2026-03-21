@@ -1,6 +1,19 @@
 import { BrunoVariableReference, VariableReferenceType } from "@global_shared";
 import { EquivalentDynamicReferencesFromOtherFiles } from "../bruFiles/shared/interfaces";
 
+export interface ReferenceFromOwnFileDetails {
+    blockName: string;
+    hasDuplicateReferences: boolean;
+    totalNumberOfReferences: number;
+    allDistinctBlocks: string[];
+}
+
+interface GroupedReferenceFromOwnFile {
+    variableName: string;
+    referenceType: VariableReferenceType;
+    details: ReferenceFromOwnFileDetails;
+}
+
 export function groupReferencesByName(
     fromSameFile: {
         blockName: string;
@@ -10,7 +23,10 @@ export function groupReferencesByName(
 ) {
     const groupedRefsFromOwnFile = groupReferencesFromSameFile(fromSameFile);
 
-    return;
+    return getCombinedReferencesFromOwnFileAndOtherFiles(
+        groupedRefsFromOwnFile,
+        fromOtherFiles,
+    );
 }
 
 function groupReferencesFromSameFile(
@@ -18,7 +34,7 @@ function groupReferencesFromSameFile(
         blockName: string;
         variableReference: BrunoVariableReference;
     }[],
-) {
+): GroupedReferenceFromOwnFile[] {
     const duplicateReferences: {
         variableName: string;
         blockName: string;
@@ -51,19 +67,19 @@ function groupReferencesFromSameFile(
                     blocksWithDuplicateReferences.length > 0;
                 const allBlocksWithReferences =
                     blocksWithDuplicateReferences.concat(blockName);
-                const distinctBlocks = allBlocksWithReferences.filter(
+                const allDistinctBlocks = allBlocksWithReferences.filter(
                     (block, index) =>
                         allBlocksWithReferences.indexOf(block) == index,
                 );
 
                 return {
-                    blockName,
                     variableName,
                     referenceType,
-                    references: {
+                    details: {
+                        blockName,
                         hasDuplicateReferences,
                         totalNumberOfReferences: allBlocksWithReferences.length,
-                        distinctBlocks,
+                        allDistinctBlocks,
                     },
                 };
             },
@@ -71,16 +87,14 @@ function groupReferencesFromSameFile(
 }
 
 function getCombinedReferencesFromOwnFileAndOtherFiles(
-    fromOwnFile: {
-        variableName: string;
-        referenceType: VariableReferenceType;
-    }[],
+    fromOwnFile: GroupedReferenceFromOwnFile[],
     fromOtherFiles: EquivalentDynamicReferencesFromOtherFiles[],
 ): {
     variableName: string;
     referenceType: VariableReferenceType;
     hasReferenceInOwnFile: boolean;
     referencesFromOtherFiles?: EquivalentDynamicReferencesFromOtherFiles;
+    detailsForOwnFileRefs?: ReferenceFromOwnFileDetails;
 }[] {
     return fromOtherFiles.reduce(
         (prev, curr) => {
@@ -101,23 +115,27 @@ function getCombinedReferencesFromOwnFileAndOtherFiles(
                       referenceType,
                       hasReferenceInOwnFile: false,
                       referencesFromOtherFiles: curr,
+                      detailsForOwnFileRefs: undefined,
                   })
                 : prev.map((entry, index) =>
-                      index != matchingEntryIndex
+                      index != matchingEntryIndex ||
+                      entry.referencesFromOtherFiles != undefined
                           ? entry
-                          : { ...entry, referencesFromOtherFiles: entry.referencesFromOtherFiles ? {most}:  },
+                          : { ...entry, referencesFromOtherFiles: curr },
                   );
         },
-        fromOwnFile.map(({ variableName, referenceType }) => ({
+        fromOwnFile.map(({ variableName, referenceType, details }) => ({
             variableName,
             referenceType,
             hasReferenceInOwnFile: true,
             referencesFromOtherFiles: undefined,
+            detailsForOwnFileRefs: details,
         })) as {
             variableName: string;
             referenceType: VariableReferenceType;
             hasReferenceInOwnFile: boolean;
             referencesFromOtherFiles?: EquivalentDynamicReferencesFromOtherFiles;
+            detailsForOwnFileRefs?: ReferenceFromOwnFileDetails;
         }[],
     );
 }
