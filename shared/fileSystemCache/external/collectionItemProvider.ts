@@ -173,9 +173,6 @@ export class CollectionItemProvider<T> {
     }
 
     public getAncestorCollectionForPath(itemPath: string) {
-        this.logger?.debug(
-            `Trying to determine ancestor collection for path '${itemPath}'.`,
-        );
         return this.getRegisteredCollections().find((collection) =>
             normalizePath(itemPath).startsWith(
                 normalizePath(collection.getRootDirectory()),
