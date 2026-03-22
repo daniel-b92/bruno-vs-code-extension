@@ -4,6 +4,7 @@
 
 - Add intellisense (Hover + Completions) for environment variables defined in other `.bru` files within the same collection.
 - Fix issue with incorrect syntax highlighting for JSON request body blocks when using only a variable in the body.
+- Fix an issue, where selecting a completion for an environment variable in a non-code block would sometimes cause the following text in the line to be overwritten.
 
 ## [0.21.7] (2026-03-15)
 

@@ -426,16 +426,20 @@ function getVariable(
     const matchingTextResult = getMatchingTextContainingPosition(
         position,
         lineContent,
-        /{{(\w|-|_|\.|\d)*/,
+        /{{[^{}\s]*/,
     );
 
     if (!matchingTextResult) {
         return undefined;
     }
 
-    const { text: matchingText, startChar, endChar } = matchingTextResult;
+    const {
+        text: matchingText,
+        startChar,
+        endChar: endCharForMatchingText,
+    } = matchingTextResult;
     // If the position is not after both starting brackets, provided completions would be inserted in an invalid location.
-    if (character < startChar + 2 || character > endChar) {
+    if (character < startChar + 2 || character > endCharForMatchingText) {
         return undefined;
     }
 
@@ -444,13 +448,21 @@ function getVariable(
         return undefined;
     }
 
+    // Avoid overwriting content that may not be directly related to the variable.
+    const endCharForInsertion = Math.min(
+        endCharForMatchingText,
+        position.character,
+    );
+
     return {
         variable: {
             name: matchingText.substring(2),
             start: new Position(line, startChar + 2),
-            end: new Position(line, endChar),
+            end: new Position(line, endCharForInsertion),
         },
-        toAppendOnInsertion: !lineContent.substring(endChar).startsWith("}")
+        toAppendOnInsertion: !lineContent
+            .substring(endCharForInsertion)
+            .startsWith("}")
             ? "}}"
             : "",
     };
