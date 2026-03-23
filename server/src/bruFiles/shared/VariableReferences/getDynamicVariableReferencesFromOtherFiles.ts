@@ -15,6 +15,11 @@ import {
     EquivalentDynamicReferencesFromOtherFiles,
 } from "../interfaces";
 
+enum SearchDirection {
+    Forwards = 1,
+    Backwards = 2,
+}
+
 export function getDynamicVariableReferencesFromOtherFiles(
     filePath: string,
     collection: TypedCollection,
@@ -37,14 +42,14 @@ export function getDynamicVariableReferencesFromOtherFiles(
                 sourceData.item,
                 collection,
                 relevantReferenceType,
-                true,
+                SearchDirection.Backwards,
             );
         case VariableReferenceType.Write:
             return getReferencesFromAncestorFoldersAndTheirDescendants(
                 sourceData.item,
                 collection,
                 relevantReferenceType,
-                false,
+                SearchDirection.Forwards,
             );
     }
 }
@@ -53,7 +58,7 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
     sourceItem: CollectionItem,
     collection: TypedCollection,
     relevantReferenceType: VariableReferenceType,
-    forEarlierExecutionTimes: boolean,
+    searchDirection: SearchDirection,
 ): EquivalentDynamicReferencesFromOtherFiles[] {
     if (collection.isRootDirectory(sourceItem.getPath())) {
         // There are not other files within a collection that will be executed before the collection root folder script.
@@ -100,7 +105,7 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
                     collection,
                     sourceItem.getPath(),
                     relevantReferenceType,
-                    forEarlierExecutionTimes,
+                    searchDirection,
                 ).map((data) => ({
                     ...data,
                     indirectionLevel: ascensionIndex,
@@ -142,7 +147,7 @@ function getReferencesFromFolderDescendants(
     collection: TypedCollection,
     sourceFilePath: string,
     relevantReferenceType: VariableReferenceType,
-    forEarlierExecutionTimes: boolean,
+    searchDirection: SearchDirection,
 ) {
     const { parentFolder, referenceChildItem } = ancestorLineData;
 
@@ -168,7 +173,7 @@ function getReferencesFromFolderDescendants(
                 return false;
             }
 
-            return forEarlierExecutionTimes
+            return searchDirection == SearchDirection.Backwards
                 ? itemSequence < childItemSequence
                 : itemSequence > childItemSequence;
         });
