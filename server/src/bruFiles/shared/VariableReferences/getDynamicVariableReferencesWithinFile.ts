@@ -1,6 +1,5 @@
 import {
     Block,
-    BrunoVariableType,
     getBlocksWithEarlierExecutionGroups,
     getBlocksWithLaterExecutionGroups,
     isBlockCodeBlock,
@@ -67,11 +66,6 @@ export function getDynamicVariableReferencesWithinFile(
                         : undefined,
                 )
                 .filter((v) => v != undefined),
-        )
-        .filter(
-            ({ variableReference: { variableType } }) =>
-                variableType == BrunoVariableType.Unknown ||
-                variableType == BrunoVariableType.Environment,
         );
 }
 

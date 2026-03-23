@@ -3,7 +3,7 @@ import {
     VariableReferenceType,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
-    getInbuiltFunctionType,
+    getInbuiltFunctionReferenceType,
     getMatchingDefinitionsFromEnvFiles,
     EnvVariableNameMatchingMode,
     Logger,
@@ -40,7 +40,7 @@ export function getCompletionsForCodeBlock(
             variable,
             {
                 collection,
-                functionType: getInbuiltFunctionType(inbuiltFunction),
+                functionType: getInbuiltFunctionReferenceType(inbuiltFunction),
                 blockContainingPosition,
                 allBlocks,
                 configuredEnvironment,

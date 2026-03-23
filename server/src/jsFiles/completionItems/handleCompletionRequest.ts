@@ -3,7 +3,7 @@ import {
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
     Position,
-    getInbuiltFunctionType,
+    getInbuiltFunctionReferenceType,
     getMatchingDefinitionsFromEnvFiles,
     EnvVariableNameMatchingMode,
     Logger,
@@ -85,7 +85,7 @@ function getEnvVariableRelatedFunctionForRequest(params: {
     return found
         ? {
               ...found,
-              type: getInbuiltFunctionType(found.inbuiltFunction),
+              type: getInbuiltFunctionReferenceType(found.inbuiltFunction),
           }
         : undefined;
 }

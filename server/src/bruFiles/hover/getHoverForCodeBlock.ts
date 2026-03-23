@@ -2,11 +2,11 @@ import {
     CodeBlock,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
-    getInbuiltFunctionType,
+    getInbuiltFunctionReferenceType,
     Logger,
 } from "@global_shared";
 import { mapToEnvVarNameParams } from "../shared/mapToEnvVarNameParams";
-import { getHoverForEnvVariable } from "./getHoverForEnvVariable";
+import { getHoverForBrunoVariable } from "./getHoverForEnvVariable";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 
 export async function getHoverForCodeBlock(
@@ -34,10 +34,10 @@ export async function getHoverForCodeBlock(
         variable: { name: variableName },
     } = envVariableResult;
 
-    return getHoverForEnvVariable(
+    return getHoverForBrunoVariable(
         fullRequest,
         variableName,
-        getInbuiltFunctionType(inbuiltFunction),
+        getInbuiltFunctionReferenceType(inbuiltFunction),
         configuredEnvironmentName,
     );
 }

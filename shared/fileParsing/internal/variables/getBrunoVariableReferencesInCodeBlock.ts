@@ -1,9 +1,9 @@
 import {
     BrunoVariableReference,
-    BrunoVariableType,
     getInbuiltFunctionAndFirstParameterIfStringLiteral,
     getInbuiltFunctionIdentifiers,
-    getInbuiltFunctionType,
+    getInbuiltFunctionReferenceType,
+    getInbuiltFunctionVariableType,
     Position,
     Range,
     TextDocumentHelper,
@@ -63,8 +63,8 @@ export function getBrunoVariableReferencesInCodeBlock(
             }) => ({
                 variableName,
                 variableNameRange: new Range(variableStart, variableEnd),
-                referenceType: getInbuiltFunctionType(identifier),
-                variableType: BrunoVariableType.Environment,
+                referenceType: getInbuiltFunctionReferenceType(identifier),
+                variableType: getInbuiltFunctionVariableType(identifier),
             }),
         );
 }

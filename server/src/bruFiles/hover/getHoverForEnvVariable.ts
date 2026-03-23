@@ -15,7 +15,7 @@ import {
 } from "../shared/interfaces";
 import { getDynamicVariableReferencesFromOtherFiles } from "../shared/VariableReferences/getDynamicVariableReferencesFromOtherFiles";
 
-export function getHoverForEnvVariable(
+export function getHoverForBrunoVariable(
     fullRequest: BlockRequestWithAdditionalData<Block>,
     variableName: string,
     functionType: VariableReferenceType,
