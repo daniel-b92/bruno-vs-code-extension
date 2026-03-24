@@ -65,7 +65,11 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
         return [];
     }
 
-    const allReferences: DynamicReferenceFromOtherFile[] = [];
+    const referencesFromAncestors: DynamicReferenceFromOtherFile[] = [];
+    const referencesFromDescendantsOfAncestors: {
+        reference: DynamicReferenceFromOtherFile;
+        sequence?: number;
+    }[] = [];
     let currentItem: CollectionItem | undefined = undefined;
     let nextItem = sourceItem;
     let ascensionIndex = 0;
@@ -87,7 +91,7 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
 
         nextItem = parentFolderData.item;
 
-        allReferences.push(
+        referencesFromAncestors.push(
             ...getReferencesFromAncestorFolder(
                 sourceItem.getPath(),
                 parentFolderData,
@@ -96,7 +100,7 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
         );
 
         if (isCollectionItemWithSequence(currentItem)) {
-            allReferences.push(
+            referencesFromDescendantsOfAncestors.push(
                 ...getReferencesFromFolderDescendants(
                     {
                         parentFolder: parentFolderData.item,
@@ -106,15 +110,28 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
                     sourceItem.getPath(),
                     relevantReferenceType,
                     searchDirection,
-                ).map((data) => ({
-                    ...data,
-                    indirectionLevel: ascensionIndex,
+                ).map(({ reference, relativePathToSourceFile, sequence }) => ({
+                    reference: {
+                        reference,
+                        relativePathToSourceFile,
+                        indirectionLevel: ascensionIndex,
+                    },
+                    sequence,
                 })),
             );
         }
     } while (!collection.isRootDirectory(currentItem.getPath()));
 
-    return groupReferences(allReferences);
+    return groupReferences(
+        referencesFromAncestors,
+        referencesFromDescendantsOfAncestors,
+        searchDirection,
+    ).map(
+        ({
+            mostRelevantReference: { reference: mostRelevantReference },
+            otherMatchingReferences,
+        }) => ({ mostRelevantReference, otherMatchingReferences }),
+    );
 }
 
 function getReferencesFromAncestorFolder(
@@ -198,16 +215,17 @@ function getReferencesFromFolderDescendants(
                 return prev;
             }
 
-            const relativePathToSourceFile = relative(
-                sourceFilePath,
-                item.getPath(),
-            );
-
             return prev.concat(
                 filterOutDuplicateReferences(additionalData)
                     .map((reference) => ({
-                        relativePathToSourceFile,
+                        relativePathToSourceFile: relative(
+                            sourceFilePath,
+                            item.getPath(),
+                        ),
                         reference,
+                        sequence: isCollectionItemWithSequence(item)
+                            ? item.getSequence()
+                            : undefined,
                     }))
                     .filter(
                         ({ reference: { referenceType } }) =>
@@ -218,6 +236,7 @@ function getReferencesFromFolderDescendants(
         [] as {
             relativePathToSourceFile: string;
             reference: BrunoVariableReference;
+            sequence?: number;
         }[],
     );
 }
@@ -236,48 +255,100 @@ function filterOutDuplicateReferences(references: BrunoVariableReference[]) {
     );
 }
 
-function groupReferences(references: DynamicReferenceFromOtherFile[]) {
-    return references.reduce((prev, curr) => {
-        const { reference, indirectionLevel } = curr;
+function groupReferences(
+    referencesFromAncestors: DynamicReferenceFromOtherFile[],
+    referencesFromDescendantsOfAncestors: {
+        reference: DynamicReferenceFromOtherFile;
+        sequence?: number;
+    }[],
+    searchDirection: SearchDirection,
+) {
+    return (
+        referencesFromAncestors.map((reference) => ({
+            reference,
+            sequence: undefined,
+        })) as {
+            reference: DynamicReferenceFromOtherFile;
+            sequence?: number;
+        }[]
+    )
+        .concat(referencesFromDescendantsOfAncestors)
+        .reduce(
+            (prev, curr) => {
+                const {
+                    reference: { reference, indirectionLevel },
+                    sequence,
+                } = curr;
 
-        const matchingEntryIndex = prev.findIndex(
-            ({ mostRelevantReference: { reference: registeredReference } }) =>
-                reference.variableName == registeredReference.variableName &&
-                reference.referenceType == registeredReference.referenceType,
-        );
-
-        if (
-            matchingEntryIndex >= 0 &&
-            indirectionLevel <
-                prev[matchingEntryIndex].mostRelevantReference.indirectionLevel
-        ) {
-            // The reference with the minimum indirection level is always the most relevant one.
-            return prev.map((entry, index) =>
-                index != matchingEntryIndex
-                    ? entry
-                    : {
-                          mostRelevantReference: curr,
-                          otherMatchingReferences:
-                              entry.otherMatchingReferences.concat(
-                                  entry.mostRelevantReference,
-                              ),
-                      },
-            );
-        }
-
-        return matchingEntryIndex < 0
-            ? prev.concat({
-                  mostRelevantReference: curr,
-                  otherMatchingReferences: [],
-              })
-            : prev.map((entry, index) =>
-                  index != matchingEntryIndex
-                      ? entry
-                      : {
-                            mostRelevantReference: entry.mostRelevantReference,
-                            otherMatchingReferences:
-                                entry.otherMatchingReferences.concat(curr),
+                const matchingReferenceIndex = prev.findIndex(
+                    ({
+                        mostRelevantReference: {
+                            reference: { reference: registeredReference },
                         },
-              );
-    }, [] as EquivalentDynamicReferencesFromOtherFiles[]);
+                    }) =>
+                        reference.variableName ==
+                            registeredReference.variableName &&
+                        reference.referenceType ==
+                            registeredReference.referenceType,
+                );
+
+                if (matchingReferenceIndex < 0) {
+                    return prev.concat({
+                        mostRelevantReference: curr,
+                        otherMatchingReferences: [],
+                    });
+                }
+
+                const {
+                    reference: {
+                        indirectionLevel: minimumIndirectionLevelSoFar,
+                    },
+                    sequence: sequenceOfMostRelevantReference,
+                } = prev[matchingReferenceIndex].mostRelevantReference;
+
+                if (
+                    indirectionLevel < minimumIndirectionLevelSoFar ||
+                    (indirectionLevel == minimumIndirectionLevelSoFar &&
+                        sequence != undefined &&
+                        sequenceOfMostRelevantReference != undefined &&
+                        (searchDirection == SearchDirection.Forwards
+                            ? sequence < sequenceOfMostRelevantReference
+                            : sequence > sequenceOfMostRelevantReference))
+                ) {
+                    // The reference with the minimum indirection level is always the most relevant one.
+                    // For multiple references with the same indirection level, the one with the sequence closest to the source item is most relevant.
+                    return prev.map((entry, index) =>
+                        index != matchingReferenceIndex
+                            ? entry
+                            : {
+                                  mostRelevantReference: curr,
+                                  otherMatchingReferences:
+                                      entry.otherMatchingReferences.concat(
+                                          entry.mostRelevantReference.reference,
+                                      ),
+                              },
+                    );
+                }
+
+                return prev.map((entry, index) =>
+                    index != matchingReferenceIndex
+                        ? entry
+                        : {
+                              mostRelevantReference:
+                                  entry.mostRelevantReference,
+                              otherMatchingReferences:
+                                  entry.otherMatchingReferences.concat(
+                                      curr.reference,
+                                  ),
+                          },
+                );
+            },
+            [] as {
+                mostRelevantReference: {
+                    reference: DynamicReferenceFromOtherFile;
+                    sequence?: number;
+                };
+                otherMatchingReferences: DynamicReferenceFromOtherFile[];
+            }[],
+        );
 }
