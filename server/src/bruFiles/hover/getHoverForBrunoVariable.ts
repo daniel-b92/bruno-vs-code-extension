@@ -4,7 +4,6 @@ import {
     EnvVariableNameMatchingMode,
     getMatchingDefinitionsFromEnvFiles,
     Logger,
-    VariableReferenceType,
 } from "@global_shared";
 import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
 import { Hover, MarkupContent } from "vscode-languageserver";
@@ -17,8 +16,7 @@ import { getDynamicVariableReferencesFromOtherFiles } from "../shared/VariableRe
 
 export function getHoverForBrunoVariable(
     fullRequest: BlockRequestWithAdditionalData<Block>,
-    variableName: string,
-    functionType: VariableReferenceType,
+    { variableName, referenceType, variableType }: BrunoVariableReference,
     configuredEnvironmentName?: string,
 ): Hover | undefined {
     const {
@@ -29,7 +27,8 @@ export function getHoverForBrunoVariable(
 
     const dynamicReferencesWithinFile = getDynamicVariableReferencesWithinFile(
         fullRequest,
-        functionType,
+        referenceType,
+        variableType,
     ).filter(
         ({ variableReference: { variableName: name } }) => name == variableName,
     );
@@ -43,7 +42,7 @@ export function getHoverForBrunoVariable(
         getDynamicVariableReferencesFromOtherFiles(
             filePath,
             collection,
-            functionType,
+            referenceType,
         ).filter(
             ({
                 mostRelevantReference: {

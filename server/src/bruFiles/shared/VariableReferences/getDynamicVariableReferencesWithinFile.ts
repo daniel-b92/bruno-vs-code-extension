@@ -5,6 +5,7 @@ import {
     isBlockCodeBlock,
     VariableReferenceType,
     Position,
+    BrunoVariableType,
 } from "@global_shared";
 import { BlockRequestWithAdditionalData } from "../interfaces";
 
@@ -14,26 +15,29 @@ export function getDynamicVariableReferencesWithinFile(
         file: { allBlocks, blockContainingPosition },
         logger,
     }: BlockRequestWithAdditionalData<Block>,
-    functionType: VariableReferenceType,
+    referenceType: VariableReferenceType,
+    variableType: BrunoVariableType,
 ) {
     const relevantReferenceType =
-        functionType == VariableReferenceType.Write
+        referenceType == VariableReferenceType.Write
             ? VariableReferenceType.Read
             : VariableReferenceType.Write;
 
     const { otherRelevantBlocks, fromOwnBlock } =
-        functionType == VariableReferenceType.Read
-            ? getDynamicReferencesForEarlierExecutionTimesInFile(
+        referenceType == VariableReferenceType.Read
+            ? getReferencesForEarlierExecutionTimes(
                   requestPosition,
                   blockContainingPosition,
                   allBlocks,
                   relevantReferenceType,
+                  variableType,
               )
-            : getDynamicReferencesForLaterExecutionTimesInFile(
+            : getReferencesForLaterExecutionTimes(
                   requestPosition,
                   blockContainingPosition,
                   allBlocks,
                   relevantReferenceType,
+                  variableType,
               );
 
     if (fromOwnBlock.length == 0 && otherRelevantBlocks.length == 0) {
@@ -69,56 +73,80 @@ export function getDynamicVariableReferencesWithinFile(
         );
 }
 
-function getDynamicReferencesForEarlierExecutionTimesInFile(
+function getReferencesForEarlierExecutionTimes(
     requestPosition: Position,
     blockContainingPosition: Block,
     allBlocks: Block[],
     relevantReferenceType: VariableReferenceType,
+    relevantVariableType: BrunoVariableType,
 ) {
     const otherRelevantBlocks = getBlocksWithEarlierExecutionGroups(
         blockContainingPosition.name,
         allBlocks,
     );
 
-    const fromOwnBlock =
-        isBlockCodeBlock(blockContainingPosition) &&
-        blockContainingPosition.variableReferences != undefined
-            ? blockContainingPosition.variableReferences.filter(
-                  ({ referenceType, variableNameRange }) =>
-                      referenceType == relevantReferenceType &&
-                      variableNameRange.end.isBefore(requestPosition),
-              )
-            : [];
-
     return {
         otherRelevantBlocks,
-        fromOwnBlock,
+        fromOwnBlock: getReferencesFromOwnBlock(
+            requestPosition,
+            blockContainingPosition,
+            relevantReferenceType,
+            relevantVariableType,
+            true,
+        ),
     };
 }
 
-function getDynamicReferencesForLaterExecutionTimesInFile(
+function getReferencesForLaterExecutionTimes(
     requestPosition: Position,
     blockContainingPosition: Block,
     allBlocks: Block[],
     relevantReferenceType: VariableReferenceType,
+    relevantVariableType: BrunoVariableType,
 ) {
     const otherRelevantBlocks = getBlocksWithLaterExecutionGroups(
         blockContainingPosition.name,
         allBlocks,
     );
 
-    const fromOwnBlock =
-        isBlockCodeBlock(blockContainingPosition) &&
-        blockContainingPosition.variableReferences != undefined
-            ? blockContainingPosition.variableReferences.filter(
-                  ({ referenceType, variableNameRange }) =>
-                      referenceType == relevantReferenceType &&
-                      requestPosition.isBefore(variableNameRange.start),
-              )
-            : [];
-
     return {
         otherRelevantBlocks,
-        fromOwnBlock,
+        fromOwnBlock: getReferencesFromOwnBlock(
+            requestPosition,
+            blockContainingPosition,
+            relevantReferenceType,
+            relevantVariableType,
+            false,
+        ),
     };
+}
+
+function getReferencesFromOwnBlock(
+    requestPosition: Position,
+    ownBlock: Block,
+    relevantReferenceType: VariableReferenceType,
+    relevantVariableType: BrunoVariableType,
+    forEarlierExecutionTimes: boolean,
+) {
+    if (
+        // Only for code blocks the block execution order is defined (from top to bottom).
+        !isBlockCodeBlock(ownBlock) ||
+        ownBlock.variableReferences == undefined
+    ) {
+        return [];
+    }
+
+    const prefiltered = ownBlock.variableReferences.filter(
+        ({ referenceType, variableType }) =>
+            referenceType == relevantReferenceType &&
+            (relevantVariableType != BrunoVariableType.Unknown
+                ? variableType == relevantVariableType
+                : true),
+    );
+
+    return prefiltered.filter(({ variableNameRange }) =>
+        forEarlierExecutionTimes
+            ? variableNameRange.end.isBefore(requestPosition)
+            : requestPosition.isBefore(variableNameRange.start),
+    );
 }

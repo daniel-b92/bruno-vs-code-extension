@@ -1,11 +1,13 @@
 import {
     Block,
+    BrunoVariableType,
     getBlocksWithoutVariableSupport,
     getDictionaryBlockArrayField,
     getExistingRequestFileTags,
     getVariableForPositionInNonCodeBlock,
     Logger,
     MetaBlockKey,
+    Range,
     RequestFileBlockName,
     TagOccurences,
     TextDocumentHelper,
@@ -17,7 +19,7 @@ import {
 } from "../../shared";
 import { basename } from "path";
 import { Hover } from "vscode-languageserver";
-import { getHoverForBrunoVariable } from "./getHoverForEnvVariable";
+import { getHoverForBrunoVariable } from "./getHoverForBrunoVariable";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 
 export function getHoverForNonCodeBlock(
@@ -115,9 +117,13 @@ function getHoverForVariablesInNonCodeBlocks(
 
     return getHoverForBrunoVariable(
         fullRequest,
-        variable.name,
-        // In non-code blocks, variables can not be set.
-        VariableReferenceType.Read,
+        {
+            variableName: variable.name,
+            variableNameRange: new Range(variable.start, variable.end),
+            variableType: BrunoVariableType.Unknown,
+            // In non-code blocks, variables can not be set.
+            referenceType: VariableReferenceType.Read,
+        },
         configuredEnvironmentName,
     );
 }
