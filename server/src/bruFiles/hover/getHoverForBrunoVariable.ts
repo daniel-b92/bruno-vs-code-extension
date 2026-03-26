@@ -130,12 +130,12 @@ function getContentForDynamicReferences(
             .map(
                 ({
                     mostRelevantReference: {
-                        relativePathToSourceFile,
+                        path: { relativeToSourceFile },
                         reference: { referenceType },
                     },
                     otherMatchingReferences,
                 }) =>
-                    `| ${relativePathToSourceFile.concat(otherMatchingReferences.length > 0 ? ` [+ ${otherMatchingReferences.length} others]` : "")} | - | ${referenceType} |`,
+                    `| ${relativeToSourceFile.concat(otherMatchingReferences.length > 0 ? ` [+ ${otherMatchingReferences.length} others]` : "")} | - | ${referenceType} |`,
             )
             .join(lineBreak),
         lineBreak,

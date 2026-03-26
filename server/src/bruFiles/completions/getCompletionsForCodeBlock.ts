@@ -9,6 +9,7 @@ import {
     Logger,
     Position,
     CodeBlock,
+    BrunoVariableType,
 } from "@global_shared";
 import { LanguageFeatureBaseRequest, TypedCollection } from "../../shared";
 import { mapToEnvVarNameParams } from "../shared/mapToEnvVarNameParams";
@@ -99,6 +100,7 @@ function getResultsForEnvironmentVariable(
                 logger,
             },
             functionType,
+            BrunoVariableType.Environment,
         );
 
     if (token.isCancellationRequested) {

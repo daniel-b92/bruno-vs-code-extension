@@ -3,6 +3,7 @@ import {
     ApiKeyAuthBlockPlacementValue,
     Block,
     BooleanFieldValue,
+    BrunoVariableType,
     EnvVariableNameMatchingMode,
     getBlocksWithoutVariableSupport,
     getDictionaryBlockArrayField,
@@ -80,6 +81,8 @@ function getNonBlockSpecificCompletions(
     const { line } = position;
     // In non-code blocks, variables cannot be set.
     const functionType = VariableReferenceType.Read;
+    // In non-code blocks, all kinds of variables can be used via the same syntax.
+    const variableType = BrunoVariableType.Unknown;
     const lineContent = documentHelper.getLineByIndex(line);
 
     if (
@@ -114,7 +117,11 @@ function getNonBlockSpecificCompletions(
     }
 
     const dynamicVariableReferencesWithinFile =
-        getDynamicVariableReferencesWithinFile(fullRequest, functionType);
+        getDynamicVariableReferencesWithinFile(
+            fullRequest,
+            functionType,
+            variableType,
+        );
 
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
