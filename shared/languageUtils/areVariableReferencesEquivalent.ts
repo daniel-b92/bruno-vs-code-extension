@@ -12,7 +12,7 @@ export function areVariableReferencesEquivalent(
     );
 }
 
-export function areEquivalent(
+function areEquivalent(
     ref1: BrunoVariableReference,
     ref2: BrunoVariableReference,
 ) {
