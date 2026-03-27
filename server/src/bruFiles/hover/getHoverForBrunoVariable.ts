@@ -1,6 +1,7 @@
 import {
     Block,
     BrunoVariableReference,
+    BrunoVariableType,
     EnvVariableNameMatchingMode,
     getMatchingDefinitionsFromEnvFiles,
     Logger,
@@ -43,6 +44,7 @@ export function getHoverForBrunoVariable(
             filePath,
             collection,
             referenceType,
+            variableType,
         ).filter(
             ({
                 mostRelevantReference: {
@@ -64,15 +66,20 @@ export function getHoverForBrunoVariable(
         : getContentForDynamicReferences(
               dynamicReferencesWithinFile,
               dynamicReferencesFromOtherFiles,
+              variableType,
           );
 
-    const matchingStaticEnvVariableDefinitions =
-        getMatchingDefinitionsFromEnvFiles(
-            collection,
-            variableName,
-            EnvVariableNameMatchingMode.Exact,
-            configuredEnvironmentName,
-        );
+    const matchingStaticEnvVariableDefinitions = [
+        BrunoVariableType.Environment,
+        BrunoVariableType.Unknown,
+    ].includes(variableType)
+        ? getMatchingDefinitionsFromEnvFiles(
+              collection,
+              variableName,
+              EnvVariableNameMatchingMode.Exact,
+              configuredEnvironmentName,
+          )
+        : [];
     const contentForStaticReferences = getHoverContentForStaticEnvVariables(
         matchingStaticEnvVariableDefinitions,
     );
@@ -107,22 +114,33 @@ function getContentForDynamicReferences(
         variableReference: BrunoVariableReference;
     }[],
     fromOtherFiles: EquivalentDynamicReferencesFromOtherFiles[],
+    sourceFileVariableType: BrunoVariableType,
 ) {
-    const lineBreak = getLineBreak();
-
     if (fromOwnFile.length == 0 && fromOtherFiles.length == 0) {
         return undefined;
     }
 
-    const tableHeader = `| file | block | reference type | ${lineBreak} | :--------------- | :----------------: | :----------------: | ${lineBreak}`;
+    const lineBreak = getLineBreak();
+    const displayVariableType =
+        includesMultipleDistinctVariableTypes(fromOwnFile, fromOtherFiles) ||
+        sourceFileVariableType == BrunoVariableType.Unknown;
+    const tableHeader = "| file | block | reference type |".concat(
+        displayVariableType ? "variable type |" : "",
+        `${lineBreak} | :--------------- | :----------------: | :----------------: |`,
+        displayVariableType ? ":----------------: |" : "",
+        lineBreak,
+    );
 
     return "**Dynamic references:**".concat(
         lineBreak,
         tableHeader,
         fromOwnFile
             .map(
-                ({ blockName, variableReference: { referenceType } }) =>
-                    `| - | ${blockName} | ${referenceType} |`,
+                ({
+                    blockName,
+                    variableReference: { referenceType, variableType },
+                }) =>
+                    `| - | ${blockName} | ${referenceType} | ${displayVariableType ? `${variableType} |` : ""}`,
             )
             .join(lineBreak),
         fromOwnFile.length > 0 ? lineBreak : "",
@@ -131,11 +149,11 @@ function getContentForDynamicReferences(
                 ({
                     mostRelevantReference: {
                         path: { relativeToSourceFile },
-                        reference: { referenceType },
+                        reference: { referenceType, variableType },
                     },
                     otherMatchingReferences,
                 }) =>
-                    `| ${relativeToSourceFile.concat(otherMatchingReferences.length > 0 ? ` [+ ${otherMatchingReferences.length} others]` : "")} | - | ${referenceType} |`,
+                    `| ${relativeToSourceFile.concat(otherMatchingReferences.length > 0 ? ` [+ ${otherMatchingReferences.length} others]` : "")} | - | ${referenceType} | ${displayVariableType ? `${variableType} |` : ""}`,
             )
             .join(lineBreak),
         lineBreak,
@@ -149,4 +167,26 @@ function addLogEntryForCancellation(logger?: Logger) {
 
 function getLineBreak() {
     return "\n";
+}
+
+function includesMultipleDistinctVariableTypes(
+    fromOwnFile: {
+        blockName: string;
+        variableReference: BrunoVariableReference;
+    }[],
+    fromOtherFiles: EquivalentDynamicReferencesFromOtherFiles[],
+) {
+    const allVariableTypes = fromOwnFile
+        .map(({ variableReference: { variableType } }) => variableType)
+        .concat(
+            fromOtherFiles.map(
+                ({
+                    mostRelevantReference: {
+                        reference: { variableType },
+                    },
+                }) => variableType,
+            ),
+        );
+
+    return allVariableTypes.some((val) => allVariableTypes.indexOf(val) != 0);
 }

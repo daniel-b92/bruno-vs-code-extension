@@ -113,6 +113,7 @@ function getResultsForEnvironmentVariable(
             filePath,
             collection,
             functionType,
+            BrunoVariableType.Environment,
         );
 
     if (token.isCancellationRequested) {

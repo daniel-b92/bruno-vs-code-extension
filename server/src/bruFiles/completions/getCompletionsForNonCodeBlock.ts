@@ -133,6 +133,7 @@ function getNonBlockSpecificCompletions(
             filePath,
             collection,
             functionType,
+            variableType,
         );
 
     if (token.isCancellationRequested) {

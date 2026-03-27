@@ -7,6 +7,7 @@ import {
     CollectionItemWithSequence,
     normalizePath,
     isCollectionItemWithSequence,
+    BrunoVariableType,
 } from "@global_shared";
 import { TypedCollection, TypedCollectionData } from "../../../shared";
 import { dirname, relative } from "path";
@@ -24,12 +25,17 @@ enum SearchDirection {
 export function getDynamicVariableReferencesFromOtherFiles(
     filePath: string,
     collection: TypedCollection,
-    functionTypeInSourceFile: VariableReferenceType,
+    referenceTypeInSourceFile: VariableReferenceType,
+    variableTypeInSourceFile: BrunoVariableType,
 ) {
     const relevantReferenceType =
-        functionTypeInSourceFile == VariableReferenceType.Write
+        referenceTypeInSourceFile == VariableReferenceType.Write
             ? VariableReferenceType.Read
             : VariableReferenceType.Write;
+    const relevantVariableTypes =
+        variableTypeInSourceFile == BrunoVariableType.Unknown
+            ? Object.values(BrunoVariableType)
+            : [variableTypeInSourceFile];
 
     const sourceData = collection.getStoredDataForPath(filePath);
 
@@ -37,12 +43,13 @@ export function getDynamicVariableReferencesFromOtherFiles(
         return [];
     }
 
-    switch (functionTypeInSourceFile) {
+    switch (referenceTypeInSourceFile) {
         case VariableReferenceType.Read:
             return getReferencesFromAncestorFoldersAndTheirDescendants(
                 sourceData.item,
                 collection,
                 relevantReferenceType,
+                relevantVariableTypes,
                 SearchDirection.Backwards,
             );
         case VariableReferenceType.Write:
@@ -50,6 +57,7 @@ export function getDynamicVariableReferencesFromOtherFiles(
                 sourceData.item,
                 collection,
                 relevantReferenceType,
+                relevantVariableTypes,
                 SearchDirection.Forwards,
             );
     }
@@ -59,6 +67,7 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
     sourceItem: CollectionItem,
     collection: TypedCollection,
     relevantReferenceType: VariableReferenceType,
+    relevantVariableTypes: BrunoVariableType[],
     searchDirection: SearchDirection,
 ): EquivalentDynamicReferencesFromOtherFiles[] {
     if (collection.isRootDirectory(sourceItem.getPath())) {
@@ -95,6 +104,7 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
                 sourceItem.getPath(),
                 parentFolderData,
                 relevantReferenceType,
+                relevantVariableTypes,
             ),
         );
 
@@ -107,9 +117,12 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
                     },
                     collection,
                     sourceItem.getPath(),
-                    relevantReferenceType,
-                    searchDirection,
                     ascensionIndex,
+                    {
+                        relevantReferenceType,
+                        relevantVariableTypes,
+                        searchDirection,
+                    },
                 ),
             );
         }
@@ -127,13 +140,18 @@ function getReferencesFromAncestorFolder(
     sourceFilePath: string,
     folderData: TypedCollectionData,
     relevantReferenceType: VariableReferenceType,
+    relevantVariableTypes: BrunoVariableType[],
 ): DynamicReferenceFromOtherFile[] {
     if (!folderData.additionalData) {
         return [];
     }
 
     return filterOutDuplicateReferences(folderData.additionalData)
-        .filter(({ referenceType }) => referenceType == relevantReferenceType)
+        .filter(
+            ({ referenceType, variableType }) =>
+                referenceType == relevantReferenceType &&
+                relevantVariableTypes.includes(variableType),
+        )
         .map((reference) => ({
             path: {
                 absolute: folderData.item.getPath(),
@@ -155,11 +173,16 @@ function getReferencesFromFolderDescendants(
     },
     collection: TypedCollection,
     sourceFilePath: string,
-    relevantReferenceType: VariableReferenceType,
-    searchDirection: SearchDirection,
-    indirectionLevel: number,
+    indirectionLevelForResponse: number,
+    filters: {
+        relevantReferenceType: VariableReferenceType;
+        searchDirection: SearchDirection;
+        relevantVariableTypes: BrunoVariableType[];
+    },
 ): DynamicReferenceFromOtherFile[] {
     const { parentFolder, referenceChildItem } = ancestorLineData;
+    const { relevantReferenceType, relevantVariableTypes, searchDirection } =
+        filters;
 
     const childItemSequence = referenceChildItem.getSequence();
     if (childItemSequence === undefined) {
@@ -218,12 +241,13 @@ function getReferencesFromFolderDescendants(
                                 item.getPath(),
                             ),
                         },
-                        indirectionLevel,
+                        indirectionLevel: indirectionLevelForResponse,
                         reference,
                     }))
                     .filter(
-                        ({ reference: { referenceType } }) =>
-                            referenceType == relevantReferenceType,
+                        ({ reference: { referenceType, variableType } }) =>
+                            referenceType == relevantReferenceType &&
+                            relevantVariableTypes.includes(variableType),
                     ),
             );
         },

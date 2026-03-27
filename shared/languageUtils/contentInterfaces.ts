@@ -8,10 +8,10 @@ export interface BrunoVariableReference {
 }
 
 export enum BrunoVariableType {
-    Unknown = 1,
-    Global = 2,
-    Environment = 3,
-    Runtime = 4,
+    Unknown = "Unknown",
+    Global = "Global",
+    Environment = "Environment",
+    Runtime = "Runtime",
 }
 
 export enum VariableReferenceType {
