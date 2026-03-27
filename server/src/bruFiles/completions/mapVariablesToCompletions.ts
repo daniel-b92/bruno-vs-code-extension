@@ -5,7 +5,7 @@ import {
     Position,
 } from "@global_shared";
 import {
-    EnvVariableCommonRequestData,
+    VariableCommonRequestData,
     groupReferencesByName,
     mapStaticEnvVariablesToCompletions,
     ReferenceFromOwnFileDetails,
@@ -17,7 +17,7 @@ import {
 } from "vscode-languageserver";
 import { EquivalentDynamicReferencesFromOtherFiles } from "../shared/interfaces";
 
-interface MatchingDynamicEnvVariables {
+interface MatchingDynamicVariables {
     fromSameFile: {
         blockName: string;
         variableReference: BrunoVariableReference;
@@ -25,19 +25,19 @@ interface MatchingDynamicEnvVariables {
     fromOtherFiles: EquivalentDynamicReferencesFromOtherFiles[];
 }
 
-export function mapEnvVariablesToCompletions(
+export function mapVariablesToCompletions(
     matchingStaticEnvVariables: {
         environmentFile: string;
         matchingVariableKeys: string[];
         isConfiguredEnv: boolean;
     }[],
-    matchingDynamicEnvVariables: MatchingDynamicEnvVariables,
-    requestData: EnvVariableCommonRequestData,
+    matchingDynamicVariables: MatchingDynamicVariables,
+    requestData: VariableCommonRequestData,
     appendOnInsertion?: string,
 ) {
-    const resultsForDynamicVariables = mapDynamicEnvVariables(
+    const resultsForDynamicVariables = mapDynamicVariables(
         requestData,
-        matchingDynamicEnvVariables,
+        matchingDynamicVariables,
         {
             prefixForSortText: "a",
             appendOnInsertion,
@@ -48,7 +48,7 @@ export function mapEnvVariablesToCompletions(
         requestData,
         filterOutStaticVariablesWithDynamicReferences(
             matchingStaticEnvVariables,
-            matchingDynamicEnvVariables,
+            matchingDynamicVariables,
         ),
         // Display static environment variables below dynamic ones.
         { prefixForSortText: "b", appendOnInsertion },
@@ -57,9 +57,9 @@ export function mapEnvVariablesToCompletions(
     return resultsForDynamicVariables.concat(resultsForStaticVariables);
 }
 
-function mapDynamicEnvVariables(
-    requestData: EnvVariableCommonRequestData,
-    { fromSameFile, fromOtherFiles }: MatchingDynamicEnvVariables,
+function mapDynamicVariables(
+    requestData: VariableCommonRequestData,
+    { fromSameFile, fromOtherFiles }: MatchingDynamicVariables,
     modifications: {
         prefixForSortText: string;
         appendOnInsertion?: string;
@@ -100,7 +100,7 @@ function mapDynamicEnvVariables(
 }
 
 function getCompletionForRefsWithinOwnFile(
-    { variable: { start, end } }: EnvVariableCommonRequestData,
+    { variable: { start, end } }: VariableCommonRequestData,
     groupedReferences: {
         variableName: string;
         referenceType: VariableReferenceType;
@@ -162,7 +162,7 @@ function getCompletionForRefsWithinOwnFile(
 }
 
 function getCompletionForRefsFromOnlyOtherFiles(
-    { variable: { start, end } }: EnvVariableCommonRequestData,
+    { variable: { start, end } }: VariableCommonRequestData,
     groupedReferences: {
         variableName: string;
         referenceType: VariableReferenceType;
@@ -212,7 +212,7 @@ function filterOutStaticVariablesWithDynamicReferences(
         matchingVariableKeys: string[];
         isConfiguredEnv: boolean;
     }[],
-    matchingDynamicEnvVariables: MatchingDynamicEnvVariables,
+    matchingDynamicEnvVariables: MatchingDynamicVariables,
 ) {
     const allVariableNamesFromDynamicReferences =
         matchingDynamicEnvVariables.fromSameFile

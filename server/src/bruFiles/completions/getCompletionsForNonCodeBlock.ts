@@ -28,11 +28,7 @@ import {
     SettingsBlockKey,
     VariableReferenceType,
 } from "@global_shared";
-import {
-    CompletionItem,
-    CompletionItemKind,
-    TextEdit,
-} from "vscode-languageserver";
+import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 import {
     LanguageFeatureBaseRequest,
     TypedCollection,
@@ -40,9 +36,11 @@ import {
 } from "../../shared";
 import { basename, dirname } from "path";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
-import { mapEnvVariablesToCompletions } from "./mapEnvVariablesToCompletions";
+import { mapVariablesToCompletions as mapVariableReferencesToCompletions } from "./mapVariablesToCompletions";
 import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
 import { getDynamicVariableReferencesFromOtherFiles } from "../shared/VariableReferences/getDynamicVariableReferencesFromOtherFiles";
+import { getLinePatternForDictionaryField } from "./dictionaryBlocks/getLinePatternForDictionaryField";
+import { getFixedCompletionItems } from "./dictionaryBlocks/getFixedCompletionItems";
 
 export async function getCompletionsForNonCodeBlock(
     fullRequest: BlockRequestWithAdditionalData<Block>,
@@ -99,13 +97,17 @@ function getNonBlockSpecificCompletions(
 
     const { variable, toAppendOnInsertion } = variableParsingResult;
 
-    const matchingStaticEnvVariableDefinitions =
-        getMatchingDefinitionsFromEnvFiles(
-            collection,
-            variable.name,
-            EnvVariableNameMatchingMode.Ignore,
-            configuredEnvironment,
-        );
+    const matchingStaticEnvVariableDefinitions = [
+        BrunoVariableType.Environment,
+        BrunoVariableType.Unknown,
+    ].includes(variableType)
+        ? getMatchingDefinitionsFromEnvFiles(
+              collection,
+              variable.name,
+              EnvVariableNameMatchingMode.Ignore,
+              configuredEnvironment,
+          )
+        : [];
 
     if (matchingStaticEnvVariableDefinitions.length == 0) {
         return [];
@@ -141,7 +143,7 @@ function getNonBlockSpecificCompletions(
         return [];
     }
 
-    return mapEnvVariablesToCompletions(
+    return mapVariableReferencesToCompletions(
         matchingStaticEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
                 environmentFile: file,
@@ -157,6 +159,7 @@ function getNonBlockSpecificCompletions(
             collection,
             variable,
             functionType,
+            variableType,
             requestPosition: position,
             token,
         },
@@ -400,31 +403,6 @@ function getSettingsBlockSpecificCompletions(
     );
 }
 
-function getFixedCompletionItems(
-    params: {
-        linePattern: RegExp;
-        choices: string[];
-    }[],
-    { documentHelper, position: { line } }: LanguageFeatureBaseRequest,
-): CompletionItem[] {
-    const currentText = documentHelper.getLineByIndex(line);
-
-    return params.flatMap(({ linePattern, choices }) => {
-        if (!currentText.match(linePattern)) {
-            return [];
-        }
-
-        return choices.map((choice) => ({
-            label: choice,
-            textEdit: getTextEditForDictionaryBlockSimpleValue(
-                line,
-                currentText,
-                choice,
-            ),
-        }));
-    });
-}
-
 function getVariable(
     { position, token }: LanguageFeatureBaseRequest,
     lineContent: string,
@@ -474,26 +452,6 @@ function getVariable(
             ? "}}"
             : "",
     };
-}
-
-function getTextEditForDictionaryBlockSimpleValue(
-    lineIndex: number,
-    textInLine: string,
-    value: string,
-): TextEdit | undefined {
-    return textInLine.includes(":")
-        ? {
-              newText: ` ${value}`,
-              range: new Range(
-                  new Position(lineIndex, textInLine.indexOf(":") + 1),
-                  new Position(lineIndex, textInLine.length),
-              ),
-          }
-        : undefined;
-}
-
-function getLinePatternForDictionaryField(key: string) {
-    return new RegExp(`^\\s*${key}:.*$`, "m");
 }
 
 function addLogEntryForCancellation(logger?: Logger) {

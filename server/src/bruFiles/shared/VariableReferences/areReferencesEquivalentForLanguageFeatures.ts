@@ -1,8 +1,14 @@
-import { BrunoVariableReference, BrunoVariableType } from "@global_shared";
+import { BrunoVariableType, VariableReferenceType } from "@global_shared";
+
+export interface ComparableReference {
+    variableName: string;
+    variableType: BrunoVariableType;
+    referenceType: VariableReferenceType;
+}
 
 export function areReferencesEquivalentForLanguageFeatures(
-    ref1: BrunoVariableReference,
-    ref2: BrunoVariableReference,
+    ref1: ComparableReference,
+    ref2: ComparableReference,
 ) {
     const areVariableTypesEquivalent =
         ref1.variableType == BrunoVariableType.Unknown ||

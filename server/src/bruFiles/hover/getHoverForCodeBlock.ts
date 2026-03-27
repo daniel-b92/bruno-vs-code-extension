@@ -7,7 +7,7 @@ import {
     Logger,
     Range,
 } from "@global_shared";
-import { mapToEnvVarNameParams } from "../shared/mapToEnvVarNameParams";
+import { mapToVariableNameParams } from "../shared/mapToVariableNameParams";
 import { getHoverForBrunoVariable } from "./getHoverForBrunoVariable";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 
@@ -66,7 +66,7 @@ function getVariableNameAndFunctionFromCodeBlock(
     }
 
     return getFirstParameterForInbuiltFunctionIfStringLiteral(
-        mapToEnvVarNameParams(fullRequest, getInbuiltFunctionIdentifiers()),
+        mapToVariableNameParams(fullRequest, getInbuiltFunctionIdentifiers()),
     );
 }
 

@@ -7,6 +7,7 @@ import {
     getMatchingDefinitionsFromEnvFiles,
     EnvVariableNameMatchingMode,
     Logger,
+    BrunoVariableType,
 } from "@global_shared";
 import {
     LanguageFeatureBaseRequest,
@@ -124,6 +125,7 @@ function getResultsForEnvironmentVariable(
             collection,
             variable,
             functionType,
+            variableType: BrunoVariableType.Environment,
             requestPosition,
             token,
         },

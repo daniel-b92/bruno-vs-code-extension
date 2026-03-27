@@ -10,11 +10,12 @@ import {
     Position,
     CodeBlock,
     BrunoVariableType,
+    getInbuiltFunctionVariableType,
 } from "@global_shared";
 import { LanguageFeatureBaseRequest, TypedCollection } from "../../shared";
-import { mapToEnvVarNameParams } from "../shared/mapToEnvVarNameParams";
+import { mapToVariableNameParams } from "../shared/mapToVariableNameParams";
 import { CompletionItem } from "vscode-languageserver";
-import { mapEnvVariablesToCompletions } from "./mapEnvVariablesToCompletions";
+import { mapVariablesToCompletions } from "./mapVariablesToCompletions";
 import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 import { getDynamicVariableReferencesFromOtherFiles } from "../shared/VariableReferences/getDynamicVariableReferencesFromOtherFiles";
@@ -31,17 +32,21 @@ export function getCompletionsForCodeBlock(
 
     const envVariableResult =
         getFirstParameterForInbuiltFunctionIfStringLiteral(
-            mapToEnvVarNameParams(fullRequest, getInbuiltFunctionIdentifiers()),
+            mapToVariableNameParams(
+                fullRequest,
+                getInbuiltFunctionIdentifiers(),
+            ),
         );
 
     if (envVariableResult) {
         const { inbuiltFunction, variable } = envVariableResult;
 
-        return getResultsForEnvironmentVariable(
+        return getResultsForVariable(
             variable,
             {
                 collection,
                 functionType: getInbuiltFunctionReferenceType(inbuiltFunction),
+                variableType: getInbuiltFunctionVariableType(inbuiltFunction),
                 blockContainingPosition,
                 allBlocks,
                 configuredEnvironment,
@@ -54,7 +59,7 @@ export function getCompletionsForCodeBlock(
     return [];
 }
 
-function getResultsForEnvironmentVariable(
+function getResultsForVariable(
     variable: {
         name: string;
         start: Position;
@@ -63,6 +68,7 @@ function getResultsForEnvironmentVariable(
     additionalData: {
         collection: TypedCollection;
         functionType: VariableReferenceType;
+        variableType: BrunoVariableType;
         blockContainingPosition: Block;
         allBlocks: Block[];
         configuredEnvironment?: string;
@@ -73,19 +79,24 @@ function getResultsForEnvironmentVariable(
     const {
         collection,
         functionType,
+        variableType,
         allBlocks,
         blockContainingPosition,
         configuredEnvironment,
     } = additionalData;
     const { position, token, filePath } = baseRequest;
 
-    const matchingStaticEnvVariableDefinitions =
-        getMatchingDefinitionsFromEnvFiles(
-            collection,
-            variable.name,
-            EnvVariableNameMatchingMode.Ignore,
-            configuredEnvironment,
-        );
+    const matchingStaticEnvVariableDefinitions = [
+        BrunoVariableType.Environment,
+        BrunoVariableType.Unknown,
+    ].includes(variableType)
+        ? getMatchingDefinitionsFromEnvFiles(
+              collection,
+              variable.name,
+              EnvVariableNameMatchingMode.Ignore,
+              configuredEnvironment,
+          )
+        : [];
 
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
@@ -100,7 +111,7 @@ function getResultsForEnvironmentVariable(
                 logger,
             },
             functionType,
-            BrunoVariableType.Environment,
+            variableType,
         );
 
     if (token.isCancellationRequested) {
@@ -113,7 +124,7 @@ function getResultsForEnvironmentVariable(
             filePath,
             collection,
             functionType,
-            BrunoVariableType.Environment,
+            variableType,
         );
 
     if (token.isCancellationRequested) {
@@ -121,7 +132,7 @@ function getResultsForEnvironmentVariable(
         return [];
     }
 
-    return mapEnvVariablesToCompletions(
+    return mapVariablesToCompletions(
         matchingStaticEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
                 environmentFile: file,
@@ -136,6 +147,7 @@ function getResultsForEnvironmentVariable(
         {
             collection,
             functionType,
+            variableType,
             requestPosition: position,
             variable,
             token,

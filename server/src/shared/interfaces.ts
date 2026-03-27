@@ -7,6 +7,7 @@ import {
     Logger,
     VariableReferenceType,
     BrunoVariableReference,
+    BrunoVariableType,
 } from "@global_shared";
 import { CancellationToken } from "vscode-languageserver";
 
@@ -33,12 +34,12 @@ export interface LanguageFeatureBaseRequest {
     token: CancellationToken;
 }
 
-export interface EnvVariableBaseRequest {
-    requestData: EnvVariableCommonRequestData;
+export interface VariableBaseRequest {
+    requestData: VariableCommonRequestData;
     logger?: Logger;
 }
 
-export interface EnvVariableCommonRequestData {
+export interface VariableCommonRequestData {
     collection: TypedCollection;
     variable: {
         name: string;
@@ -46,6 +47,7 @@ export interface EnvVariableCommonRequestData {
         end: Position;
     };
     functionType: VariableReferenceType;
+    variableType: BrunoVariableType;
     requestPosition: Position;
     token: CancellationToken;
 }
