@@ -3,7 +3,10 @@ import {
     BrunoVariableType,
     VariableReferenceType,
 } from "@global_shared";
-import { EquivalentDynamicReferencesFromOtherFiles } from "../bruFiles/shared/interfaces";
+import {
+    EquivalentDynamicReferencesFromOtherFiles,
+    MatchingDynamicVariables,
+} from "../bruFiles/shared/interfaces";
 import { areReferencesEquivalentForLanguageFeatures } from "../bruFiles/shared/VariableReferences/areReferencesEquivalentForLanguageFeatures";
 
 export interface ReferenceFromOwnFileDetails {
@@ -20,13 +23,10 @@ interface GroupedReferenceFromOwnFile {
     details: ReferenceFromOwnFileDetails;
 }
 
-export function groupReferencesByName(
-    fromSameFile: {
-        blockName: string;
-        variableReference: BrunoVariableReference;
-    }[],
-    fromOtherFiles: EquivalentDynamicReferencesFromOtherFiles[],
-) {
+export function groupReferencesByName({
+    fromSameFile,
+    fromOtherFiles,
+}: MatchingDynamicVariables) {
     const groupedRefsFromOwnFile = groupReferencesFromSameFile(fromSameFile);
 
     return getCombinedReferencesFromOwnFileAndOtherFiles(

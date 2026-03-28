@@ -1,9 +1,4 @@
-import {
-    VariableReferenceType,
-    Range,
-    BrunoVariableReference,
-    Position,
-} from "@global_shared";
+import { VariableReferenceType, Range, Position } from "@global_shared";
 import {
     VariableSpecificRequestData,
     groupReferencesByName,
@@ -15,15 +10,10 @@ import {
     CompletionItemKind,
     TextEdit,
 } from "vscode-languageserver";
-import { EquivalentDynamicReferencesFromOtherFiles } from "../shared/interfaces";
-
-interface MatchingDynamicVariables {
-    fromSameFile: {
-        blockName: string;
-        variableReference: BrunoVariableReference;
-    }[];
-    fromOtherFiles: EquivalentDynamicReferencesFromOtherFiles[];
-}
+import {
+    EquivalentDynamicReferencesFromOtherFiles,
+    MatchingDynamicVariables,
+} from "../shared/interfaces";
 
 export function mapVariablesToCompletions(
     matchingStaticEnvVariables: {
@@ -65,7 +55,7 @@ function mapDynamicVariables(
         appendOnInsertion?: string;
     },
 ) {
-    const groupedRefs = groupReferencesByName(fromSameFile, fromOtherFiles);
+    const groupedRefs = groupReferencesByName({ fromSameFile, fromOtherFiles });
 
     return groupedRefs
         .map((ref) => {
