@@ -16,6 +16,10 @@ export function getDefinitionsForInbuiltLibraries(
  * @see {@link https://docs.usebruno.com/scripting/javascript-reference#bru} Documentation
  * @see {@link https://github.com/Its-treason/bruno/blob/lazer/packages/bruno-core/src/request/runtime/dataObject/Bru.ts} Source code
  */
+/**
+ * @typedef {object} EnvVariableSetOptions
+ * @property {boolean} persist
+ */
 const bru = {
 	/**
 	 * Returns the location of the current collection as an absolute path.
@@ -34,8 +38,27 @@ const bru = {
 	 */
 	getProcessEnv: (key) => {},
 	/**
-	 * Checks if an environment variable exists.
+	 * Returns the value of a global variable by name.
      * @param {string} key
+     * @returns {any}
+	 */
+	getGlobalEnvVar: (key) => {},
+	/**
+	 * Set the Bruno global environment variable.
+	 *
+     * @param {string} key
+     * @param {unknown} value
+     * @returns {void}
+	 */
+	setGlobalEnvVar: (key, value) => {},
+	/**
+	 * Get all global environment variables as an object.
+     * @returns {Record<string, string>}
+	 */
+	getAllGlobalEnvVars: () => {},
+	/** 
+	 * Check if the environment variable exists.
+	 * @param {string} key
      * @returns {boolean}
 	 */
 	hasEnvVar: (key) => {},
@@ -46,29 +69,33 @@ const bru = {
 	 */
 	getEnvVar:(key) => {},
 	/**
-	 * Returns the value of a global variable by name.
-     * @param {string} key
-     * @returns {any}
+	 * Get all environment variables in the current environment as an object.
+     * @returns {Record<string, string>}
 	 */
-	getGlobalEnvVar: (key) => {},
+	getAllEnvVars:() => {},
 	/**
 	 * Updates an environment variable. Note that the value is not written to disk and only saved temporary.
 	 *
      * @param {string} key
      * @param {unknown} value
+	 * @param {EnvVariableSetOptions?} options
      * @returns {void}
      * @throws If the "key" contains invalid characters.
 	 */
-	setGlobalEnvVar: (key, value) => {},
+	setEnvVar: (key, value, options) => {},
 	/**
-	 * Updates an environment variable. Note that the value is not written to disk and only saved temporary.
+	 * Delete a specific environment variable.
 	 *
      * @param {string} key
-     * @param {any} value
      * @returns {void}
-     * @throws If the "key" contains invalid characters.
 	 */
-	setEnvVar: (key, value) => {},
+	deleteEnvVar: (key) => {},
+	/**
+	 * Delete all environment variables in the current environment.
+	 *
+     * @returns {void}
+	 */
+	deleteAllEnvVars: (key) => {},
 	/**
 	 * Checks if an runtime variable exists.
      * @param {string} key
