@@ -2,11 +2,13 @@ import {
     CodeBlock,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
-    getInbuiltFunctionType,
+    getInbuiltFunctionReferenceType,
+    getInbuiltFunctionVariableType,
     Logger,
+    Range,
 } from "@global_shared";
-import { mapToEnvVarNameParams } from "../shared/mapToEnvVarNameParams";
-import { getHoverForEnvVariable } from "./getHoverForEnvVariable";
+import { mapToVariableNameParams } from "../shared/mapToVariableNameParams";
+import { getHoverForBrunoVariable } from "./getHoverForBrunoVariable";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 
 export async function getHoverForCodeBlock(
@@ -18,9 +20,9 @@ export async function getHoverForCodeBlock(
         logger,
     } = fullRequest;
 
-    const envVariableResult = getEnvVariableNameFromCodeBlock(fullRequest);
+    const variableResult = getVariableNameAndFunctionFromCodeBlock(fullRequest);
 
-    if (!envVariableResult) {
+    if (!variableResult) {
         return undefined;
     }
 
@@ -31,18 +33,26 @@ export async function getHoverForCodeBlock(
 
     const {
         inbuiltFunction,
-        variable: { name: variableName },
-    } = envVariableResult;
+        variable: {
+            name: variableName,
+            start: variableStart,
+            end: variableEnd,
+        },
+    } = variableResult;
 
-    return getHoverForEnvVariable(
+    return getHoverForBrunoVariable(
         fullRequest,
-        variableName,
-        getInbuiltFunctionType(inbuiltFunction),
+        {
+            variableName,
+            variableNameRange: new Range(variableStart, variableEnd),
+            variableType: getInbuiltFunctionVariableType(inbuiltFunction),
+            referenceType: getInbuiltFunctionReferenceType(inbuiltFunction),
+        },
         configuredEnvironmentName,
     );
 }
 
-function getEnvVariableNameFromCodeBlock(
+function getVariableNameAndFunctionFromCodeBlock(
     fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
 ) {
     const {
@@ -56,7 +66,7 @@ function getEnvVariableNameFromCodeBlock(
     }
 
     return getFirstParameterForInbuiltFunctionIfStringLiteral(
-        mapToEnvVarNameParams(fullRequest, getInbuiltFunctionIdentifiers()),
+        mapToVariableNameParams(fullRequest, getInbuiltFunctionIdentifiers()),
     );
 }
 

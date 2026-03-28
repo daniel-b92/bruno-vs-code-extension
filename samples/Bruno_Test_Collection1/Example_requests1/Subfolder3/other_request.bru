@@ -10,12 +10,8 @@ get {
   auth: none
 }
 
-script:pre-request {
-  bru.setEnvVar("exe", "sdsd");
-}
-
 script:post-response {
-  bru.setEnvVar("bli", "asasas");
+  bru.getEnvVar("blo");
 }
 
 tests {

@@ -11,13 +11,24 @@ export interface BlockRequestWithAdditionalData<T extends Block> {
     logger?: Logger;
 }
 
+export interface MatchingDynamicVariables {
+    fromSameFile: {
+        blockName: string;
+        variableReference: BrunoVariableReference;
+    }[];
+    fromOtherFiles: EquivalentDynamicReferencesFromOtherFiles[];
+}
+
 export interface EquivalentDynamicReferencesFromOtherFiles {
     mostRelevantReference: DynamicReferenceFromOtherFile;
     otherMatchingReferences: DynamicReferenceFromOtherFile[];
 }
 
 export interface DynamicReferenceFromOtherFile {
-    relativePathToSourceFile: string;
+    path: {
+        absolute: string;
+        relativeToSourceFile: string;
+    };
     indirectionLevel: number;
     reference: BrunoVariableReference;
 }

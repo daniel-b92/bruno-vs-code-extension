@@ -4,11 +4,11 @@ import {
     VariableReferenceType,
     Range,
 } from "@global_shared";
-import { EnvVariableCommonRequestData } from "../interfaces";
+import { VariableSpecificRequestData } from "../interfaces";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 
 export function mapStaticEnvVariablesToCompletions(
-    { variable: { start, end }, functionType }: EnvVariableCommonRequestData,
+    { variable: { start, end }, functionType }: VariableSpecificRequestData,
     matchingStaticEnvVariables: {
         environmentFile: string;
         matchingVariableKeys: string[];

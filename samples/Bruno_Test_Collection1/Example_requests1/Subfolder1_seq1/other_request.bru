@@ -5,17 +5,17 @@ meta {
 }
 
 get {
-  url: https://example.com/{{exe}}
+  url: https://example.com/{{blo}}
   body: none
   auth: none
 }
 
 script:pre-request {
-  bru.setEnvVar("exe", "sdsd");
+  bru.setEnvVar("blo", "asas");
 }
 
 script:post-response {
-  bru.setEnvVar("bli", "asasas");
+  bru.setVar("exe", "asasas");
 }
 
 tests {

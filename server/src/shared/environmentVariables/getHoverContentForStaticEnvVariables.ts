@@ -13,12 +13,12 @@ export function getHoverContentForStaticEnvVariables(
         isConfiguredEnv: boolean;
     }[],
 ) {
-    const tableHeader = `| value | environment | configured |
-| :--------------- | :----------------: | :----------------: | ${getLineBreak()}`;
-
     if (matches.length == 0) {
         return undefined;
     }
+
+    const tableHeader = `| value | environment | configured |
+| :--------------- | :----------------: | :----------------: | ${getLineBreak()}`;
 
     return "**Static references:**".concat(
         getLineBreak(),

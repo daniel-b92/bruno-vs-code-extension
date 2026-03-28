@@ -1,8 +1,12 @@
 ## [Unreleased] ()
 
+### Features / Major Improvements
+
+- Add basic intellisense (Hover + Completions) for different types of dynamic variables (global variables, environment variables and runtime variables) defined in other `.bru` files within the same collection.
+    - Currently implemented only for `Read` and `Write` access.
+
 ### Fixes / Minor Improvements
 
-- Add intellisense (Hover + Completions) for environment variables defined in other `.bru` files within the same collection.
 - Fix issue with incorrect syntax highlighting for JSON request body blocks when using only a variable in the body.
 - Fix an issue, where selecting a completion for an environment variable in a non-code block would sometimes cause the following text in the line to be overwritten.
 

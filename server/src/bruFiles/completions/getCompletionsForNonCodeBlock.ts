@@ -3,6 +3,7 @@ import {
     ApiKeyAuthBlockPlacementValue,
     Block,
     BooleanFieldValue,
+    BrunoVariableType,
     EnvVariableNameMatchingMode,
     getBlocksWithoutVariableSupport,
     getDictionaryBlockArrayField,
@@ -27,11 +28,7 @@ import {
     SettingsBlockKey,
     VariableReferenceType,
 } from "@global_shared";
-import {
-    CompletionItem,
-    CompletionItemKind,
-    TextEdit,
-} from "vscode-languageserver";
+import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 import {
     LanguageFeatureBaseRequest,
     TypedCollection,
@@ -39,9 +36,11 @@ import {
 } from "../../shared";
 import { basename, dirname } from "path";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
-import { mapEnvVariablesToCompletions } from "./mapEnvVariablesToCompletions";
+import { mapVariablesToCompletions } from "./mapVariablesToCompletions";
 import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
 import { getDynamicVariableReferencesFromOtherFiles } from "../shared/VariableReferences/getDynamicVariableReferencesFromOtherFiles";
+import { getLinePatternForDictionaryField } from "./dictionaryBlocks/getLinePatternForDictionaryField";
+import { getFixedCompletionItems } from "./dictionaryBlocks/getFixedCompletionItems";
 
 export async function getCompletionsForNonCodeBlock(
     fullRequest: BlockRequestWithAdditionalData<Block>,
@@ -80,6 +79,8 @@ function getNonBlockSpecificCompletions(
     const { line } = position;
     // In non-code blocks, variables cannot be set.
     const functionType = VariableReferenceType.Read;
+    // In non-code blocks, all kinds of variables can be used via the same syntax.
+    const variableType = BrunoVariableType.Unknown;
     const lineContent = documentHelper.getLineByIndex(line);
 
     if (
@@ -96,13 +97,17 @@ function getNonBlockSpecificCompletions(
 
     const { variable, toAppendOnInsertion } = variableParsingResult;
 
-    const matchingStaticEnvVariableDefinitions =
-        getMatchingDefinitionsFromEnvFiles(
-            collection,
-            variable.name,
-            EnvVariableNameMatchingMode.Ignore,
-            configuredEnvironment,
-        );
+    const matchingStaticEnvVariableDefinitions = [
+        BrunoVariableType.Environment,
+        BrunoVariableType.Unknown,
+    ].includes(variableType)
+        ? getMatchingDefinitionsFromEnvFiles(
+              collection,
+              variable.name,
+              EnvVariableNameMatchingMode.Ignore,
+              configuredEnvironment,
+          )
+        : [];
 
     if (matchingStaticEnvVariableDefinitions.length == 0) {
         return [];
@@ -114,7 +119,11 @@ function getNonBlockSpecificCompletions(
     }
 
     const dynamicVariableReferencesWithinFile =
-        getDynamicVariableReferencesWithinFile(fullRequest, functionType);
+        getDynamicVariableReferencesWithinFile(
+            fullRequest,
+            functionType,
+            variableType,
+        );
 
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
@@ -126,6 +135,7 @@ function getNonBlockSpecificCompletions(
             filePath,
             collection,
             functionType,
+            variableType,
         );
 
     if (token.isCancellationRequested) {
@@ -133,7 +143,7 @@ function getNonBlockSpecificCompletions(
         return [];
     }
 
-    return mapEnvVariablesToCompletions(
+    return mapVariablesToCompletions(
         matchingStaticEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
                 environmentFile: file,
@@ -146,11 +156,9 @@ function getNonBlockSpecificCompletions(
             fromOtherFiles: dynamicVariableReferencesFromOtherFiles,
         },
         {
-            collection,
             variable,
             functionType,
-            requestPosition: position,
-            token,
+            variableType,
         },
         toAppendOnInsertion,
     );
@@ -392,31 +400,6 @@ function getSettingsBlockSpecificCompletions(
     );
 }
 
-function getFixedCompletionItems(
-    params: {
-        linePattern: RegExp;
-        choices: string[];
-    }[],
-    { documentHelper, position: { line } }: LanguageFeatureBaseRequest,
-): CompletionItem[] {
-    const currentText = documentHelper.getLineByIndex(line);
-
-    return params.flatMap(({ linePattern, choices }) => {
-        if (!currentText.match(linePattern)) {
-            return [];
-        }
-
-        return choices.map((choice) => ({
-            label: choice,
-            textEdit: getTextEditForDictionaryBlockSimpleValue(
-                line,
-                currentText,
-                choice,
-            ),
-        }));
-    });
-}
-
 function getVariable(
     { position, token }: LanguageFeatureBaseRequest,
     lineContent: string,
@@ -466,26 +449,6 @@ function getVariable(
             ? "}}"
             : "",
     };
-}
-
-function getTextEditForDictionaryBlockSimpleValue(
-    lineIndex: number,
-    textInLine: string,
-    value: string,
-): TextEdit | undefined {
-    return textInLine.includes(":")
-        ? {
-              newText: ` ${value}`,
-              range: new Range(
-                  new Position(lineIndex, textInLine.indexOf(":") + 1),
-                  new Position(lineIndex, textInLine.length),
-              ),
-          }
-        : undefined;
-}
-
-function getLinePatternForDictionaryField(key: string) {
-    return new RegExp(`^\\s*${key}:.*$`, "m");
 }
 
 function addLogEntryForCancellation(logger?: Logger) {

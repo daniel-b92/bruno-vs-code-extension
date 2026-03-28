@@ -1,5 +1,13 @@
-import { BrunoVariableReference, VariableReferenceType } from "@global_shared";
-import { EquivalentDynamicReferencesFromOtherFiles } from "../bruFiles/shared/interfaces";
+import {
+    BrunoVariableReference,
+    BrunoVariableType,
+    VariableReferenceType,
+} from "@global_shared";
+import {
+    EquivalentDynamicReferencesFromOtherFiles,
+    MatchingDynamicVariables,
+} from "../bruFiles/shared/interfaces";
+import { areReferencesEquivalentForLanguageFeatures } from "../bruFiles/shared/VariableReferences/areReferencesEquivalentForLanguageFeatures";
 
 export interface ReferenceFromOwnFileDetails {
     blockName: string;
@@ -11,16 +19,14 @@ export interface ReferenceFromOwnFileDetails {
 interface GroupedReferenceFromOwnFile {
     variableName: string;
     referenceType: VariableReferenceType;
+    variableType: BrunoVariableType;
     details: ReferenceFromOwnFileDetails;
 }
 
-export function groupReferencesByName(
-    fromSameFile: {
-        blockName: string;
-        variableReference: BrunoVariableReference;
-    }[],
-    fromOtherFiles: EquivalentDynamicReferencesFromOtherFiles[],
-) {
+export function groupReferencesByName({
+    fromSameFile,
+    fromOtherFiles,
+}: MatchingDynamicVariables) {
     const groupedRefsFromOwnFile = groupReferencesFromSameFile(fromSameFile);
 
     return getCombinedReferencesFromOwnFileAndOtherFiles(
@@ -57,7 +63,11 @@ function groupReferencesFromSameFile(
         .map(
             ({
                 blockName,
-                variableReference: { variableName, referenceType },
+                variableReference: {
+                    variableName,
+                    referenceType,
+                    variableType,
+                },
             }) => {
                 const blocksWithDuplicateReferences = duplicateReferences
                     .filter(({ variableName: name }) => name == variableName)
@@ -75,6 +85,7 @@ function groupReferencesFromSameFile(
                 return {
                     variableName,
                     referenceType,
+                    variableType,
                     details: {
                         blockName,
                         hasDuplicateReferences,
@@ -92,14 +103,16 @@ function getCombinedReferencesFromOwnFileAndOtherFiles(
 ): {
     variableName: string;
     referenceType: VariableReferenceType;
+    variableType: BrunoVariableType;
     hasReferenceInOwnFile: boolean;
     referencesFromOtherFiles?: EquivalentDynamicReferencesFromOtherFiles;
     detailsForOwnFileRefs?: ReferenceFromOwnFileDetails;
 }[] {
     const initialArray = fromOwnFile.map(
-        ({ variableName, referenceType, details }) => ({
+        ({ variableName, referenceType, variableType, details }) => ({
             variableName,
             referenceType,
+            variableType,
             hasReferenceInOwnFile: true,
             referencesFromOtherFiles: undefined,
             detailsForOwnFileRefs: details,
@@ -107,6 +120,7 @@ function getCombinedReferencesFromOwnFileAndOtherFiles(
     ) as {
         variableName: string;
         referenceType: VariableReferenceType;
+        variableType: BrunoVariableType;
         hasReferenceInOwnFile: boolean;
         referencesFromOtherFiles?: EquivalentDynamicReferencesFromOtherFiles;
         detailsForOwnFileRefs?: ReferenceFromOwnFileDetails;
@@ -114,20 +128,19 @@ function getCombinedReferencesFromOwnFileAndOtherFiles(
 
     return fromOtherFiles.reduce((prev, curr) => {
         const {
-            mostRelevantReference: {
-                reference: { variableName, referenceType },
-            },
+            mostRelevantReference: { reference: mostRelevantReferenceSoFar },
         } = curr;
 
-        const matchingEntryIndex = prev.findIndex(
-            ({ variableName: v, referenceType: r }) =>
-                v == variableName && r == referenceType,
+        const matchingEntryIndex = prev.findIndex((existingEntry) =>
+            areReferencesEquivalentForLanguageFeatures(
+                mostRelevantReferenceSoFar,
+                existingEntry,
+            ),
         );
 
         return matchingEntryIndex < 0
             ? prev.concat({
-                  variableName,
-                  referenceType,
+                  ...mostRelevantReferenceSoFar,
                   hasReferenceInOwnFile: false,
                   referencesFromOtherFiles: curr,
                   detailsForOwnFileRefs: undefined,

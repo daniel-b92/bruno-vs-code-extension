@@ -1,7 +1,7 @@
 import { InbuiltFunctionIdentifier, getInbuiltFunctions } from "../../../..";
 
-export function getInbuiltFunctionType({
+export function getInbuiltFunctionReferenceType({
     functionName,
 }: InbuiltFunctionIdentifier) {
-    return getInbuiltFunctions()[functionName].type;
+    return getInbuiltFunctions()[functionName].referenceType;
 }

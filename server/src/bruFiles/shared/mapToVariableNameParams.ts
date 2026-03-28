@@ -8,7 +8,7 @@ import {
 } from "@global_shared";
 import { BlockRequestWithAdditionalData } from "./interfaces";
 
-export function mapToEnvVarNameParams(
+export function mapToVariableNameParams(
     fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
     functionsToSearchFor: InbuiltFunctionIdentifier[],
 ): InbuiltFunctionParsingParams {

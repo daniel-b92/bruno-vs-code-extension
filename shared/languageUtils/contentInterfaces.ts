@@ -8,9 +8,10 @@ export interface BrunoVariableReference {
 }
 
 export enum BrunoVariableType {
-    Unknown = 1,
-    Environment = 2,
-    Runtime = 3,
+    Unknown = "Unknown",
+    Global = "Global",
+    Environment = "Environment",
+    Runtime = "Runtime",
 }
 
 export enum VariableReferenceType {
@@ -20,7 +21,7 @@ export enum VariableReferenceType {
 
 export interface InbuiltFunctionIdentifier {
     baseIdentifier: InbuiltFunctionBaseIdentifierEnum;
-    functionName: InbuiltEnvVariableFunctionName;
+    functionName: InbuiltFunctionName;
 }
 
 export enum InbuiltFunctionBaseIdentifierEnum {
@@ -29,7 +30,11 @@ export enum InbuiltFunctionBaseIdentifierEnum {
     Res = "res",
 }
 
-export enum InbuiltEnvVariableFunctionName {
+export enum InbuiltFunctionName {
+    GetGlobalEnvVar = "getGlobalEnvVar",
+    SetGlobalEnvVar = "setGlobalEnvVar",
     GetEnvVar = "getEnvVar",
     SetEnvVar = "setEnvVar",
+    GetVar = "getVar",
+    SetVar = "setVar",
 }

@@ -1,19 +1,18 @@
 import {
-    Block,
-    VariableReferenceType,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
-    getInbuiltFunctionType,
+    getInbuiltFunctionReferenceType,
     getMatchingDefinitionsFromEnvFiles,
     EnvVariableNameMatchingMode,
     Logger,
-    Position,
     CodeBlock,
+    BrunoVariableType,
+    getInbuiltFunctionVariableType,
 } from "@global_shared";
-import { LanguageFeatureBaseRequest, TypedCollection } from "../../shared";
-import { mapToEnvVarNameParams } from "../shared/mapToEnvVarNameParams";
+import { VariableSpecificRequestData } from "../../shared";
+import { mapToVariableNameParams } from "../shared/mapToVariableNameParams";
 import { CompletionItem } from "vscode-languageserver";
-import { mapEnvVariablesToCompletions } from "./mapEnvVariablesToCompletions";
+import { mapVariablesToCompletions } from "./mapVariablesToCompletions";
 import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 import { getDynamicVariableReferencesFromOtherFiles } from "../shared/VariableReferences/getDynamicVariableReferencesFromOtherFiles";
@@ -22,69 +21,54 @@ export function getCompletionsForCodeBlock(
     fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
     configuredEnvironment?: string,
 ): CompletionItem[] {
-    const {
-        request,
-        file: { blockContainingPosition, allBlocks, collection },
-        logger,
-    } = fullRequest;
-
     const envVariableResult =
         getFirstParameterForInbuiltFunctionIfStringLiteral(
-            mapToEnvVarNameParams(fullRequest, getInbuiltFunctionIdentifiers()),
+            mapToVariableNameParams(
+                fullRequest,
+                getInbuiltFunctionIdentifiers(),
+            ),
         );
 
     if (envVariableResult) {
         const { inbuiltFunction, variable } = envVariableResult;
 
-        return getResultsForEnvironmentVariable(
-            variable,
+        return getResultsForVariable(
+            fullRequest,
             {
-                collection,
-                functionType: getInbuiltFunctionType(inbuiltFunction),
-                blockContainingPosition,
-                allBlocks,
-                configuredEnvironment,
+                variable,
+                functionType: getInbuiltFunctionReferenceType(inbuiltFunction),
+                variableType: getInbuiltFunctionVariableType(inbuiltFunction),
             },
-            request,
-            logger,
+            configuredEnvironment,
         );
     }
 
     return [];
 }
 
-function getResultsForEnvironmentVariable(
-    variable: {
-        name: string;
-        start: Position;
-        end: Position;
-    },
-    additionalData: {
-        collection: TypedCollection;
-        functionType: VariableReferenceType;
-        blockContainingPosition: Block;
-        allBlocks: Block[];
-        configuredEnvironment?: string;
-    },
-    baseRequest: LanguageFeatureBaseRequest,
-    logger?: Logger,
+function getResultsForVariable(
+    fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
+    { functionType, variableType, variable }: VariableSpecificRequestData,
+    configuredEnvironment?: string,
 ) {
     const {
-        collection,
-        functionType,
-        allBlocks,
-        blockContainingPosition,
-        configuredEnvironment,
-    } = additionalData;
-    const { position, token, filePath } = baseRequest;
+        file: { allBlocks, blockContainingPosition, collection },
+        request: baseRequest,
+        logger,
+    } = fullRequest;
+    const { token, filePath } = baseRequest;
 
-    const matchingStaticEnvVariableDefinitions =
-        getMatchingDefinitionsFromEnvFiles(
-            collection,
-            variable.name,
-            EnvVariableNameMatchingMode.Ignore,
-            configuredEnvironment,
-        );
+    const matchingStaticEnvVariableDefinitions = [
+        BrunoVariableType.Environment,
+        BrunoVariableType.Unknown,
+    ].includes(variableType)
+        ? getMatchingDefinitionsFromEnvFiles(
+              collection,
+              variable.name,
+              EnvVariableNameMatchingMode.Ignore,
+              configuredEnvironment,
+          )
+        : [];
 
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
@@ -99,6 +83,7 @@ function getResultsForEnvironmentVariable(
                 logger,
             },
             functionType,
+            variableType,
         );
 
     if (token.isCancellationRequested) {
@@ -111,6 +96,7 @@ function getResultsForEnvironmentVariable(
             filePath,
             collection,
             functionType,
+            variableType,
         );
 
     if (token.isCancellationRequested) {
@@ -118,7 +104,7 @@ function getResultsForEnvironmentVariable(
         return [];
     }
 
-    return mapEnvVariablesToCompletions(
+    return mapVariablesToCompletions(
         matchingStaticEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
                 environmentFile: file,
@@ -131,11 +117,9 @@ function getResultsForEnvironmentVariable(
             fromOtherFiles: dynamicVariableReferencesFromOtherFiles,
         },
         {
-            collection,
             functionType,
-            requestPosition: position,
+            variableType,
             variable,
-            token,
         },
     );
 }

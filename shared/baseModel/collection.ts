@@ -26,6 +26,14 @@ export class Collection<T> {
         return normalizePath(path) == normalizePath(this.getRootDirectory());
     }
 
+    public getCommonAncestorData(...paths: string[]) {
+        return this.getAllStoredDataForCollection().filter(({ item }) =>
+            paths.every((path) =>
+                normalizePath(path).startsWith(normalizePath(item.getPath())),
+            ),
+        );
+    }
+
     public getStoredDataForPath(path: string) {
         return this.testData.find(
             ({ item }) => normalizePath(item.getPath()) == normalizePath(path),

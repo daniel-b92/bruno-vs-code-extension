@@ -3,10 +3,11 @@ import {
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
     Position,
-    getInbuiltFunctionType,
+    getInbuiltFunctionReferenceType,
     getMatchingDefinitionsFromEnvFiles,
     EnvVariableNameMatchingMode,
     Logger,
+    BrunoVariableType,
 } from "@global_shared";
 import {
     LanguageFeatureBaseRequest,
@@ -85,7 +86,7 @@ function getEnvVariableRelatedFunctionForRequest(params: {
     return found
         ? {
               ...found,
-              type: getInbuiltFunctionType(found.inbuiltFunction),
+              type: getInbuiltFunctionReferenceType(found.inbuiltFunction),
           }
         : undefined;
 }
@@ -101,7 +102,7 @@ function getResultsForEnvironmentVariable(
     logger?: Logger,
 ) {
     const { collection, functionType } = additionalData;
-    const { token, position: requestPosition } = baseRequest;
+    const { token } = baseRequest;
 
     const matchingEnvVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
         collection,
@@ -121,11 +122,9 @@ function getResultsForEnvironmentVariable(
 
     return mapStaticEnvVariablesToCompletions(
         {
-            collection,
             variable,
             functionType,
-            requestPosition,
-            token,
+            variableType: BrunoVariableType.Environment,
         },
         matchingEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
