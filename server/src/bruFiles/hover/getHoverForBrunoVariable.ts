@@ -141,7 +141,7 @@ function getContentForDynamicReferences(
                     blockName,
                     variableReference: { referenceType, variableType },
                 }) =>
-                    `| - | ${blockName} | ${referenceType} | ${displayVariableType ? `${variableType} |` : ""}`,
+                    `| . | ${blockName} | ${referenceType} | ${displayVariableType ? `${variableType} |` : ""}`,
             )
             .join(lineBreak),
         fromSameFile.length > 0 ? lineBreak : "",

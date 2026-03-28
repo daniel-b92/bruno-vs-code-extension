@@ -35,7 +35,7 @@ export function getDynamicVariableReferencesFromOtherFiles(
     const relevantVariableTypes =
         variableTypeInSourceFile == BrunoVariableType.Unknown
             ? Object.values(BrunoVariableType)
-            : [variableTypeInSourceFile];
+            : [variableTypeInSourceFile, BrunoVariableType.Unknown];
 
     const sourceData = collection.getStoredDataForPath(filePath);
 
