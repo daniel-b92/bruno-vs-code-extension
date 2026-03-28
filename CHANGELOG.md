@@ -3,6 +3,7 @@
 ### Features / Major Improvements
 
 - Add basic intellisense (Hover + Completions) for different types of dynamic variables (global variables, environment variables and runtime variables) defined in other `.bru` files within the same collection.
+    - Currently implemented only for `Read` and `Write` access.
 
 ### Fixes / Minor Improvements
 
