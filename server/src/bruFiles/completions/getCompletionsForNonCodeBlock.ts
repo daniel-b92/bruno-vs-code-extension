@@ -36,7 +36,7 @@ import {
 } from "../../shared";
 import { basename, dirname } from "path";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
-import { mapVariablesToCompletions as mapVariableReferencesToCompletions } from "./mapVariablesToCompletions";
+import { mapVariablesToCompletions } from "./mapVariablesToCompletions";
 import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
 import { getDynamicVariableReferencesFromOtherFiles } from "../shared/VariableReferences/getDynamicVariableReferencesFromOtherFiles";
 import { getLinePatternForDictionaryField } from "./dictionaryBlocks/getLinePatternForDictionaryField";
@@ -143,7 +143,7 @@ function getNonBlockSpecificCompletions(
         return [];
     }
 
-    return mapVariableReferencesToCompletions(
+    return mapVariablesToCompletions(
         matchingStaticEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
                 environmentFile: file,
@@ -156,12 +156,9 @@ function getNonBlockSpecificCompletions(
             fromOtherFiles: dynamicVariableReferencesFromOtherFiles,
         },
         {
-            collection,
             variable,
             functionType,
             variableType,
-            requestPosition: position,
-            token,
         },
         toAppendOnInsertion,
     );

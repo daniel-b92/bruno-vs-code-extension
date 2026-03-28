@@ -5,7 +5,7 @@ import {
     Position,
 } from "@global_shared";
 import {
-    VariableCommonRequestData,
+    VariableSpecificRequestData,
     groupReferencesByName,
     mapStaticEnvVariablesToCompletions,
     ReferenceFromOwnFileDetails,
@@ -32,7 +32,7 @@ export function mapVariablesToCompletions(
         isConfiguredEnv: boolean;
     }[],
     matchingDynamicVariables: MatchingDynamicVariables,
-    requestData: VariableCommonRequestData,
+    requestData: VariableSpecificRequestData,
     appendOnInsertion?: string,
 ) {
     const resultsForDynamicVariables = mapDynamicVariables(
@@ -58,7 +58,7 @@ export function mapVariablesToCompletions(
 }
 
 function mapDynamicVariables(
-    requestData: VariableCommonRequestData,
+    requestData: VariableSpecificRequestData,
     { fromSameFile, fromOtherFiles }: MatchingDynamicVariables,
     modifications: {
         prefixForSortText: string;
@@ -100,7 +100,7 @@ function mapDynamicVariables(
 }
 
 function getCompletionForRefsWithinOwnFile(
-    { variable: { start, end } }: VariableCommonRequestData,
+    { variable: { start, end } }: VariableSpecificRequestData,
     groupedReferences: {
         variableName: string;
         referenceType: VariableReferenceType;
@@ -162,7 +162,7 @@ function getCompletionForRefsWithinOwnFile(
 }
 
 function getCompletionForRefsFromOnlyOtherFiles(
-    { variable: { start, end } }: VariableCommonRequestData,
+    { variable: { start, end } }: VariableSpecificRequestData,
     groupedReferences: {
         variableName: string;
         referenceType: VariableReferenceType;

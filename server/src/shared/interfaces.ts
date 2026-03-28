@@ -27,20 +27,14 @@ export interface LanguageRequestWithTestEnvironmentInfo {
     logger?: Logger;
 }
 
-export interface LanguageFeatureBaseRequest {
-    filePath: string;
-    documentHelper: TextDocumentHelper;
-    position: Position;
-    token: CancellationToken;
-}
-
 export interface VariableBaseRequest {
-    requestData: VariableCommonRequestData;
+    collection: TypedCollection;
+    baseRequest: LanguageFeatureBaseRequest;
+    requestData: VariableSpecificRequestData;
     logger?: Logger;
 }
 
-export interface VariableCommonRequestData {
-    collection: TypedCollection;
+export interface VariableSpecificRequestData {
     variable: {
         name: string;
         start: Position;
@@ -48,6 +42,11 @@ export interface VariableCommonRequestData {
     };
     functionType: VariableReferenceType;
     variableType: BrunoVariableType;
-    requestPosition: Position;
+}
+
+export interface LanguageFeatureBaseRequest {
+    filePath: string;
+    documentHelper: TextDocumentHelper;
+    position: Position;
     token: CancellationToken;
 }

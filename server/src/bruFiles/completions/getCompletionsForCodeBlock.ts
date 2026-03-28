@@ -1,18 +1,15 @@
 import {
-    Block,
-    VariableReferenceType,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
     getInbuiltFunctionReferenceType,
     getMatchingDefinitionsFromEnvFiles,
     EnvVariableNameMatchingMode,
     Logger,
-    Position,
     CodeBlock,
     BrunoVariableType,
     getInbuiltFunctionVariableType,
 } from "@global_shared";
-import { LanguageFeatureBaseRequest, TypedCollection } from "../../shared";
+import { VariableSpecificRequestData } from "../../shared";
 import { mapToVariableNameParams } from "../shared/mapToVariableNameParams";
 import { CompletionItem } from "vscode-languageserver";
 import { mapVariablesToCompletions } from "./mapVariablesToCompletions";
@@ -24,12 +21,6 @@ export function getCompletionsForCodeBlock(
     fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
     configuredEnvironment?: string,
 ): CompletionItem[] {
-    const {
-        request,
-        file: { blockContainingPosition, allBlocks, collection },
-        logger,
-    } = fullRequest;
-
     const envVariableResult =
         getFirstParameterForInbuiltFunctionIfStringLiteral(
             mapToVariableNameParams(
@@ -42,17 +33,13 @@ export function getCompletionsForCodeBlock(
         const { inbuiltFunction, variable } = envVariableResult;
 
         return getResultsForVariable(
-            variable,
+            fullRequest,
             {
-                collection,
+                variable,
                 functionType: getInbuiltFunctionReferenceType(inbuiltFunction),
                 variableType: getInbuiltFunctionVariableType(inbuiltFunction),
-                blockContainingPosition,
-                allBlocks,
-                configuredEnvironment,
             },
-            request,
-            logger,
+            configuredEnvironment,
         );
     }
 
@@ -60,31 +47,16 @@ export function getCompletionsForCodeBlock(
 }
 
 function getResultsForVariable(
-    variable: {
-        name: string;
-        start: Position;
-        end: Position;
-    },
-    additionalData: {
-        collection: TypedCollection;
-        functionType: VariableReferenceType;
-        variableType: BrunoVariableType;
-        blockContainingPosition: Block;
-        allBlocks: Block[];
-        configuredEnvironment?: string;
-    },
-    baseRequest: LanguageFeatureBaseRequest,
-    logger?: Logger,
+    fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
+    { functionType, variableType, variable }: VariableSpecificRequestData,
+    configuredEnvironment?: string,
 ) {
     const {
-        collection,
-        functionType,
-        variableType,
-        allBlocks,
-        blockContainingPosition,
-        configuredEnvironment,
-    } = additionalData;
-    const { position, token, filePath } = baseRequest;
+        file: { allBlocks, blockContainingPosition, collection },
+        request: baseRequest,
+        logger,
+    } = fullRequest;
+    const { token, filePath } = baseRequest;
 
     const matchingStaticEnvVariableDefinitions = [
         BrunoVariableType.Environment,
@@ -145,12 +117,9 @@ function getResultsForVariable(
             fromOtherFiles: dynamicVariableReferencesFromOtherFiles,
         },
         {
-            collection,
             functionType,
             variableType,
-            requestPosition: position,
             variable,
-            token,
         },
     );
 }

@@ -102,7 +102,7 @@ function getResultsForEnvironmentVariable(
     logger?: Logger,
 ) {
     const { collection, functionType } = additionalData;
-    const { token, position: requestPosition } = baseRequest;
+    const { token } = baseRequest;
 
     const matchingEnvVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
         collection,
@@ -122,12 +122,9 @@ function getResultsForEnvironmentVariable(
 
     return mapStaticEnvVariablesToCompletions(
         {
-            collection,
             variable,
             functionType,
             variableType: BrunoVariableType.Environment,
-            requestPosition,
-            token,
         },
         matchingEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
