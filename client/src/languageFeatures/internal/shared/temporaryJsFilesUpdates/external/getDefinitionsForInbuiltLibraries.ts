@@ -162,6 +162,16 @@ const bru = {
  * @see {@link https://docs.usebruno.com/scripting/javascript-reference#request} Documentation
  * @see {@link https://github.com/Its-treason/bruno/blob/lazer/packages/bruno-core/src/request/runtime/dataObject/BrunoRequest.ts} Source code
  */
+/**
+ * @typedef {object} PathParam
+ * @property {string} name
+ * @property {string} value
+ * @property {string} type
+ */
+/**
+ * @typedef {object} RequestBodyOptions
+ * @property {boolean} [raw=true] Defaults to \`true\`.
+ */
 const req = {
 	/**
 	 * Url of the request. Before variable placeholder interpolation.
@@ -209,6 +219,26 @@ const req = {
 	 */
 	setUrl: (url) => {},
 	/**
+	 * Get the hostname from the request URL.
+	 * @returns {string}
+	 */
+	getHost: () => {},
+	/**
+	 * Get the path from the request URL.
+	 * @returns {string}
+	 */
+	getPath: () => {},
+	/**
+	 * Get the raw query string from the request URL.
+	 * @returns {string}
+	 */
+	getQueryString: () => {},
+	/**
+	 * Extract path parameters using the path template defined in the request.
+	 * @returns {PathParam[]}
+	 */
+	getPathParams: () => {},
+	/**
 	 * Returns the HTTP request method, e.g. "GET" or "POST".
 	 * @returns {string}
 	 */
@@ -220,6 +250,16 @@ const req = {
 	 * @throws If called after the request was sent
 	 */
 	setMethod: (method) => {},
+	/**
+	 * Get the current request name.
+	 * @returns {string}
+	 */
+	getName: () => {},
+	/**
+	 * Returns the current request tags as an array of strings.
+	 * @returns {string[]}
+	 */
+	getTags: () => {},
 	/**
 	 * Returns the value of an header. Will return "null" if the header does not exist.
 	 * @param {string} name
@@ -248,23 +288,35 @@ const req = {
 	 */
 	setHeaders: (data) => {},
 	/**
+	 * Remove a request header by name.
+	 * @param {string} name
+	 */
+	deleteHeader: (name) => {},
+	/**
+	 * Remove multiple request headers by name.
+	 * @param {string[]} names
+	 */
+	deleteHeaders: (names) => {},
+	/**
 	 * Returns the current body value. The type depends on the currently selected body.
-	 *
+	 * 
 	 * String for "text", "sparql" and "xml" bodies.
-	 *
+	 * 
 	 * Records for "Multipart Form" and "Form URL encoded".
-	 *
+	 * 
 	 * For "JSON" the type fully depends on the input body.
 	 * 
+	 * @param {RequestBodyOptions?} options
 	 * @returns {any}
 	 */
-	getBody: () => {},
+	getBody: (options) => {},
 	/**
 	 * Updates the request body. The type of the body must not change, this could cause internal errors otherwise.
 	 * @param {any} data
+	 * @param {RequestBodyOptions?} options
 	 * @returns {void}
 	 */
-	setBody: (data) => {},
+	setBody: (data, options) => {},
 	/**
 	 * Current authentication mode. If request auth mode is set to inherit, this will be the mode from collection
 	 * @type {readonly string}
@@ -285,7 +337,7 @@ const req = {
 	 */
 	setMaxRedirects: (maxRedirects) => {},
 	/**
-	 * Returns the timeout for a request in milliseconds (1 seconds is 1000 milliseconds).
+	 * Returns the timeout for a request in milliseconds (1 second is 1000 milliseconds).
 	 * @returns {number}
 	 */
 	getTimeout: () => {},
@@ -311,13 +363,32 @@ const req = {
 	 * "runner" if the request was called within a runner execution.
 	 * @returns {"standalone" | "runner"}
 	 */
-	getExecutionMode: () => {}
+	getExecutionMode: () => {},
+	/**
+	 * Get the platform on which the request is being executed.
+	 * "app" When running in the Bruno desktop application.
+	 * "cli" When running through the Bruno CLI.
+	 * @returns {"app" | "cli"}
+	 */
+	getExecutionPlatform: () => {},
+	/**
+ 	 * Handle request errors with a custom callback function.
+ 	 * @param {(err: Error) => void} callback
+ 	 * @returns {void}
+ 	 */
+	onFail: (callback) => {},
 };`;
 
     const responseUtilities = `/**
  * Object representing the response returned from a server
  * @see {@link https://docs.usebruno.com/scripting/javascript-reference#response} Documentation
  * @see {@link https://github.com/Its-treason/bruno/blob/lazer/packages/bruno-core/src/request/runtime/dataObject/BrunoResponse.ts} Source code
+ */
+/**
+ * @typedef {object} ResponseSize
+ * @property {number} body
+ * @property {number} headers
+ * @property {number} total
  */
 const res = {
 	/**
@@ -346,6 +417,11 @@ const res = {
 	 */
 	responseTime: {},
 	/**
+	 * The final response URL (after following redirects).
+	 * @type {readonly string}
+	 */
+	url: {},
+	/**
 	 * Returns the HTTP status code number
 	 * @returns {number}
 	 */
@@ -367,21 +443,33 @@ const res = {
 	 */
 	getHeaders:() => {},
 	/**
+	 * Get the response URL.
+	 * In case of redirects, you will get the final URL which may be different from the original request URL if redirects were followed.
+	 * @warning This method is only available in post-response scripts and test scripts.
+	 * @returns {string}
+	 */
+	getUrl: () => {},
+	/**
 	 * Returns the response body. Either as string or any if the server returned something that is JSON parsable.
 	 * @returns {any}
 	 */
 	getBody: () => {},
+	/**
+	 * Overwrites the response body. Useful if you want to transform the server response to better view it.
+	 * @param {any} newBody
+	 * @returns {void}
+	 */
+	setBody: (newBody) => {},
 	/**
 	 * Returns the total time the server needed to response in milliseconds.
 	 * @returns {number}
 	 */
 	getResponseTime: () => {},
 	/**
-	 * Overwrites the response body. Useful if you want to transform the server response to better view it.
-	 * @param newBody
-	 * @returns {void}
+	 * Get the response size in bytes.
+	 * @returns {ResponseSize}
 	 */
-	setBody: (newBody) => {}
+	getResponseTime: () => {},
 };`;
 
     const chaiAndMochaTestUtils = `const { expect } = require("chai");
