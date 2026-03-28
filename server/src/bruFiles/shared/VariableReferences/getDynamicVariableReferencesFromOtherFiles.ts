@@ -258,13 +258,8 @@ function getReferencesFromFolderDescendants(
 function filterOutDuplicateReferences(references: BrunoVariableReference[]) {
     return references.filter(
         (data, index) =>
-            references.findIndex(
-                ({
-                    referenceType: existingRefType,
-                    variableName: existingVarName,
-                }) =>
-                    existingRefType == data.referenceType &&
-                    existingVarName == data.variableName,
+            references.findIndex((existing) =>
+                areReferencesEquivalentForLanguageFeatures(data, existing),
             ) == index,
     );
 }
@@ -279,12 +274,10 @@ function groupReferences(
         .concat(referencesFromDescendantsOfAncestors)
         .reduce(
             (prev, curr) => {
-                const { reference } = curr;
-
                 const matchingReferenceIndex = prev.findIndex(
                     ({ mostRelevantReference: { reference: registered } }) =>
                         areReferencesEquivalentForLanguageFeatures(
-                            reference,
+                            curr.reference,
                             registered,
                         ),
                 );
@@ -296,13 +289,13 @@ function groupReferences(
                     });
                 }
 
-                const mostRelevantReferenceSoFar =
+                const mostRelevantSoFar =
                     prev[matchingReferenceIndex].mostRelevantReference;
 
                 if (
                     isFirstReferenceMoreRelevant(
                         curr,
-                        mostRelevantReferenceSoFar,
+                        mostRelevantSoFar,
                         collection,
                         searchDirection,
                     ) === true
@@ -314,7 +307,7 @@ function groupReferences(
                                   mostRelevantReference: curr,
                                   otherMatchingReferences:
                                       entry.otherMatchingReferences.concat(
-                                          mostRelevantReferenceSoFar,
+                                          mostRelevantSoFar,
                                       ),
                               },
                     );
@@ -398,10 +391,8 @@ function isFirstReferenceMoreRelevant(
         return undefined;
     }
 
-    const sequenceForRef1 =
-        relevantAncestorDataForRef1.item.getSequence() == undefined;
-    const sequenceForRef2 =
-        relevantAncestorDataForRef2.item.getSequence() == undefined;
+    const sequenceForRef1 = relevantAncestorDataForRef1.item.getSequence();
+    const sequenceForRef2 = relevantAncestorDataForRef2.item.getSequence();
 
     return sequenceForRef1 == undefined || sequenceForRef2 == undefined
         ? undefined
