@@ -16,12 +16,37 @@ export function getDefinitionsForInbuiltLibraries(
  * @see {@link https://docs.usebruno.com/scripting/javascript-reference#bru} Documentation
  * @see {@link https://github.com/Its-treason/bruno/blob/lazer/packages/bruno-core/src/request/runtime/dataObject/Bru.ts} Source code
  */
+/**
+ * @typedef {object} RequestOptions
+ * @property {string} method HTTP method (GET, POST, PUT, etc.)
+ * @property {string} url The URL to send the request to.
+ * @property {Record<string, string>?} headers (Optional) Request headers.
+ * @property {(string | object)?} data (Optional) Request data. Can be a string or object.
+ * @property {number?} timeout (Optional) Request timeout in milliseconds.
+ * @property {import("node:https").Agent?} httpsAgent (Optional) Custom HTTPS agent for TLS/SSL configuration (e.g. \`new (require("node:https")).Agent()\`)
+ */
+/**
+ * @typedef {object} CookieObject
+ * @property {string} key
+ * @property {string} value
+ * @property {string?} domain
+ * @property {string?} path
+ * @property {boolean?} secure
+ * @property {boolean?} httpOnly
+ * @property {number?} maxAge
+ */
+/**
+ * @typedef {object} BrunoCookieJar
+ * @property {((url: string, name: string, value: string) => void) | ((url: string, cookieObject: CookieObject) => void)} setCookie Set a single cookie with specified attributes.
+ * @property {(url: string, cookieObjects: CookieObject[]) => void} setCookies Set multiple cookies at once using an array of cookie objects.
+ * @property {(url: string, name: string) => Promise<CookieObject | null>} getCookie Get a specific cookie by name.
+ * @property {((url: string, name: string) => Promise<boolean>) | ((url: string, name: string, callback: (err: Error, exists: boolean) => void) => void)} hasCookie Check whether a cookie with the given name exists for a specific URL. Optionally accepts a callback as the third argument; if omitted, returns a Promise.
+ * @property {(url: string) => Promise<CookieObject[]>} getCookies Get all cookies for a specific URL.
+ * @property {(url: string, name: string) => void} deleteCookie Delete a specific cookie by name.
+ * @property {(url: string) => void} deleteCookies Delete all cookies for a specific URL.
+ * @property {() => void} clear Clear all cookies from the cookie jar.
+ */
 const bru = {
-	/**
-	 * Returns the location of the current collection as an absolute path.
-     * @returns {string}
-	 */
-	cwd: () => {},
 	/**
 	 * Returns the name of the currently selected environment. Null if no environment is selected.
      * @returns {string | null}
@@ -34,8 +59,27 @@ const bru = {
 	 */
 	getProcessEnv: (key) => {},
 	/**
-	 * Checks if an environment variable exists.
+	 * Returns the value of a global variable by name.
      * @param {string} key
+     * @returns {any}
+	 */
+	getGlobalEnvVar: (key) => {},
+	/**
+	 * Set the Bruno global environment variable.
+	 *
+     * @param {string} key
+     * @param {unknown} value
+     * @returns {void}
+	 */
+	setGlobalEnvVar: (key, value) => {},
+	/**
+	 * Get all global environment variables as an object.
+     * @returns {Record<string, string>}
+	 */
+	getAllGlobalEnvVars: () => {},
+	/** 
+	 * Check if the environment variable exists.
+	 * @param {string} key
      * @returns {boolean}
 	 */
 	hasEnvVar: (key) => {},
@@ -46,29 +90,33 @@ const bru = {
 	 */
 	getEnvVar:(key) => {},
 	/**
-	 * Returns the value of a global variable by name.
-     * @param {string} key
-     * @returns {any}
+	 * Get all environment variables in the current environment as an object.
+     * @returns {Record<string, string>}
 	 */
-	getGlobalEnvVar: (key) => {},
+	getAllEnvVars:() => {},
 	/**
 	 * Updates an environment variable. Note that the value is not written to disk and only saved temporary.
 	 *
      * @param {string} key
      * @param {unknown} value
+	 * @param {{persist: boolean}?} options Defaults to \`persist\` = \`false\`.
      * @returns {void}
      * @throws If the "key" contains invalid characters.
 	 */
-	setGlobalEnvVar: (key, value) => {},
+	setEnvVar: (key, value, options) => {},
 	/**
-	 * Updates an environment variable. Note that the value is not written to disk and only saved temporary.
+	 * Delete a specific environment variable.
 	 *
      * @param {string} key
-     * @param {any} value
      * @returns {void}
-     * @throws If the "key" contains invalid characters.
 	 */
-	setEnvVar: (key, value) => {},
+	deleteEnvVar: (key) => {},
+	/**
+	 * Delete all environment variables in the current environment.
+	 *
+     * @returns {void}
+	 */
+	deleteAllEnvVars: (key) => {},
 	/**
 	 * Checks if an runtime variable exists.
      * @param {string} key
@@ -92,11 +140,22 @@ const bru = {
 	 */
 	deleteVar: (key) => {},
 	/**
+	 * Deletes all runtime variables.
+	 *
+     * @returns {void}
+	 */
+	deleteAllVars: () => {},
+	/**
 	 * Returns the value of an runtime variable by name.
      * @param {string} key
      * @returns {any}
 	 */
 	getVar: (key) => {},
+	/**
+	 * Get all runtime variables as an object.
+     * @returns {Record<string, string>}
+	 */
+	getAllVars: () => {},
 	/**
 	 * Returns the value of an request variable by name.
      * @param {string} key
@@ -110,11 +169,71 @@ const bru = {
 	 */
 	getCollectionVar: (key) => {},
 	/**
+	 * Check if a collection variable exists.
+     * @param {string} key
+     * @returns {boolean}
+	 */
+	hasCollectionVar: (key) => {},
+	/**
+	 * Retrieve the name of the current collection.
+     * @returns {string}
+	 */
+	getCollectionName: () => {},
+	/**
 	 * Returns the value of an folder variable by name.
      * @param {string} key
      * @returns {unknown}
 	 */
 	getFolderVar: (key) => {},
+	/**
+	 * Retrieve an OAuth2 credential variable value.
+	 * @param {string} key
+     * @returns {string}
+	 */
+	getOauth2CredentialVar: (key) => {},
+	/**
+	 * Reset (clear) an OAuth2 credential so it can be re-authorized.
+	 * Use this when you need to force a new token fetch or clear stored credentials.
+	 * @param {string} credentialId
+     * @returns {void}
+	 */
+	resetOauth2Credential: (credentialId) => {},
+	/**
+	 * Retrieve a secret from a configured secret manager (e.g., HashiCorp Vault, AWS Secrets Manager, Azure Key Vault).
+	 * The key follows the pattern \`<secret-name>\`.\`<key-name>\`.
+	 * @param {string} key
+     * @returns {string}
+	 */
+	getSecretVar: (key) => {},
+	/**
+	 * Returns a Promise that will resolve after the given time is over.
+	 * The promise must be awaited, for the sleep to take effect.
+     * @param {number} ms
+     * @returns {Promise<void>}
+	 */
+	sleep: (ms) => {},
+	/**
+	 * Evaluates dynamic variables and environment variables within a string. 
+	 * This function allows you to use Bruno’s dynamic variables (like \`{{$randomFirstName}}\`) directly in your scripts.
+     * @param {string} input
+     * @returns {string}
+	 */
+	interpolate: (input) => {},
+	/**
+	 * Prevent the automatic parsing of the JSON response body and work directly with the raw data. Use this in the pre-request script of the request.
+     * @returns {void}
+	 */
+	disableParsingResponseJson: () => {},
+	/**
+	 * Returns the location of the current collection as an absolute path.
+     * @returns {string}
+	 */
+	cwd: () => {},
+	/**
+	 * Detects whether the current script is running in Safe Mode or Developer Mode.
+     * @returns {boolean}
+	 */
+	isSafeMode: () => {},
 	/**
 	 * Determines the next request to execute withing the request runner.
      * @param {string} nextRequest
@@ -126,16 +245,25 @@ const bru = {
 	 * Throws an error if the request does not exist.
      * @param {string} requestPath
      * @returns {Promise<{data: any, headers: Record<string, string>, duration: number, size: number, status: number, statusText: string}>}
-     * 
 	 */
 	runRequest: (requestPath) => {},
 	/**
-	 * Returns a Promise that will resolve after the given time is over.
-	 * The promise must be awaited, for the sleep to take effect.
-     * @param {number} ms
-     * @returns {Promise<void>}
+	 * Send a programmatic HTTP request within your script.
+     * @param {RequestOptions} options Object containing the request parameters.
+	 * @param {(err: Error, response: object) => void} callback Function to handle the response.
+     * @returns {void}
 	 */
-	sleep: (ms) => {},
+	sendRequest: (options, callback) => {},
+	/**
+	 * Obtain the test results of a request. Use this within test scripts.
+     * @returns {Promise<object>}
+	 */
+	getTestResults: () => {},
+	/**
+	 * Obtain the assertion results of a request. Use this within test scripts.
+     * @returns {Promise<object>}
+	 */
+	getAssertionResults: () => {},
 
 	runner: {
 		/**
@@ -155,6 +283,13 @@ const bru = {
 		 */
 		stopExecution: () => {}
 	}
+	cookies: {
+        /**
+         * Create a cookie jar instance for managing cookies.
+         * @returns {BrunoCookieJar}
+         */
+        jar: () => {},
+    },
 };`;
 
     const requestUtilities = `/**
@@ -209,6 +344,26 @@ const req = {
 	 */
 	setUrl: (url) => {},
 	/**
+	 * Get the hostname from the request URL.
+	 * @returns {string}
+	 */
+	getHost: () => {},
+	/**
+	 * Get the path from the request URL.
+	 * @returns {string}
+	 */
+	getPath: () => {},
+	/**
+	 * Get the raw query string from the request URL.
+	 * @returns {string}
+	 */
+	getQueryString: () => {},
+	/**
+	 * Extract path parameters using the path template defined in the request.
+	 * @returns {{name: string, value: string, type: string}[]}
+	 */
+	getPathParams: () => {},
+	/**
 	 * Returns the HTTP request method, e.g. "GET" or "POST".
 	 * @returns {string}
 	 */
@@ -220,6 +375,16 @@ const req = {
 	 * @throws If called after the request was sent
 	 */
 	setMethod: (method) => {},
+	/**
+	 * Get the current request name.
+	 * @returns {string}
+	 */
+	getName: () => {},
+	/**
+	 * Returns the current request tags as an array of strings.
+	 * @returns {string[]}
+	 */
+	getTags: () => {},
 	/**
 	 * Returns the value of an header. Will return "null" if the header does not exist.
 	 * @param {string} name
@@ -248,23 +413,35 @@ const req = {
 	 */
 	setHeaders: (data) => {},
 	/**
+	 * Remove a request header by name.
+	 * @param {string} name
+	 */
+	deleteHeader: (name) => {},
+	/**
+	 * Remove multiple request headers by name.
+	 * @param {string[]} names
+	 */
+	deleteHeaders: (names) => {},
+	/**
 	 * Returns the current body value. The type depends on the currently selected body.
-	 *
+	 * 
 	 * String for "text", "sparql" and "xml" bodies.
-	 *
+	 * 
 	 * Records for "Multipart Form" and "Form URL encoded".
-	 *
+	 * 
 	 * For "JSON" the type fully depends on the input body.
 	 * 
+	 * @param {{raw: boolean}?} options Defaults to \`raw\` = \`false\`.
 	 * @returns {any}
 	 */
-	getBody: () => {},
+	getBody: (options) => {},
 	/**
 	 * Updates the request body. The type of the body must not change, this could cause internal errors otherwise.
 	 * @param {any} data
+	 * @param {{raw: boolean}?} options Defaults to \`raw\` = \`false\`.
 	 * @returns {void}
 	 */
-	setBody: (data) => {},
+	setBody: (data, options) => {},
 	/**
 	 * Current authentication mode. If request auth mode is set to inherit, this will be the mode from collection
 	 * @type {readonly string}
@@ -285,7 +462,7 @@ const req = {
 	 */
 	setMaxRedirects: (maxRedirects) => {},
 	/**
-	 * Returns the timeout for a request in milliseconds (1 seconds is 1000 milliseconds).
+	 * Returns the timeout for a request in milliseconds (1 second is 1000 milliseconds).
 	 * @returns {number}
 	 */
 	getTimeout: () => {},
@@ -311,7 +488,20 @@ const req = {
 	 * "runner" if the request was called within a runner execution.
 	 * @returns {"standalone" | "runner"}
 	 */
-	getExecutionMode: () => {}
+	getExecutionMode: () => {},
+	/**
+	 * Get the platform on which the request is being executed.
+	 * "app" When running in the Bruno desktop application.
+	 * "cli" When running through the Bruno CLI.
+	 * @returns {"app" | "cli"}
+	 */
+	getExecutionPlatform: () => {},
+	/**
+ 	 * Handle request errors with a custom callback function.
+ 	 * @param {(err: Error) => void} callback
+ 	 * @returns {void}
+ 	 */
+	onFail: (callback) => {},
 };`;
 
     const responseUtilities = `/**
@@ -346,6 +536,11 @@ const res = {
 	 */
 	responseTime: {},
 	/**
+	 * The final response URL (after following redirects).
+	 * @type {readonly string}
+	 */
+	url: {},
+	/**
 	 * Returns the HTTP status code number
 	 * @returns {number}
 	 */
@@ -367,21 +562,33 @@ const res = {
 	 */
 	getHeaders:() => {},
 	/**
+	 * Get the response URL.
+	 * In case of redirects, you will get the final URL which may be different from the original request URL if redirects were followed.
+	 * @warning This method is only available in post-response scripts and test scripts.
+	 * @returns {string}
+	 */
+	getUrl: () => {},
+	/**
 	 * Returns the response body. Either as string or any if the server returned something that is JSON parsable.
 	 * @returns {any}
 	 */
 	getBody: () => {},
+	/**
+	 * Overwrites the response body. Useful if you want to transform the server response to better view it.
+	 * @param {any} newBody
+	 * @returns {void}
+	 */
+	setBody: (newBody) => {},
 	/**
 	 * Returns the total time the server needed to response in milliseconds.
 	 * @returns {number}
 	 */
 	getResponseTime: () => {},
 	/**
-	 * Overwrites the response body. Useful if you want to transform the server response to better view it.
-	 * @param newBody
-	 * @returns {void}
+	 * Get the response size in bytes.
+	 * @returns {{body: number, headers: number, total: number}}
 	 */
-	setBody: (newBody) => {}
+	getSize: () => {},
 };`;
 
     const chaiAndMochaTestUtils = `const { expect } = require("chai");
