@@ -25,6 +25,27 @@ export function getDefinitionsForInbuiltLibraries(
  * @property {number?} timeout (Optional) Request timeout in milliseconds.
  * @property {import("node:https").Agent?} httpsAgent (Optional) Custom HTTPS agent for TLS/SSL configuration (e.g. \`new (require("node:https")).Agent()\`)
  */
+/**
+ * @typedef {object} CookieObject
+ * @property {string} key
+ * @property {string} value
+ * @property {string?} domain
+ * @property {string?} path
+ * @property {boolean?} secure
+ * @property {boolean?} httpOnly
+ * @property {number?} maxAge
+ */
+/**
+ * @typedef {object} BrunoCookieJar
+ * @property {((url: string, name: string, value: string) => void) | ((url: string, cookieObject: CookieObject) => void)} setCookie Set a single cookie with specified attributes.
+ * @property {(url: string, cookieObjects: CookieObject[]) => void} setCookies Set multiple cookies at once using an array of cookie objects.
+ * @property {(url: string, name: string) => Promise<CookieObject | null>} getCookie Get a specific cookie by name.
+ * @property {((url: string, name: string) => Promise<boolean>) | ((url: string, name: string, callback: (err: Error, exists: boolean) => void) => void)} hasCookie Check whether a cookie with the given name exists for a specific URL. Optionally accepts a callback as the third argument; if omitted, returns a Promise.
+ * @property {(url: string) => Promise<CookieObject[]>} getCookies Get all cookies for a specific URL.
+ * @property {(url: string, name: string) => void} deleteCookie Delete a specific cookie by name.
+ * @property {(url: string) => void} deleteCookies Delete all cookies for a specific URL.
+ * @property {() => void} clear Clear all cookies from the cookie jar.
+ */
 const bru = {
 	/**
 	 * Returns the name of the currently selected environment. Null if no environment is selected.
@@ -262,6 +283,13 @@ const bru = {
 		 */
 		stopExecution: () => {}
 	}
+	cookies: {
+        /**
+         * Create a cookie jar instance for managing cookies.
+         * @returns {BrunoCookieJar}
+         */
+        jar: () => {},
+    },
 };`;
 
     const requestUtilities = `/**
