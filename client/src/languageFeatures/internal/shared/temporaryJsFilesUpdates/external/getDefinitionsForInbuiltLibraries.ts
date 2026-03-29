@@ -17,15 +17,15 @@ export function getDefinitionsForInbuiltLibraries(
  * @see {@link https://github.com/Its-treason/bruno/blob/lazer/packages/bruno-core/src/request/runtime/dataObject/Bru.ts} Source code
  */
 /**
- * @typedef {object} EnvVariableSetOptions
- * @property {boolean} persist
+ * @typedef {object} RequestOptions
+ * @property {string} method HTTP method (GET, POST, PUT, etc.)
+ * @property {string} url The URL to send the request to.
+ * @property {Record<string, string>?} headers (Optional) Request headers.
+ * @property {(string | object)?} data (Optional) Request data. Can be a string or object.
+ * @property {number?} timeout (Optional) Request timeout in milliseconds.
+ * @property {import("node:https").Agent?} httpsAgent (Optional) Custom HTTPS agent for TLS/SSL configuration (e.g. \`new (require("node:https")).Agent()\`)
  */
 const bru = {
-	/**
-	 * Returns the location of the current collection as an absolute path.
-     * @returns {string}
-	 */
-	cwd: () => {},
 	/**
 	 * Returns the name of the currently selected environment. Null if no environment is selected.
      * @returns {string | null}
@@ -78,7 +78,7 @@ const bru = {
 	 *
      * @param {string} key
      * @param {unknown} value
-	 * @param {EnvVariableSetOptions?} options
+	 * @param {{persist: boolean}?} options Defaults to \`persist\` = \`false\`.
      * @returns {void}
      * @throws If the "key" contains invalid characters.
 	 */
@@ -119,11 +119,22 @@ const bru = {
 	 */
 	deleteVar: (key) => {},
 	/**
+	 * Deletes all runtime variables.
+	 *
+     * @returns {void}
+	 */
+	deleteAllVars: () => {},
+	/**
 	 * Returns the value of an runtime variable by name.
      * @param {string} key
      * @returns {any}
 	 */
 	getVar: (key) => {},
+	/**
+	 * Get all runtime variables as an object.
+     * @returns {Record<string, string>}
+	 */
+	getAllVars: () => {},
 	/**
 	 * Returns the value of an request variable by name.
      * @param {string} key
@@ -137,11 +148,71 @@ const bru = {
 	 */
 	getCollectionVar: (key) => {},
 	/**
+	 * Check if a collection variable exists.
+     * @param {string} key
+     * @returns {boolean}
+	 */
+	hasCollectionVar: (key) => {},
+	/**
+	 * Retrieve the name of the current collection.
+     * @returns {string}
+	 */
+	getCollectionName: () => {},
+	/**
 	 * Returns the value of an folder variable by name.
      * @param {string} key
      * @returns {unknown}
 	 */
 	getFolderVar: (key) => {},
+	/**
+	 * Retrieve an OAuth2 credential variable value.
+	 * @param {string} key
+     * @returns {string}
+	 */
+	getOauth2CredentialVar: (key) => {},
+	/**
+	 * Reset (clear) an OAuth2 credential so it can be re-authorized.
+	 * Use this when you need to force a new token fetch or clear stored credentials.
+	 * @param {string} credentialId
+     * @returns {void}
+	 */
+	resetOauth2Credential: (credentialId) => {},
+	/**
+	 * Retrieve a secret from a configured secret manager (e.g., HashiCorp Vault, AWS Secrets Manager, Azure Key Vault).
+	 * The key follows the pattern \`<secret-name>\`.\`<key-name>\`.
+	 * @param {string} key
+     * @returns {string}
+	 */
+	getSecretVar: (key) => {},
+	/**
+	 * Returns a Promise that will resolve after the given time is over.
+	 * The promise must be awaited, for the sleep to take effect.
+     * @param {number} ms
+     * @returns {Promise<void>}
+	 */
+	sleep: (ms) => {},
+	/**
+	 * Evaluates dynamic variables and environment variables within a string. 
+	 * This function allows you to use Bruno’s dynamic variables (like \`{{$randomFirstName}}\`) directly in your scripts.
+     * @param {string} input
+     * @returns {string}
+	 */
+	interpolate: (input) => {},
+	/**
+	 * Prevent the automatic parsing of the JSON response body and work directly with the raw data. Use this in the pre-request script of the request.
+     * @returns {void}
+	 */
+	disableParsingResponseJson: () => {},
+	/**
+	 * Returns the location of the current collection as an absolute path.
+     * @returns {string}
+	 */
+	cwd: () => {},
+	/**
+	 * Detects whether the current script is running in Safe Mode or Developer Mode.
+     * @returns {boolean}
+	 */
+	isSafeMode: () => {},
 	/**
 	 * Determines the next request to execute withing the request runner.
      * @param {string} nextRequest
@@ -153,16 +224,25 @@ const bru = {
 	 * Throws an error if the request does not exist.
      * @param {string} requestPath
      * @returns {Promise<{data: any, headers: Record<string, string>, duration: number, size: number, status: number, statusText: string}>}
-     * 
 	 */
 	runRequest: (requestPath) => {},
 	/**
-	 * Returns a Promise that will resolve after the given time is over.
-	 * The promise must be awaited, for the sleep to take effect.
-     * @param {number} ms
-     * @returns {Promise<void>}
+	 * Send a programmatic HTTP request within your script.
+     * @param {RequestOptions} options Object containing the request parameters.
+	 * @param {(err: Error, response: object) => void} callback Function to handle the response.
+     * @returns {void}
 	 */
-	sleep: (ms) => {},
+	sendRequest: (options, callback) => {},
+	/**
+	 * Obtain the test results of a request. Use this within test scripts.
+     * @returns {Promise<object>}
+	 */
+	getTestResults: () => {},
+	/**
+	 * Obtain the assertion results of a request. Use this within test scripts.
+     * @returns {Promise<object>}
+	 */
+	getAssertionResults: () => {},
 
 	runner: {
 		/**
@@ -188,16 +268,6 @@ const bru = {
  * Object representing a request made by Bruno.
  * @see {@link https://docs.usebruno.com/scripting/javascript-reference#request} Documentation
  * @see {@link https://github.com/Its-treason/bruno/blob/lazer/packages/bruno-core/src/request/runtime/dataObject/BrunoRequest.ts} Source code
- */
-/**
- * @typedef {object} PathParam
- * @property {string} name
- * @property {string} value
- * @property {string} type
- */
-/**
- * @typedef {object} RequestBodyOptions
- * @property {boolean} [raw=true] Defaults to \`true\`.
  */
 const req = {
 	/**
@@ -262,7 +332,7 @@ const req = {
 	getQueryString: () => {},
 	/**
 	 * Extract path parameters using the path template defined in the request.
-	 * @returns {PathParam[]}
+	 * @returns {{name: string, value: string, type: string}[]}
 	 */
 	getPathParams: () => {},
 	/**
@@ -333,14 +403,14 @@ const req = {
 	 * 
 	 * For "JSON" the type fully depends on the input body.
 	 * 
-	 * @param {RequestBodyOptions?} options
+	 * @param {{raw: boolean}?} options Defaults to \`raw\` = \`false\`.
 	 * @returns {any}
 	 */
 	getBody: (options) => {},
 	/**
 	 * Updates the request body. The type of the body must not change, this could cause internal errors otherwise.
 	 * @param {any} data
-	 * @param {RequestBodyOptions?} options
+	 * @param {{raw: boolean}?} options Defaults to \`raw\` = \`false\`.
 	 * @returns {void}
 	 */
 	setBody: (data, options) => {},
@@ -410,12 +480,6 @@ const req = {
  * Object representing the response returned from a server
  * @see {@link https://docs.usebruno.com/scripting/javascript-reference#response} Documentation
  * @see {@link https://github.com/Its-treason/bruno/blob/lazer/packages/bruno-core/src/request/runtime/dataObject/BrunoResponse.ts} Source code
- */
-/**
- * @typedef {object} ResponseSize
- * @property {number} body
- * @property {number} headers
- * @property {number} total
  */
 const res = {
 	/**
@@ -494,9 +558,9 @@ const res = {
 	getResponseTime: () => {},
 	/**
 	 * Get the response size in bytes.
-	 * @returns {ResponseSize}
+	 * @returns {{body: number, headers: number, total: number}}
 	 */
-	getResponseTime: () => {},
+	getSize: () => {},
 };`;
 
     const chaiAndMochaTestUtils = `const { expect } = require("chai");
