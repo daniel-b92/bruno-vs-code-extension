@@ -1,7 +1,11 @@
+import { basename } from "path";
 import {
+    BrunoEnvironmentFile,
     CollectionData,
     CollectionDirectory,
     CollectionItem,
+    getExtensionForBrunoFiles,
+    isEnvironmentFile,
     normalizePath,
 } from "..";
 
@@ -42,6 +46,19 @@ export class Collection<T> {
 
     public getAllStoredDataForCollection() {
         return this.testData as readonly CollectionData<T>[];
+    }
+
+    public getEnvironments(configuredEnvironmentName?: string) {
+        return this.getAllStoredDataForCollection()
+            .filter(({ item }) => isEnvironmentFile(item))
+            .map(({ item }) => ({
+                item: item as BrunoEnvironmentFile,
+                selected:
+                    configuredEnvironmentName === undefined
+                        ? undefined
+                        : configuredEnvironmentName ==
+                          basename(item.getPath(), getExtensionForBrunoFiles()),
+            }));
     }
 
     public addItem(data: CollectionData<T>) {

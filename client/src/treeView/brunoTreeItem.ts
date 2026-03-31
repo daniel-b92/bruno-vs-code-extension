@@ -17,6 +17,7 @@ export class BrunoTreeItem extends vscode.TreeItem {
 
         this.tooltip = this.getTooltip();
         this.description = this.getDescription();
+        this.contextValue = isFile ? "file" : "folder";
 
         if (isFile) {
             this.command = {

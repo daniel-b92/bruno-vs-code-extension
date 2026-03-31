@@ -37,6 +37,7 @@ import { moveFileIntoFolder } from "./explorer/fileUtils/moveFileIntoFolder";
 import { promisify } from "util";
 import { copyFile, cp, mkdir, rm, writeFile } from "fs";
 import { closeTabsRelatedToItem } from "./explorer/closeTabsRelatedToItem";
+import { openDialogForSettingEnvironment } from "./explorer/openDialogForSettingEnvironment";
 
 export class CollectionExplorer implements vscode.TreeDragAndDropController<BrunoTreeItem> {
     private treeViewId = "brunoCollectionsView";
@@ -700,6 +701,25 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     uri: vscode.Uri.file(item.getPath()),
                     withDialog: true,
                 });
+            },
+        );
+
+        vscode.commands.registerCommand(
+            `${this.treeViewId}.selectEnvironmentForCollection`,
+            async (item: BrunoTreeItem) => {
+                const collection =
+                    this.itemProvider.getAncestorCollectionForPath(
+                        item.getPath(),
+                    );
+
+                if (!collection) {
+                    vscode.window.showErrorMessage(
+                        "Could not find collection for selected item.",
+                    );
+                    return;
+                }
+
+                await openDialogForSettingEnvironment(collection);
             },
         );
     }
