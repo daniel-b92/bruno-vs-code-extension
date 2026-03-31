@@ -60,7 +60,7 @@
                     "description": "The name of the environment to use for running Bruno tests with."
                 },
                 "bru-as-code.testRunEnvironmentsPerCollection": {
-                    "type": "array",
+                    "type": "object",
                     "description": "The configured environment per collection to use when executing tests via Bruno CLI."
                 },
                 "bru-as-code.htmlReportPath": {
