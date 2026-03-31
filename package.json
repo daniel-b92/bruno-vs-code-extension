@@ -59,6 +59,10 @@
                     "type": "string",
                     "description": "The name of the environment to use for running Bruno tests with."
                 },
+                "bru-as-code.testRunEnvironmentsPerCollection": {
+                    "type": "array",
+                    "description": "The configured environment per collection to use when executing tests via Bruno CLI."
+                },
                 "bru-as-code.htmlReportPath": {
                     "type": "string",
                     "default": "results.html",
@@ -206,6 +210,12 @@
                 "enablement": "view == brunoCollectionsView"
             },
             {
+                "command": "brunoCollectionsView.selectEnvironmentForCollection",
+                "title": "Select environment",
+                "category": "Bru-as-Code",
+                "enablement": "view == brunoCollectionsView"
+            },
+            {
                 "command": "bruAsCode.restartLanguageServer",
                 "title": "Restart language server",
                 "category": "Bru-as-Code"
@@ -241,22 +251,27 @@
                 },
                 {
                     "command": "brunoCollectionsView.openInNewTabgroup",
-                    "when": "view == brunoCollectionsView && !treeElementCanExpand && !treeElementCanCollapse",
+                    "when": "view == brunoCollectionsView && viewItem==file",
                     "group": "navigation@5"
                 },
                 {
+                    "command": "brunoCollectionsView.selectEnvironmentForCollection",
+                    "when": "view == brunoCollectionsView && viewItem==folder",
+                    "group": "navigation@7"
+                },
+                {
                     "command": "brunoCollectionsView.createRequestFile",
-                    "when": "view == brunoCollectionsView && (treeElementCanExpand || treeElementCanCollapse)",
+                    "when": "view == brunoCollectionsView && viewItem==folder",
                     "group": "navigation@10"
                 },
                 {
                     "command": "brunoCollectionsView.createEmptyFile",
-                    "when": "view == brunoCollectionsView && (treeElementCanExpand || treeElementCanCollapse)",
+                    "when": "view == brunoCollectionsView && viewItem==folder",
                     "group": "navigation@12"
                 },
                 {
                     "command": "brunoCollectionsView.createFolder",
-                    "when": "view == brunoCollectionsView && (treeElementCanExpand || treeElementCanCollapse)",
+                    "when": "view == brunoCollectionsView && viewItem==folder",
                     "group": "navigation@15"
                 },
                 {
@@ -266,12 +281,12 @@
                 },
                 {
                     "command": "brunoCollectionsView.duplicateFile",
-                    "when": "view == brunoCollectionsView && !treeElementCanExpand && !treeElementCanCollapse",
+                    "when": "view == brunoCollectionsView && viewItem==file",
                     "group": "navigation@21"
                 },
                 {
                     "command": "brunoCollectionsView.duplicateFolder",
-                    "when": "view == brunoCollectionsView && (treeElementCanExpand || treeElementCanCollapse)",
+                    "when": "view == brunoCollectionsView && viewItem==folder",
                     "group": "navigation@22"
                 },
                 {
