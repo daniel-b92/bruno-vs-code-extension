@@ -12,6 +12,5 @@ Only some of the intellisense features for `Bruno` files are provided by this np
 
 For using the local TS plugin within the VS Code extension, please follow these steps:
 
-- Replace the `name` in the base [package.json](../../package.json) for the `typescriptServerPlugins` contibution field with the name `typescript-for-bruno`.
-- In the base [tsconfig.json](../../tsconfig.json) replace the value for the `plugins` field with the commented out plugins value.
+- Replace the `name` in the base [package.json](../package.json) for the `typescriptServerPlugins` contibution field with the name `typescript-for-bruno`.
 - Use the launch configuration `Run Extension With local TS plugin` for launching the extension

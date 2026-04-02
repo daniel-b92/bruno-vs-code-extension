@@ -20,20 +20,20 @@ export function getDefinitionsForInbuiltLibraries(
  * @typedef {object} RequestOptions
  * @property {string} method HTTP method (GET, POST, PUT, etc.)
  * @property {string} url The URL to send the request to.
- * @property {Record<string, string>?} headers (Optional) Request headers.
- * @property {(string | object)?} data (Optional) Request data. Can be a string or object.
- * @property {number?} timeout (Optional) Request timeout in milliseconds.
- * @property {import("node:https").Agent?} httpsAgent (Optional) Custom HTTPS agent for TLS/SSL configuration (e.g. \`new (require("node:https")).Agent()\`)
+ * @property {Record<string, string>} [headers] (Optional) Request headers.
+ * @property {string | object} [data] (Optional) Request data. Can be a string or object.
+ * @property {number} [timeout] (Optional) Request timeout in milliseconds.
+ * @property {import("node:https").Agent} [httpsAgent] (Optional) Custom HTTPS agent for TLS/SSL configuration (e.g. \`new (require("node:https")).Agent()\`)
  */
 /**
  * @typedef {object} CookieObject
  * @property {string} key
  * @property {string} value
- * @property {string?} domain
- * @property {string?} path
- * @property {boolean?} secure
- * @property {boolean?} httpOnly
- * @property {number?} maxAge
+ * @property {string} [domain]
+ * @property {string} [path]
+ * @property {boolean} [secure]
+ * @property {boolean} [httpOnly]
+ * @property {number} [maxAge]
  */
 /**
  * @typedef {object} BrunoCookieJar
@@ -95,7 +95,7 @@ const bru = {
 	 */
 	getAllEnvVars:() => {},
 	/**
-	 * Updates an environment variable. Note that the value is not written to disk and only saved temporary.
+	 * Updates an environment variable.
 	 *
      * @param {string} key
      * @param {unknown} value
@@ -103,7 +103,7 @@ const bru = {
      * @returns {void}
      * @throws If the "key" contains invalid characters.
 	 */
-	setEnvVar: (key, value, options) => {},
+	setEnvVar: (key, value, options = undefined) => {},
 	/**
 	 * Delete a specific environment variable.
 	 *
@@ -434,14 +434,14 @@ const req = {
 	 * @param {{raw: boolean}?} options Defaults to \`raw\` = \`false\`.
 	 * @returns {any}
 	 */
-	getBody: (options) => {},
+	getBody: (options = undefined) => {},
 	/**
 	 * Updates the request body. The type of the body must not change, this could cause internal errors otherwise.
 	 * @param {any} data
 	 * @param {{raw: boolean}?} options Defaults to \`raw\` = \`false\`.
 	 * @returns {void}
 	 */
-	setBody: (data, options) => {},
+	setBody: (data, options = undefined) => {},
 	/**
 	 * Current authentication mode. If request auth mode is set to inherit, this will be the mode from collection
 	 * @type {readonly string}

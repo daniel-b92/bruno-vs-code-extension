@@ -41,7 +41,7 @@ function init(_modules: {
                       // Do not show diagnostics that only make sense for Typescript files.
                       // Bru file code blocks should be treated like Javascript functions instead.
                       // A list of diagnostics can be found here: https://github.com/microsoft/TypeScript/blob/main/src/compiler/diagnosticMessages.json
-                      ({ code }) => ![7_006, 7_031].includes(code),
+                      ({ code }) => ![7_006, 7_031, 18_046].includes(code),
                   )
                 : allDiagnostics;
         };
