@@ -15,13 +15,13 @@ import { runTestStructure } from "./runTestStructure";
 import { QueuedTest, TestRunQueue } from "./testRunQueue";
 import {
     TypedCollectionItemProvider,
-    getConfiguredTestEnvironment,
     getLinkToUserSetting,
     OutputChannelLogger,
     TypedCollection,
 } from "@shared";
 import {
     checkIfPathExistsAsync,
+    getConfiguredEnvironmentName,
     getEnvironmentSettingsKey,
 } from "@global_shared";
 import { TestRunUserInputData } from "./interfaces";
@@ -171,7 +171,10 @@ const prepareAndRunTest = async (
 
     run.started(test);
 
-    const testEnvironment = getConfiguredTestEnvironment();
+    const testEnvironment = await getConfiguredEnvironmentName(
+        collectionRootDirectory,
+        workspace.getConfiguration().get,
+    );
 
     printInfosOnTestRunStart(run, htmlReportPath, testEnvironment);
 

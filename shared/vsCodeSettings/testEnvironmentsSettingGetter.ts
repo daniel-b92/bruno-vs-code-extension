@@ -4,11 +4,11 @@ import {
     normalizePath,
 } from "..";
 
-export function getConfiguredEnvironmentName(
+export async function getConfiguredEnvironmentName(
     collectionRootFolder: string,
-    settingAccessor: (sectionKey: string) => unknown,
+    settingAccessor: (sectionKey: string) => unknown | Promise<unknown>,
 ) {
-    const oldConfigs = settingAccessor(getEnvironmentSettingsKey());
+    const oldConfigs = await settingAccessor(getEnvironmentSettingsKey());
 
     return isTestEnvironmentsSettingValid(oldConfigs)
         ? Object.entries(oldConfigs).find(

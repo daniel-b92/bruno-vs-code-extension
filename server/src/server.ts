@@ -276,6 +276,7 @@ function mapToBaseLanguageRequest(
 }
 
 async function getConfiguredTestEnvironment() {
+    // ToDo: Replace with using testEnvironmentsSettingGetter function.
     return (await connection.workspace.getConfiguration(
         getEnvironmentSettingsKey(),
     )) as string | undefined;

@@ -722,7 +722,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
 
                 await showDialogForSettingEnvironment(
                     collection,
-                    getConfiguredEnvironmentName(
+                    await getConfiguredEnvironmentName(
                         collection.getRootDirectory(),
                         (sectionKey) =>
                             vscode.workspace.getConfiguration().get(sectionKey),
