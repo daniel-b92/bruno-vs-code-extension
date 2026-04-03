@@ -1,3 +1,10 @@
+## [0.22.1] (2026-04-02)
+
+### Fixes / Minor Improvements
+
+- Fix issue with misleading diagnostics in code blocks stating that an object is `unknown` by filtering them out.
+- Fix incorrect definitions for optional fields/parameters in the type definitions for inbuilt runtime methods.
+
 ## [0.22.0] (2026-03-29)
 
 ### Features / Major Improvements
