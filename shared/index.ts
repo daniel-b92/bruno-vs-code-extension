@@ -65,6 +65,8 @@ export * from "./logging/interfaces";
 
 // vscode settings
 export * from "./vsCodeSettings/getEnvironmentSettingsKey";
+export * from "./vsCodeSettings/testEnvironmentsSettingGetter";
+export * from "./vsCodeSettings/interfaces";
 
 // language utils
 export * from "./languageUtils/blockInterfaces";

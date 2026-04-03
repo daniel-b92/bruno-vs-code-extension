@@ -1,3 +1,3 @@
 export function getEnvironmentSettingsKey() {
-    return "bru-as-code.testRunEnvironment";
+    return "bru-as-code.testRunEnvironments";
 }

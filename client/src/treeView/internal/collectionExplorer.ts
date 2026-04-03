@@ -10,6 +10,7 @@ import {
     isBrunoFileType,
     getMaxSequenceForRequests,
     getSequenceForFile,
+    getConfiguredEnvironmentName,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
@@ -37,7 +38,7 @@ import { moveFileIntoFolder } from "./explorer/fileUtils/moveFileIntoFolder";
 import { promisify } from "util";
 import { copyFile, cp, mkdir, rm, writeFile } from "fs";
 import { closeTabsRelatedToItem } from "./explorer/closeTabsRelatedToItem";
-import { showDialogForSettingEnvironment } from "./explorer/openDialogForSettingEnvironment";
+import { showDialogForSettingEnvironment } from "./explorer/showDialogForSettingEnvironment";
 
 export class CollectionExplorer implements vscode.TreeDragAndDropController<BrunoTreeItem> {
     private treeViewId = "brunoCollectionsView";
@@ -719,7 +720,14 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     return;
                 }
 
-                await showDialogForSettingEnvironment(collection);
+                await showDialogForSettingEnvironment(
+                    collection,
+                    getConfiguredEnvironmentName(
+                        collection.getRootDirectory(),
+                        (sectionKey) =>
+                            vscode.workspace.getConfiguration().get(sectionKey),
+                    ),
+                );
             },
         );
     }
