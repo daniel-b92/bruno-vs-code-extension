@@ -707,11 +707,9 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
 
         vscode.commands.registerCommand(
             `${this.treeViewId}.selectEnvironmentForCollection`,
-            async (item: BrunoTreeItem) => {
+            async (itemPath: string) => {
                 const collection =
-                    this.itemProvider.getAncestorCollectionForPath(
-                        item.getPath(),
-                    );
+                    this.itemProvider.getAncestorCollectionForPath(itemPath);
 
                 if (!collection) {
                     vscode.window.showErrorMessage(
@@ -722,7 +720,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
 
                 await showDialogForSettingEnvironment(
                     collection,
-                    await getConfiguredEnvironmentName(
+                    getConfiguredEnvironmentName(
                         collection.getRootDirectory(),
                         (sectionKey) =>
                             vscode.workspace.getConfiguration().get(sectionKey),

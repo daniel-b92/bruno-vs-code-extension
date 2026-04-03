@@ -14,10 +14,11 @@ export async function getAdditionalCollectionData<T>(
     additionalDataProvider:
         | AdditionalCollectionSimpleDataProvider<T>
         | AdditionalCollectionComplexDataProvider<T>,
+    isCollectionRoot: boolean,
 ) {
     switch (additionalDataProvider.paramType) {
         case AdditionalCollectionDataProviderType.SimpleCollectionItem:
-            return additionalDataProvider.callback(item);
+            return additionalDataProvider.callback(item, isCollectionRoot);
         case AdditionalCollectionDataProviderType.WithAdditionalFullParsing:
             const {
                 callbacksForItemsRequiringFullParsing: {

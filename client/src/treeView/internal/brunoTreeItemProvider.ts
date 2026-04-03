@@ -12,10 +12,10 @@ import { BrunoTreeItem } from "../brunoTreeItem";
 export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeItem> {
     constructor(
         private workspaceRoot: string,
-        private collectionItemProvider: TypedCollectionItemProvider,
+        private itemProvider: TypedCollectionItemProvider,
         private logger?: OutputChannelLogger,
     ) {
-        collectionItemProvider.subscribeToUpdates((updates) => {
+        itemProvider.subscribeToUpdates((updates) => {
             const relevantUpdates = updates.filter(
                 (update) =>
                     update.updateType == FileChangeType.Deleted ||
@@ -35,7 +35,7 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
             const allParents = relevantUpdates.map(
                 ({ collection, data: { item } }) => ({
                     collection,
-                    data: collectionItemProvider.getRegisteredItem(
+                    data: itemProvider.getRegisteredItem(
                         collection,
                         dirname(item.getPath()),
                     ),
@@ -105,7 +105,7 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
     getParent(element: BrunoTreeItem) {
         const { collection } = this.mapTreeItemToCollectionItem(element);
 
-        const registeredParent = this.collectionItemProvider.getRegisteredItem(
+        const registeredParent = this.itemProvider.getRegisteredItem(
             collection,
             dirname(element.getPath()),
         );
@@ -121,7 +121,7 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
         );
 
         return new Promise<void>((resolve) => {
-            this.collectionItemProvider
+            this.itemProvider
                 .refreshCache(
                     vscode.workspace.workspaceFolders?.map(
                         (f) => f.uri.fsPath,
@@ -147,7 +147,7 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
                 `${this.commonIdentifierForLogging} Fetching root items for collection explorer tree.`,
             );
 
-            return this.collectionItemProvider
+            return this.itemProvider
                 .getRegisteredCollections()
                 .map(
                     (collection) =>
@@ -161,10 +161,9 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
                     (a.label as string) > (b.label as string) ? 1 : -1,
                 );
         } else {
-            const collection =
-                this.collectionItemProvider.getAncestorCollectionForPath(
-                    element.getPath(),
-                );
+            const collection = this.itemProvider.getAncestorCollectionForPath(
+                element.getPath(),
+            );
 
             if (!collection) {
                 this.logger?.debug(
@@ -205,10 +204,9 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
         this._onDidChangeTreeData.event;
 
     private mapTreeItemToCollectionItem(item: BrunoTreeItem) {
-        const collection =
-            this.collectionItemProvider.getAncestorCollectionForPath(
-                item.getPath(),
-            );
+        const collection = this.itemProvider.getAncestorCollectionForPath(
+            item.getPath(),
+        );
 
         if (!collection) {
             throw new Error(
@@ -218,7 +216,7 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
 
         return {
             collection,
-            item: this.collectionItemProvider.getRegisteredItem(
+            item: this.itemProvider.getRegisteredItem(
                 collection,
                 item.getPath(),
             ),

@@ -171,9 +171,9 @@ const prepareAndRunTest = async (
 
     run.started(test);
 
-    const testEnvironment = await getConfiguredEnvironmentName(
+    const testEnvironment = getConfiguredEnvironmentName(
         collectionRootDirectory,
-        workspace.getConfiguration().get,
+        (sectionKey) => workspace.getConfiguration().get(sectionKey),
     );
 
     printInfosOnTestRunStart(run, htmlReportPath, testEnvironment);

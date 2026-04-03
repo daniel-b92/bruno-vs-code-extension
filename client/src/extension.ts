@@ -222,10 +222,11 @@ function getAdditionalCollectionDataProvider(
 ): AdditionalCollectionSimpleDataProvider<AdditionalCollectionData> {
     return {
         paramType: AdditionalCollectionDataProviderType.SimpleCollectionItem,
-        callback: (item: CollectionItem) => ({
+        callback: (item: CollectionItem, isCollectionRoot: boolean) => ({
             treeItem: new BrunoTreeItem(
                 item.getPath(),
                 item.isFile(),
+                isCollectionRoot,
                 isCollectionItemWithSequence(item)
                     ? item.getSequence()
                     : undefined,

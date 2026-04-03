@@ -4,19 +4,30 @@ import {
     normalizePath,
 } from "..";
 
-export async function getConfiguredEnvironmentName(
+type NonPromise = Exclude<unknown, Promise<any>>;
+
+export function getConfiguredEnvironmentName(
     collectionRootFolder: string,
-    settingAccessor: (sectionKey: string) => unknown | Promise<unknown>,
+    settingAccessor: (sectionKey: string) => NonPromise,
+) {
+    const oldConfigs = settingAccessor(getEnvironmentSettingsKey());
+
+    return getConfiguredEnvironmentNameInternal(
+        collectionRootFolder,
+        oldConfigs,
+    );
+}
+
+export async function getConfiguredEnvironmentNameAsync(
+    collectionRootFolder: string,
+    settingAccessor: (sectionKey: string) => Promise<unknown>,
 ) {
     const oldConfigs = await settingAccessor(getEnvironmentSettingsKey());
 
-    return isTestEnvironmentsSettingValid(oldConfigs)
-        ? Object.entries(oldConfigs).find(
-              ([existingRootFolder]) =>
-                  normalizePath(collectionRootFolder) ===
-                  normalizePath(existingRootFolder),
-          )?.[1]
-        : undefined;
+    return getConfiguredEnvironmentNameInternal(
+        collectionRootFolder,
+        oldConfigs,
+    );
 }
 
 export function isTestEnvironmentsSettingValid(
@@ -33,4 +44,17 @@ export function isTestEnvironmentsSettingValid(
     }
 
     return true;
+}
+
+function getConfiguredEnvironmentNameInternal(
+    collectionRootFolder: string,
+    oldConfigs: unknown,
+) {
+    return isTestEnvironmentsSettingValid(oldConfigs)
+        ? Object.entries(oldConfigs).find(
+              ([existingRootFolder]) =>
+                  normalizePath(collectionRootFolder) ===
+                  normalizePath(existingRootFolder),
+          )?.[1]
+        : undefined;
 }

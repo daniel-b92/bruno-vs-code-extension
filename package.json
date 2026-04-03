@@ -208,8 +208,7 @@
             {
                 "command": "brunoCollectionsView.selectEnvironmentForCollection",
                 "title": "Select environment",
-                "category": "Bru-as-Code",
-                "enablement": "view == brunoCollectionsView"
+                "category": "Bru-as-Code"
             },
             {
                 "command": "bruAsCode.restartLanguageServer",
@@ -247,27 +246,22 @@
                 },
                 {
                     "command": "brunoCollectionsView.openInNewTabgroup",
-                    "when": "view == brunoCollectionsView && viewItem==file",
+                    "when": "view == brunoCollectionsView && viewItem == file",
                     "group": "navigation@5"
                 },
                 {
-                    "command": "brunoCollectionsView.selectEnvironmentForCollection",
-                    "when": "view == brunoCollectionsView && viewItem==folder",
-                    "group": "navigation@7"
-                },
-                {
                     "command": "brunoCollectionsView.createRequestFile",
-                    "when": "view == brunoCollectionsView && viewItem==folder",
+                    "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
                     "group": "navigation@10"
                 },
                 {
                     "command": "brunoCollectionsView.createEmptyFile",
-                    "when": "view == brunoCollectionsView && viewItem==folder",
+                    "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
                     "group": "navigation@12"
                 },
                 {
                     "command": "brunoCollectionsView.createFolder",
-                    "when": "view == brunoCollectionsView && viewItem==folder",
+                    "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
                     "group": "navigation@15"
                 },
                 {
@@ -282,7 +276,7 @@
                 },
                 {
                     "command": "brunoCollectionsView.duplicateFolder",
-                    "when": "view == brunoCollectionsView && viewItem==folder",
+                    "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
                     "group": "navigation@22"
                 },
                 {
