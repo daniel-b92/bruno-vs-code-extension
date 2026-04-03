@@ -1,10 +1,10 @@
-import { BrunoTreeItem } from "src/treeView/brunoTreeItem";
 import { TestItem } from "vscode";
 import {
     Collection,
     CollectionData,
     CollectionItemProvider,
 } from "@global_shared";
+import { BrunoTreeItem } from "../../treeView/brunoTreeItem";
 
 export type TypedCollectionItemProvider =
     CollectionItemProvider<AdditionalCollectionData>;

@@ -1,7 +1,7 @@
 import { NotificationData } from "../../../../../shared";
 import { OutputChannelLogger } from "../../logging/outputChannelLogger";
 import { FileChangeType, isCollectionItemWithSequence } from "@global_shared";
-import { AdditionalCollectionData } from "src/shared/model/interfaces";
+import { AdditionalCollectionData } from "../../model/interfaces";
 
 export enum ResultCode {
     Aborted = 1,
