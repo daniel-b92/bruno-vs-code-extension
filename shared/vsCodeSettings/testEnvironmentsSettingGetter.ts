@@ -11,42 +11,26 @@ export function getConfiguredEnvironmentName(
     const oldConfigs = settingAccessor(getEnvironmentSettingsKey());
 
     return isTestEnvironmentsSettingValid(oldConfigs)
-        ? oldConfigs.perCollection.find(
-              ({ collectionRoot: existingRootFolder }) =>
-                  normalizePath(collectionRootFolder) ==
+        ? Object.entries(oldConfigs).find(
+              ([existingRootFolder]) =>
+                  normalizePath(collectionRootFolder) ===
                   normalizePath(existingRootFolder),
-          )?.environmentName
+          )?.[1]
         : undefined;
 }
 
 export function isTestEnvironmentsSettingValid(
     value: unknown,
 ): value is ConfiguredEnvironmentPerCollectionSetting {
-    if (
-        value == undefined ||
-        typeof value != "object" ||
-        !("perCollection" in value)
-    ) {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
         return false;
     }
 
-    const { perCollection } = value;
+    for (const key in value) {
+        if (typeof (value as Record<string, unknown>)[key] !== "string") {
+            return false;
+        }
+    }
 
-    return (
-        Array.isArray(perCollection) && perCollection.every(isValidArrayEntry)
-    );
-}
-
-function isValidArrayEntry(entry: unknown): entry is {
-    collectionRoot: string;
-    environmentName: string;
-} {
-    return (
-        entry != undefined &&
-        typeof entry == "object" &&
-        "collectionRoot" in entry &&
-        "environmentName" in entry &&
-        typeof entry.collectionRoot == "string" &&
-        typeof entry.environmentName == "string"
-    );
+    return true;
 }

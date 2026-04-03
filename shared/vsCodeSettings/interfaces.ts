@@ -1,6 +1,1 @@
-export interface ConfiguredEnvironmentPerCollectionSetting {
-    perCollection: {
-        collectionRoot: string;
-        environmentName: string;
-    }[];
-}
+export type ConfiguredEnvironmentPerCollectionSetting = Record<string, string>;

@@ -15,7 +15,7 @@ export async function showDialogForSettingEnvironment(
     const environments = collection.getEnvironments(configuredEnvironmentName);
     const options: QuickPickItem[] = environments.map(({ item, selected }) => ({
         label: basename(item.getPath(), getExtensionForBrunoFiles()),
-        detail: selected ? "Selected" : undefined,
+        description: selected ? "Selected" : undefined,
     }));
 
     const selected = await window.showQuickPick(options, {
@@ -35,6 +35,10 @@ async function updateSettings(
 ) {
     const sectionKey = getEnvironmentSettingsKey();
 
+    const newConfig = {
+        [collection.getRootDirectory()]: selectedEnvironmentName,
+    };
+
     // For non-defined object settings, VS Code seems to not return `undefined` when attempting ŧo get the setting.
     // Instead, it already initializes the object as `{}`.
     const oldConfigs = [JSON.stringify({}), JSON.stringify(undefined)].includes(
@@ -43,11 +47,6 @@ async function updateSettings(
         ? undefined
         : workspace.getConfiguration().get(sectionKey);
 
-    const newCollectionConfig = {
-        collectionRoot: collection.getRootDirectory(),
-        environmentName: selectedEnvironmentName,
-    };
-
     if (
         oldConfigs != undefined &&
         !isTestEnvironmentsSettingValid(oldConfigs)
@@ -55,50 +54,35 @@ async function updateSettings(
         const confirmationOption = DialogOptionLabelEnum.Confirm;
 
         const pickedOption = await window.showWarningMessage(
-            "Parsing settings failed",
+            "Setting has invalid format",
             {
                 modal: true,
-                detail: `Existing settings for test environments for section key '${sectionKey}' could not be parsed. Overwrite all existing entries with new setting?`,
+                detail: `Existing setting for test environments could not be parsed. Overwrite all existing entries with new setting?`,
             },
             confirmationOption,
         );
 
         if (pickedOption == confirmationOption) {
-            overwriteExistingSettings(newCollectionConfig);
+            overwriteExistingSettings(newConfig);
         }
         return;
     }
 
     const newConfigs: ConfiguredEnvironmentPerCollectionSetting =
-        oldConfigs == undefined || oldConfigs.perCollection == undefined
-            ? { perCollection: [newCollectionConfig] }
-            : oldConfigs.perCollection.some(({ collectionRoot: existing }) =>
-                    collection.isRootDirectory(existing),
-                )
-              ? {
-                    perCollection: oldConfigs.perCollection.map((oldConfig) =>
-                        collection.isRootDirectory(oldConfig.collectionRoot)
-                            ? newCollectionConfig
-                            : oldConfig,
-                    ),
-                }
-              : {
-                    perCollection:
-                        oldConfigs.perCollection.concat(newCollectionConfig),
-                };
+        oldConfigs == undefined
+            ? { ...newConfig }
+            : {
+                  ...oldConfigs,
+                  ...newConfig,
+              };
 
     workspace.getConfiguration().update(sectionKey, newConfigs, true);
 }
 
-function overwriteExistingSettings(newCollectionConfig: {
-    collectionRoot: string;
-    environmentName: string;
+function overwriteExistingSettings(newConfig: {
+    [collectionRoot: string]: string;
 }) {
     const sectionKey = getEnvironmentSettingsKey();
     workspace.getConfiguration().update(sectionKey, undefined, true);
-
-    const newConfigs: ConfiguredEnvironmentPerCollectionSetting = {
-        perCollection: [newCollectionConfig],
-    };
-    workspace.getConfiguration().update(sectionKey, newConfigs, true);
+    workspace.getConfiguration().update(sectionKey, { ...newConfig }, true);
 }
