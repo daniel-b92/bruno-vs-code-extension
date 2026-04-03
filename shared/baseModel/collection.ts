@@ -48,16 +48,15 @@ export class Collection<T> {
         return this.testData as readonly CollectionData<T>[];
     }
 
-    public getEnvironments(configuredEnvironmentName?: string) {
+    public getEnvironments() {
         return this.getAllStoredDataForCollection()
             .filter(({ item }) => isEnvironmentFile(item))
             .map(({ item }) => ({
                 item: item as BrunoEnvironmentFile,
-                selected:
-                    configuredEnvironmentName === undefined
-                        ? undefined
-                        : configuredEnvironmentName ==
-                          basename(item.getPath(), getExtensionForBrunoFiles()),
+                environmentName: basename(
+                    item.getPath(),
+                    getExtensionForBrunoFiles(),
+                ),
             }));
     }
 

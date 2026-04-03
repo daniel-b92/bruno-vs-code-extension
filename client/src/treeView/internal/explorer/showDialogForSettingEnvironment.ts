@@ -12,21 +12,27 @@ export async function showDialogForSettingEnvironment(
     collection: TypedCollection,
     configuredEnvironmentName?: string,
 ) {
-    const environments = collection.getEnvironments(configuredEnvironmentName);
+    const environments = collection
+        .getEnvironments()
+        .map(({ item, environmentName }) => ({
+            item,
+            selected: configuredEnvironmentName === environmentName,
+        }));
+
     const options: QuickPickItem[] = environments.map(({ item, selected }) => ({
         label: basename(item.getPath(), getExtensionForBrunoFiles()),
         description: selected ? "Selected" : undefined,
     }));
 
-    const selected = await window.showQuickPick(options, {
+    const selectedOption = await window.showQuickPick(options, {
         title: `Environment for collection '${basename(collection.getRootDirectory())}'`,
     });
 
-    if (!selected) {
+    if (!selectedOption) {
         return;
     }
 
-    await updateSettings(collection, selected.label);
+    await updateSettings(collection, selectedOption.label);
 }
 
 async function updateSettings(

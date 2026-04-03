@@ -11,8 +11,12 @@ export function getMatchingDefinitionsFromEnvFiles(
     matchingMode: EnvVariableNameMatchingMode,
     environmentName?: string,
 ) {
-    const matchingEnvironmentFiles =
-        collection.getEnvironments(environmentName);
+    const matchingEnvironmentFiles = collection
+        .getEnvironments()
+        .map(({ item, environmentName: name }) => ({
+            item,
+            selected: name === environmentName,
+        }));
 
     if (matchingEnvironmentFiles.length == 0) {
         return [];
