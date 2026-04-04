@@ -1,12 +1,7 @@
-import {
-    getExtensionForBrunoFiles,
-    ConfiguredEnvironmentPerCollectionSetting,
-    isTestEnvironmentsSettingValid,
-    getEnvironmentSettingsKey,
-} from "@global_shared";
-import { DialogOptionLabelEnum, TypedCollection } from "@shared";
+import { getExtensionForBrunoFiles } from "@global_shared";
+import { TypedCollection, updateSettings } from "@shared";
 import { basename } from "path";
-import { QuickPickItem, window, workspace } from "vscode";
+import { QuickPickItem, window } from "vscode";
 
 export async function showDialogForSettingEnvironment(
     collection: TypedCollection,
@@ -32,66 +27,6 @@ export async function showDialogForSettingEnvironment(
         return false;
     }
 
-    await updateSettings(collection, selectedOption.label);
+    await updateSettings(collection.getRootDirectory(), selectedOption.label);
     return true;
-}
-
-async function updateSettings(
-    collection: TypedCollection,
-    selectedEnvironmentName: string,
-) {
-    const sectionKey = getEnvironmentSettingsKey();
-
-    const newConfig = {
-        [collection.getRootDirectory()]: selectedEnvironmentName,
-    };
-
-    // For non-defined object settings, VS Code seems to not return `undefined` when attempting ŧo get the setting.
-    // Instead, it already initializes the object as `{}`.
-    const oldConfigs = [JSON.stringify({}), JSON.stringify(undefined)].includes(
-        JSON.stringify(workspace.getConfiguration().get(sectionKey)),
-    )
-        ? undefined
-        : workspace.getConfiguration().get(sectionKey);
-
-    if (
-        oldConfigs != undefined &&
-        !isTestEnvironmentsSettingValid(oldConfigs)
-    ) {
-        const confirmationOption = DialogOptionLabelEnum.Confirm;
-
-        const pickedOption = await window.showWarningMessage(
-            "Setting has invalid format",
-            {
-                modal: true,
-                detail: `Existing setting for test environments could not be parsed. Overwrite all existing entries with new setting?`,
-            },
-            confirmationOption,
-        );
-
-        if (pickedOption == confirmationOption) {
-            await overwriteExistingSettings(newConfig);
-        }
-        return;
-    }
-
-    const newConfigs: ConfiguredEnvironmentPerCollectionSetting =
-        oldConfigs == undefined
-            ? { ...newConfig }
-            : {
-                  ...oldConfigs,
-                  ...newConfig,
-              };
-
-    await workspace.getConfiguration().update(sectionKey, newConfigs, true);
-}
-
-async function overwriteExistingSettings(newConfig: {
-    [collectionRoot: string]: string;
-}) {
-    const sectionKey = getEnvironmentSettingsKey();
-    await workspace.getConfiguration().update(sectionKey, undefined, true);
-    await workspace
-        .getConfiguration()
-        .update(sectionKey, { ...newConfig }, true);
 }
