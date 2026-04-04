@@ -22,6 +22,7 @@ export type AdditionalCollectionDataProvider<T> =
 export interface AdditionalCollectionSimpleDataProvider<T> {
     paramType: AdditionalCollectionDataProviderType.SimpleCollectionItem;
     callback: (item: CollectionItem, isCollectionRoot: boolean) => T;
+    isAdditionalDataOutdated: (oldData: T, newData: T) => boolean;
 }
 
 export interface AdditionalCollectionComplexDataProvider<T> {

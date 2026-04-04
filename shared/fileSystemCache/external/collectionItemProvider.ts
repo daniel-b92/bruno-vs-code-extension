@@ -217,22 +217,35 @@ export class CollectionItemProvider<T> {
             return;
         }
 
+        const oldData = collection.getStoredDataForPath(collectionRoot);
+
         const newData = await addOrReplaceItemInCollection({
             collection,
             path: collectionRoot,
             additionalDataProvider: this.additionalDataProvider,
         });
 
-        if (newData) {
+        if (oldData && newData) {
+            const {
+                details: {
+                    sequenceOutdated,
+                    tagsOutdated,
+                    additionalDataOutdated,
+                },
+            } = isModifiedItemOutdated(
+                oldData,
+                newData,
+                this.additionalDataProvider,
+            );
+
             await this.handleOutboundNotification({
                 collection,
                 data: newData,
                 updateType: FileChangeType.Modified,
                 changedData: {
-                    // ToDo: This should not be hardcoded but determined via comparison with the old data.
-                    additionalDataChanged: true,
-                    sequenceChanged: false,
-                    tagsChanged: false,
+                    additionalDataChanged: additionalDataOutdated,
+                    sequenceChanged: sequenceOutdated,
+                    tagsChanged: tagsOutdated,
                 },
             });
         }

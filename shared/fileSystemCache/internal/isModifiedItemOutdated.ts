@@ -1,6 +1,5 @@
 import {
     AdditionalCollectionDataProvider,
-    AdditionalCollectionDataProviderType,
     BrunoRequestFile,
     CollectionData,
     isCollectionItemWithSequence,
@@ -31,11 +30,11 @@ export function isModifiedItemOutdated<T>(
         isRequestFile(newItem) &&
         !areTagsUpToDate(oldItem, newItem);
 
-    const isOutdatedDueToAdditionaData = isAdditionalDataOutdated(
-        alreadyRegisteredData.additionalData,
-        newData.additionalData,
-        additionalDataProvider,
-    );
+    const isOutdatedDueToAdditionaData =
+        additionalDataProvider.isAdditionalDataOutdated(
+            alreadyRegisteredData.additionalData,
+            newData.additionalData,
+        );
 
     return {
         isOutdated:
@@ -48,24 +47,6 @@ export function isModifiedItemOutdated<T>(
             additionalDataOutdated: isOutdatedDueToAdditionaData,
         },
     };
-}
-
-function isAdditionalDataOutdated<T>(
-    oldData: T,
-    newData: T,
-    additionalDataProvider: AdditionalCollectionDataProvider<T>,
-) {
-    if (
-        additionalDataProvider.paramType ==
-        AdditionalCollectionDataProviderType.SimpleCollectionItem
-    ) {
-        // For the simple collection item provider type, the additional data only depends on the item.
-        // So the additional data cannot be outdated while the item isn't.
-        return false;
-    }
-
-    const { isAdditionalDataOutdated } = additionalDataProvider;
-    return isAdditionalDataOutdated(oldData, newData);
 }
 
 function areTagsUpToDate(

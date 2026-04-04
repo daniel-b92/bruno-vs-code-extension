@@ -234,6 +234,15 @@ function getAdditionalCollectionDataProvider(
             ),
             testItem: testRunnerDataHelper.createVsCodeTestItem(item),
         }),
+        isAdditionalDataOutdated(
+            { treeItem: oldTreeItem },
+            { treeItem: newTreeItem },
+        ) {
+            return (
+                oldTreeItem.description != newTreeItem.description ||
+                oldTreeItem.tooltip != newTreeItem.tooltip
+            );
+        },
     };
 }
 
