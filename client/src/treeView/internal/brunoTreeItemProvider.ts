@@ -22,7 +22,8 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
                     update.updateType == FileChangeType.Created ||
                     (update.updateType == FileChangeType.Modified &&
                         (update.changedData?.sequenceChanged ||
-                            update.changedData?.tagsChanged)),
+                            update.changedData?.tagsChanged ||
+                            update.changedData?.additionalDataChanged)),
             );
             if (relevantUpdates.length == 0) {
                 return;

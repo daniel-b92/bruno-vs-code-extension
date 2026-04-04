@@ -52,7 +52,12 @@ export class BrunoTreeItem extends vscode.TreeItem {
 
     private getDescription() {
         if (this.isCollectionRoot) {
-            return "Select for choosing environment";
+            const configuredEnvironmentName =
+                this.getConfiguredEnvironmentName();
+
+            return configuredEnvironmentName
+                ? `Selected environment: '${configuredEnvironmentName}'`
+                : "Click for selecting environment";
         }
 
         if (!this.sequence && !this.tags) {
@@ -73,11 +78,7 @@ export class BrunoTreeItem extends vscode.TreeItem {
         const lineBreak = "\n";
 
         if (this.isCollectionRoot) {
-            const environmentName = getConfiguredEnvironmentName(
-                this.path,
-                (sectionKey) =>
-                    vscode.workspace.getConfiguration().get(sectionKey),
-            );
+            const environmentName = this.getConfiguredEnvironmentName();
 
             return new vscode.MarkdownString(
                 `Collection root '${basename(this.path)}'`.concat(
@@ -98,5 +99,11 @@ export class BrunoTreeItem extends vscode.TreeItem {
                   ),
               )
             : this.label?.toString();
+    }
+
+    private getConfiguredEnvironmentName() {
+        return getConfiguredEnvironmentName(this.path, (sectionKey) =>
+            vscode.workspace.getConfiguration().get(sectionKey),
+        );
     }
 }

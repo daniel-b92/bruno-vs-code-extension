@@ -207,6 +207,37 @@ export class CollectionItemProvider<T> {
         );
     }
 
+    public async reloadCollectionRootFolderItem(collectionRoot: string) {
+        const collection = this.getAncestorCollectionForPath(collectionRoot);
+
+        if (!collection || !collection.isRootDirectory(collectionRoot)) {
+            this.logger?.warn(
+                `${this.commonPreMessageForLogging} Reloading collection root item '${collectionRoot}' failed because no matching registered collection was found.`,
+            );
+            return;
+        }
+
+        const newData = await addOrReplaceItemInCollection({
+            collection,
+            path: collectionRoot,
+            additionalDataProvider: this.additionalDataProvider,
+        });
+
+        if (newData) {
+            await this.handleOutboundNotification({
+                collection,
+                data: newData,
+                updateType: FileChangeType.Modified,
+                changedData: {
+                    // ToDo: This should not be hardcoded but determined via comparison with the old data.
+                    additionalDataChanged: true,
+                    sequenceChanged: false,
+                    tagsChanged: false,
+                },
+            });
+        }
+    }
+
     public dispose() {
         if (this.notificationSendEventTimer) {
             clearTimeout(this.notificationSendEventTimer);

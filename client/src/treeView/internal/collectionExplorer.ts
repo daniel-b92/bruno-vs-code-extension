@@ -718,7 +718,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     return;
                 }
 
-                await showDialogForSettingEnvironment(
+                const wasUpdated = await showDialogForSettingEnvironment(
                     collection,
                     getConfiguredEnvironmentName(
                         collection.getRootDirectory(),
@@ -726,6 +726,14 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                             vscode.workspace.getConfiguration().get(sectionKey),
                     ),
                 );
+
+                if (wasUpdated) {
+                    // Since a change of the selected environment is not reflected directly in the file system,
+                    // we need to trigger a reload for the explorer to show the current data.
+                    await this.itemProvider.reloadCollectionRootFolderItem(
+                        itemPath,
+                    );
+                }
             },
         );
     }

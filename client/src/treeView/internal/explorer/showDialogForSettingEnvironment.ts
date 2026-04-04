@@ -29,10 +29,11 @@ export async function showDialogForSettingEnvironment(
     });
 
     if (!selectedOption) {
-        return;
+        return false;
     }
 
     await updateSettings(collection, selectedOption.label);
+    return true;
 }
 
 async function updateSettings(
@@ -69,7 +70,7 @@ async function updateSettings(
         );
 
         if (pickedOption == confirmationOption) {
-            overwriteExistingSettings(newConfig);
+            await overwriteExistingSettings(newConfig);
         }
         return;
     }
@@ -82,13 +83,15 @@ async function updateSettings(
                   ...newConfig,
               };
 
-    workspace.getConfiguration().update(sectionKey, newConfigs, true);
+    await workspace.getConfiguration().update(sectionKey, newConfigs, true);
 }
 
-function overwriteExistingSettings(newConfig: {
+async function overwriteExistingSettings(newConfig: {
     [collectionRoot: string]: string;
 }) {
     const sectionKey = getEnvironmentSettingsKey();
-    workspace.getConfiguration().update(sectionKey, undefined, true);
-    workspace.getConfiguration().update(sectionKey, { ...newConfig }, true);
+    await workspace.getConfiguration().update(sectionKey, undefined, true);
+    await workspace
+        .getConfiguration()
+        .update(sectionKey, { ...newConfig }, true);
 }

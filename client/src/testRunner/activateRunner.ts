@@ -313,7 +313,8 @@ function handleTestTreeUpdates(
                 item.isFile() &&
                 extname(item.getPath()) == getExtensionForBrunoFiles() &&
                 (update.changedData?.sequenceChanged ||
-                    update.changedData?.tagsChanged)
+                    update.changedData?.tagsChanged ||
+                    update.changedData?.additionalDataChanged)
             ) {
                 /* For directories, no changes are ever registered because renaming a directory is seen as a creation of a new directory with the
                 new name and a deletion of the directory with the old name. */
