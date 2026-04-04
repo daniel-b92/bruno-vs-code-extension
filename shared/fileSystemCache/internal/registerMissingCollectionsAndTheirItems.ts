@@ -139,6 +139,7 @@ async function createCollectionInstance<T>(
     const additionalData = await getAdditionalCollectionData(
         rootFolderItem,
         additionalDataProvider,
+        true,
     );
 
     return new Collection(rootFolderItem, additionalData);

@@ -1,3 +1,4 @@
+import { getConfiguredEnvironmentName } from "@global_shared";
 import { basename } from "path";
 import * as vscode from "vscode";
 
@@ -5,6 +6,7 @@ export class BrunoTreeItem extends vscode.TreeItem {
     constructor(
         public readonly path: string,
         public readonly isFile: boolean,
+        public readonly isCollectionRoot: boolean,
         private sequence?: number,
         private tags?: string[],
     ) {
@@ -17,6 +19,19 @@ export class BrunoTreeItem extends vscode.TreeItem {
 
         this.tooltip = this.getTooltip();
         this.description = this.getDescription();
+        this.contextValue = isFile
+            ? "file"
+            : isCollectionRoot
+              ? "collectionRoot"
+              : "folder";
+
+        if (isCollectionRoot) {
+            this.command = {
+                title: "select environment",
+                command: "brunoCollectionsView.selectEnvironmentForCollection",
+                arguments: [path],
+            };
+        }
 
         if (isFile) {
             this.command = {
@@ -36,6 +51,15 @@ export class BrunoTreeItem extends vscode.TreeItem {
     }
 
     private getDescription() {
+        if (this.isCollectionRoot) {
+            const configuredEnvironmentName =
+                this.getConfiguredEnvironmentName();
+
+            return configuredEnvironmentName
+                ? `Selected environment: '${configuredEnvironmentName}'`
+                : "Click for selecting environment";
+        }
+
         if (!this.sequence && !this.tags) {
             return undefined;
         }
@@ -53,6 +77,19 @@ export class BrunoTreeItem extends vscode.TreeItem {
     private getTooltip() {
         const lineBreak = "\n";
 
+        if (this.isCollectionRoot) {
+            const environmentName = this.getConfiguredEnvironmentName();
+
+            return new vscode.MarkdownString(
+                `Collection root '${basename(this.path)}'`.concat(
+                    lineBreak,
+                    environmentName
+                        ? `- Selected environment: '${environmentName}'`
+                        : "- No environment selected",
+                ),
+            );
+        }
+
         return this.sequence
             ? new vscode.MarkdownString(
                   `${this.label} (seq: ${this.sequence})`.concat(
@@ -61,8 +98,12 @@ export class BrunoTreeItem extends vscode.TreeItem {
                           : "",
                   ),
               )
-            : this.label
-              ? this.label.toString()
-              : undefined;
+            : this.label?.toString();
+    }
+
+    private getConfiguredEnvironmentName() {
+        return getConfiguredEnvironmentName(this.path, (sectionKey) =>
+            vscode.workspace.getConfiguration().get(sectionKey),
+        );
     }
 }

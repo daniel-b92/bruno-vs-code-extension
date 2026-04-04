@@ -23,6 +23,7 @@ export type AdditionalCollectionData = BrunoVariableReference[] | undefined;
 export interface LanguageRequestWithTestEnvironmentInfo {
     baseRequest: LanguageFeatureBaseRequest;
     itemProvider: TypedCollectionItemProvider;
+    collection: TypedCollection;
     configuredEnvironmentName?: string;
     logger?: Logger;
 }

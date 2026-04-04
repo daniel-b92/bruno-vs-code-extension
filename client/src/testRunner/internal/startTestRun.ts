@@ -15,14 +15,12 @@ import { runTestStructure } from "./runTestStructure";
 import { QueuedTest, TestRunQueue } from "./testRunQueue";
 import {
     TypedCollectionItemProvider,
-    getConfiguredTestEnvironment,
-    getLinkToUserSetting,
     OutputChannelLogger,
     TypedCollection,
 } from "@shared";
 import {
     checkIfPathExistsAsync,
-    getEnvironmentSettingsKey,
+    getConfiguredEnvironmentName,
 } from "@global_shared";
 import { TestRunUserInputData } from "./interfaces";
 
@@ -171,7 +169,10 @@ const prepareAndRunTest = async (
 
     run.started(test);
 
-    const testEnvironment = getConfiguredTestEnvironment();
+    const testEnvironment = getConfiguredEnvironmentName(
+        collectionRootDirectory,
+        (sectionKey) => workspace.getConfiguration().get(sectionKey),
+    );
 
     printInfosOnTestRunStart(run, htmlReportPath, testEnvironment);
 
@@ -209,20 +210,21 @@ const printInfosOnTestRunStart = (
     htmlReportPath: string,
     testEnvironment?: string,
 ) => {
+    const lineBreak = "\r\n";
     if (!testEnvironment) {
-        run.appendOutput(`Not using any environment for the test run.\r\n`);
         run.appendOutput(
-            `You can configure an environment to use via the setting ${getLinkToUserSetting(
-                getEnvironmentSettingsKey(),
-            )}\r\n`,
+            `Not using any environment for the test run.${lineBreak}`,
+        );
+        run.appendOutput(
+            `You can configure an environment by clicking on the root folder of the collection in the explorer.${lineBreak}`,
         );
     } else {
         run.appendOutput(
-            `Using the test environment '${testEnvironment}'.\r\n`,
+            `Using the test environment '${testEnvironment}'.${lineBreak}`,
         );
     }
     run.appendOutput(
-        `Saving the HTML test report to file '${htmlReportPath}'.\r\n`,
+        `Saving the HTML test report to file '${htmlReportPath}'.${lineBreak}`,
     );
 };
 

@@ -6,13 +6,14 @@ import { getCompletionsForNonCodeBlock } from "./getCompletionsForNonCodeBlock";
 
 export async function handleCompletionRequest({
     baseRequest,
+    collection,
     itemProvider,
     configuredEnvironmentName,
     logger,
 }: LanguageRequestWithTestEnvironmentInfo): Promise<
     CompletionItem[] | undefined
 > {
-    const { documentHelper, position, token, filePath } = baseRequest;
+    const { documentHelper, position, token } = baseRequest;
     const { blocks: allBlocks } = parseBruFile(documentHelper);
 
     const blockContainingPosition = allBlocks.find(({ contentRange }) =>
@@ -20,12 +21,6 @@ export async function handleCompletionRequest({
     );
 
     if (!blockContainingPosition) {
-        return undefined;
-    }
-
-    const collection = itemProvider.getAncestorCollectionForPath(filePath);
-
-    if (!collection) {
         return undefined;
     }
 

@@ -62,7 +62,13 @@ async function getCollectionData<T>(params: {
         additionalDataProvider.paramType ==
         AdditionalCollectionDataProviderType.SimpleCollectionItem
     ) {
-        return { item, additionalData: additionalDataProvider.callback(item) };
+        return {
+            item,
+            additionalData: additionalDataProvider.callback(
+                item,
+                collection.isRootDirectory(item.getPath()),
+            ),
+        };
     }
 
     const {

@@ -58,12 +58,15 @@ export * from "./baseModel/files/brunoFolderSettingsFile";
 export * from "./baseModel/typeguards/isCollectionItemWithSequence";
 export * from "./baseModel/typeguards/isRequestFile";
 export * from "./baseModel/typeguards/isCollectionDirectory";
+export * from "./baseModel/typeguards/isEnvironmentFile";
 
 // logging
 export * from "./logging/interfaces";
 
 // vscode settings
 export * from "./vsCodeSettings/getEnvironmentSettingsKey";
+export * from "./vsCodeSettings/testEnvironmentsSettingGetter";
+export * from "./vsCodeSettings/interfaces";
 
 // language utils
 export * from "./languageUtils/blockInterfaces";

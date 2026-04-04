@@ -23,7 +23,7 @@ export * from "./fileSystemCache/external/fileSystemCacheSyncingHelper";
 // vsCodeSettings
 export * from "./vsCodeSettings/getLinkToUserSetting";
 export * from "./vsCodeSettings/getLineBreakFromSettings";
-export * from "./vsCodeSettings/getConfiguredTestEnvironment";
+export * from "./vsCodeSettings/testEnvironmentsSettingUpdater";
 
 // logging
 export * from "./logging/outputChannelLogger";

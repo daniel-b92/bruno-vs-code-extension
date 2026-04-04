@@ -222,10 +222,11 @@ function getAdditionalCollectionDataProvider(
 ): AdditionalCollectionSimpleDataProvider<AdditionalCollectionData> {
     return {
         paramType: AdditionalCollectionDataProviderType.SimpleCollectionItem,
-        callback: (item: CollectionItem) => ({
+        callback: (item: CollectionItem, isCollectionRoot: boolean) => ({
             treeItem: new BrunoTreeItem(
                 item.getPath(),
                 item.isFile(),
+                isCollectionRoot,
                 isCollectionItemWithSequence(item)
                     ? item.getSequence()
                     : undefined,
@@ -233,6 +234,15 @@ function getAdditionalCollectionDataProvider(
             ),
             testItem: testRunnerDataHelper.createVsCodeTestItem(item),
         }),
+        isAdditionalDataOutdated(
+            { treeItem: oldTreeItem },
+            { treeItem: newTreeItem },
+        ) {
+            return (
+                oldTreeItem.description != newTreeItem.description ||
+                oldTreeItem.tooltip != newTreeItem.tooltip
+            );
+        },
     };
 }
 

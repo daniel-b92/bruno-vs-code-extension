@@ -14,13 +14,14 @@ import {
     HelpersProvider,
     LanguageFeatureBaseRequest,
     LanguageRequestWithTestEnvironmentInfo,
+    TypedCollection,
     TypedCollectionItemProvider,
 } from "./shared";
 import { URI } from "vscode-uri";
 import { runUpdatesOnWillSave } from "./bruFiles/autoUpdates/runUpdatesOnWillSave";
 import {
     FileChangeType,
-    getEnvironmentSettingsKey,
+    getConfiguredEnvironmentName,
     getExtensionForBrunoFiles,
     getItemType,
     isBrunoFileType,
@@ -35,7 +36,7 @@ import { extname } from "path";
 import { handleCompletionRequest as handleCompletionRequestForJsFile } from "./jsFiles/completionItems/handleCompletionRequest";
 import { handleHoverRequest as handleHoverRequestForJsFile } from "./jsFiles/hover/handleHoverRequest";
 
-let helpersProvider: HelpersProvider;
+let helpersProvider: HelpersProvider | undefined = undefined;
 let brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider;
 const disposables: Disposable[] = [];
 enum FileTypeByExtension {
@@ -137,14 +138,20 @@ disposables.push(
                 token,
             );
 
-            if (!baseRequest || !helpersProvider) {
+            const itemProvider = helpersProvider?.getItemProvider();
+            const collection =
+                itemProvider?.getAncestorCollectionForPath(filePath);
+
+            if (!baseRequest || !itemProvider || !collection) {
                 return undefined;
             }
 
             const params: LanguageRequestWithTestEnvironmentInfo = {
                 baseRequest,
-                itemProvider: helpersProvider.getItemProvider(),
-                configuredEnvironmentName: await getConfiguredTestEnvironment(),
+                itemProvider,
+                collection,
+                configuredEnvironmentName:
+                    await getConfiguredTestEnvironment(collection),
                 logger: getDefaultLogger(),
             };
 
@@ -188,15 +195,19 @@ connection.onHover(async ({ textDocument: { uri }, position }, token) => {
         { filePathAndType: { filePath, type }, position },
         token,
     );
+    const itemProvider = helpersProvider?.getItemProvider();
+    const collection = itemProvider?.getAncestorCollectionForPath(filePath);
 
-    if (!baseRequest || !helpersProvider) {
+    if (!baseRequest || !itemProvider || !collection) {
         return undefined;
     }
 
     const params: LanguageRequestWithTestEnvironmentInfo = {
         baseRequest,
-        itemProvider: helpersProvider.getItemProvider(),
-        configuredEnvironmentName: await getConfiguredTestEnvironment(),
+        itemProvider,
+        collection,
+        configuredEnvironmentName:
+            await getConfiguredTestEnvironment(collection),
         logger: getDefaultLogger(),
     };
 
@@ -275,10 +286,12 @@ function mapToBaseLanguageRequest(
         : undefined;
 }
 
-async function getConfiguredTestEnvironment() {
-    return (await connection.workspace.getConfiguration(
-        getEnvironmentSettingsKey(),
-    )) as string | undefined;
+async function getConfiguredTestEnvironment(collection: TypedCollection) {
+    return await getConfiguredEnvironmentName(
+        collection.getRootDirectory(),
+        (sectionKey: string) =>
+            connection.workspace.getConfiguration(sectionKey),
+    );
 }
 
 async function getDiagnosticsForBruFile(filePath: string, text: string) {

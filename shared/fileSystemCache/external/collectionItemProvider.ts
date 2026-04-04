@@ -207,6 +207,50 @@ export class CollectionItemProvider<T> {
         );
     }
 
+    public async reloadCollectionRootFolderItem(collectionRoot: string) {
+        const collection = this.getAncestorCollectionForPath(collectionRoot);
+
+        if (!collection || !collection.isRootDirectory(collectionRoot)) {
+            this.logger?.warn(
+                `${this.commonPreMessageForLogging} Reloading collection root item '${collectionRoot}' failed because no matching registered collection was found.`,
+            );
+            return;
+        }
+
+        const oldData = collection.getStoredDataForPath(collectionRoot);
+
+        const newData = await addOrReplaceItemInCollection({
+            collection,
+            path: collectionRoot,
+            additionalDataProvider: this.additionalDataProvider,
+        });
+
+        if (oldData && newData) {
+            const {
+                details: {
+                    sequenceOutdated,
+                    tagsOutdated,
+                    additionalDataOutdated,
+                },
+            } = isModifiedItemOutdated(
+                oldData,
+                newData,
+                this.additionalDataProvider,
+            );
+
+            await this.handleOutboundNotification({
+                collection,
+                data: newData,
+                updateType: FileChangeType.Modified,
+                changedData: {
+                    additionalDataChanged: additionalDataOutdated,
+                    sequenceChanged: sequenceOutdated,
+                    tagsChanged: tagsOutdated,
+                },
+            });
+        }
+    }
+
     public dispose() {
         if (this.notificationSendEventTimer) {
             clearTimeout(this.notificationSendEventTimer);

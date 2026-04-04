@@ -16,18 +16,10 @@ import { Hover } from "vscode-languageserver";
 
 export function handleHoverRequest({
     baseRequest,
-    itemProvider,
+    collection,
     configuredEnvironmentName,
     logger,
 }: LanguageRequestWithTestEnvironmentInfo) {
-    const collection = itemProvider.getAncestorCollectionForPath(
-        baseRequest.filePath,
-    );
-
-    if (!collection) {
-        return null;
-    }
-
     return getHover({
         file: { collection },
         baseRequest,

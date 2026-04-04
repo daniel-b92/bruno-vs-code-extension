@@ -6,15 +6,11 @@ import { getHoverForCodeBlock } from "./getHoverForCodeBlock";
 export function handleHoverRequest({
     baseRequest,
     itemProvider,
+    collection,
     configuredEnvironmentName,
     logger,
 }: LanguageRequestWithTestEnvironmentInfo) {
-    const { filePath, documentHelper, position } = baseRequest;
-    const collection = itemProvider.getAncestorCollectionForPath(filePath);
-
-    if (!collection) {
-        return undefined;
-    }
+    const { documentHelper, position } = baseRequest;
 
     const { blocks: allBlocks } = parseBruFile(documentHelper);
 

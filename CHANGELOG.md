@@ -1,3 +1,14 @@
+## [Unreleased]
+
+### Breaking changes
+
+- A different section key and a different value format is used for configuring the environment to use for test execution.
+
+### Features / Major Improvements
+
+- Enable configuration of the environment to use for testruns to be set per collection.
+    - Also display the current setting in the collection explorer and add a dialog for selecting the environment when clicking on the root folder item.
+
 ## [0.22.1] (2026-04-02)
 
 ### Fixes / Minor Improvements

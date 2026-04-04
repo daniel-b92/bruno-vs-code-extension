@@ -1,10 +1,4 @@
-import { basename } from "path";
-import {
-    getExtensionForBrunoFiles,
-    BrunoEnvironmentFile,
-    BrunoFileType,
-    Collection,
-} from "../..";
+import { Collection } from "../..";
 
 export enum EnvVariableNameMatchingMode {
     Exact = 1,
@@ -18,32 +12,21 @@ export function getMatchingDefinitionsFromEnvFiles(
     environmentName?: string,
 ) {
     const matchingEnvironmentFiles = collection
-        .getAllStoredDataForCollection()
-        .filter(
-            ({ item }) => item.getItemType() == BrunoFileType.EnvironmentFile,
-        )
-        .map(({ item }) => ({
+        .getEnvironments()
+        .map(({ item, environmentName: name }) => ({
             item,
-            isConfigured:
-                environmentName != undefined &&
-                environmentName ==
-                    basename(item.getPath(), getExtensionForBrunoFiles())
-                    ? true
-                    : false,
-        })) as { item: BrunoEnvironmentFile; isConfigured: boolean }[];
+            selected: name === environmentName,
+        }));
 
     if (matchingEnvironmentFiles.length == 0) {
         return [];
     }
 
     return matchingEnvironmentFiles
-        .sort(
-            (
-                { isConfigured: isConfigured1 },
-                { isConfigured: isConfigured2 },
-            ) => (isConfigured1 ? -1 : isConfigured2 ? 1 : 0),
+        .sort(({ selected: isConfigured1 }, { selected: isConfigured2 }) =>
+            isConfigured1 ? -1 : isConfigured2 ? 1 : 0,
         )
-        .map(({ item, isConfigured: isConfiguredEnv }) => {
+        .map(({ item, selected: isConfiguredEnv }) => {
             const matchingVariables = item
                 .getVariables()
                 .filter(({ key }) => matches(key, name, matchingMode));
@@ -52,7 +35,7 @@ export function getMatchingDefinitionsFromEnvFiles(
                 ? {
                       file: item.getPath(),
                       matchingVariables,
-                      isConfiguredEnv,
+                      isConfiguredEnv: isConfiguredEnv ?? false,
                   }
                 : undefined;
         })
