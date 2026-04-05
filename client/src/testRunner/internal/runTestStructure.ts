@@ -5,13 +5,11 @@ import {
     TestRun,
     Uri,
     TestItem as vscodeTestItem,
-    workspace,
 } from "vscode";
 import { getTestFilesWithFailures } from "./testExecutionUtils/jsonReportParser";
 import { getTestItemDescendants } from "../testTreeUtils/getTestItemDescendants";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import treeKill = require("tree-kill");
-import { getLinkToUserSetting } from "@shared";
 import { checkIfPathExistsAsync } from "@global_shared";
 import { existsSync, unlink, unlinkSync } from "fs";
 import { promisify } from "util";
@@ -26,6 +24,7 @@ export async function runTestStructure(
         options: TestRun;
         abortEmitter: EventEmitter<void>;
         collectionRootDirectory: string;
+        useDeveloperSandbox: boolean;
     },
     {
         htmlReportPath,
@@ -34,7 +33,12 @@ export async function runTestStructure(
         userInput,
     }: TestRunReportingAndOptionalData,
 ): Promise<boolean> {
-    const { abortEmitter, collectionRootDirectory, options } = additionalData;
+    const {
+        abortEmitter,
+        collectionRootDirectory,
+        options,
+        useDeveloperSandbox,
+    } = additionalData;
     const path = (item.uri as Uri).fsPath;
     const lineBreak = getLineBreakForTestRunOutput();
     const isDirectory = item.canResolveChildren;
@@ -58,12 +62,11 @@ export async function runTestStructure(
         let duration = 0;
 
         const start = Date.now();
-        const { childProcess, usingNpx } = spawnChildProcess({
+        const { childProcess } = spawnChildProcess({
             testPath: path,
             collectionRootDirectory,
             jsonReportPath,
-            canUseNpx: canUseNpx(),
-            useDeveloperSandbox: canUseDeveloperSandbox(),
+            useDeveloperSandbox,
             reportingAndOptionalData: {
                 htmlReportPath,
                 testEnvironment,
@@ -71,31 +74,6 @@ export async function runTestStructure(
                 userInput,
             },
         });
-
-        if (!canUseNpx()) {
-            options.appendOutput(lineBreak);
-            options.appendOutput(
-                `Temporarily installing the Bruno CLI npm package via npx is disabled (see ${getLinkToUserSetting(
-                    getConfigKeyForAllowingUsageOfNpx(),
-                )})${lineBreak}`,
-            );
-            options.appendOutput(
-                `Will continue with the assumption that the package is already installed globally.${lineBreak}`,
-            );
-            options.appendOutput(lineBreak);
-        } else {
-            options.appendOutput(
-                `Using ${
-                    usingNpx
-                        ? "npx"
-                        : "the globally installed Bruno CLI package"
-                } for triggering the test run.${lineBreak}`,
-            );
-        }
-
-        options.appendOutput(
-            `${canUseDeveloperSandbox() ? "Using" : "Not using"} Javascript sandbox developer mode due to user setting ${getLinkToUserSetting(getConfigKeyForSandboxDeveloperMode())}${lineBreak}`,
-        );
 
         abortEmitter.event(() => {
             while (!childProcess.pid) {
@@ -222,26 +200,6 @@ export async function runTestStructure(
 
 function getJsonReportPath(collectionRootDir: string) {
     return resolve(dirname(collectionRootDir), "results.json");
-}
-
-function canUseNpx() {
-    return workspace
-        .getConfiguration()
-        .get<boolean>(getConfigKeyForAllowingUsageOfNpx(), false);
-}
-
-function canUseDeveloperSandbox() {
-    return workspace
-        .getConfiguration()
-        .get<boolean>(getConfigKeyForSandboxDeveloperMode(), false);
-}
-
-function getConfigKeyForAllowingUsageOfNpx() {
-    return "bru-as-code.allowInstallationOfBrunoCliViaNpx";
-}
-
-function getConfigKeyForSandboxDeveloperMode() {
-    return "bru-as-code.sandboxDeveloperMode";
 }
 
 const getLineBreakForTestRunOutput = () => "\r\n";

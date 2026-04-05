@@ -1,13 +1,11 @@
-import { OutputChannelLogger } from "../../../shared";
 import { TestRunChildProcessData, TestRunUserInputData } from "../interfaces";
-import { exec, spawn } from "child_process";
+import { spawn } from "child_process";
 
 export function spawnChildProcess(childProcessData: TestRunChildProcessData) {
     const { collectionRootDirectory, reportingAndOptionalData } =
         childProcessData;
 
-    const { command, commandArguments, shouldUseNpxForTriggeringTests } =
-        getCommandForCli(childProcessData);
+    const { command, commandArguments } = getCommandForCli(childProcessData);
 
     reportingAndOptionalData.logger?.debug(
         `Using command '${command}' and command arguments ${JSON.stringify(
@@ -22,37 +20,21 @@ export function spawnChildProcess(childProcessData: TestRunChildProcessData) {
         shell: true,
     });
 
-    return { childProcess, usingNpx: shouldUseNpxForTriggeringTests };
+    return { childProcess };
 }
 
 function getCommandForCli({
-    canUseNpx,
     collectionRootDirectory,
     jsonReportPath,
     testPath,
     useDeveloperSandbox,
-    reportingAndOptionalData: {
-        htmlReportPath,
-        logger,
-        testEnvironment,
-        userInput,
-    },
+    reportingAndOptionalData: { htmlReportPath, testEnvironment, userInput },
 }: TestRunChildProcessData) {
-    const npmPackageForUsingViaNpx = `${getNpmPackageNameWithoutSpecificVersion()}@3.0.2`;
+    const command = "bru";
 
-    const shouldUseNpxForTriggeringTests = shouldUseNpx(canUseNpx, logger);
-    const command = shouldUseNpxForTriggeringTests ? "npx" : "bru";
+    const argForRunCommand = `run${testPath == collectionRootDirectory ? ` ${testPath}` : ""}`;
 
-    const argForRunCommand =
-        testPath == collectionRootDirectory
-            ? `${shouldUseNpxForTriggeringTests ? "bru " : ""}run`
-            : `${shouldUseNpxForTriggeringTests ? "bru " : ""}run ${testPath}`;
-
-    const commandArguments: string[] = ([] as string[]).concat(
-        shouldUseNpxForTriggeringTests
-            ? `--package=${npmPackageForUsingViaNpx}`
-            : [],
-        argForRunCommand,
+    const commandArguments: string[] = [argForRunCommand].concat(
         ...mapUserInputDataToCommandArgs(userInput),
         useDeveloperSandbox ? "--sandbox=developer" : [], // The CLI uses the sandbox 'safe' per default.
         "--reporter-html",
@@ -65,30 +47,7 @@ function getCommandForCli({
         commandArguments.push(...["--env", testEnvironment]);
     }
 
-    return { command, commandArguments, shouldUseNpxForTriggeringTests };
-}
-
-function shouldUseNpx(canUseNpx: boolean, logger?: OutputChannelLogger) {
-    if (!canUseNpx) {
-        return false;
-    }
-
-    let isPackageInstalledGlobally = false;
-
-    exec("npm list -g --depth=0", (err, stdOut) => {
-        if (err) {
-            logger?.warn(
-                `Got an unexpected error when trying to determine globally installed NPM packages: '${err.message}'`,
-            );
-            isPackageInstalledGlobally = false;
-        } else {
-            isPackageInstalledGlobally = stdOut.includes(
-                getNpmPackageNameWithoutSpecificVersion(),
-            );
-        }
-    });
-
-    return !isPackageInstalledGlobally;
+    return { command, commandArguments };
 }
 
 function mapUserInputDataToCommandArgs(userInput?: TestRunUserInputData) {
@@ -119,8 +78,4 @@ function mapUserInputDataToCommandArgs(userInput?: TestRunUserInputData) {
     );
 
     return argsForTags.concat(argsForOtherConfigs);
-}
-
-function getNpmPackageNameWithoutSpecificVersion() {
-    return "@usebruno/cli";
 }

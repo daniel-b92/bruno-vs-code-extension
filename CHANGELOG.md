@@ -3,6 +3,7 @@
 ### Breaking changes
 
 - A different section key and a different value format is used for configuring the environment to use for test execution.
+- The user setting `bru-as-code.allowInstallationOfBrunoCliViaNpx` for using npx for triggering testruns is not supported anymore.
 
 ### Features / Major Improvements
 

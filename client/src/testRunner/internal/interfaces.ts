@@ -16,7 +16,6 @@ export interface TestRunChildProcessData {
     testPath: string;
     collectionRootDirectory: string;
     jsonReportPath: string;
-    canUseNpx: boolean;
     useDeveloperSandbox: boolean;
     reportingAndOptionalData: TestRunReportingAndOptionalData;
 }
