@@ -17,6 +17,7 @@ import {
     TypedCollectionItemProvider,
     OutputChannelLogger,
     TypedCollection,
+    getLinkToUserSetting,
 } from "@shared";
 import {
     checkIfPathExistsAsync,
@@ -187,6 +188,7 @@ const prepareAndRunTest = async (
             options: run,
             abortEmitter,
             collectionRootDirectory,
+            useDeveloperSandbox: canUseDeveloperSandbox(),
         },
         {
             htmlReportPath,
@@ -216,16 +218,25 @@ const printInfosOnTestRunStart = (
             `Not using any environment for the test run.${lineBreak}`,
         );
         run.appendOutput(
-            `You can configure an environment by clicking on the root folder of the collection in the explorer.${lineBreak}`,
+            `You can configure an environment by clicking on the root folder of the collection in the collection explorer.${lineBreak}`,
         );
     } else {
         run.appendOutput(
             `Using the test environment '${testEnvironment}'.${lineBreak}`,
         );
     }
+
     run.appendOutput(
         `Saving the HTML test report to file '${htmlReportPath}'.${lineBreak}`,
     );
+    run.appendOutput(
+        `${canUseDeveloperSandbox() ? "Using" : "Not using"} Javascript sandbox developer mode due to user setting ${getLinkToUserSetting(getConfigKeyForSandboxDeveloperMode())}${lineBreak}`,
+    );
+    run.appendOutput(lineBreak);
+    run.appendOutput(
+        `Note: The option for using npx for triggering the Bruno CLI is not supported anymore. For executing tests, the npm package https://www.npmjs.com/package/@usebruno/cli needs to be installed.${lineBreak}`,
+    );
+    run.appendOutput(lineBreak);
 };
 
 function gatherTestItems(collection: vscodeTestItemCollection) {
@@ -292,3 +303,13 @@ const shouldShowHtmlReport = (testsPassed: boolean) => {
 
     return configValue || !testsPassed;
 };
+
+function canUseDeveloperSandbox() {
+    return workspace
+        .getConfiguration()
+        .get<boolean>(getConfigKeyForSandboxDeveloperMode(), false);
+}
+
+function getConfigKeyForSandboxDeveloperMode() {
+    return "bru-as-code.sandboxDeveloperMode";
+}
