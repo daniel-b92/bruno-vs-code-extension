@@ -100,6 +100,7 @@ export * from "./languageUtils/commonBlocks/metaBlock/getActiveFieldFromMetaBloc
 export * from "./languageUtils/commonBlocks/metaBlock/metaBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/metaBlock/getSequenceValueFromMetaBlock";
 export * from "./languageUtils/commonBlocks/metaBlock/getSequenceAndTagsFromMetaBlock";
+export * from "./languageUtils/commonBlocks/metaBlock/getMandatoryAndOptionalKeys";
 
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockAuthEnum";

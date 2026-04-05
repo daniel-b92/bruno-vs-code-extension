@@ -1,46 +1,31 @@
 import {
-    ApiKeyAuthBlockKey,
-    ApiKeyAuthBlockPlacementValue,
     Block,
-    BooleanFieldValue,
     BrunoVariableType,
     EnvVariableNameMatchingMode,
     getBlocksWithoutVariableSupport,
-    getDictionaryBlockArrayField,
-    getExistingRequestFileTags,
     getMatchingDefinitionsFromEnvFiles,
     getMatchingTextContainingPosition,
-    getMaxSequenceForRequests,
     getPossibleMethodBlocks,
     isAuthBlock,
     Logger,
-    MetaBlockKey,
-    MethodBlockAuth,
-    MethodBlockBody,
-    MethodBlockKey,
-    OAuth2BlockCredentialsPlacementValue,
-    OAuth2BlockTokenPlacementValue,
-    OAuth2ViaAuthorizationCodeBlockKey,
     Position,
-    Range,
     RequestFileBlockName,
-    RequestType,
-    SettingsBlockKey,
     VariableReferenceType,
 } from "@global_shared";
-import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
+import { CompletionItem } from "vscode-languageserver";
 import {
     LanguageFeatureBaseRequest,
     TypedCollection,
     TypedCollectionItemProvider,
 } from "../../shared";
-import { basename, dirname } from "path";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 import { mapVariablesToCompletions } from "./mapVariablesToCompletions";
 import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
 import { getDynamicVariableReferencesFromOtherFiles } from "../shared/VariableReferences/getDynamicVariableReferencesFromOtherFiles";
-import { getLinePatternForDictionaryField } from "./dictionaryBlocks/getLinePatternForDictionaryField";
-import { getFixedCompletionItems } from "./dictionaryBlocks/getFixedCompletionItems";
+import { getMetaBlockSpecificCompletions } from "./dictionaryBlocks/specificBlocks/getMetaBlockSpecificCompletions";
+import { getMethodBlockSpecificCompletions } from "./dictionaryBlocks/specificBlocks/getMethodBlockSpecificCompletions";
+import { getAuthBlockSpecificCompletions } from "./dictionaryBlocks/specificBlocks/getAuthBlockSpecificCompletions";
+import { getSettingsBlockSpecificCompletions } from "./dictionaryBlocks/specificBlocks/getSettingsBlockSpecificCompletions";
 
 export async function getCompletionsForNonCodeBlock(
     fullRequest: BlockRequestWithAdditionalData<Block>,
@@ -190,214 +175,6 @@ async function getBlockSpecificCompletions(
         return getSettingsBlockSpecificCompletions(request);
     }
     return [];
-}
-
-async function getMetaBlockSpecificCompletions(
-    itemProvider: TypedCollectionItemProvider,
-    request: LanguageFeatureBaseRequest,
-    metaBlock: Block,
-    collection?: TypedCollection,
-) {
-    const { documentHelper, filePath, position } = request;
-
-    const getSequenceFieldCompletion = async () => {
-        const { line } = position;
-        const currentText = documentHelper.getLineByIndex(line);
-        const sequencePattern = new RegExp(
-            `^\\s*${MetaBlockKey.Sequence}:.*$`,
-            "m",
-        );
-
-        if (!currentText.match(sequencePattern)) {
-            return [];
-        }
-
-        const suggestedSequence =
-            ((await getMaxSequenceForRequests(
-                itemProvider,
-                dirname(filePath),
-            )) ?? 0) + 1;
-
-        const completion: CompletionItem = {
-            label: suggestedSequence.toString(),
-            textEdit: {
-                newText: ` ${suggestedSequence}`,
-                range: new Range(
-                    new Position(line, currentText.indexOf(":") + 1),
-                    new Position(line, currentText.length),
-                ),
-            },
-        };
-
-        return [completion];
-    };
-
-    const getTagsFieldCompletions = () => {
-        const tagsField = getDictionaryBlockArrayField(
-            metaBlock,
-            MetaBlockKey.Tags,
-        );
-        if (!tagsField) {
-            return [];
-        }
-
-        const isWithinValues = tagsField.plainTextWithinValues
-            .map(({ range }) => range)
-            .concat(tagsField.values.map(({ range }) => range))
-            .some((range) => range.contains(position));
-
-        if (!isWithinValues || !collection) {
-            return [];
-        }
-
-        const tagsByCollections = getExistingRequestFileTags(itemProvider, {
-            collection,
-            pathToIgnore: filePath,
-        });
-
-        return tagsByCollections
-            .filter(
-                // Filter out already defined tags in the same document.
-                ({ tag }) =>
-                    tagsField.values.every(({ content: c }) => c != tag),
-            )
-            .map(
-                ({
-                    tag,
-                    pathsInOwnCollection: inOwnCollection,
-                    inOtherCollections,
-                }) => {
-                    const alreadyUsedInOwnCollection =
-                        inOwnCollection.length > 0;
-
-                    return {
-                        label: tag,
-                        labelDetails: {
-                            description: alreadyUsedInOwnCollection
-                                ? "Used in own collection"
-                                : inOtherCollections.length == 1
-                                  ? `Used in collection '${basename(inOtherCollections[0].collection.getRootDirectory())}'`
-                                  : `Used in ${inOtherCollections.length} other collections`,
-                        },
-                        sortText: alreadyUsedInOwnCollection
-                            ? `a_${tag}`
-                            : `b_${tag}`,
-                        kind: CompletionItemKind.Constant,
-                    };
-                },
-            );
-    };
-
-    const typeFieldCompletions = getFixedCompletionItems(
-        [
-            {
-                linePattern: getLinePatternForDictionaryField(
-                    MetaBlockKey.Type,
-                ),
-                choices: Object.values(RequestType),
-            },
-        ],
-        request,
-    );
-
-    return (await getSequenceFieldCompletion()).concat(
-        typeFieldCompletions,
-        getTagsFieldCompletions(),
-    );
-}
-
-function getMethodBlockSpecificCompletions(
-    request: LanguageFeatureBaseRequest,
-) {
-    return getFixedCompletionItems(
-        [
-            {
-                linePattern: getLinePatternForDictionaryField(
-                    MethodBlockKey.Body,
-                ),
-                choices: Object.values(MethodBlockBody),
-            },
-            {
-                linePattern: getLinePatternForDictionaryField(
-                    MethodBlockKey.Auth,
-                ),
-                choices: Object.values(MethodBlockAuth),
-            },
-        ],
-        request,
-    );
-}
-
-function getAuthBlockSpecificCompletions(request: LanguageFeatureBaseRequest) {
-    return getFixedCompletionItems(
-        [
-            {
-                linePattern: getLinePatternForDictionaryField(
-                    ApiKeyAuthBlockKey.Placement,
-                ),
-                choices: Object.values(ApiKeyAuthBlockPlacementValue),
-            },
-            {
-                linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKey.CredentialsPlacement,
-                ),
-                choices: Object.values(OAuth2BlockCredentialsPlacementValue),
-            },
-            {
-                linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKey.Pkce,
-                ),
-                choices: Object.values(BooleanFieldValue),
-            },
-            {
-                linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKey.TokenPlacement,
-                ),
-                choices: Object.values(OAuth2BlockTokenPlacementValue),
-            },
-            {
-                linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKey.AutoFetchToken,
-                ),
-                choices: Object.values(BooleanFieldValue),
-            },
-            {
-                linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKey.AutoRefreshToken,
-                ),
-                choices: Object.values(BooleanFieldValue),
-            },
-        ],
-        request,
-    );
-}
-
-function getSettingsBlockSpecificCompletions(
-    request: LanguageFeatureBaseRequest,
-) {
-    return getFixedCompletionItems(
-        [
-            {
-                linePattern: getLinePatternForDictionaryField(
-                    SettingsBlockKey.EncodeUrl,
-                ),
-                choices: Object.values(BooleanFieldValue),
-            },
-            {
-                linePattern: getLinePatternForDictionaryField(
-                    SettingsBlockKey.FollowRedirects,
-                ),
-                choices: Object.values(BooleanFieldValue),
-            },
-            {
-                linePattern: getLinePatternForDictionaryField(
-                    SettingsBlockKey.Timeout,
-                ),
-                choices: ["inherit"],
-            },
-        ],
-        request,
-    );
 }
 
 function getVariable(

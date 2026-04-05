@@ -9,6 +9,8 @@ import {
     DictionaryBlock,
     isDictionaryBlockArrayField,
     DictionaryBlockArrayField,
+    getMetaBlockMandatoryKeys,
+    getMetaBlockOptionalKeys,
 } from "@global_shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
@@ -33,12 +35,8 @@ export async function getMetaBlockSpecificDiagnostics(
     documentHelper: TextDocumentHelper,
     metaBlock: DictionaryBlock,
 ): Promise<(DiagnosticWithCode | undefined)[]> {
-    const mandatoryBlockKeys = [
-        MetaBlockKey.Name,
-        MetaBlockKey.Sequence,
-        MetaBlockKey.Type,
-    ];
-    const optionalBlockKeys = [MetaBlockKey.Tags];
+    const mandatoryBlockKeys = getMetaBlockMandatoryKeys();
+    const optionalBlockKeys = getMetaBlockOptionalKeys(true);
     const typeFields = metaBlock.content.filter(
         ({ key, disabled }) => key == MetaBlockKey.Type && !disabled,
     );
