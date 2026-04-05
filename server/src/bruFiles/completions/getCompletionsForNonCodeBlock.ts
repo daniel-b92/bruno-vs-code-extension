@@ -166,7 +166,10 @@ async function getBlockSpecificCompletions(
         );
     }
     if ((getPossibleMethodBlocks() as string[]).includes(blockName)) {
-        return getMethodBlockSpecificCompletions(request);
+        return getMethodBlockSpecificCompletions(
+            request,
+            blockContainingPosition,
+        );
     }
     if (isAuthBlock(blockName)) {
         return getAuthBlockSpecificCompletions(request);

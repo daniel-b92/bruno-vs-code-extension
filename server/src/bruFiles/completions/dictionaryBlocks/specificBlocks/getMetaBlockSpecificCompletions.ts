@@ -1,16 +1,10 @@
 import {
     Block,
-    DictionaryBlockArrayField,
-    DictionaryBlockSimpleField,
-    getDefaultIndentationForDictionaryBlockFields,
     getDictionaryBlockArrayField,
     getExistingRequestFileTags,
     getMaxSequenceForRequests,
     getMetaBlockMandatoryKeys,
-    isArrayBlockField,
-    isDictionaryBlockField,
     MetaBlockKey,
-    PlainTextWithinBlock,
     Position,
     Range,
     RequestType,
@@ -24,6 +18,9 @@ import { dirname, basename } from "path";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 import { getFixedCompletionItems } from "../generic/getFixedCompletionItems";
 import { getLinePatternForDictionaryField } from "../generic/getLinePatternForDictionaryField";
+import { getKeyRangeContainingPosition } from "../generic/getKeyRangeContainingPosition";
+import { getTextEditForKeyCompletion } from "../generic/getTextEditForKeyCompletion";
+import { getKeysUsedInOtherLines } from "../generic/getKeysUsedInOtherLines";
 
 export async function getMetaBlockSpecificCompletions(
     itemProvider: TypedCollectionItemProvider,
@@ -37,28 +34,19 @@ export async function getMetaBlockSpecificCompletions(
     );
 
     if (keyRangeContainingPosition != undefined) {
-        const usedKeysInOtherLines = getDictionaryBlockKeysUsedInOtherLines(
-            request,
-            block,
-        );
         return getMetaBlockMandatoryKeys()
-            .filter((mandatory) => !usedKeysInOtherLines.includes(mandatory))
+            .filter(
+                (mandatory) =>
+                    !getKeysUsedInOtherLines(request, block).includes(
+                        mandatory,
+                    ),
+            )
             .map((key) => ({
                 label: key,
-                textEdit: {
-                    newText:
-                        keyRangeContainingPosition.start.character >=
-                        getDefaultIndentationForDictionaryBlockFields()
-                            ? key
-                            : " "
-                                  .repeat(
-                                      getDefaultIndentationForDictionaryBlockFields() -
-                                          keyRangeContainingPosition.start
-                                              .character,
-                                  )
-                                  .concat(key),
-                    range: keyRangeContainingPosition,
-                },
+                textEdit: getTextEditForKeyCompletion(
+                    keyRangeContainingPosition,
+                    key,
+                ),
             }));
     }
 
@@ -157,55 +145,6 @@ function getTagsValueCompletions(
                 };
             },
         );
-}
-
-function getKeyRangeContainingPosition(
-    { position }: LanguageFeatureBaseRequest,
-    block: Block,
-) {
-    const { content: blockContent } = block;
-    if (!Array.isArray(blockContent)) {
-        return undefined;
-    }
-
-    const field = blockContent
-        .filter((field) => !isArrayBlockField(field))
-        .find((field) => {
-            if (
-                isArrayBlockField(field) ||
-                (isDictionaryBlockField(field) && field.disabled)
-            ) {
-                return false;
-            }
-
-            if (!isDictionaryBlockField(field)) {
-                return field.range.contains(position);
-            }
-
-            return field.keyRange.contains(position);
-        }) as
-        | PlainTextWithinBlock
-        | DictionaryBlockSimpleField
-        | DictionaryBlockArrayField
-        | undefined;
-
-    return !field
-        ? undefined
-        : isDictionaryBlockField(field)
-          ? field.keyRange
-          : field.range;
-}
-
-function getDictionaryBlockKeysUsedInOtherLines(
-    { position: { line } }: LanguageFeatureBaseRequest,
-    { content: blockContent }: Block,
-) {
-    return !Array.isArray(blockContent)
-        ? []
-        : blockContent
-              .filter((field) => isDictionaryBlockField(field))
-              .filter(({ keyRange: { start } }) => start.line != line)
-              .map(({ key }) => key);
 }
 
 function getRequestTypeValueCompletions(request: LanguageFeatureBaseRequest) {

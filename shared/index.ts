@@ -107,6 +107,7 @@ export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockAuthEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockBodyEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/getPossibleMethodBlocks";
 export * from "./languageUtils/commonBlocks/methodBlocks/getActiveFieldFromMethodBlock";
+export { getMandatoryKeys as getMandatoryKeysForMethodBlock } from "./languageUtils/commonBlocks/methodBlocks/getMandatoryKeys";
 
 export * from "./languageUtils/commonBlocks/generic/shouldBeCodeBlock";
 export * from "./languageUtils/commonBlocks/generic/getValidDictionaryBlocksWithName";
