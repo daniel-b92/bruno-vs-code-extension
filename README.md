@@ -26,6 +26,7 @@ For getting the most out of the extension, please follow these steps when instal
 - Install `node js` and `npm`, if you haven't already.
 - If your collection is in a git repository, add the entry `**/__temp_bru_reference.js` to your gitignore file.
     - The extension will sometimes temporarily create a file with this name for providing the Javascript intellisense.
+- If you want to be able to trigger testruns via the extension, install the [Bruno CLI](https://www.npmjs.com/package/@usebruno/cli).
 
 ### Improving intellisense
 
