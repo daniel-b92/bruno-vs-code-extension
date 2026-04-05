@@ -10,6 +10,10 @@
 - Enable configuration of the environment to use for testruns to be set per collection.
     - Also display the current setting in the collection explorer and add a dialog for selecting the environment when clicking on the root folder item.
 
+### Fixes / Minor Improvements
+
+- Improve grouping and sorting of context menu items in collection explorer.
+
 ## [0.22.1] (2026-04-02)
 
 ### Fixes / Minor Improvements
