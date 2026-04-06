@@ -151,6 +151,7 @@ export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinition
 export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionVariableType";
 
 export * from "./languageUtils/commonBlocks/settingsBlock/settingsBlockKeyEnum";
+export { getMandatoryKeys as getMandatoryKeysForSettingsBlock } from "./languageUtils/commonBlocks/settingsBlock/getMandatoryKeys";
 
 export { isVarsBlock as isVarsBlockInRequestFile } from "./languageUtils/commonBlocks/varsBlocks/isVarsBlock";
 
