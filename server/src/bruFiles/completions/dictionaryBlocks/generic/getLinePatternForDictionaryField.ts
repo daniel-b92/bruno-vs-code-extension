@@ -1,5 +1,3 @@
-export function getLinePatternForDictionaryField(specificKey?: string) {
-    return specificKey != undefined
-        ? new RegExp(`^\\s*${specificKey}:.*$`, "m")
-        : /^.*?:.*$/m;
+export function getLinePatternForDictionaryField(key: string) {
+    return new RegExp(`^\\s*${key}:.*$`, "m");
 }
