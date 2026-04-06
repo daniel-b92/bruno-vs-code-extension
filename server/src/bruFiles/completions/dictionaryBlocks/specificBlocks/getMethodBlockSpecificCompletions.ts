@@ -8,30 +8,21 @@ import {
 import { LanguageFeatureBaseRequest } from "../../../../shared";
 import { getFixedCompletionItems } from "../generic/getFixedCompletionItems";
 import { getLinePatternForDictionaryField } from "../generic/getLinePatternForDictionaryField";
-import { getKeyRangeContainingPosition } from "../generic/getKeyRangeContainingPosition";
-import { getKeysUsedInOtherLines } from "../generic/getKeysUsedInOtherLines";
-import { getTextEditForKeyCompletion } from "../generic/getTextEditForKeyCompletion";
+
+import { getCompletionsForKeys } from "../generic/getCompletionsForKeys";
 
 export function getMethodBlockSpecificCompletions(
     request: LanguageFeatureBaseRequest,
     block: Block,
 ) {
-    const keyRangeContainingPosition = getKeyRangeContainingPosition(
+    const completionsForKeys = getCompletionsForKeys(
         request,
         block,
+        getMandatoryKeysForMethodBlock(block.name),
     );
 
-    if (keyRangeContainingPosition != undefined) {
-        const usedKeysInOtherLines = getKeysUsedInOtherLines(request, block);
-        return getMandatoryKeysForMethodBlock(block.name)
-            .filter((mandatory) => !usedKeysInOtherLines.includes(mandatory))
-            .map((key) => ({
-                label: key,
-                textEdit: getTextEditForKeyCompletion(
-                    keyRangeContainingPosition,
-                    key,
-                ),
-            }));
+    if (completionsForKeys) {
+        return completionsForKeys;
     }
 
     return getFixedCompletionItems(

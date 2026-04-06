@@ -1,9 +1,11 @@
 import {
     Block,
+    BrunoFileType,
     getDictionaryBlockArrayField,
     getExistingRequestFileTags,
     getMaxSequenceForRequests,
     getMetaBlockMandatoryKeys,
+    getMetaBlockOptionalKeys,
     MetaBlockKey,
     Position,
     Range,
@@ -18,36 +20,29 @@ import { dirname, basename } from "path";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 import { getFixedCompletionItems } from "../generic/getFixedCompletionItems";
 import { getLinePatternForDictionaryField } from "../generic/getLinePatternForDictionaryField";
-import { getKeyRangeContainingPosition } from "../generic/getKeyRangeContainingPosition";
-import { getTextEditForKeyCompletion } from "../generic/getTextEditForKeyCompletion";
-import { getKeysUsedInOtherLines } from "../generic/getKeysUsedInOtherLines";
+import { getCompletionsForKeys } from "../generic/getCompletionsForKeys";
 
 export async function getMetaBlockSpecificCompletions(
     itemProvider: TypedCollectionItemProvider,
     request: LanguageFeatureBaseRequest,
     block: Block,
+    itemType: BrunoFileType,
     collection?: TypedCollection,
 ): Promise<CompletionItem[]> {
-    const keyRangeContainingPosition = getKeyRangeContainingPosition(
-        request,
-        block,
-    );
+    const mandatoryKeys = getMetaBlockMandatoryKeys(itemType);
+    const optionalKeys = getMetaBlockOptionalKeys(itemType);
 
-    if (keyRangeContainingPosition != undefined) {
-        return getMetaBlockMandatoryKeys()
-            .filter(
-                (mandatory) =>
-                    !getKeysUsedInOtherLines(request, block).includes(
-                        mandatory,
-                    ),
-            )
-            .map((key) => ({
-                label: key,
-                textEdit: getTextEditForKeyCompletion(
-                    keyRangeContainingPosition,
-                    key,
-                ),
-            }));
+    if (mandatoryKeys) {
+        const completionsForKeys = getCompletionsForKeys(
+            request,
+            block,
+            mandatoryKeys,
+            optionalKeys,
+        );
+
+        if (completionsForKeys) {
+            return completionsForKeys;
+        }
     }
 
     return (await getSequenceValueCompletion(itemProvider, request)).concat(

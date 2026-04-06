@@ -7,6 +7,7 @@ import {
     getMatchingTextContainingPosition,
     getPossibleMethodBlocks,
     isAuthBlock,
+    isBrunoFileType,
     Logger,
     Position,
     RequestFileBlockName,
@@ -156,12 +157,20 @@ async function getBlockSpecificCompletions(
     collection?: TypedCollection,
 ) {
     const { name: blockName } = blockContainingPosition;
+    const itemType = collection
+        ? collection.getStoredDataForPath(request.filePath)?.item.getItemType()
+        : undefined;
 
-    if (blockName == RequestFileBlockName.Meta) {
+    if (
+        blockName == RequestFileBlockName.Meta &&
+        itemType &&
+        isBrunoFileType(itemType)
+    ) {
         return await getMetaBlockSpecificCompletions(
             itemProvider,
             request,
             blockContainingPosition,
+            itemType,
             collection,
         );
     }
