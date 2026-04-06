@@ -26,15 +26,18 @@ export function getCompletionsForKeys(
         return undefined;
     }
 
-    const forMandatoryKeys = mandatoryKeys
+    const detailTextPrefix = " ";
+
+    const forMandatoryKeys: CompletionItem[] = mandatoryKeys
         .filter((key) => !getKeysUsedInOtherLines(request, block).includes(key))
         .map((key) => ({
             label: key,
             textEdit: getTextEdit(keyRangeContainingPosition, key),
             sortText: `a_${key}`,
+            labelDetails: { detail: `${detailTextPrefix}mandatory` },
         }));
 
-    const forOptionalKeys = !optionalKeys
+    const forOptionalKeys: CompletionItem[] = !optionalKeys
         ? []
         : optionalKeys
               .filter(
@@ -45,6 +48,7 @@ export function getCompletionsForKeys(
                   label: key,
                   textEdit: getTextEdit(keyRangeContainingPosition, key),
                   sortText: `b_${key}`,
+                  labelDetails: { detail: `${detailTextPrefix}optional` },
               }));
 
     return forMandatoryKeys.concat(forOptionalKeys);
