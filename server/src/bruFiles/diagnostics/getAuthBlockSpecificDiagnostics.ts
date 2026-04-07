@@ -10,10 +10,12 @@ import {
     OAuth2BlockCredentialsPlacementValue,
     OAuth2BlockTokenPlacementValue,
     OAuth2GrantType,
-    OAuth2ViaAuthorizationCodeBlockKey,
+    OAuth2ViaAuthorizationCodeBlockKeys,
     getMandatoryKeysForOAuth2Block,
     isDictionaryBlockSimpleField,
     AuthBlockNameeExcludingOAuth2,
+    OAuth2AuthBlocksCommonKeys,
+    OAuth2BlockTokenSourceValue,
 } from "@global_shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
@@ -21,6 +23,7 @@ import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "./shared/checks/s
 import { checkValueForDictionaryBlockSimpleFieldIsValid } from "./shared/checks/singleBlocks/checkValueForDictionaryBlockSimpleFieldIsValid";
 import { DiagnosticWithCode } from "./interfaces";
 import { RelevantWithinAuthBlockDiagnosticCode } from "./shared/diagnosticCodes/relevantWithinAuthBlockDiagnosticCodeEnum";
+import { KnownDiagnosticCode } from "./shared/diagnosticCodes/knownDiagnosticCodeDefinition";
 
 export function getAuthBlockSpecificDiagnostics(
     filePath: string,
@@ -97,7 +100,7 @@ function getDiagnosticsForOAuth2AuthBlock(
     const diagnostics: (DiagnosticWithCode | undefined)[] = [];
 
     const grantTypeFields = authBlock.content.filter(
-        ({ key }) => key == OAuth2ViaAuthorizationCodeBlockKey.GrantType,
+        ({ key }) => key == OAuth2ViaAuthorizationCodeBlockKeys.GrantType,
     );
 
     const diagnosticsForGrantTypeField: (DiagnosticWithCode | undefined)[] = [];
@@ -105,14 +108,14 @@ function getDiagnosticsForOAuth2AuthBlock(
     diagnosticsForGrantTypeField.push(
         checkNoKeysAreMissingForDictionaryBlock(
             authBlock,
-            [OAuth2ViaAuthorizationCodeBlockKey.GrantType],
+            [OAuth2ViaAuthorizationCodeBlockKeys.GrantType],
             RelevantWithinAuthBlockDiagnosticCode.KeysMissingInAuthBlock,
         ),
         ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
             filePath,
             authBlock,
             RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock,
-            [OAuth2ViaAuthorizationCodeBlockKey.GrantType],
+            [OAuth2ViaAuthorizationCodeBlockKeys.GrantType],
         ) ?? []),
         grantTypeFields.length == 1 &&
             isDictionaryBlockSimpleField(grantTypeFields[0])
@@ -155,70 +158,26 @@ function getDiagnosticsForOAuth2AuthBlock(
 function checkValuesForOAuth2FieldsCommonForAllGrantTypes(
     authBlock: DictionaryBlock,
 ) {
-    const diagnostics: (DiagnosticWithCode | undefined)[] = [];
-
-    const credentialsPlacementFields = authBlock.content.filter(
-        ({ key }) =>
-            key == OAuth2ViaAuthorizationCodeBlockKey.CredentialsPlacement,
-    );
-
-    diagnostics.push(
-        credentialsPlacementFields.length == 1 &&
-            isDictionaryBlockSimpleField(credentialsPlacementFields[0])
-            ? checkValueForDictionaryBlockSimpleFieldIsValid(
-                  credentialsPlacementFields[0],
-                  Object.values(OAuth2BlockCredentialsPlacementValue),
-                  RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForCredentialsPlacement,
-              )
-            : undefined,
-    );
-
-    const tokenPlacementFields = authBlock.content.filter(
-        ({ key }) => key == OAuth2ViaAuthorizationCodeBlockKey.TokenPlacement,
-    );
-
-    diagnostics.push(
-        tokenPlacementFields.length == 1 &&
-            isDictionaryBlockSimpleField(tokenPlacementFields[0])
-            ? checkValueForDictionaryBlockSimpleFieldIsValid(
-                  tokenPlacementFields[0],
-                  Object.values(OAuth2BlockTokenPlacementValue),
-                  RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForTokenPlacement,
-              )
-            : undefined,
-    );
-
-    const autoFetchTokenFields = authBlock.content.filter(
-        ({ key }) => key == OAuth2ViaAuthorizationCodeBlockKey.AutoFetchToken,
-    );
-
-    diagnostics.push(
-        autoFetchTokenFields.length == 1 &&
-            isDictionaryBlockSimpleField(autoFetchTokenFields[0])
-            ? checkValueForDictionaryBlockSimpleFieldIsValid(
-                  autoFetchTokenFields[0],
-                  Object.values(BooleanFieldValue),
-                  RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForAutoFetchToken,
-              )
-            : undefined,
-    );
-
-    const autoRefreshTokenFields = authBlock.content.filter(
-        ({ key }) => key == OAuth2ViaAuthorizationCodeBlockKey.AutoRefreshToken,
-    );
-
-    diagnostics.push(
-        autoRefreshTokenFields.length == 1 &&
-            isDictionaryBlockSimpleField(autoRefreshTokenFields[0])
-            ? checkValueForDictionaryBlockSimpleFieldIsValid(
-                  autoRefreshTokenFields[0],
-                  Object.values(BooleanFieldValue),
-                  RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForAutoRefreshToken,
-              )
-            : undefined,
-    );
-
-    return diagnostics;
+    return checkValuesForFields(authBlock, [
+        {
+            key: OAuth2AuthBlocksCommonKeys.TokenPlacement,
+            allowedValues: Object.values(OAuth2BlockTokenPlacementValue),
+            diagnosticCode:
+                RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForTokenPlacement,
+        },
+        {
+            key: OAuth2AuthBlocksCommonKeys.TokenSource,
+            allowedValues: Object.values(OAuth2BlockTokenSourceValue),
+            diagnosticCode:
+                RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForTokenSource,
+        },
+        {
+            key: OAuth2ViaAuthorizationCodeBlockKeys.AutoFetchToken,
+            allowedValues: Object.values(BooleanFieldValue),
+            diagnosticCode:
+                RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForAutoFetchToken,
+        },
+    ]);
 }
 
 function checkValuesForOAuth2FieldsDependingOnGrantType(
@@ -251,7 +210,7 @@ function checkValuesForOAuth2FieldsDependingOnGrantType(
 
     if (grantType == OAuth2GrantType.AuthorizationCode) {
         const pkceFields = authBlock.content.filter(
-            ({ key }) => key == OAuth2ViaAuthorizationCodeBlockKey.Pkce,
+            ({ key }) => key == OAuth2ViaAuthorizationCodeBlockKeys.Pkce,
         );
 
         diagnostics.push(
@@ -266,5 +225,63 @@ function checkValuesForOAuth2FieldsDependingOnGrantType(
         );
     }
 
+    if (grantType != OAuth2GrantType.Implicit) {
+        const credentialsPlacementFields = authBlock.content.filter(
+            ({ key }) =>
+                key == OAuth2ViaAuthorizationCodeBlockKeys.CredentialsPlacement,
+        );
+
+        diagnostics.push(
+            credentialsPlacementFields.length == 1 &&
+                isDictionaryBlockSimpleField(credentialsPlacementFields[0])
+                ? checkValueForDictionaryBlockSimpleFieldIsValid(
+                      credentialsPlacementFields[0],
+                      Object.values(OAuth2BlockCredentialsPlacementValue),
+                      RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForCredentialsPlacement,
+                  )
+                : undefined,
+        );
+
+        const autoRefreshTokenFields = authBlock.content.filter(
+            ({ key }) =>
+                key == OAuth2ViaAuthorizationCodeBlockKeys.AutoRefreshToken,
+        );
+
+        diagnostics.push(
+            autoRefreshTokenFields.length == 1 &&
+                isDictionaryBlockSimpleField(autoRefreshTokenFields[0])
+                ? checkValueForDictionaryBlockSimpleFieldIsValid(
+                      autoRefreshTokenFields[0],
+                      Object.values(BooleanFieldValue),
+                      RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForAutoRefreshToken,
+                  )
+                : undefined,
+        );
+    }
+
     return diagnostics;
+}
+
+function checkValuesForFields(
+    authBlock: DictionaryBlock,
+    toCheck: {
+        key: string;
+        allowedValues: string[];
+        diagnosticCode: KnownDiagnosticCode;
+    }[],
+): (DiagnosticWithCode | undefined)[] {
+    return toCheck.map(({ key: keyToCheck, allowedValues, diagnosticCode }) => {
+        const matchingFields = authBlock.content.filter(
+            ({ key }) => key == keyToCheck,
+        );
+
+        return matchingFields.length == 1 &&
+            isDictionaryBlockSimpleField(matchingFields[0])
+            ? checkValueForDictionaryBlockSimpleFieldIsValid(
+                  matchingFields[0],
+                  allowedValues,
+                  diagnosticCode,
+              )
+            : undefined;
+    });
 }

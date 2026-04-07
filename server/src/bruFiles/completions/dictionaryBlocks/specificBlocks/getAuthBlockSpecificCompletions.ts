@@ -1,7 +1,7 @@
 import {
     ApiKeyAuthBlockKey,
     ApiKeyAuthBlockPlacementValue,
-    OAuth2ViaAuthorizationCodeBlockKey,
+    OAuth2ViaAuthorizationCodeBlockKeys,
     OAuth2BlockCredentialsPlacementValue,
     BooleanFieldValue,
     OAuth2BlockTokenPlacementValue,
@@ -51,31 +51,31 @@ function getCompletionsForValues(request: LanguageFeatureBaseRequest) {
             },
             {
                 linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKey.CredentialsPlacement,
+                    OAuth2ViaAuthorizationCodeBlockKeys.CredentialsPlacement,
                 ),
                 choices: Object.values(OAuth2BlockCredentialsPlacementValue),
             },
             {
                 linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKey.Pkce,
+                    OAuth2ViaAuthorizationCodeBlockKeys.Pkce,
                 ),
                 choices: Object.values(BooleanFieldValue),
             },
             {
                 linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKey.TokenPlacement,
+                    OAuth2ViaAuthorizationCodeBlockKeys.TokenPlacement,
                 ),
                 choices: Object.values(OAuth2BlockTokenPlacementValue),
             },
             {
                 linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKey.AutoFetchToken,
+                    OAuth2ViaAuthorizationCodeBlockKeys.AutoFetchToken,
                 ),
                 choices: Object.values(BooleanFieldValue),
             },
             {
                 linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKey.AutoRefreshToken,
+                    OAuth2ViaAuthorizationCodeBlockKeys.AutoRefreshToken,
                 ),
                 choices: Object.values(BooleanFieldValue),
             },

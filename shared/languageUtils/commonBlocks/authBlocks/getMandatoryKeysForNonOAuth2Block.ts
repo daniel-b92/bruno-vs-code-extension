@@ -7,7 +7,7 @@ import {
     DigestAuthBlockKey,
     NtlmAuthBlockKey,
     WsseAuthBlockKey,
-} from "./authBlocksKeyEnums";
+} from "./authBlocksKeyInterfaces";
 
 export type AuthBlockNameeExcludingOAuth2 = Exclude<
     AuthBlockName,

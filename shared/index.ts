@@ -133,7 +133,7 @@ export * from "./languageUtils/commonBlocks/generic/variables/getBlocksWithoutVa
 export * from "./languageUtils/commonBlocks/generic/variables/getVariableNameForPositionInNonCodeBlock";
 
 export * from "./languageUtils/commonBlocks/authBlocks/authBlockNameEnum";
-export * from "./languageUtils/commonBlocks/authBlocks/authBlocksKeyEnums";
+export * from "./languageUtils/commonBlocks/authBlocks/authBlocksKeyInterfaces";
 export * from "./languageUtils/commonBlocks/authBlocks/oAuth2BlockValuesEnums";
 export * from "./languageUtils/commonBlocks/authBlocks/apiKeyAuthBlockValuesEnums";
 export * from "./languageUtils/commonBlocks/authBlocks/oAuth2BlockCommonFieldsValuesEnums";

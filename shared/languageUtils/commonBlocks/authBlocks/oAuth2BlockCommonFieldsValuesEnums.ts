@@ -1,9 +1,14 @@
-export enum OAuth2BlockCredentialsPlacementValue {
-    Body = "body",
-    BasicAuthHeader = "basic_auth_header",
-}
+export const OAuth2BlockCredentialsPlacementValue = {
+    Body: "body",
+    BasicAuthHeader: "basic_auth_header",
+} as const;
 
-export enum OAuth2BlockTokenPlacementValue {
-    Header = "header",
-    Url = "url",
-}
+export const OAuth2BlockTokenPlacementValue = {
+    Header: "header",
+    Url: "url",
+} as const;
+
+export const OAuth2BlockTokenSourceValue = {
+    AccessToken: "access_token",
+    IdToken: "id_token",
+} as const;
