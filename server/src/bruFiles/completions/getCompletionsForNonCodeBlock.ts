@@ -181,7 +181,10 @@ async function getBlockSpecificCompletions(
         );
     }
     if (isAuthBlock(blockName)) {
-        return getAuthBlockSpecificCompletions(request);
+        return getAuthBlockSpecificCompletions(
+            request,
+            blockContainingPosition,
+        );
     }
     if (blockName == RequestFileBlockName.Settings) {
         return getSettingsBlockSpecificCompletions(

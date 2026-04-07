@@ -13,6 +13,7 @@ import {
     OAuth2ViaAuthorizationCodeBlockKey,
     getMandatoryKeysForOAuth2Block,
     isDictionaryBlockSimpleField,
+    AuthBlockNameeExcludingOAuth2,
 } from "@global_shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
@@ -38,14 +39,7 @@ export function getAuthBlockSpecificDiagnostics(
     ) {
         mandatoryKeys.push(
             ...getMandatoryKeysForNonOAuth2Block(
-                authBlock.name as
-                    | AuthBlockName.ApiKeyAuth
-                    | AuthBlockName.AwsSigV4Auth
-                    | AuthBlockName.BasicAuth
-                    | AuthBlockName.BearerAuth
-                    | AuthBlockName.DigestAuth
-                    | AuthBlockName.NtlmAuth
-                    | AuthBlockName.WsseAuth,
+                authBlock.name as AuthBlockNameeExcludingOAuth2,
             ),
         );
         diagnostics.push(
