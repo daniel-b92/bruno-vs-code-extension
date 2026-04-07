@@ -6,6 +6,7 @@ import {
     isDictionaryBlockSimpleField,
     DictionaryBlockSimpleField,
     DictionaryBlock,
+    getMandatoryKeysForSettingsBlock,
 } from "@global_shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
@@ -33,7 +34,7 @@ function runGenericChecksForAllFields(
     filePath: string,
     settingsBlock: DictionaryBlock,
 ) {
-    const mandatoryKeys = getMandatoryKeys();
+    const mandatoryKeys = getMandatoryKeysForSettingsBlock();
 
     return [
         checkNoKeysAreMissingForDictionaryBlock(
@@ -131,8 +132,4 @@ function checkIfBooleanFieldHasValidValue(
               diagnosticCodeInCaseOfFailedValidation,
           )
         : undefined;
-}
-
-function getMandatoryKeys() {
-    return Object.values(SettingsBlockKey);
 }

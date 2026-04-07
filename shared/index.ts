@@ -100,12 +100,14 @@ export * from "./languageUtils/commonBlocks/metaBlock/getActiveFieldFromMetaBloc
 export * from "./languageUtils/commonBlocks/metaBlock/metaBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/metaBlock/getSequenceValueFromMetaBlock";
 export * from "./languageUtils/commonBlocks/metaBlock/getSequenceAndTagsFromMetaBlock";
+export * from "./languageUtils/commonBlocks/metaBlock/getMandatoryAndOptionalKeys";
 
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockKeyEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockAuthEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockBodyEnum";
 export * from "./languageUtils/commonBlocks/methodBlocks/getPossibleMethodBlocks";
 export * from "./languageUtils/commonBlocks/methodBlocks/getActiveFieldFromMethodBlock";
+export { getMandatoryKeys as getMandatoryKeysForMethodBlock } from "./languageUtils/commonBlocks/methodBlocks/getMandatoryKeys";
 
 export * from "./languageUtils/commonBlocks/generic/shouldBeCodeBlock";
 export * from "./languageUtils/commonBlocks/generic/getValidDictionaryBlocksWithName";
@@ -149,6 +151,7 @@ export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinition
 export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionVariableType";
 
 export * from "./languageUtils/commonBlocks/settingsBlock/settingsBlockKeyEnum";
+export { getMandatoryKeys as getMandatoryKeysForSettingsBlock } from "./languageUtils/commonBlocks/settingsBlock/getMandatoryKeys";
 
 export { isVarsBlock as isVarsBlockInRequestFile } from "./languageUtils/commonBlocks/varsBlocks/isVarsBlock";
 

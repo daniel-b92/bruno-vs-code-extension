@@ -3,6 +3,8 @@ import {
     Block,
     isBlockDictionaryBlock,
     MetaBlockKey,
+    getMetaBlockMandatoryKeys,
+    BrunoFileType,
 } from "@global_shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "../../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
@@ -23,7 +25,13 @@ export async function getMetaBlockSpecificDiagnostics(
     documentHelper: TextDocumentHelper,
     metaBlock: Block,
 ): Promise<(DiagnosticWithCode | undefined)[]> {
-    const metaBlockKeys = [MetaBlockKey.Name, MetaBlockKey.Sequence];
+    const metaBlockKeys = getMetaBlockMandatoryKeys(
+        BrunoFileType.FolderSettingsFile,
+    );
+
+    if (!metaBlockKeys) {
+        return [];
+    }
 
     const diagnostics = [checkSequenceInMetaBlockIsValid(metaBlock)].concat(
         isBlockDictionaryBlock(metaBlock)

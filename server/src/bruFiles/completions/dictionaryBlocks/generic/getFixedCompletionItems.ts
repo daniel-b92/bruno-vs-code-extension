@@ -1,5 +1,5 @@
 import { CompletionItem } from "vscode-languageserver";
-import { LanguageFeatureBaseRequest } from "../../../shared";
+import { LanguageFeatureBaseRequest } from "../../../../shared";
 import { getTextEditForDictionaryBlockSimpleValue } from "./getTextEditForDictionaryBlockSimpleValue";
 
 export function getFixedCompletionItems(

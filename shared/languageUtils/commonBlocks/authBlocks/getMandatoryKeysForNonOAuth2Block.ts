@@ -9,15 +9,13 @@ import {
     WsseAuthBlockKey,
 } from "./authBlocksKeyEnums";
 
+export type AuthBlockNameeExcludingOAuth2 = Exclude<
+    AuthBlockName,
+    AuthBlockName.OAuth2Auth
+>;
+
 export function getMandatoryKeysForNonOAuth2Block(
-    authBlockName:
-        | AuthBlockName.BasicAuth
-        | AuthBlockName.BearerAuth
-        | AuthBlockName.DigestAuth
-        | AuthBlockName.ApiKeyAuth
-        | AuthBlockName.AwsSigV4Auth
-        | AuthBlockName.NtlmAuth
-        | AuthBlockName.WsseAuth
+    authBlockName: AuthBlockNameeExcludingOAuth2,
 ): string[] {
     if (authBlockName == AuthBlockName.BasicAuth) {
         return Object.values(BasicAuthBlockKey);
