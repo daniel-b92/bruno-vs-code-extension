@@ -9,13 +9,13 @@ import {
     WsseAuthBlockKeys,
 } from "./authBlocksKeyInterfaces";
 
-export type AuthBlockNameeExcludingOAuth2 = Exclude<
+export type AuthBlockNamesExcludingOAuth2 = Exclude<
     AuthBlockName,
     AuthBlockName.OAuth2Auth
 >;
 
 export function getMandatoryKeysForNonOAuth2Block(
-    authBlockName: AuthBlockNameeExcludingOAuth2,
+    authBlockName: AuthBlockNamesExcludingOAuth2,
 ): string[] {
     switch (authBlockName) {
         case AuthBlockName.BasicAuth:

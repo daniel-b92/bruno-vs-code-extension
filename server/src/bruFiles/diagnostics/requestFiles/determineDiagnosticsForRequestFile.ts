@@ -37,6 +37,7 @@ import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDia
 import { getSettingsBlockSpecificDiagnostics } from "./getSettingsBlockSpecificDiagnostics";
 import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBlocks/checkCodeBlocksHaveClosingBracket";
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
+import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
 
 export async function determineDiagnosticsForRequestFile(
     filePath: string,
@@ -117,6 +118,10 @@ function collectCommonDiagnostics(
         checkUrlFromMethodBlockMatchesQueryParamsBlock(filePath, blocks),
         checkUrlFromMethodBlockMatchesPathParamsBlock(filePath, blocks),
         checkCodeBlocksHaveClosingBracket(documentHelper, blocks),
+        checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType(
+            filePath,
+            blocks,
+        ),
         checkBlockForResponseValidationExists(documentHelper, blocks),
         checkBlocksAreSeparatedBySingleEmptyLine(
             filePath,

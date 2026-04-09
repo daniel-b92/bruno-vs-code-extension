@@ -22,6 +22,7 @@ import { getAuthModeBlockSpecificDiagnostics } from "../shared/checks/multipleBl
 import { checkNoRedundantBlocksExist } from "../shared/checks/multipleBlocks/checkNoRedundantBlocksExist";
 import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBlocks/checkCodeBlocksHaveClosingBracket";
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
+import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
 
 export function determineDiagnosticsForCollectionSettingsFile(
     filePath: string,
@@ -75,6 +76,10 @@ export function determineDiagnosticsForCollectionSettingsFile(
         checkDictionaryBlocksAreNotEmpty(
             filePath,
             blocksThatShouldBeDictionaryBlocks,
+        ),
+        checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType(
+            filePath,
+            blocks,
         ),
         checkBlocksAreSeparatedBySingleEmptyLine(
             filePath,

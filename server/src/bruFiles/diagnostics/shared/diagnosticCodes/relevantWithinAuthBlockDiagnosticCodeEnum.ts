@@ -10,4 +10,5 @@ export enum RelevantWithinAuthBlockDiagnosticCode {
     InvalidOAuth2ValueForAutoRefreshToken = "bru308",
     InvalidOAuth2ValueForPkce = "bru309",
     InvalidOAuth2ValueForTokenSource = "bru310",
+    AdditionalParamsFieldsDefinedWithoutOAuth2AuthType = "bru311",
 }

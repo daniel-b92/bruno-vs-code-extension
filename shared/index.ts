@@ -141,6 +141,7 @@ export * from "./languageUtils/commonBlocks/authBlocks/getMandatoryKeysForNonOAu
 export * from "./languageUtils/commonBlocks/authBlocks/getMandatoryKeysForOAuth2Block";
 export * from "./languageUtils/commonBlocks/authBlocks/getAuthTypeFromBlockName";
 export * from "./languageUtils/commonBlocks/authBlocks/isAuthBlock";
+export * from "./languageUtils/commonBlocks/authBlocks/additionalParamsBlocks/oauth2AdditionalParamsBlockNames";
 
 export * from "./languageUtils/commonBlocks/authModeBlock/authModeBlockKeyEnum";
 

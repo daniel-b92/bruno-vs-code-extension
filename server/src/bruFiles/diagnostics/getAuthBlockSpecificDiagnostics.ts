@@ -13,9 +13,10 @@ import {
     OAuth2ViaAuthorizationCodeBlockKeys,
     getMandatoryKeysForOAuth2Block,
     isDictionaryBlockSimpleField,
-    AuthBlockNameeExcludingOAuth2,
+    AuthBlockNamesExcludingOAuth2,
     OAuth2AuthBlocksCommonKeys,
     OAuth2BlockTokenSourceValue,
+    isAuthBlock,
 } from "@global_shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
@@ -33,18 +34,16 @@ export function getAuthBlockSpecificDiagnostics(
         return [];
     }
 
-    const mandatoryKeys: string[] = [];
     const diagnostics: (DiagnosticWithCode | undefined)[] = [];
 
     if (
-        (Object.values(AuthBlockName) as string[]).includes(authBlock.name) &&
+        isAuthBlock(authBlock.name) &&
         authBlock.name != AuthBlockName.OAuth2Auth
     ) {
-        mandatoryKeys.push(
-            ...getMandatoryKeysForNonOAuth2Block(
-                authBlock.name as AuthBlockNameeExcludingOAuth2,
-            ),
+        const mandatoryKeys = getMandatoryKeysForNonOAuth2Block(
+            authBlock.name as AuthBlockNamesExcludingOAuth2,
         );
+
         diagnostics.push(
             checkNoKeysAreMissingForDictionaryBlock(
                 authBlock,

@@ -8,7 +8,7 @@ import {
     Block,
     AuthBlockName,
     getMandatoryKeysForNonOAuth2Block,
-    AuthBlockNameeExcludingOAuth2,
+    AuthBlockNamesExcludingOAuth2,
 } from "@global_shared";
 import { LanguageFeatureBaseRequest } from "../../../../shared";
 import { getFixedCompletionItems } from "../generic/getFixedCompletionItems";
@@ -28,7 +28,7 @@ export function getAuthBlockSpecificCompletions(
             request,
             block,
             getMandatoryKeysForNonOAuth2Block(
-                block.name as AuthBlockNameeExcludingOAuth2,
+                block.name as AuthBlockNamesExcludingOAuth2,
             ),
         );
 
