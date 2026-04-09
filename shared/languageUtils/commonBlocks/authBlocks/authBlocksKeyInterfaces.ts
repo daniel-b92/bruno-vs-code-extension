@@ -1,31 +1,31 @@
-export enum BasicAuthBlockKey {
-    Username = "username",
-    Password = "password",
-}
+export const BasicAuthBlockKey = {
+    Username: "username",
+    Password: "password",
+} as const;
 
-export enum BearerAuthBlockKey {
-    Token = "token",
-}
+export const BearerAuthBlockKey = {
+    Token: "token",
+} as const;
 
-export enum AwsV4AuthBlockKey {
-    AccessKeyId = "accessKeyId",
-    SecretAccessKey = "secretAccessKey",
-    SessionToken = "sessionToken",
-    Service = "service",
-    Region = "region",
-    ProfileName = "profileName",
-}
+export const AwsV4AuthBlockKey = {
+    AccessKeyId: "accessKeyId",
+    SecretAccessKey: "secretAccessKey",
+    SessionToken: "sessionToken",
+    Service: "service",
+    Region: "region",
+    ProfileName: "profileName",
+} as const;
 
-export enum DigestAuthBlockKey {
-    Username = "username",
-    Password = "password",
-}
+export const DigestAuthBlockKey = {
+    Username: "username",
+    Password: "password",
+} as const;
 
-export enum NtlmAuthBlockKey {
-    Username = "username",
-    Password = "password",
-    Domain = "domain",
-}
+export const NtlmAuthBlockKey = {
+    Username: "username",
+    Password: "password",
+    Domain: "domain",
+} as const;
 
 export const OAuth2AuthBlocksCommonKeys = {
     GrantType: "grant_type",
@@ -78,13 +78,13 @@ export const OAuth2ViaImplicitBlockKeys = {
     State: "state",
 } as const;
 
-export enum WsseAuthBlockKey {
-    Username = "username",
-    Password = "password",
-}
+export const WsseAuthBlockKeys = {
+    Username: "username",
+    Password: "password",
+} as const;
 
-export enum ApiKeyAuthBlockKey {
-    Key = "key",
-    Value = "value",
-    Placement = "placement",
-}
+export const ApiKeyAuthBlockKeys = {
+    Key: "key",
+    Value: "value",
+    Placement: "placement",
+} as const;

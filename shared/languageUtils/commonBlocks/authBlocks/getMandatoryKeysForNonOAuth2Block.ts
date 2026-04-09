@@ -1,12 +1,12 @@
 import { AuthBlockName } from "./authBlockNameEnum";
 import {
-    ApiKeyAuthBlockKey,
+    ApiKeyAuthBlockKeys,
     AwsV4AuthBlockKey,
     BasicAuthBlockKey,
     BearerAuthBlockKey,
     DigestAuthBlockKey,
     NtlmAuthBlockKey,
-    WsseAuthBlockKey,
+    WsseAuthBlockKeys,
 } from "./authBlocksKeyInterfaces";
 
 export type AuthBlockNameeExcludingOAuth2 = Exclude<
@@ -17,19 +17,20 @@ export type AuthBlockNameeExcludingOAuth2 = Exclude<
 export function getMandatoryKeysForNonOAuth2Block(
     authBlockName: AuthBlockNameeExcludingOAuth2,
 ): string[] {
-    if (authBlockName == AuthBlockName.BasicAuth) {
-        return Object.values(BasicAuthBlockKey);
-    } else if (authBlockName == AuthBlockName.BearerAuth) {
-        return Object.values(BearerAuthBlockKey);
-    } else if (authBlockName == AuthBlockName.DigestAuth) {
-        return Object.values(DigestAuthBlockKey);
-    } else if (authBlockName == AuthBlockName.AwsSigV4Auth) {
-        return Object.values(AwsV4AuthBlockKey);
-    } else if (authBlockName == AuthBlockName.NtlmAuth) {
-        return Object.values(NtlmAuthBlockKey);
-    } else if (authBlockName == AuthBlockName.WsseAuth) {
-        return Object.values(WsseAuthBlockKey);
-    } else {
-        return Object.values(ApiKeyAuthBlockKey);
+    switch (authBlockName) {
+        case AuthBlockName.BasicAuth:
+            return Object.values(BasicAuthBlockKey);
+        case AuthBlockName.BearerAuth:
+            return Object.values(BearerAuthBlockKey);
+        case AuthBlockName.DigestAuth:
+            return Object.values(DigestAuthBlockKey);
+        case AuthBlockName.AwsSigV4Auth:
+            return Object.values(AwsV4AuthBlockKey);
+        case AuthBlockName.NtlmAuth:
+            return Object.values(NtlmAuthBlockKey);
+        case AuthBlockName.WsseAuth:
+            return Object.values(WsseAuthBlockKeys);
+        case AuthBlockName.ApiKeyAuth:
+            return Object.values(ApiKeyAuthBlockKeys);
     }
 }

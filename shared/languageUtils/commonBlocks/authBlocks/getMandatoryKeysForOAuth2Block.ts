@@ -4,7 +4,7 @@ import {
     OAuth2ViaImplicitBlockKeys,
     OAuth2ViaPasswordBlockKeys,
 } from "./authBlocksKeyInterfaces";
-import { OAuth2GrantType } from "./oAuth2BlockValuesEnums";
+import { OAuth2GrantType } from "./oAuth2GrantTypeEnum";
 
 export function getMandatoryKeysForOAuth2Block(
     grantType: OAuth2GrantType,

@@ -134,9 +134,9 @@ export * from "./languageUtils/commonBlocks/generic/variables/getVariableNameFor
 
 export * from "./languageUtils/commonBlocks/authBlocks/authBlockNameEnum";
 export * from "./languageUtils/commonBlocks/authBlocks/authBlocksKeyInterfaces";
-export * from "./languageUtils/commonBlocks/authBlocks/oAuth2BlockValuesEnums";
+export * from "./languageUtils/commonBlocks/authBlocks/oAuth2GrantTypeEnum";
 export * from "./languageUtils/commonBlocks/authBlocks/apiKeyAuthBlockValuesEnums";
-export * from "./languageUtils/commonBlocks/authBlocks/oAuth2BlockCommonFieldsValuesEnums";
+export * from "./languageUtils/commonBlocks/authBlocks/oAuth2BlockCommonFieldsValues";
 export * from "./languageUtils/commonBlocks/authBlocks/getMandatoryKeysForNonOAuth2Block";
 export * from "./languageUtils/commonBlocks/authBlocks/getMandatoryKeysForOAuth2Block";
 export * from "./languageUtils/commonBlocks/authBlocks/getAuthTypeFromBlockName";

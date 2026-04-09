@@ -3,7 +3,7 @@ import {
     isBlockDictionaryBlock,
     AuthBlockName,
     getMandatoryKeysForNonOAuth2Block,
-    ApiKeyAuthBlockKey,
+    ApiKeyAuthBlockKeys,
     ApiKeyAuthBlockPlacementValue,
     BooleanFieldValue,
     DictionaryBlock,
@@ -64,25 +64,19 @@ export function getAuthBlockSpecificDiagnostics(
             ) ?? []),
         );
 
-        if (
-            authBlock.name == AuthBlockName.ApiKeyAuth &&
-            authBlock.content.some(
-                ({ key }) => key == ApiKeyAuthBlockKey.Placement,
-            )
-        ) {
-            const field = authBlock.content.find(
-                ({ key }) => key == ApiKeyAuthBlockKey.Placement,
+        if (authBlock.name == AuthBlockName.ApiKeyAuth) {
+            diagnostics.push(
+                ...checkValuesForFields(authBlock, [
+                    {
+                        key: ApiKeyAuthBlockKeys.Placement,
+                        allowedValues: Object.values(
+                            ApiKeyAuthBlockPlacementValue,
+                        ),
+                        diagnosticCode:
+                            RelevantWithinAuthBlockDiagnosticCode.InvalidApiKeyAuthValueForPlacement,
+                    },
+                ]),
             );
-
-            if (field && isDictionaryBlockSimpleField(field)) {
-                diagnostics.push(
-                    checkValueForDictionaryBlockSimpleFieldIsValid(
-                        field,
-                        Object.values(ApiKeyAuthBlockPlacementValue),
-                        RelevantWithinAuthBlockDiagnosticCode.InvalidApiKeyAuthValueForPlacement,
-                    ),
-                );
-            }
         }
     } else if (authBlock.name == AuthBlockName.OAuth2Auth) {
         diagnostics.push(
@@ -209,53 +203,36 @@ function checkValuesForOAuth2FieldsDependingOnGrantType(
     );
 
     if (grantType == OAuth2GrantType.AuthorizationCode) {
-        const pkceFields = authBlock.content.filter(
-            ({ key }) => key == OAuth2ViaAuthorizationCodeBlockKeys.Pkce,
-        );
-
         diagnostics.push(
-            pkceFields.length == 1 &&
-                isDictionaryBlockSimpleField(pkceFields[0])
-                ? checkValueForDictionaryBlockSimpleFieldIsValid(
-                      pkceFields[0],
-                      Object.values(BooleanFieldValue),
-                      RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForPkce,
-                  )
-                : undefined,
+            ...checkValuesForFields(authBlock, [
+                {
+                    key: OAuth2ViaAuthorizationCodeBlockKeys.Pkce,
+                    allowedValues: Object.values(BooleanFieldValue),
+                    diagnosticCode:
+                        RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForPkce,
+                },
+            ]),
         );
     }
 
     if (grantType != OAuth2GrantType.Implicit) {
-        const credentialsPlacementFields = authBlock.content.filter(
-            ({ key }) =>
-                key == OAuth2ViaAuthorizationCodeBlockKeys.CredentialsPlacement,
-        );
-
         diagnostics.push(
-            credentialsPlacementFields.length == 1 &&
-                isDictionaryBlockSimpleField(credentialsPlacementFields[0])
-                ? checkValueForDictionaryBlockSimpleFieldIsValid(
-                      credentialsPlacementFields[0],
-                      Object.values(OAuth2BlockCredentialsPlacementValue),
-                      RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForCredentialsPlacement,
-                  )
-                : undefined,
-        );
-
-        const autoRefreshTokenFields = authBlock.content.filter(
-            ({ key }) =>
-                key == OAuth2ViaAuthorizationCodeBlockKeys.AutoRefreshToken,
-        );
-
-        diagnostics.push(
-            autoRefreshTokenFields.length == 1 &&
-                isDictionaryBlockSimpleField(autoRefreshTokenFields[0])
-                ? checkValueForDictionaryBlockSimpleFieldIsValid(
-                      autoRefreshTokenFields[0],
-                      Object.values(BooleanFieldValue),
-                      RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForAutoRefreshToken,
-                  )
-                : undefined,
+            ...checkValuesForFields(authBlock, [
+                {
+                    key: OAuth2ViaAuthorizationCodeBlockKeys.CredentialsPlacement,
+                    allowedValues: Object.values(
+                        OAuth2BlockCredentialsPlacementValue,
+                    ),
+                    diagnosticCode:
+                        RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForCredentialsPlacement,
+                },
+                {
+                    key: OAuth2ViaAuthorizationCodeBlockKeys.AutoRefreshToken,
+                    allowedValues: Object.values(BooleanFieldValue),
+                    diagnosticCode:
+                        RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth2ValueForAutoRefreshToken,
+                },
+            ]),
         );
     }
 

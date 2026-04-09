@@ -1,5 +1,5 @@
 import {
-    ApiKeyAuthBlockKey,
+    ApiKeyAuthBlockKeys,
     ApiKeyAuthBlockPlacementValue,
     OAuth2ViaAuthorizationCodeBlockKeys,
     OAuth2BlockCredentialsPlacementValue,
@@ -45,7 +45,7 @@ function getCompletionsForValues(request: LanguageFeatureBaseRequest) {
         [
             {
                 linePattern: getLinePatternForDictionaryField(
-                    ApiKeyAuthBlockKey.Placement,
+                    ApiKeyAuthBlockKeys.Placement,
                 ),
                 choices: Object.values(ApiKeyAuthBlockPlacementValue),
             },
