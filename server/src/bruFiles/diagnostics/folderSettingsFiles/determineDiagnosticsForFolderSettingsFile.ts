@@ -25,6 +25,7 @@ import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDia
 import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBlocks/checkCodeBlocksHaveClosingBracket";
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { TypedCollectionItemProvider } from "../../../shared";
+import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
 
 export async function determineDiagnosticsForFolderSettingsFile(
     filePath: string,
@@ -75,6 +76,10 @@ export async function determineDiagnosticsForFolderSettingsFile(
         checkDictionaryBlocksAreNotEmpty(
             filePath,
             blocksThatShouldBeDictionaryBlocks,
+        ),
+        checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType(
+            filePath,
+            blocks,
         ),
         checkBlocksAreSeparatedBySingleEmptyLine(
             filePath,

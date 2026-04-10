@@ -7,6 +7,7 @@ import {
     isVarsBlockInEnvironmentFile,
     EnvironmentFileBlockName,
     SettingsFileSpecificBlock,
+    Oauth2AdditionalParamsBlockNames,
 } from "../../..";
 
 export function shouldBeDictionaryBlock(blockName: string) {
@@ -39,6 +40,9 @@ export function shouldBeDictionaryBlock(blockName: string) {
             ] as string[]
         ).includes(blockName) ||
         isVarsBlockInEnvironmentFile(blockName) ||
-        blockName == SettingsFileSpecificBlock.AuthMode
+        blockName == SettingsFileSpecificBlock.AuthMode ||
+        (Object.values(Oauth2AdditionalParamsBlockNames) as string[]).includes(
+            blockName,
+        )
     );
 }

@@ -29,6 +29,16 @@ export enum RequestFileBlockName {
     WsseAuth = "auth:wsse",
     ApiKeyAuth = "auth:apikey",
 
+    // OAuth2 additional params
+    OAuth2AdditionalParams_AuthReq_Headers = "auth:oauth2:additional_params:auth_req:headers",
+    OAuth2AdditionalParams_AuthReq_QueryParams = "auth:oauth2:additional_params:auth_req:queryparams",
+    OAuth2AdditionalParams_AccessTokenReq_Headers = "auth:oauth2:additional_params:access_token_req:headers",
+    OAuth2AdditionalParams_AccessTokenReq_Body = "auth:oauth2:additional_params:access_token_req:body",
+    OAuth2AdditionalParams_AccessTokenReq_QueryParams = "auth:oauth2:additional_params:access_token_req:queryparams",
+    OAuth2AdditionalParams_RefreshTokenReq_Headers = "auth:oauth2:additional_params:refresh_token_req:headers",
+    OAuth2AdditionalParams_RefreshTokenReq_Body = "auth:oauth2:additional_params:refresh_token_req:body",
+    OAuth2AdditionalParams_RefreshTokenReq_QueryParams = "auth:oauth2:additional_params:refresh_token_req:queryparams",
+
     // Body
     JsonBody = "body:json",
     XmlBody = "body:xml",

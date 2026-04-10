@@ -290,6 +290,86 @@
         "description": "Add block for auth via api key"
     },
 
+    "oauth2 additional params AuthReq headers block": {
+        "prefix": "auth:oauth2:additional_params:auth_req:headers",
+        "body": [
+            "auth:oauth2:additional_params:auth_req:headers {",
+            "\t${0}",
+            "}"
+        ],
+        "description": "Add block for oauth2 additional params for authorization via headers block"
+    },
+
+    "oauth2 additional params AuthReq QueryParams block": {
+        "prefix": "auth:oauth2:additional_params:auth_req:queryparams",
+        "body": [
+            "auth:oauth2:additional_params:auth_req:queryparams {",
+            "\t${0}",
+            "}"
+        ],
+        "description": "Add block for oauth2 additional params for authorization via query params block"
+    },
+
+    "oauth2 additional params AccessToken headers block": {
+        "prefix": "auth:oauth2:additional_params:access_token_req:headers",
+        "body": [
+            "auth:oauth2:additional_params:access_token_req:headers {",
+            "\t${0}",
+            "}"
+        ],
+        "description": "Add block for oauth2 additional params for access token via headers block"
+    },
+
+    "oauth2 additional params AccessToken body block": {
+        "prefix": "auth:oauth2:additional_params:access_token_req:body",
+        "body": [
+            "auth:oauth2:additional_params:access_token_req:body {",
+            "\t${0}",
+            "}"
+        ],
+        "description": "Add block for oauth2 additional params for access token via body block"
+    },
+
+    "oauth2 additional params AccessToken QueryParams block": {
+        "prefix": "auth:oauth2:additional_params:access_token_req:queryparams",
+        "body": [
+            "auth:oauth2:additional_params:access_token_req:queryparams {",
+            "\t${0}",
+            "}"
+        ],
+        "description": "Add block for oauth2 additional params for access token via query params block"
+    },
+
+    "oauth2 additional params RefreshToken headers block": {
+        "prefix": "auth:oauth2:additional_params:refresh_token_req:headers",
+        "body": [
+            "auth:oauth2:additional_params:refresh_token_req:headers {",
+            "\t${0}",
+            "}"
+        ],
+        "description": "Add block for oauth2 additional params for refresh token via headers block"
+    },
+
+    "oauth2 additional params RefreshToken body block": {
+        "prefix": "auth:oauth2:additional_params:refresh_token_req:body",
+        "body": [
+            "auth:oauth2:additional_params:refresh_token_req:body {",
+            "\t${0}",
+            "}"
+        ],
+        "description": "Add block for oauth2 additional params for refresh token via body block"
+    },
+
+    "oauth2 additional params RefreshToken QueryParams block": {
+        "prefix": "auth:oauth2:additional_params:refresh_token_req:queryparams",
+        "body": [
+            "auth:oauth2:additional_params:refresh_token_req:queryparams {",
+            "\t${0}",
+            "}"
+        ],
+        "description": "Add block for oauth2 additional params for refresh token via query params block"
+    },
+
     "body block - JSON": {
         "prefix": ["body"],
         "body": ["body:json {", "\t${0}", "}"],

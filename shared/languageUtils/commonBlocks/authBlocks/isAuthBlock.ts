@@ -1,9 +1,5 @@
-import { RequestFileBlockName } from "../../..";
+import { AuthBlockName } from "../../..";
 
 export function isAuthBlock(blockName: string) {
-    return (
-        Object.values(RequestFileBlockName).filter((name) =>
-            name.startsWith("auth:"),
-        ) as string[]
-    ).includes(blockName);
+    return (Object.values(AuthBlockName) as string[]).includes(blockName);
 }

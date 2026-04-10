@@ -1,18 +1,22 @@
 import {
-    OAuth2ViaAuthorizationCodeBlockKey,
-    OAuth2ViaClientCredentialsBlockKey,
-    OAuth2ViaPasswordBlockKey,
-} from "./authBlocksKeyEnums";
-import { OAuth2GrantType } from "./oAuth2BlockValuesEnums";
+    OAuth2ViaAuthorizationCodeBlockKeys,
+    OAuth2ViaClientCredentialsBlockKeys,
+    OAuth2ViaImplicitBlockKeys,
+    OAuth2ViaPasswordBlockKeys,
+} from "./authBlocksKeyInterfaces";
+import { OAuth2GrantType } from "./oAuth2GrantTypeEnum";
 
 export function getMandatoryKeysForOAuth2Block(
-    grantType: OAuth2GrantType
+    grantType: OAuth2GrantType,
 ): string[] {
-    if (grantType == OAuth2GrantType.AuthorizationCode) {
-        return Object.values(OAuth2ViaAuthorizationCodeBlockKey);
-    } else if (grantType == OAuth2GrantType.ClientCredentials) {
-        return Object.values(OAuth2ViaClientCredentialsBlockKey);
-    } else {
-        return Object.values(OAuth2ViaPasswordBlockKey);
+    switch (grantType) {
+        case OAuth2GrantType.AuthorizationCode:
+            return Object.values(OAuth2ViaAuthorizationCodeBlockKeys);
+        case OAuth2GrantType.ClientCredentials:
+            return Object.values(OAuth2ViaClientCredentialsBlockKeys);
+        case OAuth2GrantType.PasswordCredentials:
+            return Object.values(OAuth2ViaPasswordBlockKeys);
+        case OAuth2GrantType.Implicit:
+            return Object.values(OAuth2ViaImplicitBlockKeys);
     }
 }
