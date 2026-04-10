@@ -14,6 +14,7 @@
 
 - Improve grouping and sorting of context menu items in collection explorer.
 - Provide completions for keys in all dictionary blocks, except for auth blocks of type OAuth2.
+- Add support for blocks for additional params for OAuth2 auth (diagnostics, snippets).
 
 ## [0.22.1] (2026-04-02)
 
