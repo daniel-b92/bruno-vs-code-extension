@@ -9,6 +9,12 @@ import {
     AuthBlockName,
     getMandatoryKeysForNonOAuth2Block,
     AuthBlockNamesExcludingOAuth2,
+    isAuthBlock,
+    isDictionaryBlockSimpleField,
+    OAuth2AuthBlocksCommonKeys,
+    OAuth2GrantType,
+    getMandatoryKeysForOAuth2Block,
+    OAuth2BlockTokenSourceValue,
 } from "@global_shared";
 import { LanguageFeatureBaseRequest } from "../../../../shared";
 import { getFixedCompletionItems } from "../generic/getFixedCompletionItems";
@@ -19,18 +25,17 @@ export function getAuthBlockSpecificCompletions(
     request: LanguageFeatureBaseRequest,
     block: Block,
 ) {
-    if (
-        (Object.values(AuthBlockName) as string[]).includes(block.name) &&
-        block.name != AuthBlockName.OAuth2Auth
-    ) {
-        // ToDo: Also provide completions for keys in OAuth2Auth blocks
-        const completionsForKeys = getCompletionsForKeys(
-            request,
-            block,
-            getMandatoryKeysForNonOAuth2Block(
-                block.name as AuthBlockNamesExcludingOAuth2,
-            ),
-        );
+    if (isAuthBlock(block.name)) {
+        const completionsForKeys =
+            block.name == AuthBlockName.OAuth2Auth
+                ? getCompletionsForKeysForOAuth2AuthBlock(request, block)
+                : getCompletionsForKeys(
+                      request,
+                      block,
+                      getMandatoryKeysForNonOAuth2Block(
+                          block.name as AuthBlockNamesExcludingOAuth2,
+                      ),
+                  );
 
         if (completionsForKeys) {
             return completionsForKeys;
@@ -40,9 +45,49 @@ export function getAuthBlockSpecificCompletions(
     return getCompletionsForValues(request);
 }
 
+function getCompletionsForKeysForOAuth2AuthBlock(
+    request: LanguageFeatureBaseRequest,
+    block: Block,
+) {
+    const grantTypeFieldsInOtherLines = !Array.isArray(block.content)
+        ? []
+        : block.content
+              .filter((field) => isDictionaryBlockSimpleField(field))
+              .filter(
+                  ({ key, keyRange: { start } }) =>
+                      start.line != request.position.line &&
+                      key == OAuth2AuthBlocksCommonKeys.GrantType,
+              );
+
+    const grantType =
+        grantTypeFieldsInOtherLines.length != 1
+            ? undefined
+            : Object.values(OAuth2GrantType).find(
+                  (valid) => valid == grantTypeFieldsInOtherLines[0].value,
+              );
+
+    const completionsForKeys = grantType
+        ? getCompletionsForKeys(
+              request,
+              block,
+              getMandatoryKeysForOAuth2Block(grantType),
+          )
+        : undefined;
+
+    if (completionsForKeys) {
+        return completionsForKeys;
+    }
+}
+
 function getCompletionsForValues(request: LanguageFeatureBaseRequest) {
     return getFixedCompletionItems(
         [
+            {
+                linePattern: getLinePatternForDictionaryField(
+                    OAuth2ViaAuthorizationCodeBlockKeys.GrantType,
+                ),
+                choices: Object.values(OAuth2GrantType),
+            },
             {
                 linePattern: getLinePatternForDictionaryField(
                     ApiKeyAuthBlockKeys.Placement,
@@ -66,6 +111,12 @@ function getCompletionsForValues(request: LanguageFeatureBaseRequest) {
                     OAuth2ViaAuthorizationCodeBlockKeys.TokenPlacement,
                 ),
                 choices: Object.values(OAuth2BlockTokenPlacementValue),
+            },
+            {
+                linePattern: getLinePatternForDictionaryField(
+                    OAuth2ViaAuthorizationCodeBlockKeys.TokenSource,
+                ),
+                choices: Object.values(OAuth2BlockTokenSourceValue),
             },
             {
                 linePattern: getLinePatternForDictionaryField(

@@ -138,7 +138,7 @@ function getDiagnosticsForOAuth2AuthBlock(
     const grantType = grantTypeFields[0].value as OAuth2GrantType;
 
     diagnostics.push(
-        ...checkValuesForOAuth2FieldsDependingOnGrantType(
+        ...checkOAuth2FieldsDependingOnGrantType(
             filePath,
             authBlock,
             grantType,
@@ -173,7 +173,7 @@ function checkValuesForOAuth2FieldsCommonForAllGrantTypes(
     ]);
 }
 
-function checkValuesForOAuth2FieldsDependingOnGrantType(
+function checkOAuth2FieldsDependingOnGrantType(
     filePath: string,
     authBlock: DictionaryBlock,
     grantType: OAuth2GrantType,

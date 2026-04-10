@@ -13,7 +13,7 @@
 ### Fixes / Minor Improvements
 
 - Improve grouping and sorting of context menu items in collection explorer.
-- Provide completions for keys in all dictionary blocks, except for auth blocks of type OAuth2.
+- Provide completions for keys in all dictionary blocks.
 - Add support for blocks for additional params for OAuth2 auth (diagnostics, snippets).
 - Add support for new fields/values for OAuth2 auth blocks (grant type: new value 'implicit' and new field 'token_source').
 
