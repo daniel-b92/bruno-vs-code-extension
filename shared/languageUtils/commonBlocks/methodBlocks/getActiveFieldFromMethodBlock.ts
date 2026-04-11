@@ -3,13 +3,23 @@ import {
     getActiveFieldFromDictionaryBlock,
     MethodBlockKey,
     Block,
+    isDictionaryBlockSimpleField,
+    getAllMethodBlocks,
 } from "../../..";
 
 export function getActiveFieldFromMethodBlock(
-    methodBlock: Block,
+    allBlocks: Block[],
     key: MethodBlockKey,
 ) {
-    return isBlockDictionaryBlock(methodBlock)
-        ? getActiveFieldFromDictionaryBlock(methodBlock, key)
+    const methodBlocks = getAllMethodBlocks(allBlocks);
+
+    if (methodBlocks.length != 1 || !isBlockDictionaryBlock(methodBlocks[0])) {
+        return undefined;
+    }
+
+    const activeField = getActiveFieldFromDictionaryBlock(methodBlocks[0], key);
+
+    return activeField && isDictionaryBlockSimpleField(activeField)
+        ? activeField
         : undefined;
 }

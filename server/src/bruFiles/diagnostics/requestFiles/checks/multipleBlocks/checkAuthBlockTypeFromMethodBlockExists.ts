@@ -1,12 +1,11 @@
 import {
     DictionaryBlockSimpleField,
-    getAllMethodBlocks,
     getAuthTypeFromBlockName,
     getActiveFieldFromMethodBlock,
     isAuthBlock,
     MethodBlockKey,
     Block,
-    isDictionaryBlockSimpleField,
+    getAuthTypesForNoDefinedAuthBlock,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -17,25 +16,25 @@ export function checkAuthBlockTypeFromMethodBlockExists(
     filePath: string,
     blocks: Block[],
 ): DiagnosticWithCode | undefined {
-    const methodBlocks = getAllMethodBlocks(blocks);
-    const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
+    const methodBlockField = getActiveFieldFromMethodBlock(
+        blocks,
+        MethodBlockKey.Auth,
+    );
 
-    if (methodBlocks.length != 1 || authBlocks.length > 1) {
+    if (!methodBlockField) {
         return undefined;
     }
 
-    const methodBlockField = getActiveFieldFromMethodBlock(
-        methodBlocks[0],
-        MethodBlockKey.Auth,
-    );
+    const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
+
+    if (authBlocks.length > 1) {
+        return undefined;
+    }
+
     const authTypeFromAuthBlock =
         authBlocks.length > 0
             ? getAuthTypeFromAuthBlock(authBlocks[0])
             : undefined;
-
-    if (!methodBlockField || !isDictionaryBlockSimpleField(methodBlockField)) {
-        return undefined;
-    }
 
     if (
         !authTypeFromAuthBlock &&
@@ -130,10 +129,6 @@ function getAuthTypeFromAuthBlock(authBlock: Block) {
         authBlock,
         value: getAuthTypeFromBlockName(authBlock.name),
     };
-}
-
-function getAuthTypesForNoDefinedAuthBlock() {
-    return ["none", "inherit"];
 }
 
 function getCode() {

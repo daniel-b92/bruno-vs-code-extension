@@ -77,6 +77,7 @@ export * from "./languageUtils/areVariableReferencesEquivalent";
 export * from "./languageUtils/requestFiles/requestFileBlockNameEnum";
 export * from "./languageUtils/requestFiles/bodyBlocks/getBodyTypeFromBlockName";
 export * from "./languageUtils/requestFiles/bodyBlocks/isBodyBlock";
+export * from "./languageUtils/requestFiles/bodyBlocks/getBodyBlockTypeForNoDefinedBodyBlock";
 export * from "./languageUtils/requestFiles/methodBlocks/getAllMethodBlocks";
 export * from "./languageUtils/requestFiles/methodBlocks/getUrlFieldFromMethodBlock";
 export * from "./languageUtils/requestFiles/methodBlocks/getMethodBlockIfValid";
@@ -103,11 +104,12 @@ export * from "./languageUtils/commonBlocks/metaBlock/getSequenceAndTagsFromMeta
 export * from "./languageUtils/commonBlocks/metaBlock/getMandatoryAndOptionalKeys";
 
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockKeyEnum";
-export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockAuthEnum";
-export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockBodyEnum";
+export * from "./languageUtils/commonBlocks/methodBlocks/MethodBlockAuthValues";
+export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockBodies";
 export * from "./languageUtils/commonBlocks/methodBlocks/getPossibleMethodBlocks";
 export * from "./languageUtils/commonBlocks/methodBlocks/getActiveFieldFromMethodBlock";
 export { getMandatoryKeys as getMandatoryKeysForMethodBlock } from "./languageUtils/commonBlocks/methodBlocks/getMandatoryKeys";
+export * from "./languageUtils/commonBlocks/methodBlocks/getAuthTypesForNoDefinedAuthBlock";
 
 export * from "./languageUtils/commonBlocks/generic/shouldBeCodeBlock";
 export * from "./languageUtils/commonBlocks/generic/getValidDictionaryBlocksWithName";

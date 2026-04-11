@@ -1,7 +1,7 @@
 import {
     MethodBlockKey,
-    MethodBlockBody,
-    MethodBlockAuth,
+    MethodBlockBodies,
+    MethodBlockAuthValues,
     Block,
     getMandatoryKeysForMethodBlock,
 } from "@global_shared";
@@ -29,13 +29,13 @@ export function getMethodBlockSpecificCompletions(
                 linePattern: getLinePatternForDictionaryField(
                     MethodBlockKey.Body,
                 ),
-                choices: Object.values(MethodBlockBody),
+                choices: Object.values(MethodBlockBodies),
             },
             {
                 linePattern: getLinePatternForDictionaryField(
                     MethodBlockKey.Auth,
                 ),
-                choices: Object.values(MethodBlockAuth),
+                choices: Object.values(MethodBlockAuthValues),
             },
         ],
         request,

@@ -2,12 +2,18 @@ import {
     Block,
     BrunoFileType,
     EnvironmentFileBlockName,
+    getActiveFieldFromMethodBlock,
     getAllMethodBlocks,
+    getAuthTypesForNoDefinedAuthBlock,
+    getBodyBlockTypeForNoDefinedBodyBlock,
     getPossibleMethodBlocks,
     getValidBlockNamesForCollectionSettingsFile,
     getValidBlockNamesForFolderSettingsFile,
     isAuthBlock,
     isBodyBlock,
+    MethodBlockAuthValues,
+    MethodBlockBodies,
+    MethodBlockKey,
     Range,
     RequestFileBlockName,
 } from "@global_shared";
@@ -85,23 +91,99 @@ function getMissingMandatoryBlocks(
         return [];
     }
 
+    if (fileType == BrunoFileType.RequestFile) {
+        return getMissingMandatoryBlocksForRequestFile(allBlocks).missingBlocks;
+    }
+
     const missingMandatoryBlocks: MissingBlock[] = !allBlocks.some(
         ({ name }) => name == RequestFileBlockName.Meta,
     )
         ? [{ mandatory: true, name: RequestFileBlockName.Meta }]
         : [];
 
-    if (
-        fileType == BrunoFileType.RequestFile &&
-        getAllMethodBlocks(allBlocks).length == 0
-    ) {
-        missingMandatoryBlocks.concat({
-            mandatory: true,
-            mutuallyExclusiveBlocks: getPossibleMethodBlocks(),
-        });
+    return missingMandatoryBlocks;
+}
+
+function getMissingMandatoryBlocksForRequestFile(allBlocks: Block[]): {
+    isAuthBlockOptional: boolean;
+    isBodyBlockOptional: boolean;
+    missingBlocks: MissingBlock[];
+} {
+    const result: MissingBlock[] = !allBlocks.some(
+        ({ name }) => name == RequestFileBlockName.Meta,
+    )
+        ? [{ mandatory: true, name: RequestFileBlockName.Meta }]
+        : [];
+
+    if (getAllMethodBlocks(allBlocks).length == 0) {
+        return {
+            isAuthBlockOptional: true,
+            isBodyBlockOptional: true,
+            missingBlocks: result.concat({
+                mandatory: true,
+                mutuallyExclusiveBlocks: getPossibleMethodBlocks(),
+            }),
+        };
     }
 
-    return missingMandatoryBlocks;
+    const methodBlockAuthField = getActiveFieldFromMethodBlock(
+        allBlocks,
+        MethodBlockKey.Auth,
+    );
+    let isAuthBlockOptional = true;
+
+    if (
+        methodBlockAuthField &&
+        (Object.values(MethodBlockAuthValues) as string[]).includes(
+            methodBlockAuthField.value,
+        )
+    ) {
+        // If the auth type is defined in the method block, the auth block becomes mandatory.
+        isAuthBlockOptional = false;
+
+        const expectedAuthBlock = getAuthTypesForNoDefinedAuthBlock().includes(
+            methodBlockAuthField.value,
+        )
+            ? undefined
+            : `auth:${methodBlockAuthField.value}`;
+
+        if (
+            expectedAuthBlock &&
+            !allBlocks.some(({ name }) => name == expectedAuthBlock)
+        ) {
+            result.push({ mandatory: true, name: expectedAuthBlock });
+        }
+    }
+
+    const methodBlockBodyField = getActiveFieldFromMethodBlock(
+        allBlocks,
+        MethodBlockKey.Body,
+    );
+    let isBodyBlockOptional = true;
+
+    if (
+        methodBlockBodyField &&
+        (Object.values(MethodBlockBodies) as string[]).includes(
+            methodBlockBodyField.value,
+        )
+    ) {
+        // If the body type is defined in the method block, the body block becomes mandatory.
+        isAuthBlockOptional = false;
+        const expectedBodyBlock =
+            getBodyBlockTypeForNoDefinedBodyBlock() ==
+            methodBlockBodyField.value
+                ? undefined
+                : `body:${methodBlockBodyField.value}`;
+
+        if (
+            expectedBodyBlock &&
+            !allBlocks.some(({ name }) => name == expectedBodyBlock)
+        ) {
+            result.push({ mandatory: true, name: expectedBodyBlock });
+        }
+    }
+
+    return { isAuthBlockOptional, isBodyBlockOptional, missingBlocks: result };
 }
 
 function getMissingOptionalBlocks(

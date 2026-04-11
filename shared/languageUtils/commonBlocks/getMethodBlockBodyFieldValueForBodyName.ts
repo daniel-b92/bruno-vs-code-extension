@@ -1,26 +1,26 @@
 import { getBodyTypeFromBlockName } from "../..";
-import { MethodBlockBody } from "./methodBlocks/methodBlockBodyEnum";
+import { MethodBlockBodies } from "./methodBlocks/methodBlockBodies";
 import { RequestFileBlockName } from "../requestFiles/requestFileBlockNameEnum";
 
 export function getMethodBlockBodyFieldValueForBodyName(
-    bodyBlockName: RequestFileBlockName
+    bodyBlockName: RequestFileBlockName,
 ) {
-    const matchingMethodBlockBodyValue = Object.values(MethodBlockBody).find(
+    const matchingMethodBlockBodyValue = Object.values(MethodBlockBodies).find(
         (methodBlockValue) =>
-            methodBlockValue == getBodyTypeFromBlockName(bodyBlockName)
+            methodBlockValue == getBodyTypeFromBlockName(bodyBlockName),
     );
 
     if (matchingMethodBlockBodyValue) {
-        return matchingMethodBlockBodyValue as MethodBlockBody;
+        return matchingMethodBlockBodyValue;
     } else if (bodyBlockName == RequestFileBlockName.MultipartFormBody) {
-        return MethodBlockBody.MultipartForm;
+        return MethodBlockBodies.MultipartForm;
     } else if (bodyBlockName == RequestFileBlockName.FormUrlEncodedBody) {
-        return MethodBlockBody.FormUrlEncoded;
+        return MethodBlockBodies.FormUrlEncoded;
     } else if (bodyBlockName == RequestFileBlockName.GraphQlBody) {
-        return MethodBlockBody.GraphQl;
+        return MethodBlockBodies.GraphQl;
     } else {
         throw new Error(
-            `Could not determine a matching value for the body field in the method block for the body block name '${bodyBlockName}'.`
+            `Could not determine a matching value for the body field in the method block for the body block name '${bodyBlockName}'.`,
         );
     }
 }
