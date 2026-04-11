@@ -29,13 +29,11 @@ export function getAuthBlockSpecificCompletions(
         const completionsForKeys =
             block.name == AuthBlockName.OAuth2Auth
                 ? getCompletionsForKeysForOAuth2AuthBlock(request, block)
-                : getCompletionsForKeys(
-                      request,
-                      block,
-                      getMandatoryKeysForNonOAuth2Block(
+                : getCompletionsForKeys(request, block, {
+                      mandatory: getMandatoryKeysForNonOAuth2Block(
                           block.name as AuthBlockNamesExcludingOAuth2,
                       ),
-                  );
+                  });
 
         if (completionsForKeys) {
             return completionsForKeys;
@@ -67,11 +65,9 @@ function getCompletionsForKeysForOAuth2AuthBlock(
               );
 
     const completionsForKeys = grantType
-        ? getCompletionsForKeys(
-              request,
-              block,
-              getMandatoryKeysForOAuth2Block(grantType),
-          )
+        ? getCompletionsForKeys(request, block, {
+              mandatory: getMandatoryKeysForOAuth2Block(grantType),
+          })
         : undefined;
 
     if (completionsForKeys) {

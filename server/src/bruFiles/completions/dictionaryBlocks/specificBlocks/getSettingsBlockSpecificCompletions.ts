@@ -13,11 +13,9 @@ export function getSettingsBlockSpecificCompletions(
     request: LanguageFeatureBaseRequest,
     block: Block,
 ) {
-    const completionsForKeys = getCompletionsForKeys(
-        request,
-        block,
-        getMandatoryKeysForSettingsBlock(),
-    );
+    const completionsForKeys = getCompletionsForKeys(request, block, {
+        mandatory: getMandatoryKeysForSettingsBlock(),
+    });
 
     if (completionsForKeys) {
         return completionsForKeys;

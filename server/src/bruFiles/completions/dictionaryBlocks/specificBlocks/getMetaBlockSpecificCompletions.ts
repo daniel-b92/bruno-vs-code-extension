@@ -36,8 +36,10 @@ export async function getMetaBlockSpecificCompletions(
         const completionsForKeys = getCompletionsForKeys(
             request,
             block,
-            mandatoryKeys,
-            optionalKeys,
+            {
+                mandatory: mandatoryKeys,
+            },
+            optionalKeys ? { optional: optionalKeys } : undefined,
         );
 
         if (completionsForKeys) {
