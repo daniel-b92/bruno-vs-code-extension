@@ -7,15 +7,20 @@ import {
     isDictionaryBlockField,
     PlainTextWithinBlock,
     Range,
+    TextDocumentHelper,
 } from "@global_shared";
-import { CompletionItem, TextEdit } from "vscode-languageserver";
+import {
+    CompletionItem,
+    InsertTextFormat,
+    TextEdit,
+} from "vscode-languageserver";
 import { LanguageFeatureBaseRequest } from "../../../../shared";
 
 export function getCompletionsForKeys(
     request: LanguageFeatureBaseRequest,
     block: Block,
-    mandatoryKeys: string[],
-    optionalKeys?: string[],
+    keysForSimpleFields: { mandatory: string[]; optional?: string[] },
+    keysForArrayFields?: { optional: string[] },
 ): CompletionItem[] | undefined {
     const keyRangeContainingPosition = getKeyRangeContainingPosition(
         request,
@@ -26,16 +31,68 @@ export function getCompletionsForKeys(
         return undefined;
     }
 
-    const detailTextPrefix = " ";
+    return getCompletionsForSimpleFields(
+        request,
+        block,
+        keyRangeContainingPosition,
+        keysForSimpleFields,
+    ).concat(
+        keysForArrayFields
+            ? getCompletionsForArrayFields(
+                  request,
+                  block,
+                  keyRangeContainingPosition,
+                  keysForArrayFields.optional,
+              )
+            : [],
+    );
+}
+
+function getCompletionsForArrayFields(
+    request: LanguageFeatureBaseRequest,
+    block: Block,
+    keyRangeContainingPosition: Range,
+    optionalKeys: string[],
+) {
+    const forOptionalKeys: CompletionItem[] = !optionalKeys
+        ? []
+        : optionalKeys
+              .filter(
+                  (key) =>
+                      !getKeysUsedInOtherLines(request, block).includes(key),
+              )
+              .map((key) =>
+                  getCompletionItem(
+                      request.documentHelper,
+                      key,
+                      keyRangeContainingPosition,
+                      false,
+                      false,
+                  ),
+              );
+
+    return forOptionalKeys;
+}
+
+function getCompletionsForSimpleFields(
+    request: LanguageFeatureBaseRequest,
+    block: Block,
+    keyRangeContainingPosition: Range,
+    keys: { mandatory: string[]; optional?: string[] },
+) {
+    const { mandatory: mandatoryKeys, optional: optionalKeys } = keys;
 
     const forMandatoryKeys: CompletionItem[] = mandatoryKeys
         .filter((key) => !getKeysUsedInOtherLines(request, block).includes(key))
-        .map((key) => ({
-            label: key,
-            textEdit: getTextEdit(keyRangeContainingPosition, key),
-            sortText: `a_${key}`,
-            labelDetails: { detail: `${detailTextPrefix}mandatory` },
-        }));
+        .map((key) =>
+            getCompletionItem(
+                request.documentHelper,
+                key,
+                keyRangeContainingPosition,
+                true,
+                true,
+            ),
+        );
 
     const forOptionalKeys: CompletionItem[] = !optionalKeys
         ? []
@@ -44,17 +101,67 @@ export function getCompletionsForKeys(
                   (key) =>
                       !getKeysUsedInOtherLines(request, block).includes(key),
               )
-              .map((key) => ({
-                  label: key,
-                  textEdit: getTextEdit(keyRangeContainingPosition, key),
-                  sortText: `b_${key}`,
-                  labelDetails: { detail: `${detailTextPrefix}optional` },
-              }));
+              .map((key) =>
+                  getCompletionItem(
+                      request.documentHelper,
+                      key,
+                      keyRangeContainingPosition,
+                      true,
+                      false,
+                  ),
+              );
 
     return forMandatoryKeys.concat(forOptionalKeys);
 }
 
-function getTextEdit(rangeToReplace: Range, key: string): TextEdit {
+function getCompletionItem(
+    docHelper: TextDocumentHelper,
+    key: string,
+    keyRangeContainingPosition: Range,
+    isSimpleField: boolean,
+    isMandatory: boolean,
+): CompletionItem {
+    return {
+        label: key,
+        textEdit: isSimpleField
+            ? getTextEditForSimpleField(keyRangeContainingPosition, key)
+            : getTextEditForArrayField(
+                  docHelper,
+                  keyRangeContainingPosition,
+                  key,
+              ),
+        insertTextFormat: isSimpleField ? undefined : InsertTextFormat.Snippet,
+        sortText: isMandatory ? `a_${key}` : `b_${key}`,
+        labelDetails: isMandatory ? undefined : { detail: ` optional` },
+    };
+}
+
+function getTextEditForArrayField(
+    docHelper: TextDocumentHelper,
+    existingKeyRange: Range,
+    key: string,
+): TextEdit {
+    const defaultIndentation = getDefaultIndentationForDictionaryBlockFields();
+    const lineBreak = docHelper.getMostUsedLineBreak() ?? "\n";
+
+    return {
+        newText: (existingKeyRange.start.character >=
+        getDefaultIndentationForDictionaryBlockFields()
+            ? key
+            : " "
+                  .repeat(defaultIndentation - existingKeyRange.start.character)
+                  .concat(key)
+        ).concat(
+            `: [\n${" ".repeat(defaultIndentation * 2)}\${0}${lineBreak}${" ".repeat(defaultIndentation)}]`,
+        ),
+        range: existingKeyRange,
+    };
+}
+
+function getTextEditForSimpleField(
+    rangeToReplace: Range,
+    key: string,
+): TextEdit {
     return {
         newText:
             rangeToReplace.start.character >=
@@ -65,7 +172,7 @@ function getTextEdit(rangeToReplace: Range, key: string): TextEdit {
                           getDefaultIndentationForDictionaryBlockFields() -
                               rangeToReplace.start.character,
                       )
-                      .concat(key),
+                      .concat(`${key}:`),
         range: rangeToReplace,
     };
 }

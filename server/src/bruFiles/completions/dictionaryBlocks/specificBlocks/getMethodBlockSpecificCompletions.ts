@@ -15,11 +15,9 @@ export function getMethodBlockSpecificCompletions(
     request: LanguageFeatureBaseRequest,
     block: Block,
 ) {
-    const completionsForKeys = getCompletionsForKeys(
-        request,
-        block,
-        getMandatoryKeysForMethodBlock(block.name),
-    );
+    const completionsForKeys = getCompletionsForKeys(request, block, {
+        mandatory: getMandatoryKeysForMethodBlock(block.name),
+    });
 
     if (completionsForKeys) {
         return completionsForKeys;
