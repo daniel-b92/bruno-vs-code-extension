@@ -152,7 +152,7 @@ function getTextEditForArrayField(
                   .repeat(defaultIndentation - existingKeyRange.start.character)
                   .concat(key)
         ).concat(
-            `: [\n${" ".repeat(defaultIndentation * 2)}\${0}${lineBreak}${" ".repeat(defaultIndentation)}]`,
+            `: [${lineBreak}${" ".repeat(defaultIndentation * 2)}\${0}${lineBreak}${" ".repeat(defaultIndentation)}]`,
         ),
         range: existingKeyRange,
     };
