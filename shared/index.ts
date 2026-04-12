@@ -75,6 +75,7 @@ export * from "./languageUtils/areVariableReferencesEquivalent";
 
 // language utils - request files
 export * from "./languageUtils/requestFiles/requestFileBlockNameEnum";
+export * from "./languageUtils/requestFiles/getGraphQlSpecificBlocks";
 export * from "./languageUtils/requestFiles/bodyBlocks/getBodyTypeFromBlockName";
 export * from "./languageUtils/requestFiles/bodyBlocks/getAllValidBodyBlocks";
 export * from "./languageUtils/requestFiles/bodyBlocks/isBodyBlock";
@@ -145,6 +146,7 @@ export * from "./languageUtils/commonBlocks/authBlocks/getMandatoryKeysForNonOAu
 export * from "./languageUtils/commonBlocks/authBlocks/getMandatoryKeysForOAuth2Block";
 export * from "./languageUtils/commonBlocks/authBlocks/getAuthTypeFromBlockName";
 export * from "./languageUtils/commonBlocks/authBlocks/isAuthBlock";
+export * from "./languageUtils/commonBlocks/authBlocks/getExpectedAuthBlockForType";
 export * from "./languageUtils/commonBlocks/authBlocks/additionalParamsBlocks/oauth2AdditionalParamsBlockNames";
 
 export * from "./languageUtils/commonBlocks/authModeBlock/authModeBlockKeyEnum";

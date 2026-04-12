@@ -1,11 +1,11 @@
 import {
     DictionaryBlockSimpleField,
-    getActiveFieldFromMetaBlock,
     MetaBlockKey,
     Block,
     RequestFileBlockName,
     RequestType,
-    isDictionaryBlockSimpleField,
+    getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
+    getGraphQlSpecificBlocks,
 } from "@global_shared";
 import { getSortedBlocksByPosition } from "../../../shared/util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../interfaces";
@@ -17,11 +17,6 @@ export function checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
     filePath: string,
     blocks: Block[],
 ): DiagnosticWithCode | undefined {
-    const graphQlSpecificBlockNames = [
-        RequestFileBlockName.GraphQlBody,
-        RequestFileBlockName.GraphQlBodyVars,
-    ];
-
     const metaBlocks = blocks.filter(
         ({ name }) => name == RequestFileBlockName.Meta,
     );
@@ -30,22 +25,20 @@ export function checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
         return undefined;
     }
 
-    const requestTypeField = getActiveFieldFromMetaBlock(
-        metaBlocks[0],
-        MetaBlockKey.Type,
-    );
+    const requestTypeField =
+        getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
+            blocks,
+            RequestFileBlockName.Meta,
+            MetaBlockKey.Type,
+        );
 
-    if (
-        !requestTypeField ||
-        !isDictionaryBlockSimpleField(requestTypeField) ||
-        requestTypeField.value == RequestType.Graphql
-    ) {
+    if (!requestTypeField || requestTypeField.value == RequestType.Graphql) {
         return undefined;
     }
 
     const invalidBlocks = getSortedBlocksByPosition(
         blocks.filter(({ name }) =>
-            (graphQlSpecificBlockNames as string[]).includes(name),
+            (getGraphQlSpecificBlocks() as string[]).includes(name),
         ),
     );
 

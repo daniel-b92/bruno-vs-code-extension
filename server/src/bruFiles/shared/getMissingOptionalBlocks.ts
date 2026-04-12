@@ -1,24 +1,38 @@
 import {
+    AuthModeBlockKey,
     Block,
     BrunoFileType,
     EnvironmentFileBlockName,
-    getPossibleMethodBlocks,
+    getActiveFieldFromMethodBlock,
+    getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
+    getAuthTypesForNoDefinedAuthBlock,
+    getExpectedAuthBlockForType,
+    getGraphQlSpecificBlocks,
     getValidBlockNamesForCollectionSettingsFile,
     getValidBlockNamesForFolderSettingsFile,
     isAuthBlock,
     isBodyBlock,
+    MetaBlockKey,
+    MethodBlockAuthValues,
+    MethodBlockKey,
+    Oauth2AdditionalParamsBlockNames,
     RequestFileBlockName,
+    RequestType,
+    SettingsFileSpecificBlock,
 } from "@global_shared";
 import { MissingBlock } from "./interfaces";
 
 export function getMissingOptionalBlocks(
     fileType: BrunoFileType,
     allBlocks: Block[],
+    blocksThatCannotBeOptional: string[],
 ): MissingBlock[] {
     switch (fileType) {
         case BrunoFileType.EnvironmentFile:
             return getMissingBlocksWithoutExclusivityToOthers(
-                Object.values(EnvironmentFileBlockName),
+                Object.values(EnvironmentFileBlockName).filter(
+                    (name) => !blocksThatCannotBeOptional.includes(name),
+                ),
                 allBlocks,
                 false,
             );
@@ -26,23 +40,49 @@ export function getMissingOptionalBlocks(
             return getMissingOptionalBlocksForFolderOrCollectionSettingsFile(
                 allBlocks,
                 true,
+                blocksThatCannotBeOptional,
             );
         case BrunoFileType.FolderSettingsFile:
             return getMissingOptionalBlocksForFolderOrCollectionSettingsFile(
                 allBlocks,
                 false,
+                blocksThatCannotBeOptional,
             );
         case BrunoFileType.RequestFile:
-            return getMissingOptionalBlocksForRequestFile(allBlocks);
+            return getMissingOptionalBlocksForRequestFile(
+                allBlocks,
+                blocksThatCannotBeOptional,
+            );
     }
 }
 
-function getMissingOptionalBlocksForRequestFile(allBlocks: Block[]) {
+function getMissingOptionalBlocksForRequestFile(
+    allBlocks: Block[],
+    blocksThatCannotBeOptional: string[],
+) {
+    const requestType = getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
+        allBlocks,
+        RequestFileBlockName.Meta,
+        MetaBlockKey.Type,
+    )?.value;
+    const authType = getActiveFieldFromMethodBlock(
+        allBlocks,
+        MethodBlockKey.Auth,
+    )?.value;
+
     const allValidOptionalBlocks = Object.values(RequestFileBlockName).filter(
         (name) =>
-            // filter out mandatory blocks
-            name != RequestFileBlockName.Meta &&
-            !getPossibleMethodBlocks().includes(name),
+            !blocksThatCannotBeOptional.includes(name) &&
+            // GraphQL specific blocks only make sense if it's a GraphQL request.
+            (!requestType ||
+                requestType == RequestType.Graphql ||
+                !getGraphQlSpecificBlocks().includes(name)) &&
+            // OAuth2 specific additional blocks only make sense if OAuth2 authorization is used.
+            (!authType ||
+                authType == MethodBlockAuthValues.Oauth2 ||
+                !(
+                    Object.values(Oauth2AdditionalParamsBlockNames) as string[]
+                ).includes(name)),
     );
     const mutuallyExclusiveBlocksForAuth = allValidOptionalBlocks.filter(
         (name) => isAuthBlock(name),
@@ -78,13 +118,39 @@ function getMissingOptionalBlocksForRequestFile(allBlocks: Block[]) {
 function getMissingOptionalBlocksForFolderOrCollectionSettingsFile(
     allBlocks: Block[],
     isCollectionSettingsFile: boolean,
+    blocksThatCannotBeOptional: string[],
 ) {
-    const allValidOptionalBlocks = isCollectionSettingsFile
-        ? getValidBlockNamesForCollectionSettingsFile()
-        : // The meta block is mandatory for folder settings files.
-          getValidBlockNamesForFolderSettingsFile().filter(
-              (name) => name != RequestFileBlockName.Meta,
-          );
+    const authModeFromAuthBlock =
+        getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
+            allBlocks,
+            SettingsFileSpecificBlock.AuthMode,
+            AuthModeBlockKey.Mode,
+        )?.value;
+
+    const allValidOptionalBlocks = (
+        isCollectionSettingsFile
+            ? getValidBlockNamesForCollectionSettingsFile()
+            : // The meta block is mandatory for folder settings files.
+              getValidBlockNamesForFolderSettingsFile().filter(
+                  (name) => name != RequestFileBlockName.Meta,
+              )
+    ).filter(
+        (name) =>
+            !blocksThatCannotBeOptional.includes(name) &&
+            // Auth blocks only make sense if the auth type matches the one defined in the auth mode block.
+            (!authModeFromAuthBlock ||
+                !isAuthBlock(name) ||
+                getAuthTypesForNoDefinedAuthBlock().includes(
+                    authModeFromAuthBlock,
+                ) ||
+                name == getExpectedAuthBlockForType(authModeFromAuthBlock)) &&
+            // OAuth2 specific additional blocks only make sense if OAuth2 authorization is used.
+            (!authModeFromAuthBlock ||
+                authModeFromAuthBlock == MethodBlockAuthValues.Oauth2 ||
+                !(
+                    Object.values(Oauth2AdditionalParamsBlockNames) as string[]
+                ).includes(name)),
+    );
     const mutuallyExclusiveBlocksForAuth = allValidOptionalBlocks.filter(
         (name) => isAuthBlock(name),
     );

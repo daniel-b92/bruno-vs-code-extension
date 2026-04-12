@@ -9,6 +9,7 @@ import {
     getAllValidBodyBlocks,
     getAuthTypesForNoDefinedAuthBlock,
     getBodyBlockTypeForNoDefinedBodyBlock,
+    getExpectedAuthBlockForType,
     getPossibleMethodBlocks,
     MethodBlockAuthValues,
     MethodBlockBodies,
@@ -66,22 +67,25 @@ function getMissingConditionallyMandatoryBlocksForFolderOrCollectionSettings(
     missingBlocks: MissingBlock[];
     blocksThatCannotBeOptional: string[];
 } {
-    const authBlockModeField =
+    const authBlockModeValue =
         getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
             allBlocks,
             SettingsFileSpecificBlock.AuthMode,
             AuthModeBlockKey.Mode,
-        );
+        )?.value;
 
-    if (!authBlockModeField) {
+    if (!authBlockModeValue) {
         return { blocksThatCannotBeOptional: [], missingBlocks: [] };
     }
 
-    const expectedAuthBlock = getExpectedAuthBlockForType(
-        authBlockModeField.value,
-    );
+    const expectedAuthBlock = getAuthTypesForNoDefinedAuthBlock().includes(
+        authBlockModeValue,
+    )
+        ? undefined
+        : getExpectedAuthBlockForType(authBlockModeValue);
     const blocksThatCannotBeOptional = Object.values(AuthBlockName);
-    return allBlocks.some(({ name }) => name == expectedAuthBlock)
+    return !expectedAuthBlock ||
+        allBlocks.some(({ name }) => name == expectedAuthBlock)
         ? {
               blocksThatCannotBeOptional,
               missingBlocks: [],
@@ -181,8 +185,4 @@ function checkIfSimpleMandatoryBlockIsMissing(
     return !allBlocks.some(({ name }) => name == blockName)
         ? [{ mandatory: true, name: blockName }]
         : [];
-}
-
-function getExpectedAuthBlockForType(authType: string) {
-    return `auth:${authType}`;
 }

@@ -10,11 +10,15 @@ export function getCompletionsForPositionOutsideOfBlocks(
     fileType: BrunoFileType,
     allBlocks: Block[],
 ): CompletionItem[] | undefined {
-    const missingMandatoryBlocks = getMissingMandatoryBlocks(
+    const {
+        missingBlocks: missingMandatoryBlocks,
+        blocksThatCannotBeOptional,
+    } = getMissingMandatoryBlocks(fileType, allBlocks);
+    const missingOptionalBlocks = getMissingOptionalBlocks(
         fileType,
         allBlocks,
+        blocksThatCannotBeOptional,
     );
-    const missingOptionalBlocks = getMissingOptionalBlocks(fileType, allBlocks);
 
     if (
         missingMandatoryBlocks.length == 0 &&
