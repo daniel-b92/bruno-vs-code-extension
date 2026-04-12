@@ -192,6 +192,7 @@ async function getBlockSpecificCompletions(
             blockContainingPosition,
         );
     }
+    // ToDo: Add completions for folder / collection settings specifc blocks, like 'auth'.
     return [];
 }
 
