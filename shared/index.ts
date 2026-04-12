@@ -76,6 +76,7 @@ export * from "./languageUtils/areVariableReferencesEquivalent";
 // language utils - request files
 export * from "./languageUtils/requestFiles/requestFileBlockNameEnum";
 export * from "./languageUtils/requestFiles/bodyBlocks/getBodyTypeFromBlockName";
+export * from "./languageUtils/requestFiles/bodyBlocks/getAllValidBodyBlocks";
 export * from "./languageUtils/requestFiles/bodyBlocks/isBodyBlock";
 export * from "./languageUtils/requestFiles/bodyBlocks/getBodyBlockTypeForNoDefinedBodyBlock";
 export * from "./languageUtils/requestFiles/methodBlocks/getAllMethodBlocks";
@@ -120,6 +121,7 @@ export * from "./languageUtils/commonBlocks/generic/blockBracketEnum";
 export * from "./languageUtils/commonBlocks/generic/getCodeBlocks";
 export * from "./languageUtils/commonBlocks/generic/getDefaultIndentationForDictionaryBlockFields";
 export * from "./languageUtils/commonBlocks/generic/getActiveFieldFromDictionaryBlock";
+export * from "./languageUtils/commonBlocks/generic/getActiveSimpleFieldFromDictionaryBlockIfExistsOnce";
 export * from "./languageUtils/commonBlocks/generic/getSortedBlocksByPosition";
 
 export * from "./languageUtils/commonBlocks/generic/runtimeBehavior/getBlockRuntimeExecutionGroup";
