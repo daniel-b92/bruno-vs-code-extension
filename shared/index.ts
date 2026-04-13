@@ -116,6 +116,7 @@ export * from "./languageUtils/commonBlocks/methodBlocks/getAuthTypesForNoDefine
 export * from "./languageUtils/commonBlocks/generic/shouldBeCodeBlock";
 export * from "./languageUtils/commonBlocks/generic/getValidDictionaryBlocksWithName";
 export * from "./languageUtils/commonBlocks/generic/shouldBeDictionaryBlock";
+export * from "./languageUtils/commonBlocks/generic/shouldBeArrayBlock";
 export * from "./languageUtils/commonBlocks/generic/getBlockType";
 export * from "./languageUtils/commonBlocks/generic/blockTypeEnum";
 export * from "./languageUtils/commonBlocks/generic/blockBracketEnum";

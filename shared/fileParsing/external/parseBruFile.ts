@@ -61,7 +61,7 @@ export function parseBruFile(docHelper: TextDocumentHelper) {
             }
 
             const blockName = matches[1];
-            const blockType = getBlockType(matches[0], blockName);
+            const blockType = getBlockType(blockName);
             const blockEndPosition = findBlockEnd(
                 docHelper,
                 lineIndex + 1,
