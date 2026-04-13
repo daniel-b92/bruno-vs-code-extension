@@ -11,6 +11,7 @@ import {
     Logger,
     Position,
     RequestFileBlockName,
+    SettingsFileSpecificBlock,
     VariableReferenceType,
 } from "@global_shared";
 import { CompletionItem } from "vscode-languageserver";
@@ -27,6 +28,7 @@ import { getMetaBlockSpecificCompletions } from "./dictionaryBlocks/specificBloc
 import { getMethodBlockSpecificCompletions } from "./dictionaryBlocks/specificBlocks/getMethodBlockSpecificCompletions";
 import { getAuthBlockSpecificCompletions } from "./dictionaryBlocks/specificBlocks/getAuthBlockSpecificCompletions";
 import { getSettingsBlockSpecificCompletions } from "./dictionaryBlocks/specificBlocks/getSettingsBlockSpecificCompletions";
+import { getAuthModeBlockSpecificCompletions } from "./dictionaryBlocks/specificBlocks/getAuthModeBlockSpecificCompletions";
 
 export async function getCompletionsForNonCodeBlock(
     fullRequest: BlockRequestWithAdditionalData<Block>,
@@ -192,7 +194,12 @@ async function getBlockSpecificCompletions(
             blockContainingPosition,
         );
     }
-    // ToDo: Add completions for folder / collection settings specifc blocks, like 'auth'.
+    if (blockName == SettingsFileSpecificBlock.AuthMode) {
+        return getAuthModeBlockSpecificCompletions(
+            request,
+            blockContainingPosition,
+        );
+    }
     return [];
 }
 
