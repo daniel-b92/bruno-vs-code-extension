@@ -23,7 +23,9 @@ export function getCompletionsForPositionOutsideOfBlocks(
 
     if (
         !startLineData ||
-        startLineData.openingBracketIndex < position.character
+        // Do not provide completions if the position is after the block opening bracket.
+        (startLineData.openingBracketIndex &&
+            startLineData.openingBracketIndex < position.character)
     ) {
         return undefined;
     }
@@ -39,12 +41,19 @@ export function getCompletionsForPositionOutsideOfBlocks(
         blocksThatCannotBeOptional,
     );
 
+    const allMissingBlocks = mapToBlockNames(
+        missingMandatoryBlocks.concat(missingOptionalBlocks),
+    );
+    const filteredItems = openingBracket
+        ? filterOutNonMatchingBlockTypes(allMissingBlocks, openingBracket)
+        : allMissingBlocks;
+
     return mapToCompletionItems(
-        filterOutNonMatchingBlockTypes(
-            missingMandatoryBlocks.concat(missingOptionalBlocks),
-            openingBracket,
-        ),
-        new Position(position.line, openingBracketIndex),
+        request,
+        filteredItems,
+        openingBracketIndex
+            ? new Position(position.line, openingBracketIndex)
+            : undefined,
     );
 }
 
@@ -61,7 +70,7 @@ function parseBlockStartLine(
         BlockBracket.ClosingBracketForDictionaryOrTextBlock,
     ];
     const blockStartPattern = new RegExp(
-        `^\\s*[^\\${openingBrackets.concat(closingBrackets).join("\\")}}]*?\\s*(\\${openingBrackets.join("|\\")})\\s*$`,
+        `^\\s*[^\\${openingBrackets.concat(closingBrackets).join("\\")}]*?\\s*(\\${openingBrackets.join("|\\")})?\\s*$`,
         "m",
     );
 
@@ -71,52 +80,65 @@ function parseBlockStartLine(
         return undefined;
     }
 
-    const blockOpeningBracket = matches[0].includes(
+    const blockOpeningBracket = [
         BlockBracket.OpeningBracketForArrayBlock,
-    )
-        ? BlockBracket.OpeningBracketForArrayBlock
-        : BlockBracket.OpeningBracketForDictionaryOrTextBlock;
+        BlockBracket.OpeningBracketForDictionaryOrTextBlock,
+    ].find((bracketType) => matches[0].includes(bracketType));
 
     return {
         openingBracket: blockOpeningBracket,
-        openingBracketIndex: matches[0].indexOf(blockOpeningBracket),
+        openingBracketIndex: blockOpeningBracket
+            ? matches[0].indexOf(blockOpeningBracket)
+            : undefined,
     };
 }
 
 function mapToCompletionItems(
+    { position: { line }, documentHelper }: LanguageFeatureBaseRequest,
     blocks: { blockName: string; mandatory: boolean }[],
-    blockStartBracketPosition: Position,
+    blockStartBracketPosition?: Position,
 ) {
-    return blocks.map(({ blockName, mandatory: isMandatory }) => ({
+    const fullLineRange = documentHelper.getRangeForLine(line);
+    if (!fullLineRange) {
+        return undefined;
+    }
+
+    const range = new Range(
+        fullLineRange.start,
+        blockStartBracketPosition
+            ? blockStartBracketPosition
+            : fullLineRange.end,
+    );
+
+    return blocks.map(({ blockName, mandatory }) => ({
         label: blockName,
         textEdit: {
             newText: `${blockName} `,
-            range: new Range(
-                new Position(blockStartBracketPosition.line, 0),
-                blockStartBracketPosition,
-            ),
+            range,
         },
-        sortText: isMandatory ? `a_${blockName}` : `b_${blockName}`,
-        labelDetails: isMandatory ? undefined : { detail: ` optional` },
+        sortText: mandatory ? `a_${blockName}` : `b_${blockName}`,
+        labelDetails: mandatory ? undefined : { detail: ` optional` },
     }));
 }
 
+function mapToBlockNames(missingBlocks: MissingBlock[]) {
+    return missingBlocks.flatMap((entry) =>
+        "mutuallyExclusiveBlocks" in entry
+            ? entry.mutuallyExclusiveBlocks.map((name) => ({
+                  blockName: name,
+                  mandatory: entry.mandatory,
+              }))
+            : [{ blockName: entry.name, mandatory: entry.mandatory }],
+    );
+}
+
 function filterOutNonMatchingBlockTypes(
-    missingBlocks: MissingBlock[],
+    missingBlocks: { blockName: string; mandatory: boolean }[],
     openingBracket: BlockBracket,
-): { blockName: string; mandatory: boolean }[] {
-    return missingBlocks
-        .flatMap((entry) =>
-            "mutuallyExclusiveBlocks" in entry
-                ? entry.mutuallyExclusiveBlocks.map((name) => ({
-                      blockName: name,
-                      mandatory: entry.mandatory,
-                  }))
-                : [{ blockName: entry.name, mandatory: entry.mandatory }],
-        )
-        .filter(({ blockName }) =>
-            openingBracket == BlockBracket.OpeningBracketForArrayBlock
-                ? shouldBeArrayBlock(blockName)
-                : !shouldBeArrayBlock(blockName),
-        );
+) {
+    return missingBlocks.filter(({ blockName }) =>
+        openingBracket == BlockBracket.OpeningBracketForArrayBlock
+            ? shouldBeArrayBlock(blockName)
+            : !shouldBeArrayBlock(blockName),
+    );
 }
