@@ -2,16 +2,29 @@ import {
     Block,
     BlockBracket,
     BrunoFileType,
+    getDefaultIndentationForDictionaryBlockFields,
+    LineBreakType,
     Position,
     Range,
     shouldBeArrayBlock,
     TextDocumentHelper,
 } from "@global_shared";
 import { LanguageFeatureBaseRequest } from "../../shared";
-import { CompletionItem } from "vscode-languageserver";
+import {
+    CompletionItem,
+    InsertTextFormat,
+    TextEdit,
+} from "vscode-languageserver";
 import { MissingBlock } from "../shared/interfaces";
 import { getMissingMandatoryBlocks } from "../shared/getMissingMandatoryBlocks";
 import { getMissingOptionalBlocks } from "../shared/getMissingOptionalBlocks";
+import { findBlockEnd } from "../../../../shared/fileParsing/internal/findBlockEnd";
+
+interface BlockData {
+    blockName: string;
+    mandatory: boolean;
+    endPosition?: Position;
+}
 
 export function getCompletionsForPositionOutsideOfBlocks(
     request: LanguageFeatureBaseRequest,
@@ -41,7 +54,8 @@ export function getCompletionsForPositionOutsideOfBlocks(
         blocksThatCannotBeOptional,
     );
 
-    const allMissingBlocks = mapToBlockNames(
+    const allMissingBlocks = mapToBlockData(
+        request,
         missingMandatoryBlocks.concat(missingOptionalBlocks),
     );
     const filteredItems = openingBracket
@@ -94,46 +108,95 @@ function parseBlockStartLine(
 }
 
 function mapToCompletionItems(
-    { position: { line }, documentHelper }: LanguageFeatureBaseRequest,
-    blocks: { blockName: string; mandatory: boolean }[],
+    baseRequest: LanguageFeatureBaseRequest,
+    blocks: BlockData[],
     blockStartBracketPosition?: Position,
 ) {
+    return blocks.map((blockData) => {
+        const { blockName, mandatory } = blockData;
+
+        return {
+            label: blockName,
+            ...getTextEditWithInsertFormat(
+                baseRequest,
+                blockData,
+                blockStartBracketPosition,
+            ),
+            sortText: mandatory ? `a_${blockName}` : `b_${blockName}`,
+            labelDetails: mandatory ? undefined : { detail: ` optional` },
+        };
+    });
+}
+
+function getTextEditWithInsertFormat(
+    { documentHelper, position: { line } }: LanguageFeatureBaseRequest,
+    { blockName }: BlockData,
+    blockStartBracketPosition?: Position,
+):
+    | { textEdit: TextEdit | undefined; insertTextFormat?: InsertTextFormat }
+    | undefined {
     const fullLineRange = documentHelper.getRangeForLine(line);
     if (!fullLineRange) {
         return undefined;
     }
+    const lineBreak = documentHelper.getMostUsedLineBreak() ?? LineBreakType.Lf;
 
-    const range = new Range(
-        fullLineRange.start,
-        blockStartBracketPosition
-            ? blockStartBracketPosition
-            : fullLineRange.end,
-    );
+    if (!blockStartBracketPosition) {
+        const usBracketsForArrayBlock = shouldBeArrayBlock(blockName);
+        const openingBracket = usBracketsForArrayBlock
+            ? BlockBracket.OpeningBracketForArrayBlock
+            : BlockBracket.OpeningBracketForDictionaryOrTextBlock;
+        const closingBracket = usBracketsForArrayBlock
+            ? BlockBracket.ClosingBracketForArrayBlock
+            : BlockBracket.ClosingBracketForDictionaryOrTextBlock;
+        return {
+            textEdit: {
+                newText: `${blockName} ${openingBracket}${lineBreak}${" ".repeat(getDefaultIndentationForDictionaryBlockFields())}\${0}${lineBreak}${closingBracket}`,
+                range: fullLineRange,
+            },
+            insertTextFormat: InsertTextFormat.Snippet,
+        };
+    }
 
-    return blocks.map(({ blockName, mandatory }) => ({
-        label: blockName,
+    return {
         textEdit: {
             newText: `${blockName} `,
-            range,
+            range: new Range(fullLineRange.start, blockStartBracketPosition),
         },
-        sortText: mandatory ? `a_${blockName}` : `b_${blockName}`,
-        labelDetails: mandatory ? undefined : { detail: ` optional` },
-    }));
+    };
 }
 
-function mapToBlockNames(missingBlocks: MissingBlock[]) {
+function mapToBlockData(
+    { documentHelper, position: { line } }: LanguageFeatureBaseRequest,
+    missingBlocks: MissingBlock[],
+) {
     return missingBlocks.flatMap((entry) =>
         "mutuallyExclusiveBlocks" in entry
             ? entry.mutuallyExclusiveBlocks.map((name) => ({
                   blockName: name,
                   mandatory: entry.mandatory,
+                  endPosition: findBlockEnd(
+                      documentHelper,
+                      line + 1,
+                      shouldBeArrayBlock(name),
+                  ),
               }))
-            : [{ blockName: entry.name, mandatory: entry.mandatory }],
+            : [
+                  {
+                      blockName: entry.name,
+                      mandatory: entry.mandatory,
+                      endPosition: findBlockEnd(
+                          documentHelper,
+                          line + 1,
+                          shouldBeArrayBlock(entry.name),
+                      ),
+                  },
+              ],
     );
 }
 
 function filterOutNonMatchingBlockTypes(
-    missingBlocks: { blockName: string; mandatory: boolean }[],
+    missingBlocks: BlockData[],
     openingBracket: BlockBracket,
 ) {
     return missingBlocks.filter(({ blockName }) =>

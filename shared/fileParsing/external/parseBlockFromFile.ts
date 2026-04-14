@@ -50,7 +50,7 @@ export const parseBlockFromFile = (
     const blockEndPosition = findBlockEnd(
         fullDocHelper,
         lineIndex + 1,
-        getBlockType(blockName),
+        shouldBeArrayBlock,
     );
     return blockEndPosition
         ? getBlockContent(

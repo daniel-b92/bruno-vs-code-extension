@@ -1,11 +1,13 @@
-import { BlockBracket, BlockType, Position, TextDocumentHelper } from "../..";
+import { BlockBracket, Position, TextDocumentHelper } from "../..";
 
 export function findBlockEnd(
     documentHelper: TextDocumentHelper,
     firstContentLine: number,
-    blockType: BlockType,
+    shouldBeArrayBlock: boolean,
 ) {
-    const blockEndBracket = getBlockEndBracketForBlockType(blockType);
+    const blockEndBracket = shouldBeArrayBlock
+        ? BlockBracket.ClosingBracketForArrayBlock
+        : BlockBracket.ClosingBracketForDictionaryOrTextBlock;
 
     const line =
         firstContentLine >= documentHelper.getLineCount()
@@ -20,12 +22,6 @@ export function findBlockEnd(
                   });
 
     return line ? new Position(line.index, 0) : undefined;
-}
-
-function getBlockEndBracketForBlockType(blockType: BlockType) {
-    return blockType == BlockType.Array
-        ? BlockBracket.ClosingBracketForArrayBlock
-        : BlockBracket.ClosingBracketForDictionaryOrTextBlock;
 }
 
 function getBlockEndPattern(blockEndBracket: BlockBracket) {
