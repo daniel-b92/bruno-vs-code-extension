@@ -13,14 +13,21 @@ export function parseArrayBlock(
     firstContentLine: number,
     lastContentLine: number,
 ) {
-    const linesWithBlockContent = docHelper
-        .getAllLines(firstContentLine)
-        .filter(({ index }) => index <= lastContentLine);
+    const linesWithBlockContent =
+        firstContentLine >= docHelper.getLineCount()
+            ? undefined
+            : docHelper
+                  .getAllLines(firstContentLine)
+                  .filter(({ index }) => index <= lastContentLine);
 
-    const nonFinalBlockLines = linesWithBlockContent.slice(
-        0,
-        linesWithBlockContent.length - 1,
-    );
+    if (!linesWithBlockContent) {
+        return undefined;
+    }
+
+    const nonFinalBlockLines =
+        linesWithBlockContent.length > 0
+            ? linesWithBlockContent.slice(0, linesWithBlockContent.length - 1)
+            : [];
 
     const nonFinalLinesNotMatchingPattern: PlainTextWithinBlock[] = [];
 

@@ -7,14 +7,17 @@ export function findBlockEnd(
 ) {
     const blockEndBracket = getBlockEndBracketForBlockType(blockType);
 
-    const line = documentHelper
-        .getAllLines(firstContentLine)
-        .find(({ content }) => {
-            const patternMatches = content.match(
-                getBlockEndPattern(blockEndBracket),
-            );
-            return patternMatches && patternMatches.length > 0;
-        });
+    const line =
+        firstContentLine >= documentHelper.getLineCount()
+            ? undefined
+            : documentHelper
+                  .getAllLines(firstContentLine)
+                  .find(({ content }) => {
+                      const patternMatches = content.match(
+                          getBlockEndPattern(blockEndBracket),
+                      );
+                      return patternMatches && patternMatches.length > 0;
+                  });
 
     return line ? new Position(line.index, 0) : undefined;
 }
