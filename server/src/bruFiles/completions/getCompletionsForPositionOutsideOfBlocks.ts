@@ -3,10 +3,18 @@ import {
     BlockBracket,
     BrunoFileType,
     getDefaultIndentationForDictionaryBlockFields,
+    getExtensionForBrunoFiles,
+    getMandatoryKeysForMethodBlock,
+    getMetaBlockMandatoryKeys,
+    getPossibleMethodBlocks,
     LineBreakType,
+    MetaBlockKey,
     Position,
     Range,
+    RequestFileBlockName,
+    RequestType,
     shouldBeArrayBlock,
+    shouldBeDictionaryBlock,
     TextDocumentHelper,
 } from "@global_shared";
 import { LanguageFeatureBaseRequest } from "../../shared";
@@ -19,6 +27,7 @@ import { MissingBlock } from "../shared/interfaces";
 import { getMissingMandatoryBlocks } from "../shared/getMissingMandatoryBlocks";
 import { getMissingOptionalBlocks } from "../shared/getMissingOptionalBlocks";
 import { findBlockEnd } from "../../../../shared/fileParsing/internal/findBlockEnd";
+import { basename } from "path";
 
 interface BlockData {
     blockName: string;
@@ -65,6 +74,7 @@ export function getCompletionsForPositionOutsideOfBlocks(
     return mapToCompletionItems(
         request,
         filteredItems,
+        fileType,
         openingBracketIndex
             ? new Position(position.line, openingBracketIndex)
             : undefined,
@@ -110,6 +120,7 @@ function parseBlockStartLine(
 function mapToCompletionItems(
     baseRequest: LanguageFeatureBaseRequest,
     blocks: BlockData[],
+    fileType: BrunoFileType,
     blockStartBracketPosition?: Position,
 ) {
     return blocks.map((blockData) => {
@@ -120,6 +131,7 @@ function mapToCompletionItems(
             ...getTextEditWithInsertFormat(
                 baseRequest,
                 blockData,
+                fileType,
                 blockStartBracketPosition,
             ),
             sortText: mandatory ? `a_${blockName}` : `b_${blockName}`,
@@ -129,12 +141,17 @@ function mapToCompletionItems(
 }
 
 function getTextEditWithInsertFormat(
-    { documentHelper, position: { line } }: LanguageFeatureBaseRequest,
+    baseRequest: LanguageFeatureBaseRequest,
     { blockName }: BlockData,
+    fileType: BrunoFileType,
     blockStartBracketPosition?: Position,
 ):
     | { textEdit: TextEdit | undefined; insertTextFormat?: InsertTextFormat }
     | undefined {
+    const {
+        documentHelper,
+        position: { line },
+    } = baseRequest;
     const fullLineRange = documentHelper.getRangeForLine(line);
     if (!fullLineRange) {
         return undefined;
@@ -149,9 +166,22 @@ function getTextEditWithInsertFormat(
         const closingBracket = usBracketsForArrayBlock
             ? BlockBracket.ClosingBracketForArrayBlock
             : BlockBracket.ClosingBracketForDictionaryOrTextBlock;
+        const commonBlockStartLine = `${blockName} ${openingBracket}${lineBreak}`;
+        const commonBlockEndLine = closingBracket;
+        const defaultContent = `${" ".repeat(getDefaultIndentationForDictionaryBlockFields())}\${0}${lineBreak}`;
         return {
             textEdit: {
-                newText: `${blockName} ${openingBracket}${lineBreak}${" ".repeat(getDefaultIndentationForDictionaryBlockFields())}\${0}${lineBreak}${closingBracket}`,
+                newText: commonBlockStartLine.concat(
+                    shouldBeDictionaryBlock(blockName)
+                        ? (getDictionaryBlockInsertionContent(
+                              baseRequest,
+                              blockName,
+                              fileType,
+                              lineBreak,
+                          ) ?? defaultContent)
+                        : defaultContent,
+                    commonBlockEndLine,
+                ),
                 range: fullLineRange,
             },
             insertTextFormat: InsertTextFormat.Snippet,
@@ -164,6 +194,87 @@ function getTextEditWithInsertFormat(
             range: new Range(fullLineRange.start, blockStartBracketPosition),
         },
     };
+}
+
+function getDictionaryBlockInsertionContent(
+    { filePath }: LanguageFeatureBaseRequest,
+    blockName: string,
+    fileType: BrunoFileType,
+    lineBreak: LineBreakType,
+): string | undefined {
+    if (blockName == RequestFileBlockName.Meta) {
+        const mandatoryKeys = getMetaBlockMandatoryKeys(fileType);
+
+        if (!mandatoryKeys) {
+            return undefined;
+        }
+
+        const fields = mandatoryKeys.map((key) => {
+            if (key == MetaBlockKey.Name) {
+                return {
+                    key,
+                    predefinedValues: basename(
+                        filePath,
+                        getExtensionForBrunoFiles(),
+                    ),
+                };
+            }
+            if (key == MetaBlockKey.Sequence) {
+                // ToDo: Determine sensible sequence from collection
+                return { key, predefinedValues: "1" };
+            }
+            if (key == MetaBlockKey.Type) {
+                return { key, predefinedValues: Object.values(RequestType) };
+            }
+            return { key };
+        });
+
+        return mandatoryKeys
+            ? getSnippetPartForDictionaryBlockContent(fields, lineBreak)
+            : undefined;
+    }
+
+    if ((getPossibleMethodBlocks() as string[]).includes(blockName)) {
+        const mandatoryKeys = getMandatoryKeysForMethodBlock(blockName);
+        return mandatoryKeys
+            ? getSnippetPartForDictionaryBlockContent(
+                  mandatoryKeys.map((key) => ({ key })),
+                  lineBreak,
+              )
+            : undefined;
+    }
+}
+
+function getSnippetPartForDictionaryBlockContent(
+    fields: { key: string; predefinedValues?: string | string[] }[],
+    lineBreak: LineBreakType,
+) {
+    const defaultFieldIndentation =
+        getDefaultIndentationForDictionaryBlockFields();
+    const fieldsWithSnippetIndizes = fields
+        .filter(({ predefinedValues }) => predefinedValues != undefined)
+        .map((field, index) => ({ ...field, snippetIndex: index + 1 }));
+
+    return fields
+        .map(({ key, predefinedValues }) => {
+            const lineBegin = " "
+                .repeat(defaultFieldIndentation)
+                .concat(key, ":");
+
+            if (!predefinedValues) {
+                return lineBegin;
+            }
+
+            const snippetIndex = fieldsWithSnippetIndizes.find(
+                ({ key: k }) => key == k,
+            )!.snippetIndex;
+
+            return Array.isArray(predefinedValues)
+                ? `${lineBegin} $\{${snippetIndex}|${predefinedValues.join(",")}|\}`
+                : `${lineBegin} $\{${snippetIndex}:${predefinedValues}\}`;
+        })
+        .join(lineBreak)
+        .concat(lineBreak);
 }
 
 function mapToBlockData(
