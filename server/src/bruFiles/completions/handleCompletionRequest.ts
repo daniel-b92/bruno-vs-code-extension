@@ -35,6 +35,7 @@ export async function handleCompletionRequest({
                   baseRequest,
                   itemType as BrunoFileType,
                   allBlocks,
+                  collection,
               )
             : undefined;
     }

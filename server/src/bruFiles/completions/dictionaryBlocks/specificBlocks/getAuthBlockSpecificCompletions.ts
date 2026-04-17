@@ -104,19 +104,19 @@ function getCompletionsForValues(request: LanguageFeatureBaseRequest) {
             },
             {
                 linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKeys.TokenPlacement,
+                    OAuth2AuthBlocksCommonKeys.TokenPlacement,
                 ),
                 choices: Object.values(OAuth2BlockTokenPlacementValue),
             },
             {
                 linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKeys.TokenSource,
+                    OAuth2AuthBlocksCommonKeys.TokenSource,
                 ),
                 choices: Object.values(OAuth2BlockTokenSourceValue),
             },
             {
                 linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKeys.AutoFetchToken,
+                    OAuth2AuthBlocksCommonKeys.AutoFetchToken,
                 ),
                 choices: Object.values(BooleanFieldValue),
             },
