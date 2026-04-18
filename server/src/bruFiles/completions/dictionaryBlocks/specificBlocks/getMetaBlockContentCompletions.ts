@@ -22,13 +22,13 @@ import { getLinePatternForDictionaryField } from "../generic/getLinePatternForDi
 import { getCompletionsForKeys } from "../generic/getCompletionsForKeys";
 import { getSequenceValueCompletion } from "../../../shared/getSequenceValueCompletion";
 
-export async function getMetaBlockContentCompletions(
+export function getMetaBlockContentCompletions(
     itemProvider: TypedCollectionItemProvider,
     request: LanguageFeatureBaseRequest,
     block: Block,
     itemType: BrunoFileType,
     collection?: TypedCollection,
-): Promise<CompletionItem[]> {
+): CompletionItem[] {
     const mandatoryKeys = getMetaBlockMandatoryKeys(itemType);
     const optionalKeys = getMetaBlockOptionalKeys(itemType);
 
@@ -49,11 +49,11 @@ export async function getMetaBlockContentCompletions(
 
     return (
         collection
-            ? await getSequenceValueCompletionIfInSeqLine(
+            ? (getSequenceValueCompletionIfInSeqLine(
                   collection,
                   request,
                   itemType,
-              )
+              ) ?? [])
             : []
     ).concat(
         getRequestTypeValueCompletions(request),
@@ -61,7 +61,7 @@ export async function getMetaBlockContentCompletions(
     );
 }
 
-async function getSequenceValueCompletionIfInSeqLine(
+function getSequenceValueCompletionIfInSeqLine(
     collection: TypedCollection,
     { documentHelper, filePath, position }: LanguageFeatureBaseRequest,
     itemType: BrunoFileType,
@@ -73,7 +73,7 @@ async function getSequenceValueCompletionIfInSeqLine(
     );
 
     if (!currentText.match(sequencePattern)) {
-        return [];
+        return undefined;
     }
 
     const suggestedSequence = getSequenceValueCompletion(

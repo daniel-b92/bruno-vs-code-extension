@@ -208,11 +208,11 @@ function getTextEditWithInsertFormat(
         };
     }
 
-    const usBracketsForArrayBlock = shouldBeArrayBlock(blockName);
-    const openingBracket = usBracketsForArrayBlock
+    const useBracketsForArrayBlock = shouldBeArrayBlock(blockName);
+    const openingBracket = useBracketsForArrayBlock
         ? BlockBracket.OpeningBracketForArrayBlock
         : BlockBracket.OpeningBracketForDictionaryOrTextBlock;
-    const closingBracket = usBracketsForArrayBlock
+    const closingBracket = useBracketsForArrayBlock
         ? BlockBracket.ClosingBracketForArrayBlock
         : BlockBracket.ClosingBracketForDictionaryOrTextBlock;
     const commonBlockStartLine = `${blockName} ${openingBracket}${lineBreak}`;
