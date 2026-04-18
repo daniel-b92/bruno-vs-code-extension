@@ -1,36 +1,13 @@
 import {
-    ApiKeyAuthBlockKeys,
-    ApiKeyAuthBlockPlacementValue,
-    AuthBlockName,
-    AuthBlockNamesExcludingOAuth2,
-    AuthModeBlockKey,
     Block,
     BlockBracket,
-    BooleanFieldValue,
     BrunoFileType,
     getDefaultIndentationForDictionaryBlockFields,
-    getExtensionForBrunoFiles,
-    getMandatoryKeysForMethodBlock,
-    getMandatoryKeysForNonOAuth2Block,
-    getMandatoryKeysForSettingsBlock,
-    getMetaBlockMandatoryKeys,
-    getPossibleMethodBlocks,
-    isAuthBlock,
     LineBreakType,
-    MetaBlockKey,
-    MethodBlockAuthValues,
-    MethodBlockBodies,
-    MethodBlockKey,
-    OAuth2AuthBlocksCommonKeys,
-    OAuth2BlockTokenPlacementValue,
-    OAuth2BlockTokenSourceValue,
     Position,
     Range,
-    RequestFileBlockName,
-    RequestType,
-    SettingsBlockKey,
-    SettingsFileSpecificBlock,
     shouldBeArrayBlock,
+    shouldBeCodeBlock,
     shouldBeDictionaryBlock,
     TextDocumentHelper,
 } from "@global_shared";
@@ -44,8 +21,7 @@ import { MissingBlock } from "../shared/interfaces";
 import { getMissingMandatoryBlocks } from "../shared/getMissingMandatoryBlocks";
 import { getMissingOptionalBlocks } from "../shared/getMissingOptionalBlocks";
 import { findBlockEnd } from "../../../../shared/fileParsing/internal/findBlockEnd";
-import { basename } from "path";
-import { getSequenceValueCompletion } from "../shared/getSequenceValueCompletion";
+import { getDictionaryBlockSnippetInsertionContent } from "./dictionaryBlocks/generic/getDictionaryBlockSnippetInsertionContent";
 
 interface BlockData {
     blockName: string;
@@ -143,23 +119,38 @@ function mapToCompletionItems(
     fileType: BrunoFileType,
     collection: TypedCollection,
     blockStartBracketPosition?: Position,
-) {
-    return blocks.map((blockData) => {
-        const { blockName, mandatory } = blockData;
+): CompletionItem[] {
+    return blocks
+        .map((blockData) => {
+            const { blockName, mandatory } = blockData;
 
-        return {
-            label: blockName,
-            ...getTextEditWithInsertFormat(
+            const textEditWithInsertFormat = getTextEditWithInsertFormat(
                 baseRequest,
                 blockData,
                 fileType,
                 collection,
                 blockStartBracketPosition,
-            ),
-            sortText: mandatory ? `a_${blockName}` : `b_${blockName}`,
-            labelDetails: mandatory ? undefined : { detail: ` optional` },
-        };
-    });
+            );
+
+            return textEditWithInsertFormat
+                ? {
+                      label: blockName,
+                      ...textEditWithInsertFormat,
+                      sortText: mandatory ? `a_${blockName}` : `b_${blockName}`,
+                      labelDetails: mandatory
+                          ? undefined
+                          : { description: "optional" },
+                      detail: shouldBeDictionaryBlock(blockName)
+                          ? "Dictionary block"
+                          : shouldBeArrayBlock(blockName)
+                            ? "Array block"
+                            : shouldBeCodeBlock(blockName)
+                              ? "Code block"
+                              : "Text block",
+                  }
+                : undefined;
+        })
+        .filter((val) => val != undefined);
 }
 
 function getTextEditWithInsertFormat(
@@ -181,225 +172,46 @@ function getTextEditWithInsertFormat(
     }
     const lineBreak = documentHelper.getMostUsedLineBreak() ?? LineBreakType.Lf;
 
-    if (!blockStartBracketPosition) {
-        const usBracketsForArrayBlock = shouldBeArrayBlock(blockName);
-        const openingBracket = usBracketsForArrayBlock
-            ? BlockBracket.OpeningBracketForArrayBlock
-            : BlockBracket.OpeningBracketForDictionaryOrTextBlock;
-        const closingBracket = usBracketsForArrayBlock
-            ? BlockBracket.ClosingBracketForArrayBlock
-            : BlockBracket.ClosingBracketForDictionaryOrTextBlock;
-        const commonBlockStartLine = `${blockName} ${openingBracket}${lineBreak}`;
-        const commonBlockEndLine = closingBracket;
-        const defaultContent = `${" ".repeat(getDefaultIndentationForDictionaryBlockFields())}\${0}${lineBreak}`;
+    if (blockStartBracketPosition) {
+        // Avoid overwriting existing content, if already defined.
         return {
             textEdit: {
-                newText: commonBlockStartLine.concat(
-                    shouldBeDictionaryBlock(blockName)
-                        ? (getDictionaryBlockInsertionContent(
-                              baseRequest,
-                              blockName,
-                              fileType,
-                              collection,
-                              lineBreak,
-                          ) ?? defaultContent)
-                        : defaultContent,
-                    commonBlockEndLine,
+                newText: `${blockName} `,
+                range: new Range(
+                    fullLineRange.start,
+                    blockStartBracketPosition,
                 ),
-                range: fullLineRange,
             },
-            insertTextFormat: InsertTextFormat.Snippet,
         };
     }
 
+    const usBracketsForArrayBlock = shouldBeArrayBlock(blockName);
+    const openingBracket = usBracketsForArrayBlock
+        ? BlockBracket.OpeningBracketForArrayBlock
+        : BlockBracket.OpeningBracketForDictionaryOrTextBlock;
+    const closingBracket = usBracketsForArrayBlock
+        ? BlockBracket.ClosingBracketForArrayBlock
+        : BlockBracket.ClosingBracketForDictionaryOrTextBlock;
+    const commonBlockStartLine = `${blockName} ${openingBracket}${lineBreak}`;
+    const commonBlockEndLine = closingBracket;
+    const defaultContent = `${" ".repeat(getDefaultIndentationForDictionaryBlockFields())}\${0}${lineBreak}`;
     return {
         textEdit: {
-            newText: `${blockName} `,
-            range: new Range(fullLineRange.start, blockStartBracketPosition),
+            newText: commonBlockStartLine.concat(
+                shouldBeDictionaryBlock(blockName)
+                    ? (getDictionaryBlockSnippetInsertionContent(blockName, {
+                          baseRequest,
+                          fileType,
+                          collection,
+                          lineBreak,
+                      }) ?? defaultContent)
+                    : defaultContent,
+                commonBlockEndLine,
+            ),
+            range: fullLineRange,
         },
+        insertTextFormat: InsertTextFormat.Snippet,
     };
-}
-
-function getDictionaryBlockInsertionContent(
-    { filePath }: LanguageFeatureBaseRequest,
-    blockName: string,
-    fileType: BrunoFileType,
-    collection: TypedCollection,
-    lineBreak: LineBreakType,
-): string | undefined {
-    if (blockName == RequestFileBlockName.Meta) {
-        const mandatoryKeys = getMetaBlockMandatoryKeys(fileType);
-
-        if (!mandatoryKeys) {
-            return undefined;
-        }
-
-        const fields = mandatoryKeys.map((key) => {
-            if (key == MetaBlockKey.Name) {
-                return {
-                    key,
-                    predefinedValues: basename(
-                        filePath,
-                        getExtensionForBrunoFiles(),
-                    ),
-                };
-            }
-            if (key == MetaBlockKey.Sequence) {
-                const suggestedSequence = getSequenceValueCompletion(
-                    collection,
-                    filePath,
-                    fileType,
-                );
-                return {
-                    key,
-                    predefinedValues: suggestedSequence
-                        ? suggestedSequence.toString()
-                        : undefined,
-                };
-            }
-            if (key == MetaBlockKey.Type) {
-                return { key, predefinedValues: Object.values(RequestType) };
-            }
-
-            return { key };
-        });
-
-        return mandatoryKeys
-            ? getContentForDictionaryBlock(fields, lineBreak)
-            : undefined;
-    }
-
-    if ((getPossibleMethodBlocks() as string[]).includes(blockName)) {
-        const mandatoryKeys = getMandatoryKeysForMethodBlock(blockName);
-
-        return getContentForDictionaryBlock(
-            mandatoryKeys.map((key) => ({
-                key,
-                predefinedValues:
-                    key == MethodBlockKey.Auth
-                        ? Object.values(MethodBlockAuthValues)
-                        : key == MethodBlockKey.Body
-                          ? Object.values(MethodBlockBodies)
-                          : undefined,
-            })),
-            lineBreak,
-        );
-    }
-
-    if (blockName == RequestFileBlockName.Settings) {
-        const fields = getMandatoryKeysForSettingsBlock().map((key) => ({
-            key,
-            predefinedValues: [
-                SettingsBlockKey.EncodeUrl,
-                SettingsBlockKey.FollowRedirects,
-            ].includes(key)
-                ? Object.values(BooleanFieldValue)
-                : key == SettingsBlockKey.FollowRedirects
-                  ? "5"
-                  : key == SettingsBlockKey.Timeout
-                    ? "inherit"
-                    : undefined,
-        }));
-
-        return getContentForDictionaryBlock(fields, lineBreak);
-    }
-
-    if (blockName == SettingsFileSpecificBlock.AuthMode) {
-        return getContentForDictionaryBlock(
-            [
-                {
-                    key: AuthModeBlockKey.Mode,
-                    predefinedValues: Object.values(MethodBlockAuthValues),
-                },
-            ],
-            lineBreak,
-        );
-    }
-
-    if (isAuthBlock(blockName)) {
-        if (blockName != AuthBlockName.OAuth2Auth) {
-            const mandatoryKeys = getMandatoryKeysForNonOAuth2Block(
-                blockName as AuthBlockNamesExcludingOAuth2,
-            );
-
-            const fields = mandatoryKeys.map((key) => ({
-                key,
-                predefinedValues:
-                    blockName == RequestFileBlockName.ApiKeyAuth &&
-                    key == ApiKeyAuthBlockKeys.Placement
-                        ? Object.values(ApiKeyAuthBlockPlacementValue)
-                        : undefined,
-            }));
-            return getContentForDictionaryBlock(fields, lineBreak);
-        }
-
-        const commonOAuth2Fields = Object.values(OAuth2AuthBlocksCommonKeys)
-            // Ensure that the Grant type field is the last one.
-            .sort((key1, key2) =>
-                key1 == OAuth2AuthBlocksCommonKeys.GrantType
-                    ? 1
-                    : key2 == OAuth2AuthBlocksCommonKeys.GrantType
-                      ? -1
-                      : 0,
-            )
-            .map((key) => ({
-                key,
-                predefinedValues:
-                    key == OAuth2AuthBlocksCommonKeys.TokenPlacement
-                        ? Object.values(OAuth2BlockTokenPlacementValue)
-                        : key == OAuth2AuthBlocksCommonKeys.TokenSource
-                          ? Object.values(OAuth2BlockTokenSourceValue)
-                          : key == OAuth2AuthBlocksCommonKeys.AutoFetchToken
-                            ? Object.values(BooleanFieldValue)
-                            : undefined,
-            }));
-
-        return getContentForDictionaryBlock(
-            commonOAuth2Fields,
-            lineBreak,
-            OAuth2AuthBlocksCommonKeys.GrantType,
-        );
-    }
-}
-
-function getContentForDictionaryBlock(
-    fields: { key: string; predefinedValues?: string | string[] }[],
-    lineBreak: LineBreakType,
-    lastSelectedKeyWithoutPredefinedValues?: string,
-) {
-    const defaultFieldIndentation =
-        getDefaultIndentationForDictionaryBlockFields();
-    const fieldsWithSnippetIndizes = fields
-        .filter(
-            ({ predefinedValues }) =>
-                predefinedValues != undefined &&
-                Array.isArray(predefinedValues),
-        )
-        .map((field, index) => ({ ...field, snippetIndex: index + 1 }));
-
-    return fields
-        .map(({ key, predefinedValues }) => {
-            const lineBegin = " "
-                .repeat(defaultFieldIndentation)
-                .concat(key, ":");
-
-            if (!predefinedValues || !Array.isArray(predefinedValues)) {
-                return predefinedValues
-                    ? `${lineBegin} ${predefinedValues}`
-                    : lastSelectedKeyWithoutPredefinedValues &&
-                        key == lastSelectedKeyWithoutPredefinedValues
-                      ? `${lineBegin}\${0}`
-                      : lineBegin;
-            }
-
-            const snippetIndex = fieldsWithSnippetIndizes.find(
-                ({ key: k }) => key == k,
-            )!.snippetIndex;
-
-            return `${lineBegin} $\{${snippetIndex}|${predefinedValues.join(",")}|\}`;
-        })
-        .join(lineBreak)
-        .concat(lineBreak);
 }
 
 function mapToBlockData(

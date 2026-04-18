@@ -22,7 +22,7 @@ import { getLinePatternForDictionaryField } from "../generic/getLinePatternForDi
 import { getCompletionsForKeys } from "../generic/getCompletionsForKeys";
 import { getSequenceValueCompletion } from "../../../shared/getSequenceValueCompletion";
 
-export async function getMetaBlockSpecificCompletions(
+export async function getMetaBlockContentCompletions(
     itemProvider: TypedCollectionItemProvider,
     request: LanguageFeatureBaseRequest,
     block: Block,

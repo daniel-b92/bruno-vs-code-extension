@@ -21,7 +21,7 @@ import { getFixedCompletionItems } from "../generic/getFixedCompletionItems";
 import { getLinePatternForDictionaryField } from "../generic/getLinePatternForDictionaryField";
 import { getCompletionsForKeys } from "../generic/getCompletionsForKeys";
 
-export function getAuthBlockSpecificCompletions(
+export function getAuthBlockContentCompletions(
     request: LanguageFeatureBaseRequest,
     block: Block,
 ) {

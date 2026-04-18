@@ -1,20 +1,22 @@
 import {
-    SettingsBlockKey,
-    BooleanFieldValue,
+    MethodBlockKey,
+    MethodBlockBodies,
+    MethodBlockAuthValues,
     Block,
-    getMandatoryKeysForSettingsBlock,
+    getMandatoryKeysForMethodBlock,
 } from "@global_shared";
 import { LanguageFeatureBaseRequest } from "../../../../shared";
 import { getFixedCompletionItems } from "../generic/getFixedCompletionItems";
 import { getLinePatternForDictionaryField } from "../generic/getLinePatternForDictionaryField";
+
 import { getCompletionsForKeys } from "../generic/getCompletionsForKeys";
 
-export function getSettingsBlockSpecificCompletions(
+export function getMethodBlockContentCompletions(
     request: LanguageFeatureBaseRequest,
     block: Block,
 ) {
     const completionsForKeys = getCompletionsForKeys(request, block, {
-        mandatory: getMandatoryKeysForSettingsBlock(),
+        mandatory: getMandatoryKeysForMethodBlock(block.name),
     });
 
     if (completionsForKeys) {
@@ -25,21 +27,15 @@ export function getSettingsBlockSpecificCompletions(
         [
             {
                 linePattern: getLinePatternForDictionaryField(
-                    SettingsBlockKey.EncodeUrl,
+                    MethodBlockKey.Body,
                 ),
-                choices: Object.values(BooleanFieldValue),
+                choices: Object.values(MethodBlockBodies),
             },
             {
                 linePattern: getLinePatternForDictionaryField(
-                    SettingsBlockKey.FollowRedirects,
+                    MethodBlockKey.Auth,
                 ),
-                choices: Object.values(BooleanFieldValue),
-            },
-            {
-                linePattern: getLinePatternForDictionaryField(
-                    SettingsBlockKey.Timeout,
-                ),
-                choices: ["inherit"],
+                choices: Object.values(MethodBlockAuthValues),
             },
         ],
         request,

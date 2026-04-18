@@ -4,7 +4,7 @@ import { getFixedCompletionItems } from "../generic/getFixedCompletionItems";
 import { getLinePatternForDictionaryField } from "../generic/getLinePatternForDictionaryField";
 import { getCompletionsForKeys } from "../generic/getCompletionsForKeys";
 
-export function getAuthModeBlockSpecificCompletions(
+export function getAuthModeBlockContentCompletions(
     request: LanguageFeatureBaseRequest,
     block: Block,
 ) {
