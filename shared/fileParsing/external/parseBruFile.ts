@@ -11,6 +11,7 @@ import {
     TextDocumentHelper,
     getNonBlockSpecificBlockStartPattern,
     BlockType,
+    shouldBeArrayBlock,
 } from "../..";
 import { findBlockEnd } from "../internal/findBlockEnd";
 
@@ -61,11 +62,11 @@ export function parseBruFile(docHelper: TextDocumentHelper) {
             }
 
             const blockName = matches[1];
-            const blockType = getBlockType(matches[0], blockName);
+            const blockType = getBlockType(blockName);
             const blockEndPosition = findBlockEnd(
                 docHelper,
                 lineIndex + 1,
-                blockType,
+                shouldBeArrayBlock(blockName),
             );
 
             const parsedBlock = tryToParseBlock(docHelper, {

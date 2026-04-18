@@ -1,28 +1,27 @@
-import { BlockBracket, BlockType, Position, TextDocumentHelper } from "../..";
+import { BlockBracket, Position, TextDocumentHelper } from "../..";
 
 export function findBlockEnd(
     documentHelper: TextDocumentHelper,
     firstContentLine: number,
-    blockType: BlockType,
+    shouldBeArrayBlock: boolean,
 ) {
-    const blockEndBracket = getBlockEndBracketForBlockType(blockType);
-
-    const line = documentHelper
-        .getAllLines(firstContentLine)
-        .find(({ content }) => {
-            const patternMatches = content.match(
-                getBlockEndPattern(blockEndBracket),
-            );
-            return patternMatches && patternMatches.length > 0;
-        });
-
-    return line ? new Position(line.index, 0) : undefined;
-}
-
-function getBlockEndBracketForBlockType(blockType: BlockType) {
-    return blockType == BlockType.Array
+    const blockEndBracket = shouldBeArrayBlock
         ? BlockBracket.ClosingBracketForArrayBlock
         : BlockBracket.ClosingBracketForDictionaryOrTextBlock;
+
+    const line =
+        firstContentLine >= documentHelper.getLineCount()
+            ? undefined
+            : documentHelper
+                  .getAllLines(firstContentLine)
+                  .find(({ content }) => {
+                      const patternMatches = content.match(
+                          getBlockEndPattern(blockEndBracket),
+                      );
+                      return patternMatches && patternMatches.length > 0;
+                  });
+
+    return line ? new Position(line.index, 0) : undefined;
 }
 
 function getBlockEndPattern(blockEndBracket: BlockBracket) {

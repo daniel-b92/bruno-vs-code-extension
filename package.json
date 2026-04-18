@@ -100,12 +100,6 @@
                 ]
             }
         ],
-        "snippets": [
-            {
-                "language": "bru",
-                "path": "./client/src/languageFeatures/bruno_snippets.json"
-            }
-        ],
         "languages": [
             {
                 "id": "bru",

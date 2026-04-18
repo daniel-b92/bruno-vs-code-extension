@@ -5,6 +5,7 @@ import {
     getDefaultIndentationForDictionaryBlockFields,
     isArrayBlockField,
     isDictionaryBlockField,
+    LineBreakType,
     PlainTextWithinBlock,
     Range,
     TextDocumentHelper,
@@ -142,7 +143,7 @@ function getTextEditForArrayField(
     key: string,
 ): TextEdit {
     const defaultIndentation = getDefaultIndentationForDictionaryBlockFields();
-    const lineBreak = docHelper.getMostUsedLineBreak() ?? "\n";
+    const lineBreak = docHelper.getMostUsedLineBreak() ?? LineBreakType.Lf;
 
     return {
         newText: (existingKeyRange.start.character >=

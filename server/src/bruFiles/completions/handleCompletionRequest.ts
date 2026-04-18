@@ -1,8 +1,14 @@
-import { isBlockCodeBlock, Logger, parseBruFile } from "@global_shared";
+import {
+    BrunoFileType,
+    isBlockCodeBlock,
+    Logger,
+    parseBruFile,
+} from "@global_shared";
 import { CompletionItem } from "vscode-languageserver";
 import { LanguageRequestWithTestEnvironmentInfo } from "../../shared";
 import { getCompletionsForCodeBlock } from "./getCompletionsForCodeBlock";
 import { getCompletionsForNonCodeBlock } from "./getCompletionsForNonCodeBlock";
+import { getCompletionsForPositionOutsideOfBlocks } from "./getCompletionsForPositionOutsideOfBlocks";
 
 export async function handleCompletionRequest({
     baseRequest,
@@ -13,7 +19,7 @@ export async function handleCompletionRequest({
 }: LanguageRequestWithTestEnvironmentInfo): Promise<
     CompletionItem[] | undefined
 > {
-    const { documentHelper, position, token } = baseRequest;
+    const { documentHelper, position, token, filePath } = baseRequest;
     const { blocks: allBlocks } = parseBruFile(documentHelper);
 
     const blockContainingPosition = allBlocks.find(({ contentRange }) =>
@@ -21,7 +27,17 @@ export async function handleCompletionRequest({
     );
 
     if (!blockContainingPosition) {
-        return undefined;
+        const itemType = collection
+            .getStoredDataForPath(filePath)
+            ?.item.getItemType();
+        return itemType
+            ? getCompletionsForPositionOutsideOfBlocks(
+                  baseRequest,
+                  itemType as BrunoFileType,
+                  allBlocks,
+                  collection,
+              )
+            : undefined;
     }
 
     if (token.isCancellationRequested) {

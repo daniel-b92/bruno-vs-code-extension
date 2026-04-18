@@ -1,15 +1,13 @@
 import {
     DictionaryBlockSimpleField,
-    getAllMethodBlocks,
     getActiveFieldFromMethodBlock,
     getMethodBlockBodyFieldValueForBodyName,
-    MethodBlockBody,
     Block,
     RequestFileBlockName,
     MethodBlockKey,
     isBodyBlock,
     getBodyTypeFromBlockName,
-    isDictionaryBlockSimpleField,
+    getBodyBlockTypeForNoDefinedBodyBlock,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -20,21 +18,16 @@ export function checkBodyBlockTypeFromMethodBlockExists(
     filePath: string,
     blocks: Block[],
 ): DiagnosticWithCode | undefined {
-    const methodBlocks = getAllMethodBlocks(blocks);
-    const bodyBlocks = blocks.filter(({ name }) => isBodyBlock(name));
-
-    if (methodBlocks.length != 1 || bodyBlocks.length > 1) {
-        return undefined;
-    }
-
     const methodBlockField = getActiveFieldFromMethodBlock(
-        methodBlocks[0],
+        blocks,
         MethodBlockKey.Body,
     );
 
-    if (!methodBlockField || !isDictionaryBlockSimpleField(methodBlockField)) {
+    if (!methodBlockField) {
         return undefined;
     }
+
+    const bodyBlocks = blocks.filter(({ name }) => isBodyBlock(name));
 
     if (
         bodyBlocks.length == 0 &&
@@ -80,7 +73,7 @@ function getDiagnostic(
     filePath: string,
     methodBlockField: DictionaryBlockSimpleField,
     bodyBlock: Block,
-    expectedMethodBlockFieldValue: MethodBlockBody,
+    expectedMethodBlockFieldValue: string,
 ): DiagnosticWithCode {
     return {
         message: `Does not match name of body block. Expected value: '${expectedMethodBlockFieldValue}'.`,
@@ -135,10 +128,6 @@ function getDiagnosticInCaseOfNonExpectedBodyBlock(
         severity: DiagnosticSeverity.Error,
         code: getCode(),
     };
-}
-
-function getBodyBlockTypeForNoDefinedBodyBlock() {
-    return "none";
 }
 
 function getCode() {

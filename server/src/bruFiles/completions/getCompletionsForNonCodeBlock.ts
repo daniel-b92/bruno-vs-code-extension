@@ -11,6 +11,7 @@ import {
     Logger,
     Position,
     RequestFileBlockName,
+    SettingsFileSpecificBlock,
     VariableReferenceType,
 } from "@global_shared";
 import { CompletionItem } from "vscode-languageserver";
@@ -23,10 +24,11 @@ import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 import { mapVariablesToCompletions } from "./mapVariablesToCompletions";
 import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
 import { getDynamicVariableReferencesFromOtherFiles } from "../shared/VariableReferences/getDynamicVariableReferencesFromOtherFiles";
-import { getMetaBlockSpecificCompletions } from "./dictionaryBlocks/specificBlocks/getMetaBlockSpecificCompletions";
-import { getMethodBlockSpecificCompletions } from "./dictionaryBlocks/specificBlocks/getMethodBlockSpecificCompletions";
-import { getAuthBlockSpecificCompletions } from "./dictionaryBlocks/specificBlocks/getAuthBlockSpecificCompletions";
-import { getSettingsBlockSpecificCompletions } from "./dictionaryBlocks/specificBlocks/getSettingsBlockSpecificCompletions";
+import { getMetaBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getMetaBlockContentCompletions";
+import { getMethodBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getMethodBlockContentCompletions";
+import { getAuthBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getAuthBlockContentCompletions";
+import { getSettingsBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getSettingsBlockContentCompletions";
+import { getAuthModeBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getAuthModeBlockContentCompletions";
 
 export async function getCompletionsForNonCodeBlock(
     fullRequest: BlockRequestWithAdditionalData<Block>,
@@ -166,7 +168,7 @@ async function getBlockSpecificCompletions(
         itemType &&
         isBrunoFileType(itemType)
     ) {
-        return await getMetaBlockSpecificCompletions(
+        return await getMetaBlockContentCompletions(
             itemProvider,
             request,
             blockContainingPosition,
@@ -175,19 +177,22 @@ async function getBlockSpecificCompletions(
         );
     }
     if ((getPossibleMethodBlocks() as string[]).includes(blockName)) {
-        return getMethodBlockSpecificCompletions(
+        return getMethodBlockContentCompletions(
             request,
             blockContainingPosition,
         );
     }
     if (isAuthBlock(blockName)) {
-        return getAuthBlockSpecificCompletions(
+        return getAuthBlockContentCompletions(request, blockContainingPosition);
+    }
+    if (blockName == RequestFileBlockName.Settings) {
+        return getSettingsBlockContentCompletions(
             request,
             blockContainingPosition,
         );
     }
-    if (blockName == RequestFileBlockName.Settings) {
-        return getSettingsBlockSpecificCompletions(
+    if (blockName == SettingsFileSpecificBlock.AuthMode) {
+        return getAuthModeBlockContentCompletions(
             request,
             blockContainingPosition,
         );

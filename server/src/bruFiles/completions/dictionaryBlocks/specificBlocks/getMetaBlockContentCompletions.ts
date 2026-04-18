@@ -3,7 +3,6 @@ import {
     BrunoFileType,
     getDictionaryBlockArrayField,
     getExistingRequestFileTags,
-    getMaxSequenceForRequests,
     getMetaBlockMandatoryKeys,
     getMetaBlockOptionalKeys,
     MetaBlockKey,
@@ -16,13 +15,14 @@ import {
     TypedCollection,
     TypedCollectionItemProvider,
 } from "../../../../shared";
-import { dirname, basename } from "path";
+import { basename } from "path";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 import { getFixedCompletionItems } from "../generic/getFixedCompletionItems";
 import { getLinePatternForDictionaryField } from "../generic/getLinePatternForDictionaryField";
 import { getCompletionsForKeys } from "../generic/getCompletionsForKeys";
+import { getSequenceValueCompletion } from "../../../shared/getSequenceValueCompletion";
 
-export async function getMetaBlockSpecificCompletions(
+export async function getMetaBlockContentCompletions(
     itemProvider: TypedCollectionItemProvider,
     request: LanguageFeatureBaseRequest,
     block: Block,
@@ -47,15 +47,24 @@ export async function getMetaBlockSpecificCompletions(
         }
     }
 
-    return (await getSequenceValueCompletion(itemProvider, request)).concat(
+    return (
+        collection
+            ? await getSequenceValueCompletionIfInSeqLine(
+                  collection,
+                  request,
+                  itemType,
+              )
+            : []
+    ).concat(
         getRequestTypeValueCompletions(request),
         getTagsValueCompletions(itemProvider, request, block, collection),
     );
 }
 
-async function getSequenceValueCompletion(
-    itemProvider: TypedCollectionItemProvider,
+async function getSequenceValueCompletionIfInSeqLine(
+    collection: TypedCollection,
     { documentHelper, filePath, position }: LanguageFeatureBaseRequest,
+    itemType: BrunoFileType,
 ) {
     const { line } = position;
     const currentText = documentHelper.getLineByIndex(line);
@@ -67,9 +76,15 @@ async function getSequenceValueCompletion(
         return [];
     }
 
-    const suggestedSequence =
-        ((await getMaxSequenceForRequests(itemProvider, dirname(filePath))) ??
-            0) + 1;
+    const suggestedSequence = getSequenceValueCompletion(
+        collection,
+        filePath,
+        itemType,
+    );
+
+    if (!suggestedSequence) {
+        return [];
+    }
 
     const completion: CompletionItem = {
         label: suggestedSequence.toString(),

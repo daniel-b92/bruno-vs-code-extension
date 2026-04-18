@@ -3,8 +3,8 @@ import {
     getExtensionForBrunoFiles,
     RequestType,
     RequestFileBlockName,
-    MethodBlockAuth,
-    MethodBlockBody,
+    MethodBlockAuthValues,
+    MethodBlockBodies,
     getMaxSequenceForRequests,
 } from "@global_shared";
 import {
@@ -158,8 +158,8 @@ function getFileContent(
         methodBlockName,
         {
             url: "",
-            auth: MethodBlockAuth.None,
-            body: MethodBlockBody.None,
+            auth: MethodBlockAuthValues.None,
+            body: MethodBlockBodies.None,
         },
         lineBreak,
     );

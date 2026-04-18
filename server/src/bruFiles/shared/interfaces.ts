@@ -32,3 +32,13 @@ export interface DynamicReferenceFromOtherFile {
     indirectionLevel: number;
     reference: BrunoVariableReference;
 }
+
+export type MissingBlock =
+    | {
+          mandatory: boolean;
+          name: string;
+      }
+    | {
+          mandatory: boolean;
+          mutuallyExclusiveBlocks: string[];
+      };

@@ -2,12 +2,12 @@ import {
     RequestFileBlockName,
     shouldBeCodeBlock,
     shouldBeDictionaryBlock,
-    BlockBracket,
+    shouldBeArrayBlock,
 } from "../../..";
 import { BlockType } from "./blockTypeEnum";
 
-export function getBlockType(blockStartingLine: string, blockName: string) {
-    if (blockStartingLine.includes(BlockBracket.OpeningBracketForArrayBlock)) {
+export function getBlockType(blockName: string) {
+    if (shouldBeArrayBlock(blockName)) {
         return BlockType.Array;
     }
 

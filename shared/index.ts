@@ -75,8 +75,11 @@ export * from "./languageUtils/areVariableReferencesEquivalent";
 
 // language utils - request files
 export * from "./languageUtils/requestFiles/requestFileBlockNameEnum";
+export * from "./languageUtils/requestFiles/getGraphQlSpecificBlocks";
 export * from "./languageUtils/requestFiles/bodyBlocks/getBodyTypeFromBlockName";
+export * from "./languageUtils/requestFiles/bodyBlocks/getAllValidBodyBlocks";
 export * from "./languageUtils/requestFiles/bodyBlocks/isBodyBlock";
+export * from "./languageUtils/requestFiles/bodyBlocks/getBodyBlockTypeForNoDefinedBodyBlock";
 export * from "./languageUtils/requestFiles/methodBlocks/getAllMethodBlocks";
 export * from "./languageUtils/requestFiles/methodBlocks/getUrlFieldFromMethodBlock";
 export * from "./languageUtils/requestFiles/methodBlocks/getMethodBlockIfValid";
@@ -103,21 +106,24 @@ export * from "./languageUtils/commonBlocks/metaBlock/getSequenceAndTagsFromMeta
 export * from "./languageUtils/commonBlocks/metaBlock/getMandatoryAndOptionalKeys";
 
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockKeyEnum";
-export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockAuthEnum";
-export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockBodyEnum";
+export * from "./languageUtils/commonBlocks/methodBlocks/MethodBlockAuthValues";
+export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockBodies";
 export * from "./languageUtils/commonBlocks/methodBlocks/getPossibleMethodBlocks";
 export * from "./languageUtils/commonBlocks/methodBlocks/getActiveFieldFromMethodBlock";
 export { getMandatoryKeys as getMandatoryKeysForMethodBlock } from "./languageUtils/commonBlocks/methodBlocks/getMandatoryKeys";
+export * from "./languageUtils/commonBlocks/methodBlocks/getAuthTypesForNoDefinedAuthBlock";
 
 export * from "./languageUtils/commonBlocks/generic/shouldBeCodeBlock";
 export * from "./languageUtils/commonBlocks/generic/getValidDictionaryBlocksWithName";
 export * from "./languageUtils/commonBlocks/generic/shouldBeDictionaryBlock";
+export * from "./languageUtils/commonBlocks/generic/shouldBeArrayBlock";
 export * from "./languageUtils/commonBlocks/generic/getBlockType";
 export * from "./languageUtils/commonBlocks/generic/blockTypeEnum";
 export * from "./languageUtils/commonBlocks/generic/blockBracketEnum";
 export * from "./languageUtils/commonBlocks/generic/getCodeBlocks";
 export * from "./languageUtils/commonBlocks/generic/getDefaultIndentationForDictionaryBlockFields";
 export * from "./languageUtils/commonBlocks/generic/getActiveFieldFromDictionaryBlock";
+export * from "./languageUtils/commonBlocks/generic/getActiveSimpleFieldFromDictionaryBlockIfExistsOnce";
 export * from "./languageUtils/commonBlocks/generic/getSortedBlocksByPosition";
 
 export * from "./languageUtils/commonBlocks/generic/runtimeBehavior/getBlockRuntimeExecutionGroup";
@@ -141,6 +147,7 @@ export * from "./languageUtils/commonBlocks/authBlocks/getMandatoryKeysForNonOAu
 export * from "./languageUtils/commonBlocks/authBlocks/getMandatoryKeysForOAuth2Block";
 export * from "./languageUtils/commonBlocks/authBlocks/getAuthTypeFromBlockName";
 export * from "./languageUtils/commonBlocks/authBlocks/isAuthBlock";
+export * from "./languageUtils/commonBlocks/authBlocks/getExpectedAuthBlockForType";
 export * from "./languageUtils/commonBlocks/authBlocks/additionalParamsBlocks/oauth2AdditionalParamsBlockNames";
 
 export * from "./languageUtils/commonBlocks/authModeBlock/authModeBlockKeyEnum";
