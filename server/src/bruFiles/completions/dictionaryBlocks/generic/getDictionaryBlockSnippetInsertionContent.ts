@@ -65,6 +65,8 @@ export function getDictionaryBlockSnippetInsertionContent(
     if (isAuthBlock(blockName)) {
         return getContentForAuthBlock(blockName, lineBreak);
     }
+
+    return undefined;
 }
 
 function getContentForMetaBlock({

@@ -9,11 +9,12 @@
 
 - Enable configuration of the environment to use for testruns to be set per collection.
     - Also display the current setting in the collection explorer and add a dialog for selecting the environment when clicking on the root folder item.
+- Improve grouping and sorting of context menu items in collection explorer.
+- Provide completions for keys in all dictionary blocks.
+- Replace existing Snippets with context-aware completions for full blocks. Therefore, only blocks that would be valid are shown.
 
 ### Fixes / Minor Improvements
 
-- Improve grouping and sorting of context menu items in collection explorer.
-- Provide completions for keys in all dictionary blocks.
 - Add support for blocks for additional params for OAuth2 auth (diagnostics, snippets).
 - Add support for new fields/values for OAuth2 auth blocks (grant type: new value 'implicit' and new field 'token_source').
 
