@@ -26,7 +26,6 @@ import { getDictionaryBlockSnippetInsertionContent } from "./dictionaryBlocks/ge
 interface BlockData {
     blockName: string;
     mandatory: boolean;
-    endPosition?: Position;
 }
 
 export function getCompletionsForPositionOutsideOfBlocks(
@@ -55,7 +54,7 @@ export function getCompletionsForPositionOutsideOfBlocks(
     const missingOptionalBlocks = getMissingOptionalBlocks(
         fileType,
         allBlocks,
-        blocksThatCannotBeOptional,
+        blocksThatCannotBeOptional.map(({ name }) => name),
     );
 
     const allMissingBlocks = mapToBlockData(
@@ -66,15 +65,23 @@ export function getCompletionsForPositionOutsideOfBlocks(
         ? filterOutNonMatchingBlockTypes(allMissingBlocks, openingBracket)
         : allMissingBlocks;
 
-    return mapToCompletionItems(
-        request,
-        filteredItems,
+    return mapToCompletionItems(request, {
+        validBlocks: filteredItems,
+        blocksRequiringAdditionalTextEdits: blocksThatCannotBeOptional
+            .filter(
+                ({ neededForMakingBlockValid }) =>
+                    neededForMakingBlockValid != undefined,
+            )
+            .map(({ name, neededForMakingBlockValid }) => ({
+                data: { blockName: name, mandatory: false },
+                additionalTextEdits: neededForMakingBlockValid as TextEdit[],
+            })),
         fileType,
         collection,
-        openingBracketIndex
+        blockStartBracketPosition: openingBracketIndex
             ? new Position(position.line, openingBracketIndex)
             : undefined,
-    );
+    });
 }
 
 function parseBlockStartLine(
@@ -115,18 +122,33 @@ function parseBlockStartLine(
 
 function mapToCompletionItems(
     baseRequest: LanguageFeatureBaseRequest,
-    blocks: BlockData[],
-    fileType: BrunoFileType,
-    collection: TypedCollection,
-    blockStartBracketPosition?: Position,
+    additionalData: {
+        validBlocks: BlockData[];
+        blocksRequiringAdditionalTextEdits: {
+            data: BlockData;
+            additionalTextEdits: TextEdit[];
+        }[];
+        fileType: BrunoFileType;
+        collection: TypedCollection;
+        blockStartBracketPosition?: Position;
+    },
 ): CompletionItem[] {
-    return blocks
-        .map((blockData) => {
+    const {
+        validBlocks,
+        blocksRequiringAdditionalTextEdits,
+        collection,
+        fileType,
+        blockStartBracketPosition,
+    } = additionalData;
+    return validBlocks
+        .map((data) => ({ data, additionalTextEdits: [] as TextEdit[] }))
+        .concat(blocksRequiringAdditionalTextEdits)
+        .map(({ data: blockData, additionalTextEdits }) => {
             const { blockName, mandatory } = blockData;
 
             const textEditWithInsertFormat = getTextEditWithInsertFormat(
                 baseRequest,
-                blockData,
+                blockName,
                 fileType,
                 collection,
                 blockStartBracketPosition,
@@ -136,6 +158,7 @@ function mapToCompletionItems(
                 ? {
                       label: blockName,
                       ...textEditWithInsertFormat,
+                      additionalTextEdits,
                       sortText: mandatory ? `a_${blockName}` : `b_${blockName}`,
                       labelDetails: mandatory
                           ? undefined
@@ -155,7 +178,7 @@ function mapToCompletionItems(
 
 function getTextEditWithInsertFormat(
     baseRequest: LanguageFeatureBaseRequest,
-    { blockName }: BlockData,
+    blockName: string,
     fileType: BrunoFileType,
     collection: TypedCollection,
     blockStartBracketPosition?: Position,
