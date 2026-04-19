@@ -12,6 +12,7 @@
 - Improve grouping and sorting of context menu items in collection explorer.
 - Provide completions for keys in all dictionary blocks.
 - Replace existing Snippets with context-aware completions for full blocks. Therefore, only blocks that would be valid are shown.
+- Add automatic updates of respective blocks for certain situations when changing value for auth or body field in a method block.
 
 ### Fixes / Minor Improvements
 
