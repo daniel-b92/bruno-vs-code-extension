@@ -12,6 +12,7 @@
 - Improve grouping and sorting of context menu items in collection explorer.
 - Provide completions for keys in all dictionary blocks.
 - Replace existing Snippets with context-aware completions for full blocks. Therefore, only blocks that would be valid are shown.
+    - The completions also provide additional text edits in certain cases where conditionally mandatory blocks either exist and would become invalid or don't exist and would become mandatory.
 
 ### Fixes / Minor Improvements
 

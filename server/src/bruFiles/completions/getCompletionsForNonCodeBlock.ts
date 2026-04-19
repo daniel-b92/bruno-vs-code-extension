@@ -37,16 +37,17 @@ export async function getCompletionsForNonCodeBlock(
 ): Promise<CompletionItem[] | undefined> {
     const {
         request: baseRequest,
-        file: { blockContainingPosition, collection },
+        file: { blockContainingPosition, allBlocks, collection },
     } = fullRequest;
 
     return (
-        await getBlockSpecificCompletions(
+        (await getBlockSpecificCompletions(
             itemProvider,
             baseRequest,
+            allBlocks,
             blockContainingPosition,
             collection,
-        )
+        )) ?? []
     ).concat(
         collection
             ? getNonBlockSpecificCompletions(fullRequest, configuredEnvironment)
@@ -155,6 +156,7 @@ function getNonBlockSpecificCompletions(
 async function getBlockSpecificCompletions(
     itemProvider: TypedCollectionItemProvider,
     request: LanguageFeatureBaseRequest,
+    allBlocks: Block[],
     blockContainingPosition: Block,
     collection?: TypedCollection,
 ) {
@@ -179,6 +181,7 @@ async function getBlockSpecificCompletions(
     if ((getPossibleMethodBlocks() as string[]).includes(blockName)) {
         return getMethodBlockContentCompletions(
             request,
+            allBlocks,
             blockContainingPosition,
         );
     }
@@ -194,6 +197,7 @@ async function getBlockSpecificCompletions(
     if (blockName == SettingsFileSpecificBlock.AuthMode) {
         return getAuthModeBlockContentCompletions(
             request,
+            allBlocks,
             blockContainingPosition,
         );
     }

@@ -1,11 +1,13 @@
-import { Block, AuthModeBlockKey, MethodBlockAuthValues } from "@global_shared";
+import { Block, AuthModeBlockKey, LineBreakType } from "@global_shared";
 import { LanguageFeatureBaseRequest } from "../../../../shared";
-import { getFixedCompletionItems } from "../generic/getFixedCompletionItems";
 import { getLinePatternForDictionaryField } from "../generic/getLinePatternForDictionaryField";
 import { getCompletionsForKeys } from "../generic/getCompletionsForKeys";
+import { CompletionItem } from "vscode-languageserver";
+import { getCompletionsForAuthTypeFieldValue } from "../generic/getCompletionsForAuthTypeFieldValue";
 
 export function getAuthModeBlockContentCompletions(
     request: LanguageFeatureBaseRequest,
+    allBlocks: Block[],
     block: Block,
 ) {
     const completionsForKeys = getCompletionsForKeys(request, block, {
@@ -16,16 +18,38 @@ export function getAuthModeBlockContentCompletions(
         return completionsForKeys;
     }
 
-    return getFixedCompletionItems(
-        [
-            {
-                linePattern: getLinePatternForDictionaryField(
-                    AuthModeBlockKey.Mode,
-                ),
-                // The same values are valid as for the auth field in method blocks.
-                choices: Object.values(MethodBlockAuthValues),
-            },
-        ],
+    return getValueCompletions(
+        block,
+        allBlocks,
         request,
+        request.documentHelper.getMostUsedLineBreak() ?? LineBreakType.Lf,
+    );
+}
+
+function getValueCompletions(
+    authModeBlock: Block,
+    allBlocks: Block[],
+    baseRequest: LanguageFeatureBaseRequest,
+    lineBreak: LineBreakType,
+): CompletionItem[] | undefined {
+    const {
+        documentHelper,
+        position: { line },
+    } = baseRequest;
+    const currentText = documentHelper.getLineByIndex(line);
+
+    const isInAuthModeField = getLinePatternForDictionaryField(
+        AuthModeBlockKey.Mode,
+    ).test(currentText);
+
+    if (!isInAuthModeField) {
+        return undefined;
+    }
+
+    return getCompletionsForAuthTypeFieldValue(
+        baseRequest,
+        allBlocks,
+        authModeBlock,
+        { currentLineContent: currentText, lineBreak },
     );
 }
