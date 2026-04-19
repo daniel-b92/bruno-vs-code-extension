@@ -197,6 +197,7 @@ async function getBlockSpecificCompletions(
     if (blockName == SettingsFileSpecificBlock.AuthMode) {
         return getAuthModeBlockContentCompletions(
             request,
+            allBlocks,
             blockContainingPosition,
         );
     }
