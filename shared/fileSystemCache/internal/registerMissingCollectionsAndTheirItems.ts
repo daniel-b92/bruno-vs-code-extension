@@ -11,7 +11,7 @@ import {
 import { CollectionRegistry } from "./collectionRegistry";
 import { resolve } from "path";
 import { addOrReplaceItemInCollection } from "./addOrReplaceItemInCollection";
-import { lstat, readdir } from "fs";
+import { readdir } from "fs";
 import { promisify } from "util";
 import { createCollectionDirectoryInstance } from "./createCollectionDirectoryInstance";
 
@@ -37,48 +37,87 @@ export async function registerMissingCollectionsAndTheirItems<T>(
     );
 
     for (const collection of allCollections) {
-        const currentPaths = [collection.getRootDirectory()];
+        const collectionRootDir = collection.getRootDirectory();
 
-        while (currentPaths.length > 0) {
-            const currentPath = currentPaths.splice(0, 1)[0];
-            const childrenNames = await promisify(readdir)(currentPath).catch(
-                () => undefined,
+        const topLevelItems = await promisify(readdir)(collectionRootDir, {
+            withFileTypes: true,
+        }).catch(() => undefined);
+
+        if (topLevelItems === undefined) {
+            return;
+        }
+
+        const topLevelDirectories = topLevelItems.filter((item) =>
+            item.isDirectory(),
+        );
+        // Some files from external packages are neither seen as files nor directories. We don't want to have to deal with these.
+        const relevantItems = topLevelDirectories.concat(
+            topLevelItems.filter((item) => item.isFile()),
+        );
+
+        for (const topLevelItem of relevantItems) {
+            await registerItems(
+                collection,
+                filePathsToIgnore,
+                additionalDataProvider,
+                [resolve(collectionRootDir, topLevelItem.name)],
             );
+        }
 
-            if (childrenNames === undefined) {
-                continue;
-            }
+        const toAwait: Promise<void>[] = [];
 
-            for (const childItem of childrenNames) {
-                const path = resolve(currentPath, childItem);
-                const isDirectory = await promisify(lstat)(path)
-                    .then((stats) => stats.isDirectory())
-                    .catch(() => undefined);
+        for (const folderPath of topLevelDirectories.map((dir) =>
+            resolve(collectionRootDir, dir.name),
+        )) {
+            toAwait.push(
+                getDescendants(folderPath).then((descendants) => {
+                    if (descendants != undefined) {
+                        return registerItems(
+                            collection,
+                            filePathsToIgnore,
+                            additionalDataProvider,
+                            descendants,
+                        );
+                    }
+                }),
+            );
+        }
 
-                if (isDirectory === undefined) {
-                    continue;
-                }
+        await Promise.all(toAwait);
+    }
+}
 
-                if (
+async function getDescendants(directory: string) {
+    const names = await promisify(readdir)(directory, {
+        recursive: true,
+        encoding: "utf-8",
+    }).catch(() => undefined);
+
+    return names?.map((name) => resolve(directory, name));
+}
+
+async function registerItems<T>(
+    collection: Collection<T>,
+    filePathsToIgnore: RegExp[],
+    additionalDataProvider: AdditionalCollectionDataProvider<T>,
+    paths: string[],
+) {
+    Promise.all(
+        paths
+            .filter(
+                (path) =>
                     !collection.getStoredDataForPath(path) &&
-                    !shouldPathBeIgnored(filePathsToIgnore, path)
-                ) {
+                    !shouldPathBeIgnored(filePathsToIgnore, path),
+            )
+            .map(
+                async (path) =>
                     await addOrReplaceItemInCollection<T>({
                         collection,
                         path,
                         additionalDataProvider,
-                    });
-                }
-
-                if (
-                    isDirectory &&
-                    !shouldPathBeIgnored(filePathsToIgnore, path)
-                ) {
-                    currentPaths.push(path);
-                }
-            }
-        }
-    }
+                    }),
+            ),
+    );
 }
 
 async function registerAllExistingCollections<T>(
