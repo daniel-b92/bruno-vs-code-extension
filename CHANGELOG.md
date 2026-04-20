@@ -1,4 +1,4 @@
-## [Unreleased]
+## [1.0.0] (2026-04-20)
 
 ### Breaking changes
 
@@ -18,6 +18,7 @@
 
 - Add support for blocks for additional params for OAuth2 auth (diagnostics, snippets).
 - Add support for new fields/values for OAuth2 auth blocks (grant type: new value 'implicit' and new field 'token_source').
+- Try to speed up cache refreshes by reading directories recursively instead of level-by-level.
 
 ## [0.22.1] (2026-04-02)
 
