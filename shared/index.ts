@@ -160,6 +160,7 @@ export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinition
 
 export * from "./languageUtils/commonBlocks/settingsBlock/settingsBlockKeyEnum";
 export { getMandatoryKeys as getMandatoryKeysForSettingsBlock } from "./languageUtils/commonBlocks/settingsBlock/getMandatoryKeys";
+export { getOptionalKeys as getOptionalKeysForSettingsBlock } from "./languageUtils/commonBlocks/settingsBlock/getOptionalKeys";
 
 export { isVarsBlock as isVarsBlockInRequestFile } from "./languageUtils/commonBlocks/varsBlocks/isVarsBlock";
 

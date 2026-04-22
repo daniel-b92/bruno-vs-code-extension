@@ -10,8 +10,8 @@ import {
     getExtensionForBrunoFiles,
     getMandatoryKeysForMethodBlock,
     getMandatoryKeysForNonOAuth2Block,
-    getMandatoryKeysForSettingsBlock,
     getMetaBlockMandatoryKeys,
+    getOptionalKeysForSettingsBlock,
     getPossibleMethodBlocks,
     isAuthBlock,
     LineBreakType,
@@ -179,12 +179,14 @@ function getContentForAuthBlock(blockName: string, lineBreak: LineBreakType) {
 }
 
 function getContentForSettingsBlock(lineBreak: LineBreakType) {
-    const fields = getMandatoryKeysForSettingsBlock().map((key) => ({
+    const fields = getOptionalKeysForSettingsBlock().map((key) => ({
         key,
-        predefinedValues: [
-            SettingsBlockKey.EncodeUrl,
-            SettingsBlockKey.FollowRedirects,
-        ].includes(key)
+        predefinedValues: (
+            [
+                SettingsBlockKey.EncodeUrl,
+                SettingsBlockKey.FollowRedirects,
+            ] as string[]
+        ).includes(key)
             ? Object.values(BooleanFieldValue)
             : key == SettingsBlockKey.FollowRedirects
               ? "5"

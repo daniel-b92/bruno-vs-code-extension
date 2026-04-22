@@ -7,6 +7,7 @@ import {
     DictionaryBlockSimpleField,
     DictionaryBlock,
     getMandatoryKeysForSettingsBlock,
+    getOptionalKeysForSettingsBlock,
 } from "@global_shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
@@ -35,6 +36,7 @@ function runGenericChecksForAllFields(
     settingsBlock: DictionaryBlock,
 ) {
     const mandatoryKeys = getMandatoryKeysForSettingsBlock();
+    const optionalKeys = getOptionalKeysForSettingsBlock();
 
     return [
         checkNoKeysAreMissingForDictionaryBlock(
@@ -45,7 +47,7 @@ function runGenericChecksForAllFields(
     ].concat(
         checkNoUnknownKeysAreDefinedInDictionaryBlock(
             settingsBlock,
-            mandatoryKeys,
+            optionalKeys,
             RelevantWithinSettingsBlockDiagnosticCode.UnknownKeysDefinedInSettingsBlock,
         ),
         checkNoDuplicateKeysAreDefinedForDictionaryBlock(
@@ -120,7 +122,7 @@ function runChecksForSpecificFields(settingsBlock: DictionaryBlock) {
 
 function checkIfBooleanFieldHasValidValue(
     allSimpleFields: DictionaryBlockSimpleField[],
-    key: SettingsBlockKey,
+    key: string,
     diagnosticCodeInCaseOfFailedValidation: RelevantWithinSettingsBlockDiagnosticCode,
 ) {
     const fieldsWithKey = allSimpleFields.filter(({ key: k }) => k == key);
