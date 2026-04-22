@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Minor Improvements
+
+- Fix issue with missing path arguments when calling Bruno CLI for test execution for a subfolder / file in a collection.
+
 ## [1.0.0] (2026-04-20)
 
 ### Breaking changes

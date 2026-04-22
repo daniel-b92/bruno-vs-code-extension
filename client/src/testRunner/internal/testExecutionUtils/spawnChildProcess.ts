@@ -32,7 +32,9 @@ function getCommandForCli({
 }: TestRunChildProcessData) {
     const command = "bru";
 
-    const argForRunCommand = `run${testPath == collectionRootDirectory ? ` ${testPath}` : ""}`;
+    const argForRunCommand = "run".concat(
+        testPath == collectionRootDirectory ? "" : ` ${testPath}`,
+    );
 
     const commandArguments: string[] = [argForRunCommand].concat(
         ...mapUserInputDataToCommandArgs(userInput),
