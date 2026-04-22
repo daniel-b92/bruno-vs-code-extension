@@ -1,10 +1,4 @@
-import {
-    Block,
-    RequestFileBlockName,
-    Range,
-    TextDocumentHelper,
-    Position,
-} from "@global_shared";
+import { Block, Range, TextDocumentHelper, Position } from "@global_shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { RelevantWithinBodyBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinBodyBlockDiagnosticCodeEnum";
 import { DiagnosticSeverity } from "vscode-languageserver";
@@ -12,37 +6,34 @@ import { DiagnosticSeverity } from "vscode-languageserver";
 export function checkJsonRequestBodySyntax(
     requestBody: Block,
 ): DiagnosticWithCode | undefined {
-    if (
-        requestBody.name == RequestFileBlockName.JsonBody &&
-        typeof requestBody.content == "string"
-    ) {
-        const regexForFindingVariableOccurences = /{{\S+?}}/g;
-        const placeholderForVariables = "1";
-        const documentForBlock = new TextDocumentHelper(requestBody.content);
-
-        try {
-            // ToDo: Improve the replacement of variables within the request body (these look like this: {{valName}})
-            // Currently, you would e.g. get a syntax error, if the variable were used for replacing a property name at runtime.
-            // But the the Bruno app also seems to use the same placeholder value, so it should not be too bad for now.
-            JSON.parse(
-                documentForBlock
-                    .getText()
-                    .replace(
-                        regexForFindingVariableOccurences,
-                        placeholderForVariables,
-                    ),
-            );
-        } catch (err) {
-            return getDiagnostic(
-                documentForBlock,
-                requestBody,
-                err,
-                regexForFindingVariableOccurences,
-                placeholderForVariables,
-            );
-        }
-    } else {
+    if (typeof requestBody.content != "string") {
         return undefined;
+    }
+
+    const regexForFindingVariableOccurences = /{{\S+?}}/g;
+    const placeholderForVariables = "1";
+    const documentForBlock = new TextDocumentHelper(requestBody.content);
+
+    try {
+        // ToDo: Improve the replacement of variables within the request body (these look like this: {{valName}})
+        // Currently, you would e.g. get a syntax error, if the variable were used for replacing a property name at runtime.
+        // But the the Bruno app also seems to use the same placeholder value, so it should not be too bad for now.
+        JSON.parse(
+            documentForBlock
+                .getText()
+                .replace(
+                    regexForFindingVariableOccurences,
+                    placeholderForVariables,
+                ),
+        );
+    } catch (err) {
+        return getDiagnostic(
+            documentForBlock,
+            requestBody,
+            err,
+            regexForFindingVariableOccurences,
+            placeholderForVariables,
+        );
     }
 }
 
