@@ -3,6 +3,7 @@ import {
     BooleanFieldValue,
     Block,
     getMandatoryKeysForSettingsBlock,
+    getOptionalKeysForSettingsBlock,
 } from "@global_shared";
 import { LanguageFeatureBaseRequest } from "../../../../shared";
 import { getFixedCompletionItems } from "../generic/getFixedCompletionItems";
@@ -15,6 +16,7 @@ export function getSettingsBlockContentCompletions(
 ) {
     const completionsForKeys = getCompletionsForKeys(request, block, {
         mandatory: getMandatoryKeysForSettingsBlock(),
+        optional: getOptionalKeysForSettingsBlock(),
     });
 
     if (completionsForKeys) {

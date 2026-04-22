@@ -1,8 +1,11 @@
-## [Unreleased]
+## [1.0.1] (2026-04-22)
 
 ### Fixes / Minor Improvements
 
 - Fix issue with missing path arguments when calling Bruno CLI for test execution for a subfolder / file in a collection.
+- Fix syntax highlighting for block `body:graphql`.
+- Add missing validation of JSON syntax for `body:graphql` block.
+- Fix incorrectly displayed error for `settings` block when not defining all optional fields.
 
 ## [1.0.0] (2026-04-20)
 
