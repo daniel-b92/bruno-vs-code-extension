@@ -8,7 +8,6 @@ export function getRequestBodyBlockSpecificDiagnostics(
     return (
         [
             RequestFileBlockName.JsonBody,
-            RequestFileBlockName.GraphQlBody,
             RequestFileBlockName.GraphQlBodyVars,
         ] as string[]
     ).includes(bodyBlock.name)
