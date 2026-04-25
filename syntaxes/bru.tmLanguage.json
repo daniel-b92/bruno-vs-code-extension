@@ -41,7 +41,7 @@
         },
         "code-block": {
             "name": "meta.code-block.bru",
-            "begin": "^(tests|script:\\S+)\\s*{$",
+            "begin": "^\\s*(tests|script:\\S+)\\s*{\\s*$",
             "end": "^}\\s*$",
             "beginCaptures": {
                 "0": {
@@ -56,7 +56,7 @@
         },
         "json-or-graphql-vars-body-block": {
             "name": "meta.json-or-graphql-vars-body-block.bru",
-            "begin": "^(body:json|body:graphql:vars)\\s*{\\s*$",
+            "begin": "^\\s*(body:json|body:graphql:vars)\\s*{\\s*$",
             "end": "^}\\s*$",
             "beginCaptures": {
                 "0": {
@@ -71,7 +71,7 @@
         },
         "xml-body-block": {
             "name": "meta.xml-body-block.bru",
-            "begin": "^body:xml\\s*{$",
+            "begin": "^\\s*body:xml\\s*{\\s*$",
             "end": "^}\\s*$",
             "beginCaptures": {
                 "0": {
@@ -86,7 +86,7 @@
         },
         "sparql-body-block": {
             "name": "meta.sparql-body-block.bru",
-            "begin": "^body:sparql\\s*{$",
+            "begin": "^\\s*body:sparql\\s*{\\s*$",
             "end": "^}\\s*$",
             "beginCaptures": {
                 "0": {
@@ -101,7 +101,7 @@
         },
         "graphql-body-block": {
             "name": "meta.graphql-body-block.bru",
-            "begin": "^body:graphql\\s*{\\s*$",
+            "begin": "^\\s*body:graphql\\s*{\\s*$",
             "end": "^}\\s*$",
             "beginCaptures": {
                 "0": {
@@ -116,7 +116,7 @@
         },
         "plain-text-block": {
             "name": "meta.plain-text-block.bru",
-            "begin": "^(body:text|docs|example)\\s*{$",
+            "begin": "^\\s*(body:text|docs|example)\\s*{\\s*$",
             "end": "^}\\s*$",
             "beginCaptures": {
                 "0": {
@@ -127,7 +127,7 @@
         },
         "array-block": {
             "name": "meta.array-block.bru",
-            "begin": "^vars:secret\\s*\\[$",
+            "begin": "^\\s*vars:secret\\s*\\[\\s*$",
             "end": "^\\]\\s*$",
             "beginCaptures": { "0": { "name": "keyword.bru" } },
             "patterns": [
