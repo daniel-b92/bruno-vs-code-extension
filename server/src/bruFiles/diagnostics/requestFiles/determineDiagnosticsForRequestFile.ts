@@ -11,6 +11,7 @@ import {
     isBlockDictionaryBlock,
     DictionaryBlock,
     shouldBeDictionaryArrayField,
+    getGraphQlSpecificBlocks,
 } from "@global_shared";
 import { TypedCollectionItemProvider } from "../../../shared";
 import { DiagnosticWithCode } from "../interfaces";
@@ -30,7 +31,7 @@ import { checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests } from "./check
 import { checkUrlFromMethodBlockMatchesPathParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesPathParamsBlock";
 import { checkUrlFromMethodBlockMatchesQueryParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesQueryParamsBlock";
 import { getMethodBlockSpecificDiagnostics } from "./getMethodBlockSpecificDiagnostics";
-import { getRequestBodyBlockSpecificDiagnostics } from "./getRequestBodyBlockSpecificDiagnostics";
+import { getRequestBodyOrGraphQlBlockSpecificDiagnostics } from "./getRequestBodyOrGraphQlBlockSpecificDiagnostics";
 import { checkOccurencesOfMandatoryBlocks } from "./checks/multipleBlocks/checkOccurencesOfMandatoryBlocks";
 import { getMetaBlockSpecificDiagnostics } from "./getMetaBlockSpecificDiagnostics";
 import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDiagnosticsHelper";
@@ -202,7 +203,21 @@ async function collectBlockSpecificDiagnostics(
     const bodyBlocks = blocks.filter(({ name }) => isBodyBlock(name));
 
     if (bodyBlocks.length == 1) {
-        results.push(...getRequestBodyBlockSpecificDiagnostics(bodyBlocks[0]));
+        results.push(
+            ...getRequestBodyOrGraphQlBlockSpecificDiagnostics(bodyBlocks[0]),
+        );
+    }
+
+    const graphQlSpecificBlocks = blocks.filter(({ name }) =>
+        (getGraphQlSpecificBlocks() as string[]).includes(name),
+    );
+
+    if (graphQlSpecificBlocks.length > 0) {
+        results.push(
+            ...graphQlSpecificBlocks.flatMap((block) =>
+                getRequestBodyOrGraphQlBlockSpecificDiagnostics(block),
+            ),
+        );
     }
 
     const settingsBlocks = blocks.filter(
