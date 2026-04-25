@@ -22,6 +22,12 @@
         "Programming Languages",
         "Linters"
     ],
+    "keywords": [
+        "Bruno",
+        "API Testing",
+        "Test Automation",
+        "Bruno CLI"
+    ],
     "icon": "./icon.png",
     "activationEvents": [
         "workspaceContains:**/*.bru"
