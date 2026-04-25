@@ -35,6 +35,7 @@ For getting the most out of the extension, please follow these steps when instal
     - Further inbuilt libraries that you use (e.g. `axios` or `moment`).
 - Add typings via JSDoc in your code blocks and Javascript scripts, see https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html.
 - If you have defined a `tsconfig.json` for your collection, you can e.g. activate type checking for your Javascript files or enable the `strict` type checking mode, see https://www.typescriptlang.org/tsconfig/ for more infos.
+- If you use SPARQL request bodies, syntax highlighting requires installing an extension that provides this for SPARQL, e.g. `stardog-union.stardog-rdf-grammars`.
 
 ## Contributing
 

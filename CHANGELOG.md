@@ -1,3 +1,10 @@
+## [Unreleased]
+
+### Fixes / Minor Improvements
+
+- Add correct syntax highlighting for block `body:graphql`.
+- Add missing validation of JSON syntax for `body:graphql:vars` block and remove incorrect validation of JSON syntax for `body:graphql` block.
+
 ## [1.0.1] (2026-04-22)
 
 ### Fixes / Minor Improvements
