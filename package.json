@@ -111,6 +111,10 @@
                     "bru"
                 ],
                 "configuration": "./client/src/languageFeatures/language-configuration.json"
+            },
+            {
+                "id": "bru-graphql-block",
+                "extensions": []
             }
         ],
         "grammars": [
@@ -118,6 +122,11 @@
                 "language": "bru",
                 "scopeName": "source.bru",
                 "path": "./syntaxes/bru.tmLanguage.json"
+            },
+            {
+                "language": "bru-graphql-block",
+                "scopeName": "source.graphql.bru",
+                "path": "./syntaxes/graphql.json"
             },
             {
                 "path": "./syntaxes/injection.json",
