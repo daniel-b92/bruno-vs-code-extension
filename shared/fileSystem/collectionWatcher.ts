@@ -9,7 +9,18 @@ import { basename } from "path";
 import { glob } from "glob";
 import { Evt } from "evt";
 import Watcher from "watcher";
-import { TargetEvent } from "watcher/dist/enums";
+
+// Local TargetEvent enum matching the watcher's TargetEvent enum
+// (defined locally since the package doesn't re-export it)
+const enum WatcherTargetEvent {
+    ADD = "add",
+    ADD_DIR = "addDir",
+    CHANGE = "change",
+    RENAME = "rename",
+    RENAME_DIR = "renameDir",
+    UNLINK = "unlink",
+    UNLINK_DIR = "unlinkDir",
+}
 
 export class CollectionWatcher {
     constructor(
@@ -53,8 +64,8 @@ export class CollectionWatcher {
                 recursive: true,
             },
             async (event, path) => {
-                switch (event) {
-                    case TargetEvent.ADD:
+                switch (event as unknown as WatcherTargetEvent) {
+                    case WatcherTargetEvent.ADD:
                         this.logger?.debug(
                             `${this.preMessageForLogging} Creation event for file '${path}'.`,
                         );
@@ -66,7 +77,7 @@ export class CollectionWatcher {
 
                         break;
 
-                    case TargetEvent.ADD_DIR:
+                    case WatcherTargetEvent.ADD_DIR:
                         const descendants = await glob(
                             `${convertToGlobPattern(path)}/**/*`,
                             { absolute: true },
@@ -86,7 +97,7 @@ export class CollectionWatcher {
                         });
                         break;
 
-                    case TargetEvent.CHANGE:
+                    case WatcherTargetEvent.CHANGE:
                         this.logger?.debug(
                             `${this.preMessageForLogging} Modification event for path '${path}'.`,
                         );
@@ -97,8 +108,8 @@ export class CollectionWatcher {
                         });
                         break;
 
-                    case TargetEvent.UNLINK:
-                    case TargetEvent.UNLINK_DIR:
+                    case WatcherTargetEvent.UNLINK:
+                    case WatcherTargetEvent.UNLINK_DIR:
                         this.logger?.debug(
                             `${this.preMessageForLogging} Deletion event for path '${path}'.`,
                         );

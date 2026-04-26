@@ -46,6 +46,7 @@ export class CollectionItemProvider<T> {
         collectionWatcher: CollectionWatcher,
         private additionalDataProvider: AdditionalCollectionDataProvider<T>,
         private filePathsToIgnore: RegExp[],
+        private cacheRefreshNotifier?: Evt<void>,
         private logger?: Logger,
     ) {
         this.collectionRegistry = new CollectionRegistry(collectionWatcher);
@@ -181,6 +182,9 @@ export class CollectionItemProvider<T> {
     }
 
     public async refreshCache(workSpaceFolders: string[]) {
+        if (this.cacheRefreshNotifier) {
+            this.cacheRefreshNotifier.post();
+        }
         const startTime = performance.now();
 
         this.collectionRegistry

@@ -45,7 +45,7 @@ let client: LanguageClient;
 export async function activate(context: ExtensionContext) {
     client = createLanguagClient(context);
     // Start the client. This will also launch the server
-    client.start();
+    const toAwait = client.start();
 
     const {
         collectionItemProvider,
@@ -57,11 +57,10 @@ export async function activate(context: ExtensionContext) {
     } = createNeededHandlers(context);
 
     context.subscriptions.push(
-        commands.registerCommand("bruAsCode.restartLanguageServer", () => {
-            if (client) {
-                client.restart();
-            }
-        }),
+        commands.registerCommand(
+            "bruAsCode.restartLanguageServer",
+            getCallbackForRestartingClient(),
+        ),
     );
 
     window.withProgress(
@@ -109,6 +108,8 @@ export async function activate(context: ExtensionContext) {
             });
         },
     );
+
+    await toAwait;
 }
 
 export function deactivate() {
@@ -173,11 +174,20 @@ function createNeededHandlers(context: ExtensionContext) {
         new EventEmitter<MultiFileOperationWithStatus>();
 
     const testRunnerDataHelper = new TestRunnerDataHelper(testController);
+
+    const cacheRefreshNotifier = Evt.create<void>();
+    const cacheRefreshNotifierContext = Evt.newCtx();
+    cacheRefreshNotifier.attach(
+        cacheRefreshNotifierContext,
+        // Whenever a full cache refresh is triggered, also restart the server to refresh the server-side cache, too.
+        getCallbackForRestartingClient(),
+    );
     const collectionItemProvider =
         new CollectionItemProvider<AdditionalCollectionData>(
             collectionWatcher,
             getAdditionalCollectionDataProvider(testRunnerDataHelper),
             getPathsToIgnoreForCollections(),
+            cacheRefreshNotifier,
             logger,
         );
 
@@ -202,6 +212,7 @@ function createNeededHandlers(context: ExtensionContext) {
         logger,
         testController,
         cacheSyncingHelper,
+        { dispose: () => cacheRefreshNotifierContext.done() },
     );
 
     return {
@@ -214,6 +225,7 @@ function createNeededHandlers(context: ExtensionContext) {
         collectionItemProvider,
         startTestRunEmitter,
         cacheSyncingHelper,
+        cacheRefreshNotifier,
     };
 }
 
@@ -243,6 +255,14 @@ function getAdditionalCollectionDataProvider(
                 oldTreeItem.tooltip != newTreeItem.tooltip
             );
         },
+    };
+}
+
+function getCallbackForRestartingClient() {
+    return () => {
+        if (client) {
+            client.restart();
+        }
     };
 }
 
