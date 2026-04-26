@@ -6,7 +6,7 @@ export class CollectionRegistry<T> {
     private collections: Collection<T>[] = [];
 
     public getRegisteredCollections() {
-        return this.collections as readonly Collection<T>[];
+        return this.collections.slice();
     }
 
     public registerCollection(collection: Collection<T>) {
