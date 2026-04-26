@@ -7,6 +7,7 @@
 - Make syntax highlighting for blocks more tolerant towards whitespaces.
 - Add refresh of server-side cache whenever client-side cache is refreshed.
 - Fix issue where renaming a file or folder in the collection explorer raised a validation error if the name was not changed.
+- Add missing option for unselecting an environment for a collection in the collection explorer.
 
 ## [1.0.1] (2026-04-22)
 
