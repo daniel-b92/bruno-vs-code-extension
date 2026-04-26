@@ -31,6 +31,7 @@ export class HelpersProvider {
                 this.collectionWatcher,
                 getAdditionalCollectionDataProvider(),
                 getPathsToIgnoreForCollections(),
+                undefined,
                 getDefaultLogger(),
             );
     }
