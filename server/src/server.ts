@@ -21,7 +21,7 @@ import { URI } from "vscode-uri";
 import { runUpdatesOnWillSave } from "./bruFiles/autoUpdates/runUpdatesOnWillSave";
 import {
     FileChangeType,
-    getConfiguredEnvironmentName,
+    getConfiguredEnvironmentNameAsync,
     getExtensionForBrunoFiles,
     getItemType,
     isBrunoFileType,
@@ -286,8 +286,8 @@ function mapToBaseLanguageRequest(
         : undefined;
 }
 
-async function getConfiguredTestEnvironment(collection: TypedCollection) {
-    return await getConfiguredEnvironmentName(
+function getConfiguredTestEnvironment(collection: TypedCollection) {
+    return getConfiguredEnvironmentNameAsync(
         collection.getRootDirectory(),
         (sectionKey: string) =>
             connection.workspace.getConfiguration(sectionKey),
