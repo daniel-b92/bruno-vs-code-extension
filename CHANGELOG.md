@@ -6,6 +6,7 @@
 - Add missing validation of JSON syntax for `body:graphql:vars` block and remove incorrect validation of JSON syntax for `body:graphql` block.
 - Make syntax highlighting for blocks more tolerant towards whitespaces.
 - Add refresh of server-side cache whenever client-side cache is refreshed.
+- Fix issue where renaming a file or folder in the collection explorer raised a validation error if the name was not changed.
 
 ## [1.0.1] (2026-04-22)
 
