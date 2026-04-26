@@ -1,4 +1,4 @@
-## [Unreleased]
+## [1.0.2] (2026-04-26)
 
 ### Fixes / Minor Improvements
 
