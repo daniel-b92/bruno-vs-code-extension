@@ -1,3 +1,9 @@
+## [1.0.3] (2026-04-27)
+
+### Fixes / Minor Improvements
+
+- Avoid triggering uncaught errors on extension start by only attempting to restart Language client if it's actually running.
+
 ## [1.0.2] (2026-04-26)
 
 ### Fixes / Minor Improvements
