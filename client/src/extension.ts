@@ -24,6 +24,7 @@ import {
     LanguageClient,
     LanguageClientOptions,
     ServerOptions,
+    State,
     TransportKind,
 } from "vscode-languageclient/node";
 import { Evt } from "evt";
@@ -180,7 +181,12 @@ function createNeededHandlers(context: ExtensionContext) {
     cacheRefreshNotifier.attach(
         cacheRefreshNotifierContext,
         // Whenever a full cache refresh is triggered, also restart the server to refresh the server-side cache, too.
-        getCallbackForRestartingClient(),
+        () =>
+            client.state == State.Running
+                ? getCallbackForRestartingClient()()
+                : logger.debug(
+                      `Skipping restart of language client on cache refresh, since it does not have status 'Running'.`,
+                  ),
     );
     const collectionItemProvider =
         new CollectionItemProvider<AdditionalCollectionData>(
