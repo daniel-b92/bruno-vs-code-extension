@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Minor Improvements
+
+- Show spinner while updating environment via Collection Explorer.
+
 ## [1.0.3] (2026-04-27)
 
 ### Fixes / Minor Improvements
