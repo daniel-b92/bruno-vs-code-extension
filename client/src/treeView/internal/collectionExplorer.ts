@@ -758,10 +758,15 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 );
 
                 if (wasUpdated) {
-                    // Since a change of the selected environment is not reflected directly in the file system,
-                    // we need to trigger a reload for the explorer to show the current data.
-                    await this.itemProvider.reloadCollectionRootFolderItem(
-                        itemPath,
+                    vscode.window.withProgress(
+                        { location: { viewId: this.treeViewId } },
+                        () => {
+                            // Since a change of the selected environment is not reflected directly in the file system,
+                            // we need to trigger a reload for the explorer to show the current data.
+                            return this.itemProvider.reloadCollectionRootFolderItem(
+                                itemPath,
+                            );
+                        },
                     );
                 }
             },
