@@ -591,33 +591,32 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         vscode.commands.registerCommand(
             `${this.treeViewId}.duplicateFile`,
             async (treeItem: BrunoTreeItem) => {
+                const originalPath = treeItem.getPath();
                 const itemDataWithCollection =
                     this.itemProvider.getRegisteredItemAndCollection(
-                        treeItem.getPath(),
+                        originalPath,
                     );
 
                 if (!itemDataWithCollection) {
                     return;
                 }
 
-                const {
-                    collection,
-                    data: { item },
-                } = itemDataWithCollection;
+                const { data } = itemDataWithCollection;
 
+                this.multiFileOperationNotifier.fire({
+                    parentFolder: dirname(originalPath),
+                    running: true,
+                });
                 const newFile = await handleFileDuplication(
-                    item,
-                    collection,
+                    data,
                     this.itemProvider,
                 );
+                this.multiFileOperationNotifier.fire({
+                    parentFolder: dirname(originalPath),
+                    running: false,
+                });
 
                 if (newFile) {
-                    // After the new file has been registered in the cache, the explorer should be able to reveal it when opened in the editor.
-                    await this.cacheSyncingHelper.waitForFileToBeRegisteredInCache(
-                        collection.getRootDirectory(),
-                        newFile,
-                    );
-
                     await this.openFile(newFile);
                 }
             },

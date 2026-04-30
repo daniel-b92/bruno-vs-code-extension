@@ -1,13 +1,11 @@
 import {
     BrunoFileType,
-    CollectionItem,
     getExtensionForBrunoFiles,
-    getMaxSequenceForRequests,
-    getSequenceForFile,
+    ItemType,
 } from "@global_shared";
 import {
     DialogOptionLabelEnum,
-    TypedCollection,
+    TypedCollectionData,
     TypedCollectionItemProvider,
 } from "@shared";
 import { copyFile } from "fs";
@@ -15,26 +13,21 @@ import { basename, dirname } from "path";
 import { promisify } from "util";
 import { getPathForDuplicatedItem } from "../getPathForDuplicatedItem";
 import { replaceNameInMetaBlock } from "./replaceNameInMetaBlock";
-import { replaceSequenceForFile } from "./replaceSequenceForFile";
 import { window } from "vscode";
+import { updateSequencesAfterMovingRequestFile } from "./updateSequencesAfterMovingRequestFile";
+import { BrunoTreeItem } from "../../../brunoTreeItem";
 
 export async function handleFileDuplication(
-    item: CollectionItem,
-    collection: TypedCollection,
+    { item, additionalData: { treeItem } }: TypedCollectionData,
     itemProvider: TypedCollectionItemProvider,
 ) {
     const itemType = item.getItemType();
-    const originalPath = item.getPath();
 
     if (
         itemType != BrunoFileType.CollectionSettingsFile &&
         itemType != BrunoFileType.FolderSettingsFile
     ) {
-        const newPath = await duplicateFile(
-            collection,
-            originalPath,
-            itemProvider,
-        );
+        const newPath = await duplicateFile(itemType, treeItem, itemProvider);
 
         if (newPath === undefined) {
             return undefined;
@@ -52,7 +45,7 @@ export async function handleFileDuplication(
         );
 
         if (confirmed) {
-            return await duplicateFile(collection, originalPath, itemProvider);
+            return await duplicateFile(itemType, treeItem, itemProvider);
         }
     } else {
         const confirmed = await showWarningDialog(
@@ -61,16 +54,17 @@ export async function handleFileDuplication(
         );
 
         if (confirmed) {
-            return await duplicateFile(collection, originalPath, itemProvider);
+            return await duplicateFile(itemType, treeItem, itemProvider);
         }
     }
 }
 
 async function duplicateFile(
-    collection: TypedCollection,
-    originalPath: string,
+    itemType: ItemType,
+    sourceItem: BrunoTreeItem,
     itemProvider: TypedCollectionItemProvider,
 ) {
+    const originalPath = sourceItem.getPath();
     const newPath = await getPathForDuplicatedItem(originalPath);
 
     if (
@@ -83,13 +77,16 @@ async function duplicateFile(
         return undefined;
     }
 
-    if (await getSequenceForFile(collection, originalPath)) {
-        await replaceSequenceForFile(
+    if (
+        itemType == BrunoFileType.RequestFile &&
+        sourceItem.getSequence() != undefined
+    ) {
+        // Only when moving a request file, sequences of requests may need to be adjusted
+        await updateSequencesAfterMovingRequestFile(
+            itemProvider,
+            sourceItem,
+            dirname(originalPath),
             newPath,
-            ((await getMaxSequenceForRequests(
-                itemProvider,
-                dirname(originalPath),
-            )) ?? 0) + 1,
         );
     }
 
