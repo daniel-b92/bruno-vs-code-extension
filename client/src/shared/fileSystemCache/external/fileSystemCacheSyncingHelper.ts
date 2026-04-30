@@ -69,17 +69,11 @@ export class FileSystemCacheSyncingHelper {
                 `${this.commonPreMessageForLogging} Aborting waiting for file '${filePath}' to be registered in cache.`,
             );
         };
-        const getCollection = () => {
-            return this.itemProvider
-                .getRegisteredCollections()
-                .find(
-                    (c) =>
-                        normalizePath(c.getRootDirectory()) ==
-                        normalizePath(collectionRootFolder),
-                );
-        };
         const parentFolder = dirname(filePath);
-        const collection = getCollection();
+        const collection =
+            this.itemProvider.getAncestorCollectionForPath(
+                collectionRootFolder,
+            );
 
         if (!collection) {
             this.logger?.warn(
@@ -141,8 +135,8 @@ export class FileSystemCacheSyncingHelper {
             parentFolder,
             {
                 shouldAbort: () => shouldAbort,
-                getSubscriptionForCacheUpdates: () =>
-                    this.itemProvider.subscribeToUpdates,
+                getSubscriptionForCacheUpdates: (callback) =>
+                    this.itemProvider.subscribeToUpdates(callback),
             },
             timeoutInMillis,
             this.logger,

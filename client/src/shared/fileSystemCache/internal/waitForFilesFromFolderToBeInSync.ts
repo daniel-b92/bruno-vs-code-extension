@@ -10,7 +10,7 @@ export enum ResultCode {
 }
 
 export async function waitForFilesFromFolderToBeInSync(
-    filesToCheckWithinFolder: readonly { path: string; sequence?: number }[],
+    filesToCheckWithinFolder: { path: string; sequence?: number }[],
     parentFolder: string,
     callbacks: {
         getSubscriptionForCacheUpdates: (
@@ -34,14 +34,25 @@ export async function waitForFilesFromFolderToBeInSync(
     }
 
     const toAwait = new Promise<ResultCode>((resolve) => {
-        getSubscriptionForCacheUpdates((updates) => {
-            if (shouldAbort()) {
-                logger?.debug(
-                    `Aborting waiting for files from folder '${parentFolder}' to be registered in cache.`,
-                );
-                return resolve(ResultCode.Aborted);
-            }
+        if (shouldAbort()) {
+            logger?.debug(
+                `Aborting waiting for files from folder '${parentFolder}' to be registered in cache.`,
+            );
+            return resolve(ResultCode.Aborted);
+        }
 
+        timeout = setTimeout(() => {
+            logger?.debug(
+                `Timeout of ${timeoutInMillis} ms reached while waiting for items '${JSON.stringify(
+                    filesToCheckWithinFolder.map(({ path }) => path),
+                    null,
+                    2,
+                )}' to be registered in cache.`,
+            );
+            return resolve(ResultCode.TimedOut);
+        }, timeoutInMillis);
+
+        getSubscriptionForCacheUpdates((updates) => {
             for (const {
                 updateType,
                 data: { item },
@@ -76,17 +87,6 @@ export async function waitForFilesFromFolderToBeInSync(
                 return resolve(ResultCode.WaitingCompleted);
             }
         });
-
-        timeout = setTimeout(() => {
-            logger?.debug(
-                `Timeout of ${timeoutInMillis} ms reached while waiting for items '${JSON.stringify(
-                    filesToCheckWithinFolder.map(({ path }) => path),
-                    null,
-                    2,
-                )}' to be registered in cache.`,
-            );
-            return resolve(ResultCode.TimedOut);
-        }, timeoutInMillis);
     });
 
     const result = await toAwait;
