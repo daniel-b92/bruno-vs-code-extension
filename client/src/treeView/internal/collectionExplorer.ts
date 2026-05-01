@@ -601,7 +601,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     return;
                 }
 
-                const { data } = itemDataWithCollection;
+                const { collection, data } = itemDataWithCollection;
 
                 this.multiFileOperationNotifier.fire({
                     parentFolder: dirname(originalPath),
@@ -617,6 +617,11 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 });
 
                 if (newFile) {
+                    // After the new file has been registered in the cache, the explorer should be able to reveal it when opened in the editor.
+                    await this.cacheSyncingHelper.waitForFileToBeRegisteredInCache(
+                        collection.getRootDirectory(),
+                        newFile,
+                    );
                     await this.openFile(newFile);
                 }
             },

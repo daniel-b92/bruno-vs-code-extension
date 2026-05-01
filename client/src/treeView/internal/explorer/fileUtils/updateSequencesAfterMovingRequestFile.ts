@@ -2,6 +2,7 @@ import { basename, dirname, resolve } from "path";
 import {
     getMaxSequenceForRequests,
     getSequencesForRequests,
+    normalizePath,
 } from "@global_shared";
 import { TypedCollectionItemProvider } from "@shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
@@ -41,5 +42,9 @@ export async function updateSequencesAfterMovingRequestFile(
     }
 
     await normalizeSequencesForRequestFiles(itemProvider, targetDirectory);
-    await normalizeSequencesForRequestFiles(itemProvider, dirname(sourcePath));
+
+    const sourceDirectory = dirname(sourcePath);
+    if (normalizePath(targetDirectory) != normalizePath(sourceDirectory)) {
+        await normalizeSequencesForRequestFiles(itemProvider, sourceDirectory);
+    }
 }
