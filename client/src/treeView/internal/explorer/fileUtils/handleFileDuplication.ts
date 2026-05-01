@@ -81,7 +81,7 @@ async function duplicateFile(
         itemType == BrunoFileType.RequestFile &&
         sourceItem.getSequence() != undefined
     ) {
-        // Only when moving a request file, sequences of requests may need to be adjusted
+        // Only when duplicating a request file, sequences of requests may need to be adjusted
         await updateSequencesAfterMovingRequestFile(
             itemProvider,
             sourceItem,
