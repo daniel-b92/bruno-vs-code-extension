@@ -2,6 +2,7 @@ import { NotificationData } from "../../../../../shared";
 import { OutputChannelLogger } from "../../logging/outputChannelLogger";
 import { FileChangeType, isCollectionItemWithSequence } from "@global_shared";
 import { AdditionalCollectionData } from "../../model/interfaces";
+import { Ctx } from "evt";
 
 export enum ResultCode {
     Aborted = 1,
@@ -15,7 +16,7 @@ export async function waitForFilesFromFolderToBeInSync(
     callbacks: {
         getSubscriptionForCacheUpdates: (
             callback: (e: NotificationData<AdditionalCollectionData>[]) => void,
-        ) => void;
+        ) => Ctx<void>;
         shouldAbort: () => boolean;
     },
     timeoutInMillis: number,
@@ -24,6 +25,7 @@ export async function waitForFilesFromFolderToBeInSync(
     const { getSubscriptionForCacheUpdates, shouldAbort } = callbacks;
     const remainingFilesToCheck = [...filesToCheckWithinFolder];
     let timeout: NodeJS.Timeout | undefined = undefined;
+    let context: Ctx<void> | undefined = undefined;
 
     if (remainingFilesToCheck.length == 0) {
         logger?.debug(
@@ -52,7 +54,7 @@ export async function waitForFilesFromFolderToBeInSync(
             return resolve(ResultCode.TimedOut);
         }, timeoutInMillis);
 
-        getSubscriptionForCacheUpdates((updates) => {
+        context = getSubscriptionForCacheUpdates((updates) => {
             for (const {
                 updateType,
                 data: { item },
@@ -92,6 +94,9 @@ export async function waitForFilesFromFolderToBeInSync(
     const result = await toAwait;
 
     clearTimeout(timeout);
+    if (context) {
+        (context as unknown as Ctx<void>).done();
+    }
 
     return result;
 }

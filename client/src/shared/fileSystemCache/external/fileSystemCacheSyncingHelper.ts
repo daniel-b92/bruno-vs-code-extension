@@ -136,7 +136,9 @@ export class FileSystemCacheSyncingHelper {
             {
                 shouldAbort: () => shouldAbort,
                 getSubscriptionForCacheUpdates: (callback) =>
-                    this.itemProvider.subscribeToUpdates(callback),
+                    this.itemProvider.subscribeToUpdatesWithOwnContext(
+                        callback,
+                    ),
             },
             timeoutInMillis,
             this.logger,
