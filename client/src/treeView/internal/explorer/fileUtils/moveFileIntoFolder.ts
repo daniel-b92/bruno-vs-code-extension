@@ -4,6 +4,7 @@ import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { renameFileOrFolder } from "../renameFileOrFolder";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";
 import { updateSequencesAfterMovingRequestFile } from "./updateSequencesAfterMovingRequestFile";
+import { dirname } from "path";
 
 export async function moveFileIntoFolder(
     itemProvider: TypedCollectionItemProvider,
@@ -25,8 +26,11 @@ export async function moveFileIntoFolder(
         await updateSequencesAfterMovingRequestFile(
             itemProvider,
             target,
-            targetDirectoryForDragAndDrop,
-            sourcePath,
+            newPath,
+            {
+                targetDirectory: targetDirectoryForDragAndDrop,
+                otherDirectory: dirname(sourcePath),
+            },
         );
     }
 }

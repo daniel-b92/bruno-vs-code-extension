@@ -1,4 +1,3 @@
-import { basename, dirname, resolve } from "path";
 import {
     getMaxSequenceForRequests,
     getSequencesForRequests,
@@ -12,10 +11,13 @@ import { replaceSequenceForFile } from "./replaceSequenceForFile";
 export async function updateSequencesAfterMovingRequestFile(
     itemProvider: TypedCollectionItemProvider,
     target: BrunoTreeItem,
-    targetDirectory: string,
-    sourcePath: string,
+    newPath: string,
+    directoriesForNormalization: {
+        targetDirectory: string;
+        otherDirectory?: string;
+    },
 ) {
-    const newPath = resolve(targetDirectory, basename(sourcePath));
+    const { targetDirectory, otherDirectory } = directoriesForNormalization;
 
     const newSequence = target.isFile
         ? target.getSequence()
@@ -43,8 +45,10 @@ export async function updateSequencesAfterMovingRequestFile(
 
     await normalizeSequencesForRequestFiles(itemProvider, targetDirectory);
 
-    const sourceDirectory = dirname(sourcePath);
-    if (normalizePath(targetDirectory) != normalizePath(sourceDirectory)) {
-        await normalizeSequencesForRequestFiles(itemProvider, sourceDirectory);
+    if (
+        otherDirectory != undefined &&
+        normalizePath(targetDirectory) != normalizePath(otherDirectory)
+    ) {
+        await normalizeSequencesForRequestFiles(itemProvider, otherDirectory);
     }
 }

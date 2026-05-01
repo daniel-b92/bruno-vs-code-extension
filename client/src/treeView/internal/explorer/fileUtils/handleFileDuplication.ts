@@ -85,8 +85,8 @@ async function duplicateFile(
         await updateSequencesAfterMovingRequestFile(
             itemProvider,
             sourceItem,
-            dirname(originalPath),
             newPath,
+            { targetDirectory: dirname(newPath) },
         );
     }
 
