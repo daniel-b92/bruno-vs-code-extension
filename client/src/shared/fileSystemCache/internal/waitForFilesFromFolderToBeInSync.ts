@@ -2,6 +2,7 @@ import { NotificationData } from "../../../../../shared";
 import { OutputChannelLogger } from "../../logging/outputChannelLogger";
 import { FileChangeType, isCollectionItemWithSequence } from "@global_shared";
 import { AdditionalCollectionData } from "../../model/interfaces";
+import { Ctx } from "evt";
 
 export enum ResultCode {
     Aborted = 1,
@@ -10,12 +11,12 @@ export enum ResultCode {
 }
 
 export async function waitForFilesFromFolderToBeInSync(
-    filesToCheckWithinFolder: readonly { path: string; sequence?: number }[],
+    filesToCheckWithinFolder: { path: string; sequence?: number }[],
     parentFolder: string,
     callbacks: {
         getSubscriptionForCacheUpdates: (
             callback: (e: NotificationData<AdditionalCollectionData>[]) => void,
-        ) => void;
+        ) => Ctx<void>;
         shouldAbort: () => boolean;
     },
     timeoutInMillis: number,
@@ -24,6 +25,7 @@ export async function waitForFilesFromFolderToBeInSync(
     const { getSubscriptionForCacheUpdates, shouldAbort } = callbacks;
     const remainingFilesToCheck = [...filesToCheckWithinFolder];
     let timeout: NodeJS.Timeout | undefined = undefined;
+    let context: Ctx<void> | undefined = undefined;
 
     if (remainingFilesToCheck.length == 0) {
         logger?.debug(
@@ -34,14 +36,25 @@ export async function waitForFilesFromFolderToBeInSync(
     }
 
     const toAwait = new Promise<ResultCode>((resolve) => {
-        getSubscriptionForCacheUpdates((updates) => {
-            if (shouldAbort()) {
-                logger?.debug(
-                    `Aborting waiting for files from folder '${parentFolder}' to be registered in cache.`,
-                );
-                return resolve(ResultCode.Aborted);
-            }
+        if (shouldAbort()) {
+            logger?.debug(
+                `Aborting waiting for files from folder '${parentFolder}' to be registered in cache.`,
+            );
+            return resolve(ResultCode.Aborted);
+        }
 
+        timeout = setTimeout(() => {
+            logger?.debug(
+                `Timeout of ${timeoutInMillis} ms reached while waiting for items '${JSON.stringify(
+                    filesToCheckWithinFolder.map(({ path }) => path),
+                    null,
+                    2,
+                )}' to be registered in cache.`,
+            );
+            return resolve(ResultCode.TimedOut);
+        }, timeoutInMillis);
+
+        context = getSubscriptionForCacheUpdates((updates) => {
             for (const {
                 updateType,
                 data: { item },
@@ -76,22 +89,14 @@ export async function waitForFilesFromFolderToBeInSync(
                 return resolve(ResultCode.WaitingCompleted);
             }
         });
-
-        timeout = setTimeout(() => {
-            logger?.debug(
-                `Timeout of ${timeoutInMillis} ms reached while waiting for items '${JSON.stringify(
-                    filesToCheckWithinFolder.map(({ path }) => path),
-                    null,
-                    2,
-                )}' to be registered in cache.`,
-            );
-            return resolve(ResultCode.TimedOut);
-        }, timeoutInMillis);
     });
 
     const result = await toAwait;
 
     clearTimeout(timeout);
+    if (context) {
+        (context as unknown as Ctx<void>).done();
+    }
 
     return result;
 }

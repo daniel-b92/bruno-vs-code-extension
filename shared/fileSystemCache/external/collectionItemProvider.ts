@@ -140,6 +140,14 @@ export class CollectionItemProvider<T> {
         this.itemUpdateEmitter.attach(this.itemUpdateEmitterContext, callback);
     }
 
+    public subscribeToUpdatesWithOwnContext(
+        callback: (e: NotificationData<T>[]) => void,
+    ) {
+        const context = Evt.newCtx();
+        this.itemUpdateEmitter.attach(context, callback);
+        return context;
+    }
+
     public getRegisteredCollections() {
         return this.collectionRegistry.getRegisteredCollections();
     }

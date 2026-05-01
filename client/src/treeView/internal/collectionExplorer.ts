@@ -8,8 +8,6 @@ import {
     normalizePath,
     BrunoFileType,
     isBrunoFileType,
-    getMaxSequenceForRequests,
-    getSequenceForFile,
     getConfiguredEnvironmentName,
 } from "@global_shared";
 import {
@@ -37,9 +35,10 @@ import { moveFolderIntoTargetFolder } from "./explorer/folderUtils/moveFolderInt
 import { FolderDropInsertionOption } from "./explorer/folderDropInsertionOptionEnum";
 import { moveFileIntoFolder } from "./explorer/fileUtils/moveFileIntoFolder";
 import { promisify } from "util";
-import { copyFile, cp, mkdir, rm, writeFile } from "fs";
+import { cp, mkdir, rm, writeFile } from "fs";
 import { closeTabsRelatedToItem } from "./explorer/closeTabsRelatedToItem";
 import { showDialogForSettingEnvironment } from "./explorer/showDialogForSettingEnvironment";
+import { handleFileDuplication } from "./explorer/fileUtils/handleFileDuplication";
 
 export class CollectionExplorer implements vscode.TreeDragAndDropController<BrunoTreeItem> {
     private treeViewId = "brunoCollectionsView";
@@ -357,11 +356,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         vscode.commands.registerCommand(
             `${this.treeViewId}.openInNewTabgroup`,
             (item: BrunoTreeItem) => {
-                vscode.commands.executeCommand(
-                    "vscode.open",
-                    vscode.Uri.file(item.getPath()),
-                    vscode.ViewColumn.Beside,
-                );
+                this.openFile(item.getPath(), vscode.ViewColumn.Beside);
             },
         );
 
@@ -394,10 +389,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 );
 
                 if (!failed) {
-                    await vscode.commands.executeCommand(
-                        "vscode.open",
-                        vscode.Uri.file(filePath),
-                    );
+                    await this.openFile(filePath);
                 }
             },
         );
@@ -599,57 +591,38 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         vscode.commands.registerCommand(
             `${this.treeViewId}.duplicateFile`,
             async (treeItem: BrunoTreeItem) => {
+                const originalPath = treeItem.getPath();
                 const itemDataWithCollection =
                     this.itemProvider.getRegisteredItemAndCollection(
-                        treeItem.getPath(),
+                        originalPath,
                     );
 
                 if (!itemDataWithCollection) {
                     return;
                 }
 
-                const { collection } = itemDataWithCollection;
+                const { collection, data } = itemDataWithCollection;
 
-                const itemType = itemDataWithCollection.data.item.getItemType();
+                this.multiFileOperationNotifier.fire({
+                    parentFolder: dirname(originalPath),
+                    running: true,
+                });
+                const newFile = await handleFileDuplication(
+                    data,
+                    this.itemProvider,
+                );
+                this.multiFileOperationNotifier.fire({
+                    parentFolder: dirname(originalPath),
+                    running: false,
+                });
 
-                if (
-                    itemType != BrunoFileType.CollectionSettingsFile &&
-                    itemType != BrunoFileType.FolderSettingsFile
-                ) {
-                    const newPath = await this.duplicateFile(
-                        collection,
-                        treeItem,
+                if (newFile) {
+                    // After the new file has been registered in the cache, the explorer should be able to reveal it when opened in the editor.
+                    await this.cacheSyncingHelper.waitForFileToBeRegisteredInCache(
+                        collection.getRootDirectory(),
+                        newFile,
                     );
-
-                    if (newPath === undefined) {
-                        return;
-                    }
-
-                    await replaceNameInMetaBlock(
-                        newPath,
-                        basename(newPath).replace(
-                            getExtensionForBrunoFiles(),
-                            "",
-                        ),
-                    );
-                } else if (itemType == BrunoFileType.CollectionSettingsFile) {
-                    const confirmed = await this.showWarningDialog(
-                        "Duplicate collection settings file?",
-                        "Only one collection settings file can be defined per collection.",
-                    );
-
-                    if (confirmed) {
-                        await this.duplicateFile(collection, treeItem);
-                    }
-                } else {
-                    const confirmed = await this.showWarningDialog(
-                        "Duplicate folder settings file?",
-                        "Only one folder settings file can be defined per folder.",
-                    );
-
-                    if (confirmed) {
-                        await this.duplicateFile(collection, treeItem);
-                    }
+                    await this.openFile(newFile);
                 }
             },
         );
@@ -773,49 +746,6 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         );
     }
 
-    private async duplicateFile(
-        collection: TypedCollection,
-        item: BrunoTreeItem,
-    ) {
-        const originalPath = item.getPath();
-        const newPath = await getPathForDuplicatedItem(originalPath);
-
-        if (
-            !newPath ||
-            (await promisify(copyFile)(originalPath, newPath).catch(() => {
-                vscode.window.showErrorMessage(`An unexpected error occured.`);
-                return true;
-            }))
-        ) {
-            return undefined;
-        }
-
-        if (await getSequenceForFile(collection, originalPath)) {
-            await replaceSequenceForFile(
-                newPath,
-                ((await getMaxSequenceForRequests(
-                    this.itemProvider,
-                    dirname(originalPath),
-                )) ?? 0) + 1,
-            );
-        }
-
-        return newPath;
-    }
-
-    private async showWarningDialog(modalMessage: string, detailText: string) {
-        const picked = await vscode.window.showWarningMessage(
-            modalMessage,
-            {
-                modal: true,
-                detail: detailText,
-            },
-            this.confirmationOptionForModals,
-        );
-
-        return picked == this.confirmationOptionForModals;
-    }
-
     private async tryToRevealItem(
         path: string,
         treeView: vscode.TreeView<BrunoTreeItem>,
@@ -857,5 +787,13 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 }
             }
         }
+    }
+
+    private openFile(path: string, viewColum?: vscode.ViewColumn) {
+        return vscode.commands.executeCommand(
+            "vscode.open",
+            vscode.Uri.file(path),
+            viewColum,
+        );
     }
 }

@@ -124,7 +124,7 @@ export async function createRequestFile(
             filePath,
         );
 
-        commands.executeCommand("vscode.open", Uri.file(filePath));
+        await commands.executeCommand("vscode.open", Uri.file(filePath));
     });
 
     quickPick.show();
