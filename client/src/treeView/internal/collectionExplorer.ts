@@ -360,6 +360,28 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             },
         );
 
+        this.registerCommandsForCreatingItems();
+        this.registerCommandForRenamingItem();
+        this.registerCommandForDuplicatingFile();
+        this.registerCommandForDuplicatingFolder();
+        this.registerCommandForDeletingItem();
+
+        this.registerCommandsForStartingTestrun(startTestRunEmitter);
+        this.registerCommandForEnvironmentSelection();
+    }
+
+    private registerCommandsForCreatingItems() {
+        vscode.commands.registerCommand(
+            `${this.treeViewId}.createRequestFile`,
+            (item: BrunoTreeItem) => {
+                createRequestFile(
+                    this.itemProvider,
+                    this.cacheSyncingHelper,
+                    item,
+                );
+            },
+        );
+
         vscode.commands.registerCommand(
             `${this.treeViewId}.createEmptyFile`,
             async (item: BrunoTreeItem) => {
@@ -395,17 +417,6 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         );
 
         vscode.commands.registerCommand(
-            `${this.treeViewId}.createRequestFile`,
-            (item: BrunoTreeItem) => {
-                createRequestFile(
-                    this.itemProvider,
-                    this.cacheSyncingHelper,
-                    item,
-                );
-            },
-        );
-
-        vscode.commands.registerCommand(
             `${this.treeViewId}.createFolder`,
             async (item: BrunoTreeItem) => {
                 const parentFolderPath = item.getPath();
@@ -432,7 +443,9 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 });
             },
         );
+    }
 
+    private registerCommandForRenamingItem() {
         vscode.commands.registerCommand(
             `${this.treeViewId}.renameItem`,
             async (treeItem: BrunoTreeItem) => {
@@ -528,7 +541,9 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 }
             },
         );
+    }
 
+    private registerCommandForDuplicatingFolder() {
         vscode.commands.registerCommand(
             `${this.treeViewId}.duplicateFolder`,
             async (item: BrunoTreeItem) => {
@@ -587,7 +602,9 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 }
             },
         );
+    }
 
+    private registerCommandForDuplicatingFile() {
         vscode.commands.registerCommand(
             `${this.treeViewId}.duplicateFile`,
             async (treeItem: BrunoTreeItem) => {
@@ -626,7 +643,9 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 }
             },
         );
+    }
 
+    private registerCommandForDeletingItem() {
         vscode.commands.registerCommand(
             `${this.treeViewId}.deleteItem`,
             async (treeItem: BrunoTreeItem) => {
@@ -687,7 +706,14 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 await closeTabsRelatedToItem(treeItem);
             },
         );
+    }
 
+    private registerCommandsForStartingTestrun(
+        startTestRunEmitter: vscode.EventEmitter<{
+            uri: vscode.Uri;
+            withDialog: boolean;
+        }>,
+    ) {
         vscode.commands.registerCommand(
             `${this.treeViewId}.startTestRun`,
             (item: BrunoTreeItem) => {
@@ -707,7 +733,9 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 });
             },
         );
+    }
 
+    private registerCommandForEnvironmentSelection() {
         vscode.commands.registerCommand(
             `${this.treeViewId}.selectEnvironmentForCollection`,
             async (itemPath: string) => {
