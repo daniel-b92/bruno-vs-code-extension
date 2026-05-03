@@ -9,6 +9,7 @@ import {
     BrunoFileType,
     isBrunoFileType,
     getConfiguredEnvironmentName,
+    CollectionItem,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
@@ -38,7 +39,11 @@ import { promisify } from "util";
 import { cp, mkdir, readFile, rm, writeFile } from "fs";
 import { closeTabsRelatedToItem } from "./explorer/closeTabsRelatedToItem";
 import { showDialogForSettingEnvironment } from "./explorer/showDialogForSettingEnvironment";
-import { handleFileDuplication } from "./explorer/fileUtils/handleFileDuplication";
+import { handleFileInsertion } from "./explorer/fileUtils/handleFileInsertion";
+import {
+    FileInsertionPosition,
+    RequestFileInsertionPositionType,
+} from "./explorer/fileUtils/interfaces";
 
 export class CollectionExplorer implements vscode.TreeDragAndDropController<BrunoTreeItem> {
     private treeViewId = "brunoCollectionsView";
@@ -115,8 +120,9 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
     }
 
     private disposables: vscode.Disposable[] = [];
-    private fileToCopy: { sourcePath: string; content: string } | undefined =
-        undefined;
+    private fileToCopy:
+        | { collectionData: TypedCollectionData; content: string }
+        | undefined = undefined;
     private confirmationOptionForModals = DialogOptionLabelEnum.Confirm;
 
     public dispose() {
@@ -595,38 +601,31 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         return vscode.commands.registerCommand(
             `${this.treeViewId}.duplicateFile`,
             async (treeItem: BrunoTreeItem) => {
-                const originalPath = treeItem.getPath();
-                const itemDataWithCollection =
+                const targetPath = await getPathForDuplicatedItem(
+                    treeItem.getPath(),
+                );
+                const sourceDataAndCollection =
                     this.itemProvider.getRegisteredItemAndCollection(
-                        originalPath,
+                        treeItem.getPath(),
                     );
 
-                if (!itemDataWithCollection) {
+                if (!sourceDataAndCollection) {
+                    vscode.window.showWarningMessage(
+                        "Could not find collection for selected item. Aborting duplicate operation.",
+                    );
                     return;
                 }
 
-                const { collection, data } = itemDataWithCollection;
-
-                this.multiFileOperationNotifier.fire({
-                    parentFolder: dirname(originalPath),
-                    running: true,
-                });
-                const newFile = await handleFileDuplication(
-                    data,
-                    this.itemProvider,
-                );
-                this.multiFileOperationNotifier.fire({
-                    parentFolder: dirname(originalPath),
-                    running: false,
-                });
-
-                if (newFile) {
-                    // After the new file has been registered in the cache, the explorer should be able to reveal it when opened in the editor.
-                    await this.cacheSyncingHelper.waitForFileToBeRegisteredInCache(
-                        collection.getRootDirectory(),
-                        newFile,
+                if (targetPath) {
+                    await this.pasteFile(
+                        sourceDataAndCollection.data.item,
+                        targetPath,
+                        {
+                            item: sourceDataAndCollection.data.additionalData
+                                .treeItem,
+                            type: RequestFileInsertionPositionType.AfterFile,
+                        },
                     );
-                    await this.openFile(newFile);
                 }
             },
         );
@@ -707,16 +706,27 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         "utf-8",
                     ).catch(() => undefined);
 
+                    const dataWithCollection =
+                        this.itemProvider.getRegisteredItemAndCollection(
+                            item.getPath(),
+                        );
+
                     if (!content) {
                         vscode.window.showErrorMessage(
                             `An unexpected error occured while trying to read the file.`,
                         );
                         return;
                     }
+                    if (!dataWithCollection) {
+                        vscode.window.showWarningMessage(
+                            "Could not find collection for selected item. Aborting copy operation.",
+                        );
+                        return;
+                    }
 
                     this.fileToCopy = {
                         content,
-                        sourcePath: item.getPath(),
+                        collectionData: dataWithCollection.data,
                     };
 
                     await vscode.commands.executeCommand(
@@ -731,14 +741,14 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         result.push(
             vscode.commands.registerCommand(
                 `${this.treeViewId}.pasteFile`,
-                async (item: BrunoTreeItem) => {
+                async (targetItem: BrunoTreeItem) => {
                     if (this.fileToCopy == undefined) {
                         return;
                     }
 
                     const collection =
                         this.itemProvider.getAncestorCollectionForPath(
-                            item.getPath(),
+                            targetItem.getPath(),
                         );
                     if (!collection) {
                         vscode.window.showWarningMessage(
@@ -747,18 +757,20 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         return;
                     }
 
-                    const { content, sourcePath } = this.fileToCopy;
-                    const targetFolder = item.isFile
-                        ? dirname(item.getPath())
-                        : item.getPath();
+                    const {
+                        collectionData: { item: sourceItem },
+                    } = this.fileToCopy;
+                    const targetFolder = targetItem.isFile
+                        ? dirname(targetItem.getPath())
+                        : targetItem.getPath();
                     const targetPath = resolve(
                         targetFolder,
-                        basename(sourcePath),
+                        basename(sourceItem.getPath()),
                     );
 
                     if (
                         !(await this.requestConfirmationForOverwritingItemIfNeeded(
-                            sourcePath,
+                            sourceItem.getPath(),
                             targetPath,
                             collection,
                         ))
@@ -766,11 +778,16 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         return;
                     }
 
-                    const wasSuccessful =
-                        await this.writeFileAndOpenItOnSuccess(
-                            targetPath,
-                            content,
-                        );
+                    const wasSuccessful = await this.pasteFile(
+                        sourceItem,
+                        targetPath,
+                        targetItem.isFile
+                            ? {
+                                  item: targetItem,
+                                  type: RequestFileInsertionPositionType.AfterFile,
+                              }
+                            : RequestFileInsertionPositionType.Folder,
+                    );
                     if (wasSuccessful) {
                         this.fileToCopy = undefined;
                         await vscode.commands.executeCommand(
@@ -901,6 +918,44 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 }
             }
         }
+    }
+
+    private async pasteFile(
+        sourceItem: CollectionItem,
+        targetPath: string,
+        insertionPosition: FileInsertionPosition,
+    ) {
+        const targetCollection =
+            this.itemProvider.getAncestorCollectionForPath(targetPath);
+
+        if (!targetCollection) {
+            return false;
+        }
+
+        this.multiFileOperationNotifier.fire({
+            parentFolder: dirname(targetPath),
+            running: true,
+        });
+        const wasSuccessful = await handleFileInsertion(
+            sourceItem,
+            { newPath: targetPath, insertionPosition },
+            this.itemProvider,
+        );
+        this.multiFileOperationNotifier.fire({
+            parentFolder: dirname(targetPath),
+            running: false,
+        });
+
+        if (wasSuccessful) {
+            // After the new file has been registered in the cache, the explorer should be able to reveal it when opened in the editor.
+            await this.cacheSyncingHelper.waitForFileToBeRegisteredInCache(
+                targetCollection.getRootDirectory(),
+                targetPath,
+            );
+            await this.openFile(targetPath);
+        }
+
+        return wasSuccessful;
     }
 
     private async requestConfirmationForOverwritingItemIfNeeded(

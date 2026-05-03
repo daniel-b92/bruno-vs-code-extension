@@ -3,8 +3,9 @@ import { TypedCollectionItemProvider } from "../../../../shared";
 import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { renameFileOrFolder } from "../renameFileOrFolder";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";
-import { updateSequencesAfterMovingRequestFile } from "./updateSequencesAfterMovingRequestFile";
+import { updateSequencesAfterInsertingRequestFile } from "./updateSequencesAfterInsertingRequestFile";
 import { dirname } from "path";
+import { RequestFileInsertionPositionType } from "./interfaces";
 
 export async function moveFileIntoFolder(
     itemProvider: TypedCollectionItemProvider,
@@ -23,9 +24,14 @@ export async function moveFileIntoFolder(
 
     if (fileType == BrunoFileType.RequestFile) {
         // Only when moving a request file, sequences of requests may need to be adjusted
-        await updateSequencesAfterMovingRequestFile(
+        await updateSequencesAfterInsertingRequestFile(
             itemProvider,
-            target,
+            target.isFile
+                ? {
+                      item: target,
+                      type: RequestFileInsertionPositionType.AfterFile,
+                  }
+                : RequestFileInsertionPositionType.Folder,
             newPath,
             {
                 targetDirectory: targetDirectoryForDragAndDrop,
