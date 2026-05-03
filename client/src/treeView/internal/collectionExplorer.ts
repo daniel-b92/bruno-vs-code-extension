@@ -952,6 +952,6 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
     }
 
     private getContextKeyForPasteOption() {
-        return "BruAsCode.showPasteOption";
+        return "BruAsCode.canPasteFile";
     }
 }

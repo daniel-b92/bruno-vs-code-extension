@@ -201,7 +201,7 @@
                 "command": "brunoCollectionsView.pasteFile",
                 "title": "Paste",
                 "category": "Bru-as-Code",
-                "enablement": "view == brunoCollectionsView && BruAsCode.showPasteOption"
+                "enablement": "view == brunoCollectionsView && BruAsCode.canPasteFile"
             },
             {
                 "command": "brunoCollectionsView.startTestRun",
