@@ -192,6 +192,18 @@
                 "enablement": "view == brunoCollectionsView"
             },
             {
+                "command": "brunoCollectionsView.copyFile",
+                "title": "Copy file",
+                "category": "Bru-as-Code",
+                "enablement": "view == brunoCollectionsView"
+            },
+            {
+                "command": "brunoCollectionsView.pasteFile",
+                "title": "Paste",
+                "category": "Bru-as-Code",
+                "enablement": "view == brunoCollectionsView && BruAsCode.showPasteOption"
+            },
+            {
                 "command": "brunoCollectionsView.startTestRun",
                 "title": "Start test run directly",
                 "category": "Bru-as-Code",
@@ -212,7 +224,8 @@
             {
                 "command": "brunoCollectionsView.selectEnvironmentForCollection",
                 "title": "Select environment",
-                "category": "Bru-as-Code"
+                "category": "Bru-as-Code",
+                "enablement": "view == brunoCollectionsView"
             },
             {
                 "command": "bruAsCode.restartLanguageServer",
@@ -272,6 +285,16 @@
                     "command": "brunoCollectionsView.duplicateFolder",
                     "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
                     "group": "crud@35"
+                },
+                {
+                    "command": "brunoCollectionsView.copyFile",
+                    "when": "view == brunoCollectionsView && viewItem==file",
+                    "group": "crud@37"
+                },
+                {
+                    "command": "brunoCollectionsView.pasteFile",
+                    "when": "view == brunoCollectionsView",
+                    "group": "crud@38"
                 },
                 {
                     "command": "brunoCollectionsView.deleteItem",

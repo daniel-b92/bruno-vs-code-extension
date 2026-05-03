@@ -317,28 +317,6 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         };
     }
 
-    private async requestConfirmationForOverwritingItemIfNeeded(
-        sourcePath: string,
-        newPath: string,
-        targetCollection?: TypedCollection,
-    ) {
-        if (
-            targetCollection &&
-            this.itemProvider.getRegisteredItem(targetCollection, newPath) &&
-            normalizePath(newPath) != normalizePath(sourcePath) // confirmation should not be required when moving a request within the same folder (e.g. to update the sequence)
-        ) {
-            const pickedOption = await vscode.window.showInformationMessage(
-                `An item with the path '${newPath}' already exists. Do you want to overwrite it?`,
-                { modal: true },
-                this.confirmationOptionForModals,
-            );
-
-            return pickedOption == this.confirmationOptionForModals;
-        }
-
-        return true;
-    }
-
     private registerCommands(
         treeDataProvider: BrunoTreeItemProvider,
         startTestRunEmitter: vscode.EventEmitter<{
@@ -727,12 +705,25 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     const content = await promisify(readFile)(
                         item.getPath(),
                         "utf-8",
-                    );
+                    ).catch(() => undefined);
+
+                    if (!content) {
+                        vscode.window.showErrorMessage(
+                            `An unexpected error occured while trying to read the file.`,
+                        );
+                        return;
+                    }
 
                     this.fileToCopy = {
                         content,
                         sourcePath: item.getPath(),
                     };
+
+                    await vscode.commands.executeCommand(
+                        "setContext",
+                        this.getContextKeyForPasteOption(),
+                        true,
+                    );
                 },
             ),
         );
@@ -751,7 +742,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         );
                     if (!collection) {
                         vscode.window.showWarningMessage(
-                            "Could not find collection for selected item. Aborting renaming operation.",
+                            "Could not find collection for selected item. Aborting paste operation.",
                         );
                         return;
                     }
@@ -775,7 +766,19 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         return;
                     }
 
-                    await this.writeFileAndOpenItOnSuccess(targetPath, content);
+                    const wasSuccessful =
+                        await this.writeFileAndOpenItOnSuccess(
+                            targetPath,
+                            content,
+                        );
+                    if (wasSuccessful) {
+                        this.fileToCopy = undefined;
+                        await vscode.commands.executeCommand(
+                            "setContext",
+                            this.getContextKeyForPasteOption(),
+                            false,
+                        );
+                    }
                 },
             ),
         );
@@ -900,6 +903,28 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         }
     }
 
+    private async requestConfirmationForOverwritingItemIfNeeded(
+        sourcePath: string,
+        newPath: string,
+        targetCollection?: TypedCollection,
+    ) {
+        if (
+            targetCollection &&
+            this.itemProvider.getRegisteredItem(targetCollection, newPath) &&
+            normalizePath(newPath) != normalizePath(sourcePath) // confirmation should not be required when moving a request within the same folder (e.g. to update the sequence)
+        ) {
+            const pickedOption = await vscode.window.showInformationMessage(
+                `An item with the path '${newPath}' already exists. Do you want to overwrite it?`,
+                { modal: true },
+                this.confirmationOptionForModals,
+            );
+
+            return pickedOption == this.confirmationOptionForModals;
+        }
+
+        return true;
+    }
+
     private async writeFileAndOpenItOnSuccess(
         filePath: string,
         content: string,
@@ -914,6 +939,8 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         if (!failed) {
             await this.openFile(filePath);
         }
+
+        return !failed;
     }
 
     private openFile(path: string, viewColum?: vscode.ViewColumn) {
@@ -922,5 +949,9 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             vscode.Uri.file(path),
             viewColum,
         );
+    }
+
+    private getContextKeyForPasteOption() {
+        return "BruAsCode.showPasteOption";
     }
 }
