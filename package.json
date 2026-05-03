@@ -224,8 +224,7 @@
             {
                 "command": "brunoCollectionsView.selectEnvironmentForCollection",
                 "title": "Select environment",
-                "category": "Bru-as-Code",
-                "enablement": "view == brunoCollectionsView"
+                "category": "Bru-as-Code"
             },
             {
                 "command": "bruAsCode.restartLanguageServer",
