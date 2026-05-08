@@ -4,13 +4,13 @@ import {
     normalizePath,
 } from "@global_shared";
 import { TypedCollectionItemProvider } from "@shared";
-import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { normalizeSequencesForRequestFiles } from "./normalizeSequencesForRequestFiles";
 import { replaceSequenceForFile } from "./replaceSequenceForFile";
+import { FileInsertionPosition } from "./interfaces";
 
-export async function updateSequencesAfterMovingRequestFile(
+export async function updateSequencesAfterInsertingRequestFile(
     itemProvider: TypedCollectionItemProvider,
-    target: BrunoTreeItem,
+    targetPosition: FileInsertionPosition,
     newPath: string,
     directoriesForNormalization: {
         targetDirectory: string;
@@ -19,19 +19,22 @@ export async function updateSequencesAfterMovingRequestFile(
 ) {
     const { targetDirectory, otherDirectory } = directoriesForNormalization;
 
-    const newSequence = target.isFile
-        ? target.getSequence()
-            ? (target.getSequence() as number) + 1
+    const newSequence =
+        typeof targetPosition == "object"
+            ? targetPosition.item.getSequence()
+                ? (targetPosition.item.getSequence() as number) + 1
+                : ((await getMaxSequenceForRequests(
+                      itemProvider,
+                      targetDirectory,
+                  )) ?? 0) + 1
             : ((await getMaxSequenceForRequests(
                   itemProvider,
                   targetDirectory,
-              )) ?? 0) + 1
-        : ((await getMaxSequenceForRequests(itemProvider, targetDirectory)) ??
-              0) + 1;
+              )) ?? 0) + 1;
 
     await replaceSequenceForFile(newPath, newSequence);
 
-    if (target.isFile) {
+    if (typeof targetPosition == "object") {
         const filtered = (
             await getSequencesForRequests(itemProvider, targetDirectory)
         ).filter(

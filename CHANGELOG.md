@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Features
+
+- Add options for copying and pasting a single file in the collection explorer.
+
 ### Fixes / Minor Improvements
 
 - Show spinner while updating environment via Collection Explorer.

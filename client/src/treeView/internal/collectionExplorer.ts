@@ -9,6 +9,9 @@ import {
     BrunoFileType,
     isBrunoFileType,
     getConfiguredEnvironmentName,
+    CollectionItem,
+    CollectionItemWithSequence,
+    isCollectionItemWithSequence,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
@@ -35,10 +38,14 @@ import { moveFolderIntoTargetFolder } from "./explorer/folderUtils/moveFolderInt
 import { FolderDropInsertionOption } from "./explorer/folderDropInsertionOptionEnum";
 import { moveFileIntoFolder } from "./explorer/fileUtils/moveFileIntoFolder";
 import { promisify } from "util";
-import { cp, mkdir, rm, writeFile } from "fs";
+import { cp, mkdir, readFile, rm, writeFile } from "fs";
 import { closeTabsRelatedToItem } from "./explorer/closeTabsRelatedToItem";
 import { showDialogForSettingEnvironment } from "./explorer/showDialogForSettingEnvironment";
-import { handleFileDuplication } from "./explorer/fileUtils/handleFileDuplication";
+import { handleFileInsertion } from "./explorer/fileUtils/handleFileInsertion";
+import {
+    FileInsertionPosition,
+    RequestFileInsertionPositionType,
+} from "./explorer/fileUtils/interfaces";
 
 export class CollectionExplorer implements vscode.TreeDragAndDropController<BrunoTreeItem> {
     private treeViewId = "brunoCollectionsView";
@@ -115,6 +122,9 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
     }
 
     private disposables: vscode.Disposable[] = [];
+    private fileToCopy:
+        | { item: CollectionItem | CollectionItemWithSequence; content: string }
+        | undefined = undefined;
     private confirmationOptionForModals = DialogOptionLabelEnum.Confirm;
 
     public dispose() {
@@ -315,28 +325,6 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         };
     }
 
-    private async requestConfirmationForOverwritingItemIfNeeded(
-        sourcePath: string,
-        newPath: string,
-        targetCollection?: TypedCollection,
-    ) {
-        if (
-            targetCollection &&
-            this.itemProvider.getRegisteredItem(targetCollection, newPath) &&
-            normalizePath(newPath) != normalizePath(sourcePath) // confirmation should not be required when moving a request within the same folder (e.g. to update the sequence)
-        ) {
-            const pickedOption = await vscode.window.showInformationMessage(
-                `An item with the path '${newPath}' already exists. Do you want to overwrite it?`,
-                { modal: true },
-                this.confirmationOptionForModals,
-            );
-
-            return pickedOption == this.confirmationOptionForModals;
-        }
-
-        return true;
-    }
-
     private registerCommands(
         treeDataProvider: BrunoTreeItemProvider,
         startTestRunEmitter: vscode.EventEmitter<{
@@ -344,96 +332,116 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             withDialog: boolean;
         }>,
     ) {
-        vscode.commands.registerCommand(`${this.treeViewId}.refresh`, () => {
-            vscode.window.withProgress(
-                { location: { viewId: this.treeViewId } },
+        this.disposables.push(
+            vscode.commands.registerCommand(
+                `${this.treeViewId}.refresh`,
                 () => {
-                    return treeDataProvider.refresh();
+                    vscode.window.withProgress(
+                        { location: { viewId: this.treeViewId } },
+                        () => {
+                            return treeDataProvider.refresh();
+                        },
+                    );
                 },
-            );
-        });
-
-        vscode.commands.registerCommand(
-            `${this.treeViewId}.openInNewTabgroup`,
-            (item: BrunoTreeItem) => {
-                this.openFile(item.getPath(), vscode.ViewColumn.Beside);
-            },
+            ),
         );
 
-        vscode.commands.registerCommand(
-            `${this.treeViewId}.createEmptyFile`,
-            async (item: BrunoTreeItem) => {
-                const parentFolderPath = item.getPath();
+        this.disposables.push(
+            vscode.commands.registerCommand(
+                `${this.treeViewId}.openInNewTabgroup`,
+                (item: BrunoTreeItem) => {
+                    this.openFile(item.getPath(), vscode.ViewColumn.Beside);
+                },
+            ),
+        );
 
-                const fileName = await vscode.window.showInputBox({
-                    title: `Create file in '${basename(parentFolderPath)}'`,
-                    validateInput: (newFileName: string) => {
-                        return validateNewItemNameIsUnique(
-                            resolve(parentFolderPath, newFileName),
-                        );
-                    },
-                });
+        this.disposables.push(
+            ...this.registerCommandsForCreatingItems(),
+            this.registerCommandForRenamingItem(),
+            this.registerCommandForDuplicatingFile(),
+            this.registerCommandForDuplicatingFolder(),
+            this.registerCommandForDeletingItem(),
+            ...this.registerCommandsForStartingTestrun(startTestRunEmitter),
+            this.registerCommandForEnvironmentSelection(),
+            ...this.registerCommandsForCopyingAndPastingFiles(),
+        );
+    }
 
-                if (fileName == undefined) {
-                    return;
-                }
+    private registerCommandsForCreatingItems() {
+        const result: vscode.Disposable[] = [];
 
-                const filePath = resolve(parentFolderPath, fileName);
-                const failed = await promisify(writeFile)(filePath, "").catch(
-                    () => {
+        result.push(
+            vscode.commands.registerCommand(
+                `${this.treeViewId}.createRequestFile`,
+                (item: BrunoTreeItem) => {
+                    createRequestFile(
+                        this.itemProvider,
+                        this.cacheSyncingHelper,
+                        item,
+                    );
+                },
+            ),
+        );
+
+        result.push(
+            vscode.commands.registerCommand(
+                `${this.treeViewId}.createEmptyFile`,
+                async (item: BrunoTreeItem) => {
+                    const parentFolderPath = item.getPath();
+
+                    const fileName = await vscode.window.showInputBox({
+                        title: `Create file in '${basename(parentFolderPath)}'`,
+                        validateInput: (newFileName: string) => {
+                            return validateNewItemNameIsUnique(
+                                resolve(parentFolderPath, newFileName),
+                            );
+                        },
+                    });
+
+                    if (fileName == undefined) {
+                        return;
+                    }
+
+                    const filePath = resolve(parentFolderPath, fileName);
+                    await this.writeFileAndOpenItOnSuccess(filePath, "");
+                },
+            ),
+        );
+
+        result.push(
+            vscode.commands.registerCommand(
+                `${this.treeViewId}.createFolder`,
+                async (item: BrunoTreeItem) => {
+                    const parentFolderPath = item.getPath();
+
+                    const folderName = await vscode.window.showInputBox({
+                        title: `Create folder in '${basename(parentFolderPath)}'`,
+                        validateInput: (newFolderName: string) => {
+                            return validateNewItemNameIsUnique(
+                                resolve(parentFolderPath, newFolderName),
+                            );
+                        },
+                    });
+
+                    if (folderName == undefined) {
+                        return;
+                    }
+
+                    await promisify(mkdir)(
+                        resolve(parentFolderPath, folderName),
+                    ).catch(() => {
                         vscode.window.showErrorMessage(
                             `An unexpected error occured.`,
                         );
-                        return true;
-                    },
-                );
-
-                if (!failed) {
-                    await this.openFile(filePath);
-                }
-            },
+                    });
+                },
+            ),
         );
+        return result;
+    }
 
-        vscode.commands.registerCommand(
-            `${this.treeViewId}.createRequestFile`,
-            (item: BrunoTreeItem) => {
-                createRequestFile(
-                    this.itemProvider,
-                    this.cacheSyncingHelper,
-                    item,
-                );
-            },
-        );
-
-        vscode.commands.registerCommand(
-            `${this.treeViewId}.createFolder`,
-            async (item: BrunoTreeItem) => {
-                const parentFolderPath = item.getPath();
-
-                const folderName = await vscode.window.showInputBox({
-                    title: `Create folder in '${basename(parentFolderPath)}'`,
-                    validateInput: (newFolderName: string) => {
-                        return validateNewItemNameIsUnique(
-                            resolve(parentFolderPath, newFolderName),
-                        );
-                    },
-                });
-
-                if (folderName == undefined) {
-                    return;
-                }
-
-                await promisify(mkdir)(
-                    resolve(parentFolderPath, folderName),
-                ).catch(() => {
-                    vscode.window.showErrorMessage(
-                        `An unexpected error occured.`,
-                    );
-                });
-            },
-        );
-
-        vscode.commands.registerCommand(
+    private registerCommandForRenamingItem() {
+        return vscode.commands.registerCommand(
             `${this.treeViewId}.renameItem`,
             async (treeItem: BrunoTreeItem) => {
                 const originalPath = treeItem.getPath();
@@ -528,8 +536,10 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 }
             },
         );
+    }
 
-        vscode.commands.registerCommand(
+    private registerCommandForDuplicatingFolder() {
+        return vscode.commands.registerCommand(
             `${this.treeViewId}.duplicateFolder`,
             async (item: BrunoTreeItem) => {
                 const originalPath = item.getPath();
@@ -587,47 +597,44 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 }
             },
         );
+    }
 
-        vscode.commands.registerCommand(
+    private registerCommandForDuplicatingFile() {
+        return vscode.commands.registerCommand(
             `${this.treeViewId}.duplicateFile`,
             async (treeItem: BrunoTreeItem) => {
-                const originalPath = treeItem.getPath();
-                const itemDataWithCollection =
+                const targetPath = await getPathForDuplicatedItem(
+                    treeItem.getPath(),
+                );
+                const sourceDataAndCollection =
                     this.itemProvider.getRegisteredItemAndCollection(
-                        originalPath,
+                        treeItem.getPath(),
                     );
 
-                if (!itemDataWithCollection) {
+                if (!sourceDataAndCollection) {
+                    vscode.window.showWarningMessage(
+                        "Could not find collection for selected item. Aborting duplicate operation.",
+                    );
                     return;
                 }
 
-                const { collection, data } = itemDataWithCollection;
-
-                this.multiFileOperationNotifier.fire({
-                    parentFolder: dirname(originalPath),
-                    running: true,
-                });
-                const newFile = await handleFileDuplication(
-                    data,
-                    this.itemProvider,
-                );
-                this.multiFileOperationNotifier.fire({
-                    parentFolder: dirname(originalPath),
-                    running: false,
-                });
-
-                if (newFile) {
-                    // After the new file has been registered in the cache, the explorer should be able to reveal it when opened in the editor.
-                    await this.cacheSyncingHelper.waitForFileToBeRegisteredInCache(
-                        collection.getRootDirectory(),
-                        newFile,
+                if (targetPath) {
+                    await this.pasteFile(
+                        sourceDataAndCollection.data.item,
+                        targetPath,
+                        {
+                            item: sourceDataAndCollection.data.additionalData
+                                .treeItem,
+                            type: RequestFileInsertionPositionType.AfterFile,
+                        },
                     );
-                    await this.openFile(newFile);
                 }
             },
         );
+    }
 
-        vscode.commands.registerCommand(
+    private registerCommandForDeletingItem() {
+        return vscode.commands.registerCommand(
             `${this.treeViewId}.deleteItem`,
             async (treeItem: BrunoTreeItem) => {
                 const picked = await vscode.window.showInformationMessage(
@@ -687,28 +694,168 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 await closeTabsRelatedToItem(treeItem);
             },
         );
+    }
 
-        vscode.commands.registerCommand(
-            `${this.treeViewId}.startTestRun`,
-            (item: BrunoTreeItem) => {
-                startTestRunEmitter.fire({
-                    uri: vscode.Uri.file(item.getPath()),
-                    withDialog: false,
-                });
-            },
+    private registerCommandsForCopyingAndPastingFiles() {
+        const result: vscode.Disposable[] = [];
+
+        result.push(
+            vscode.commands.registerCommand(
+                `${this.treeViewId}.copyFile`,
+                async (treeItem: BrunoTreeItem) => {
+                    const content = await promisify(readFile)(
+                        treeItem.getPath(),
+                        "utf-8",
+                    ).catch(() => undefined);
+
+                    const dataWithCollection =
+                        this.itemProvider.getRegisteredItemAndCollection(
+                            treeItem.getPath(),
+                        );
+
+                    if (content === undefined) {
+                        vscode.window.showErrorMessage(
+                            `An unexpected error occured while trying to read the file.`,
+                        );
+                        return;
+                    }
+                    if (!dataWithCollection) {
+                        vscode.window.showWarningMessage(
+                            "Could not find collection for selected item. Aborting copy operation.",
+                        );
+                        return;
+                    }
+
+                    const sourceItem = dataWithCollection.data.item;
+                    const baseItemForCopying:
+                        | CollectionItem
+                        | CollectionItemWithSequence = {
+                        getItemType: () => sourceItem.getItemType(),
+                        getPath: () => sourceItem.getPath(),
+                        isFile: () => sourceItem.isFile(),
+                    };
+
+                    this.fileToCopy = {
+                        content,
+                        item: isCollectionItemWithSequence(sourceItem)
+                            ? {
+                                  ...baseItemForCopying,
+                                  getSequence: () => sourceItem.getSequence(),
+                              }
+                            : { ...baseItemForCopying },
+                    };
+
+                    await vscode.commands.executeCommand(
+                        "setContext",
+                        this.getContextKeyForPasteOption(),
+                        true,
+                    );
+                },
+            ),
         );
 
-        vscode.commands.registerCommand(
-            `${this.treeViewId}.openDialogForTestRun`,
-            (item: BrunoTreeItem) => {
-                startTestRunEmitter.fire({
-                    uri: vscode.Uri.file(item.getPath()),
-                    withDialog: true,
-                });
-            },
+        result.push(
+            vscode.commands.registerCommand(
+                `${this.treeViewId}.pasteFile`,
+                async (targetItem: BrunoTreeItem) => {
+                    if (this.fileToCopy == undefined) {
+                        return;
+                    }
+
+                    const collection =
+                        this.itemProvider.getAncestorCollectionForPath(
+                            targetItem.getPath(),
+                        );
+                    if (!collection) {
+                        vscode.window.showWarningMessage(
+                            "Could not find collection for selected item. Aborting paste operation.",
+                        );
+                        return;
+                    }
+
+                    const { item: sourceItem, content: newContent } =
+                        this.fileToCopy;
+                    const targetFolder = targetItem.isFile
+                        ? dirname(targetItem.getPath())
+                        : targetItem.getPath();
+                    const targetPath = resolve(
+                        targetFolder,
+                        basename(sourceItem.getPath()),
+                    );
+
+                    if (
+                        !(await this.requestConfirmationForOverwritingItemIfNeeded(
+                            sourceItem.getPath(),
+                            targetPath,
+                            collection,
+                        ))
+                    ) {
+                        return;
+                    }
+
+                    const wasSuccessful = await this.pasteFile(
+                        sourceItem,
+                        targetPath,
+                        targetItem.isFile
+                            ? {
+                                  item: targetItem,
+                                  type: RequestFileInsertionPositionType.AfterFile,
+                              }
+                            : RequestFileInsertionPositionType.Folder,
+                        newContent,
+                    );
+                    if (wasSuccessful) {
+                        this.fileToCopy = undefined;
+                        await vscode.commands.executeCommand(
+                            "setContext",
+                            this.getContextKeyForPasteOption(),
+                            false,
+                        );
+                    }
+                },
+            ),
         );
 
-        vscode.commands.registerCommand(
+        return result;
+    }
+
+    private registerCommandsForStartingTestrun(
+        startTestRunEmitter: vscode.EventEmitter<{
+            uri: vscode.Uri;
+            withDialog: boolean;
+        }>,
+    ) {
+        const result: vscode.Disposable[] = [];
+
+        result.push(
+            vscode.commands.registerCommand(
+                `${this.treeViewId}.startTestRun`,
+                (item: BrunoTreeItem) => {
+                    startTestRunEmitter.fire({
+                        uri: vscode.Uri.file(item.getPath()),
+                        withDialog: false,
+                    });
+                },
+            ),
+        );
+
+        result.push(
+            vscode.commands.registerCommand(
+                `${this.treeViewId}.openDialogForTestRun`,
+                (item: BrunoTreeItem) => {
+                    startTestRunEmitter.fire({
+                        uri: vscode.Uri.file(item.getPath()),
+                        withDialog: true,
+                    });
+                },
+            ),
+        );
+
+        return result;
+    }
+
+    private registerCommandForEnvironmentSelection() {
+        return vscode.commands.registerCommand(
             `${this.treeViewId}.selectEnvironmentForCollection`,
             async (itemPath: string) => {
                 const collection =
@@ -789,11 +936,95 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         }
     }
 
+    private async pasteFile(
+        sourceItem: CollectionItem,
+        targetPath: string,
+        insertionPosition: FileInsertionPosition,
+        newContent?: string,
+    ) {
+        const targetCollection =
+            this.itemProvider.getAncestorCollectionForPath(targetPath);
+
+        if (!targetCollection) {
+            return false;
+        }
+
+        this.multiFileOperationNotifier.fire({
+            parentFolder: dirname(targetPath),
+            running: true,
+        });
+        const wasSuccessful = await handleFileInsertion(
+            sourceItem,
+            { newPath: targetPath, insertionPosition },
+            this.itemProvider,
+            newContent,
+        );
+        this.multiFileOperationNotifier.fire({
+            parentFolder: dirname(targetPath),
+            running: false,
+        });
+
+        if (wasSuccessful) {
+            // After the new file has been registered in the cache, the explorer should be able to reveal it when opened in the editor.
+            await this.cacheSyncingHelper.waitForFileToBeRegisteredInCache(
+                targetCollection.getRootDirectory(),
+                targetPath,
+            );
+            await this.openFile(targetPath);
+        }
+
+        return wasSuccessful;
+    }
+
+    private async requestConfirmationForOverwritingItemIfNeeded(
+        sourcePath: string,
+        newPath: string,
+        targetCollection?: TypedCollection,
+    ) {
+        if (
+            targetCollection &&
+            this.itemProvider.getRegisteredItem(targetCollection, newPath) &&
+            normalizePath(newPath) != normalizePath(sourcePath) // confirmation should not be required when moving a request within the same folder (e.g. to update the sequence)
+        ) {
+            const pickedOption = await vscode.window.showInformationMessage(
+                `An item with the path '${newPath}' already exists. Do you want to overwrite it?`,
+                { modal: true },
+                this.confirmationOptionForModals,
+            );
+
+            return pickedOption == this.confirmationOptionForModals;
+        }
+
+        return true;
+    }
+
+    private async writeFileAndOpenItOnSuccess(
+        filePath: string,
+        content: string,
+    ) {
+        const failed = await promisify(writeFile)(filePath, content).catch(
+            () => {
+                vscode.window.showErrorMessage(`An unexpected error occured.`);
+                return true;
+            },
+        );
+
+        if (!failed) {
+            await this.openFile(filePath);
+        }
+
+        return !failed;
+    }
+
     private openFile(path: string, viewColum?: vscode.ViewColumn) {
         return vscode.commands.executeCommand(
             "vscode.open",
             vscode.Uri.file(path),
             viewColum,
         );
+    }
+
+    private getContextKeyForPasteOption() {
+        return "BruAsCode.canPasteFile";
     }
 }
