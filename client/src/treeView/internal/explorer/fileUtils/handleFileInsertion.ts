@@ -5,6 +5,8 @@ import {
     doesFileNameMatchFolderSettingsFileName,
     getExtensionForBrunoFiles,
     isCollectionItemWithSequence,
+    isInFolderForEnvironmentFiles,
+    ItemType,
     normalizePath,
 } from "@global_shared";
 import { DialogOptionLabelEnum, TypedCollectionItemProvider } from "@shared";
@@ -29,61 +31,71 @@ export async function handleFileInsertion(
     const { newPath } = target;
     const itemType = sourceItem.getItemType();
 
-    if (
-        itemType != BrunoFileType.CollectionSettingsFile &&
-        itemType != BrunoFileType.FolderSettingsFile
-    ) {
-        const wasSuccessful = await insertFile(
-            sourceItem,
-            target,
-            itemProvider,
-            newContent,
-        );
+    const shouldContinue = await requestConfirmationIfNeeded(itemType, newPath);
 
+    if (!shouldContinue) {
+        return false;
+    }
+
+    const wasSuccessful = await insertFile(
+        sourceItem,
+        target,
+        itemProvider,
+        newContent,
+    );
+
+    if (itemType == BrunoFileType.RequestFile) {
         await replaceNameInMetaBlock(
             newPath,
             basename(newPath).replace(getExtensionForBrunoFiles(), ""),
         );
-        return wasSuccessful;
     }
 
-    if (itemType == BrunoFileType.CollectionSettingsFile) {
-        const shouldContinue =
-            doesFileNameMatchCollectionSettingsFile(newPath) ||
-            (await showWarningDialog(
-                "Insert collection settings file?",
-                `Only one collection settings file named 'collection${getExtensionForBrunoFiles()}' can be defined per collection.`,
-            ));
+    return wasSuccessful;
+}
 
-        if (shouldContinue) {
-            return await insertFile(
-                sourceItem,
-                target,
-                itemProvider,
-                newContent,
-            );
-        }
+async function requestConfirmationIfNeeded(
+    itemType: ItemType,
+    newPath: string,
+) {
+    if (itemType == BrunoFileType.EnvironmentFile) {
+        return (
+            isInFolderForEnvironmentFiles(newPath) ||
+            (await showWarningDialog(
+                "Insert environment file?",
+                `Environment files are only valid within the 'environments' folder.`,
+            ))
+        );
+    }
+
+    if (isInFolderForEnvironmentFiles(newPath)) {
+        return await showWarningDialog(
+            `Insert file of type '${itemType}'?`,
+            `In the 'environments' folder only environment files are valid.`,
+        );
     }
 
     if (itemType == BrunoFileType.FolderSettingsFile) {
-        const shouldContinue =
+        return (
             doesFileNameMatchFolderSettingsFileName(newPath) ||
             (await showWarningDialog(
                 "Insert folder settings file?",
                 `Only one folder settings file named 'folder${getExtensionForBrunoFiles()}' can be defined per folder.`,
-            ));
-
-        if (shouldContinue) {
-            return await insertFile(
-                sourceItem,
-                target,
-                itemProvider,
-                newContent,
-            );
-        }
+            ))
+        );
     }
 
-    return false;
+    if (itemType == BrunoFileType.CollectionSettingsFile) {
+        return (
+            doesFileNameMatchCollectionSettingsFile(newPath) ||
+            (await showWarningDialog(
+                "Insert collection settings file?",
+                `Only one collection settings file named 'collection${getExtensionForBrunoFiles()}' can be defined per collection.`,
+            ))
+        );
+    }
+
+    return true;
 }
 
 async function insertFile(
