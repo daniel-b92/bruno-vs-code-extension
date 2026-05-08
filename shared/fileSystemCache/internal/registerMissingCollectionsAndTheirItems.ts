@@ -36,55 +36,20 @@ export async function registerMissingCollectionsAndTheirItems<T>(
         )}`,
     );
 
-    for (const collection of allCollections) {
-        const collectionRootDir = collection.getRootDirectory();
+    const toAwait = allCollections.map((collection) =>
+        getDescendants(collection.getRootDirectory()).then((descendants) => {
+            if (descendants != undefined) {
+                return registerItems(
+                    collection,
+                    filePathsToIgnore,
+                    additionalDataProvider,
+                    descendants,
+                );
+            }
+        }),
+    );
 
-        const topLevelItems = await promisify(readdir)(collectionRootDir, {
-            withFileTypes: true,
-        }).catch(() => undefined);
-
-        if (topLevelItems === undefined) {
-            return;
-        }
-
-        const topLevelDirectories = topLevelItems.filter((item) =>
-            item.isDirectory(),
-        );
-        // Some files from external packages are neither seen as files nor directories. We don't want to have to deal with these.
-        const relevantItems = topLevelDirectories.concat(
-            topLevelItems.filter((item) => item.isFile()),
-        );
-
-        for (const topLevelItem of relevantItems) {
-            await registerItems(
-                collection,
-                filePathsToIgnore,
-                additionalDataProvider,
-                [resolve(collectionRootDir, topLevelItem.name)],
-            );
-        }
-
-        const toAwait: Promise<void>[] = [];
-
-        for (const folderPath of topLevelDirectories.map((dir) =>
-            resolve(collectionRootDir, dir.name),
-        )) {
-            toAwait.push(
-                getDescendants(folderPath).then((descendants) => {
-                    if (descendants != undefined) {
-                        return registerItems(
-                            collection,
-                            filePathsToIgnore,
-                            additionalDataProvider,
-                            descendants,
-                        );
-                    }
-                }),
-            );
-        }
-
-        await Promise.all(toAwait);
-    }
+    await Promise.all(toAwait);
 }
 
 async function getDescendants(directory: string) {
