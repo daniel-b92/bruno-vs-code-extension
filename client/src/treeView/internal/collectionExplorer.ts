@@ -726,18 +726,23 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         return;
                     }
 
-                    const item = dataWithCollection.data.item;
+                    const sourceItem = dataWithCollection.data.item;
+                    const baseItemForCopying:
+                        | CollectionItem
+                        | CollectionItemWithSequence = {
+                        getItemType: () => sourceItem.getItemType(),
+                        getPath: () => sourceItem.getPath(),
+                        isFile: () => sourceItem.isFile(),
+                    };
 
                     this.fileToCopy = {
                         content,
-                        item: {
-                            getItemType: () => item.getItemType(),
-                            getPath: () => item.getPath(),
-                            isFile: () => item.isFile(),
-                            getSequence: isCollectionItemWithSequence(item)
-                                ? () => item.getSequence()
-                                : undefined,
-                        },
+                        item: isCollectionItemWithSequence(sourceItem)
+                            ? {
+                                  ...baseItemForCopying,
+                                  getSequence: () => sourceItem.getSequence(),
+                              }
+                            : { ...baseItemForCopying },
                     };
 
                     await vscode.commands.executeCommand(

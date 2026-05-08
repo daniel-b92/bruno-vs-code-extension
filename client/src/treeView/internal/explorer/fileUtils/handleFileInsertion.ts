@@ -65,7 +65,7 @@ export async function handleFileInsertion(
         }
     }
 
-    if (itemType == BrunoFileType.CollectionSettingsFile) {
+    if (itemType == BrunoFileType.FolderSettingsFile) {
         const shouldContinue =
             doesFileNameMatchFolderSettingsFileName(newPath) ||
             (await showWarningDialog(
