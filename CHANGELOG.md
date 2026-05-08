@@ -10,6 +10,7 @@
 - Improve handling for duplicating files via collection explorer:
     - Open the duplicated file after the process is completed.
     - For a request file, the duplicated request will be inserted directly after the source file.
+- Update all npm package versions in order to fix some vulnerabilities
 
 ## [1.0.3] (2026-04-27)
 
