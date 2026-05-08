@@ -10,6 +10,8 @@ import {
     isBrunoFileType,
     getConfiguredEnvironmentName,
     CollectionItem,
+    CollectionItemWithSequence,
+    isCollectionItemWithSequence,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
@@ -121,7 +123,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
 
     private disposables: vscode.Disposable[] = [];
     private fileToCopy:
-        | { collectionData: TypedCollectionData; content: string }
+        | { item: CollectionItem | CollectionItemWithSequence; content: string }
         | undefined = undefined;
     private confirmationOptionForModals = DialogOptionLabelEnum.Confirm;
 
@@ -700,15 +702,15 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         result.push(
             vscode.commands.registerCommand(
                 `${this.treeViewId}.copyFile`,
-                async (item: BrunoTreeItem) => {
+                async (treeItem: BrunoTreeItem) => {
                     const content = await promisify(readFile)(
-                        item.getPath(),
+                        treeItem.getPath(),
                         "utf-8",
                     ).catch(() => undefined);
 
                     const dataWithCollection =
                         this.itemProvider.getRegisteredItemAndCollection(
-                            item.getPath(),
+                            treeItem.getPath(),
                         );
 
                     if (!content) {
@@ -724,9 +726,18 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         return;
                     }
 
+                    const item = dataWithCollection.data.item;
+
                     this.fileToCopy = {
                         content,
-                        collectionData: dataWithCollection.data,
+                        item: {
+                            getItemType: () => item.getItemType(),
+                            getPath: () => item.getPath(),
+                            isFile: () => item.isFile(),
+                            getSequence: isCollectionItemWithSequence(item)
+                                ? () => item.getSequence()
+                                : undefined,
+                        },
                     };
 
                     await vscode.commands.executeCommand(
@@ -757,9 +768,8 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         return;
                     }
 
-                    const {
-                        collectionData: { item: sourceItem },
-                    } = this.fileToCopy;
+                    const { item: sourceItem, content: newContent } =
+                        this.fileToCopy;
                     const targetFolder = targetItem.isFile
                         ? dirname(targetItem.getPath())
                         : targetItem.getPath();
@@ -787,6 +797,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                                   type: RequestFileInsertionPositionType.AfterFile,
                               }
                             : RequestFileInsertionPositionType.Folder,
+                        newContent,
                     );
                     if (wasSuccessful) {
                         this.fileToCopy = undefined;
@@ -924,6 +935,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         sourceItem: CollectionItem,
         targetPath: string,
         insertionPosition: FileInsertionPosition,
+        newContent?: string,
     ) {
         const targetCollection =
             this.itemProvider.getAncestorCollectionForPath(targetPath);
@@ -940,6 +952,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             sourceItem,
             { newPath: targetPath, insertionPosition },
             this.itemProvider,
+            newContent,
         );
         this.multiFileOperationNotifier.fire({
             parentFolder: dirname(targetPath),

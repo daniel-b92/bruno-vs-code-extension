@@ -15,6 +15,7 @@ import { replaceNameInMetaBlock } from "./replaceNameInMetaBlock";
 import { window } from "vscode";
 import { updateSequencesAfterInsertingRequestFile } from "./updateSequencesAfterInsertingRequestFile";
 import { FileInsertionPosition } from "./interfaces";
+import { writeFile } from "fs/promises";
 
 export async function handleFileInsertion(
     sourceItem: CollectionItem,
@@ -23,6 +24,7 @@ export async function handleFileInsertion(
         newPath: string;
     },
     itemProvider: TypedCollectionItemProvider,
+    newContent?: string,
 ) {
     const { newPath } = target;
     const itemType = sourceItem.getItemType();
@@ -35,6 +37,7 @@ export async function handleFileInsertion(
             sourceItem,
             target,
             itemProvider,
+            newContent,
         );
 
         await replaceNameInMetaBlock(
@@ -53,7 +56,12 @@ export async function handleFileInsertion(
             ));
 
         if (shouldContinue) {
-            return await insertFile(sourceItem, target, itemProvider);
+            return await insertFile(
+                sourceItem,
+                target,
+                itemProvider,
+                newContent,
+            );
         }
     }
 
@@ -66,7 +74,12 @@ export async function handleFileInsertion(
             ));
 
         if (shouldContinue) {
-            return await insertFile(sourceItem, target, itemProvider);
+            return await insertFile(
+                sourceItem,
+                target,
+                itemProvider,
+                newContent,
+            );
         }
     }
 
@@ -80,14 +93,26 @@ async function insertFile(
         newPath: string;
     },
     itemProvider: TypedCollectionItemProvider,
+    newContent?: string,
 ) {
     const { newPath, insertionPosition } = target;
 
     if (
-        await promisify(copyFile)(sourceItem.getPath(), newPath).catch(() => {
+        newContent === undefined &&
+        (await promisify(copyFile)(sourceItem.getPath(), newPath).catch(() => {
             window.showErrorMessage(`An unexpected error occured.`);
             return true;
-        })
+        }))
+    ) {
+        return false;
+    }
+
+    if (
+        newContent !== undefined &&
+        (await writeFile(newPath, newContent).catch(() => {
+            window.showErrorMessage(`An unexpected error occured.`);
+            return true;
+        }))
     ) {
         return false;
     }
