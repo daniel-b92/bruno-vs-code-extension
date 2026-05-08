@@ -713,7 +713,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                             treeItem.getPath(),
                         );
 
-                    if (!content) {
+                    if (content === undefined) {
                         vscode.window.showErrorMessage(
                             `An unexpected error occured while trying to read the file.`,
                         );
