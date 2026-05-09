@@ -64,7 +64,7 @@ export async function activate(context: ExtensionContext) {
         ),
     );
 
-    window.withProgress(
+    await window.withProgress(
         {
             location: ProgressLocation.Window,
             title: "Starting bru-as-code extension...",
