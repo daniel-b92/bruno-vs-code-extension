@@ -45,8 +45,10 @@ let client: LanguageClient;
 
 export async function activate(context: ExtensionContext) {
     client = createLanguagClient(context);
+
+    const toAwait: Thenable<void>[] = [];
     // Start the client. This will also launch the server
-    const toAwait = client.start();
+    toAwait.push(client.start());
 
     const {
         collectionItemProvider,
@@ -64,53 +66,56 @@ export async function activate(context: ExtensionContext) {
         ),
     );
 
-    await window.withProgress(
-        {
-            location: ProgressLocation.Window,
-            title: "Starting bru-as-code extension...",
-        },
-        () => {
-            return new Promise<void>((resolve) => {
-                collectionItemProvider
-                    .refreshCache(
-                        workspace.workspaceFolders?.map((f) => f.uri.fsPath) ??
-                            [],
-                    )
-                    .then(() => {
-                        activateRunner(
-                            context,
-                            ctrl,
-                            collectionItemProvider,
-                            startTestRunEmitter.event,
-                        ).then(() => {
-                            activateTreeView(
+    toAwait.push(
+        window.withProgress(
+            {
+                location: ProgressLocation.Window,
+                title: "Starting bru-as-code extension...",
+            },
+            () => {
+                return new Promise<void>((resolve) => {
+                    collectionItemProvider
+                        .refreshCache(
+                            workspace.workspaceFolders?.map(
+                                (f) => f.uri.fsPath,
+                            ) ?? [],
+                        )
+                        .then(() => {
+                            activateRunner(
                                 context,
+                                ctrl,
                                 collectionItemProvider,
-                                cacheSyncingHelper,
-                                startTestRunEmitter,
-                                multiFileOperationNotifier,
-                            );
-
-                            activateLanguageFeatures(
-                                context,
-                                collectionWatcher,
-                                collectionItemProvider,
-                                cacheSyncingHelper,
                                 startTestRunEmitter.event,
                             ).then(() => {
-                                resolve();
-
-                                suggestCreatingTsConfigsForCollections(
+                                activateTreeView(
+                                    context,
                                     collectionItemProvider,
+                                    cacheSyncingHelper,
+                                    startTestRunEmitter,
+                                    multiFileOperationNotifier,
                                 );
+
+                                activateLanguageFeatures(
+                                    context,
+                                    collectionWatcher,
+                                    collectionItemProvider,
+                                    cacheSyncingHelper,
+                                    startTestRunEmitter.event,
+                                ).then(() => {
+                                    resolve();
+
+                                    suggestCreatingTsConfigsForCollections(
+                                        collectionItemProvider,
+                                    );
+                                });
                             });
                         });
-                    });
-            });
-        },
+                });
+            },
+        ),
     );
 
-    await toAwait;
+    await Promise.all(toAwait);
 }
 
 export function deactivate() {
