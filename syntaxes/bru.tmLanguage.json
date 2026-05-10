@@ -165,7 +165,7 @@
                     "name": "comment.block.bru"
                 },
                 {
-                    "match": "^\\s*([^\\s~][^\\:]+)[\\:]\\s*([^\\[ ]+)\\s*$",
+                    "match": "^\\s*([^\\s~][^\\:]+)[\\:]\\s*(.*[^\\[ ]+)\\s*$",
                     "captures": {
                         "1": {
                             "name": "entity.name.tag.bru"
