@@ -13,6 +13,7 @@
 - Update all npm package versions in order to fix some vulnerabilities
 - Speed up extension activation by awaiting cache refresh and necessary initializations in `activate` function.
 - Fix syntax highlighting for dictionary block fields with array values or whitespaces.
+- Fix parsing of dictionary block simple fields with values containing whitespaces and/or brackets.
 
 ## [1.0.3] (2026-04-27)
 
