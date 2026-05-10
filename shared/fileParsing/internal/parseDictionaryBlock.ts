@@ -244,5 +244,5 @@ function getKeyAndValueFromLine(
 }
 
 function getKeyValuePairLinePattern() {
-    return /^\s*(\S+)\s*:\s*(\S+.*?|.{0})\s*$/;
+    return /^\s*([^:]+)\s*:\s*(\S+.*?|.{0})\s*$/;
 }
