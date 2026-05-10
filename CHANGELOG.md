@@ -12,6 +12,7 @@
     - For a request file, the duplicated request will be inserted directly after the source file.
 - Update all npm package versions in order to fix some vulnerabilities
 - Speed up extension activation by awaiting cache refresh and necessary initializations in `activate` function.
+- Fix syntax highlighting for dictionary block fields with array values or whitespaces.
 
 ## [1.0.3] (2026-04-27)
 

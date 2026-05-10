@@ -15,7 +15,7 @@ get {
 }
 
 auth:basic {
-  username: a
+  username: ["v1", "v2"]
   password: b
 }
 
@@ -24,6 +24,10 @@ body:json {
     "test{{exe}}": 3,
     "value{{third}}:...Test": "{{other}}"
   }
+}
+
+assert {
+  res.headers[abc defsd]: eq sdsds
 }
 
 tests {
