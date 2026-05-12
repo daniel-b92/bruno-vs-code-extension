@@ -24,13 +24,12 @@ export async function getAllCollectionRootDirectories(
     for (const maybeCollectionRoot of maybeFilesInCollectionRootDirs.map(
         (path) => dirname(path),
     )) {
-        const additionalContextRoots =
-            await getCollectionRootData(maybeCollectionRoot);
+        const rootData = await getCollectionRootData(maybeCollectionRoot);
 
-        if (additionalContextRoots) {
+        if (rootData) {
             result.push({
                 rootFolder: maybeCollectionRoot,
-                additionalContextRoots,
+                ...rootData,
             });
         }
     }
@@ -38,7 +37,9 @@ export async function getAllCollectionRootDirectories(
     return result;
 }
 
-async function getCollectionRootData(path: string) {
+async function getCollectionRootData(
+    path: string,
+): Promise<{ additionalContextRoots?: string[] } | undefined> {
     const isDirectory = await promisify(lstat)(path)
         .then((stats) => stats.isDirectory())
         .catch(() => undefined);
@@ -53,7 +54,10 @@ async function getCollectionRootData(path: string) {
 
     const testfileDescendants = await getTestFileDescendants(path);
     return testfileDescendants.length > 0
-        ? await getAdditionalContextRoots(brunoJsonFilePath)
+        ? {
+              additionalContextRoots:
+                  await getAdditionalContextRoots(brunoJsonFilePath),
+          }
         : undefined;
 }
 
