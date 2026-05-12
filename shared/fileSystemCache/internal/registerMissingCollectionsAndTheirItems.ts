@@ -90,42 +90,48 @@ async function registerAllExistingCollections<T>(
     workspaceFolders: string[],
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
 ) {
-    const rootFolders = await getAllCollectionRootDirectories(workspaceFolders);
+    const rootFoldersWithData =
+        await getAllCollectionRootDirectories(workspaceFolders);
 
     return (
         await Promise.all(
-            rootFolders.map(async (rootDirectory) => {
-                const normalizedRootDir = normalizePath(rootDirectory);
-                const rootFolderItem = await createCollectionDirectoryInstance(
-                    normalizedRootDir,
-                    await getFolderSettingsFilePath(true, rootDirectory),
-                );
+            rootFoldersWithData.map(
+                async ({ rootFolder, additionalContextRoots }) => {
+                    const normalizedRootDir = normalizePath(rootFolder);
+                    const rootFolderItem =
+                        await createCollectionDirectoryInstance(
+                            normalizedRootDir,
+                            await getFolderSettingsFilePath(true, rootFolder),
+                        );
 
-                const collection = rootFolderItem
-                    ? await createCollectionInstance(
-                          rootFolderItem,
-                          additionalDataProvider,
-                      )
-                    : undefined;
+                    const collection = rootFolderItem
+                        ? await createCollectionInstance(
+                              rootFolderItem,
+                              additionalDataProvider,
+                              additionalContextRoots,
+                          )
+                        : undefined;
 
-                if (!collection) {
-                    return undefined;
-                }
+                    if (!collection) {
+                        return undefined;
+                    }
 
-                if (
-                    !registry
-                        .getRegisteredCollections()
-                        .some(
-                            (registered) =>
-                                normalizePath(registered.getRootDirectory()) ==
-                                normalizedRootDir,
-                        )
-                ) {
-                    registry.registerCollection(collection);
-                }
+                    if (
+                        !registry
+                            .getRegisteredCollections()
+                            .some(
+                                (registered) =>
+                                    normalizePath(
+                                        registered.getRootDirectory(),
+                                    ) == normalizedRootDir,
+                            )
+                    ) {
+                        registry.registerCollection(collection);
+                    }
 
-                return collection;
-            }),
+                    return collection;
+                },
+            ),
         )
     ).filter((val) => val != undefined);
 }
@@ -139,6 +145,7 @@ function shouldPathBeIgnored(filePathsToIgnore: RegExp[], path: string) {
 async function createCollectionInstance<T>(
     rootFolderItem: CollectionDirectory,
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
+    additionalContextRoots?: string[],
 ) {
     const additionalData = await getAdditionalCollectionData(
         rootFolderItem,
@@ -146,5 +153,9 @@ async function createCollectionInstance<T>(
         true,
     );
 
-    return new Collection(rootFolderItem, additionalData);
+    return new Collection(
+        rootFolderItem,
+        additionalData,
+        additionalContextRoots ?? [],
+    );
 }

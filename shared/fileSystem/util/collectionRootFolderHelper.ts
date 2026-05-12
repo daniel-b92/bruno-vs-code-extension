@@ -1,7 +1,7 @@
-import { basename, dirname } from "path";
+import { basename, dirname, resolve } from "path";
 import { convertToGlobPattern, getTestFileDescendants } from "../..";
 import { promisify } from "util";
-import { lstat, readdir } from "fs";
+import { lstat, readdir, readFile } from "fs";
 import { glob } from "glob";
 
 export async function getAllCollectionRootDirectories(
@@ -18,40 +18,88 @@ export async function getAllCollectionRootDirectories(
             ),
         )
     ).flat();
-    const result: string[] = [];
+    const result: { rootFolder: string; additionalContextRoots?: string[] }[] =
+        [];
 
     for (const maybeCollectionRoot of maybeFilesInCollectionRootDirs.map(
         (path) => dirname(path),
     )) {
-        const isCollectionRoot = await isCollectionRootDir(maybeCollectionRoot);
-        if (isCollectionRoot) {
-            result.push(maybeCollectionRoot);
+        const additionalContextRoots =
+            await getCollectionRootData(maybeCollectionRoot);
+
+        if (additionalContextRoots) {
+            result.push({
+                rootFolder: maybeCollectionRoot,
+                additionalContextRoots,
+            });
         }
     }
 
     return result;
 }
 
-async function isCollectionRootDir(path: string) {
+async function getCollectionRootData(path: string) {
     const isDirectory = await promisify(lstat)(path)
         .then((stats) => stats.isDirectory())
         .catch(() => undefined);
 
-    if (isDirectory === undefined) {
-        return false;
-    }
-    const containsBrunoJsonFile =
-        isDirectory &&
-        (await promisify(readdir)(path)
-            .then((itemNames) =>
-                itemNames.some((file) => basename(file) == "bruno.json"),
-            )
-            .catch(() => false));
+    const brunoJsonFilePath = isDirectory
+        ? await getBrunoJsonFilePath(path)
+        : undefined;
 
-    if (!containsBrunoJsonFile) {
-        return false;
+    if (!brunoJsonFilePath) {
+        return undefined;
     }
 
     const testfileDescendants = await getTestFileDescendants(path);
-    return testfileDescendants.length > 0;
+    return testfileDescendants.length > 0
+        ? await getAdditionalContextRoots(brunoJsonFilePath)
+        : undefined;
+}
+
+async function getBrunoJsonFilePath(maybeCollectionRoot: string) {
+    const allItems = await promisify(readdir)(maybeCollectionRoot, {
+        withFileTypes: true,
+    }).catch(() => undefined);
+
+    const matchingFile = allItems?.find(
+        (item) => item.isFile() && basename(item.name) == "bruno.json",
+    );
+
+    return matchingFile
+        ? resolve(matchingFile.parentPath, matchingFile.name)
+        : undefined;
+}
+
+async function getAdditionalContextRoots(brunoJsonFilePath: string) {
+    const fileContent = await promisify(readFile)(brunoJsonFilePath, {
+        encoding: "utf-8",
+    }).catch(() => undefined);
+
+    if (fileContent === undefined) {
+        return undefined;
+    }
+
+    try {
+        const parsed = JSON.parse(fileContent) as unknown;
+
+        if (
+            typeof parsed == "object" &&
+            parsed != null &&
+            "scripts" in parsed &&
+            typeof parsed.scripts == "object" &&
+            parsed.scripts != null &&
+            "additionalContextRoots" in parsed.scripts
+        ) {
+            const { additionalContextRoots } = parsed.scripts;
+            return Array.isArray(additionalContextRoots) &&
+                additionalContextRoots.every((item) => typeof item == "string")
+                ? additionalContextRoots.map((root) =>
+                      resolve(dirname(brunoJsonFilePath), root),
+                  )
+                : undefined;
+        }
+    } catch {
+        return undefined;
+    }
 }
