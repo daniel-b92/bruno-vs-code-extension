@@ -6,7 +6,8 @@
         "strict": true,
         "checkJs": true,
         "noEmit": true,
-        "allowJs": true,
+        "allowJs": true
     },
-    "exclude": ["node_modules"]
+    "exclude": ["node_modules"],
+    "include": ["**/*", "../sharedScripts/**/*"]
 }
