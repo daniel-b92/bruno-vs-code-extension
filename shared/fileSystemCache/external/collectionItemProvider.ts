@@ -189,6 +189,26 @@ export class CollectionItemProvider<T> {
         );
     }
 
+    public getAdditionalContextRootContainingItem(itemPath: string) {
+        let matchingContextRoot: string | undefined = undefined;
+
+        const collection = this.getRegisteredCollections().find(
+            (collection) => {
+                matchingContextRoot = collection
+                    .getAdditionalContextRoots()
+                    .find((root) => normalizePath(itemPath).startsWith(root));
+
+                if (matchingContextRoot !== undefined) {
+                    return true;
+                }
+            },
+        );
+
+        return collection && matchingContextRoot
+            ? { collection, matchingContextRoot: matchingContextRoot as string }
+            : undefined;
+    }
+
     public async refreshCache(workSpaceFolders: string[]) {
         if (this.cacheRefreshNotifier) {
             this.cacheRefreshNotifier.post();

@@ -62,7 +62,10 @@ export async function activateLanguageFeatures(
     await tempJsFilesProvider.refreshCache(
         collectionItemProvider
             .getRegisteredCollections()
-            .map((collection) => collection.getRootDirectory()),
+            .flatMap((collection) => [
+                collection.getRootDirectory(),
+                ...collection.getAdditionalContextRoots(),
+            ]),
     );
 
     context.subscriptions.push(
@@ -315,25 +318,17 @@ async function handleOpeningOfJsDocument(
     document: TextDocument,
 ) {
     const path = document.fileName;
+    const folderForTempJsFile = getFolderForTempJsFile(itemProvider, path);
 
-    if (
-        path.includes(getTemporaryJsFileBasename()) ||
-        !isJsFileFromBrunoCollection(itemProvider, path)
-    ) {
+    if (path.includes(getTemporaryJsFileBasename()) || !folderForTempJsFile) {
         await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
         return;
     }
 
-    const collectionRootFolder = (
-        itemProvider.getAncestorCollectionForPath(
-            document.fileName,
-        ) as TypedCollection
-    ).getRootDirectory();
-
     await queue.addToQueue({
         update: {
             type: TempJsUpdateType.Creation,
-            filePath: getTemporaryJsFileNameInFolder(collectionRootFolder),
+            filePath: getTemporaryJsFileNameInFolder(folderForTempJsFile),
             tempJsFileContent: getDefinitionsForInbuiltLibraries(
                 document.eol,
                 true,
@@ -405,13 +400,20 @@ async function getBrunoFileTypeIfExists(
     return itemType && isBrunoFileType(itemType) ? itemType : undefined;
 }
 
-function isJsFileFromBrunoCollection(
+function getFolderForTempJsFile(
     itemProvider: TypedCollectionItemProvider,
-    fileName: string,
+    jsFileName: string,
 ) {
+    if (extname(jsFileName) != getExtensionForTempJsFiles()) {
+        return undefined;
+    }
+
     return (
-        extname(fileName) == getExtensionForTempJsFiles() &&
-        itemProvider.getAncestorCollectionForPath(fileName) != undefined
+        itemProvider
+            .getAncestorCollectionForPath(jsFileName)
+            ?.getRootDirectory() ??
+        itemProvider.getAdditionalContextRootContainingItem(jsFileName)
+            ?.matchingContextRoot
     );
 }
 
