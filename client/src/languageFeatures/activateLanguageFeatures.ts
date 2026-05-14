@@ -28,6 +28,7 @@ import {
     BrunoFileType,
     isBrunoFileType,
     getItemType,
+    normalizePath,
 } from "@global_shared";
 import { provideTsLangCompletionItems } from "./internal/brunoFiles/completionItems/provideTsLangCompletionItems";
 import { provideInfosOnHover as provideInfosOnHoverForBruFiles } from "./internal/brunoFiles/hover/provideInfosOnHover";
@@ -128,7 +129,11 @@ async function onDidChangeActiveTextEditor(
             TabInputText
         )
     ) {
-        await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
+        await deleteNonMandatoryTempJsFiles(
+            queue,
+            itemProvider,
+            tempJsFilesProvider,
+        );
     } else if (
         editor &&
         editor.document.uri.toString() ==
@@ -152,7 +157,11 @@ async function onDidChangeActiveTextEditor(
                 editor.document,
             );
         } else {
-            await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
+            await deleteNonMandatoryTempJsFiles(
+                queue,
+                itemProvider,
+                tempJsFilesProvider,
+            );
         }
     }
 }
@@ -240,7 +249,11 @@ async function handleOpeningOfBruDocument(
         window.showWarningMessage(
             "'bru' file seems to not be part of a valid collection. Therefore, intellisense will be limited.",
         );
-        await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
+        await deleteNonMandatoryTempJsFiles(
+            queue,
+            itemProvider,
+            tempJsFilesProvider,
+        );
         return;
     }
 
@@ -257,7 +270,11 @@ async function handleOpeningOfBruDocument(
     }
 
     if (!brunoFileType) {
-        await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
+        await deleteNonMandatoryTempJsFiles(
+            queue,
+            itemProvider,
+            tempJsFilesProvider,
+        );
         return;
     }
 
@@ -285,7 +302,11 @@ async function handleOpeningOfBruDocument(
     }
 
     if (!getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType)) {
-        await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
+        await deleteNonMandatoryTempJsFiles(
+            queue,
+            itemProvider,
+            tempJsFilesProvider,
+        );
         return;
     }
 
@@ -316,7 +337,11 @@ async function handleOpeningOfJsDocument(
     const folderForTempJsFile = getFolderForTempJsFile(itemProvider, path);
 
     if (path.includes(getTemporaryJsFileBasename()) || !folderForTempJsFile) {
-        await deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
+        await deleteNonMandatoryTempJsFiles(
+            queue,
+            itemProvider,
+            tempJsFilesProvider,
+        );
         return;
     }
 
@@ -348,16 +373,33 @@ async function onWillSaveBruDocument(
         getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType) &&
         itemProvider.getAncestorCollectionForPath(document.fileName)
     ) {
-        deleteAllTemporaryJsFiles(queue, tempJsFilesProvider);
+        deleteNonMandatoryTempJsFiles(queue, itemProvider, tempJsFilesProvider);
     }
 }
 
-async function deleteAllTemporaryJsFiles(
+async function deleteNonMandatoryTempJsFiles(
     updateQueue: TempJsFileUpdateQueue,
+    itemProvider: TypedCollectionItemProvider,
     tempJsFilesProvider: TempJsFilesProvider,
 ) {
+    const additionalContextRoots =
+        itemProvider.getUniqueAdditionalContextRoots();
+
+    // Deleting temp JS files from additionalContextRoots folders should be avoided because the TS plugin currently only supresses
+    // diagnostics for inbuilt runtime functions defined for JS files within collections.
+    const nonMandatoryTempJsFiles = tempJsFilesProvider
+        .getRegisteredFiles()
+        .filter(
+            (file) =>
+                itemProvider.getAncestorCollectionForPath(file) != undefined ||
+                additionalContextRoots.every(
+                    (root) =>
+                        !normalizePath(file).startsWith(normalizePath(root)),
+                ),
+        );
+
     const existingFiles = await filterAsync(
-        tempJsFilesProvider.getRegisteredFiles(),
+        nonMandatoryTempJsFiles,
         async (filePath) => await checkIfPathExistsAsync(filePath),
     );
 
@@ -416,11 +458,12 @@ function getUniqueParentFoldersForTempJsFiles(
     itemProvider: TypedCollectionItemProvider,
 ) {
     return itemProvider
-        .getRegisteredCollections()
-        .flatMap((collection) => [
-            collection.getRootDirectory(),
-            ...collection.getAdditionalContextRoots(),
-        ])
+        .getUniqueAdditionalContextRoots()
+        .concat(
+            itemProvider
+                .getRegisteredCollections()
+                .map((collection) => collection.getRootDirectory()),
+        )
         .filter((path, index, array) => array.indexOf(path) === index);
 }
 

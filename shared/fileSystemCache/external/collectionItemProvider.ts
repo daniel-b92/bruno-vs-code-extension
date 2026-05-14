@@ -209,6 +209,12 @@ export class CollectionItemProvider<T> {
             : undefined;
     }
 
+    public getUniqueAdditionalContextRoots() {
+        return this.getRegisteredCollections()
+            .flatMap((collection) => collection.getAdditionalContextRoots())
+            .filter((path, index, array) => array.indexOf(path) === index);
+    }
+
     public async refreshCache(workSpaceFolders: string[]) {
         if (this.cacheRefreshNotifier) {
             this.cacheRefreshNotifier.post();
