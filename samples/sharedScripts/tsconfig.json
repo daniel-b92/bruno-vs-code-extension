@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es2025",
+        "lib": ["ES2025"],
+        "strict": true,
+        "checkJs": true,
+        "noEmit": true,
+        "allowJs": true
+    },
+    "exclude": ["node_modules"]
+}
