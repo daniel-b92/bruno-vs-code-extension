@@ -385,13 +385,13 @@ async function deleteNonMandatoryTempJsFiles(
     const additionalContextRoots =
         itemProvider.getUniqueAdditionalContextRoots();
 
-    // Deleting temp JS files from additionalContextRoots folders should be avoided because the TS plugin currently only supresses
-    // diagnostics for inbuilt runtime functions defined for JS files within collections.
     const nonMandatoryTempJsFiles = tempJsFilesProvider
         .getRegisteredFiles()
         .filter(
             (file) =>
                 itemProvider.getAncestorCollectionForPath(file) != undefined ||
+                // Deleting temp JS files from additionalContextRoots folders should be avoided because the TS plugin currently only supresses
+                // diagnostics for inbuilt runtime functions defined for JS files within collections.
                 additionalContextRoots.every(
                     (root) =>
                         !normalizePath(file).startsWith(normalizePath(root)),
