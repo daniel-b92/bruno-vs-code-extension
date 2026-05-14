@@ -1,7 +1,11 @@
-import { basename, dirname, resolve } from "path";
-import { convertToGlobPattern, getTestFileDescendants } from "../..";
+import { dirname, resolve } from "path";
+import {
+    checkIfPathExistsAsync,
+    convertToGlobPattern,
+    getTestFileDescendants,
+} from "../..";
 import { promisify } from "util";
-import { lstat, readdir, readFile } from "fs";
+import { lstat, readFile } from "fs";
 import { glob } from "glob";
 
 export async function getAllCollectionRootDirectories(
@@ -37,7 +41,11 @@ export async function getAllCollectionRootDirectories(
     return result;
 }
 
-async function getCollectionRootData(
+export function getBrunoJsonFilePath(collectionRootFolder: string) {
+    return resolve(collectionRootFolder, "bruno.json");
+}
+
+export async function getCollectionRootData(
     path: string,
 ): Promise<{ additionalContextRoots?: string[] } | undefined> {
     const isDirectory = await promisify(lstat)(path)
@@ -45,7 +53,7 @@ async function getCollectionRootData(
         .catch(() => undefined);
 
     const brunoJsonFilePath = isDirectory
-        ? await getBrunoJsonFilePath(path)
+        ? await getBrunoJsonFilePathIfExists(path)
         : undefined;
 
     if (!brunoJsonFilePath) {
@@ -61,18 +69,16 @@ async function getCollectionRootData(
         : undefined;
 }
 
-async function getBrunoJsonFilePath(maybeCollectionRoot: string) {
-    const allItems = await promisify(readdir)(maybeCollectionRoot, {
-        withFileTypes: true,
-    }).catch(() => undefined);
+async function getBrunoJsonFilePathIfExists(maybeCollectionRoot: string) {
+    const brunoJsonFilePath = getBrunoJsonFilePath(maybeCollectionRoot);
+    const isExistingFile =
+        (await checkIfPathExistsAsync(brunoJsonFilePath)) &&
+        ((
+            await promisify(lstat)(brunoJsonFilePath).catch(() => undefined)
+        )?.isFile() ??
+            false);
 
-    const matchingFile = allItems?.find(
-        (item) => item.isFile() && basename(item.name) == "bruno.json",
-    );
-
-    return matchingFile
-        ? resolve(matchingFile.parentPath, matchingFile.name)
-        : undefined;
+    return isExistingFile ? brunoJsonFilePath : undefined;
 }
 
 async function getAdditionalContextRoots(brunoJsonFilePath: string) {
