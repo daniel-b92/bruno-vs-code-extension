@@ -60,12 +60,7 @@ export async function activateLanguageFeatures(
     );
 
     await tempJsFilesProvider.refreshCache(
-        collectionItemProvider
-            .getRegisteredCollections()
-            .flatMap((collection) => [
-                collection.getRootDirectory(),
-                ...collection.getAdditionalContextRoots(),
-            ]),
+        getUniqueParentFoldersForTempJsFiles(collectionItemProvider),
     );
 
     context.subscriptions.push(
@@ -415,6 +410,18 @@ function getFolderForTempJsFile(
         itemProvider.getAdditionalContextRootContainingItem(jsFileName)
             ?.matchingContextRoot
     );
+}
+
+function getUniqueParentFoldersForTempJsFiles(
+    itemProvider: TypedCollectionItemProvider,
+) {
+    return itemProvider
+        .getRegisteredCollections()
+        .flatMap((collection) => [
+            collection.getRootDirectory(),
+            ...collection.getAdditionalContextRoots(),
+        ])
+        .filter((path, index, array) => array.indexOf(path) === index);
 }
 
 function getExtensionForTempJsFiles() {
