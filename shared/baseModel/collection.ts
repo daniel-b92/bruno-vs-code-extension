@@ -13,6 +13,7 @@ export class Collection<T> {
     constructor(
         private rootFolderItem: CollectionDirectory,
         rootFolderAdditionalData: T,
+        private additionalContextRoots: string[],
     ) {
         this.testData.push({
             item: rootFolderItem,
@@ -58,6 +59,14 @@ export class Collection<T> {
                     getExtensionForBrunoFiles(),
                 ),
             }));
+    }
+
+    public getAdditionalContextRoots() {
+        return this.additionalContextRoots.slice();
+    }
+
+    public setAdditionalContextRoots(roots: string[]) {
+        this.additionalContextRoots = roots.slice();
     }
 
     public addItem(data: CollectionData<T>) {

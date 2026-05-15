@@ -12,6 +12,8 @@ import {
     Logger,
     AdditionalCollectionDataProvider,
     getFolderSettingsFilePath,
+    getBrunoJsonFilePath,
+    getCollectionRootData,
 } from "../..";
 import { basename, dirname } from "path";
 import { promisify } from "util";
@@ -62,7 +64,11 @@ export class CollectionItemProvider<T> {
                 }
 
                 if (
-                    registeredCollection.isRootDirectory(path) &&
+                    (registeredCollection.isRootDirectory(path) ||
+                        this.doesPathMatchBrunoJsonPath(
+                            registeredCollection,
+                            path,
+                        )) &&
                     fileChangeType == FileChangeType.Deleted &&
                     !this.shouldPathBeIgnored(path)
                 ) {
@@ -187,6 +193,34 @@ export class CollectionItemProvider<T> {
                 normalizePath(collection.getRootDirectory()),
             ),
         );
+    }
+
+    public getAdditionalContextRootContainingItem(itemPath: string) {
+        let matchingContextRoot: string | undefined = undefined;
+
+        const collection = this.getRegisteredCollections().find(
+            (collection) => {
+                matchingContextRoot = collection
+                    .getAdditionalContextRoots()
+                    .find((root) =>
+                        normalizePath(itemPath).startsWith(normalizePath(root)),
+                    );
+
+                if (matchingContextRoot !== undefined) {
+                    return true;
+                }
+            },
+        );
+
+        return collection && matchingContextRoot
+            ? { collection, matchingContextRoot: matchingContextRoot as string }
+            : undefined;
+    }
+
+    public getUniqueAdditionalContextRoots() {
+        return this.getRegisteredCollections()
+            .flatMap((collection) => collection.getAdditionalContextRoots())
+            .filter((path, index, array) => array.indexOf(path) === index);
     }
 
     public async refreshCache(workSpaceFolders: string[]) {
@@ -358,7 +392,7 @@ export class CollectionItemProvider<T> {
     }
 
     private async handleModificationOfRegisteredItem(
-        registeredCollectionForItem: Collection<T>,
+        collectionForItem: Collection<T>,
         collectionData: CollectionData<T>,
     ) {
         const { item: modifiedItem } = collectionData;
@@ -368,21 +402,36 @@ export class CollectionItemProvider<T> {
             return;
         }
 
+        if (this.doesPathMatchBrunoJsonPath(collectionForItem, itemPath)) {
+            const collectionRootData = await getCollectionRootData(
+                collectionForItem.getRootDirectory(),
+            );
+
+            if (collectionRootData) {
+                collectionForItem.setAdditionalContextRoots(
+                    collectionRootData.additionalContextRoots ?? [],
+                );
+            }
+
+            // Currently, changes to the additionalContextRoots is not relevant for any subscribers. Therefore, no notifications
+            // need to be sent.
+            return;
+        }
+
         if (
             modifiedItem.getItemType() == BrunoFileType.FolderSettingsFile ||
             modifiedItem.getItemType() == BrunoFileType.CollectionSettingsFile
         ) {
-            const parentFolderData =
-                registeredCollectionForItem.getStoredDataForPath(
-                    dirname(itemPath),
-                );
+            const parentFolderData = collectionForItem.getStoredDataForPath(
+                dirname(itemPath),
+            );
 
             if (
                 parentFolderData &&
                 isCollectionItemWithSequence(parentFolderData.item)
             ) {
                 await this.handleFolderSettingsUpdate(
-                    registeredCollectionForItem,
+                    collectionForItem,
                     parentFolderData,
                 );
             }
@@ -391,12 +440,10 @@ export class CollectionItemProvider<T> {
             (isCollectionItemWithSequence(modifiedItem) &&
                 modifiedItem.getItemType() == BrunoFileType.RequestFile)
         ) {
-            registeredCollectionForItem.removeTestItemAndDescendants(
-                modifiedItem,
-            );
+            collectionForItem.removeTestItemAndDescendants(modifiedItem);
 
             const newData = await addOrReplaceItemInCollection({
-                collection: registeredCollectionForItem,
+                collection: collectionForItem,
                 path: itemPath,
                 additionalDataProvider: this.additionalDataProvider,
             });
@@ -418,7 +465,7 @@ export class CollectionItemProvider<T> {
             );
 
             await this.handleOutboundNotification({
-                collection: registeredCollectionForItem,
+                collection: collectionForItem,
                 data: newData,
                 updateType: FileChangeType.Modified,
                 changedData:
@@ -521,6 +568,16 @@ export class CollectionItemProvider<T> {
     private shouldPathBeIgnored(path: string) {
         return this.filePathsToIgnore.some((patternToIgnore) =>
             path.match(patternToIgnore),
+        );
+    }
+
+    private doesPathMatchBrunoJsonPath(
+        collection: Collection<T>,
+        path: string,
+    ) {
+        return (
+            normalizePath(path) ==
+            normalizePath(getBrunoJsonFilePath(collection.getRootDirectory()))
         );
     }
 }

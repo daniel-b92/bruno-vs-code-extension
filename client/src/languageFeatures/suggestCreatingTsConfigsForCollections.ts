@@ -16,16 +16,35 @@ import {
 import {
     checkIfPathExistsAsync,
     filterAsync,
+    getTemporaryJsFileBasename,
     getTemporaryJsFileNameInFolder,
+    LineBreakType,
 } from "@global_shared";
+import { readdir } from "fs/promises";
+
+interface MissingTsConfigOccurences {
+    collectionsMissingInRootFolders: TypedCollection[];
+    additionalContextRoots: string[];
+}
 
 export async function suggestCreatingTsConfigsForCollections(
     itemProvider: TypedCollectionItemProvider,
 ) {
-    const collectionsMissingTsConfig =
+    if (
+        !workspace
+            .getConfiguration()
+            .get<boolean>(getSettingsKeyForShowingSuggestion(), false)
+    ) {
+        return;
+    }
+
+    const { collectionsMissingInRootFolders, additionalContextRoots } =
         await getCollectionsWithoutTsConfigs(itemProvider);
 
-    if (!collectionsMissingTsConfig || collectionsMissingTsConfig.length == 0) {
+    if (
+        collectionsMissingInRootFolders.length == 0 &&
+        additionalContextRoots.length == 0
+    ) {
         return;
     }
 
@@ -33,20 +52,23 @@ export async function suggestCreatingTsConfigsForCollections(
     const cancelOption = DialogOptionLabelEnum.Cancel;
     const doNotAskAgainOption = DialogOptionLabelEnum.DoNotAskAgain;
 
+    const areConfigsForBothSourcesMissing =
+        collectionsMissingInRootFolders.length > 0 &&
+        additionalContextRoots.length > 0;
+
     const pickedOption = await window.showInformationMessage<MessageItem>(
-        `It is recommended to add a 'tsconfig.json' in the root folder of every collection that contains JS files (to avoid errors for the Typescript language server).
+        `It's recommended to add a 'tsconfig.json' in the root folder of every collection and every 'additionalContextRoot' that contains JS files, in order for the language features to work properly.
 Add a default config for ${
-            collectionsMissingTsConfig.length == 1
-                ? `the collection '${basename(collectionsMissingTsConfig[0].getRootDirectory())}'?`
-                : `each of the following collections?
-${JSON.stringify(
-    collectionsMissingTsConfig.map((collection) =>
-        basename(collection.getRootDirectory()),
-    ),
-    null,
-    2,
-)}?`
-        }`,
+            collectionsMissingInRootFolders.length > 0
+                ? `collection root folder(s) ${formatPathsForDialog(collectionsMissingInRootFolders.map((collection) => collection.getRootDirectory()))}`
+                : ""
+        }`.concat(
+            areConfigsForBothSourcesMissing ? " and" : "",
+            additionalContextRoots.length > 0
+                ? ` additionalContextRoot(s) ${formatPathsForDialog(additionalContextRoots)}`
+                : "",
+            "?",
+        ),
         { title: confirmationOption },
         { title: cancelOption },
         { title: doNotAskAgainOption },
@@ -54,7 +76,8 @@ ${JSON.stringify(
 
     if (!pickedOption || pickedOption.title == cancelOption) {
         return;
-    } else if (pickedOption.title == doNotAskAgainOption) {
+    }
+    if (pickedOption.title == doNotAskAgainOption) {
         await workspace
             .getConfiguration()
             .update(
@@ -66,76 +89,104 @@ ${JSON.stringify(
         return;
     }
 
-    const results = await createTsConfigs(collectionsMissingTsConfig);
+    const results = await createTsConfigs({
+        collectionsMissingInRootFolders,
+        additionalContextRoots,
+    });
     window.showInformationMessage(
-        `Created a tsconfig for ${results.filter(({ success }) => success).length} / ${collectionsMissingTsConfig.length} collections.`,
+        `Created ${results.filter((success) => success).length} / ${collectionsMissingInRootFolders.length + additionalContextRoots.length} tsconfigs.`,
     );
 }
 
 async function getCollectionsWithoutTsConfigs(
     itemProvider: TypedCollectionItemProvider,
-): Promise<undefined | TypedCollection[]> {
-    if (
-        !workspace
-            .getConfiguration()
-            .get<boolean>(getSettingsKeyForShowingSuggestion(), false)
-    ) {
-        return undefined;
-    }
+): Promise<MissingTsConfigOccurences> {
+    const collectionsWithoutTsConfigInRootFolder = itemProvider
+        .getRegisteredCollections()
+        .filter(
+            (collection) =>
+                collection.getStoredDataForPath(
+                    getTsConfigPathForCollection(collection),
+                ) == undefined &&
+                collection.getAllStoredDataForCollection().some(
+                    // Only if JS files exist in the collection, the tsconfig is needed. Otherwise an error will be shown in the tsconfig because no files are included.
+                    ({ item }) =>
+                        extname(item.getPath()) == ".js" &&
+                        item.getPath() !=
+                            getTemporaryJsFileNameInFolder(
+                                collection.getRootDirectory(),
+                            ),
+                ),
+        );
 
-    return await filterAsync(
-        itemProvider.getRegisteredCollections().slice(),
-        async (collection) =>
+    const additionalContextRootsWithoutTsConfig = await filterAsync(
+        itemProvider.getUniqueAdditionalContextRoots(),
+        async (contextRoot) =>
             !(await checkIfPathExistsAsync(
-                getTsConfigPathForCollection(collection),
+                getTsConfigPathForAdditionalContextRoot(contextRoot),
             )) &&
-            collection.getAllStoredDataForCollection().some(
+            (
+                await readdir(contextRoot, {
+                    withFileTypes: true,
+                    recursive: true,
+                })
+            ).some(
                 // Only if JS files exist in the collection, the tsconfig is needed. Otherwise an error will be shown in the tsconfig because no files are included.
-                ({ item }) =>
-                    extname(item.getPath()) == ".js" &&
-                    item.getPath() !=
-                        getTemporaryJsFileNameInFolder(
-                            collection.getRootDirectory(),
-                        ),
+                (item) =>
+                    item.isFile() &&
+                    extname(item.name) == ".js" &&
+                    item.name != getTemporaryJsFileBasename(),
             ),
+    );
+
+    return {
+        collectionsMissingInRootFolders: collectionsWithoutTsConfigInRootFolder,
+        additionalContextRoots: additionalContextRootsWithoutTsConfig,
+    };
+}
+
+async function createTsConfigs({
+    collectionsMissingInRootFolders,
+    additionalContextRoots,
+}: MissingTsConfigOccurences) {
+    const allPaths = collectionsMissingInRootFolders
+        .map((collection) => getTsConfigPathForCollection(collection))
+        .concat(
+            additionalContextRoots.map((root) =>
+                getTsConfigPathForAdditionalContextRoot(root),
+            ),
+        );
+    const fileContents = Buffer.from(
+        getDefaultTsConfigContent(getLineBreakFromSettings()),
+    );
+
+    return await Promise.all(
+        allPaths.map(async (path) => {
+            const workspaceEdit = new WorkspaceEdit();
+
+            workspaceEdit.createFile(Uri.file(path), {
+                contents: fileContents,
+            });
+
+            const editResult = await workspace.applyEdit(workspaceEdit);
+
+            if (!editResult) {
+                window.showErrorMessage(
+                    `Unexpected error occured while trying to create file '${path}'`,
+                );
+            }
+
+            return editResult;
+        }),
     );
 }
 
-async function createTsConfigs(collections: TypedCollection[]) {
-    const results: { collection: TypedCollection; success: boolean }[] = [];
-
-    for (const collection of collections) {
-        const workspaceEdit = new WorkspaceEdit();
-
-        workspaceEdit.createFile(
-            Uri.file(getTsConfigPathForCollection(collection)),
-            {
-                contents: Buffer.from(
-                    getDefaultTsConfigContent(getLineBreakFromSettings()),
-                ),
-            },
-        );
-
-        const editResult = await workspace.applyEdit(workspaceEdit);
-
-        if (!editResult) {
-            window.showErrorMessage(
-                `Unexpected error while trying to create file '${getTsConfigPathForCollection(collection)}'`,
-            );
-        }
-
-        results.push({ collection, success: editResult });
-    }
-
-    return results;
-}
-
-function getDefaultTsConfigContent(lineBreak: "\n" | "\r\n") {
+function getDefaultTsConfigContent(lineBreak: LineBreakType) {
     return `{
     "compilerOptions": {
         "module": "commonjs",
-        "target": "es2020",
-        "lib": ["es2020"],
+        "target": "es2025",
+        "lib": ["ES2025"],
         "noEmit": true,
         "allowJs": true
     },
@@ -144,10 +195,26 @@ function getDefaultTsConfigContent(lineBreak: "\n" | "\r\n") {
 `.replace(/(\n|\r\n)/g, lineBreak);
 }
 
+function formatPathsForDialog(paths: string[]) {
+    const names = paths.map((path) => basename(path));
+
+    return names.length > 1
+        ? JSON.stringify(names)
+        : names.length == 1
+          ? `'${names[0]}'`
+          : "";
+}
+
 function getSettingsKeyForShowingSuggestion() {
     return "bru-as-code.suggestCreatingTsConfigsForCollections";
 }
 
 function getTsConfigPathForCollection(collection: TypedCollection) {
     return resolve(collection.getRootDirectory(), "tsconfig.json");
+}
+
+function getTsConfigPathForAdditionalContextRoot(
+    additionalContextRootFolder: string,
+) {
+    return resolve(additionalContextRootFolder, "tsconfig.json");
 }

@@ -333,11 +333,11 @@ function filterDiagnosticsForJsFile(
     fileName: string,
     defaultDiagnostics: (ts.Diagnostic | ts.DiagnosticWithLocation)[],
 ) {
-    if (!isInABrunoCollection(info, fileName)) {
-        return defaultDiagnostics;
-    } else if (fileName.includes(getTempJsFileBaseNameWithoutExtension())) {
+    if (fileName.includes(getTempJsFileBaseNameWithoutExtension())) {
         // Filter out all diagnostics for temp js files.
         return [];
+    } else if (!isInABrunoCollection(info, fileName)) {
+        return defaultDiagnostics;
     }
 
     const fileContent = getFileContent(info, fileName);
