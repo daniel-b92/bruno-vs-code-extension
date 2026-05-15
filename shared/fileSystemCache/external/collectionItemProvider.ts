@@ -202,7 +202,9 @@ export class CollectionItemProvider<T> {
             (collection) => {
                 matchingContextRoot = collection
                     .getAdditionalContextRoots()
-                    .find((root) => normalizePath(itemPath).startsWith(root));
+                    .find((root) =>
+                        normalizePath(itemPath).startsWith(normalizePath(root)),
+                    );
 
                 if (matchingContextRoot !== undefined) {
                     return true;

@@ -90,7 +90,7 @@ Add a default config for ${
     }
 
     const results = await createTsConfigs({
-        collectionsMissingInRootFolders: collectionsMissingInRootFolders,
+        collectionsMissingInRootFolders,
         additionalContextRoots,
     });
     window.showInformationMessage(
@@ -123,7 +123,7 @@ async function getCollectionsWithoutTsConfigs(
         itemProvider.getUniqueAdditionalContextRoots(),
         async (contextRoot) =>
             !(await checkIfPathExistsAsync(
-                getTsConfigPathForAdditionalContetRoot(contextRoot),
+                getTsConfigPathForAdditionalContextRoot(contextRoot),
             )) &&
             (
                 await readdir(contextRoot, {
@@ -153,7 +153,7 @@ async function createTsConfigs({
         .map((collection) => getTsConfigPathForCollection(collection))
         .concat(
             additionalContextRoots.map((root) =>
-                getTsConfigPathForAdditionalContetRoot(root),
+                getTsConfigPathForAdditionalContextRoot(root),
             ),
         );
     const fileContents = Buffer.from(
@@ -213,7 +213,7 @@ function getTsConfigPathForCollection(collection: TypedCollection) {
     return resolve(collection.getRootDirectory(), "tsconfig.json");
 }
 
-function getTsConfigPathForAdditionalContetRoot(
+function getTsConfigPathForAdditionalContextRoot(
     additionalContextRootFolder: string,
 ) {
     return resolve(additionalContextRootFolder, "tsconfig.json");
