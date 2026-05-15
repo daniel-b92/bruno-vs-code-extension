@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Minor Improvements
+
+- Provide typings for inbuilt functions also in JS scripts within `additionalContextRoots` folders.
+
 ## [1.1.0] (2026-05-10)
 
 ### Features
