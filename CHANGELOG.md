@@ -3,6 +3,7 @@
 ### Fixes / Minor Improvements
 
 - Provide typings for inbuilt functions also in JS scripts within `additionalContextRoots` folders.
+- Fix syntax highlighting for variable references within JSON blocks.
 
 ## [1.1.0] (2026-05-10)
 
