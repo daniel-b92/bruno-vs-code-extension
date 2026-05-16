@@ -1,16 +1,13 @@
-import { promisify } from "util";
 import {
     AdditionalCollectionDataProviderType,
     AdditionalCollectionDataProvider,
     Collection,
     CollectionData,
-    parseBruFile,
-    TextDocumentHelper,
     getItemType,
+    parseFileByPath,
 } from "../..";
 import { getCollectionItem } from "./getCollectionItem";
 import { isModifiedItemOutdated } from "./isModifiedItemOutdated";
-import { readFile } from "fs";
 import { FileSystemData } from "./interfaces";
 import { getFileSystemDataPath } from "./fileSystemDataUtils";
 
@@ -55,7 +52,9 @@ async function getCollectionData<T>(params: {
     additionalDataProvider: AdditionalCollectionDataProvider<T>;
 }): Promise<CollectionData<T> | undefined> {
     const { additionalDataProvider, collection, fileSystemData } = params;
-    const itemType = await getItemType(collection, fileSystemData);
+    // Skip validation if path exists, since should already have been done earlier.
+    // This would also take up extra time, when calling this function multiple times for many items.
+    const itemType = await getItemType(collection, fileSystemData, false);
 
     const path = getFileSystemDataPath(fileSystemData);
 
@@ -97,7 +96,7 @@ async function getCollectionData<T>(params: {
         return {
             item,
             additionalData: getData(
-                toParse ? await parseFile(toParse) : undefined,
+                toParse ? await parseFileByPath(toParse) : undefined,
             ),
         };
     }
@@ -115,12 +114,4 @@ function handleAlreadyRegisteredItemWithSamePath<T>(
         collection.removeTestItemIfRegistered(oldData.item.getPath());
         collection.addItem(newData);
     }
-}
-
-async function parseFile(path: string) {
-    const content = await promisify(readFile)(path, {
-        encoding: "utf-8",
-    }).catch(() => undefined);
-
-    return content ? parseBruFile(new TextDocumentHelper(content)) : undefined;
 }

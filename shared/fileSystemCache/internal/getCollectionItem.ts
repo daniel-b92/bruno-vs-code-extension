@@ -1,6 +1,4 @@
-import { promisify } from "util";
 import {
-    parseBruFile,
     TextDocumentHelper,
     EnvironmentFileBlockName,
     isBlockDictionaryBlock,
@@ -20,8 +18,9 @@ import {
     getSequenceAndTagsFromMetaBlock,
     ItemType,
     CollectionItem,
+    getFileContent,
+    parseFileByPath,
 } from "../..";
-import { readFile } from "fs";
 import { createCollectionDirectoryInstance } from "./createCollectionDirectoryInstance";
 
 export async function getCollectionItem<T>(
@@ -64,7 +63,7 @@ export async function getCollectionItemForFile(
 }
 
 async function createEnvironmentFileInstance(path: string) {
-    const blocks = await parseFile(path);
+    const blocks = (await parseFileByPath(path))?.blocks;
 
     const varsBlocks = blocks
         ? blocks.filter(({ name }) => name == EnvironmentFileBlockName.Vars)
@@ -111,18 +110,4 @@ async function createRequestFileInstance(path: string) {
     const { sequence, tags } =
         getSequenceAndTagsFromMetaBlock(metaBlockContent);
     return new BrunoRequestFile(path, sequence, tags);
-}
-
-async function parseFile(path: string) {
-    const content = await getFileContent(path);
-
-    return content
-        ? parseBruFile(new TextDocumentHelper(content)).blocks
-        : undefined;
-}
-
-async function getFileContent(path: string) {
-    return await promisify(readFile)(path, {
-        encoding: "utf-8",
-    }).catch(() => undefined);
 }

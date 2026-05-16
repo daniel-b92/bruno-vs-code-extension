@@ -32,6 +32,7 @@ export * from "./fileSystemCache/external/getExistingRequestFileTags";
 
 // file parsing
 export * from "./fileParsing/external/parseBruFile";
+export * from "./fileParsing/external/parseFileByPath";
 export * from "./fileParsing/external/parseCodeBlock";
 export * from "./fileParsing/external/getSequenceForFile";
 export * from "./fileParsing/external/shared/getSequenceFieldFromMetaBlock";

@@ -20,10 +20,11 @@ import { FileSystemData } from "../../fileSystemCache/internal/interfaces";
 export async function getItemType<T>(
     collection: Collection<T>,
     fileSystemData: FileSystemData,
+    validateExistence = true,
 ): Promise<ItemType | undefined> {
     const path = getFileSystemDataPath(fileSystemData);
 
-    if (!(await checkIfPathExistsAsync(path))) {
+    if (validateExistence && !(await checkIfPathExistsAsync(path))) {
         return undefined;
     }
 
