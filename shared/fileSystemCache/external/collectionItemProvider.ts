@@ -11,17 +11,12 @@ import {
     isCollectionItemWithSequence,
     Logger,
     AdditionalCollectionDataProvider,
-    getFolderSettingsFilePath,
     getBrunoJsonFilePath,
     getCollectionRootData,
 } from "../..";
 import { basename, dirname } from "path";
-import { promisify } from "util";
-import { lstat } from "fs";
-import { getCollectionItem } from "../internal/getCollectionItem";
 import { isModifiedItemOutdated } from "../internal/isModifiedItemOutdated";
 import { Evt } from "evt";
-import { createCollectionDirectoryInstance } from "../internal/createCollectionDirectoryInstance";
 
 export type NotificationData<T> = NotificationBaseData<T> &
     (
@@ -267,7 +262,7 @@ export class CollectionItemProvider<T> {
 
         const newData = await addOrReplaceItemInCollection({
             collection,
-            path: collectionRoot,
+            fileSystemData: collectionRoot,
             additionalDataProvider: this.additionalDataProvider,
         });
 
@@ -326,24 +321,9 @@ export class CollectionItemProvider<T> {
         registeredCollection: Collection<T>,
         itemPath: string,
     ) {
-        const item = await promisify(lstat)(itemPath)
-            .then(async (stats) =>
-                stats.isDirectory()
-                    ? await createCollectionDirectoryInstance(
-                          itemPath,
-                          await getFolderSettingsFilePath(false, itemPath),
-                      )
-                    : await getCollectionItem(registeredCollection, itemPath),
-            )
-            .catch(() => undefined);
-
-        if (!item) {
-            return;
-        }
-
         const collectionData = await addOrReplaceItemInCollection({
             collection: registeredCollection,
-            path: itemPath,
+            fileSystemData: itemPath,
             additionalDataProvider: this.additionalDataProvider,
         });
         if (!collectionData) {
@@ -444,7 +424,7 @@ export class CollectionItemProvider<T> {
 
             const newData = await addOrReplaceItemInCollection({
                 collection: collectionForItem,
-                path: itemPath,
+                fileSystemData: itemPath,
                 additionalDataProvider: this.additionalDataProvider,
             });
 
@@ -490,7 +470,7 @@ export class CollectionItemProvider<T> {
         // So only the directory item needs to be updated on changes.
         const newCollectionData = await addOrReplaceItemInCollection({
             collection,
-            path: folderPath,
+            fileSystemData: folderPath,
             additionalDataProvider: this.additionalDataProvider,
         });
         if (!newCollectionData) {

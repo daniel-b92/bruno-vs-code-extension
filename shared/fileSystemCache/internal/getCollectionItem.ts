@@ -14,24 +14,21 @@ import {
     BrunoEnvironmentFile,
     NonBrunoSpecificItemType,
     NonBrunoFile,
-    getItemType,
     DictionaryBlockSimpleField,
     getFolderSettingsFilePath,
     BrunoFolderSettingsFile,
     getSequenceAndTagsFromMetaBlock,
+    ItemType,
+    CollectionItem,
 } from "../..";
 import { readFile } from "fs";
 import { createCollectionDirectoryInstance } from "./createCollectionDirectoryInstance";
 
 export async function getCollectionItem<T>(
     collection: Collection<T>,
-    path: string,
+    data: { path: string; itemType: ItemType },
 ) {
-    const itemType = await getItemType(collection, path);
-
-    if (!itemType) {
-        return undefined;
-    }
+    const { itemType, path } = data;
 
     switch (itemType) {
         case NonBrunoSpecificItemType.Directory:
@@ -42,6 +39,16 @@ export async function getCollectionItem<T>(
                     path,
                 ),
             );
+        default:
+            return await getCollectionItemForFile(path, itemType);
+    }
+}
+
+export async function getCollectionItemForFile(
+    path: string,
+    itemType: ItemType,
+): Promise<CollectionItem | undefined> {
+    switch (itemType) {
         case BrunoFileType.CollectionSettingsFile:
         case BrunoFileType.FolderSettingsFile:
             return new BrunoFolderSettingsFile(path);
@@ -51,6 +58,8 @@ export async function getCollectionItem<T>(
             return await createRequestFileInstance(path);
         case NonBrunoSpecificItemType.OtherFileType:
             return new NonBrunoFile(path);
+        default:
+            return undefined;
     }
 }
 

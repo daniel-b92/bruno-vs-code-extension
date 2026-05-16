@@ -9,11 +9,12 @@ import {
     Logger,
 } from "../..";
 import { CollectionRegistry } from "./collectionRegistry";
-import { resolve } from "path";
 import { addOrReplaceItemInCollection } from "./addOrReplaceItemInCollection";
 import { readdir } from "fs";
 import { promisify } from "util";
 import { createCollectionDirectoryInstance } from "./createCollectionDirectoryInstance";
+import { FileSystemData } from "./interfaces";
+import { getFileSystemDataPath } from "./fileSystemDataUtils";
 
 export async function registerMissingCollectionsAndTheirItems<T>(
     collectionRegistry: CollectionRegistry<T>,
@@ -53,32 +54,33 @@ export async function registerMissingCollectionsAndTheirItems<T>(
 }
 
 async function getDescendants(directory: string) {
-    const names = await promisify(readdir)(directory, {
+    return await promisify(readdir)(directory, {
         recursive: true,
+        withFileTypes: true,
         encoding: "utf-8",
     }).catch(() => undefined);
-
-    return names?.map((name) => resolve(directory, name));
 }
 
 async function registerItems<T>(
     collection: Collection<T>,
     filePathsToIgnore: RegExp[],
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
-    paths: string[],
+    fileSystemEntries: FileSystemData[],
 ) {
     Promise.all(
-        paths
-            .filter(
-                (path) =>
+        fileSystemEntries
+            .filter((entry) => {
+                const path = getFileSystemDataPath(entry);
+                return (
                     !collection.getStoredDataForPath(path) &&
-                    !shouldPathBeIgnored(filePathsToIgnore, path),
-            )
+                    !shouldPathBeIgnored(filePathsToIgnore, path)
+                );
+            })
             .map(
                 async (path) =>
                     await addOrReplaceItemInCollection<T>({
                         collection,
-                        path,
+                        fileSystemData: path,
                         additionalDataProvider,
                     }),
             ),

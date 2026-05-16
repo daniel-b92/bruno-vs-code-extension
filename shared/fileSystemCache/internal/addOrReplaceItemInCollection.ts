@@ -6,20 +6,23 @@ import {
     CollectionData,
     parseBruFile,
     TextDocumentHelper,
+    getItemType,
 } from "../..";
 import { getCollectionItem } from "./getCollectionItem";
 import { isModifiedItemOutdated } from "./isModifiedItemOutdated";
 import { readFile } from "fs";
+import { FileSystemData } from "./interfaces";
+import { getFileSystemDataPath } from "./fileSystemDataUtils";
 
 export async function addOrReplaceItemInCollection<T>(newItem: {
-    path: string;
+    fileSystemData: FileSystemData;
     collection: Collection<T>;
     additionalDataProvider: AdditionalCollectionDataProvider<T>;
 }) {
-    const { additionalDataProvider, collection, path } = newItem;
+    const { additionalDataProvider, collection, fileSystemData } = newItem;
 
     const data = await getCollectionData({
-        path,
+        fileSystemData,
         collection,
         additionalDataProvider,
     });
@@ -47,12 +50,21 @@ export async function addOrReplaceItemInCollection<T>(newItem: {
 }
 
 async function getCollectionData<T>(params: {
-    path: string;
+    fileSystemData: FileSystemData;
     collection: Collection<T>;
     additionalDataProvider: AdditionalCollectionDataProvider<T>;
 }): Promise<CollectionData<T> | undefined> {
-    const { additionalDataProvider, collection, path } = params;
-    const item = await getCollectionItem(collection, path);
+    const { additionalDataProvider, collection, fileSystemData } = params;
+    const itemType = await getItemType(collection, fileSystemData);
+
+    const path = getFileSystemDataPath(fileSystemData);
+
+    const item = itemType
+        ? await getCollectionItem(collection, {
+              path,
+              itemType,
+          })
+        : undefined;
 
     if (!item) {
         return undefined;
