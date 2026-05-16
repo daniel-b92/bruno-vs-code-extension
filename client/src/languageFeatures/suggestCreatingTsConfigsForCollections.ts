@@ -208,18 +208,28 @@ function getDefaultTsConfigContent(
     lineBreak: LineBreakType,
     pathsToInclude?: string[],
 ) {
-    return `{
-    "compilerOptions": {
-        "module": "commonjs",
-        "target": "es2025",
-        "lib": ["ES2025"],
-        "noEmit": true,
-        "allowJs": true,
-        "types": ["node"]
-    },
-    "exclude": ["node_modules"]${pathsToInclude && pathsToInclude.length > 0 ? `,${lineBreak}\t"include": ${JSON.stringify(pathsToInclude)}` : ""}
-}
-`.replace(/(\n|\r\n)/g, lineBreak);
+    const compilerOptionsLines = [
+        '"module": "commonjs"',
+        '"target": "es2025"',
+        '"lib": ["ES2025"]',
+        '"noEmit": true',
+        '"allowJs": true',
+        '"types": ["node"]',
+    ];
+    return "{".concat(
+        lineBreak,
+        '\t"compilerOptions": {',
+        lineBreak,
+        "\t\t",
+        compilerOptionsLines.join(`,${lineBreak}\t\t`),
+        `${lineBreak}\t},${lineBreak}`,
+        `\t"exclude": ["node_modules"]`,
+        pathsToInclude && pathsToInclude.length > 0
+            ? `,${lineBreak}\t"include": ${JSON.stringify(pathsToInclude)}`
+            : "",
+        lineBreak,
+        "}",
+    );
 }
 
 function formatPathsForDialog(paths: string[]) {
