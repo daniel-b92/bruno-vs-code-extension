@@ -93,6 +93,8 @@ async function registerItems<T>(
                 // This would also take up extra time, when calling this function multiple times for many items.
                 const itemType = await getItemType(collection, entry, false);
 
+                const normalized = normalizePath(path);
+
                 if (!itemType) {
                     return undefined;
                 }
@@ -102,8 +104,7 @@ async function registerItems<T>(
                           path,
                           allFolderSettingsFiles.find(
                               ({ path: p }) =>
-                                  normalizePath(dirname(p)) ==
-                                  normalizePath(path),
+                                  normalizePath(dirname(p)) == normalized,
                           )?.path,
                       );
 
