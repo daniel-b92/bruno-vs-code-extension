@@ -7,14 +7,17 @@ import {
     CollectionDirectory,
     getAdditionalCollectionData,
     Logger,
+    getItemType,
+    doesFileNameMatchFolderSettingsFileName,
 } from "../..";
 import { CollectionRegistry } from "./collectionRegistry";
-import { addOrReplaceItemInCollection } from "./addOrReplaceItemInCollection";
-import { readdir } from "fs";
+import { addOrReplaceCollectionData } from "./addOrReplaceItemInCollection";
+import { Dirent, readdir } from "fs";
 import { promisify } from "util";
 import { createCollectionDirectoryInstance } from "./createCollectionDirectoryInstance";
-import { FileSystemData } from "./interfaces";
 import { getFileSystemDataPath } from "./fileSystemDataUtils";
+import { getCollectionItemForFile } from "./getCollectionItem";
+import { dirname } from "path";
 
 export async function registerMissingCollectionsAndTheirItems<T>(
     collectionRegistry: CollectionRegistry<T>,
@@ -65,25 +68,61 @@ async function registerItems<T>(
     collection: Collection<T>,
     filePathsToIgnore: RegExp[],
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
-    fileSystemEntries: FileSystemData[],
+    fileSystemEntries: Dirent<string>[],
 ) {
-    Promise.all(
-        fileSystemEntries
-            .filter((entry) => {
-                const path = getFileSystemDataPath(entry);
+    const isCollectionRoot = false;
+    const mappedFileSystemEntries = fileSystemEntries.map((entry) => ({
+        entry,
+        path: getFileSystemDataPath(entry),
+    }));
+    const allFolderSettingsFiles = mappedFileSystemEntries.filter(
+        ({ entry, path }) =>
+            entry.isFile() && doesFileNameMatchFolderSettingsFileName(path),
+    );
+
+    await Promise.all(
+        mappedFileSystemEntries
+            .filter(({ path }) => {
                 return (
                     !collection.getStoredDataForPath(path) &&
                     !shouldPathBeIgnored(filePathsToIgnore, path)
                 );
             })
-            .map(
-                async (path) =>
-                    await addOrReplaceItemInCollection<T>({
-                        collection,
-                        fileSystemData: path,
-                        additionalDataProvider,
-                    }),
-            ),
+            .map(async ({ entry, path }) => {
+                // Skip validation if path exists, since should already have been done earlier.
+                // This would also take up extra time, when calling this function multiple times for many items.
+                const itemType = await getItemType(collection, entry, false);
+
+                if (!itemType) {
+                    return undefined;
+                }
+                const item = entry.isFile()
+                    ? await getCollectionItemForFile(path, itemType)
+                    : await createCollectionDirectoryInstance(
+                          path,
+                          allFolderSettingsFiles.find(
+                              ({ path: p }) =>
+                                  normalizePath(dirname(p)) ==
+                                  normalizePath(path),
+                          )?.path,
+                      );
+
+                if (!item) {
+                    return undefined;
+                }
+
+                const additionalData = await getAdditionalCollectionData(
+                    item,
+                    additionalDataProvider,
+                    isCollectionRoot,
+                );
+
+                return addOrReplaceCollectionData<T>({
+                    collection,
+                    data: { item, additionalData },
+                    additionalDataProvider,
+                });
+            }),
     );
 }
 

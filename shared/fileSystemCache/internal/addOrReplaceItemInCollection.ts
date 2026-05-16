@@ -28,6 +28,20 @@ export async function addOrReplaceItemInCollection<T>(newItem: {
         return undefined;
     }
 
+    return addOrReplaceCollectionData({
+        additionalDataProvider,
+        collection,
+        data,
+    });
+}
+
+export function addOrReplaceCollectionData<T>(newItem: {
+    data: CollectionData<T>;
+    collection: Collection<T>;
+    additionalDataProvider: AdditionalCollectionDataProvider<T>;
+}) {
+    const { additionalDataProvider, collection, data } = newItem;
+
     const registeredDataWithSamePath = collection.getStoredDataForPath(
         data.item.getPath(),
     );
