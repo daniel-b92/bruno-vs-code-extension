@@ -1,5 +1,5 @@
 import { resolve } from "path";
-import { FileSystemData, ItemStats } from "./interfaces";
+import { FileSystemData, FileSystemItemStats } from "./interfaces";
 import { promisify } from "util";
 import { lstat } from "fs";
 
@@ -9,7 +9,7 @@ export function getFileSystemDataPath(data: FileSystemData) {
 
 export async function getFileSystemDataStats(
     data: FileSystemData,
-): Promise<ItemStats | undefined> {
+): Promise<FileSystemItemStats | undefined> {
     return typeof data != "string"
         ? data
         : await promisify(lstat)(data).catch(() => undefined);
