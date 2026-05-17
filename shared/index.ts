@@ -21,6 +21,7 @@ export * from "./fileSystem/util/getItemType";
 export * from "./fileSystem/util/getMatchingTextContainingPosition";
 export * from "./fileSystem/util/doesFileNameMatchCollectionSettingsFile";
 export * from "./fileSystem/util/convertToGlobPattern";
+export * from "./fileSystem/util/getFileContent";
 
 // file system cache
 export * from "./fileSystemCache/external/tempJsFilesProvider";

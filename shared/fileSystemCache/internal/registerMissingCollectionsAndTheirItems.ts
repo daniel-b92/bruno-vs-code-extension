@@ -60,7 +60,6 @@ async function getDescendants(directory: string) {
     return await promisify(readdir)(directory, {
         recursive: true,
         withFileTypes: true,
-        encoding: "utf-8",
     }).catch(() => undefined);
 }
 

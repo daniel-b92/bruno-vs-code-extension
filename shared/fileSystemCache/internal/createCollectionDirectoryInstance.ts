@@ -1,7 +1,6 @@
-import { readFile } from "fs";
-import { promisify } from "util";
 import {
     CollectionDirectory,
+    getFileContent,
     getSequenceAndTagsFromMetaBlock,
     isDictionaryBlockField,
     parseBlockFromFile,
@@ -42,10 +41,4 @@ export async function createCollectionDirectoryInstance(
         folderSettingsFilePath,
         sequence,
     );
-}
-
-async function getFileContent(path: string) {
-    return await promisify(readFile)(path, {
-        encoding: "utf-8",
-    }).catch(() => undefined);
 }

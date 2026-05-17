@@ -2,10 +2,11 @@ import { dirname, resolve } from "path";
 import {
     checkIfPathExistsAsync,
     convertToGlobPattern,
+    getFileContent,
     getTestFileDescendants,
 } from "../..";
 import { promisify } from "util";
-import { lstat, readFile } from "fs";
+import { lstat } from "fs";
 import { glob } from "glob";
 
 export async function getAllCollectionRootDirectories(
@@ -82,9 +83,7 @@ async function getBrunoJsonFilePathIfExists(maybeCollectionRoot: string) {
 }
 
 async function getAdditionalContextRoots(brunoJsonFilePath: string) {
-    const fileContent = await promisify(readFile)(brunoJsonFilePath, {
-        encoding: "utf-8",
-    }).catch(() => undefined);
+    const fileContent = await getFileContent(brunoJsonFilePath);
 
     if (fileContent === undefined) {
         return undefined;
