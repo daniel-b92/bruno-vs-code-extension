@@ -1,13 +1,10 @@
-import { promisify } from "util";
 import {
     AdditionalCollectionComplexDataProvider,
     AdditionalCollectionDataProviderType,
     AdditionalCollectionSimpleDataProvider,
     CollectionItem,
-    parseBruFile,
-    TextDocumentHelper,
+    parseFileByPath,
 } from "../..";
-import { readFile } from "fs";
 
 export async function getAdditionalCollectionData<T>(
     item: CollectionItem,
@@ -36,14 +33,8 @@ export async function getAdditionalCollectionData<T>(
             }
 
             const toParse = getFilePathForParsing(item);
-            return getData(toParse ? await parseFile(toParse) : undefined);
+            return getData(
+                toParse ? await parseFileByPath(toParse) : undefined,
+            );
     }
-}
-
-async function parseFile(path: string) {
-    const content = await promisify(readFile)(path, {
-        encoding: "utf-8",
-    }).catch(() => undefined);
-
-    return content ? parseBruFile(new TextDocumentHelper(content)) : undefined;
 }

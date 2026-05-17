@@ -1,6 +1,4 @@
 import { dirname, extname } from "path";
-import { promisify } from "util";
-import { lstat } from "fs";
 import {
     checkIfPathExistsAsync,
     getExtensionForBrunoFiles,
@@ -13,12 +11,20 @@ import {
     NonBrunoSpecificItemType,
     doesFileNameMatchCollectionSettingsFile,
 } from "../..";
+import {
+    getFileSystemDataPath,
+    getFileSystemDataStats,
+} from "../../fileSystemCache/internal/fileSystemDataUtils";
+import { FileSystemData } from "../../fileSystemCache/internal/interfaces";
 
 export async function getItemType<T>(
     collection: Collection<T>,
-    path: string,
+    fileSystemData: FileSystemData,
+    validateExistence = true,
 ): Promise<ItemType | undefined> {
-    if (!(await checkIfPathExistsAsync(path))) {
+    const path = getFileSystemDataPath(fileSystemData);
+
+    if (validateExistence && !(await checkIfPathExistsAsync(path))) {
         return undefined;
     }
 
@@ -29,16 +35,16 @@ export async function getItemType<T>(
         );
 
     if (!isValidBruFile) {
-        return promisify(lstat)(path)
-            .then((stats) =>
-                stats.isFile()
-                    ? NonBrunoSpecificItemType.OtherFileType
-                    : stats.isDirectory()
-                      ? // Some files from external packages are neither seen as files nor directories.
-                        NonBrunoSpecificItemType.Directory
-                      : undefined,
-            )
-            .catch(() => undefined);
+        const stats = await getFileSystemDataStats(fileSystemData);
+
+        return stats === undefined
+            ? undefined
+            : stats.isFile()
+              ? NonBrunoSpecificItemType.OtherFileType
+              : stats.isDirectory()
+                ? // Some files from external packages are neither seen as files nor directories.
+                  NonBrunoSpecificItemType.Directory
+                : undefined;
     }
 
     if (isInFolderForEnvironmentFiles(path)) {

@@ -1,6 +1,4 @@
-import { promisify } from "util";
 import {
-    parseBruFile,
     TextDocumentHelper,
     EnvironmentFileBlockName,
     isBlockDictionaryBlock,
@@ -14,24 +12,22 @@ import {
     BrunoEnvironmentFile,
     NonBrunoSpecificItemType,
     NonBrunoFile,
-    getItemType,
     DictionaryBlockSimpleField,
     getFolderSettingsFilePath,
     BrunoFolderSettingsFile,
     getSequenceAndTagsFromMetaBlock,
+    ItemType,
+    CollectionItem,
+    getFileContent,
+    parseFileByPath,
 } from "../..";
-import { readFile } from "fs";
 import { createCollectionDirectoryInstance } from "./createCollectionDirectoryInstance";
 
 export async function getCollectionItem<T>(
     collection: Collection<T>,
-    path: string,
+    data: { path: string; itemType: ItemType },
 ) {
-    const itemType = await getItemType(collection, path);
-
-    if (!itemType) {
-        return undefined;
-    }
+    const { itemType, path } = data;
 
     switch (itemType) {
         case NonBrunoSpecificItemType.Directory:
@@ -42,6 +38,16 @@ export async function getCollectionItem<T>(
                     path,
                 ),
             );
+        default:
+            return await getCollectionItemForFile(path, itemType);
+    }
+}
+
+export async function getCollectionItemForFile(
+    path: string,
+    itemType: ItemType,
+): Promise<CollectionItem | undefined> {
+    switch (itemType) {
         case BrunoFileType.CollectionSettingsFile:
         case BrunoFileType.FolderSettingsFile:
             return new BrunoFolderSettingsFile(path);
@@ -51,11 +57,13 @@ export async function getCollectionItem<T>(
             return await createRequestFileInstance(path);
         case NonBrunoSpecificItemType.OtherFileType:
             return new NonBrunoFile(path);
+        default:
+            return undefined;
     }
 }
 
 async function createEnvironmentFileInstance(path: string) {
-    const blocks = await parseFile(path);
+    const blocks = (await parseFileByPath(path))?.blocks;
 
     const varsBlocks = blocks
         ? blocks.filter(({ name }) => name == EnvironmentFileBlockName.Vars)
@@ -102,18 +110,4 @@ async function createRequestFileInstance(path: string) {
     const { sequence, tags } =
         getSequenceAndTagsFromMetaBlock(metaBlockContent);
     return new BrunoRequestFile(path, sequence, tags);
-}
-
-async function parseFile(path: string) {
-    const content = await getFileContent(path);
-
-    return content
-        ? parseBruFile(new TextDocumentHelper(content)).blocks
-        : undefined;
-}
-
-async function getFileContent(path: string) {
-    return await promisify(readFile)(path, {
-        encoding: "utf-8",
-    }).catch(() => undefined);
 }

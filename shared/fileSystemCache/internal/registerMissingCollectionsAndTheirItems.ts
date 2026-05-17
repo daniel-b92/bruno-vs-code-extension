@@ -7,13 +7,17 @@ import {
     CollectionDirectory,
     getAdditionalCollectionData,
     Logger,
+    getItemType,
+    doesFileNameMatchFolderSettingsFileName,
 } from "../..";
 import { CollectionRegistry } from "./collectionRegistry";
-import { resolve } from "path";
-import { addOrReplaceItemInCollection } from "./addOrReplaceItemInCollection";
-import { readdir } from "fs";
+import { addOrReplaceCollectionData } from "./addOrReplaceItemInCollection";
+import { Dirent, readdir } from "fs";
 import { promisify } from "util";
 import { createCollectionDirectoryInstance } from "./createCollectionDirectoryInstance";
+import { getFileSystemDataPath } from "./fileSystemDataUtils";
+import { getCollectionItemForFile } from "./getCollectionItem";
+import { dirname } from "path";
 
 export async function registerMissingCollectionsAndTheirItems<T>(
     collectionRegistry: CollectionRegistry<T>,
@@ -53,35 +57,72 @@ export async function registerMissingCollectionsAndTheirItems<T>(
 }
 
 async function getDescendants(directory: string) {
-    const names = await promisify(readdir)(directory, {
+    return await promisify(readdir)(directory, {
         recursive: true,
-        encoding: "utf-8",
+        withFileTypes: true,
     }).catch(() => undefined);
-
-    return names?.map((name) => resolve(directory, name));
 }
 
 async function registerItems<T>(
     collection: Collection<T>,
     filePathsToIgnore: RegExp[],
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
-    paths: string[],
+    fileSystemEntries: Dirent<string>[],
 ) {
-    Promise.all(
-        paths
-            .filter(
-                (path) =>
+    const isCollectionRoot = false;
+    const mappedFileSystemEntries = fileSystemEntries.map((entry) => ({
+        entry,
+        path: getFileSystemDataPath(entry),
+    }));
+    const allFolderSettingsFiles = mappedFileSystemEntries.filter(
+        ({ entry, path }) =>
+            entry.isFile() && doesFileNameMatchFolderSettingsFileName(path),
+    );
+
+    await Promise.all(
+        mappedFileSystemEntries
+            .filter(({ path }) => {
+                return (
                     !collection.getStoredDataForPath(path) &&
-                    !shouldPathBeIgnored(filePathsToIgnore, path),
-            )
-            .map(
-                async (path) =>
-                    await addOrReplaceItemInCollection<T>({
-                        collection,
-                        path,
-                        additionalDataProvider,
-                    }),
-            ),
+                    !shouldPathBeIgnored(filePathsToIgnore, path)
+                );
+            })
+            .map(async ({ entry, path }) => {
+                // Skip validation if path exists, since should already have been done earlier.
+                // This would also take up extra time, when calling this function multiple times for many items.
+                const itemType = await getItemType(collection, entry, false);
+
+                const normalized = normalizePath(path);
+
+                if (!itemType) {
+                    return undefined;
+                }
+                const item = entry.isFile()
+                    ? await getCollectionItemForFile(path, itemType)
+                    : await createCollectionDirectoryInstance(
+                          path,
+                          allFolderSettingsFiles.find(
+                              ({ path: p }) =>
+                                  normalizePath(dirname(p)) == normalized,
+                          )?.path,
+                      );
+
+                if (!item) {
+                    return undefined;
+                }
+
+                const additionalData = await getAdditionalCollectionData(
+                    item,
+                    additionalDataProvider,
+                    isCollectionRoot,
+                );
+
+                return addOrReplaceCollectionData<T>({
+                    collection,
+                    data: { item, additionalData },
+                    additionalDataProvider,
+                });
+            }),
     );
 }
 

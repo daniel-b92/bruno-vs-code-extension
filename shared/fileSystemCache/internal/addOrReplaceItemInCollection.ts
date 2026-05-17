@@ -1,25 +1,25 @@
-import { promisify } from "util";
 import {
     AdditionalCollectionDataProviderType,
     AdditionalCollectionDataProvider,
     Collection,
     CollectionData,
-    parseBruFile,
-    TextDocumentHelper,
+    getItemType,
+    parseFileByPath,
 } from "../..";
 import { getCollectionItem } from "./getCollectionItem";
 import { isModifiedItemOutdated } from "./isModifiedItemOutdated";
-import { readFile } from "fs";
+import { FileSystemData } from "./interfaces";
+import { getFileSystemDataPath } from "./fileSystemDataUtils";
 
 export async function addOrReplaceItemInCollection<T>(newItem: {
-    path: string;
+    fileSystemData: FileSystemData;
     collection: Collection<T>;
     additionalDataProvider: AdditionalCollectionDataProvider<T>;
 }) {
-    const { additionalDataProvider, collection, path } = newItem;
+    const { additionalDataProvider, collection, fileSystemData } = newItem;
 
     const data = await getCollectionData({
-        path,
+        fileSystemData,
         collection,
         additionalDataProvider,
     });
@@ -27,6 +27,20 @@ export async function addOrReplaceItemInCollection<T>(newItem: {
     if (!data) {
         return undefined;
     }
+
+    return addOrReplaceCollectionData({
+        additionalDataProvider,
+        collection,
+        data,
+    });
+}
+
+export function addOrReplaceCollectionData<T>(newItem: {
+    data: CollectionData<T>;
+    collection: Collection<T>;
+    additionalDataProvider: AdditionalCollectionDataProvider<T>;
+}) {
+    const { additionalDataProvider, collection, data } = newItem;
 
     const registeredDataWithSamePath = collection.getStoredDataForPath(
         data.item.getPath(),
@@ -47,12 +61,23 @@ export async function addOrReplaceItemInCollection<T>(newItem: {
 }
 
 async function getCollectionData<T>(params: {
-    path: string;
+    fileSystemData: FileSystemData;
     collection: Collection<T>;
     additionalDataProvider: AdditionalCollectionDataProvider<T>;
 }): Promise<CollectionData<T> | undefined> {
-    const { additionalDataProvider, collection, path } = params;
-    const item = await getCollectionItem(collection, path);
+    const { additionalDataProvider, collection, fileSystemData } = params;
+    // Skip validation if path exists, since should already have been done earlier.
+    // This would also take up extra time, when calling this function multiple times for many items.
+    const itemType = await getItemType(collection, fileSystemData, false);
+
+    const path = getFileSystemDataPath(fileSystemData);
+
+    const item = itemType
+        ? await getCollectionItem(collection, {
+              path,
+              itemType,
+          })
+        : undefined;
 
     if (!item) {
         return undefined;
@@ -85,7 +110,7 @@ async function getCollectionData<T>(params: {
         return {
             item,
             additionalData: getData(
-                toParse ? await parseFile(toParse) : undefined,
+                toParse ? await parseFileByPath(toParse) : undefined,
             ),
         };
     }
@@ -103,12 +128,4 @@ function handleAlreadyRegisteredItemWithSamePath<T>(
         collection.removeTestItemIfRegistered(oldData.item.getPath());
         collection.addItem(newData);
     }
-}
-
-async function parseFile(path: string) {
-    const content = await promisify(readFile)(path, {
-        encoding: "utf-8",
-    }).catch(() => undefined);
-
-    return content ? parseBruFile(new TextDocumentHelper(content)) : undefined;
 }

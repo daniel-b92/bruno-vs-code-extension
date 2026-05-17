@@ -1,9 +1,10 @@
-## [Unreleased]
+## [1.1.1] (2026-05-17)
 
 ### Fixes / Minor Improvements
 
 - Provide typings for inbuilt functions also in JS scripts within `additionalContextRoots` folders.
 - Fix syntax highlighting for variable references within JSON blocks.
+- Try to reduce cache refresh duration by minimizing number of file system operations.
 
 ## [1.1.0] (2026-05-10)
 
