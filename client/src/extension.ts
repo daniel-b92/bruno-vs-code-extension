@@ -72,50 +72,37 @@ export async function activate(context: ExtensionContext) {
                 location: ProgressLocation.Window,
                 title: "Starting bru-as-code extension...",
             },
-            () => {
-                return new Promise<void>((resolve) => {
-                    collectionItemProvider
-                        .refreshCache(
-                            workspace.workspaceFolders?.map(
-                                (f) => f.uri.fsPath,
-                            ) ?? [],
-                        )
-                        .then(() => {
-                            activateRunner(
-                                context,
-                                ctrl,
-                                collectionItemProvider,
-                                startTestRunEmitter.event,
-                            ).then(() => {
-                                activateTreeView(
-                                    context,
-                                    collectionItemProvider,
-                                    cacheSyncingHelper,
-                                    startTestRunEmitter,
-                                    multiFileOperationNotifier,
-                                );
+            async () => {
+                await collectionItemProvider.refreshCache(
+                    workspace.workspaceFolders?.map((f) => f.uri.fsPath) ?? [],
+                );
+                await activateRunner(
+                    context,
+                    ctrl,
+                    collectionItemProvider,
+                    startTestRunEmitter.event,
+                );
+                activateTreeView(
+                    context,
+                    collectionItemProvider,
+                    cacheSyncingHelper,
+                    startTestRunEmitter,
+                    multiFileOperationNotifier,
+                );
 
-                                activateLanguageFeatures(
-                                    context,
-                                    collectionWatcher,
-                                    collectionItemProvider,
-                                    cacheSyncingHelper,
-                                    startTestRunEmitter.event,
-                                ).then(() => {
-                                    resolve();
-
-                                    suggestCreatingTsConfigsForCollections(
-                                        collectionItemProvider,
-                                    );
-                                });
-                            });
-                        });
-                });
+                await activateLanguageFeatures(
+                    context,
+                    collectionWatcher,
+                    collectionItemProvider,
+                    cacheSyncingHelper,
+                    startTestRunEmitter.event,
+                );
             },
         ),
     );
 
     await Promise.all(toAwait);
+    suggestCreatingTsConfigsForCollections(collectionItemProvider);
 }
 
 export function deactivate() {
