@@ -214,7 +214,6 @@ function getDefaultTsConfigContent(
         '"lib": ["ES2025"]',
         '"noEmit": true',
         '"allowJs": true',
-        '"types": ["node"]',
     ];
     return "{".concat(
         lineBreak,
