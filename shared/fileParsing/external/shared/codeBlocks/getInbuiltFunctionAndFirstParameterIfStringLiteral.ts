@@ -67,72 +67,29 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(
         return undefined;
     }
 
-    const traversedNodes: Node[] = [contentAsTsNode];
-    let inbuiltFunctionForRequest:
-        | {
-              identifier: InbuiltFunctionIdentifier;
-              node: Node;
-              childNodeIndex: number;
-          }
-        | undefined;
-    let neededDepthReached = false;
+    const descendantNodeWithFunctionIdentifier =
+        searchDescendantNodesForFunctionIdentifier(
+            sourceFile,
+            contentAsTsNode,
+            functionsToSearchFor,
+            offsetWithinSubdocument,
+        );
 
-    do {
-        const currentNode = traversedNodes[traversedNodes.length - 1];
-        const childNodeForFunctionIdentifier =
-            findChildNodeForFunctionIdentifier(
-                sourceFile,
-                currentNode,
-                functionsToSearchFor,
-            );
+    if (!descendantNodeWithFunctionIdentifier) {
+        return undefined;
+    }
 
-        if (childNodeForFunctionIdentifier != undefined) {
-            const {
-                childNodeIndex,
-                child: node,
-                functionIdentifier: identifier,
-            } = childNodeForFunctionIdentifier;
+    const {
+        parent: lastReachedNode,
+        child: inbuiltFunctionNode,
+        functionIdentifier,
+    } = descendantNodeWithFunctionIdentifier;
 
-            inbuiltFunctionForRequest = {
-                identifier,
-                node,
-                childNodeIndex,
-            };
-            neededDepthReached = true;
-        }
-
-        if (!neededDepthReached) {
-            const childContainingPosition = getChildNodeContainingOffset(
-                currentNode,
-                sourceFile,
-                offsetWithinSubdocument,
-            );
-
-            if (!childContainingPosition) {
-                return undefined;
-            }
-
-            traversedNodes.push(childContainingPosition.node);
-        }
-    } while (
-        !neededDepthReached &&
-        functionsToSearchFor.some(({ functionName }) =>
-            traversedNodes[traversedNodes.length - 1]
-                .getText(sourceFile)
-                .includes(functionName),
-        )
-    );
-
-    const lastReachedNode = traversedNodes[traversedNodes.length - 1];
     const nodeForSyntaxList = lastReachedNode
         .getChildren(sourceFile)
         .find(({ kind }) => kind == SyntaxKind.SyntaxList);
 
-    if (
-        !neededDepthReached ||
-        !inbuiltFunctionForRequest ||
-        !nodeForSyntaxList
-    ) {
+    if (!nodeForSyntaxList) {
         return undefined;
     }
 
@@ -159,9 +116,9 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(
     return canHandleNodeType && firstParameter != undefined
         ? {
               inbuiltFunction: {
-                  identifier: inbuiltFunctionForRequest.identifier,
+                  identifier: functionIdentifier,
                   nodeContainsPosition: doesNodeContainOffset(
-                      inbuiltFunctionForRequest.node,
+                      inbuiltFunctionNode,
                       sourceFile,
                       offsetWithinSubdocument,
                   ),
@@ -178,50 +135,74 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(
         : undefined;
 }
 
-function findChildNodeForFunctionIdentifier(
+function searchDescendantNodesForFunctionIdentifier(
     sourceFile: SourceFile,
-    currentNode: Node,
+    startNode: Node,
     functionsToSearchFor: InbuiltFunctionIdentifier[],
+    offset: number,
 ) {
-    const matchOnCurrentLevel = findChildNodeForFunctionIdentifier1(
-        sourceFile,
-        currentNode,
-        functionsToSearchFor,
-    );
+    let currentNode: Node | undefined = startNode;
+    let lastMatch:
+        | {
+              child: Node;
+              childNodeIndex: number;
+              functionIdentifier: InbuiltFunctionIdentifier;
+          }
+        | undefined = undefined;
 
-    if (!matchOnCurrentLevel) {
-        return undefined;
-    }
+    const traversedNodes: Node[] = [startNode];
 
-    const doBetterMatchesExist = currentNode
-        .getChildren(sourceFile)
-        .filter((_, index) => index != matchOnCurrentLevel.childNodeIndex)
-        .some((otherNode) => {
-            let current = otherNode;
-            while (
-                current.getChildCount(sourceFile) > 0 &&
-                functionsToSearchFor.some(({ functionName }) =>
-                    current.getText(sourceFile).includes(functionName),
-                )
-            ) {
-                if (
-                    findChildNodeForFunctionIdentifier1(
-                        sourceFile,
-                        current,
-                        functionsToSearchFor,
-                    ) != undefined
-                ) {
-                    return true;
-                }
+    do {
+        if (!currentNode) {
+            return lastMatch != undefined
+                ? {
+                      parent: traversedNodes[traversedNodes.length - 1],
+                      ...lastMatch,
+                  }
+                : undefined;
+        }
 
-                current
-                    .getChildren(sourceFile)
-                    .filter((child) => child.getText(sourceFile).includes);
-            }
-        });
+        const currentMatch = findChildNodeForFunctionIdentifier(
+            sourceFile,
+            currentNode,
+            functionsToSearchFor,
+        );
+
+        if (currentMatch) {
+            lastMatch = currentMatch;
+        }
+
+        const childContainingPosition = getChildNodeContainingOffset(
+            currentNode,
+            sourceFile,
+            offset,
+        );
+
+        if (!childContainingPosition) {
+            return lastMatch != undefined
+                ? {
+                      parent: traversedNodes[traversedNodes.length - 1],
+                      ...lastMatch,
+                  }
+                : undefined;
+        }
+
+        const continueCheckingChild = functionsToSearchFor.some(
+            ({ baseIdentifier, functionName }) =>
+                [baseIdentifier, functionName].every((text) =>
+                    childContainingPosition.node
+                        .getText(sourceFile)
+                        .includes(text),
+                ),
+        );
+        traversedNodes.push(currentNode);
+        currentNode = continueCheckingChild
+            ? childContainingPosition.node
+            : undefined;
+    } while (currentNode != undefined);
 }
 
-function findChildNodeForFunctionIdentifier1(
+function findChildNodeForFunctionIdentifier(
     sourceFile: SourceFile,
     currentNode: Node,
     functionsToSearchFor: InbuiltFunctionIdentifier[],
