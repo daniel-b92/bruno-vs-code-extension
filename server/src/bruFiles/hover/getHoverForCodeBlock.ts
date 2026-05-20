@@ -1,13 +1,4 @@
-import {
-    CodeBlock,
-    getFirstParameterForInbuiltFunctionIfStringLiteral,
-    getInbuiltFunctionIdentifiers,
-    getInbuiltFunctionReferenceType,
-    getInbuiltFunctionVariableType,
-    Logger,
-    Range,
-} from "@global_shared";
-import { mapToVariableNameParams } from "../shared/mapToVariableNameParams";
+import { CodeBlock, Logger } from "@global_shared";
 import { getHoverForBrunoVariable } from "./getHoverForBrunoVariable";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 
@@ -16,13 +7,16 @@ export async function getHoverForCodeBlock(
     configuredEnvironmentName?: string,
 ) {
     const {
-        request: { token },
+        request: { token, position },
+        file: { blockContainingPosition },
         logger,
     } = fullRequest;
 
-    const variableResult = getVariableNameAndFunctionFromCodeBlock(fullRequest);
+    const variableReference = blockContainingPosition.variableReferences?.find(
+        ({ variableNameRange }) => variableNameRange.contains(position),
+    );
 
-    if (!variableResult) {
+    if (!variableReference) {
         return undefined;
     }
 
@@ -30,43 +24,11 @@ export async function getHoverForCodeBlock(
         addLogEntryForCancellation(logger);
         return undefined;
     }
-
-    const {
-        inbuiltFunction,
-        variable: {
-            name: variableName,
-            start: variableStart,
-            end: variableEnd,
-        },
-    } = variableResult;
 
     return getHoverForBrunoVariable(
         fullRequest,
-        {
-            variableName,
-            variableNameRange: new Range(variableStart, variableEnd),
-            variableType: getInbuiltFunctionVariableType(inbuiltFunction),
-            referenceType: getInbuiltFunctionReferenceType(inbuiltFunction),
-        },
+        variableReference,
         configuredEnvironmentName,
-    );
-}
-
-function getVariableNameAndFunctionFromCodeBlock(
-    fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
-) {
-    const {
-        request: { token },
-        logger,
-    } = fullRequest;
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return undefined;
-    }
-
-    return getFirstParameterForInbuiltFunctionIfStringLiteral(
-        mapToVariableNameParams(fullRequest, getInbuiltFunctionIdentifiers()),
     );
 }
 
