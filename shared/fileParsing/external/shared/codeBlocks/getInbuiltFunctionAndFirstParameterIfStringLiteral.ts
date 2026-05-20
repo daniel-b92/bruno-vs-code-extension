@@ -89,11 +89,10 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(
         .getChildren(sourceFile)
         .find(({ kind }) => kind == SyntaxKind.SyntaxList);
 
-    if (!nodeForSyntaxList) {
-        return undefined;
-    }
-
-    if (nodeForSyntaxList.getChildCount(sourceFile) == 0) {
+    if (
+        !nodeForSyntaxList ||
+        nodeForSyntaxList.getChildCount(sourceFile) == 0
+    ) {
         return undefined;
     }
 
@@ -153,15 +152,6 @@ function searchDescendantNodesForFunctionIdentifier(
     const traversedNodes: Node[] = [startNode];
 
     do {
-        if (!currentNode) {
-            return lastMatch != undefined
-                ? {
-                      parent: traversedNodes[traversedNodes.length - 1],
-                      ...lastMatch,
-                  }
-                : undefined;
-        }
-
         const currentMatch = findChildNodeForFunctionIdentifier(
             sourceFile,
             currentNode,
@@ -200,6 +190,13 @@ function searchDescendantNodesForFunctionIdentifier(
             ? childContainingPosition.node
             : undefined;
     } while (currentNode != undefined);
+
+    return lastMatch != undefined
+        ? {
+              parent: traversedNodes[traversedNodes.length - 1],
+              ...lastMatch,
+          }
+        : undefined;
 }
 
 function findChildNodeForFunctionIdentifier(
