@@ -1,17 +1,13 @@
 import {
     Block,
-    BrunoVariableType,
     getBlocksWithoutVariableSupport,
     getDictionaryBlockArrayField,
     getExistingRequestFileTags,
-    getVariableForPositionInNonCodeBlock,
     Logger,
     MetaBlockKey,
-    Range,
     RequestFileBlockName,
     TagOccurences,
     TextDocumentHelper,
-    VariableReferenceType,
 } from "@global_shared";
 import {
     AdditionalCollectionData,
@@ -31,7 +27,6 @@ export function getHoverForNonCodeBlock(
         ? getHoverForTagsInMetaBlock(itemProvider, params)
         : getHoverForVariablesInNonCodeBlocks(
               params,
-              params.request.documentHelper,
               configuredEnvironmentName,
           );
 }
@@ -84,7 +79,6 @@ function getHoverForTagsInMetaBlock(
 
 function getHoverForVariablesInNonCodeBlocks(
     fullRequest: BlockRequestWithAdditionalData<Block>,
-    docHelper: TextDocumentHelper,
     configuredEnvironmentName?: string,
 ): Hover | undefined {
     const {
@@ -101,12 +95,11 @@ function getHoverForVariablesInNonCodeBlocks(
         return undefined;
     }
 
-    const variable = getVariableForPositionInNonCodeBlock({
-        documentHelper: docHelper,
-        position,
-    });
+    const variableReference = blockContainingPosition.variableReferences?.find(
+        ({ variableNameRange }) => variableNameRange.contains(position),
+    );
 
-    if (!variable) {
+    if (!variableReference) {
         return undefined;
     }
 
@@ -117,13 +110,7 @@ function getHoverForVariablesInNonCodeBlocks(
 
     return getHoverForBrunoVariable(
         fullRequest,
-        {
-            variableName: variable.name,
-            variableNameRange: new Range(variable.start, variable.end),
-            variableType: BrunoVariableType.Unknown,
-            // In non-code blocks, variables can not be set.
-            referenceType: VariableReferenceType.Read,
-        },
+        variableReference,
         configuredEnvironmentName,
     );
 }
