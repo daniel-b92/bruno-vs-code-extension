@@ -1,16 +1,11 @@
 import {
-    getFirstParameterForInbuiltFunctionIfStringLiteral,
-    getInbuiltFunctionIdentifiers,
-    getInbuiltFunctionReferenceType,
     getMatchingDefinitionsFromEnvFiles,
     EnvVariableNameMatchingMode,
     Logger,
     CodeBlock,
     BrunoVariableType,
-    getInbuiltFunctionVariableType,
+    BrunoVariableReference,
 } from "@global_shared";
-import { VariableSpecificRequestData } from "../../shared";
-import { mapToVariableNameParams } from "../shared/mapToVariableNameParams";
 import { CompletionItem } from "vscode-languageserver";
 import { mapVariablesToCompletions } from "./mapVariablesToCompletions";
 import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
@@ -21,24 +16,19 @@ export function getCompletionsForCodeBlock(
     fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
     configuredEnvironment?: string,
 ): CompletionItem[] {
-    const envVariableResult =
-        getFirstParameterForInbuiltFunctionIfStringLiteral(
-            mapToVariableNameParams(
-                fullRequest,
-                getInbuiltFunctionIdentifiers(),
-            ),
-        );
+    const {
+        request: { position },
+        file: { blockContainingPosition },
+    } = fullRequest;
 
-    if (envVariableResult) {
-        const { inbuiltFunction, variable } = envVariableResult;
+    const variableReference = blockContainingPosition.variableReferences?.find(
+        ({ variableNameRange }) => variableNameRange.contains(position),
+    );
 
+    if (variableReference) {
         return getResultsForVariable(
             fullRequest,
-            {
-                variable,
-                functionType: getInbuiltFunctionReferenceType(inbuiltFunction),
-                variableType: getInbuiltFunctionVariableType(inbuiltFunction),
-            },
+            variableReference,
             configuredEnvironment,
         );
     }
@@ -48,7 +38,12 @@ export function getCompletionsForCodeBlock(
 
 function getResultsForVariable(
     fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
-    { functionType, variableType, variable }: VariableSpecificRequestData,
+    {
+        referenceType,
+        variableType,
+        variableName,
+        variableNameRange,
+    }: BrunoVariableReference,
     configuredEnvironment?: string,
 ) {
     const {
@@ -64,7 +59,7 @@ function getResultsForVariable(
     ].includes(variableType)
         ? getMatchingDefinitionsFromEnvFiles(
               collection,
-              variable.name,
+              variableName,
               EnvVariableNameMatchingMode.Ignore,
               configuredEnvironment,
           )
@@ -82,7 +77,7 @@ function getResultsForVariable(
                 file: { allBlocks, blockContainingPosition, collection },
                 logger,
             },
-            functionType,
+            referenceType,
             variableType,
         );
 
@@ -95,7 +90,7 @@ function getResultsForVariable(
         getDynamicVariableReferencesFromOtherFiles(
             filePath,
             collection,
-            functionType,
+            referenceType,
             variableType,
         );
 
@@ -117,9 +112,9 @@ function getResultsForVariable(
             fromOtherFiles: dynamicVariableReferencesFromOtherFiles,
         },
         {
-            functionType,
+            functionType: referenceType,
             variableType,
-            variable,
+            variable: { name: variableName, ...variableNameRange },
         },
     );
 }

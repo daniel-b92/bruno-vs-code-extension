@@ -144,9 +144,15 @@ function getReferencesFromOwnBlock(
                 : true),
     );
 
-    return prefiltered.filter(({ variableNameRange }) =>
-        forEarlierExecutionTimes
-            ? variableNameRange.end.isBefore(requestPosition)
-            : requestPosition.isBefore(variableNameRange.start),
+    return prefiltered.filter(
+        ({
+            variableNameRange: {
+                start: variableNameStart,
+                end: variableNameEnd,
+            },
+        }) =>
+            forEarlierExecutionTimes
+                ? variableNameEnd.line < requestPosition.line
+                : variableNameStart.line > requestPosition.line,
     );
 }
