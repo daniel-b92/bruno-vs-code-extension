@@ -78,7 +78,6 @@ function getResultsForVariable(
                 logger,
             },
             referenceType,
-            variableType,
         );
 
     if (token.isCancellationRequested) {

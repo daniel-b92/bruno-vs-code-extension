@@ -30,7 +30,6 @@ export function getHoverForBrunoVariable(
     const dynamicReferencesWithinFile = getDynamicVariableReferencesWithinFile(
         fullRequest,
         referenceType,
-        variableType,
     ).filter(
         ({ variableReference: { variableName: name } }) => name == variableName,
     );
