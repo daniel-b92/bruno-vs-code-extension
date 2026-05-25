@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Minor Improvements
+
+- Fix intellisense for Bruno variables in nested inbuilt functionś.
+
 ## [1.1.2] (2026-05-18)
 
 ### Fixes / Minor Improvements
