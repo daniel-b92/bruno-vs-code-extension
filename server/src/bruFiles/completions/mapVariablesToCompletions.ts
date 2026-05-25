@@ -29,7 +29,7 @@ export function mapVariablesToCompletions(
         requestData,
         matchingDynamicVariables,
         {
-            prefixForSortText: "a",
+            prefixForSortText: "\u00001",
             appendOnInsertion,
         },
     );
@@ -41,7 +41,7 @@ export function mapVariablesToCompletions(
             matchingDynamicVariables,
         ),
         // Display static environment variables below dynamic ones.
-        { prefixForSortText: "b", appendOnInsertion },
+        { prefixForSortText: "\u0002", appendOnInsertion },
     );
 
     return resultsForDynamicVariables.concat(resultsForStaticVariables);
