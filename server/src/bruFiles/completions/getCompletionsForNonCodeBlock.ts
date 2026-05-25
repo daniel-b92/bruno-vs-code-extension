@@ -108,11 +108,7 @@ function getNonBlockSpecificCompletions(
     }
 
     const dynamicVariableReferencesWithinFile =
-        getDynamicVariableReferencesWithinFile(
-            fullRequest,
-            functionType,
-            variableType,
-        );
+        getDynamicVariableReferencesWithinFile(fullRequest, functionType);
 
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
