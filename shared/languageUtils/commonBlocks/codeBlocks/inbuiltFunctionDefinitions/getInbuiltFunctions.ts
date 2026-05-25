@@ -60,7 +60,7 @@ export function getInbuiltFunctions(): {
                 functionName: InbuiltFunctionName.GetVar,
             },
             referenceType: VariableReferenceType.Read,
-            variableType: BrunoVariableType.Runtime,
+            variableType: BrunoVariableType.Simple,
         },
         [InbuiltFunctionName.SetVar]: {
             identifier: {
@@ -68,7 +68,7 @@ export function getInbuiltFunctions(): {
                 functionName: InbuiltFunctionName.SetVar,
             },
             referenceType: VariableReferenceType.Write,
-            variableType: BrunoVariableType.Runtime,
+            variableType: BrunoVariableType.Simple,
         },
     };
 }
