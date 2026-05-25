@@ -29,12 +29,11 @@ export function mapStaticEnvVariablesToCompletions(
                 const completionItem: CompletionItem = {
                     label: key,
                     labelDetails: {
-                        description: `${functionType === VariableReferenceType.Write ? "!Env!" : "Env"} '${environmentName}'`,
+                        description: `${shouldShowWarning(functionType) ? "!Env!" : "Env"} '${environmentName}'`,
                     },
-                    detail:
-                        functionType == VariableReferenceType.Write
-                            ? `WARNING: Will overwrite static environment variable from env '${environmentName}'`
-                            : undefined,
+                    detail: shouldShowWarning(functionType)
+                        ? `WARNING: Will overwrite static environment variable from env '${environmentName}'`
+                        : undefined,
                     kind: CompletionItemKind.Constant,
                     sortText: `${modifications?.prefixForSortText ?? ""}_${isConfiguredEnv ? "a" : "b"}_${environmentName}_${key}`,
                     textEdit: {
@@ -44,5 +43,11 @@ export function mapStaticEnvVariablesToCompletions(
                 };
                 return completionItem;
             }),
+    );
+}
+
+function shouldShowWarning(referenceType: VariableReferenceType) {
+    return [VariableReferenceType.Write, VariableReferenceType.Delete].includes(
+        referenceType,
     );
 }

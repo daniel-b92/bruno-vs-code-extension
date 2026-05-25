@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Features
+
+- Add intellisense for environment variables in `bru.deleteEnvVar` inbuilt function (Hover and Completions).
+
 ### Fixes / Minor Improvements
 
 - Fix intellisense for Bruno variables in nested inbuilt functionś.

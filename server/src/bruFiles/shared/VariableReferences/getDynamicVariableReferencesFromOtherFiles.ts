@@ -45,6 +45,7 @@ export function getDynamicVariableReferencesFromOtherFiles(
 
     switch (referenceTypeInSourceFile) {
         case VariableReferenceType.Read:
+        case VariableReferenceType.Delete:
             return getReferencesFromAncestorFoldersAndTheirDescendants(
                 sourceData.item,
                 collection,
