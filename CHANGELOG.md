@@ -1,3 +1,9 @@
+## [1.1.2] (2026-05-18)
+
+### Fixes / Minor Improvements
+
+- Remove `types` field from `compilerOptions` in auto-generated tsconfigs.
+
 ## [1.1.1] (2026-05-17)
 
 ### Fixes / Minor Improvements
