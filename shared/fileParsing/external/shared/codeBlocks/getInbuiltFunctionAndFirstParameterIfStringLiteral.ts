@@ -143,13 +143,12 @@ function searchDescendantNodesForFunctionIdentifier(
     let currentNode: Node | undefined = startNode;
     let lastMatch:
         | {
+              parent: Node;
               child: Node;
               childNodeIndex: number;
               functionIdentifier: InbuiltFunctionIdentifier;
           }
         | undefined = undefined;
-
-    const traversedNodes: Node[] = [startNode];
 
     do {
         const currentMatch = findChildNodeForFunctionIdentifier(
@@ -159,7 +158,7 @@ function searchDescendantNodesForFunctionIdentifier(
         );
 
         if (currentMatch) {
-            lastMatch = currentMatch;
+            lastMatch = { ...currentMatch, parent: currentNode };
         }
 
         const childContainingPosition = getChildNodeContainingOffset(
@@ -169,12 +168,7 @@ function searchDescendantNodesForFunctionIdentifier(
         );
 
         if (!childContainingPosition) {
-            return lastMatch != undefined
-                ? {
-                      parent: traversedNodes[traversedNodes.length - 1],
-                      ...lastMatch,
-                  }
-                : undefined;
+            return lastMatch;
         }
 
         const continueCheckingChild = functionsToSearchFor.some(
@@ -185,18 +179,12 @@ function searchDescendantNodesForFunctionIdentifier(
                         .includes(text),
                 ),
         );
-        traversedNodes.push(currentNode);
         currentNode = continueCheckingChild
             ? childContainingPosition.node
             : undefined;
     } while (currentNode != undefined);
 
-    return lastMatch != undefined
-        ? {
-              parent: traversedNodes[traversedNodes.length - 1],
-              ...lastMatch,
-          }
-        : undefined;
+    return lastMatch;
 }
 
 function findChildNodeForFunctionIdentifier(
