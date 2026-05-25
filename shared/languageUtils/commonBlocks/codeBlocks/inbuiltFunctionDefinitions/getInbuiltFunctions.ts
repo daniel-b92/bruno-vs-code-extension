@@ -46,6 +46,14 @@ export function getInbuiltFunctions(): {
             referenceType: VariableReferenceType.Write,
             variableType: BrunoVariableType.Environment,
         },
+        [InbuiltFunctionName.DeleteEnvVar]: {
+            identifier: {
+                baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,
+                functionName: InbuiltFunctionName.DeleteEnvVar,
+            },
+            referenceType: VariableReferenceType.Read,
+            variableType: BrunoVariableType.Environment,
+        },
         [InbuiltFunctionName.GetVar]: {
             identifier: {
                 baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,

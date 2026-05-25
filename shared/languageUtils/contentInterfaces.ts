@@ -17,6 +17,7 @@ export enum BrunoVariableType {
 export enum VariableReferenceType {
     Read = "Read",
     Write = "Write",
+    Delete = "Delete",
 }
 
 export interface InbuiltFunctionIdentifier {
@@ -35,6 +36,7 @@ export enum InbuiltFunctionName {
     SetGlobalEnvVar = "setGlobalEnvVar",
     GetEnvVar = "getEnvVar",
     SetEnvVar = "setEnvVar",
+    DeleteEnvVar = "deleteEnvVar",
     GetVar = "getVar",
     SetVar = "setVar",
 }
