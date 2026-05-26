@@ -28,10 +28,8 @@ export function getDynamicVariableReferencesFromOtherFiles(
     referenceTypeInSourceFile: VariableReferenceType,
     variableTypeInSourceFile: BrunoVariableType,
 ) {
-    const relevantReferenceType =
-        referenceTypeInSourceFile == VariableReferenceType.Write
-            ? VariableReferenceType.Read
-            : VariableReferenceType.Write;
+    const referenceTypesWithSearchDirections =
+        getRelevantReferenceTypesAndSearchDirections(referenceTypeInSourceFile);
     const relevantVariableTypes =
         variableTypeInSourceFile == BrunoVariableType.Unknown
             ? Object.values(BrunoVariableType)
@@ -43,38 +41,42 @@ export function getDynamicVariableReferencesFromOtherFiles(
         return [];
     }
 
-    switch (referenceTypeInSourceFile) {
-        case VariableReferenceType.Read:
-        case VariableReferenceType.Delete:
-            return getReferencesFromAncestorFoldersAndTheirDescendants(
+    return referenceTypesWithSearchDirections.flatMap(
+        ({ referenceType, searchDirection, problematicIfMostRelevantRef }) =>
+            getReferencesFromAncestorFoldersAndTheirDescendants(
                 sourceData.item,
                 collection,
-                relevantReferenceType,
-                relevantVariableTypes,
-                SearchDirection.Backwards,
-            );
-        case VariableReferenceType.Write:
-            return getReferencesFromAncestorFoldersAndTheirDescendants(
-                sourceData.item,
-                collection,
-                relevantReferenceType,
-                relevantVariableTypes,
-                SearchDirection.Forwards,
-            );
-    }
+                {
+                    referenceType,
+                    variableTypes: relevantVariableTypes,
+                    searchDirection,
+                    problematicIfMostRelevantRef,
+                },
+            ),
+    );
 }
 
 function getReferencesFromAncestorFoldersAndTheirDescendants(
     sourceItem: CollectionItem,
     collection: TypedCollection,
-    relevantReferenceType: VariableReferenceType,
-    relevantVariableTypes: BrunoVariableType[],
-    searchDirection: SearchDirection,
+    referenceSearchData: {
+        referenceType: VariableReferenceType;
+        variableTypes: BrunoVariableType[];
+        searchDirection: SearchDirection;
+        problematicIfMostRelevantRef?: boolean;
+    },
 ): EquivalentDynamicReferencesFromOtherFiles[] {
     if (collection.isRootDirectory(sourceItem.getPath())) {
-        // There are not other files within a collection that will be executed before the collection root folder script.
+        // There are no other files within a collection that will be executed before the collection root folder script.
         return [];
     }
+
+    const {
+        referenceType: relevantReferenceType,
+        variableTypes: relevantVariableTypes,
+        searchDirection,
+        problematicIfMostRelevantRef,
+    } = referenceSearchData;
 
     const referencesFromAncestors: DynamicReferenceFromOtherFile[] = [];
     const referencesFromDescendantsOfAncestors: DynamicReferenceFromOtherFile[] =
@@ -330,6 +332,52 @@ function groupReferences(
                 otherMatchingReferences: DynamicReferenceFromOtherFile[];
             }[],
         );
+}
+
+function getRelevantReferenceTypesAndSearchDirections(
+    referenceTypeInSourceFile: VariableReferenceType,
+): {
+    referenceType: VariableReferenceType;
+    searchDirection: SearchDirection;
+    problematicIfMostRelevantRef?: boolean;
+}[] {
+    switch (referenceTypeInSourceFile) {
+        case VariableReferenceType.Write:
+            return [
+                {
+                    referenceType: VariableReferenceType.Read,
+                    searchDirection: SearchDirection.Forwards,
+                },
+                {
+                    referenceType: VariableReferenceType.Delete,
+                    searchDirection: SearchDirection.Forwards,
+                },
+            ];
+        case VariableReferenceType.Read:
+            return [
+                {
+                    referenceType: VariableReferenceType.Write,
+                    searchDirection: SearchDirection.Backwards,
+                },
+                {
+                    referenceType: VariableReferenceType.Delete,
+                    searchDirection: SearchDirection.Backwards,
+                    problematicIfMostRelevantRef: true,
+                },
+            ];
+        case VariableReferenceType.Delete:
+            return [
+                {
+                    referenceType: VariableReferenceType.Write,
+                    searchDirection: SearchDirection.Backwards,
+                },
+                {
+                    referenceType: VariableReferenceType.Read,
+                    searchDirection: SearchDirection.Forwards,
+                    problematicIfMostRelevantRef: true,
+                },
+            ];
+    }
 }
 
 // The reference with the minimum indirection level is always the most relevant one.
