@@ -5,6 +5,7 @@ export interface BrunoVariableReference {
     variableNameRange: Range;
     variableType: BrunoVariableType;
     referenceType: VariableReferenceType;
+    scope?: VariableAvailabilityScope;
 }
 
 export enum BrunoVariableType {
@@ -19,6 +20,16 @@ export enum VariableReferenceType {
     Write = "Write",
     Delete = "Delete",
 }
+
+export type VariableAvailabilityScope =
+    (typeof VariableAvailabilityScopes)[keyof typeof VariableAvailabilityScopes];
+
+export const VariableAvailabilityScopes = {
+    Global: 1,
+    Collection: 2,
+    PreRequestScriptForOwnItemAndDescendants: 3,
+    PostResponseScriptForOwnItemAndDescendants: 4,
+} as const;
 
 export interface InbuiltFunctionIdentifier {
     baseIdentifier: InbuiltFunctionBaseIdentifierEnum;

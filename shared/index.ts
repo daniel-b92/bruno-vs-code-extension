@@ -159,6 +159,7 @@ export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinition
 export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctions";
 export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionReferenceType";
 export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionVariableType";
+export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionAvailabilityScope";
 
 export * from "./languageUtils/commonBlocks/settingsBlock/settingsBlockKeyEnum";
 export { getMandatoryKeys as getMandatoryKeysForSettingsBlock } from "./languageUtils/commonBlocks/settingsBlock/getMandatoryKeys";

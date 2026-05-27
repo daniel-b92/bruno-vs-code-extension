@@ -7,6 +7,7 @@ import {
     Range,
     RequestFileBlockName,
     TextDocumentHelper,
+    VariableAvailabilityScopes,
     VariableReferenceType,
 } from "../../..";
 import { ParsedBlockContent } from "../getBlockContent";
@@ -101,5 +102,9 @@ function getWriteReferences(parsedBlock: {
         variableName: key,
         variableNameRange: keyRange,
         variableType: BrunoVariableType.Simple,
+        scope:
+            blockName == RequestFileBlockName.PreRequestVars
+                ? VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
+                : VariableAvailabilityScopes.PostResponseScriptForOwnItemAndDescendants,
     }));
 }
