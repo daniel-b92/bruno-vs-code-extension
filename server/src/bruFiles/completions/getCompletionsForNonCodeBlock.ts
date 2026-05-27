@@ -1,7 +1,7 @@
 import {
     Block,
     BrunoVariableType,
-    EnvVariableNameMatchingMode,
+    VariableNameMatchingMode,
     getBlocksWithoutVariableSupport,
     getMatchingDefinitionsFromEnvFiles,
     getMatchingTextContainingPosition,
@@ -93,7 +93,7 @@ function getNonBlockSpecificCompletions(
         ? getMatchingDefinitionsFromEnvFiles(
               collection,
               variable.name,
-              EnvVariableNameMatchingMode.Ignore,
+              VariableNameMatchingMode.Ignore,
               configuredEnvironment,
           )
         : [];

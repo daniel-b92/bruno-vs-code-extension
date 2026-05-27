@@ -1,6 +1,6 @@
 import {
     getMatchingDefinitionsFromEnvFiles,
-    EnvVariableNameMatchingMode,
+    VariableNameMatchingMode,
     Logger,
     CodeBlock,
     BrunoVariableType,
@@ -60,7 +60,7 @@ function getResultsForVariable(
         ? getMatchingDefinitionsFromEnvFiles(
               collection,
               variableName,
-              EnvVariableNameMatchingMode.Ignore,
+              VariableNameMatchingMode.Ignore,
               configuredEnvironment,
           )
         : [];

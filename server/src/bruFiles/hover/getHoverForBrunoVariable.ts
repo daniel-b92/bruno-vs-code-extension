@@ -2,7 +2,7 @@ import {
     Block,
     BrunoVariableReference,
     BrunoVariableType,
-    EnvVariableNameMatchingMode,
+    VariableNameMatchingMode,
     getMatchingDefinitionsFromEnvFiles,
     Logger,
 } from "@global_shared";
@@ -78,7 +78,7 @@ export function getHoverForBrunoVariable(
         ? getMatchingDefinitionsFromEnvFiles(
               collection,
               variableName,
-              EnvVariableNameMatchingMode.Exact,
+              VariableNameMatchingMode.Exact,
               configuredEnvironmentName,
           )
         : [];
