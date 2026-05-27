@@ -2,89 +2,73 @@ import {
     Block,
     BrunoVariableReference,
     BrunoVariableType,
-    VariableNameMatchingMode,
-    getMatchingDefinitionsFromEnvFiles,
     Logger,
+    VariableNameMatchingMode,
 } from "@global_shared";
-import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
 import { Hover, MarkupContent } from "vscode-languageserver";
 import { getHoverContentForStaticEnvVariables } from "../../shared";
 import {
     BlockRequestWithAdditionalData,
     MatchingDynamicVariables,
 } from "../shared/interfaces";
-import { getDynamicVariableReferencesFromOtherFiles } from "../shared/VariableReferences/getDynamicVariableReferencesFromOtherFiles";
 import { includesMultipleDistinctVariableTypes } from "../shared/VariableReferences/includesMultipleDistinctVariableTypes";
+import { getAllVariableReferences } from "../shared/VariableReferences/getAllVariableReferences";
 
 export function getHoverForBrunoVariable(
     fullRequest: BlockRequestWithAdditionalData<Block>,
-    { variableName, referenceType, variableType }: BrunoVariableReference,
+    variableReference: BrunoVariableReference,
     configuredEnvironmentName?: string,
 ): Hover | undefined {
     const {
-        request: { token, filePath },
-        file: { collection },
+        request: { token },
         logger,
     } = fullRequest;
+    const { variableName, variableType } = variableReference;
 
-    const dynamicReferencesWithinFile = getDynamicVariableReferencesWithinFile(
+    const allRefs = getAllVariableReferences(
         fullRequest,
-        referenceType,
-    ).filter(
-        ({ variableReference: { variableName: name } }) => name == variableName,
+        variableReference,
+        configuredEnvironmentName,
+        VariableNameMatchingMode.Exact,
     );
 
+    if (!allRefs) {
+        return undefined;
+    }
+
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return undefined;
     }
 
-    const dynamicReferencesFromOtherFiles =
-        getDynamicVariableReferencesFromOtherFiles(
-            filePath,
-            collection,
-            referenceType,
-            variableType,
-        ).filter(
-            ({
-                mostRelevantReference: {
-                    reference: { variableName: n },
-                },
-            }) => n == variableName,
-        );
+    const { staticReferences, dynamicReferences } = allRefs;
 
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return undefined;
-    }
+    const dynamicRefsWithinSameFile = dynamicReferences.withinSameFile.filter(
+        ({ variableReference: { variableName: name } }) => name == variableName,
+    );
+    const dynamicRefsFromOtherFiles = dynamicReferences.fromOtherFiles.filter(
+        ({
+            mostRelevantReference: {
+                reference: { variableName: n },
+            },
+        }) => n == variableName,
+    );
 
     const hasDynamicReferences =
-        dynamicReferencesWithinFile.length > 0 ||
-        dynamicReferencesFromOtherFiles.length > 0;
+        dynamicRefsWithinSameFile.length > 0 ||
+        dynamicRefsFromOtherFiles.length > 0;
     const contentForDynamicReferences = !hasDynamicReferences
         ? undefined
         : getContentForDynamicReferences(
               {
-                  fromSameFile: dynamicReferencesWithinFile,
-                  fromOtherFiles: dynamicReferencesFromOtherFiles,
+                  fromSameFile: dynamicRefsWithinSameFile,
+                  fromOtherFiles: dynamicRefsFromOtherFiles,
               },
               variableType,
           );
 
-    const matchingStaticEnvVariableDefinitions = [
-        BrunoVariableType.Environment,
-        BrunoVariableType.Unknown,
-    ].includes(variableType)
-        ? getMatchingDefinitionsFromEnvFiles(
-              collection,
-              variableName,
-              VariableNameMatchingMode.Exact,
-              configuredEnvironmentName,
-          )
-        : [];
-    const contentForStaticReferences = getHoverContentForStaticEnvVariables(
-        matchingStaticEnvVariableDefinitions,
-    );
+    const contentForStaticReferences =
+        getHoverContentForStaticEnvVariables(staticReferences);
 
     const resultingMarkdownString: MarkupContent | undefined =
         contentForDynamicReferences && contentForStaticReferences

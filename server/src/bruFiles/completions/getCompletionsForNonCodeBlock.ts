@@ -1,9 +1,7 @@
 import {
     Block,
     BrunoVariableType,
-    VariableNameMatchingMode,
     getBlocksWithoutVariableSupport,
-    getMatchingDefinitionsFromEnvFiles,
     getMatchingTextContainingPosition,
     getPossibleMethodBlocks,
     isAuthBlock,
@@ -13,6 +11,7 @@ import {
     RequestFileBlockName,
     SettingsFileSpecificBlock,
     VariableReferenceType,
+    Range,
 } from "@global_shared";
 import { CompletionItem } from "vscode-languageserver";
 import {
@@ -22,13 +21,12 @@ import {
 } from "../../shared";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
 import { mapVariablesToCompletions } from "./mapVariablesToCompletions";
-import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
-import { getDynamicVariableReferencesFromOtherFiles } from "../shared/VariableReferences/getDynamicVariableReferencesFromOtherFiles";
 import { getMetaBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getMetaBlockContentCompletions";
 import { getMethodBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getMethodBlockContentCompletions";
 import { getAuthBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getAuthBlockContentCompletions";
 import { getSettingsBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getSettingsBlockContentCompletions";
 import { getAuthModeBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getAuthModeBlockContentCompletions";
+import { getAllVariableReferences } from "../shared/VariableReferences/getAllVariableReferences";
 
 export async function getCompletionsForNonCodeBlock(
     fullRequest: BlockRequestWithAdditionalData<Block>,
@@ -61,10 +59,10 @@ function getNonBlockSpecificCompletions(
 ) {
     const {
         request,
-        file: { blockContainingPosition, collection },
+        file: { blockContainingPosition },
         logger,
     } = fullRequest;
-    const { documentHelper, position, token, filePath } = request;
+    const { documentHelper, position } = request;
     const { line } = position;
     // In non-code blocks, variables cannot be set.
     const functionType = VariableReferenceType.Read;
@@ -86,50 +84,28 @@ function getNonBlockSpecificCompletions(
 
     const { variable, toAppendOnInsertion } = variableParsingResult;
 
-    const matchingStaticEnvVariableDefinitions = [
-        BrunoVariableType.Environment,
-        BrunoVariableType.Unknown,
-    ].includes(variableType)
-        ? getMatchingDefinitionsFromEnvFiles(
-              collection,
-              variable.name,
-              VariableNameMatchingMode.Ignore,
-              configuredEnvironment,
-          )
-        : [];
-
-    if (matchingStaticEnvVariableDefinitions.length == 0) {
-        return [];
-    }
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return [];
-    }
-
-    const dynamicVariableReferencesWithinFile =
-        getDynamicVariableReferencesWithinFile(fullRequest, functionType);
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return [];
-    }
-
-    const dynamicVariableReferencesFromOtherFiles =
-        getDynamicVariableReferencesFromOtherFiles(
-            filePath,
-            collection,
-            functionType,
+    const allRefs = getAllVariableReferences(
+        fullRequest,
+        {
+            referenceType: functionType,
+            variableName: variable.name,
+            variableNameRange: new Range(variable.start, variable.end),
             variableType,
-        );
+        },
+        configuredEnvironment,
+    );
 
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
+    if (!allRefs) {
         return [];
     }
+
+    const {
+        staticReferences,
+        dynamicReferences: { withinSameFile, fromOtherFiles },
+    } = allRefs;
 
     return mapVariablesToCompletions(
-        matchingStaticEnvVariableDefinitions.map(
+        staticReferences.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({
                 environmentFile: file,
                 matchingVariableKeys: matchingVariables.map(({ key }) => key),
@@ -137,8 +113,8 @@ function getNonBlockSpecificCompletions(
             }),
         ),
         {
-            fromSameFile: dynamicVariableReferencesWithinFile,
-            fromOtherFiles: dynamicVariableReferencesFromOtherFiles,
+            fromSameFile: withinSameFile,
+            fromOtherFiles,
         },
         {
             variable,
