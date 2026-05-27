@@ -90,7 +90,7 @@ export * from "./languageUtils/requestFiles/paramsBlocks/isParamsBlock";
 // language utils - environment files
 export * from "./languageUtils/environmentFiles/environmentFileBlockNameEnum";
 export { isVarsBlock as isVarsBlockInEnvironmentFile } from "./languageUtils/environmentFiles/isVarsBlock";
-export * from "./languageUtils/environmentFiles/getMatchingDefinitionsFromEnvFiles";
+export * from "./languageUtils/commonBlocks/generic/variables/getMatchingDefinitionsFromEnvFiles";
 
 // language utils - common blocks
 export * from "./languageUtils/commonBlocks/getMethodBlockBodyFieldValueForBodyName";

@@ -1,4 +1,4 @@
-import { Collection, VariableNameMatchingMode } from "../..";
+import { Collection, VariableNameMatchingMode } from "../../../..";
 
 export function getMatchingDefinitionsFromEnvFiles(
     collection: Collection<unknown>,
