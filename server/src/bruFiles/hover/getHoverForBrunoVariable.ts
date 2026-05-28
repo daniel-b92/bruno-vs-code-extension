@@ -9,6 +9,7 @@ import { Hover, MarkupContent } from "vscode-languageserver";
 import { getHoverContentForStaticEnvVariables } from "../../shared";
 import {
     BlockRequestWithAdditionalData,
+    EquivalentVariableReferencesFromOtherFiles,
     MatchingDynamicVariables,
 } from "../shared/interfaces";
 import { includesMultipleDistinctVariableTypes } from "../shared/VariableReferences/includesMultipleDistinctVariableTypes";
@@ -42,10 +43,17 @@ export function getHoverForBrunoVariable(
     }
 
     const {
-        staticReferences: { fromEnvironmentFiles },
+        staticReferences: { fromEnvironmentFiles, fromScriptVariableBlocks },
         dynamicReferences,
     } = allRefs;
 
+    const staticRefsForScriptVariables = fromScriptVariableBlocks.filter(
+        ({
+            mostRelevantReference: {
+                reference: { variableName: n },
+            },
+        }) => n == variableName,
+    );
     const dynamicRefsWithinSameFile = dynamicReferences.withinSameFile.filter(
         ({ variableReference: { variableName: name } }) => name == variableName,
     );
@@ -70,8 +78,12 @@ export function getHoverForBrunoVariable(
               variableType,
           );
 
-    const contentForStaticReferences =
-        getHoverContentForStaticEnvVariables(fromEnvironmentFiles);
+    const contentForStaticReferences = (
+        getHoverContentForStaticEnvVariables(fromEnvironmentFiles) ?? ""
+    ).concat(
+        getContentForStaticScriptVarsReferences(staticRefsForScriptVariables) ??
+            "",
+    );
 
     const resultingMarkdownString: MarkupContent | undefined =
         contentForDynamicReferences && contentForStaticReferences
@@ -95,6 +107,40 @@ export function getHoverForBrunoVariable(
     return resultingMarkdownString
         ? { contents: resultingMarkdownString }
         : undefined;
+}
+
+function getContentForStaticScriptVarsReferences(
+    references: EquivalentVariableReferencesFromOtherFiles[],
+) {
+    if (references.length == 0) {
+        return undefined;
+    }
+
+    const lineBreak = getLineBreak();
+    const tableHeader = "| file | reference type |".concat(
+        lineBreak,
+        "| :--------------- | ----------------: |",
+        lineBreak,
+    );
+
+    return "**Static scripting variable references:**".concat(
+        lineBreak,
+        tableHeader,
+        references
+            .map(
+                ({
+                    mostRelevantReference: {
+                        path: { relativeToSourceFile },
+                        reference: { referenceType },
+                    },
+                    otherMatchingReferences,
+                }) =>
+                    `| ${relativeToSourceFile.concat(otherMatchingReferences.length > 0 ? ` [+ ${otherMatchingReferences.length} others]` : "")} | ${referenceType} |`,
+            )
+            .join(lineBreak),
+        lineBreak,
+        lineBreak,
+    );
 }
 
 function getContentForDynamicReferences(
