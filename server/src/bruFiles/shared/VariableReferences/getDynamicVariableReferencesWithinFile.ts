@@ -5,6 +5,7 @@ import {
     VariableReferenceType,
 } from "@global_shared";
 import { BlockRequestWithAdditionalData } from "../interfaces";
+import { isDynamicVariableReference } from "./isDynamicVariableReference";
 
 export function getDynamicVariableReferencesWithinFile(
     {
@@ -44,7 +45,8 @@ export function getDynamicVariableReferencesWithinFile(
             refs && refs.length > 0
                 ? refs
                       .filter(
-                          ({ referenceType }) =>
+                          ({ referenceType, scope }) =>
+                              isDynamicVariableReference(scope) &&
                               referenceType == relevantReferenceType,
                       )
                       .map((ref) => ({

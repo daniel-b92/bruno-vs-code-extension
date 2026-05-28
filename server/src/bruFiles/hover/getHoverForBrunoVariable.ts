@@ -41,7 +41,10 @@ export function getHoverForBrunoVariable(
         return undefined;
     }
 
-    const { staticReferences, dynamicReferences } = allRefs;
+    const {
+        staticReferences: { fromEnvironmentFiles },
+        dynamicReferences,
+    } = allRefs;
 
     const dynamicRefsWithinSameFile = dynamicReferences.withinSameFile.filter(
         ({ variableReference: { variableName: name } }) => name == variableName,
@@ -68,7 +71,7 @@ export function getHoverForBrunoVariable(
           );
 
     const contentForStaticReferences =
-        getHoverContentForStaticEnvVariables(staticReferences);
+        getHoverContentForStaticEnvVariables(fromEnvironmentFiles);
 
     const resultingMarkdownString: MarkupContent | undefined =
         contentForDynamicReferences && contentForStaticReferences

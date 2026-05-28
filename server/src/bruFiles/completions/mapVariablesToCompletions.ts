@@ -11,7 +11,7 @@ import {
     TextEdit,
 } from "vscode-languageserver";
 import {
-    EquivalentDynamicReferencesFromOtherFiles,
+    EquivalentVariableReferencesFromOtherFiles,
     MatchingDynamicVariables,
 } from "../shared/interfaces";
 
@@ -95,7 +95,7 @@ function getCompletionForRefsWithinOwnFile(
         variableName: string;
         referenceType: VariableReferenceType;
         detailsForOwnFileRefs: ReferenceFromOwnFileDetails;
-        referencesFromOtherFiles?: EquivalentDynamicReferencesFromOtherFiles;
+        referencesFromOtherFiles?: EquivalentVariableReferencesFromOtherFiles;
     },
     modifications: {
         prefixForSortText: string;
@@ -156,7 +156,7 @@ function getCompletionForRefsFromOnlyOtherFiles(
     groupedReferences: {
         variableName: string;
         referenceType: VariableReferenceType;
-        referencesFromOtherFiles: EquivalentDynamicReferencesFromOtherFiles;
+        referencesFromOtherFiles: EquivalentVariableReferencesFromOtherFiles;
     },
     modifications: {
         prefixForSortText: string;
