@@ -3,7 +3,10 @@ import {
     BrunoVariableReference,
     BrunoVariableType,
     Logger,
+    RequestFileBlockName,
+    VariableAvailabilityScopes,
     VariableNameMatchingMode,
+    VariableReferenceType,
 } from "@global_shared";
 import { Hover, MarkupContent } from "vscode-languageserver";
 import { getHoverContentForStaticEnvVariables } from "../../shared";
@@ -24,7 +27,7 @@ export function getHoverForBrunoVariable(
         request: { token },
         logger,
     } = fullRequest;
-    const { variableName, variableType } = variableReference;
+    const { variableName, variableType, referenceType } = variableReference;
 
     const allRefs = getAllVariableReferences(
         fullRequest,
@@ -81,8 +84,10 @@ export function getHoverForBrunoVariable(
     const contentForStaticReferences = (
         getHoverContentForStaticEnvVariables(fromEnvironmentFiles) ?? ""
     ).concat(
-        getContentForStaticScriptVarsReferences(staticRefsForScriptVariables) ??
-            "",
+        getContentForStaticScriptVarsReferences(
+            staticRefsForScriptVariables,
+            referenceType,
+        ) ?? "",
     );
 
     const resultingMarkdownString: MarkupContent | undefined =
@@ -111,19 +116,24 @@ export function getHoverForBrunoVariable(
 
 function getContentForStaticScriptVarsReferences(
     references: EquivalentVariableReferencesFromOtherFiles[],
+    sourceReferenceType: VariableReferenceType,
 ) {
     if (references.length == 0) {
         return undefined;
     }
 
     const lineBreak = getLineBreak();
-    const tableHeader = "| file | reference type |".concat(
+    const tableHeader = "| file | block |".concat(
         lineBreak,
         "| :--------------- | ----------------: |",
         lineBreak,
     );
 
-    return "**Static scripting variable references:**".concat(
+    return "**Static scripting variable references".concat(
+        sourceReferenceType == VariableReferenceType.Write
+            ? " (will be overwritten)"
+            : "",
+        ":**",
         lineBreak,
         tableHeader,
         references
@@ -131,11 +141,23 @@ function getContentForStaticScriptVarsReferences(
                 ({
                     mostRelevantReference: {
                         path: { relativeToSourceFile },
-                        reference: { referenceType },
+                        reference: { scope },
                     },
                     otherMatchingReferences,
-                }) =>
-                    `| ${relativeToSourceFile.concat(otherMatchingReferences.length > 0 ? ` [+ ${otherMatchingReferences.length} others]` : "")} | ${referenceType} |`,
+                }) => {
+                    const textForFileColumn = relativeToSourceFile.concat(
+                        otherMatchingReferences.length > 0
+                            ? ` [+ ${otherMatchingReferences.length} others]`
+                            : "",
+                    );
+                    const textForBlockColumn =
+                        scope ==
+                        VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
+                            ? RequestFileBlockName.PreRequestVars
+                            : RequestFileBlockName.PostResponseVars;
+
+                    return `| ${textForFileColumn} | ${textForBlockColumn} |`;
+                },
             )
             .join(lineBreak),
         lineBreak,
