@@ -10,12 +10,22 @@ get {
   auth: none
 }
 
+vars:pre-request {
+  pre-request1: asdsdsd
+}
+
+vars:post-response {
+  post-response1: asdsdsdtt
+}
+
 script:pre-request {
   bru.setEnvVar("blo", "asas");
+  const var = bru.getVar("pre-request1");
 }
 
 script:post-response {
   bru.setVar("exe", "asasas");
+  const var = bru.getVar("post-response1");
 }
 
 tests {
