@@ -15,17 +15,17 @@ vars:pre-request {
 }
 
 vars:post-response {
-  post-response1: asdsdsdtt
+  exe: asdsdsdtt
 }
 
 script:pre-request {
   bru.setEnvVar("blo", "asas");
-  const var = bru.getVar("pre-request1");
+  const vars = bru.getVar("pre-request1");
+  bru.setVar("exe", "asasas");
 }
 
 script:post-response {
-  bru.setVar("exe", "asasas");
-  const var = bru.getVar("post-response1");
+  const vars = bru.getVar("exe");
 }
 
 tests {
