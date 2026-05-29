@@ -105,16 +105,20 @@ function getNonBlockSpecificCompletions(
     } = allRefs;
 
     return mapVariablesToCompletions(
-        fromEnvironmentFiles.map(
-            ({ file, matchingVariables, isConfiguredEnv }) => ({
-                environmentFile: file,
-                matchingVariableKeys: matchingVariables.map(({ key }) => key),
-                isConfiguredEnv,
-            }),
-        ),
         {
-            fromSameFile: withinSameFile,
-            fromOtherFiles,
+            staticEnvVariables: fromEnvironmentFiles.map(
+                ({ file, matchingVariables, isConfiguredEnv }) => ({
+                    environmentFile: file,
+                    matchingVariableKeys: matchingVariables.map(
+                        ({ key }) => key,
+                    ),
+                    isConfiguredEnv,
+                }),
+            ),
+            dynamicVariables: {
+                fromSameFile: withinSameFile,
+                fromOtherFiles,
+            },
         },
         {
             variable,

@@ -46,21 +46,26 @@ function getResultsForVariable(
     }
 
     const {
-        staticReferences: { fromEnvironmentFiles },
+        staticReferences: { fromEnvironmentFiles, fromScriptVariableBlocks },
         dynamicReferences: { withinSameFile, fromOtherFiles },
     } = allRefs;
 
     return mapVariablesToCompletions(
-        fromEnvironmentFiles.map(
-            ({ file, matchingVariables, isConfiguredEnv }) => ({
-                environmentFile: file,
-                matchingVariableKeys: matchingVariables.map(({ key }) => key),
-                isConfiguredEnv,
-            }),
-        ),
         {
-            fromSameFile: withinSameFile,
-            fromOtherFiles,
+            staticEnvVariables: fromEnvironmentFiles.map(
+                ({ file, matchingVariables, isConfiguredEnv }) => ({
+                    environmentFile: file,
+                    matchingVariableKeys: matchingVariables.map(
+                        ({ key }) => key,
+                    ),
+                    isConfiguredEnv,
+                }),
+            ),
+            staticScriptVariables: fromScriptVariableBlocks,
+            dynamicVariables: {
+                fromSameFile: withinSameFile,
+                fromOtherFiles,
+            },
         },
         {
             functionType: referenceType,

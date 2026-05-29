@@ -1,4 +1,10 @@
-import { VariableReferenceType, Range, Position } from "@global_shared";
+import {
+    VariableReferenceType,
+    Range,
+    Position,
+    VariableAvailabilityScopes,
+    RequestFileBlockName,
+} from "@global_shared";
 import {
     VariableSpecificRequestData,
     groupReferencesByName,
@@ -16,35 +22,107 @@ import {
 } from "../shared/interfaces";
 
 export function mapVariablesToCompletions(
-    matchingStaticEnvVariables: {
-        environmentFile: string;
-        matchingVariableKeys: string[];
-        isConfiguredEnv: boolean;
-    }[],
-    matchingDynamicVariables: MatchingDynamicVariables,
+    matchingReferences: {
+        staticEnvVariables: {
+            environmentFile: string;
+            matchingVariableKeys: string[];
+            isConfiguredEnv: boolean;
+        }[];
+        staticScriptVariables?: EquivalentVariableReferencesFromOtherFiles[];
+        dynamicVariables: MatchingDynamicVariables;
+    },
     requestData: VariableSpecificRequestData,
     appendOnInsertion?: string,
 ) {
+    const { staticEnvVariables, staticScriptVariables, dynamicVariables } =
+        matchingReferences;
     const resultsForDynamicVariables = mapDynamicVariables(
         requestData,
-        matchingDynamicVariables,
+        dynamicVariables,
         {
             prefixForSortText: "a",
             appendOnInsertion,
         },
     );
 
-    const resultsForStaticVariables = mapStaticEnvVariablesToCompletions(
+    const resultsForStaticScriptVariables = staticScriptVariables
+        ? mapStaticScriptVariables(requestData, staticScriptVariables, {
+              // Display static script variables below dynamic ones, but above static environment variables.
+              prefixForSortText: "b",
+              appendOnInsertion,
+          })
+        : [];
+
+    const resultsForStaticEnvVariables = mapStaticEnvVariablesToCompletions(
         requestData,
         filterOutStaticVariablesWithDynamicReferences(
-            matchingStaticEnvVariables,
-            matchingDynamicVariables,
+            staticEnvVariables,
+            dynamicVariables,
         ),
-        // Display static environment variables below dynamic ones.
-        { prefixForSortText: "b", appendOnInsertion },
+        // Display static environment variables below dynamic ones and static script variables.
+        { prefixForSortText: "c", appendOnInsertion },
     );
 
-    return resultsForDynamicVariables.concat(resultsForStaticVariables);
+    return resultsForDynamicVariables.concat(
+        resultsForStaticScriptVariables,
+        resultsForStaticEnvVariables,
+    );
+}
+
+function mapStaticScriptVariables(
+    {
+        variable: { start, end },
+        functionType: sourceReferenceType,
+    }: VariableSpecificRequestData,
+    allReferences: EquivalentVariableReferencesFromOtherFiles[],
+    modifications: {
+        prefixForSortText: string;
+        appendOnInsertion?: string;
+    },
+): CompletionItem[] {
+    return allReferences.map(
+        ({
+            mostRelevantReference: {
+                path: { relativeToSourceFile: relativePath },
+                indirectionLevel,
+                reference: { variableName, scope },
+            },
+        }) => {
+            const varsBlockName =
+                scope ==
+                VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
+                    ? RequestFileBlockName.PreRequestVars
+                    : RequestFileBlockName.PostResponseVars;
+
+            return {
+                label: variableName,
+                labelDetails: {
+                    description:
+                        relativePath == "."
+                            ? `Block ${varsBlockName}`
+                            : relativePath,
+                },
+                kind: CompletionItemKind.Constant,
+                detail: [
+                    VariableReferenceType.Write,
+                    VariableReferenceType.Delete,
+                ].includes(sourceReferenceType)
+                    ? `WARNING: Will overwrite static script variable.`
+                    : undefined,
+                sortText: getSortText(
+                    modifications.prefixForSortText,
+                    variableName,
+                    indirectionLevel,
+                ),
+                textEdit: getTextEdit(
+                    variableName,
+                    start,
+                    end,
+                    modifications.appendOnInsertion,
+                ),
+            };
+        },
+    );
 }
 
 function mapDynamicVariables(
@@ -202,20 +280,10 @@ function filterOutStaticVariablesWithDynamicReferences(
         matchingVariableKeys: string[];
         isConfiguredEnv: boolean;
     }[],
-    matchingDynamicEnvVariables: MatchingDynamicVariables,
+    matchingDynamicVariables: MatchingDynamicVariables,
 ) {
     const allVariableNamesFromDynamicReferences =
-        matchingDynamicEnvVariables.fromSameFile
-            .map(({ variableReference: { variableName } }) => variableName)
-            .concat(
-                matchingDynamicEnvVariables.fromOtherFiles.map(
-                    ({
-                        mostRelevantReference: {
-                            reference: { variableName },
-                        },
-                    }) => variableName,
-                ),
-            );
+        getAllVariableNamesFromDynamicReferences(matchingDynamicVariables);
 
     return matchingStaticEnvVariables.map(
         ({
@@ -230,6 +298,22 @@ function filterOutStaticVariablesWithDynamicReferences(
             ),
         }),
     );
+}
+
+function getAllVariableNamesFromDynamicReferences(
+    matchingDynamicEnvVariables: MatchingDynamicVariables,
+) {
+    return matchingDynamicEnvVariables.fromSameFile
+        .map(({ variableReference: { variableName } }) => variableName)
+        .concat(
+            matchingDynamicEnvVariables.fromOtherFiles.map(
+                ({
+                    mostRelevantReference: {
+                        reference: { variableName },
+                    },
+                }) => variableName,
+            ),
+        );
 }
 
 function getKind(referenceType: VariableReferenceType) {
