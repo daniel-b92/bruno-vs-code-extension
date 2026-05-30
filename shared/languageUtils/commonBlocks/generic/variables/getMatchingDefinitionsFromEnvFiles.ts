@@ -1,7 +1,7 @@
-import { Collection, VariableNameMatchingMode } from "../../../..";
+import { ReadyOnlyCollection, VariableNameMatchingMode } from "../../../..";
 
 export function getMatchingDefinitionsFromEnvFiles(
-    collection: Collection<unknown>,
+    collection: ReadyOnlyCollection<unknown>,
     variableName: string,
     matchingMode: VariableNameMatchingMode,
     environmentName?: string,

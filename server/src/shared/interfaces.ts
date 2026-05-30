@@ -1,5 +1,4 @@
 import {
-    Collection,
     CollectionData,
     CollectionItemProvider,
     Position,
@@ -8,13 +7,14 @@ import {
     VariableReferenceType,
     BrunoVariableReference,
     BrunoVariableType,
+    ReadyOnlyCollection,
 } from "@global_shared";
 import { CancellationToken } from "vscode-languageserver";
 
 export type TypedCollectionItemProvider =
     CollectionItemProvider<AdditionalCollectionData>;
 
-export type TypedCollection = Collection<AdditionalCollectionData>;
+export type TypedCollection = ReadyOnlyCollection<AdditionalCollectionData>;
 
 export type TypedCollectionData = CollectionData<AdditionalCollectionData>;
 

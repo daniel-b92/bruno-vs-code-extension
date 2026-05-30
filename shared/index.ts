@@ -30,6 +30,7 @@ export * from "./fileSystemCache/external/isBrunoFileType";
 export * from "./fileSystemCache/external/getDistinctTagsForCollection";
 export * from "./fileSystemCache/external/getPathsToIgnoreForCollections";
 export * from "./fileSystemCache/external/getExistingRequestFileTags";
+export * from "./fileSystemCache/external/interfaces";
 
 // file parsing
 export * from "./fileParsing/external/parseBruFile";
