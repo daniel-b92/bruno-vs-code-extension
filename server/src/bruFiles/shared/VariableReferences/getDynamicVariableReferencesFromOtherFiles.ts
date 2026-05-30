@@ -17,6 +17,7 @@ import {
 } from "../interfaces";
 import { areReferencesEquivalentForLanguageFeatures } from "./areReferencesEquivalentForLanguageFeatures";
 import { isDynamicVariableReference } from "./isDynamicVariableReference";
+import { getRelevantTypesForDynamicReferences } from "./getRelevantTypesForDynamicReferences";
 
 enum SearchDirection {
     Forwards = 1,
@@ -29,14 +30,13 @@ export function getDynamicVariableReferencesFromOtherFiles(
     referenceTypeInSourceFile: VariableReferenceType,
     variableTypeInSourceFile: BrunoVariableType,
 ) {
-    const relevantReferenceType =
-        referenceTypeInSourceFile == VariableReferenceType.Write
-            ? VariableReferenceType.Read
-            : VariableReferenceType.Write;
-    const relevantVariableTypes =
-        variableTypeInSourceFile == BrunoVariableType.Unknown
-            ? Object.values(BrunoVariableType)
-            : [variableTypeInSourceFile, BrunoVariableType.Unknown];
+    const {
+        referenceType: relevantReferenceType,
+        variableTypes: relevantVariableTypes,
+    } = getRelevantTypesForDynamicReferences(
+        referenceTypeInSourceFile,
+        variableTypeInSourceFile,
+    );
 
     const sourceData = collection.getStoredDataForPath(filePath);
 

@@ -20,7 +20,7 @@ export function getAllVariableReferences(
     matchingModeForEnvVars = VariableNameMatchingMode.Ignore,
 ) {
     const {
-        file: { allBlocks, blockContainingPosition, collection },
+        file: { blockContainingPosition, collection },
         request: baseRequest,
         logger,
     } = fullRequest;
@@ -66,12 +66,9 @@ export function getAllVariableReferences(
 
     const dynamicVariableReferencesWithinFile =
         getDynamicVariableReferencesWithinFile(
-            {
-                request: baseRequest,
-                file: { allBlocks, blockContainingPosition, collection },
-                logger,
-            },
+            fullRequest,
             referenceType,
+            variableType,
         );
 
     if (token.isCancellationRequested) {

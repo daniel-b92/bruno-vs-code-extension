@@ -1,11 +1,13 @@
 import {
     Block,
+    BrunoVariableType,
     getBlocksWithEarlierExecutionGroups,
     getBlocksWithLaterExecutionGroups,
     VariableReferenceType,
 } from "@global_shared";
 import { BlockRequestWithAdditionalData } from "../interfaces";
 import { isDynamicVariableReference } from "./isDynamicVariableReference";
+import { getRelevantTypesForDynamicReferences } from "./getRelevantTypesForDynamicReferences";
 
 export function getDynamicVariableReferencesWithinFile(
     {
@@ -13,15 +15,19 @@ export function getDynamicVariableReferencesWithinFile(
         file: { allBlocks, blockContainingPosition },
         logger,
     }: BlockRequestWithAdditionalData<Block>,
-    referenceType: VariableReferenceType,
+    referenceTypeInSourceFile: VariableReferenceType,
+    variableTypeInSourceFile: BrunoVariableType,
 ) {
-    const relevantReferenceType =
-        referenceType == VariableReferenceType.Write
-            ? VariableReferenceType.Read
-            : VariableReferenceType.Write;
+    const {
+        referenceType: relevantReferenceType,
+        variableTypes: relevantVariableTypes,
+    } = getRelevantTypesForDynamicReferences(
+        referenceTypeInSourceFile,
+        variableTypeInSourceFile,
+    );
 
     const { otherRelevantBlocks } =
-        referenceType == VariableReferenceType.Read
+        referenceTypeInSourceFile == VariableReferenceType.Read
             ? getReferencesForEarlierExecutionTimes(
                   blockContainingPosition,
                   allBlocks,
@@ -45,9 +51,10 @@ export function getDynamicVariableReferencesWithinFile(
             refs && refs.length > 0
                 ? refs
                       .filter(
-                          ({ referenceType, scope }) =>
+                          ({ referenceType, variableType, scope }) =>
                               isDynamicVariableReference(scope) &&
-                              referenceType == relevantReferenceType,
+                              referenceType == relevantReferenceType &&
+                              relevantVariableTypes.includes(variableType),
                       )
                       .map((ref) => ({
                           blockName,
