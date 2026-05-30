@@ -2,25 +2,28 @@ import {
     normalizePath,
     BrunoRequestFile,
     isRequestFile,
-    Collection,
     CollectionItemProvider,
+    ReadyOnlyCollection,
 } from "../..";
 
 export interface TagOccurences<T> {
     tag: string;
     pathsInOwnCollection: string[];
-    inOtherCollections: { collection: Collection<T>; paths: string[] }[];
+    inOtherCollections: {
+        collection: ReadyOnlyCollection<T>;
+        paths: string[];
+    }[];
 }
 
 interface ItemIdentifier<T> {
-    collection: Collection<T>;
+    collection: ReadyOnlyCollection<T>;
     path: string;
 }
 
 export function getExistingRequestFileTags<T>(
     itemProvider: CollectionItemProvider<T>,
     forOwnCollection: {
-        collection: Collection<T>;
+        collection: ReadyOnlyCollection<T>;
         pathToIgnore: string;
     },
 ): TagOccurences<T>[] {
@@ -65,7 +68,7 @@ export function getExistingRequestFileTags<T>(
 }
 
 function getTagsForCollection<T>(
-    collection: Collection<T>,
+    collection: ReadyOnlyCollection<T>,
     pathToIgnore?: string,
 ) {
     return collection
@@ -145,11 +148,14 @@ function groupByCollection<T>(items: ItemIdentifier<T>[]) {
                     : val,
             );
         },
-        [] as { collection: Collection<T>; paths: string[] }[],
+        [] as { collection: ReadyOnlyCollection<T>; paths: string[] }[],
     );
 }
 
-function hasBaseDirectory<T>(collection: Collection<T>, baseDirectory: string) {
+function hasBaseDirectory<T>(
+    collection: ReadyOnlyCollection<T>,
+    baseDirectory: string,
+) {
     return (
         normalizePath(collection.getRootDirectory()) ==
         normalizePath(baseDirectory)
