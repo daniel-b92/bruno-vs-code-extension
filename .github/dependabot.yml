@@ -5,10 +5,10 @@
 
 version: 2
 updates:
-  - package-ecosystem: "npm" # See documentation for possible values
-    directories:
-      - "**/*"
-    schedule:
-      interval: "daily"
-    cooldown: 
-      default-days: 7
+    - package-ecosystem: "npm" # See documentation for possible values
+      directories:
+          - "**/*"
+      schedule:
+          interval: "weekly"
+      cooldown:
+          default-days: 7
