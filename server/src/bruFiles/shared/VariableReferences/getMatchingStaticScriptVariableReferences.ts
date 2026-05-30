@@ -3,6 +3,7 @@ import {
     CodeBlock,
     normalizePath,
     RequestFileBlockName,
+    VariableAvailabilityScope,
     VariableAvailabilityScopes,
     VariableReferenceType,
 } from "@global_shared";
@@ -16,7 +17,7 @@ import { areReferencesEquivalentForLanguageFeatures } from "./areReferencesEquiv
 import { isDynamicVariableReference } from "./isDynamicVariableReference";
 
 export function getMatchingStaticScriptVariableReferences({
-    file: { blockContainingPosition, collection },
+    file: { allBlocks, blockContainingPosition, collection },
     request: { filePath },
 }: BlockRequestWithAdditionalData<CodeBlock>): EquivalentVariableReferencesFromOtherFiles[] {
     const relevantScope =
@@ -24,23 +25,26 @@ export function getMatchingStaticScriptVariableReferences({
             ? VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
             : VariableAvailabilityScopes.PostResponseScriptForOwnItemAndDescendants;
 
-    const relevantReferences = collection
+    // Avoid using cached data for determining references within own file because unsaved changes would be ignored.
+    const allReferencesFromSameFile = allBlocks.flatMap(
+        ({ variableReferences }) => variableReferences ?? [],
+    );
+
+    const relevantReferencesFromOtherFiles = collection
         .getCommonAncestorData(filePath)
-        .filter(({ additionalData }) => additionalData != undefined)
+        .filter(
+            ({ item, additionalData }) =>
+                additionalData != undefined &&
+                normalizePath(item.getPath()) != normalizePath(filePath),
+        )
         .map(({ item, additionalData }) => ({
             path: {
                 absolute: item.getPath(),
-                relativeToSourceFile:
-                    normalizePath(item.getPath()) == normalizePath(filePath)
-                        ? // For some reason, the 'relative' function returns an empty string if both parameters are the same path.
-                          "."
-                        : relative(filePath, item.getPath()),
+                relativeToSourceFile: relative(filePath, item.getPath()),
             },
-            references: (additionalData as BrunoVariableReference[]).filter(
-                ({ referenceType, scope }) =>
-                    !isDynamicVariableReference(scope) &&
-                    referenceType == VariableReferenceType.Write &&
-                    scope == relevantScope,
+            references: getRelevantReferences(
+                additionalData as BrunoVariableReference[],
+                relevantScope,
             ),
         }))
         // Sort paths descending by length
@@ -48,9 +52,31 @@ export function getMatchingStaticScriptVariableReferences({
             ({ path: { absolute: path1 } }, { path: { absolute: path2 } }) =>
                 path2.length - path1.length,
         )
-        .map((data, index) => ({ ...data, indirectionLevel: index }));
+        // indirection level starts with 1 because only references from ancestor items are counted here.
+        .map((data, index) => ({ ...data, indirectionLevel: index + 1 }));
 
-    return groupReferences(relevantReferences);
+    return groupReferences(
+        relevantReferencesFromOtherFiles.concat({
+            path: { absolute: filePath, relativeToSourceFile: "." },
+            indirectionLevel: 0,
+            references: getRelevantReferences(
+                allReferencesFromSameFile,
+                relevantScope,
+            ),
+        }),
+    );
+}
+
+function getRelevantReferences(
+    refs: BrunoVariableReference[],
+    relevantScope: VariableAvailabilityScope,
+) {
+    return refs.filter(
+        ({ referenceType, scope }) =>
+            !isDynamicVariableReference(scope) &&
+            referenceType == VariableReferenceType.Write &&
+            scope == relevantScope,
+    );
 }
 
 function groupReferences(
