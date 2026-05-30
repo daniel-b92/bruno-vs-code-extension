@@ -2,11 +2,11 @@ import {
     parseSequenceFromMetaBlock,
     BrunoFileType,
     getItemType,
-    Collection,
+    ReadyOnlyCollection,
 } from "../..";
 
 export async function getSequenceForFile<T>(
-    collection: Collection<T>,
+    collection: ReadyOnlyCollection<T>,
     filePath: string,
 ) {
     if (

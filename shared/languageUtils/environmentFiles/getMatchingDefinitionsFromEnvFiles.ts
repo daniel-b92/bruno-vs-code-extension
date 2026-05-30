@@ -1,4 +1,4 @@
-import { Collection } from "../..";
+import { ReadyOnlyCollection } from "../..";
 
 export enum EnvVariableNameMatchingMode {
     Exact = 1,
@@ -6,7 +6,7 @@ export enum EnvVariableNameMatchingMode {
 }
 
 export function getMatchingDefinitionsFromEnvFiles(
-    collection: Collection<unknown>,
+    collection: ReadyOnlyCollection<unknown>,
     name: string,
     matchingMode: EnvVariableNameMatchingMode,
     environmentName?: string,

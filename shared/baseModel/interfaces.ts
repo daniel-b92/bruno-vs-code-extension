@@ -1,4 +1,17 @@
-import { Block, TextOutsideOfBlocks } from "..";
+import { Block, BrunoEnvironmentFile, TextOutsideOfBlocks } from "..";
+
+export interface ReadyOnlyCollection<T> {
+    getRootDirectory: () => string;
+    isRootDirectory: (path: string) => boolean;
+    getCommonAncestorData: (...paths: string[]) => CollectionData<T>[];
+    getStoredDataForPath: (path: string) => CollectionData<T> | undefined;
+    getAllStoredDataForCollection: () => CollectionData<T>[];
+    getEnvironments: () => {
+        item: BrunoEnvironmentFile;
+        environmentName: string;
+    }[];
+    getAdditionalContextRoots: () => string[];
+}
 
 export interface CollectionItemWithSequence extends CollectionItem {
     getSequence: () => number | undefined;
