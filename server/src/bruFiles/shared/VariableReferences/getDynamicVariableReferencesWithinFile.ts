@@ -6,8 +6,7 @@ import {
     VariableReferenceType,
 } from "@global_shared";
 import { BlockRequestWithAdditionalData } from "../interfaces";
-import { isDynamicVariableReference } from "./isDynamicVariableReference";
-import { getRelevantTypesForDynamicReferences } from "./getRelevantTypesForDynamicReferences";
+import { filterDynamicReferences } from "./filterDynamicReferences";
 
 export function getDynamicVariableReferencesWithinFile(
     {
@@ -18,14 +17,6 @@ export function getDynamicVariableReferencesWithinFile(
     referenceTypeInSourceFile: VariableReferenceType,
     variableTypeInSourceFile: BrunoVariableType,
 ) {
-    const {
-        referenceType: relevantReferenceType,
-        variableTypes: relevantVariableTypes,
-    } = getRelevantTypesForDynamicReferences(
-        referenceTypeInSourceFile,
-        variableTypeInSourceFile,
-    );
-
     const { otherRelevantBlocks } =
         referenceTypeInSourceFile == VariableReferenceType.Read
             ? getReferencesForEarlierExecutionTimes(
@@ -49,17 +40,14 @@ export function getDynamicVariableReferencesWithinFile(
     return otherRelevantBlocks
         .flatMap(({ name: blockName, variableReferences: refs }) =>
             refs && refs.length > 0
-                ? refs
-                      .filter(
-                          ({ referenceType, variableType, scope }) =>
-                              isDynamicVariableReference(scope) &&
-                              referenceType == relevantReferenceType &&
-                              relevantVariableTypes.includes(variableType),
-                      )
-                      .map((ref) => ({
-                          blockName,
-                          variableReference: ref,
-                      }))
+                ? filterDynamicReferences(
+                      refs,
+                      referenceTypeInSourceFile,
+                      variableTypeInSourceFile,
+                  ).map((ref) => ({
+                      blockName,
+                      variableReference: ref,
+                  }))
                 : undefined,
         )
         .filter((v) => v != undefined);
