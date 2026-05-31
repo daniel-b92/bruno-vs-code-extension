@@ -119,16 +119,20 @@ function tryToParseBlock(
             ? undefined
             : getBlockContent(
                   docHelper,
-                  new Range(
-                      // The block content starts in the line after the one with the block name.
-                      new Position(startingLineIndex + 1, 0),
-                      // The block content ends in the line before the one with closing bracket.
-                      new Position(
-                          endPosition.line - 1,
-                          docHelper.getLineByIndex(endPosition.line - 1).length,
+                  {
+                      contentRange: new Range(
+                          // The block content starts in the line after the one with the block name.
+                          new Position(startingLineIndex + 1, 0),
+                          // The block content ends in the line before the one with closing bracket.
+                          new Position(
+                              endPosition.line - 1,
+                              docHelper.getLineByIndex(endPosition.line - 1)
+                                  .length,
+                          ),
                       ),
-                  ),
-                  blockType,
+                      name: blockName,
+                      type: blockType,
+                  },
                   !(getBlocksWithoutVariableSupport() as string[]).includes(
                       blockName,
                   ),

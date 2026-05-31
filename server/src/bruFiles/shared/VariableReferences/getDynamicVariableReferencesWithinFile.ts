@@ -1,10 +1,12 @@
 import {
     Block,
+    BrunoVariableType,
     getBlocksWithEarlierExecutionGroups,
     getBlocksWithLaterExecutionGroups,
     VariableReferenceType,
 } from "@global_shared";
 import { BlockRequestWithAdditionalData } from "../interfaces";
+import { filterDynamicReferences } from "./filterDynamicReferences";
 
 export function getDynamicVariableReferencesWithinFile(
     {
@@ -12,15 +14,11 @@ export function getDynamicVariableReferencesWithinFile(
         file: { allBlocks, blockContainingPosition },
         logger,
     }: BlockRequestWithAdditionalData<Block>,
-    referenceType: VariableReferenceType,
+    referenceTypeInSourceFile: VariableReferenceType,
+    variableTypeInSourceFile: BrunoVariableType,
 ) {
-    const relevantReferenceType =
-        referenceType == VariableReferenceType.Write
-            ? VariableReferenceType.Read
-            : VariableReferenceType.Write;
-
     const { otherRelevantBlocks } =
-        referenceType == VariableReferenceType.Read
+        referenceTypeInSourceFile == VariableReferenceType.Read
             ? getReferencesForEarlierExecutionTimes(
                   blockContainingPosition,
                   allBlocks,
@@ -42,15 +40,14 @@ export function getDynamicVariableReferencesWithinFile(
     return otherRelevantBlocks
         .flatMap(({ name: blockName, variableReferences: refs }) =>
             refs && refs.length > 0
-                ? refs
-                      .filter(
-                          ({ referenceType }) =>
-                              referenceType == relevantReferenceType,
-                      )
-                      .map((ref) => ({
-                          blockName,
-                          variableReference: ref,
-                      }))
+                ? filterDynamicReferences(
+                      refs,
+                      referenceTypeInSourceFile,
+                      variableTypeInSourceFile,
+                  ).map((ref) => ({
+                      blockName,
+                      variableReference: ref,
+                  }))
                 : undefined,
         )
         .filter((v) => v != undefined);
