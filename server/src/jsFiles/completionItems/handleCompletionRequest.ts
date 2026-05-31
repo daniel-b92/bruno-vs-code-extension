@@ -5,7 +5,7 @@ import {
     Position,
     getInbuiltFunctionReferenceType,
     getMatchingDefinitionsFromEnvFiles,
-    EnvVariableNameMatchingMode,
+    VariableNameMatchingMode,
     Logger,
     BrunoVariableType,
 } from "@global_shared";
@@ -102,7 +102,7 @@ function getResultsForEnvironmentVariable(
     const matchingEnvVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
         collection,
         variable.name,
-        EnvVariableNameMatchingMode.Ignore,
+        VariableNameMatchingMode.Ignore,
         configuredEnvironmentName,
     );
 

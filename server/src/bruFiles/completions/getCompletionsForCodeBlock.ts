@@ -1,16 +1,8 @@
-import {
-    getMatchingDefinitionsFromEnvFiles,
-    EnvVariableNameMatchingMode,
-    Logger,
-    CodeBlock,
-    BrunoVariableType,
-    BrunoVariableReference,
-} from "@global_shared";
+import { CodeBlock, BrunoVariableReference } from "@global_shared";
 import { CompletionItem } from "vscode-languageserver";
 import { mapVariablesToCompletions } from "./mapVariablesToCompletions";
-import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
-import { getDynamicVariableReferencesFromOtherFiles } from "../shared/VariableReferences/getDynamicVariableReferencesFromOtherFiles";
+import { getAllVariableReferences } from "../shared/VariableReferences/getAllVariableReferences";
 
 export function getCompletionsForCodeBlock(
     fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
@@ -38,88 +30,47 @@ export function getCompletionsForCodeBlock(
 
 function getResultsForVariable(
     fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
-    {
-        referenceType,
-        variableType,
-        variableName,
-        variableNameRange,
-    }: BrunoVariableReference,
+    variableReference: BrunoVariableReference,
     configuredEnvironment?: string,
 ) {
+    const { referenceType, variableType, variableName, variableNameRange } =
+        variableReference;
+    const allRefs = getAllVariableReferences(
+        fullRequest,
+        variableReference,
+        configuredEnvironment,
+    );
+
+    if (!allRefs) {
+        return [];
+    }
+
     const {
-        file: { allBlocks, blockContainingPosition, collection },
-        request: baseRequest,
-        logger,
-    } = fullRequest;
-    const { token, filePath } = baseRequest;
-
-    const matchingStaticEnvVariableDefinitions = [
-        BrunoVariableType.Environment,
-        BrunoVariableType.Unknown,
-    ].includes(variableType)
-        ? getMatchingDefinitionsFromEnvFiles(
-              collection,
-              variableName,
-              EnvVariableNameMatchingMode.Ignore,
-              configuredEnvironment,
-          )
-        : [];
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return [];
-    }
-
-    const dynamicVariableReferencesWithinFile =
-        getDynamicVariableReferencesWithinFile(
-            {
-                request: baseRequest,
-                file: { allBlocks, blockContainingPosition, collection },
-                logger,
-            },
-            referenceType,
-        );
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return [];
-    }
-
-    const dynamicVariableReferencesFromOtherFiles =
-        getDynamicVariableReferencesFromOtherFiles(
-            filePath,
-            collection,
-            referenceType,
-            variableType,
-        );
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return [];
-    }
+        staticReferences: { fromEnvironmentFiles, fromScriptVariableBlocks },
+        dynamicReferences: { withinSameFile, fromOtherFiles },
+    } = allRefs;
 
     return mapVariablesToCompletions(
-        matchingStaticEnvVariableDefinitions.map(
-            ({ file, matchingVariables, isConfiguredEnv }) => ({
-                environmentFile: file,
-                matchingVariableKeys: matchingVariables.map(({ key }) => key),
-                isConfiguredEnv,
-            }),
-        ),
         {
-            fromSameFile: dynamicVariableReferencesWithinFile,
-            fromOtherFiles: dynamicVariableReferencesFromOtherFiles,
+            staticEnvVariables: fromEnvironmentFiles.map(
+                ({ file, matchingVariables, isConfiguredEnv }) => ({
+                    environmentFile: file,
+                    matchingVariableKeys: matchingVariables.map(
+                        ({ key }) => key,
+                    ),
+                    isConfiguredEnv,
+                }),
+            ),
+            staticScriptVariables: fromScriptVariableBlocks,
+            dynamicVariables: {
+                fromSameFile: withinSameFile,
+                fromOtherFiles,
+            },
         },
         {
             functionType: referenceType,
             variableType,
             variable: { name: variableName, ...variableNameRange },
         },
-    );
-}
-
-function addLogEntryForCancellation(logger?: Logger) {
-    logger?.debug(
-        `Cancellation requested for completion provider for 'bru' language.`,
     );
 }

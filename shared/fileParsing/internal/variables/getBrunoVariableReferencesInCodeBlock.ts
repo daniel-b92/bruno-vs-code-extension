@@ -1,6 +1,7 @@
 import {
     BrunoVariableReference,
     getInbuiltFunctionAndFirstParameterIfStringLiteral,
+    getInbuiltFunctionAvailabilityScope,
     getInbuiltFunctionIdentifiers,
     getInbuiltFunctionReferenceType,
     getInbuiltFunctionVariableType,
@@ -65,6 +66,7 @@ export function getBrunoVariableReferencesInCodeBlock(
                 variableNameRange: new Range(variableStart, variableEnd),
                 referenceType: getInbuiltFunctionReferenceType(identifier),
                 variableType: getInbuiltFunctionVariableType(identifier),
+                scope: getInbuiltFunctionAvailabilityScope(identifier),
             }),
         );
 }

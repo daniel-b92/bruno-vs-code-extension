@@ -1,14 +1,9 @@
-import { Collection } from "../..";
-
-export enum EnvVariableNameMatchingMode {
-    Exact = 1,
-    Ignore = 2,
-}
+import { ReadyOnlyCollection, VariableNameMatchingMode } from "../../../..";
 
 export function getMatchingDefinitionsFromEnvFiles(
-    collection: Collection<unknown>,
-    name: string,
-    matchingMode: EnvVariableNameMatchingMode,
+    collection: ReadyOnlyCollection<unknown>,
+    variableName: string,
+    matchingMode: VariableNameMatchingMode,
     environmentName?: string,
 ) {
     const matchingEnvironmentFiles = collection
@@ -29,7 +24,7 @@ export function getMatchingDefinitionsFromEnvFiles(
         .map(({ item, selected: isConfiguredEnv }) => {
             const matchingVariables = item
                 .getVariables()
-                .filter(({ key }) => matches(key, name, matchingMode));
+                .filter(({ key }) => matches(key, variableName, matchingMode));
 
             return matchingVariables.length > 0
                 ? {
@@ -45,12 +40,12 @@ export function getMatchingDefinitionsFromEnvFiles(
 function matches(
     actual: string,
     toSearch: string,
-    matchingMode: EnvVariableNameMatchingMode,
+    matchingMode: VariableNameMatchingMode,
 ) {
     switch (matchingMode) {
-        case EnvVariableNameMatchingMode.Exact:
+        case VariableNameMatchingMode.Exact:
             return actual == toSearch;
-        case EnvVariableNameMatchingMode.Ignore:
+        case VariableNameMatchingMode.Ignore:
             return actual;
     }
 }

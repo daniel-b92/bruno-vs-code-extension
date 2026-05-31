@@ -2,88 +2,92 @@ import {
     Block,
     BrunoVariableReference,
     BrunoVariableType,
-    EnvVariableNameMatchingMode,
-    getMatchingDefinitionsFromEnvFiles,
     Logger,
+    RequestFileBlockName,
+    VariableAvailabilityScopes,
+    VariableNameMatchingMode,
+    VariableReferenceType,
 } from "@global_shared";
-import { getDynamicVariableReferencesWithinFile } from "../shared/VariableReferences/getDynamicVariableReferencesWithinFile";
 import { Hover, MarkupContent } from "vscode-languageserver";
 import { getHoverContentForStaticEnvVariables } from "../../shared";
 import {
     BlockRequestWithAdditionalData,
+    EquivalentVariableReferencesFromOtherFiles,
     MatchingDynamicVariables,
 } from "../shared/interfaces";
-import { getDynamicVariableReferencesFromOtherFiles } from "../shared/VariableReferences/getDynamicVariableReferencesFromOtherFiles";
 import { includesMultipleDistinctVariableTypes } from "../shared/VariableReferences/includesMultipleDistinctVariableTypes";
+import { getAllVariableReferences } from "../shared/VariableReferences/getAllVariableReferences";
 
 export function getHoverForBrunoVariable(
     fullRequest: BlockRequestWithAdditionalData<Block>,
-    { variableName, referenceType, variableType }: BrunoVariableReference,
+    variableReference: BrunoVariableReference,
     configuredEnvironmentName?: string,
 ): Hover | undefined {
     const {
-        request: { token, filePath },
-        file: { collection },
+        request: { token },
         logger,
     } = fullRequest;
+    const { variableName, variableType, referenceType } = variableReference;
 
-    const dynamicReferencesWithinFile = getDynamicVariableReferencesWithinFile(
+    const allRefs = getAllVariableReferences(
         fullRequest,
-        referenceType,
-    ).filter(
-        ({ variableReference: { variableName: name } }) => name == variableName,
+        variableReference,
+        configuredEnvironmentName,
+        VariableNameMatchingMode.Exact,
     );
 
+    if (!allRefs) {
+        return undefined;
+    }
+
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return undefined;
     }
 
-    const dynamicReferencesFromOtherFiles =
-        getDynamicVariableReferencesFromOtherFiles(
-            filePath,
-            collection,
-            referenceType,
-            variableType,
-        ).filter(
-            ({
-                mostRelevantReference: {
-                    reference: { variableName: n },
-                },
-            }) => n == variableName,
-        );
+    const {
+        staticReferences: { fromEnvironmentFiles, fromScriptVariableBlocks },
+        dynamicReferences,
+    } = allRefs;
 
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return undefined;
-    }
+    const staticRefsForScriptVariables = fromScriptVariableBlocks.filter(
+        ({
+            mostRelevantReference: {
+                reference: { variableName: n },
+            },
+        }) => n == variableName,
+    );
+    const dynamicRefsWithinSameFile = dynamicReferences.withinSameFile.filter(
+        ({ variableReference: { variableName: name } }) => name == variableName,
+    );
+    const dynamicRefsFromOtherFiles = dynamicReferences.fromOtherFiles.filter(
+        ({
+            mostRelevantReference: {
+                reference: { variableName: n },
+            },
+        }) => n == variableName,
+    );
 
     const hasDynamicReferences =
-        dynamicReferencesWithinFile.length > 0 ||
-        dynamicReferencesFromOtherFiles.length > 0;
+        dynamicRefsWithinSameFile.length > 0 ||
+        dynamicRefsFromOtherFiles.length > 0;
     const contentForDynamicReferences = !hasDynamicReferences
         ? undefined
         : getContentForDynamicReferences(
               {
-                  fromSameFile: dynamicReferencesWithinFile,
-                  fromOtherFiles: dynamicReferencesFromOtherFiles,
+                  fromSameFile: dynamicRefsWithinSameFile,
+                  fromOtherFiles: dynamicRefsFromOtherFiles,
               },
               variableType,
           );
 
-    const matchingStaticEnvVariableDefinitions = [
-        BrunoVariableType.Environment,
-        BrunoVariableType.Unknown,
-    ].includes(variableType)
-        ? getMatchingDefinitionsFromEnvFiles(
-              collection,
-              variableName,
-              EnvVariableNameMatchingMode.Exact,
-              configuredEnvironmentName,
-          )
-        : [];
-    const contentForStaticReferences = getHoverContentForStaticEnvVariables(
-        matchingStaticEnvVariableDefinitions,
+    const contentForStaticReferences = (
+        getHoverContentForStaticEnvVariables(fromEnvironmentFiles) ?? ""
+    ).concat(
+        getContentForStaticScriptVarsReferences(
+            staticRefsForScriptVariables,
+            referenceType,
+        ) ?? "",
     );
 
     const resultingMarkdownString: MarkupContent | undefined =
@@ -108,6 +112,57 @@ export function getHoverForBrunoVariable(
     return resultingMarkdownString
         ? { contents: resultingMarkdownString }
         : undefined;
+}
+
+function getContentForStaticScriptVarsReferences(
+    references: EquivalentVariableReferencesFromOtherFiles[],
+    sourceReferenceType: VariableReferenceType,
+) {
+    if (references.length == 0) {
+        return undefined;
+    }
+
+    const lineBreak = getLineBreak();
+    const tableHeader = "| file | block |".concat(
+        lineBreak,
+        "| :--------------- | :----------------: |",
+        lineBreak,
+    );
+
+    return "**Static scripting variable references".concat(
+        sourceReferenceType == VariableReferenceType.Write
+            ? " (will be overwritten)"
+            : "",
+        ":**",
+        lineBreak,
+        tableHeader,
+        references
+            .map(
+                ({
+                    mostRelevantReference: {
+                        path: { relativeToSourceFile },
+                        reference: { scope },
+                    },
+                    otherMatchingReferences,
+                }) => {
+                    const textForFileColumn = relativeToSourceFile.concat(
+                        otherMatchingReferences.length > 0
+                            ? ` [+ ${otherMatchingReferences.length} others]`
+                            : "",
+                    );
+                    const textForBlockColumn =
+                        scope ==
+                        VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
+                            ? RequestFileBlockName.PreRequestVars
+                            : RequestFileBlockName.PostResponseVars;
+
+                    return `| ${textForFileColumn} | ${textForBlockColumn} |`;
+                },
+            )
+            .join(lineBreak),
+        lineBreak,
+        lineBreak,
+    );
 }
 
 function getContentForDynamicReferences(

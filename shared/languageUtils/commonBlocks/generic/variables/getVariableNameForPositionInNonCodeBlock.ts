@@ -1,6 +1,6 @@
 import {
     getMatchingTextContainingPosition,
-    getPatternForVariablesInNonCodeBlock,
+    getPatternForVarsReadReferenceInNonCodeBlock,
     Position,
     TextDocumentHelper,
 } from "../../../..";
@@ -15,7 +15,7 @@ export function getVariableForPositionInNonCodeBlock(params: {
     const matchingTextResult = getMatchingTextContainingPosition(
         position,
         documentHelper.getLineByIndex(line),
-        new RegExp(getPatternForVariablesInNonCodeBlock()),
+        new RegExp(getPatternForVarsReadReferenceInNonCodeBlock()),
     );
 
     if (!matchingTextResult) {

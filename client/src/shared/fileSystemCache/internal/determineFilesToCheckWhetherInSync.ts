@@ -4,10 +4,10 @@ import {
     parseSequenceFromMetaBlock,
     filterAsync,
     BrunoFileType,
-    Collection,
     CollectionData,
     isCollectionItemWithSequence,
     getItemType,
+    ReadyOnlyCollection,
 } from "@global_shared";
 import { OutputChannelLogger } from "@shared";
 import { lstat, readdir } from "fs/promises";
@@ -16,7 +16,7 @@ import { Event, Disposable } from "vscode";
 export async function determineFilesToCheckWhetherInSync<T>(
     requestedFilePath: string,
     parentFolder: string,
-    collection: Collection<T>,
+    collection: ReadyOnlyCollection<T>,
     multiFileOperationData: {
         currentlyActive: (folder: string) => boolean;
         recentlyActive: (folder: string) => boolean;
@@ -24,7 +24,7 @@ export async function determineFilesToCheckWhetherInSync<T>(
     },
     cachedData: {
         getRegisteredItem: (
-            collection: Collection<T>,
+            collection: ReadyOnlyCollection<T>,
             path: string,
         ) => CollectionData<T> | undefined;
     },
@@ -63,9 +63,9 @@ export async function determineFilesToCheckWhetherInSync<T>(
 
 async function getRequestFilesFromFolderThatAreNotInSync<T>(
     folderPath: string,
-    collection: Collection<T>,
+    collection: ReadyOnlyCollection<T>,
     getRegisteredItem: (
-        collection: Collection<T>,
+        collection: ReadyOnlyCollection<T>,
         path: string,
     ) => CollectionData<T> | undefined,
 ) {
