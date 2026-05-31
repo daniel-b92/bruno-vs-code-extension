@@ -4,7 +4,7 @@ import {
     VariableReferenceType,
 } from "@global_shared";
 import {
-    EquivalentDynamicReferencesFromOtherFiles,
+    EquivalentVariableReferencesFromOtherFiles,
     MatchingDynamicVariables,
 } from "../bruFiles/shared/interfaces";
 import { areReferencesEquivalentForLanguageFeatures } from "../bruFiles/shared/VariableReferences/areReferencesEquivalentForLanguageFeatures";
@@ -99,13 +99,13 @@ function groupReferencesFromSameFile(
 
 function getCombinedReferencesFromOwnFileAndOtherFiles(
     fromOwnFile: GroupedReferenceFromOwnFile[],
-    fromOtherFiles: EquivalentDynamicReferencesFromOtherFiles[],
+    fromOtherFiles: EquivalentVariableReferencesFromOtherFiles[],
 ): {
     variableName: string;
     referenceType: VariableReferenceType;
     variableType: BrunoVariableType;
     hasReferenceInOwnFile: boolean;
-    referencesFromOtherFiles?: EquivalentDynamicReferencesFromOtherFiles;
+    referencesFromOtherFiles?: EquivalentVariableReferencesFromOtherFiles;
     detailsForOwnFileRefs?: ReferenceFromOwnFileDetails;
 }[] {
     const initialArray = fromOwnFile.map(
@@ -122,7 +122,7 @@ function getCombinedReferencesFromOwnFileAndOtherFiles(
         referenceType: VariableReferenceType;
         variableType: BrunoVariableType;
         hasReferenceInOwnFile: boolean;
-        referencesFromOtherFiles?: EquivalentDynamicReferencesFromOtherFiles;
+        referencesFromOtherFiles?: EquivalentVariableReferencesFromOtherFiles;
         detailsForOwnFileRefs?: ReferenceFromOwnFileDetails;
     }[];
 

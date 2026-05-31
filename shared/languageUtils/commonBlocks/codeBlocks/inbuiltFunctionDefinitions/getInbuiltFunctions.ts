@@ -4,6 +4,8 @@ import {
     InbuiltFunctionBaseIdentifierEnum,
     InbuiltFunctionName,
     BrunoVariableType,
+    VariableAvailabilityScope,
+    VariableAvailabilityScopes,
 } from "../../../..";
 
 export function getInbuiltFunctions(): {
@@ -11,6 +13,7 @@ export function getInbuiltFunctions(): {
         identifier: InbuiltFunctionIdentifier;
         referenceType: VariableReferenceType;
         variableType: BrunoVariableType;
+        scope?: VariableAvailabilityScope;
     };
 } {
     return {
@@ -21,6 +24,7 @@ export function getInbuiltFunctions(): {
             },
             referenceType: VariableReferenceType.Read,
             variableType: BrunoVariableType.Global,
+            scope: VariableAvailabilityScopes.Global,
         },
         [InbuiltFunctionName.SetGlobalEnvVar]: {
             identifier: {
@@ -29,6 +33,7 @@ export function getInbuiltFunctions(): {
             },
             referenceType: VariableReferenceType.Write,
             variableType: BrunoVariableType.Global,
+            scope: VariableAvailabilityScopes.Global,
         },
         [InbuiltFunctionName.GetEnvVar]: {
             identifier: {
@@ -37,6 +42,7 @@ export function getInbuiltFunctions(): {
             },
             referenceType: VariableReferenceType.Read,
             variableType: BrunoVariableType.Environment,
+            scope: VariableAvailabilityScopes.Collection,
         },
         [InbuiltFunctionName.SetEnvVar]: {
             identifier: {
@@ -45,6 +51,7 @@ export function getInbuiltFunctions(): {
             },
             referenceType: VariableReferenceType.Write,
             variableType: BrunoVariableType.Environment,
+            scope: VariableAvailabilityScopes.Collection,
         },
         [InbuiltFunctionName.DeleteEnvVar]: {
             identifier: {
@@ -53,6 +60,7 @@ export function getInbuiltFunctions(): {
             },
             referenceType: VariableReferenceType.Read,
             variableType: BrunoVariableType.Environment,
+            scope: VariableAvailabilityScopes.Collection,
         },
         [InbuiltFunctionName.GetVar]: {
             identifier: {
@@ -60,7 +68,7 @@ export function getInbuiltFunctions(): {
                 functionName: InbuiltFunctionName.GetVar,
             },
             referenceType: VariableReferenceType.Read,
-            variableType: BrunoVariableType.Runtime,
+            variableType: BrunoVariableType.Simple,
         },
         [InbuiltFunctionName.SetVar]: {
             identifier: {
@@ -68,7 +76,8 @@ export function getInbuiltFunctions(): {
                 functionName: InbuiltFunctionName.SetVar,
             },
             referenceType: VariableReferenceType.Write,
-            variableType: BrunoVariableType.Runtime,
+            variableType: BrunoVariableType.Simple,
+            scope: VariableAvailabilityScopes.Collection,
         },
     };
 }

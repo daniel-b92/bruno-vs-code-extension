@@ -46,7 +46,7 @@ export class Collection<T> {
     }
 
     public getAllStoredDataForCollection() {
-        return this.testData as readonly CollectionData<T>[];
+        return this.testData.slice();
     }
 
     public getEnvironments() {

@@ -1,21 +1,41 @@
 import {
     BrunoVariableReference,
     BrunoVariableType,
-    getPatternForVariablesInNonCodeBlock,
+    getPatternForVarsReadReferenceInNonCodeBlock,
+    isDictionaryBlockSimpleField,
     Position,
     Range,
+    RequestFileBlockName,
     TextDocumentHelper,
+    VariableAvailabilityScopes,
     VariableReferenceType,
 } from "../../..";
+import { ParsedBlockContent } from "../getBlockContent";
 
 export function getBrunoVariableReferencesInNonCodeBlock(
     fullDocumentHelper: TextDocumentHelper,
     contentRange: Range,
+    parsedBlock: {
+        content: ParsedBlockContent;
+        contentRange: Range;
+        name: string;
+    },
 ): BrunoVariableReference[] {
+    return getReadReferences(fullDocumentHelper, contentRange).concat(
+        getWriteReferences(parsedBlock),
+    );
+}
+
+function getReadReferences(
+    fullDocumentHelper: TextDocumentHelper,
+    contentRange: Range,
+) {
     const matches = Array.from(
         fullDocumentHelper
             .getText(contentRange)
-            .matchAll(new RegExp(getPatternForVariablesInNonCodeBlock(), "g")),
+            .matchAll(
+                new RegExp(getPatternForVarsReadReferenceInNonCodeBlock(), "g"),
+            ),
     );
 
     if (matches.length == 0) {
@@ -53,4 +73,38 @@ export function getBrunoVariableReferencesInNonCodeBlock(
                 : undefined;
         })
         .filter((v) => v != undefined);
+}
+
+function getWriteReferences(parsedBlock: {
+    content: ParsedBlockContent;
+    name: string;
+}): BrunoVariableReference[] {
+    const { content: blockContent, name: blockName } = parsedBlock;
+
+    if (
+        !(
+            [
+                RequestFileBlockName.PreRequestVars,
+                RequestFileBlockName.PostResponseVars,
+            ] as string[]
+        ).includes(blockName) ||
+        !Array.isArray(blockContent)
+    ) {
+        return [];
+    }
+
+    const activeFields = blockContent
+        .filter((field) => isDictionaryBlockSimpleField(field))
+        .filter(({ disabled }) => !disabled);
+
+    return activeFields.map(({ key, keyRange }) => ({
+        referenceType: VariableReferenceType.Write,
+        variableName: key,
+        variableNameRange: keyRange,
+        variableType: BrunoVariableType.Simple,
+        scope:
+            blockName == RequestFileBlockName.PreRequestVars
+                ? VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
+                : VariableAvailabilityScopes.PostResponseScriptForOwnItemAndDescendants,
+    }));
 }

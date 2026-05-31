@@ -14,25 +14,36 @@ import { parseArrayBlock } from "./parseArrayBlock";
 import { parseDictionaryBlock } from "./parseDictionaryBlock";
 import { parsePlainTextBlock } from "./parsePlainTextBlock";
 
+export type ParsedBlockContent =
+    | string
+    | (
+          | DictionaryBlockSimpleField
+          | DictionaryBlockArrayField
+          | PlainTextWithinBlock
+      )[]
+    | (ArrayBlockField | PlainTextWithinBlock)[];
+
 export function getBlockContent(
     document: TextDocumentHelper,
-    blockContentRange: Range,
-    blockType: BlockType,
+    block: {
+        contentRange: Range;
+        type: BlockType;
+        name: string;
+    },
     searchVariableReferences = false,
 ):
     | {
-          content:
-              | string
-              | (
-                    | DictionaryBlockSimpleField
-                    | DictionaryBlockArrayField
-                    | PlainTextWithinBlock
-                )[]
-              | (ArrayBlockField | PlainTextWithinBlock)[];
+          content: ParsedBlockContent;
           contentRange: Range;
           variableRerences?: BrunoVariableReference[];
       }
     | undefined {
+    const {
+        contentRange: blockContentRange,
+        type: blockType,
+        name: blockName,
+    } = block;
+
     // the block content is exclusive of the block's opening bracket line
     const firstContentLine = blockContentRange.start.line;
     const lastContentLine = blockContentRange.end.line;
@@ -55,6 +66,10 @@ export function getBlockContent(
                           document,
                           dictionaryBlockWithoutParsedVars.contentRange,
                           blockType,
+                          {
+                              ...dictionaryBlockWithoutParsedVars,
+                              name: blockName,
+                          },
                       ),
                   }
                 : dictionaryBlockWithoutParsedVars;
@@ -74,6 +89,10 @@ export function getBlockContent(
                           document,
                           plainTextBlockWithoutParsedVars.contentRange,
                           blockType,
+                          {
+                              ...plainTextBlockWithoutParsedVars,
+                              name: blockName,
+                          },
                       ),
                   }
                 : plainTextBlockWithoutParsedVars;
@@ -93,11 +112,17 @@ function getBrunoVariableReferences(
     documentHelper: TextDocumentHelper,
     contentRange: Range,
     blockType: BlockType,
+    parsedBlock: {
+        content: ParsedBlockContent;
+        contentRange: Range;
+        name: string;
+    },
 ) {
     return blockType == BlockType.Code
         ? getBrunoVariableReferencesInCodeBlock(documentHelper, contentRange)
         : getBrunoVariableReferencesInNonCodeBlock(
               documentHelper,
               contentRange,
+              parsedBlock,
           );
 }

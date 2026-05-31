@@ -53,9 +53,8 @@ export const parseBlockFromFile = (
         shouldBeArrayBlock,
     );
     return blockEndPosition
-        ? getBlockContent(
-              fullDocHelper,
-              new Range(
+        ? getBlockContent(fullDocHelper, {
+              contentRange: new Range(
                   // The block content starts in the line after the one with the block name.
                   new Position(startingBracketPosition.line + 1, 0),
                   // The block content ends in the line before the one with closing bracket.
@@ -65,7 +64,8 @@ export const parseBlockFromFile = (
                           .length,
                   ),
               ),
-              getBlockType(blockName),
-          )?.content
+              name: blockName,
+              type: getBlockType(blockName),
+          })?.content
         : undefined;
 };
