@@ -125,7 +125,7 @@ function getContentForStaticScriptVarsReferences(
     const lineBreak = getLineBreak();
     const tableHeader = "| file | block |".concat(
         lineBreak,
-        "| :--------------- | ----------------: |",
+        "| :--------------- | :----------------: |",
         lineBreak,
     );
 
