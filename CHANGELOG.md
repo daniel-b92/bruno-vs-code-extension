@@ -2,7 +2,8 @@
 
 ### Features
 
-- Add intellisense for environment variables in `bru.deleteEnvVar` inbuilt function (Hover and Completions).
+- Add intellisense for environment variables used in `bru.deleteEnvVar` inbuilt functions (Hover and Completions).
+- Add intellisense referencing static script variables for inbuilt functions for simple variables (`bru.setVar`, `bru.getVar`, `bru.deleteVar`) (Hover and Completions).
 
 ### Fixes / Minor Improvements
 

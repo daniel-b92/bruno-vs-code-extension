@@ -1,3 +1,3 @@
-export function getPatternForVariablesInNonCodeBlock() {
+export function getPatternForVarsReadReferenceInNonCodeBlock() {
     return "{{\\S+?}}";
 }

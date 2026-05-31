@@ -16,15 +16,15 @@ export interface MatchingDynamicVariables {
         blockName: string;
         variableReference: BrunoVariableReference;
     }[];
-    fromOtherFiles: EquivalentDynamicReferencesFromOtherFiles[];
+    fromOtherFiles: EquivalentVariableReferencesFromOtherFiles[];
 }
 
-export interface EquivalentDynamicReferencesFromOtherFiles {
-    mostRelevantReference: DynamicReferenceFromOtherFile;
-    otherMatchingReferences: DynamicReferenceFromOtherFile[];
+export interface EquivalentVariableReferencesFromOtherFiles {
+    mostRelevantReference: VariableReferenceFromOtherFile;
+    otherMatchingReferences: VariableReferenceFromOtherFile[];
 }
 
-export interface DynamicReferenceFromOtherFile {
+export interface VariableReferenceFromOtherFile {
     path: {
         absolute: string;
         relativeToSourceFile: string;
