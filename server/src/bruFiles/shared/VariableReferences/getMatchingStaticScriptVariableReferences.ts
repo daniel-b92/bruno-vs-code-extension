@@ -30,6 +30,15 @@ export function getMatchingStaticScriptVariableReferences({
         ({ variableReferences }) => variableReferences ?? [],
     );
 
+    const relevantReferencesFromSameFile = {
+        path: { absolute: filePath, relativeToSourceFile: "." },
+        indirectionLevel: 0,
+        references: getRelevantReferences(
+            allReferencesFromSameFile,
+            relevantScope,
+        ),
+    };
+
     const relevantReferencesFromOtherFiles = collection
         .getCommonAncestorData(filePath)
         .filter(
@@ -56,14 +65,7 @@ export function getMatchingStaticScriptVariableReferences({
         .map((data, index) => ({ ...data, indirectionLevel: index + 1 }));
 
     return groupReferences(
-        relevantReferencesFromOtherFiles.concat({
-            path: { absolute: filePath, relativeToSourceFile: "." },
-            indirectionLevel: 0,
-            references: getRelevantReferences(
-                allReferencesFromSameFile,
-                relevantScope,
-            ),
-        }),
+        relevantReferencesFromOtherFiles.concat(relevantReferencesFromSameFile),
     );
 }
 
