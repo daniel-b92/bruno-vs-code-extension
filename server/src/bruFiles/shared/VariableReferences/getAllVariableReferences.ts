@@ -16,8 +16,10 @@ import { getMatchingStaticScriptVariableReferences } from "./getMatchingStaticSc
 export function getAllVariableReferences(
     fullRequest: BlockRequestWithAdditionalData<Block>,
     { variableName, variableType, referenceType }: BrunoVariableReference,
-    configuredEnvironment?: string,
-    matchingModeForEnvVars = VariableNameMatchingMode.Ignore,
+    environmentVarsParams: {
+        configuredEnvironment?: string;
+        matchingModeForEnvVars: VariableNameMatchingMode;
+    },
 ) {
     const {
         file: { blockContainingPosition, collection },
@@ -25,6 +27,8 @@ export function getAllVariableReferences(
         logger,
     } = fullRequest;
     const { token, filePath } = baseRequest;
+    const { matchingModeForEnvVars, configuredEnvironment } =
+        environmentVarsParams;
 
     const matchingStaticEnvVariableDefinitions = [
         BrunoVariableType.Environment,

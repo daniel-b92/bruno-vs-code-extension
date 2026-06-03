@@ -29,12 +29,10 @@ export function getHoverForBrunoVariable(
     } = fullRequest;
     const { variableName, variableType, referenceType } = variableReference;
 
-    const allRefs = getAllVariableReferences(
-        fullRequest,
-        variableReference,
-        configuredEnvironmentName,
-        VariableNameMatchingMode.Exact,
-    );
+    const allRefs = getAllVariableReferences(fullRequest, variableReference, {
+        configuredEnvironment: configuredEnvironmentName,
+        matchingModeForEnvVars: VariableNameMatchingMode.Exact,
+    });
 
     if (!allRefs) {
         return undefined;

@@ -12,6 +12,7 @@ import {
     SettingsFileSpecificBlock,
     VariableReferenceType,
     Range,
+    VariableNameMatchingMode,
 } from "@global_shared";
 import { CompletionItem } from "vscode-languageserver";
 import {
@@ -92,7 +93,10 @@ function getNonBlockSpecificCompletions(
             variableNameRange: new Range(variable.start, variable.end),
             variableType,
         },
-        configuredEnvironment,
+        {
+            configuredEnvironment,
+            matchingModeForEnvVars: VariableNameMatchingMode.Ignore,
+        },
     );
 
     if (!allRefs) {
