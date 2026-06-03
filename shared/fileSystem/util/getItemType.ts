@@ -6,10 +6,10 @@ import {
     doesFileNameMatchFolderSettingsFileName,
     isInFolderForEnvironmentFiles,
     BrunoFileType,
-    Collection,
     ItemType,
     NonBrunoSpecificItemType,
     doesFileNameMatchCollectionSettingsFile,
+    ReadyOnlyCollection,
 } from "../..";
 import {
     getFileSystemDataPath,
@@ -18,7 +18,7 @@ import {
 import { FileSystemData } from "../../fileSystemCache/internal/interfaces";
 
 export async function getItemType<T>(
-    collection: Collection<T>,
+    collection: ReadyOnlyCollection<T>,
     fileSystemData: FileSystemData,
     validateExistence = true,
 ): Promise<ItemType | undefined> {
@@ -65,7 +65,7 @@ export async function getItemType<T>(
 }
 
 function isChildElementOfCollectionRootDirectory<T>(
-    collection: Collection<T>,
+    collection: ReadyOnlyCollection<T>,
     path: string,
 ) {
     return collection.isRootDirectory(dirname(path));

@@ -12,10 +12,11 @@ import {
 import { TypedCollection, TypedCollectionData } from "../../../shared";
 import { dirname, relative } from "path";
 import {
-    DynamicReferenceFromOtherFile,
-    EquivalentDynamicReferencesFromOtherFiles,
+    VariableReferenceFromOtherFile,
+    EquivalentVariableReferencesFromOtherFiles,
 } from "../interfaces";
 import { areReferencesEquivalentForLanguageFeatures } from "./areReferencesEquivalentForLanguageFeatures";
+import { filterDynamicReferences } from "./filterDynamicReferences";
 
 enum SearchDirection {
     Forwards = 1,
@@ -28,15 +29,6 @@ export function getDynamicVariableReferencesFromOtherFiles(
     referenceTypeInSourceFile: VariableReferenceType,
     variableTypeInSourceFile: BrunoVariableType,
 ) {
-    const relevantReferenceType =
-        referenceTypeInSourceFile == VariableReferenceType.Write
-            ? VariableReferenceType.Read
-            : VariableReferenceType.Write;
-    const relevantVariableTypes =
-        variableTypeInSourceFile == BrunoVariableType.Unknown
-            ? Object.values(BrunoVariableType)
-            : [variableTypeInSourceFile, BrunoVariableType.Unknown];
-
     const sourceData = collection.getStoredDataForPath(filePath);
 
     if (!sourceData) {
@@ -49,16 +41,16 @@ export function getDynamicVariableReferencesFromOtherFiles(
             return getReferencesFromAncestorFoldersAndTheirDescendants(
                 sourceData.item,
                 collection,
-                relevantReferenceType,
-                relevantVariableTypes,
+                referenceTypeInSourceFile,
+                variableTypeInSourceFile,
                 SearchDirection.Backwards,
             );
         case VariableReferenceType.Write:
             return getReferencesFromAncestorFoldersAndTheirDescendants(
                 sourceData.item,
                 collection,
-                relevantReferenceType,
-                relevantVariableTypes,
+                referenceTypeInSourceFile,
+                variableTypeInSourceFile,
                 SearchDirection.Forwards,
             );
     }
@@ -67,17 +59,17 @@ export function getDynamicVariableReferencesFromOtherFiles(
 function getReferencesFromAncestorFoldersAndTheirDescendants(
     sourceItem: CollectionItem,
     collection: TypedCollection,
-    relevantReferenceType: VariableReferenceType,
-    relevantVariableTypes: BrunoVariableType[],
+    referenceTypeInSourceFile: VariableReferenceType,
+    variableTypeInSourceFile: BrunoVariableType,
     searchDirection: SearchDirection,
-): EquivalentDynamicReferencesFromOtherFiles[] {
+): EquivalentVariableReferencesFromOtherFiles[] {
     if (collection.isRootDirectory(sourceItem.getPath())) {
         // There are not other files within a collection that will be executed before the collection root folder script.
         return [];
     }
 
-    const referencesFromAncestors: DynamicReferenceFromOtherFile[] = [];
-    const referencesFromDescendantsOfAncestors: DynamicReferenceFromOtherFile[] =
+    const referencesFromAncestors: VariableReferenceFromOtherFile[] = [];
+    const referencesFromDescendantsOfAncestors: VariableReferenceFromOtherFile[] =
         [];
     let currentItem: CollectionItem | undefined = undefined;
     let nextItem = sourceItem;
@@ -104,8 +96,8 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
             ...getReferencesFromAncestorFolder(
                 sourceItem.getPath(),
                 parentFolderData,
-                relevantReferenceType,
-                relevantVariableTypes,
+                referenceTypeInSourceFile,
+                variableTypeInSourceFile,
             ),
         );
 
@@ -117,13 +109,14 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
                         referenceChildItem: currentItem,
                     },
                     collection,
-                    sourceItem.getPath(),
-                    ascensionIndex,
                     {
-                        relevantReferenceType,
-                        relevantVariableTypes,
-                        searchDirection,
+                        path: sourceItem.getPath(),
+                        referenceType: referenceTypeInSourceFile,
+                        variableType: variableTypeInSourceFile,
                     },
+
+                    ascensionIndex,
+                    searchDirection,
                 ),
             );
         }
@@ -140,31 +133,29 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
 function getReferencesFromAncestorFolder(
     sourceFilePath: string,
     folderData: TypedCollectionData,
-    relevantReferenceType: VariableReferenceType,
-    relevantVariableTypes: BrunoVariableType[],
-): DynamicReferenceFromOtherFile[] {
+    referenceTypeInSourceFile: VariableReferenceType,
+    variableTypeInSourceFile: BrunoVariableType,
+): VariableReferenceFromOtherFile[] {
     if (!folderData.additionalData) {
         return [];
     }
 
-    return filterOutDuplicateReferences(folderData.additionalData)
-        .filter(
-            ({ referenceType, variableType }) =>
-                referenceType == relevantReferenceType &&
-                relevantVariableTypes.includes(variableType),
-        )
-        .map((reference) => ({
-            path: {
-                absolute: folderData.item.getPath(),
-                relativeToSourceFile: relative(
-                    sourceFilePath,
-                    folderData.item.getPath(),
-                ),
-            },
-            // Use indirectionLevel '0' because the steps in ancestor folders are always executed directly before the steps in the given item itself.
-            indirectionLevel: 0,
-            reference,
-        }));
+    return filterDynamicReferences(
+        filterOutDuplicateReferences(folderData.additionalData),
+        referenceTypeInSourceFile,
+        variableTypeInSourceFile,
+    ).map((reference) => ({
+        path: {
+            absolute: folderData.item.getPath(),
+            relativeToSourceFile: relative(
+                sourceFilePath,
+                folderData.item.getPath(),
+            ),
+        },
+        // Use indirectionLevel '0' because the steps in ancestor folders are always executed directly before the steps in the given item itself.
+        indirectionLevel: 0,
+        reference,
+    }));
 }
 
 function getReferencesFromFolderDescendants(
@@ -173,17 +164,20 @@ function getReferencesFromFolderDescendants(
         referenceChildItem: CollectionItemWithSequence;
     },
     collection: TypedCollection,
-    sourceFilePath: string,
-    indirectionLevelForResponse: number,
-    filters: {
-        relevantReferenceType: VariableReferenceType;
-        searchDirection: SearchDirection;
-        relevantVariableTypes: BrunoVariableType[];
+    sourceFile: {
+        path: string;
+        referenceType: VariableReferenceType;
+        variableType: BrunoVariableType;
     },
-): DynamicReferenceFromOtherFile[] {
+    indirectionLevelForResponse: number,
+    searchDirection: SearchDirection,
+): VariableReferenceFromOtherFile[] {
     const { parentFolder, referenceChildItem } = ancestorLineData;
-    const { relevantReferenceType, relevantVariableTypes, searchDirection } =
-        filters;
+    const {
+        path,
+        referenceType: referenceTypeInSourceFile,
+        variableType: variableTypeInSourceFile,
+    } = sourceFile;
 
     const childItemSequence = referenceChildItem.getSequence();
     if (childItemSequence === undefined) {
@@ -233,26 +227,21 @@ function getReferencesFromFolderDescendants(
             }
 
             return prev.concat(
-                filterOutDuplicateReferences(additionalData)
-                    .map((reference) => ({
-                        path: {
-                            absolute: item.getPath(),
-                            relativeToSourceFile: relative(
-                                sourceFilePath,
-                                item.getPath(),
-                            ),
-                        },
-                        indirectionLevel: indirectionLevelForResponse,
-                        reference,
-                    }))
-                    .filter(
-                        ({ reference: { referenceType, variableType } }) =>
-                            referenceType == relevantReferenceType &&
-                            relevantVariableTypes.includes(variableType),
-                    ),
+                filterDynamicReferences(
+                    filterOutDuplicateReferences(additionalData),
+                    referenceTypeInSourceFile,
+                    variableTypeInSourceFile,
+                ).map((reference) => ({
+                    path: {
+                        absolute: item.getPath(),
+                        relativeToSourceFile: relative(path, item.getPath()),
+                    },
+                    indirectionLevel: indirectionLevelForResponse,
+                    reference,
+                })),
             );
         },
-        [] as DynamicReferenceFromOtherFile[],
+        [] as VariableReferenceFromOtherFile[],
     );
 }
 
@@ -266,8 +255,8 @@ function filterOutDuplicateReferences(references: BrunoVariableReference[]) {
 }
 
 function groupReferences(
-    referencesFromAncestors: DynamicReferenceFromOtherFile[],
-    referencesFromDescendantsOfAncestors: DynamicReferenceFromOtherFile[],
+    referencesFromAncestors: VariableReferenceFromOtherFile[],
+    referencesFromDescendantsOfAncestors: VariableReferenceFromOtherFile[],
     collection: TypedCollection,
     searchDirection: SearchDirection,
 ) {
@@ -326,8 +315,8 @@ function groupReferences(
                 );
             },
             [] as {
-                mostRelevantReference: DynamicReferenceFromOtherFile;
-                otherMatchingReferences: DynamicReferenceFromOtherFile[];
+                mostRelevantReference: VariableReferenceFromOtherFile;
+                otherMatchingReferences: VariableReferenceFromOtherFile[];
             }[],
         );
 }
@@ -335,8 +324,8 @@ function groupReferences(
 // The reference with the minimum indirection level is always the most relevant one.
 // For multiple references with the same indirection level, the one with the sequence closest to the source item is most relevant.
 function isFirstReferenceMoreRelevant(
-    ref1: DynamicReferenceFromOtherFile,
-    ref2: DynamicReferenceFromOtherFile,
+    ref1: VariableReferenceFromOtherFile,
+    ref2: VariableReferenceFromOtherFile,
     collection: TypedCollection,
     searchDirection: SearchDirection,
 ) {

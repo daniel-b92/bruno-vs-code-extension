@@ -50,11 +50,11 @@
     "devDependencies": {
         "@types/chai": "^5.2.2",
         "@types/mocha": "^10.0.10",
-        "@types/node": "^20.17.24",
+        "@types/node": "^25.9.1",
         "@types/vscode": "^1.100.0",
         "ts-loader": "^9.5.2",
-        "typescript": "^5.9.3",
-        "webpack": "^5.98.0",
+        "typescript": "^6.0.3",
+        "webpack": "^5.107.1",
         "webpack-cli": "^7.0.2"
     },
     "contributes": {

@@ -13,30 +13,12 @@ import {
     AdditionalCollectionDataProvider,
     getBrunoJsonFilePath,
     getCollectionRootData,
+    NotificationData,
+    ReadyOnlyCollection,
 } from "../..";
 import { basename, dirname } from "path";
 import { isModifiedItemOutdated } from "../internal/isModifiedItemOutdated";
 import { Evt } from "evt";
-
-export type NotificationData<T> = NotificationBaseData<T> &
-    (
-        | {
-              updateType: FileChangeType.Created | FileChangeType.Deleted;
-          }
-        | {
-              updateType: FileChangeType.Modified;
-              changedData?: {
-                  sequenceChanged: boolean;
-                  tagsChanged: boolean;
-                  additionalDataChanged: boolean;
-              };
-          }
-    );
-
-interface NotificationBaseData<T> {
-    collection: Collection<T>;
-    data: CollectionData<T>;
-}
 
 export class CollectionItemProvider<T> {
     constructor(
@@ -52,7 +34,7 @@ export class CollectionItemProvider<T> {
         collectionWatcher.subscribeToUpdates(
             async ({ path, changeType: fileChangeType }) => {
                 const registeredCollection =
-                    this.getAncestorCollectionForPath(path);
+                    this.getAncestorFullCollectionForPath(path);
 
                 if (!registeredCollection) {
                     return;
@@ -150,7 +132,7 @@ export class CollectionItemProvider<T> {
     }
 
     public getRegisteredCollections() {
-        return this.collectionRegistry.getRegisteredCollections();
+        return this.collectionRegistry.getRegisteredCollections() as ReadyOnlyCollection<T>[];
     }
 
     public getRegisteredItemAndCollection(path: string) {
@@ -165,7 +147,10 @@ export class CollectionItemProvider<T> {
             : undefined;
     }
 
-    public getRegisteredItem(collection: Collection<T>, itemPath: string) {
+    public getRegisteredItem(
+        collection: ReadyOnlyCollection<T>,
+        itemPath: string,
+    ) {
         if (
             !this.collectionRegistry
                 .getRegisteredCollections()
@@ -249,7 +234,8 @@ export class CollectionItemProvider<T> {
     }
 
     public async reloadCollectionRootFolderItem(collectionRoot: string) {
-        const collection = this.getAncestorCollectionForPath(collectionRoot);
+        const collection =
+            this.getAncestorFullCollectionForPath(collectionRoot);
 
         if (!collection || !collection.isRootDirectory(collectionRoot)) {
             this.logger?.warn(
@@ -543,6 +529,16 @@ export class CollectionItemProvider<T> {
                 this.itemUpdateEmitter.post(notificationData);
             }, timeout);
         }
+    }
+
+    private getAncestorFullCollectionForPath(itemPath: string) {
+        return this.collectionRegistry
+            .getRegisteredCollections()
+            .find((collection) =>
+                normalizePath(itemPath).startsWith(
+                    normalizePath(collection.getRootDirectory()),
+                ),
+            );
     }
 
     private shouldPathBeIgnored(path: string) {

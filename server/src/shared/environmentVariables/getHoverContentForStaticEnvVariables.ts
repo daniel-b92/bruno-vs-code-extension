@@ -20,7 +20,7 @@ export function getHoverContentForStaticEnvVariables(
     const tableHeader = `| value | environment | configured |
 | :--------------- | :----------------: | :----------------: | ${getLineBreak()}`;
 
-    return "**Static references:**".concat(
+    return "**Persistent environment variable references:**".concat(
         getLineBreak(),
         tableHeader,
         matches

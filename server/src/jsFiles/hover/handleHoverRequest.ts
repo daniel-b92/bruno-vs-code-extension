@@ -4,7 +4,7 @@ import {
     getInbuiltFunctionIdentifiers,
     Logger,
     getMatchingDefinitionsFromEnvFiles,
-    EnvVariableNameMatchingMode,
+    VariableNameMatchingMode,
 } from "@global_shared";
 import {
     getHoverContentForStaticEnvVariables,
@@ -60,7 +60,7 @@ async function getHover(params: {
         getMatchingDefinitionsFromEnvFiles(
             collection,
             variableName,
-            EnvVariableNameMatchingMode.Exact,
+            VariableNameMatchingMode.Exact,
             configuredEnvironmentName,
         );
 
