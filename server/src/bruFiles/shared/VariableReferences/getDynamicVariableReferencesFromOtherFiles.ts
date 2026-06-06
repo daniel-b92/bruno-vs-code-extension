@@ -141,7 +141,9 @@ function getReferencesFromAncestorFolder(
     }
 
     return filterDynamicReferences(
-        filterOutDuplicateReferences(folderData.additionalData),
+        filterOutDuplicateReferences(
+            folderData.additionalData.map(({ reference }) => reference),
+        ),
         referenceTypeInSourceFile,
         variableTypeInSourceFile,
     ).map((reference) => ({
@@ -228,7 +230,9 @@ function getReferencesFromFolderDescendants(
 
             return prev.concat(
                 filterDynamicReferences(
-                    filterOutDuplicateReferences(additionalData),
+                    filterOutDuplicateReferences(
+                        additionalData.map(({ reference }) => reference),
+                    ),
                     referenceTypeInSourceFile,
                     variableTypeInSourceFile,
                 ).map((reference) => ({
