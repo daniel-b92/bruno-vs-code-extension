@@ -1,4 +1,8 @@
-import { CodeBlock, BrunoVariableReference } from "@global_shared";
+import {
+    CodeBlock,
+    BrunoVariableReference,
+    VariableNameMatchingMode,
+} from "@global_shared";
 import { CompletionItem } from "vscode-languageserver";
 import { mapVariablesToCompletions } from "./mapVariablesToCompletions";
 import { BlockRequestWithAdditionalData } from "../shared/interfaces";
@@ -35,11 +39,10 @@ function getResultsForVariable(
 ) {
     const { referenceType, variableType, variableName, variableNameRange } =
         variableReference;
-    const allRefs = getAllVariableReferences(
-        fullRequest,
-        variableReference,
+    const allRefs = getAllVariableReferences(fullRequest, variableReference, {
         configuredEnvironment,
-    );
+        matchingModeForEnvVars: VariableNameMatchingMode.Ignore,
+    });
 
     if (!allRefs) {
         return [];

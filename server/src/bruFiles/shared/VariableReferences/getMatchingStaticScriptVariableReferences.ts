@@ -52,7 +52,7 @@ export function getMatchingStaticScriptVariableReferences({
                 relativeToSourceFile: relative(filePath, item.getPath()),
             },
             references: getRelevantReferences(
-                additionalData as BrunoVariableReference[],
+                additionalData?.map(({ reference }) => reference) ?? [],
                 relevantScope,
             ),
         }))
