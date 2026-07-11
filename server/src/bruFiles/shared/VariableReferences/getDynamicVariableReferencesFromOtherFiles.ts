@@ -114,7 +114,6 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
                         referenceType: referenceTypeInSourceFile,
                         variableType: variableTypeInSourceFile,
                     },
-
                     ascensionIndex,
                     searchDirection,
                 ),

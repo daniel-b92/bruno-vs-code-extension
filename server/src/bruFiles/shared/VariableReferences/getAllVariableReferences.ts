@@ -11,11 +11,16 @@ import {
     RequestFileBlockName,
     VariableNameMatchingMode,
 } from "@global_shared";
-import { BlockRequestWithAdditionalData } from "../interfaces";
+import {
+    BlockRequestWithAdditionalData,
+    VariableReferenceFromOtherFile,
+} from "../interfaces";
 import { getDynamicVariableReferencesWithinFile } from "./getDynamicVariableReferencesWithinFile";
 import { getDynamicVariableReferencesFromOtherFiles } from "./getDynamicVariableReferencesFromOtherFiles";
 import { getMatchingStaticScriptVariableReferences } from "./getMatchingStaticScriptVariableReferences";
 import { filterDynamicReferences } from "./filterDynamicReferences";
+import { relative } from "path";
+import { areReferencesEquivalentForLanguageFeatures } from "./areReferencesEquivalentForLanguageFeatures";
 
 export function getAllVariableReferences(
     fullRequest: BlockRequestWithAdditionalData<Block>,
@@ -42,17 +47,37 @@ export function getAllVariableReferences(
     ).includes(blockContainingPosition.name);
 
     if (isSourceBlockBlockForScriptVariables) {
+        // In script vars blocks, variables can only be set, not read.
+        // So the only relevant variable references are in the blocks that can read the variables that are set within the source block.
         const scriptBlockToCheck = getScriptBlockForVariableBlock(
             blockContainingPosition.name as
                 | RequestFileBlockName.PreRequestVars
                 | RequestFileBlockName.PostResponseVars,
         );
 
-        return getVariableRefsForScriptVarsBlock(
+        const refs = getVariableRefsForScriptVarsBlock(
             scriptBlockToCheck,
             fullRequest,
             variableReference,
         );
+
+        if (refs == undefined) {
+            return undefined;
+        }
+
+        const { withinSameFile, fromOtherFiles } = refs;
+
+        return {
+            staticReferences: {
+                fromEnvironmentFiles: [],
+                fromScriptVariableBlocks: [],
+            },
+            dynamicReferences: {
+                withinSameFile,
+                fromOtherFiles:
+                    groupReferencesWithSameRelevance(fromOtherFiles),
+            },
+        };
     }
 
     const matchingStaticEnvVariableDefinitions = [
@@ -134,26 +159,36 @@ function getVariableRefsForScriptVarsBlock(
         request: { filePath },
     }: BlockRequestWithAdditionalData<Block>,
     { variableType, referenceType }: BrunoVariableReference,
-) {
+):
+    | {
+          withinSameFile: {
+              blockName: string;
+              variableReference: BrunoVariableReference;
+          }[];
+          fromOtherFiles: VariableReferenceFromOtherFile[];
+      }
+    | undefined {
     const itemType = collection
         .getStoredDataForPath(filePath)
         ?.item.getItemType();
 
-    const refsWithinSameFile =
-        allBlocks.find(({ name }) => name == blockToCheck)
-            ?.variableReferences ?? [];
-
     if (
         !itemType ||
+        // Script blocks and script vars blocks are not valid in environment files e.g.
         !(
             [
                 BrunoFileType.CollectionSettingsFile,
                 BrunoFileType.FolderSettingsFile,
+                BrunoFileType.RequestFile,
             ] as ItemType[]
         ).includes(itemType)
     ) {
-        return [];
+        return undefined;
     }
+
+    const refsWithinSameFile =
+        allBlocks.find(({ name }) => name == blockToCheck)
+            ?.variableReferences ?? [];
 
     const ancestorFolderPath = normalizePath(filePath);
     const descendantItems = collection
@@ -166,19 +201,51 @@ function getVariableRefsForScriptVarsBlock(
             );
         });
 
-    const relevantRefsForDescendants = descendantItems
-        .flatMap(
-            ({ additionalData }) =>
-                additionalData?.filter(({ block }) => block == blockToCheck) ??
-                [],
-        )
-        .map(({ reference }) => reference);
-
-    return filterDynamicReferences(
-        refsWithinSameFile.concat(relevantRefsForDescendants),
-        referenceType,
-        variableType,
+    const relevantRefsForDescendants = descendantItems.flatMap(
+        ({ item, additionalData }) => {
+            const refsInRelevantBlock = additionalData?.filter(
+                ({ block }) => block == blockToCheck,
+            );
+            return !refsInRelevantBlock || refsInRelevantBlock.length == 0
+                ? []
+                : refsInRelevantBlock.map(({ reference }) => ({
+                      path: item.getPath(),
+                      reference,
+                  }));
+        },
     );
+
+    return {
+        withinSameFile: filterDynamicReferences(
+            refsWithinSameFile,
+            referenceType,
+            variableType,
+        ).map((ref) => ({ blockName: blockToCheck, variableReference: ref })),
+        fromOtherFiles: relevantRefsForDescendants.flatMap(
+            ({ path, reference }) => {
+                const relevantRefs = filterDynamicReferences(
+                    [reference],
+                    referenceType,
+                    variableType,
+                );
+                return relevantRefs.length == 0
+                    ? []
+                    : [
+                          {
+                              path: {
+                                  absolute: path,
+                                  relativeToSourceFile: relative(
+                                      filePath,
+                                      path,
+                                  ),
+                              },
+                              indirectionLevel: 1,
+                              reference,
+                          },
+                      ];
+            },
+        ),
+    };
 }
 
 function addLogEntryForCancellation(logger?: Logger) {
@@ -195,4 +262,40 @@ function getScriptBlockForVariableBlock(
     return variableBlockName == RequestFileBlockName.PreRequestVars
         ? RequestFileBlockName.PreRequestScript
         : RequestFileBlockName.PostResponseScript;
+}
+
+function groupReferencesWithSameRelevance(
+    references: VariableReferenceFromOtherFile[],
+) {
+    return references.reduce(
+        (prev, curr) => {
+            const matchingReferenceIndex = prev.findIndex(
+                ({ mostRelevantReference: { reference: registered } }) =>
+                    areReferencesEquivalentForLanguageFeatures(
+                        curr.reference,
+                        registered,
+                    ),
+            );
+
+            return matchingReferenceIndex < 0
+                ? prev.concat({
+                      mostRelevantReference: curr,
+                      otherMatchingReferences: [],
+                  })
+                : prev.map((entry, index) =>
+                      index != matchingReferenceIndex
+                          ? entry
+                          : {
+                                mostRelevantReference:
+                                    entry.mostRelevantReference,
+                                otherMatchingReferences:
+                                    entry.otherMatchingReferences.concat(curr),
+                            },
+                  );
+        },
+        [] as {
+            mostRelevantReference: VariableReferenceFromOtherFile;
+            otherMatchingReferences: VariableReferenceFromOtherFile[];
+        }[],
+    );
 }
