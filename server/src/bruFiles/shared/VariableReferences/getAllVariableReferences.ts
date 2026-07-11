@@ -19,7 +19,7 @@ import { getDynamicVariableReferencesWithinFile } from "./getDynamicVariableRefe
 import { getDynamicVariableReferencesFromOtherFiles } from "./getDynamicVariableReferencesFromOtherFiles";
 import { getMatchingStaticScriptVariableReferences } from "./getMatchingStaticScriptVariableReferences";
 import { filterDynamicReferences } from "./filterDynamicReferences";
-import { relative } from "path";
+import { dirname, relative } from "path";
 import { areReferencesEquivalentForLanguageFeatures } from "./areReferencesEquivalentForLanguageFeatures";
 
 export function getAllVariableReferences(
@@ -190,7 +190,22 @@ function getVariableRefsForScriptVarsBlock(
         allBlocks.find(({ name }) => name == blockToCheck)
             ?.variableReferences ?? [];
 
-    const ancestorFolderPath = normalizePath(filePath);
+    if (itemType == BrunoFileType.RequestFile) {
+        // Request files cannot have any descendant collection items.
+        return {
+            withinSameFile: filterDynamicReferences(
+                refsWithinSameFile,
+                referenceType,
+                variableType,
+            ).map((ref) => ({
+                blockName: blockToCheck,
+                variableReference: ref,
+            })),
+            fromOtherFiles: [],
+        };
+    }
+
+    const ancestorFolderPath = normalizePath(dirname(filePath));
     const descendantItems = collection
         .getAllStoredDataForCollection()
         .filter(({ item }) => {
