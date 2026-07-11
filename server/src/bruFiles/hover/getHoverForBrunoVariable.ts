@@ -5,7 +5,6 @@ import {
     Logger,
     RequestFileBlockName,
     VariableAvailabilityScopes,
-    VariableNameMatchingMode,
     VariableReferenceType,
 } from "@global_shared";
 import { Hover, MarkupContent } from "vscode-languageserver";
@@ -31,7 +30,7 @@ export function getHoverForBrunoVariable(
 
     const allRefs = getAllVariableReferences(fullRequest, variableReference, {
         configuredEnvironment: configuredEnvironmentName,
-        matchingModeForEnvVars: VariableNameMatchingMode.Exact,
+        variableNameForFiltering: variableName,
     });
 
     if (!allRefs) {

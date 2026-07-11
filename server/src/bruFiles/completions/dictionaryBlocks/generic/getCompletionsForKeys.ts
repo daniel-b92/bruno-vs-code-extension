@@ -20,7 +20,11 @@ import { LanguageFeatureBaseRequest } from "../../../../shared";
 export function getCompletionsForKeys(
     request: LanguageFeatureBaseRequest,
     block: Block,
-    keysForSimpleFields: { mandatory: string[]; optional?: string[] },
+    keysForSimpleFields: {
+        mandatory?: string[];
+        optional?: string[];
+        other?: string[];
+    },
     keysForArrayFields?: { optional: string[] },
 ): CompletionItem[] | undefined {
     const keyRangeContainingPosition = getKeyRangeContainingPosition(
@@ -79,40 +83,47 @@ function getCompletionsForSimpleFields(
     request: LanguageFeatureBaseRequest,
     block: Block,
     keyRangeContainingPosition: Range,
-    keys: { mandatory: string[]; optional?: string[] },
+    keys: { mandatory?: string[]; optional?: string[]; other?: string[] },
 ) {
-    const { mandatory: mandatoryKeys, optional: optionalKeys } = keys;
+    const {
+        mandatory: mandatoryKeys,
+        optional: optionalKeys,
+        other: otherKeys,
+    } = keys;
 
-    const forMandatoryKeys: CompletionItem[] = mandatoryKeys
-        .filter((key) => !getKeysUsedInOtherLines(request, block).includes(key))
-        .map((key) =>
+    interface KeyWithType {
+        key: string;
+        type: "mandatory" | "optional" | "other";
+    }
+
+    const keysWithTypes: KeyWithType[] = (mandatoryKeys ?? [])
+        .map((key) => ({ type: "mandatory", key }) as KeyWithType)
+        .concat(
+            (optionalKeys ?? []).map(
+                (key) => ({ type: "optional", key }) as KeyWithType,
+            ),
+            (otherKeys ?? []).map(
+                (key) => ({ type: "other", key }) as KeyWithType,
+            ),
+        );
+
+    return keysWithTypes
+        .filter(
+            ({ key }) => !getKeysUsedInOtherLines(request, block).includes(key),
+        )
+        .map(({ key, type }) =>
             getCompletionItem(
                 request.documentHelper,
                 key,
                 keyRangeContainingPosition,
                 true,
-                true,
+                type == "mandatory"
+                    ? true
+                    : type == "optional"
+                      ? false
+                      : undefined,
             ),
         );
-
-    const forOptionalKeys: CompletionItem[] = !optionalKeys
-        ? []
-        : optionalKeys
-              .filter(
-                  (key) =>
-                      !getKeysUsedInOtherLines(request, block).includes(key),
-              )
-              .map((key) =>
-                  getCompletionItem(
-                      request.documentHelper,
-                      key,
-                      keyRangeContainingPosition,
-                      true,
-                      false,
-                  ),
-              );
-
-    return forMandatoryKeys.concat(forOptionalKeys);
 }
 
 function getCompletionItem(
@@ -120,7 +131,7 @@ function getCompletionItem(
     key: string,
     keyRangeContainingPosition: Range,
     isSimpleField: boolean,
-    isMandatory: boolean,
+    isMandatory?: boolean,
 ): CompletionItem {
     return {
         label: key,
@@ -133,7 +144,10 @@ function getCompletionItem(
               ),
         insertTextFormat: isSimpleField ? undefined : InsertTextFormat.Snippet,
         sortText: isMandatory ? `a_${key}` : `b_${key}`,
-        labelDetails: isMandatory ? undefined : { detail: ` optional` },
+        labelDetails:
+            isMandatory === undefined || isMandatory
+                ? undefined
+                : { detail: ` optional` },
     };
 }
 

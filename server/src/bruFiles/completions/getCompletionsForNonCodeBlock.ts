@@ -12,7 +12,6 @@ import {
     SettingsFileSpecificBlock,
     VariableReferenceType,
     Range,
-    VariableNameMatchingMode,
 } from "@global_shared";
 import { CompletionItem } from "vscode-languageserver";
 import {
@@ -39,6 +38,14 @@ export async function getCompletionsForNonCodeBlock(
         file: { blockContainingPosition, allBlocks, collection },
     } = fullRequest;
 
+    if (
+        (getBlocksWithoutVariableSupport() as string[]).includes(
+            blockContainingPosition.name,
+        )
+    ) {
+        return [];
+    }
+
     return (
         (await getBlockSpecificCompletions(
             itemProvider,
@@ -49,35 +56,26 @@ export async function getCompletionsForNonCodeBlock(
         )) ?? []
     ).concat(
         collection
-            ? getNonBlockSpecificCompletions(fullRequest, configuredEnvironment)
+            ? getCompletionsForBlockWithReadOnlyVariables(
+                  fullRequest,
+                  configuredEnvironment,
+              )
             : [],
     );
 }
 
-function getNonBlockSpecificCompletions(
+function getCompletionsForBlockWithReadOnlyVariables(
     fullRequest: BlockRequestWithAdditionalData<Block>,
     configuredEnvironment?: string,
 ) {
-    const {
-        request,
-        file: { blockContainingPosition },
-        logger,
-    } = fullRequest;
+    const { request, logger } = fullRequest;
     const { documentHelper, position } = request;
     const { line } = position;
-    // In non-code blocks, variables cannot be set.
     const functionType = VariableReferenceType.Read;
-    // In non-code blocks, all kinds of variables can be used via the same syntax.
+    // In non-code blocks, all kinds of variables can be accessed via reading with the same syntax.
     const variableType = BrunoVariableType.Unknown;
     const lineContent = documentHelper.getLineByIndex(line);
 
-    if (
-        (getBlocksWithoutVariableSupport() as string[]).includes(
-            blockContainingPosition.name,
-        )
-    ) {
-        return [];
-    }
     const variableParsingResult = getVariable(request, lineContent, logger);
     if (!variableParsingResult) {
         return [];
@@ -89,13 +87,10 @@ function getNonBlockSpecificCompletions(
         fullRequest,
         {
             referenceType: functionType,
-            variableName: variable.name,
-            variableNameRange: new Range(variable.start, variable.end),
             variableType,
         },
         {
             configuredEnvironment,
-            matchingModeForEnvVars: VariableNameMatchingMode.Ignore,
         },
     );
 
@@ -130,6 +125,60 @@ function getNonBlockSpecificCompletions(
             variableType,
         },
         toAppendOnInsertion,
+    );
+}
+
+function getCompletionsForBlockWithWriteOnlyVariables(
+    fullRequest: BlockRequestWithAdditionalData<Block>,
+    configuredEnvironment?: string,
+) {
+    const { request, logger } = fullRequest;
+    const { documentHelper, position } = request;
+    const { line } = position;
+    const functionType = VariableReferenceType.Write;
+    const variableType = BrunoVariableType.Simple;
+
+    const allRefs = getAllVariableReferences(
+        fullRequest,
+        {
+            referenceType: functionType,
+            variableType,
+        },
+        {
+            configuredEnvironment,
+        },
+    );
+
+    if (!allRefs) {
+        return [];
+    }
+
+    const {
+        staticReferences: { fromEnvironmentFiles },
+        dynamicReferences: { withinSameFile, fromOtherFiles },
+    } = allRefs;
+
+    return mapVariablesToCompletions(
+        {
+            staticEnvVariables: fromEnvironmentFiles.map(
+                ({ file, matchingVariables, isConfiguredEnv }) => ({
+                    environmentFile: file,
+                    matchingVariableKeys: matchingVariables.map(
+                        ({ key }) => key,
+                    ),
+                    isConfiguredEnv,
+                }),
+            ),
+            dynamicVariables: {
+                fromSameFile: withinSameFile,
+                fromOtherFiles,
+            },
+        },
+        {
+            variable,
+            functionType,
+            variableType,
+        },
     );
 }
 

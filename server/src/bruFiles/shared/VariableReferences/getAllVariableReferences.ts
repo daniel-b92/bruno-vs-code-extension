@@ -9,7 +9,7 @@ import {
     Logger,
     normalizePath,
     RequestFileBlockName,
-    VariableNameMatchingMode,
+    VariableReferenceType,
 } from "@global_shared";
 import {
     BlockRequestWithAdditionalData,
@@ -24,10 +24,13 @@ import { areReferencesEquivalentForLanguageFeatures } from "./areReferencesEquiv
 
 export function getAllVariableReferences(
     fullRequest: BlockRequestWithAdditionalData<Block>,
-    variableReference: BrunoVariableReference,
+    sourceReference: {
+        referenceType: VariableReferenceType;
+        variableType: BrunoVariableType;
+    },
     environmentVarsParams: {
         configuredEnvironment?: string;
-        matchingModeForEnvVars: VariableNameMatchingMode;
+        variableNameForFiltering?: string;
     },
 ) {
     const {
@@ -36,9 +39,9 @@ export function getAllVariableReferences(
         logger,
     } = fullRequest;
     const { token, filePath } = baseRequest;
-    const { matchingModeForEnvVars, configuredEnvironment } =
+    const { variableNameForFiltering, configuredEnvironment } =
         environmentVarsParams;
-    const { variableName, referenceType, variableType } = variableReference;
+    const { referenceType, variableType } = sourceReference;
     const isSourceBlockBlockForScriptVariables = (
         [
             RequestFileBlockName.PreRequestVars,
@@ -58,7 +61,7 @@ export function getAllVariableReferences(
         const refs = getVariableRefsForScriptVarsBlock(
             scriptBlockToCheck,
             fullRequest,
-            variableReference,
+            sourceReference,
         );
 
         if (refs == undefined) {
@@ -86,8 +89,7 @@ export function getAllVariableReferences(
     ].includes(variableType)
         ? getMatchingDefinitionsFromEnvFiles(
               collection,
-              variableName,
-              matchingModeForEnvVars,
+              variableNameForFiltering,
               configuredEnvironment,
           )
         : [];
@@ -158,7 +160,10 @@ function getVariableRefsForScriptVarsBlock(
         file: { allBlocks, collection },
         request: { filePath },
     }: BlockRequestWithAdditionalData<Block>,
-    { variableType, referenceType }: BrunoVariableReference,
+    sourceReference: {
+        variableType: BrunoVariableType;
+        referenceType: VariableReferenceType;
+    },
 ):
     | {
           withinSameFile: {
@@ -168,6 +173,7 @@ function getVariableRefsForScriptVarsBlock(
           fromOtherFiles: VariableReferenceFromOtherFile[];
       }
     | undefined {
+    const { referenceType, variableType } = sourceReference;
     const itemType = collection
         .getStoredDataForPath(filePath)
         ?.item.getItemType();
@@ -265,7 +271,7 @@ function getVariableRefsForScriptVarsBlock(
 
 function addLogEntryForCancellation(logger?: Logger) {
     logger?.debug(
-        `Cancellation requested for completion provider for 'bru' language.`,
+        `Cancellation requested while searching for variable references.`,
     );
 }
 
