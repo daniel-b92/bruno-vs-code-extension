@@ -10,12 +10,18 @@ get {
   auth: none
 }
 
+vars:post-response {
+  asasas: ererer
+}
+
 script:pre-request {
   bru.setEnvVar("exe", "sdsd");
 }
 
 script:post-response {
   bru.setEnvVar("bli", "asasas");
+  bru.getVar("asasas");
+  bru.geVar("rtrtrtr);
 }
 
 tests {
