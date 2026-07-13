@@ -1,12 +1,9 @@
 import {
     Block,
-    DictionaryBlockArrayField,
-    DictionaryBlockSimpleField,
+    getActiveKeysUsedInOtherLines,
     getDefaultIndentationForDictionaryBlockFields,
-    isArrayBlockField,
-    isDictionaryBlockField,
+    getKeyRangeContainingPosition,
     LineBreakType,
-    PlainTextWithinBlock,
     Range,
     TextDocumentHelper,
 } from "@global_shared";
@@ -28,7 +25,7 @@ export function getCompletionsForKeys(
     keysForArrayFields?: { optional: string[] },
 ): CompletionItem[] | undefined {
     const keyRangeContainingPosition = getKeyRangeContainingPosition(
-        request,
+        request.position,
         block,
     );
 
@@ -54,7 +51,7 @@ export function getCompletionsForKeys(
 }
 
 function getCompletionsForArrayFields(
-    request: LanguageFeatureBaseRequest,
+    { documentHelper, position: { line } }: LanguageFeatureBaseRequest,
     block: Block,
     keyRangeContainingPosition: Range,
     optionalKeys: string[],
@@ -64,11 +61,11 @@ function getCompletionsForArrayFields(
         : optionalKeys
               .filter(
                   (key) =>
-                      !getKeysUsedInOtherLines(request, block).includes(key),
+                      !getActiveKeysUsedInOtherLines(line, block).includes(key),
               )
               .map((key) =>
                   getCompletionItem(
-                      request.documentHelper,
+                      documentHelper,
                       key,
                       keyRangeContainingPosition,
                       false,
@@ -80,7 +77,7 @@ function getCompletionsForArrayFields(
 }
 
 function getCompletionsForSimpleFields(
-    request: LanguageFeatureBaseRequest,
+    { documentHelper, position: { line } }: LanguageFeatureBaseRequest,
     block: Block,
     keyRangeContainingPosition: Range,
     keys: { mandatory?: string[]; optional?: string[]; other?: string[] },
@@ -109,11 +106,12 @@ function getCompletionsForSimpleFields(
 
     return keysWithTypes
         .filter(
-            ({ key }) => !getKeysUsedInOtherLines(request, block).includes(key),
+            ({ key }) =>
+                !getActiveKeysUsedInOtherLines(line, block).includes(key),
         )
         .map(({ key, type }) =>
             getCompletionItem(
-                request.documentHelper,
+                documentHelper,
                 key,
                 keyRangeContainingPosition,
                 true,
@@ -190,53 +188,4 @@ function getTextEditForSimpleField(
                       .concat(`${key}:`),
         range: rangeToReplace,
     };
-}
-
-function getKeyRangeContainingPosition(
-    { position }: LanguageFeatureBaseRequest,
-    block: Block,
-) {
-    const { content: blockContent } = block;
-    if (!Array.isArray(blockContent)) {
-        return undefined;
-    }
-
-    const field = blockContent
-        .filter((field) => !isArrayBlockField(field))
-        .find((field) => {
-            if (
-                isArrayBlockField(field) ||
-                (isDictionaryBlockField(field) && field.disabled)
-            ) {
-                return false;
-            }
-
-            if (!isDictionaryBlockField(field)) {
-                return field.range.contains(position);
-            }
-
-            return field.keyRange.contains(position);
-        }) as
-        | PlainTextWithinBlock
-        | DictionaryBlockSimpleField
-        | DictionaryBlockArrayField
-        | undefined;
-
-    return !field
-        ? undefined
-        : isDictionaryBlockField(field)
-          ? field.keyRange
-          : field.range;
-}
-
-function getKeysUsedInOtherLines(
-    { position: { line } }: LanguageFeatureBaseRequest,
-    { content: blockContent }: Block,
-) {
-    return !Array.isArray(blockContent)
-        ? []
-        : blockContent
-              .filter((field) => isDictionaryBlockField(field))
-              .filter(({ keyRange: { start } }) => start.line != line)
-              .map(({ key }) => key);
 }

@@ -11,7 +11,8 @@ import {
     RequestFileBlockName,
     SettingsFileSpecificBlock,
     VariableReferenceType,
-    Range,
+    getActiveKeysUsedInOtherLines,
+    getKeyRangeContainingPosition,
 } from "@global_shared";
 import { CompletionItem } from "vscode-languageserver";
 import {
@@ -55,12 +56,21 @@ export async function getCompletionsForNonCodeBlock(
             collection,
         )) ?? []
     ).concat(
-        collection
-            ? getCompletionsForBlockWithReadOnlyVariables(
+        // For Script variable blocks only write-only variables can be defined.
+        (
+            [
+                RequestFileBlockName.PreRequestVars,
+                RequestFileBlockName.PostResponseVars,
+            ] as string[]
+        ).includes(blockContainingPosition.name)
+            ? getCompletionsForBlockWithWriteOnlyVariables(
                   fullRequest,
                   configuredEnvironment,
               )
-            : [],
+            : getCompletionsForBlockWithReadOnlyVariables(
+                  fullRequest,
+                  configuredEnvironment,
+              ),
     );
 }
 
@@ -132,9 +142,10 @@ function getCompletionsForBlockWithWriteOnlyVariables(
     fullRequest: BlockRequestWithAdditionalData<Block>,
     configuredEnvironment?: string,
 ) {
-    const { request, logger } = fullRequest;
-    const { documentHelper, position } = request;
-    const { line } = position;
+    const {
+        request: { documentHelper, position },
+        file: { blockContainingPosition: block },
+    } = fullRequest;
     const functionType = VariableReferenceType.Write;
     const variableType = BrunoVariableType.Simple;
 
@@ -153,33 +164,48 @@ function getCompletionsForBlockWithWriteOnlyVariables(
         return [];
     }
 
-    const {
-        staticReferences: { fromEnvironmentFiles },
-        dynamicReferences: { withinSameFile, fromOtherFiles },
-    } = allRefs;
-
-    return mapVariablesToCompletions(
-        {
-            staticEnvVariables: fromEnvironmentFiles.map(
-                ({ file, matchingVariables, isConfiguredEnv }) => ({
-                    environmentFile: file,
-                    matchingVariableKeys: matchingVariables.map(
-                        ({ key }) => key,
-                    ),
-                    isConfiguredEnv,
-                }),
-            ),
-            dynamicVariables: {
-                fromSameFile: withinSameFile,
-                fromOtherFiles,
-            },
-        },
-        {
-            variable,
-            functionType,
-            variableType,
-        },
+    const activeKeysInOtherLines = getActiveKeysUsedInOtherLines(
+        position.line,
+        block,
     );
+    const variableRange = getKeyRangeContainingPosition(position, block);
+
+    const nonDuplicateRefsFromOtherFiles =
+        // For Script variable blocks, the only relevant references can be in code blocks, which means dynamic references.
+        allRefs.dynamicReferences.fromOtherFiles.filter(
+            ({
+                mostRelevantReference: {
+                    reference: { variableName },
+                },
+            }) => !activeKeysInOtherLines.includes(variableName),
+        );
+    const nonDuplicateRefsFromSameFile =
+        // For Script variable blocks, the only relevant references can be in code blocks, which means dynamic references.
+        allRefs.dynamicReferences.withinSameFile.filter(
+            ({ variableReference: { variableName } }) =>
+                !activeKeysInOtherLines.includes(variableName),
+        );
+
+    return !variableRange
+        ? []
+        : mapVariablesToCompletions(
+              {
+                  staticEnvVariables: [],
+                  staticScriptVariables: [],
+                  dynamicVariables: {
+                      fromSameFile: nonDuplicateRefsFromSameFile,
+                      fromOtherFiles: nonDuplicateRefsFromOtherFiles,
+                  },
+              },
+              {
+                  variable: {
+                      ...variableRange,
+                      name: documentHelper.getText(variableRange),
+                  },
+                  functionType,
+                  variableType,
+              },
+          );
 }
 
 async function getBlockSpecificCompletions(
