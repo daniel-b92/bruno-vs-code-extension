@@ -1,18 +1,14 @@
 import {
     Block,
     getActiveKeysUsedInOtherLines,
-    getDefaultIndentationForDictionaryBlockFields,
     getKeyRangeContainingPosition,
     LineBreakType,
     Range,
     TextDocumentHelper,
 } from "@global_shared";
-import {
-    CompletionItem,
-    InsertTextFormat,
-    TextEdit,
-} from "vscode-languageserver";
+import { CompletionItem, InsertTextFormat } from "vscode-languageserver";
 import { LanguageFeatureBaseRequest } from "../../../../shared";
+import { getTextEditForKey } from "./getTextEditForKey";
 
 export function getCompletionsForKeys(
     request: LanguageFeatureBaseRequest,
@@ -131,61 +127,21 @@ function getCompletionItem(
     isSimpleField: boolean,
     isMandatory?: boolean,
 ): CompletionItem {
+    const lineBreak = docHelper.getMostUsedLineBreak() ?? LineBreakType.Lf;
+
     return {
         label: key,
-        textEdit: isSimpleField
-            ? getTextEditForSimpleField(keyRangeContainingPosition, key)
-            : getTextEditForArrayField(
-                  docHelper,
-                  keyRangeContainingPosition,
-                  key,
-              ),
+        textEdit: getTextEditForKey(
+            lineBreak,
+            keyRangeContainingPosition,
+            key,
+            isSimpleField,
+        ),
         insertTextFormat: isSimpleField ? undefined : InsertTextFormat.Snippet,
         sortText: isMandatory ? `a_${key}` : `b_${key}`,
         labelDetails:
             isMandatory === undefined || isMandatory
                 ? undefined
                 : { detail: ` optional` },
-    };
-}
-
-function getTextEditForArrayField(
-    docHelper: TextDocumentHelper,
-    existingKeyRange: Range,
-    key: string,
-): TextEdit {
-    const defaultIndentation = getDefaultIndentationForDictionaryBlockFields();
-    const lineBreak = docHelper.getMostUsedLineBreak() ?? LineBreakType.Lf;
-
-    return {
-        newText: (existingKeyRange.start.character >=
-        getDefaultIndentationForDictionaryBlockFields()
-            ? key
-            : " "
-                  .repeat(defaultIndentation - existingKeyRange.start.character)
-                  .concat(key)
-        ).concat(
-            `: [${lineBreak}${" ".repeat(defaultIndentation * 2)}\${0}${lineBreak}${" ".repeat(defaultIndentation)}]`,
-        ),
-        range: existingKeyRange,
-    };
-}
-
-function getTextEditForSimpleField(
-    rangeToReplace: Range,
-    key: string,
-): TextEdit {
-    return {
-        newText:
-            rangeToReplace.start.character >=
-            getDefaultIndentationForDictionaryBlockFields()
-                ? key
-                : " "
-                      .repeat(
-                          getDefaultIndentationForDictionaryBlockFields() -
-                              rangeToReplace.start.character,
-                      )
-                      .concat(`${key}:`),
-        range: rangeToReplace,
     };
 }

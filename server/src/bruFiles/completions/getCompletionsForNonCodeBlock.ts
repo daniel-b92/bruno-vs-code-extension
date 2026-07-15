@@ -13,6 +13,8 @@ import {
     VariableReferenceType,
     getActiveKeysUsedInOtherLines,
     getKeyRangeContainingPosition,
+    LineBreakType,
+    Range,
 } from "@global_shared";
 import { CompletionItem } from "vscode-languageserver";
 import {
@@ -28,6 +30,7 @@ import { getAuthBlockContentCompletions } from "./dictionaryBlocks/specificBlock
 import { getSettingsBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getSettingsBlockContentCompletions";
 import { getAuthModeBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getAuthModeBlockContentCompletions";
 import { getAllVariableReferences } from "../shared/VariableReferences/getAllVariableReferences";
+import { getTextEditForKey } from "./dictionaryBlocks/generic/getTextEditForKey";
 
 export async function getCompletionsForNonCodeBlock(
     fullRequest: BlockRequestWithAdditionalData<Block>,
@@ -133,6 +136,8 @@ function getCompletionsForBlockWithReadOnlyVariables(
             variable,
             functionType,
             variableType,
+            documentLineBreak:
+                documentHelper.getMostUsedLineBreak() ?? LineBreakType.Lf,
         },
         toAppendOnInsertion,
     );
@@ -204,7 +209,21 @@ function getCompletionsForBlockWithWriteOnlyVariables(
                   },
                   functionType,
                   variableType,
+                  documentLineBreak:
+                      documentHelper.getMostUsedLineBreak() ?? LineBreakType.Lf,
               },
+              undefined,
+              (
+                  variableName: string,
+                  rangeToReplace: Range,
+                  lineBreak: LineBreakType,
+              ) =>
+                  getTextEditForKey(
+                      lineBreak,
+                      rangeToReplace,
+                      variableName,
+                      true,
+                  ),
           );
 }
 

@@ -8,6 +8,7 @@ import {
     BrunoVariableReference,
     BrunoVariableType,
     ReadyOnlyCollection,
+    LineBreakType,
 } from "@global_shared";
 import { CancellationToken } from "vscode-languageserver";
 
@@ -45,6 +46,7 @@ export interface VariableSpecificRequestData {
     };
     functionType: VariableReferenceType;
     variableType: BrunoVariableType;
+    documentLineBreak: LineBreakType;
 }
 
 export interface LanguageFeatureBaseRequest {

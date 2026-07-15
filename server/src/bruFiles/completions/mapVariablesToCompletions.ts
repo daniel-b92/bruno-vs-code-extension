@@ -1,9 +1,9 @@
 import {
     VariableReferenceType,
     Range,
-    Position,
     VariableAvailabilityScopes,
     RequestFileBlockName,
+    LineBreakType,
 } from "@global_shared";
 import {
     VariableSpecificRequestData,
@@ -21,6 +21,12 @@ import {
     MatchingDynamicVariables,
 } from "../shared/interfaces";
 
+export type GetTextEditForVariableCompletion = (
+    variableName: string,
+    rangeToReplace: Range,
+    lineBreak: LineBreakType,
+) => TextEdit;
+
 export function mapVariablesToCompletions(
     matchingReferences: {
         staticEnvVariables: {
@@ -33,15 +39,25 @@ export function mapVariablesToCompletions(
     },
     requestData: VariableSpecificRequestData,
     appendOnInsertion?: string,
+    getTextEditForCompletion?: GetTextEditForVariableCompletion,
 ) {
     const { staticEnvVariables, staticScriptVariables, dynamicVariables } =
         matchingReferences;
+    const textEditMapper =
+        getTextEditForCompletion ??
+        ((variableName, rangeToReplace, appendOnInsertionForEdit) =>
+            getTextEdit(
+                variableName,
+                rangeToReplace,
+                appendOnInsertionForEdit,
+            ));
     const resultsForDynamicVariables = mapDynamicVariables(
         requestData,
         dynamicVariables,
         {
             prefixForSortText: "a",
             appendOnInsertion,
+            getTextEditForCompletion: textEditMapper,
         },
     );
 
@@ -50,6 +66,7 @@ export function mapVariablesToCompletions(
               // Display static script variables below dynamic ones, but above static environment variables.
               prefixForSortText: "b",
               appendOnInsertion,
+              getTextEditForCompletion: textEditMapper,
           })
         : [];
 
@@ -60,7 +77,11 @@ export function mapVariablesToCompletions(
             dynamicVariables,
         ),
         // Display static environment variables below dynamic ones and static script variables.
-        { prefixForSortText: "c", appendOnInsertion },
+        {
+            prefixForSortText: "c",
+            appendOnInsertion,
+            getTextEditForCompletion: textEditMapper,
+        },
     );
 
     return resultsForDynamicVariables.concat(
@@ -73,13 +94,18 @@ function mapStaticScriptVariables(
     {
         variable: { start, end },
         functionType: sourceReferenceType,
+        documentLineBreak,
     }: VariableSpecificRequestData,
     allReferences: EquivalentVariableReferencesFromOtherFiles[],
     modifications: {
         prefixForSortText: string;
         appendOnInsertion?: string;
+        getTextEditForCompletion?: GetTextEditForVariableCompletion;
     },
 ): CompletionItem[] {
+    const getTextEditForCompletion =
+        modifications.getTextEditForCompletion ?? getTextEdit;
+
     return allReferences.map(
         ({
             mostRelevantReference: {
@@ -114,11 +140,10 @@ function mapStaticScriptVariables(
                     variableName,
                     indirectionLevel,
                 ),
-                textEdit: getTextEdit(
+                textEdit: getTextEditForCompletion(
                     variableName,
-                    start,
-                    end,
-                    modifications.appendOnInsertion,
+                    new Range(start, end),
+                    documentLineBreak,
                 ),
             };
         },
@@ -131,6 +156,7 @@ function mapDynamicVariables(
     modifications: {
         prefixForSortText: string;
         appendOnInsertion?: string;
+        getTextEditForCompletion?: GetTextEditForVariableCompletion;
     },
 ) {
     const groupedRefs = groupReferencesByName({ fromSameFile, fromOtherFiles });
@@ -168,7 +194,10 @@ function mapDynamicVariables(
 }
 
 function getCompletionForRefsWithinOwnFile(
-    { variable: { start, end } }: VariableSpecificRequestData,
+    {
+        variable: { start, end },
+        documentLineBreak,
+    }: VariableSpecificRequestData,
     groupedReferences: {
         variableName: string;
         referenceType: VariableReferenceType;
@@ -178,8 +207,11 @@ function getCompletionForRefsWithinOwnFile(
     modifications: {
         prefixForSortText: string;
         appendOnInsertion?: string;
+        getTextEditForCompletion?: GetTextEditForVariableCompletion;
     },
 ): CompletionItem {
+    const getTextEditForCompletion =
+        modifications.getTextEditForCompletion ?? getTextEdit;
     const {
         detailsForOwnFileRefs: {
             blockName,
@@ -220,17 +252,19 @@ function getCompletionForRefsWithinOwnFile(
             0,
             blockName,
         ),
-        textEdit: getTextEdit(
+        textEdit: getTextEditForCompletion(
             variableName,
-            start,
-            end,
-            modifications.appendOnInsertion,
+            new Range(start, end),
+            documentLineBreak,
         ),
     };
 }
 
 function getCompletionForRefsFromOnlyOtherFiles(
-    { variable: { start, end } }: VariableSpecificRequestData,
+    {
+        variable: { start, end },
+        documentLineBreak,
+    }: VariableSpecificRequestData,
     groupedReferences: {
         variableName: string;
         referenceType: VariableReferenceType;
@@ -239,8 +273,11 @@ function getCompletionForRefsFromOnlyOtherFiles(
     modifications: {
         prefixForSortText: string;
         appendOnInsertion?: string;
+        getTextEditForCompletion?: GetTextEditForVariableCompletion;
     },
 ): CompletionItem {
+    const getTextEditForCompletion =
+        modifications.getTextEditForCompletion ?? getTextEdit;
     const {
         referenceType,
         variableName,
@@ -265,11 +302,10 @@ function getCompletionForRefsFromOnlyOtherFiles(
             variableName,
             mostRelevantReference.indirectionLevel,
         ),
-        textEdit: getTextEdit(
+        textEdit: getTextEditForCompletion(
             variableName,
-            start,
-            end,
-            modifications.appendOnInsertion,
+            new Range(start, end),
+            documentLineBreak,
         ),
     };
 }
@@ -324,13 +360,12 @@ function getKind(referenceType: VariableReferenceType) {
 
 function getTextEdit(
     variableName: string,
-    start: Position,
-    end: Position,
+    rangeToReplace: Range,
     appendOnInsertion?: string,
 ): TextEdit {
     return {
         newText: `${variableName}${appendOnInsertion ?? ""}`,
-        range: new Range(start, end),
+        range: rangeToReplace,
     };
 }
 
