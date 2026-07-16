@@ -20,6 +20,7 @@ import {
     CollectionItem,
     getFileContent,
     parseFileByPath,
+    BrunoCollectionSettingsFile,
 } from "../..";
 import { createCollectionDirectoryInstance } from "./createCollectionDirectoryInstance";
 
@@ -49,6 +50,7 @@ export async function getCollectionItemForFile(
 ): Promise<CollectionItem | undefined> {
     switch (itemType) {
         case BrunoFileType.CollectionSettingsFile:
+            return new BrunoCollectionSettingsFile(path);
         case BrunoFileType.FolderSettingsFile:
             return new BrunoFolderSettingsFile(path);
         case BrunoFileType.EnvironmentFile:

@@ -44,6 +44,7 @@ interface CommonParams {
 export function getDictionaryBlockSnippetInsertionContent(
     blockName: string,
     commonParams: CommonParams,
+    isCollectionSettingsFile: boolean,
 ): string | undefined {
     const { lineBreak } = commonParams;
     if (blockName == RequestFileBlockName.Meta) {
@@ -59,7 +60,7 @@ export function getDictionaryBlockSnippetInsertionContent(
     }
 
     if (blockName == SettingsFileSpecificBlock.AuthMode) {
-        return getContentForAuthModeBlock(lineBreak);
+        return getContentForAuthModeBlock(lineBreak, isCollectionSettingsFile);
     }
 
     if (isAuthBlock(blockName)) {
@@ -198,13 +199,20 @@ function getContentForSettingsBlock(lineBreak: LineBreakType) {
     return getContentForDictionaryBlock(fields, lineBreak);
 }
 
-function getContentForAuthModeBlock(lineBreak: LineBreakType) {
+function getContentForAuthModeBlock(
+    lineBreak: LineBreakType,
+    isCollectionSettingsFile: boolean,
+) {
+    const allAuthTypes = Object.values(MethodBlockAuthValues);
+    const validAuthTypes = isCollectionSettingsFile
+        ? allAuthTypes.filter((type) => type != MethodBlockAuthValues.Inherit)
+        : allAuthTypes;
     return getContentForDictionaryBlock(
         [
             {
                 key: AuthModeBlockKey.Mode,
                 // The same values are valid as for the auth field in method blocks.
-                predefinedValues: Object.values(MethodBlockAuthValues),
+                predefinedValues: validAuthTypes,
             },
         ],
         lineBreak,

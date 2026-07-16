@@ -20,6 +20,7 @@ export function getCompletionsForAuthTypeFieldValue(
     allBlocks: Block[],
     blockContainingPosition: Block,
     content: { currentLineContent: string; lineBreak: LineBreakType },
+    isCollectionSettingsFile: boolean,
 ) {
     const { currentLineContent, lineBreak } = content;
     const existingAuthBlocks = allBlocks.filter(({ name }) =>
@@ -28,7 +29,14 @@ export function getCompletionsForAuthTypeFieldValue(
     const authTypesWithoutAnAuthBlock = getAuthTypesForNoDefinedAuthBlock();
 
     if (existingAuthBlocks.length <= 1) {
-        return Object.values(MethodBlockAuthValues)
+        const allAuthTypes = Object.values(MethodBlockAuthValues);
+        const authTypesForCompletions = isCollectionSettingsFile
+            ? allAuthTypes.filter(
+                  (type) => type != MethodBlockAuthValues.Inherit,
+              )
+            : allAuthTypes;
+
+        return authTypesForCompletions
             .map((authType) => {
                 const label = authType;
                 const textEdit = getTextEditForDictionaryBlockSimpleValue(

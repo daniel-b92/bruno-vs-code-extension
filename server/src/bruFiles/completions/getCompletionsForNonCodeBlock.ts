@@ -12,6 +12,7 @@ import {
     SettingsFileSpecificBlock,
     VariableReferenceType,
     Range,
+    BrunoFileType,
 } from "@global_shared";
 import { CompletionItem } from "vscode-languageserver";
 import {
@@ -141,11 +142,11 @@ async function getBlockSpecificCompletions(
         ? collection.getStoredDataForPath(request.filePath)?.item.getItemType()
         : undefined;
 
-    if (
-        blockName == RequestFileBlockName.Meta &&
-        itemType &&
-        isBrunoFileType(itemType)
-    ) {
+    if (!itemType) {
+        return undefined;
+    }
+
+    if (blockName == RequestFileBlockName.Meta && isBrunoFileType(itemType)) {
         return await getMetaBlockContentCompletions(
             itemProvider,
             request,
@@ -175,6 +176,7 @@ async function getBlockSpecificCompletions(
             request,
             allBlocks,
             blockContainingPosition,
+            itemType == BrunoFileType.CollectionSettingsFile,
         );
     }
     return [];
