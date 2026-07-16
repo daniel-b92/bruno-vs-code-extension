@@ -67,6 +67,7 @@ function getValueCompletions(
             allBlocks,
             methodBlock,
             { currentLineContent: currentText, lineBreak },
+            false,
         );
     }
 
