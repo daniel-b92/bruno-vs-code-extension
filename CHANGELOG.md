@@ -8,8 +8,9 @@
 ### Fixes / Minor Improvements
 
 - Fix intellisense for Bruno variables in nested inbuilt functionś.
-- Fix issue where an incorrect error was shown when defining a `docs` block in a `collection.bru` file.
-- Fix issue, where a misleading completion for a `meta` block in a `collection.bru` file was returned.
+- Fix an issue where an incorrect error was shown when defining a `docs` block in a `collection.bru` file.
+- Fix an issue, where a misleading completion for adding a `meta` block in a `collection.bru` file was returned.
+- Fix an issue, where the invalid value `inherit` was provided via completions for `auth` blocks in `collection.bru` files.
 
 ## [1.1.2] (2026-05-18)
 
