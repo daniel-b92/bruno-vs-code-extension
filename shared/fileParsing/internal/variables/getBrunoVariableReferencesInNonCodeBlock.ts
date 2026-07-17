@@ -101,7 +101,7 @@ function getWriteReferences(parsedBlock: {
         referenceType: VariableReferenceType.Write,
         variableName: key,
         variableNameRange: keyRange,
-        variableType: BrunoVariableType.Simple,
+        variableType: BrunoVariableType.Runtime,
         scope:
             blockName == RequestFileBlockName.PreRequestVars
                 ? VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants

@@ -12,7 +12,9 @@ export enum BrunoVariableType {
     Unknown = "Unknown",
     Global = "Global",
     Environment = "Environment",
-    Simple = "Simple",
+    Runtime = "Runtime",
+    Request = "Request",
+    Folder = "Folder",
 }
 
 export enum VariableReferenceType {
