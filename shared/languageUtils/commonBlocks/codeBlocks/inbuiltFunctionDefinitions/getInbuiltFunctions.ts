@@ -79,5 +79,21 @@ export function getInbuiltFunctions(): {
             variableType: BrunoVariableType.Runtime,
             scope: VariableAvailabilityScopes.Collection,
         },
+        [InbuiltFunctionName.GetRequestVar]: {
+            identifier: {
+                baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,
+                functionName: InbuiltFunctionName.GetRequestVar,
+            },
+            referenceType: VariableReferenceType.Read,
+            variableType: BrunoVariableType.FolderOrRequest,
+        },
+        [InbuiltFunctionName.GetFolderVar]: {
+            identifier: {
+                baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,
+                functionName: InbuiltFunctionName.GetFolderVar,
+            },
+            referenceType: VariableReferenceType.Read,
+            variableType: BrunoVariableType.FolderOrRequest,
+        },
     };
 }

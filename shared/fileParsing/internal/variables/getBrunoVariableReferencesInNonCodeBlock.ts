@@ -101,10 +101,10 @@ function getWriteReferences(parsedBlock: {
         referenceType: VariableReferenceType.Write,
         variableName: key,
         variableNameRange: keyRange,
-        variableType: BrunoVariableType.Runtime,
+        variableType: BrunoVariableType.FolderOrRequest,
         scope:
             blockName == RequestFileBlockName.PreRequestVars
-                ? VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
-                : VariableAvailabilityScopes.PostResponseScriptForOwnItemAndDescendants,
+                ? VariableAvailabilityScopes.PreRequestScriptForOwnItemAndMaybeDescendants
+                : VariableAvailabilityScopes.PostResponseScriptForOwnItemAndMaybeDescendants,
     }));
 }
