@@ -86,7 +86,7 @@ function getCompletionsForBlockWithReadOnlyVariables(
     const { documentHelper, position } = request;
     const { line } = position;
     const functionType = VariableReferenceType.Read;
-    // In non-code blocks, all kinds of variables can be accessed via reading with the same syntax.
+    // In non-code blocks with read-only variables, all kinds of variables can be accessed via the same syntax.
     const variableType = BrunoVariableType.Unknown;
     const lineContent = documentHelper.getLineByIndex(line);
 
