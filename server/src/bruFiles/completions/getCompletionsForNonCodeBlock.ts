@@ -140,7 +140,10 @@ function getCompletionsForBlockWithReadOnlyVariables(
             documentLineBreak:
                 documentHelper.getMostUsedLineBreak() ?? LineBreakType.Lf,
         },
-        toAppendOnInsertion,
+        (variableName: string, rangeToReplace: Range) => ({
+            newText: `${variableName}${toAppendOnInsertion}`,
+            range: rangeToReplace,
+        }),
     );
 }
 
@@ -214,7 +217,6 @@ function getCompletionsForBlockWithWriteOnlyVariables(
                   documentLineBreak:
                       documentHelper.getMostUsedLineBreak() ?? LineBreakType.Lf,
               },
-              undefined,
               (
                   variableName: string,
                   rangeToReplace: Range,

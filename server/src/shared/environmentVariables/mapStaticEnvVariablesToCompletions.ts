@@ -21,7 +21,6 @@ export function mapStaticEnvVariablesToCompletions(
     }[],
     modifications?: {
         prefixForSortText?: string;
-        appendOnInsertion?: string;
         getTextEditForCompletion?: GetTextEditForVariableCompletion;
     },
 ) {
@@ -46,10 +45,7 @@ export function mapStaticEnvVariablesToCompletions(
                         key,
                         new Range(start, end),
                         documentLineBreak,
-                    ) ?? {
-                        newText: `${key}${modifications?.appendOnInsertion ?? ""}`,
-                        range: new Range(start, end),
-                    },
+                    ),
                 };
                 return completionItem;
             }),
