@@ -73,8 +73,8 @@ function getAdditionalCollectionDataProvider(): AdditionalCollectionComplexDataP
         callbackForOtherItems: () => undefined,
         isAdditionalDataOutdated: (oldData, newData) => {
             return !areVariableReferencesEquivalent(
-                oldData ?? [],
-                newData ?? [],
+                oldData?.map(({ reference }) => reference) ?? [],
+                newData?.map(({ reference }) => reference) ?? [],
             );
         },
     };

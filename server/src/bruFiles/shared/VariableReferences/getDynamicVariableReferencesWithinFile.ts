@@ -17,13 +17,13 @@ export function getDynamicVariableReferencesWithinFile(
     referenceTypeInSourceFile: VariableReferenceType,
     variableTypeInSourceFile: BrunoVariableType,
 ) {
-    const { otherRelevantBlocks } =
+    const otherRelevantBlocks =
         referenceTypeInSourceFile == VariableReferenceType.Read
-            ? getReferencesForEarlierExecutionTimes(
+            ? getRelevantBlocksForEarlierExecutionTimes(
                   blockContainingPosition,
                   allBlocks,
               )
-            : getReferencesForLaterExecutionTimes(
+            : getRelevantBlocksForLaterExecutionTimes(
                   blockContainingPosition,
                   allBlocks,
               );
@@ -53,26 +53,22 @@ export function getDynamicVariableReferencesWithinFile(
         .filter((v) => v != undefined);
 }
 
-function getReferencesForEarlierExecutionTimes(
+function getRelevantBlocksForEarlierExecutionTimes(
     blockContainingPosition: Block,
     allBlocks: Block[],
 ) {
-    return {
-        otherRelevantBlocks: getBlocksWithEarlierExecutionGroups(
-            blockContainingPosition.name,
-            allBlocks,
-        ),
-    };
+    return getBlocksWithEarlierExecutionGroups(
+        blockContainingPosition.name,
+        allBlocks,
+    );
 }
 
-function getReferencesForLaterExecutionTimes(
+function getRelevantBlocksForLaterExecutionTimes(
     blockContainingPosition: Block,
     allBlocks: Block[],
 ) {
-    return {
-        otherRelevantBlocks: getBlocksWithLaterExecutionGroups(
-            blockContainingPosition.name,
-            allBlocks,
-        ),
-    };
+    return getBlocksWithLaterExecutionGroups(
+        blockContainingPosition.name,
+        allBlocks,
+    );
 }

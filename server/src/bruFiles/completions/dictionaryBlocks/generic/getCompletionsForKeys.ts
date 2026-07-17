@@ -1,30 +1,26 @@
 import {
     Block,
-    DictionaryBlockArrayField,
-    DictionaryBlockSimpleField,
-    getDefaultIndentationForDictionaryBlockFields,
-    isArrayBlockField,
-    isDictionaryBlockField,
+    getActiveKeysUsedInOtherLines,
+    getKeyRangeContainingPosition,
     LineBreakType,
-    PlainTextWithinBlock,
     Range,
     TextDocumentHelper,
 } from "@global_shared";
-import {
-    CompletionItem,
-    InsertTextFormat,
-    TextEdit,
-} from "vscode-languageserver";
+import { CompletionItem, InsertTextFormat } from "vscode-languageserver";
 import { LanguageFeatureBaseRequest } from "../../../../shared";
+import { getTextEditForKey } from "./getTextEditForKey";
 
 export function getCompletionsForKeys(
     request: LanguageFeatureBaseRequest,
     block: Block,
-    keysForSimpleFields: { mandatory: string[]; optional?: string[] },
+    keysForSimpleFields: {
+        mandatory: string[];
+        optional?: string[];
+    },
     keysForArrayFields?: { optional: string[] },
 ): CompletionItem[] | undefined {
     const keyRangeContainingPosition = getKeyRangeContainingPosition(
-        request,
+        request.position,
         block,
     );
 
@@ -50,7 +46,7 @@ export function getCompletionsForKeys(
 }
 
 function getCompletionsForArrayFields(
-    request: LanguageFeatureBaseRequest,
+    { documentHelper, position: { line } }: LanguageFeatureBaseRequest,
     block: Block,
     keyRangeContainingPosition: Range,
     optionalKeys: string[],
@@ -60,11 +56,11 @@ function getCompletionsForArrayFields(
         : optionalKeys
               .filter(
                   (key) =>
-                      !getKeysUsedInOtherLines(request, block).includes(key),
+                      !getActiveKeysUsedInOtherLines(line, block).includes(key),
               )
               .map((key) =>
                   getCompletionItem(
-                      request.documentHelper,
+                      documentHelper,
                       key,
                       keyRangeContainingPosition,
                       false,
@@ -76,43 +72,44 @@ function getCompletionsForArrayFields(
 }
 
 function getCompletionsForSimpleFields(
-    request: LanguageFeatureBaseRequest,
+    { documentHelper, position: { line } }: LanguageFeatureBaseRequest,
     block: Block,
     keyRangeContainingPosition: Range,
     keys: { mandatory: string[]; optional?: string[] },
 ) {
     const { mandatory: mandatoryKeys, optional: optionalKeys } = keys;
 
-    const forMandatoryKeys: CompletionItem[] = mandatoryKeys
-        .filter((key) => !getKeysUsedInOtherLines(request, block).includes(key))
-        .map((key) =>
-            getCompletionItem(
-                request.documentHelper,
-                key,
-                keyRangeContainingPosition,
-                true,
-                true,
+    interface KeyWithType {
+        key: string;
+        type: "mandatory" | "optional";
+    }
+
+    const keysWithTypes: KeyWithType[] = (mandatoryKeys ?? [])
+        .map((key) => ({ type: "mandatory", key }) as KeyWithType)
+        .concat(
+            (optionalKeys ?? []).map(
+                (key) => ({ type: "optional", key }) as KeyWithType,
             ),
         );
 
-    const forOptionalKeys: CompletionItem[] = !optionalKeys
-        ? []
-        : optionalKeys
-              .filter(
-                  (key) =>
-                      !getKeysUsedInOtherLines(request, block).includes(key),
-              )
-              .map((key) =>
-                  getCompletionItem(
-                      request.documentHelper,
-                      key,
-                      keyRangeContainingPosition,
-                      true,
-                      false,
-                  ),
-              );
-
-    return forMandatoryKeys.concat(forOptionalKeys);
+    return keysWithTypes
+        .filter(
+            ({ key }) =>
+                !getActiveKeysUsedInOtherLines(line, block).includes(key),
+        )
+        .map(({ key, type }) =>
+            getCompletionItem(
+                documentHelper,
+                key,
+                keyRangeContainingPosition,
+                true,
+                type == "mandatory"
+                    ? true
+                    : type == "optional"
+                      ? false
+                      : undefined,
+            ),
+        );
 }
 
 function getCompletionItem(
@@ -120,109 +117,23 @@ function getCompletionItem(
     key: string,
     keyRangeContainingPosition: Range,
     isSimpleField: boolean,
-    isMandatory: boolean,
+    isMandatory?: boolean,
 ): CompletionItem {
-    return {
-        label: key,
-        textEdit: isSimpleField
-            ? getTextEditForSimpleField(keyRangeContainingPosition, key)
-            : getTextEditForArrayField(
-                  docHelper,
-                  keyRangeContainingPosition,
-                  key,
-              ),
-        insertTextFormat: isSimpleField ? undefined : InsertTextFormat.Snippet,
-        sortText: isMandatory ? `a_${key}` : `b_${key}`,
-        labelDetails: isMandatory ? undefined : { detail: ` optional` },
-    };
-}
-
-function getTextEditForArrayField(
-    docHelper: TextDocumentHelper,
-    existingKeyRange: Range,
-    key: string,
-): TextEdit {
-    const defaultIndentation = getDefaultIndentationForDictionaryBlockFields();
     const lineBreak = docHelper.getMostUsedLineBreak() ?? LineBreakType.Lf;
 
     return {
-        newText: (existingKeyRange.start.character >=
-        getDefaultIndentationForDictionaryBlockFields()
-            ? key
-            : " "
-                  .repeat(defaultIndentation - existingKeyRange.start.character)
-                  .concat(key)
-        ).concat(
-            `: [${lineBreak}${" ".repeat(defaultIndentation * 2)}\${0}${lineBreak}${" ".repeat(defaultIndentation)}]`,
+        label: key,
+        textEdit: getTextEditForKey(
+            lineBreak,
+            keyRangeContainingPosition,
+            key,
+            isSimpleField,
         ),
-        range: existingKeyRange,
+        insertTextFormat: isSimpleField ? undefined : InsertTextFormat.Snippet,
+        sortText: isMandatory ? `a_${key}` : `b_${key}`,
+        labelDetails:
+            isMandatory === undefined || isMandatory
+                ? undefined
+                : { detail: ` optional` },
     };
-}
-
-function getTextEditForSimpleField(
-    rangeToReplace: Range,
-    key: string,
-): TextEdit {
-    return {
-        newText:
-            rangeToReplace.start.character >=
-            getDefaultIndentationForDictionaryBlockFields()
-                ? key
-                : " "
-                      .repeat(
-                          getDefaultIndentationForDictionaryBlockFields() -
-                              rangeToReplace.start.character,
-                      )
-                      .concat(`${key}:`),
-        range: rangeToReplace,
-    };
-}
-
-function getKeyRangeContainingPosition(
-    { position }: LanguageFeatureBaseRequest,
-    block: Block,
-) {
-    const { content: blockContent } = block;
-    if (!Array.isArray(blockContent)) {
-        return undefined;
-    }
-
-    const field = blockContent
-        .filter((field) => !isArrayBlockField(field))
-        .find((field) => {
-            if (
-                isArrayBlockField(field) ||
-                (isDictionaryBlockField(field) && field.disabled)
-            ) {
-                return false;
-            }
-
-            if (!isDictionaryBlockField(field)) {
-                return field.range.contains(position);
-            }
-
-            return field.keyRange.contains(position);
-        }) as
-        | PlainTextWithinBlock
-        | DictionaryBlockSimpleField
-        | DictionaryBlockArrayField
-        | undefined;
-
-    return !field
-        ? undefined
-        : isDictionaryBlockField(field)
-          ? field.keyRange
-          : field.range;
-}
-
-function getKeysUsedInOtherLines(
-    { position: { line } }: LanguageFeatureBaseRequest,
-    { content: blockContent }: Block,
-) {
-    return !Array.isArray(blockContent)
-        ? []
-        : blockContent
-              .filter((field) => isDictionaryBlockField(field))
-              .filter(({ keyRange: { start } }) => start.line != line)
-              .map(({ key }) => key);
 }
