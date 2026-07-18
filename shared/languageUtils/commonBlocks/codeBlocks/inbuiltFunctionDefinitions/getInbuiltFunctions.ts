@@ -85,7 +85,7 @@ export function getInbuiltFunctions(): {
                 functionName: InbuiltFunctionName.GetRequestVar,
             },
             referenceType: VariableReferenceType.Read,
-            variableType: BrunoVariableType.FolderOrRequest,
+            variableType: BrunoVariableType.Request,
         },
         [InbuiltFunctionName.GetFolderVar]: {
             identifier: {
@@ -93,7 +93,7 @@ export function getInbuiltFunctions(): {
                 functionName: InbuiltFunctionName.GetFolderVar,
             },
             referenceType: VariableReferenceType.Read,
-            variableType: BrunoVariableType.FolderOrRequest,
+            variableType: BrunoVariableType.Folder,
         },
     };
 }

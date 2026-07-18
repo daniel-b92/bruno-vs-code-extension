@@ -65,7 +65,8 @@ export async function getCollectionItemForFile(
 }
 
 async function createEnvironmentFileInstance(path: string) {
-    const blocks = (await parseFileByPath(path))?.blocks;
+    const blocks = (await parseFileByPath(path, BrunoFileType.EnvironmentFile))
+        ?.blocks;
 
     const varsBlocks = blocks
         ? blocks.filter(({ name }) => name == EnvironmentFileBlockName.Vars)

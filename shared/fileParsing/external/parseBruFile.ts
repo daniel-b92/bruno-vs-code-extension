@@ -12,10 +12,14 @@ import {
     getNonBlockSpecificBlockStartPattern,
     BlockType,
     shouldBeArrayBlock,
+    ItemType,
 } from "../..";
 import { findBlockEnd } from "../internal/findBlockEnd";
 
-export function parseBruFile(docHelper: TextDocumentHelper) {
+export function parseBruFile(
+    docHelper: TextDocumentHelper,
+    itemType: ItemType,
+) {
     const result: {
         blocks: Block[];
         textOutsideOfBlocks: TextOutsideOfBlocks[];
@@ -69,7 +73,7 @@ export function parseBruFile(docHelper: TextDocumentHelper) {
                 shouldBeArrayBlock(blockName),
             );
 
-            const parsedBlock = tryToParseBlock(docHelper, {
+            const parsedBlock = tryToParseBlock(docHelper, itemType, {
                 blockName,
                 blockType,
                 startingLineContent: line,
@@ -99,6 +103,7 @@ export function parseBruFile(docHelper: TextDocumentHelper) {
 
 function tryToParseBlock(
     docHelper: TextDocumentHelper,
+    itemType: ItemType,
     blockData: {
         blockName: string;
         blockType: BlockType;
@@ -114,6 +119,12 @@ function tryToParseBlock(
         startingLineIndex,
         endPosition,
     } = blockData;
+    const dataForSearchingVariableReferences = !(
+        getBlocksWithoutVariableSupport() as string[]
+    ).includes(blockName)
+        ? { itemType }
+        : undefined;
+
     const blockContent =
         endPosition == undefined
             ? undefined
@@ -133,9 +144,7 @@ function tryToParseBlock(
                       name: blockName,
                       type: blockType,
                   },
-                  !(getBlocksWithoutVariableSupport() as string[]).includes(
-                      blockName,
-                  ),
+                  dataForSearchingVariableReferences,
               );
 
     if (!blockContent) {

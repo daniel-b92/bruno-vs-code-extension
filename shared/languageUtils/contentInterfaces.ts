@@ -13,7 +13,8 @@ export enum BrunoVariableType {
     Global = "Global",
     Environment = "Environment",
     Runtime = "Runtime",
-    FolderOrRequest = "FolderOrRequest",
+    Folder = "Folder",
+    Request = "Request",
 }
 
 export enum VariableReferenceType {
@@ -28,8 +29,8 @@ export type VariableAvailabilityScope =
 export const VariableAvailabilityScopes = {
     Global: 1,
     Collection: 2,
-    PreRequestScriptForOwnItemAndMaybeDescendants: 3,
-    PostResponseScriptForOwnItemAndMaybeDescendants: 4,
+    PreRequestScriptForOwnItemAndDescendants: 3,
+    PostResponseScriptForOwnItemAndDescendants: 4,
 } as const;
 
 export interface InbuiltFunctionIdentifier {
