@@ -161,7 +161,6 @@ function getVariableRefsForScriptVarsBlock(
         request: { filePath },
     }: BlockRequestWithAdditionalData<Block>,
     sourceReference: {
-        variableType: BrunoVariableType;
         referenceType: VariableReferenceType;
     },
 ):
@@ -173,14 +172,15 @@ function getVariableRefsForScriptVarsBlock(
           fromOtherFiles: VariableReferenceFromOtherFile[];
       }
     | undefined {
-    const { referenceType, variableType } = sourceReference;
+    const { referenceType } = sourceReference;
+    const variableType = BrunoVariableType.FolderOrRequest;
     const itemType = collection
         .getStoredDataForPath(filePath)
         ?.item.getItemType();
 
     if (
         !itemType ||
-        // Script blocks and script vars blocks are not valid in environment files e.g.
+        // Script blocks and script vars blocks are only valid for certain file types.
         !(
             [
                 BrunoFileType.CollectionSettingsFile,
