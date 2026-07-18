@@ -282,7 +282,7 @@
                 },
                 {
                     "command": "brunoCollectionsView.duplicateFolder",
-                    "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
+                    "when": "view == brunoCollectionsView && viewItem == folder",
                     "group": "crud@35"
                 },
                 {

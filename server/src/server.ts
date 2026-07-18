@@ -118,12 +118,25 @@ disposables.push(
 
 disposables.push(
     connection.onDocumentFormatting(({ textDocument: { uri } }) => {
-        if (getFilePathAndType(uri).type != FileTypeByExtension.Bru) {
+        const { filePath, type } = getFilePathAndType(uri);
+        if (type != FileTypeByExtension.Bru) {
+            return undefined;
+        }
+
+        const itemProvider = helpersProvider?.getItemProvider();
+        const collection = itemProvider?.getAncestorCollectionForPath(filePath);
+        const itemType = collection
+            ?.getStoredDataForPath(filePath)
+            ?.item.getItemType();
+
+        if (!itemType) {
             return undefined;
         }
 
         const document = documents.get(uri);
-        return document ? getHandlerForFormatting(document) : undefined;
+        return document
+            ? getHandlerForFormatting(document, itemType)
+            : undefined;
     }),
 );
 

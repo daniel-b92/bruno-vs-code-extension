@@ -10,9 +10,16 @@ export function handleHoverRequest({
     configuredEnvironmentName,
     logger,
 }: LanguageRequestWithTestEnvironmentInfo) {
-    const { documentHelper, position } = baseRequest;
+    const { documentHelper, filePath, position } = baseRequest;
+    const itemType = collection
+        .getStoredDataForPath(filePath)
+        ?.item.getItemType();
 
-    const { blocks: allBlocks } = parseBruFile(documentHelper);
+    if (!itemType) {
+        return undefined;
+    }
+
+    const { blocks: allBlocks } = parseBruFile(documentHelper, itemType);
 
     const blockContainingPosition = allBlocks.find(({ contentRange }) =>
         contentRange.contains(position),

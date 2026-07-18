@@ -51,13 +51,16 @@ export function provideInfosOnHover(
             const collection = itemProvider.getAncestorCollectionForPath(
                 document.fileName,
             );
+            const itemType = collection
+                ?.getStoredDataForPath(document.fileName)
+                ?.item.getItemType();
 
-            if (!collection) {
+            if (!collection || !itemType) {
                 return null;
             }
 
             const docHelper = new TextDocumentHelper(document.getText());
-            const { blocks: allBlocks } = parseBruFile(docHelper);
+            const { blocks: allBlocks } = parseBruFile(docHelper, itemType);
 
             const blockContainingPosition = allBlocks.find(({ contentRange }) =>
                 mapToVsCodeRange(contentRange).contains(position),

@@ -66,6 +66,6 @@ export const parseBlockFromFile = (
               ),
               name: blockName,
               type: getBlockType(blockName),
-          })?.content
+          })
         : undefined;
 };

@@ -39,10 +39,17 @@ export async function waitForTempJsFileToBeInSync(
     const tempJsFilePath = getTemporaryJsFileNameInFolder(
         collection.getRootDirectory(),
     );
+    const itemType = collection
+        ?.getStoredDataForPath(bruFilePath)
+        ?.item.getItemType();
+    if (!itemType) {
+        return undefined;
+    }
 
     const desiredTempJsFileContentInitially = getTempJsFileContentForBruFile(
         bruFileContentSnapshot,
         bruFileEol,
+        itemType,
     );
 
     if (shouldAbort(token)) {
