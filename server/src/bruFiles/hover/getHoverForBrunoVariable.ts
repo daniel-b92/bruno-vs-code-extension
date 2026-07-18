@@ -149,7 +149,7 @@ function getContentForStaticScriptVarsReferences(
                     );
                     const textForBlockColumn =
                         scope ==
-                        VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
+                        VariableAvailabilityScopes.PreRequestScriptForOwnItemAndMaybeDescendants
                             ? RequestFileBlockName.PreRequestVars
                             : RequestFileBlockName.PostResponseVars;
 

@@ -102,7 +102,7 @@ function mapStaticScriptVariables(
         }) => {
             const varsBlockName =
                 scope ==
-                VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
+                VariableAvailabilityScopes.PreRequestScriptForOwnItemAndMaybeDescendants
                     ? RequestFileBlockName.PreRequestVars
                     : RequestFileBlockName.PostResponseVars;
 

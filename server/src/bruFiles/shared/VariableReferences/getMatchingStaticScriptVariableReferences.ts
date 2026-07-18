@@ -22,8 +22,8 @@ export function getMatchingStaticScriptVariableReferences({
 }: BlockRequestWithAdditionalData<CodeBlock>): EquivalentVariableReferencesFromOtherFiles[] {
     const relevantScope =
         blockContainingPosition.name == RequestFileBlockName.PreRequestScript
-            ? VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
-            : VariableAvailabilityScopes.PostResponseScriptForOwnItemAndDescendants;
+            ? VariableAvailabilityScopes.PreRequestScriptForOwnItemAndMaybeDescendants
+            : VariableAvailabilityScopes.PostResponseScriptForOwnItemAndMaybeDescendants;
 
     // Avoid using cached data for determining references within own file because unsaved changes would be ignored.
     const allReferencesFromSameFile = allBlocks.flatMap(

@@ -8,8 +8,8 @@ export function isDynamicVariableReference(scope?: VariableAvailabilityScope) {
         !scope ||
         !(
             [
-                VariableAvailabilityScopes.PostResponseScriptForOwnItemAndDescendants,
-                VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants,
+                VariableAvailabilityScopes.PostResponseScriptForOwnItemAndMaybeDescendants,
+                VariableAvailabilityScopes.PreRequestScriptForOwnItemAndMaybeDescendants,
             ] as VariableAvailabilityScope[]
         ).includes(scope)
     );
