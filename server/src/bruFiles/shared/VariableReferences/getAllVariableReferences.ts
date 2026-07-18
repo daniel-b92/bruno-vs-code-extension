@@ -173,7 +173,6 @@ function getVariableRefsForScriptVarsBlock(
       }
     | undefined {
     const { referenceType } = sourceReference;
-    const variableType = BrunoVariableType.FolderOrRequest;
     const itemType = collection
         .getStoredDataForPath(filePath)
         ?.item.getItemType();
@@ -191,6 +190,10 @@ function getVariableRefsForScriptVarsBlock(
     ) {
         return undefined;
     }
+    const variableType =
+        itemType == BrunoFileType.RequestFile
+            ? BrunoVariableType.Request
+            : BrunoVariableType.Folder;
 
     const refsWithinSameFile =
         allBlocks.find(({ name }) => name == blockToCheck)
