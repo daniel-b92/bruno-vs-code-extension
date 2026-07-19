@@ -1,5 +1,5 @@
-import { MethodBlockAuthValues } from "./MethodBlockAuthValues";
+import { AuthTypes } from "../../..";
 
 export function getAuthTypesForNoDefinedAuthBlock(): string[] {
-    return [MethodBlockAuthValues.None, MethodBlockAuthValues.Inherit];
+    return [AuthTypes.None, AuthTypes.Inherit];
 }

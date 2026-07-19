@@ -25,6 +25,7 @@ export enum RequestFileBlockName {
     AwsSigV4Auth = "auth:awsv4",
     DigestAuth = "auth:digest",
     NtlmAuth = "auth:ntlm",
+    OAuth1Auth = "auth:oauth1",
     OAuth2Auth = "auth:oauth2",
     WsseAuth = "auth:wsse",
     ApiKeyAuth = "auth:apikey",

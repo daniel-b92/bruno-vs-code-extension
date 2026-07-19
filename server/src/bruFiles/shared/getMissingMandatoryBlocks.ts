@@ -1,6 +1,7 @@
 import {
     AuthBlockName,
     AuthModeBlockKey,
+    AuthTypes,
     Block,
     BrunoFileType,
     getActiveFieldFromMethodBlock,
@@ -13,7 +14,6 @@ import {
     getBodyTypeFromBlockName,
     getExpectedAuthBlockForType,
     getPossibleMethodBlocks,
-    MethodBlockAuthValues,
     MethodBlockBodies,
     MethodBlockKey,
     RequestFileBlockName,
@@ -155,7 +155,7 @@ function getMissingMandatoryBlocksForRequestFile(
 
     if (
         methodBlockAuthField &&
-        (Object.values(MethodBlockAuthValues) as string[]).includes(
+        (Object.values(AuthTypes) as string[]).includes(
             methodBlockAuthField.value,
         )
     ) {

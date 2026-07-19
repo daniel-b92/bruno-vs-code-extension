@@ -3,9 +3,9 @@ import {
     getExtensionForBrunoFiles,
     RequestType,
     RequestFileBlockName,
-    MethodBlockAuthValues,
     MethodBlockBodies,
     getMaxSequenceForRequests,
+    AuthTypes,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
@@ -158,7 +158,7 @@ function getFileContent(
         methodBlockName,
         {
             url: "",
-            auth: MethodBlockAuthValues.None,
+            auth: AuthTypes.None,
             body: MethodBlockBodies.None,
         },
         lineBreak,

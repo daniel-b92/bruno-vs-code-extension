@@ -110,7 +110,7 @@ export * from "./languageUtils/commonBlocks/metaBlock/getSequenceAndTagsFromMeta
 export * from "./languageUtils/commonBlocks/metaBlock/getMandatoryAndOptionalKeys";
 
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockKeyEnum";
-export * from "./languageUtils/commonBlocks/methodBlocks/MethodBlockAuthValues";
+export * from "./languageUtils/commonBlocks/generic/AuthTypes";
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockBodies";
 export * from "./languageUtils/commonBlocks/methodBlocks/getPossibleMethodBlocks";
 export * from "./languageUtils/commonBlocks/methodBlocks/getActiveFieldFromMethodBlock";
