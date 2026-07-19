@@ -119,11 +119,11 @@ function tryToParseBlock(
         startingLineIndex,
         endPosition,
     } = blockData;
-    const dataForSearchingVariableReferences = !(
+    const dataForSearchingVariableReferences = (
         getBlocksWithoutVariableSupport() as string[]
     ).includes(blockName)
-        ? { itemType }
-        : undefined;
+        ? undefined
+        : { itemType };
 
     const blockContent =
         endPosition == undefined
