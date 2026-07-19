@@ -25,7 +25,7 @@ export async function createCollectionDirectoryInstance(
     const metaBlockContent = parseBlockFromFile(
         new TextDocumentHelper(settingsContent),
         RequestFileBlockName.Meta,
-    );
+    )?.content;
 
     const isDictionaryBlock =
         Array.isArray(metaBlockContent) &&

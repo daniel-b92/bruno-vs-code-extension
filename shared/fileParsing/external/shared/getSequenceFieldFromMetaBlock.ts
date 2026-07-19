@@ -12,7 +12,7 @@ export function getSequenceFieldFromMetaBlock(
     const metaBlockContent = parseBlockFromFile(
         documentHelper,
         RequestFileBlockName.Meta,
-    );
+    )?.content;
 
     const sequence =
         metaBlockContent &&

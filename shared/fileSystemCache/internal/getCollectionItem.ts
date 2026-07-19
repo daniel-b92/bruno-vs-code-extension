@@ -100,7 +100,7 @@ async function createRequestFileInstance(path: string) {
     const metaBlockContent = parseBlockFromFile(
         new TextDocumentHelper(fileContent),
         RequestFileBlockName.Meta,
-    );
+    )?.content;
 
     const isDictionaryBlock =
         Array.isArray(metaBlockContent) &&
