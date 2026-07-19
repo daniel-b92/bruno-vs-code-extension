@@ -1,5 +1,5 @@
 import { basename, dirname, resolve } from "path";
-import { getFolderSettingsFilePath } from "@global_shared";
+import { BrunoFileType, getFolderSettingsFilePath } from "@global_shared";
 import {
     getMaxSequenceForFolders,
     getSequencesForFolders,
@@ -88,8 +88,9 @@ async function copyFolderSettingsFile(
     sourceFolderItem: BrunoTreeItem,
     destinationFolder: string,
 ) {
+    const isCollectionSettings = false;
     const targetFile = await getFolderSettingsFilePath(
-        false,
+        isCollectionSettings,
         sourceFolderItem.getPath(),
     );
 
@@ -126,7 +127,11 @@ async function copyFolderSettingsFile(
         return undefined;
     }
 
-    await replaceNameInMetaBlock(newPath, basename(destinationFolder));
+    await replaceNameInMetaBlock(
+        newPath,
+        basename(destinationFolder),
+        BrunoFileType.FolderSettingsFile,
+    );
 
     return newPath;
 }

@@ -7,6 +7,7 @@ import {
     DictionaryBlockSimpleField,
     PlainTextWithinBlock,
     BrunoVariableReference,
+    ItemType,
 } from "../..";
 import { getBrunoVariableReferencesInNonCodeBlock } from "./variables/getBrunoVariableReferencesInNonCodeBlock";
 import { getBrunoVariableReferencesInCodeBlock } from "./variables/getBrunoVariableReferencesInCodeBlock";
@@ -30,7 +31,9 @@ export function getBlockContent(
         type: BlockType;
         name: string;
     },
-    searchVariableReferences = false,
+    dataForSearchingVariableReferences?: {
+        itemType: ItemType;
+    },
 ):
     | {
           content: ParsedBlockContent;
@@ -59,12 +62,13 @@ export function getBlockContent(
                 firstContentLine,
                 lastContentLine,
             );
-            return dictionaryBlockWithoutParsedVars && searchVariableReferences
+            return dictionaryBlockWithoutParsedVars &&
+                dataForSearchingVariableReferences
                 ? {
                       ...dictionaryBlockWithoutParsedVars,
                       variableRerences: getBrunoVariableReferences(
                           document,
-                          dictionaryBlockWithoutParsedVars.contentRange,
+                          dataForSearchingVariableReferences,
                           blockType,
                           {
                               ...dictionaryBlockWithoutParsedVars,
@@ -82,12 +86,13 @@ export function getBlockContent(
                 firstContentLine,
                 lastContentLine,
             );
-            return plainTextBlockWithoutParsedVars && searchVariableReferences
+            return plainTextBlockWithoutParsedVars &&
+                dataForSearchingVariableReferences
                 ? {
                       ...plainTextBlockWithoutParsedVars,
                       variableRerences: getBrunoVariableReferences(
                           document,
-                          plainTextBlockWithoutParsedVars.contentRange,
+                          dataForSearchingVariableReferences,
                           blockType,
                           {
                               ...plainTextBlockWithoutParsedVars,
@@ -110,7 +115,9 @@ export function getBlockContent(
 
 function getBrunoVariableReferences(
     documentHelper: TextDocumentHelper,
-    contentRange: Range,
+    dataForSearchingVariableReferences: {
+        itemType: ItemType;
+    },
     blockType: BlockType,
     parsedBlock: {
         content: ParsedBlockContent;
@@ -119,10 +126,13 @@ function getBrunoVariableReferences(
     },
 ) {
     return blockType == BlockType.Code
-        ? getBrunoVariableReferencesInCodeBlock(documentHelper, contentRange)
+        ? getBrunoVariableReferencesInCodeBlock(
+              documentHelper,
+              parsedBlock.contentRange,
+          )
         : getBrunoVariableReferencesInNonCodeBlock(
               documentHelper,
-              contentRange,
+              dataForSearchingVariableReferences,
               parsedBlock,
           );
 }

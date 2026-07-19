@@ -1,8 +1,10 @@
 import {
+    BrunoFileType,
     BrunoVariableReference,
     BrunoVariableType,
     getPatternForVarsReadReferenceInNonCodeBlock,
     isDictionaryBlockSimpleField,
+    ItemType,
     Position,
     Range,
     RequestFileBlockName,
@@ -14,15 +16,20 @@ import { ParsedBlockContent } from "../getBlockContent";
 
 export function getBrunoVariableReferencesInNonCodeBlock(
     fullDocumentHelper: TextDocumentHelper,
-    contentRange: Range,
+    dataForSearchingVariableReferences: {
+        itemType: ItemType;
+    },
     parsedBlock: {
         content: ParsedBlockContent;
         contentRange: Range;
         name: string;
     },
 ): BrunoVariableReference[] {
-    return getReadReferences(fullDocumentHelper, contentRange).concat(
-        getWriteReferences(parsedBlock),
+    return getReadReferences(
+        fullDocumentHelper,
+        parsedBlock.contentRange,
+    ).concat(
+        getWriteReferences(parsedBlock, dataForSearchingVariableReferences),
     );
 }
 
@@ -75,11 +82,17 @@ function getReadReferences(
         .filter((v) => v != undefined);
 }
 
-function getWriteReferences(parsedBlock: {
-    content: ParsedBlockContent;
-    name: string;
-}): BrunoVariableReference[] {
+function getWriteReferences(
+    parsedBlock: {
+        content: ParsedBlockContent;
+        name: string;
+    },
+    dataForSearchingVariableReferences: {
+        itemType: ItemType;
+    },
+): BrunoVariableReference[] {
     const { content: blockContent, name: blockName } = parsedBlock;
+    const { itemType } = dataForSearchingVariableReferences;
 
     if (
         !(
@@ -101,7 +114,10 @@ function getWriteReferences(parsedBlock: {
         referenceType: VariableReferenceType.Write,
         variableName: key,
         variableNameRange: keyRange,
-        variableType: BrunoVariableType.Simple,
+        variableType:
+            itemType == BrunoFileType.RequestFile
+                ? BrunoVariableType.Request
+                : BrunoVariableType.Folder,
         scope:
             blockName == RequestFileBlockName.PreRequestVars
                 ? VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants

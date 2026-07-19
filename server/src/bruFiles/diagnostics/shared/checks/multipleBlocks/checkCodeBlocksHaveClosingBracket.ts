@@ -4,6 +4,7 @@ import {
     parseBruFile,
     TextDocumentHelper,
     getCodeBlocks,
+    ItemType,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -13,6 +14,7 @@ import { DiagnosticSeverity } from "vscode-languageserver";
 export function checkCodeBlocksHaveClosingBracket(
     documentHelper: TextDocumentHelper,
     allBlocks: Block[],
+    itemType: ItemType,
 ): DiagnosticWithCode | undefined {
     const codeBlocksSortedByPosition = getSortedBlocksByPosition(
         getCodeBlocks(allBlocks),
@@ -32,6 +34,7 @@ export function checkCodeBlocksHaveClosingBracket(
 
             const blockForModifiedDocument = parseBruFile(
                 documentHelperWithAdditionalClosingBracket,
+                itemType,
             ).blocks.find(
                 ({ name: modifiedBlockName }) => modifiedBlockName == name,
             );

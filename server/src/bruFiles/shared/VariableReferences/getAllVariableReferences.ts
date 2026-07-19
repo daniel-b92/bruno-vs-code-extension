@@ -99,20 +99,21 @@ export function getAllVariableReferences(
         return undefined;
     }
 
-    const matchingStaticScriptVariableDefinitions = (
-        [
-            RequestFileBlockName.PreRequestScript,
-            RequestFileBlockName.PostResponseScript,
-        ] as string[]
-    ).includes(blockContainingPosition.name)
-        ? getMatchingStaticScriptVariableReferences({
-              ...fullRequest,
-              file: {
-                  ...fullRequest.file,
-                  blockContainingPosition: fullRequest.file
-                      .blockContainingPosition as CodeBlock,
+    const matchingStaticScriptVariableDefinitions = [
+        BrunoVariableType.Folder,
+        BrunoVariableType.Request,
+    ].includes(variableType)
+        ? getMatchingStaticScriptVariableReferences(
+              {
+                  ...fullRequest,
+                  file: {
+                      ...fullRequest.file,
+                      blockContainingPosition: fullRequest.file
+                          .blockContainingPosition as CodeBlock,
+                  },
               },
-          })
+              variableType,
+          )
         : [];
 
     if (token.isCancellationRequested) {
@@ -161,7 +162,6 @@ function getVariableRefsForScriptVarsBlock(
         request: { filePath },
     }: BlockRequestWithAdditionalData<Block>,
     sourceReference: {
-        variableType: BrunoVariableType;
         referenceType: VariableReferenceType;
     },
 ):
@@ -173,14 +173,14 @@ function getVariableRefsForScriptVarsBlock(
           fromOtherFiles: VariableReferenceFromOtherFile[];
       }
     | undefined {
-    const { referenceType, variableType } = sourceReference;
+    const { referenceType } = sourceReference;
     const itemType = collection
         .getStoredDataForPath(filePath)
         ?.item.getItemType();
 
     if (
         !itemType ||
-        // Script blocks and script vars blocks are not valid in environment files e.g.
+        // Script blocks and script vars blocks are only valid for certain file types.
         !(
             [
                 BrunoFileType.CollectionSettingsFile,
@@ -191,6 +191,10 @@ function getVariableRefsForScriptVarsBlock(
     ) {
         return undefined;
     }
+    const variableType =
+        itemType == BrunoFileType.RequestFile
+            ? BrunoVariableType.Request
+            : BrunoVariableType.Folder;
 
     const refsWithinSameFile =
         allBlocks.find(({ name }) => name == blockToCheck)

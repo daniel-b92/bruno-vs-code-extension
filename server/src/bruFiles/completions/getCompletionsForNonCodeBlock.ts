@@ -157,7 +157,7 @@ function getCompletionsForBlockWithWriteOnlyVariables(
     } = fullRequest;
     const functionType = VariableReferenceType.Write;
     // For non-code blocks with write-only variable access options, only simple variables can be set.
-    const variableType = BrunoVariableType.Simple;
+    const variableType = BrunoVariableType.Runtime;
 
     const allRefs = getAllVariableReferences(
         fullRequest,

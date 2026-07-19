@@ -294,13 +294,6 @@ async function handleOpeningOfBruDocument(
         return;
     }
 
-    if (shouldAbort) {
-        for (const d of toDispose) {
-            d.dispose();
-        }
-        return;
-    }
-
     if (!getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType)) {
         await deleteNonMandatoryTempJsFiles(
             queue,
@@ -318,7 +311,11 @@ async function handleOpeningOfBruDocument(
         update: {
             type: TempJsUpdateType.Creation,
             filePath: getTemporaryJsFileNameInFolder(collectionRootFolder),
-            tempJsFileContent: getTempJsFileContentForBruFile(getText(), eol),
+            tempJsFileContent: getTempJsFileContentForBruFile(
+                getText(),
+                eol,
+                brunoFileType,
+            ),
         },
     });
 

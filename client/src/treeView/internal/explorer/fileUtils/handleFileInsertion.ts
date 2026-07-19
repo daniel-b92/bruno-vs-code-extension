@@ -48,6 +48,7 @@ export async function handleFileInsertion(
         await replaceNameInMetaBlock(
             newPath,
             basename(newPath).replace(getExtensionForBrunoFiles(), ""),
+            itemType,
         );
     }
 

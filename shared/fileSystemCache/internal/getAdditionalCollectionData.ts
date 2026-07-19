@@ -34,7 +34,9 @@ export async function getAdditionalCollectionData<T>(
 
             const toParse = getFilePathForParsing(item);
             return getData(
-                toParse ? await parseFileByPath(toParse) : undefined,
+                toParse
+                    ? await parseFileByPath(toParse, item.getItemType())
+                    : undefined,
             );
     }
 }

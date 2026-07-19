@@ -6,6 +6,7 @@ import {
     MetaBlockKey,
     isDictionaryBlockSimpleField,
     getActiveFieldFromMetaBlock,
+    ItemType,
 } from "@global_shared";
 import { readFile, writeFile } from "fs";
 import { window } from "vscode";
@@ -13,6 +14,7 @@ import { window } from "vscode";
 export async function replaceNameInMetaBlock(
     filePath: string,
     newName: string,
+    itemType: ItemType,
 ) {
     const fileContent = await promisify(readFile)(filePath, "utf-8").catch(
         () => undefined,
@@ -25,7 +27,7 @@ export async function replaceNameInMetaBlock(
 
     const documentHelper = new TextDocumentHelper(fileContent);
 
-    const metaBlock = parseBruFile(documentHelper).blocks.find(
+    const metaBlock = parseBruFile(documentHelper, itemType).blocks.find(
         ({ name }) => name == RequestFileBlockName.Meta,
     );
 

@@ -12,7 +12,9 @@ export enum BrunoVariableType {
     Unknown = "Unknown",
     Global = "Global",
     Environment = "Environment",
-    Simple = "Simple",
+    Runtime = "Runtime",
+    Folder = "Folder",
+    Request = "Request",
 }
 
 export enum VariableReferenceType {
@@ -50,4 +52,6 @@ export enum InbuiltFunctionName {
     DeleteEnvVar = "deleteEnvVar",
     GetVar = "getVar",
     SetVar = "setVar",
+    GetRequestVar = "getRequestVar",
+    GetFolderVar = "getFolderVar",
 }
