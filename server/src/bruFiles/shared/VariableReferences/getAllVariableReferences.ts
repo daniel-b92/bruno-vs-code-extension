@@ -99,20 +99,21 @@ export function getAllVariableReferences(
         return undefined;
     }
 
-    const matchingStaticScriptVariableDefinitions = (
-        [
-            RequestFileBlockName.PreRequestScript,
-            RequestFileBlockName.PostResponseScript,
-        ] as string[]
-    ).includes(blockContainingPosition.name)
-        ? getMatchingStaticScriptVariableReferences({
-              ...fullRequest,
-              file: {
-                  ...fullRequest.file,
-                  blockContainingPosition: fullRequest.file
-                      .blockContainingPosition as CodeBlock,
+    const matchingStaticScriptVariableDefinitions = [
+        BrunoVariableType.Folder,
+        BrunoVariableType.Request,
+    ].includes(variableType)
+        ? getMatchingStaticScriptVariableReferences(
+              {
+                  ...fullRequest,
+                  file: {
+                      ...fullRequest.file,
+                      blockContainingPosition: fullRequest.file
+                          .blockContainingPosition as CodeBlock,
+                  },
               },
-          })
+              variableType,
+          )
         : [];
 
     if (token.isCancellationRequested) {
