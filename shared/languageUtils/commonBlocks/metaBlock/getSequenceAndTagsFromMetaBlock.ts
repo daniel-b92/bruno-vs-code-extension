@@ -20,7 +20,7 @@ export function getSequenceAndTagsFromMetaBlock(
         sequence:
             sequenceField &&
             isDictionaryBlockSimpleField(sequenceField) &&
-            !isNaN(Number(sequenceField.value)) &&
+            isFinite(Number(sequenceField.value)) &&
             Number(sequenceField.value) >= 0
                 ? Number(sequenceField.value)
                 : undefined,
