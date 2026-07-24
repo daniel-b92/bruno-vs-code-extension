@@ -19,6 +19,9 @@ import {
     MetaBlockKey,
     MethodBlockBodies,
     MethodBlockKey,
+    OAuth1AuthBlockKeys,
+    OAuth1Placement,
+    OAuth1SignatureMethod,
     OAuth2AuthBlocksCommonKeys,
     OAuth2BlockTokenPlacementValue,
     OAuth2BlockTokenSourceValue,
@@ -140,13 +143,36 @@ function getContentForAuthBlock(blockName: string, lineBreak: LineBreakType) {
             blockName as AuthBlockNamesExcludingOAuth2,
         );
 
+        const valuesForCompletions = [
+            {
+                blockName: RequestFileBlockName.ApiKeyAuth,
+                key: ApiKeyAuthBlockKeys.Placement,
+                values: Object.values(ApiKeyAuthBlockPlacementValue),
+            },
+            {
+                blockName: RequestFileBlockName.OAuth1Auth,
+                key: OAuth1AuthBlockKeys.SignatureMethod,
+                values: Object.values(OAuth1SignatureMethod),
+            },
+            {
+                blockName: RequestFileBlockName.OAuth1Auth,
+                key: OAuth1AuthBlockKeys.Placement,
+                values: Object.values(OAuth1Placement),
+            },
+            {
+                blockName: RequestFileBlockName.OAuth1Auth,
+                key: OAuth1AuthBlockKeys.IncludeBodyHash,
+                // In the Bruno Desktop client, the default is false for this field.
+                values: Object.values(BooleanFieldValue).sort(),
+            },
+        ];
+
         const fields = mandatoryKeys.map((key) => ({
             key,
-            predefinedValues:
-                blockName == RequestFileBlockName.ApiKeyAuth &&
-                key == ApiKeyAuthBlockKeys.Placement
-                    ? Object.values(ApiKeyAuthBlockPlacementValue)
-                    : undefined,
+            predefinedValues: valuesForCompletions.find(
+                ({ blockName: block, key: k }) =>
+                    blockName == block && key == k,
+            )?.values,
         }));
         return getContentForDictionaryBlock(fields, lineBreak);
     }
