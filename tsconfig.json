@@ -5,6 +5,7 @@
         "lib": ["es2024"],
         "sourceMap": true,
         "strict": true,
+        "types": ["node"],
 
         "allowUnreachableCode": false,
         "noUnusedLocals": true,
