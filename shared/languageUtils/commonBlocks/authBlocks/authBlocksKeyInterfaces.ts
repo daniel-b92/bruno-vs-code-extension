@@ -107,12 +107,12 @@ export const OAuth1AuthBlockKeys = {
 } as const;
 
 export const AkamaiEdgeGridAuthBlockKeys = {
-    accessToken: "accessToken",
-    clientToken: "clientToken",
-    clientSecret: "clientSecret",
-    nonce: "nonce",
-    timestamp: "timestamp",
-    baseURL: "baseURL",
-    headersToSign: "headersToSign",
-    maxBodySize: "maxBodySize",
+    AccessToken: "accessToken",
+    ClientToken: "clientToken",
+    ClientSecret: "clientSecret",
+    Nonce: "nonce",
+    Timestamp: "timestamp",
+    BaseURL: "baseURL",
+    HeadersToSign: "headersToSign",
+    MaxBodySize: "maxBodySize",
 } as const;

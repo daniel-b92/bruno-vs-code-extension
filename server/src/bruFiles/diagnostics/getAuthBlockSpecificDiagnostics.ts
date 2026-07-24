@@ -17,6 +17,7 @@ import {
     OAuth2AuthBlocksCommonKeys,
     OAuth2BlockTokenSourceValue,
     isAuthBlock,
+    AkamaiEdgeGridAuthBlockKeys,
 } from "@global_shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
@@ -25,6 +26,8 @@ import { checkValueForDictionaryBlockSimpleFieldIsValid } from "./shared/checks/
 import { DiagnosticWithCode } from "./interfaces";
 import { RelevantWithinAuthBlockDiagnosticCode } from "./shared/diagnosticCodes/relevantWithinAuthBlockDiagnosticCodeEnum";
 import { KnownDiagnosticCode } from "./shared/diagnosticCodes/knownDiagnosticCodeDefinition";
+import { doesDictionaryBlockFieldHaveValidIntegerValue } from "./shared/util/doesDictionaryBlockFieldHaveValidIntegerValue";
+import { getDiagnosticForInvalidDictionaryBlockSimpleFieldValue } from "./shared/util/getDiagnosticForInvalidDictionaryBlockSimpleFieldValue";
 
 export function getAuthBlockSpecificDiagnostics(
     filePath: string,
@@ -34,56 +37,91 @@ export function getAuthBlockSpecificDiagnostics(
         return [];
     }
 
-    const diagnostics: (DiagnosticWithCode | undefined)[] = [];
-
     if (
         isAuthBlock(authBlock.name) &&
         authBlock.name != AuthBlockName.OAuth2Auth
     ) {
-        const mandatoryKeys = getMandatoryKeysForNonOAuth2Block(
-            authBlock.name as AuthBlockNamesExcludingOAuth2,
-        );
-
-        diagnostics.push(
-            checkNoKeysAreMissingForDictionaryBlock(
-                authBlock,
-                mandatoryKeys,
-                RelevantWithinAuthBlockDiagnosticCode.KeysMissingInAuthBlock,
-            ),
-            checkNoUnknownKeysAreDefinedInDictionaryBlock(
-                authBlock,
-                mandatoryKeys,
-                RelevantWithinAuthBlockDiagnosticCode.UnknownKeysDefinedInAuthBlock,
-            ),
-            ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-                filePath,
-                authBlock,
-                RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock,
-                mandatoryKeys,
-            ) ?? []),
-        );
-
-        if (authBlock.name == AuthBlockName.ApiKeyAuth) {
-            diagnostics.push(
-                ...checkValuesForFields(authBlock, [
-                    {
-                        key: ApiKeyAuthBlockKeys.Placement,
-                        allowedValues: Object.values(
-                            ApiKeyAuthBlockPlacementValue,
-                        ),
-                        diagnosticCode:
-                            RelevantWithinAuthBlockDiagnosticCode.InvalidApiKeyAuthValueForPlacement,
-                    },
-                ]),
-            );
-        }
+        return getDiagnosticsForNonOAuth2AuthBlock(filePath, authBlock);
     } else if (authBlock.name == AuthBlockName.OAuth2Auth) {
-        diagnostics.push(
-            ...getDiagnosticsForOAuth2AuthBlock(filePath, authBlock),
+        return getDiagnosticsForOAuth2AuthBlock(filePath, authBlock);
+    }
+
+    return [];
+}
+
+function getDiagnosticsForNonOAuth2AuthBlock(
+    filePath: string,
+    authBlock: DictionaryBlock,
+) {
+    const result: (DiagnosticWithCode | undefined)[] = [];
+
+    const mandatoryKeys = getMandatoryKeysForNonOAuth2Block(
+        authBlock.name as AuthBlockNamesExcludingOAuth2,
+    );
+
+    result.push(
+        checkNoKeysAreMissingForDictionaryBlock(
+            authBlock,
+            mandatoryKeys,
+            RelevantWithinAuthBlockDiagnosticCode.KeysMissingInAuthBlock,
+        ),
+        checkNoUnknownKeysAreDefinedInDictionaryBlock(
+            authBlock,
+            mandatoryKeys,
+            RelevantWithinAuthBlockDiagnosticCode.UnknownKeysDefinedInAuthBlock,
+        ),
+        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+            filePath,
+            authBlock,
+            RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock,
+            mandatoryKeys,
+        ) ?? []),
+    );
+
+    if (authBlock.name == AuthBlockName.ApiKeyAuth) {
+        return result.concat(
+            ...checkValuesForFields(authBlock, [
+                {
+                    key: ApiKeyAuthBlockKeys.Placement,
+                    allowedValues: Object.values(ApiKeyAuthBlockPlacementValue),
+                    diagnosticCode:
+                        RelevantWithinAuthBlockDiagnosticCode.InvalidApiKeyAuthValueForPlacement,
+                },
+            ]),
+        );
+    }
+    if (authBlock.name == AuthBlockName.AkamaiEdgeGridAuth) {
+        // All fields in the settings block are simple dictionary fields.
+        const validFields = authBlock.content.filter(
+            isDictionaryBlockSimpleField,
+        );
+
+        const fieldsForMaxBodySize = validFields.filter(
+            ({ key }) => key == AkamaiEdgeGridAuthBlockKeys.MaxBodySize,
+        );
+        if (fieldsForMaxBodySize.length != 1) {
+            return result;
+        }
+
+        const fieldForMaxBodySize = fieldsForMaxBodySize[0];
+
+        return result.concat(
+            // A fallback is used, if no value is defined.
+            fieldForMaxBodySize.value.length == 0 ||
+                doesDictionaryBlockFieldHaveValidIntegerValue(
+                    fieldForMaxBodySize,
+                    0,
+                )
+                ? undefined
+                : getDiagnosticForInvalidDictionaryBlockSimpleFieldValue(
+                      fieldForMaxBodySize,
+                      "Only non-negative integer values are allowed.",
+                      RelevantWithinAuthBlockDiagnosticCode.AkamaiEdgeGrid_MaxBodySizeValueInvalid,
+                  ),
         );
     }
 
-    return diagnostics;
+    return result;
 }
 
 function getDiagnosticsForOAuth2AuthBlock(
