@@ -88,3 +88,31 @@ export const ApiKeyAuthBlockKeys = {
     Value: "value",
     Placement: "placement",
 } as const;
+
+export const OAuth1AuthBlockKeys = {
+    ConsumerKey: "consumer_key",
+    ConsumerSecret: "consumer_secret",
+    AccessToken: "access_token",
+    TokenSecret: "token_secret",
+    CallbackUrl: "callback_url",
+    Verifier: "verifier",
+    SignatureMethod: "signature_method",
+    PrivateKey: "private_key",
+    Timestamp: "timestamp",
+    Nonce: "nonce",
+    Version: "version",
+    Realm: "realm",
+    Placement: "placement",
+    IncludeBodyHash: "include_body_hash",
+} as const;
+
+export const AkamaiEdgeGridAuthBlockKeys = {
+    accessToken: "accessToken",
+    clientToken: "clientToken",
+    clientSecret: "clientSecret",
+    nonce: "nonce",
+    timestamp: "timestamp",
+    baseURL: "baseURL",
+    headersToSign: "headersToSign",
+    maxBodySize: "maxBodySize",
+} as const;

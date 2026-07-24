@@ -1,11 +1,13 @@
 import { AuthBlockName } from "./authBlockNameEnum";
 import {
+    AkamaiEdgeGridAuthBlockKeys,
     ApiKeyAuthBlockKeys,
     AwsV4AuthBlockKey,
     BasicAuthBlockKey,
     BearerAuthBlockKey,
     DigestAuthBlockKey,
     NtlmAuthBlockKey,
+    OAuth1AuthBlockKeys,
     WsseAuthBlockKeys,
 } from "./authBlocksKeyInterfaces";
 
@@ -32,5 +34,9 @@ export function getMandatoryKeysForNonOAuth2Block(
             return Object.values(WsseAuthBlockKeys);
         case AuthBlockName.ApiKeyAuth:
             return Object.values(ApiKeyAuthBlockKeys);
+        case AuthBlockName.OAuth1Auth:
+            return Object.values(OAuth1AuthBlockKeys);
+        case AuthBlockName.AkamaiEdgeGridAuth:
+            return Object.values(AkamaiEdgeGridAuthBlockKeys);
     }
 }

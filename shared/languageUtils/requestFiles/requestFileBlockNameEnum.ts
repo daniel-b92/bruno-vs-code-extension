@@ -29,6 +29,7 @@ export enum RequestFileBlockName {
     OAuth2Auth = "auth:oauth2",
     WsseAuth = "auth:wsse",
     ApiKeyAuth = "auth:apikey",
+    AkamaiEdgeGridAuth = "auth:akamai-edgegrid",
 
     // OAuth2 additional params
     OAuth2AdditionalParams_AuthReq_Headers = "auth:oauth2:additional_params:auth_req:headers",

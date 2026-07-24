@@ -10,4 +10,5 @@ export const AuthTypes = {
     Oauth2: "oauth2",
     Wsse: "wsse",
     Apikey: "apikey",
+    AkamaiEdgeGridAuth: "akamai-edgegrid",
 } as const;

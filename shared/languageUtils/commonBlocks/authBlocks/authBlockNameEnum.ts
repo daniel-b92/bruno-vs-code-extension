@@ -8,5 +8,7 @@ export enum AuthBlockName {
     DigestAuth = RequestFileBlockName.DigestAuth,
     NtlmAuth = RequestFileBlockName.NtlmAuth,
     OAuth2Auth = RequestFileBlockName.OAuth2Auth,
+    OAuth1Auth = RequestFileBlockName.OAuth1Auth,
     WsseAuth = RequestFileBlockName.WsseAuth,
+    AkamaiEdgeGridAuth = RequestFileBlockName.AkamaiEdgeGridAuth,
 }
