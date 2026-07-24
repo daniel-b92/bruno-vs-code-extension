@@ -43,13 +43,18 @@ export async function getCompletionsForNonCodeBlock(
         file: { blockContainingPosition, allBlocks, collection },
     } = fullRequest;
 
-    if (
-        (getBlocksWithoutVariableSupport() as string[]).includes(
-            blockContainingPosition.name,
-        )
-    ) {
-        return [];
-    }
+    const blockHasVariableSupport = (
+        getBlocksWithoutVariableSupport() as string[]
+    ).includes(blockContainingPosition.name);
+    const blockSupportsOnlyWriteOnlyVars =
+        blockHasVariableSupport &&
+        // For Script variable blocks only write-only variables can be defined.
+        (
+            [
+                RequestFileBlockName.PreRequestVars,
+                RequestFileBlockName.PostResponseVars,
+            ] as string[]
+        ).includes(blockContainingPosition.name);
 
     return (
         (await getBlockSpecificCompletions(
@@ -60,21 +65,17 @@ export async function getCompletionsForNonCodeBlock(
             collection,
         )) ?? []
     ).concat(
-        // For Script variable blocks only write-only variables can be defined.
-        (
-            [
-                RequestFileBlockName.PreRequestVars,
-                RequestFileBlockName.PostResponseVars,
-            ] as string[]
-        ).includes(blockContainingPosition.name)
-            ? getCompletionsForBlockWithWriteOnlyVariables(
-                  fullRequest,
-                  configuredEnvironment,
-              )
-            : getCompletionsForBlockWithReadOnlyVariables(
-                  fullRequest,
-                  configuredEnvironment,
-              ),
+        !blockHasVariableSupport
+            ? []
+            : blockSupportsOnlyWriteOnlyVars
+              ? getCompletionsForBlockWithWriteOnlyVariables(
+                    fullRequest,
+                    configuredEnvironment,
+                )
+              : getCompletionsForBlockWithReadOnlyVariables(
+                    fullRequest,
+                    configuredEnvironment,
+                ),
     );
 }
 

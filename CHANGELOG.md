@@ -1,3 +1,9 @@
+## [1.2.2] (2026-07-24)
+
+### Fixes / Minor Improvements
+
+- Fix an issue where no completions where provided within `meta` and `settings` blocks.
+
 ## [1.2.1] (2026-07-20)
 
 ### Fixes / Minor Improvements
