@@ -18,6 +18,10 @@ import {
     OAuth2BlockTokenSourceValue,
     isAuthBlock,
     AkamaiEdgeGridAuthBlockKeys,
+    getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
+    OAuth1AuthBlockKeys,
+    OAuth1SignatureMethod,
+    OAuth1Placement,
 } from "@global_shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
@@ -90,20 +94,18 @@ function getDiagnosticsForNonOAuth2AuthBlock(
             ]),
         );
     }
+
     if (authBlock.name == AuthBlockName.AkamaiEdgeGridAuth) {
         // All fields in the settings block are simple dictionary fields.
-        const validFields = authBlock.content.filter(
-            isDictionaryBlockSimpleField,
-        );
-
-        const fieldsForMaxBodySize = validFields.filter(
-            ({ key }) => key == AkamaiEdgeGridAuthBlockKeys.MaxBodySize,
-        );
-        if (fieldsForMaxBodySize.length != 1) {
+        const fieldForMaxBodySize =
+            getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
+                [authBlock],
+                authBlock.name,
+                AkamaiEdgeGridAuthBlockKeys.MaxBodySize,
+            );
+        if (!fieldForMaxBodySize) {
             return result;
         }
-
-        const fieldForMaxBodySize = fieldsForMaxBodySize[0];
 
         return result.concat(
             // A fallback is used, if no value is defined.
@@ -118,6 +120,52 @@ function getDiagnosticsForNonOAuth2AuthBlock(
                       "Only non-negative integer values are allowed.",
                       RelevantWithinAuthBlockDiagnosticCode.AkamaiEdgeGrid_MaxBodySizeValueInvalid,
                   ),
+        );
+    }
+
+    if (authBlock.name == AuthBlockName.OAuth1Auth) {
+        // All fields in the settings block are simple dictionary fields.
+        const fieldForSignatureMethod =
+            getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
+                [authBlock],
+                authBlock.name,
+                OAuth1AuthBlockKeys.SignatureMethod,
+            );
+        const fieldForPlacement =
+            getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
+                [authBlock],
+                authBlock.name,
+                OAuth1AuthBlockKeys.Placement,
+            );
+        const fieldForIncludeBodyHash =
+            getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
+                [authBlock],
+                authBlock.name,
+                OAuth1AuthBlockKeys.IncludeBodyHash,
+            );
+
+        return result.concat(
+            fieldForSignatureMethod
+                ? checkValueForDictionaryBlockSimpleFieldIsValid(
+                      fieldForSignatureMethod,
+                      Object.values(OAuth1SignatureMethod),
+                      RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth1SignatureMethodValue,
+                  )
+                : undefined,
+            fieldForPlacement
+                ? checkValueForDictionaryBlockSimpleFieldIsValid(
+                      fieldForPlacement,
+                      Object.values(OAuth1Placement),
+                      RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth1PlacementValue,
+                  )
+                : undefined,
+            fieldForIncludeBodyHash
+                ? checkValueForDictionaryBlockSimpleFieldIsValid(
+                      fieldForIncludeBodyHash,
+                      Object.values(BooleanFieldValue),
+                      RelevantWithinAuthBlockDiagnosticCode.InvalidOAuth1IncludeBodyHashValue,
+                  )
+                : undefined,
         );
     }
 

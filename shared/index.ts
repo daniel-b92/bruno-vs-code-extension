@@ -147,6 +147,7 @@ export * from "./languageUtils/commonBlocks/generic/dictionaryBlocks/getActiveKe
 export * from "./languageUtils/commonBlocks/authBlocks/authBlockNameEnum";
 export * from "./languageUtils/commonBlocks/authBlocks/authBlocksKeyInterfaces";
 export * from "./languageUtils/commonBlocks/authBlocks/oAuth2GrantTypeEnum";
+export * from "./languageUtils/commonBlocks/authBlocks/oAuth1FieldValueEnums";
 export * from "./languageUtils/commonBlocks/authBlocks/apiKeyAuthBlockValuesEnums";
 export * from "./languageUtils/commonBlocks/authBlocks/oAuth2BlockCommonFieldsValues";
 export * from "./languageUtils/commonBlocks/authBlocks/getMandatoryKeysForNonOAuth2Block";

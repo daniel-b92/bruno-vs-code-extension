@@ -4,7 +4,9 @@ export enum RelevantWithinAuthBlockDiagnosticCode {
     DuplicateKeysDefinedInAuthBlock = "bru302",
 
     InvalidGrantType = "bru303",
+
     InvalidApiKeyAuthValueForPlacement = "bru304",
+
     InvalidOAuth2ValueForCredentialsPlacement = "bru305",
     InvalidOAuth2ValueForTokenPlacement = "bru306",
     InvalidOAuth2ValueForAutoFetchToken = "bru3078",
@@ -14,4 +16,8 @@ export enum RelevantWithinAuthBlockDiagnosticCode {
     AdditionalParamsFieldsDefinedWithoutOAuth2AuthType = "bru311",
 
     AkamaiEdgeGrid_MaxBodySizeValueInvalid = "bru320",
+
+    InvalidOAuth1SignatureMethodValue = "bru330",
+    InvalidOAuth1PlacementValue = "bru331",
+    InvalidOAuth1IncludeBodyHashValue = "bru332",
 }
