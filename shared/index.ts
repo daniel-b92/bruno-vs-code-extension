@@ -58,6 +58,7 @@ export * from "./baseModel/files/brunoRequestFile";
 export * from "./baseModel/files/brunoEnvironmentFile";
 export * from "./baseModel/files/nonBrunoFile";
 export * from "./baseModel/files/brunoFolderSettingsFile";
+export * from "./baseModel/files/BrunoCollectionSettingsFile";
 export * from "./baseModel/typeguards/isCollectionItemWithSequence";
 export * from "./baseModel/typeguards/isRequestFile";
 export * from "./baseModel/typeguards/isCollectionDirectory";
@@ -139,7 +140,9 @@ export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockArrayBlock
 
 export * from "./languageUtils/commonBlocks/generic/variables/getPatternForVariablesInNonCodeBlock";
 export * from "./languageUtils/commonBlocks/generic/variables/getBlocksWithoutVariableSupport";
-export * from "./languageUtils/commonBlocks/generic/variables/interfaces";
+
+export * from "./languageUtils/commonBlocks/generic/dictionaryBlocks/getKeyRangeContainingPosition";
+export * from "./languageUtils/commonBlocks/generic/dictionaryBlocks/getActiveKeysUsedInOtherLines";
 
 export * from "./languageUtils/commonBlocks/authBlocks/authBlockNameEnum";
 export * from "./languageUtils/commonBlocks/authBlocks/authBlocksKeyInterfaces";

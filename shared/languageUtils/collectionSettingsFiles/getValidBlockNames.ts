@@ -16,5 +16,6 @@ export function getValidBlockNames(): string[] {
         RequestFileBlockName.PreRequestScript,
         RequestFileBlockName.PostResponseScript,
         RequestFileBlockName.Tests,
+        RequestFileBlockName.Docs,
     ];
 }

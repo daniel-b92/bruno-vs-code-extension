@@ -26,13 +26,13 @@ export function getSequenceValueCompletion(
         itemType == BrunoFileType.RequestFile,
     );
 
-    return relevantSiblings.length == 0
+    const relevantSiblingSequences = relevantSiblings
+        .map((item) => item.getSequence())
+        .filter((seq) => seq != undefined);
+
+    return relevantSiblingSequences.length == 0
         ? 1
-        : Math.max(
-              ...relevantSiblings
-                  .map((item) => item.getSequence())
-                  .filter((seq) => seq != undefined),
-          ) + 1;
+        : Math.max(...relevantSiblingSequences) + 1;
 }
 
 function getRelevantSiblings(
@@ -49,7 +49,8 @@ function getRelevantSiblings(
         .getAllStoredDataForCollection()
         .filter(
             ({ item }) =>
-                dirname(item.getPath()) == dirname(relevantReferencePath) &&
+                normalizePath(dirname(item.getPath())) ==
+                    normalizePath(dirname(relevantReferencePath)) &&
                 normalizePath(item.getPath()) !=
                     normalizePath(relevantReferencePath) &&
                 isCollectionItemWithSequence(item) &&

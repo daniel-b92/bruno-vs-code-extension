@@ -1,10 +1,8 @@
 import {
     BrunoVariableReference,
+    BrunoVariableType,
     CodeBlock,
     normalizePath,
-    RequestFileBlockName,
-    VariableAvailabilityScope,
-    VariableAvailabilityScopes,
     VariableReferenceType,
 } from "@global_shared";
 import {
@@ -16,15 +14,13 @@ import { relative } from "path";
 import { areReferencesEquivalentForLanguageFeatures } from "./areReferencesEquivalentForLanguageFeatures";
 import { isDynamicVariableReference } from "./isDynamicVariableReference";
 
-export function getMatchingStaticScriptVariableReferences({
-    file: { allBlocks, blockContainingPosition, collection },
-    request: { filePath },
-}: BlockRequestWithAdditionalData<CodeBlock>): EquivalentVariableReferencesFromOtherFiles[] {
-    const relevantScope =
-        blockContainingPosition.name == RequestFileBlockName.PreRequestScript
-            ? VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
-            : VariableAvailabilityScopes.PostResponseScriptForOwnItemAndDescendants;
-
+export function getMatchingStaticScriptVariableReferences(
+    {
+        file: { allBlocks, collection },
+        request: { filePath },
+    }: BlockRequestWithAdditionalData<CodeBlock>,
+    variableType: BrunoVariableType,
+): EquivalentVariableReferencesFromOtherFiles[] {
     // Avoid using cached data for determining references within own file because unsaved changes would be ignored.
     const allReferencesFromSameFile = allBlocks.flatMap(
         ({ variableReferences }) => variableReferences ?? [],
@@ -35,7 +31,7 @@ export function getMatchingStaticScriptVariableReferences({
         indirectionLevel: 0,
         references: getRelevantReferences(
             allReferencesFromSameFile,
-            relevantScope,
+            variableType,
         ),
     };
 
@@ -52,8 +48,8 @@ export function getMatchingStaticScriptVariableReferences({
                 relativeToSourceFile: relative(filePath, item.getPath()),
             },
             references: getRelevantReferences(
-                additionalData as BrunoVariableReference[],
-                relevantScope,
+                additionalData?.map(({ reference }) => reference) ?? [],
+                variableType,
             ),
         }))
         // Sort paths descending by length
@@ -71,13 +67,13 @@ export function getMatchingStaticScriptVariableReferences({
 
 function getRelevantReferences(
     refs: BrunoVariableReference[],
-    relevantScope: VariableAvailabilityScope,
+    variableType: BrunoVariableType,
 ) {
     return refs.filter(
-        ({ referenceType, scope }) =>
+        ({ referenceType, scope, variableType: v }) =>
             !isDynamicVariableReference(scope) &&
             referenceType == VariableReferenceType.Write &&
-            scope == relevantScope,
+            v == variableType,
     );
 }
 

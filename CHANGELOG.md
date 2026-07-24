@@ -1,13 +1,28 @@
-## [Unreleased]
+## [1.2.2] (2026-07-24)
+
+### Fixes / Minor Improvements
+
+- Fix an issue where no completions where provided within `meta` and `settings` blocks.
+
+## [1.2.1] (2026-07-20)
+
+### Fixes / Minor Improvements
+
+- Fix an issue where selecting a completion for a `meta` block inserted `-infinity` for the sequence, when all sibling items had invalid sequences.
+
+## [1.2.0] (2026-07-19)
 
 ### Features
 
 - Add intellisense for environment variables used in `bru.deleteEnvVar` inbuilt functions (Hover and Completions).
-- Add intellisense referencing static script variables for inbuilt functions for simple variables (`bru.setVar`, `bru.getVar`, `bru.deleteVar`) (Hover and Completions).
+- Add intellisense for static script variables, defined in blocks `vars:pre-request` or `vars:post-response`, and for their corresponding inbuilt functions (`bru.getRequestVar`, `bru.getFolderVar`) (Hover and Completions).
 
 ### Fixes / Minor Improvements
 
 - Fix intellisense for Bruno variables in nested inbuilt functionś.
+- Fix an issue where an incorrect error was shown when defining a `docs` block in a `collection.bru` file.
+- Fix an issue, where a misleading completion for adding a `meta` block in a `collection.bru` file was returned.
+- Fix an issue, where the invalid value `inherit` was provided via completions for `auth` blocks in `collection.bru` files.
 
 ## [1.1.2] (2026-05-18)
 

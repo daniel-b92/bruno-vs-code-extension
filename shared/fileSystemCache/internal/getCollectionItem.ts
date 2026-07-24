@@ -20,6 +20,7 @@ import {
     CollectionItem,
     getFileContent,
     parseFileByPath,
+    BrunoCollectionSettingsFile,
 } from "../..";
 import { createCollectionDirectoryInstance } from "./createCollectionDirectoryInstance";
 
@@ -49,6 +50,7 @@ export async function getCollectionItemForFile(
 ): Promise<CollectionItem | undefined> {
     switch (itemType) {
         case BrunoFileType.CollectionSettingsFile:
+            return new BrunoCollectionSettingsFile(path);
         case BrunoFileType.FolderSettingsFile:
             return new BrunoFolderSettingsFile(path);
         case BrunoFileType.EnvironmentFile:
@@ -63,7 +65,8 @@ export async function getCollectionItemForFile(
 }
 
 async function createEnvironmentFileInstance(path: string) {
-    const blocks = (await parseFileByPath(path))?.blocks;
+    const blocks = (await parseFileByPath(path, BrunoFileType.EnvironmentFile))
+        ?.blocks;
 
     const varsBlocks = blocks
         ? blocks.filter(({ name }) => name == EnvironmentFileBlockName.Vars)
@@ -97,7 +100,7 @@ async function createRequestFileInstance(path: string) {
     const metaBlockContent = parseBlockFromFile(
         new TextDocumentHelper(fileContent),
         RequestFileBlockName.Meta,
-    );
+    )?.content;
 
     const isDictionaryBlock =
         Array.isArray(metaBlockContent) &&

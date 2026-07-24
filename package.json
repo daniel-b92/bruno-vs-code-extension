@@ -2,7 +2,7 @@
     "name": "bru-as-code",
     "displayName": "bru-as-code",
     "description": "Enables working with '.bru' files in a manner like working with code",
-    "version": "1.1.2",
+    "version": "1.2.2",
     "publisher": "daniel-b92",
     "private": true,
     "license": "MIT",
@@ -11,7 +11,7 @@
         "url": "https://github.com/daniel-b92/bruno-vs-code-extension/issues"
     },
     "engines": {
-        "vscode": "^1.100.0"
+        "vscode": "^1.120.0"
     },
     "extensionDependencies": [
         "vscode.typescript-language-features"
@@ -282,7 +282,7 @@
                 },
                 {
                     "command": "brunoCollectionsView.duplicateFolder",
-                    "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
+                    "when": "view == brunoCollectionsView && viewItem == folder",
                     "group": "crud@35"
                 },
                 {

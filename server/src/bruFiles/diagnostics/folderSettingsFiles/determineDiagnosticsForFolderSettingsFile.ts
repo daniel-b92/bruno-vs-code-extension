@@ -7,6 +7,7 @@ import {
     RequestFileBlockName,
     isAuthBlock,
     isBlockDictionaryBlock,
+    BrunoFileType,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../interfaces";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
@@ -34,8 +35,9 @@ export async function determineDiagnosticsForFolderSettingsFile(
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
 ): Promise<DiagnosticWithCode[]> {
     const document = new TextDocumentHelper(documentText);
+    const itemType = BrunoFileType.FolderSettingsFile;
 
-    const { blocks, textOutsideOfBlocks } = parseBruFile(document);
+    const { blocks, textOutsideOfBlocks } = parseBruFile(document, itemType);
     const blocksThatShouldBeDictionaryBlocks = blocks.filter(
         ({ name }) =>
             shouldBeDictionaryBlock(name) ||
@@ -72,7 +74,7 @@ export async function determineDiagnosticsForFolderSettingsFile(
                 keys: block.content.map(({ key }) => key),
             })),
         ),
-        checkCodeBlocksHaveClosingBracket(document, blocks),
+        checkCodeBlocksHaveClosingBracket(document, blocks, itemType),
         checkDictionaryBlocksAreNotEmpty(
             filePath,
             blocksThatShouldBeDictionaryBlocks,

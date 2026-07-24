@@ -222,12 +222,16 @@ function getTextEditWithInsertFormat(
         textEdit: {
             newText: commonBlockStartLine.concat(
                 shouldBeDictionaryBlock(blockName)
-                    ? (getDictionaryBlockSnippetInsertionContent(blockName, {
-                          baseRequest,
-                          fileType,
-                          collection,
-                          lineBreak,
-                      }) ?? defaultContent)
+                    ? (getDictionaryBlockSnippetInsertionContent(
+                          blockName,
+                          {
+                              baseRequest,
+                              fileType,
+                              collection,
+                              lineBreak,
+                          },
+                          fileType == BrunoFileType.CollectionSettingsFile,
+                      ) ?? defaultContent)
                     : defaultContent,
                 commonBlockEndLine,
             ),

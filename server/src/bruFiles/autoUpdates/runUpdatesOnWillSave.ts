@@ -26,7 +26,7 @@ export async function runUpdatesOnWillSave(
     // Only request files can have query params blocks and HTTP method blocks.
     if (brunoFileType == BrunoFileType.RequestFile) {
         const docHelper = new TextDocumentHelper(fileContent);
-        const { blocks: parsedBlocks } = parseBruFile(docHelper);
+        const { blocks: parsedBlocks } = parseBruFile(docHelper, brunoFileType);
 
         return ([] as TextEdit[]).concat(
             updateUrlToMatchQueryParams(parsedBlocks),

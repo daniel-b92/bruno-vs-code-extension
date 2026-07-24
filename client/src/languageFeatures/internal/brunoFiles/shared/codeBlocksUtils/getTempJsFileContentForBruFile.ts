@@ -3,6 +3,7 @@ import {
     parseBruFile,
     TextDocumentHelper,
     getCodeBlocks,
+    ItemType,
 } from "@global_shared";
 import { getDefinitionsForInbuiltLibraries } from "../../../shared/temporaryJsFilesUpdates/external/getDefinitionsForInbuiltLibraries";
 import { mapBlockNameToJsFileLine } from "./mapBlockNameToJsFileFunctionName";
@@ -11,9 +12,11 @@ import { getCharacterForLineBreak } from "./getCharacterForLineBreak";
 export function getTempJsFileContentForBruFile(
     bruFileContent: string,
     eol: EndOfLine,
+    itemType: ItemType,
 ) {
     const { blocks: parsedBlocks } = parseBruFile(
         new TextDocumentHelper(bruFileContent),
+        itemType,
     );
 
     const functionsForTempJsFile = getCodeBlocks(parsedBlocks).map(

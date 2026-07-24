@@ -5,9 +5,9 @@ import {
     Position,
     getInbuiltFunctionReferenceType,
     getMatchingDefinitionsFromEnvFiles,
-    VariableNameMatchingMode,
     Logger,
     BrunoVariableType,
+    LineBreakType,
 } from "@global_shared";
 import {
     LanguageFeatureBaseRequest,
@@ -97,12 +97,11 @@ function getResultsForEnvironmentVariable(
     logger?: Logger,
 ) {
     const { collection, functionType } = additionalData;
-    const { token } = baseRequest;
+    const { token, documentHelper: docHelper } = baseRequest;
 
     const matchingEnvVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
         collection,
-        variable.name,
-        VariableNameMatchingMode.Ignore,
+        undefined,
         configuredEnvironmentName,
     );
 
@@ -120,6 +119,8 @@ function getResultsForEnvironmentVariable(
             variable,
             functionType,
             variableType: BrunoVariableType.Environment,
+            documentLineBreak:
+                docHelper.getMostUsedLineBreak() ?? LineBreakType.Lf,
         },
         matchingEnvVariableDefinitions.map(
             ({ file, matchingVariables, isConfiguredEnv }) => ({

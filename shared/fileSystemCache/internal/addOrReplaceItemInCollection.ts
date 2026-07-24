@@ -110,7 +110,9 @@ async function getCollectionData<T>(params: {
         return {
             item,
             additionalData: getData(
-                toParse ? await parseFileByPath(toParse) : undefined,
+                toParse
+                    ? await parseFileByPath(toParse, item.getItemType())
+                    : undefined,
             ),
         };
     }

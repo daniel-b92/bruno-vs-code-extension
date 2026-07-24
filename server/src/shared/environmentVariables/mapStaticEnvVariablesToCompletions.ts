@@ -6,9 +6,14 @@ import {
 } from "@global_shared";
 import { VariableSpecificRequestData } from "../interfaces";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
+import { GetTextEditForVariableCompletion } from "../../bruFiles/completions/mapVariablesToCompletions";
 
 export function mapStaticEnvVariablesToCompletions(
-    { variable: { start, end }, functionType }: VariableSpecificRequestData,
+    {
+        variable: { start, end },
+        functionType,
+        documentLineBreak,
+    }: VariableSpecificRequestData,
     matchingStaticEnvVariables: {
         environmentFile: string;
         matchingVariableKeys: string[];
@@ -16,7 +21,7 @@ export function mapStaticEnvVariablesToCompletions(
     }[],
     modifications?: {
         prefixForSortText?: string;
-        appendOnInsertion?: string;
+        getTextEditForCompletion?: GetTextEditForVariableCompletion;
     },
 ) {
     return matchingStaticEnvVariables.flatMap(
@@ -36,10 +41,11 @@ export function mapStaticEnvVariablesToCompletions(
                         : undefined,
                     kind: CompletionItemKind.Constant,
                     sortText: `${modifications?.prefixForSortText ?? ""}_${isConfiguredEnv ? "a" : "b"}_${environmentName}_${key}`,
-                    textEdit: {
-                        newText: `${key}${modifications?.appendOnInsertion ?? ""}`,
-                        range: new Range(start, end),
-                    },
+                    textEdit: modifications?.getTextEditForCompletion?.(
+                        key,
+                        new Range(start, end),
+                        documentLineBreak,
+                    ),
                 };
                 return completionItem;
             }),

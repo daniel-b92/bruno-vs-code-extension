@@ -11,7 +11,11 @@ import {
     RequestFileBlockName,
     SettingsFileSpecificBlock,
     VariableReferenceType,
+    getActiveKeysUsedInOtherLines,
+    getKeyRangeContainingPosition,
+    LineBreakType,
     Range,
+    BrunoFileType,
 } from "@global_shared";
 import { CompletionItem } from "vscode-languageserver";
 import {
@@ -27,6 +31,7 @@ import { getAuthBlockContentCompletions } from "./dictionaryBlocks/specificBlock
 import { getSettingsBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getSettingsBlockContentCompletions";
 import { getAuthModeBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getAuthModeBlockContentCompletions";
 import { getAllVariableReferences } from "../shared/VariableReferences/getAllVariableReferences";
+import { getTextEditForKey } from "./dictionaryBlocks/generic/getTextEditForKey";
 
 export async function getCompletionsForNonCodeBlock(
     fullRequest: BlockRequestWithAdditionalData<Block>,
@@ -38,6 +43,19 @@ export async function getCompletionsForNonCodeBlock(
         file: { blockContainingPosition, allBlocks, collection },
     } = fullRequest;
 
+    const blockHasVariableSupport = (
+        getBlocksWithoutVariableSupport() as string[]
+    ).includes(blockContainingPosition.name);
+    const blockSupportsOnlyWriteOnlyVars =
+        blockHasVariableSupport &&
+        // For Script variable blocks only write-only variables can be defined.
+        (
+            [
+                RequestFileBlockName.PreRequestVars,
+                RequestFileBlockName.PostResponseVars,
+            ] as string[]
+        ).includes(blockContainingPosition.name);
+
     return (
         (await getBlockSpecificCompletions(
             itemProvider,
@@ -47,36 +65,32 @@ export async function getCompletionsForNonCodeBlock(
             collection,
         )) ?? []
     ).concat(
-        collection
-            ? getNonBlockSpecificCompletions(fullRequest, configuredEnvironment)
-            : [],
+        !blockHasVariableSupport
+            ? []
+            : blockSupportsOnlyWriteOnlyVars
+              ? getCompletionsForBlockWithWriteOnlyVariables(
+                    fullRequest,
+                    configuredEnvironment,
+                )
+              : getCompletionsForBlockWithReadOnlyVariables(
+                    fullRequest,
+                    configuredEnvironment,
+                ),
     );
 }
 
-function getNonBlockSpecificCompletions(
+function getCompletionsForBlockWithReadOnlyVariables(
     fullRequest: BlockRequestWithAdditionalData<Block>,
     configuredEnvironment?: string,
 ) {
-    const {
-        request,
-        file: { blockContainingPosition },
-        logger,
-    } = fullRequest;
+    const { request, logger } = fullRequest;
     const { documentHelper, position } = request;
     const { line } = position;
-    // In non-code blocks, variables cannot be set.
     const functionType = VariableReferenceType.Read;
-    // In non-code blocks, all kinds of variables can be used via the same syntax.
+    // In non-code blocks with read-only variables, all kinds of variables can be accessed via the same syntax.
     const variableType = BrunoVariableType.Unknown;
     const lineContent = documentHelper.getLineByIndex(line);
 
-    if (
-        (getBlocksWithoutVariableSupport() as string[]).includes(
-            blockContainingPosition.name,
-        )
-    ) {
-        return [];
-    }
     const variableParsingResult = getVariable(request, lineContent, logger);
     if (!variableParsingResult) {
         return [];
@@ -88,11 +102,11 @@ function getNonBlockSpecificCompletions(
         fullRequest,
         {
             referenceType: functionType,
-            variableName: variable.name,
-            variableNameRange: new Range(variable.start, variable.end),
             variableType,
         },
-        configuredEnvironment,
+        {
+            configuredEnvironment,
+        },
     );
 
     if (!allRefs) {
@@ -124,9 +138,98 @@ function getNonBlockSpecificCompletions(
             variable,
             functionType,
             variableType,
+            documentLineBreak:
+                documentHelper.getMostUsedLineBreak() ?? LineBreakType.Lf,
         },
-        toAppendOnInsertion,
+        (variableName: string, rangeToReplace: Range) => ({
+            newText: `${variableName}${toAppendOnInsertion}`,
+            range: rangeToReplace,
+        }),
     );
+}
+
+function getCompletionsForBlockWithWriteOnlyVariables(
+    fullRequest: BlockRequestWithAdditionalData<Block>,
+    configuredEnvironment?: string,
+) {
+    const {
+        request: { documentHelper, position },
+        file: { blockContainingPosition: block },
+    } = fullRequest;
+    const functionType = VariableReferenceType.Write;
+    // For non-code blocks with write-only variable access options, only simple variables can be set.
+    const variableType = BrunoVariableType.Runtime;
+
+    const allRefs = getAllVariableReferences(
+        fullRequest,
+        {
+            referenceType: functionType,
+            variableType,
+        },
+        {
+            configuredEnvironment,
+        },
+    );
+
+    if (!allRefs) {
+        return [];
+    }
+
+    const activeKeysInOtherLines = getActiveKeysUsedInOtherLines(
+        position.line,
+        block,
+    );
+    const variableRange = getKeyRangeContainingPosition(position, block);
+
+    const nonDuplicateRefsFromOtherFiles =
+        // For Script variable blocks, the only relevant references can be in code blocks, which means dynamic references.
+        allRefs.dynamicReferences.fromOtherFiles.filter(
+            ({
+                mostRelevantReference: {
+                    reference: { variableName },
+                },
+            }) => !activeKeysInOtherLines.includes(variableName),
+        );
+    const nonDuplicateRefsFromSameFile =
+        // For Script variable blocks, the only relevant references can be in code blocks, which means dynamic references.
+        allRefs.dynamicReferences.withinSameFile.filter(
+            ({ variableReference: { variableName } }) =>
+                !activeKeysInOtherLines.includes(variableName),
+        );
+
+    return !variableRange
+        ? []
+        : mapVariablesToCompletions(
+              {
+                  staticEnvVariables: [],
+                  staticScriptVariables: [],
+                  dynamicVariables: {
+                      fromSameFile: nonDuplicateRefsFromSameFile,
+                      fromOtherFiles: nonDuplicateRefsFromOtherFiles,
+                  },
+              },
+              {
+                  variable: {
+                      ...variableRange,
+                      name: documentHelper.getText(variableRange),
+                  },
+                  functionType,
+                  variableType,
+                  documentLineBreak:
+                      documentHelper.getMostUsedLineBreak() ?? LineBreakType.Lf,
+              },
+              (
+                  variableName: string,
+                  rangeToReplace: Range,
+                  lineBreak: LineBreakType,
+              ) =>
+                  getTextEditForKey(
+                      lineBreak,
+                      rangeToReplace,
+                      variableName,
+                      true,
+                  ),
+          );
 }
 
 async function getBlockSpecificCompletions(
@@ -141,11 +244,11 @@ async function getBlockSpecificCompletions(
         ? collection.getStoredDataForPath(request.filePath)?.item.getItemType()
         : undefined;
 
-    if (
-        blockName == RequestFileBlockName.Meta &&
-        itemType &&
-        isBrunoFileType(itemType)
-    ) {
+    if (!itemType) {
+        return undefined;
+    }
+
+    if (blockName == RequestFileBlockName.Meta && isBrunoFileType(itemType)) {
         return await getMetaBlockContentCompletions(
             itemProvider,
             request,
@@ -175,6 +278,7 @@ async function getBlockSpecificCompletions(
             request,
             allBlocks,
             blockContainingPosition,
+            itemType == BrunoFileType.CollectionSettingsFile,
         );
     }
     return [];

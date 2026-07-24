@@ -233,8 +233,9 @@ const printInfosOnTestRunStart = (
         `${canUseDeveloperSandbox() ? "Using" : "Not using"} Javascript sandbox developer mode due to user setting ${getLinkToUserSetting(getConfigKeyForSandboxDeveloperMode())}${lineBreak}`,
     );
     run.appendOutput(lineBreak);
+    run.appendOutput(`Starting test run ....${lineBreak}`);
     run.appendOutput(
-        `Note: The option for using npx for triggering the Bruno CLI is not supported anymore. For executing tests, the npm package https://www.npmjs.com/package/@usebruno/cli needs to be installed.${lineBreak}`,
+        "-----------------------------------------------------------",
     );
     run.appendOutput(lineBreak);
 };
