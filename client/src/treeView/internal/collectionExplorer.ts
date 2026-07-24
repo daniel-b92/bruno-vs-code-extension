@@ -513,6 +513,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     await replaceNameInMetaBlock(
                         newPath,
                         newItemName.replace(getExtensionForBrunoFiles(), ""),
+                        oldItem.getItemType(),
                     );
                     return;
                 }
@@ -527,6 +528,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         await replaceNameInMetaBlock(
                             folderSettingsPath,
                             newItemName,
+                            oldItem.getItemType(),
                         );
                     }
 
@@ -543,6 +545,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             `${this.treeViewId}.duplicateFolder`,
             async (item: BrunoTreeItem) => {
                 const originalPath = item.getPath();
+                const isCollectionRootFolder = false;
 
                 const collection =
                     this.itemProvider.getAncestorCollectionForPath(
@@ -570,7 +573,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 );
 
                 const newFolderSettingsFile = await getFolderSettingsFilePath(
-                    false,
+                    isCollectionRootFolder,
                     newFolderPath,
                 );
 
@@ -593,6 +596,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     await replaceNameInMetaBlock(
                         newFolderSettingsFile,
                         basename(newFolderPath),
+                        BrunoFileType.FolderSettingsFile,
                     );
                 }
             },

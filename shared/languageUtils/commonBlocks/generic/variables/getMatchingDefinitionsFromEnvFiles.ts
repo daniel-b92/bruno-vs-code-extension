@@ -1,9 +1,8 @@
-import { ReadyOnlyCollection, VariableNameMatchingMode } from "../../../..";
+import { ReadyOnlyCollection } from "../../../..";
 
 export function getMatchingDefinitionsFromEnvFiles(
     collection: ReadyOnlyCollection<unknown>,
-    variableName: string,
-    matchingMode: VariableNameMatchingMode,
+    variableNameForFiltering?: string,
     environmentName?: string,
 ) {
     const matchingEnvironmentFiles = collection
@@ -24,7 +23,11 @@ export function getMatchingDefinitionsFromEnvFiles(
         .map(({ item, selected: isConfiguredEnv }) => {
             const matchingVariables = item
                 .getVariables()
-                .filter(({ key }) => matches(key, variableName, matchingMode));
+                .filter(({ key }) =>
+                    variableNameForFiltering !== undefined
+                        ? key == variableNameForFiltering
+                        : true,
+                );
 
             return matchingVariables.length > 0
                 ? {
@@ -35,17 +38,4 @@ export function getMatchingDefinitionsFromEnvFiles(
                 : undefined;
         })
         .filter((result) => result != undefined);
-}
-
-function matches(
-    actual: string,
-    toSearch: string,
-    matchingMode: VariableNameMatchingMode,
-) {
-    switch (matchingMode) {
-        case VariableNameMatchingMode.Exact:
-            return actual == toSearch;
-        case VariableNameMatchingMode.Ignore:
-            return actual;
-    }
 }

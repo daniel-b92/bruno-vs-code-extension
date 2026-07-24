@@ -20,24 +20,27 @@ export async function handleCompletionRequest({
     CompletionItem[] | undefined
 > {
     const { documentHelper, position, token, filePath } = baseRequest;
-    const { blocks: allBlocks } = parseBruFile(documentHelper);
+    const itemType = collection
+        .getStoredDataForPath(filePath)
+        ?.item.getItemType();
+
+    if (!itemType) {
+        return undefined;
+    }
+
+    const { blocks: allBlocks } = parseBruFile(documentHelper, itemType);
 
     const blockContainingPosition = allBlocks.find(({ contentRange }) =>
         contentRange.contains(position),
     );
 
     if (!blockContainingPosition) {
-        const itemType = collection
-            .getStoredDataForPath(filePath)
-            ?.item.getItemType();
-        return itemType
-            ? getCompletionsForPositionOutsideOfBlocks(
-                  baseRequest,
-                  itemType as BrunoFileType,
-                  allBlocks,
-                  collection,
-              )
-            : undefined;
+        return getCompletionsForPositionOutsideOfBlocks(
+            baseRequest,
+            itemType as BrunoFileType,
+            allBlocks,
+            collection,
+        );
     }
 
     if (token.isCancellationRequested) {

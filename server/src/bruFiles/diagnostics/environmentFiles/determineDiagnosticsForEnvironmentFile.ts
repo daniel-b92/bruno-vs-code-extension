@@ -3,6 +3,7 @@ import {
     parseBruFile,
     EnvironmentFileBlockName,
     isBlockDictionaryBlock,
+    BrunoFileType,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../interfaces";
 import { checkArrayBlocksHaveArrayStructure } from "../shared/checks/multipleBlocks/checkArrayBlocksHaveArrayStructure";
@@ -21,7 +22,10 @@ export function determineDiagnosticsForEnvironmentFile(
 ): DiagnosticWithCode[] {
     const document = new TextDocumentHelper(documentText);
 
-    const { blocks, textOutsideOfBlocks } = parseBruFile(document);
+    const { blocks, textOutsideOfBlocks } = parseBruFile(
+        document,
+        BrunoFileType.EnvironmentFile,
+    );
     const blocksThatShouldBeDictionaryBlocks = blocks.filter(
         ({ name }) => name == EnvironmentFileBlockName.Vars,
     );

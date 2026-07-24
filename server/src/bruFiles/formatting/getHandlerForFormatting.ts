@@ -7,6 +7,7 @@ import {
     getCodeBlocks,
     parseBruFile,
     LineBreakType,
+    ItemType,
 } from "@global_shared";
 import { format } from "prettier";
 import { TextEdit } from "vscode-languageserver/node";
@@ -15,9 +16,12 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 
 export async function getHandlerForFormatting(
     textDocument: TextDocument,
+    itemType: ItemType,
 ): Promise<TextEdit[]> {
     const documentHelper = new TextDocumentHelper(textDocument.getText());
-    const codeBlocks = getCodeBlocks(parseBruFile(documentHelper).blocks);
+    const codeBlocks = getCodeBlocks(
+        parseBruFile(documentHelper, itemType).blocks,
+    );
 
     const lineBreak = documentHelper.getMostUsedLineBreak();
 

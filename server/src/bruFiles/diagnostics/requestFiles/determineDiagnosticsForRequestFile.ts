@@ -12,6 +12,8 @@ import {
     DictionaryBlock,
     shouldBeDictionaryArrayField,
     getGraphQlSpecificBlocks,
+    BrunoFileType,
+    ItemType,
 } from "@global_shared";
 import { TypedCollectionItemProvider } from "../../../shared";
 import { DiagnosticWithCode } from "../interfaces";
@@ -47,10 +49,15 @@ export async function determineDiagnosticsForRequestFile(
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
 ): Promise<DiagnosticWithCode[]> {
     const documentHelper = new TextDocumentHelper(documentText);
-    const { blocks, textOutsideOfBlocks } = parseBruFile(documentHelper);
+    const itemType = BrunoFileType.RequestFile;
+    const { blocks, textOutsideOfBlocks } = parseBruFile(
+        documentHelper,
+        itemType,
+    );
 
     const results = collectCommonDiagnostics(
         filePath,
+        itemType,
         documentHelper,
         blocks,
         textOutsideOfBlocks,
@@ -69,6 +76,7 @@ export async function determineDiagnosticsForRequestFile(
 
 function collectCommonDiagnostics(
     filePath: string,
+    itemType: ItemType,
     documentHelper: TextDocumentHelper,
     blocks: Block[],
     textOutsideOfBlocks: TextOutsideOfBlocks[],
@@ -118,7 +126,7 @@ function collectCommonDiagnostics(
         ),
         checkUrlFromMethodBlockMatchesQueryParamsBlock(filePath, blocks),
         checkUrlFromMethodBlockMatchesPathParamsBlock(filePath, blocks),
-        checkCodeBlocksHaveClosingBracket(documentHelper, blocks),
+        checkCodeBlocksHaveClosingBracket(documentHelper, blocks, itemType),
         checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType(
             filePath,
             blocks,

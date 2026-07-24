@@ -68,7 +68,7 @@ export function getInbuiltFunctions(): {
                 functionName: InbuiltFunctionName.GetVar,
             },
             referenceType: VariableReferenceType.Read,
-            variableType: BrunoVariableType.Simple,
+            variableType: BrunoVariableType.Runtime,
         },
         [InbuiltFunctionName.SetVar]: {
             identifier: {
@@ -76,8 +76,24 @@ export function getInbuiltFunctions(): {
                 functionName: InbuiltFunctionName.SetVar,
             },
             referenceType: VariableReferenceType.Write,
-            variableType: BrunoVariableType.Simple,
+            variableType: BrunoVariableType.Runtime,
             scope: VariableAvailabilityScopes.Collection,
+        },
+        [InbuiltFunctionName.GetRequestVar]: {
+            identifier: {
+                baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,
+                functionName: InbuiltFunctionName.GetRequestVar,
+            },
+            referenceType: VariableReferenceType.Read,
+            variableType: BrunoVariableType.Request,
+        },
+        [InbuiltFunctionName.GetFolderVar]: {
+            identifier: {
+                baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,
+                functionName: InbuiltFunctionName.GetFolderVar,
+            },
+            referenceType: VariableReferenceType.Read,
+            variableType: BrunoVariableType.Folder,
         },
     };
 }

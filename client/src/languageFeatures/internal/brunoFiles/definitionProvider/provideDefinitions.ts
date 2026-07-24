@@ -31,14 +31,18 @@ export function provideDefinitions(
                     collectionItemProvider.getAncestorCollectionForPath(
                         document.fileName,
                     );
+                const itemType = collection
+                    ?.getStoredDataForPath(document.fileName)
+                    ?.item.getItemType();
 
-                if (!collection) {
+                if (!collection || !itemType) {
                     return null;
                 }
 
                 const blockInBruFile = getCodeBlockContainingPosition(
                     document.getText(),
                     position,
+                    itemType,
                 );
 
                 if (!blockInBruFile) {

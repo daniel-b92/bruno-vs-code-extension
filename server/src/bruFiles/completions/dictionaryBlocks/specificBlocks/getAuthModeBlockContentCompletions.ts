@@ -9,6 +9,7 @@ export function getAuthModeBlockContentCompletions(
     request: LanguageFeatureBaseRequest,
     allBlocks: Block[],
     block: Block,
+    isCollectionSettingsFile: boolean,
 ) {
     const completionsForKeys = getCompletionsForKeys(request, block, {
         mandatory: [AuthModeBlockKey.Mode],
@@ -23,6 +24,7 @@ export function getAuthModeBlockContentCompletions(
         allBlocks,
         request,
         request.documentHelper.getMostUsedLineBreak() ?? LineBreakType.Lf,
+        isCollectionSettingsFile,
     );
 }
 
@@ -31,6 +33,7 @@ function getValueCompletions(
     allBlocks: Block[],
     baseRequest: LanguageFeatureBaseRequest,
     lineBreak: LineBreakType,
+    isCollectionSettingsFile: boolean,
 ): CompletionItem[] | undefined {
     const {
         documentHelper,
@@ -51,5 +54,6 @@ function getValueCompletions(
         allBlocks,
         authModeBlock,
         { currentLineContent: currentText, lineBreak },
+        isCollectionSettingsFile,
     );
 }

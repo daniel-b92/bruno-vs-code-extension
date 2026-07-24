@@ -50,14 +50,18 @@ export function provideTsLangCompletionItems(
                     collectionItemProvider.getAncestorCollectionForPath(
                         document.fileName,
                     );
+                const itemType = collection
+                    ?.getStoredDataForPath(document.fileName)
+                    ?.item.getItemType();
 
-                if (!collection) {
+                if (!collection || !itemType) {
                     return [];
                 }
 
                 const blockContainingPosition = getCodeBlockContainingPosition(
                     document.getText(),
                     position,
+                    itemType,
                 );
 
                 if (!blockContainingPosition) {
