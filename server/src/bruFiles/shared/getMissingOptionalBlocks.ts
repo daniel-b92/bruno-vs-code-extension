@@ -1,5 +1,6 @@
 import {
     AuthModeBlockKey,
+    AuthTypes,
     Block,
     BrunoFileType,
     EnvironmentFileBlockName,
@@ -13,7 +14,6 @@ import {
     isAuthBlock,
     isBodyBlock,
     MetaBlockKey,
-    MethodBlockAuthValues,
     MethodBlockKey,
     Oauth2AdditionalParamsBlockNames,
     RequestFileBlockName,
@@ -79,7 +79,7 @@ function getMissingOptionalBlocksForRequestFile(
                 !getGraphQlSpecificBlocks().includes(name)) &&
             // OAuth2 specific additional blocks only make sense if OAuth2 authorization is used.
             (!authType ||
-                authType == MethodBlockAuthValues.Oauth2 ||
+                authType == AuthTypes.Oauth2 ||
                 !(
                     Object.values(Oauth2AdditionalParamsBlockNames) as string[]
                 ).includes(name)),
@@ -146,7 +146,7 @@ function getMissingOptionalBlocksForFolderOrCollectionSettingsFile(
                 name == getExpectedAuthBlockForType(authModeFromAuthBlock)) &&
             // OAuth2 specific additional blocks only make sense if OAuth2 authorization is used.
             (!authModeFromAuthBlock ||
-                authModeFromAuthBlock == MethodBlockAuthValues.Oauth2 ||
+                authModeFromAuthBlock == AuthTypes.Oauth2 ||
                 !(
                     Object.values(Oauth2AdditionalParamsBlockNames) as string[]
                 ).includes(name)),

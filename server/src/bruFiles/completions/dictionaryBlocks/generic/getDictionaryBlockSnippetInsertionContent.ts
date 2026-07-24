@@ -4,6 +4,7 @@ import {
     AuthBlockName,
     AuthBlockNamesExcludingOAuth2,
     AuthModeBlockKey,
+    AuthTypes,
     BooleanFieldValue,
     BrunoFileType,
     getDefaultIndentationForDictionaryBlockFields,
@@ -16,7 +17,6 @@ import {
     isAuthBlock,
     LineBreakType,
     MetaBlockKey,
-    MethodBlockAuthValues,
     MethodBlockBodies,
     MethodBlockKey,
     OAuth2AuthBlocksCommonKeys,
@@ -125,7 +125,7 @@ function getContentForMethodBlock(blockName: string, lineBreak: LineBreakType) {
             key,
             predefinedValues:
                 key == MethodBlockKey.Auth
-                    ? Object.values(MethodBlockAuthValues)
+                    ? Object.values(AuthTypes)
                     : key == MethodBlockKey.Body
                       ? Object.values(MethodBlockBodies)
                       : undefined,
@@ -203,9 +203,9 @@ function getContentForAuthModeBlock(
     lineBreak: LineBreakType,
     isCollectionSettingsFile: boolean,
 ) {
-    const allAuthTypes = Object.values(MethodBlockAuthValues);
+    const allAuthTypes = Object.values(AuthTypes);
     const validAuthTypes = isCollectionSettingsFile
-        ? allAuthTypes.filter((type) => type != MethodBlockAuthValues.Inherit)
+        ? allAuthTypes.filter((type) => type != AuthTypes.Inherit)
         : allAuthTypes;
     return getContentForDictionaryBlock(
         [

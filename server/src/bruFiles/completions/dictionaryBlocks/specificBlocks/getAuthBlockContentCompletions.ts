@@ -15,6 +15,10 @@ import {
     OAuth2GrantType,
     getMandatoryKeysForOAuth2Block,
     OAuth2BlockTokenSourceValue,
+    RequestFileBlockName,
+    OAuth1Placement,
+    OAuth1AuthBlockKeys,
+    OAuth1SignatureMethod,
 } from "@global_shared";
 import { LanguageFeatureBaseRequest } from "../../../../shared";
 import { getFixedCompletionItems } from "../generic/getFixedCompletionItems";
@@ -40,7 +44,7 @@ export function getAuthBlockContentCompletions(
         }
     }
 
-    return getCompletionsForValues(request);
+    return getCompletionsForValues(request, block.name);
 }
 
 function getCompletionsForKeysForOAuth2AuthBlock(
@@ -75,7 +79,16 @@ function getCompletionsForKeysForOAuth2AuthBlock(
     }
 }
 
-function getCompletionsForValues(request: LanguageFeatureBaseRequest) {
+function getCompletionsForValues(
+    request: LanguageFeatureBaseRequest,
+    blockName: string,
+) {
+    // The placement key is part of multiple auth blocks, however with different allowed values.
+    const valuesForPlacementKey =
+        blockName == RequestFileBlockName.ApiKeyAuth
+            ? Object.values(ApiKeyAuthBlockPlacementValue)
+            : Object.values(OAuth1Placement);
+
     return getFixedCompletionItems(
         [
             {
@@ -88,7 +101,7 @@ function getCompletionsForValues(request: LanguageFeatureBaseRequest) {
                 linePattern: getLinePatternForDictionaryField(
                     ApiKeyAuthBlockKeys.Placement,
                 ),
-                choices: Object.values(ApiKeyAuthBlockPlacementValue),
+                choices: valuesForPlacementKey,
             },
             {
                 linePattern: getLinePatternForDictionaryField(
@@ -123,6 +136,18 @@ function getCompletionsForValues(request: LanguageFeatureBaseRequest) {
             {
                 linePattern: getLinePatternForDictionaryField(
                     OAuth2ViaAuthorizationCodeBlockKeys.AutoRefreshToken,
+                ),
+                choices: Object.values(BooleanFieldValue),
+            },
+            {
+                linePattern: getLinePatternForDictionaryField(
+                    OAuth1AuthBlockKeys.SignatureMethod,
+                ),
+                choices: Object.values(OAuth1SignatureMethod),
+            },
+            {
+                linePattern: getLinePatternForDictionaryField(
+                    OAuth1AuthBlockKeys.IncludeBodyHash,
                 ),
                 choices: Object.values(BooleanFieldValue),
             },

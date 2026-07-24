@@ -1,13 +1,13 @@
 import {
     AuthBlockName,
     AuthBlockNamesExcludingOAuth2,
+    AuthTypes,
     Block,
     getAuthTypesForNoDefinedAuthBlock,
     getExpectedAuthBlockForType,
     getMandatoryKeysForNonOAuth2Block,
     isAuthBlock,
     LineBreakType,
-    MethodBlockAuthValues,
     OAuth2AuthBlocksCommonKeys,
 } from "@global_shared";
 import { LanguageFeatureBaseRequest } from "../../../../shared";
@@ -29,11 +29,9 @@ export function getCompletionsForAuthTypeFieldValue(
     const authTypesWithoutAnAuthBlock = getAuthTypesForNoDefinedAuthBlock();
 
     if (existingAuthBlocks.length <= 1) {
-        const allAuthTypes = Object.values(MethodBlockAuthValues);
+        const allAuthTypes = Object.values(AuthTypes);
         const authTypesForCompletions = isCollectionSettingsFile
-            ? allAuthTypes.filter(
-                  (type) => type != MethodBlockAuthValues.Inherit,
-              )
+            ? allAuthTypes.filter((type) => type != AuthTypes.Inherit)
             : allAuthTypes;
 
         return authTypesForCompletions

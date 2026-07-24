@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Minor Improvements
+
+- Add proper support for Auth types `oauth1` and `akamai-edgegrid` (diagnostics, completions).
+
 ## [1.2.2] (2026-07-24)
 
 ### Fixes / Minor Improvements

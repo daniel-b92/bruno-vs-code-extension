@@ -110,7 +110,7 @@ export * from "./languageUtils/commonBlocks/metaBlock/getSequenceAndTagsFromMeta
 export * from "./languageUtils/commonBlocks/metaBlock/getMandatoryAndOptionalKeys";
 
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockKeyEnum";
-export * from "./languageUtils/commonBlocks/methodBlocks/MethodBlockAuthValues";
+export * from "./languageUtils/commonBlocks/generic/AuthTypes";
 export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockBodies";
 export * from "./languageUtils/commonBlocks/methodBlocks/getPossibleMethodBlocks";
 export * from "./languageUtils/commonBlocks/methodBlocks/getActiveFieldFromMethodBlock";
@@ -147,6 +147,7 @@ export * from "./languageUtils/commonBlocks/generic/dictionaryBlocks/getActiveKe
 export * from "./languageUtils/commonBlocks/authBlocks/authBlockNameEnum";
 export * from "./languageUtils/commonBlocks/authBlocks/authBlocksKeyInterfaces";
 export * from "./languageUtils/commonBlocks/authBlocks/oAuth2GrantTypeEnum";
+export * from "./languageUtils/commonBlocks/authBlocks/oAuth1FieldValueEnums";
 export * from "./languageUtils/commonBlocks/authBlocks/apiKeyAuthBlockValuesEnums";
 export * from "./languageUtils/commonBlocks/authBlocks/oAuth2BlockCommonFieldsValues";
 export * from "./languageUtils/commonBlocks/authBlocks/getMandatoryKeysForNonOAuth2Block";
