@@ -54,6 +54,7 @@ export function getMissingOptionalBlocks(
                 blocksThatCannotBeOptional,
             );
         case BrunoFileType.AppFile:
+            // For App files, it is currently assumed that they are valid. Implementing diagnostics and other language features is still to do.
             return [];
     }
 }

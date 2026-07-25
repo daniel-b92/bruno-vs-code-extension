@@ -20,6 +20,7 @@ export class BrunoLangDiagnosticsProvider {
     ) {
         switch (brunoFileType) {
             case BrunoFileType.AppFile:
+                // For App files, intellisense is currently very limited.
                 return [];
             case BrunoFileType.RequestFile:
                 return await determineDiagnosticsForRequestFile(
