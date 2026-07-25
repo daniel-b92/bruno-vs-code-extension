@@ -59,6 +59,7 @@ export async function getCollectionItemForFile(
             return await createRequestFileInstance(path);
         case NonBrunoSpecificItemType.OtherFileType:
         case BrunoFileType.AppFile:
+            // For App files, it is currently assumed that they are valid. Implementing diagnostics and other language features is still to do.
             return new NonBrunoFile(path);
         default:
             return undefined;

@@ -37,6 +37,7 @@ export function getMissingMandatoryBlocks(
     allBlocks: Block[],
 ): MissingMandatoryBlocks {
     switch (fileType) {
+        // For App files, it is currently assumed that they are valid. Implementing diagnostics and other language features is still to do.
         case BrunoFileType.AppFile:
         case BrunoFileType.EnvironmentFile:
             return { blocksThatCannotBeOptional: [], missingBlocks: [] };
