@@ -116,7 +116,7 @@
         },
         "plain-text-block": {
             "name": "meta.plain-text-block.bru",
-            "begin": "^\\s*(body:text|docs|example)\\s*{\\s*$",
+            "begin": "^\\s*(body:text|docs|example|app)\\s*{\\s*$",
             "end": "^}\\s*$",
             "beginCaptures": {
                 "0": {
