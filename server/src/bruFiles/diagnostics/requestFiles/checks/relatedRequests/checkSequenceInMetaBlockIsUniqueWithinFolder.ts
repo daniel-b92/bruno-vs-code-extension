@@ -3,10 +3,11 @@ import {
     normalizePath,
     Block,
     MetaBlockKey,
-    isBlockDictionaryBlock,
     BrunoRequestFile,
     BrunoFileType,
     isCollectionItemWithSequence,
+    getActiveFieldFromMetaBlock,
+    isDictionaryBlockSimpleField,
 } from "@global_shared";
 import { dirname } from "path";
 import { DiagnosticWithCode } from "../../../interfaces";
@@ -31,23 +32,17 @@ export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
         diagnosticCurrentFile: DiagnosticWithCode;
     };
 }> {
+    const sequenceField = getActiveFieldFromMetaBlock(
+        metaBlock,
+        MetaBlockKey.Sequence,
+    );
     if (
-        !isBlockDictionaryBlock(metaBlock) ||
-        metaBlock.content.filter(({ key }) => key == MetaBlockKey.Sequence)
-            .length != 1 ||
-        !doesDictionaryBlockFieldHaveValidIntegerValue(
-            metaBlock.content.find(
-                ({ key }) => key == MetaBlockKey.Sequence,
-            ) as DictionaryBlockSimpleField,
-            1,
-        )
+        !sequenceField ||
+        !isDictionaryBlockSimpleField(sequenceField) ||
+        !doesDictionaryBlockFieldHaveValidIntegerValue(sequenceField, 1)
     ) {
         return { code: getDiagnosticCode() };
     }
-
-    const sequenceField = metaBlock.content.find(
-        ({ key }) => key == MetaBlockKey.Sequence,
-    ) as DictionaryBlockSimpleField;
 
     const otherRequestsInFolder = getSequencesForOtherRequestsInFolder(
         itemProvider,

@@ -3,6 +3,7 @@ import {
     DictionaryBlock,
     DictionaryBlockArrayField,
     Range,
+    isDictionaryBlockField,
 } from "@global_shared";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
@@ -69,7 +70,9 @@ function getFieldsWithUnknownKeys(
     block: DictionaryBlock,
     allExpectedKeys: string[],
 ) {
-    return block.content.filter(
-        ({ key, disabled }) => !disabled && !allExpectedKeys.includes(key),
-    );
+    return block.content
+        .filter(isDictionaryBlockField)
+        .filter(
+            ({ key, disabled }) => !disabled && !allExpectedKeys.includes(key),
+        );
 }

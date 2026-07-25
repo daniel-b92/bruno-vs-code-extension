@@ -8,6 +8,7 @@ import {
     PlainTextWithinBlock,
     BrunoVariableReference,
     ItemType,
+    DictionaryBlockDescription,
 } from "../..";
 import { getBrunoVariableReferencesInNonCodeBlock } from "./variables/getBrunoVariableReferencesInNonCodeBlock";
 import { getBrunoVariableReferencesInCodeBlock } from "./variables/getBrunoVariableReferencesInCodeBlock";
@@ -20,6 +21,7 @@ export type ParsedBlockContent =
     | (
           | DictionaryBlockSimpleField
           | DictionaryBlockArrayField
+          | DictionaryBlockDescription
           | PlainTextWithinBlock
       )[]
     | (ArrayBlockField | PlainTextWithinBlock)[];

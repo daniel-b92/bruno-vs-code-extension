@@ -2,6 +2,7 @@ import {
     Block,
     isBlockDictionaryBlock,
     isDictionaryBlockArrayField,
+    isDictionaryBlockField,
 } from "../..";
 
 export function getDictionaryBlockArrayField(block: Block, key: string) {
@@ -9,7 +10,9 @@ export function getDictionaryBlockArrayField(block: Block, key: string) {
         return undefined;
     }
 
-    const fieldsByKey = block.content.filter(({ key: k }) => k == key);
+    const fieldsByKey = block.content
+        .filter(isDictionaryBlockField)
+        .filter(({ key: k }) => k == key);
 
     if (
         fieldsByKey.length != 1 ||

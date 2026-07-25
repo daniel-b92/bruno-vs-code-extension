@@ -2,6 +2,7 @@ import {
     DictionaryBlock,
     DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
+    isDictionaryBlockField,
 } from "@global_shared";
 import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 import { DiagnosticWithCode } from "../../../interfaces";
@@ -65,6 +66,7 @@ function getValidDuplicateKeysFromDictionaryBlock(
     allValidKeys?: string[],
 ) {
     const foundValidKeysSorted = block.content
+        .filter(isDictionaryBlockField)
         .filter(
             ({ key, disabled }) =>
                 (allValidKeys ? allValidKeys.includes(key) : true) && !disabled,

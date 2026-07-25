@@ -8,6 +8,7 @@ export interface Block {
         | (
               | DictionaryBlockSimpleField
               | DictionaryBlockArrayField
+              | DictionaryBlockDescription
               | PlainTextWithinBlock
           )[]
         | (ArrayBlockField | PlainTextWithinBlock)[];
@@ -18,7 +19,11 @@ export interface Block {
 export interface DictionaryBlock {
     name: string;
     nameRange: Range;
-    content: (DictionaryBlockSimpleField | DictionaryBlockArrayField)[];
+    content: (
+        | DictionaryBlockSimpleField
+        | DictionaryBlockArrayField
+        | DictionaryBlockDescription
+    )[];
     contentRange: Range;
 }
 
@@ -32,6 +37,10 @@ export type DictionaryBlockArrayField = DictionaryBlockField & {
     arrayRange: { start: Position; end?: Position };
     plainTextWithinValues: PlainTextWithinDictionaryArrayValue[];
 };
+
+export interface DictionaryBlockDescription {
+    range: Range;
+}
 
 interface DictionaryBlockField {
     disabled: boolean;

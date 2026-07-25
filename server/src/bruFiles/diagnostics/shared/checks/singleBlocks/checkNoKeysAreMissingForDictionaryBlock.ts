@@ -1,4 +1,4 @@
-import { DictionaryBlock } from "@global_shared";
+import { DictionaryBlock, isDictionaryBlockField } from "@global_shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { KnownDiagnosticCode } from "../../diagnosticCodes/knownDiagnosticCodeDefinition";
 import { DiagnosticSeverity } from "vscode-languageserver";
@@ -39,8 +39,8 @@ function getMissingKeysForDictionaryBlock(
 ) {
     return allExpectedKeys.filter(
         (expectedKey) =>
-            !block.content.some(
-                ({ key, disabled }) => expectedKey == key && !disabled,
-            ),
+            !block.content
+                .filter(isDictionaryBlockField)
+                .some(({ key, disabled }) => expectedKey == key && !disabled),
     );
 }

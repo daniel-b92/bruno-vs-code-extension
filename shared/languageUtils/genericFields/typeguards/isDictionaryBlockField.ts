@@ -1,6 +1,7 @@
 import {
     ArrayBlockField,
     DictionaryBlockArrayField,
+    DictionaryBlockDescription,
     DictionaryBlockSimpleField,
     PlainTextWithinBlock,
 } from "../../..";
@@ -10,6 +11,7 @@ export function isDictionaryBlockField(
         | ArrayBlockField
         | DictionaryBlockSimpleField
         | DictionaryBlockArrayField
+        | DictionaryBlockDescription
         | PlainTextWithinBlock,
 ): field is DictionaryBlockSimpleField | DictionaryBlockArrayField {
     return (

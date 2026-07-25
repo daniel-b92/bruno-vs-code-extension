@@ -14,6 +14,7 @@ import {
     getGraphQlSpecificBlocks,
     BrunoFileType,
     ItemType,
+    isDictionaryBlockField,
 } from "@global_shared";
 import { TypedCollectionItemProvider } from "../../../shared";
 import { DiagnosticWithCode } from "../interfaces";
@@ -148,6 +149,7 @@ function getDictionaryBlockFieldsThatShouldBeSimpleFields(
     return dictionaryBlocks
         .map((block) => {
             const keysToCheck = block.content
+                .filter(isDictionaryBlockField)
                 .map(({ key }) => key)
                 .filter(
                     (key) => !shouldBeDictionaryArrayField(block.name, key),

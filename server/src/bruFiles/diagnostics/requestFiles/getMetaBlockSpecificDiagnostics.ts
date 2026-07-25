@@ -12,6 +12,8 @@ import {
     getMetaBlockMandatoryKeys,
     getMetaBlockOptionalKeys,
     BrunoFileType,
+    getActiveFieldFromDictionaryBlock,
+    isDictionaryBlockField,
 } from "@global_shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
@@ -47,11 +49,13 @@ export async function getMetaBlockSpecificDiagnostics(
         return [];
     }
 
-    const typeFields = metaBlock.content.filter(
-        ({ key, disabled }) => key == MetaBlockKey.Type && !disabled,
+    const typeField = getActiveFieldFromDictionaryBlock(
+        metaBlock,
+        MetaBlockKey.Type,
     );
-    const tagsFields = metaBlock.content.filter(
-        ({ key, disabled }) => key == MetaBlockKey.Tags && !disabled,
+    const tagsField = getActiveFieldFromDictionaryBlock(
+        metaBlock,
+        MetaBlockKey.Tags,
     );
 
     const diagnostics = [
@@ -81,6 +85,7 @@ export async function getMetaBlockSpecificDiagnostics(
             filePath,
             metaBlock,
             metaBlock.content
+                .filter(isDictionaryBlockField)
                 .map(({ key }) => key)
                 .filter((existing) =>
                     shouldBeDictionaryArrayField(
@@ -89,17 +94,17 @@ export async function getMetaBlockSpecificDiagnostics(
                     ),
                 ),
         ),
-        typeFields.length == 1 && isDictionaryBlockSimpleField(typeFields[0])
+        typeField && isDictionaryBlockSimpleField(typeField)
             ? checkValueForDictionaryBlockSimpleFieldIsValid(
-                  typeFields[0],
+                  typeField,
                   Object.values(RequestType),
                   RelevantWithinMetaBlockDiagnosticCode.RequestTypeNotValid,
               )
             : undefined,
         checkMetaBlockStartsInFirstLine(documentHelper, metaBlock),
     ].concat(
-        tagsFields.length == 1 && isDictionaryBlockArrayField(tagsFields[0])
-            ? runChecksForTagsField(filePath, tagsFields[0])
+        tagsField && isDictionaryBlockArrayField(tagsField)
+            ? runChecksForTagsField(filePath, tagsField)
             : [],
     );
 
