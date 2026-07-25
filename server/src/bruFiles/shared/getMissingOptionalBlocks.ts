@@ -53,6 +53,8 @@ export function getMissingOptionalBlocks(
                 allBlocks,
                 blocksThatCannotBeOptional,
             );
+        case BrunoFileType.AppFile:
+            return [];
     }
 }
 

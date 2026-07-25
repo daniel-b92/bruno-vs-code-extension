@@ -37,6 +37,7 @@ export function getMissingMandatoryBlocks(
     allBlocks: Block[],
 ): MissingMandatoryBlocks {
     switch (fileType) {
+        case BrunoFileType.AppFile:
         case BrunoFileType.EnvironmentFile:
             return { blocksThatCannotBeOptional: [], missingBlocks: [] };
         case BrunoFileType.CollectionSettingsFile:

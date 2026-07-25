@@ -7,7 +7,6 @@ import {
     checkIfPathExistsAsync,
     normalizePath,
     BrunoFileType,
-    isBrunoFileType,
     getConfiguredEnvironmentName,
     CollectionItem,
     CollectionItemWithSequence,
@@ -191,7 +190,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
 
             const itemType = originalItem.getItemType();
 
-            if (isBrunoFileType(itemType)) {
+            if (originalItem.isFile()) {
                 this.multiFileOperationNotifier.fire({
                     parentFolder: dirname(newPath),
                     running: true,

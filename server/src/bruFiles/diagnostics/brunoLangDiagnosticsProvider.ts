@@ -19,6 +19,8 @@ export class BrunoLangDiagnosticsProvider {
         brunoFileType: BrunoFileType,
     ) {
         switch (brunoFileType) {
+            case BrunoFileType.AppFile:
+                return [];
             case BrunoFileType.RequestFile:
                 return await determineDiagnosticsForRequestFile(
                     filePath,
@@ -42,10 +44,6 @@ export class BrunoLangDiagnosticsProvider {
                 return determineDiagnosticsForCollectionSettingsFile(
                     filePath,
                     content,
-                );
-            default:
-                throw new Error(
-                    `Fetching Bruno specific diagnostics not implemented for file type '${brunoFileType}'.`,
                 );
         }
     }

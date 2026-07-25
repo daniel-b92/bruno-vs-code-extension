@@ -3,6 +3,7 @@
 ### Fixes / Minor Improvements
 
 - Add proper support for Auth types `oauth1` and `akamai-edgegrid` (diagnostics, completions).
+- The extension now distinguishes between app files and request files. For app files, only basic syntax highlighting is provided currently.
 
 ## [1.2.2] (2026-07-24)
 

@@ -58,6 +58,7 @@ export async function getCollectionItemForFile(
         case BrunoFileType.RequestFile:
             return await createRequestFileInstance(path);
         case NonBrunoSpecificItemType.OtherFileType:
+        case BrunoFileType.AppFile:
             return new NonBrunoFile(path);
         default:
             return undefined;
