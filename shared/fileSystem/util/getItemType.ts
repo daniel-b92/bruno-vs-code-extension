@@ -10,12 +10,18 @@ import {
     NonBrunoSpecificItemType,
     doesFileNameMatchCollectionSettingsFile,
     ReadyOnlyCollection,
+    parseBlockFromFile,
+    TextDocumentHelper,
+    RequestFileBlockName,
+    isDictionaryBlockSimpleField,
+    MetaBlockKey,
 } from "../..";
 import {
     getFileSystemDataPath,
     getFileSystemDataStats,
 } from "../../fileSystemCache/internal/fileSystemDataUtils";
 import { FileSystemData } from "../../fileSystemCache/internal/interfaces";
+import { readFile } from "fs/promises";
 
 export async function getItemType<T>(
     collection: ReadyOnlyCollection<T>,
@@ -60,7 +66,26 @@ export async function getItemType<T>(
     ) {
         return BrunoFileType.FolderSettingsFile;
     } else {
-        return BrunoFileType.RequestFile;
+        const content = await readFile(path, { encoding: "utf-8" }).catch(
+            () => undefined,
+        );
+
+        const metaBlock = content
+            ? parseBlockFromFile(
+                  new TextDocumentHelper(content),
+                  RequestFileBlockName.Meta,
+              )
+            : undefined;
+
+        if (!content || !metaBlock) {
+            return NonBrunoSpecificItemType.OtherFileType;
+        }
+        return Array.isArray(metaBlock.content) &&
+            metaBlock.content.every(isDictionaryBlockSimpleField) &&
+            metaBlock.content.find(({ key }) => key == MetaBlockKey.Type)
+                ?.value == "app"
+            ? BrunoFileType.AppFile
+            : BrunoFileType.RequestFile;
     }
 }
 

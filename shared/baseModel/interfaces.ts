@@ -71,4 +71,5 @@ export enum BrunoFileType {
     FolderSettingsFile = "FolderSettingsFile",
     CollectionSettingsFile = "CollectionSettingsFile",
     EnvironmentFile = "EnvironmentFile",
+    AppFile = "AppFile",
 }
