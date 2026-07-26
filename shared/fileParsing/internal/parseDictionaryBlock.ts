@@ -215,7 +215,7 @@ function wasLineParsedAsValidSimpleField(
 }
 
 function isDescriptionLine(lineText: string) {
-    return /^\s*(@\w+){1}\((.*)\)\s*$/.test(lineText);
+    return /^\s*@description\(('.*'|".*")\)\s*$/.test(lineText);
 }
 
 function isKeyValuePair(lineText: string) {
