@@ -3,11 +3,9 @@ import {
     normalizePath,
     Block,
     MetaBlockKey,
-    isBlockDictionaryBlock,
-    filterAsync,
-    BrunoRequestFile,
-    BrunoFileType,
-    isCollectionItemWithSequence,
+    getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
+    isCollectionDirectory,
+    CollectionDirectory,
 } from "@global_shared";
 import { basename, dirname } from "path";
 import { DiagnosticWithCode } from "../../interfaces";
@@ -21,7 +19,7 @@ import { URI } from "vscode-uri";
 export async function checkFolderSequenceInMetaBlockIsUnique(
     itemProvider: TypedCollectionItemProvider,
     metaBlock: Block,
-    filePath: string,
+    folderSettingsPath: string,
 ): Promise<{
     code: RelevantWithinMetaBlockDiagnosticCode;
     toAdd?: {
@@ -29,27 +27,21 @@ export async function checkFolderSequenceInMetaBlockIsUnique(
         diagnosticCurrentFile: DiagnosticWithCode;
     };
 }> {
+    const sequenceField = getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
+        [metaBlock],
+        metaBlock.name,
+        MetaBlockKey.Sequence,
+    );
     if (
-        !isBlockDictionaryBlock(metaBlock) ||
-        metaBlock.content.filter(({ key }) => key == MetaBlockKey.Sequence)
-            .length != 1 ||
-        !doesDictionaryBlockFieldHaveValidIntegerValue(
-            metaBlock.content.find(
-                ({ key }) => key == MetaBlockKey.Sequence,
-            ) as DictionaryBlockSimpleField,
-            1,
-        )
+        !sequenceField ||
+        !doesDictionaryBlockFieldHaveValidIntegerValue(sequenceField, 1)
     ) {
         return { code: getDiagnosticCode() };
     }
 
-    const sequenceField = metaBlock.content.find(
-        ({ key }) => key == MetaBlockKey.Sequence,
-    ) as DictionaryBlockSimpleField;
-
     const otherFolderSettings = await getSequencesForOtherFoldersWithSameParent(
         itemProvider,
-        filePath,
+        folderSettingsPath,
     );
 
     const otherFoldersWithSameSequence = otherFolderSettings
@@ -64,8 +56,8 @@ export async function checkFolderSequenceInMetaBlockIsUnique(
 
     if (otherFoldersWithSameSequence.length > 0) {
         const allAffectedFiles = otherFoldersWithSameSequence.concat({
-            folderSettingsFile: filePath,
-            folderPath: dirname(filePath),
+            folderSettingsFile: folderSettingsPath,
+            folderPath: dirname(folderSettingsPath),
         });
 
         return {
@@ -135,22 +127,23 @@ async function getSequencesForOtherFoldersWithSameParent(
         sequence: number;
     }[]
 > {
-    return (
-        await getOtherFolderSettingsWithSameParentFolder(
-            itemProvider,
-            folderSettingsFile,
-        )
-    ).map(({ folderSettings, folderPath }) => ({
-        folderSettingsFile: folderSettings.getPath(),
-        folderPath,
-        sequence: folderSettings.getSequence() as number,
+    return getOtherFoldersWithValidSequenceAndSameParentFolder(
+        itemProvider,
+        folderSettingsFile,
+    ).map(({ folderSettingsPath, directory }) => ({
+        folderSettingsFile: folderSettingsPath,
+        folderPath: directory.getPath(),
+        sequence: directory.getSequence() as number,
     }));
 }
 
-async function getOtherFolderSettingsWithSameParentFolder(
+function getOtherFoldersWithValidSequenceAndSameParentFolder(
     itemProvider: TypedCollectionItemProvider,
     referenceFolderSettings: string,
-): Promise<{ folderPath: string; folderSettings: BrunoRequestFile }[]> {
+): {
+    directory: CollectionDirectory;
+    folderSettingsPath: string;
+}[] {
     const collection = itemProvider.getAncestorCollectionForPath(
         referenceFolderSettings,
     );
@@ -162,30 +155,26 @@ async function getOtherFolderSettingsWithSameParentFolder(
         return [];
     }
 
-    return (
-        await filterAsync(
-            collection.getAllStoredDataForCollection().slice(),
-            async ({ item }) => {
-                const itemPath = item.getPath();
+    return collection
+        .getAllStoredDataForCollection()
+        .map(({ item }) => item)
+        .filter(isCollectionDirectory)
+        .filter((item) => {
+            const itemPath = item.getPath();
 
-                return (
-                    item.isFile() &&
-                    normalizePath(dirname(dirname(itemPath))) ==
-                        normalizePath(
-                            dirname(dirname(referenceFolderSettings)),
-                        ) &&
-                    isCollectionItemWithSequence(item) &&
-                    item.getSequence() != undefined &&
-                    normalizePath(dirname(itemPath)) !=
-                        normalizePath(dirname(referenceFolderSettings)) &&
-                    item.getItemType() == BrunoFileType.FolderSettingsFile
-                );
-            },
-        )
-    ).map(({ item }) => ({
-        folderSettings: item as BrunoRequestFile,
-        folderPath: dirname(item.getPath()),
-    }));
+            return (
+                normalizePath(dirname(itemPath)) ==
+                    normalizePath(dirname(dirname(referenceFolderSettings))) &&
+                item.getSequence() != undefined &&
+                normalizePath(itemPath) !=
+                    normalizePath(dirname(referenceFolderSettings))
+            );
+        })
+        .map((item) => ({
+            directory: item,
+            // Only if there is a folder settings file, the folder can have a valid sequence.
+            folderSettingsPath: item.getSettingsFilePath() as string,
+        }));
 }
 
 function getDiagnosticCode() {
