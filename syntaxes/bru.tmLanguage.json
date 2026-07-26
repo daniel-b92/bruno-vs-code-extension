@@ -180,7 +180,18 @@
                     "name": "comment.line.bru"
                 },
                 {
-                    "match": "^\\s*(@\\w+){1}\\((.*)\\)\\s*$",
+                    "match": "^\\s*(@\\w+){1}\\('(.*)'\\)\\s*$",
+                    "captures": {
+                        "1": {
+                            "name": "keyword.control.bru"
+                        },
+                        "2": {
+                            "name": "string.bru"
+                        }
+                    }
+                },
+                {
+                    "match": "^\\s*(@\\w+){1}\\(\"(.*)\"\\)\\s*$",
                     "captures": {
                         "1": {
                             "name": "keyword.control.bru"
