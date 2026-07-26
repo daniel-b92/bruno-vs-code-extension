@@ -8,7 +8,6 @@ import {
 } from "vscode";
 import { getTestFilesWithFailures } from "./testExecutionUtils/jsonReportParser";
 import { getTestItemDescendants } from "../testTreeUtils/getTestItemDescendants";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 import treeKill = require("tree-kill");
 import { checkIfPathExistsAsync } from "@global_shared";
 import { existsSync, unlink, unlinkSync } from "fs";
