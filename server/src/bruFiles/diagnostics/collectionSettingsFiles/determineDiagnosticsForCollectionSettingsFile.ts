@@ -25,6 +25,7 @@ import { checkNoRedundantBlocksExist } from "../shared/checks/multipleBlocks/che
 import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBlocks/checkCodeBlocksHaveClosingBracket";
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
+import { checkMaxDescriptionsPerDictionaryBlockField } from "../shared/checks/multipleBlocks/checkMaxDescriptionsPerDictionaryBlockField";
 
 export function determineDiagnosticsForCollectionSettingsFile(
     filePath: string,
@@ -81,6 +82,10 @@ export function determineDiagnosticsForCollectionSettingsFile(
         checkDictionaryBlocksAreNotEmpty(
             filePath,
             blocksThatShouldBeDictionaryBlocks,
+        ),
+        checkMaxDescriptionsPerDictionaryBlockField(
+            filePath,
+            validDictionaryBlocks,
         ),
         checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType(
             filePath,

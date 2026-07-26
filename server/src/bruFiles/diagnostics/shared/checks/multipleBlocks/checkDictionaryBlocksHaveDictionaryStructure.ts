@@ -51,12 +51,11 @@ function getDiagnostic(
         message: `At least one dictionary block does not have the correct structure. A valid dictionary block matches the following pattern:
 <blockName> {
   key1: value1
-  key2: value2
   maybeArrayKey: [
     arrVal1
-    arrVal2
   ]
-}`,
+}, optionally with a description per key matching the pattern
+@description('<Description_Text>')`,
         range: getRange(sortedBlocksWithIncorrectStructure),
         relatedInformation:
             sortedBlocksWithIncorrectStructure.length > 1 ||

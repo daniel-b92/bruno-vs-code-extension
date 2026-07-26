@@ -28,6 +28,7 @@ import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBloc
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { TypedCollectionItemProvider } from "../../../shared";
 import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
+import { checkMaxDescriptionsPerDictionaryBlockField } from "../shared/checks/multipleBlocks/checkMaxDescriptionsPerDictionaryBlockField";
 
 export async function determineDiagnosticsForFolderSettingsFile(
     filePath: string,
@@ -81,6 +82,10 @@ export async function determineDiagnosticsForFolderSettingsFile(
         checkDictionaryBlocksAreNotEmpty(
             filePath,
             blocksThatShouldBeDictionaryBlocks,
+        ),
+        checkMaxDescriptionsPerDictionaryBlockField(
+            filePath,
+            validDictionaryBlocks,
         ),
         checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType(
             filePath,

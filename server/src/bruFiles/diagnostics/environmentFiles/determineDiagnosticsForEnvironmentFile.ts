@@ -16,6 +16,7 @@ import { checkThatNoTextExistsOutsideOfBlocks } from "../shared/checks/multipleB
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { RelevantWithinEnvironmentFileDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinEnvironmentFileDiagnosticCodeEnum";
+import { checkMaxDescriptionsPerDictionaryBlockField } from "../shared/checks/multipleBlocks/checkMaxDescriptionsPerDictionaryBlockField";
 
 export function determineDiagnosticsForEnvironmentFile(
     filePath: string,
@@ -77,6 +78,10 @@ export function determineDiagnosticsForEnvironmentFile(
                     block,
                     RelevantWithinEnvironmentFileDiagnosticCode.EnvironmentVariableDefinedMultipleTimes,
                 ) ?? [],
+        ),
+        checkMaxDescriptionsPerDictionaryBlockField(
+            filePath,
+            validDictionaryBlocks,
         ),
     );
 
