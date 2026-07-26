@@ -8,6 +8,7 @@ import {
     BrunoRequestFile,
     BrunoFileType,
     isCollectionItemWithSequence,
+    getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
 } from "@global_shared";
 import { basename, dirname } from "path";
 import { DiagnosticWithCode } from "../../interfaces";
@@ -29,23 +30,21 @@ export async function checkFolderSequenceInMetaBlockIsUnique(
         diagnosticCurrentFile: DiagnosticWithCode;
     };
 }> {
-    if (
-        !isBlockDictionaryBlock(metaBlock) ||
-        metaBlock.content.filter(({ key }) => key == MetaBlockKey.Sequence)
-            .length != 1 ||
-        !doesDictionaryBlockFieldHaveValidIntegerValue(
-            metaBlock.content.find(
-                ({ key }) => key == MetaBlockKey.Sequence,
-            ) as DictionaryBlockSimpleField,
-            1,
-        )
-    ) {
+    if (!isBlockDictionaryBlock(metaBlock)) {
         return { code: getDiagnosticCode() };
     }
 
-    const sequenceField = metaBlock.content.find(
-        ({ key }) => key == MetaBlockKey.Sequence,
-    ) as DictionaryBlockSimpleField;
+    const sequenceField = getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
+        [metaBlock],
+        metaBlock.name,
+        MetaBlockKey.Sequence,
+    );
+    if (
+        !sequenceField ||
+        !doesDictionaryBlockFieldHaveValidIntegerValue(sequenceField, 1)
+    ) {
+        return { code: getDiagnosticCode() };
+    }
 
     const otherFolderSettings = await getSequencesForOtherFoldersWithSameParent(
         itemProvider,
@@ -62,27 +61,27 @@ export async function checkFolderSequenceInMetaBlockIsUnique(
             folderPath,
         }));
 
-    if (otherFoldersWithSameSequence.length > 0) {
-        const allAffectedFiles = otherFoldersWithSameSequence.concat({
-            folderSettingsFile: filePath,
-            folderPath: dirname(filePath),
-        });
-
-        return {
-            code: getDiagnosticCode(),
-            toAdd: {
-                affectedFiles: allAffectedFiles.map(
-                    ({ folderSettingsFile }) => folderSettingsFile,
-                ),
-                diagnosticCurrentFile: await getDiagnostic(
-                    sequenceField,
-                    otherFoldersWithSameSequence,
-                ),
-            },
-        };
-    } else {
+    if (otherFoldersWithSameSequence.length == 0) {
         return { code: getDiagnosticCode() };
     }
+
+    const allAffectedFiles = otherFoldersWithSameSequence.concat({
+        folderSettingsFile: filePath,
+        folderPath: dirname(filePath),
+    });
+
+    return {
+        code: getDiagnosticCode(),
+        toAdd: {
+            affectedFiles: allAffectedFiles.map(
+                ({ folderSettingsFile }) => folderSettingsFile,
+            ),
+            diagnosticCurrentFile: await getDiagnostic(
+                sequenceField,
+                otherFoldersWithSameSequence,
+            ),
+        },
+    };
 }
 
 async function getDiagnostic(

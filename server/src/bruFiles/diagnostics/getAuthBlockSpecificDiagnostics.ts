@@ -22,6 +22,8 @@ import {
     OAuth1AuthBlockKeys,
     OAuth1SignatureMethod,
     OAuth1Placement,
+    isDictionaryBlockField,
+    getActiveFieldFromDictionaryBlock,
 } from "@global_shared";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "./shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
@@ -178,8 +180,9 @@ function getDiagnosticsForOAuth2AuthBlock(
 ): (DiagnosticWithCode | undefined)[] {
     const diagnostics: (DiagnosticWithCode | undefined)[] = [];
 
-    const grantTypeFields = authBlock.content.filter(
-        ({ key }) => key == OAuth2ViaAuthorizationCodeBlockKeys.GrantType,
+    const grantTypeField = getActiveFieldFromDictionaryBlock(
+        authBlock,
+        OAuth2ViaAuthorizationCodeBlockKeys.GrantType,
     );
 
     const diagnosticsForGrantTypeField: (DiagnosticWithCode | undefined)[] = [];
@@ -196,10 +199,9 @@ function getDiagnosticsForOAuth2AuthBlock(
             RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock,
             [OAuth2ViaAuthorizationCodeBlockKeys.GrantType],
         ) ?? []),
-        grantTypeFields.length == 1 &&
-            isDictionaryBlockSimpleField(grantTypeFields[0])
+        grantTypeField && isDictionaryBlockSimpleField(grantTypeField)
             ? checkValueForDictionaryBlockSimpleFieldIsValid(
-                  grantTypeFields[0],
+                  grantTypeField,
                   Object.values(OAuth2GrantType),
                   RelevantWithinAuthBlockDiagnosticCode.InvalidGrantType,
               )
@@ -214,14 +216,15 @@ function getDiagnosticsForOAuth2AuthBlock(
     if (
         diagnosticsForGrantTypeField.filter((val) => val != undefined).length >
             0 ||
-        !isDictionaryBlockSimpleField(grantTypeFields[0])
+        !grantTypeField ||
+        !isDictionaryBlockSimpleField(grantTypeField)
     ) {
         // For further validations, the grant type needs to be set to a valid value
         // (since it depends on the grant type, e.g. which keys are mandatory).
         return diagnostics;
     }
 
-    const grantType = grantTypeFields[0].value as OAuth2GrantType;
+    const grantType = grantTypeField.value as OAuth2GrantType;
 
     diagnostics.push(
         ...checkOAuth2FieldsDependingOnGrantType(
@@ -333,9 +336,9 @@ function checkValuesForFields(
     }[],
 ): (DiagnosticWithCode | undefined)[] {
     return toCheck.map(({ key: keyToCheck, allowedValues, diagnosticCode }) => {
-        const matchingFields = authBlock.content.filter(
-            ({ key }) => key == keyToCheck,
-        );
+        const matchingFields = authBlock.content
+            .filter(isDictionaryBlockField)
+            .filter(({ key }) => key == keyToCheck);
 
         return matchingFields.length == 1 &&
             isDictionaryBlockSimpleField(matchingFields[0])

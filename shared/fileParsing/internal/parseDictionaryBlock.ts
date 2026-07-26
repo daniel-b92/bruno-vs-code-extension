@@ -39,7 +39,7 @@ export function parseDictionaryBlock(
 
             if (lineRange) {
                 lines.push({
-                    ŕange: lineRange,
+                    range: lineRange,
                 } as unknown as DictionaryBlockDescription);
             }
             continue;

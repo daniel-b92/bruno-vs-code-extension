@@ -8,6 +8,7 @@ import {
     isAuthBlock,
     isBlockDictionaryBlock,
     BrunoFileType,
+    isDictionaryBlockField,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../interfaces";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
@@ -71,7 +72,9 @@ export async function determineDiagnosticsForFolderSettingsFile(
             filePath,
             validDictionaryBlocks.map((block) => ({
                 block,
-                keys: block.content.map(({ key }) => key),
+                keys: block.content
+                    .filter(isDictionaryBlockField)
+                    .map(({ key }) => key),
             })),
         ),
         checkCodeBlocksHaveClosingBracket(document, blocks, itemType),

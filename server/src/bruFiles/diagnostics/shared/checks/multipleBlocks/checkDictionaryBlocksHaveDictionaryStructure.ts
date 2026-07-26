@@ -1,6 +1,7 @@
 import {
     Block,
     isBlockDictionaryBlock,
+    isDictionaryBlockDescription,
     isDictionaryBlockField,
     PlainTextWithinBlock,
     Range,
@@ -82,7 +83,9 @@ function getDiagnostic(
 function getLinesWithInvalidStructure(block: Block) {
     return Array.isArray(block.content)
         ? (block.content.filter(
-              (line) => !isDictionaryBlockField(line),
+              (field) =>
+                  !isDictionaryBlockField(field) &&
+                  !isDictionaryBlockDescription(field),
           ) as PlainTextWithinBlock[])
         : undefined;
 }

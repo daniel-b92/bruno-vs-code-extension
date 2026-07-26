@@ -4,6 +4,7 @@ import {
     EnvironmentFileBlockName,
     isBlockDictionaryBlock,
     BrunoFileType,
+    isDictionaryBlockField,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../interfaces";
 import { checkArrayBlocksHaveArrayStructure } from "../shared/checks/multipleBlocks/checkArrayBlocksHaveArrayStructure";
@@ -60,7 +61,9 @@ export function determineDiagnosticsForEnvironmentFile(
             filePath,
             validDictionaryBlocks.map((block) => ({
                 block,
-                keys: block.content.map(({ key }) => key),
+                keys: block.content
+                    .filter(isDictionaryBlockField)
+                    .map(({ key }) => key),
             })),
         ),
         checkDictionaryBlocksAreNotEmpty(
