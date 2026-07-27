@@ -1,6 +1,5 @@
 import { BrunoFileType, ItemType } from "@global_shared";
-import { TypedCollectionItemProvider } from "../../../../shared";
-import { BrunoTreeItem } from "../../../brunoTreeItem";
+import { TypedCollectionItemProvider, BrunoTreeItem } from "@shared";
 import { renameFileOrFolder } from "../renameFileOrFolder";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";
 import { updateSequencesAfterInsertingRequestFile } from "./updateSequencesAfterInsertingRequestFile";

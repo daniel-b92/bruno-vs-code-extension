@@ -22,9 +22,9 @@ import {
     TypedCollection,
     FileSystemCacheSyncingHelper,
     removeConfigForCollection,
+    BrunoTreeItem,
 } from "@shared";
 import { basename, dirname, extname, resolve } from "path";
-import { BrunoTreeItem } from "../brunoTreeItem";
 import { validateNewItemNameIsUnique } from "./explorer/validateNewItemNameIsUnique";
 import { createRequestFile } from "./explorer/fileUtils/createRequestFile";
 import { replaceNameInMetaBlock } from "./explorer/fileUtils/replaceNameInMetaBlock";
