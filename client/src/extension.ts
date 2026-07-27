@@ -8,10 +8,9 @@ import {
     window,
     workspace,
 } from "vscode";
-import { activateRunner } from "./testRunner";
+import { activateRunner, TestRunnerDataHelper } from "./testRunner";
 import { activateTreeView } from "./treeView";
 import {
-    TestRunnerDataHelper,
     OutputChannelLogger,
     MultiFileOperationWithStatus,
     AdditionalCollectionData,

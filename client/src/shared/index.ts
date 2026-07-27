@@ -17,7 +17,6 @@ export * from "./model/interfaces";
 
 // file system cache
 export * from "./fileSystemCache/external/interfaces";
-export * from "./fileSystemCache/external/testRunnerDataHelper";
 export * from "./fileSystemCache/external/fileSystemCacheSyncingHelper";
 
 // vsCodeSettings
