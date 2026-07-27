@@ -1,4 +1,4 @@
-import { BrunoTreeItem } from "../../../brunoTreeItem";
+import { BrunoTreeItem } from "@shared";
 
 export type FileInsertionPosition =
     | RequestFileInsertionPositionType.Folder

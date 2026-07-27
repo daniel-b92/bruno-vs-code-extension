@@ -14,8 +14,8 @@ import {
     getLineBreak,
     TypedCollection,
     FileSystemCacheSyncingHelper,
+    BrunoTreeItem,
 } from "@shared";
-import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { commands, Uri, window } from "vscode";
 import { validateNewItemNameIsUnique } from "../validateNewItemNameIsUnique";
 import { promisify } from "util";

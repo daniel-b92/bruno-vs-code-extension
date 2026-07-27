@@ -15,7 +15,8 @@ import {
     MultiFileOperationWithStatus,
     AdditionalCollectionData,
     FileSystemCacheSyncingHelper,
-} from "./shared";
+    BrunoTreeItem,
+} from "@shared";
 import { activateLanguageFeatures } from "./languageFeatures";
 import { suggestCreatingTsConfigsForCollections } from "./languageFeatures/suggestCreatingTsConfigsForCollections";
 import { join } from "path";
@@ -38,7 +39,6 @@ import {
     AdditionalCollectionSimpleDataProvider,
     AdditionalCollectionDataProviderType,
 } from "@global_shared";
-import { BrunoTreeItem } from "./treeView/brunoTreeItem";
 
 let client: LanguageClient;
 

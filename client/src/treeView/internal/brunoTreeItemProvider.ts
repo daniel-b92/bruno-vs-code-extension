@@ -6,8 +6,8 @@ import {
     OutputChannelLogger,
     TypedCollection,
     TypedCollectionData,
+    BrunoTreeItem,
 } from "@shared";
-import { BrunoTreeItem } from "../brunoTreeItem";
 
 export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeItem> {
     constructor(
