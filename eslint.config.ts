@@ -52,15 +52,10 @@ export default [
                                 element: { type: "client_language_features" },
                             },
                             disallow: {
-                                to: { element: { type: "client_test_runner" } },
-                            },
-                        },
-                        {
-                            from: {
-                                element: { type: "client_language_features" },
-                            },
-                            disallow: {
-                                to: { element: { type: "client_tree_view" } },
+                                to: [
+                                    { element: { type: "client_test_runner" } },
+                                    { element: { type: "client_tree_view" } },
+                                ],
                             },
                         },
                         {
@@ -68,23 +63,18 @@ export default [
                                 element: { type: "client_test_runner" },
                             },
                             disallow: {
-                                to: {
-                                    element: {
-                                        type: "client_language_features",
+                                to: [
+                                    {
+                                        element: {
+                                            type: "client_language_features",
+                                        },
                                     },
-                                },
-                            },
-                        },
-                        {
-                            from: {
-                                element: { type: "client_test_runner" },
-                            },
-                            disallow: {
-                                to: {
-                                    element: {
-                                        type: "client_tree_view",
+                                    {
+                                        element: {
+                                            type: "client_tree_view",
+                                        },
                                     },
-                                },
+                                ],
                             },
                         },
                         {
@@ -92,35 +82,42 @@ export default [
                                 element: { type: "client_tree_view" },
                             },
                             disallow: {
-                                to: {
-                                    element: {
-                                        type: "client_language_features",
+                                to: [
+                                    {
+                                        element: {
+                                            type: "client_language_features",
+                                        },
                                     },
-                                },
+                                    {
+                                        element: {
+                                            type: "client_test_runner",
+                                        },
+                                    },
+                                ],
                             },
                         },
                         {
                             from: {
-                                element: { type: "client_tree_view" },
+                                element: { type: "client_shared" },
                             },
                             disallow: {
-                                to: {
-                                    element: {
-                                        type: "client_test_runner",
+                                to: [
+                                    {
+                                        element: {
+                                            type: "client_language_features",
+                                        },
                                     },
-                                },
-                            },
-                        },
-                        {
-                            from: {
-                                element: { type: "client_language_features" },
-                            },
-                            disallow: {
-                                to: {
-                                    element: {
-                                        type: "client_shared",
+                                    {
+                                        element: {
+                                            type: "client_test_runner",
+                                        },
                                     },
-                                },
+                                    {
+                                        element: {
+                                            type: "client_tree_view",
+                                        },
+                                    },
+                                ],
                             },
                         },
                     ],
