@@ -1,9 +1,5 @@
 import * as vscode from "vscode";
-import {
-    getTestId,
-    getTestLabel,
-    addTestItemAndAncestorsToTestTree,
-} from "../../../testRunner";
+import { getTestId, getTestLabel, addTestItemAndAncestorsToTestTree } from ".";
 import {
     normalizePath,
     CollectionDirectory,

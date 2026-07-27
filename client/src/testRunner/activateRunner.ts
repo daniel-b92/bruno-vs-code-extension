@@ -26,13 +26,13 @@ import {
     isCollectionItemWithSequence,
 } from "@global_shared";
 import {
-    TestRunnerDataHelper,
     TypedCollectionItemProvider,
     getLoggerFromSubscriptions,
     TypedCollection,
 } from "@shared";
 import { openRunConfigDialog } from "./internal/testExecutionUtils/openRunConfigDialog";
 import { TestRunUserInputData } from "./internal/interfaces";
+import { TestRunnerDataHelper } from ".";
 
 export async function activateRunner(
     context: ExtensionContext,

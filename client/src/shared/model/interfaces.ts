@@ -4,7 +4,7 @@ import {
     CollectionItemProvider,
     ReadyOnlyCollection,
 } from "@global_shared";
-import { BrunoTreeItem } from "../../treeView/brunoTreeItem";
+import { BrunoTreeItem } from "./brunoTreeItem";
 
 export type TypedCollectionItemProvider =
     CollectionItemProvider<AdditionalCollectionData>;

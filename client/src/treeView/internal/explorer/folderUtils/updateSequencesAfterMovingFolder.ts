@@ -4,8 +4,8 @@ import {
     getMaxSequenceForFolders,
     getSequencesForFolders,
     TypedCollectionItemProvider,
+    BrunoTreeItem,
 } from "@shared";
-import { BrunoTreeItem } from "../../../brunoTreeItem";
 import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
 import { normalizeSequencesForFolders } from "./normalizeSequencesForFolders";
 import { Uri, window, workspace, WorkspaceEdit } from "vscode";
