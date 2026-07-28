@@ -1,13 +1,11 @@
-## [Unreleased]
+## [1.2.3] (2026-07-28)
 
-### Maintenance
+### Fixes / Maintenance
 
 - Add proper support for Auth types `oauth1` and `akamai-edgegrid` (diagnostics, completions).
-- The extension now distinguishes between app files and request files. For app files, only basic syntax highlighting is provided currently.
-
-### Fixes / Minor Improvements
-
+- The extension now distinguishes between app files and request files. For app files, only basic syntax highlighting is provided currently. To be extended in the near future.
 - Fix an issue that caused duplicate sequences among sibling folders to not be recognized by the language server.
+- Fix an issue that caused completions for variables in non code blocks to not be provided.
 
 ## [1.2.2] (2026-07-24)
 

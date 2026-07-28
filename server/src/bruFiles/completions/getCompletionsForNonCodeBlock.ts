@@ -43,7 +43,7 @@ export async function getCompletionsForNonCodeBlock(
         file: { blockContainingPosition, allBlocks, collection },
     } = fullRequest;
 
-    const blockHasVariableSupport = (
+    const blockHasVariableSupport = !(
         getBlocksWithoutVariableSupport() as string[]
     ).includes(blockContainingPosition.name);
     const blockSupportsOnlyWriteOnlyVars =
