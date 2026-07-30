@@ -6,15 +6,17 @@ import {
     PlainTextWithinBlock,
 } from "../../..";
 
-export function isDictionaryBlockArrayField(
+export function isDictionaryBlockDescription(
     field:
         | ArrayBlockField
         | DictionaryBlockSimpleField
         | DictionaryBlockArrayField
         | DictionaryBlockDescription
         | PlainTextWithinBlock,
-): field is DictionaryBlockArrayField {
-    return ["key", "values"].every((expected) =>
-        Object.keys(field).includes(expected),
+): field is DictionaryBlockDescription {
+    return (
+        "range" in field &&
+        !("text" in field) &&
+        Object.keys(field).every((key) => key === "range")
     );
 }

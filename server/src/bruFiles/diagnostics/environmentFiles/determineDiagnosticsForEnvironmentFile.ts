@@ -4,6 +4,7 @@ import {
     EnvironmentFileBlockName,
     isBlockDictionaryBlock,
     BrunoFileType,
+    isDictionaryBlockField,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../interfaces";
 import { checkArrayBlocksHaveArrayStructure } from "../shared/checks/multipleBlocks/checkArrayBlocksHaveArrayStructure";
@@ -15,6 +16,7 @@ import { checkThatNoTextExistsOutsideOfBlocks } from "../shared/checks/multipleB
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { RelevantWithinEnvironmentFileDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinEnvironmentFileDiagnosticCodeEnum";
+import { checkDescriptionsExistOnlyForSimpleDictionaryBlockFields } from "../shared/checks/multipleBlocks/checkDescriptionsExistOnlyForSimpleDictionaryBlockFields";
 
 export function determineDiagnosticsForEnvironmentFile(
     filePath: string,
@@ -60,7 +62,9 @@ export function determineDiagnosticsForEnvironmentFile(
             filePath,
             validDictionaryBlocks.map((block) => ({
                 block,
-                keys: block.content.map(({ key }) => key),
+                keys: block.content
+                    .filter(isDictionaryBlockField)
+                    .map(({ key }) => key),
             })),
         ),
         checkDictionaryBlocksAreNotEmpty(
@@ -74,6 +78,10 @@ export function determineDiagnosticsForEnvironmentFile(
                     block,
                     RelevantWithinEnvironmentFileDiagnosticCode.EnvironmentVariableDefinedMultipleTimes,
                 ) ?? [],
+        ),
+        checkDescriptionsExistOnlyForSimpleDictionaryBlockFields(
+            filePath,
+            validDictionaryBlocks,
         ),
     );
 

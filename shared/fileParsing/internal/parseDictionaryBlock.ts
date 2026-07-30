@@ -7,6 +7,7 @@ import {
     Range,
     TextDocumentHelper,
     BlockBracket,
+    DictionaryBlockDescription,
 } from "../..";
 import { getContentRangeForArrayOrDictionaryBlock } from "../external/shared/util/getContentRangeForArrayOrDictionaryBlock";
 
@@ -17,6 +18,7 @@ type ParsedLine =
           indexInFile: number;
           couldBeStartofArrayField: boolean;
       }
+    | DictionaryBlockDescription
     | PlainTextWithinBlock;
 
 export function parseDictionaryBlock(
@@ -65,6 +67,17 @@ export function parseDictionaryBlock(
             !lineContent.includes(":");
 
         if (!IsFirstValueLineWithinArrayField) {
+            if (isDescriptionLine(lineContent)) {
+                const lineRange = docHelper.getRangeForLine(lineIndex, true);
+
+                if (lineRange) {
+                    lines.push({
+                        range: lineRange,
+                    } as unknown as DictionaryBlockDescription);
+                }
+                continue;
+            }
+
             lines.push({
                 text: lineContent,
                 range: docHelper.getRangeForLine(lineIndex) as Range,
@@ -200,6 +213,10 @@ function wasLineParsedAsValidSimpleField(
     couldBeStartofArrayField: boolean;
 } {
     return "couldBeStartofArrayField" in parsedLine;
+}
+
+function isDescriptionLine(lineText: string) {
+    return /^\s*@description\(('[^']*'|"(\\"|[^"])*")\)\s*$/.test(lineText);
 }
 
 function isKeyValuePair(lineText: string) {

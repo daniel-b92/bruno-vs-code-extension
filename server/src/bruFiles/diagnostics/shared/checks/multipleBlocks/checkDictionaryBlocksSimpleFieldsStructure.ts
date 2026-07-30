@@ -2,6 +2,7 @@ import {
     DictionaryBlock,
     DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
+    isDictionaryBlockField,
     isDictionaryBlockSimpleField,
     Range,
 } from "@global_shared";
@@ -71,12 +72,14 @@ function getInvalidFieldsSortedByPosition(
     const invalidFields: DictionaryFieldsForBlock[] = [];
 
     for (const { block, keys } of fieldsToCheck) {
-        const invalidFieldsForBlock = block.content.filter(
-            (field) =>
-                !field.disabled &&
-                keys.includes(field.key) &&
-                !isDictionaryBlockSimpleField(field),
-        );
+        const invalidFieldsForBlock = block.content
+            .filter(isDictionaryBlockField)
+            .filter(
+                (field) =>
+                    !field.disabled &&
+                    keys.includes(field.key) &&
+                    !isDictionaryBlockSimpleField(field),
+            );
 
         if (invalidFieldsForBlock.length > 0) {
             invalidFieldsForBlock.sort(

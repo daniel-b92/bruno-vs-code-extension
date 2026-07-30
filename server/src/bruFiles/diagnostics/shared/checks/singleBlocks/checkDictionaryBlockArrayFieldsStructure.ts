@@ -3,6 +3,7 @@ import {
     DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
     isDictionaryBlockArrayField,
+    isDictionaryBlockField,
     Range,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../../../interfaces";
@@ -61,13 +62,15 @@ function getInvalidFieldsSortedByPosition(
     block: DictionaryBlock,
     keysToCheck: string[],
 ) {
-    const invalidFields = block.content.filter(
-        (field) =>
-            keysToCheck.includes(field.key) &&
-            !field.disabled &&
-            (!isDictionaryBlockArrayField(field) ||
-                field.arrayRange.end == undefined),
-    );
+    const invalidFields = block.content
+        .filter(isDictionaryBlockField)
+        .filter(
+            (field) =>
+                keysToCheck.includes(field.key) &&
+                !field.disabled &&
+                (!isDictionaryBlockArrayField(field) ||
+                    field.arrayRange.end == undefined),
+        );
 
     return invalidFields.sort(
         ({ keyRange: keyRangeA }, { keyRange: keyRangeB }) =>

@@ -14,6 +14,7 @@ import {
     getGraphQlSpecificBlocks,
     BrunoFileType,
     ItemType,
+    isDictionaryBlockField,
 } from "@global_shared";
 import { TypedCollectionItemProvider } from "../../../shared";
 import { DiagnosticWithCode } from "../interfaces";
@@ -41,6 +42,7 @@ import { getSettingsBlockSpecificDiagnostics } from "./getSettingsBlockSpecificD
 import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBlocks/checkCodeBlocksHaveClosingBracket";
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
+import { checkDescriptionsExistOnlyForSimpleDictionaryBlockFields } from "../shared/checks/multipleBlocks/checkDescriptionsExistOnlyForSimpleDictionaryBlockFields";
 
 export async function determineDiagnosticsForRequestFile(
     filePath: string,
@@ -124,6 +126,10 @@ function collectCommonDiagnostics(
             filePath,
             blocksThatShouldBeDictionaryBlocks,
         ),
+        checkDescriptionsExistOnlyForSimpleDictionaryBlockFields(
+            filePath,
+            validDictionaryBlocks,
+        ),
         checkUrlFromMethodBlockMatchesQueryParamsBlock(filePath, blocks),
         checkUrlFromMethodBlockMatchesPathParamsBlock(filePath, blocks),
         checkCodeBlocksHaveClosingBracket(documentHelper, blocks, itemType),
@@ -148,6 +154,7 @@ function getDictionaryBlockFieldsThatShouldBeSimpleFields(
     return dictionaryBlocks
         .map((block) => {
             const keysToCheck = block.content
+                .filter(isDictionaryBlockField)
                 .map(({ key }) => key)
                 .filter(
                     (key) => !shouldBeDictionaryArrayField(block.name, key),

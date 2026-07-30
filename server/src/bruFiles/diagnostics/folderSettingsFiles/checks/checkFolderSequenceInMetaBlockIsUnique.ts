@@ -54,27 +54,27 @@ export async function checkFolderSequenceInMetaBlockIsUnique(
             folderPath,
         }));
 
-    if (otherFoldersWithSameSequence.length > 0) {
-        const allAffectedFiles = otherFoldersWithSameSequence.concat({
-            folderSettingsFile: folderSettingsPath,
-            folderPath: dirname(folderSettingsPath),
-        });
-
-        return {
-            code: getDiagnosticCode(),
-            toAdd: {
-                affectedFiles: allAffectedFiles.map(
-                    ({ folderSettingsFile }) => folderSettingsFile,
-                ),
-                diagnosticCurrentFile: await getDiagnostic(
-                    sequenceField,
-                    otherFoldersWithSameSequence,
-                ),
-            },
-        };
-    } else {
+    if (otherFoldersWithSameSequence.length == 0) {
         return { code: getDiagnosticCode() };
     }
+
+    const allAffectedFiles = otherFoldersWithSameSequence.concat({
+        folderSettingsFile: folderSettingsPath,
+        folderPath: dirname(folderSettingsPath),
+    });
+
+    return {
+        code: getDiagnosticCode(),
+        toAdd: {
+            affectedFiles: allAffectedFiles.map(
+                ({ folderSettingsFile }) => folderSettingsFile,
+            ),
+            diagnosticCurrentFile: await getDiagnostic(
+                sequenceField,
+                otherFoldersWithSameSequence,
+            ),
+        },
+    };
 }
 
 async function getDiagnostic(

@@ -1,6 +1,7 @@
 import {
     ArrayBlockField,
     DictionaryBlockArrayField,
+    DictionaryBlockDescription,
     DictionaryBlockSimpleField,
     PlainTextWithinBlock,
 } from "../../..";
@@ -10,6 +11,7 @@ export function isDictionaryBlockSimpleField(
         | ArrayBlockField
         | DictionaryBlockSimpleField
         | DictionaryBlockArrayField
+        | DictionaryBlockDescription
         | PlainTextWithinBlock,
 ): field is DictionaryBlockSimpleField {
     return ["key", "value"].every((expected) =>

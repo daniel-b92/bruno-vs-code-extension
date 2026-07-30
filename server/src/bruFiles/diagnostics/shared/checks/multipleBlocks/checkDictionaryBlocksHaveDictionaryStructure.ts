@@ -1,6 +1,7 @@
 import {
     Block,
     isBlockDictionaryBlock,
+    isDictionaryBlockDescription,
     isDictionaryBlockField,
     PlainTextWithinBlock,
     Range,
@@ -50,12 +51,11 @@ function getDiagnostic(
         message: `At least one dictionary block does not have the correct structure. A valid dictionary block matches the following pattern:
 <blockName> {
   key1: value1
-  key2: value2
   maybeArrayKey: [
     arrVal1
-    arrVal2
   ]
-}`,
+}, optionally with a description per key matching the pattern
+@description('<Description_Text>')`,
         range: getRange(sortedBlocksWithIncorrectStructure),
         relatedInformation:
             sortedBlocksWithIncorrectStructure.length > 1 ||
@@ -82,7 +82,9 @@ function getDiagnostic(
 function getLinesWithInvalidStructure(block: Block) {
     return Array.isArray(block.content)
         ? (block.content.filter(
-              (line) => !isDictionaryBlockField(line),
+              (field) =>
+                  !isDictionaryBlockField(field) &&
+                  !isDictionaryBlockDescription(field),
           ) as PlainTextWithinBlock[])
         : undefined;
 }

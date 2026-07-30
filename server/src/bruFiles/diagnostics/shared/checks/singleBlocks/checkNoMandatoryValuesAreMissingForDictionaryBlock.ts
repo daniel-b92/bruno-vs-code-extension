@@ -2,6 +2,7 @@ import {
     DictionaryBlock,
     DictionaryBlockArrayField,
     DictionaryBlockSimpleField,
+    isDictionaryBlockField,
     isDictionaryBlockSimpleField,
     Range,
 } from "@global_shared";
@@ -62,6 +63,7 @@ function getSimpleFieldsWithEmptyValuesForDictionaryBlock(
 ) {
     return block.content.filter(
         (field) =>
+            isDictionaryBlockField(field) &&
             !field.disabled &&
             isDictionaryBlockSimpleField(field) &&
             /^\s*$/.test(field.value),

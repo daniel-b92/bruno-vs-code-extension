@@ -8,6 +8,7 @@ import {
     getNamesForRedundantBlocksForCollectionSettingsFile,
     isBlockDictionaryBlock,
     BrunoFileType,
+    isDictionaryBlockField,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../interfaces";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
@@ -24,6 +25,7 @@ import { checkNoRedundantBlocksExist } from "../shared/checks/multipleBlocks/che
 import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBlocks/checkCodeBlocksHaveClosingBracket";
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
+import { checkDescriptionsExistOnlyForSimpleDictionaryBlockFields } from "../shared/checks/multipleBlocks/checkDescriptionsExistOnlyForSimpleDictionaryBlockFields";
 
 export function determineDiagnosticsForCollectionSettingsFile(
     filePath: string,
@@ -71,13 +73,19 @@ export function determineDiagnosticsForCollectionSettingsFile(
             filePath,
             validDictionaryBlocks.map((block) => ({
                 block,
-                keys: block.content.map(({ key }) => key),
+                keys: block.content
+                    .filter(isDictionaryBlockField)
+                    .map(({ key }) => key),
             })),
         ),
         checkCodeBlocksHaveClosingBracket(document, blocks, itemType),
         checkDictionaryBlocksAreNotEmpty(
             filePath,
             blocksThatShouldBeDictionaryBlocks,
+        ),
+        checkDescriptionsExistOnlyForSimpleDictionaryBlockFields(
+            filePath,
+            validDictionaryBlocks,
         ),
         checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType(
             filePath,

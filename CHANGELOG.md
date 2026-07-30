@@ -1,8 +1,9 @@
-## [Unreleased]
+## [1.2.4] (2026-07-30)
 
-### Fixes
+### Fixes / Maintenance
 
 - Fix an issue where completions/hovers for referencing folder or request variables were not filtered by the scope, in which they were available. E.g. a variable defined in the block `vars:pre-request` of a request file was provided as a completion option for `bru.getRequestVar` in the `script:post-response` block.
+- Add basic support for `@description` in dictionary blocks: Syntax highlighting and diagnostics.
 
 ## [1.2.3] (2026-07-28)
 

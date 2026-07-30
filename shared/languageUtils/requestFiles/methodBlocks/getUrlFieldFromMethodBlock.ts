@@ -1,4 +1,8 @@
-import { Block, MethodBlockKey } from "../../..";
+import {
+    Block,
+    getActiveFieldFromDictionaryBlock,
+    MethodBlockKey,
+} from "../../..";
 import { getMethodBlockIfValid } from "./getMethodBlockIfValid";
 
 export function getUrlFieldFromMethodBlock(allBlocks: Block[]) {
@@ -8,11 +12,5 @@ export function getUrlFieldFromMethodBlock(allBlocks: Block[]) {
         return undefined;
     }
 
-    const urlFieldsInMethodBlock = methodBlock.content.filter(
-        ({ key }) => key == MethodBlockKey.Url,
-    );
-
-    return urlFieldsInMethodBlock.length == 1
-        ? urlFieldsInMethodBlock[0]
-        : undefined;
+    return getActiveFieldFromDictionaryBlock(methodBlock, MethodBlockKey.Url);
 }

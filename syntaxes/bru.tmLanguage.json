@@ -176,8 +176,19 @@
                     }
                 },
                 {
-                    "match": "^\\s*~.*[^\\[ ]+\\s*$",
+                    "match": "^\\s*~\\s*([^\\s~][^\\:]+)[\\:]\\s*(.*[^\\[ ]+)\\s*$",
                     "name": "comment.line.bru"
+                },
+                {
+                    "match": "^\\s*(@description){1}\\(('[^']*'|\"(\\\\\"|[^\"])*\")\\)\\s*$",
+                    "captures": {
+                        "1": {
+                            "name": "keyword.control.bru"
+                        },
+                        "2": {
+                            "name": "string.bru"
+                        }
+                    }
                 }
             ]
         },
