@@ -34,16 +34,6 @@ export function parseDictionaryBlock(
         lineIndex++
     ) {
         const lineContent = docHelper.getLineByIndex(lineIndex);
-        if (isDescriptionLine(lineContent)) {
-            const lineRange = docHelper.getRangeForLine(lineIndex);
-
-            if (lineRange) {
-                lines.push({
-                    range: lineRange,
-                } as unknown as DictionaryBlockDescription);
-            }
-            continue;
-        }
         const hasKeyValueStructure = isKeyValuePair(lineContent);
 
         if (hasKeyValueStructure) {
@@ -77,6 +67,17 @@ export function parseDictionaryBlock(
             !lineContent.includes(":");
 
         if (!IsFirstValueLineWithinArrayField) {
+            if (isDescriptionLine(lineContent)) {
+                const lineRange = docHelper.getRangeForLine(lineIndex, true);
+
+                if (lineRange) {
+                    lines.push({
+                        range: lineRange,
+                    } as unknown as DictionaryBlockDescription);
+                }
+                continue;
+            }
+
             lines.push({
                 text: lineContent,
                 range: docHelper.getRangeForLine(lineIndex) as Range,

@@ -73,16 +73,31 @@ export class TextDocumentHelper {
         );
     }
 
-    public getRangeForLine(lineIndex: number) {
-        return this.getLineCount() <= lineIndex
-            ? undefined
-            : new Range(
-                  new Position(lineIndex, 0),
-                  new Position(
-                      lineIndex,
-                      this.getLineByIndex(lineIndex).length,
-                  ),
-              );
+    public getRangeForLine(
+        lineIndex: number,
+        ignoreLeadingAndTrailingWhitespaces = false,
+    ) {
+        if (this.getLineCount() <= lineIndex) {
+            return undefined;
+        }
+        if (!ignoreLeadingAndTrailingWhitespaces) {
+            return new Range(
+                new Position(lineIndex, 0),
+                new Position(lineIndex, this.getLineByIndex(lineIndex).length),
+            );
+        }
+
+        const lineContent = this.getLineByIndex(lineIndex);
+        const lineWithTrimmedStart = lineContent.trimStart();
+        const lineWithTrimmedEnd = lineContent.trimEnd();
+
+        return new Range(
+            new Position(
+                lineIndex,
+                lineContent.length - lineWithTrimmedStart.length,
+            ),
+            new Position(lineIndex, lineWithTrimmedEnd.length),
+        );
     }
 
     public getLineByIndex(index: number) {

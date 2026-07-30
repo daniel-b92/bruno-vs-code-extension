@@ -2,7 +2,7 @@ import {
     DictionaryBlock,
     DictionaryBlockDescription,
     isDictionaryBlockDescription,
-    isDictionaryBlockField,
+    isDictionaryBlockSimpleField,
     Range,
 } from "@global_shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
@@ -14,7 +14,7 @@ import {
     DiagnosticSeverity,
 } from "vscode-languageserver";
 
-export function checkMaxDescriptionsPerDictionaryBlockField(
+export function checkDescriptionsExistOnlyForSimpleDictionaryBlockFields(
     filePath: string,
     blocksToCheck: DictionaryBlock[],
 ): DiagnosticWithCode | undefined {
@@ -33,38 +33,51 @@ export function checkMaxDescriptionsPerDictionaryBlockField(
 }
 
 function getInvalidDescriptionsSortedByPosition(block: DictionaryBlock) {
-    if (
-        block.content.every(isDictionaryBlockField) ||
-        block.content.filter(isDictionaryBlockDescription).length <= 1
-    ) {
+    if (block.content.filter(isDictionaryBlockDescription).length == 0) {
         return [];
     }
 
-    const sortedFieldsAndDescriptions = block.content.slice().sort((a, b) => {
-        const startRangeForA = isDictionaryBlockField(a)
-            ? a.keyRange.start
-            : a.range.start;
-        const startRangeForB = isDictionaryBlockField(b)
-            ? b.keyRange.start
-            : b.range.start;
+    const simpleFieldsAndDescriptions = block.content.filter(
+        (field) =>
+            isDictionaryBlockSimpleField(field) ||
+            isDictionaryBlockDescription(field),
+    );
 
-        return startRangeForA.line - startRangeForB.line;
-    });
+    const sortedSimpleFieldsAndDescriptions = simpleFieldsAndDescriptions.sort(
+        (a, b) => {
+            const startRangeForA = isDictionaryBlockSimpleField(a)
+                ? a.keyRange.start
+                : a.range.start;
+            const startRangeForB = isDictionaryBlockSimpleField(b)
+                ? b.keyRange.start
+                : b.range.start;
 
-    return sortedFieldsAndDescriptions
-        .map((field, index) => {
-            if (index == 0) {
-                return undefined;
-            }
+            return startRangeForA.line - startRangeForB.line;
+        },
+    );
 
-            return isDictionaryBlockDescription(field) &&
-                isDictionaryBlockDescription(
-                    sortedFieldsAndDescriptions[index - 1],
-                )
-                ? field
-                : undefined;
-        })
-        .filter((field) => field != undefined);
+    return sortedSimpleFieldsAndDescriptions.filter((field, index) => {
+        if (!isDictionaryBlockDescription(field)) {
+            return false;
+        }
+
+        if (index == sortedSimpleFieldsAndDescriptions.length - 1) {
+            // Case where last of the relevant entries is a description.
+            return true;
+        }
+
+        if (sortedSimpleFieldsAndDescriptions.length > index + 1) {
+            const descriptionLine = field.range.start.line;
+            const nextRelevantEntry =
+                sortedSimpleFieldsAndDescriptions[index + 1];
+
+            // Case where entry is a description without the next entry being a simple field..
+            return (
+                !isDictionaryBlockSimpleField(nextRelevantEntry) ||
+                nextRelevantEntry.keyRange.start.line != descriptionLine + 1
+            );
+        }
+    }) as DictionaryBlockDescription[];
 }
 
 function getDiagnostic(
@@ -75,7 +88,7 @@ function getDiagnostic(
     }[],
 ): DiagnosticWithCode {
     return {
-        message: `Only one description is allowed per dictionary block field`,
+        message: `A description is only allowed directly before a simple field`,
         range: new Range(
             sortedInvalidDescriptions[0].description.range.start,
             sortedInvalidDescriptions[sortedInvalidDescriptions.length - 1]
@@ -92,6 +105,6 @@ function getDiagnostic(
                   })) as DiagnosticRelatedInformation[])
                 : undefined,
         severity: DiagnosticSeverity.Error,
-        code: NonBlockSpecificDiagnosticCode.MultipleDescriptionsPerDictionaryBlockField,
+        code: NonBlockSpecificDiagnosticCode.DescriptionBeforeNonSimpleFieldInDictionaryBlock,
     };
 }
