@@ -3,6 +3,9 @@ import {
     BrunoVariableType,
     CodeBlock,
     normalizePath,
+    RequestFileBlockName,
+    VariableAvailabilityScope,
+    VariableAvailabilityScopes,
     VariableReferenceType,
 } from "@global_shared";
 import {
@@ -16,11 +19,15 @@ import { isDynamicVariableReference } from "./isDynamicVariableReference";
 
 export function getMatchingStaticScriptVariableReferences(
     {
-        file: { allBlocks, collection },
+        file: { allBlocks, blockContainingPosition, collection },
         request: { filePath },
     }: BlockRequestWithAdditionalData<CodeBlock>,
     variableType: BrunoVariableType,
 ): EquivalentVariableReferencesFromOtherFiles[] {
+    const relevantScope =
+        blockContainingPosition.name == RequestFileBlockName.PreRequestScript
+            ? VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
+            : VariableAvailabilityScopes.PostResponseScriptForOwnItemAndDescendants;
     // Avoid using cached data for determining references within own file because unsaved changes would be ignored.
     const allReferencesFromSameFile = allBlocks.flatMap(
         ({ variableReferences }) => variableReferences ?? [],
@@ -32,6 +39,7 @@ export function getMatchingStaticScriptVariableReferences(
         references: getRelevantReferences(
             allReferencesFromSameFile,
             variableType,
+            relevantScope,
         ),
     };
 
@@ -50,6 +58,7 @@ export function getMatchingStaticScriptVariableReferences(
             references: getRelevantReferences(
                 additionalData?.map(({ reference }) => reference) ?? [],
                 variableType,
+                relevantScope,
             ),
         }))
         // Sort paths descending by length
@@ -68,11 +77,13 @@ export function getMatchingStaticScriptVariableReferences(
 function getRelevantReferences(
     refs: BrunoVariableReference[],
     variableType: BrunoVariableType,
+    relevantScope: VariableAvailabilityScope,
 ) {
     return refs.filter(
         ({ referenceType, scope, variableType: v }) =>
             !isDynamicVariableReference(scope) &&
             referenceType == VariableReferenceType.Write &&
+            scope == relevantScope &&
             v == variableType,
     );
 }
