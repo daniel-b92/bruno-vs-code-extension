@@ -27,10 +27,12 @@ export type VariableAvailabilityScope =
     (typeof VariableAvailabilityScopes)[keyof typeof VariableAvailabilityScopes];
 
 export const VariableAvailabilityScopes = {
-    Global: 1,
-    Collection: 2,
-    PreRequestScriptForOwnItemAndDescendants: 3,
-    PostResponseScriptForOwnItemAndDescendants: 4,
+    Global: "Global",
+    Collection: "Collection",
+    PreRequestScriptForOwnItemAndDescendants:
+        "PreRequestScriptForOwnItemAndDescendants",
+    PostResponseScriptForOwnItemAndDescendants:
+        "PostResponseScriptForOwnItemAndDescendants",
 } as const;
 
 export interface InbuiltFunctionIdentifier {
