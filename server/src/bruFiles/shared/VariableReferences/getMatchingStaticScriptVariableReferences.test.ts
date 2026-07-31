@@ -2,7 +2,6 @@ import { expect, test } from "@jest/globals";
 import {
     BrunoVariableReference,
     BrunoVariableType,
-    VariableAvailabilityScope,
     VariableAvailabilityScopes,
     VariableReferenceType,
     RequestFileBlockName,
@@ -10,35 +9,31 @@ import {
 import { getMatchingStaticScriptVariableReferences } from "./getMatchingStaticScriptVariableReferences";
 
 test("filters only matching static script references for the active block", () => {
-    const sameFileReference = createReference("apiKey");
-    const ignoredReadReference = createReference(
-        "apiKey",
-        BrunoVariableType.Environment,
-        VariableReferenceType.Read,
-    );
-    const ignoredDynamicReference = createReference(
-        "apiKey",
-        BrunoVariableType.Environment,
-        VariableReferenceType.Write,
-        undefined,
-    );
-    const ignoredWrongScopeReference = createReference(
-        "apiKey",
-        BrunoVariableType.Environment,
-        VariableReferenceType.Write,
-        VariableAvailabilityScopes.PostResponseScriptForOwnItemAndDescendants,
-    );
-    const ignoredDifferentTypeReference = createReference(
-        "apiKey",
-        BrunoVariableType.Global,
-        VariableReferenceType.Write,
-    );
+    const sameFileReference = getDefaultReference("from-own-file");
+    const ignoredReadReference: BrunoVariableReference = {
+        ...getDefaultReference("ignored1"),
+        referenceType: VariableReferenceType.Read,
+    };
+    const ignoredDynamicReference: BrunoVariableReference = {
+        ...getDefaultReference("ignored2"),
+        variableType: BrunoVariableType.Runtime,
+    };
+    const ignoredWrongScopeReference: BrunoVariableReference = {
+        ...getDefaultReference("ignored3"),
+        scope: VariableAvailabilityScopes.PostResponseScriptForOwnItemAndDescendants,
+    };
+    const ignoredDifferentTypeReference: BrunoVariableReference = {
+        ...getDefaultReference("ignored4"),
+        variableType: BrunoVariableType.Global,
+    };
 
-    const otherFileReference = createReference("sharedToken");
+    const otherFileReference: BrunoVariableReference = {
+        ...getDefaultReference("from-other-file"),
+    };
 
     const result = getMatchingStaticScriptVariableReferences(
         createRequestContext(
-            "/tmp/current/request.bru",
+            "/tmp/current/folder.bru",
             [
                 sameFileReference,
                 ignoredReadReference,
@@ -48,12 +43,12 @@ test("filters only matching static script references for the active block", () =
             ],
             [
                 {
-                    path: "/tmp/ancestor/request.bru",
+                    path: "/tmp/ancestor/folder.bru",
                     references: [otherFileReference],
                 },
             ],
         ),
-        BrunoVariableType.Environment,
+        BrunoVariableType.Folder,
     );
 
     expect(result).toHaveLength(2);
@@ -64,30 +59,30 @@ test("filters only matching static script references for the active block", () =
                     mostRelevantReference.reference.variableName,
             )
             .sort(),
-    ).toEqual(["apiKey", "sharedToken"].sort());
+    ).toEqual(["from-own-file", "from-other-file"].sort());
 });
 
 test("prefers the closest matching reference when equivalent refs appear in multiple files", () => {
-    const sameFileReference = createReference("apiKey");
-    const ancestorReference = createReference("apiKey");
-    const nestedAncestorReference = createReference("apiKey");
+    const sameFileReference = getDefaultReference("apiKey");
+    const ancestorReference = getDefaultReference("apiKey");
+    const nestedAncestorReference = getDefaultReference("apiKey");
 
     const result = getMatchingStaticScriptVariableReferences(
         createRequestContext(
-            "/tmp/current/request.bru",
+            "/tmp/current/folder.bru",
             [sameFileReference],
             [
                 {
-                    path: "/tmp/ancestor/request.bru",
+                    path: "/tmp/ancestor/folder.bru",
                     references: [ancestorReference],
                 },
                 {
-                    path: "/tmp/very/deep/ancestor/request.bru",
+                    path: "/tmp/very/deep/ancestor/folder.bru",
                     references: [nestedAncestorReference],
                 },
             ],
         ),
-        BrunoVariableType.Environment,
+        BrunoVariableType.Folder,
     );
 
     expect(result).toHaveLength(1);
@@ -95,24 +90,19 @@ test("prefers the closest matching reference when equivalent refs appear in mult
         "apiKey",
     );
     expect(result[0].mostRelevantReference.path.absolute).toBe(
-        "/tmp/current/request.bru",
+        "/tmp/current/folder.bru",
     );
     expect(result[0].mostRelevantReference.indirectionLevel).toBe(0);
     expect(result[0].otherMatchingReferences).toHaveLength(2);
 });
 
-function createReference(
-    variableName: string,
-    variableType: BrunoVariableType = BrunoVariableType.Environment,
-    referenceType: VariableReferenceType = VariableReferenceType.Write,
-    scope: VariableAvailabilityScope = VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants,
-): BrunoVariableReference {
+function getDefaultReference(variableName: string): BrunoVariableReference {
     return {
         variableName,
         variableNameRange: {} as never,
-        variableType,
-        referenceType,
-        scope,
+        variableType: BrunoVariableType.Folder,
+        referenceType: VariableReferenceType.Write,
+        scope: VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants,
     };
 }
 

@@ -22,7 +22,7 @@ export function getMatchingStaticScriptVariableReferences(
         file: { allBlocks, blockContainingPosition, collection },
         request: { filePath },
     }: BlockRequestWithAdditionalData<CodeBlock>,
-    variableType: BrunoVariableType,
+    variableType: BrunoVariableType.Folder | BrunoVariableType.Request,
 ): EquivalentVariableReferencesFromOtherFiles[] {
     const relevantScope =
         blockContainingPosition.name == RequestFileBlockName.PreRequestScript
