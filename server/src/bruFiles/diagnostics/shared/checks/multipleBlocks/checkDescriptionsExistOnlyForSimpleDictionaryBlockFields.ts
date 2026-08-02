@@ -1,8 +1,10 @@
 import {
     DictionaryBlock,
     DictionaryBlockDescription,
+    DictionaryBlockTypeAnnotation,
     isDictionaryBlockDescription,
     isDictionaryBlockSimpleField,
+    isDictionaryBlockTypeAnnotation,
     Range,
 } from "@global_shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
@@ -14,36 +16,43 @@ import {
     DiagnosticSeverity,
 } from "vscode-languageserver";
 
-export function checkDescriptionsExistOnlyForSimpleDictionaryBlockFields(
+export function checkAnnotationsExistOnlyForSimpleDictionaryBlockFields(
     filePath: string,
     blocksToCheck: DictionaryBlock[],
 ): DiagnosticWithCode | undefined {
     const sortedBlocksToCheck = getSortedBlocksByPosition(blocksToCheck);
-    const invalidDescriptions = sortedBlocksToCheck.flatMap((block) =>
-        getInvalidDescriptionsSortedByPosition(block as DictionaryBlock).map(
-            (description) => ({ block: block.name, description }),
+    const invalidAnnotations = sortedBlocksToCheck.flatMap((block) =>
+        getInvalidAnnotationsSortedByPosition(block as DictionaryBlock).map(
+            (field) => ({ block: block.name, field }),
         ),
     );
 
-    if (invalidDescriptions.length == 0) {
+    if (invalidAnnotations.length == 0) {
         return undefined;
     }
 
-    return getDiagnostic(filePath, invalidDescriptions);
+    return getDiagnostic(filePath, invalidAnnotations);
 }
 
-function getInvalidDescriptionsSortedByPosition(block: DictionaryBlock) {
-    if (block.content.filter(isDictionaryBlockDescription).length == 0) {
+function getInvalidAnnotationsSortedByPosition(block: DictionaryBlock) {
+    if (
+        block.content.filter(
+            (field) =>
+                isDictionaryBlockDescription(field) ||
+                isDictionaryBlockTypeAnnotation(field),
+        ).length == 0
+    ) {
         return [];
     }
 
-    const simpleFieldsAndDescriptions = block.content.filter(
+    const simpleFieldsAndAnnotations = block.content.filter(
         (field) =>
             isDictionaryBlockSimpleField(field) ||
-            isDictionaryBlockDescription(field),
+            isDictionaryBlockDescription(field) ||
+            isDictionaryBlockTypeAnnotation(field),
     );
 
-    const sortedSimpleFieldsAndDescriptions = simpleFieldsAndDescriptions.sort(
+    const sortedSimpleFieldsAndAnnotations = simpleFieldsAndAnnotations.sort(
         (a, b) => {
             const startRangeForA = isDictionaryBlockSimpleField(a)
                 ? a.keyRange.start
@@ -56,55 +65,69 @@ function getInvalidDescriptionsSortedByPosition(block: DictionaryBlock) {
         },
     );
 
-    return sortedSimpleFieldsAndDescriptions.filter((field, index) => {
-        if (!isDictionaryBlockDescription(field)) {
+    return sortedSimpleFieldsAndAnnotations.filter((field, index) => {
+        if (
+            !isDictionaryBlockDescription(field) &&
+            !isDictionaryBlockTypeAnnotation(field)
+        ) {
             return false;
         }
 
-        if (index == sortedSimpleFieldsAndDescriptions.length - 1) {
-            // Case where last of the relevant entries is a description.
+        if (index == sortedSimpleFieldsAndAnnotations.length - 1) {
+            // Case where last of the relevant entries is an annotation.
             return true;
         }
 
-        if (sortedSimpleFieldsAndDescriptions.length > index + 1) {
-            const descriptionLine = field.range.start.line;
+        if (sortedSimpleFieldsAndAnnotations.length > index + 1) {
+            const annotationLine = field.range.start.line;
             const nextRelevantEntry =
-                sortedSimpleFieldsAndDescriptions[index + 1];
+                sortedSimpleFieldsAndAnnotations[index + 1];
 
-            // Case where entry is a description without the next entry being a simple field..
+            if (isDictionaryBlockSimpleField(nextRelevantEntry)) {
+                return false;
+            }
+
+            const isNextLineSameKindOfAnnotation =
+                (isDictionaryBlockDescription(field) &&
+                    isDictionaryBlockDescription(nextRelevantEntry)) ||
+                (isDictionaryBlockTypeAnnotation(field) &&
+                    isDictionaryBlockTypeAnnotation(nextRelevantEntry));
+            // Can either be invlid, if next line is same kind of annotation or if next line is neither an annotation nor a simple field.
             return (
-                !isDictionaryBlockSimpleField(nextRelevantEntry) ||
-                nextRelevantEntry.keyRange.start.line != descriptionLine + 1
+                isNextLineSameKindOfAnnotation ||
+                nextRelevantEntry.range.start.line != annotationLine + 1
             );
         }
-    }) as DictionaryBlockDescription[];
+    }) as (DictionaryBlockDescription | DictionaryBlockTypeAnnotation)[];
 }
 
 function getDiagnostic(
     filePath: string,
-    sortedInvalidDescriptions: {
+    sortedInvalidAnnotations: {
         block: string;
-        description: DictionaryBlockDescription;
+        field: DictionaryBlockDescription | DictionaryBlockTypeAnnotation;
     }[],
 ): DiagnosticWithCode {
     return {
-        message: `A description is only allowed directly before a simple field`,
+        message: `An annotation is only allowed directly before a simple field and only once per field`,
         range: new Range(
-            sortedInvalidDescriptions[0].description.range.start,
-            sortedInvalidDescriptions[sortedInvalidDescriptions.length - 1]
-                .description.range.end,
+            sortedInvalidAnnotations[0].field.range.start,
+            sortedInvalidAnnotations[sortedInvalidAnnotations.length - 1].field
+                .range.end,
         ),
         relatedInformation:
-            sortedInvalidDescriptions.length > 1
-                ? (sortedInvalidDescriptions.map(({ block, description }) => ({
-                      message: `Block '${block}'`,
-                      location: {
-                          uri: URI.file(filePath).toString(),
-                          range: description.range,
-                      },
-                  })) as DiagnosticRelatedInformation[])
+            sortedInvalidAnnotations.length > 1
+                ? (sortedInvalidAnnotations.map(
+                      ({ block, field: description }) => ({
+                          message: `Block '${block}'`,
+                          location: {
+                              uri: URI.file(filePath).toString(),
+                              range: description.range,
+                          },
+                      }),
+                  ) as DiagnosticRelatedInformation[])
                 : undefined,
         severity: DiagnosticSeverity.Error,
-        code: NonBlockSpecificDiagnosticCode.DescriptionBeforeNonSimpleFieldInDictionaryBlock,
+        code: NonBlockSpecificDiagnosticCode.AnnotationBeforeNonSimpleFieldInDictionaryBlock,
     };
 }

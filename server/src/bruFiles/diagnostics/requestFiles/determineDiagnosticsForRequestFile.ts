@@ -42,7 +42,7 @@ import { getSettingsBlockSpecificDiagnostics } from "./getSettingsBlockSpecificD
 import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBlocks/checkCodeBlocksHaveClosingBracket";
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
-import { checkDescriptionsExistOnlyForSimpleDictionaryBlockFields } from "../shared/checks/multipleBlocks/checkDescriptionsExistOnlyForSimpleDictionaryBlockFields";
+import { checkAnnotationsExistOnlyForSimpleDictionaryBlockFields } from "../shared/checks/multipleBlocks/checkDescriptionsExistOnlyForSimpleDictionaryBlockFields";
 
 export async function determineDiagnosticsForRequestFile(
     filePath: string,
@@ -126,7 +126,7 @@ function collectCommonDiagnostics(
             filePath,
             blocksThatShouldBeDictionaryBlocks,
         ),
-        checkDescriptionsExistOnlyForSimpleDictionaryBlockFields(
+        checkAnnotationsExistOnlyForSimpleDictionaryBlockFields(
             filePath,
             validDictionaryBlocks,
         ),

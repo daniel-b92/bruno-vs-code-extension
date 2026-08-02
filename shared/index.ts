@@ -182,6 +182,7 @@ export * from "./languageUtils/genericFields/typeguards/isDictionaryBlockField";
 export * from "./languageUtils/genericFields/typeguards/isDictionaryBlockSimpleField";
 export * from "./languageUtils/genericFields/typeguards/isDictionaryBlockArrayField";
 export * from "./languageUtils/genericFields/typeguards/isDictionaryBlockDescription";
+export * from "./languageUtils/genericFields/typeguards/isDictionaryBlockTypeAnnotation";
 
 // language utils - urls
 export * from "./languageUtils/urls/getQueryParamsFromUrl";
