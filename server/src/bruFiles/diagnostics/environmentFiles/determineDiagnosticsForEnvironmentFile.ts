@@ -16,7 +16,7 @@ import { checkThatNoTextExistsOutsideOfBlocks } from "../shared/checks/multipleB
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { RelevantWithinEnvironmentFileDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinEnvironmentFileDiagnosticCodeEnum";
-import { checkAnnotationsExistOnlyForSimpleDictionaryBlockFields } from "../shared/checks/multipleBlocks/checkDescriptionsExistOnlyForSimpleDictionaryBlockFields";
+import { checkAnnotationsExistOnlyForSimpleDictionaryBlockFields } from "../shared/checks/multipleBlocks/checkAnnotationsExistOnlyForSimpleDictionaryBlockFields";
 
 export function determineDiagnosticsForEnvironmentFile(
     filePath: string,
