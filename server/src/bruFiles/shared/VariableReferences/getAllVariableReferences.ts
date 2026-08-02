@@ -112,7 +112,9 @@ export function getAllVariableReferences(
                           .blockContainingPosition as CodeBlock,
                   },
               },
-              variableType,
+              variableType as
+                  | BrunoVariableType.Folder
+                  | BrunoVariableType.Request,
           )
         : [];
 

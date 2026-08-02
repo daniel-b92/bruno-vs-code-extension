@@ -189,6 +189,10 @@
                             "name": "string.bru"
                         }
                     }
+                },
+                {
+                    "match": "^\\s*(@number|@boolean|@object)\\s*$",
+                    "name": "keyword.control.bru"
                 }
             ]
         },
