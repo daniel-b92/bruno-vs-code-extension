@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Maintenance
+
+- Add basic support for type annotations (`@number`, `@boolean`, `@object`) in dictionary blocks: Syntax highlighting and diagnostics.
+
 ## [1.2.4] (2026-07-30)
 
 ### Fixes / Maintenance
