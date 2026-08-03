@@ -31,12 +31,8 @@ describe("determineDiagnosticsForEnvironmentFile", () => {
         expect(diagnostics.map((diagnostic) => diagnostic.code).sort()).toEqual(
             ["bru30", "bru30"],
         );
-        expect(
-            diagnostics.every(
-                (diagnostic) =>
-                    diagnostic.message ===
-                    "An annotation is only allowed once per field",
-            ),
-        ).toBe(true);
+        expect(diagnostics.map(({ range }) => range.start.line).sort()).toEqual(
+            [1, 2],
+        );
     });
 });
