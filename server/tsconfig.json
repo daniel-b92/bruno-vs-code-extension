@@ -2,7 +2,11 @@
     "extends": "../tsconfig.json",
     "compilerOptions": {
         "paths": {
-            "@global_shared": ["../shared/index.ts"]
-        }
-    }
+            "@global_shared": ["../shared/index.ts"],
+            "@global_shared/*": ["../shared/*"]
+        },
+        "allowJs": true,
+        "types": ["node", "jest"]
+    },
+    "exclude": ["node_modules", "dist", "jest.config.js", "webpack.config.js"]
 }
