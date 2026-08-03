@@ -1,4 +1,4 @@
-import { BlockBracket, Position, TextDocumentHelper } from "../..";
+import { BlockBracket, Position, TextDocumentHelper } from "../../..";
 
 export function findBlockEnd(
     documentHelper: TextDocumentHelper,

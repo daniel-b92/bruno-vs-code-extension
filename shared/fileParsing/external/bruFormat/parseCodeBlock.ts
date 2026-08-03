@@ -1,5 +1,5 @@
 import { createSourceFile, Node, ScriptTarget, SyntaxKind } from "typescript";
-import { BlockBracket, Position, Range, TextDocumentHelper } from "../..";
+import { BlockBracket, Position, Range, TextDocumentHelper } from "../../..";
 
 export function parseCodeBlock(
     document: TextDocumentHelper,

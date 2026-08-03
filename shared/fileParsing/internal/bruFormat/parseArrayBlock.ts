@@ -5,8 +5,8 @@ import {
     Range,
     TextDocumentHelper,
     BlockBracket,
-} from "../..";
-import { getContentRangeForArrayOrDictionaryBlock } from "../external/shared/util/getContentRangeForArrayOrDictionaryBlock";
+} from "../../..";
+import { getContentRangeForArrayOrDictionaryBlock } from "../../external/bruFormat/util/getContentRangeForArrayOrDictionaryBlock";
 
 export function parseArrayBlock(
     docHelper: TextDocumentHelper,

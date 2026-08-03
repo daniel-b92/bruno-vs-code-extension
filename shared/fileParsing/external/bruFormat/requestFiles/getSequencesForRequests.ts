@@ -1,7 +1,7 @@
 import { resolve } from "path";
 import { promisify } from "util";
 import { readdir } from "fs";
-import { CollectionItemProvider, getSequenceForFile } from "../../..";
+import { CollectionItemProvider, getSequenceForFile } from "../../../..";
 
 export async function getSequencesForRequests<T>(
     itemProvider: CollectionItemProvider<T>,

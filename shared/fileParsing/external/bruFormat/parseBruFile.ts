@@ -1,4 +1,4 @@
-import { getBlockContent } from "../internal/getBlockContent";
+import { getBlockContent } from "../../internal/bruFormat/getBlockContent";
 import {
     getBlockType,
     Position,
@@ -13,8 +13,8 @@ import {
     BlockType,
     shouldBeArrayBlock,
     ItemType,
-} from "../..";
-import { findBlockEnd } from "../internal/findBlockEnd";
+} from "../../..";
+import { findBlockEnd } from "../../internal/bruFormat/findBlockEnd";
 
 export function parseBruFile(
     docHelper: TextDocumentHelper,
@@ -173,9 +173,7 @@ function tryToParseBlock(
             ),
         ),
         content: content as
-            | string
-            | DictionaryBlockSimpleField[]
-            | ArrayBlockField[],
+            string | DictionaryBlockSimpleField[] | ArrayBlockField[],
         contentRange,
         variableReferences: variableRerences,
     };

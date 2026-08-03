@@ -1,13 +1,13 @@
-import { TextDocumentHelper } from "../../fileSystem/textDocumentHelper";
-import { getBlockContent } from "../internal/getBlockContent";
+import { TextDocumentHelper } from "../../../fileSystem/textDocumentHelper";
+import { getBlockContent } from "../../internal/bruFormat/getBlockContent";
 import {
     getBlockType,
     Position,
     BlockBracket,
     getBlockStartPatternByName,
     Range,
-} from "../..";
-import { findBlockEnd } from "../internal/findBlockEnd";
+} from "../../..";
+import { findBlockEnd } from "../../internal/bruFormat/findBlockEnd";
 
 export const parseBlockFromFile = (
     fullDocHelper: TextDocumentHelper,

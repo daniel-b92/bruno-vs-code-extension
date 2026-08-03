@@ -8,7 +8,7 @@ import {
     Position,
     Range,
     TextDocumentHelper,
-} from "../../..";
+} from "../../../..";
 
 export function getBrunoVariableReferencesInCodeBlock(
     fullDocumentHelper: TextDocumentHelper,

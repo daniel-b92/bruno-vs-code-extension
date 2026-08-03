@@ -12,7 +12,7 @@ import {
     VariableAvailabilityScopes,
     VariableReferenceType,
 } from "../../..";
-import { ParsedBlockContent } from "../getBlockContent";
+import { ParsedBlockContent } from "../bruFormat/getBlockContent";
 
 export function getBrunoVariableReferencesInNonCodeBlock(
     fullDocumentHelper: TextDocumentHelper,
