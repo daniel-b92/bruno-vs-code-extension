@@ -6,7 +6,7 @@
             "@global_shared/*": ["../shared/*"]
         },
         "allowJs": true,
-        "types": ["node", "jest"]
+        "types": ["jest"]
     },
     "exclude": ["node_modules", "dist", "jest.config.js", "webpack.config.js"]
 }
