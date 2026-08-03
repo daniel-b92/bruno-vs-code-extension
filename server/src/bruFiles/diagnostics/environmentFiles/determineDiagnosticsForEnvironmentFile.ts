@@ -16,7 +16,7 @@ import { checkThatNoTextExistsOutsideOfBlocks } from "../shared/checks/multipleB
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { RelevantWithinEnvironmentFileDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinEnvironmentFileDiagnosticCodeEnum";
-import { checkAnnotationsExistOnlyForSimpleDictionaryBlockFields } from "../shared/checks/multipleBlocks/checkAnnotationsExistOnlyForSimpleDictionaryBlockFields";
+import { checkAnnotationsAreValid } from "../shared/checks/multipleBlocks/checkAnnotationsAreValid";
 
 export function determineDiagnosticsForEnvironmentFile(
     filePath: string,
@@ -79,10 +79,7 @@ export function determineDiagnosticsForEnvironmentFile(
                     RelevantWithinEnvironmentFileDiagnosticCode.EnvironmentVariableDefinedMultipleTimes,
                 ) ?? [],
         ),
-        checkAnnotationsExistOnlyForSimpleDictionaryBlockFields(
-            filePath,
-            validDictionaryBlocks,
-        ),
+        ...checkAnnotationsAreValid(validDictionaryBlocks),
     );
 
     return results.filter((val) => val != undefined) as DiagnosticWithCode[];
