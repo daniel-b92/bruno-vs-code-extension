@@ -1,12 +1,21 @@
+const path = require("path");
+
 module.exports = {
-    preset: "ts-jest",
     testEnvironment: "node",
-    roots: ["<rootDir>/src"],
-    testMatch: ["**/*.test.ts"],
-    moduleNameMapper: {
-        "^@global_shared$": "<rootDir>/../shared/jestGlobalShared.ts",
-    },
+    rootDir: __dirname,
     transform: {
-        "^.+\\.tsx?$": ["ts-jest", { tsconfig: "<rootDir>/tsconfig.json" }],
+        "^.+\\.[tj]s$": [
+            "ts-jest",
+            {
+                tsconfig: path.resolve(__dirname, "tsconfig.json"),
+            },
+        ],
     },
+    transformIgnorePatterns: ["<rootDir>/node_modules/(?!(watcher)/)"],
+    moduleNameMapper: {
+        "^@global_shared$": path.resolve(__dirname, "../shared/index.ts"),
+        "^@global_shared/(.*)$": path.resolve(__dirname, "../shared/$1"),
+    },
+    testMatch: ["<rootDir>/src/**/*.test.ts", "<rootDir>/src/**/*.spec.ts"],
+    moduleFileExtensions: ["ts", "tsx", "js", "json"],
 };

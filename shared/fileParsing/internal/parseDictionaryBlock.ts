@@ -8,6 +8,8 @@ import {
     TextDocumentHelper,
     BlockBracket,
     DictionaryBlockDescription,
+    DictionaryBlockTypeAnnotation,
+    DictionaryBlockTypeAnnotationValue,
 } from "../..";
 import { getContentRangeForArrayOrDictionaryBlock } from "../external/shared/util/getContentRangeForArrayOrDictionaryBlock";
 
@@ -19,6 +21,7 @@ type ParsedLine =
           couldBeStartofArrayField: boolean;
       }
     | DictionaryBlockDescription
+    | DictionaryBlockTypeAnnotation
     | PlainTextWithinBlock;
 
 export function parseDictionaryBlock(
@@ -74,6 +77,19 @@ export function parseDictionaryBlock(
                     lines.push({
                         range: lineRange,
                     } as unknown as DictionaryBlockDescription);
+                }
+                continue;
+            }
+            const typeAnnotationValue =
+                getTypeAnnotationValueForLine(lineContent);
+            if (typeAnnotationValue) {
+                const lineRange = docHelper.getRangeForLine(lineIndex, true);
+
+                if (lineRange) {
+                    lines.push({
+                        range: lineRange,
+                        ...typeAnnotationValue,
+                    });
                 }
                 continue;
             }
@@ -217,6 +233,15 @@ function wasLineParsedAsValidSimpleField(
 
 function isDescriptionLine(lineText: string) {
     return /^\s*@description\(('[^']*'|"(\\"|[^"])*")\)\s*$/.test(lineText);
+}
+
+function getTypeAnnotationValueForLine(lineText: string) {
+    const pattern = /^\s*@(number|boolean|object)\s*$/;
+    const matches = pattern.exec(lineText);
+
+    return matches && matches.length > 1
+        ? { value: matches[1] as DictionaryBlockTypeAnnotationValue }
+        : undefined;
 }
 
 function isKeyValuePair(lineText: string) {

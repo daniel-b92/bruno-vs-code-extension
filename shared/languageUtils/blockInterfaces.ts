@@ -9,6 +9,7 @@ export interface Block {
               | DictionaryBlockSimpleField
               | DictionaryBlockArrayField
               | DictionaryBlockDescription
+              | DictionaryBlockTypeAnnotation
               | PlainTextWithinBlock
           )[]
         | (ArrayBlockField | PlainTextWithinBlock)[];
@@ -23,6 +24,7 @@ export interface DictionaryBlock {
         | DictionaryBlockSimpleField
         | DictionaryBlockArrayField
         | DictionaryBlockDescription
+        | DictionaryBlockTypeAnnotation
     )[];
     contentRange: Range;
 }
@@ -40,6 +42,17 @@ export type DictionaryBlockArrayField = DictionaryBlockField & {
 
 export interface DictionaryBlockDescription {
     range: Range;
+}
+
+export interface DictionaryBlockTypeAnnotation {
+    range: Range;
+    value: DictionaryBlockTypeAnnotationValue;
+}
+
+export enum DictionaryBlockTypeAnnotationValue {
+    Number = "number",
+    Boolean = "boolean",
+    Object = "object",
 }
 
 interface DictionaryBlockField {

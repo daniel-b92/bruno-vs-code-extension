@@ -3,6 +3,7 @@ import {
     isBlockDictionaryBlock,
     isDictionaryBlockDescription,
     isDictionaryBlockField,
+    isDictionaryBlockTypeAnnotation,
     PlainTextWithinBlock,
     Range,
 } from "@global_shared";
@@ -54,8 +55,13 @@ function getDiagnostic(
   maybeArrayKey: [
     arrVal1
   ]
-}, optionally with a description per key matching the pattern
-@description('<Description_Text>')`,
+}, optionally with a description matching the pattern
+- @description('<Description_Text>')
+and/or one of the following type annotations
+- @number
+- @object
+- @boolean
+per key.`,
         range: getRange(sortedBlocksWithIncorrectStructure),
         relatedInformation:
             sortedBlocksWithIncorrectStructure.length > 1 ||
@@ -84,7 +90,8 @@ function getLinesWithInvalidStructure(block: Block) {
         ? (block.content.filter(
               (field) =>
                   !isDictionaryBlockField(field) &&
-                  !isDictionaryBlockDescription(field),
+                  !isDictionaryBlockDescription(field) &&
+                  !isDictionaryBlockTypeAnnotation(field),
           ) as PlainTextWithinBlock[])
         : undefined;
 }

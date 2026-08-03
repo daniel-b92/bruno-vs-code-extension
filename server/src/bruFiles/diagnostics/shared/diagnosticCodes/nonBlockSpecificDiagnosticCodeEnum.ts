@@ -36,5 +36,6 @@ export enum NonBlockSpecificDiagnosticCode {
     SimpleFieldsInDictionaryBlocksNotStructuredCorrectly = "bru26",
     ArrayFieldsInDictionaryBlocksNotStructuredCorrectly = "bru27",
     InvalidValuesForArrayFieldsInDictionaryBlocks = "bru28",
-    DescriptionBeforeNonSimpleFieldInDictionaryBlock = "bru29",
+    AnnotationBeforeNonSimpleFieldInDictionaryBlock = "bru29",
+    DuplicateAnnotationOfSameSortInDictionaryBlock = "bru30",
 }

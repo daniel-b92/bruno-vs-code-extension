@@ -3,6 +3,7 @@ import {
     DictionaryBlockArrayField,
     DictionaryBlockDescription,
     DictionaryBlockSimpleField,
+    DictionaryBlockTypeAnnotation,
     PlainTextWithinBlock,
 } from "../../..";
 
@@ -12,6 +13,7 @@ export function isDictionaryBlockDescription(
         | DictionaryBlockSimpleField
         | DictionaryBlockArrayField
         | DictionaryBlockDescription
+        | DictionaryBlockTypeAnnotation
         | PlainTextWithinBlock,
 ): field is DictionaryBlockDescription {
     return (

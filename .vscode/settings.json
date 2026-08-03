@@ -1,0 +1,3 @@
+{
+    "jest.jestCommandLine": "npx jest --config server/jest.config.js"
+}

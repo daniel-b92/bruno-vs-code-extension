@@ -4,10 +4,11 @@ import {
     DictionaryBlockDescription,
     DictionaryBlockSimpleField,
     DictionaryBlockTypeAnnotation,
+    DictionaryBlockTypeAnnotationValue,
     PlainTextWithinBlock,
 } from "../../..";
 
-export function isDictionaryBlockField(
+export function isDictionaryBlockTypeAnnotation(
     field:
         | ArrayBlockField
         | DictionaryBlockSimpleField
@@ -15,15 +16,10 @@ export function isDictionaryBlockField(
         | DictionaryBlockDescription
         | DictionaryBlockTypeAnnotation
         | PlainTextWithinBlock,
-): field is DictionaryBlockSimpleField | DictionaryBlockArrayField {
+): field is DictionaryBlockTypeAnnotation {
     return (
-        // Case when it's a simple field
-        ["key", "value"].every((expected) =>
-            Object.keys(field).includes(expected),
-        ) ||
-        // Case when it's an array field
-        ["key", "values"].every((expected) =>
-            Object.keys(field).includes(expected),
-        )
+        "range" in field &&
+        "value" in field &&
+        Object.values(DictionaryBlockTypeAnnotationValue).includes(field.value)
     );
 }

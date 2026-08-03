@@ -1,4 +1,9 @@
-import { Block, DictionaryBlock, isDictionaryBlockField } from "../../../..";
+import {
+    Block,
+    DictionaryBlock,
+    isDictionaryBlockField,
+    isDictionaryBlockTypeAnnotation,
+} from "../../../..";
 import { isDictionaryBlockDescription } from "../../../genericFields/typeguards/isDictionaryBlockDescription";
 
 export function isBlockDictionaryBlock(block: Block): block is DictionaryBlock {
@@ -8,7 +13,8 @@ export function isBlockDictionaryBlock(block: Block): block is DictionaryBlock {
         block.content.every(
             (field) =>
                 isDictionaryBlockField(field) ||
-                isDictionaryBlockDescription(field),
+                isDictionaryBlockDescription(field) ||
+                isDictionaryBlockTypeAnnotation(field),
         )
     );
 }
