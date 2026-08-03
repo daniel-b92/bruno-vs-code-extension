@@ -46,9 +46,13 @@
         "@zentryc5t/ts-plugin-for-bruno": "^3.0.3",
         "evt": "^2.5.9",
         "glob": "^13.0.1",
+        "prettier": "^3.8.1",
         "tree-kill": "^1.2.2",
         "uuid": "^14.0.1",
         "vscode-languageclient": "^10.0.0",
+        "vscode-languageserver": "^9.0.1",
+        "vscode-languageserver-textdocument": "^1.0.12",
+        "vscode-uri": "^3.1.0",
         "watcher": "^2.3.1"
     },
     "devDependencies": {
