@@ -1,5 +1,10 @@
 import {
+    isAlias,
+    isCollection,
+    isDocument,
     isMap,
+    isNode,
+    isScalar,
     isSeq,
     LineCounter,
     parseDocument,
@@ -18,13 +23,26 @@ enum EnvironmentTopLevelKey {
 export interface YamlParsingError {
     message: string;
     range: Range;
-    severity: "ERR" | "WARN";
 }
 
 interface CommonParsingArgs {
     docHelper: TextDocumentHelper;
     fullDocumentRange: Range;
 }
+
+// enum VariableType {
+//     Number = "number",
+//     Boolean = "boolean",
+//     Object = "object",
+// }
+
+// interface Variable {
+//     name: string;
+//     value?: string | { type: VariableType; data: unknown };
+//     description?: string;
+//     secret: boolean;
+//     disabled: boolean;
+// }
 
 export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper) {
     const document = parseDocument(docHelper.getText(), {
@@ -60,7 +78,7 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper) {
         return maybeNameField.error;
     }
 
-    const maybeVariablesSequence = getYamlSequenceByKey({
+    const maybeVariablesSequence = getYamlSequenceByKeyFromMap({
         map: topLevelMap,
         key: EnvironmentTopLevelKey.Variables,
         docHelper,
@@ -72,9 +90,16 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper) {
         return maybeVariablesSequence.error;
     }
 
+    const { items: variableItems, errors } = getYamlMapsFromSequence({
+        docHelper,
+        fullDocumentRange,
+        sequence: maybeVariablesSequence.sequence,
+    });
+
     return {
         name: maybeNameField.value,
-        variables: maybeVariablesSequence.sequence,
+        variables: variableItems,
+        errors,
     };
 }
 
@@ -89,7 +114,6 @@ function getTopLevelMapIfExists({
               error: {
                   message: `A top level Yaml map is required`,
                   range: fullDocumentRange,
-                  severity: "ERR" as "ERR",
               },
           };
 }
@@ -119,12 +143,11 @@ function getScalarFieldStringValueFromMap(
                       : ((map.range
                             ? fromYamlRange(map.range, docHelper)
                             : fullDocumentRange) ?? fullDocumentRange),
-                  severity: "ERR" as "ERR",
               },
           };
 }
 
-function getYamlSequenceByKey(
+function getYamlSequenceByKeyFromMap(
     args: CommonParsingArgs & {
         map: YAMLMap<unknown, unknown>;
         key: string;
@@ -148,9 +171,44 @@ function getYamlSequenceByKey(
                       (parentMap.range
                           ? fromYamlRange(parentMap.range, docHelper)
                           : fullDocumentRange) ?? fullDocumentRange,
-                  severity: "ERR" as "ERR",
               },
           };
+}
+
+function getYamlMapsFromSequence(
+    args: CommonParsingArgs & {
+        sequence: YAMLSeq<unknown>;
+    },
+): { items: YAMLMap<unknown, unknown>[]; errors: YamlParsingError[] } {
+    const { sequence, fullDocumentRange, docHelper } = args;
+
+    const items: YAMLMap<unknown, unknown>[] = [];
+    const errors: YamlParsingError[] = [];
+
+    for (const item of sequence.items) {
+        if (isMap(item)) {
+            items.push(item);
+            continue;
+        }
+        const range =
+            isScalar(item) ||
+            isSeq(item) ||
+            isCollection(item) ||
+            isAlias(item) ||
+            isDocument(item) ||
+            isNode(item)
+                ? item.range
+                : sequence.range;
+
+        errors.push({
+            message: "Sequence items should be Yaml maps",
+            range:
+                (range ? fromYamlRange(range, docHelper) : fullDocumentRange) ??
+                fullDocumentRange,
+        });
+    }
+
+    return { items, errors };
 }
 
 function validateKeyExistsInMap(
@@ -170,7 +228,6 @@ function validateKeyExistsInMap(
                   : ((map.range
                         ? fromYamlRange(map.range, docHelper)
                         : fullDocumentRange) ?? fullDocumentRange),
-              severity: "ERR" as "ERR",
           };
 }
 
