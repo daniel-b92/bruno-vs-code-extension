@@ -40,7 +40,9 @@
         "lint": "eslint \"**/*.ts\"",
         "watch": "cd client && webpack --mode development --watch",
         "package": "cd client && webpack --mode production --devtool hidden-source-map && cd ../server && webpack --mode production --devtool hidden-source-map && cd ..",
-        "test-server": "jest --config server/jest.config.js"
+        "test-server": "jest --config server/jest.config.js",
+        "test-shared": "jest --config shared/jest.config.js",
+        "test-all": "npm run test-server && npm run test-shared"
     },
     "dependencies": {
         "@zentryc5t/ts-plugin-for-bruno": "^3.0.3",
