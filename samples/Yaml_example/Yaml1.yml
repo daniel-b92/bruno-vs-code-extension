@@ -1,0 +1,36 @@
+info:
+  name: Yaml1
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: http://bla.com
+  headers:
+    - name: fdsfdsf
+      value: sdfdsf
+      description: sdfsfd
+  body:
+    type: json
+    data: |-
+      {
+        "foo": "bar"
+      }
+  auth:
+    type: basic
+    username: regg
+    password: sdfsfdf
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("Status code is 404", function () {
+          expect(res.getStatus()).to.equal(404);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
