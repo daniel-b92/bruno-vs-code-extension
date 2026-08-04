@@ -1,6 +1,9 @@
 import { LineCounter, parseDocument, YAMLMap } from "yaml";
-import { TextDocumentHelper, YamlParsingError } from "../../..";
-import { getScalarFieldStringValueFromMap } from "../../internal/yamlFormat/yamlMaps/getScalarFieldStringValueFromMap";
+import { Range, TextDocumentHelper, YamlParsingError } from "../../..";
+import {
+    getScalarFieldBooleanValueFromMap,
+    getScalarFieldStringValueFromMap,
+} from "../../internal/yamlFormat/yamlMaps/getScalarFieldValueFromMap";
 import { mapErrors } from "../../internal/yamlFormat/util/mapErrors";
 import { getTopLevelMapIfExists } from "../../internal/yamlFormat/yamlMaps/getTopLevelMapIfExists";
 import { getYamlSequenceByKeyFromMap } from "../../internal/yamlFormat/yamlMaps/getYamlSequenceByKeyFromMap";
@@ -20,10 +23,10 @@ enum VariableProperty {
     Secret = "secret",
 }
 
-enum VariableValueProperty {
-    Type = "type",
-    Data = "data",
-}
+// enum VariableValueProperty {
+//     Type = "type",
+//     Data = "data",
+// }
 
 enum VariableType {
     Number = "number",
@@ -91,9 +94,110 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper) {
         sequence: maybeVariablesSequence.sequence,
     });
 
+    const { variables, errors: additionalErrors } = getVariablesFromMapItems(
+        variableItems,
+        commonArgs,
+    );
+
     return {
         name: maybeNameField.value,
-        variables: variableItems,
-        errors,
+        variables,
+        errors: errors.concat(additionalErrors),
     };
+}
+
+function getVariablesFromMapItems(
+    items: YAMLMap<unknown, unknown>[],
+    commonArgs: CommonParsingArgs,
+): { variables: Variable[]; errors: YamlParsingError[] } {
+    const variables: Variable[] = [];
+    const errors: YamlParsingError[] = [];
+
+    for (const item of items) {
+        const commonParams = { ...commonArgs, map: item, isTopLevelMap: false };
+        const maybeName = getScalarFieldStringValueFromMap({
+            ...commonParams,
+            key: VariableProperty.Name,
+        });
+        // The name field is the only one that always has to be present.
+        if ("error" in maybeName) {
+            errors.push(maybeName.error);
+            continue;
+        }
+
+        const maybeDescription = getScalarFieldStringValueFromMap({
+            ...commonParams,
+            key: VariableProperty.Description,
+        });
+        const maybeDisabled = getScalarFieldBooleanValueFromMap({
+            ...commonParams,
+            key: VariableProperty.Disabled,
+        });
+        const maybeSecret = getScalarFieldBooleanValueFromMap({
+            ...commonParams,
+            key: VariableProperty.Secret,
+        });
+
+        const description = handleOptionalField(maybeDescription, errors);
+
+        // If not defined, the default is enabled for a field.
+        const disabled = handleOptionalField(maybeDisabled, errors) ?? false;
+        // If not defined, a field is treated as non-secret by default.
+        const secret = handleOptionalField(maybeSecret, errors) ?? false;
+
+        variables.push({
+            name: maybeName.value,
+            description,
+            disabled,
+            secret,
+            value: getValueFromMapItemVariable(commonParams),
+        });
+    }
+
+    return { variables, errors };
+}
+
+function getValueFromMapItemVariable(commonParams: {
+    map: YAMLMap<unknown, unknown>;
+    isTopLevelMap: boolean;
+    docHelper: TextDocumentHelper;
+    fullDocumentRange: Range;
+}) {
+    const maybeStringValue = getScalarFieldStringValueFromMap({
+        ...commonParams,
+        key: VariableProperty.Value,
+    });
+
+    if ("value" in maybeStringValue) {
+        return maybeStringValue.value;
+    }
+
+    if (!maybeStringValue.fieldExists) {
+        return undefined;
+    }
+
+    // ToDo: Also handle case where value is again a Yaml map, with a certain type.
+    return undefined;
+}
+
+function handleOptionalField<T>(
+    maybeValue:
+        | {
+              value: T;
+          }
+        | {
+              fieldExists: boolean;
+              error: YamlParsingError;
+          },
+    errorsCollection: YamlParsingError[],
+): T | undefined {
+    if ("value" in maybeValue) {
+        return maybeValue.value;
+    }
+
+    if (maybeValue.fieldExists) {
+        errorsCollection.push(maybeValue.error);
+        return undefined;
+    }
+    return undefined;
 }
