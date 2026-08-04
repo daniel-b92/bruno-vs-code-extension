@@ -32,7 +32,7 @@ export * from "./fileSystemCache/external/getPathsToIgnoreForCollections";
 export * from "./fileSystemCache/external/getExistingRequestFileTags";
 export * from "./fileSystemCache/external/interfaces";
 
-// file parsing
+// file parsing - bru format
 export * from "./fileParsing/external/bruFormat/parseBruFile";
 export * from "./fileParsing/external/bruFormat/parseFileByPath";
 export * from "./fileParsing/external/bruFormat/parseCodeBlock";
@@ -48,6 +48,10 @@ export * from "./fileParsing/external/bruFormat/folderSettings/getSequenceForFol
 export * from "./fileParsing/external/bruFormat/folderSettings/getFolderSettingsFilePath";
 export * from "./fileParsing/external/bruFormat/requestFiles/getSequencesForRequests";
 export * from "./fileParsing/external/bruFormat/requestFiles/getMaxSequenceForRequests";
+
+// file parsing - yaml format
+export * from "./fileParsing/external/yamlFormat/interfaces";
+export * from "./fileParsing/external/yamlFormat/parseYamlEnvironmentFile";
 
 // model
 export * from "./baseModel/collection";
