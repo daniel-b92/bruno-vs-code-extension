@@ -119,34 +119,9 @@ function getVariablesFromMapItems(
 
     for (const item of items) {
         const commonParams = { ...commonArgs, map: item, isTopLevelMap: false };
-        const maybeName = getStringValueByKeyFromMap({
-            ...commonParams,
-            key: VariableProperty.Name,
-        });
-        // The name field is the only one that always has to be present.
-        if ("error" in maybeName) {
-            errors.push(maybeName.error);
-        }
 
-        const maybeDescription = getStringValueByKeyFromMap({
-            ...commonParams,
-            key: VariableProperty.Description,
-        });
-        const description = handleOptionalField(maybeDescription, errors);
-
-        const maybeDisabled = getBooleanValueByKeyFromMap({
-            ...commonParams,
-            key: VariableProperty.Disabled,
-        });
-        // If not defined, the default is enabled for a field.
-        const disabled = handleOptionalField(maybeDisabled, errors) ?? false;
-
-        const maybeSecret = getBooleanValueByKeyFromMap({
-            ...commonParams,
-            key: VariableProperty.Secret,
-        });
-        // If not defined, a field is treated as non-secret by default.
-        const secret = handleOptionalField(maybeSecret, errors) ?? false;
+        const { description, disabled, secret } =
+            getValuesForSimpleOptionalVariableProps(commonParams, errors);
 
         const maybeType = getStringValueByKeyFromMap({
             ...commonParams,
@@ -185,7 +160,15 @@ function getVariablesFromMapItems(
             valueToUse = maybeValue;
         }
 
+        const maybeName = getStringValueByKeyFromMap({
+            ...commonParams,
+            key: VariableProperty.Name,
+        });
         if ("error" in maybeName) {
+            errors.push(maybeName.error);
+        }
+        if ("error" in maybeName) {
+            // The name field is the only one that always has to be present.
             continue;
         }
 
@@ -200,6 +183,37 @@ function getVariablesFromMapItems(
     }
 
     return { variables, errors };
+}
+
+function getValuesForSimpleOptionalVariableProps(
+    commonParams: CommonParsingArgs & {
+        map: YAMLMap<unknown, unknown>;
+        isTopLevelMap: boolean;
+    },
+    errorsCollection: YamlParsingError[],
+) {
+    const maybeDescription = getStringValueByKeyFromMap({
+        ...commonParams,
+        key: VariableProperty.Description,
+    });
+    const description = handleOptionalField(maybeDescription, errorsCollection);
+
+    const maybeDisabled = getBooleanValueByKeyFromMap({
+        ...commonParams,
+        key: VariableProperty.Disabled,
+    });
+    // If not defined, the default is enabled for a field.
+    const disabled =
+        handleOptionalField(maybeDisabled, errorsCollection) ?? false;
+
+    const maybeSecret = getBooleanValueByKeyFromMap({
+        ...commonParams,
+        key: VariableProperty.Secret,
+    });
+    // If not defined, a field is treated as non-secret by default.
+    const secret = handleOptionalField(maybeSecret, errorsCollection) ?? false;
+
+    return { description, disabled, secret };
 }
 
 function getValueFromMapItemVariable(commonParams: {
