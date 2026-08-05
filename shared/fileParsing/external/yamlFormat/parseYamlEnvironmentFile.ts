@@ -32,7 +32,7 @@ enum VariableProperty {
     Type = "type",
 }
 
-enum VariableValueProperty {
+enum VariableValueWithTypeProperty {
     Type = "type",
     Data = "data",
 }
@@ -45,7 +45,6 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper) {
     const commonArgs = { docHelper, fullDocumentRange };
 
     if (document.errors.length > 0) {
-        console.log("Got technical parsing errors.");
         return mapErrors(document.errors, fullDocumentRange);
     }
 
@@ -54,7 +53,6 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper) {
         node: document.contents,
     });
     if ("error" in maybeTopLevelMap) {
-        console.log("Got errors for top level map typeguard.");
         return maybeTopLevelMap.error;
     }
     const { map: topLevelMap } = maybeTopLevelMap;
@@ -220,7 +218,7 @@ function getValueFromMapItemVariable(commonParams: {
     const parsedType = getScalarFieldStringValueFromMap({
         ...commonParams,
         map: maybeChildMap.map,
-        key: VariableValueProperty.Type,
+        key: VariableValueWithTypeProperty.Type,
     });
     if ("error" in parsedType) {
         return parsedType;
@@ -237,7 +235,7 @@ function getValueFromMapItemVariable(commonParams: {
     const maybeData = getScalarFieldStringValueFromMap({
         ...commonParams,
         map: maybeChildMap.map,
-        key: VariableValueProperty.Data,
+        key: VariableValueWithTypeProperty.Data,
     });
     if ("error" in maybeData) {
         return maybeData;
