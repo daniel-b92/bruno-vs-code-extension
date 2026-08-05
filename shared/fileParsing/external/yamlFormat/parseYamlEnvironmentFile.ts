@@ -1,4 +1,4 @@
-import { LineCounter, parseDocument, YAMLMap } from "yaml";
+import { isMap, LineCounter, parseDocument, YAMLMap } from "yaml";
 import { Range, TextDocumentHelper, YamlParsingError } from "../../..";
 import {
     getScalarFieldBooleanValueFromMap,
@@ -10,6 +10,7 @@ import { getYamlSequenceByKeyFromMap } from "../../internal/yamlFormat/yamlMaps/
 import { getYamlMapsFromSequence } from "../../internal/yamlFormat/yamlSequences/getYamlMapsFromSequence";
 import { CommonParsingArgs } from "../../internal/yamlFormat/interfaces";
 import { fromYamlRange } from "../../internal/yamlFormat/util/fromYamlRange";
+import { getYamlMapByKeyFromMap } from "../../internal/yamlFormat/yamlMaps/getYamlMapByKeyFromMap";
 
 enum EnvironmentKeyName {
     Name = "name",
@@ -25,10 +26,10 @@ enum VariableProperty {
     Type = "type",
 }
 
-// enum VariableValueProperty {
-//     Type = "type",
-//     Data = "data",
-// }
+enum VariableValueProperty {
+    Type = "type",
+    Data = "data",
+}
 
 enum VariableType {
     Number = "number",
@@ -148,20 +149,25 @@ function getVariablesFromMapItems(
 
         const description = handleOptionalField(maybeDescription, errors);
         const parsedType = handleOptionalField(maybeType, errors);
-        let typeToUse: VariableType | undefined = undefined;
+        const maybeTypeToUse =
+            parsedType === undefined
+                ? undefined
+                : getTypedVariableType(parsedType, item, {
+                      docHelper,
+                      fullDocumentRange,
+                  });
+        if (maybeTypeToUse && "error" in maybeTypeToUse) {
+            errors.push(maybeTypeToUse.error);
+            continue;
+        }
+        const maybeValue = getValueFromMapItemVariable(commonParams);
         if (
-            parsedType &&
-            !(Object.values(VariableType) as string[]).includes(parsedType)
+            maybeValue &&
+            typeof maybeValue == "object" &&
+            "error" in maybeValue
         ) {
-            errors.push({
-                message: `Invalid type '${parsedType}'. Allowed types are ${JSON.stringify(Object.values(VariableType), null, 2)}`,
-                range:
-                    (item.range
-                        ? fromYamlRange(item.range, docHelper)
-                        : fullDocumentRange) ?? fullDocumentRange,
-            });
-        } else if (parsedType) {
-            typeToUse = parsedType as VariableType;
+            errors.push(maybeValue.error);
+            continue;
         }
 
         // If not defined, the default is enabled for a field.
@@ -174,8 +180,8 @@ function getVariablesFromMapItems(
             description,
             disabled,
             secret,
-            value: getValueFromMapItemVariable(commonParams),
-            type: typeToUse,
+            value: maybeValue,
+            type: maybeTypeToUse?.type,
         });
     }
 
@@ -187,22 +193,66 @@ function getValueFromMapItemVariable(commonParams: {
     isTopLevelMap: boolean;
     docHelper: TextDocumentHelper;
     fullDocumentRange: Range;
-}) {
-    const maybeStringValue = getScalarFieldStringValueFromMap({
+}):
+    | string
+    | { type: VariableType; data: string }
+    | { error: YamlParsingError }
+    | undefined {
+    const { map: variableDefinitionMap } = commonParams;
+    const hasKey = variableDefinitionMap.has(VariableProperty.Value);
+
+    if (!hasKey) {
+        return undefined;
+    }
+
+    const actualField = variableDefinitionMap.get(VariableProperty.Value);
+    if (!isMap(actualField)) {
+        const maybeStringValue = getScalarFieldStringValueFromMap({
+            ...commonParams,
+            key: VariableProperty.Value,
+        });
+        return "error" in maybeStringValue
+            ? maybeStringValue
+            : maybeStringValue.value;
+    }
+
+    const maybeChildMap = getYamlMapByKeyFromMap({
         ...commonParams,
         key: VariableProperty.Value,
     });
 
-    if ("value" in maybeStringValue) {
-        return maybeStringValue.value;
+    if ("error" in maybeChildMap) {
+        return maybeChildMap;
+    }
+    const typeMapItem = maybeChildMap.map;
+
+    const parsedType = getScalarFieldStringValueFromMap({
+        ...commonParams,
+        map: maybeChildMap.map,
+        key: VariableValueProperty.Type,
+    });
+    if ("error" in parsedType) {
+        return parsedType;
     }
 
-    if (!maybeStringValue.fieldExists) {
-        return undefined;
+    const maybeTypeToUse = getTypedVariableType(
+        parsedType.value,
+        typeMapItem,
+        commonParams,
+    );
+    if ("error" in maybeTypeToUse) {
+        return maybeTypeToUse;
+    }
+    const maybeData = getScalarFieldStringValueFromMap({
+        ...commonParams,
+        map: maybeChildMap.map,
+        key: VariableValueProperty.Data,
+    });
+    if ("error" in maybeData) {
+        return maybeData;
     }
 
-    // ToDo: Also handle case where value is again a Yaml map, with a certain type.
-    return undefined;
+    return { data: maybeData.value, type: maybeTypeToUse.type };
 }
 
 function handleOptionalField<T>(
@@ -225,4 +275,24 @@ function handleOptionalField<T>(
         return undefined;
     }
     return undefined;
+}
+
+function getTypedVariableType(
+    unTyped: string,
+    variableItem: YAMLMap<unknown, unknown>,
+    { docHelper, fullDocumentRange }: CommonParsingArgs,
+): { type: VariableType } | { error: YamlParsingError } {
+    if (!(Object.values(VariableType) as string[]).includes(unTyped)) {
+        return {
+            error: {
+                message: `Invalid type '${unTyped}'. Allowed types are ${JSON.stringify(Object.values(VariableType), null, 2)}`,
+                range:
+                    (variableItem.range
+                        ? fromYamlRange(variableItem.range, docHelper)
+                        : fullDocumentRange) ?? fullDocumentRange,
+            },
+        };
+    }
+
+    return { type: unTyped as VariableType };
 }
