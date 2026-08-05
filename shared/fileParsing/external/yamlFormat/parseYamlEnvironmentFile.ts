@@ -1,5 +1,11 @@
 import { isMap, LineCounter, parseDocument, YAMLMap } from "yaml";
-import { Range, TextDocumentHelper, YamlParsingError } from "../../..";
+import {
+    ParsedEnvironmentVariable,
+    Range,
+    TextDocumentHelper,
+    VariableType,
+    YamlParsingError,
+} from "../../..";
 import {
     getScalarFieldBooleanValueFromMap,
     getScalarFieldStringValueFromMap,
@@ -29,21 +35,6 @@ enum VariableProperty {
 enum VariableValueProperty {
     Type = "type",
     Data = "data",
-}
-
-enum VariableType {
-    Number = "number",
-    Boolean = "boolean",
-    Object = "object",
-}
-
-interface Variable {
-    name: string;
-    value?: string | { type: VariableType; data: string };
-    description?: string;
-    type?: VariableType;
-    secret: boolean;
-    disabled: boolean;
 }
 
 export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper) {
@@ -113,8 +104,8 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper) {
 function getVariablesFromMapItems(
     items: YAMLMap<unknown, unknown>[],
     commonArgs: CommonParsingArgs,
-): { variables: Variable[]; errors: YamlParsingError[] } {
-    const variables: Variable[] = [];
+): { variables: ParsedEnvironmentVariable[]; errors: YamlParsingError[] } {
+    const variables: ParsedEnvironmentVariable[] = [];
     const errors: YamlParsingError[] = [];
     const { docHelper, fullDocumentRange } = commonArgs;
 
