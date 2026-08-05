@@ -1,7 +1,7 @@
 import { isMap, YAMLMap, YAMLSeq } from "yaml";
 import { CommonParsingArgs } from "../interfaces";
 import { YamlParsingError } from "../../../..";
-import { getRangeForYamlItem } from "../util/getRangeForYamlItem";
+import { getRangeForUnknownYamlItem } from "../util/getRangeForUnknownYamlItem";
 import { fromYamlRange } from "../util/fromYamlRange";
 
 export function getYamlMapsFromSequence(
@@ -19,7 +19,7 @@ export function getYamlMapsFromSequence(
             items.push(item);
             continue;
         }
-        const range = getRangeForYamlItem(item) ?? sequence.range;
+        const range = getRangeForUnknownYamlItem(item) ?? sequence.range;
 
         errors.push({
             message: "Sequence items should be Yaml maps",

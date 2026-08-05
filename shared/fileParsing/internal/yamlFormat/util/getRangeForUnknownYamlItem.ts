@@ -7,7 +7,7 @@ import {
     isSeq,
 } from "yaml";
 
-export function getRangeForYamlItem(item: unknown) {
+export function getRangeForUnknownYamlItem(item: unknown) {
     return isScalar(item) ||
         isSeq(item) ||
         isCollection(item) ||

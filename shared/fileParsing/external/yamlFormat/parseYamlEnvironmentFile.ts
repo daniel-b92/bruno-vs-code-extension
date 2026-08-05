@@ -9,6 +9,7 @@ import { getTopLevelMapIfExists } from "../../internal/yamlFormat/yamlMaps/getTo
 import { getYamlSequenceByKeyFromMap } from "../../internal/yamlFormat/yamlMaps/getYamlSequenceByKeyFromMap";
 import { getYamlMapsFromSequence } from "../../internal/yamlFormat/yamlSequences/getYamlMapsFromSequence";
 import { CommonParsingArgs } from "../../internal/yamlFormat/interfaces";
+import { fromYamlRange } from "../../internal/yamlFormat/util/fromYamlRange";
 
 enum EnvironmentKeyName {
     Name = "name",
@@ -21,6 +22,7 @@ enum VariableProperty {
     Description = "description",
     Disabled = "disabled",
     Secret = "secret",
+    Type = "type",
 }
 
 // enum VariableValueProperty {
@@ -38,6 +40,7 @@ interface Variable {
     name: string;
     value?: string | { type: VariableType; data: string };
     description?: string;
+    type?: VariableType;
     secret: boolean;
     disabled: boolean;
 }
@@ -112,6 +115,7 @@ function getVariablesFromMapItems(
 ): { variables: Variable[]; errors: YamlParsingError[] } {
     const variables: Variable[] = [];
     const errors: YamlParsingError[] = [];
+    const { docHelper, fullDocumentRange } = commonArgs;
 
     for (const item of items) {
         const commonParams = { ...commonArgs, map: item, isTopLevelMap: false };
@@ -137,8 +141,28 @@ function getVariablesFromMapItems(
             ...commonParams,
             key: VariableProperty.Secret,
         });
+        const maybeType = getScalarFieldStringValueFromMap({
+            ...commonParams,
+            key: VariableProperty.Type,
+        });
 
         const description = handleOptionalField(maybeDescription, errors);
+        const parsedType = handleOptionalField(maybeType, errors);
+        let typeToUse: VariableType | undefined = undefined;
+        if (
+            parsedType &&
+            !(Object.values(VariableType) as string[]).includes(parsedType)
+        ) {
+            errors.push({
+                message: `Invalid type '${parsedType}'. Allowed types are ${JSON.stringify(Object.values(VariableType), null, 2)}`,
+                range:
+                    (item.range
+                        ? fromYamlRange(item.range, docHelper)
+                        : fullDocumentRange) ?? fullDocumentRange,
+            });
+        } else if (parsedType) {
+            typeToUse = parsedType as VariableType;
+        }
 
         // If not defined, the default is enabled for a field.
         const disabled = handleOptionalField(maybeDisabled, errors) ?? false;
@@ -151,6 +175,7 @@ function getVariablesFromMapItems(
             disabled,
             secret,
             value: getValueFromMapItemVariable(commonParams),
+            type: typeToUse,
         });
     }
 
