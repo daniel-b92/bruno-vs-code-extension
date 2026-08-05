@@ -165,10 +165,8 @@ function getVariablesFromMapItems(
             key: VariableProperty.Name,
         });
         if ("error" in maybeName) {
+            // The 'name' field is the only one that always has to be present.
             errors.push(maybeName.error);
-        }
-        if ("error" in maybeName) {
-            // The name field is the only one that always has to be present.
             continue;
         }
 
