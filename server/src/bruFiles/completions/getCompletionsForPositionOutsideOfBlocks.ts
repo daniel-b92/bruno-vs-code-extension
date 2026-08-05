@@ -20,7 +20,7 @@ import {
 import { MissingBlock } from "../shared/interfaces";
 import { getMissingMandatoryBlocks } from "../shared/getMissingMandatoryBlocks";
 import { getMissingOptionalBlocks } from "../shared/getMissingOptionalBlocks";
-import { findBlockEnd } from "../../../../shared/fileParsing/internal/findBlockEnd";
+import { findBlockEnd } from "../../../../shared/fileParsing/internal/bruFormat/findBlockEnd";
 import { getDictionaryBlockSnippetInsertionContent } from "./dictionaryBlocks/generic/getDictionaryBlockSnippetInsertionContent";
 
 interface BlockData {

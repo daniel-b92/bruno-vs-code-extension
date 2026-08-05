@@ -3,7 +3,7 @@ import {
     BrunoFileType,
     getItemType,
     ReadyOnlyCollection,
-} from "../..";
+} from "../../..";
 
 export async function getSequenceForFile<T>(
     collection: ReadyOnlyCollection<T>,

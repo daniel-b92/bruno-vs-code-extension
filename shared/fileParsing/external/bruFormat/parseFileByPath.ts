@@ -3,7 +3,7 @@ import {
     ItemType,
     parseBruFile,
     TextDocumentHelper,
-} from "../..";
+} from "../../..";
 
 export async function parseFileByPath(path: string, itemType: ItemType) {
     const content = await getFileContent(path);

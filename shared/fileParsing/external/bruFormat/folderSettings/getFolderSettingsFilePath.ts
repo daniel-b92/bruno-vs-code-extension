@@ -2,7 +2,7 @@ import { readdir } from "fs";
 import {
     doesFileNameMatchCollectionSettingsFile,
     doesFileNameMatchFolderSettingsFileName,
-} from "../../..";
+} from "../../../..";
 import { resolve } from "path";
 import { promisify } from "util";
 

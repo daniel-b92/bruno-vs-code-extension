@@ -1,10 +1,10 @@
 import { lstat } from "fs";
-import { parseSequenceFromMetaBlock } from "../shared/parseSequenceFromMetaBlock";
+import { parseSequenceFromMetaBlock } from "../parseSequenceFromMetaBlock";
 import {
     checkIfPathExistsAsync,
     getFolderSettingsFilePath,
     normalizePath,
-} from "../../..";
+} from "../../../..";
 import { promisify } from "util";
 
 export async function getSequenceForFolder(

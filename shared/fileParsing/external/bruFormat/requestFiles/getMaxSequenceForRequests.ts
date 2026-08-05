@@ -1,5 +1,5 @@
 import { getSequencesForRequests } from "./getSequencesForRequests";
-import { CollectionItemProvider } from "../../..";
+import { CollectionItemProvider } from "../../../..";
 
 export async function getMaxSequenceForRequests<T>(
     itemProvider: CollectionItemProvider<T>,

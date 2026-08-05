@@ -1,4 +1,4 @@
-import { TextDocumentHelper } from "../../fileSystem/textDocumentHelper";
+import { TextDocumentHelper } from "../../../fileSystem/textDocumentHelper";
 import {
     BlockType,
     Range,
@@ -9,9 +9,9 @@ import {
     BrunoVariableReference,
     ItemType,
     DictionaryBlockDescription,
-} from "../..";
-import { getBrunoVariableReferencesInNonCodeBlock } from "./variables/getBrunoVariableReferencesInNonCodeBlock";
-import { getBrunoVariableReferencesInCodeBlock } from "./variables/getBrunoVariableReferencesInCodeBlock";
+} from "../../..";
+import { getBrunoVariableReferencesInNonCodeBlock } from "../variables/getBrunoVariableReferencesInNonCodeBlock";
+import { getBrunoVariableReferencesInCodeBlock } from "../../external/shared/codeBlocks/getBrunoVariableReferencesInCodeBlock";
 import { parseArrayBlock } from "./parseArrayBlock";
 import { parseDictionaryBlock } from "./parseDictionaryBlock";
 import { parsePlainTextBlock } from "./parsePlainTextBlock";

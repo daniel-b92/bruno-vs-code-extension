@@ -1,0 +1,31 @@
+name: Env1
+variables:
+    - name: var-1
+      value: test-1
+      description: desc
+    - name: var-2
+      value:
+          type: number
+          data: "34"
+      description: ""
+    - name: sadas
+      value: fdsafd
+      disabled: true
+      description: asfasf
+    - name: dfgdfg
+      value:
+          type: object
+          data: |-
+              {
+              "id": 2333,
+              "other": "sdasda"
+              }
+      description: ""
+    - secret: true
+      name: sdfsdf
+      type: number
+      description: fesdf
+    - secret: true
+      name: other
+      disabled: true
+      description: ""

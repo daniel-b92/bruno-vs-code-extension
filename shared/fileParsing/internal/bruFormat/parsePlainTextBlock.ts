@@ -1,4 +1,4 @@
-import { BlockBracket, Position, Range, TextDocumentHelper } from "../..";
+import { BlockBracket, Position, Range, TextDocumentHelper } from "../../..";
 
 export function parsePlainTextBlock(
     docHelper: TextDocumentHelper,

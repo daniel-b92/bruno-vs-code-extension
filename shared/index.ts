@@ -32,22 +32,26 @@ export * from "./fileSystemCache/external/getPathsToIgnoreForCollections";
 export * from "./fileSystemCache/external/getExistingRequestFileTags";
 export * from "./fileSystemCache/external/interfaces";
 
-// file parsing
-export * from "./fileParsing/external/parseBruFile";
-export * from "./fileParsing/external/parseFileByPath";
-export * from "./fileParsing/external/parseCodeBlock";
-export * from "./fileParsing/external/getSequenceForFile";
-export * from "./fileParsing/external/shared/getSequenceFieldFromMetaBlock";
-export * from "./fileParsing/external/shared/parseSequenceFromMetaBlock";
-export * from "./fileParsing/external/shared/util/getBlockStartPatternByName";
+// file parsing - bru format
+export * from "./fileParsing/external/bruFormat/parseBruFile";
+export * from "./fileParsing/external/bruFormat/parseFileByPath";
+export * from "./fileParsing/external/bruFormat/parseCodeBlock";
+export * from "./fileParsing/external/bruFormat/getSequenceForFile";
+export * from "./fileParsing/external/bruFormat/getSequenceFieldFromMetaBlock";
+export * from "./fileParsing/external/bruFormat/parseSequenceFromMetaBlock";
+export * from "./fileParsing/external/bruFormat/util/getBlockStartPatternByName";
 export * from "./fileParsing/external/shared/codeBlocks/getInbuiltFunctionAndFirstParameterIfStringLiteral";
-export * from "./fileParsing/external/shared/util/getContentRangeForArrayOrDictionaryBlock";
-export * from "./fileParsing/external/shared/util/getNonBlockSpecificBlockStartPattern";
-export * from "./fileParsing/external/parseBlockFromFile";
-export * from "./fileParsing/external/folderSettings/getSequenceForFolder";
-export * from "./fileParsing/external/folderSettings/getFolderSettingsFilePath";
-export * from "./fileParsing/external/requestFiles/getSequencesForRequests";
-export * from "./fileParsing/external/requestFiles/getMaxSequenceForRequests";
+export * from "./fileParsing/external/bruFormat/util/getContentRangeForArrayOrDictionaryBlock";
+export * from "./fileParsing/external/bruFormat/util/getNonBlockSpecificBlockStartPattern";
+export * from "./fileParsing/external/bruFormat/parseBlockFromFile";
+export * from "./fileParsing/external/bruFormat/folderSettings/getSequenceForFolder";
+export * from "./fileParsing/external/bruFormat/folderSettings/getFolderSettingsFilePath";
+export * from "./fileParsing/external/bruFormat/requestFiles/getSequencesForRequests";
+export * from "./fileParsing/external/bruFormat/requestFiles/getMaxSequenceForRequests";
+
+// file parsing - yaml format
+export * from "./fileParsing/external/yamlFormat/interfaces";
+export * from "./fileParsing/external/yamlFormat/parseYamlEnvironmentFile";
 
 // model
 export * from "./baseModel/collection";
