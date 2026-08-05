@@ -2,7 +2,7 @@ import { isMap, YAMLMap } from "yaml";
 import { CommonParsingArgs } from "../interfaces";
 import { YamlParsingError } from "../../../..";
 import { validateKeyExistsInMap } from "./validateKeyExistsInMap";
-import { fromYamlRange } from "../util/fromYamlRange";
+import { getRangeForError } from "../util/getRangeForError";
 
 export function getYamlMapByKeyFromMap(
     args: CommonParsingArgs & {
@@ -11,7 +11,7 @@ export function getYamlMapByKeyFromMap(
         isTopLevelMap: boolean;
     },
 ): { map: YAMLMap<unknown, unknown> } | { error: YamlParsingError } {
-    const { map: parentMap, key, fullDocumentRange, docHelper } = args;
+    const { map: parentMap, key } = args;
 
     const existenceError = validateKeyExistsInMap(args);
     if (existenceError) {
@@ -24,10 +24,7 @@ export function getYamlMapByKeyFromMap(
         : {
               error: {
                   message: `Field '${key}' should be a Yaml map. Got ${JSON.stringify(field)}`,
-                  range:
-                      (parentMap.range
-                          ? fromYamlRange(parentMap.range, docHelper)
-                          : fullDocumentRange) ?? fullDocumentRange,
+                  range: getRangeForError(parentMap, args),
               },
           };
 }

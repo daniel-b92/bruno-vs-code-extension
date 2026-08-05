@@ -1,8 +1,13 @@
 import { Range } from "../../..";
 
+export enum YamlParsingSpecialErrorCode {
+    FieldDoesNotExist = 1,
+}
+
 export interface YamlParsingError {
     message: string;
     range: Range;
+    code?: YamlParsingSpecialErrorCode;
 }
 
 export interface ParsedEnvironmentVariable {

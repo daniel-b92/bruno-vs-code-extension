@@ -2,7 +2,7 @@ import { isSeq, YAMLMap, YAMLSeq } from "yaml";
 import { CommonParsingArgs } from "../interfaces";
 import { YamlParsingError } from "../../../..";
 import { validateKeyExistsInMap } from "./validateKeyExistsInMap";
-import { fromYamlRange } from "../util/fromYamlRange";
+import { getRangeForError } from "../util/getRangeForError";
 
 export function getYamlSequenceByKeyFromMap(
     args: CommonParsingArgs & {
@@ -10,8 +10,8 @@ export function getYamlSequenceByKeyFromMap(
         key: string;
         isTopLevelMap: boolean;
     },
-): { sequence: YAMLSeq<unknown> } | { error: YamlParsingError } {
-    const { map: parentMap, key, fullDocumentRange, docHelper } = args;
+): { value: YAMLSeq<unknown> } | { error: YamlParsingError } {
+    const { map: parentMap, key } = args;
 
     const existenceError = validateKeyExistsInMap(args);
     if (existenceError) {
@@ -20,14 +20,11 @@ export function getYamlSequenceByKeyFromMap(
 
     const field = parentMap.get(key);
     return isSeq(field)
-        ? { sequence: field }
+        ? { value: field }
         : {
               error: {
                   message: `Field '${key}' should be a Yaml sequence. Got ${JSON.stringify(field)}`,
-                  range:
-                      (parentMap.range
-                          ? fromYamlRange(parentMap.range, docHelper)
-                          : fullDocumentRange) ?? fullDocumentRange,
+                  range: getRangeForError(parentMap, args),
               },
           };
 }
