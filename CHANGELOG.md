@@ -1,8 +1,9 @@
-## [Unreleased]
+## [1.2.5] (2026-08-05)
 
 ### Fixes / Maintenance
 
 - Add basic support for type annotations (`@number`, `@boolean`, `@object`) in dictionary blocks: Syntax highlighting and diagnostics.
+- Fix high severity vulnerabilities for `brace-expansion` package.
 
 ## [1.2.4] (2026-07-30)
 
