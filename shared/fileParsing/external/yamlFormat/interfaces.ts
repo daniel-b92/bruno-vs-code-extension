@@ -12,23 +12,22 @@ export interface YamlParsingError {
 }
 
 export interface ParsedEnvironmentVariable {
-    name: WithKeyAndValueRange<string>;
+    name: WithRange<string>;
     value?:
-        | WithKeyAndValueRange<string>
+        | WithRange<string>
         | {
-              type: WithKeyAndValueRange<VariableType>;
-              data: WithKeyAndValueRange<string>;
+              type: WithRange<VariableType>;
+              data: WithRange<string>;
           };
-    description?: WithKeyAndValueRange<string>;
-    type?: WithKeyAndValueRange<VariableType>;
-    secret?: WithKeyAndValueRange<boolean>;
-    disabled?: WithKeyAndValueRange<boolean>;
+    description?: WithRange<string>;
+    type?: WithRange<VariableType>;
+    secret?: WithRange<boolean>;
+    disabled?: WithRange<boolean>;
 }
 
-export interface WithKeyAndValueRange<T> {
-    keyRange: Range;
+export interface WithRange<T> {
     value: T;
-    valueRange: Range;
+    range: Range;
 }
 
 export enum VariableType {

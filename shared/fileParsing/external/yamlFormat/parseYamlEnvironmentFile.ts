@@ -11,7 +11,7 @@ import {
     Range,
     TextDocumentHelper,
     VariableType,
-    WithKeyAndValueRange,
+    WithRange,
     YamlParsingError,
     YamlParsingSpecialErrorCode,
 } from "../../..";
@@ -32,6 +32,7 @@ import {
 } from "../../internal/yamlFormat/yamlScalars/getTypedYamlScalar";
 import { getRangeForUnknownYamlItem } from "../../internal/yamlFormat/util/getRangeForUnknownYamlItem";
 import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/yamlMaps/getErrorForMissingKeyInMap";
+import { mapFromYamlScalar } from "../../internal/yamlFormat/util/mapFromYamlScalar";
 
 enum EnvironmentKeyName {
     Name = "name",
@@ -55,7 +56,7 @@ enum VariableValueWithTypeProperty {
 export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
     | YamlParsingError[]
     | {
-          name?: WithKeyAndValueRange<string>;
+          name?: WithRange<string>;
           variables: ParsedEnvironmentVariable[];
           errors: YamlParsingError[];
       } {
@@ -96,9 +97,19 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
         ),
     );
 
-    const nameField = mapItems.validScalars.find(
+    const maybeName = mapItems.validScalars.find(
         ({ key }) => key == EnvironmentKeyName.Name,
     )?.item;
+    const maybeTypedName = maybeName
+        ? getStringYamlScalar(maybeName, VariableProperty.Name, commonArgs)
+        : undefined;
+    let nameToUse: WithRange<string> | undefined = undefined;
+    if (maybeTypedName && "error" in maybeTypedName) {
+        collectedErrors.push(maybeTypedName.error);
+    } else if (maybeTypedName) {
+        nameToUse = mapFromYamlScalar(maybeTypedName.item, commonArgs);
+    }
+
     const variablesSequence = mapItems.validSequences.find(
         ({ key }) => key == EnvironmentKeyName.Variables,
     )?.item;
@@ -120,10 +131,7 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
     );
 
     return {
-        name:
-            nameField && typeof nameField.value == "string"
-                ? nameField.value
-                : undefined,
+        name: nameToUse,
         variables,
         errors: collectedErrors.concat(firstErrorBatch, secondErrorBatch),
     };
@@ -213,12 +221,23 @@ function getVariablesFromMapItems(
         const name = maybeTypedName.item;
 
         variables.push({
-            name: maybeName.value,
-            description: maybeDescription,
-            disabled,
-            secret,
-            value: valueToUse,
-            type: typeToUse,
+            name: mapFromYamlScalar(name, commonArgs),
+            description: description
+                ? mapFromYamlScalar(description, commonArgs)
+                : undefined,
+            disabled: disabled
+                ? mapFromYamlScalar(disabled, commonArgs)
+                : undefined,
+            secret: secret ? mapFromYamlScalar(secret, commonArgs) : undefined,
+            value: !valueToUse
+                ? undefined
+                : isScalar<string>(valueToUse)
+                  ? mapFromYamlScalar(valueToUse, commonArgs)
+                  : {
+                        data: mapFromYamlScalar(valueToUse.data, commonArgs),
+                        type: mapFromYamlScalar(valueToUse.type, commonArgs),
+                    },
+            type: type ? mapFromYamlScalar(type, commonArgs) : undefined,
         });
     }
 
