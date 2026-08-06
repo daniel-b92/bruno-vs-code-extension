@@ -1,13 +1,4 @@
-import {
-    isMap,
-    isScalar,
-    isSeq,
-    LineCounter,
-    parseDocument,
-    Scalar,
-    YAMLMap,
-    YAMLSeq,
-} from "yaml";
+import { isMap, LineCounter, parseDocument, YAMLMap } from "yaml";
 import {
     ParsedEnvironmentVariable,
     Range,
@@ -22,13 +13,10 @@ import {
 } from "../../internal/yamlFormat/yamlMaps/getScalarValueByKeyFromMap";
 import { mapErrors } from "../../internal/yamlFormat/util/mapErrors";
 import { getTopLevelMapIfExists } from "../../internal/yamlFormat/yamlMaps/getTopLevelMapIfExists";
-import { getYamlSequenceByKeyFromMap } from "../../internal/yamlFormat/yamlMaps/getYamlSequenceByKeyFromMap";
 import { getYamlMapsFromSequence } from "../../internal/yamlFormat/yamlSequences/getYamlMapsFromSequence";
 import { CommonParsingArgs } from "../../internal/yamlFormat/interfaces";
 import { getYamlMapByKeyFromMap } from "../../internal/yamlFormat/yamlMaps/getYamlMapByKeyFromMap";
 import { getRangeForError } from "../../internal/yamlFormat/util/getRangeForError";
-import { getRangeForUnknownYamlItem } from "../../internal/yamlFormat/util/getRangeForUnknownYamlItem";
-import { fromYamlRange } from "../../internal/yamlFormat/util/fromYamlRange";
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
 
 enum EnvironmentKeyName {
@@ -113,7 +101,10 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
     );
 
     return {
-        name: "value" in nameField ? nameField.value : undefined,
+        name:
+            nameField && typeof nameField?.value == "string"
+                ? nameField.value
+                : undefined,
         variables,
         errors: collectedErrors.concat(firstErrorBatch, secondErrorBatch),
     };
