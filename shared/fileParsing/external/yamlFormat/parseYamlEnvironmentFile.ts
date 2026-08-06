@@ -1,4 +1,13 @@
-import { isMap, LineCounter, parseDocument, YAMLMap } from "yaml";
+import {
+    isMap,
+    isScalar,
+    isSeq,
+    LineCounter,
+    parseDocument,
+    Scalar,
+    YAMLMap,
+    YAMLSeq,
+} from "yaml";
 import {
     ParsedEnvironmentVariable,
     Range,
@@ -18,6 +27,9 @@ import { getYamlMapsFromSequence } from "../../internal/yamlFormat/yamlSequences
 import { CommonParsingArgs } from "../../internal/yamlFormat/interfaces";
 import { getYamlMapByKeyFromMap } from "../../internal/yamlFormat/yamlMaps/getYamlMapByKeyFromMap";
 import { getRangeForError } from "../../internal/yamlFormat/util/getRangeForError";
+import { getRangeForUnknownYamlItem } from "../../internal/yamlFormat/util/getRangeForUnknownYamlItem";
+import { fromYamlRange } from "../../internal/yamlFormat/util/fromYamlRange";
+import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
 
 enum EnvironmentKeyName {
     Name = "name",
@@ -67,29 +79,27 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
     }
     const { map: topLevelMap } = maybeTopLevelMap;
 
-    const maybeNameField = getStringValueByKeyFromMap({
-        ...commonArgs,
-        map: topLevelMap,
-        key: EnvironmentKeyName.Name,
-        isTopLevelMap: true,
-    });
-    const maybeVariablesSequence = getYamlSequenceByKeyFromMap({
-        ...commonArgs,
-        map: topLevelMap,
-        key: EnvironmentKeyName.Variables,
-        isTopLevelMap: true,
-    });
+    const { items: mapItems, errors: mapItemErrors } = getMapItems(
+        topLevelMap,
+        {
+            scalarValues: [EnvironmentKeyName.Name],
+            sequenceValues: [EnvironmentKeyName.Variables],
+        },
+        commonArgs,
+    );
 
-    if ("error" in maybeNameField) {
-        // Error is non-blocking for continuing with parsing variables.
-        collectedErrors.push(maybeNameField.error);
-    }
+    collectedErrors.push(...mapItemErrors);
 
-    if ("error" in maybeVariablesSequence) {
-        // Error is blocking for further parsing of variables.
-        return [maybeVariablesSequence.error];
+    const nameField = mapItems.validScalars.find(
+        ({ key }) => key == EnvironmentKeyName.Name,
+    )?.value;
+    const variablesSequence = mapItems.validSequences.find(
+        ({ key }) => key == EnvironmentKeyName.Name,
+    )?.value;
+
+    if (!variablesSequence) {
+        return collectedErrors;
     }
-    const variablesSequence = maybeVariablesSequence.value;
 
     const { items: variableItems, errors: firstErrorBatch } =
         getYamlMapsFromSequence({
@@ -103,7 +113,7 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
     );
 
     return {
-        name: "value" in maybeNameField ? maybeNameField.value : undefined,
+        name: "value" in nameField ? nameField.value : undefined,
         variables,
         errors: collectedErrors.concat(firstErrorBatch, secondErrorBatch),
     };
