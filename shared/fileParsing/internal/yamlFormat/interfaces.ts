@@ -7,8 +7,16 @@ export interface CommonParsingArgs {
 }
 
 export interface ParsedMapItems {
-    validScalars: { key: string; item: Scalar<unknown> }[];
-    validSequences: { key: string; item: YAMLSeq<unknown> }[];
+    validScalars: {
+        key: string;
+        keyRange: Range;
+        value: Scalar<unknown>;
+    }[];
+    validSequences: {
+        key: string;
+        keyRange: Range;
+        value: YAMLSeq<unknown>;
+    }[];
     invalidScalars: { key: string; valueRange: Range }[];
     invalidSequences: { key: string; valueRange: Range }[];
     unknownKeys: { key: string; keyRange: Range }[];

@@ -1,6 +1,6 @@
 import { isScalar, Scalar } from "yaml";
 import { CommonParsingArgs } from "../interfaces";
-import { getRangeForError } from "../util/getRangeForError";
+import { getRangeForItem } from "../util/getRangeForItem";
 
 enum FieldValueType {
     String = "string",
@@ -46,7 +46,7 @@ function getTypeMismatchErrorResult(
     return {
         error: {
             message: `Scalar field '${fieldDescription}' should be a ${expectedValueType}.`,
-            range: getRangeForError(field, args),
+            range: getRangeForItem(field, args),
         },
     };
 }

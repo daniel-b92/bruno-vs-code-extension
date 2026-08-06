@@ -1,7 +1,7 @@
 import { YAMLMap } from "yaml";
 import { CommonParsingArgs } from "../interfaces";
 import { YamlParsingError, YamlParsingSpecialErrorCode } from "../../../..";
-import { getRangeForError } from "../util/getRangeForError";
+import { getRangeForItem } from "../util/getRangeForItem";
 
 export function validateKeyExistsInMap(
     args: CommonParsingArgs & {
@@ -17,7 +17,7 @@ export function validateKeyExistsInMap(
               message: `Mandatory key '${key}' is missing in Yaml map.`,
               range: isTopLevelMap
                   ? fullDocumentRange
-                  : getRangeForError(map, args),
+                  : getRangeForItem(map, args),
               code: YamlParsingSpecialErrorCode.FieldDoesNotExist,
           };
 }

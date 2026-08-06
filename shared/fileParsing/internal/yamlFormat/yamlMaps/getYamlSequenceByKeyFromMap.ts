@@ -2,7 +2,7 @@ import { isSeq, YAMLMap, YAMLSeq } from "yaml";
 import { CommonParsingArgs } from "../interfaces";
 import { YamlParsingError } from "../../../..";
 import { validateKeyExistsInMap } from "./validateKeyExistsInMap";
-import { getRangeForError } from "../util/getRangeForError";
+import { getRangeForItem } from "../util/getRangeForItem";
 
 export function getYamlSequenceByKeyFromMap(
     args: CommonParsingArgs & {
@@ -24,7 +24,7 @@ export function getYamlSequenceByKeyFromMap(
         : {
               error: {
                   message: `Field '${key}' should be a Yaml sequence. Got ${JSON.stringify(field)}`,
-                  range: getRangeForError(parentMap, args),
+                  range: getRangeForItem(parentMap, args),
               },
           };
 }

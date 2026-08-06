@@ -1,7 +1,7 @@
 import { isScalar, isSeq, Scalar, YAMLMap } from "yaml";
 import { Range, YamlParsingError } from "../../../..";
 import { CommonParsingArgs, ParsedMapItems } from "../interfaces";
-import { getRangeForError } from "../util/getRangeForError";
+import { getRangeForItem } from "../util/getRangeForItem";
 import { fromYamlRange } from "../util/fromYamlRange";
 import { getRangeForUnknownYamlItem } from "../util/getRangeForUnknownYamlItem";
 
@@ -31,20 +31,34 @@ export function getMapItems(
         if (!keyAsScalar) {
             errors.push({
                 message: `Non scalar string key '${key} defined'`,
-                range: getRangeForError(map, commonParsingArgs),
+                range: getRangeForItem(map, commonParsingArgs),
             });
             continue;
         }
 
         const { value: keyValue } = keyAsScalar;
+        const maybeKeyRange = getKeyRange(keyAsScalar, map, commonParsingArgs);
+        if ("error" in maybeKeyRange) {
+            errors.push(maybeKeyRange.error);
+            continue;
+        }
+        const keyRange = maybeKeyRange.range;
 
         if (expectedKeys.scalarValues.includes(keyValue) && isScalar(value)) {
-            items.validScalars.push({ key: keyValue, item: value });
+            items.validScalars.push({
+                key: keyValue,
+                keyRange,
+                value: value,
+            });
             continue;
         }
 
         if (expectedKeys.sequenceValues.includes(keyValue) && isSeq(value)) {
-            items.validSequences.push({ key: keyValue, item: value });
+            items.validSequences.push({
+                key: keyValue,
+                keyRange,
+                value: value,
+            });
             continue;
         }
 
@@ -72,13 +86,6 @@ export function getMapItems(
             continue;
         }
 
-        const maybeKeyRange = getKeyRange(keyAsScalar, map, commonParsingArgs);
-        if ("error" in maybeKeyRange) {
-            errors.push(maybeKeyRange.error);
-            continue;
-        }
-        const keyRange = maybeKeyRange.range;
-
         items.unknownKeys.push({ key: keyValue, keyRange });
     }
 
@@ -99,7 +106,7 @@ function getKeyRange(
         : {
               error: {
                   message: `Could not determine range for key '${key}'`,
-                  range: getRangeForError(parentMap, commonParsingArgs),
+                  range: getRangeForItem(parentMap, commonParsingArgs),
               },
           };
 }
@@ -119,7 +126,7 @@ function getValueRange(
         : {
               error: {
                   message: `Could not determine range for value of key '${keyValue}'`,
-                  range: getRangeForError(parentMap, commonParsingArgs),
+                  range: getRangeForItem(parentMap, commonParsingArgs),
               },
           };
 }

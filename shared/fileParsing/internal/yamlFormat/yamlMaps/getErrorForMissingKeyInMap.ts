@@ -1,7 +1,7 @@
 import { CommonParsingArgs } from "../interfaces";
 import { YamlParsingError, YamlParsingSpecialErrorCode } from "../../../..";
 import { YAMLMap } from "yaml";
-import { getRangeForError } from "../util/getRangeForError";
+import { getRangeForItem } from "../util/getRangeForItem";
 
 export function getErrorForMissingKeyInMap(
     args: CommonParsingArgs & {
@@ -12,7 +12,7 @@ export function getErrorForMissingKeyInMap(
     const { missingKey, map } = args;
     return {
         message: `Mandatory key '${missingKey}' missing in Yaml map.`,
-        range: getRangeForError(map, args),
+        range: getRangeForItem(map, args),
         code: YamlParsingSpecialErrorCode.FieldDoesNotExist,
     };
 }

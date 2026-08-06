@@ -1,18 +1,32 @@
-import { Scalar } from "yaml";
-import { WithRange } from "../../../..";
+import { Scalar, Range as YamlRange } from "yaml";
+import { Range, WithKeyAndValueRange } from "../../../..";
 import { CommonParsingArgs } from "../interfaces";
 import { fromYamlRange } from "./fromYamlRange";
 
 export function mapFromYamlScalar<T>(
-    source: Scalar<T>,
-    { docHelper, fullDocumentRange }: CommonParsingArgs,
-): WithRange<T> {
-    const { range: yamlRange, value } = source;
+    keyRange: Range,
+    valueField: Scalar<T>,
+    commonParsingArgs: CommonParsingArgs,
+): WithKeyAndValueRange<T> {
+    const { range: yamlValueRange, value } = valueField;
 
     return {
-        range: yamlRange
-            ? (fromYamlRange(yamlRange, docHelper) ?? fullDocumentRange)
-            : fullDocumentRange,
+        keyRange,
+        valueRange: fromYamlRangeWithFallback({
+            ...commonParsingArgs,
+            source: yamlValueRange,
+        }),
         value,
     };
+}
+
+function fromYamlRangeWithFallback(
+    args: CommonParsingArgs & {
+        source: YamlRange | null | undefined;
+    },
+) {
+    const { docHelper, fullDocumentRange, source } = args;
+    return source
+        ? (fromYamlRange(source, docHelper) ?? fullDocumentRange)
+        : fullDocumentRange;
 }
