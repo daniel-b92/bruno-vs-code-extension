@@ -1,17 +1,16 @@
-import { isScalar, isSeq, Scalar, YAMLMap, YAMLSeq } from "yaml";
+import { isScalar, isSeq, Scalar, YAMLMap } from "yaml";
 import { Range, YamlParsingError } from "../../../..";
-import { CommonParsingArgs } from "../interfaces";
+import { CommonParsingArgs, ParsedMapItems } from "../interfaces";
 import { getRangeForError } from "../util/getRangeForError";
 import { fromYamlRange } from "../util/fromYamlRange";
+import { getRangeForUnknownYamlItem } from "../util/getRangeForUnknownYamlItem";
 
-interface ParsedMapItems {
-    validScalars: { key: string; value: Scalar<unknown> }[];
-    validSequences: { key: string; value: YAMLSeq<unknown> }[];
-    invalidScalars: { key: string; keyRange: Range }[];
-    invalidSequences: { key: string; keyRange: Range }[];
-    unknownKeys: { key: string; keyRange: Range }[];
-}
-
+/**
+ * Parses a YAML map and categorizes its items into valid scalars, valid sequences, invalid scalars, invalid sequences, and unknown keys based on the provided expected keys.
+ * It also collects any technical errors encountered during parsing.
+ * No errors are collected for items that have a different type than expected.
+ * The same is the case for items with unknown keys.
+ */
 export function getMapItems(
     map: YAMLMap<unknown, unknown>,
     expectedKeys: { scalarValues: string[]; sequenceValues: string[] },
@@ -40,12 +39,36 @@ export function getMapItems(
         const { value: keyValue } = keyAsScalar;
 
         if (expectedKeys.scalarValues.includes(keyValue) && isScalar(value)) {
-            items.validScalars.push({ key: keyValue, value });
+            items.validScalars.push({ key: keyValue, item: value });
             continue;
         }
 
         if (expectedKeys.sequenceValues.includes(keyValue) && isSeq(value)) {
-            items.validSequences.push({ key: keyValue, value });
+            items.validSequences.push({ key: keyValue, item: value });
+            continue;
+        }
+
+        const maybeValueRange = getValueRange(
+            keyAsScalar.value,
+            value,
+            map,
+            commonParsingArgs,
+        );
+        if ("error" in maybeValueRange) {
+            errors.push(maybeValueRange.error);
+            continue;
+        }
+        const valueRange = maybeValueRange.range;
+
+        if (expectedKeys.scalarValues.includes(keyValue)) {
+            items.invalidScalars.push({ key: keyValue, valueRange });
+            continue;
+        }
+        if (expectedKeys.sequenceValues.includes(keyValue)) {
+            items.invalidSequences.push({
+                key: keyValue,
+                valueRange,
+            });
             continue;
         }
 
@@ -55,16 +78,6 @@ export function getMapItems(
             continue;
         }
         const keyRange = maybeKeyRange.range;
-
-        if (expectedKeys.scalarValues.includes(keyValue)) {
-            items.invalidScalars.push({ key: keyValue, keyRange });
-            continue;
-        }
-
-        if (expectedKeys.sequenceValues.includes(keyValue)) {
-            items.invalidSequences.push({ key: keyValue, keyRange });
-            continue;
-        }
 
         items.unknownKeys.push({ key: keyValue, keyRange });
     }
@@ -77,15 +90,35 @@ function getKeyRange(
     parentMap: YAMLMap<unknown, unknown>,
     commonParsingArgs: CommonParsingArgs,
 ): { range: Range } | { error: YamlParsingError } {
-    const keyYamlRange = key.range;
-    const keyRange = keyYamlRange
-        ? fromYamlRange(keyYamlRange, commonParsingArgs.docHelper)
+    const yamlRange = key.range;
+    const range = yamlRange
+        ? fromYamlRange(yamlRange, commonParsingArgs.docHelper)
         : undefined;
-    return keyRange
-        ? { range: keyRange }
+    return range
+        ? { range }
         : {
               error: {
                   message: `Could not determine range for key '${key}'`,
+                  range: getRangeForError(parentMap, commonParsingArgs),
+              },
+          };
+}
+
+function getValueRange(
+    keyValue: string,
+    valueItem: unknown,
+    parentMap: YAMLMap<unknown, unknown>,
+    commonParsingArgs: CommonParsingArgs,
+): { range: Range } | { error: YamlParsingError } {
+    const yamlRange = getRangeForUnknownYamlItem(valueItem);
+    const range = yamlRange
+        ? fromYamlRange(yamlRange, commonParsingArgs.docHelper)
+        : undefined;
+    return range
+        ? { range }
+        : {
+              error: {
+                  message: `Could not determine range for value of key '${keyValue}'`,
                   range: getRangeForError(parentMap, commonParsingArgs),
               },
           };

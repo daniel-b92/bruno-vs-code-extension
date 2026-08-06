@@ -1,6 +1,15 @@
+import { Scalar, YAMLSeq } from "yaml";
 import { Range, TextDocumentHelper } from "../../..";
 
 export interface CommonParsingArgs {
     docHelper: TextDocumentHelper;
     fullDocumentRange: Range;
+}
+
+export interface ParsedMapItems {
+    validScalars: { key: string; item: Scalar<unknown> }[];
+    validSequences: { key: string; item: YAMLSeq<unknown> }[];
+    invalidScalars: { key: string; valueRange: Range }[];
+    invalidSequences: { key: string; valueRange: Range }[];
+    unknownKeys: { key: string; keyRange: Range }[];
 }

@@ -1,23 +1,37 @@
-import { isMap, LineCounter, parseDocument, YAMLMap } from "yaml";
+import {
+    isMap,
+    isScalar,
+    LineCounter,
+    parseDocument,
+    Scalar,
+    YAMLMap,
+} from "yaml";
 import {
     ParsedEnvironmentVariable,
     Range,
     TextDocumentHelper,
     VariableType,
+    WithKeyAndValueRange,
     YamlParsingError,
     YamlParsingSpecialErrorCode,
 } from "../../..";
-import {
-    getBooleanValueByKeyFromMap,
-    getStringValueByKeyFromMap,
-} from "../../internal/yamlFormat/yamlMaps/getScalarValueByKeyFromMap";
 import { mapErrors } from "../../internal/yamlFormat/util/mapErrors";
 import { getTopLevelMapIfExists } from "../../internal/yamlFormat/yamlMaps/getTopLevelMapIfExists";
 import { getYamlMapsFromSequence } from "../../internal/yamlFormat/yamlSequences/getYamlMapsFromSequence";
-import { CommonParsingArgs } from "../../internal/yamlFormat/interfaces";
-import { getYamlMapByKeyFromMap } from "../../internal/yamlFormat/yamlMaps/getYamlMapByKeyFromMap";
+import {
+    CommonParsingArgs,
+    ParsedMapItems,
+} from "../../internal/yamlFormat/interfaces";
 import { getRangeForError } from "../../internal/yamlFormat/util/getRangeForError";
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
+import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/yamlMaps/getErrorForUnknownKeyInMap";
+import { getErrorForValueWithUnexpectedType } from "../../internal/yamlFormat/util/getErrorForItemWithUnexpectedTypeInMap";
+import {
+    getBooleanYamlScalar,
+    getStringYamlScalar,
+} from "../../internal/yamlFormat/yamlScalars/getTypedYamlScalar";
+import { getRangeForUnknownYamlItem } from "../../internal/yamlFormat/util/getRangeForUnknownYamlItem";
+import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/yamlMaps/getErrorForMissingKeyInMap";
 
 enum EnvironmentKeyName {
     Name = "name",
@@ -41,7 +55,7 @@ enum VariableValueWithTypeProperty {
 export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
     | YamlParsingError[]
     | {
-          name?: string;
+          name?: WithKeyAndValueRange<string>;
           variables: ParsedEnvironmentVariable[];
           errors: YamlParsingError[];
       } {
@@ -76,16 +90,21 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
         commonArgs,
     );
 
-    collectedErrors.push(...mapItemErrors);
+    collectedErrors.push(
+        ...mapItemErrors.concat(
+            getImplicitErrorsForAllInvalidMapItems(mapItems, commonArgs),
+        ),
+    );
 
     const nameField = mapItems.validScalars.find(
         ({ key }) => key == EnvironmentKeyName.Name,
-    )?.value;
+    )?.item;
     const variablesSequence = mapItems.validSequences.find(
         ({ key }) => key == EnvironmentKeyName.Variables,
-    )?.value;
+    )?.item;
 
     if (!variablesSequence) {
+        // For further steps, the variables sequence needs to be valid.
         return collectedErrors;
     }
 
@@ -102,7 +121,7 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
 
     return {
         name:
-            nameField && typeof nameField?.value == "string"
+            nameField && typeof nameField.value == "string"
                 ? nameField.value
                 : undefined,
         variables,
@@ -116,64 +135,86 @@ function getVariablesFromMapItems(
 ): { variables: ParsedEnvironmentVariable[]; errors: YamlParsingError[] } {
     const variables: ParsedEnvironmentVariable[] = [];
     const errors: YamlParsingError[] = [];
-    const { docHelper, fullDocumentRange } = commonArgs;
 
-    for (const item of items) {
-        const commonParams = { ...commonArgs, map: item, isTopLevelMap: false };
+    for (const currentMap of items) {
+        const commonParams = {
+            ...commonArgs,
+            map: currentMap,
+            isTopLevelMap: false,
+        };
 
+        const { items: allMapItems, errors: mapItemErrors } = getMapItems(
+            currentMap,
+            {
+                scalarValues: [
+                    VariableProperty.Description,
+                    VariableProperty.Disabled,
+                    VariableProperty.Name,
+                    VariableProperty.Secret,
+                    VariableProperty.Type,
+                ],
+                sequenceValues: [],
+            },
+            commonArgs,
+        );
+
+        errors.push(
+            ...mapItemErrors.concat(
+                getImplicitErrorsForAllInvalidMapItems(allMapItems, commonArgs),
+            ),
+        );
         const { description, disabled, secret } =
-            getValuesForSimpleOptionalVariableProps(commonParams, errors);
+            getItemsForSimpleOptionalVariableProps(
+                allMapItems,
+                commonArgs,
+                errors,
+            );
 
-        const maybeType = getStringValueByKeyFromMap({
-            ...commonParams,
-            key: VariableProperty.Type,
-        });
-
-        const untypedType = handleOptionalField(maybeType, errors);
-        const maybeTypeToUse =
-            untypedType === undefined
-                ? undefined
-                : getTypedVariableType(untypedType, item, {
-                      docHelper,
-                      fullDocumentRange,
-                  });
-        let typeToUse: VariableType | undefined = undefined;
-        if (maybeTypeToUse && "error" in maybeTypeToUse) {
-            errors.push(maybeTypeToUse.error);
-        } else {
-            typeToUse = maybeTypeToUse?.type;
-        }
+        const type = getItemVariableTypeScalarField(
+            allMapItems,
+            currentMap,
+            commonArgs,
+            errors,
+        );
         const maybeValue = getValueFromMapItemVariable(commonParams);
-        let valueToUse:
-            | string
-            | {
-                  type: VariableType;
-                  data: string;
-              }
-            | undefined = undefined;
-        if (
-            maybeValue &&
-            typeof maybeValue == "object" &&
-            "errors" in maybeValue
-        ) {
+        if (maybeValue && "errors" in maybeValue) {
             errors.push(...maybeValue.errors);
-        } else {
-            valueToUse = maybeValue;
         }
 
-        const maybeName = getStringValueByKeyFromMap({
-            ...commonParams,
-            key: VariableProperty.Name,
-        });
-        if ("error" in maybeName) {
+        const valueToUse =
+            maybeValue && !("errors" in maybeValue) ? maybeValue : undefined;
+
+        const maybeName = allMapItems.validScalars.find(
+            ({ key }) => key == VariableProperty.Name,
+        )?.item;
+
+        if (!maybeName) {
             // The 'name' field is the only one that always has to be present.
-            errors.push(maybeName.error);
+            errors.push(
+                getErrorForMissingKeyInMap({
+                    ...commonArgs,
+                    missingKey: VariableProperty.Name,
+                    map: currentMap,
+                }),
+            );
+            continue;
+        }
+        const maybeTypedName = getStringYamlScalar(
+            maybeName,
+            VariableProperty.Name,
+            commonParams,
+        );
+        if ("error" in maybeTypedName) {
+            // The 'name' field is the only one that always has to be present.
+            errors.push(maybeTypedName.error);
             continue;
         }
 
+        const name = maybeTypedName.item;
+
         variables.push({
             name: maybeName.value,
-            description,
+            description: maybeDescription,
             disabled,
             secret,
             value: valueToUse,
@@ -184,33 +225,58 @@ function getVariablesFromMapItems(
     return { variables, errors };
 }
 
-function getValuesForSimpleOptionalVariableProps(
-    commonParams: CommonParsingArgs & {
-        map: YAMLMap<unknown, unknown>;
-        isTopLevelMap: boolean;
-    },
+function getItemsForSimpleOptionalVariableProps(
+    allMapItems: ParsedMapItems,
+    commonParams: CommonParsingArgs,
     errorsCollection: YamlParsingError[],
 ) {
-    const maybeDescription = getStringValueByKeyFromMap({
-        ...commonParams,
-        key: VariableProperty.Description,
-    });
-    const description = handleOptionalField(maybeDescription, errorsCollection);
+    const maybeDescription = allMapItems.validScalars.find(
+        ({ key }) => key == VariableProperty.Description,
+    )?.item;
 
-    const maybeDisabled = getBooleanValueByKeyFromMap({
-        ...commonParams,
-        key: VariableProperty.Disabled,
-    });
-    // If not defined, the default is enabled for a field.
-    const disabled =
-        handleOptionalField(maybeDisabled, errorsCollection) ?? false;
+    const maybeTypedDescription = maybeDescription
+        ? getStringYamlScalar(
+              maybeDescription,
+              VariableProperty.Description,
+              commonParams,
+          )
+        : undefined;
 
-    const maybeSecret = getBooleanValueByKeyFromMap({
-        ...commonParams,
-        key: VariableProperty.Secret,
-    });
-    // If not defined, a field is treated as non-secret by default.
-    const secret = handleOptionalField(maybeSecret, errorsCollection) ?? false;
+    const description = maybeTypedDescription
+        ? handleOptionalField(maybeTypedDescription, errorsCollection)
+        : undefined;
+
+    const maybeDisabled = allMapItems.validScalars.find(
+        ({ key }) => key == VariableProperty.Disabled,
+    )?.item;
+
+    const maybeTypedDisabled = maybeDisabled
+        ? getBooleanYamlScalar(
+              maybeDisabled,
+              VariableProperty.Disabled,
+              commonParams,
+          )
+        : undefined;
+
+    const disabled = maybeTypedDisabled
+        ? handleOptionalField(maybeTypedDisabled, errorsCollection)
+        : undefined;
+
+    const maybeSecret = allMapItems.validScalars.find(
+        ({ key }) => key == VariableProperty.Secret,
+    )?.item;
+
+    const maybeTypedSecret = maybeSecret
+        ? getBooleanYamlScalar(
+              maybeSecret,
+              VariableProperty.Secret,
+              commonParams,
+          )
+        : undefined;
+
+    const secret = maybeTypedSecret
+        ? handleOptionalField(maybeTypedSecret, errorsCollection)
+        : undefined;
 
     return { description, disabled, secret };
 }
@@ -221,104 +287,177 @@ function getValueFromMapItemVariable(commonParams: {
     docHelper: TextDocumentHelper;
     fullDocumentRange: Range;
 }):
-    | string
-    | { type: VariableType; data: string }
+    | Scalar<string>
+    | { data: Scalar<string>; type: Scalar<VariableType> }
     | { errors: YamlParsingError[] }
     | undefined {
-    const { map: variableDefinitionMap } = commonParams;
-    const hasKey = variableDefinitionMap.has(VariableProperty.Value);
+    const { map: variableDefinitionMap, fullDocumentRange } = commonParams;
 
-    if (!hasKey) {
+    const matchingField = variableDefinitionMap.items.find(
+        (item) =>
+            typeof item.key == "string" && item.key == VariableProperty.Value,
+    );
+
+    if (!matchingField) {
         // Field is optional. Is not necessarily an error, if it's missing.
         return undefined;
     }
 
-    const actualField = variableDefinitionMap.get(VariableProperty.Value);
-    if (!isMap(actualField)) {
-        const maybeStringValue = getStringValueByKeyFromMap({
-            ...commonParams,
-            key: VariableProperty.Value,
-        });
-        return "error" in maybeStringValue
-            ? { errors: [maybeStringValue.error] }
-            : maybeStringValue.value;
+    if (!isMap(matchingField.value)) {
+        const maybeTypedValue:
+            { item: Scalar<string> } | { error: YamlParsingError } =
+            isScalar<string>(matchingField.value)
+                ? { item: matchingField.value }
+                : {
+                      error: getErrorForValueWithUnexpectedType({
+                          ...commonParams,
+                          key: VariableProperty.Value,
+                          expectedType: "Scalar",
+                          valueRange: (getRangeForUnknownYamlItem(
+                              matchingField.value,
+                          ) ?? fullDocumentRange) as Range,
+                      }),
+                  };
+
+        return "error" in maybeTypedValue
+            ? { errors: [maybeTypedValue.error] }
+            : maybeTypedValue.item;
     }
 
     const collectedErrors: YamlParsingError[] = [];
 
-    const maybeChildMap = getYamlMapByKeyFromMap({
-        ...commonParams,
-        key: VariableProperty.Value,
-    });
+    const valueMapItem = matchingField.value;
 
-    if ("error" in maybeChildMap) {
-        // Error is blocking, since no further parsing of map items can occur here.
-        return { errors: [maybeChildMap.error] };
+    const { items: valueMapItems, errors: mapItemErrors } = getMapItems(
+        valueMapItem,
+        {
+            scalarValues: [
+                VariableValueWithTypeProperty.Data,
+                VariableValueWithTypeProperty.Type,
+            ],
+            sequenceValues: [],
+        },
+        commonParams,
+    );
+    collectedErrors.push(
+        ...mapItemErrors.concat(
+            getImplicitErrorsForAllInvalidMapItems(valueMapItems, commonParams),
+        ),
+    );
+
+    let data: Scalar<string> | undefined = undefined;
+    const maybeData = valueMapItems.validScalars.find(
+        ({ key }) => key == VariableValueWithTypeProperty.Data,
+    )?.item;
+
+    if (!maybeData) {
+        collectedErrors.push(
+            getErrorForMissingKeyInMap({
+                ...commonParams,
+                missingKey: VariableValueWithTypeProperty.Data,
+                map: valueMapItem,
+            }),
+        );
+    } else {
+        const maybeTypedData = getStringYamlScalar(
+            maybeData,
+            VariableValueWithTypeProperty.Data,
+            commonParams,
+        );
+        if ("error" in maybeTypedData) {
+            collectedErrors.push(maybeTypedData.error);
+        } else {
+            data = maybeTypedData.item;
+        }
     }
-    const valueMapItem = maybeChildMap.map;
 
-    const maybeData = getStringValueByKeyFromMap({
-        ...commonParams,
-        map: maybeChildMap.map,
-        key: VariableValueWithTypeProperty.Data,
-    });
-    if ("error" in maybeData) {
-        collectedErrors.push(maybeData.error);
+    const type = getItemVariableTypeScalarField(
+        valueMapItems,
+        valueMapItem,
+        commonParams,
+        collectedErrors,
+    );
+    if (!type) {
+        collectedErrors.push(
+            getErrorForMissingKeyInMap({
+                ...commonParams,
+                missingKey: VariableValueWithTypeProperty.Type,
+                map: valueMapItem,
+            }),
+        );
     }
 
-    const parsedType = getStringValueByKeyFromMap({
-        ...commonParams,
-        map: valueMapItem,
-        key: VariableValueWithTypeProperty.Type,
-    });
-    if ("error" in parsedType) {
-        // Error is blocking for further handling of the 'type' field.
-        return { errors: collectedErrors.concat(parsedType.error) };
+    return collectedErrors.length > 0 || !data || !type
+        ? { errors: collectedErrors }
+        : { data, type };
+}
+
+function getItemVariableTypeScalarField(
+    allMapItems: ParsedMapItems,
+    correspondingMap: YAMLMap<unknown, unknown>,
+    commonParams: CommonParsingArgs,
+    errorsCollection: YamlParsingError[],
+) {
+    const maybeType = allMapItems.validScalars.find(
+        ({ key }) => key == VariableProperty.Type,
+    )?.item;
+
+    if (!maybeType) {
+        return undefined;
+    }
+    const maybeTypeAsString = getStringYamlScalar(
+        maybeType,
+        VariableProperty.Type,
+        commonParams,
+    );
+
+    if ("error" in maybeTypeAsString) {
+        errorsCollection.push(maybeTypeAsString.error);
+        return undefined;
     }
 
     const maybeTypeToUse = getTypedVariableType(
-        parsedType.value,
-        valueMapItem,
+        maybeTypeAsString.item,
+        correspondingMap,
         commonParams,
     );
-    if ("error" in maybeTypeToUse) {
-        return { errors: collectedErrors.concat(maybeTypeToUse.error) };
-    }
 
-    return "error" in maybeData
-        ? { errors: collectedErrors }
-        : { data: maybeData.value, type: maybeTypeToUse.type };
+    if ("error" in maybeTypeToUse) {
+        errorsCollection.push(maybeTypeToUse.error);
+        return undefined;
+    }
+    return maybeTypeToUse.item;
 }
 
 function handleOptionalField<T>(
-    maybeValue:
+    maybeItem:
         | {
-              value: T;
+              item: T;
           }
         | {
               error: YamlParsingError;
           },
     errorsCollection: YamlParsingError[],
 ): T | undefined {
-    if ("value" in maybeValue) {
-        return maybeValue.value;
+    if ("item" in maybeItem) {
+        return maybeItem.item;
     }
 
     if (
-        maybeValue.error.code !== YamlParsingSpecialErrorCode.FieldDoesNotExist
+        maybeItem.error.code !== YamlParsingSpecialErrorCode.FieldDoesNotExist
     ) {
-        errorsCollection.push(maybeValue.error);
+        errorsCollection.push(maybeItem.error);
         return undefined;
     }
     return undefined;
 }
 
 function getTypedVariableType(
-    unTyped: string,
+    unTyped: Scalar<string>,
     variableItem: YAMLMap<unknown, unknown>,
     commonArgs: CommonParsingArgs,
-): { type: VariableType } | { error: YamlParsingError } {
-    if (!(Object.values(VariableType) as string[]).includes(unTyped)) {
+): { item: Scalar<VariableType> } | { error: YamlParsingError } {
+    if (!(Object.values(VariableType) as string[]).includes(unTyped.value)) {
         return {
             error: {
                 message: `Invalid type '${unTyped}'. Allowed types are ${JSON.stringify(Object.values(VariableType), null, 2)}`,
@@ -327,5 +466,39 @@ function getTypedVariableType(
         };
     }
 
-    return { type: unTyped as VariableType };
+    return { item: unTyped as Scalar<VariableType> };
+}
+
+function getImplicitErrorsForAllInvalidMapItems(
+    mapItems: ParsedMapItems,
+    commonArgs: CommonParsingArgs,
+) {
+    return mapItems.unknownKeys
+        .map(({ key, keyRange }) =>
+            getErrorForUnknownKeyInMap({
+                ...commonArgs,
+                unknownKey: key,
+                keyRange,
+            }),
+        )
+        .concat(
+            mapItems.invalidScalars.map(({ key, valueRange }) =>
+                getErrorForValueWithUnexpectedType({
+                    ...commonArgs,
+                    key,
+                    valueRange,
+                    expectedType: "Scalar",
+                }),
+            ),
+        )
+        .concat(
+            mapItems.invalidSequences.map(({ key, valueRange }) =>
+                getErrorForValueWithUnexpectedType({
+                    ...commonArgs,
+                    key,
+                    valueRange,
+                    expectedType: "Sequence",
+                }),
+            ),
+        );
 }
