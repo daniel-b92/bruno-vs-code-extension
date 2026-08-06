@@ -82,7 +82,7 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
         ({ key }) => key == EnvironmentKeyName.Name,
     )?.value;
     const variablesSequence = mapItems.validSequences.find(
-        ({ key }) => key == EnvironmentKeyName.Name,
+        ({ key }) => key == EnvironmentKeyName.Variables,
     )?.value;
 
     if (!variablesSequence) {
