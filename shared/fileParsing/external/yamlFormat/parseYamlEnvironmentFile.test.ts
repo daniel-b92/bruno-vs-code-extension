@@ -2,6 +2,7 @@ import { describe, it, expect } from "@jest/globals";
 import { parseYamlEnvironmentFile } from "./parseYamlEnvironmentFile";
 import { TextDocumentHelper } from "../../../fileSystem/textDocumentHelper";
 import { ParsedEnvironmentVariable, VariableType } from "./interfaces";
+import { Position, Range } from "../../..";
 
 describe("parseYamlEnvironmentFile", () => {
     it("parses a simple yaml environment file with a single variable", () => {
@@ -14,13 +15,37 @@ variables:
             new TextDocumentHelper(documentText),
         );
 
+        const nameLine = 2;
+
         const expectedVariables: ParsedEnvironmentVariable[] = [
             {
-                name: "var-1",
-                value: "test-1",
-                description: "desc",
-                secret: false,
-                disabled: false,
+                name: {
+                    keyRange: getExpectedKeyRange(nameLine, "name"),
+                    value: "var-1",
+                    valueRange: getExpectedSameLineValueRange(
+                        nameLine,
+                        "name",
+                        "var-1",
+                    ),
+                },
+                value: {
+                    keyRange: getExpectedKeyRange(nameLine + 1, "value"),
+                    value: "test-1",
+                    valueRange: getExpectedSameLineValueRange(
+                        nameLine + 1,
+                        "value",
+                        "test-1",
+                    ),
+                },
+                description: {
+                    keyRange: getExpectedKeyRange(nameLine + 2, "description"),
+                    value: "desc",
+                    valueRange: getExpectedSameLineValueRange(
+                        nameLine + 2,
+                        "description",
+                        "desc",
+                    ),
+                },
             },
         ];
 
@@ -44,20 +69,91 @@ variables:
         const parsed = parseYamlEnvironmentFile(
             new TextDocumentHelper(documentText),
         );
+        const firstVarNameLine = 2;
+        const secondVarNameLine = 5;
 
         const expectedVariables: ParsedEnvironmentVariable[] = [
             {
-                name: "var-1",
-                value: "test-1",
-                description: "desc",
-                secret: false,
-                disabled: false,
+                name: {
+                    keyRange: getExpectedKeyRange(firstVarNameLine, "name"),
+                    value: "var-1",
+                    valueRange: getExpectedSameLineValueRange(
+                        firstVarNameLine,
+                        "name",
+                        "var-1",
+                    ),
+                },
+                value: {
+                    keyRange: getExpectedKeyRange(
+                        firstVarNameLine + 1,
+                        "value",
+                    ),
+                    value: "test-1",
+                    valueRange: getExpectedSameLineValueRange(
+                        firstVarNameLine + 1,
+                        "value",
+                        "test-1",
+                    ),
+                },
+                description: {
+                    keyRange: getExpectedKeyRange(
+                        firstVarNameLine + 2,
+                        "description",
+                    ),
+                    value: "desc",
+                    valueRange: getExpectedSameLineValueRange(
+                        firstVarNameLine + 2,
+                        "description",
+                        "desc",
+                    ),
+                },
             },
             {
-                name: "var-2",
-                value: "test-2",
-                secret: true,
-                disabled: true,
+                name: {
+                    keyRange: getExpectedKeyRange(secondVarNameLine, "name"),
+                    value: "var-2",
+                    valueRange: getExpectedSameLineValueRange(
+                        secondVarNameLine,
+                        "name",
+                        "var-2",
+                    ),
+                },
+                value: {
+                    keyRange: getExpectedKeyRange(
+                        secondVarNameLine + 1,
+                        "value",
+                    ),
+                    value: "test-1",
+                    valueRange: getExpectedSameLineValueRange(
+                        secondVarNameLine + 1,
+                        "value",
+                        "test-2",
+                    ),
+                },
+                secret: {
+                    keyRange: getExpectedKeyRange(
+                        secondVarNameLine + 2,
+                        "secret",
+                    ),
+                    value: true,
+                    valueRange: getExpectedSameLineValueRange(
+                        secondVarNameLine + 2,
+                        "secret",
+                        "true",
+                    ),
+                },
+                disabled: {
+                    keyRange: getExpectedKeyRange(
+                        secondVarNameLine + 3,
+                        "disabled",
+                    ),
+                    value: true,
+                    valueRange: getExpectedSameLineValueRange(
+                        secondVarNameLine + 3,
+                        "disabled",
+                        "true",
+                    ),
+                },
             },
         ];
 
@@ -83,8 +179,18 @@ variables:
             new TextDocumentHelper(documentText),
         );
 
+        const nameLine = 2;
+
         const expectedVariable: ParsedEnvironmentVariable = {
-            name: "var-1",
+            name: {
+                keyRange: getExpectedKeyRange(nameLine, "name"),
+                value: "var-1",
+                valueRange: getExpectedSameLineValueRange(
+                    nameLine,
+                    "name",
+                    "var-1",
+                ),
+            },
             value: {
                 data: `{
 "id": 2333,
@@ -139,3 +245,23 @@ variables:
         );
     });
 });
+
+function getExpectedKeyRange(line: number, key: string) {
+    const keyStartChar = 4;
+    return new Range(
+        new Position(line, keyStartChar),
+        new Position(line, keyStartChar + key.length),
+    );
+}
+
+function getExpectedSameLineValueRange(
+    line: number,
+    key: string,
+    value: string,
+) {
+    const keyStartChar = 4;
+    return new Range(
+        new Position(line, keyStartChar),
+        new Position(line, keyStartChar + key.length + 3 + value.length),
+    );
+}
