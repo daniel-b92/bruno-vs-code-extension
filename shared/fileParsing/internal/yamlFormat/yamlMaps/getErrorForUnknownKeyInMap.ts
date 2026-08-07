@@ -1,9 +1,5 @@
 import { CommonParsingArgs } from "../interfaces";
-import {
-    Range,
-    YamlParsingError,
-    YamlParsingSpecialErrorCode,
-} from "../../../..";
+import { Range, YamlParsingError, YamlParsingErrorCode } from "../../../..";
 
 export function getErrorForUnknownKeyInMap(
     args: CommonParsingArgs & {
@@ -15,6 +11,6 @@ export function getErrorForUnknownKeyInMap(
     return {
         message: `Unknown key '${unknownKey}' defined for Yaml map.`,
         range: keyRange,
-        code: YamlParsingSpecialErrorCode.UnknownFieldInMap,
+        code: YamlParsingErrorCode.UnknownFieldInMap,
     };
 }

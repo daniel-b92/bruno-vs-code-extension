@@ -1,5 +1,5 @@
 import { isScalar, isSeq, Scalar, YAMLMap } from "yaml";
-import { Range, YamlParsingError } from "../../../..";
+import { Range, YamlParsingError, YamlParsingErrorCode } from "../../../..";
 import { CommonParsingArgs, ParsedMapItems } from "../interfaces";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { fromYamlRange } from "../util/fromYamlRange";
@@ -32,6 +32,7 @@ export function getMapItems(
             errors.push({
                 message: `Non scalar string key '${key} defined'`,
                 range: getRangeForItem(map, commonParsingArgs),
+                code: YamlParsingErrorCode.Other,
             });
             continue;
         }
@@ -107,6 +108,7 @@ function getKeyRange(
               error: {
                   message: `Could not determine range for key '${key}'`,
                   range: getRangeForItem(parentMap, commonParsingArgs),
+                  code: YamlParsingErrorCode.Other,
               },
           };
 }
@@ -127,6 +129,7 @@ function getValueRange(
               error: {
                   message: `Could not determine range for value of key '${keyValue}'`,
                   range: getRangeForItem(parentMap, commonParsingArgs),
+                  code: YamlParsingErrorCode.Other,
               },
           };
 }

@@ -1,6 +1,10 @@
 import { isScalar, Scalar } from "yaml";
 import { CommonParsingArgs } from "../interfaces";
 import { getRangeForItem } from "../util/getRangeForItem";
+import {
+    YamlParsingError,
+    YamlParsingErrorCode,
+} from "../../../external/yamlFormat/interfaces";
 
 enum FieldValueType {
     String = "string",
@@ -42,11 +46,12 @@ function getTypeMismatchErrorResult(
     expectedValueType: string,
     fieldDescription: string,
     args: CommonParsingArgs,
-) {
+): { error: YamlParsingError } {
     return {
         error: {
             message: `Scalar field '${fieldDescription}' should be a ${expectedValueType}.`,
             range: getRangeForItem(field, args),
+            code: YamlParsingErrorCode.Other,
         },
     };
 }

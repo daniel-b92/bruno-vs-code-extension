@@ -1,5 +1,5 @@
 import { CommonParsingArgs } from "../interfaces";
-import { Range, YamlParsingError } from "../../../..";
+import { Range, YamlParsingError, YamlParsingErrorCode } from "../../../..";
 
 export function getErrorForValueWithUnexpectedType(
     args: CommonParsingArgs & {
@@ -12,5 +12,6 @@ export function getErrorForValueWithUnexpectedType(
     return {
         message: `Expected item for key '${key}' to be of type '${expectedType}'.`,
         range: valueRange,
+        code: YamlParsingErrorCode.Other,
     };
 }

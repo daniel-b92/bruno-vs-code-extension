@@ -13,7 +13,7 @@ import {
     VariableType,
     WithKeyAndValueRange,
     YamlParsingError,
-    YamlParsingSpecialErrorCode,
+    YamlParsingErrorCode,
 } from "../../..";
 import { mapErrors } from "../../internal/yamlFormat/util/mapErrors";
 import { getTopLevelMapIfExists } from "../../internal/yamlFormat/yamlMaps/getTopLevelMapIfExists";
@@ -597,9 +597,7 @@ function handleOptionalField<T>(
         return maybeItem.item;
     }
 
-    if (
-        maybeItem.error.code !== YamlParsingSpecialErrorCode.FieldDoesNotExist
-    ) {
+    if (maybeItem.error.code !== YamlParsingErrorCode.ItemDoesNotExist) {
         errorsCollection.push(maybeItem.error);
         return undefined;
     }
@@ -616,6 +614,7 @@ function getTypedVariableType(
             error: {
                 message: `Invalid type '${unTyped}'. Allowed types are ${JSON.stringify(Object.values(VariableType), null, 2)}`,
                 range: getRangeForItem(variableItem, commonArgs),
+                code: YamlParsingErrorCode.Other,
             },
         };
     }
