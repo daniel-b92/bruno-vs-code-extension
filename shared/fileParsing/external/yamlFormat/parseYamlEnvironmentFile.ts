@@ -29,6 +29,7 @@ import { getRangeForUnknownYamlItem } from "../../internal/yamlFormat/util/getRa
 import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/yamlMaps/getErrorForMissingKeyInMap";
 import { mapFromYamlScalar } from "../../internal/yamlFormat/util/mapFromYamlScalar";
 import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/yamlMaps/getErrorForUnknownKeyInMap";
+import { getImplicitErrorsForAllInvalidMapItems } from "../../internal/yamlFormat/yamlMaps/getImplicitErrorsForAllInvalidMapItems";
 
 enum EnvironmentKeyName {
     Name = "name",
@@ -509,33 +510,4 @@ function getTypedVariableType(
     }
 
     return { item: unTyped as Scalar<VariableType> };
-}
-
-function getImplicitErrorsForAllInvalidMapItems(
-    items: {
-        invalidScalars: { key: string; valueRange: Range }[];
-        invalidSequences: { key: string; valueRange: Range }[];
-    },
-    commonArgs: CommonParsingArgs,
-) {
-    const { invalidScalars, invalidSequences } = items;
-    return invalidScalars
-        .map(({ key, valueRange }) =>
-            getErrorForValueWithUnexpectedType({
-                ...commonArgs,
-                key,
-                valueRange,
-                expectedType: "Scalar",
-            }),
-        )
-        .concat(
-            invalidSequences.map(({ key, valueRange }) =>
-                getErrorForValueWithUnexpectedType({
-                    ...commonArgs,
-                    key,
-                    valueRange,
-                    expectedType: "Sequence",
-                }),
-            ),
-        );
 }
