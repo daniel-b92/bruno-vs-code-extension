@@ -10,23 +10,18 @@ export function getImplicitErrorsForAllInvalidMapItems(
     commonArgs: CommonParsingArgs,
 ) {
     const { invalidScalars, invalidSequences } = items;
-    return invalidScalars
-        .map(({ key, valueRange }) =>
+
+    return [
+        { fields: invalidScalars, type: "Scalar" as const },
+        { fields: invalidSequences, type: "Sequence" as const },
+    ].flatMap(({ fields, type }) =>
+        fields.map(({ key, valueRange }) =>
             getErrorForValueWithUnexpectedType({
                 ...commonArgs,
                 key,
                 valueRange,
-                expectedType: "Scalar",
+                expectedType: type,
             }),
-        )
-        .concat(
-            invalidSequences.map(({ key, valueRange }) =>
-                getErrorForValueWithUnexpectedType({
-                    ...commonArgs,
-                    key,
-                    valueRange,
-                    expectedType: "Sequence",
-                }),
-            ),
-        );
+        ),
+    );
 }
