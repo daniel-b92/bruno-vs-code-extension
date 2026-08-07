@@ -266,8 +266,8 @@ variables:
         );
         expect(actualValueItem.data.valueRange).toEqual(
             new Range(
-                new Position(typeLine + 1, typeStartChar + "data".length + 3),
-                new Position(typeLine + 5, typeStartChar + 2),
+                new Position(typeLine + 1, typeStartChar + "data".length + 2),
+                new Position(typeLine + 5, typeStartChar + 3),
             ),
         );
     });

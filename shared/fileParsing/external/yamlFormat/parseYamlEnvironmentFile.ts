@@ -291,13 +291,13 @@ function getVariablesFromMapItems(
                     )
                   : {
                         data: mapFromYamlScalar(
-                            valueToUse.keyRange,
-                            valueToUse.value.data,
+                            valueToUse.value.data.keyRange,
+                            valueToUse.value.data.scalar,
                             commonArgs,
                         ),
                         type: mapFromYamlScalar(
-                            valueToUse.keyRange,
-                            valueToUse.value.type,
+                            valueToUse.value.type.keyRange,
+                            valueToUse.value.type.scalar,
                             commonArgs,
                         ),
                     },
@@ -398,7 +398,10 @@ function getValueFromMapItemVariable(commonParams: {
           keyRange: Range;
           value:
               | Scalar<string>
-              | { data: Scalar<string>; type: Scalar<VariableType> };
+              | {
+                    data: { keyRange: Range; scalar: Scalar<string> };
+                    type: { keyRange: Range; scalar: Scalar<VariableType> };
+                };
       }
     | { errors: YamlParsingError[] }
     | undefined {
@@ -480,12 +483,13 @@ function getValueFromMapItemVariable(commonParams: {
             ),
     );
 
-    let data: Scalar<string> | undefined = undefined;
-    const maybeData = valueMapItems.validScalars.find(
+    let data: { keyRange: Range; scalar: Scalar<string> } | undefined =
+        undefined;
+    const maybeDataItem = valueMapItems.validScalars.find(
         ({ key }) => key == VariableValueWithTypeProperty.Data,
-    )?.value;
+    );
 
-    if (!maybeData) {
+    if (!maybeDataItem) {
         collectedErrors.push(
             getErrorForMissingKeyInMap({
                 ...commonParams,
@@ -495,14 +499,17 @@ function getValueFromMapItemVariable(commonParams: {
         );
     } else {
         const maybeTypedData = getStringYamlScalar(
-            maybeData,
+            maybeDataItem.value,
             VariableValueWithTypeProperty.Data,
             commonParams,
         );
         if ("error" in maybeTypedData) {
             collectedErrors.push(maybeTypedData.error);
         } else {
-            data = maybeTypedData.item;
+            data = {
+                keyRange: maybeDataItem.keyRange,
+                scalar: maybeTypedData.item,
+            };
         }
     }
 
@@ -524,7 +531,16 @@ function getValueFromMapItemVariable(commonParams: {
 
     return collectedErrors.length > 0 || !data || !type
         ? { errors: collectedErrors }
-        : { keyRange, value: { data, type: type.value } };
+        : {
+              keyRange,
+              value: {
+                  data,
+                  type: {
+                      keyRange: type.keyRange,
+                      scalar: type.value,
+                  },
+              },
+          };
 }
 
 function getItemVariableTypeScalarField(
