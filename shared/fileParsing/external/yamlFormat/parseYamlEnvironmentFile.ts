@@ -216,7 +216,7 @@ function getVariablesFromMapItems(
             commonArgs,
             errors,
         );
-        const maybeValue = getValueFromMapItemVariable(commonParams);
+        const maybeValue = getValueFieldFromVariable(commonParams);
         if (maybeValue && "errors" in maybeValue) {
             errors.push(...maybeValue.errors);
         }
@@ -315,7 +315,7 @@ function getItemsForSimpleOptionalVariableProps(allMapItems: ParsedMapItems) {
     };
 }
 
-function getValueFromMapItemVariable(commonParams: {
+function getValueFieldFromVariable(commonParams: {
     map: YAMLMap<unknown, unknown>;
     isTopLevelMap: boolean;
     docHelper: TextDocumentHelper;
