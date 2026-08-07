@@ -271,6 +271,71 @@ variables:
             ),
         );
     });
+
+    it("returns an error for a blocking issue on top level for yaml environment file", () => {
+        const documentText = `name: Env1
+variables: foo`;
+        const parsed = parseYamlEnvironmentFile(
+            new TextDocumentHelper(documentText),
+        );
+
+        if (typeof parsed == "object" && "variables" in parsed) {
+            throw new Error(
+                "Expected parsed result to be only an array of errors.",
+            );
+        }
+        expect(parsed).toHaveLength(1);
+        expect(parsed[0].range).toEqual(
+            getExpectedSameLineValueRange(1, "variables", "foo", 0),
+        );
+    });
+
+    it("returns a list of parsing errors together with parsed fields for non-blocking issues for yaml environment file", () => {
+        const documentText = `name: Env1
+variables:
+  - name: var-1
+    type: unknown
+    value: 44
+    description: desc
+    other: sd
+invalid: bar`;
+        const expectedRangeForInvalidTopLevelMapItem = getExpectedKeyRange(
+            7,
+            "invalid",
+            0,
+        );
+        const expectedRangeForInvalidValueForVariableType =
+            getExpectedSameLineValueRange(3, "type", "unknown");
+        const expectedRangeForInvalidPropertyForVariable = getExpectedKeyRange(
+            6,
+            "other",
+        );
+
+        const parsed = parseYamlEnvironmentFile(
+            new TextDocumentHelper(documentText),
+        );
+
+        if (typeof parsed != "object" || !("variables" in parsed)) {
+            throw new Error(
+                "Expected parsed result to not be an array of errors.",
+            );
+        }
+        expect(parsed.errors).toHaveLength(3);
+        for (const range of [
+            expectedRangeForInvalidPropertyForVariable,
+            expectedRangeForInvalidTopLevelMapItem,
+            expectedRangeForInvalidValueForVariableType,
+        ]) {
+            expect(parsed.errors.map(({ range }) => range)).toContainEqual(
+                range,
+            );
+        }
+        expect(parsed.variables).toHaveLength(1);
+        expect(parsed.variables[0].name.value).toBe("var-1");
+        expect(parsed.variables[0].description?.value).toBe("desc");
+        expect(parsed.variables[0].type?.value).toBeUndefined();
+        expect(parsed.variables[0].secret?.value).toBeUndefined();
+    });
 });
 
 function getExpectedKeyRange(line: number, key: string, keyStartChar = 4) {

@@ -213,7 +213,6 @@ function getVariablesFromMapItems(
 
         const type = getItemVariableTypeScalarField(
             allMapItems,
-            currentMap,
             commonArgs,
             errors,
         );
@@ -436,7 +435,6 @@ function getValueFromMapItemVariable(commonParams: {
 
     const type = getItemVariableTypeScalarField(
         valueMapItems,
-        valueMapItem,
         commonParams,
         collectedErrors,
     );
@@ -466,7 +464,6 @@ function getValueFromMapItemVariable(commonParams: {
 
 function getItemVariableTypeScalarField(
     allMapItems: ParsedMapItems,
-    correspondingMap: YAMLMap<unknown, unknown>,
     commonParams: CommonParsingArgs,
     errorsCollection: YamlParsingError[],
 ) {
@@ -480,7 +477,7 @@ function getItemVariableTypeScalarField(
 
     const maybeTypeToUse = getTypedVariableType(
         maybeTypeWithKeyRange.value,
-        correspondingMap,
+        maybeTypeWithKeyRange.value,
         commonParams,
     );
 
@@ -496,14 +493,14 @@ function getItemVariableTypeScalarField(
 
 function getTypedVariableType(
     unTyped: Scalar<string>,
-    variableItem: YAMLMap<unknown, unknown>,
+    valueScalar: Scalar<unknown>,
     commonArgs: CommonParsingArgs,
 ): { item: Scalar<VariableType> } | { error: YamlParsingError } {
     if (!(Object.values(VariableType) as string[]).includes(unTyped.value)) {
         return {
             error: {
                 message: `Invalid type '${unTyped}'. Allowed types are ${JSON.stringify(Object.values(VariableType), null, 2)}`,
-                range: getRangeForItem(variableItem, commonArgs),
+                range: getRangeForItem(valueScalar, commonArgs),
                 code: YamlParsingErrorCode.Other,
             },
         };
