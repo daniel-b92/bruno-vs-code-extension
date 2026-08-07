@@ -15,7 +15,7 @@ import {
     YamlParsingError,
     YamlParsingErrorCode,
 } from "../../..";
-import { mapErrors } from "../../internal/yamlFormat/util/mapErrors";
+import { mapErrors } from "../../internal/yamlFormat/parsingErrors/mapErrors";
 import { getTopLevelMapIfExists } from "../../internal/yamlFormat/yamlMaps/getTopLevelMapIfExists";
 import { getYamlMapsFromSequence } from "../../internal/yamlFormat/yamlSequences/getYamlMapsFromSequence";
 import {
@@ -24,11 +24,11 @@ import {
 } from "../../internal/yamlFormat/interfaces";
 import { getRangeForItem } from "../../internal/yamlFormat/util/getRangeForItem";
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
-import { getErrorForValueWithUnexpectedType } from "../../internal/yamlFormat/util/getErrorForValueWithUnexpectedType";
+import { getErrorForValueWithUnexpectedType } from "../../internal/yamlFormat/parsingErrors/getErrorForValueWithUnexpectedType";
 import { getRangeForUnknownYamlItem } from "../../internal/yamlFormat/util/getRangeForUnknownYamlItem";
-import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/yamlMaps/getErrorForMissingKeyInMap";
+import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForMissingKeyInMap";
 import { mapFromYamlScalar } from "../../internal/yamlFormat/util/mapFromYamlScalar";
-import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/yamlMaps/getErrorForUnknownKeyInMap";
+import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForUnknownKeyInMap";
 import { getImplicitErrorsForAllInvalidMapItems } from "../../internal/yamlFormat/yamlMaps/getImplicitErrorsForAllInvalidMapItems";
 
 enum EnvironmentKeyName {

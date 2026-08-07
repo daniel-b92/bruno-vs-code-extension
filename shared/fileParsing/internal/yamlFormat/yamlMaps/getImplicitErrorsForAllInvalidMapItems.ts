@@ -1,6 +1,6 @@
 import { Range } from "../../../..";
 import { CommonParsingArgs } from "../interfaces";
-import { getErrorForValueWithUnexpectedType } from "../util/getErrorForValueWithUnexpectedType";
+import { getErrorForValueWithUnexpectedType } from "../parsingErrors/getErrorForValueWithUnexpectedType";
 
 export function getImplicitErrorsForAllInvalidMapItems(
     items: {
