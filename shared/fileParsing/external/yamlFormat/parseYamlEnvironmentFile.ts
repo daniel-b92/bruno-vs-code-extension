@@ -477,7 +477,6 @@ function getItemVariableTypeScalarField(
 
     const maybeTypeToUse = getTypedVariableType(
         maybeTypeWithKeyRange.value,
-        maybeTypeWithKeyRange.value,
         commonParams,
     );
 
@@ -493,14 +492,13 @@ function getItemVariableTypeScalarField(
 
 function getTypedVariableType(
     unTyped: Scalar<string>,
-    valueScalar: Scalar<unknown>,
     commonArgs: CommonParsingArgs,
 ): { item: Scalar<VariableType> } | { error: YamlParsingError } {
     if (!(Object.values(VariableType) as string[]).includes(unTyped.value)) {
         return {
             error: {
                 message: `Invalid type '${unTyped}'. Allowed types are ${JSON.stringify(Object.values(VariableType), null, 2)}`,
-                range: getRangeForItem(valueScalar, commonArgs),
+                range: getRangeForItem(unTyped, commonArgs),
                 code: YamlParsingErrorCode.Other,
             },
         };
