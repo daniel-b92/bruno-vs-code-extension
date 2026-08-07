@@ -309,24 +309,9 @@ function getItemsForSimpleOptionalVariableProps(allMapItems: ParsedMapItems) {
         );
 
     return {
-        description: maybeDescriptionWithKeyRange
-            ? {
-                  keyRange: maybeDescriptionWithKeyRange.keyRange,
-                  value: maybeDescriptionWithKeyRange.value,
-              }
-            : undefined,
-        disabled: maybeDisabledWithKeyRange
-            ? {
-                  keyRange: maybeDisabledWithKeyRange.keyRange,
-                  value: maybeDisabledWithKeyRange.value,
-              }
-            : undefined,
-        secret: maybeSecretWithKeyRange
-            ? {
-                  keyRange: maybeSecretWithKeyRange.keyRange,
-                  value: maybeSecretWithKeyRange.value,
-              }
-            : undefined,
+        description: maybeDescriptionWithKeyRange,
+        disabled: maybeDisabledWithKeyRange,
+        secret: maybeSecretWithKeyRange,
     };
 }
 
