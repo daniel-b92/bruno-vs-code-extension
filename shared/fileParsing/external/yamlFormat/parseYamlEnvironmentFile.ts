@@ -24,7 +24,6 @@ import {
 } from "../../internal/yamlFormat/interfaces";
 import { getRangeForItem } from "../../internal/yamlFormat/util/getRangeForItem";
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
-import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/yamlMaps/getErrorForUnknownKeyInMap";
 import { getErrorForValueWithUnexpectedType } from "../../internal/yamlFormat/util/getErrorForItemWithUnexpectedTypeInMap";
 import {
     getBooleanYamlScalar,
@@ -33,6 +32,7 @@ import {
 import { getRangeForUnknownYamlItem } from "../../internal/yamlFormat/util/getRangeForUnknownYamlItem";
 import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/yamlMaps/getErrorForMissingKeyInMap";
 import { mapFromYamlScalar } from "../../internal/yamlFormat/util/mapFromYamlScalar";
+import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/yamlMaps/getErrorForUnknownKeyInMap";
 
 enum EnvironmentKeyName {
     Name = "name",
@@ -92,9 +92,19 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
     );
 
     collectedErrors.push(
-        ...mapItemErrors.concat(
-            getImplicitErrorsForAllInvalidMapItems(mapItems, commonArgs),
-        ),
+        ...mapItemErrors
+            .concat(
+                getImplicitErrorsForAllInvalidMapItems(mapItems, commonArgs),
+            )
+            .concat(
+                mapItems.unknownKeys.map(({ key, keyRange }) =>
+                    getErrorForUnknownKeyInMap({
+                        ...commonArgs,
+                        unknownKey: key,
+                        keyRange,
+                    }),
+                ),
+            ),
     );
 
     const maybeNameWithKeyRange = mapItems.validScalars.find(
@@ -175,9 +185,29 @@ function getVariablesFromMapItems(
         );
 
         errors.push(
-            ...mapItemErrors.concat(
-                getImplicitErrorsForAllInvalidMapItems(allMapItems, commonArgs),
-            ),
+            ...mapItemErrors
+                .concat(
+                    getImplicitErrorsForAllInvalidMapItems(
+                        allMapItems,
+                        commonArgs,
+                    ),
+                )
+                .concat(
+                    allMapItems.unknownKeys
+                        .filter(
+                            ({ key }) =>
+                                !(
+                                    Object.values(VariableProperty) as string[]
+                                ).includes(key),
+                        )
+                        .map(({ key, keyRange }) =>
+                            getErrorForUnknownKeyInMap({
+                                ...commonArgs,
+                                unknownKey: key,
+                                keyRange,
+                            }),
+                        ),
+                ),
         );
         const { description, disabled, secret } =
             getItemsForSimpleOptionalVariableProps(
@@ -375,8 +405,8 @@ function getValueFromMapItemVariable(commonParams: {
     const { map: variableDefinitionMap, fullDocumentRange } = commonParams;
 
     const matchingField = variableDefinitionMap.items.find(
-        (item) =>
-            typeof item.key == "string" && item.key == VariableProperty.Value,
+        ({ key }) =>
+            isScalar<string>(key) && key.value == VariableProperty.Value,
     );
 
     if (!matchingField) {
@@ -432,9 +462,22 @@ function getValueFromMapItemVariable(commonParams: {
         commonParams,
     );
     collectedErrors.push(
-        ...mapItemErrors.concat(
-            getImplicitErrorsForAllInvalidMapItems(valueMapItems, commonParams),
-        ),
+        ...mapItemErrors
+            .concat(
+                getImplicitErrorsForAllInvalidMapItems(
+                    valueMapItems,
+                    commonParams,
+                ),
+            )
+            .concat(
+                valueMapItems.unknownKeys.map(({ key, keyRange }) =>
+                    getErrorForUnknownKeyInMap({
+                        ...commonParams,
+                        unknownKey: key,
+                        keyRange,
+                    }),
+                ),
+            ),
     );
 
     let data: Scalar<string> | undefined = undefined;
@@ -565,29 +608,24 @@ function getTypedVariableType(
 }
 
 function getImplicitErrorsForAllInvalidMapItems(
-    mapItems: ParsedMapItems,
+    items: {
+        invalidScalars: { key: string; valueRange: Range }[];
+        invalidSequences: { key: string; valueRange: Range }[];
+    },
     commonArgs: CommonParsingArgs,
 ) {
-    return mapItems.unknownKeys
-        .map(({ key, keyRange }) =>
-            getErrorForUnknownKeyInMap({
+    const { invalidScalars, invalidSequences } = items;
+    return invalidScalars
+        .map(({ key, valueRange }) =>
+            getErrorForValueWithUnexpectedType({
                 ...commonArgs,
-                unknownKey: key,
-                keyRange,
+                key,
+                valueRange,
+                expectedType: "Scalar",
             }),
         )
         .concat(
-            mapItems.invalidScalars.map(({ key, valueRange }) =>
-                getErrorForValueWithUnexpectedType({
-                    ...commonArgs,
-                    key,
-                    valueRange,
-                    expectedType: "Scalar",
-                }),
-            ),
-        )
-        .concat(
-            mapItems.invalidSequences.map(({ key, valueRange }) =>
+            invalidSequences.map(({ key, valueRange }) =>
                 getErrorForValueWithUnexpectedType({
                     ...commonArgs,
                     key,

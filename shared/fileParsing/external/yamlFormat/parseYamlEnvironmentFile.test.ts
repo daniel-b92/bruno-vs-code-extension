@@ -19,42 +19,55 @@ variables:
             new TextDocumentHelper(documentText),
         );
 
-        const nameLine = 2;
+        const variableNameLine = 2;
 
         const expectedVariables: ParsedEnvironmentVariable[] = [
             {
                 name: {
-                    keyRange: getExpectedKeyRange(nameLine, "name"),
+                    keyRange: getExpectedKeyRange(variableNameLine, "name"),
                     value: "var-1",
                     valueRange: getExpectedSameLineValueRange(
-                        nameLine,
+                        variableNameLine,
                         "name",
                         "var-1",
                     ),
                 },
                 value: {
-                    keyRange: getExpectedKeyRange(nameLine + 1, "value"),
+                    keyRange: getExpectedKeyRange(
+                        variableNameLine + 1,
+                        "value",
+                    ),
                     value: "test-1",
                     valueRange: getExpectedSameLineValueRange(
-                        nameLine + 1,
+                        variableNameLine + 1,
                         "value",
                         "test-1",
                     ),
                 },
                 description: {
-                    keyRange: getExpectedKeyRange(nameLine + 2, "description"),
+                    keyRange: getExpectedKeyRange(
+                        variableNameLine + 2,
+                        "description",
+                    ),
                     value: "desc",
                     valueRange: getExpectedSameLineValueRange(
-                        nameLine + 2,
+                        variableNameLine + 2,
                         "description",
                         "desc",
                     ),
                 },
+                disabled: undefined,
+                secret: undefined,
+                type: undefined,
             },
         ];
 
         expect(parsed).toEqual({
-            name: "Env1",
+            name: {
+                keyRange: getExpectedKeyRange(0, "name", 0),
+                value: "Env1",
+                valueRange: getExpectedSameLineValueRange(0, "name", "Env1", 0),
+            },
             variables: expectedVariables,
             errors: [],
         });
@@ -68,16 +81,24 @@ variables:
     description: desc
   - name: var-2
     value: test-2
-    secret:  true
+    secret: true
     disabled: true`;
         const parsed = parseYamlEnvironmentFile(
             new TextDocumentHelper(documentText),
         );
         const firstVarNameLine = 2;
         const secondVarNameLine = 5;
+        const defaultVariableOptionalFields: Partial<ParsedEnvironmentVariable> =
+            {
+                description: undefined,
+                disabled: undefined,
+                secret: undefined,
+                type: undefined,
+            };
 
         const expectedVariables: ParsedEnvironmentVariable[] = [
             {
+                ...defaultVariableOptionalFields,
                 name: {
                     keyRange: getExpectedKeyRange(firstVarNameLine, "name"),
                     value: "var-1",
@@ -113,6 +134,7 @@ variables:
                 },
             },
             {
+                ...defaultVariableOptionalFields,
                 name: {
                     keyRange: getExpectedKeyRange(secondVarNameLine, "name"),
                     value: "var-2",
@@ -127,7 +149,7 @@ variables:
                         secondVarNameLine + 1,
                         "value",
                     ),
-                    value: "test-1",
+                    value: "test-2",
                     valueRange: getExpectedSameLineValueRange(
                         secondVarNameLine + 1,
                         "value",
@@ -162,7 +184,11 @@ variables:
         ];
 
         expect(parsed).toEqual({
-            name: "Env1",
+            name: {
+                keyRange: getExpectedKeyRange(0, "name", 0),
+                value: "Env1",
+                valueRange: getExpectedSameLineValueRange(0, "name", "Env1", 0),
+            },
             variables: expectedVariables,
             errors: [],
         });
@@ -188,7 +214,11 @@ variables:
                 `Got error in parsing response. Got ${JSON.stringify(parsed, null, 2)}`,
             );
         }
-        expect(parsed.name).toBe("Env1");
+        expect(parsed.name).toEqual({
+            keyRange: getExpectedKeyRange(0, "name", 0),
+            value: "Env1",
+            valueRange: getExpectedSameLineValueRange(0, "name", "Env1", 0),
+        });
         expect(parsed.errors).toHaveLength(0);
         expect(parsed.variables).toHaveLength(1);
 
@@ -257,7 +287,8 @@ function getExpectedSameLineValueRange(
     keyStartChar = 4,
 ) {
     return new Range(
-        new Position(line, keyStartChar),
-        new Position(line, keyStartChar + key.length + 3 + value.length),
+        // The '+3' is for the ': ' between the key and the value.
+        new Position(line, keyStartChar + key.length + 2),
+        new Position(line, keyStartChar + key.length + 2 + value.length),
     );
 }
