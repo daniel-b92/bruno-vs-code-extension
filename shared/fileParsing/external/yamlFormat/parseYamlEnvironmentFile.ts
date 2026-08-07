@@ -167,10 +167,12 @@ function getVariablesFromMapItems(
                     stringValues: [
                         VariableProperty.Description,
                         VariableProperty.Name,
-                        VariableProperty.Secret,
                         VariableProperty.Type,
                     ],
-                    booleanValues: [VariableProperty.Disabled],
+                    booleanValues: [
+                        VariableProperty.Disabled,
+                        VariableProperty.Secret,
+                    ],
                 },
                 sequenceValues: [],
             },
@@ -439,6 +441,11 @@ function getValueFromMapItemVariable(commonParams: {
                 map: valueMapItem,
             }),
         );
+    } else {
+        data = {
+            keyRange: maybeDataItem.keyRange,
+            scalar: maybeDataItem.value,
+        };
     }
 
     const type = getItemVariableTypeScalarField(
