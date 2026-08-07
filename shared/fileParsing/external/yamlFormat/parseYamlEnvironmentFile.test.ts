@@ -1,7 +1,11 @@
 import { describe, it, expect } from "@jest/globals";
 import { parseYamlEnvironmentFile } from "./parseYamlEnvironmentFile";
 import { TextDocumentHelper } from "../../../fileSystem/textDocumentHelper";
-import { ParsedEnvironmentVariable, VariableType } from "./interfaces";
+import {
+    ParsedEnvironmentVariable,
+    VariableType,
+    WithKeyAndValueRange,
+} from "./interfaces";
 import { Position, Range } from "../../..";
 
 describe("parseYamlEnvironmentFile", () => {
@@ -179,29 +183,6 @@ variables:
             new TextDocumentHelper(documentText),
         );
 
-        const nameLine = 2;
-
-        const expectedVariable: ParsedEnvironmentVariable = {
-            name: {
-                keyRange: getExpectedKeyRange(nameLine, "name"),
-                value: "var-1",
-                valueRange: getExpectedSameLineValueRange(
-                    nameLine,
-                    "name",
-                    "var-1",
-                ),
-            },
-            value: {
-                data: `{
-"id": 2333,
-"other": "sdasda"
-}`,
-                type: VariableType.Object,
-            },
-            secret: false,
-            disabled: false,
-        };
-
         if (!("name" in parsed)) {
             throw new Error(
                 `Got error in parsing response. Got ${JSON.stringify(parsed, null, 2)}`,
@@ -212,42 +193,57 @@ variables:
         expect(parsed.variables).toHaveLength(1);
 
         const actualVariable = parsed.variables[0];
-        expect(actualVariable.description).toEqual(
-            expectedVariable.description,
-        );
-        expect(actualVariable.disabled).toEqual(expectedVariable.disabled);
-        expect(actualVariable.name).toEqual(expectedVariable.name);
-        expect(actualVariable.secret).toEqual(expectedVariable.secret);
-        expect(actualVariable.type).toEqual(expectedVariable.type);
+        expect(actualVariable.description).toBeUndefined();
+        expect(actualVariable.disabled).toBeUndefined();
+        expect(actualVariable.name.value).toEqual("var-1");
+        expect(actualVariable.secret).toBeUndefined();
+        expect(actualVariable.type).toBeUndefined();
 
-        if (!actualVariable.value || typeof actualVariable.value == "string") {
+        if (
+            !actualVariable.value ||
+            ("value" in actualVariable.value &&
+                typeof actualVariable.value.value == "string")
+        ) {
             throw new Error(
                 `Got unexpected value from the parser. Should be an object, but was ${actualVariable.value}`,
             );
         }
-        expect(actualVariable.value.type).toEqual(
-            (
-                expectedVariable.value as {
-                    data: string;
-                    type: VariableType.Object;
-                }
-            ).type,
+        const actualValueItem = actualVariable.value as {
+            type: WithKeyAndValueRange<VariableType>;
+            data: WithKeyAndValueRange<string>;
+        };
+
+        const typeLine = 4;
+        const typeStartChar = 6;
+        expect(actualValueItem.type.value).toEqual(VariableType.Object);
+        expect(actualValueItem.type.keyRange).toEqual(
+            getExpectedKeyRange(typeLine, "type", typeStartChar),
         );
-        expect(JSON.parse(actualVariable.value.data)).toEqual(
-            JSON.parse(
-                (
-                    expectedVariable.value as {
-                        data: string;
-                        type: VariableType.Object;
-                    }
-                ).data,
+        expect(actualValueItem.type.valueRange).toEqual(
+            getExpectedSameLineValueRange(
+                typeLine,
+                "type",
+                VariableType.Object,
+                typeStartChar,
+            ),
+        );
+        expect(JSON.parse(actualValueItem.data.value)).toEqual({
+            id: 2333,
+            other: "sdasda",
+        });
+        expect(actualValueItem.data.keyRange).toEqual(
+            getExpectedKeyRange(typeLine + 1, "data", typeStartChar),
+        );
+        expect(actualValueItem.data.valueRange).toEqual(
+            new Range(
+                new Position(typeLine + 1, typeStartChar + "data".length + 3),
+                new Position(typeLine + 5, typeStartChar + 2),
             ),
         );
     });
 });
 
-function getExpectedKeyRange(line: number, key: string) {
-    const keyStartChar = 4;
+function getExpectedKeyRange(line: number, key: string, keyStartChar = 4) {
     return new Range(
         new Position(line, keyStartChar),
         new Position(line, keyStartChar + key.length),
@@ -258,8 +254,8 @@ function getExpectedSameLineValueRange(
     line: number,
     key: string,
     value: string,
+    keyStartChar = 4,
 ) {
-    const keyStartChar = 4;
     return new Range(
         new Position(line, keyStartChar),
         new Position(line, keyStartChar + key.length + 3 + value.length),
