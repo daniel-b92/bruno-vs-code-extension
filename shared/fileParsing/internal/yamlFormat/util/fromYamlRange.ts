@@ -2,7 +2,7 @@ import { Range as YamlRange } from "yaml";
 import { Position, Range, TextDocumentHelper } from "../../../..";
 
 export function fromYamlRange(
-    { "0": startOffset, "2": endOffset }: YamlRange,
+    { "0": startOffset, "1": endOffset }: YamlRange,
     docHelper: TextDocumentHelper,
 ): Range | undefined {
     const startPosition = docHelper.getPositionForOffset(

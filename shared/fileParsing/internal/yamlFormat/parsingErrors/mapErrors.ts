@@ -1,5 +1,10 @@
 import { YAMLError } from "yaml";
-import { Position, Range, YamlParsingError } from "../../../..";
+import {
+    Position,
+    Range,
+    YamlParsingError,
+    YamlParsingErrorCode,
+} from "../../../..";
 
 export function mapErrors(
     errors: YAMLError[],
@@ -20,7 +25,7 @@ export function mapErrors(
         return {
             message,
             range: new Range(startPosition, endPosition),
-            severity: "ERR",
+            code: YamlParsingErrorCode.Other,
         };
     });
 }

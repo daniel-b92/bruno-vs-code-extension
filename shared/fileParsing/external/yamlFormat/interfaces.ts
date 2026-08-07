@@ -1,22 +1,35 @@
 import { Range } from "../../..";
 
-export enum YamlParsingSpecialErrorCode {
-    FieldDoesNotExist = 1,
+export enum YamlParsingErrorCode {
+    ItemDoesNotExist = 1,
+    UnknownFieldInMap = 2,
+    Other = 99,
 }
 
 export interface YamlParsingError {
     message: string;
     range: Range;
-    code?: YamlParsingSpecialErrorCode;
+    code: YamlParsingErrorCode;
 }
 
 export interface ParsedEnvironmentVariable {
-    name: string;
-    value?: string | { type: VariableType; data: string };
-    description?: string;
-    type?: VariableType;
-    secret: boolean;
-    disabled: boolean;
+    name: WithKeyAndValueRange<string>;
+    value?:
+        | WithKeyAndValueRange<string>
+        | {
+              type: WithKeyAndValueRange<VariableType>;
+              data: WithKeyAndValueRange<string>;
+          };
+    description?: WithKeyAndValueRange<string>;
+    type?: WithKeyAndValueRange<VariableType>;
+    secret?: WithKeyAndValueRange<boolean>;
+    disabled?: WithKeyAndValueRange<boolean>;
+}
+
+export interface WithKeyAndValueRange<T> {
+    keyRange: Range;
+    value: T;
+    valueRange: Range;
 }
 
 export enum VariableType {
