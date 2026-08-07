@@ -8,16 +8,14 @@ export interface CommonParsingArgs {
 
 export interface ParsedMapItems {
     validScalars: {
-        key: string;
-        keyRange: Range;
-        value: Scalar<unknown>;
-    }[];
-    validSequences: {
-        key: string;
-        keyRange: Range;
-        value: YAMLSeq<unknown>;
-    }[];
+        withStringValue: WithKeyAndKeyRange<Scalar<string>>[];
+        withBooleanValue: WithKeyAndKeyRange<Scalar<boolean>>[];
+        withUnknownValue: WithKeyAndKeyRange<Scalar<unknown>>[];
+    };
+    validSequences: WithKeyAndKeyRange<YAMLSeq<unknown>>[];
     invalidScalars: { key: string; valueRange: Range }[];
     invalidSequences: { key: string; valueRange: Range }[];
     unknownKeys: { key: string; keyRange: Range }[];
 }
+
+type WithKeyAndKeyRange<T> = { value: T; key: string; keyRange: Range };

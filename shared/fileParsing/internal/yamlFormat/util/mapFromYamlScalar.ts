@@ -4,19 +4,17 @@ import { CommonParsingArgs } from "../interfaces";
 import { fromYamlRange } from "./fromYamlRange";
 
 export function mapFromYamlScalar<T>(
-    keyRange: Range,
-    valueField: Scalar<T>,
-    commonParsingArgs: CommonParsingArgs,
+    args: { keyRange: Range; value: Scalar<T> } & CommonParsingArgs,
 ): WithKeyAndValueRange<T> {
-    const { range: yamlValueRange, value } = valueField;
+    const { value: valueField, keyRange } = args;
 
     return {
         keyRange,
         valueRange: fromYamlRangeWithFallback({
-            ...commonParsingArgs,
-            source: yamlValueRange,
+            ...args,
+            source: valueField.range,
         }),
-        value,
+        value: valueField.value,
     };
 }
 
