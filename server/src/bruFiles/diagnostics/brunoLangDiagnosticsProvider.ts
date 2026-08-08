@@ -4,7 +4,12 @@ import { determineDiagnosticsForFolderSettingsFile } from "./folderSettingsFiles
 import { determineDiagnosticsForRequestFile } from "./requestFiles/determineDiagnosticsForRequestFile";
 import { determineDiagnosticsForEnvironmentFile } from "./environmentFiles/determineDiagnosticsForEnvironmentFile";
 import { determineDiagnosticsForCollectionSettingsFile } from "./collectionSettingsFiles/determineDiagnosticsForCollectionSettingsFile";
-import { BrunoFileType } from "@global_shared";
+import {
+    BrunoFileType,
+    parseYamlEnvironmentFile,
+    TextDocumentHelper,
+} from "@global_shared";
+import { Diagnostic } from "vscode-languageserver";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(private itemProvider: TypedCollectionItemProvider) {
@@ -13,7 +18,7 @@ export class BrunoLangDiagnosticsProvider {
 
     private relatedRequestsHelper: RelatedFilesDiagnosticsHelper;
 
-    public async getDiagnostics(
+    public async getDiagnosticsForBruFile(
         filePath: string,
         content: string,
         brunoFileType: BrunoFileType,
@@ -47,6 +52,17 @@ export class BrunoLangDiagnosticsProvider {
                     content,
                 );
         }
+    }
+
+    public getDiagnosticsForEnvironmentYamlFile(
+        _filePath: string,
+        content: string,
+    ): Diagnostic[] {
+        const parsed = parseYamlEnvironmentFile(
+            new TextDocumentHelper(content),
+        );
+        const errors = Array.isArray(parsed) ? parsed : parsed.errors;
+        return errors.map((err) => ({ ...err, code: undefined }));
     }
 
     public dispose() {
