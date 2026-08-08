@@ -9,8 +9,7 @@ import { getErrorForValueWithUnexpectedType } from "../parsingErrors/getErrorFor
 /**
  * Parses a YAML map and categorizes its items into valid scalars, valid sequences, invalid scalars, invalid sequences, and unknown keys based on the provided expected keys.
  * It also collects any technical errors encountered during parsing.
- * No errors are collected for items that have a different type than expected.
- * The same is the case for items with unknown keys.
+ * No errors are collected for items with unknown keys or missing keys.
  */
 export function getMapItems(
     map: YAMLMap<unknown, unknown>,
