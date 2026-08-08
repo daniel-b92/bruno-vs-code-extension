@@ -20,6 +20,7 @@ import {
 import { URI } from "vscode-uri";
 import { runUpdatesOnWillSave } from "./bruFiles/autoUpdates/runUpdatesOnWillSave";
 import {
+    BrunoFileType,
     FileChangeType,
     getConfiguredEnvironmentNameAsync,
     getExtensionForBrunoFiles,
@@ -36,9 +37,11 @@ import { handleHoverRequest as handleHoverRequestForBruFile } from "./bruFiles/h
 import { extname } from "path";
 import { handleCompletionRequest as handleCompletionRequestForJsFile } from "./jsFiles/completionItems/handleCompletionRequest";
 import { handleHoverRequest as handleHoverRequestForJsFile } from "./jsFiles/hover/handleHoverRequest";
+import { YamlFormatDiagnosticsProvider } from "./yamlFiles/yamlFormatDiagnosticsProvider";
 
 let helpersProvider: HelpersProvider | undefined = undefined;
 let brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider;
+const yamlDiagnosticsProvider = new YamlFormatDiagnosticsProvider();
 const disposables: Disposable[] = [];
 enum FileTypeByExtension {
     Bru = ".bru",
@@ -338,12 +341,12 @@ async function getDiagnosticsForBruFile(filePath: string, text: string) {
 function getDiagnosticsForYamlFile(filePath: string, text: string) {
     if (
         // ToDo: Once yaml files are stored in the file system cache, use the itemType for identifying environment files.
-        isInFolderForEnvironmentFiles(filePath) &&
-        brunoLangDiagnosticsProvider
+        isInFolderForEnvironmentFiles(filePath)
     ) {
-        return brunoLangDiagnosticsProvider.getDiagnosticsForEnvironmentYamlFile(
+        return yamlDiagnosticsProvider.getDiagnosticsForYamlFile(
             filePath,
             text,
+            BrunoFileType.EnvironmentFile,
         );
     }
 
