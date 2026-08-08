@@ -5,6 +5,7 @@ import { getRangeForItem } from "../util/getRangeForItem";
 import { fromYamlRange } from "../util/fromYamlRange";
 import { getRangeForUnknownYamlItem } from "../util/getRangeForUnknownYamlItem";
 import { getErrorForValueWithUnexpectedType } from "../parsingErrors/getErrorForValueWithUnexpectedType";
+import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 
 /**
  * Parses a YAML map and categorizes its items into valid scalars, valid sequences, invalid scalars, invalid sequences, and unknown keys based on the provided expected keys.
@@ -46,7 +47,7 @@ export function getMapItems(
         },
         validSequences: [],
         // Everytime one of the expected keys is found, it will be removed from this list.
-        missingKeys: allExpectedKeys,
+        missingKeys: allExpectedKeys.slice(),
         unknownKeys: [],
     };
     const errors: YamlParsingError[] = [];
@@ -54,6 +55,18 @@ export function getMapItems(
     const invalidSequences: { key: string; valueRange: Range }[] = [];
 
     for (const { key, value } of map.items) {
+        // The parser converts handles empty string as key to `NULL`, which causes a type mismatch, when directly checking for string scalar.
+        if (isScalar<unknown>(key) && !key.value) {
+            errors.push(
+                getErrorForUnknownKeyInMap({
+                    ...commonParsingArgs,
+                    unknownKey: "",
+                    keyRange: getRangeForItem(key, commonParsingArgs),
+                    allowedKeys: allExpectedKeys,
+                }),
+            );
+            continue;
+        }
         const keyAsScalar = isScalar<string>(key) ? key : undefined;
 
         if (!keyAsScalar) {
