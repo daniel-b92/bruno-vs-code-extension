@@ -56,7 +56,7 @@ export function getMapItems(
 
     for (const { key, value } of map.items) {
         // The parser converts handles empty string as key to `NULL`, which causes a type mismatch, when directly checking for string scalar.
-        if (isScalar<unknown>(key) && !key.value) {
+        if (isScalar<unknown>(key) && key.source === "") {
             errors.push(
                 getErrorForUnknownKeyInMap({
                     ...commonParsingArgs,
