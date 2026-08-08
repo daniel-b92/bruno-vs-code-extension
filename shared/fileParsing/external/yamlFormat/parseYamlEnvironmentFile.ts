@@ -7,6 +7,7 @@ import {
     YAMLMap,
 } from "yaml";
 import {
+    EnvironmentVariableProperty,
     ParsedEnvironmentVariable,
     Range,
     TextDocumentHelper,
@@ -29,20 +30,10 @@ import { getRangeForUnknownYamlItem } from "../../internal/yamlFormat/util/getRa
 import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForMissingKeyInMap";
 import { mapFromYamlScalar } from "../../internal/yamlFormat/util/mapFromYamlScalar";
 import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForUnknownKeyInMap";
-import { getImplicitErrorsForAllInvalidMapItems } from "../../internal/yamlFormat/yamlMaps/getImplicitErrorsForAllInvalidMapItems";
 
 enum EnvironmentKeyName {
     Name = "name",
     Variables = "variables",
-}
-
-enum VariableProperty {
-    Name = "name",
-    Value = "value",
-    Description = "description",
-    Disabled = "disabled",
-    Secret = "secret",
-    Type = "type",
 }
 
 enum VariableValueWithTypeProperty {
@@ -53,7 +44,7 @@ enum VariableValueWithTypeProperty {
 export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
     | YamlParsingError[]
     | {
-          name?: WithKeyAndValueRange<string>;
+          name: WithKeyAndValueRange<string> | { missing: boolean };
           variables: ParsedEnvironmentVariable[];
           errors: YamlParsingError[];
       } {
@@ -89,30 +80,29 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
     );
 
     collectedErrors.push(
-        ...mapItemErrors
-            .concat(
-                getImplicitErrorsForAllInvalidMapItems(mapItems, commonArgs),
-            )
-            .concat(
-                mapItems.unknownKeys.map(({ key, keyRange }) =>
-                    getErrorForUnknownKeyInMap({
-                        ...commonArgs,
-                        unknownKey: key,
-                        keyRange,
-                    }),
-                ),
+        ...mapItemErrors.concat(
+            mapItems.unknownKeys.map(({ key, keyRange }) =>
+                getErrorForUnknownKeyInMap({
+                    ...commonArgs,
+                    unknownKey: key,
+                    keyRange,
+                }),
             ),
+        ),
     );
 
     const {
         validScalars: { withStringValue: validStringScalars },
         validSequences,
+        missingKeys,
     } = mapItems;
 
     const maybeNameWithKeyRange = validStringScalars.find(
         ({ key }) => key == EnvironmentKeyName.Name,
     );
-    let nameToUse: WithKeyAndValueRange<string> | undefined = undefined;
+    let nameToUse: WithKeyAndValueRange<string> | { missing: boolean } = {
+        missing: missingKeys.includes(EnvironmentKeyName.Name),
+    };
     if (maybeNameWithKeyRange) {
         nameToUse = mapFromYamlScalar({
             ...commonArgs,
@@ -166,13 +156,13 @@ function getVariablesFromMapItems(
             {
                 scalars: {
                     stringValues: [
-                        VariableProperty.Description,
-                        VariableProperty.Name,
-                        VariableProperty.Type,
+                        EnvironmentVariableProperty.Description,
+                        EnvironmentVariableProperty.Name,
+                        EnvironmentVariableProperty.Type,
                     ],
                     booleanValues: [
-                        VariableProperty.Disabled,
-                        VariableProperty.Secret,
+                        EnvironmentVariableProperty.Disabled,
+                        EnvironmentVariableProperty.Secret,
                     ],
                 },
                 sequenceValues: [],
@@ -181,29 +171,24 @@ function getVariablesFromMapItems(
         );
 
         errors.push(
-            ...mapItemErrors
-                .concat(
-                    getImplicitErrorsForAllInvalidMapItems(
-                        allMapItems,
-                        commonArgs,
+            ...mapItemErrors.concat(
+                allMapItems.unknownKeys
+                    .filter(
+                        ({ key }) =>
+                            !(
+                                Object.values(
+                                    EnvironmentVariableProperty,
+                                ) as string[]
+                            ).includes(key),
+                    )
+                    .map(({ key, keyRange }) =>
+                        getErrorForUnknownKeyInMap({
+                            ...commonArgs,
+                            unknownKey: key,
+                            keyRange,
+                        }),
                     ),
-                )
-                .concat(
-                    allMapItems.unknownKeys
-                        .filter(
-                            ({ key }) =>
-                                !(
-                                    Object.values(VariableProperty) as string[]
-                                ).includes(key),
-                        )
-                        .map(({ key, keyRange }) =>
-                            getErrorForUnknownKeyInMap({
-                                ...commonArgs,
-                                unknownKey: key,
-                                keyRange,
-                            }),
-                        ),
-                ),
+            ),
         );
         const {
             description: descriptionWithKeyRange,
@@ -225,7 +210,7 @@ function getVariablesFromMapItems(
             maybeValue && !("errors" in maybeValue) ? maybeValue : undefined;
 
         const nameWithKeyRange = allMapItems.validScalars.withStringValue.find(
-            ({ key }) => key == VariableProperty.Name,
+            ({ key }) => key == EnvironmentVariableProperty.Name,
         );
 
         if (!nameWithKeyRange) {
@@ -233,7 +218,7 @@ function getVariablesFromMapItems(
             errors.push(
                 getErrorForMissingKeyInMap({
                     ...commonArgs,
-                    missingKey: VariableProperty.Name,
+                    missingKey: EnvironmentVariableProperty.Name,
                     map: currentMap,
                 }),
             );
@@ -286,6 +271,8 @@ function getVariablesFromMapItems(
                       ...type,
                   })
                 : undefined,
+            missingProperties:
+                allMapItems.missingKeys as EnvironmentVariableProperty[],
         });
     }
 
@@ -295,17 +282,17 @@ function getVariablesFromMapItems(
 function getItemsForSimpleOptionalVariableProps(allMapItems: ParsedMapItems) {
     const maybeDescriptionWithKeyRange =
         allMapItems.validScalars.withStringValue.find(
-            ({ key }) => key == VariableProperty.Description,
+            ({ key }) => key == EnvironmentVariableProperty.Description,
         );
 
     const maybeDisabledWithKeyRange =
         allMapItems.validScalars.withBooleanValue.find(
-            ({ key }) => key == VariableProperty.Disabled,
+            ({ key }) => key == EnvironmentVariableProperty.Disabled,
         );
 
     const maybeSecretWithKeyRange =
         allMapItems.validScalars.withBooleanValue.find(
-            ({ key }) => key == VariableProperty.Secret,
+            ({ key }) => key == EnvironmentVariableProperty.Secret,
         );
 
     return {
@@ -336,7 +323,8 @@ function getValueFieldFromVariable(commonParams: {
 
     const matchingField = variableDefinitionMap.items.find(
         ({ key }) =>
-            isScalar<string>(key) && key.value == VariableProperty.Value,
+            isScalar<string>(key) &&
+            key.value == EnvironmentVariableProperty.Value,
     );
 
     if (!matchingField) {
@@ -357,7 +345,7 @@ function getValueFieldFromVariable(commonParams: {
                 : {
                       error: getErrorForValueWithUnexpectedType({
                           ...commonParams,
-                          key: VariableProperty.Value,
+                          key: EnvironmentVariableProperty.Value,
                           expectedType: "Scalar",
                           valueRange: (getRangeForUnknownYamlItem(
                               matchingField.value,
@@ -394,22 +382,15 @@ function getValueFieldFromVariable(commonParams: {
         commonParams,
     );
     collectedErrors.push(
-        ...mapItemErrors
-            .concat(
-                getImplicitErrorsForAllInvalidMapItems(
-                    valueMapItems,
-                    commonParams,
-                ),
-            )
-            .concat(
-                valueMapItems.unknownKeys.map(({ key, keyRange }) =>
-                    getErrorForUnknownKeyInMap({
-                        ...commonParams,
-                        unknownKey: key,
-                        keyRange,
-                    }),
-                ),
+        ...mapItemErrors.concat(
+            valueMapItems.unknownKeys.map(({ key, keyRange }) =>
+                getErrorForUnknownKeyInMap({
+                    ...commonParams,
+                    unknownKey: key,
+                    keyRange,
+                }),
             ),
+        ),
     );
 
     let data: { keyRange: Range; scalar: Scalar<string> } | undefined =
@@ -468,7 +449,7 @@ function getItemVariableTypeScalarField(
     errorsCollection: YamlParsingError[],
 ) {
     const maybeTypeWithKeyRange = allMapItems.validScalars.withStringValue.find(
-        ({ key }) => key == VariableProperty.Type,
+        ({ key }) => key == EnvironmentVariableProperty.Type,
     );
 
     if (!maybeTypeWithKeyRange) {

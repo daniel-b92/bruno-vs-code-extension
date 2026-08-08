@@ -13,8 +13,7 @@ export interface ParsedMapItems {
         withUnknownValue: WithKeyAndKeyRange<Scalar<unknown>>[];
     };
     validSequences: WithKeyAndKeyRange<YAMLSeq<unknown>>[];
-    invalidScalars: { key: string; valueRange: Range }[];
-    invalidSequences: { key: string; valueRange: Range }[];
+    missingKeys: string[];
     unknownKeys: { key: string; keyRange: Range }[];
 }
 

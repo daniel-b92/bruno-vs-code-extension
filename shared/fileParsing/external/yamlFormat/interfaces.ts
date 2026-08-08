@@ -24,6 +24,7 @@ export interface ParsedEnvironmentVariable {
     type?: WithKeyAndValueRange<VariableType>;
     secret?: WithKeyAndValueRange<boolean>;
     disabled?: WithKeyAndValueRange<boolean>;
+    missingProperties: EnvironmentVariableProperty[];
 }
 
 export interface WithKeyAndValueRange<T> {
@@ -36,4 +37,13 @@ export enum VariableType {
     Number = "number",
     Boolean = "boolean",
     Object = "object",
+}
+
+export enum EnvironmentVariableProperty {
+    Name = "name",
+    Value = "value",
+    Description = "description",
+    Disabled = "disabled",
+    Secret = "secret",
+    Type = "type",
 }
