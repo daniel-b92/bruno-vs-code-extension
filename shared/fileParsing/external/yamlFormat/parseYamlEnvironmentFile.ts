@@ -390,9 +390,15 @@ function getValueFieldFromVariable(commonParams: {
         },
         commonParams,
     );
+
+    const {
+        missingKeys,
+        unknownKeys,
+        validScalars: { withStringValue: validStringScalars },
+    } = valueMapItems;
     collectedErrors.push(
         ...mapItemErrors.concat(
-            valueMapItems.unknownKeys.map(({ key, keyRange }) =>
+            unknownKeys.map(({ key, keyRange }) =>
                 getErrorForUnknownKeyInMap({
                     ...commonParams,
                     unknownKey: key,
@@ -400,44 +406,32 @@ function getValueFieldFromVariable(commonParams: {
                     allowedKeys: keysForStringScalars,
                 }),
             ),
+            missingKeys.map((key) =>
+                getErrorForMissingKeyInMap({
+                    ...commonParams,
+                    missingKey: key,
+                    map: valueMapItem,
+                }),
+            ),
         ),
     );
 
-    let data: { keyRange: Range; scalar: Scalar<string> } | undefined =
-        undefined;
-    const maybeDataItem = valueMapItems.validScalars.withStringValue.find(
+    const maybeDataItem = validStringScalars.find(
         ({ key }) => key == VariableValueWithTypeProperty.Data,
     );
-
-    if (!maybeDataItem) {
-        collectedErrors.push(
-            getErrorForMissingKeyInMap({
-                ...commonParams,
-                missingKey: VariableValueWithTypeProperty.Data,
-                map: valueMapItem,
-            }),
-        );
-    } else {
-        data = {
-            keyRange: maybeDataItem.keyRange,
-            scalar: maybeDataItem.value,
-        };
-    }
+    const data: { keyRange: Range; scalar: Scalar<string> } | undefined =
+        maybeDataItem
+            ? {
+                  keyRange: maybeDataItem.keyRange,
+                  scalar: maybeDataItem.value,
+              }
+            : undefined;
 
     const type = getItemVariableTypeScalarField(
         valueMapItems,
         commonParams,
         collectedErrors,
     );
-    if (!type) {
-        collectedErrors.push(
-            getErrorForMissingKeyInMap({
-                ...commonParams,
-                missingKey: VariableValueWithTypeProperty.Type,
-                map: valueMapItem,
-            }),
-        );
-    }
 
     return collectedErrors.length > 0 || !data || !type
         ? { errors: collectedErrors }
