@@ -2,6 +2,7 @@ import { describe, it, expect } from "@jest/globals";
 import { parseYamlEnvironmentFile } from "./parseYamlEnvironmentFile";
 import { TextDocumentHelper } from "../../../fileSystem/textDocumentHelper";
 import {
+    EnvironmentVariableProperty,
     ParsedEnvironmentVariable,
     VariableType,
     WithKeyAndValueRange,
@@ -59,6 +60,11 @@ variables:
                 disabled: undefined,
                 secret: undefined,
                 type: undefined,
+                missingProperties: [
+                    EnvironmentVariableProperty.Disabled,
+                    EnvironmentVariableProperty.Secret,
+                    EnvironmentVariableProperty.Type,
+                ],
             },
         ];
 
@@ -132,6 +138,11 @@ variables:
                         "desc",
                     ),
                 },
+                missingProperties: [
+                    EnvironmentVariableProperty.Disabled,
+                    EnvironmentVariableProperty.Secret,
+                    EnvironmentVariableProperty.Type,
+                ],
             },
             {
                 ...defaultVariableOptionalFields,
@@ -180,6 +191,10 @@ variables:
                         "true",
                     ),
                 },
+                missingProperties: [
+                    EnvironmentVariableProperty.Description,
+                    EnvironmentVariableProperty.Type,
+                ],
             },
         ];
 

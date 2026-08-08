@@ -4,6 +4,7 @@ import { CommonParsingArgs, ParsedMapItems } from "../interfaces";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { fromYamlRange } from "../util/fromYamlRange";
 import { getRangeForUnknownYamlItem } from "../util/getRangeForUnknownYamlItem";
+import { getErrorForValueWithUnexpectedType } from "../parsingErrors/getErrorForValueWithUnexpectedType";
 
 /**
  * Parses a YAML map and categorizes its items into valid scalars, valid sequences, invalid scalars, invalid sequences, and unknown keys based on the provided expected keys.
@@ -23,6 +24,21 @@ export function getMapItems(
     },
     commonParsingArgs: CommonParsingArgs,
 ): { items: ParsedMapItems; errors: YamlParsingError[] } {
+    const {
+        scalars: {
+            booleanValues: expectedBooleanScalars,
+            stringValues: expectedStringScalars,
+            unknownValues: expectedUnknownScalars,
+        },
+        sequenceValues: expectedSequenceValues,
+    } = expectedKeys;
+    const allExpectedScalars = (expectedBooleanScalars ?? []).concat(
+        expectedStringScalars ?? [],
+        expectedUnknownScalars ?? [],
+    );
+    const allExpectedKeys = allExpectedScalars.concat(
+        expectedSequenceValues ?? [],
+    );
     const items: ParsedMapItems = {
         validScalars: {
             withBooleanValue: [],
@@ -30,11 +46,12 @@ export function getMapItems(
             withUnknownValue: [],
         },
         validSequences: [],
-        invalidScalars: [],
-        invalidSequences: [],
+        missingKeys: allExpectedKeys,
         unknownKeys: [],
     };
     const errors: YamlParsingError[] = [];
+    const invalidScalars: { key: string; valueRange: Range }[] = [];
+    const invalidSequences: { key: string; valueRange: Range }[] = [];
 
     for (const { key, value } of map.items) {
         const keyAsScalar = isScalar<string>(key) ? key : undefined;
@@ -56,14 +73,12 @@ export function getMapItems(
         }
         const keyRange = maybeKeyRange.range;
 
-        const {
-            scalars: {
-                booleanValues: expectedBooleanScalars,
-                stringValues: expectedStringScalars,
-                unknownValues: expectedUnknownScalars,
-            },
-            sequenceValues: expectedSequenceValues,
-        } = expectedKeys;
+        const missingKeyIndex = items.missingKeys.findIndex(
+            (notFoundYet) => notFoundYet == keyValue,
+        );
+        if (missingKeyIndex >= 0) {
+            items.missingKeys.splice(missingKeyIndex, 1);
+        }
 
         if (isTypedScalar<boolean>(keyValue, value, expectedBooleanScalars)) {
             items.validScalars.withBooleanValue.push({
@@ -111,17 +126,12 @@ export function getMapItems(
         }
         const valueRange = maybeValueRange.range;
 
-        const allExpectedScalars = (expectedBooleanScalars ?? []).concat(
-            expectedStringScalars ?? [],
-            expectedUnknownScalars ?? [],
-        );
-
         if (allExpectedScalars.includes(keyValue)) {
-            items.invalidScalars.push({ key: keyValue, valueRange });
+            invalidScalars.push({ key: keyValue, valueRange });
             continue;
         }
         if ((expectedSequenceValues ?? []).includes(keyValue)) {
-            items.invalidSequences.push({
+            invalidSequences.push({
                 key: keyValue,
                 valueRange,
             });
@@ -131,7 +141,39 @@ export function getMapItems(
         items.unknownKeys.push({ key: keyValue, keyRange });
     }
 
-    return { items, errors };
+    return {
+        items,
+        errors: errors.concat(
+            getImplicitErrorsForAllInvalidMapItems(
+                { invalidScalars, invalidSequences },
+                commonParsingArgs,
+            ),
+        ),
+    };
+}
+
+function getImplicitErrorsForAllInvalidMapItems(
+    items: {
+        invalidScalars: { key: string; valueRange: Range }[];
+        invalidSequences: { key: string; valueRange: Range }[];
+    },
+    commonArgs: CommonParsingArgs,
+) {
+    const { invalidScalars, invalidSequences } = items;
+
+    return [
+        { fields: invalidScalars, type: "Scalar" as const },
+        { fields: invalidSequences, type: "Sequence" as const },
+    ].flatMap(({ fields, type }) =>
+        fields.map(({ key, valueRange }) =>
+            getErrorForValueWithUnexpectedType({
+                ...commonArgs,
+                key,
+                valueRange,
+                expectedType: type,
+            }),
+        ),
+    );
 }
 
 function isTypedScalar<T>(
