@@ -55,7 +55,7 @@ export function getMapItems(
     const invalidSequences: { key: string; valueRange: Range }[] = [];
 
     for (const { key, value } of map.items) {
-        // The parser converts handles empty string as key to `NULL`, which causes a type mismatch, when directly checking for string scalar.
+        // The parser converts empty string as key to `NULL`, which causes a type mismatch, when directly checking for string scalar.
         if (isScalar<unknown>(key) && key.source === "") {
             errors.push(
                 getErrorForUnknownKeyInMap({
