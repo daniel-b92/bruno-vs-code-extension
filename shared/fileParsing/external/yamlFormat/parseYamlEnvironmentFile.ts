@@ -69,12 +69,14 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
         return [maybeTopLevelMap.error];
     }
     const { map: topLevelMap } = maybeTopLevelMap;
+    const keysForStringScalars = [EnvironmentKeyName.Name];
+    const keysForSequences = [EnvironmentKeyName.Variables];
 
     const { items: mapItems, errors: mapItemErrors } = getMapItems(
         topLevelMap,
         {
-            scalars: { stringValues: [EnvironmentKeyName.Name] },
-            sequenceValues: [EnvironmentKeyName.Variables],
+            scalars: { stringValues: keysForStringScalars },
+            sequenceValues: keysForSequences,
         },
         commonArgs,
     );
@@ -86,6 +88,7 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
                     ...commonArgs,
                     unknownKey: key,
                     keyRange,
+                    allowedKeys: keysForStringScalars.concat(keysForSequences),
                 }),
             ),
         ),
@@ -151,19 +154,22 @@ function getVariablesFromMapItems(
             isTopLevelMap: false,
         };
 
+        const keysForStringScalars = [
+            EnvironmentVariableProperty.Description,
+            EnvironmentVariableProperty.Name,
+            EnvironmentVariableProperty.Type,
+        ];
+        const keysForBooleanScalars = [
+            EnvironmentVariableProperty.Disabled,
+            EnvironmentVariableProperty.Secret,
+        ];
+
         const { items: allMapItems, errors: mapItemErrors } = getMapItems(
             currentMap,
             {
                 scalars: {
-                    stringValues: [
-                        EnvironmentVariableProperty.Description,
-                        EnvironmentVariableProperty.Name,
-                        EnvironmentVariableProperty.Type,
-                    ],
-                    booleanValues: [
-                        EnvironmentVariableProperty.Disabled,
-                        EnvironmentVariableProperty.Secret,
-                    ],
+                    stringValues: keysForStringScalars,
+                    booleanValues: keysForBooleanScalars,
                 },
                 sequenceValues: [],
             },
@@ -186,6 +192,9 @@ function getVariablesFromMapItems(
                             ...commonArgs,
                             unknownKey: key,
                             keyRange,
+                            allowedKeys: keysForStringScalars.concat(
+                                keysForBooleanScalars,
+                            ),
                         }),
                     ),
             ),
@@ -365,69 +374,64 @@ function getValueFieldFromVariable(commonParams: {
     }
 
     const collectedErrors: YamlParsingError[] = [];
-
     const valueMapItem = matchingField.value;
+    const keysForStringScalars = [
+        VariableValueWithTypeProperty.Data,
+        VariableValueWithTypeProperty.Type,
+    ];
 
     const { items: valueMapItems, errors: mapItemErrors } = getMapItems(
         valueMapItem,
         {
             scalars: {
-                stringValues: [
-                    VariableValueWithTypeProperty.Data,
-                    VariableValueWithTypeProperty.Type,
-                ],
+                stringValues: keysForStringScalars,
             },
             sequenceValues: [],
         },
         commonParams,
     );
+
+    const {
+        missingKeys,
+        unknownKeys,
+        validScalars: { withStringValue: validStringScalars },
+    } = valueMapItems;
     collectedErrors.push(
         ...mapItemErrors.concat(
-            valueMapItems.unknownKeys.map(({ key, keyRange }) =>
+            unknownKeys.map(({ key, keyRange }) =>
                 getErrorForUnknownKeyInMap({
                     ...commonParams,
                     unknownKey: key,
                     keyRange,
+                    allowedKeys: keysForStringScalars,
+                }),
+            ),
+            missingKeys.map((key) =>
+                getErrorForMissingKeyInMap({
+                    ...commonParams,
+                    missingKey: key,
+                    map: valueMapItem,
                 }),
             ),
         ),
     );
 
-    let data: { keyRange: Range; scalar: Scalar<string> } | undefined =
-        undefined;
-    const maybeDataItem = valueMapItems.validScalars.withStringValue.find(
+    const maybeDataItem = validStringScalars.find(
         ({ key }) => key == VariableValueWithTypeProperty.Data,
     );
-
-    if (!maybeDataItem) {
-        collectedErrors.push(
-            getErrorForMissingKeyInMap({
-                ...commonParams,
-                missingKey: VariableValueWithTypeProperty.Data,
-                map: valueMapItem,
-            }),
-        );
-    } else {
-        data = {
-            keyRange: maybeDataItem.keyRange,
-            scalar: maybeDataItem.value,
-        };
-    }
+    const data: { keyRange: Range; scalar: Scalar<string> } | undefined =
+        maybeDataItem
+            ? {
+                  keyRange: maybeDataItem.keyRange,
+                  scalar: maybeDataItem.value,
+              }
+            : undefined;
 
     const type = getItemVariableTypeScalarField(
         valueMapItems,
         commonParams,
         collectedErrors,
     );
-    if (!type) {
-        collectedErrors.push(
-            getErrorForMissingKeyInMap({
-                ...commonParams,
-                missingKey: VariableValueWithTypeProperty.Type,
-                map: valueMapItem,
-            }),
-        );
-    }
 
     return collectedErrors.length > 0 || !data || !type
         ? { errors: collectedErrors }
