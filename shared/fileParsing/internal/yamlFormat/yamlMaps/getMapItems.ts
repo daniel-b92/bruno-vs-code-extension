@@ -45,6 +45,7 @@ export function getMapItems(
             withUnknownValue: [],
         },
         validSequences: [],
+        // Everytime one of the expected keys is found, it will be removed from this list.
         missingKeys: allExpectedKeys,
         unknownKeys: [],
     };
@@ -77,6 +78,9 @@ export function getMapItems(
         );
         if (missingKeyIndex >= 0) {
             items.missingKeys.splice(missingKeyIndex, 1);
+        } else {
+            items.unknownKeys.push({ key: keyValue, keyRange });
+            continue;
         }
 
         if (isTypedScalar<boolean>(keyValue, value, expectedBooleanScalars)) {
@@ -136,10 +140,7 @@ export function getMapItems(
             });
             continue;
         }
-
-        items.unknownKeys.push({ key: keyValue, keyRange });
     }
-
     return {
         items,
         errors: errors.concat(
