@@ -1,9 +1,9 @@
 import { WithKeyAndValueRange } from "@global_shared";
 import { Diagnostic } from "vscode-languageserver";
-import { CommonDiagnosticParams } from "../../interfaces";
-import { getErrorForMissingTopLevelKey } from "../util/getErrorForMissingTopLevelKey";
+import { CommonDiagnosticParams } from "../../../interfaces";
+import { getErrorForMissingTopLevelKey } from "../../util/getErrorForMissingTopLevelKey";
 
-export function checkTopLevelNameIsDefinedInEnvironmentFile(
+export function checkTopLevelNameIsDefined(
     parsingResult: {
         name:
             | WithKeyAndValueRange<string>

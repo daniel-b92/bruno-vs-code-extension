@@ -5,8 +5,9 @@ import {
     YamlParsingError,
 } from "@global_shared";
 import { Diagnostic } from "vscode-languageserver";
-import { checkTopLevelNameIsDefinedInEnvironmentFile } from "./diagnostics/checks/checkTopLevelNameIsDefinedInEnvironmentFile";
+import { checkTopLevelNameIsDefined } from "./diagnostics/checks/environmentFiles/checkTopLevelNameIsDefined";
 import { CommonDiagnosticParams } from "./interfaces";
+import { checkVariableDefinitionsAreValid } from "./diagnostics/checks/environmentFiles/checkVariableDefinitionsAreValid";
 
 export class YamlFormatDiagnosticsProvider {
     constructor() {}
@@ -41,8 +42,8 @@ export class YamlFormatDiagnosticsProvider {
 
         const parsingErrors = parsed.errors;
         const otherDiagnostics = [
-            checkTopLevelNameIsDefinedInEnvironmentFile(parsed, commonParams),
-        ];
+            checkTopLevelNameIsDefined(parsed, commonParams),
+        ].concat(checkVariableDefinitionsAreValid(parsed.variables));
         return otherDiagnostics
             .filter((d) => d != undefined)
             .concat(mapParsingErrorsToDiagnostics(parsingErrors));
