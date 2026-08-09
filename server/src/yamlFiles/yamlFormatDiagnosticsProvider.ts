@@ -2,6 +2,7 @@ import {
     BrunoFileType,
     parseYamlEnvironmentFile,
     TextDocumentHelper,
+    YamlParsingError,
 } from "@global_shared";
 import { Diagnostic } from "vscode-languageserver";
 import { checkTopLevelNameIsDefinedInEnvironmentFile } from "./diagnostics/checks/checkTopLevelNameIsDefinedInEnvironmentFile";
@@ -35,20 +36,21 @@ export class YamlFormatDiagnosticsProvider {
         const parsed = parseYamlEnvironmentFile(docHelper);
 
         if (Array.isArray(parsed)) {
-            return parsed;
+            return mapParsingErrorsToDiagnostics(parsed);
         }
 
-        const parsingErrorsAsDiagnostics = parsed.errors.map((err) => ({
-            ...err,
-            code: undefined,
-        }));
+        const parsingErrors = parsed.errors;
         const otherDiagnostics = [
             checkTopLevelNameIsDefinedInEnvironmentFile(parsed, commonParams),
         ];
         return otherDiagnostics
             .filter((d) => d != undefined)
-            .concat(parsingErrorsAsDiagnostics);
+            .concat(mapParsingErrorsToDiagnostics(parsingErrors));
     }
+}
 
-    public dispose() {}
+function mapParsingErrorsToDiagnostics(
+    parsingErrors: YamlParsingError[],
+): Diagnostic[] {
+    return parsingErrors.map((err) => ({ ...err, code: undefined }));
 }
