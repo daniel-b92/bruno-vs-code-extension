@@ -1,5 +1,5 @@
 import { isMap, YAMLMap } from "yaml";
-import { YamlParsingError } from "../../../..";
+import { YamlParsingError, YamlParsingErrorCode } from "../../../..";
 import { CommonParsingArgs } from "../interfaces";
 
 export function getTopLevelMapIfExists({
@@ -13,6 +13,7 @@ export function getTopLevelMapIfExists({
               error: {
                   message: "A top level Yaml map is required",
                   range: fullDocumentRange,
+                  code: YamlParsingErrorCode.ItemDoesNotExist,
               },
           };
 }
