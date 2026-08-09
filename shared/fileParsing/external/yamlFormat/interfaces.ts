@@ -17,15 +17,21 @@ export interface ParsedEnvironmentVariable {
     value?:
         | WithKeyAndValueRange<string>
         | {
+              keyRange: Range;
               type: WithKeyAndValueRange<VariableType>;
               data: WithKeyAndValueRange<string>;
           };
     description?: WithKeyAndValueRange<string>;
-    type: WithKeyAndValueRange<VariableType> | { effectiveValue: VariableType };
-    secret: WithKeyAndValueRange<boolean> | { effectiveValue: boolean };
-    disabled: WithKeyAndValueRange<boolean> | { effectiveValue: boolean };
+    type: OptionalVariableFieldResult<VariableType>;
+    secret: OptionalVariableFieldResult<boolean>;
+    disabled: OptionalVariableFieldResult<boolean>;
     missingProperties: EnvironmentVariableProperty[];
 }
+
+export type OptionalVariableFieldResult<T> = {
+    effectiveValue: T;
+    field?: WithKeyAndValueRange<T>;
+};
 
 export interface WithKeyAndValueRange<T> {
     keyRange: Range;

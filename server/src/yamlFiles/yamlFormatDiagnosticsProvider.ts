@@ -26,11 +26,12 @@ export class YamlFormatDiagnosticsProvider {
     }
 
     public getDiagnosticsForEnvironmentFile(
-        _filePath: string,
+        filePath: string,
         content: string,
     ): Diagnostic[] {
         const docHelper = new TextDocumentHelper(content);
         const commonParams: CommonDiagnosticParams = {
+            filePath,
             docHelper,
             fullDocumentRange: docHelper.getTextRange(),
         };
@@ -43,7 +44,9 @@ export class YamlFormatDiagnosticsProvider {
         const parsingErrors = parsed.errors;
         const otherDiagnostics = [
             checkTopLevelNameIsDefined(parsed, commonParams),
-        ].concat(checkVariableDefinitionsAreValid(parsed.variables));
+        ].concat(
+            checkVariableDefinitionsAreValid(parsed.variables, commonParams),
+        );
         return otherDiagnostics
             .filter((d) => d != undefined)
             .concat(mapParsingErrorsToDiagnostics(parsingErrors));

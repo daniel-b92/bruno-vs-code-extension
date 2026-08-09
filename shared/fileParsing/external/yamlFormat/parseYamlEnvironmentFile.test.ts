@@ -159,28 +159,34 @@ variables:
                     ),
                 },
                 secret: {
-                    keyRange: getExpectedKeyRange(
-                        secondVarNameLine + 2,
-                        "secret",
-                    ),
-                    value: true,
-                    valueRange: getExpectedSameLineValueRange(
-                        secondVarNameLine + 2,
-                        "secret",
-                        "true",
-                    ),
+                    effectiveValue: true,
+                    field: {
+                        keyRange: getExpectedKeyRange(
+                            secondVarNameLine + 2,
+                            "secret",
+                        ),
+                        value: true,
+                        valueRange: getExpectedSameLineValueRange(
+                            secondVarNameLine + 2,
+                            "secret",
+                            "true",
+                        ),
+                    },
                 },
                 disabled: {
-                    keyRange: getExpectedKeyRange(
-                        secondVarNameLine + 3,
-                        "disabled",
-                    ),
-                    value: true,
-                    valueRange: getExpectedSameLineValueRange(
-                        secondVarNameLine + 3,
-                        "disabled",
-                        "true",
-                    ),
+                    effectiveValue: true,
+                    field: {
+                        keyRange: getExpectedKeyRange(
+                            secondVarNameLine + 3,
+                            "disabled",
+                        ),
+                        value: true,
+                        valueRange: getExpectedSameLineValueRange(
+                            secondVarNameLine + 3,
+                            "disabled",
+                            "true",
+                        ),
+                    },
                 },
                 missingProperties: [
                     EnvironmentVariableProperty.Description,

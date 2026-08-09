@@ -243,17 +243,23 @@ function getVariablesFromMapItems(
                   })
                 : undefined,
             disabled: disabledWithKeyRange
-                ? mapFromYamlScalar({
-                      ...commonArgs,
-                      ...disabledWithKeyRange,
-                  })
+                ? {
+                      effectiveValue: disabledWithKeyRange.value.value,
+                      field: mapFromYamlScalar({
+                          ...commonArgs,
+                          ...disabledWithKeyRange,
+                      }),
+                  }
                 : // The default value for 'disabled' is false, when not defined.
                   { effectiveValue: false },
             secret: secretWithKeyRange
-                ? mapFromYamlScalar({
-                      ...commonArgs,
-                      ...secretWithKeyRange,
-                  })
+                ? {
+                      effectiveValue: secretWithKeyRange.value.value,
+                      field: mapFromYamlScalar({
+                          ...commonArgs,
+                          ...secretWithKeyRange,
+                      }),
+                  }
                 : // The default value for 'secret' is false, when not defined.
                   { effectiveValue: false },
             value: !valueToUse
@@ -265,6 +271,7 @@ function getVariablesFromMapItems(
                         value: valueToUse.value,
                     })
                   : {
+                        keyRange: valueToUse.keyRange,
                         data: mapFromYamlScalar({
                             ...commonArgs,
                             keyRange: valueToUse.value.data.keyRange,
@@ -277,10 +284,13 @@ function getVariablesFromMapItems(
                         }),
                     },
             type: type
-                ? mapFromYamlScalar({
-                      ...commonArgs,
-                      ...type,
-                  })
+                ? {
+                      effectiveValue: type.value.value,
+                      field: mapFromYamlScalar({
+                          ...commonArgs,
+                          ...type,
+                      }),
+                  }
                 : // The default value for 'type' is 'string', when not defined.
                   { effectiveValue: VariableType.String },
             missingProperties:
