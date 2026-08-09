@@ -77,125 +77,125 @@ export * from "./vsCodeSettings/testEnvironmentsSettingGetter";
 export * from "./vsCodeSettings/interfaces";
 
 // language utils
-export * from "./languageUtils/blockInterfaces";
-export * from "./languageUtils/contentInterfaces";
-export * from "./languageUtils/areVariableReferencesEquivalent";
+export * from "./languageUtils/bruFormat/blockInterfaces";
+export * from "./languageUtils/bruFormat/contentInterfaces";
+export * from "./languageUtils/shared/areVariableReferencesEquivalent";
 
 // language utils - request files
-export * from "./languageUtils/requestFiles/requestFileBlockNameEnum";
-export * from "./languageUtils/requestFiles/getGraphQlSpecificBlocks";
-export * from "./languageUtils/requestFiles/bodyBlocks/getBodyTypeFromBlockName";
-export * from "./languageUtils/requestFiles/bodyBlocks/getAllValidBodyBlocks";
-export * from "./languageUtils/requestFiles/bodyBlocks/isBodyBlock";
-export * from "./languageUtils/requestFiles/bodyBlocks/getBodyBlockTypeForNoDefinedBodyBlock";
-export * from "./languageUtils/requestFiles/methodBlocks/getAllMethodBlocks";
-export * from "./languageUtils/requestFiles/methodBlocks/getUrlFieldFromMethodBlock";
-export * from "./languageUtils/requestFiles/methodBlocks/getMethodBlockIfValid";
-export * from "./languageUtils/requestFiles/paramsBlocks/isParamsBlock";
+export * from "./languageUtils/bruFormat/requestFiles/requestFileBlockNameEnum";
+export * from "./languageUtils/bruFormat/requestFiles/getGraphQlSpecificBlocks";
+export * from "./languageUtils/bruFormat/requestFiles/bodyBlocks/getBodyTypeFromBlockName";
+export * from "./languageUtils/bruFormat/requestFiles/bodyBlocks/getAllValidBodyBlocks";
+export * from "./languageUtils/bruFormat/requestFiles/bodyBlocks/isBodyBlock";
+export * from "./languageUtils/bruFormat/requestFiles/bodyBlocks/getBodyBlockTypeForNoDefinedBodyBlock";
+export * from "./languageUtils/bruFormat/requestFiles/methodBlocks/getAllMethodBlocks";
+export * from "./languageUtils/bruFormat/requestFiles/methodBlocks/getUrlFieldFromMethodBlock";
+export * from "./languageUtils/bruFormat/requestFiles/methodBlocks/getMethodBlockIfValid";
+export * from "./languageUtils/bruFormat/requestFiles/paramsBlocks/isParamsBlock";
 
 // language utils - environment files
-export * from "./languageUtils/environmentFiles/environmentFileBlockNameEnum";
-export { isVarsBlock as isVarsBlockInEnvironmentFile } from "./languageUtils/environmentFiles/isVarsBlock";
-export * from "./languageUtils/commonBlocks/generic/variables/getMatchingDefinitionsFromEnvFiles";
+export * from "./languageUtils/bruFormat/environmentFiles/environmentFileBlockNameEnum";
+export { isVarsBlock as isVarsBlockInEnvironmentFile } from "./languageUtils/bruFormat/environmentFiles/isVarsBlock";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/variables/getMatchingDefinitionsFromEnvFiles";
 
 // language utils - common blocks
-export * from "./languageUtils/commonBlocks/getMethodBlockBodyFieldValueForBodyName";
-export * from "./languageUtils/commonBlocks/getExpectedUrlQueryParamsForQueryParamsBlock";
-export * from "./languageUtils/commonBlocks/getPathParamsFromPathParamsBlock";
-export * from "./languageUtils/commonBlocks/settingsFileSpecificBlockEnum";
-export * from "./languageUtils/commonBlocks/getAllVariablesFromBlocks";
+export * from "./languageUtils/bruFormat/commonBlocks/getMethodBlockBodyFieldValueForBodyName";
+export * from "./languageUtils/bruFormat/commonBlocks/getExpectedUrlQueryParamsForQueryParamsBlock";
+export * from "./languageUtils/bruFormat/commonBlocks/getPathParamsFromPathParamsBlock";
+export * from "./languageUtils/bruFormat/commonBlocks/settingsFileSpecificBlockEnum";
+export * from "./languageUtils/bruFormat/commonBlocks/getAllVariablesFromBlocks";
 
-export * from "./languageUtils/commonBlocks/metaBlock/metaBlockKeyEnum";
-export * from "./languageUtils/commonBlocks/metaBlock/requestTypeEnum";
-export * from "./languageUtils/commonBlocks/metaBlock/getActiveFieldFromMetaBlock";
-export * from "./languageUtils/commonBlocks/metaBlock/metaBlockKeyEnum";
-export * from "./languageUtils/commonBlocks/metaBlock/getSequenceValueFromMetaBlock";
-export * from "./languageUtils/commonBlocks/metaBlock/getSequenceAndTagsFromMetaBlock";
-export * from "./languageUtils/commonBlocks/metaBlock/getMandatoryAndOptionalKeys";
+export * from "./languageUtils/bruFormat/commonBlocks/metaBlock/metaBlockKeyEnum";
+export * from "./languageUtils/bruFormat/commonBlocks/metaBlock/requestTypeEnum";
+export * from "./languageUtils/bruFormat/commonBlocks/metaBlock/getActiveFieldFromMetaBlock";
+export * from "./languageUtils/bruFormat/commonBlocks/metaBlock/metaBlockKeyEnum";
+export * from "./languageUtils/bruFormat/commonBlocks/metaBlock/getSequenceValueFromMetaBlock";
+export * from "./languageUtils/bruFormat/commonBlocks/metaBlock/getSequenceAndTagsFromMetaBlock";
+export * from "./languageUtils/bruFormat/commonBlocks/metaBlock/getMandatoryAndOptionalKeys";
 
-export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockKeyEnum";
-export * from "./languageUtils/commonBlocks/generic/AuthTypes";
-export * from "./languageUtils/commonBlocks/methodBlocks/methodBlockBodies";
-export * from "./languageUtils/commonBlocks/methodBlocks/getPossibleMethodBlocks";
-export * from "./languageUtils/commonBlocks/methodBlocks/getActiveFieldFromMethodBlock";
-export { getMandatoryKeys as getMandatoryKeysForMethodBlock } from "./languageUtils/commonBlocks/methodBlocks/getMandatoryKeys";
-export * from "./languageUtils/commonBlocks/methodBlocks/getAuthTypesForNoDefinedAuthBlock";
+export * from "./languageUtils/bruFormat/commonBlocks/methodBlocks/methodBlockKeyEnum";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/AuthTypes";
+export * from "./languageUtils/bruFormat/commonBlocks/methodBlocks/methodBlockBodies";
+export * from "./languageUtils/bruFormat/commonBlocks/methodBlocks/getPossibleMethodBlocks";
+export * from "./languageUtils/bruFormat/commonBlocks/methodBlocks/getActiveFieldFromMethodBlock";
+export { getMandatoryKeys as getMandatoryKeysForMethodBlock } from "./languageUtils/bruFormat/commonBlocks/methodBlocks/getMandatoryKeys";
+export * from "./languageUtils/bruFormat/commonBlocks/methodBlocks/getAuthTypesForNoDefinedAuthBlock";
 
-export * from "./languageUtils/commonBlocks/generic/shouldBeCodeBlock";
-export * from "./languageUtils/commonBlocks/generic/getValidDictionaryBlocksWithName";
-export * from "./languageUtils/commonBlocks/generic/shouldBeDictionaryBlock";
-export * from "./languageUtils/commonBlocks/generic/shouldBeArrayBlock";
-export * from "./languageUtils/commonBlocks/generic/getBlockType";
-export * from "./languageUtils/commonBlocks/generic/blockTypeEnum";
-export * from "./languageUtils/commonBlocks/generic/blockBracketEnum";
-export * from "./languageUtils/commonBlocks/generic/getCodeBlocks";
-export * from "./languageUtils/commonBlocks/generic/getDefaultIndentationForDictionaryBlockFields";
-export * from "./languageUtils/commonBlocks/generic/getActiveFieldFromDictionaryBlock";
-export * from "./languageUtils/commonBlocks/generic/getActiveSimpleFieldFromDictionaryBlockIfExistsOnce";
-export * from "./languageUtils/commonBlocks/generic/getSortedBlocksByPosition";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/shouldBeCodeBlock";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/getValidDictionaryBlocksWithName";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/shouldBeDictionaryBlock";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/shouldBeArrayBlock";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/getBlockType";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/blockTypeEnum";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/blockBracketEnum";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/getCodeBlocks";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/getDefaultIndentationForDictionaryBlockFields";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/getActiveFieldFromDictionaryBlock";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/getActiveSimpleFieldFromDictionaryBlockIfExistsOnce";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/getSortedBlocksByPosition";
 
-export * from "./languageUtils/commonBlocks/generic/runtimeBehavior/getBlockRuntimeExecutionGroup";
-export * from "./languageUtils/commonBlocks/generic/runtimeBehavior/getBlocksWithEarlierExecutionGroups";
-export * from "./languageUtils/commonBlocks/generic/runtimeBehavior/getBlocksWithLaterExecutionGroups";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/runtimeBehavior/getBlockRuntimeExecutionGroup";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/runtimeBehavior/getBlocksWithEarlierExecutionGroups";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/runtimeBehavior/getBlocksWithLaterExecutionGroups";
 
-export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockDictionaryBlock";
-export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockCodeBlock";
-export * from "./languageUtils/commonBlocks/generic/typeguards/isBlockArrayBlock";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/typeguards/isBlockDictionaryBlock";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/typeguards/isBlockCodeBlock";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/typeguards/isBlockArrayBlock";
 
-export * from "./languageUtils/commonBlocks/generic/variables/getPatternForVariablesInNonCodeBlock";
-export * from "./languageUtils/commonBlocks/generic/variables/getBlocksWithoutVariableSupport";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/variables/getPatternForVariablesInNonCodeBlock";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/variables/getBlocksWithoutVariableSupport";
 
-export * from "./languageUtils/commonBlocks/generic/dictionaryBlocks/getKeyRangeContainingPosition";
-export * from "./languageUtils/commonBlocks/generic/dictionaryBlocks/getActiveKeysUsedInOtherLines";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/dictionaryBlocks/getKeyRangeContainingPosition";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/dictionaryBlocks/getActiveKeysUsedInOtherLines";
 
-export * from "./languageUtils/commonBlocks/authBlocks/authBlockNameEnum";
-export * from "./languageUtils/commonBlocks/authBlocks/authBlocksKeyInterfaces";
-export * from "./languageUtils/commonBlocks/authBlocks/oAuth2GrantTypeEnum";
-export * from "./languageUtils/commonBlocks/authBlocks/oAuth1FieldValueEnums";
-export * from "./languageUtils/commonBlocks/authBlocks/apiKeyAuthBlockValuesEnums";
-export * from "./languageUtils/commonBlocks/authBlocks/oAuth2BlockCommonFieldsValues";
-export * from "./languageUtils/commonBlocks/authBlocks/getMandatoryKeysForNonOAuth2Block";
-export * from "./languageUtils/commonBlocks/authBlocks/getMandatoryKeysForOAuth2Block";
-export * from "./languageUtils/commonBlocks/authBlocks/getAuthTypeFromBlockName";
-export * from "./languageUtils/commonBlocks/authBlocks/isAuthBlock";
-export * from "./languageUtils/commonBlocks/authBlocks/getExpectedAuthBlockForType";
-export * from "./languageUtils/commonBlocks/authBlocks/additionalParamsBlocks/oauth2AdditionalParamsBlockNames";
+export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/authBlockNameEnum";
+export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/authBlocksKeyInterfaces";
+export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/oAuth2GrantTypeEnum";
+export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/oAuth1FieldValueEnums";
+export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/apiKeyAuthBlockValuesEnums";
+export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/oAuth2BlockCommonFieldsValues";
+export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/getMandatoryKeysForNonOAuth2Block";
+export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/getMandatoryKeysForOAuth2Block";
+export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/getAuthTypeFromBlockName";
+export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/isAuthBlock";
+export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/getExpectedAuthBlockForType";
+export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/additionalParamsBlocks/oauth2AdditionalParamsBlockNames";
 
-export * from "./languageUtils/commonBlocks/authModeBlock/authModeBlockKeyEnum";
+export * from "./languageUtils/bruFormat/commonBlocks/authModeBlock/authModeBlockKeyEnum";
 
-export * from "./languageUtils/commonBlocks/codeBlocks/getFirstParameterForInbuiltFunctionIfStringLiteral";
-export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
-export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctions";
-export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionReferenceType";
-export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionVariableType";
-export * from "./languageUtils/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionAvailabilityScope";
+export * from "./languageUtils/bruFormat/commonBlocks/codeBlocks/getFirstParameterForInbuiltFunctionIfStringLiteral";
+export * from "./languageUtils/bruFormat/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionIdentifiers";
+export * from "./languageUtils/bruFormat/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctions";
+export * from "./languageUtils/bruFormat/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionReferenceType";
+export * from "./languageUtils/bruFormat/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionVariableType";
+export * from "./languageUtils/bruFormat/commonBlocks/codeBlocks/inbuiltFunctionDefinitions/getInbuiltFunctionAvailabilityScope";
 
-export * from "./languageUtils/commonBlocks/settingsBlock/settingsBlockKeyEnum";
-export { getMandatoryKeys as getMandatoryKeysForSettingsBlock } from "./languageUtils/commonBlocks/settingsBlock/getMandatoryKeys";
-export { getOptionalKeys as getOptionalKeysForSettingsBlock } from "./languageUtils/commonBlocks/settingsBlock/getOptionalKeys";
+export * from "./languageUtils/bruFormat/commonBlocks/settingsBlock/settingsBlockKeyEnum";
+export { getMandatoryKeys as getMandatoryKeysForSettingsBlock } from "./languageUtils/bruFormat/commonBlocks/settingsBlock/getMandatoryKeys";
+export { getOptionalKeys as getOptionalKeysForSettingsBlock } from "./languageUtils/bruFormat/commonBlocks/settingsBlock/getOptionalKeys";
 
-export { isVarsBlock as isVarsBlockInRequestFile } from "./languageUtils/commonBlocks/varsBlocks/isVarsBlock";
+export { isVarsBlock as isVarsBlockInRequestFile } from "./languageUtils/bruFormat/commonBlocks/varsBlocks/isVarsBlock";
 
 // language utils - generic fields
-export * from "./languageUtils/genericFields/booleanFieldValueEnum";
-export * from "./languageUtils/genericFields/shouldBeDictionaryArrayField";
-export * from "./languageUtils/genericFields/getDictionaryBlockArrayField";
+export * from "./languageUtils/bruFormat/genericFields/booleanFieldValueEnum";
+export * from "./languageUtils/bruFormat/genericFields/shouldBeDictionaryArrayField";
+export * from "./languageUtils/bruFormat/genericFields/getDictionaryBlockArrayField";
 
-export * from "./languageUtils/genericFields/typeguards/isArrayBlockField";
-export * from "./languageUtils/genericFields/typeguards/isDictionaryBlockField";
-export * from "./languageUtils/genericFields/typeguards/isDictionaryBlockSimpleField";
-export * from "./languageUtils/genericFields/typeguards/isDictionaryBlockArrayField";
-export * from "./languageUtils/genericFields/typeguards/isDictionaryBlockDescription";
-export * from "./languageUtils/genericFields/typeguards/isDictionaryBlockTypeAnnotation";
+export * from "./languageUtils/bruFormat/genericFields/typeguards/isArrayBlockField";
+export * from "./languageUtils/bruFormat/genericFields/typeguards/isDictionaryBlockField";
+export * from "./languageUtils/bruFormat/genericFields/typeguards/isDictionaryBlockSimpleField";
+export * from "./languageUtils/bruFormat/genericFields/typeguards/isDictionaryBlockArrayField";
+export * from "./languageUtils/bruFormat/genericFields/typeguards/isDictionaryBlockDescription";
+export * from "./languageUtils/bruFormat/genericFields/typeguards/isDictionaryBlockTypeAnnotation";
 
 // language utils - urls
-export * from "./languageUtils/urls/getQueryParamsFromUrl";
-export * from "./languageUtils/urls/getPathParamsFromUrl";
-export * from "./languageUtils/urls/getUrlSubstringForQueryParams";
+export * from "./languageUtils/shared/urls/getQueryParamsFromUrl";
+export * from "./languageUtils/shared/urls/getPathParamsFromUrl";
+export * from "./languageUtils/shared/urls/getUrlSubstringForQueryParams";
 
 // language utils - folder settings
-export { getValidBlockNames as getValidBlockNamesForFolderSettingsFile } from "./languageUtils/folderSettingsFiles/getValidBlockNames";
+export { getValidBlockNames as getValidBlockNamesForFolderSettingsFile } from "./languageUtils/bruFormat/folderSettingsFiles/getValidBlockNames";
 
 // language utils - collection settings
-export { getValidBlockNames as getValidBlockNamesForCollectionSettingsFile } from "./languageUtils/collectionSettingsFiles/getValidBlockNames";
-export { getNamesForRedundantBlocks as getNamesForRedundantBlocksForCollectionSettingsFile } from "./languageUtils/collectionSettingsFiles/getNamesForRedundantBlocks";
+export { getValidBlockNames as getValidBlockNamesForCollectionSettingsFile } from "./languageUtils/bruFormat/collectionSettingsFiles/getValidBlockNames";
+export { getNamesForRedundantBlocks as getNamesForRedundantBlocksForCollectionSettingsFile } from "./languageUtils/bruFormat/collectionSettingsFiles/getNamesForRedundantBlocks";

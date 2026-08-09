@@ -13,7 +13,7 @@ export class BrunoLangDiagnosticsProvider {
 
     private relatedRequestsHelper: RelatedFilesDiagnosticsHelper;
 
-    public async getDiagnostics(
+    public async getDiagnosticsForBruFile(
         filePath: string,
         content: string,
         brunoFileType: BrunoFileType,

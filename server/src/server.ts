@@ -20,11 +20,13 @@ import {
 import { URI } from "vscode-uri";
 import { runUpdatesOnWillSave } from "./bruFiles/autoUpdates/runUpdatesOnWillSave";
 import {
+    BrunoFileType,
     FileChangeType,
     getConfiguredEnvironmentNameAsync,
     getExtensionForBrunoFiles,
     getItemType,
     isBrunoFileType,
+    isInFolderForEnvironmentFiles,
     Position,
     TextDocumentHelper,
 } from "@global_shared";
@@ -35,13 +37,16 @@ import { handleHoverRequest as handleHoverRequestForBruFile } from "./bruFiles/h
 import { extname } from "path";
 import { handleCompletionRequest as handleCompletionRequestForJsFile } from "./jsFiles/completionItems/handleCompletionRequest";
 import { handleHoverRequest as handleHoverRequestForJsFile } from "./jsFiles/hover/handleHoverRequest";
+import { YamlFormatDiagnosticsProvider } from "./yamlFiles/yamlFormatDiagnosticsProvider";
 
 let helpersProvider: HelpersProvider | undefined = undefined;
 let brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider;
+const yamlDiagnosticsProvider = new YamlFormatDiagnosticsProvider();
 const disposables: Disposable[] = [];
 enum FileTypeByExtension {
     Bru = ".bru",
     Js = ".js",
+    Yml = ".yml",
 }
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -182,19 +187,26 @@ disposables.push(
     connection.languages.diagnostics.on(async ({ textDocument: { uri } }) => {
         const { filePath, type } = getFilePathAndType(uri);
 
-        if (type != FileTypeByExtension.Bru) {
-            return { kind: "full", items: [] };
-        }
-
+        const defaultResponse = { kind: "full" as const, items: [] };
         const document = documents.get(uri);
 
-        const items = document
-            ? ((await getDiagnosticsForBruFile(filePath, document.getText())) ??
-              [])
-            : [];
+        if (
+            (type != FileTypeByExtension.Bru &&
+                type != FileTypeByExtension.Yml) ||
+            !document
+        ) {
+            return defaultResponse;
+        }
+
+        const content = document.getText();
+
+        const items =
+            (type == FileTypeByExtension.Bru
+                ? await getDiagnosticsForBruFile(filePath, content)
+                : getDiagnosticsForYamlFile(filePath, content)) ?? [];
 
         return {
-            kind: "full",
+            ...defaultResponse,
             items,
         };
     }),
@@ -319,11 +331,26 @@ async function getDiagnosticsForBruFile(filePath: string, text: string) {
         return undefined;
     }
 
-    return await brunoLangDiagnosticsProvider.getDiagnostics(
+    return await brunoLangDiagnosticsProvider.getDiagnosticsForBruFile(
         filePath,
         text,
         brunoFileType,
     );
+}
+
+function getDiagnosticsForYamlFile(filePath: string, text: string) {
+    if (
+        // ToDo: Once yaml files are stored in the file system cache, use the itemType for identifying environment files.
+        isInFolderForEnvironmentFiles(filePath)
+    ) {
+        return yamlDiagnosticsProvider.getDiagnosticsForYamlFile(
+            filePath,
+            text,
+            BrunoFileType.EnvironmentFile,
+        );
+    }
+
+    return undefined;
 }
 
 async function getBrunoFileTypeIfExists(
@@ -346,8 +373,11 @@ function getFilePathAndType(uri: string) {
     return {
         filePath,
         type:
+            // The file type is already limited by the document selectors defined in the language client.
             extname(filePath) == getExtensionForBrunoFiles()
                 ? FileTypeByExtension.Bru
-                : FileTypeByExtension.Js,
+                : extname(filePath) == ".js"
+                  ? FileTypeByExtension.Js
+                  : FileTypeByExtension.Yml,
     };
 }

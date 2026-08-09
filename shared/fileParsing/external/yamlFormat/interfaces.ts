@@ -13,19 +13,28 @@ export interface YamlParsingError {
 }
 
 export interface ParsedEnvironmentVariable {
-    name: WithKeyAndValueRange<string>;
-    value?:
-        | WithKeyAndValueRange<string>
-        | {
-              type: WithKeyAndValueRange<VariableType>;
-              data: WithKeyAndValueRange<string>;
-          };
-    description?: WithKeyAndValueRange<string>;
-    type?: WithKeyAndValueRange<VariableType>;
-    secret?: WithKeyAndValueRange<boolean>;
-    disabled?: WithKeyAndValueRange<boolean>;
+    range: Range;
     missingProperties: EnvironmentVariableProperty[];
+    fields: {
+        name: WithKeyAndValueRange<string>;
+        value?:
+            | WithKeyAndValueRange<string>
+            | {
+                  keyRange: Range;
+                  type: WithKeyAndValueRange<VariableType>;
+                  data: WithKeyAndValueRange<string>;
+              };
+        description?: WithKeyAndValueRange<string>;
+        type: OptionalVariableFieldResult<VariableType>;
+        secret: OptionalVariableFieldResult<boolean>;
+        disabled: OptionalVariableFieldResult<boolean>;
+    };
 }
+
+export type OptionalVariableFieldResult<T> = {
+    effectiveValue: T;
+    field?: WithKeyAndValueRange<T>;
+};
 
 export interface WithKeyAndValueRange<T> {
     keyRange: Range;
@@ -37,6 +46,7 @@ export enum VariableType {
     Number = "number",
     Boolean = "boolean",
     Object = "object",
+    String = "string",
 }
 
 export enum EnvironmentVariableProperty {
