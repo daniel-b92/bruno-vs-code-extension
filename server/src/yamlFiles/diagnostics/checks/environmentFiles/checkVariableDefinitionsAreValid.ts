@@ -14,7 +14,10 @@ export function checkVariableDefinitionsAreValid(
         const { name, secret } = variable;
         const result: (Diagnostic | undefined)[] = [];
 
-        result.push(checkNameIsValid(name));
+        result.push(
+            checkNameIsValid(name),
+            checkTypeFieldIsValidIfExisting(variable),
+        );
 
         if (secret.effectiveValue) {
             result.push(checkSecretVariableIsValid(variable, commonParams));
@@ -64,4 +67,17 @@ function checkSecretVariableIsValid(
                   },
               ],
           };
+}
+
+function checkTypeFieldIsValidIfExisting({
+    secret,
+    type,
+}: ParsedEnvironmentVariable): Diagnostic | undefined {
+    return !secret.effectiveValue && type.field
+        ? {
+              message: "Type field redundant for non-secret variable.",
+              range: type.field.keyRange,
+              severity: DiagnosticSeverity.Warning,
+          }
+        : undefined;
 }
