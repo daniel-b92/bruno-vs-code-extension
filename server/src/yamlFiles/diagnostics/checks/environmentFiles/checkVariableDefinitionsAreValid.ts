@@ -81,3 +81,15 @@ function checkTypeFieldIsValidIfExisting({
           }
         : undefined;
 }
+
+// ToDo: implement
+// function checkValueFieldExists(
+//     variable: ParsedEnvironmentVariable,
+// ): Diagnostic | undefined {
+//     return !variable.value
+//         ? {
+//               message: "'value' property is missing.",
+//               range: getSortedBlocksByPosition,
+//           }
+//         : undefined;
+// }
