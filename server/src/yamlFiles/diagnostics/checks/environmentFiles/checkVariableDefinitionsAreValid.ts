@@ -11,7 +11,9 @@ export function checkVariableDefinitionsAreValid(
     commonParams: CommonDiagnosticParams,
 ): (Diagnostic | undefined)[] {
     return variables.flatMap((variable) => {
-        const { name, secret } = variable;
+        const {
+            fields: { name, secret },
+        } = variable;
         const result: (Diagnostic | undefined)[] = [];
 
         result.push(
@@ -21,6 +23,9 @@ export function checkVariableDefinitionsAreValid(
 
         if (secret.effectiveValue) {
             result.push(checkSecretVariableIsValid(variable, commonParams));
+        } else {
+            // Non-secret variables should always have a value.
+            result.push(checkValueFieldExists(variable));
         }
 
         return result;
@@ -40,7 +45,12 @@ function checkNameIsValid({
 }
 
 function checkSecretVariableIsValid(
-    { value, secret: { field: secretField } }: ParsedEnvironmentVariable,
+    {
+        fields: {
+            value,
+            secret: { field: secretField },
+        },
+    }: ParsedEnvironmentVariable,
     { filePath }: CommonDiagnosticParams,
 ): Diagnostic | undefined {
     if (!value) {
@@ -70,8 +80,7 @@ function checkSecretVariableIsValid(
 }
 
 function checkTypeFieldIsValidIfExisting({
-    secret,
-    type,
+    fields: { secret, type },
 }: ParsedEnvironmentVariable): Diagnostic | undefined {
     return !secret.effectiveValue && type.field
         ? {
@@ -82,14 +91,14 @@ function checkTypeFieldIsValidIfExisting({
         : undefined;
 }
 
-// ToDo: implement
-// function checkValueFieldExists(
-//     variable: ParsedEnvironmentVariable,
-// ): Diagnostic | undefined {
-//     return !variable.value
-//         ? {
-//               message: "'value' property is missing.",
-//               range: getSortedBlocksByPosition,
-//           }
-//         : undefined;
-// }
+function checkValueFieldExists({
+    range: variableRange,
+    fields: { value },
+}: ParsedEnvironmentVariable): Diagnostic | undefined {
+    return !value
+        ? {
+              message: "'value' property is missing.",
+              range: variableRange,
+          }
+        : undefined;
+}

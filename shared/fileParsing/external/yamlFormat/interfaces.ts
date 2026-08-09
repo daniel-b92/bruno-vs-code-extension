@@ -13,19 +13,22 @@ export interface YamlParsingError {
 }
 
 export interface ParsedEnvironmentVariable {
-    name: WithKeyAndValueRange<string>;
-    value?:
-        | WithKeyAndValueRange<string>
-        | {
-              keyRange: Range;
-              type: WithKeyAndValueRange<VariableType>;
-              data: WithKeyAndValueRange<string>;
-          };
-    description?: WithKeyAndValueRange<string>;
-    type: OptionalVariableFieldResult<VariableType>;
-    secret: OptionalVariableFieldResult<boolean>;
-    disabled: OptionalVariableFieldResult<boolean>;
+    range: Range;
     missingProperties: EnvironmentVariableProperty[];
+    fields: {
+        name: WithKeyAndValueRange<string>;
+        value?:
+            | WithKeyAndValueRange<string>
+            | {
+                  keyRange: Range;
+                  type: WithKeyAndValueRange<VariableType>;
+                  data: WithKeyAndValueRange<string>;
+              };
+        description?: WithKeyAndValueRange<string>;
+        type: OptionalVariableFieldResult<VariableType>;
+        secret: OptionalVariableFieldResult<boolean>;
+        disabled: OptionalVariableFieldResult<boolean>;
+    };
 }
 
 export type OptionalVariableFieldResult<T> = {

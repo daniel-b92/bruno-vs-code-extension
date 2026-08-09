@@ -235,66 +235,69 @@ function getVariablesFromMapItems(
         }
 
         variables.push({
-            name: mapFromYamlScalar({ ...commonArgs, ...nameWithKeyRange }),
-            description: descriptionWithKeyRange
-                ? mapFromYamlScalar({
-                      ...commonArgs,
-                      ...descriptionWithKeyRange,
-                  })
-                : undefined,
-            disabled: disabledWithKeyRange
-                ? {
-                      effectiveValue: disabledWithKeyRange.value.value,
-                      field: mapFromYamlScalar({
-                          ...commonArgs,
-                          ...disabledWithKeyRange,
-                      }),
-                  }
-                : // The default value for 'disabled' is false, when not defined.
-                  { effectiveValue: false },
-            secret: secretWithKeyRange
-                ? {
-                      effectiveValue: secretWithKeyRange.value.value,
-                      field: mapFromYamlScalar({
-                          ...commonArgs,
-                          ...secretWithKeyRange,
-                      }),
-                  }
-                : // The default value for 'secret' is false, when not defined.
-                  { effectiveValue: false },
-            value: !valueToUse
-                ? undefined
-                : isScalar<string>(valueToUse.value)
-                  ? mapFromYamlScalar({
-                        ...commonArgs,
-                        keyRange: valueToUse.keyRange,
-                        value: valueToUse.value,
-                    })
-                  : {
-                        keyRange: valueToUse.keyRange,
-                        data: mapFromYamlScalar({
-                            ...commonArgs,
-                            keyRange: valueToUse.value.data.keyRange,
-                            value: valueToUse.value.data.scalar,
-                        }),
-                        type: mapFromYamlScalar({
-                            ...commonArgs,
-                            keyRange: valueToUse.value.type.keyRange,
-                            value: valueToUse.value.type.scalar,
-                        }),
-                    },
-            type: type
-                ? {
-                      effectiveValue: type.value.value,
-                      field: mapFromYamlScalar({
-                          ...commonArgs,
-                          ...type,
-                      }),
-                  }
-                : // The default value for 'type' is 'string', when not defined.
-                  { effectiveValue: VariableType.String },
+            range: getRangeForItem(currentMap, commonArgs),
             missingProperties:
                 allMapItems.missingKeys as EnvironmentVariableProperty[],
+            fields: {
+                name: mapFromYamlScalar({ ...commonArgs, ...nameWithKeyRange }),
+                description: descriptionWithKeyRange
+                    ? mapFromYamlScalar({
+                          ...commonArgs,
+                          ...descriptionWithKeyRange,
+                      })
+                    : undefined,
+                disabled: disabledWithKeyRange
+                    ? {
+                          effectiveValue: disabledWithKeyRange.value.value,
+                          field: mapFromYamlScalar({
+                              ...commonArgs,
+                              ...disabledWithKeyRange,
+                          }),
+                      }
+                    : // The default value for 'disabled' is false, when not defined.
+                      { effectiveValue: false },
+                secret: secretWithKeyRange
+                    ? {
+                          effectiveValue: secretWithKeyRange.value.value,
+                          field: mapFromYamlScalar({
+                              ...commonArgs,
+                              ...secretWithKeyRange,
+                          }),
+                      }
+                    : // The default value for 'secret' is false, when not defined.
+                      { effectiveValue: false },
+                value: !valueToUse
+                    ? undefined
+                    : isScalar<string>(valueToUse.value)
+                      ? mapFromYamlScalar({
+                            ...commonArgs,
+                            keyRange: valueToUse.keyRange,
+                            value: valueToUse.value,
+                        })
+                      : {
+                            keyRange: valueToUse.keyRange,
+                            data: mapFromYamlScalar({
+                                ...commonArgs,
+                                keyRange: valueToUse.value.data.keyRange,
+                                value: valueToUse.value.data.scalar,
+                            }),
+                            type: mapFromYamlScalar({
+                                ...commonArgs,
+                                keyRange: valueToUse.value.type.keyRange,
+                                value: valueToUse.value.type.scalar,
+                            }),
+                        },
+                type: type
+                    ? {
+                          effectiveValue: type.value.value,
+                          field: mapFromYamlScalar({
+                              ...commonArgs,
+                              ...type,
+                          }),
+                      }
+                    : // The default value for 'type' is 'string', when not defined.
+                      { effectiveValue: VariableType.String },
+            },
         });
     }
 

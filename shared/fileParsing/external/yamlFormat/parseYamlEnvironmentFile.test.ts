@@ -24,45 +24,54 @@ variables:
 
         const expectedVariables: ParsedEnvironmentVariable[] = [
             {
-                ...getDefaultVariableProperties(),
-                name: {
-                    keyRange: getExpectedKeyRange(variableNameLine, "name"),
-                    value: "var-1",
-                    valueRange: getExpectedSameLineValueRange(
-                        variableNameLine,
-                        "name",
-                        "var-1",
+                range: new Range(
+                    new Position(2, 4),
+                    new Position(
+                        4,
+                        4 + 2 + "description".length + "desc".length,
                     ),
-                },
-                value: {
-                    keyRange: getExpectedKeyRange(
-                        variableNameLine + 1,
-                        "value",
-                    ),
-                    value: "test-1",
-                    valueRange: getExpectedSameLineValueRange(
-                        variableNameLine + 1,
-                        "value",
-                        "test-1",
-                    ),
-                },
-                description: {
-                    keyRange: getExpectedKeyRange(
-                        variableNameLine + 2,
-                        "description",
-                    ),
-                    value: "desc",
-                    valueRange: getExpectedSameLineValueRange(
-                        variableNameLine + 2,
-                        "description",
-                        "desc",
-                    ),
-                },
+                ),
                 missingProperties: [
                     EnvironmentVariableProperty.Disabled,
                     EnvironmentVariableProperty.Secret,
                     EnvironmentVariableProperty.Type,
                 ],
+                fields: {
+                    ...getDefaultVariableProperties(),
+                    name: {
+                        keyRange: getExpectedKeyRange(variableNameLine, "name"),
+                        value: "var-1",
+                        valueRange: getExpectedSameLineValueRange(
+                            variableNameLine,
+                            "name",
+                            "var-1",
+                        ),
+                    },
+                    value: {
+                        keyRange: getExpectedKeyRange(
+                            variableNameLine + 1,
+                            "value",
+                        ),
+                        value: "test-1",
+                        valueRange: getExpectedSameLineValueRange(
+                            variableNameLine + 1,
+                            "value",
+                            "test-1",
+                        ),
+                    },
+                    description: {
+                        keyRange: getExpectedKeyRange(
+                            variableNameLine + 2,
+                            "description",
+                        ),
+                        value: "desc",
+                        valueRange: getExpectedSameLineValueRange(
+                            variableNameLine + 2,
+                            "description",
+                            "desc",
+                        ),
+                    },
+                },
             },
         ];
 
@@ -95,103 +104,115 @@ variables:
 
         const expectedVariables: ParsedEnvironmentVariable[] = [
             {
-                ...getDefaultVariableProperties(),
-                name: {
-                    keyRange: getExpectedKeyRange(firstVarNameLine, "name"),
-                    value: "var-1",
-                    valueRange: getExpectedSameLineValueRange(
-                        firstVarNameLine,
-                        "name",
-                        "var-1",
-                    ),
-                },
-                value: {
-                    keyRange: getExpectedKeyRange(
-                        firstVarNameLine + 1,
-                        "value",
-                    ),
-                    value: "test-1",
-                    valueRange: getExpectedSameLineValueRange(
-                        firstVarNameLine + 1,
-                        "value",
-                        "test-1",
-                    ),
-                },
-                description: {
-                    keyRange: getExpectedKeyRange(
-                        firstVarNameLine + 2,
-                        "description",
-                    ),
-                    value: "desc",
-                    valueRange: getExpectedSameLineValueRange(
-                        firstVarNameLine + 2,
-                        "description",
-                        "desc",
-                    ),
-                },
+                range: new Range(new Position(2, 4), new Position(5, 0)),
                 missingProperties: [
                     EnvironmentVariableProperty.Disabled,
                     EnvironmentVariableProperty.Secret,
                     EnvironmentVariableProperty.Type,
                 ],
+                fields: {
+                    ...getDefaultVariableProperties(),
+                    name: {
+                        keyRange: getExpectedKeyRange(firstVarNameLine, "name"),
+                        value: "var-1",
+                        valueRange: getExpectedSameLineValueRange(
+                            firstVarNameLine,
+                            "name",
+                            "var-1",
+                        ),
+                    },
+                    value: {
+                        keyRange: getExpectedKeyRange(
+                            firstVarNameLine + 1,
+                            "value",
+                        ),
+                        value: "test-1",
+                        valueRange: getExpectedSameLineValueRange(
+                            firstVarNameLine + 1,
+                            "value",
+                            "test-1",
+                        ),
+                    },
+                    description: {
+                        keyRange: getExpectedKeyRange(
+                            firstVarNameLine + 2,
+                            "description",
+                        ),
+                        value: "desc",
+                        valueRange: getExpectedSameLineValueRange(
+                            firstVarNameLine + 2,
+                            "description",
+                            "desc",
+                        ),
+                    },
+                },
             },
             {
-                ...getDefaultVariableProperties(),
-                name: {
-                    keyRange: getExpectedKeyRange(secondVarNameLine, "name"),
-                    value: "var-2",
-                    valueRange: getExpectedSameLineValueRange(
-                        secondVarNameLine,
-                        "name",
-                        "var-2",
-                    ),
-                },
-                value: {
-                    keyRange: getExpectedKeyRange(
-                        secondVarNameLine + 1,
-                        "value",
-                    ),
-                    value: "test-2",
-                    valueRange: getExpectedSameLineValueRange(
-                        secondVarNameLine + 1,
-                        "value",
-                        "test-2",
-                    ),
-                },
-                secret: {
-                    effectiveValue: true,
-                    field: {
-                        keyRange: getExpectedKeyRange(
-                            secondVarNameLine + 2,
-                            "secret",
-                        ),
-                        value: true,
-                        valueRange: getExpectedSameLineValueRange(
-                            secondVarNameLine + 2,
-                            "secret",
-                            "true",
-                        ),
-                    },
-                },
-                disabled: {
-                    effectiveValue: true,
-                    field: {
-                        keyRange: getExpectedKeyRange(
-                            secondVarNameLine + 3,
-                            "disabled",
-                        ),
-                        value: true,
-                        valueRange: getExpectedSameLineValueRange(
-                            secondVarNameLine + 3,
-                            "disabled",
-                            "true",
-                        ),
-                    },
-                },
+                range: new Range(
+                    new Position(5, 4),
+                    new Position(8, 4 + 2 + "disabled".length + "true".length),
+                ),
                 missingProperties: [
                     EnvironmentVariableProperty.Description,
                     EnvironmentVariableProperty.Type,
                 ],
+                fields: {
+                    ...getDefaultVariableProperties(),
+                    name: {
+                        keyRange: getExpectedKeyRange(
+                            secondVarNameLine,
+                            "name",
+                        ),
+                        value: "var-2",
+                        valueRange: getExpectedSameLineValueRange(
+                            secondVarNameLine,
+                            "name",
+                            "var-2",
+                        ),
+                    },
+                    value: {
+                        keyRange: getExpectedKeyRange(
+                            secondVarNameLine + 1,
+                            "value",
+                        ),
+                        value: "test-2",
+                        valueRange: getExpectedSameLineValueRange(
+                            secondVarNameLine + 1,
+                            "value",
+                            "test-2",
+                        ),
+                    },
+                    secret: {
+                        effectiveValue: true,
+                        field: {
+                            keyRange: getExpectedKeyRange(
+                                secondVarNameLine + 2,
+                                "secret",
+                            ),
+                            value: true,
+                            valueRange: getExpectedSameLineValueRange(
+                                secondVarNameLine + 2,
+                                "secret",
+                                "true",
+                            ),
+                        },
+                    },
+                    disabled: {
+                        effectiveValue: true,
+                        field: {
+                            keyRange: getExpectedKeyRange(
+                                secondVarNameLine + 3,
+                                "disabled",
+                            ),
+                            value: true,
+                            valueRange: getExpectedSameLineValueRange(
+                                secondVarNameLine + 3,
+                                "disabled",
+                                "true",
+                            ),
+                        },
+                    },
+                },
             },
         ];
 
@@ -234,25 +255,24 @@ variables:
         expect(parsed.errors).toHaveLength(0);
         expect(parsed.variables).toHaveLength(1);
 
-        const actualVariable = parsed.variables[0];
-        expect(actualVariable.description).toBeUndefined();
-        expect(actualVariable.disabled).toEqual({ effectiveValue: false });
-        expect(actualVariable.name.value).toEqual("var-1");
-        expect(actualVariable.secret).toEqual({ effectiveValue: false });
-        expect(actualVariable.type).toEqual({
+        const { fields } = parsed.variables[0];
+        expect(fields.description).toBeUndefined();
+        expect(fields.disabled).toEqual({ effectiveValue: false });
+        expect(fields.name.value).toEqual("var-1");
+        expect(fields.secret).toEqual({ effectiveValue: false });
+        expect(fields.type).toEqual({
             effectiveValue: VariableType.String,
         });
 
         if (
-            !actualVariable.value ||
-            ("value" in actualVariable.value &&
-                typeof actualVariable.value.value == "string")
+            !fields.value ||
+            ("value" in fields.value && typeof fields.value.value == "string")
         ) {
             throw new Error(
-                `Got unexpected value from the parser. Should be an object, but was ${actualVariable.value}`,
+                `Got unexpected value from the parser. Should be an object, but was ${fields.value}`,
             );
         }
-        const actualValueItem = actualVariable.value as {
+        const actualValueItem = fields.value as {
             type: WithKeyAndValueRange<VariableType>;
             data: WithKeyAndValueRange<string>;
         };
@@ -345,12 +365,13 @@ invalid: bar`;
             );
         }
         expect(parsed.variables).toHaveLength(1);
-        expect(parsed.variables[0].name.value).toBe("var-1");
-        expect(parsed.variables[0].description?.value).toBe("desc");
-        expect(parsed.variables[0].type).toEqual({
+        const { fields } = parsed.variables[0];
+        expect(fields.name.value).toBe("var-1");
+        expect(fields.description?.value).toBe("desc");
+        expect(fields.type).toEqual({
             effectiveValue: VariableType.String,
         });
-        expect(parsed.variables[0].secret).toEqual({ effectiveValue: false });
+        expect(fields.secret).toEqual({ effectiveValue: false });
     });
 });
 
