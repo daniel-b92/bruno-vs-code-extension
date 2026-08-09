@@ -247,13 +247,15 @@ function getVariablesFromMapItems(
                       ...commonArgs,
                       ...disabledWithKeyRange,
                   })
-                : undefined,
+                : // The default value for 'disabled' is false, when not defined.
+                  { effectiveValue: false },
             secret: secretWithKeyRange
                 ? mapFromYamlScalar({
                       ...commonArgs,
                       ...secretWithKeyRange,
                   })
-                : undefined,
+                : // The default value for 'secret' is false, when not defined.
+                  { effectiveValue: false },
             value: !valueToUse
                 ? undefined
                 : isScalar<string>(valueToUse.value)
@@ -279,7 +281,8 @@ function getVariablesFromMapItems(
                       ...commonArgs,
                       ...type,
                   })
-                : undefined,
+                : // The default value for 'type' is 'string', when not defined.
+                  { effectiveValue: VariableType.String },
             missingProperties:
                 allMapItems.missingKeys as EnvironmentVariableProperty[],
         });

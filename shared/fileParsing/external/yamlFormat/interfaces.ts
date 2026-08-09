@@ -21,9 +21,9 @@ export interface ParsedEnvironmentVariable {
               data: WithKeyAndValueRange<string>;
           };
     description?: WithKeyAndValueRange<string>;
-    type?: WithKeyAndValueRange<VariableType>;
-    secret?: WithKeyAndValueRange<boolean>;
-    disabled?: WithKeyAndValueRange<boolean>;
+    type: WithKeyAndValueRange<VariableType> | { effectiveValue: VariableType };
+    secret: WithKeyAndValueRange<boolean> | { effectiveValue: boolean };
+    disabled: WithKeyAndValueRange<boolean> | { effectiveValue: boolean };
     missingProperties: EnvironmentVariableProperty[];
 }
 
@@ -37,6 +37,7 @@ export enum VariableType {
     Number = "number",
     Boolean = "boolean",
     Object = "object",
+    String = "string",
 }
 
 export enum EnvironmentVariableProperty {

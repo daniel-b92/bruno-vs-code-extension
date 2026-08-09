@@ -24,6 +24,7 @@ variables:
 
         const expectedVariables: ParsedEnvironmentVariable[] = [
             {
+                ...getDefaultVariableProperties(),
                 name: {
                     keyRange: getExpectedKeyRange(variableNameLine, "name"),
                     value: "var-1",
@@ -57,9 +58,6 @@ variables:
                         "desc",
                     ),
                 },
-                disabled: undefined,
-                secret: undefined,
-                type: undefined,
                 missingProperties: [
                     EnvironmentVariableProperty.Disabled,
                     EnvironmentVariableProperty.Secret,
@@ -94,17 +92,10 @@ variables:
         );
         const firstVarNameLine = 2;
         const secondVarNameLine = 5;
-        const defaultVariableOptionalFields: Partial<ParsedEnvironmentVariable> =
-            {
-                description: undefined,
-                disabled: undefined,
-                secret: undefined,
-                type: undefined,
-            };
 
         const expectedVariables: ParsedEnvironmentVariable[] = [
             {
-                ...defaultVariableOptionalFields,
+                ...getDefaultVariableProperties(),
                 name: {
                     keyRange: getExpectedKeyRange(firstVarNameLine, "name"),
                     value: "var-1",
@@ -145,7 +136,7 @@ variables:
                 ],
             },
             {
-                ...defaultVariableOptionalFields,
+                ...getDefaultVariableProperties(),
                 name: {
                     keyRange: getExpectedKeyRange(secondVarNameLine, "name"),
                     value: "var-2",
@@ -239,10 +230,12 @@ variables:
 
         const actualVariable = parsed.variables[0];
         expect(actualVariable.description).toBeUndefined();
-        expect(actualVariable.disabled).toBeUndefined();
+        expect(actualVariable.disabled).toEqual({ effectiveValue: false });
         expect(actualVariable.name.value).toEqual("var-1");
-        expect(actualVariable.secret).toBeUndefined();
-        expect(actualVariable.type).toBeUndefined();
+        expect(actualVariable.secret).toEqual({ effectiveValue: false });
+        expect(actualVariable.type).toEqual({
+            effectiveValue: VariableType.String,
+        });
 
         if (
             !actualVariable.value ||
@@ -348,8 +341,10 @@ invalid: bar`;
         expect(parsed.variables).toHaveLength(1);
         expect(parsed.variables[0].name.value).toBe("var-1");
         expect(parsed.variables[0].description?.value).toBe("desc");
-        expect(parsed.variables[0].type?.value).toBeUndefined();
-        expect(parsed.variables[0].secret?.value).toBeUndefined();
+        expect(parsed.variables[0].type).toEqual({
+            effectiveValue: VariableType.String,
+        });
+        expect(parsed.variables[0].secret).toEqual({ effectiveValue: false });
     });
 });
 
@@ -371,4 +366,14 @@ function getExpectedSameLineValueRange(
         new Position(line, keyStartChar + key.length + 2),
         new Position(line, keyStartChar + key.length + 2 + value.length),
     );
+}
+
+function getDefaultVariableProperties() {
+    return {
+        value: undefined,
+        description: undefined,
+        disabled: { effectiveValue: false },
+        secret: { effectiveValue: false },
+        type: { effectiveValue: VariableType.String },
+    };
 }
