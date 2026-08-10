@@ -1,13 +1,5 @@
+import { isMap, isScalar, Scalar, YAMLMap } from "yaml";
 import {
-    isMap,
-    isScalar,
-    LineCounter,
-    parseDocument,
-    Scalar,
-    YAMLMap,
-} from "yaml";
-import {
-    EnvironmentVariableProperty,
     ParsedEnvironmentVariable,
     Range,
     TextDocumentHelper,
@@ -16,11 +8,10 @@ import {
     YamlParsingError,
     YamlParsingErrorCode,
 } from "../../..";
-import { mapErrors } from "../../internal/yamlFormat/parsingErrors/mapErrors";
-import { getTopLevelMapIfExists } from "../../internal/yamlFormat/yamlMaps/getTopLevelMapIfExists";
 import { getYamlMapsFromSequence } from "../../internal/yamlFormat/yamlSequences/getYamlMapsFromSequence";
 import {
     CommonParsingArgs,
+    EnvironmentVariableProperty,
     ParsedMapItems,
 } from "../../internal/yamlFormat/interfaces";
 import { getRangeForItem } from "../../internal/yamlFormat/util/getRangeForItem";
@@ -30,6 +21,7 @@ import { getRangeForUnknownYamlItem } from "../../internal/yamlFormat/util/getRa
 import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForMissingKeyInMap";
 import { mapFromYamlScalar } from "../../internal/yamlFormat/util/mapFromYamlScalar";
 import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForUnknownKeyInMap";
+import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDocumentIntoYamlMap";
 
 enum EnvironmentKeyName {
     Name = "name",
@@ -48,27 +40,16 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
           variables: ParsedEnvironmentVariable[];
           errors: YamlParsingError[];
       } {
-    const document = parseDocument(docHelper.getText(), {
-        lineCounter: new LineCounter(),
-    });
     const fullDocumentRange = docHelper.getTextRange();
     const commonArgs = { docHelper, fullDocumentRange };
     const collectedErrors: YamlParsingError[] = [];
 
-    if (document.errors.length > 0) {
-        // Cannot continue with a technical parsing error.
-        return mapErrors(document.errors, fullDocumentRange);
+    const maybTopLevelMap = parseDocumentIntoYamlMap(commonArgs);
+    if ("errors" in maybTopLevelMap) {
+        return maybTopLevelMap.errors;
     }
+    const topLevelMap = maybTopLevelMap.map;
 
-    const maybeTopLevelMap = getTopLevelMapIfExists({
-        ...commonArgs,
-        node: document.contents,
-    });
-    if ("error" in maybeTopLevelMap) {
-        // Cannot continue, if the top level map is not valid.
-        return [maybeTopLevelMap.error];
-    }
-    const { map: topLevelMap } = maybeTopLevelMap;
     const keysForStringScalars = [EnvironmentKeyName.Name];
     const keysForSequences = [EnvironmentKeyName.Variables];
 

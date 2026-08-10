@@ -2,12 +2,12 @@ import { describe, it, expect } from "@jest/globals";
 import { parseYamlEnvironmentFile } from "./parseYamlEnvironmentFile";
 import { TextDocumentHelper } from "../../../fileSystem/textDocumentHelper";
 import {
-    EnvironmentVariableProperty,
     ParsedEnvironmentVariable,
     VariableType,
     WithKeyAndValueRange,
 } from "./interfaces";
 import { Position, Range } from "../../..";
+import { EnvironmentVariableProperty } from "../../internal/yamlFormat/interfaces";
 
 describe("parseYamlEnvironmentFile", () => {
     it("parses a simple yaml environment file with a single variable", () => {
