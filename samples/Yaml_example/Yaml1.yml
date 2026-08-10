@@ -40,3 +40,36 @@ settings:
     timeout: 0
     followRedirects: true
     maxRedirects: 5
+
+examples:
+    - name: example
+      request:
+          url: http://bla.com
+          method: GET
+          headers:
+              - name: fdsfdsf
+                value: sdfdsf
+                description: sdfsfd
+          body:
+              type: json
+              data: |-
+                  {
+                    "foo": "bar"
+                  }
+      response:
+          status: 200
+          statusText: OK
+          body:
+              type: text
+              data: ""
+
+docs: |-
+
+    sdf
+    sdf
+    sdf
+    sd
+    f
+    sdf
+    sd
+    f

@@ -1,0 +1,15 @@
+info:
+    name: graphql
+    type: graphql
+    seq: 2
+
+graphql:
+    method: GET
+    url: gjmghmgj
+    auth: inherit
+
+settings:
+    encodeUrl: true
+    timeout: 0
+    followRedirects: true
+    maxRedirects: 5
