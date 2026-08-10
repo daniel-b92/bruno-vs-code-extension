@@ -1,5 +1,8 @@
 import { Range } from "../../..";
-import { EnvironmentVariableProperty } from "../../internal/yamlFormat/interfaces";
+import {
+    EnvironmentVariableProperty,
+    FileInfoType,
+} from "../../internal/yamlFormat/interfaces";
 
 export enum YamlParsingErrorCode {
     ItemDoesNotExist = 1,
@@ -68,14 +71,6 @@ export interface WithKeyAndValueRange<T> {
     keyRange: Range;
     value: T;
     valueRange: Range;
-}
-
-export enum FileInfoType {
-    Folder = "folder",
-    http = "http",
-    Graphql = "graphql",
-    Grpc = "grpc",
-    Websocket = "websocket",
 }
 
 export enum VariableType {

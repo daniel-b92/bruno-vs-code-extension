@@ -32,6 +32,14 @@ export enum FileInfoProperty {
     Tags = "tags",
 }
 
+export enum FileInfoType {
+    Folder = "folder",
+    http = "http",
+    Graphql = "graphql",
+    Grpc = "grpc",
+    Websocket = "websocket",
+}
+
 export interface CommonParsingArgs {
     docHelper: TextDocumentHelper;
     fullDocumentRange: Range;
@@ -50,4 +58,4 @@ export interface ParsedMapItems {
     unknownKeys: { key: string; keyRange: Range }[];
 }
 
-type WithKeyAndKeyRange<T> = { value: T; key: string; keyRange: Range };
+export type WithKeyAndKeyRange<T> = { value: T; key: string; keyRange: Range };
