@@ -34,7 +34,7 @@ export enum FileInfoProperty {
 
 export enum FileInfoType {
     Folder = "folder",
-    http = "http",
+    Http = "http",
     Graphql = "graphql",
     Grpc = "grpc",
     Websocket = "websocket",

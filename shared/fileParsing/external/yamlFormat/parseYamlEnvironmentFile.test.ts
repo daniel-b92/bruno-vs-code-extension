@@ -8,6 +8,10 @@ import {
 } from "./interfaces";
 import { Position, Range } from "../../..";
 import { EnvironmentVariableProperty } from "../../internal/yamlFormat/interfaces";
+import {
+    getExpectedKeyRange,
+    getExpectedSameLineValueRange,
+} from "../../../_testingUtils";
 
 describe("parseYamlEnvironmentFile", () => {
     it("parses a simple yaml environment file with a single variable", () => {
@@ -374,26 +378,6 @@ invalid: bar`;
         expect(fields.secret).toEqual({ effectiveValue: false });
     });
 });
-
-function getExpectedKeyRange(line: number, key: string, keyStartChar = 4) {
-    return new Range(
-        new Position(line, keyStartChar),
-        new Position(line, keyStartChar + key.length),
-    );
-}
-
-function getExpectedSameLineValueRange(
-    line: number,
-    key: string,
-    value: string,
-    keyStartChar = 4,
-) {
-    return new Range(
-        // The '+3' is for the ': ' between the key and the value.
-        new Position(line, keyStartChar + key.length + 2),
-        new Position(line, keyStartChar + key.length + 2 + value.length),
-    );
-}
 
 function getDefaultVariableProperties() {
     return {

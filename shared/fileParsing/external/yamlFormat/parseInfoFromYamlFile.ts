@@ -172,8 +172,11 @@ function getResultFromInfoYamlMap(
         WithKeyAndValueRange<{ value: string; range: Range }[]> | undefined =
         undefined;
 
-    if (maybeUntypedTagsField && isSeq<Scalar<string>>(validSequences[0])) {
-        const value = validSequences[0].items.map((item) => ({
+    if (
+        maybeUntypedTagsField &&
+        isSeq<Scalar<string>>(validSequences[0].value)
+    ) {
+        const value = validSequences[0].value.items.map((item) => ({
             value: item.value,
             range: getRangeForItem(item, commonArgs),
         }));
