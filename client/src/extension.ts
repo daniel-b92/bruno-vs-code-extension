@@ -133,7 +133,7 @@ function createLanguagClient(context: ExtensionContext) {
             { scheme: "file", language: "bru" },
             { scheme: "file", language: "javascript" },
             // Uncomment for enabling Yaml collection intellisense.
-            { scheme: "file", language: "yaml" },
+            // { scheme: "file", language: "yaml" },
         ],
         synchronize: {
             // Notify the server about file changes to '.clientrc files contained in the workspace
