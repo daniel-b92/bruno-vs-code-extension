@@ -11,6 +11,7 @@ import {
     FileInfoProperty,
     FileInfoType,
     TopLevelRequestOrFolderSettingsProperty,
+    WithKeyAndKeyRange,
 } from "../../internal/yamlFormat/interfaces";
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
 import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForMissingKeyInMap";
@@ -34,12 +35,12 @@ export function parseInfoFromYamlFile(docHelper: TextDocumentHelper): Result {
     const collectedErrors: YamlParsingError[] = [];
     const infoKey = TopLevelRequestOrFolderSettingsProperty.Info;
 
-    const maybTopLevelMap = parseDocumentIntoYamlMap(commonArgs);
-    if ("errors" in maybTopLevelMap) {
-        return maybTopLevelMap.errors;
+    const maybeTopLevelMap = parseDocumentIntoYamlMap(commonArgs);
+    if ("errors" in maybeTopLevelMap) {
+        return maybeTopLevelMap.errors;
     }
 
-    const { map: topLevelMap } = maybTopLevelMap;
+    const { map: topLevelMap } = maybeTopLevelMap;
     const {
         items: { missingKeys, validMaps },
         errors: mapItemErrors,
@@ -63,10 +64,14 @@ export function parseInfoFromYamlFile(docHelper: TextDocumentHelper): Result {
         );
     }
     const infoMap = validMaps[0];
+    return getResultFromInfoYamlMap(infoMap, commonArgs);
 }
 
 function getResultFromInfoYamlMap(
-    infoMap: YAMLMap<unknown, unknown>,
+    {
+        keyRange: infoKeyRange,
+        value: infoMap,
+    }: WithKeyAndKeyRange<YAMLMap<unknown, unknown>>,
     commonArgs: CommonParsingArgs,
 ): Result {
     const errors: YamlParsingError[] = [];
@@ -125,6 +130,12 @@ function getResultFromInfoYamlMap(
             }),
         );
     }
+    const name = validStringScalars.find(
+        ({ key }) => key == FileInfoProperty.Name,
+    );
+    if (!name) {
+        return errors;
+    }
 
     const maybeType = getTypedScalarFromList(
         {
@@ -177,9 +188,23 @@ function getResultFromInfoYamlMap(
     } else if (maybeUntypedTagsField) {
         errors.push({
             message:
-                "Tags sequence may only contain values of type Scalar strings.",
+                "Tags sequence may only contain values that are Scalar strings.",
             range: getRangeForItem(maybeUntypedTagsField.value, commonArgs),
             code: YamlParsingErrorCode.Other,
         });
     }
+
+    return {
+        errors,
+        info: {
+            keyRange: infoKeyRange,
+            valueRange: getRangeForItem(infoMap, commonArgs),
+            value: {
+                name: mapFromYamlScalar({ ...commonArgs, ...name }),
+                sequence: sequenceToUse,
+                type: maybeType ? maybeType.value : undefined,
+                tags: tagsToUse,
+            },
+        },
+    };
 }

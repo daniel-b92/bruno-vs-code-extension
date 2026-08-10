@@ -53,7 +53,6 @@ export type ParsedInfo = WithKeyAndValueRange<{
     name: WithKeyAndValueRange<string>;
     type?: WithKeyAndValueRange<FileInfoType>;
     sequence?: WithKeyAndValueRange<number>;
-    description?: WithKeyAndValueRange<string>;
     tags?: WithKeyAndValueRange<{ value: string; range: Range }[]>;
 }>;
 
