@@ -174,11 +174,11 @@ function getResultFromInfoYamlMap(
             ),
             value,
         };
-    } else if (maybeSequence) {
+    } else if (maybeUntypedTagsField) {
         errors.push({
             message:
-                "Only integer values that are greater than zero are allowed.",
-            range: getRangeForItem(maybeSequence.value, commonArgs),
+                "Tags sequence may only contain values of type Scalar strings.",
+            range: getRangeForItem(maybeUntypedTagsField.value, commonArgs),
             code: YamlParsingErrorCode.Other,
         });
     }
