@@ -132,10 +132,7 @@ function getResultFromInfoYamlMap(
     }
     const name = validStringScalars.find(
         ({ key }) => key == FileInfoProperty.Name,
-    );
-    if (!name) {
-        return errors;
-    }
+    )!;
 
     const maybeType = getTypedScalarFromList(
         {
