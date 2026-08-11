@@ -2,6 +2,7 @@ import { Range } from "../../..";
 import {
     FileInfoType,
     ParsedAuth,
+    ParsedDocsWithType,
     ParsedRequestHeader,
     ParsedRequestVariable,
     ParsedScript,
@@ -22,13 +23,13 @@ export interface YamlParsingError {
 
 export interface ParsedFolderSettingsFile {
     info: ParsedInfoForFolderSettings;
-    request: WithKeyAndValueRange<{
+    request?: WithKeyAndValueRange<{
         headers?: WithKeyAndValueRange<ParsedRequestHeader[]>;
         auth?: WithKeyAndValueRange<ParsedAuth>;
         variables?: WithKeyAndValueRange<ParsedRequestVariable[]>;
         scripts?: WithKeyAndValueRange<ParsedScript[]>;
     }>;
-    docs?: WithKeyAndValueRange<string>;
+    docs?: WithKeyAndValueRange<ParsedDocsWithType>;
 }
 
 export type ParsedInfoForRequestFile = ParsedInfoForFolderSettings & {

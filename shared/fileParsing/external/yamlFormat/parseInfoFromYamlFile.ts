@@ -1,37 +1,20 @@
-import {
-    BrunoFileType,
-    ParsedInfoForRequestFile,
-    TextDocumentHelper,
-    YamlParsingError,
-    YamlParsingErrorCode,
-} from "../../..";
+import { BrunoFileType, TextDocumentHelper, YamlParsingError } from "../../..";
 import {
     CommonParsingArgs,
-    FileInfoProperty,
-    FileInfoType,
     TopLevelRequestFileProperty,
-    WithKeyAndKeyRange,
 } from "../../internal/yamlFormat/interfaces";
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
 import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForMissingKeyInMap";
 import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDocumentIntoYamlMap";
-import { isSeq, Scalar, YAMLMap, YAMLSeq } from "yaml";
-import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForUnknownKeyInMap";
-import { getRangeForItem } from "../../internal/yamlFormat/util/getRangeForItem";
-import { getTypedScalarFromList } from "../../internal/yamlFormat/scalars/getTypedScalarFromList";
-import { mapFromYamlScalar } from "../../internal/yamlFormat/scalars/mapFromYamlScalar";
-
-type Result =
-    | YamlParsingError[]
-    | {
-          info: ParsedInfoForRequestFile;
-          errors: YamlParsingError[];
-      };
+import {
+    ParsedInfoResult,
+    parseFileInfoFromYamlMap,
+} from "../../internal/yamlFormat/yamlMaps/parseFileInfoFromYamlMap";
 
 export function parseInfoFromYamlFile(
     docHelper: TextDocumentHelper,
     fileType: BrunoFileType,
-): Result {
+): ParsedInfoResult {
     const commonArgs: CommonParsingArgs = {
         docHelper,
         fullDocumentRange: docHelper.getTextRange(),
@@ -68,192 +51,8 @@ export function parseInfoFromYamlFile(
         );
     }
     const infoMap = validMaps[0];
-    return getResultFromInfoYamlMap(
+    return parseFileInfoFromYamlMap(
         { infoMap, commonArgs, fileType },
         collectedErrors,
     );
-}
-
-function getResultFromInfoYamlMap(
-    args: {
-        commonArgs: CommonParsingArgs;
-        fileType: BrunoFileType;
-        infoMap: WithKeyAndKeyRange<YAMLMap<unknown, unknown>>;
-    },
-    errors: YamlParsingError[],
-): Result {
-    const {
-        commonArgs,
-        fileType,
-        infoMap: { keyRange: infoKeyRange, value: infoMap },
-    } = args;
-    const checkForTypeProperty = [
-        BrunoFileType.AppFile,
-        BrunoFileType.FolderSettingsFile,
-        BrunoFileType.RequestFile,
-    ].includes(fileType);
-    const checkForSeqProperty = [
-        BrunoFileType.AppFile,
-        BrunoFileType.FolderSettingsFile,
-        BrunoFileType.RequestFile,
-    ].includes(fileType);
-    const checkForTagsProperty = fileType == BrunoFileType.RequestFile;
-    const expectedStringScalars = [FileInfoProperty.Name].concat(
-        checkForTypeProperty ? FileInfoProperty.Type : [],
-    );
-    const expectedNumericScalars = checkForSeqProperty
-        ? [FileInfoProperty.Seq]
-        : [];
-    const expectedSequenceValues = checkForTagsProperty
-        ? [FileInfoProperty.Tags]
-        : [];
-    const allowedKeys = expectedStringScalars.concat(
-        expectedNumericScalars,
-        expectedSequenceValues,
-    );
-
-    const {
-        items: {
-            missingKeys,
-            unknownKeys,
-            validScalars: {
-                withStringValue: validStringScalars,
-                withNumericValue: validNumericScalars,
-            },
-            validSequences,
-        },
-        errors: mapItemErrors,
-    } = getMapItems(
-        infoMap,
-        {
-            scalars: {
-                stringValues: expectedStringScalars,
-                numericValues: expectedNumericScalars,
-            },
-            sequenceValues: expectedSequenceValues,
-        },
-        commonArgs,
-    );
-
-    errors.push(
-        ...mapItemErrors,
-        ...unknownKeys.map(({ key: unknownKey, keyRange }) =>
-            getErrorForUnknownKeyInMap({
-                ...commonArgs,
-                unknownKey,
-                keyRange,
-                allowedKeys: allowedKeys,
-            }),
-        ),
-    );
-    const name = validStringScalars.find(
-        ({ key }) => key == FileInfoProperty.Name,
-    );
-    if (missingKeys.includes(FileInfoProperty.Name)) {
-        // Name is the only mandatory property.
-        return errors.concat(
-            getErrorForMissingKeyInMap({
-                ...commonArgs,
-                missingKey: FileInfoProperty.Name,
-                map: infoMap,
-            }),
-        );
-    }
-    if (!name) {
-        // Case where the Name property is not a Scalar string.
-        return errors;
-    }
-
-    const maybeType = !checkForTypeProperty
-        ? undefined
-        : getTypedScalarFromList(
-              {
-                  commonParsingArgs: commonArgs,
-                  allowedValues: Object.values(FileInfoType),
-                  allStringScalars: validStringScalars,
-                  keyName: FileInfoProperty.Type,
-              },
-              errors,
-          );
-
-    return {
-        errors,
-        info: {
-            keyRange: infoKeyRange,
-            valueRange: getRangeForItem(infoMap, commonArgs),
-            value: {
-                name: mapFromYamlScalar({ ...commonArgs, ...name }),
-                sequence: checkForSeqProperty
-                    ? getSequenceToUse(validNumericScalars, commonArgs, errors)
-                    : undefined,
-                type: maybeType ? maybeType.value : undefined,
-                tags: checkForTagsProperty
-                    ? getTagsToUse(validSequences, commonArgs, errors)
-                    : undefined,
-            },
-        },
-    };
-}
-
-function getSequenceToUse(
-    validNumericScalars: WithKeyAndKeyRange<Scalar<number>>[],
-    commonArgs: CommonParsingArgs,
-    errorCollection: YamlParsingError[],
-) {
-    const maybeSequence = validNumericScalars.find(
-        ({ key }) => key == FileInfoProperty.Seq,
-    );
-    if (!maybeSequence) {
-        return undefined;
-    }
-
-    if (
-        Number.isInteger(maybeSequence.value.value) &&
-        maybeSequence.value.value > 0
-    ) {
-        return mapFromYamlScalar({ ...commonArgs, ...maybeSequence });
-    }
-
-    errorCollection.push({
-        message: "Only integer values that are greater than zero are allowed.",
-        range: getRangeForItem(maybeSequence.value, commonArgs),
-        code: YamlParsingErrorCode.Other,
-    });
-    return undefined;
-}
-
-function getTagsToUse(
-    validSequences: WithKeyAndKeyRange<YAMLSeq<unknown>>[],
-    commonArgs: CommonParsingArgs,
-    errorCollection: YamlParsingError[],
-) {
-    const maybeUntypedTagsField =
-        validSequences.length > 0 ? validSequences[0] : undefined;
-
-    if (!maybeUntypedTagsField) {
-        return undefined;
-    }
-
-    if (isSeq<Scalar<string>>(maybeUntypedTagsField.value)) {
-        const value = maybeUntypedTagsField.value.items.map((item) => ({
-            value: item.value,
-            range: getRangeForItem(item, commonArgs),
-        }));
-        return {
-            keyRange: maybeUntypedTagsField.keyRange,
-            valueRange: getRangeForItem(
-                maybeUntypedTagsField.value,
-                commonArgs,
-            ),
-            value,
-        };
-    }
-
-    errorCollection.push({
-        message:
-            "Tags sequence may only contain values that are Scalar strings.",
-        range: getRangeForItem(maybeUntypedTagsField.value, commonArgs),
-        code: YamlParsingErrorCode.Other,
-    });
-    return undefined;
 }

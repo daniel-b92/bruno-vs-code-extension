@@ -65,6 +65,11 @@ export interface ParsedScript {
     code: WithKeyAndValueRange<string>;
 }
 
+export interface ParsedDocsWithType {
+    type: WithKeyAndValueRange<DocsType>;
+    content: WithKeyAndValueRange<string>;
+}
+
 export type ParsedAuth = ParsedBasicAuth | ParsedBearerAuth;
 
 export interface ParsedBasicAuth {
@@ -129,6 +134,10 @@ export enum FileInfoType {
     Graphql = "graphql",
     Grpc = "grpc",
     Websocket = "websocket",
+}
+
+export enum DocsType {
+    TextMarkdown = "text/markdown",
 }
 
 export enum VariableType {
