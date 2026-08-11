@@ -1,8 +1,6 @@
 import {
     ParsedInfo,
-    Range,
     TextDocumentHelper,
-    WithKeyAndValueRange,
     YamlParsingError,
     YamlParsingErrorCode,
 } from "../../..";
@@ -16,7 +14,7 @@ import {
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
 import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForMissingKeyInMap";
 import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDocumentIntoYamlMap";
-import { isSeq, Scalar, YAMLMap } from "yaml";
+import { isSeq, Scalar, YAMLMap, YAMLSeq } from "yaml";
 import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForUnknownKeyInMap";
 import { getRangeForItem } from "../../internal/yamlFormat/util/getRangeForItem";
 import { getTypedScalarFromList } from "../../internal/yamlFormat/scalars/getTypedScalarFromList";
@@ -120,6 +118,9 @@ function getResultFromInfoYamlMap(
             }),
         ),
     );
+    const name = validStringScalars.find(
+        ({ key }) => key == FileInfoProperty.Name,
+    );
     if (missingKeys.includes(FileInfoProperty.Name)) {
         // Name is the only mandatory property.
         return errors.concat(
@@ -130,9 +131,10 @@ function getResultFromInfoYamlMap(
             }),
         );
     }
-    const name = validStringScalars.find(
-        ({ key }) => key == FileInfoProperty.Name,
-    )!;
+    if (!name) {
+        // Case where the Name property is not a Scalar string.
+        return errors;
+    }
 
     const maybeType = getTypedScalarFromList(
         {
@@ -143,56 +145,8 @@ function getResultFromInfoYamlMap(
         },
         errors,
     );
-    const maybeSequence = validNumericScalars.find(
-        ({ key }) => key == FileInfoProperty.Seq,
-    );
-    let sequenceToUse: WithKeyAndValueRange<number> | undefined = undefined;
-
-    if (
-        maybeSequence &&
-        Number.isInteger(maybeSequence.value.value) &&
-        maybeSequence.value.value > 0
-    ) {
-        sequenceToUse = mapFromYamlScalar({ ...commonArgs, ...maybeSequence });
-    } else if (maybeSequence) {
-        errors.push({
-            message:
-                "Only integer values that are greater than zero are allowed.",
-            range: getRangeForItem(maybeSequence.value, commonArgs),
-            code: YamlParsingErrorCode.Other,
-        });
-    }
-
-    const maybeUntypedTagsField =
-        validSequences.length > 0 ? validSequences[0] : undefined;
-    let tagsToUse:
-        WithKeyAndValueRange<{ value: string; range: Range }[]> | undefined =
-        undefined;
-
-    if (
-        maybeUntypedTagsField &&
-        isSeq<Scalar<string>>(validSequences[0].value)
-    ) {
-        const value = validSequences[0].value.items.map((item) => ({
-            value: item.value,
-            range: getRangeForItem(item, commonArgs),
-        }));
-        tagsToUse = {
-            keyRange: maybeUntypedTagsField.keyRange,
-            valueRange: getRangeForItem(
-                maybeUntypedTagsField.value,
-                commonArgs,
-            ),
-            value,
-        };
-    } else if (maybeUntypedTagsField) {
-        errors.push({
-            message:
-                "Tags sequence may only contain values that are Scalar strings.",
-            range: getRangeForItem(maybeUntypedTagsField.value, commonArgs),
-            code: YamlParsingErrorCode.Other,
-        });
-    }
+    const sequence = getSequenceToUse(validNumericScalars, commonArgs, errors);
+    const tags = getTagsToUse(validSequences, commonArgs, errors);
 
     return {
         errors,
@@ -201,10 +155,73 @@ function getResultFromInfoYamlMap(
             valueRange: getRangeForItem(infoMap, commonArgs),
             value: {
                 name: mapFromYamlScalar({ ...commonArgs, ...name }),
-                sequence: sequenceToUse,
+                sequence,
                 type: maybeType ? maybeType.value : undefined,
-                tags: tagsToUse,
+                tags,
             },
         },
     };
+}
+
+function getSequenceToUse(
+    validNumericScalars: WithKeyAndKeyRange<Scalar<number>>[],
+    commonArgs: CommonParsingArgs,
+    errorCollection: YamlParsingError[],
+) {
+    const maybeSequence = validNumericScalars.find(
+        ({ key }) => key == FileInfoProperty.Seq,
+    );
+    if (!maybeSequence) {
+        return undefined;
+    }
+
+    if (
+        Number.isInteger(maybeSequence.value.value) &&
+        maybeSequence.value.value > 0
+    ) {
+        return mapFromYamlScalar({ ...commonArgs, ...maybeSequence });
+    }
+
+    errorCollection.push({
+        message: "Only integer values that are greater than zero are allowed.",
+        range: getRangeForItem(maybeSequence.value, commonArgs),
+        code: YamlParsingErrorCode.Other,
+    });
+    return undefined;
+}
+
+function getTagsToUse(
+    validSequences: WithKeyAndKeyRange<YAMLSeq<unknown>>[],
+    commonArgs: CommonParsingArgs,
+    errorCollection: YamlParsingError[],
+) {
+    const maybeUntypedTagsField =
+        validSequences.length > 0 ? validSequences[0] : undefined;
+
+    if (!maybeUntypedTagsField) {
+        return undefined;
+    }
+
+    if (isSeq<Scalar<string>>(maybeUntypedTagsField.value)) {
+        const value = maybeUntypedTagsField.value.items.map((item) => ({
+            value: item.value,
+            range: getRangeForItem(item, commonArgs),
+        }));
+        return {
+            keyRange: maybeUntypedTagsField.keyRange,
+            valueRange: getRangeForItem(
+                maybeUntypedTagsField.value,
+                commonArgs,
+            ),
+            value,
+        };
+    }
+
+    errorCollection.push({
+        message:
+            "Tags sequence may only contain values that are Scalar strings.",
+        range: getRangeForItem(maybeUntypedTagsField.value, commonArgs),
+        code: YamlParsingErrorCode.Other,
+    });
+    return undefined;
 }
