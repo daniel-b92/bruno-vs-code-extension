@@ -1,4 +1,4 @@
-import { isScalar, isSeq, Scalar, YAMLMap } from "yaml";
+import { isMap, isScalar, isSeq, Scalar, YAMLMap } from "yaml";
 import { Range, YamlParsingError, YamlParsingErrorCode } from "../../../..";
 import { CommonParsingArgs, ParsedMapItems } from "../interfaces";
 import { getRangeForItem } from "../util/getRangeForItem";
@@ -18,34 +18,42 @@ export function getMapItems(
         scalars: {
             stringValues?: string[];
             booleanValues?: string[];
+            numericValues?: string[];
             unknownValues?: string[];
         };
         sequenceValues?: string[];
+        mapValues?: string[];
     },
     commonParsingArgs: CommonParsingArgs,
 ): { items: ParsedMapItems; errors: YamlParsingError[] } {
     const {
         scalars: {
             booleanValues: expectedBooleanScalars,
+            numericValues: expectedNumericScalars,
             stringValues: expectedStringScalars,
             unknownValues: expectedUnknownScalars,
         },
         sequenceValues: expectedSequenceValues,
+        mapValues: expectedMapValues,
     } = expectedKeys;
     const allExpectedScalars = (expectedBooleanScalars ?? []).concat(
+        expectedNumericScalars ?? [],
         expectedStringScalars ?? [],
         expectedUnknownScalars ?? [],
     );
     const allExpectedKeys = allExpectedScalars.concat(
         expectedSequenceValues ?? [],
+        expectedMapValues ?? [],
     );
     const items: ParsedMapItems = {
         validScalars: {
             withBooleanValue: [],
+            withNumericValue: [],
             withStringValue: [],
             withUnknownValue: [],
         },
         validSequences: [],
+        validMaps: [],
         // Everytime one of the expected keys is found, it will be removed from this list.
         missingKeys: allExpectedKeys.slice(),
         unknownKeys: [],
@@ -53,6 +61,7 @@ export function getMapItems(
     const errors: YamlParsingError[] = [];
     const invalidScalars: { key: string; valueRange: Range }[] = [];
     const invalidSequences: { key: string; valueRange: Range }[] = [];
+    const invalidMaps: { key: string; valueRange: Range }[] = [];
 
     for (const { key, value } of map.items) {
         // The parser converts empty string as key to `NULL`, which causes a type mismatch, when directly checking for string scalar.
@@ -104,6 +113,14 @@ export function getMapItems(
             });
             continue;
         }
+        if (isTypedScalar<number>(keyValue, value, expectedNumericScalars)) {
+            items.validScalars.withNumericValue.push({
+                key: keyValue,
+                keyRange,
+                value,
+            });
+            continue;
+        }
         if (isTypedScalar<string>(keyValue, value, expectedStringScalars)) {
             items.validScalars.withStringValue.push({
                 key: keyValue,
@@ -130,6 +147,15 @@ export function getMapItems(
             continue;
         }
 
+        if ((expectedMapValues ?? []).includes(keyValue) && isMap(value)) {
+            items.validMaps.push({
+                key: keyValue,
+                keyRange,
+                value: value,
+            });
+            continue;
+        }
+
         const maybeValueRange = getValueRange(
             keyAsScalar.value,
             value,
@@ -148,6 +174,13 @@ export function getMapItems(
         }
         if ((expectedSequenceValues ?? []).includes(keyValue)) {
             invalidSequences.push({
+                key: keyValue,
+                valueRange,
+            });
+            continue;
+        }
+        if ((expectedMapValues ?? []).includes(keyValue)) {
+            invalidMaps.push({
                 key: keyValue,
                 valueRange,
             });

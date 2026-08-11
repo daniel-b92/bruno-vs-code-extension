@@ -52,6 +52,7 @@ export * from "./fileParsing/external/bruFormat/requestFiles/getMaxSequenceForRe
 // file parsing - yaml format
 export * from "./fileParsing/external/yamlFormat/interfaces";
 export * from "./fileParsing/external/yamlFormat/parseYamlEnvironmentFile";
+export * from "./fileParsing/external/yamlFormat/parseInfoFromYamlFile";
 
 // model
 export * from "./baseModel/collection";

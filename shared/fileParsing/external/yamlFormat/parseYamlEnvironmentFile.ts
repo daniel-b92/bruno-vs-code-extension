@@ -1,26 +1,16 @@
+import { isMap, isScalar, Scalar, YAMLMap } from "yaml";
 import {
-    isMap,
-    isScalar,
-    LineCounter,
-    parseDocument,
-    Scalar,
-    YAMLMap,
-} from "yaml";
-import {
-    EnvironmentVariableProperty,
     ParsedEnvironmentVariable,
     Range,
     TextDocumentHelper,
     VariableType,
     WithKeyAndValueRange,
     YamlParsingError,
-    YamlParsingErrorCode,
 } from "../../..";
-import { mapErrors } from "../../internal/yamlFormat/parsingErrors/mapErrors";
-import { getTopLevelMapIfExists } from "../../internal/yamlFormat/yamlMaps/getTopLevelMapIfExists";
 import { getYamlMapsFromSequence } from "../../internal/yamlFormat/yamlSequences/getYamlMapsFromSequence";
 import {
     CommonParsingArgs,
+    EnvironmentVariableProperty,
     ParsedMapItems,
 } from "../../internal/yamlFormat/interfaces";
 import { getRangeForItem } from "../../internal/yamlFormat/util/getRangeForItem";
@@ -28,8 +18,10 @@ import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
 import { getErrorForValueWithUnexpectedType } from "../../internal/yamlFormat/parsingErrors/getErrorForValueWithUnexpectedType";
 import { getRangeForUnknownYamlItem } from "../../internal/yamlFormat/util/getRangeForUnknownYamlItem";
 import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForMissingKeyInMap";
-import { mapFromYamlScalar } from "../../internal/yamlFormat/util/mapFromYamlScalar";
+import { mapFromYamlScalar } from "../../internal/yamlFormat/scalars/mapFromYamlScalar";
 import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForUnknownKeyInMap";
+import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDocumentIntoYamlMap";
+import { getTypedScalarFromList } from "../../internal/yamlFormat/scalars/getTypedScalarFromList";
 
 enum EnvironmentKeyName {
     Name = "name",
@@ -48,27 +40,16 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
           variables: ParsedEnvironmentVariable[];
           errors: YamlParsingError[];
       } {
-    const document = parseDocument(docHelper.getText(), {
-        lineCounter: new LineCounter(),
-    });
     const fullDocumentRange = docHelper.getTextRange();
     const commonArgs = { docHelper, fullDocumentRange };
     const collectedErrors: YamlParsingError[] = [];
 
-    if (document.errors.length > 0) {
-        // Cannot continue with a technical parsing error.
-        return mapErrors(document.errors, fullDocumentRange);
+    const maybeTopLevelMap = parseDocumentIntoYamlMap(commonArgs);
+    if ("errors" in maybeTopLevelMap) {
+        return maybeTopLevelMap.errors;
     }
+    const topLevelMap = maybeTopLevelMap.map;
 
-    const maybeTopLevelMap = getTopLevelMapIfExists({
-        ...commonArgs,
-        node: document.contents,
-    });
-    if ("error" in maybeTopLevelMap) {
-        // Cannot continue, if the top level map is not valid.
-        return [maybeTopLevelMap.error];
-    }
-    const { map: topLevelMap } = maybeTopLevelMap;
     const keysForStringScalars = [EnvironmentKeyName.Name];
     const keysForSequences = [EnvironmentKeyName.Variables];
 
@@ -205,9 +186,13 @@ function getVariablesFromMapItems(
             secret: secretWithKeyRange,
         } = getItemsForSimpleOptionalVariableProps(allMapItems);
 
-        const type = getItemVariableTypeScalarField(
-            allMapItems,
-            commonArgs,
+        const type = getTypedScalarFromList(
+            {
+                commonParsingArgs: commonArgs,
+                allStringScalars: allMapItems.validScalars.withStringValue,
+                allowedValues: Object.values(VariableType),
+                keyName: EnvironmentVariableProperty.Type,
+            },
             errors,
         );
         const maybeValue = getValueFieldFromVariable(commonParams);
@@ -275,25 +260,13 @@ function getVariablesFromMapItems(
                             value: valueToUse.value,
                         })
                       : {
-                            keyRange: valueToUse.keyRange,
-                            data: mapFromYamlScalar({
-                                ...commonArgs,
-                                keyRange: valueToUse.value.data.keyRange,
-                                value: valueToUse.value.data.scalar,
-                            }),
-                            type: mapFromYamlScalar({
-                                ...commonArgs,
-                                keyRange: valueToUse.value.type.keyRange,
-                                value: valueToUse.value.type.scalar,
-                            }),
+                            ...valueToUse,
+                            ...valueToUse.value,
                         },
                 type: type
                     ? {
                           effectiveValue: type.value.value,
-                          field: mapFromYamlScalar({
-                              ...commonArgs,
-                              ...type,
-                          }),
+                          field: type.value,
                       }
                     : // The default value for 'type' is 'string', when not defined.
                       { effectiveValue: VariableType.String },
@@ -336,10 +309,10 @@ function getValueFieldFromVariable(commonParams: {
     | {
           keyRange: Range;
           value:
-              | Scalar<string>
+              | { valueRange: Range; value: string }
               | {
-                    data: { keyRange: Range; scalar: Scalar<string> };
-                    type: { keyRange: Range; scalar: Scalar<VariableType> };
+                    data: WithKeyAndValueRange<string>;
+                    type: WithKeyAndValueRange<VariableType>;
                 };
       }
     | { errors: YamlParsingError[] }
@@ -381,11 +354,14 @@ function getValueFieldFromVariable(commonParams: {
         return "error" in maybeTypedValue
             ? { errors: [maybeTypedValue.error] }
             : {
-                  keyRange: getRangeForItem(
-                      matchingField.key as Scalar<string>,
-                      commonParams,
-                  ),
-                  value: maybeTypedValue.item,
+                  keyRange,
+                  value: {
+                      value: maybeTypedValue.item.value,
+                      valueRange: getRangeForItem(
+                          maybeTypedValue.item,
+                          commonParams,
+                      ),
+                  },
               };
     }
 
@@ -435,75 +411,31 @@ function getValueFieldFromVariable(commonParams: {
     const maybeDataItem = validStringScalars.find(
         ({ key }) => key == VariableValueWithTypeProperty.Data,
     );
-    const data: { keyRange: Range; scalar: Scalar<string> } | undefined =
-        maybeDataItem
-            ? {
-                  keyRange: maybeDataItem.keyRange,
-                  scalar: maybeDataItem.value,
-              }
-            : undefined;
+    const data: WithKeyAndValueRange<string> | undefined = maybeDataItem
+        ? {
+              keyRange: maybeDataItem.keyRange,
+              value: maybeDataItem.value.value,
+              valueRange: getRangeForItem(maybeDataItem.value, commonParams),
+          }
+        : undefined;
 
-    const type = getItemVariableTypeScalarField(
-        valueMapItems,
-        commonParams,
+    const maybeType = getTypedScalarFromList(
+        {
+            commonParsingArgs: commonParams,
+            allowedValues: Object.values(VariableType),
+            allStringScalars: validStringScalars,
+            keyName: VariableValueWithTypeProperty.Type,
+        },
         collectedErrors,
     );
 
-    return collectedErrors.length > 0 || !data || !type
+    return collectedErrors.length > 0 || !data || !maybeType
         ? { errors: collectedErrors }
         : {
               keyRange,
               value: {
                   data,
-                  type: {
-                      keyRange: type.keyRange,
-                      scalar: type.value,
-                  },
+                  type: maybeType.value,
               },
           };
-}
-
-function getItemVariableTypeScalarField(
-    allMapItems: ParsedMapItems,
-    commonParams: CommonParsingArgs,
-    errorsCollection: YamlParsingError[],
-) {
-    const maybeTypeWithKeyRange = allMapItems.validScalars.withStringValue.find(
-        ({ key }) => key == EnvironmentVariableProperty.Type,
-    );
-
-    if (!maybeTypeWithKeyRange) {
-        return undefined;
-    }
-
-    const maybeTypeToUse = getTypedVariableType(
-        maybeTypeWithKeyRange.value,
-        commonParams,
-    );
-
-    if ("error" in maybeTypeToUse) {
-        errorsCollection.push(maybeTypeToUse.error);
-        return undefined;
-    }
-    return {
-        keyRange: maybeTypeWithKeyRange.keyRange,
-        value: maybeTypeToUse.item,
-    };
-}
-
-function getTypedVariableType(
-    unTyped: Scalar<string>,
-    commonArgs: CommonParsingArgs,
-): { item: Scalar<VariableType> } | { error: YamlParsingError } {
-    if (!(Object.values(VariableType) as string[]).includes(unTyped.value)) {
-        return {
-            error: {
-                message: `Invalid type '${unTyped}'. Allowed types are ${JSON.stringify(Object.values(VariableType), null, 2)}`,
-                range: getRangeForItem(unTyped, commonArgs),
-                code: YamlParsingErrorCode.Other,
-            },
-        };
-    }
-
-    return { item: unTyped as Scalar<VariableType> };
 }

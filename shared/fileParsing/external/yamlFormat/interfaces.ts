@@ -1,4 +1,8 @@
 import { Range } from "../../..";
+import {
+    EnvironmentVariableProperty,
+    FileInfoType,
+} from "../../internal/yamlFormat/interfaces";
 
 export enum YamlParsingErrorCode {
     ItemDoesNotExist = 1,
@@ -31,6 +35,32 @@ export interface ParsedEnvironmentVariable {
     };
 }
 
+export interface ParsedRequestFile {
+    nonTypeSpecific: {
+        info: ParsedInfo;
+        runtime: WithKeyAndValueRange<{
+            variables?: WithKeyAndValueRange<unknown[]>;
+            scripts?: WithKeyAndValueRange<string[]>;
+            assertions?: WithKeyAndValueRange<unknown[]>;
+            auth?: WithKeyAndValueRange<unknown>;
+        }>;
+        docs?: WithKeyAndValueRange<string>;
+    };
+    typeSpecific: HttpTypeSpecificProperties;
+}
+
+export type ParsedInfo = WithKeyAndValueRange<{
+    name: WithKeyAndValueRange<string>;
+    type?: WithKeyAndValueRange<FileInfoType>;
+    sequence?: WithKeyAndValueRange<number>;
+    tags?: WithKeyAndValueRange<{ value: string; range: Range }[]>;
+}>;
+
+interface HttpTypeSpecificProperties {
+    requestDetails?: WithKeyAndValueRange<unknown>;
+    examples?: WithKeyAndValueRange<unknown[]>;
+}
+
 export type OptionalVariableFieldResult<T> = {
     effectiveValue: T;
     field?: WithKeyAndValueRange<T>;
@@ -47,13 +77,4 @@ export enum VariableType {
     Boolean = "boolean",
     Object = "object",
     String = "string",
-}
-
-export enum EnvironmentVariableProperty {
-    Name = "name",
-    Value = "value",
-    Description = "description",
-    Disabled = "disabled",
-    Secret = "secret",
-    Type = "type",
 }

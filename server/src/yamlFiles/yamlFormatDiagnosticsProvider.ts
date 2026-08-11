@@ -3,8 +3,9 @@ import {
     parseYamlEnvironmentFile,
     TextDocumentHelper,
     YamlParsingError,
+    YamlParsingErrorCode,
 } from "@global_shared";
-import { Diagnostic } from "vscode-languageserver";
+import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import { checkTopLevelNameIsDefined } from "./diagnostics/checks/environmentFiles/checkTopLevelNameIsDefined";
 import { CommonDiagnosticParams } from "./interfaces";
 import { checkVariableDefinitionsAreValid } from "./diagnostics/checks/environmentFiles/checkVariableDefinitionsAreValid";
@@ -56,5 +57,12 @@ export class YamlFormatDiagnosticsProvider {
 function mapParsingErrorsToDiagnostics(
     parsingErrors: YamlParsingError[],
 ): Diagnostic[] {
-    return parsingErrors.map((err) => ({ ...err, code: undefined }));
+    return parsingErrors.map((err) => ({
+        ...err,
+        code: undefined,
+        severity:
+            err.code == YamlParsingErrorCode.UnknownFieldInMap
+                ? DiagnosticSeverity.Warning
+                : undefined,
+    }));
 }
