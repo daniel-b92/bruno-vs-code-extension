@@ -18,7 +18,7 @@ import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/parsingErr
 import { mapFromYamlScalar } from "../../internal/yamlFormat/scalars/mapFromYamlScalar";
 import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForUnknownKeyInMap";
 import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDocumentIntoYamlMap";
-import { getTypedScalarFromList } from "../../internal/yamlFormat/scalars/getTypedScalarFromList";
+import { getTypedValueFromList } from "../../internal/yamlFormat/scalars/getTypedValueFromList";
 
 enum EnvironmentKeyName {
     Name = "name",
@@ -80,15 +80,10 @@ export function parseYamlEnvironmentFile(
     const maybeNameWithKeyRange = validStringScalars.find(
         ({ key }) => key == EnvironmentKeyName.Name,
     );
-    let nameToUse: WithKeyAndValueRange<string> | { missing: boolean } = {
-        missing: missingKeys.includes(EnvironmentKeyName.Name),
-    };
-    if (maybeNameWithKeyRange) {
-        nameToUse = mapFromYamlScalar({
-            ...commonArgs,
-            ...maybeNameWithKeyRange,
-        });
-    }
+    const nameToUse: WithKeyAndValueRange<string> | { missing: boolean } =
+        maybeNameWithKeyRange ?? {
+            missing: missingKeys.includes(EnvironmentKeyName.Name),
+        };
 
     const variablesSequence = validSequences.find(
         ({ key }) => key == EnvironmentKeyName.Variables,
@@ -178,16 +173,12 @@ function getVariablesFromMapItems(
                     ),
             ),
         );
-        const {
-            description: descriptionWithKeyRange,
-            disabled: disabledWithKeyRange,
-            secret: secretWithKeyRange,
-        } = getItemsForSimpleOptionalVariableProps(allMapItems);
+        const { description, disabled, secret } =
+            getItemsForSimpleOptionalVariableProps(allMapItems);
 
-        const type = getTypedScalarFromList(
+        const type = getTypedValueFromList(
             {
-                commonParsingArgs: commonArgs,
-                allStringScalars: allMapItems.validScalars.withStringValue,
+                allStringValues: allMapItems.validScalars.withStringValue,
                 allowedValues: Object.values(VariableType),
                 keyName: EnvironmentVariableProperty.Type,
             },
@@ -201,11 +192,11 @@ function getVariablesFromMapItems(
         const valueToUse =
             maybeValue && !("errors" in maybeValue) ? maybeValue : undefined;
 
-        const nameWithKeyRange = allMapItems.validScalars.withStringValue.find(
+        const name = allMapItems.validScalars.withStringValue.find(
             ({ key }) => key == EnvironmentVariableProperty.Name,
         );
 
-        if (!nameWithKeyRange) {
+        if (!name) {
             // The 'name' field is the only one that always has to be present.
             errors.push(
                 getErrorForMissingKeyInMap({
@@ -222,30 +213,19 @@ function getVariablesFromMapItems(
             missingProperties:
                 allMapItems.missingKeys as EnvironmentVariableProperty[],
             fields: {
-                name: mapFromYamlScalar({ ...commonArgs, ...nameWithKeyRange }),
-                description: descriptionWithKeyRange
-                    ? mapFromYamlScalar({
-                          ...commonArgs,
-                          ...descriptionWithKeyRange,
-                      })
-                    : undefined,
-                disabled: disabledWithKeyRange
+                name,
+                description,
+                disabled: disabled
                     ? {
-                          effectiveValue: disabledWithKeyRange.value.value,
-                          field: mapFromYamlScalar({
-                              ...commonArgs,
-                              ...disabledWithKeyRange,
-                          }),
+                          effectiveValue: disabled.value,
+                          field: disabled,
                       }
                     : // The default value for 'disabled' is false, when not defined.
                       { effectiveValue: false },
-                secret: secretWithKeyRange
+                secret: secret
                     ? {
-                          effectiveValue: secretWithKeyRange.value.value,
-                          field: mapFromYamlScalar({
-                              ...commonArgs,
-                              ...secretWithKeyRange,
-                          }),
+                          effectiveValue: secret.value,
+                          field: secret,
                       }
                     : // The default value for 'secret' is false, when not defined.
                       { effectiveValue: false },
@@ -406,22 +386,14 @@ function getValueFieldFromVariable(commonParams: {
         ),
     );
 
-    const maybeDataItem = validStringScalars.find(
+    const data = validStringScalars.find(
         ({ key }) => key == VariableValueWithTypeProperty.Data,
     );
-    const data: WithKeyAndValueRange<string> | undefined = maybeDataItem
-        ? {
-              keyRange: maybeDataItem.keyRange,
-              value: maybeDataItem.value.value,
-              valueRange: getRangeForItem(maybeDataItem.value, commonParams),
-          }
-        : undefined;
 
-    const maybeType = getTypedScalarFromList(
+    const maybeType = getTypedValueFromList(
         {
-            commonParsingArgs: commonParams,
             allowedValues: Object.values(VariableType),
-            allStringScalars: validStringScalars,
+            allStringValues: validStringScalars,
             keyName: VariableValueWithTypeProperty.Type,
         },
         collectedErrors,

@@ -1,4 +1,4 @@
-import { Scalar, YAMLMap, YAMLSeq } from "yaml";
+import { YAMLMap, YAMLSeq } from "yaml";
 import { Range, TextDocumentHelper, YamlParsingError } from "../../..";
 
 export interface CommonParsingArgs {
@@ -8,10 +8,10 @@ export interface CommonParsingArgs {
 
 export interface ParsedMapItems {
     validScalars: {
-        withStringValue: WithKeyAndKeyRange<Scalar<string>>[];
-        withBooleanValue: WithKeyAndKeyRange<Scalar<boolean>>[];
-        withNumericValue: WithKeyAndKeyRange<Scalar<number>>[];
-        withUnknownValue: WithKeyAndKeyRange<Scalar<unknown>>[];
+        withStringValue: WithKeyKeyRangeAndValueRange<string>[];
+        withBooleanValue: WithKeyKeyRangeAndValueRange<boolean>[];
+        withNumericValue: WithKeyKeyRangeAndValueRange<number>[];
+        withUnknownValue: WithKeyKeyRangeAndValueRange<unknown>[];
     };
     validSequences: WithKeyAndKeyRange<YAMLSeq<unknown>>[];
     validMaps: WithKeyAndKeyRange<YAMLMap<unknown, unknown>>[];
@@ -192,6 +192,10 @@ export type ParsingResult<T> =
 export type OptionalVariableFieldResult<T> = {
     effectiveValue: T;
     field?: WithKeyAndValueRange<T>;
+};
+
+export type WithKeyKeyRangeAndValueRange<T> = WithKeyAndValueRange<T> & {
+    key: string;
 };
 
 export interface WithKeyAndValueRange<T> {

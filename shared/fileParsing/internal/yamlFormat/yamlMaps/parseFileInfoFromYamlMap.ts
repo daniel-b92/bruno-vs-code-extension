@@ -11,11 +11,11 @@ import {
     FileInfoType,
     ParsingResult,
     WithKeyAndKeyRange,
+    WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
-import { getTypedScalarFromList } from "../scalars/getTypedScalarFromList";
-import { mapFromYamlScalar } from "../scalars/mapFromYamlScalar";
+import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { getMapItems } from "./getMapItems";
 
@@ -111,11 +111,10 @@ export function parseFileInfoFromYamlMap(args: {
 
     const maybeType = !checkForTypeProperty
         ? undefined
-        : getTypedScalarFromList(
+        : getTypedValueFromList(
               {
-                  commonParsingArgs: commonArgs,
                   allowedValues: Object.values(FileInfoType),
-                  allStringScalars: validStringScalars,
+                  allStringValues: validStringScalars,
                   keyName: FileInfoProperty.Type,
               },
               errors,
@@ -127,9 +126,9 @@ export function parseFileInfoFromYamlMap(args: {
             keyRange: infoKeyRange,
             valueRange: getRangeForItem(infoMap, commonArgs),
             value: {
-                name: mapFromYamlScalar({ ...commonArgs, ...name }),
+                name,
                 sequence: checkForSeqProperty
-                    ? getSequenceToUse(validNumericScalars, commonArgs, errors)
+                    ? getSequenceToUse(validNumericScalars, errors)
                     : undefined,
                 type: maybeType ? maybeType.value : undefined,
                 tags: checkForTagsProperty
@@ -141,27 +140,23 @@ export function parseFileInfoFromYamlMap(args: {
 }
 
 function getSequenceToUse(
-    validNumericScalars: WithKeyAndKeyRange<Scalar<number>>[],
-    commonArgs: CommonParsingArgs,
+    validNumericScalars: WithKeyKeyRangeAndValueRange<number>[],
     errorCollection: YamlParsingError[],
 ) {
-    const maybeSequence = validNumericScalars.find(
+    const actual = validNumericScalars.find(
         ({ key }) => key == FileInfoProperty.Seq,
     );
-    if (!maybeSequence) {
+    if (!actual) {
         return undefined;
     }
 
-    if (
-        Number.isInteger(maybeSequence.value.value) &&
-        maybeSequence.value.value > 0
-    ) {
-        return mapFromYamlScalar({ ...commonArgs, ...maybeSequence });
+    if (Number.isInteger(actual.value) && actual.value > 0) {
+        return actual;
     }
 
     errorCollection.push({
         message: "Only integer values that are greater than zero are allowed.",
-        range: getRangeForItem(maybeSequence.value, commonArgs),
+        range: actual.valueRange,
         code: YamlParsingErrorCode.Other,
     });
     return undefined;
