@@ -6,6 +6,7 @@ import {
 } from "../../..";
 import {
     CommonParsingArgs,
+    FolderSettingsRequestSectionProperty,
     ParsingResult,
     TopLevelFolderSettingsProperty,
     WithKeyAndKeyRange,
@@ -17,6 +18,7 @@ import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/parsingErr
 import { parseFileInfoFromYamlMap } from "../../internal/yamlFormat/yamlMaps/parseFileInfoFromYamlMap";
 import { YAMLMap } from "yaml";
 import { isParsingResultOnlyErrors } from "../../internal/yamlFormat/util/isParsingResultOnlyErrors";
+import { parseHeadersFromYamlMap } from "../../internal/yamlFormat/yamlMaps/parseHeadersFromYamlMap";
 
 type Result = ParsingResult<ParsedFolderSettingsFile>;
 
@@ -96,4 +98,81 @@ function getParsedInfo(
     collectedErrors.push(...infoErrors);
 
     return info;
+}
+
+function getParsedRequest(
+    validSecondLevelMaps: WithKeyAndKeyRange<YAMLMap<unknown, unknown>>[],
+    commonArgs: CommonParsingArgs,
+    collectedErrors: YamlParsingError[],
+) {
+    const requestMap = validSecondLevelMaps.find(
+        ({ key }) => key == TopLevelFolderSettingsProperty.Request,
+    );
+
+    if (!requestMap) {
+        return undefined;
+    }
+    const requestResult = parseFileInfoFromYamlMap({
+        infoMap: requestMap,
+        commonArgs,
+        fileType: BrunoFileType.FolderSettingsFile,
+    });
+    const { info, errors: infoErrors } = isParsingResultOnlyErrors(
+        requestResult,
+    )
+        ? { info: undefined, errors: requestResult }
+        : { info: requestResult.result, errors: requestResult.errors };
+    collectedErrors.push(...infoErrors);
+
+    return info;
+}
+
+function parseRequestSection(
+    requestMap: YAMLMap,
+    commonArgs: CommonParsingArgs,
+) {
+    const collectedErrors: YamlParsingError[] = [];
+    const expectedSequences = [
+        FolderSettingsRequestSectionProperty.Headers,
+        FolderSettingsRequestSectionProperty.Variables,
+        FolderSettingsRequestSectionProperty.Scripts,
+        FolderSettingsRequestSectionProperty.Actions,
+    ];
+    const expectedMaps = [FolderSettingsRequestSectionProperty.Auth];
+    const allowedKeys = expectedSequences.concat(expectedMaps);
+
+    const {
+        items: { unknownKeys, validMaps, validSequences },
+        errors: sectionErrors,
+    } = getMapItems(
+        requestMap,
+        {
+            scalars: {},
+            mapValues: allowedKeys,
+        },
+        commonArgs,
+    );
+
+    collectedErrors.push(
+        ...sectionErrors.concat(
+            unknownKeys.map(({ key: unknownKey, keyRange }) =>
+                getErrorForUnknownKeyInMap({
+                    ...commonArgs,
+                    unknownKey,
+                    keyRange,
+                    allowedKeys,
+                }),
+            ),
+        ),
+    );
+
+    const maybeHeadersSequence = validSequences.find(
+        ({ key }) => key == FolderSettingsRequestSectionProperty.Headers,
+    );
+    const parsedHeaders = maybeHeadersSequence
+        ? parseHeadersFromYamlMap({
+              commonArgs,
+              headersSequence: maybeHeadersSequence,
+          })
+        : undefined;
 }

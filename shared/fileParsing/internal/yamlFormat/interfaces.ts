@@ -58,6 +58,8 @@ export interface ParsedRequestVariable {
 export interface ParsedRequestHeader {
     name: WithKeyAndValueRange<string>;
     value: WithKeyAndValueRange<string>;
+    description?: WithKeyAndValueRange<string>;
+    disabled: OptionalVariableFieldResult<boolean>;
 }
 
 export interface ParsedScript {
@@ -92,12 +94,27 @@ export enum EnvironmentVariableProperty {
     Type = "type",
 }
 
+export enum FolderSettingsRequestSectionProperty {
+    Headers = "headers",
+    Auth = "auth",
+    Variables = "variables",
+    Actions = "actions",
+    Scripts = "scripts",
+}
+
 export enum RequestVariableProperty {
     Name = "name",
     Value = "value",
     Description = "description",
     Disabled = "disabled",
     Type = "type",
+}
+
+export enum RequestHeaderProperty {
+    Name = "name",
+    Value = "value",
+    Description = "description",
+    Disabled = "disabled",
 }
 
 export enum TopLevelRequestFileProperty {
