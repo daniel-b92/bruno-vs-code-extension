@@ -20,3 +20,7 @@ request:
       code: bru.setEnvVar("bla", "bli");
     - type: tests
       code: expect(res.getStatus()).to.eql(200);
+
+docs:
+  content: fghfghfg
+  type: text/markdown
