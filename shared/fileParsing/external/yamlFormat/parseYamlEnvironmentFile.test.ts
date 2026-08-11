@@ -1,13 +1,13 @@
 import { describe, it, expect } from "@jest/globals";
 import { parseYamlEnvironmentFile } from "./parseYamlEnvironmentFile";
 import { TextDocumentHelper } from "../../../fileSystem/textDocumentHelper";
+import { Position, Range } from "../../..";
 import {
+    EnvironmentVariableProperty,
     ParsedEnvironmentVariable,
     VariableType,
     WithKeyAndValueRange,
-} from "./interfaces";
-import { Position, Range } from "../../..";
-import { EnvironmentVariableProperty } from "../../internal/yamlFormat/interfaces";
+} from "../../internal/yamlFormat/interfaces";
 import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,

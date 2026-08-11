@@ -1,17 +1,13 @@
 import { isMap, isScalar, Scalar, YAMLMap } from "yaml";
-import {
-    ParsedEnvironmentVariable,
-    Range,
-    TextDocumentHelper,
-    VariableType,
-    WithKeyAndValueRange,
-    YamlParsingError,
-} from "../../..";
+import { Range, TextDocumentHelper, YamlParsingError } from "../../..";
 import { getYamlMapsFromSequence } from "../../internal/yamlFormat/yamlSequences/getYamlMapsFromSequence";
 import {
     CommonParsingArgs,
     EnvironmentVariableProperty,
+    ParsedEnvironmentVariable,
     ParsedMapItems,
+    VariableType,
+    WithKeyAndValueRange,
 } from "../../internal/yamlFormat/interfaces";
 import { getRangeForItem } from "../../internal/yamlFormat/util/getRangeForItem";
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";

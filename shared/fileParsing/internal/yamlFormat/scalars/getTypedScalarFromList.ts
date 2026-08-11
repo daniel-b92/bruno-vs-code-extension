@@ -1,10 +1,10 @@
 import { Scalar } from "yaml";
+import { YamlParsingError, YamlParsingErrorCode } from "../../../..";
 import {
+    CommonParsingArgs,
+    WithKeyAndKeyRange,
     WithKeyAndValueRange,
-    YamlParsingError,
-    YamlParsingErrorCode,
-} from "../../../..";
-import { CommonParsingArgs, WithKeyAndKeyRange } from "../interfaces";
+} from "../interfaces";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { mapFromYamlScalar } from "./mapFromYamlScalar";
 

@@ -1,7 +1,11 @@
 import { Range } from "../../..";
 import {
-    EnvironmentVariableProperty,
     FileInfoType,
+    ParsedAuth,
+    ParsedRequestHeader,
+    ParsedRequestVariable,
+    ParsedScript,
+    WithKeyAndValueRange,
 } from "../../internal/yamlFormat/interfaces";
 
 export enum YamlParsingErrorCode {
@@ -16,37 +20,15 @@ export interface YamlParsingError {
     code: YamlParsingErrorCode;
 }
 
-export interface ParsedEnvironmentVariable {
-    range: Range;
-    missingProperties: EnvironmentVariableProperty[];
-    fields: {
-        name: WithKeyAndValueRange<string>;
-        value?:
-            | WithKeyAndValueRange<string>
-            | {
-                  keyRange: Range;
-                  type: WithKeyAndValueRange<VariableType>;
-                  data: WithKeyAndValueRange<string>;
-              };
-        description?: WithKeyAndValueRange<string>;
-        type: OptionalVariableFieldResult<VariableType>;
-        secret: OptionalVariableFieldResult<boolean>;
-        disabled: OptionalVariableFieldResult<boolean>;
-    };
-}
-
-export interface ParsedRequestFile {
-    nonTypeSpecific: {
-        info: ParsedInfoForRequestFile;
-        runtime: WithKeyAndValueRange<{
-            variables?: WithKeyAndValueRange<unknown[]>;
-            scripts?: WithKeyAndValueRange<string[]>;
-            assertions?: WithKeyAndValueRange<unknown[]>;
-            auth?: WithKeyAndValueRange<unknown>;
-        }>;
-        docs?: WithKeyAndValueRange<string>;
-    };
-    typeSpecific: HttpTypeSpecificProperties;
+export interface ParsedFolderSettingsFile {
+    info: ParsedInfoForFolderSettings;
+    request: WithKeyAndValueRange<{
+        headers?: WithKeyAndValueRange<ParsedRequestHeader[]>;
+        auth?: WithKeyAndValueRange<ParsedAuth>;
+        variables?: WithKeyAndValueRange<ParsedRequestVariable[]>;
+        scripts?: WithKeyAndValueRange<ParsedScript[]>;
+    }>;
+    docs?: WithKeyAndValueRange<string>;
 }
 
 export type ParsedInfoForRequestFile = ParsedInfoForFolderSettings & {
@@ -65,26 +47,3 @@ export type ParsedInfoForFolderSettings = ParsedInfoForCollectionSettings & {
 export type ParsedInfoForCollectionSettings = WithKeyAndValueRange<{
     name: WithKeyAndValueRange<string>;
 }>;
-
-interface HttpTypeSpecificProperties {
-    requestDetails?: WithKeyAndValueRange<unknown>;
-    examples?: WithKeyAndValueRange<unknown[]>;
-}
-
-export type OptionalVariableFieldResult<T> = {
-    effectiveValue: T;
-    field?: WithKeyAndValueRange<T>;
-};
-
-export interface WithKeyAndValueRange<T> {
-    keyRange: Range;
-    value: T;
-    valueRange: Range;
-}
-
-export enum VariableType {
-    Number = "number",
-    Boolean = "boolean",
-    Object = "object",
-    String = "string",
-}
