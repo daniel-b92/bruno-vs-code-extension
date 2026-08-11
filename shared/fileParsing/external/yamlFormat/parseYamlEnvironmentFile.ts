@@ -44,11 +44,11 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
     const commonArgs = { docHelper, fullDocumentRange };
     const collectedErrors: YamlParsingError[] = [];
 
-    const maybTopLevelMap = parseDocumentIntoYamlMap(commonArgs);
-    if ("errors" in maybTopLevelMap) {
-        return maybTopLevelMap.errors;
+    const maybeTopLevelMap = parseDocumentIntoYamlMap(commonArgs);
+    if ("errors" in maybeTopLevelMap) {
+        return maybeTopLevelMap.errors;
     }
-    const topLevelMap = maybTopLevelMap.map;
+    const topLevelMap = maybeTopLevelMap.map;
 
     const keysForStringScalars = [EnvironmentKeyName.Name];
     const keysForSequences = [EnvironmentKeyName.Variables];
