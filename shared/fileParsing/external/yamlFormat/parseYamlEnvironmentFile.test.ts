@@ -80,12 +80,19 @@ variables:
         ];
 
         expect(parsed).toEqual({
-            name: {
-                keyRange: getExpectedKeyRange(0, "name", 0),
-                value: "Env1",
-                valueRange: getExpectedSameLineValueRange(0, "name", "Env1", 0),
+            result: {
+                name: {
+                    keyRange: getExpectedKeyRange(0, "name", 0),
+                    value: "Env1",
+                    valueRange: getExpectedSameLineValueRange(
+                        0,
+                        "name",
+                        "Env1",
+                        0,
+                    ),
+                },
+                variables: expectedVariables,
             },
-            variables: expectedVariables,
             errors: [],
         });
     });
@@ -221,12 +228,19 @@ variables:
         ];
 
         expect(parsed).toEqual({
-            name: {
-                keyRange: getExpectedKeyRange(0, "name", 0),
-                value: "Env1",
-                valueRange: getExpectedSameLineValueRange(0, "name", "Env1", 0),
+            result: {
+                name: {
+                    keyRange: getExpectedKeyRange(0, "name", 0),
+                    value: "Env1",
+                    valueRange: getExpectedSameLineValueRange(
+                        0,
+                        "name",
+                        "Env1",
+                        0,
+                    ),
+                },
+                variables: expectedVariables,
             },
-            variables: expectedVariables,
             errors: [],
         });
     });
@@ -246,20 +260,22 @@ variables:
             new TextDocumentHelper(documentText),
         );
 
-        if (!("name" in parsed)) {
+        if (!("result" in parsed)) {
             throw new Error(
                 `Got error in parsing response. Got ${JSON.stringify(parsed, null, 2)}`,
             );
         }
-        expect(parsed.name).toEqual({
+
+        const { result, errors } = parsed;
+        expect(result.name).toEqual({
             keyRange: getExpectedKeyRange(0, "name", 0),
             value: "Env1",
             valueRange: getExpectedSameLineValueRange(0, "name", "Env1", 0),
         });
-        expect(parsed.errors).toHaveLength(0);
-        expect(parsed.variables).toHaveLength(1);
+        expect(errors).toHaveLength(0);
+        expect(result.variables).toHaveLength(1);
 
-        const { fields } = parsed.variables[0];
+        const { fields } = result.variables[0];
         expect(fields.description).toBeUndefined();
         expect(fields.disabled).toEqual({ effectiveValue: false });
         expect(fields.name.value).toEqual("var-1");
@@ -317,7 +333,7 @@ variables: foo`;
             new TextDocumentHelper(documentText),
         );
 
-        if (typeof parsed == "object" && "variables" in parsed) {
+        if (typeof parsed == "object" && "result" in parsed) {
             throw new Error(
                 "Expected parsed result to be only an array of errors.",
             );
@@ -353,7 +369,7 @@ invalid: bar`;
             new TextDocumentHelper(documentText),
         );
 
-        if (typeof parsed != "object" || !("variables" in parsed)) {
+        if (typeof parsed != "object" || !("result" in parsed)) {
             throw new Error(
                 "Expected parsed result to not be an array of errors.",
             );
@@ -368,8 +384,8 @@ invalid: bar`;
                 range,
             );
         }
-        expect(parsed.variables).toHaveLength(1);
-        const { fields } = parsed.variables[0];
+        expect(parsed.result.variables).toHaveLength(1);
+        const { fields } = parsed.result.variables[0];
         expect(fields.name.value).toBe("var-1");
         expect(fields.description?.value).toBe("desc");
         expect(fields.type).toEqual({

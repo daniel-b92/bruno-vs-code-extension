@@ -9,6 +9,7 @@ import {
     CommonParsingArgs,
     FileInfoProperty,
     FileInfoType,
+    ParsingResult,
     WithKeyAndKeyRange,
 } from "../interfaces";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
@@ -18,26 +19,19 @@ import { mapFromYamlScalar } from "../scalars/mapFromYamlScalar";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { getMapItems } from "./getMapItems";
 
-export type ParsedInfoResult =
-    | YamlParsingError[]
-    | {
-          info: ParsedInfoForRequestFile;
-          errors: YamlParsingError[];
-      };
+export type ParsedInfoResult = ParsingResult<ParsedInfoForRequestFile>;
 
-export function parseFileInfoFromYamlMap(
-    args: {
-        commonArgs: CommonParsingArgs;
-        fileType: BrunoFileType;
-        infoMap: WithKeyAndKeyRange<YAMLMap<unknown, unknown>>;
-    },
-    errors: YamlParsingError[],
-): ParsedInfoResult {
+export function parseFileInfoFromYamlMap(args: {
+    commonArgs: CommonParsingArgs;
+    fileType: BrunoFileType;
+    infoMap: WithKeyAndKeyRange<YAMLMap<unknown, unknown>>;
+}): ParsedInfoResult {
     const {
         commonArgs,
         fileType,
         infoMap: { keyRange: infoKeyRange, value: infoMap },
     } = args;
+    const errors: YamlParsingError[] = [];
     const checkForTypeProperty = [
         BrunoFileType.AppFile,
         BrunoFileType.FolderSettingsFile,
@@ -129,7 +123,7 @@ export function parseFileInfoFromYamlMap(
 
     return {
         errors,
-        info: {
+        result: {
             keyRange: infoKeyRange,
             valueRange: getRangeForItem(infoMap, commonArgs),
             value: {

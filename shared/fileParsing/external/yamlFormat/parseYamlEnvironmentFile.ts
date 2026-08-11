@@ -6,6 +6,7 @@ import {
     EnvironmentVariableProperty,
     ParsedEnvironmentVariable,
     ParsedMapItems,
+    ParsingResult,
     VariableType,
     WithKeyAndValueRange,
 } from "../../internal/yamlFormat/interfaces";
@@ -29,13 +30,12 @@ enum VariableValueWithTypeProperty {
     Data = "data",
 }
 
-export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
-    | YamlParsingError[]
-    | {
-          name: WithKeyAndValueRange<string> | { missing: boolean };
-          variables: ParsedEnvironmentVariable[];
-          errors: YamlParsingError[];
-      } {
+export function parseYamlEnvironmentFile(
+    docHelper: TextDocumentHelper,
+): ParsingResult<{
+    name: WithKeyAndValueRange<string> | { missing: boolean };
+    variables: ParsedEnvironmentVariable[];
+}> {
     const fullDocumentRange = docHelper.getTextRange();
     const commonArgs = { docHelper, fullDocumentRange };
     const collectedErrors: YamlParsingError[] = [];
@@ -111,8 +111,10 @@ export function parseYamlEnvironmentFile(docHelper: TextDocumentHelper):
     );
 
     return {
-        name: nameToUse,
-        variables,
+        result: {
+            name: nameToUse,
+            variables,
+        },
         errors: collectedErrors.concat(firstErrorBatch, secondErrorBatch),
     };
 }

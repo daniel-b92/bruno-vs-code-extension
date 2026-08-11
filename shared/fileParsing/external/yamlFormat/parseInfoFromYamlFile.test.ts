@@ -113,7 +113,7 @@ http:
         };
 
         expect(parsed).toEqual({
-            info: expectedInfo,
+            result: expectedInfo,
             errors: [],
         });
     });
@@ -158,7 +158,7 @@ http:
         }
 
         const {
-            info: {
+            result: {
                 keyRange,
                 valueRange,
                 value: { name, tags, sequence, type },

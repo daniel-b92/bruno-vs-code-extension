@@ -1,5 +1,5 @@
 import { Scalar, YAMLMap, YAMLSeq } from "yaml";
-import { Range, TextDocumentHelper } from "../../..";
+import { Range, TextDocumentHelper, YamlParsingError } from "../../..";
 
 export interface CommonParsingArgs {
     docHelper: TextDocumentHelper;
@@ -164,6 +164,13 @@ export enum ScriptType {
     AfterResponse = "after-response",
     Tests = "tests",
 }
+
+export type ParsingResult<T> =
+    | YamlParsingError[]
+    | {
+          result: T;
+          errors: YamlParsingError[];
+      };
 
 export type OptionalVariableFieldResult<T> = {
     effectiveValue: T;

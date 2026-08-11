@@ -51,8 +51,13 @@ export function parseInfoFromYamlFile(
         );
     }
     const infoMap = validMaps[0];
-    return parseFileInfoFromYamlMap(
-        { infoMap, commonArgs, fileType },
-        collectedErrors,
-    );
+    const maybeResult = parseFileInfoFromYamlMap({
+        infoMap,
+        commonArgs,
+        fileType,
+    });
+
+    return "result" in maybeResult
+        ? { ...maybeResult, errors: collectedErrors.concat(maybeResult.errors) }
+        : collectedErrors.concat(maybeResult);
 }
