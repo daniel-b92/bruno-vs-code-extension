@@ -147,8 +147,6 @@ function getResultFromInfoYamlMap(
         },
         errors,
     );
-    const sequence = getSequenceToUse(validNumericScalars, commonArgs, errors);
-    const tags = getTagsToUse(validSequences, commonArgs, errors);
 
     return {
         errors,
@@ -157,9 +155,13 @@ function getResultFromInfoYamlMap(
             valueRange: getRangeForItem(infoMap, commonArgs),
             value: {
                 name: mapFromYamlScalar({ ...commonArgs, ...name }),
-                sequence,
+                sequence: getSequenceToUse(
+                    validNumericScalars,
+                    commonArgs,
+                    errors,
+                ),
                 type: maybeType ? maybeType.value : undefined,
-                tags,
+                tags: getTagsToUse(validSequences, commonArgs, errors),
             },
         },
     };
