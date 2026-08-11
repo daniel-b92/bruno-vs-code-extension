@@ -64,7 +64,7 @@ export function parseInfoFromYamlFile(docHelper: TextDocumentHelper): Result {
         );
     }
     const infoMap = validMaps[0];
-    return getResultFromInfoYamlMap(infoMap, commonArgs);
+    return getResultFromInfoYamlMap(infoMap, collectedErrors, commonArgs);
 }
 
 function getResultFromInfoYamlMap(
@@ -72,9 +72,9 @@ function getResultFromInfoYamlMap(
         keyRange: infoKeyRange,
         value: infoMap,
     }: WithKeyAndKeyRange<YAMLMap<unknown, unknown>>,
+    errors: YamlParsingError[],
     commonArgs: CommonParsingArgs,
 ): Result {
-    const errors: YamlParsingError[] = [];
     const expectedStringScalars = [
         FileInfoProperty.Name,
         FileInfoProperty.Type,
