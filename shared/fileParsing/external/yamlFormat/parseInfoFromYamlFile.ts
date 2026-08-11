@@ -28,8 +28,10 @@ type Result =
       };
 
 export function parseInfoFromYamlFile(docHelper: TextDocumentHelper): Result {
-    const fullDocumentRange = docHelper.getTextRange();
-    const commonArgs: CommonParsingArgs = { docHelper, fullDocumentRange };
+    const commonArgs: CommonParsingArgs = {
+        docHelper,
+        fullDocumentRange: docHelper.getTextRange(),
+    };
     const collectedErrors: YamlParsingError[] = [];
     const infoKey = TopLevelRequestOrFolderSettingsProperty.Info;
 
