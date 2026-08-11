@@ -82,9 +82,11 @@ export function parseYamlEnvironmentFile(
         ({ key }) => key == EnvironmentKeyName.Name,
     );
     const nameToUse: WithKeyAndValueRange<string> | { missing: boolean } =
-        maybeNameWithKeyRange ?? {
-            missing: missingKeys.includes(EnvironmentKeyName.Name),
-        };
+        maybeNameWithKeyRange
+            ? stripKeyFromResult(maybeNameWithKeyRange)
+            : {
+                  missing: missingKeys.includes(EnvironmentKeyName.Name),
+              };
 
     const variablesSequence = validSequences.find(
         ({ key }) => key == EnvironmentKeyName.Variables,
