@@ -5,17 +5,33 @@ info:
 
 request:
   headers:
-    - name: gdfg
+    - name: ""
       value: dfgdfg
+      description: sdsds
+      disabled: true
   auth:
     type: basic
     username: sdgfdg
     password: sdgdfgf
   variables:
-    - name: fsdf
-      value: sdfsdf
+    - name: ""
+      value:
+        type: number
+        data: sdfsdf
       description: sdfs
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: sdsd
+        method: jsonq
+      variable:
+        name: dssd
+        scope: runtime
+      description: sdsd
   scripts:
+    - type: before-request
+      code: eee
     - type: after-response
       code: bru.setEnvVar("bla", "bli");
     - type: tests
