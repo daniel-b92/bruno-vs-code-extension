@@ -1,0 +1,22 @@
+info:
+  name: Folder1
+  type: folder
+  seq: 1
+
+request:
+  headers:
+    - name: gdfg
+      value: dfgdfg
+  auth:
+    type: basic
+    username: sdgfdg
+    password: sdgdfgf
+  variables:
+    - name: fsdf
+      value: sdfsdf
+      description: sdfs
+  scripts:
+    - type: after-response
+      code: bru.setEnvVar("bla", "bli");
+    - type: tests
+      code: expect(res.getStatus()).to.eql(200);
