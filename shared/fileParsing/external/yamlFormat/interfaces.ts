@@ -37,7 +37,7 @@ export interface ParsedEnvironmentVariable {
 
 export interface ParsedRequestFile {
     nonTypeSpecific: {
-        info: ParsedInfo;
+        info: ParsedInfoForRequestFile;
         runtime: WithKeyAndValueRange<{
             variables?: WithKeyAndValueRange<unknown[]>;
             scripts?: WithKeyAndValueRange<string[]>;
@@ -49,11 +49,21 @@ export interface ParsedRequestFile {
     typeSpecific: HttpTypeSpecificProperties;
 }
 
-export type ParsedInfo = WithKeyAndValueRange<{
+export type ParsedInfoForRequestFile = ParsedInfoForFolderSettings & {
+    value: {
+        tags?: WithKeyAndValueRange<{ value: string; range: Range }[]>;
+    };
+};
+
+export type ParsedInfoForFolderSettings = ParsedInfoForCollectionSettings & {
+    value: {
+        type?: WithKeyAndValueRange<FileInfoType>;
+        sequence?: WithKeyAndValueRange<number>;
+    };
+};
+
+export type ParsedInfoForCollectionSettings = WithKeyAndValueRange<{
     name: WithKeyAndValueRange<string>;
-    type?: WithKeyAndValueRange<FileInfoType>;
-    sequence?: WithKeyAndValueRange<number>;
-    tags?: WithKeyAndValueRange<{ value: string; range: Range }[]>;
 }>;
 
 interface HttpTypeSpecificProperties {

@@ -1,5 +1,6 @@
 import {
-    ParsedInfo,
+    BrunoFileType,
+    ParsedInfoForRequestFile,
     TextDocumentHelper,
     YamlParsingError,
     YamlParsingErrorCode,
@@ -8,7 +9,7 @@ import {
     CommonParsingArgs,
     FileInfoProperty,
     FileInfoType,
-    TopLevelRequestOrFolderSettingsProperty,
+    TopLevelRequestFileProperty,
     WithKeyAndKeyRange,
 } from "../../internal/yamlFormat/interfaces";
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
@@ -23,17 +24,20 @@ import { mapFromYamlScalar } from "../../internal/yamlFormat/scalars/mapFromYaml
 type Result =
     | YamlParsingError[]
     | {
-          info: ParsedInfo;
+          info: ParsedInfoForRequestFile;
           errors: YamlParsingError[];
       };
 
-export function parseInfoFromYamlFile(docHelper: TextDocumentHelper): Result {
+export function parseInfoFromYamlFile(
+    docHelper: TextDocumentHelper,
+    fileType: BrunoFileType,
+): Result {
     const commonArgs: CommonParsingArgs = {
         docHelper,
         fullDocumentRange: docHelper.getTextRange(),
     };
     const collectedErrors: YamlParsingError[] = [];
-    const infoKey = TopLevelRequestOrFolderSettingsProperty.Info;
+    const infoKey = TopLevelRequestFileProperty.Info;
 
     const maybeTopLevelMap = parseDocumentIntoYamlMap(commonArgs);
     if ("errors" in maybeTopLevelMap) {
@@ -64,23 +68,45 @@ export function parseInfoFromYamlFile(docHelper: TextDocumentHelper): Result {
         );
     }
     const infoMap = validMaps[0];
-    return getResultFromInfoYamlMap(infoMap, collectedErrors, commonArgs);
+    return getResultFromInfoYamlMap(
+        { infoMap, commonArgs, fileType },
+        collectedErrors,
+    );
 }
 
 function getResultFromInfoYamlMap(
-    {
-        keyRange: infoKeyRange,
-        value: infoMap,
-    }: WithKeyAndKeyRange<YAMLMap<unknown, unknown>>,
+    args: {
+        commonArgs: CommonParsingArgs;
+        fileType: BrunoFileType;
+        infoMap: WithKeyAndKeyRange<YAMLMap<unknown, unknown>>;
+    },
     errors: YamlParsingError[],
-    commonArgs: CommonParsingArgs,
 ): Result {
-    const expectedStringScalars = [
-        FileInfoProperty.Name,
-        FileInfoProperty.Type,
-    ];
-    const expectedNumericScalars = [FileInfoProperty.Seq];
-    const expectedSequenceValues = [FileInfoProperty.Tags];
+    const {
+        commonArgs,
+        fileType,
+        infoMap: { keyRange: infoKeyRange, value: infoMap },
+    } = args;
+    const checkForTypeProperty = [
+        BrunoFileType.AppFile,
+        BrunoFileType.FolderSettingsFile,
+        BrunoFileType.RequestFile,
+    ].includes(fileType);
+    const checkForSeqProperty = [
+        BrunoFileType.AppFile,
+        BrunoFileType.FolderSettingsFile,
+        BrunoFileType.RequestFile,
+    ].includes(fileType);
+    const checkForTagsProperty = fileType == BrunoFileType.RequestFile;
+    const expectedStringScalars = [FileInfoProperty.Name].concat(
+        checkForTypeProperty ? FileInfoProperty.Type : [],
+    );
+    const expectedNumericScalars = checkForSeqProperty
+        ? [FileInfoProperty.Seq]
+        : [];
+    const expectedSequenceValues = checkForTagsProperty
+        ? [FileInfoProperty.Tags]
+        : [];
     const allowedKeys = expectedStringScalars.concat(
         expectedNumericScalars,
         expectedSequenceValues,
@@ -138,15 +164,17 @@ function getResultFromInfoYamlMap(
         return errors;
     }
 
-    const maybeType = getTypedScalarFromList(
-        {
-            commonParsingArgs: commonArgs,
-            allowedValues: Object.values(FileInfoType),
-            allStringScalars: validStringScalars,
-            keyName: FileInfoProperty.Type,
-        },
-        errors,
-    );
+    const maybeType = !checkForTypeProperty
+        ? undefined
+        : getTypedScalarFromList(
+              {
+                  commonParsingArgs: commonArgs,
+                  allowedValues: Object.values(FileInfoType),
+                  allStringScalars: validStringScalars,
+                  keyName: FileInfoProperty.Type,
+              },
+              errors,
+          );
 
     return {
         errors,
@@ -155,13 +183,13 @@ function getResultFromInfoYamlMap(
             valueRange: getRangeForItem(infoMap, commonArgs),
             value: {
                 name: mapFromYamlScalar({ ...commonArgs, ...name }),
-                sequence: getSequenceToUse(
-                    validNumericScalars,
-                    commonArgs,
-                    errors,
-                ),
+                sequence: checkForSeqProperty
+                    ? getSequenceToUse(validNumericScalars, commonArgs, errors)
+                    : undefined,
                 type: maybeType ? maybeType.value : undefined,
-                tags: getTagsToUse(validSequences, commonArgs, errors),
+                tags: checkForTagsProperty
+                    ? getTagsToUse(validSequences, commonArgs, errors)
+                    : undefined,
             },
         },
     };

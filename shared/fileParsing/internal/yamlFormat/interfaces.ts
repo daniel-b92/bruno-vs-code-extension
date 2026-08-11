@@ -10,7 +10,7 @@ export enum EnvironmentVariableProperty {
     Type = "type",
 }
 
-export enum TopLevelRequestOrFolderSettingsProperty {
+export enum TopLevelRequestFileProperty {
     Info = "info",
     Runtime = "runtime",
     settings = "settings",
@@ -21,8 +21,14 @@ export enum TopLevelRequestOrFolderSettingsProperty {
     Grpc = "grpc",
     Websocket = "websocket",
 
-    docs = "docs",
-    examples = "examples",
+    Docs = "docs",
+    Examples = "examples",
+}
+
+export enum TopLevelFolderSettingsProperty {
+    Info = "info",
+    Request = "request",
+    Docs = "docs",
 }
 
 export enum FileInfoProperty {

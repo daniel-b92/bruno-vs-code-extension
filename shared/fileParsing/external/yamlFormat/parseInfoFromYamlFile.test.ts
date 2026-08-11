@@ -1,11 +1,16 @@
 import { describe, it, expect } from "@jest/globals";
 import { TextDocumentHelper } from "../../../fileSystem/textDocumentHelper";
-import { ParsedInfo } from "./interfaces";
-import { parseInfoFromYamlFile, Position, Range } from "../../..";
+import { ParsedInfoForRequestFile } from "./interfaces";
+import {
+    BrunoFileType,
+    parseInfoFromYamlFile,
+    Position,
+    Range,
+} from "../../..";
 import {
     FileInfoProperty,
     FileInfoType,
-    TopLevelRequestOrFolderSettingsProperty,
+    TopLevelRequestFileProperty,
 } from "../../internal/yamlFormat/interfaces";
 import {
     getExpectedKeyRange,
@@ -28,17 +33,15 @@ http:
     auth: inherit`;
         const parsed = parseInfoFromYamlFile(
             new TextDocumentHelper(documentText),
+            BrunoFileType.RequestFile,
         );
 
         const nameLine = 1;
 
-        const expectedInfo: ParsedInfo = {
+        const expectedInfo: ParsedInfoForRequestFile = {
             keyRange: new Range(
                 new Position(0, 0),
-                new Position(
-                    0,
-                    TopLevelRequestOrFolderSettingsProperty.Info.length,
-                ),
+                new Position(0, TopLevelRequestFileProperty.Info.length),
             ),
             valueRange: new Range(new Position(1, 4), new Position(7, 0)),
             value: {
@@ -121,7 +124,10 @@ http:
     type: http
     seq: 3`;
         const docHelper = new TextDocumentHelper(documentText);
-        const parsed = parseInfoFromYamlFile(docHelper);
+        const parsed = parseInfoFromYamlFile(
+            docHelper,
+            BrunoFileType.RequestFile,
+        );
 
         if (!Array.isArray(parsed)) {
             throw new Error(
@@ -140,7 +146,10 @@ http:
     tags:
         - tag-1`;
         const docHelper = new TextDocumentHelper(documentText);
-        const parsed = parseInfoFromYamlFile(docHelper);
+        const parsed = parseInfoFromYamlFile(
+            docHelper,
+            BrunoFileType.RequestFile,
+        );
 
         if (Array.isArray(parsed)) {
             throw new Error(
@@ -158,11 +167,7 @@ http:
         } = parsed;
 
         expect(keyRange).toEqual(
-            getExpectedKeyRange(
-                0,
-                TopLevelRequestOrFolderSettingsProperty.Info,
-                0,
-            ),
+            getExpectedKeyRange(0, TopLevelRequestFileProperty.Info, 0),
         );
         expect(valueRange).toEqual(
             new Range(
