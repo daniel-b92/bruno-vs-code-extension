@@ -3,6 +3,7 @@ import {
     WithKeyAndValueRange,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
+import { stripKeyFromResult } from "../util/stripKeyFromResult";
 
 type Args<T> = {
     allStringValues: WithKeyKeyRangeAndValueRange<string>[];
@@ -27,7 +28,7 @@ export function getTypedValueFromList<T extends string>(
         errorsCollection.push(maybeTypedField.error);
         return undefined;
     }
-    return maybeTypedField;
+    return { value: stripKeyFromResult(maybeTypedField.value) };
 }
 
 function toTypedValue<T extends string>(
