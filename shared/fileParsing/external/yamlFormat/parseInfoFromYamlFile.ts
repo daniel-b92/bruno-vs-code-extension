@@ -10,6 +10,7 @@ import {
     ParsedInfoResult,
     parseFileInfoFromYamlMap,
 } from "../../internal/yamlFormat/yamlMaps/parseFileInfoFromYamlMap";
+import { isParsingResultOnlyErrors } from "../../internal/yamlFormat/util/isParsingResultOnlyErrors";
 
 export function parseInfoFromYamlFile(
     docHelper: TextDocumentHelper,
@@ -57,7 +58,10 @@ export function parseInfoFromYamlFile(
         fileType,
     });
 
-    return "result" in maybeResult
-        ? { ...maybeResult, errors: collectedErrors.concat(maybeResult.errors) }
-        : collectedErrors.concat(maybeResult);
+    return isParsingResultOnlyErrors(maybeResult)
+        ? collectedErrors.concat(maybeResult)
+        : {
+              ...maybeResult,
+              errors: collectedErrors.concat(maybeResult.errors),
+          };
 }

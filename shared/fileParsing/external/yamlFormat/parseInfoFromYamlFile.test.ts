@@ -16,6 +16,7 @@ import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
 } from "../../../_testingUtils";
+import { isParsingResultOnlyErrors } from "../../internal/yamlFormat/util/isParsingResultOnlyErrors";
 
 describe("parseInfoFromYamlFile", () => {
     it("parses an info block from a valid simple request file", () => {
@@ -129,7 +130,7 @@ http:
             BrunoFileType.RequestFile,
         );
 
-        if (!Array.isArray(parsed)) {
+        if (!isParsingResultOnlyErrors(parsed)) {
             throw new Error(
                 `Expected parsed result to be only an array of errors. Got ${JSON.stringify(parsed, null, 2)}`,
             );
@@ -151,7 +152,7 @@ http:
             BrunoFileType.RequestFile,
         );
 
-        if (Array.isArray(parsed)) {
+        if (isParsingResultOnlyErrors(parsed)) {
             throw new Error(
                 `Expected parsed result to not only be an array of errors. Got ${JSON.stringify(parsed, null, 2)}`,
             );
