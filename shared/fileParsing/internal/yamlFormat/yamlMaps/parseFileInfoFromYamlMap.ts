@@ -18,6 +18,7 @@ import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownK
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { getMapItems } from "./getMapItems";
+import { stripKeyFromResult } from "../util/stripKeyFromResult";
 
 export type ParsedInfoResult = ParsingResult<ParsedInfoForRequestFile>;
 
@@ -126,7 +127,7 @@ export function parseFileInfoFromYamlMap(args: {
             keyRange: infoKeyRange,
             valueRange: getRangeForItem(infoMap, commonArgs),
             value: {
-                name,
+                name: stripKeyFromResult(name),
                 sequence: checkForSeqProperty
                     ? getSequenceToUse(validNumericScalars, errors)
                     : undefined,
@@ -151,7 +152,7 @@ function getSequenceToUse(
     }
 
     if (Number.isInteger(actual.value) && actual.value > 0) {
-        return actual;
+        return stripKeyFromResult(actual);
     }
 
     errorCollection.push({

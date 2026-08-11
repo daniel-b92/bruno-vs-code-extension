@@ -19,6 +19,7 @@ import { mapFromYamlScalar } from "../../internal/yamlFormat/scalars/mapFromYaml
 import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForUnknownKeyInMap";
 import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDocumentIntoYamlMap";
 import { getTypedValueFromList } from "../../internal/yamlFormat/scalars/getTypedValueFromList";
+import { stripKeyFromResult } from "../../internal/yamlFormat/util/stripKeyFromResult";
 
 enum EnvironmentKeyName {
     Name = "name",
@@ -213,19 +214,21 @@ function getVariablesFromMapItems(
             missingProperties:
                 allMapItems.missingKeys as EnvironmentVariableProperty[],
             fields: {
-                name,
-                description,
+                name: stripKeyFromResult(name),
+                description: description
+                    ? stripKeyFromResult(description)
+                    : undefined,
                 disabled: disabled
                     ? {
                           effectiveValue: disabled.value,
-                          field: disabled,
+                          field: stripKeyFromResult(disabled),
                       }
                     : // The default value for 'disabled' is false, when not defined.
                       { effectiveValue: false },
                 secret: secret
                     ? {
                           effectiveValue: secret.value,
-                          field: secret,
+                          field: stripKeyFromResult(secret),
                       }
                     : // The default value for 'secret' is false, when not defined.
                       { effectiveValue: false },
