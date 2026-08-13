@@ -118,7 +118,7 @@ export function parseYamlEnvironmentFile(
 }
 
 function getVariablesFromMapItems(
-    items: YAMLMap<unknown, unknown>[],
+    items: YAMLMap[],
     commonArgs: CommonParsingArgs,
 ): { variables: ParsedEnvironmentVariable[]; errors: YamlParsingError[] } {
     const variables: ParsedEnvironmentVariable[] = [];
@@ -284,7 +284,7 @@ function getItemsForSimpleOptionalVariableProps(allMapItems: ParsedMapItems) {
 }
 
 function getValueFieldFromVariable(commonParams: {
-    map: YAMLMap<unknown, unknown>;
+    map: YAMLMap;
     isTopLevelMap: boolean;
     docHelper: TextDocumentHelper;
     fullDocumentRange: Range;

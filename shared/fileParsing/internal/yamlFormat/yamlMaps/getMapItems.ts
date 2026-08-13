@@ -14,7 +14,7 @@ import { mapFromYamlScalar } from "../scalars/mapFromYamlScalar";
  * No errors are collected for items with unknown keys or missing keys.
  */
 export function getMapItems(
-    map: YAMLMap<unknown, unknown>,
+    map: YAMLMap,
     expectedKeys: {
         scalars: {
             stringValues?: string[];
@@ -232,8 +232,8 @@ function isTypedScalar<T>(
 }
 
 function getKeyRange(
-    key: Scalar<unknown>,
-    parentMap: YAMLMap<unknown, unknown>,
+    key: Scalar,
+    parentMap: YAMLMap,
     commonParsingArgs: CommonParsingArgs,
 ): { range: Range } | { error: YamlParsingError } {
     const yamlRange = key.range;
@@ -254,7 +254,7 @@ function getKeyRange(
 function getValueRange(
     keyValue: string,
     valueItem: unknown,
-    parentMap: YAMLMap<unknown, unknown>,
+    parentMap: YAMLMap,
     commonParsingArgs: CommonParsingArgs,
 ): { range: Range } | { error: YamlParsingError } {
     const yamlRange = getRangeForUnknownYamlItem(valueItem);

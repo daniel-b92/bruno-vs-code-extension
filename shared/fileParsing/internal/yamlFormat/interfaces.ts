@@ -13,8 +13,8 @@ export interface ParsedMapItems {
         withNumericValue: WithKeyKeyRangeAndValueRange<number>[];
         withUnknownValue: WithKeyKeyRangeAndValueRange<unknown>[];
     };
-    validSequences: WithKeyAndKeyRange<YAMLSeq<unknown>>[];
-    validMaps: WithKeyAndKeyRange<YAMLMap<unknown, unknown>>[];
+    validSequences: WithKeyAndKeyRange<YAMLSeq>[];
+    validMaps: WithKeyAndKeyRange<YAMLMap>[];
     missingKeys: string[];
     unknownKeys: { key: string; keyRange: Range }[];
 }

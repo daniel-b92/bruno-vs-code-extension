@@ -8,27 +8,24 @@ import {
     WithKeyAndKeyRange,
 } from "../interfaces";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
-import { getMapItems } from "./getMapItems";
-import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
+import { getMapItems } from "../yamlMaps/getMapItems";
+import { getYamlMapsFromSequence } from "./getYamlMapsFromSequence";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 
 export type ParsedInfoResult = ParsingResult<ParsedRequestHeader[]>;
 
-export function parseHeadersFromYamlMap(args: {
+export function parseHeadersFromSequence(args: {
     commonArgs: CommonParsingArgs;
-    headersSequence: WithKeyAndKeyRange<YAMLSeq>;
+    headersSequence: YAMLSeq;
 }): ParsedInfoResult {
-    const {
-        commonArgs,
-        headersSequence: { value: headersSeq },
-    } = args;
+    const { commonArgs, headersSequence } = args;
     const errors: YamlParsingError[] = [];
     const result: ParsedRequestHeader[] = [];
 
     const { items: headerMaps, errors: errorsFromSeq } =
         getYamlMapsFromSequence({
             ...commonArgs,
-            sequence: headersSeq,
+            sequence: headersSequence,
         });
     errors.push(...errorsFromSeq);
 

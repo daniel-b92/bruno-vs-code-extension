@@ -6,7 +6,7 @@ import { YamlParsingError } from "../../../external/yamlFormat/interfaces";
 
 export function parseDocumentIntoYamlMap(
     commonArgs: CommonParsingArgs,
-): { map: YAMLMap<unknown, unknown> } | { errors: YamlParsingError[] } {
+): { map: YAMLMap } | { errors: YamlParsingError[] } {
     const { fullDocumentRange, docHelper } = commonArgs;
     const document = parseDocument(docHelper.getText(), {
         lineCounter: new LineCounter(),

@@ -25,7 +25,7 @@ export type ParsedInfoResult = ParsingResult<ParsedInfoForRequestFile>;
 export function parseFileInfoFromYamlMap(args: {
     commonArgs: CommonParsingArgs;
     fileType: BrunoFileType;
-    infoMap: WithKeyAndKeyRange<YAMLMap<unknown, unknown>>;
+    infoMap: WithKeyAndKeyRange<YAMLMap>;
 }): ParsedInfoResult {
     const {
         commonArgs,
@@ -164,7 +164,7 @@ function getSequenceToUse(
 }
 
 function getTagsToUse(
-    validSequences: WithKeyAndKeyRange<YAMLSeq<unknown>>[],
+    validSequences: WithKeyAndKeyRange<YAMLSeq>[],
     commonArgs: CommonParsingArgs,
     errorCollection: YamlParsingError[],
 ) {

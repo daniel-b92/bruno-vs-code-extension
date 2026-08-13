@@ -18,7 +18,7 @@ import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/parsingErr
 import { parseFileInfoFromYamlMap } from "../../internal/yamlFormat/yamlMaps/parseFileInfoFromYamlMap";
 import { YAMLMap } from "yaml";
 import { isParsingResultOnlyErrors } from "../../internal/yamlFormat/util/isParsingResultOnlyErrors";
-import { parseHeadersFromYamlMap } from "../../internal/yamlFormat/yamlMaps/parseHeadersFromYamlMap";
+import { parseHeadersFromSequence } from "../../internal/yamlFormat/yamlSequences/parseHeadersFromSequence";
 
 type Result = ParsingResult<ParsedFolderSettingsFile>;
 
@@ -76,7 +76,7 @@ export function parseFolderSettingsFile(docHelper: TextDocumentHelper) {
 }
 
 function getParsedInfo(
-    validSecondLevelMaps: WithKeyAndKeyRange<YAMLMap<unknown, unknown>>[],
+    validSecondLevelMaps: WithKeyAndKeyRange<YAMLMap>[],
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ) {
@@ -101,7 +101,7 @@ function getParsedInfo(
 }
 
 function getParsedRequest(
-    validSecondLevelMaps: WithKeyAndKeyRange<YAMLMap<unknown, unknown>>[],
+    validSecondLevelMaps: WithKeyAndKeyRange<YAMLMap>[],
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ) {
@@ -170,9 +170,9 @@ function parseRequestSection(
         ({ key }) => key == FolderSettingsRequestSectionProperty.Headers,
     );
     const parsedHeaders = maybeHeadersSequence
-        ? parseHeadersFromYamlMap({
+        ? parseHeadersFromSequence({
               commonArgs,
-              headersSequence: maybeHeadersSequence,
+              headersSequence: maybeHeadersSequence.value,
           })
         : undefined;
 }
