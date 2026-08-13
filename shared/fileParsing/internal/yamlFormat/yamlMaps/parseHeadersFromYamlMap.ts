@@ -10,6 +10,7 @@ import {
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getMapItems } from "./getMapItems";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
+import { stripKeyFromResult } from "../util/stripKeyFromResult";
 
 export type ParsedInfoResult = ParsingResult<ParsedRequestHeader[]>;
 
@@ -78,6 +79,7 @@ export function parseHeadersFromYamlMap(args: {
             ({ key }) => key == RequestHeaderProperty.Value,
         );
         if (!name || !value) {
+            // Name and value are mandatory.
             return errors;
         }
 
@@ -89,14 +91,19 @@ export function parseHeadersFromYamlMap(args: {
         );
 
         result.push({
-            name,
-            value,
-            description,
+            name: stripKeyFromResult(name),
+            value: stripKeyFromResult(value),
+            description: description
+                ? stripKeyFromResult(description)
+                : undefined,
             disabled: {
                 effectiveValue:
                     // The default value is `false`, if not explicitly defined.
                     maybeDisabled !== undefined ? maybeDisabled.value : false,
-                field: maybeDisabled,
+                field:
+                    maybeDisabled !== undefined
+                        ? stripKeyFromResult(maybeDisabled)
+                        : undefined,
             },
         });
     }
