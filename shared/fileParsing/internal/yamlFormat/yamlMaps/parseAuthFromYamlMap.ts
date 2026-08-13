@@ -23,12 +23,12 @@ type ParsedAuthResult = ParsingResult<ParsedAuth>;
 
 export function parseAuthFromYamlMap(args: {
     commonArgs: CommonParsingArgs;
-    authMap: WithKeyAndValueRange<YAMLMap>;
+    authMap: YAMLMap;
 }): ParsedAuthResult {
     const { commonArgs, authMap } = args;
     const allErrors: YamlParsingError[] = [];
 
-    const maybeAuthType = tryToParseAuthTypeField(authMap.value, commonArgs);
+    const maybeAuthType = tryToParseAuthTypeField(authMap, commonArgs);
     if (isParsingResultOnlyErrors(maybeAuthType)) {
         return maybeAuthType;
     }
@@ -41,7 +41,7 @@ export function parseAuthFromYamlMap(args: {
             const { auth: basicAuthResult, errors: basicAuthErrors } =
                 parseBasicAuthFromAuthMap(
                     {
-                        authMap: authMap.value,
+                        authMap: authMap,
                         parsedType:
                             authType as WithKeyAndValueRange<AuthType.Basic>,
                     },
@@ -55,7 +55,7 @@ export function parseAuthFromYamlMap(args: {
             const { auth: bearerAuthResult, errors: bearerAuthErrors } =
                 parseBearerAuthFromAuthMap(
                     {
-                        authMap: authMap.value,
+                        authMap: authMap,
                         parsedType:
                             authType as WithKeyAndValueRange<AuthType.Bearer>,
                     },

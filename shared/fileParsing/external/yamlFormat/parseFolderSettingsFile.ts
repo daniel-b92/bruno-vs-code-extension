@@ -19,6 +19,8 @@ import { parseFileInfoFromYamlMap } from "../../internal/yamlFormat/yamlMaps/par
 import { YAMLMap } from "yaml";
 import { isParsingResultOnlyErrors } from "../../internal/yamlFormat/util/isParsingResultOnlyErrors";
 import { parseHeadersFromSequence } from "../../internal/yamlFormat/yamlSequences/parseHeadersFromSequence";
+import { validateHeaderName } from "node:http";
+import { parseAuthFromYamlMap } from "../../internal/yamlFormat/yamlMaps/parseAuthFromYamlMap";
 
 type Result = ParsingResult<ParsedFolderSettingsFile>;
 
@@ -173,6 +175,16 @@ function parseRequestSection(
         ? parseHeadersFromSequence({
               commonArgs,
               headersSequence: maybeHeadersSequence.value,
+          })
+        : undefined;
+
+    const maybeAuthMap = validMaps.find(
+        ({ key }) => key == FolderSettingsRequestSectionProperty.Auth,
+    );
+    const parsedAuth = maybeAuthMap
+        ? parseAuthFromYamlMap({
+              commonArgs,
+              authMap: maybeAuthMap.value,
           })
         : undefined;
 }
