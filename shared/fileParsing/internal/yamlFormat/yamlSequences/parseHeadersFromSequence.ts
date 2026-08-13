@@ -5,7 +5,6 @@ import {
     ParsedRequestHeader,
     ParsingResult,
     RequestHeaderProperty,
-    WithKeyAndKeyRange,
 } from "../interfaces";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getMapItems } from "../yamlMaps/getMapItems";

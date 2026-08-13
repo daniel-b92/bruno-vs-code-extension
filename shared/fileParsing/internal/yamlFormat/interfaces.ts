@@ -76,13 +76,13 @@ export type ParsedAuth = ParsedBasicAuth | ParsedBearerAuth;
 
 export interface ParsedBasicAuth {
     type: WithKeyAndValueRange<AuthType.Basic>;
-    username: WithKeyAndValueRange<string>;
-    password: WithKeyAndValueRange<string>;
+    username?: WithKeyAndValueRange<string>;
+    password?: WithKeyAndValueRange<string>;
 }
 
 export interface ParsedBearerAuth {
     type: WithKeyAndValueRange<AuthType.Bearer>;
-    token: WithKeyAndValueRange<string>;
+    token?: WithKeyAndValueRange<string>;
 }
 
 export enum EnvironmentVariableProperty {
@@ -145,6 +145,17 @@ export enum FileInfoProperty {
     Tags = "tags",
 }
 
+export enum BasicAuthProperty {
+    Type = "type",
+    Username = "username",
+    Password = "password",
+}
+
+export enum BearerAuthProperty {
+    Type = "type",
+    Token = "token",
+}
+
 export enum FileInfoType {
     Folder = "folder",
     Http = "http",
@@ -164,6 +175,10 @@ export enum VariableType {
     String = "string",
 }
 
+export const CommonAuthMapProperties = {
+    type: "type",
+} as const;
+
 export enum AuthType {
     Awsv4 = "awsv4",
     Basic = "basic",
@@ -171,7 +186,7 @@ export enum AuthType {
     Bearer = "bearer",
     Digest = "digest",
     Ntlm = "ntlm",
-    Aikey = "apikey",
+    Apikey = "apikey",
     Oauth1 = "oauth1",
     Oauth2 = "oauth2",
 }

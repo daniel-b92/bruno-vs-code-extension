@@ -1,116 +1,215 @@
-import { YAMLMap, YAMLSeq } from "yaml";
+import { YAMLMap } from "yaml";
 import { YamlParsingError } from "../../../..";
 import {
+    AuthType,
+    BasicAuthProperty,
+    BearerAuthProperty,
+    CommonAuthMapProperties,
     CommonParsingArgs,
     ParsedAuth,
-    ParsedRequestHeader,
+    ParsedBasicAuth,
+    ParsedBearerAuth,
     ParsingResult,
-    RequestHeaderProperty,
-    WithKeyAndKeyRange,
+    WithKeyAndValueRange,
 } from "../interfaces";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getMapItems } from "./getMapItems";
-import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
+import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
+import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
+import { isParsingResultOnlyErrors } from "../util/isParsingResultOnlyErrors";
 
-export type ParsedInfoResult = ParsingResult<ParsedAuth[]>;
+type ParsedAuthResult = ParsingResult<ParsedAuth>;
 
 export function parseAuthFromYamlMap(args: {
     commonArgs: CommonParsingArgs;
-    authMap: YAMLMap;
-}): ParsedInfoResult {
-    const {
-        commonArgs,
-        authMap: { value: headersSeq },
-    } = args;
-    const errors: YamlParsingError[] = [];
-    const result: ParsedRequestHeader[] = [];
+    authMap: WithKeyAndValueRange<YAMLMap>;
+}): ParsedAuthResult {
+    const { commonArgs, authMap } = args;
+    const allErrors: YamlParsingError[] = [];
 
-    const { items: headerMaps, errors: errorsFromSeq } =
-        getYamlMapsFromSequence({
-            ...commonArgs,
-            sequence: headersSeq,
-        });
-    errors.push(...errorsFromSeq);
+    const maybeAuthType = tryToParseAuthTypeField(authMap.value, commonArgs);
+    if (isParsingResultOnlyErrors(maybeAuthType)) {
+        return maybeAuthType;
+    }
 
-    const expectedStringScalars = [
-        RequestHeaderProperty.Name,
-        RequestHeaderProperty.Value,
-        RequestHeaderProperty.Description,
-    ];
-    const expectedBooleanScalars = [RequestHeaderProperty.Disabled];
-    const allowedKeys = expectedStringScalars.concat(expectedBooleanScalars);
+    const { errors: typeParsingErrors, result: authType } = maybeAuthType;
+    allErrors.push(...typeParsingErrors);
 
-    for (const headerMap of headerMaps) {
+    switch (authType.value) {
+        case AuthType.Basic:
+            const { auth: basicAuthResult, errors: basicAuthErrors } =
+                parseBasicAuthFromAuthMap(
+                    {
+                        authMap: authMap.value,
+                        parsedType:
+                            authType as WithKeyAndValueRange<AuthType.Basic>,
+                    },
+                    commonArgs,
+                );
+            return {
+                result: basicAuthResult,
+                errors: allErrors.concat(basicAuthErrors),
+            };
+        case AuthType.Bearer:
+            const { auth: bearerAuthResult, errors: bearerAuthErrors } =
+                parseBearerAuthFromAuthMap(
+                    {
+                        authMap: authMap.value,
+                        parsedType:
+                            authType as WithKeyAndValueRange<AuthType.Bearer>,
+                    },
+                    commonArgs,
+                );
+            return {
+                result: bearerAuthResult,
+                errors: allErrors.concat(bearerAuthErrors),
+            };
+        // ToDo: Add support for more auth types.
+        default:
+            return allErrors;
+    }
+
+    function tryToParseAuthTypeField(
+        authMap: YAMLMap,
+        commonParsingArgs: CommonParsingArgs,
+    ): ParsingResult<WithKeyAndValueRange<AuthType>> {
         const {
             items: {
-                unknownKeys,
-                validScalars: {
-                    withStringValue: validStrings,
-                    withBooleanValue: validBooleans,
-                },
+                missingKeys,
+                validScalars: { withStringValue: validStringScalars },
             },
-            errors: mapItemErrors,
+            errors,
         } = getMapItems(
-            headerMap,
-            {
-                scalars: {
-                    stringValues: expectedStringScalars,
-                    booleanValues: expectedBooleanScalars,
-                },
-            },
-            commonArgs,
+            authMap,
+            { scalars: { stringValues: [CommonAuthMapProperties.type] } },
+            commonParsingArgs,
         );
 
-        errors.push(
-            ...mapItemErrors,
-            ...unknownKeys.map(({ key: unknownKey, keyRange }) =>
+        if (validStringScalars.length == 0 || missingKeys.length > 0) {
+            return errors.concat(
+                missingKeys.map((key) =>
+                    getErrorForMissingKeyInMap({
+                        ...commonParsingArgs,
+                        map: authMap,
+                        missingKey: key,
+                    }),
+                ),
+            );
+        }
+
+        const maybeTypedResult = getTypedValueFromList<AuthType>(
+            {
+                allowedValues: Object.values(AuthType),
+                allStringValues: validStringScalars,
+                keyName: CommonAuthMapProperties.type,
+            },
+            errors,
+        );
+
+        return !maybeTypedResult
+            ? errors
+            : { result: maybeTypedResult.value, errors };
+    }
+
+    function parseBasicAuthFromAuthMap(
+        args: {
+            authMap: YAMLMap;
+            parsedType: WithKeyAndValueRange<AuthType.Basic>;
+        },
+        commonParsingArgs: CommonParsingArgs,
+    ): { auth: ParsedBasicAuth; errors: YamlParsingError[] } {
+        const { authMap, parsedType: type } = args;
+        const expectedStringScalars = [
+            BasicAuthProperty.Username,
+            BasicAuthProperty.Password,
+            BasicAuthProperty.Type,
+        ];
+
+        const {
+            errors,
+            items: {
+                unknownKeys,
+                validScalars: { withStringValue: validStringScalars },
+            },
+        } = getMapItems(
+            authMap,
+            { scalars: { stringValues: expectedStringScalars } },
+            commonParsingArgs,
+        );
+
+        const allErrors = errors.concat(
+            unknownKeys.map(({ key, keyRange }) =>
                 getErrorForUnknownKeyInMap({
-                    ...commonArgs,
-                    unknownKey,
+                    ...commonParsingArgs,
+                    allowedKeys: expectedStringScalars,
                     keyRange,
-                    allowedKeys: allowedKeys,
+                    unknownKey: key,
                 }),
             ),
         );
-        const name = validStrings.find(
-            ({ key }) => key == RequestHeaderProperty.Name,
-        );
-        const value = validStrings.find(
-            ({ key }) => key == RequestHeaderProperty.Value,
-        );
-        if (!name || !value) {
-            // Name and value are mandatory.
-            return errors;
-        }
 
-        const description = validStrings.find(
-            ({ key }) => key == RequestHeaderProperty.Description,
+        const username = validStringScalars.find(
+            ({ key }) => key == BasicAuthProperty.Username,
         );
-        const maybeDisabled = validBooleans.find(
-            ({ key }) => key == RequestHeaderProperty.Disabled,
+        const password = validStringScalars.find(
+            ({ key }) => key == BasicAuthProperty.Password,
         );
-
-        result.push({
-            name: stripKeyFromResult(name),
-            value: stripKeyFromResult(value),
-            description: description
-                ? stripKeyFromResult(description)
-                : undefined,
-            disabled: {
-                effectiveValue:
-                    // The default value is `false`, if not explicitly defined.
-                    maybeDisabled !== undefined ? maybeDisabled.value : false,
-                field:
-                    maybeDisabled !== undefined
-                        ? stripKeyFromResult(maybeDisabled)
-                        : undefined,
+        return {
+            auth: {
+                type,
+                username: username ? stripKeyFromResult(username) : undefined,
+                password: password ? stripKeyFromResult(password) : undefined,
             },
-        });
+            errors: allErrors,
+        };
     }
 
-    return {
-        errors,
-        result,
-    };
+    function parseBearerAuthFromAuthMap(
+        args: {
+            authMap: YAMLMap;
+            parsedType: WithKeyAndValueRange<AuthType.Bearer>;
+        },
+        commonParsingArgs: CommonParsingArgs,
+    ): { auth: ParsedBearerAuth; errors: YamlParsingError[] } {
+        const { authMap, parsedType: type } = args;
+        const expectedStringScalars = [
+            BearerAuthProperty.Token,
+            BearerAuthProperty.Type,
+        ];
+
+        const {
+            errors,
+            items: {
+                unknownKeys,
+                validScalars: { withStringValue: validStringScalars },
+            },
+        } = getMapItems(
+            authMap,
+            { scalars: { stringValues: expectedStringScalars } },
+            commonParsingArgs,
+        );
+
+        const allErrors = errors.concat(
+            unknownKeys.map(({ key, keyRange }) =>
+                getErrorForUnknownKeyInMap({
+                    ...commonParsingArgs,
+                    allowedKeys: expectedStringScalars,
+                    keyRange,
+                    unknownKey: key,
+                }),
+            ),
+        );
+
+        const token = validStringScalars.find(
+            ({ key }) => key == BearerAuthProperty.Token,
+        );
+        return {
+            auth: {
+                type,
+                token: token ? stripKeyFromResult(token) : undefined,
+            },
+            errors: allErrors,
+        };
+    }
 }
