@@ -19,8 +19,7 @@ import { parseFileInfoFromYamlMap } from "../../internal/yamlFormat/yamlMaps/par
 import { YAMLMap } from "yaml";
 import { isParsingResultOnlyErrors } from "../../internal/yamlFormat/util/isParsingResultOnlyErrors";
 import { parseHeadersFromSequence } from "../../internal/yamlFormat/yamlSequences/parseHeadersFromSequence";
-import { validateHeaderName } from "node:http";
-import { parseAuthFromYamlMap } from "../../internal/yamlFormat/yamlMaps/parseAuthFromYamlMap";
+import { parseAuthFromYamlMapOrScalar } from "../../internal/yamlFormat/yamlMaps/parseAuthFromYamlMapOrScalar";
 
 type Result = ParsingResult<ParsedFolderSettingsFile>;
 
@@ -141,15 +140,21 @@ function parseRequestSection(
         FolderSettingsRequestSectionProperty.Actions,
     ];
     const expectedMaps = [FolderSettingsRequestSectionProperty.Auth];
+    const expectedScalarStrings = [FolderSettingsRequestSectionProperty.Auth];
     const allowedKeys = expectedSequences.concat(expectedMaps);
 
     const {
-        items: { unknownKeys, validMaps, validSequences },
+        items: {
+            unknownKeys,
+            validMaps,
+            validSequences,
+            validScalars: { withStringValue: validStringScalars },
+        },
         errors: sectionErrors,
     } = getMapItems(
         requestMap,
         {
-            scalars: {},
+            scalars: { stringValues: expectedScalarStrings },
             mapValues: allowedKeys,
         },
         commonArgs,
@@ -178,13 +183,17 @@ function parseRequestSection(
           })
         : undefined;
 
+    const maybeAuthScalar = validStringScalars.find(
+        ({ key }) => key == FolderSettingsRequestSectionProperty.Auth,
+    );
     const maybeAuthMap = validMaps.find(
         ({ key }) => key == FolderSettingsRequestSectionProperty.Auth,
     );
-    const parsedAuth = maybeAuthMap
-        ? parseAuthFromYamlMap({
+    const authMapOrScalar = maybeAuthScalar ?? maybeAuthMap?.value;
+    const parsedAuth = authMapOrScalar
+        ? parseAuthFromYamlMapOrScalar({
               commonArgs,
-              authMap: maybeAuthMap.value,
+              authMapOrScalar: authMapOrScalar,
           })
         : undefined;
 }

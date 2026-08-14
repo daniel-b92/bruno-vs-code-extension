@@ -1,16 +1,18 @@
-import { YAMLMap } from "yaml";
-import { YamlParsingError } from "../../../..";
+import { isMap, YAMLMap } from "yaml";
+import { YamlParsingError, YamlParsingErrorCode } from "../../../..";
 import {
     AuthType,
     BasicAuthProperty,
     BearerAuthProperty,
     CommonAuthMapProperties,
     CommonParsingArgs,
+    inheritAuthValue,
     ParsedAuth,
     ParsedBasicAuth,
     ParsedBearerAuth,
     ParsingResult,
     WithKeyAndValueRange,
+    WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getMapItems } from "./getMapItems";
@@ -21,14 +23,27 @@ import { isParsingResultOnlyErrors } from "../util/isParsingResultOnlyErrors";
 
 type ParsedAuthResult = ParsingResult<ParsedAuth>;
 
-export function parseAuthFromYamlMap(args: {
+export function parseAuthFromYamlMapOrScalar(args: {
     commonArgs: CommonParsingArgs;
-    authMap: YAMLMap;
+    authMapOrScalar: YAMLMap | WithKeyKeyRangeAndValueRange<string>;
 }): ParsedAuthResult {
-    const { commonArgs, authMap } = args;
+    const { commonArgs, authMapOrScalar } = args;
     const allErrors: YamlParsingError[] = [];
 
-    const maybeAuthType = tryToParseAuthTypeField(authMap, commonArgs);
+    if (!isMap(authMapOrScalar)) {
+        const { valueRange } = authMapOrScalar;
+        return authMapOrScalar.value == inheritAuthValue
+            ? { result: { valueRange }, errors: [] }
+            : [
+                  {
+                      message: `Invalid Scalar string for auth. Allowed is only '${inheritAuthValue}'.`,
+                      range: valueRange,
+                      code: YamlParsingErrorCode.Other,
+                  },
+              ];
+    }
+
+    const maybeAuthType = tryToParseAuthTypeField(authMapOrScalar, commonArgs);
     if (isParsingResultOnlyErrors(maybeAuthType)) {
         return maybeAuthType;
     }
@@ -41,7 +56,7 @@ export function parseAuthFromYamlMap(args: {
             const { auth: basicAuthResult, errors: basicAuthErrors } =
                 parseBasicAuthFromAuthMap(
                     {
-                        authMap: authMap,
+                        authMap: authMapOrScalar,
                         parsedType:
                             authType as WithKeyAndValueRange<AuthType.Basic>,
                     },
@@ -55,7 +70,7 @@ export function parseAuthFromYamlMap(args: {
             const { auth: bearerAuthResult, errors: bearerAuthErrors } =
                 parseBearerAuthFromAuthMap(
                     {
-                        authMap: authMap,
+                        authMap: authMapOrScalar,
                         parsedType:
                             authType as WithKeyAndValueRange<AuthType.Bearer>,
                     },

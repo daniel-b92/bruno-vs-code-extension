@@ -72,7 +72,7 @@ export interface ParsedDocsWithType {
     content: WithKeyAndValueRange<string>;
 }
 
-export type ParsedAuth = ParsedBasicAuth | ParsedBearerAuth;
+export type ParsedAuth = ParsedInheritAuth | ParsedBasicAuth | ParsedBearerAuth;
 
 export interface ParsedBasicAuth {
     type: WithKeyAndValueRange<AuthType.Basic>;
@@ -83,6 +83,10 @@ export interface ParsedBasicAuth {
 export interface ParsedBearerAuth {
     type: WithKeyAndValueRange<AuthType.Bearer>;
     token?: WithKeyAndValueRange<string>;
+}
+
+export interface ParsedInheritAuth {
+    valueRange: Range;
 }
 
 export enum EnvironmentVariableProperty {
@@ -155,6 +159,8 @@ export enum BearerAuthProperty {
     Type = "type",
     Token = "token",
 }
+
+export const inheritAuthValue = "inherit" as const;
 
 export enum FileInfoType {
     Folder = "folder",
