@@ -137,6 +137,7 @@ function parseRequestSection(
         FolderSettingsRequestSectionProperty.Actions,
     ];
     const expectedMaps = [FolderSettingsRequestSectionProperty.Auth];
+    // Auth can either be a Scalar string with the value 'inherit' or a map with a specific type.
     const expectedScalarStrings = [FolderSettingsRequestSectionProperty.Auth];
     const allowedKeys = expectedSequences.concat(expectedMaps);
 
