@@ -154,6 +154,7 @@ function parseRequestSection(
         {
             scalars: { stringValues: expectedScalarStrings },
             mapValues: allowedKeys,
+            sequenceValues: expectedSequences,
         },
         commonArgs,
     );
@@ -191,7 +192,7 @@ function parseRequestSection(
     const parsedAuth = authMapOrScalar
         ? parseAuthFromYamlMapOrScalar({
               commonArgs,
-              authMapOrScalar: authMapOrScalar,
+              authMapOrScalar,
           })
         : undefined;
 }
