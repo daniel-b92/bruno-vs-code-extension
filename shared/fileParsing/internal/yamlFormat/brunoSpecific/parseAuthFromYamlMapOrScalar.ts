@@ -19,10 +19,10 @@ import {
 } from "../interfaces";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getMapItems } from "../yamlMaps/getMapItems";
-import { stripKeyFromResult } from "./stripKeyFromResult";
+import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
-import { isParsingResultOnlyErrors } from "./isParsingResultOnlyErrors";
+import { isParsingResultOnlyErrors } from "../util/isParsingResultOnlyErrors";
 
 type ParsedAuthResult = ParsingResult<ParsedAuth>;
 

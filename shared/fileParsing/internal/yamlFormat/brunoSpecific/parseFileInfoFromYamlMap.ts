@@ -17,7 +17,7 @@ import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingK
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getRangeForItem } from "../util/getRangeForItem";
-import { getMapItems } from "./getMapItems";
+import { getMapItems } from "../yamlMaps/getMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 
 export type ParsedInfoResult = ParsingResult<ParsedInfoForRequestFile>;
