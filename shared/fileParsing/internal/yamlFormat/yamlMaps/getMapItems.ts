@@ -6,6 +6,7 @@ import { fromYamlRange } from "../util/fromYamlRange";
 import { getRangeForUnknownYamlItem } from "../util/getRangeForUnknownYamlItem";
 import { getErrorForValueWithUnexpectedType } from "../parsingErrors/getErrorForValueWithUnexpectedType";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
+import { mapFromYamlScalar } from "../scalars/mapFromYamlScalar";
 
 /**
  * Parses a YAML map and categorizes its items into valid scalars, valid sequences, invalid scalars, invalid sequences, and unknown keys based on the provided expected keys.
@@ -13,7 +14,7 @@ import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownK
  * No errors are collected for items with unknown keys or missing keys.
  */
 export function getMapItems(
-    map: YAMLMap<unknown, unknown>,
+    map: YAMLMap,
     expectedKeys: {
         scalars: {
             stringValues?: string[];
@@ -107,33 +108,29 @@ export function getMapItems(
 
         if (isTypedScalar<boolean>(keyValue, value, expectedBooleanScalars)) {
             items.validScalars.withBooleanValue.push({
+                ...mapFromYamlScalar({ ...commonParsingArgs, keyRange, value }),
                 key: keyValue,
-                keyRange,
-                value,
             });
             continue;
         }
         if (isTypedScalar<number>(keyValue, value, expectedNumericScalars)) {
             items.validScalars.withNumericValue.push({
+                ...mapFromYamlScalar({ ...commonParsingArgs, keyRange, value }),
                 key: keyValue,
-                keyRange,
-                value,
             });
             continue;
         }
         if (isTypedScalar<string>(keyValue, value, expectedStringScalars)) {
             items.validScalars.withStringValue.push({
+                ...mapFromYamlScalar({ ...commonParsingArgs, keyRange, value }),
                 key: keyValue,
-                keyRange,
-                value,
             });
             continue;
         }
         if (isTypedScalar<unknown>(keyValue, value, expectedUnknownScalars)) {
             items.validScalars.withUnknownValue.push({
+                ...mapFromYamlScalar({ ...commonParsingArgs, keyRange, value }),
                 key: keyValue,
-                keyRange,
-                value,
             });
             continue;
         }
@@ -235,8 +232,8 @@ function isTypedScalar<T>(
 }
 
 function getKeyRange(
-    key: Scalar<unknown>,
-    parentMap: YAMLMap<unknown, unknown>,
+    key: Scalar,
+    parentMap: YAMLMap,
     commonParsingArgs: CommonParsingArgs,
 ): { range: Range } | { error: YamlParsingError } {
     const yamlRange = key.range;
@@ -257,7 +254,7 @@ function getKeyRange(
 function getValueRange(
     keyValue: string,
     valueItem: unknown,
-    parentMap: YAMLMap<unknown, unknown>,
+    parentMap: YAMLMap,
     commonParsingArgs: CommonParsingArgs,
 ): { range: Range } | { error: YamlParsingError } {
     const yamlRange = getRangeForUnknownYamlItem(valueItem);

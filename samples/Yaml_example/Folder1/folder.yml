@@ -1,0 +1,42 @@
+info:
+  name: Folder1
+  type: folder
+  seq: 1
+
+request:
+  headers:
+    - name: ""
+      value: dfgdfg
+      description: sdsds
+      disabled: true
+  auth:
+    type: basic
+    username: sdgfdg
+    password: sdgdfgf
+  variables:
+    - name: ""
+      value:
+        type: number
+        data: sdfsdf
+      description: sdfs
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: sdsd
+        method: jsonq
+      variable:
+        name: dssd
+        scope: runtime
+      description: sdsd
+  scripts:
+    - type: before-request
+      code: eee
+    - type: after-response
+      code: bru.setEnvVar("bla", "bli");
+    - type: tests
+      code: expect(res.getStatus()).to.eql(200);
+
+docs:
+  content: fghfghfg
+  type: text/markdown

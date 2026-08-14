@@ -6,7 +6,7 @@ export function getTopLevelMapIfExists({
     node,
     fullDocumentRange,
 }: CommonParsingArgs & { node: unknown }):
-    { map: YAMLMap<unknown, unknown> } | { error: YamlParsingError } {
+    { map: YAMLMap } | { error: YamlParsingError } {
     return isMap(node)
         ? { map: node }
         : {

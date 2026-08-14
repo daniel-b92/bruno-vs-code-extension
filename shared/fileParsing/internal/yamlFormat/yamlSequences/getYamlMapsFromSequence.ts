@@ -6,12 +6,12 @@ import { fromYamlRange } from "../util/fromYamlRange";
 
 export function getYamlMapsFromSequence(
     args: CommonParsingArgs & {
-        sequence: YAMLSeq<unknown>;
+        sequence: YAMLSeq;
     },
-): { items: YAMLMap<unknown, unknown>[]; errors: YamlParsingError[] } {
+): { items: YAMLMap[]; errors: YamlParsingError[] } {
     const { sequence, fullDocumentRange, docHelper } = args;
 
-    const items: YAMLMap<unknown, unknown>[] = [];
+    const items: YAMLMap[] = [];
     const errors: YamlParsingError[] = [];
 
     for (const item of sequence.items) {

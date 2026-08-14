@@ -44,9 +44,12 @@ export class YamlFormatDiagnosticsProvider {
 
         const parsingErrors = parsed.errors;
         const otherDiagnostics = [
-            checkTopLevelNameIsDefined(parsed, commonParams),
+            checkTopLevelNameIsDefined(parsed.result, commonParams),
         ].concat(
-            checkVariableDefinitionsAreValid(parsed.variables, commonParams),
+            checkVariableDefinitionsAreValid(
+                parsed.result.variables,
+                commonParams,
+            ),
         );
         return otherDiagnostics
             .filter((d) => d != undefined)

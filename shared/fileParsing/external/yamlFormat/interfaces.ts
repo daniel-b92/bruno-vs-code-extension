@@ -2,6 +2,13 @@ import { Range } from "../../..";
 import {
     EnvironmentVariableProperty,
     FileInfoType,
+    OptionalVariableFieldResult,
+    ParsedAuth,
+    ParsedDocsWithType,
+    ParsedRequestHeader,
+    ParsedRequestVariable,
+    ParsedScript,
+    VariableType,
 } from "../../internal/yamlFormat/interfaces";
 
 export enum YamlParsingErrorCode {
@@ -15,6 +22,34 @@ export interface YamlParsingError {
     range: Range;
     code: YamlParsingErrorCode;
 }
+
+export interface ParsedFolderSettingsFile {
+    info: ParsedInfoForFolderSettings;
+    request?: {
+        headers?: ParsedRequestHeader[];
+        auth?: ParsedAuth;
+        variables?: WithKeyAndValueRange<ParsedRequestVariable[]>;
+        scripts?: WithKeyAndValueRange<ParsedScript[]>;
+    };
+    docs?: WithKeyAndValueRange<ParsedDocsWithType>;
+}
+
+export type ParsedInfoForRequestFile = ParsedInfoForFolderSettings & {
+    value: {
+        tags?: WithKeyAndValueRange<{ value: string; range: Range }[]>;
+    };
+};
+
+export type ParsedInfoForFolderSettings = ParsedInfoForCollectionSettings & {
+    value: {
+        type?: WithKeyAndValueRange<FileInfoType>;
+        sequence?: WithKeyAndValueRange<number>;
+    };
+};
+
+export type ParsedInfoForCollectionSettings = WithKeyAndValueRange<{
+    name: WithKeyAndValueRange<string>;
+}>;
 
 export interface ParsedEnvironmentVariable {
     range: Range;
@@ -35,46 +70,8 @@ export interface ParsedEnvironmentVariable {
     };
 }
 
-export interface ParsedRequestFile {
-    nonTypeSpecific: {
-        info: ParsedInfo;
-        runtime: WithKeyAndValueRange<{
-            variables?: WithKeyAndValueRange<unknown[]>;
-            scripts?: WithKeyAndValueRange<string[]>;
-            assertions?: WithKeyAndValueRange<unknown[]>;
-            auth?: WithKeyAndValueRange<unknown>;
-        }>;
-        docs?: WithKeyAndValueRange<string>;
-    };
-    typeSpecific: HttpTypeSpecificProperties;
-}
-
-export type ParsedInfo = WithKeyAndValueRange<{
-    name: WithKeyAndValueRange<string>;
-    type?: WithKeyAndValueRange<FileInfoType>;
-    sequence?: WithKeyAndValueRange<number>;
-    tags?: WithKeyAndValueRange<{ value: string; range: Range }[]>;
-}>;
-
-interface HttpTypeSpecificProperties {
-    requestDetails?: WithKeyAndValueRange<unknown>;
-    examples?: WithKeyAndValueRange<unknown[]>;
-}
-
-export type OptionalVariableFieldResult<T> = {
-    effectiveValue: T;
-    field?: WithKeyAndValueRange<T>;
-};
-
 export interface WithKeyAndValueRange<T> {
     keyRange: Range;
     value: T;
     valueRange: Range;
-}
-
-export enum VariableType {
-    Number = "number",
-    Boolean = "boolean",
-    Object = "object",
-    String = "string",
 }

@@ -6,7 +6,7 @@ import { getRangeForItem } from "../util/getRangeForItem";
 export function getErrorForMissingKeyInMap(
     args: CommonParsingArgs & {
         missingKey: string;
-        map: YAMLMap<unknown, unknown>;
+        map: YAMLMap;
     },
 ): YamlParsingError {
     const { missingKey, map } = args;
