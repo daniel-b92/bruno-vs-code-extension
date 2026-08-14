@@ -63,7 +63,10 @@ export function parseFolderSettingsFile(docHelper: TextDocumentHelper) {
             ),
         ),
     );
-    if (missingKeys.includes(TopLevelFolderSettingsProperty.Info)) {
+    const infoMap = validMaps.find(
+        ({ key }) => key == TopLevelFolderSettingsProperty.Info,
+    );
+    if (!infoMap || missingKeys.includes(TopLevelFolderSettingsProperty.Info)) {
         // The info property is the only mandatory one.
         return collectedErrors.concat(
             getErrorForMissingKeyInMap({
@@ -73,21 +76,14 @@ export function parseFolderSettingsFile(docHelper: TextDocumentHelper) {
             }),
         );
     }
-    const info = getParsedInfo(validMaps, commonArgs, collectedErrors);
+    const info = getParsedInfo(infoMap, commonArgs, collectedErrors);
 }
 
 function getParsedInfo(
-    validSecondLevelMaps: WithKeyAndKeyRange<YAMLMap>[],
+    infoMap: WithKeyAndKeyRange<YAMLMap>,
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ) {
-    const infoMap = validSecondLevelMaps.find(
-        ({ key }) => key == TopLevelFolderSettingsProperty.Info,
-    );
-
-    if (!infoMap) {
-        return undefined;
-    }
     const infoResult = parseFileInfoFromYamlMap({
         infoMap,
         commonArgs,
