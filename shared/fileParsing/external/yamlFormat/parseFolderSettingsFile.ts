@@ -1,6 +1,7 @@
 import {
     BrunoFileType,
     ParsedFolderSettingsFile,
+    ParsedInfoForFolderSettings,
     TextDocumentHelper,
     YamlParsingError,
 } from "../../..";
@@ -83,12 +84,12 @@ function getParsedInfo(
     infoMap: WithKeyAndKeyRange<YAMLMap>,
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
-) {
+): ParsedInfoForFolderSettings | undefined {
     const infoResult = parseFileInfoFromYamlMap({
         infoMap,
         commonArgs,
         fileType: BrunoFileType.FolderSettingsFile,
-    });
+    }) as ParsingResult<ParsedInfoForFolderSettings>;
     const { info, errors: infoErrors } = isParsingResultOnlyErrors(infoResult)
         ? { info: undefined, errors: infoResult }
         : { info: infoResult.result, errors: infoResult.errors };
