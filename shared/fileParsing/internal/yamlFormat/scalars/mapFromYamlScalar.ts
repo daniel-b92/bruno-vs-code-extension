@@ -1,6 +1,6 @@
 import { Scalar } from "yaml";
-import { Range } from "../../../..";
-import { CommonParsingArgs, WithKeyAndValueRange } from "../interfaces";
+import { Range, WithKeyAndValueRange } from "../../../..";
+import { CommonParsingArgs } from "../interfaces";
 import { getRangeForItem } from "../util/getRangeForItem";
 
 export function mapFromYamlScalar<T>(

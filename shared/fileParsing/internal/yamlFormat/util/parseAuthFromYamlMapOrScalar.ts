@@ -1,5 +1,9 @@
 import { isMap, YAMLMap } from "yaml";
-import { YamlParsingError, YamlParsingErrorCode } from "../../../..";
+import {
+    WithKeyAndValueRange,
+    YamlParsingError,
+    YamlParsingErrorCode,
+} from "../../../..";
 import {
     AuthType,
     BasicAuthProperty,
@@ -11,7 +15,6 @@ import {
     ParsedBasicAuth,
     ParsedBearerAuth,
     ParsingResult,
-    WithKeyAndValueRange,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";

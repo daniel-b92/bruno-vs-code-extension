@@ -1,8 +1,9 @@
-import { YamlParsingError, YamlParsingErrorCode } from "../../../..";
 import {
     WithKeyAndValueRange,
-    WithKeyKeyRangeAndValueRange,
-} from "../interfaces";
+    YamlParsingError,
+    YamlParsingErrorCode,
+} from "../../../..";
+import { WithKeyKeyRangeAndValueRange } from "../interfaces";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 
 type Args<T> = {

@@ -1,12 +1,14 @@
 import { Range } from "../../..";
 import {
+    EnvironmentVariableProperty,
     FileInfoType,
+    OptionalVariableFieldResult,
     ParsedAuth,
     ParsedDocsWithType,
     ParsedRequestHeader,
     ParsedRequestVariable,
     ParsedScript,
-    WithKeyAndValueRange,
+    VariableType,
 } from "../../internal/yamlFormat/interfaces";
 
 export enum YamlParsingErrorCode {
@@ -23,12 +25,12 @@ export interface YamlParsingError {
 
 export interface ParsedFolderSettingsFile {
     info: ParsedInfoForFolderSettings;
-    request?: WithKeyAndValueRange<{
-        headers?: WithKeyAndValueRange<ParsedRequestHeader[]>;
-        auth?: WithKeyAndValueRange<ParsedAuth>;
+    request?: {
+        headers?: ParsedRequestHeader[];
+        auth?: ParsedAuth;
         variables?: WithKeyAndValueRange<ParsedRequestVariable[]>;
         scripts?: WithKeyAndValueRange<ParsedScript[]>;
-    }>;
+    };
     docs?: WithKeyAndValueRange<ParsedDocsWithType>;
 }
 
@@ -48,3 +50,28 @@ export type ParsedInfoForFolderSettings = ParsedInfoForCollectionSettings & {
 export type ParsedInfoForCollectionSettings = WithKeyAndValueRange<{
     name: WithKeyAndValueRange<string>;
 }>;
+
+export interface ParsedEnvironmentVariable {
+    range: Range;
+    missingProperties: EnvironmentVariableProperty[];
+    fields: {
+        name: WithKeyAndValueRange<string>;
+        value?:
+            | WithKeyAndValueRange<string>
+            | {
+                  keyRange: Range;
+                  type: WithKeyAndValueRange<VariableType>;
+                  data: WithKeyAndValueRange<string>;
+              };
+        description?: WithKeyAndValueRange<string>;
+        type: OptionalVariableFieldResult<VariableType>;
+        secret: OptionalVariableFieldResult<boolean>;
+        disabled: OptionalVariableFieldResult<boolean>;
+    };
+}
+
+export interface WithKeyAndValueRange<T> {
+    keyRange: Range;
+    value: T;
+    valueRange: Range;
+}

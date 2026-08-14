@@ -1,5 +1,10 @@
 import { YAMLMap, YAMLSeq } from "yaml";
-import { Range, TextDocumentHelper, YamlParsingError } from "../../..";
+import {
+    Range,
+    TextDocumentHelper,
+    WithKeyAndValueRange,
+    YamlParsingError,
+} from "../../..";
 
 export interface CommonParsingArgs {
     docHelper: TextDocumentHelper;
@@ -17,25 +22,6 @@ export interface ParsedMapItems {
     validMaps: WithKeyAndKeyRange<YAMLMap>[];
     missingKeys: string[];
     unknownKeys: { key: string; keyRange: Range }[];
-}
-
-export interface ParsedEnvironmentVariable {
-    range: Range;
-    missingProperties: EnvironmentVariableProperty[];
-    fields: {
-        name: WithKeyAndValueRange<string>;
-        value?:
-            | WithKeyAndValueRange<string>
-            | {
-                  keyRange: Range;
-                  type: WithKeyAndValueRange<VariableType>;
-                  data: WithKeyAndValueRange<string>;
-              };
-        description?: WithKeyAndValueRange<string>;
-        type: OptionalVariableFieldResult<VariableType>;
-        secret: OptionalVariableFieldResult<boolean>;
-        disabled: OptionalVariableFieldResult<boolean>;
-    };
 }
 
 export interface ParsedRequestVariable {
@@ -218,11 +204,5 @@ export type OptionalVariableFieldResult<T> = {
 export type WithKeyKeyRangeAndValueRange<T> = WithKeyAndValueRange<T> & {
     key: string;
 };
-
-export interface WithKeyAndValueRange<T> {
-    keyRange: Range;
-    value: T;
-    valueRange: Range;
-}
 
 export type WithKeyAndKeyRange<T> = { value: T; key: string; keyRange: Range };

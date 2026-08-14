@@ -21,10 +21,11 @@ import { YAMLMap } from "yaml";
 import { isParsingResultOnlyErrors } from "../../internal/yamlFormat/util/isParsingResultOnlyErrors";
 import { parseHeadersFromSequence } from "../../internal/yamlFormat/yamlSequences/parseHeadersFromSequence";
 import { parseAuthFromYamlMapOrScalar } from "../../internal/yamlFormat/util/parseAuthFromYamlMapOrScalar";
+import { extractResultAndErrorsFromParsingResult } from "../../internal/yamlFormat/util/extractResultAndErrorsFromParsingResult";
 
-type Result = ParsingResult<ParsedFolderSettingsFile>;
-
-export function parseFolderSettingsFile(docHelper: TextDocumentHelper) {
+export function parseFolderSettingsFile(
+    docHelper: TextDocumentHelper,
+): ParsingResult<ParsedFolderSettingsFile> {
     const commonArgs: CommonParsingArgs = {
         docHelper,
         fullDocumentRange: docHelper.getTextRange(),
@@ -78,6 +79,12 @@ export function parseFolderSettingsFile(docHelper: TextDocumentHelper) {
         );
     }
     const info = getParsedInfo(infoMap, commonArgs, collectedErrors);
+    if (!info) {
+        // The info field is the only mandatory one.
+        return collectedErrors;
+    }
+    const request = getParsedRequest(validMaps, commonArgs, collectedErrors);
+    return { errors: collectedErrors, result: { info, request } };
 }
 
 function getParsedInfo(
@@ -110,19 +117,19 @@ function getParsedRequest(
     if (!requestMap) {
         return undefined;
     }
-    const requestResult = parseFileInfoFromYamlMap({
-        infoMap: requestMap,
+    const { auth: parsedAuth, headers: parsedHeaders } = parseRequestSection(
+        requestMap.value,
         commonArgs,
-        fileType: BrunoFileType.FolderSettingsFile,
-    });
-    const { info, errors: infoErrors } = isParsingResultOnlyErrors(
-        requestResult,
-    )
-        ? { info: undefined, errors: requestResult }
-        : { info: requestResult.result, errors: requestResult.errors };
-    collectedErrors.push(...infoErrors);
+    );
+    const { result: auth, errors: authErrors } = parsedAuth
+        ? extractResultAndErrorsFromParsingResult(parsedAuth)
+        : { result: undefined, errors: [] };
+    const { result: headers, errors: headerErrors } = parsedHeaders
+        ? extractResultAndErrorsFromParsingResult(parsedHeaders)
+        : { result: undefined, errors: [] };
+    collectedErrors.push(...authErrors, ...headerErrors);
 
-    return info;
+    return { auth, headers };
 }
 
 function parseRequestSection(
@@ -195,4 +202,6 @@ function parseRequestSection(
               authMapOrScalar,
           })
         : undefined;
+
+    return { headers: parsedHeaders, auth: parsedAuth };
 }
