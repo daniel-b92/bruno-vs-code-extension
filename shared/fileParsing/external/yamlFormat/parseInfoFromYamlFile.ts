@@ -9,7 +9,7 @@ import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDo
 import {
     ParsedInfoResult,
     parseFileInfoFromYamlMap,
-} from "../../internal/yamlFormat/yamlMaps/parseFileInfoFromYamlMap";
+} from "../../internal/yamlFormat/brunoSpecific/parseFileInfoFromYamlMap";
 import { isParsingResultOnlyErrors } from "../../internal/yamlFormat/util/isParsingResultOnlyErrors";
 
 export function parseInfoFromYamlFile(

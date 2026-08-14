@@ -8,7 +8,7 @@ import {
 } from "../interfaces";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getMapItems } from "../yamlMaps/getMapItems";
-import { getYamlMapsFromSequence } from "./getYamlMapsFromSequence";
+import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 
 export type ParsedInfoResult = ParsingResult<ParsedRequestHeader[]>;
