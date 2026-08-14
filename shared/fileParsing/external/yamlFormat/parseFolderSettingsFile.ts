@@ -20,7 +20,7 @@ import { parseFileInfoFromYamlMap } from "../../internal/yamlFormat/yamlMaps/par
 import { YAMLMap } from "yaml";
 import { isParsingResultOnlyErrors } from "../../internal/yamlFormat/util/isParsingResultOnlyErrors";
 import { parseHeadersFromSequence } from "../../internal/yamlFormat/yamlSequences/parseHeadersFromSequence";
-import { parseAuthFromYamlMapOrScalar } from "../../internal/yamlFormat/yamlMaps/parseAuthFromYamlMapOrScalar";
+import { parseAuthFromYamlMapOrScalar } from "../../internal/yamlFormat/util/parseAuthFromYamlMapOrScalar";
 
 type Result = ParsingResult<ParsedFolderSettingsFile>;
 

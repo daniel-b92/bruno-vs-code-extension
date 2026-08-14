@@ -15,11 +15,11 @@ import {
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
-import { getMapItems } from "./getMapItems";
-import { stripKeyFromResult } from "../util/stripKeyFromResult";
+import { getMapItems } from "../yamlMaps/getMapItems";
+import { stripKeyFromResult } from "./stripKeyFromResult";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
-import { isParsingResultOnlyErrors } from "../util/isParsingResultOnlyErrors";
+import { isParsingResultOnlyErrors } from "./isParsingResultOnlyErrors";
 
 type ParsedAuthResult = ParsingResult<ParsedAuth>;
 
