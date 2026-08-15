@@ -22,9 +22,9 @@ import {
     ActionVariableScope,
 } from "./constants/actionConstants";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
-import { extractErrorsFromParsingResult } from "../util/extractErrorsFromParsingResult";
+import { extractResultAndErrorsFromParsingResult } from "../util/extractResultAndErrorsFromParsingResult";
 
-export function parseVariablesFromYamlSequence(
+export function parseActionsFromYamlSequence(
     actionsSequence: YAMLSeq,
     commonArgs: CommonParsingArgs,
 ): ParsingResult<{
@@ -113,7 +113,7 @@ export function parseVariablesFromYamlSequence(
             commonArgs,
         );
         const { errors: actionErrors, result: action } =
-            extractErrorsFromParsingResult(maybeAction);
+            extractResultAndErrorsFromParsingResult(maybeAction);
         errors.push(...actionErrors);
 
         if (!action) {
@@ -198,9 +198,9 @@ function parseAction(
     const selectorResult = parseSelector(maybeSelectorMap.value, commonArgs);
     const variableResult = parseVariable(maybeVariableMap.value, commonArgs);
     const { result: selectorPureResult, errors: selectorErrors } =
-        extractErrorsFromParsingResult(selectorResult);
+        extractResultAndErrorsFromParsingResult(selectorResult);
     const { result: variablePureResult, errors: variableErrors } =
-        extractErrorsFromParsingResult(variableResult);
+        extractResultAndErrorsFromParsingResult(variableResult);
     errors.push(...selectorErrors, ...variableErrors);
 
     if (

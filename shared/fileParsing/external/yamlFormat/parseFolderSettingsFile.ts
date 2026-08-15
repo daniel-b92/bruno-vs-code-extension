@@ -24,6 +24,7 @@ import { parseAuthFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpe
 import { extractResultAndErrorsFromParsingResult } from "../../internal/yamlFormat/util/extractResultAndErrorsFromParsingResult";
 import { parseVariablesFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseVariablesFromYamlSequence";
 import { parseScriptsFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseScriptsFromYamlSequence";
+import { parseActionsFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseActionsFromYamlSequence";
 
 export function parseFolderSettingsFile(
     docHelper: TextDocumentHelper,
@@ -124,6 +125,7 @@ function getParsedRequest(
         headers: parsedHeaders,
         variables: parsedVariables,
         scripts: parsedScripts,
+        actions: parsedActions,
     } = parseRequestSection(requestMap.value, commonArgs);
     const { result: auth, errors: authErrors } = parsedAuth
         ? extractResultAndErrorsFromParsingResult(parsedAuth)
@@ -137,14 +139,18 @@ function getParsedRequest(
     const { result: scripts, errors: scriptErrors } = parsedScripts
         ? extractResultAndErrorsFromParsingResult(parsedScripts)
         : { result: undefined, errors: [] };
+    const { result: actions, errors: actionsErrors } = parsedActions
+        ? extractResultAndErrorsFromParsingResult(parsedActions)
+        : { result: undefined, errors: [] };
     collectedErrors.push(
         ...authErrors,
         ...headerErrors,
         ...variableErrors,
         ...scriptErrors,
+        ...actionsErrors,
     );
 
-    return { auth, headers, variables, scripts };
+    return { auth, headers, variables, scripts, actions };
 }
 
 function parseRequestSection(
@@ -197,7 +203,7 @@ function parseRequestSection(
     const maybeHeadersSequence = validSequences.find(
         ({ key }) => key == FolderSettingsRequestSectionProperty.Headers,
     );
-    const parsedHeaders = maybeHeadersSequence
+    const headers = maybeHeadersSequence
         ? parseHeadersFromSequence({
               commonArgs,
               headersSequence: maybeHeadersSequence.value,
@@ -211,7 +217,7 @@ function parseRequestSection(
         ({ key }) => key == FolderSettingsRequestSectionProperty.Auth,
     );
     const authMapOrScalar = maybeAuthScalar ?? maybeAuthMap?.value;
-    const parsedAuth = authMapOrScalar
+    const auth = authMapOrScalar
         ? parseAuthFromYamlMapOrScalar({
               commonArgs,
               authMapOrScalar,
@@ -221,7 +227,7 @@ function parseRequestSection(
     const maybeVariablesSequence = validSequences.find(
         ({ key }) => key == FolderSettingsRequestSectionProperty.Variables,
     );
-    const parsedVariables = maybeVariablesSequence
+    const variables = maybeVariablesSequence
         ? parseVariablesFromYamlSequence(
               maybeVariablesSequence.value,
               commonArgs,
@@ -231,14 +237,22 @@ function parseRequestSection(
     const maybeScriptsSequence = validSequences.find(
         ({ key }) => key == FolderSettingsRequestSectionProperty.Scripts,
     );
-    const parsedScripts = maybeScriptsSequence
+    const scripts = maybeScriptsSequence
         ? parseScriptsFromYamlSequence(maybeScriptsSequence.value, commonArgs)
         : undefined;
 
+    const maybeActionsSequence = validSequences.find(
+        ({ key }) => key == FolderSettingsRequestSectionProperty.Actions,
+    );
+    const actions = maybeActionsSequence
+        ? parseActionsFromYamlSequence(maybeActionsSequence.value, commonArgs)
+        : undefined;
+
     return {
-        headers: parsedHeaders,
-        auth: parsedAuth,
-        variables: parsedVariables,
-        scripts: parsedScripts,
+        headers,
+        auth,
+        variables,
+        scripts,
+        actions,
     };
 }
