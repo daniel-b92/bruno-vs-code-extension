@@ -28,12 +28,10 @@ export interface ParsedFolderSettingsFile {
     request?: {
         headers?: ParsedRequestHeader[];
         auth?: ParsedAuth;
-        variables?:
-            | {
-                  enabled: ParsedRequestVariable[];
-                  disabled: ParsedRequestVariable[];
-              }
-            | undefined;
+        variables?: {
+            enabled: ParsedRequestVariable[];
+            disabled: ParsedRequestVariable[];
+        };
         scripts?: WithKeyAndValueRange<ParsedScript[]>;
     };
     docs?: WithKeyAndValueRange<ParsedDocsWithType>;

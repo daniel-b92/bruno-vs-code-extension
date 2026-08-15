@@ -94,7 +94,7 @@ variables:
                         0,
                     ),
                 },
-                variables: expectedVariables,
+                variables: { enabled: expectedVariables, disabled: [] },
             },
             errors: [],
         });
@@ -116,7 +116,7 @@ variables:
         const firstVarNameLine = 2;
         const secondVarNameLine = 5;
 
-        const expectedVariables: ParsedEnvironmentVariable[] = [
+        const expectedEnabledVariables: ParsedEnvironmentVariable[] = [
             {
                 range: new Range(new Position(2, 4), new Position(5, 0)),
                 missingProperties: [
@@ -161,6 +161,8 @@ variables:
                     },
                 },
             },
+        ];
+        const expectedDisabledVariables: ParsedEnvironmentVariable[] = [
             {
                 range: new Range(
                     new Position(5, 4),
@@ -242,7 +244,10 @@ variables:
                         0,
                     ),
                 },
-                variables: expectedVariables,
+                variables: {
+                    enabled: expectedEnabledVariables,
+                    disabled: expectedDisabledVariables,
+                },
             },
             errors: [],
         });
@@ -276,9 +281,10 @@ variables:
             valueRange: getExpectedSameLineValueRange(0, "name", "Env1", 0),
         });
         expect(errors).toHaveLength(0);
-        expect(result.variables).toHaveLength(1);
+        expect(result.variables.enabled).toHaveLength(1);
+        expect(result.variables.disabled).toHaveLength(0);
 
-        const { fields } = result.variables[0];
+        const { fields } = result.variables.enabled[0];
         expect(fields.description).toBeUndefined();
         expect(fields.disabled).toEqual({ effectiveValue: false });
         expect(fields.name.value).toEqual("var-1");
@@ -387,8 +393,9 @@ invalid: bar`;
                 range,
             );
         }
-        expect(parsed.result.variables).toHaveLength(1);
-        const { fields } = parsed.result.variables[0];
+        expect(parsed.result.variables.enabled).toHaveLength(1);
+        expect(parsed.result.variables.disabled).toHaveLength(0);
+        const { fields } = parsed.result.variables.enabled[0];
         expect(fields.name.value).toBe("var-1");
         expect(fields.description?.value).toBe("desc");
         expect(fields.type).toEqual({

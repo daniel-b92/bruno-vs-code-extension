@@ -41,13 +41,14 @@ export class YamlFormatDiagnosticsProvider {
         if (Array.isArray(parsed)) {
             return mapParsingErrorsToDiagnostics(parsed);
         }
+        const { enabled, disabled } = parsed.result.variables;
 
         const parsingErrors = parsed.errors;
         const otherDiagnostics = [
             checkTopLevelNameIsDefined(parsed.result, commonParams),
         ].concat(
             checkVariableDefinitionsAreValid(
-                parsed.result.variables,
+                enabled.concat(disabled),
                 commonParams,
             ),
         );

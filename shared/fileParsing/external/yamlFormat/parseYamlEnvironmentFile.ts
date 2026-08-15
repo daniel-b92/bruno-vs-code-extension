@@ -32,7 +32,10 @@ export function parseYamlEnvironmentFile(
     docHelper: TextDocumentHelper,
 ): ParsingResult<{
     name: WithKeyAndValueRange<string> | { missing: boolean };
-    variables: ParsedEnvironmentVariable[];
+    variables: {
+        enabled: ParsedEnvironmentVariable[];
+        disabled: ParsedEnvironmentVariable[];
+    };
 }> {
     const fullDocumentRange = docHelper.getTextRange();
     const commonArgs = { docHelper, fullDocumentRange };
@@ -104,11 +107,25 @@ export function parseYamlEnvironmentFile(
         variableItems,
         commonArgs,
     );
+    const enabled = variables.filter(
+        ({
+            fields: {
+                disabled: { effectiveValue },
+            },
+        }) => !effectiveValue,
+    );
+    const disabled = variables.filter(
+        ({
+            fields: {
+                disabled: { effectiveValue },
+            },
+        }) => effectiveValue,
+    );
 
     return {
         result: {
             name: nameToUse,
-            variables,
+            variables: { enabled, disabled },
         },
         errors: collectedErrors.concat(firstErrorBatch, secondErrorBatch),
     };
