@@ -121,17 +121,17 @@ function getVariablesFromMapItems(
     const variables: ParsedEnvironmentVariable[] = [];
     const errors: YamlParsingError[] = [];
 
-    for (const currentMap of items) {
-        const keysForStringScalars = [
-            EnvironmentVariableProperty.Description,
-            EnvironmentVariableProperty.Name,
-            EnvironmentVariableProperty.Type,
-        ];
-        const keysForBooleanScalars = [
-            EnvironmentVariableProperty.Disabled,
-            EnvironmentVariableProperty.Secret,
-        ];
+    const keysForStringScalars = [
+        EnvironmentVariableProperty.Description,
+        EnvironmentVariableProperty.Name,
+        EnvironmentVariableProperty.Type,
+    ];
+    const keysForBooleanScalars = [
+        EnvironmentVariableProperty.Disabled,
+        EnvironmentVariableProperty.Secret,
+    ];
 
+    for (const currentMap of items) {
         const { items: allMapItems, errors: mapItemErrors } = getMapItems(
             currentMap,
             {

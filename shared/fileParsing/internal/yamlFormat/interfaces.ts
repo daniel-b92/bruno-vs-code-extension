@@ -26,7 +26,7 @@ export interface ParsedMapItems {
 
 export interface ParsedRequestVariable {
     missingProperties: RequestVariableProperty[];
-    fields: WithKeyAndValueRange<{
+    fields: {
         name: WithKeyAndValueRange<string>;
         value?:
             | WithKeyAndValueRange<string>
@@ -37,7 +37,7 @@ export interface ParsedRequestVariable {
               };
         description?: WithKeyAndValueRange<string>;
         disabled: OptionalVariableFieldResult<boolean>;
-    }>;
+    };
 }
 
 export interface ParsedRequestHeader {
@@ -96,7 +96,6 @@ export enum RequestVariableProperty {
     Value = "value",
     Description = "description",
     Disabled = "disabled",
-    Type = "type",
 }
 
 export enum RequestHeaderProperty {
