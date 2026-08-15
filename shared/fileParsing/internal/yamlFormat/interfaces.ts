@@ -36,7 +36,6 @@ export interface ParsedRequestVariable {
                   data: WithKeyAndValueRange<string>;
               };
         description?: WithKeyAndValueRange<string>;
-        type: OptionalVariableFieldResult<VariableType>;
         disabled: OptionalVariableFieldResult<boolean>;
     }>;
 }
