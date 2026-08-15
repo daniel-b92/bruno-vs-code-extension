@@ -22,6 +22,7 @@ import { isParsingResultOnlyErrors } from "../../internal/yamlFormat/util/isPars
 import { parseHeadersFromSequence } from "../../internal/yamlFormat/brunoSpecific/parseHeadersFromSequence";
 import { parseAuthFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpecific/parseAuthFromYamlMapOrScalar";
 import { extractResultAndErrorsFromParsingResult } from "../../internal/yamlFormat/util/extractResultAndErrorsFromParsingResult";
+import { parseVariablesFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseVariablesFromYamlSequence";
 
 export function parseFolderSettingsFile(
     docHelper: TextDocumentHelper,
@@ -117,19 +118,23 @@ function getParsedRequest(
     if (!requestMap) {
         return undefined;
     }
-    const { auth: parsedAuth, headers: parsedHeaders } = parseRequestSection(
-        requestMap.value,
-        commonArgs,
-    );
+    const {
+        auth: parsedAuth,
+        headers: parsedHeaders,
+        variables: parsedVariables,
+    } = parseRequestSection(requestMap.value, commonArgs);
     const { result: auth, errors: authErrors } = parsedAuth
         ? extractResultAndErrorsFromParsingResult(parsedAuth)
         : { result: undefined, errors: [] };
     const { result: headers, errors: headerErrors } = parsedHeaders
         ? extractResultAndErrorsFromParsingResult(parsedHeaders)
         : { result: undefined, errors: [] };
-    collectedErrors.push(...authErrors, ...headerErrors);
+    const { result: variables, errors: variableErrors } = parsedVariables
+        ? extractResultAndErrorsFromParsingResult(parsedVariables)
+        : { result: undefined, errors: [] };
+    collectedErrors.push(...authErrors, ...headerErrors, ...variableErrors);
 
-    return { auth, headers };
+    return { auth, headers, variables };
 }
 
 function parseRequestSection(
@@ -203,5 +208,19 @@ function parseRequestSection(
           })
         : undefined;
 
-    return { headers: parsedHeaders, auth: parsedAuth };
+    const maybeVariablesSequence = validSequences.find(
+        ({ key }) => key == FolderSettingsRequestSectionProperty.Variables,
+    );
+    const parsedVariables = maybeVariablesSequence
+        ? parseVariablesFromYamlSequence(
+              maybeVariablesSequence.value,
+              commonArgs,
+          )
+        : undefined;
+
+    return {
+        headers: parsedHeaders,
+        auth: parsedAuth,
+        variables: parsedVariables,
+    };
 }

@@ -11,12 +11,12 @@ import { getMapItems } from "../yamlMaps/getMapItems";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 
-export type ParsedInfoResult = ParsingResult<ParsedRequestHeader[]>;
+export type ParsedHeadersResult = ParsingResult<ParsedRequestHeader[]>;
 
 export function parseHeadersFromSequence(args: {
     commonArgs: CommonParsingArgs;
     headersSequence: YAMLSeq;
-}): ParsedInfoResult {
+}): ParsedHeadersResult {
     const { commonArgs, headersSequence } = args;
     const errors: YamlParsingError[] = [];
     const result: ParsedRequestHeader[] = [];
