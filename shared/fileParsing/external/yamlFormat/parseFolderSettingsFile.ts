@@ -23,6 +23,7 @@ import { parseHeadersFromSequence } from "../../internal/yamlFormat/brunoSpecifi
 import { parseAuthFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpecific/parseAuthFromYamlMapOrScalar";
 import { extractResultAndErrorsFromParsingResult } from "../../internal/yamlFormat/util/extractResultAndErrorsFromParsingResult";
 import { parseVariablesFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseVariablesFromYamlSequence";
+import { parseScriptsFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseScriptsFromYamlSequence";
 
 export function parseFolderSettingsFile(
     docHelper: TextDocumentHelper,
@@ -122,6 +123,7 @@ function getParsedRequest(
         auth: parsedAuth,
         headers: parsedHeaders,
         variables: parsedVariables,
+        scripts: parsedScripts,
     } = parseRequestSection(requestMap.value, commonArgs);
     const { result: auth, errors: authErrors } = parsedAuth
         ? extractResultAndErrorsFromParsingResult(parsedAuth)
@@ -132,9 +134,17 @@ function getParsedRequest(
     const { result: variables, errors: variableErrors } = parsedVariables
         ? extractResultAndErrorsFromParsingResult(parsedVariables)
         : { result: undefined, errors: [] };
-    collectedErrors.push(...authErrors, ...headerErrors, ...variableErrors);
+    const { result: scripts, errors: scriptErrors } = parsedScripts
+        ? extractResultAndErrorsFromParsingResult(parsedScripts)
+        : { result: undefined, errors: [] };
+    collectedErrors.push(
+        ...authErrors,
+        ...headerErrors,
+        ...variableErrors,
+        ...scriptErrors,
+    );
 
-    return { auth, headers, variables };
+    return { auth, headers, variables, scripts };
 }
 
 function parseRequestSection(
@@ -218,9 +228,17 @@ function parseRequestSection(
           )
         : undefined;
 
+    const maybeScriptsSequence = validSequences.find(
+        ({ key }) => key == FolderSettingsRequestSectionProperty.Scripts,
+    );
+    const parsedScripts = maybeScriptsSequence
+        ? parseScriptsFromYamlSequence(maybeScriptsSequence.value, commonArgs)
+        : undefined;
+
     return {
         headers: parsedHeaders,
         auth: parsedAuth,
         variables: parsedVariables,
+        scripts: parsedScripts,
     };
 }

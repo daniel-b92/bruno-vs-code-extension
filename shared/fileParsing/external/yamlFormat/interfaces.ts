@@ -32,7 +32,7 @@ export interface ParsedFolderSettingsFile {
             enabled: ParsedRequestVariable[];
             disabled: ParsedRequestVariable[];
         };
-        scripts?: WithKeyAndValueRange<ParsedScript[]>;
+        scripts?: ParsedScript[];
     };
     docs?: WithKeyAndValueRange<ParsedDocsWithType>;
 }
