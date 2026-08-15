@@ -3,6 +3,7 @@ import {
     EnvironmentVariableProperty,
     FileInfoType,
     OptionalVariableFieldResult,
+    ParsedAction,
     ParsedAuth,
     ParsedDocsWithType,
     ParsedRequestHeader,
@@ -31,6 +32,10 @@ export interface ParsedFolderSettingsFile {
         variables?: {
             enabled: ParsedRequestVariable[];
             disabled: ParsedRequestVariable[];
+        };
+        actions?: {
+            enabled: ParsedAction[];
+            disabled: ParsedAction[];
         };
         scripts?: ParsedScript[];
     };

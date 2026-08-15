@@ -5,6 +5,12 @@ import {
     WithKeyAndValueRange,
     YamlParsingError,
 } from "../../..";
+import {
+    ActionPhase,
+    ActionSelectorMethod,
+    ActionType,
+    ActionVariableScope,
+} from "./brunoSpecific/constants/actionConstants";
 
 export interface CommonParsingArgs {
     docHelper: TextDocumentHelper;
@@ -38,6 +44,21 @@ export interface ParsedRequestVariable {
         description?: WithKeyAndValueRange<string>;
         disabled: OptionalVariableFieldResult<boolean>;
     };
+}
+
+export interface ParsedAction {
+    type: WithKeyAndValueRange<ActionType>;
+    phase: WithKeyAndValueRange<ActionPhase>;
+    selector: {
+        expression: WithKeyAndValueRange<string>;
+        method: WithKeyAndValueRange<ActionSelectorMethod>;
+    };
+    variable: {
+        name: WithKeyAndValueRange<string>;
+        scope: WithKeyAndValueRange<ActionVariableScope>;
+    };
+    description?: WithKeyAndValueRange<string>;
+    disabled: OptionalVariableFieldResult<boolean>;
 }
 
 export interface ParsedRequestHeader {
