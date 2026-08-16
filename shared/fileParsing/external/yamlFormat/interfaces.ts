@@ -41,7 +41,7 @@ export interface ParsedFolderSettingsFile {
         };
         scripts?: ParsedScript[];
     };
-    docs?: WithKeyAndValueRange<ParsedDocsWithType>;
+    docs?: ParsedDocsWithType;
 }
 
 export type ParsedInfoForRequestFile = ParsedInfoForFolderSettings & {
