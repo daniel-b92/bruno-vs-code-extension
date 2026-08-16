@@ -128,7 +128,7 @@ function getVariablesFromMapItems(
     errors: YamlParsingError[];
 } {
     const enabledVariables: ParsedEnvironmentVariable[] = [];
-    const disabledVariables = enabledVariables.slice();
+    const disabledVariables: ParsedEnvironmentVariable[] = [];
     const errors: YamlParsingError[] = [];
 
     const keysForStringScalars = [
@@ -260,7 +260,7 @@ function getVariablesFromMapItems(
         if (variable.fields.disabled.effectiveValue) {
             disabledVariables.push(variable);
         } else {
-            enabledVariables.push();
+            enabledVariables.push(variable);
         }
     }
 
