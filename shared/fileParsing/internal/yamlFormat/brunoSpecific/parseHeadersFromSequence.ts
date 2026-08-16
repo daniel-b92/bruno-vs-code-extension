@@ -1,9 +1,13 @@
 import { YAMLSeq } from "yaml";
-import { YamlParsingError } from "../../../..";
+import {
+    OrAbsenceReason,
+    ReasonForFieldAbsence,
+    YamlParsingError,
+} from "../../../..";
 import {
     CommonParsingArgs,
     ParsedRequestHeader,
-    ParsingResult,
+    WithErrors,
 } from "../interfaces";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getMapItems } from "../yamlMaps/getMapItems";
@@ -11,12 +15,10 @@ import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequenc
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { RequestHeaderProperty } from "./constants/sharedConstants";
 
-export type ParsedHeadersResult = ParsingResult<ParsedRequestHeader[]>;
-
 export function parseHeadersFromSequence(args: {
     commonArgs: CommonParsingArgs;
     headersSequence: YAMLSeq;
-}): ParsedHeadersResult {
+}): WithErrors<OrAbsenceReason<ParsedRequestHeader[]>> {
     const { commonArgs, headersSequence } = args;
     const errors: YamlParsingError[] = [];
     const result: ParsedRequestHeader[] = [];
@@ -76,7 +78,10 @@ export function parseHeadersFromSequence(args: {
         );
         if (!name || !value) {
             // Name and value are mandatory.
-            return errors;
+            return {
+                errors,
+                result: { reason: ReasonForFieldAbsence.Invalid },
+            };
         }
 
         const description = validStrings.find(

@@ -1,5 +1,7 @@
 import { isMap, YAMLMap } from "yaml";
 import {
+    OrAbsenceReason,
+    ReasonForFieldAbsence,
     WithKeyAndValueRange,
     YamlParsingError,
     YamlParsingErrorCode,
@@ -10,6 +12,7 @@ import {
     ParsedBasicAuth,
     ParsedBearerAuth,
     ParsingResult,
+    WithErrors,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
@@ -26,12 +29,10 @@ import {
     inheritAuthValue,
 } from "./constants/authConstants";
 
-type ParsedAuthResult = ParsingResult<ParsedAuth>;
-
 export function parseAuthFromYamlMapOrScalar(args: {
     commonArgs: CommonParsingArgs;
     authMapOrScalar: YAMLMap | WithKeyKeyRangeAndValueRange<string>;
-}): ParsedAuthResult {
+}): WithErrors<OrAbsenceReason<ParsedAuth>> {
     const { commonArgs, authMapOrScalar } = args;
     const allErrors: YamlParsingError[] = [];
 
@@ -39,18 +40,24 @@ export function parseAuthFromYamlMapOrScalar(args: {
         const { valueRange } = authMapOrScalar;
         return authMapOrScalar.value == inheritAuthValue
             ? { result: { valueRange }, errors: [] }
-            : [
-                  {
-                      message: `Invalid Scalar string for auth. Allowed is only '${inheritAuthValue}'.`,
-                      range: valueRange,
-                      code: YamlParsingErrorCode.Other,
-                  },
-              ];
+            : {
+                  errors: [
+                      {
+                          message: `Invalid Scalar string for auth. Allowed is only '${inheritAuthValue}'.`,
+                          range: valueRange,
+                          code: YamlParsingErrorCode.Other,
+                      },
+                  ],
+                  result: { reason: ReasonForFieldAbsence.Invalid },
+              };
     }
 
     const maybeAuthType = tryToParseAuthTypeField(authMapOrScalar, commonArgs);
     if (isParsingResultOnlyErrors(maybeAuthType)) {
-        return maybeAuthType;
+        return {
+            errors: maybeAuthType,
+            result: { reason: ReasonForFieldAbsence.Invalid },
+        };
     }
 
     const { errors: typeParsingErrors, result: authType } = maybeAuthType;
@@ -87,7 +94,10 @@ export function parseAuthFromYamlMapOrScalar(args: {
             };
         // ToDo: Add support for more auth types.
         default:
-            return allErrors;
+            return {
+                errors: allErrors,
+                result: { reason: ReasonForFieldAbsence.Invalid },
+            };
     }
 
     function tryToParseAuthTypeField(

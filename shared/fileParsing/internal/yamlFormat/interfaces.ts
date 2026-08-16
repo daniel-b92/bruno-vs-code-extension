@@ -102,12 +102,12 @@ export interface ParsedInheritAuth {
     valueRange: Range;
 }
 
-export type ParsingResult<T> =
-    | YamlParsingError[]
-    | {
-          result: T;
-          errors: YamlParsingError[];
-      };
+export type ParsingResult<T> = YamlParsingError[] | WithErrors<T>;
+
+export type WithErrors<T> = {
+    result: T;
+    errors: YamlParsingError[];
+};
 
 export type OptionalVariableFieldResult<T> = {
     effectiveValue: T;

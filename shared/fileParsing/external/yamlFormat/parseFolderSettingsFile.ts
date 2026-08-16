@@ -1,7 +1,9 @@
 import {
     BrunoFileType,
+    OrAbsenceReason,
     ParsedFolderSettingsFile,
     ParsedInfoForFolderSettings,
+    ReasonForFieldAbsence,
     TextDocumentHelper,
     YamlParsingError,
     YamlParsingErrorCode,
@@ -11,6 +13,7 @@ import {
     CommonParsingArgs,
     ParsedDocsWithType,
     ParsingResult,
+    WithErrors,
     WithKeyAndKeyRange,
     WithKeyKeyRangeAndValueRange,
 } from "../../internal/yamlFormat/interfaces";
@@ -79,31 +82,54 @@ export function parseFolderSettingsFile(
             ),
         ),
     );
-    const infoMap = validMaps.find(
-        ({ key }) => key == TopLevelFolderSettingsProperty.Info,
-    );
-    if (!infoMap || missingKeys.includes(TopLevelFolderSettingsProperty.Info)) {
-        // The info property is the only mandatory one.
-        return collectedErrors.concat(
-            getErrorForMissingKeyInMap({
-                ...commonArgs,
-                missingKey: TopLevelFolderSettingsProperty.Info,
-                map: topLevelMap,
-            }),
-        );
-    }
-    const info = getParsedInfo(infoMap, commonArgs, collectedErrors);
-    if (!info) {
-        // The info field is the only mandatory one.
-        return collectedErrors;
-    }
-    const request = getParsedRequest(validMaps, commonArgs, collectedErrors);
-    const docs = getParsedDocs(
-        validMaps,
-        validScalars,
+
+    const request = getParsedRequest(
+        { missingKeys, validSecondLevelMaps: validMaps },
         commonArgs,
         collectedErrors,
     );
+    const docs = getParsedDocs(
+        { allValidMaps: validMaps, allValidScalars: validScalars, missingKeys },
+        commonArgs,
+        collectedErrors,
+    );
+
+    const infoMap = validMaps.find(
+        ({ key }) => key == TopLevelFolderSettingsProperty.Info,
+    );
+    const info = infoMap
+        ? getParsedInfo(infoMap, commonArgs, collectedErrors)
+        : undefined;
+    if (!info) {
+        // The info property is the only mandatory one.
+        const isMissing = missingKeys.includes(
+            TopLevelFolderSettingsProperty.Info,
+        );
+
+        if (isMissing) {
+            collectedErrors.push(
+                getErrorForMissingKeyInMap({
+                    ...commonArgs,
+                    missingKey: TopLevelFolderSettingsProperty.Info,
+                    map: topLevelMap,
+                }),
+            );
+        }
+
+        return {
+            errors: collectedErrors,
+            result: {
+                info: {
+                    reason: isMissing
+                        ? ReasonForFieldAbsence.Missing
+                        : ReasonForFieldAbsence.Invalid,
+                },
+                docs,
+                request,
+            },
+        };
+    }
+
     return { errors: collectedErrors, result: { info, request, docs } };
 }
 
@@ -125,19 +151,31 @@ function getParsedInfo(
 }
 
 function getParsedDocs(
-    allValidMaps: WithKeyAndKeyRange<YAMLMap>[],
-    allValidScalars: WithKeyKeyRangeAndValueRange<unknown>[],
+    parsedData: {
+        allValidMaps: WithKeyAndKeyRange<YAMLMap>[];
+        allValidScalars: WithKeyKeyRangeAndValueRange<unknown>[];
+        missingKeys: string[];
+    },
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
-): ParsedDocsWithType | undefined {
+): OrAbsenceReason<ParsedDocsWithType> {
+    const { allValidMaps, allValidScalars, missingKeys } = parsedData;
     const map = allValidMaps.find(
         ({ key }) => key == TopLevelFolderSettingsProperty.Docs,
     );
     const untypedScalar = allValidScalars.find(
         ({ key }) => key == TopLevelFolderSettingsProperty.Docs,
     );
-    if ((map && untypedScalar) || (!map && !untypedScalar)) {
-        return undefined;
+    if (map && untypedScalar) {
+        return { reason: ReasonForFieldAbsence.Invalid };
+    }
+    if (!map && !untypedScalar) {
+        return {
+            reason: getAbsenceReasonForField(
+                missingKeys,
+                TopLevelFolderSettingsProperty.Docs,
+            ),
+        };
     }
     if (
         untypedScalar &&
@@ -149,7 +187,7 @@ function getParsedDocs(
             message: `Docs field may only be a string or NULL, if it's a Yaml scalar`,
             range: untypedScalar.valueRange,
         });
-        return undefined;
+        return { reason: ReasonForFieldAbsence.Invalid };
     }
 
     const docs = (map?.value ??
@@ -163,20 +201,29 @@ function getParsedDocs(
         extractResultAndErrorsFromParsingResult(parsingResult);
     collectedErrors.push(...parsingErrors);
 
-    return result;
+    return result ?? { reason: ReasonForFieldAbsence.Invalid };
 }
 
 function getParsedRequest(
-    validSecondLevelMaps: WithKeyAndKeyRange<YAMLMap>[],
+    parsedData: {
+        validSecondLevelMaps: WithKeyAndKeyRange<YAMLMap>[];
+        missingKeys: string[];
+    },
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ) {
+    const { missingKeys, validSecondLevelMaps } = parsedData;
     const requestMap = validSecondLevelMaps.find(
         ({ key }) => key == TopLevelFolderSettingsProperty.Request,
     );
 
     if (!requestMap) {
-        return undefined;
+        return {
+            reason: getAbsenceReasonForField(
+                missingKeys,
+                TopLevelFolderSettingsProperty.Request,
+            ),
+        };
     }
     const {
         auth: parsedAuth,
@@ -188,9 +235,7 @@ function getParsedRequest(
     const { result: auth, errors: authErrors } = parsedAuth
         ? extractResultAndErrorsFromParsingResult(parsedAuth)
         : { result: undefined, errors: [] };
-    const { result: headers, errors: headerErrors } = parsedHeaders
-        ? extractResultAndErrorsFromParsingResult(parsedHeaders)
-        : { result: undefined, errors: [] };
+    const { result: headers, errors: headerErrors } = parsedHeaders;
     const { result: variables, errors: variableErrors } = parsedVariables
         ? extractResultAndErrorsFromParsingResult(parsedVariables)
         : { result: undefined, errors: [] };
@@ -229,6 +274,7 @@ function parseRequestSection(
 
     const {
         items: {
+            missingKeys,
             unknownKeys,
             validMaps,
             validSequences,
@@ -266,7 +312,15 @@ function parseRequestSection(
               commonArgs,
               headersSequence: maybeHeadersSequence.value,
           })
-        : undefined;
+        : {
+              errors: collectedErrors,
+              result: {
+                  reason: getAbsenceReasonForField(
+                      missingKeys,
+                      FolderSettingsRequestSectionProperty.Headers,
+                  ),
+              },
+          };
 
     const maybeAuthScalar = validStringScalars.find(
         ({ key }) => key == FolderSettingsRequestSectionProperty.Auth,
@@ -313,4 +367,13 @@ function parseRequestSection(
         scripts,
         actions,
     };
+}
+
+function getAbsenceReasonForField(
+    allMissingKeys: string[],
+    keyToCheck: string,
+) {
+    return allMissingKeys.includes(keyToCheck)
+        ? ReasonForFieldAbsence.Missing
+        : ReasonForFieldAbsence.Invalid;
 }

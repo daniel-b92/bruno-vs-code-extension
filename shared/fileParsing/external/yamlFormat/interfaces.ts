@@ -27,21 +27,21 @@ export interface YamlParsingError {
 }
 
 export interface ParsedFolderSettingsFile {
-    info: ParsedInfoForFolderSettings;
-    request?: {
-        headers?: ParsedRequestHeader[];
-        auth?: ParsedAuth;
-        variables?: {
+    info: OrAbsenceReason<ParsedInfoForFolderSettings>;
+    request: OrAbsenceReason<{
+        headers: OrAbsenceReason<ParsedRequestHeader[]>;
+        auth: OrAbsenceReason<ParsedAuth>;
+        variables: OrAbsenceReason<{
             enabled: ParsedRequestVariable[];
             disabled: ParsedRequestVariable[];
-        };
-        actions?: {
+        }>;
+        actions: OrAbsenceReason<{
             enabled: ParsedAction[];
             disabled: ParsedAction[];
-        };
-        scripts?: ParsedScript[];
-    };
-    docs?: ParsedDocsWithType;
+        }>;
+        scripts: OrAbsenceReason<ParsedScript[]>;
+    }>;
+    docs: OrAbsenceReason<ParsedDocsWithType>;
 }
 
 export type ParsedInfoForRequestFile = ParsedInfoForFolderSettings & {
@@ -84,4 +84,11 @@ export interface WithKeyAndValueRange<T> {
     keyRange: Range;
     value: T;
     valueRange: Range;
+}
+
+export type OrAbsenceReason<T> = T | { reason: ReasonForFieldAbsence };
+
+export enum ReasonForFieldAbsence {
+    Invalid = "invalid",
+    Missing = "missing",
 }
