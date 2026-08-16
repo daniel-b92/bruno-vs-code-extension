@@ -6,7 +6,11 @@ import {
     WithKeyAndKeyRange,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
-import { WithKeyAndValueRange, YamlParsingError } from "../../../..";
+import {
+    WithKeyAndValueRange,
+    YamlParsingError,
+    extractResultAndErrorsFromParsingResult,
+} from "../../../..";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
 import { getMapItems } from "../yamlMaps/getMapItems";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
@@ -22,7 +26,6 @@ import {
     ActionVariableScope,
 } from "./constants/actionConstants";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
-import { extractResultAndErrorsFromParsingResult } from "../../../external/yamlFormat/util/extractResultAndErrorsFromParsingResult";
 
 export function parseActionsFromYamlSequence(
     actionsSequence: YAMLSeq,

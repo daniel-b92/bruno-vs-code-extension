@@ -5,6 +5,7 @@ import {
     TextDocumentHelper,
     YamlParsingError,
     YamlParsingErrorCode,
+    extractResultAndErrorsFromParsingResult,
 } from "../../..";
 import {
     CommonParsingArgs,
@@ -21,7 +22,6 @@ import { parseFileInfoFromYamlMap } from "../../internal/yamlFormat/brunoSpecifi
 import { YAMLMap } from "yaml";
 import { parseHeadersFromSequence } from "../../internal/yamlFormat/brunoSpecific/parseHeadersFromSequence";
 import { parseAuthFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpecific/parseAuthFromYamlMapOrScalar";
-import { extractResultAndErrorsFromParsingResult } from "./util/extractResultAndErrorsFromParsingResult";
 import { parseVariablesFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseVariablesFromYamlSequence";
 import { parseScriptsFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseScriptsFromYamlSequence";
 import { parseActionsFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseActionsFromYamlSequence";
