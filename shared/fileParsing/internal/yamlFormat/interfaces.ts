@@ -81,8 +81,8 @@ export interface ParsedScript {
 }
 
 export interface ParsedDocsWithType {
-    type: WithKeyAndValueRange<DocsType>;
-    content: WithKeyAndValueRange<string>;
+    type?: WithKeyAndValueRange<DocsType>;
+    content?: WithKeyAndValueRange<string>;
 }
 
 export type ParsedAuth = ParsedInheritAuth | ParsedBasicAuth | ParsedBearerAuth;

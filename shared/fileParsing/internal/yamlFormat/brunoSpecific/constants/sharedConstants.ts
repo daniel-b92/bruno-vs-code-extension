@@ -31,6 +31,11 @@ export enum DocsType {
     TextMarkdown = "text/markdown",
 }
 
+export enum DocsProperty {
+    Content = "content",
+    Type = "type",
+}
+
 export enum VariableType {
     Number = "number",
     Boolean = "boolean",
