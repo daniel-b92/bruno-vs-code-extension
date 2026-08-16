@@ -79,7 +79,7 @@ function parseFromMap(
         ({ key }) => key == DocsProperty.Content,
     );
     const untypedType = validStringScalars.find(
-        ({ key }) => key == DocsProperty.Content,
+        ({ key }) => key == DocsProperty.Type,
     );
     if (!untypedType) {
         return errors;
