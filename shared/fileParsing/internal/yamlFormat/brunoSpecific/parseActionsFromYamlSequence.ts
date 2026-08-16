@@ -223,14 +223,12 @@ function parseAction(
             description: maybeDescriptionWithKeyRange
                 ? stripKeyFromResult(maybeDescriptionWithKeyRange)
                 : undefined,
-            disabled: maybeDisabledWithKeyRange
-                ? {
-                      effectiveValue: disabledEffectiveValue,
-                      field: stripKeyFromResult(maybeDisabledWithKeyRange),
-                  }
-                : {
-                      effectiveValue: disabledEffectiveValue,
-                  },
+            disabled: {
+                effectiveValue: disabledEffectiveValue,
+                field: maybeDisabledWithKeyRange
+                    ? stripKeyFromResult(maybeDisabledWithKeyRange)
+                    : undefined,
+            },
             selector: selectorPureResult,
             variable: variablePureResult,
         },
