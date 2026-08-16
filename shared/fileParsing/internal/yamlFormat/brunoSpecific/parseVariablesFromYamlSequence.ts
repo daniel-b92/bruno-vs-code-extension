@@ -22,7 +22,8 @@ export function parseVariablesFromYamlSequence(
     enabled: ParsedRequestVariable[];
     disabled: ParsedRequestVariable[];
 }> {
-    const variables: ParsedRequestVariable[] = [];
+    const enabledVariables: ParsedRequestVariable[] = [];
+    const disabledVariables: ParsedRequestVariable[] = [];
     const errors: YamlParsingError[] = [];
 
     const { items: variableMaps, errors: sequenceParsingErrors } =
@@ -108,7 +109,7 @@ export function parseVariablesFromYamlSequence(
             continue;
         }
 
-        variables.push({
+        const variable = {
             missingProperties: missingKeys as RequestVariableProperty[],
             fields: {
                 name: stripKeyFromResult(name),
@@ -127,25 +128,19 @@ export function parseVariablesFromYamlSequence(
                             ...valueToUse.value,
                         },
             },
-        });
+        };
+
+        if (variable.fields.disabled.effectiveValue) {
+            disabledVariables.push(variable);
+        } else {
+            enabledVariables.push(variable);
+        }
     }
 
     return {
         result: {
-            enabled: variables.filter(
-                ({
-                    fields: {
-                        disabled: { effectiveValue },
-                    },
-                }) => !effectiveValue,
-            ),
-            disabled: variables.filter(
-                ({
-                    fields: {
-                        disabled: { effectiveValue },
-                    },
-                }) => effectiveValue,
-            ),
+            enabled: enabledVariables,
+            disabled: disabledVariables,
         },
         errors,
     };
@@ -171,13 +166,11 @@ function getItemsForSimpleOptionalVariableProps(
         description: maybeDescriptionWithKeyRange
             ? stripKeyFromResult(maybeDescriptionWithKeyRange)
             : undefined,
-        disabled: maybeDisabledWithKeyRange
-            ? {
-                  effectiveValue: disabledEffectiveValue,
-                  field: stripKeyFromResult(maybeDisabledWithKeyRange),
-              }
-            : {
-                  effectiveValue: disabledEffectiveValue,
-              },
+        disabled: {
+            effectiveValue: disabledEffectiveValue,
+            field: maybeDisabledWithKeyRange
+                ? stripKeyFromResult(maybeDisabledWithKeyRange)
+                : undefined,
+        },
     };
 }

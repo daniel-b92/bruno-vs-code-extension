@@ -34,10 +34,7 @@ export function parseScriptsFromYamlSequence(
         });
     errors.push(...sequenceParsingErrors);
 
-    const keysForStringScalars = [
-        ScriptMapProperty.Code,
-        ScriptMapProperty.Type,
-    ];
+    const keysForStringScalars = Object.values(ScriptMapProperty);
 
     for (const currentMap of scriptMaps) {
         const {
