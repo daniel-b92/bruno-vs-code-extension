@@ -141,13 +141,15 @@ function getParsedDocs(
     }
     if (
         untypedScalar &&
-        (untypedScalar.value !== null || typeof untypedScalar.value != "string")
+        untypedScalar.value !== null &&
+        typeof untypedScalar.value != "string"
     ) {
         collectedErrors.push({
             code: YamlParsingErrorCode.Other,
             message: `Docs field may only be a string or NULL, if it's a Yaml scalar`,
             range: untypedScalar.valueRange,
         });
+        return undefined;
     }
 
     const docs = (map?.value ??
