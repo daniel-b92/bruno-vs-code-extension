@@ -2,7 +2,7 @@ import { isScalar, YAMLSeq } from "yaml";
 import {
     CommonParsingArgs,
     ParsedRequestVariable,
-    ParsingResult,
+    WithErrors,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { YamlParsingError } from "../../../..";
@@ -18,7 +18,7 @@ import { RequestVariableProperty } from "./constants/sharedConstants";
 export function parseVariablesFromYamlSequence(
     variablesSequence: YAMLSeq,
     commonArgs: CommonParsingArgs,
-): ParsingResult<{
+): WithErrors<{
     enabled: ParsedRequestVariable[];
     disabled: ParsedRequestVariable[];
 }> {

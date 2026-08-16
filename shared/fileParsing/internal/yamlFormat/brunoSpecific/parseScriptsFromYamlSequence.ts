@@ -3,6 +3,7 @@ import {
     CommonParsingArgs,
     ParsedScript,
     ParsingResult,
+    WithErrors,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { YamlParsingError } from "../../../..";
@@ -23,7 +24,7 @@ enum ScriptMapProperty {
 export function parseScriptsFromYamlSequence(
     scriptsSequence: YAMLSeq,
     commonArgs: CommonParsingArgs,
-): ParsingResult<ParsedScript[]> {
+): WithErrors<ParsedScript[]> {
     const scripts: ParsedScript[] = [];
     const errors: YamlParsingError[] = [];
 

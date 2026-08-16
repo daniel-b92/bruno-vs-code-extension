@@ -3,6 +3,7 @@ import {
     CommonParsingArgs,
     ParsedAction,
     ParsingResult,
+    WithErrors,
     WithKeyAndKeyRange,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
@@ -30,7 +31,7 @@ import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 export function parseActionsFromYamlSequence(
     actionsSequence: YAMLSeq,
     commonArgs: CommonParsingArgs,
-): ParsingResult<{
+): WithErrors<{
     enabled: ParsedAction[];
     disabled: ParsedAction[];
 }> {

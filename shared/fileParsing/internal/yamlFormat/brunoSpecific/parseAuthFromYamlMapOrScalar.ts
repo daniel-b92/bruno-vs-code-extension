@@ -156,6 +156,7 @@ export function parseAuthFromYamlMapOrScalar(args: {
             errors,
             items: {
                 unknownKeys,
+                missingKeys,
                 validScalars: { withStringValue: validStringScalars },
             },
         } = getMapItems(
@@ -184,8 +185,24 @@ export function parseAuthFromYamlMapOrScalar(args: {
         return {
             auth: {
                 type,
-                username: username ? stripKeyFromResult(username) : undefined,
-                password: password ? stripKeyFromResult(password) : undefined,
+                username: username
+                    ? stripKeyFromResult(username)
+                    : {
+                          reason: missingKeys.includes(
+                              BasicAuthProperty.Username,
+                          )
+                              ? ReasonForFieldAbsence.Missing
+                              : ReasonForFieldAbsence.Invalid,
+                      },
+                password: password
+                    ? stripKeyFromResult(password)
+                    : {
+                          reason: missingKeys.includes(
+                              BasicAuthProperty.Password,
+                          )
+                              ? ReasonForFieldAbsence.Missing
+                              : ReasonForFieldAbsence.Invalid,
+                      },
             },
             errors: allErrors,
         };
@@ -205,6 +222,7 @@ export function parseAuthFromYamlMapOrScalar(args: {
             errors,
             items: {
                 unknownKeys,
+                missingKeys,
                 validScalars: { withStringValue: validStringScalars },
             },
         } = getMapItems(
@@ -230,7 +248,13 @@ export function parseAuthFromYamlMapOrScalar(args: {
         return {
             auth: {
                 type,
-                token: token ? stripKeyFromResult(token) : undefined,
+                token: token
+                    ? stripKeyFromResult(token)
+                    : {
+                          reason: missingKeys.includes(BearerAuthProperty.Token)
+                              ? ReasonForFieldAbsence.Missing
+                              : ReasonForFieldAbsence.Invalid,
+                      },
             },
             errors: allErrors,
         };

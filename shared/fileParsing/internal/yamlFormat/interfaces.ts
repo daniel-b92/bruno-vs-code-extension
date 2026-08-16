@@ -1,5 +1,6 @@
 import { YAMLMap, YAMLSeq } from "yaml";
 import {
+    OrAbsenceReason,
     Range,
     TextDocumentHelper,
     WithKeyAndValueRange,
@@ -89,13 +90,13 @@ export type ParsedAuth = ParsedInheritAuth | ParsedBasicAuth | ParsedBearerAuth;
 
 export interface ParsedBasicAuth {
     type: WithKeyAndValueRange<AuthType.Basic>;
-    username?: WithKeyAndValueRange<string>;
-    password?: WithKeyAndValueRange<string>;
+    username: OrAbsenceReason<WithKeyAndValueRange<string>>;
+    password: OrAbsenceReason<WithKeyAndValueRange<string>>;
 }
 
 export interface ParsedBearerAuth {
     type: WithKeyAndValueRange<AuthType.Bearer>;
-    token?: WithKeyAndValueRange<string>;
+    token: OrAbsenceReason<WithKeyAndValueRange<string>>;
 }
 
 export interface ParsedInheritAuth {

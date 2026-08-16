@@ -13,7 +13,6 @@ import {
     CommonParsingArgs,
     ParsedDocsWithType,
     ParsingResult,
-    WithErrors,
     WithKeyAndKeyRange,
     WithKeyKeyRangeAndValueRange,
 } from "../../internal/yamlFormat/interfaces";
@@ -232,19 +231,11 @@ function getParsedRequest(
         scripts: parsedScripts,
         actions: parsedActions,
     } = parseRequestSection(requestMap.value, commonArgs);
-    const { result: auth, errors: authErrors } = parsedAuth
-        ? extractResultAndErrorsFromParsingResult(parsedAuth)
-        : { result: undefined, errors: [] };
+    const { result: auth, errors: authErrors } = parsedAuth;
     const { result: headers, errors: headerErrors } = parsedHeaders;
-    const { result: variables, errors: variableErrors } = parsedVariables
-        ? extractResultAndErrorsFromParsingResult(parsedVariables)
-        : { result: undefined, errors: [] };
-    const { result: scripts, errors: scriptErrors } = parsedScripts
-        ? extractResultAndErrorsFromParsingResult(parsedScripts)
-        : { result: undefined, errors: [] };
-    const { result: actions, errors: actionsErrors } = parsedActions
-        ? extractResultAndErrorsFromParsingResult(parsedActions)
-        : { result: undefined, errors: [] };
+    const { result: variables, errors: variableErrors } = parsedVariables;
+    const { result: scripts, errors: scriptErrors } = parsedScripts;
+    const { result: actions, errors: actionsErrors } = parsedActions;
     collectedErrors.push(
         ...authErrors,
         ...headerErrors,
@@ -334,7 +325,15 @@ function parseRequestSection(
               commonArgs,
               authMapOrScalar,
           })
-        : undefined;
+        : {
+              errors: collectedErrors,
+              result: {
+                  reason: getAbsenceReasonForField(
+                      missingKeys,
+                      FolderSettingsRequestSectionProperty.Auth,
+                  ),
+              },
+          };
 
     const maybeVariablesSequence = validSequences.find(
         ({ key }) => key == FolderSettingsRequestSectionProperty.Variables,
@@ -344,21 +343,45 @@ function parseRequestSection(
               maybeVariablesSequence.value,
               commonArgs,
           )
-        : undefined;
+        : {
+              errors: collectedErrors,
+              result: {
+                  reason: getAbsenceReasonForField(
+                      missingKeys,
+                      FolderSettingsRequestSectionProperty.Variables,
+                  ),
+              },
+          };
 
     const maybeScriptsSequence = validSequences.find(
         ({ key }) => key == FolderSettingsRequestSectionProperty.Scripts,
     );
     const scripts = maybeScriptsSequence
         ? parseScriptsFromYamlSequence(maybeScriptsSequence.value, commonArgs)
-        : undefined;
+        : {
+              errors: collectedErrors,
+              result: {
+                  reason: getAbsenceReasonForField(
+                      missingKeys,
+                      FolderSettingsRequestSectionProperty.Scripts,
+                  ),
+              },
+          };
 
     const maybeActionsSequence = validSequences.find(
         ({ key }) => key == FolderSettingsRequestSectionProperty.Actions,
     );
     const actions = maybeActionsSequence
         ? parseActionsFromYamlSequence(maybeActionsSequence.value, commonArgs)
-        : undefined;
+        : {
+              errors: collectedErrors,
+              result: {
+                  reason: getAbsenceReasonForField(
+                      missingKeys,
+                      FolderSettingsRequestSectionProperty.Actions,
+                  ),
+              },
+          };
 
     return {
         headers,
