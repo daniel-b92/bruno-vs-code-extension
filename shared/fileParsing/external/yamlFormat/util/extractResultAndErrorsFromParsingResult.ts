@@ -1,5 +1,5 @@
-import { ParsingResult } from "../interfaces";
-import { isParsingResultOnlyErrors } from "./isParsingResultOnlyErrors";
+import { ParsingResult } from "../../../internal/yamlFormat/interfaces";
+import { isParsingResultOnlyErrors } from "../../../internal/yamlFormat/util/isParsingResultOnlyErrors";
 
 export function extractResultAndErrorsFromParsingResult<T>(
     parsingResult: ParsingResult<T>,

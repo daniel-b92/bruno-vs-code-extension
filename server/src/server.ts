@@ -34,7 +34,7 @@ import { handleCompletionRequest as handleCompletionRequestForBruFile } from "./
 import { Disposable } from "vscode-languageserver/node";
 import { BrunoLangDiagnosticsProvider } from "./bruFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { handleHoverRequest as handleHoverRequestForBruFile } from "./bruFiles/hover/handleHoverRequest";
-import { extname } from "path";
+import { basename, extname } from "path";
 import { handleCompletionRequest as handleCompletionRequestForJsFile } from "./jsFiles/completionItems/handleCompletionRequest";
 import { handleHoverRequest as handleHoverRequestForJsFile } from "./jsFiles/hover/handleHoverRequest";
 import { YamlFormatDiagnosticsProvider } from "./yamlFiles/yamlFormatDiagnosticsProvider";
@@ -347,6 +347,16 @@ function getDiagnosticsForYamlFile(filePath: string, text: string) {
             filePath,
             text,
             BrunoFileType.EnvironmentFile,
+        );
+    }
+    if (
+        // ToDo: Once yaml files are stored in the file system cache, use the itemType for identifying folder settings files.
+        basename(filePath) == "folder.yml"
+    ) {
+        return yamlDiagnosticsProvider.getDiagnosticsForYamlFile(
+            filePath,
+            text,
+            BrunoFileType.FolderSettingsFile,
         );
     }
 

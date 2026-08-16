@@ -22,7 +22,7 @@ import {
     ActionVariableScope,
 } from "./constants/actionConstants";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
-import { extractResultAndErrorsFromParsingResult } from "../util/extractResultAndErrorsFromParsingResult";
+import { extractResultAndErrorsFromParsingResult } from "../../../external/yamlFormat/util/extractResultAndErrorsFromParsingResult";
 
 export function parseActionsFromYamlSequence(
     actionsSequence: YAMLSeq,
