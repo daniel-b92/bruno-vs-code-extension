@@ -29,7 +29,7 @@ import {
     FolderSettingsRequestSectionProperty,
     TopLevelFolderSettingsProperty,
 } from "../../internal/yamlFormat/brunoSpecific/constants/folderSettingsFileConstants";
-import { parseDocsFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpecific/parseDocsFromYamlMap";
+import { parseDocsFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpecific/parseDocsFromYamlMapOrScalar";
 
 export function parseFolderSettingsFile(
     docHelper: TextDocumentHelper,
