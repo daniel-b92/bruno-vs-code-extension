@@ -8,15 +8,15 @@ import {
     Range,
 } from "../../..";
 import {
-    FileInfoProperty,
-    FileInfoType,
-    TopLevelRequestFileProperty,
-} from "../../internal/yamlFormat/interfaces";
-import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
 } from "../../../_testingUtils";
 import { isParsingResultOnlyErrors } from "../../internal/yamlFormat/util/isParsingResultOnlyErrors";
+import { TopLevelRequestFileProperty } from "../../internal/yamlFormat/brunoSpecific/constants/requestFileConstants";
+import {
+    FileInfoProperty,
+    FileInfoType,
+} from "../../internal/yamlFormat/brunoSpecific/constants/sharedConstants";
 
 describe("parseInfoFromYamlFile", () => {
     it("parses an info block from a valid simple request file", () => {

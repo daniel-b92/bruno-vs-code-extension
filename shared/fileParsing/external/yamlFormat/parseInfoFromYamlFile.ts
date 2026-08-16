@@ -1,8 +1,5 @@
 import { BrunoFileType, TextDocumentHelper, YamlParsingError } from "../../..";
-import {
-    CommonParsingArgs,
-    TopLevelRequestFileProperty,
-} from "../../internal/yamlFormat/interfaces";
+import { CommonParsingArgs } from "../../internal/yamlFormat/interfaces";
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
 import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForMissingKeyInMap";
 import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDocumentIntoYamlMap";
@@ -11,6 +8,7 @@ import {
     parseFileInfoFromYamlMap,
 } from "../../internal/yamlFormat/brunoSpecific/parseFileInfoFromYamlMap";
 import { isParsingResultOnlyErrors } from "../../internal/yamlFormat/util/isParsingResultOnlyErrors";
+import { TopLevelRequestFileProperty } from "../../internal/yamlFormat/brunoSpecific/constants/requestFileConstants";
 
 export function parseInfoFromYamlFile(
     docHelper: TextDocumentHelper,

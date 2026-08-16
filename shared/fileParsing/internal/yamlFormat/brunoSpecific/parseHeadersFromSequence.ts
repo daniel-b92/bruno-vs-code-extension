@@ -4,19 +4,19 @@ import {
     CommonParsingArgs,
     ParsedRequestHeader,
     ParsingResult,
-    RequestHeaderProperty,
 } from "../interfaces";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getMapItems } from "../yamlMaps/getMapItems";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
+import { RequestHeaderProperty } from "./constants/sharedConstants";
 
-export type ParsedInfoResult = ParsingResult<ParsedRequestHeader[]>;
+export type ParsedHeadersResult = ParsingResult<ParsedRequestHeader[]>;
 
 export function parseHeadersFromSequence(args: {
     commonArgs: CommonParsingArgs;
     headersSequence: YAMLSeq;
-}): ParsedInfoResult {
+}): ParsedHeadersResult {
     const { commonArgs, headersSequence } = args;
     const errors: YamlParsingError[] = [];
     const result: ParsedRequestHeader[] = [];

@@ -1,5 +1,7 @@
 import {
     BrunoFileType,
+    extractResultAndErrorsFromParsingResult,
+    parseFolderSettingsFile,
     parseYamlEnvironmentFile,
     TextDocumentHelper,
     YamlParsingError,
@@ -18,42 +20,62 @@ export class YamlFormatDiagnosticsProvider {
         content: string,
         brunoFileType: BrunoFileType,
     ) {
-        switch (brunoFileType) {
-            case BrunoFileType.EnvironmentFile:
-                return this.getDiagnosticsForEnvironmentFile(filePath, content);
-            default:
-                return [];
-        }
-    }
-
-    public getDiagnosticsForEnvironmentFile(
-        filePath: string,
-        content: string,
-    ): Diagnostic[] {
         const docHelper = new TextDocumentHelper(content);
         const commonParams: CommonDiagnosticParams = {
             filePath,
             docHelper,
             fullDocumentRange: docHelper.getTextRange(),
         };
-        const parsed = parseYamlEnvironmentFile(docHelper);
 
-        if (Array.isArray(parsed)) {
-            return mapParsingErrorsToDiagnostics(parsed);
+        switch (brunoFileType) {
+            case BrunoFileType.EnvironmentFile:
+                return this.getDiagnosticsForEnvironmentFile(commonParams);
+            case BrunoFileType.FolderSettingsFile:
+                return this.getDiagnosticsForFolderSettingsFile(commonParams);
+            default:
+                return [];
         }
+    }
 
-        const parsingErrors = parsed.errors;
+    public getDiagnosticsForEnvironmentFile(
+        commonParams: CommonDiagnosticParams,
+    ): Diagnostic[] {
+        const { docHelper } = commonParams;
+        const parsed = parseYamlEnvironmentFile(docHelper);
+        const { errors: parsingErrors, result: parsingResult } =
+            extractResultAndErrorsFromParsingResult(parsed);
+        const parsingDiagnostics = mapParsingErrorsToDiagnostics(parsingErrors);
+
+        if (!parsingResult) {
+            return parsingDiagnostics;
+        }
+        const { enabled, disabled } = parsingResult.variables;
+
         const otherDiagnostics = [
-            checkTopLevelNameIsDefined(parsed.result, commonParams),
+            checkTopLevelNameIsDefined(parsingResult, commonParams),
         ].concat(
             checkVariableDefinitionsAreValid(
-                parsed.result.variables,
+                enabled.concat(disabled),
                 commonParams,
             ),
         );
-        return otherDiagnostics
-            .filter((d) => d != undefined)
-            .concat(mapParsingErrorsToDiagnostics(parsingErrors));
+        return parsingDiagnostics.concat(
+            otherDiagnostics.filter((d) => d != undefined),
+        );
+    }
+
+    public getDiagnosticsForFolderSettingsFile(
+        commonParams: CommonDiagnosticParams,
+    ): Diagnostic[] {
+        const result: Diagnostic[] = [];
+        const { docHelper } = commonParams;
+        const parsed = parseFolderSettingsFile(docHelper);
+
+        const { errors: parsingErrors } =
+            extractResultAndErrorsFromParsingResult(parsed);
+        result.push(...mapParsingErrorsToDiagnostics(parsingErrors));
+
+        return result;
     }
 }
 

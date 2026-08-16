@@ -1,14 +1,17 @@
 import { Range } from "../../..";
+import { EnvironmentVariableProperty } from "../../internal/yamlFormat/brunoSpecific/constants/environmentVariableConstants";
 import {
-    EnvironmentVariableProperty,
     FileInfoType,
+    VariableType,
+} from "../../internal/yamlFormat/brunoSpecific/constants/sharedConstants";
+import {
     OptionalVariableFieldResult,
+    ParsedAction,
     ParsedAuth,
     ParsedDocsWithType,
     ParsedRequestHeader,
     ParsedRequestVariable,
     ParsedScript,
-    VariableType,
 } from "../../internal/yamlFormat/interfaces";
 
 export enum YamlParsingErrorCode {
@@ -28,10 +31,17 @@ export interface ParsedFolderSettingsFile {
     request?: {
         headers?: ParsedRequestHeader[];
         auth?: ParsedAuth;
-        variables?: WithKeyAndValueRange<ParsedRequestVariable[]>;
-        scripts?: WithKeyAndValueRange<ParsedScript[]>;
+        variables?: {
+            enabled: ParsedRequestVariable[];
+            disabled: ParsedRequestVariable[];
+        };
+        actions?: {
+            enabled: ParsedAction[];
+            disabled: ParsedAction[];
+        };
+        scripts?: ParsedScript[];
     };
-    docs?: WithKeyAndValueRange<ParsedDocsWithType>;
+    docs?: ParsedDocsWithType;
 }
 
 export type ParsedInfoForRequestFile = ParsedInfoForFolderSettings & {
