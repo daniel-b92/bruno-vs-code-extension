@@ -107,25 +107,11 @@ export function parseYamlEnvironmentFile(
         variableItems,
         commonArgs,
     );
-    const enabled = variables.filter(
-        ({
-            fields: {
-                disabled: { effectiveValue },
-            },
-        }) => !effectiveValue,
-    );
-    const disabled = variables.filter(
-        ({
-            fields: {
-                disabled: { effectiveValue },
-            },
-        }) => effectiveValue,
-    );
 
     return {
         result: {
             name: nameToUse,
-            variables: { enabled, disabled },
+            variables,
         },
         errors: collectedErrors.concat(firstErrorBatch, secondErrorBatch),
     };
@@ -134,8 +120,15 @@ export function parseYamlEnvironmentFile(
 function getVariablesFromMapItems(
     items: YAMLMap[],
     commonArgs: CommonParsingArgs,
-): { variables: ParsedEnvironmentVariable[]; errors: YamlParsingError[] } {
-    const variables: ParsedEnvironmentVariable[] = [];
+): {
+    variables: {
+        enabled: ParsedEnvironmentVariable[];
+        disabled: ParsedEnvironmentVariable[];
+    };
+    errors: YamlParsingError[];
+} {
+    const enabledVariables: ParsedEnvironmentVariable[] = [];
+    const disabledVariables = enabledVariables.slice();
     const errors: YamlParsingError[] = [];
 
     const keysForStringScalars = [
@@ -219,7 +212,7 @@ function getVariablesFromMapItems(
             continue;
         }
 
-        variables.push({
+        const variable: ParsedEnvironmentVariable = {
             range: getRangeForItem(currentMap, commonArgs),
             missingProperties:
                 allMapItems.missingKeys as EnvironmentVariableProperty[],
@@ -262,10 +255,19 @@ function getVariablesFromMapItems(
                     : // The default value for 'type' is 'string', when not defined.
                       { effectiveValue: VariableType.String },
             },
-        });
+        };
+
+        if (variable.fields.disabled.effectiveValue) {
+            disabledVariables.push(variable);
+        } else {
+            enabledVariables.push();
+        }
     }
 
-    return { variables, errors };
+    return {
+        variables: { enabled: enabledVariables, disabled: disabledVariables },
+        errors,
+    };
 }
 
 function getItemsForSimpleOptionalVariableProps(allMapItems: ParsedMapItems) {
