@@ -3,7 +3,6 @@ import {
     CommonParsingArgs,
     ParsedScript,
     ParsingResult,
-    ScriptType,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { YamlParsingError } from "../../../..";
@@ -14,6 +13,7 @@ import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { isParsingResultOnlyErrors } from "../util/isParsingResultOnlyErrors";
+import { ScriptType } from "./constants/sharedConstants";
 
 enum ScriptMapProperty {
     Type = "type",

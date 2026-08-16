@@ -3,7 +3,6 @@ import {
     CommonParsingArgs,
     ParsedRequestVariable,
     ParsingResult,
-    RequestVariableProperty,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { YamlParsingError } from "../../../..";
@@ -14,6 +13,7 @@ import { getValueFieldFromVariable } from "./getValueFieldFromVariable";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { mapFromYamlScalar } from "../scalars/mapFromYamlScalar";
+import { RequestVariableProperty } from "./constants/sharedConstants";
 
 export function parseVariablesFromYamlSequence(
     variablesSequence: YAMLSeq,

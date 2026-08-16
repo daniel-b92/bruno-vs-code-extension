@@ -7,8 +7,6 @@ import {
 } from "../../../..";
 import {
     CommonParsingArgs,
-    FileInfoProperty,
-    FileInfoType,
     ParsingResult,
     WithKeyAndKeyRange,
     WithKeyKeyRangeAndValueRange,
@@ -19,6 +17,7 @@ import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { getMapItems } from "../yamlMaps/getMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
+import { FileInfoProperty, FileInfoType } from "./constants/sharedConstants";
 
 export type ParsedInfoResult = ParsingResult<ParsedInfoForRequestFile>;
 

@@ -8,10 +8,8 @@ import {
 import { getYamlMapsFromSequence } from "../../internal/yamlFormat/yamlSequences/getYamlMapsFromSequence";
 import {
     CommonParsingArgs,
-    EnvironmentVariableProperty,
     ParsedMapItems,
     ParsingResult,
-    VariableType,
 } from "../../internal/yamlFormat/interfaces";
 import { getRangeForItem } from "../../internal/yamlFormat/util/getRangeForItem";
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
@@ -22,6 +20,8 @@ import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDo
 import { getTypedValueFromList } from "../../internal/yamlFormat/scalars/getTypedValueFromList";
 import { stripKeyFromResult } from "../../internal/yamlFormat/util/stripKeyFromResult";
 import { getValueFieldFromVariable } from "../../internal/yamlFormat/brunoSpecific/getValueFieldFromVariable";
+import { EnvironmentVariableProperty } from "../../internal/yamlFormat/brunoSpecific/constants/environmentVariableConstants";
+import { VariableType } from "../../internal/yamlFormat/brunoSpecific/constants/sharedConstants";
 
 enum EnvironmentKeyName {
     Name = "name",

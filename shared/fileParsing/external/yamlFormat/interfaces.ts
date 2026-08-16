@@ -1,7 +1,10 @@
 import { Range } from "../../..";
+import { EnvironmentVariableProperty } from "../../internal/yamlFormat/brunoSpecific/constants/environmentVariableConstants";
 import {
-    EnvironmentVariableProperty,
     FileInfoType,
+    VariableType,
+} from "../../internal/yamlFormat/brunoSpecific/constants/sharedConstants";
+import {
     OptionalVariableFieldResult,
     ParsedAction,
     ParsedAuth,
@@ -9,7 +12,6 @@ import {
     ParsedRequestHeader,
     ParsedRequestVariable,
     ParsedScript,
-    VariableType,
 } from "../../internal/yamlFormat/interfaces";
 
 export enum YamlParsingErrorCode {

@@ -8,13 +8,11 @@ import {
     WithKeyAndValueRange,
 } from "../../..";
 import {
-    EnvironmentVariableProperty,
-    VariableType,
-} from "../../internal/yamlFormat/interfaces";
-import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
 } from "../../../_testingUtils";
+import { EnvironmentVariableProperty } from "../../internal/yamlFormat/brunoSpecific/constants/environmentVariableConstants";
+import { VariableType } from "../../internal/yamlFormat/brunoSpecific/constants/sharedConstants";
 
 describe("parseYamlEnvironmentFile", () => {
     it("parses a simple yaml environment file with a single variable", () => {

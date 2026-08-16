@@ -7,9 +7,7 @@ import {
 } from "../../..";
 import {
     CommonParsingArgs,
-    FolderSettingsRequestSectionProperty,
     ParsingResult,
-    TopLevelFolderSettingsProperty,
     WithKeyAndKeyRange,
 } from "../../internal/yamlFormat/interfaces";
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
@@ -25,6 +23,10 @@ import { extractResultAndErrorsFromParsingResult } from "../../internal/yamlForm
 import { parseVariablesFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseVariablesFromYamlSequence";
 import { parseScriptsFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseScriptsFromYamlSequence";
 import { parseActionsFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseActionsFromYamlSequence";
+import {
+    FolderSettingsRequestSectionProperty,
+    TopLevelFolderSettingsProperty,
+} from "../../internal/yamlFormat/brunoSpecific/constants/folderSettingsFileConstants";
 
 export function parseFolderSettingsFile(
     docHelper: TextDocumentHelper,

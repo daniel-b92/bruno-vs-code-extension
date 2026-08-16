@@ -5,12 +5,7 @@ import {
     YamlParsingErrorCode,
 } from "../../../..";
 import {
-    AuthType,
-    BasicAuthProperty,
-    BearerAuthProperty,
-    CommonAuthMapProperties,
     CommonParsingArgs,
-    inheritAuthValue,
     ParsedAuth,
     ParsedBasicAuth,
     ParsedBearerAuth,
@@ -23,6 +18,13 @@ import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { isParsingResultOnlyErrors } from "../util/isParsingResultOnlyErrors";
+import {
+    AuthType,
+    BasicAuthProperty,
+    BearerAuthProperty,
+    CommonAuthMapProperties,
+    inheritAuthValue,
+} from "./constants/authConstants";
 
 type ParsedAuthResult = ParsingResult<ParsedAuth>;
 
@@ -138,11 +140,7 @@ export function parseAuthFromYamlMapOrScalar(args: {
         commonParsingArgs: CommonParsingArgs,
     ): { auth: ParsedBasicAuth; errors: YamlParsingError[] } {
         const { authMap, parsedType: type } = args;
-        const expectedStringScalars = [
-            BasicAuthProperty.Username,
-            BasicAuthProperty.Password,
-            BasicAuthProperty.Type,
-        ];
+        const expectedStringScalars = Object.values(BasicAuthProperty);
 
         const {
             errors,
@@ -191,10 +189,7 @@ export function parseAuthFromYamlMapOrScalar(args: {
         commonParsingArgs: CommonParsingArgs,
     ): { auth: ParsedBearerAuth; errors: YamlParsingError[] } {
         const { authMap, parsedType: type } = args;
-        const expectedStringScalars = [
-            BearerAuthProperty.Token,
-            BearerAuthProperty.Type,
-        ];
+        const expectedStringScalars = Object.values(BearerAuthProperty);
 
         const {
             errors,

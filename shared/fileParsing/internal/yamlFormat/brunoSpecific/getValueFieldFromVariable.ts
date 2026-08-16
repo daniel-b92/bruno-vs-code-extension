@@ -1,10 +1,6 @@
 import { isMap, isScalar, Scalar, YAMLMap } from "yaml";
 import { Range, WithKeyAndValueRange, YamlParsingError } from "../../../..";
-import {
-    VariableType,
-    EnvironmentVariableProperty,
-    CommonParsingArgs,
-} from "../interfaces";
+import { CommonParsingArgs } from "../interfaces";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getErrorForValueWithUnexpectedType } from "../parsingErrors/getErrorForValueWithUnexpectedType";
@@ -12,6 +8,8 @@ import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { getRangeForUnknownYamlItem } from "../util/getRangeForUnknownYamlItem";
 import { getMapItems } from "../yamlMaps/getMapItems";
+import { VariableType } from "./constants/sharedConstants";
+import { EnvironmentVariableProperty } from "./constants/environmentVariableConstants";
 
 enum VariableValueWithTypeProperty {
     Type = "type",
