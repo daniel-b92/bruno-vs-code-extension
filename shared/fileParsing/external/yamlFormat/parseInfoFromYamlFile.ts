@@ -1,19 +1,20 @@
-import { BrunoFileType, TextDocumentHelper, YamlParsingError } from "../../..";
+import {
+    BrunoFileType,
+    ReasonForFieldAbsence,
+    TextDocumentHelper,
+    YamlParsingError,
+} from "../../..";
 import { CommonParsingArgs } from "../../internal/yamlFormat/interfaces";
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
 import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForMissingKeyInMap";
 import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDocumentIntoYamlMap";
-import {
-    ParsedInfoResult,
-    parseFileInfoFromYamlMap,
-} from "../../internal/yamlFormat/brunoSpecific/parseFileInfoFromYamlMap";
-import { isParsingResultOnlyErrors } from "../../internal/yamlFormat/util/isParsingResultOnlyErrors";
+import { parseFileInfoFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseFileInfoFromYamlMap";
 import { TopLevelRequestFileProperty } from "../../internal/yamlFormat/brunoSpecific/constants/requestFileConstants";
 
 export function parseInfoFromYamlFile(
     docHelper: TextDocumentHelper,
     fileType: BrunoFileType,
-): ParsedInfoResult {
+) {
     const commonArgs: CommonParsingArgs = {
         docHelper,
         fullDocumentRange: docHelper.getTextRange(),
@@ -23,7 +24,10 @@ export function parseInfoFromYamlFile(
 
     const maybeTopLevelMap = parseDocumentIntoYamlMap(commonArgs);
     if ("errors" in maybeTopLevelMap) {
-        return maybeTopLevelMap.errors;
+        return {
+            ...maybeTopLevelMap,
+            result: { reason: ReasonForFieldAbsence.Invalid },
+        };
     }
 
     const { map: topLevelMap } = maybeTopLevelMap;
@@ -41,13 +45,22 @@ export function parseInfoFromYamlFile(
 
     collectedErrors.push(...mapItemErrors);
     if (missingKeys.length > 0 || validMaps.length == 0) {
-        return collectedErrors.concat(
+        collectedErrors.push(
             getErrorForMissingKeyInMap({
                 ...commonArgs,
                 missingKey: infoKey,
                 map: topLevelMap,
             }),
         );
+        return {
+            errors: collectedErrors,
+            result: {
+                reason:
+                    missingKeys.length > 0
+                        ? ReasonForFieldAbsence.Missing
+                        : ReasonForFieldAbsence.Invalid,
+            },
+        };
     }
     const infoMap = validMaps[0];
     const maybeResult = parseFileInfoFromYamlMap({
@@ -56,10 +69,8 @@ export function parseInfoFromYamlFile(
         fileType,
     });
 
-    return isParsingResultOnlyErrors(maybeResult)
-        ? collectedErrors.concat(maybeResult)
-        : {
-              ...maybeResult,
-              errors: collectedErrors.concat(maybeResult.errors),
-          };
+    return {
+        ...maybeResult,
+        errors: collectedErrors.concat(maybeResult.errors),
+    };
 }

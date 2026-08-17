@@ -1,13 +1,15 @@
 import { isSeq, Scalar, YAMLMap, YAMLSeq } from "yaml";
 import {
     BrunoFileType,
+    OrAbsenceReason,
     ParsedInfoForRequestFile,
+    ReasonForFieldAbsence,
     YamlParsingError,
     YamlParsingErrorCode,
 } from "../../../..";
 import {
     CommonParsingArgs,
-    ParsingResult,
+    WithErrors,
     WithKeyAndKeyRange,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
@@ -19,7 +21,9 @@ import { getMapItems } from "../yamlMaps/getMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { FileInfoProperty, FileInfoType } from "./constants/sharedConstants";
 
-export type ParsedInfoResult = ParsingResult<ParsedInfoForRequestFile>;
+export type ParsedInfoResult = WithErrors<
+    OrAbsenceReason<ParsedInfoForRequestFile>
+>;
 
 export function parseFileInfoFromYamlMap(args: {
     commonArgs: CommonParsingArgs;
@@ -96,17 +100,20 @@ export function parseFileInfoFromYamlMap(args: {
     );
     if (missingKeys.includes(FileInfoProperty.Name)) {
         // Name is the only mandatory property.
-        return errors.concat(
-            getErrorForMissingKeyInMap({
-                ...commonArgs,
-                missingKey: FileInfoProperty.Name,
-                map: infoMap,
-            }),
-        );
+        return {
+            errors: errors.concat(
+                getErrorForMissingKeyInMap({
+                    ...commonArgs,
+                    missingKey: FileInfoProperty.Name,
+                    map: infoMap,
+                }),
+            ),
+            result: { reason: ReasonForFieldAbsence.Missing },
+        };
     }
     if (!name) {
         // Case where the Name property is not a Scalar string.
-        return errors;
+        return { errors, result: { reason: ReasonForFieldAbsence.Invalid } };
     }
 
     const maybeType = !checkForTypeProperty
