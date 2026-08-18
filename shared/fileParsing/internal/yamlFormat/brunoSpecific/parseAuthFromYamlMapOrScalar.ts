@@ -128,9 +128,7 @@ export function parseAuthFromYamlMapOrScalar(args: {
             errors,
         );
 
-        return !maybeTypedResult
-            ? { errors }
-            : { result: maybeTypedResult.value, errors };
+        return { result: maybeTypedResult?.value, errors };
     }
 
     function parseBasicAuthFromAuthMap(
