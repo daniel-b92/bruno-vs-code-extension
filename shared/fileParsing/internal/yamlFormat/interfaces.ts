@@ -87,19 +87,27 @@ export interface ParsedDocsWithType {
 
 export type ParsedAuth = ParsedInheritAuth | ParsedBasicAuth | ParsedBearerAuth;
 
-export interface ParsedBasicAuth {
+export type ParsedBasicAuth = ParsedYamlMap & {
     type: WithKeyAndValueRange<AuthType.Basic>;
     username?: WithKeyAndValueRange<string>;
     password?: WithKeyAndValueRange<string>;
-}
+};
 
-export interface ParsedBearerAuth {
+export type ParsedBearerAuth = ParsedYamlMap & {
     type: WithKeyAndValueRange<AuthType.Bearer>;
     token?: WithKeyAndValueRange<string>;
-}
+};
 
 export interface ParsedInheritAuth {
     valueRange: Range;
+}
+
+export interface ParsedYamlMap {
+    missingProperties: {
+        key: string;
+        isMandatory: boolean;
+        hasScalarValue: boolean;
+    }[];
 }
 
 export type ParsingResult<T> =
@@ -108,6 +116,11 @@ export type ParsingResult<T> =
           result: T;
           errors: YamlParsingError[];
       };
+
+export type MaybeResultWithErrors<T> = {
+    result?: T;
+    errors: YamlParsingError[];
+};
 
 export type OptionalVariableFieldResult<T> = {
     effectiveValue: T;

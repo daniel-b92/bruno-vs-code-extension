@@ -185,9 +185,10 @@ function getParsedRequest(
         scripts: parsedScripts,
         actions: parsedActions,
     } = parseRequestSection(requestMap.value, commonArgs);
-    const { result: auth, errors: authErrors } = parsedAuth
-        ? extractResultAndErrorsFromParsingResult(parsedAuth)
-        : { result: undefined, errors: [] };
+    const { result: auth, errors: authErrors } = parsedAuth ?? {
+        result: undefined,
+        errors: [],
+    };
     const { result: headers, errors: headerErrors } = parsedHeaders
         ? extractResultAndErrorsFromParsingResult(parsedHeaders)
         : { result: undefined, errors: [] };

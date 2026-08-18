@@ -9,7 +9,7 @@ import {
     ParsedAuth,
     ParsedBasicAuth,
     ParsedBearerAuth,
-    ParsingResult,
+    MaybeResultWithErrors,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
@@ -17,7 +17,6 @@ import { getMapItems } from "../yamlMaps/getMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
-import { isParsingResultOnlyErrors } from "../util/isParsingResultOnlyErrors";
 import {
     AuthType,
     BasicAuthProperty,
@@ -26,12 +25,10 @@ import {
     inheritAuthValue,
 } from "./constants/authConstants";
 
-type ParsedAuthResult = ParsingResult<ParsedAuth>;
-
 export function parseAuthFromYamlMapOrScalar(args: {
     commonArgs: CommonParsingArgs;
     authMapOrScalar: YAMLMap | WithKeyKeyRangeAndValueRange<string>;
-}): ParsedAuthResult {
+}): MaybeResultWithErrors<ParsedAuth> {
     const { commonArgs, authMapOrScalar } = args;
     const allErrors: YamlParsingError[] = [];
 
@@ -39,18 +36,20 @@ export function parseAuthFromYamlMapOrScalar(args: {
         const { valueRange } = authMapOrScalar;
         return authMapOrScalar.value == inheritAuthValue
             ? { result: { valueRange }, errors: [] }
-            : [
-                  {
-                      message: `Invalid Scalar string for auth. Allowed is only '${inheritAuthValue}'.`,
-                      range: valueRange,
-                      code: YamlParsingErrorCode.Other,
-                  },
-              ];
+            : {
+                  errors: [
+                      {
+                          message: `Invalid Scalar string for auth. Allowed is only '${inheritAuthValue}'.`,
+                          range: valueRange,
+                          code: YamlParsingErrorCode.Other,
+                      },
+                  ],
+              };
     }
 
     const maybeAuthType = tryToParseAuthTypeField(authMapOrScalar, commonArgs);
-    if (isParsingResultOnlyErrors(maybeAuthType)) {
-        return maybeAuthType;
+    if (!maybeAuthType.result) {
+        return { errors: maybeAuthType.errors };
     }
 
     const { errors: typeParsingErrors, result: authType } = maybeAuthType;
@@ -87,13 +86,13 @@ export function parseAuthFromYamlMapOrScalar(args: {
             };
         // ToDo: Add support for more auth types.
         default:
-            return allErrors;
+            return { errors: allErrors };
     }
 
     function tryToParseAuthTypeField(
         authMap: YAMLMap,
         commonParsingArgs: CommonParsingArgs,
-    ): ParsingResult<WithKeyAndValueRange<AuthType>> {
+    ): MaybeResultWithErrors<WithKeyAndValueRange<AuthType>> {
         const {
             items: {
                 missingKeys,
@@ -107,15 +106,17 @@ export function parseAuthFromYamlMapOrScalar(args: {
         );
 
         if (validStringScalars.length == 0 || missingKeys.length > 0) {
-            return errors.concat(
-                missingKeys.map((key) =>
-                    getErrorForMissingKeyInMap({
-                        ...commonParsingArgs,
-                        map: authMap,
-                        missingKey: key,
-                    }),
+            return {
+                errors: errors.concat(
+                    missingKeys.map((key) =>
+                        getErrorForMissingKeyInMap({
+                            ...commonParsingArgs,
+                            map: authMap,
+                            missingKey: key,
+                        }),
+                    ),
                 ),
-            );
+            };
         }
 
         const maybeTypedResult = getTypedValueFromList<AuthType>(
@@ -128,7 +129,7 @@ export function parseAuthFromYamlMapOrScalar(args: {
         );
 
         return !maybeTypedResult
-            ? errors
+            ? { errors }
             : { result: maybeTypedResult.value, errors };
     }
 
@@ -146,6 +147,7 @@ export function parseAuthFromYamlMapOrScalar(args: {
             errors,
             items: {
                 unknownKeys,
+                missingKeys,
                 validScalars: { withStringValue: validStringScalars },
             },
         } = getMapItems(
@@ -176,6 +178,11 @@ export function parseAuthFromYamlMapOrScalar(args: {
                 type,
                 username: username ? stripKeyFromResult(username) : undefined,
                 password: password ? stripKeyFromResult(password) : undefined,
+                missingProperties: missingKeys.map((key) => ({
+                    key,
+                    hasScalarValue: true,
+                    isMandatory: false,
+                })),
             },
             errors: allErrors,
         };
@@ -195,6 +202,7 @@ export function parseAuthFromYamlMapOrScalar(args: {
             errors,
             items: {
                 unknownKeys,
+                missingKeys,
                 validScalars: { withStringValue: validStringScalars },
             },
         } = getMapItems(
@@ -221,6 +229,11 @@ export function parseAuthFromYamlMapOrScalar(args: {
             auth: {
                 type,
                 token: token ? stripKeyFromResult(token) : undefined,
+                missingProperties: missingKeys.map((key) => ({
+                    key,
+                    hasScalarValue: true,
+                    isMandatory: false,
+                })),
             },
             errors: allErrors,
         };
