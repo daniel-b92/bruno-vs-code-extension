@@ -68,12 +68,12 @@ export interface ParsedAction {
     disabled: OptionalVariableFieldResult<boolean>;
 }
 
-export interface ParsedRequestHeader {
-    name: WithKeyAndValueRange<string>;
-    value: WithKeyAndValueRange<string>;
+export type ParsedRequestHeader = ParsedYamlMap<{
+    name?: WithKeyAndValueRange<string>;
+    value?: WithKeyAndValueRange<string>;
     description?: WithKeyAndValueRange<string>;
     disabled: OptionalVariableFieldResult<boolean>;
-}
+}>;
 
 export type ParsedScript = ParsedYamlMap<{
     type?: WithKeyAndValueRange<ScriptType>;

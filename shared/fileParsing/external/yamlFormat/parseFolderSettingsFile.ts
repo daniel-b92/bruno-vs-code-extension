@@ -188,9 +188,10 @@ function getParsedRequest(
         result: undefined,
         errors: [],
     };
-    const { result: headers, errors: headerErrors } = parsedHeaders
-        ? extractResultAndErrorsFromParsingResult(parsedHeaders)
-        : { result: undefined, errors: [] };
+    const { result: headers, errors: headerErrors } = parsedHeaders ?? {
+        result: undefined,
+        errors: [],
+    };
     const { result: variables, errors: variableErrors } = parsedVariables
         ? extractResultAndErrorsFromParsingResult(parsedVariables)
         : { result: undefined, errors: [] };
