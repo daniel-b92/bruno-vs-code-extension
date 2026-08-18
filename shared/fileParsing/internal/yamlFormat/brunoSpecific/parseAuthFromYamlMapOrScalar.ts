@@ -175,9 +175,15 @@ export function parseAuthFromYamlMapOrScalar(args: {
         );
         return {
             auth: {
-                type,
-                username: username ? stripKeyFromResult(username) : undefined,
-                password: password ? stripKeyFromResult(password) : undefined,
+                properties: {
+                    type,
+                    username: username
+                        ? stripKeyFromResult(username)
+                        : undefined,
+                    password: password
+                        ? stripKeyFromResult(password)
+                        : undefined,
+                },
                 missingProperties: missingKeys.map((key) => ({
                     key,
                     hasScalarValue: true,
@@ -227,8 +233,10 @@ export function parseAuthFromYamlMapOrScalar(args: {
         );
         return {
             auth: {
-                type,
-                token: token ? stripKeyFromResult(token) : undefined,
+                properties: {
+                    type,
+                    token: token ? stripKeyFromResult(token) : undefined,
+                },
                 missingProperties: missingKeys.map((key) => ({
                     key,
                     hasScalarValue: true,

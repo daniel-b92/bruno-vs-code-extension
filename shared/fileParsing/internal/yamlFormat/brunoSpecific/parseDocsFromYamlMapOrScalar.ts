@@ -2,8 +2,8 @@ import { isMap, YAMLMap } from "yaml";
 import { YamlParsingError } from "../../../..";
 import {
     CommonParsingArgs,
+    MaybeResultWithErrors,
     ParsedDocsWithType,
-    ParsingResult,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
@@ -19,15 +19,16 @@ export function parseDocsFromYamlMapOrScalar(
         | WithKeyKeyRangeAndValueRange<string>
         | WithKeyKeyRangeAndValueRange<null>,
     commonArgs: CommonParsingArgs,
-): ParsingResult<ParsedDocsWithType> {
+): MaybeResultWithErrors<ParsedDocsWithType> {
     if (!isMap(docsMapOrScalar)) {
         const { value } = docsMapOrScalar;
-        return value === null
-            ? { errors: [], result: {} }
-            : {
-                  errors: [],
-                  result: { content: stripKeyFromResult(docsMapOrScalar) },
-              };
+        return {
+            errors: [],
+            result:
+                value === null
+                    ? undefined
+                    : stripKeyFromResult(docsMapOrScalar),
+        };
     }
 
     return parseFromMap(docsMapOrScalar, commonArgs);
@@ -36,7 +37,7 @@ export function parseDocsFromYamlMapOrScalar(
 function parseFromMap(
     docsMap: YAMLMap,
     commonArgs: CommonParsingArgs,
-): ParsingResult<ParsedDocsWithType> {
+): MaybeResultWithErrors<ParsedDocsWithType> {
     const errors: YamlParsingError[] = [];
     const expectedStringScalars = Object.values(DocsProperty);
 
@@ -75,25 +76,36 @@ function parseFromMap(
             }),
         ),
     );
+    const missingProperties = missingKeys.map((key) => ({
+        hasScalarValue: true,
+        isMandatory: false,
+        key,
+    }));
     const content = validStringScalars.find(
         ({ key }) => key == DocsProperty.Content,
     );
     const untypedType = validStringScalars.find(
         ({ key }) => key == DocsProperty.Type,
     );
-    if (!untypedType) {
-        return errors;
-    }
-    const maybeType = getTypedValueFromList(
-        {
-            allowedValues: Object.values(DocsType),
-            allStringValues: [untypedType],
-            keyName: DocsProperty.Type,
-        },
-        errors,
-    );
+    const maybeType = !untypedType
+        ? undefined
+        : getTypedValueFromList(
+              {
+                  allowedValues: Object.values(DocsType),
+                  allStringValues: [untypedType],
+                  keyName: DocsProperty.Type,
+              },
+              errors,
+          );
 
-    return !content || !maybeType
-        ? errors
-        : { errors, result: { content, type: maybeType.value } };
+    return {
+        errors,
+        result:
+            content || maybeType
+                ? {
+                      properties: { content, type: maybeType?.value },
+                      missingProperties,
+                  }
+                : undefined,
+    };
 }

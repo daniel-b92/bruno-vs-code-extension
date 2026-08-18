@@ -1,8 +1,8 @@
 import { YAMLSeq } from "yaml";
 import {
     CommonParsingArgs,
+    MaybeResultWithErrors,
     ParsedScript,
-    ParsingResult,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { YamlParsingError } from "../../../..";
@@ -12,7 +12,6 @@ import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownK
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
-import { isParsingResultOnlyErrors } from "../util/isParsingResultOnlyErrors";
 import { ScriptType } from "./constants/sharedConstants";
 
 enum ScriptMapProperty {
@@ -23,7 +22,7 @@ enum ScriptMapProperty {
 export function parseScriptsFromYamlSequence(
     scriptsSequence: YAMLSeq,
     commonArgs: CommonParsingArgs,
-): ParsingResult<ParsedScript[]> {
+): MaybeResultWithErrors<ParsedScript[]> {
     const scripts: ParsedScript[] = [];
     const errors: YamlParsingError[] = [];
 
@@ -74,13 +73,13 @@ export function parseScriptsFromYamlSequence(
                 ),
             ),
         );
-        const parsedScript = parseScript(validStringScalars);
-        if (isParsingResultOnlyErrors(parsedScript)) {
-            errors.push(...parsedScript);
+        const parsedScript = parseScript(validStringScalars, missingKeys);
+        errors.push(...parsedScript.errors);
+
+        if (!parsedScript.result) {
             continue;
         }
 
-        errors.push(...parsedScript.errors);
         scripts.push(parsedScript.result);
     }
 
@@ -92,8 +91,14 @@ export function parseScriptsFromYamlSequence(
 
 function parseScript(
     validStringScalars: WithKeyKeyRangeAndValueRange<string>[],
-): ParsingResult<ParsedScript> {
+    missingKeys: string[],
+): MaybeResultWithErrors<ParsedScript> {
     const collectedErrors: YamlParsingError[] = [];
+    const missingProperties = missingKeys.map((key) => ({
+        hasScalarValue: true,
+        isMandatory: false,
+        key,
+    }));
     const maybeUntypedTypeWithKeyRange = validStringScalars.find(
         ({ key }) => key == ScriptMapProperty.Type,
     );
@@ -101,26 +106,27 @@ function parseScript(
         ({ key }) => key == ScriptMapProperty.Code,
     );
 
-    if (!maybeUntypedTypeWithKeyRange) {
-        return collectedErrors;
-    }
-
-    const maybeTypedType = getTypedValueFromList(
-        {
-            allowedValues: Object.values(ScriptType),
-            allStringValues: [maybeUntypedTypeWithKeyRange],
-            keyName: ScriptMapProperty.Type,
-        },
-        collectedErrors,
-    );
-
-    return maybeCodeWithKeyRange && maybeTypedType
-        ? {
-              errors: collectedErrors,
-              result: {
-                  code: stripKeyFromResult(maybeCodeWithKeyRange),
-                  type: maybeTypedType.value,
+    const maybeTypedType = !maybeUntypedTypeWithKeyRange
+        ? undefined
+        : getTypedValueFromList(
+              {
+                  allowedValues: Object.values(ScriptType),
+                  allStringValues: [maybeUntypedTypeWithKeyRange],
+                  keyName: ScriptMapProperty.Type,
               },
-          }
-        : collectedErrors;
+              collectedErrors,
+          );
+
+    return {
+        errors: collectedErrors,
+        result: {
+            properties: {
+                code: maybeCodeWithKeyRange
+                    ? stripKeyFromResult(maybeCodeWithKeyRange)
+                    : undefined,
+                type: maybeTypedType?.value,
+            },
+            missingProperties,
+        },
+    };
 }

@@ -75,40 +75,43 @@ export interface ParsedRequestHeader {
     disabled: OptionalVariableFieldResult<boolean>;
 }
 
-export interface ParsedScript {
-    type: WithKeyAndValueRange<ScriptType>;
-    code: WithKeyAndValueRange<string>;
-}
+export type ParsedScript = ParsedYamlMap<{
+    type?: WithKeyAndValueRange<ScriptType>;
+    code?: WithKeyAndValueRange<string>;
+}>;
 
-export interface ParsedDocsWithType {
-    type?: WithKeyAndValueRange<DocsType>;
-    content?: WithKeyAndValueRange<string>;
-}
+export type ParsedDocsWithType =
+    | WithKeyAndValueRange<string>
+    | ParsedYamlMap<{
+          type?: WithKeyAndValueRange<DocsType>;
+          content?: WithKeyAndValueRange<string>;
+      }>;
 
 export type ParsedAuth = ParsedInheritAuth | ParsedBasicAuth | ParsedBearerAuth;
 
-export type ParsedBasicAuth = ParsedYamlMap & {
+export type ParsedBasicAuth = ParsedYamlMap<{
     type: WithKeyAndValueRange<AuthType.Basic>;
     username?: WithKeyAndValueRange<string>;
     password?: WithKeyAndValueRange<string>;
-};
+}>;
 
-export type ParsedBearerAuth = ParsedYamlMap & {
+export type ParsedBearerAuth = ParsedYamlMap<{
     type: WithKeyAndValueRange<AuthType.Bearer>;
     token?: WithKeyAndValueRange<string>;
-};
+}>;
 
 export interface ParsedInheritAuth {
     valueRange: Range;
 }
 
-export interface ParsedYamlMap {
+export type ParsedYamlMap<T> = {
+    properties: T;
     missingProperties: {
         key: string;
         isMandatory: boolean;
         hasScalarValue: boolean;
     }[];
-}
+};
 
 export type ParsingResult<T> =
     | YamlParsingError[]

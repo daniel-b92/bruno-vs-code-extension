@@ -159,8 +159,7 @@ function getParsedDocs(
             | undefined))!;
 
     const parsingResult = parseDocsFromYamlMapOrScalar(docs, commonArgs);
-    const { result, errors: parsingErrors } =
-        extractResultAndErrorsFromParsingResult(parsingResult);
+    const { result, errors: parsingErrors } = parsingResult;
     collectedErrors.push(...parsingErrors);
 
     return result;
@@ -195,9 +194,10 @@ function getParsedRequest(
     const { result: variables, errors: variableErrors } = parsedVariables
         ? extractResultAndErrorsFromParsingResult(parsedVariables)
         : { result: undefined, errors: [] };
-    const { result: scripts, errors: scriptErrors } = parsedScripts
-        ? extractResultAndErrorsFromParsingResult(parsedScripts)
-        : { result: undefined, errors: [] };
+    const { result: scripts, errors: scriptErrors } = parsedScripts ?? {
+        result: undefined,
+        errors: [],
+    };
     const { result: actions, errors: actionsErrors } = parsedActions
         ? extractResultAndErrorsFromParsingResult(parsedActions)
         : { result: undefined, errors: [] };
