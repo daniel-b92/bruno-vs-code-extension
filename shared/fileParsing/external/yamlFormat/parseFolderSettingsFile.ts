@@ -199,9 +199,10 @@ function getParsedRequest(
         result: undefined,
         errors: [],
     };
-    const { result: actions, errors: actionsErrors } = parsedActions
-        ? extractResultAndErrorsFromParsingResult(parsedActions)
-        : { result: undefined, errors: [] };
+    const { result: actions, errors: actionsErrors } = parsedActions ?? {
+        result: undefined,
+        errors: [],
+    };
     collectedErrors.push(
         ...authErrors,
         ...headerErrors,

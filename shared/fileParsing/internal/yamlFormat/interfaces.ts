@@ -53,20 +53,20 @@ export interface ParsedRequestVariable {
     };
 }
 
-export interface ParsedAction {
-    type: WithKeyAndValueRange<ActionType>;
-    phase: WithKeyAndValueRange<ActionPhase>;
-    selector: {
-        expression: WithKeyAndValueRange<string>;
-        method: WithKeyAndValueRange<ActionSelectorMethod>;
-    };
-    variable: {
-        name: WithKeyAndValueRange<string>;
-        scope: WithKeyAndValueRange<ActionVariableScope>;
-    };
+export type ParsedAction = ParsedYamlMap<{
+    type?: WithKeyAndValueRange<ActionType>;
+    phase?: WithKeyAndValueRange<ActionPhase>;
+    selector?: ParsedYamlMap<{
+        expression?: WithKeyAndValueRange<string>;
+        method?: WithKeyAndValueRange<ActionSelectorMethod>;
+    }>;
+    variable?: ParsedYamlMap<{
+        name?: WithKeyAndValueRange<string>;
+        scope?: WithKeyAndValueRange<ActionVariableScope>;
+    }>;
     description?: WithKeyAndValueRange<string>;
     disabled: OptionalVariableFieldResult<boolean>;
-}
+}>;
 
 export type ParsedRequestHeader = ParsedYamlMap<{
     name?: WithKeyAndValueRange<string>;
