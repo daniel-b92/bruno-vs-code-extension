@@ -1,6 +1,10 @@
 import { isMap, isScalar, Scalar, YAMLMap } from "yaml";
 import { Range, WithKeyAndValueRange, YamlParsingError } from "../../../..";
-import { CommonParsingArgs } from "../interfaces";
+import {
+    CommonParsingArgs,
+    MaybeResultWithErrors,
+    ParsedYamlMap,
+} from "../interfaces";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getErrorForValueWithUnexpectedType } from "../parsingErrors/getErrorForValueWithUnexpectedType";
@@ -20,17 +24,15 @@ export function getValueFieldFromVariable(
     variableDefinitionMap: YAMLMap,
     commonParams: CommonParsingArgs,
 ):
-    | {
-          keyRange: Range;
-          value:
-              | { valueRange: Range; value: string }
-              | {
-                    data: WithKeyAndValueRange<string>;
-                    type: WithKeyAndValueRange<VariableType>;
-                };
-      }
-    | { errors: YamlParsingError[] }
-    | undefined {
+    | MaybeResultWithErrors<WithKeyAndValueRange<string>>
+    | MaybeResultWithErrors<
+          {
+              keyRange: Range;
+          } & ParsedYamlMap<{
+              type?: WithKeyAndValueRange<VariableType>;
+              data?: WithKeyAndValueRange<string>;
+          }>
+      > {
     const { fullDocumentRange } = commonParams;
 
     const matchingField = variableDefinitionMap.items.find(
@@ -41,7 +43,7 @@ export function getValueFieldFromVariable(
 
     if (!matchingField) {
         // Field is optional. Is not necessarily an error, if it's missing.
-        return undefined;
+        return { errors: [] };
     }
 
     const keyRange = getRangeForItem(
@@ -68,14 +70,15 @@ export function getValueFieldFromVariable(
         return "error" in maybeTypedValue
             ? { errors: [maybeTypedValue.error] }
             : {
-                  keyRange,
-                  value: {
-                      value: maybeTypedValue.item.value,
+                  result: {
+                      keyRange,
                       valueRange: getRangeForItem(
                           maybeTypedValue.item,
                           commonParams,
                       ),
+                      value: maybeTypedValue.item.value,
                   },
+                  errors: [],
               };
     }
 
@@ -121,6 +124,12 @@ export function getValueFieldFromVariable(
             ),
         ),
     );
+    const missingProperties = missingKeys.map((key) => ({
+        hasScalarValue: true,
+        // All properties are mandatory.
+        isMandatory: true,
+        key,
+    }));
 
     const data = validStringScalars.find(
         ({ key }) => key == VariableValueWithTypeProperty.Data,
@@ -135,13 +144,15 @@ export function getValueFieldFromVariable(
         collectedErrors,
     );
 
-    return collectedErrors.length > 0 || !data || !maybeType
-        ? { errors: collectedErrors }
-        : {
-              keyRange,
-              value: {
-                  data,
-                  type: maybeType.value,
-              },
-          };
+    return {
+        result: {
+            keyRange,
+            properties: {
+                data,
+                type: maybeType?.value,
+            },
+            missingProperties,
+        },
+        errors: collectedErrors,
+    };
 }

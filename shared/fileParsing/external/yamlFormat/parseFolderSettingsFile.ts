@@ -192,9 +192,10 @@ function getParsedRequest(
         result: undefined,
         errors: [],
     };
-    const { result: variables, errors: variableErrors } = parsedVariables
-        ? extractResultAndErrorsFromParsingResult(parsedVariables)
-        : { result: undefined, errors: [] };
+    const { result: variables, errors: variableErrors } = parsedVariables ?? {
+        result: undefined,
+        errors: [],
+    };
     const { result: scripts, errors: scriptErrors } = parsedScripts ?? {
         result: undefined,
         errors: [],

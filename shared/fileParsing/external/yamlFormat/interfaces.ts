@@ -1,5 +1,4 @@
 import { Range } from "../../..";
-import { EnvironmentVariableProperty } from "../../internal/yamlFormat/brunoSpecific/constants/environmentVariableConstants";
 import {
     FileInfoType,
     VariableType,
@@ -12,6 +11,7 @@ import {
     ParsedRequestHeader,
     ParsedRequestVariable,
     ParsedScript,
+    ParsedYamlMap,
 } from "../../internal/yamlFormat/interfaces";
 
 export enum YamlParsingErrorCode {
@@ -61,25 +61,23 @@ export type ParsedInfoForCollectionSettings = WithKeyAndValueRange<{
     name: WithKeyAndValueRange<string>;
 }>;
 
-export interface ParsedEnvironmentVariable {
+export type ParsedEnvironmentVariable = {
     range: Range;
-    missingProperties: EnvironmentVariableProperty[];
-    fields: {
-        name: WithKeyAndValueRange<string>;
-        value?:
-            | WithKeyAndValueRange<string>
-            | {
-                  keyRange: Range;
-                  type: WithKeyAndValueRange<VariableType>;
-                  data: WithKeyAndValueRange<string>;
-              };
-        description?: WithKeyAndValueRange<string>;
-        type: OptionalVariableFieldResult<VariableType>;
-        secret: OptionalVariableFieldResult<boolean>;
-        disabled: OptionalVariableFieldResult<boolean>;
-    };
-}
-
+} & ParsedYamlMap<{
+    name?: WithKeyAndValueRange<string>;
+    value?:
+        | WithKeyAndValueRange<string>
+        | ({
+              keyRange: Range;
+          } & ParsedYamlMap<{
+              type?: WithKeyAndValueRange<VariableType>;
+              data?: WithKeyAndValueRange<string>;
+          }>);
+    description?: WithKeyAndValueRange<string>;
+    type: OptionalVariableFieldResult<VariableType>;
+    secret: OptionalVariableFieldResult<boolean>;
+    disabled: OptionalVariableFieldResult<boolean>;
+}>;
 export interface WithKeyAndValueRange<T> {
     keyRange: Range;
     value: T;

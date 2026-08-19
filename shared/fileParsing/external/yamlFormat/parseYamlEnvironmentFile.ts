@@ -8,7 +8,9 @@ import {
 import { getYamlMapsFromSequence } from "../../internal/yamlFormat/yamlSequences/getYamlMapsFromSequence";
 import {
     CommonParsingArgs,
+    MaybeResultWithErrors,
     ParsedMapItems,
+    ParsedYamlMap,
     ParsingResult,
 } from "../../internal/yamlFormat/interfaces";
 import { getRangeForItem } from "../../internal/yamlFormat/util/getRangeForItem";
@@ -30,27 +32,38 @@ enum EnvironmentKeyName {
 
 export function parseYamlEnvironmentFile(
     docHelper: TextDocumentHelper,
-): ParsingResult<{
-    name: WithKeyAndValueRange<string> | { missing: boolean };
-    variables: {
-        enabled: ParsedEnvironmentVariable[];
-        disabled: ParsedEnvironmentVariable[];
-    };
-}> {
+): MaybeResultWithErrors<
+    ParsedYamlMap<{
+        name?: WithKeyAndValueRange<string>;
+        variables?: {
+            enabled: ParsedEnvironmentVariable[];
+            disabled: ParsedEnvironmentVariable[];
+        };
+    }>
+> {
     const fullDocumentRange = docHelper.getTextRange();
     const commonArgs = { docHelper, fullDocumentRange };
     const collectedErrors: YamlParsingError[] = [];
 
     const maybeTopLevelMap = parseDocumentIntoYamlMap(commonArgs);
     if ("errors" in maybeTopLevelMap) {
-        return maybeTopLevelMap.errors;
+        return { ...maybeTopLevelMap };
     }
     const topLevelMap = maybeTopLevelMap.map;
 
+    const mandatoryKey = EnvironmentKeyName.Name;
     const keysForStringScalars = [EnvironmentKeyName.Name];
     const keysForSequences = [EnvironmentKeyName.Variables];
 
-    const { items: mapItems, errors: mapItemErrors } = getMapItems(
+    const {
+        items: {
+            validScalars: { withStringValue: validStringScalars },
+            validSequences,
+            missingKeys,
+            unknownKeys,
+        },
+        errors: mapItemErrors,
+    } = getMapItems(
         topLevelMap,
         {
             scalars: { stringValues: keysForStringScalars },
@@ -61,7 +74,7 @@ export function parseYamlEnvironmentFile(
 
     collectedErrors.push(
         ...mapItemErrors.concat(
-            mapItems.unknownKeys.map(({ key, keyRange }) =>
+            unknownKeys.map(({ key, keyRange }) =>
                 getErrorForUnknownKeyInMap({
                     ...commonArgs,
                     unknownKey: key,
@@ -69,32 +82,38 @@ export function parseYamlEnvironmentFile(
                     allowedKeys: keysForStringScalars.concat(keysForSequences),
                 }),
             ),
+            missingKeys.includes(mandatoryKey)
+                ? getErrorForMissingKeyInMap({
+                      ...commonArgs,
+                      missingKey: mandatoryKey,
+                      map: topLevelMap,
+                  })
+                : [],
         ),
     );
-
-    const {
-        validScalars: { withStringValue: validStringScalars },
-        validSequences,
-        missingKeys,
-    } = mapItems;
+    const missingProperties = missingKeys.map((key) => ({
+        hasScalarValue: (keysForStringScalars as string[]).includes(key),
+        // All properties are mandatory.
+        isMandatory: true,
+        key,
+    }));
 
     const maybeNameWithKeyRange = validStringScalars.find(
         ({ key }) => key == EnvironmentKeyName.Name,
     );
-    const nameToUse: WithKeyAndValueRange<string> | { missing: boolean } =
-        maybeNameWithKeyRange
-            ? stripKeyFromResult(maybeNameWithKeyRange)
-            : {
-                  missing: missingKeys.includes(EnvironmentKeyName.Name),
-              };
-
     const variablesSequence = validSequences.find(
         ({ key }) => key == EnvironmentKeyName.Variables,
     )?.value;
 
     if (!variablesSequence) {
         // For further steps, the variables sequence needs to be valid.
-        return collectedErrors;
+        return {
+            errors: collectedErrors,
+            result: {
+                properties: { name: maybeNameWithKeyRange },
+                missingProperties,
+            },
+        };
     }
 
     const { items: variableItems, errors: firstErrorBatch } =
@@ -102,7 +121,6 @@ export function parseYamlEnvironmentFile(
             ...commonArgs,
             sequence: variablesSequence,
         });
-
     const { variables, errors: secondErrorBatch } = getVariablesFromMapItems(
         variableItems,
         commonArgs,
@@ -110,8 +128,11 @@ export function parseYamlEnvironmentFile(
 
     return {
         result: {
-            name: nameToUse,
-            variables,
+            properties: {
+                name: maybeNameWithKeyRange,
+                variables,
+            },
+            missingProperties,
         },
         errors: collectedErrors.concat(firstErrorBatch, secondErrorBatch),
     };
@@ -188,29 +209,13 @@ function getVariablesFromMapItems(
             },
             errors,
         );
-        const maybeValue = getValueFieldFromVariable(currentMap, commonArgs);
-        if (maybeValue && "errors" in maybeValue) {
-            errors.push(...maybeValue.errors);
-        }
-
-        const valueToUse =
-            maybeValue && !("errors" in maybeValue) ? maybeValue : undefined;
+        const { result: maybeValue, errors: valueErrors } =
+            getValueFieldFromVariable(currentMap, commonArgs);
+        errors.push(...valueErrors);
 
         const name = allMapItems.validScalars.withStringValue.find(
             ({ key }) => key == EnvironmentVariableProperty.Name,
         );
-
-        if (!name) {
-            // The 'name' field is the only one that always has to be present.
-            errors.push(
-                getErrorForMissingKeyInMap({
-                    ...commonArgs,
-                    missingKey: EnvironmentVariableProperty.Name,
-                    map: currentMap,
-                }),
-            );
-            continue;
-        }
 
         const variable: ParsedEnvironmentVariable = {
             range: getRangeForItem(currentMap, commonArgs),

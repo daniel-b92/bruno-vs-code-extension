@@ -14,7 +14,6 @@ import {
 import { AuthType } from "./brunoSpecific/constants/authConstants";
 import {
     DocsType,
-    RequestVariableProperty,
     ScriptType,
     VariableType,
 } from "./brunoSpecific/constants/sharedConstants";
@@ -37,21 +36,19 @@ export interface ParsedMapItems {
     unknownKeys: { key: string; keyRange: Range }[];
 }
 
-export interface ParsedRequestVariable {
-    missingProperties: RequestVariableProperty[];
-    fields: {
-        name: WithKeyAndValueRange<string>;
-        value?:
-            | WithKeyAndValueRange<string>
-            | {
-                  keyRange: Range;
-                  type: WithKeyAndValueRange<VariableType>;
-                  data: WithKeyAndValueRange<string>;
-              };
-        description?: WithKeyAndValueRange<string>;
-        disabled: OptionalVariableFieldResult<boolean>;
-    };
-}
+export type ParsedRequestVariable = ParsedYamlMap<{
+    name?: WithKeyAndValueRange<string>;
+    value?:
+        | WithKeyAndValueRange<string>
+        | ({
+              keyRange: Range;
+          } & ParsedYamlMap<{
+              type?: WithKeyAndValueRange<VariableType>;
+              data?: WithKeyAndValueRange<string>;
+          }>);
+    description?: WithKeyAndValueRange<string>;
+    disabled: OptionalVariableFieldResult<boolean>;
+}>;
 
 export type ParsedAction = ParsedYamlMap<{
     type?: WithKeyAndValueRange<ActionType>;
