@@ -1,4 +1,4 @@
-import { isScalar, YAMLMap } from "yaml";
+import { YAMLMap } from "yaml";
 import {
     ParsedEnvironmentVariable,
     TextDocumentHelper,
@@ -11,12 +11,10 @@ import {
     MaybeResultWithErrors,
     ParsedMapItems,
     ParsedYamlMap,
-    ParsingResult,
 } from "../../internal/yamlFormat/interfaces";
 import { getRangeForItem } from "../../internal/yamlFormat/util/getRangeForItem";
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
 import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForMissingKeyInMap";
-import { mapFromYamlScalar } from "../../internal/yamlFormat/scalars/mapFromYamlScalar";
 import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForUnknownKeyInMap";
 import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDocumentIntoYamlMap";
 import { getTypedValueFromList } from "../../internal/yamlFormat/scalars/getTypedValueFromList";
@@ -161,6 +159,7 @@ function getVariablesFromMapItems(
         EnvironmentVariableProperty.Disabled,
         EnvironmentVariableProperty.Secret,
     ];
+    const mandatoryKey = EnvironmentVariableProperty.Name;
 
     for (const currentMap of items) {
         const { items: allMapItems, errors: mapItemErrors } = getMapItems(
@@ -196,8 +195,20 @@ function getVariablesFromMapItems(
                             ),
                         }),
                     ),
+                allMapItems.missingKeys.includes(mandatoryKey)
+                    ? getErrorForMissingKeyInMap({
+                          ...commonArgs,
+                          missingKey: mandatoryKey,
+                          map: currentMap,
+                      })
+                    : [],
             ),
         );
+        const missingProperties = allMapItems.missingKeys.map((key) => ({
+            key,
+            hasScalarValue: true,
+            isMandatory: key == mandatoryKey,
+        }));
         const { description, disabled, secret } =
             getItemsForSimpleOptionalVariableProps(allMapItems);
 
@@ -219,10 +230,9 @@ function getVariablesFromMapItems(
 
         const variable: ParsedEnvironmentVariable = {
             range: getRangeForItem(currentMap, commonArgs),
-            missingProperties:
-                allMapItems.missingKeys as EnvironmentVariableProperty[],
-            fields: {
-                name: stripKeyFromResult(name),
+            missingProperties,
+            properties: {
+                name: name ? stripKeyFromResult(name) : undefined,
                 description: description
                     ? stripKeyFromResult(description)
                     : undefined,
@@ -240,18 +250,7 @@ function getVariablesFromMapItems(
                       }
                     : // The default value for 'secret' is false, when not defined.
                       { effectiveValue: false },
-                value: !valueToUse
-                    ? undefined
-                    : isScalar<string>(valueToUse.value)
-                      ? mapFromYamlScalar({
-                            ...commonArgs,
-                            keyRange: valueToUse.keyRange,
-                            value: valueToUse.value,
-                        })
-                      : {
-                            ...valueToUse,
-                            ...valueToUse.value,
-                        },
+                value: maybeValue,
                 type: type
                     ? {
                           effectiveValue: type.value.value,
@@ -262,7 +261,7 @@ function getVariablesFromMapItems(
             },
         };
 
-        if (variable.fields.disabled.effectiveValue) {
+        if (variable.properties.disabled.effectiveValue) {
             disabledVariables.push(variable);
         } else {
             enabledVariables.push(variable);
