@@ -2,6 +2,7 @@ import { YAMLMap } from "yaml";
 import {
     ParsedEnvironmentVariable,
     TextDocumentHelper,
+    TopLevelEnvironmentFileProperty,
     WithKeyAndValueRange,
     YamlParsingError,
 } from "../../..";
@@ -22,11 +23,6 @@ import { stripKeyFromResult } from "../../internal/yamlFormat/util/stripKeyFromR
 import { getValueFieldFromVariable } from "../../internal/yamlFormat/brunoSpecific/getValueFieldFromVariable";
 import { EnvironmentVariableProperty } from "../../internal/yamlFormat/brunoSpecific/constants/environmentVariableConstants";
 import { VariableType } from "../../internal/yamlFormat/brunoSpecific/constants/sharedConstants";
-
-enum EnvironmentKeyName {
-    Name = "name",
-    Variables = "variables",
-}
 
 export function parseYamlEnvironmentFile(
     docHelper: TextDocumentHelper,
@@ -49,9 +45,9 @@ export function parseYamlEnvironmentFile(
     }
     const topLevelMap = maybeTopLevelMap.map;
 
-    const mandatoryKey = EnvironmentKeyName.Name;
-    const keysForStringScalars = [EnvironmentKeyName.Name];
-    const keysForSequences = [EnvironmentKeyName.Variables];
+    const mandatoryKey = TopLevelEnvironmentFileProperty.Name;
+    const keysForStringScalars = [TopLevelEnvironmentFileProperty.Name];
+    const keysForSequences = [TopLevelEnvironmentFileProperty.Variables];
 
     const {
         items: {
@@ -97,10 +93,10 @@ export function parseYamlEnvironmentFile(
     }));
 
     const maybeNameWithKeyRange = validStringScalars.find(
-        ({ key }) => key == EnvironmentKeyName.Name,
+        ({ key }) => key == TopLevelEnvironmentFileProperty.Name,
     );
     const variablesSequence = validSequences.find(
-        ({ key }) => key == EnvironmentKeyName.Variables,
+        ({ key }) => key == TopLevelEnvironmentFileProperty.Variables,
     )?.value;
 
     if (!variablesSequence) {

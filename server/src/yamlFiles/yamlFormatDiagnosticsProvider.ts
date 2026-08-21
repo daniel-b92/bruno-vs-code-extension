@@ -1,6 +1,5 @@
 import {
     BrunoFileType,
-    extractResultAndErrorsFromParsingResult,
     parseFolderSettingsFile,
     parseYamlEnvironmentFile,
     TextDocumentHelper,
@@ -41,15 +40,14 @@ export class YamlFormatDiagnosticsProvider {
         commonParams: CommonDiagnosticParams,
     ): Diagnostic[] {
         const { docHelper } = commonParams;
-        const parsed = parseYamlEnvironmentFile(docHelper);
         const { errors: parsingErrors, result: parsingResult } =
-            extractResultAndErrorsFromParsingResult(parsed);
+            parseYamlEnvironmentFile(docHelper);
         const parsingDiagnostics = mapParsingErrorsToDiagnostics(parsingErrors);
 
-        if (!parsingResult) {
+        if (!parsingResult || !parsingResult.properties.variables) {
             return parsingDiagnostics;
         }
-        const { enabled, disabled } = parsingResult.variables;
+        const { enabled, disabled } = parsingResult.properties.variables;
 
         const otherDiagnostics = [
             checkTopLevelNameIsDefined(parsingResult, commonParams),
@@ -69,11 +67,9 @@ export class YamlFormatDiagnosticsProvider {
     ): Diagnostic[] {
         const result: Diagnostic[] = [];
         const { docHelper } = commonParams;
-        const parsed = parseFolderSettingsFile(docHelper);
+        const { errors } = parseFolderSettingsFile(docHelper);
 
-        const { errors: parsingErrors } =
-            extractResultAndErrorsFromParsingResult(parsed);
-        result.push(...mapParsingErrorsToDiagnostics(parsingErrors));
+        result.push(...mapParsingErrorsToDiagnostics(errors));
 
         return result;
     }

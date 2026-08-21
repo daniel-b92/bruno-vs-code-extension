@@ -5,12 +5,11 @@ import {
     TextDocumentHelper,
     YamlParsingError,
     YamlParsingErrorCode,
-    extractResultAndErrorsFromParsingResult,
 } from "../../..";
 import {
     CommonParsingArgs,
+    MaybeResultWithErrors,
     ParsedDocsWithType,
-    ParsingResult,
     WithKeyAndKeyRange,
     WithKeyKeyRangeAndValueRange,
 } from "../../internal/yamlFormat/interfaces";
@@ -33,7 +32,7 @@ import { parseDocsFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpe
 
 export function parseFolderSettingsFile(
     docHelper: TextDocumentHelper,
-): ParsingResult<ParsedFolderSettingsFile> {
+): MaybeResultWithErrors<ParsedFolderSettingsFile> {
     const commonArgs: CommonParsingArgs = {
         docHelper,
         fullDocumentRange: docHelper.getTextRange(),
@@ -45,7 +44,7 @@ export function parseFolderSettingsFile(
 
     const maybeTopLevelMap = parseDocumentIntoYamlMap(commonArgs);
     if ("errors" in maybeTopLevelMap) {
-        return maybeTopLevelMap.errors;
+        return maybeTopLevelMap;
     }
 
     const { map: topLevelMap } = maybeTopLevelMap;
@@ -77,26 +76,26 @@ export function parseFolderSettingsFile(
                     allowedKeys: expectedTopLevelProperties,
                 }),
             ),
+            missingKeys.includes(TopLevelFolderSettingsProperty.Info)
+                ? getErrorForMissingKeyInMap({
+                      ...commonArgs,
+                      missingKey: TopLevelFolderSettingsProperty.Info,
+                      map: topLevelMap,
+                  })
+                : [],
         ),
     );
+    const missingProperties = missingKeys.map((key) => ({
+        key,
+        hasScalarValue: false,
+        isMandatory: key == TopLevelFolderSettingsProperty.Info,
+    }));
     const infoMap = validMaps.find(
         ({ key }) => key == TopLevelFolderSettingsProperty.Info,
     );
-    if (!infoMap || missingKeys.includes(TopLevelFolderSettingsProperty.Info)) {
-        // The info property is the only mandatory one.
-        return collectedErrors.concat(
-            getErrorForMissingKeyInMap({
-                ...commonArgs,
-                missingKey: TopLevelFolderSettingsProperty.Info,
-                map: topLevelMap,
-            }),
-        );
-    }
-    const info = getParsedInfo(infoMap, commonArgs, collectedErrors);
-    if (!info) {
-        // The info field is the only mandatory one.
-        return collectedErrors;
-    }
+    const info = infoMap
+        ? getParsedInfo(infoMap, commonArgs, collectedErrors)
+        : undefined;
     const request = getParsedRequest(validMaps, commonArgs, collectedErrors);
     const docs = getParsedDocs(
         validMaps,
@@ -104,7 +103,10 @@ export function parseFolderSettingsFile(
         commonArgs,
         collectedErrors,
     );
-    return { errors: collectedErrors, result: { info, request, docs } };
+    return {
+        errors: collectedErrors,
+        result: { properties: { info, request, docs }, missingProperties },
+    };
 }
 
 function getParsedInfo(
@@ -112,14 +114,12 @@ function getParsedInfo(
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ): ParsedInfoForFolderSettings | undefined {
-    const infoResult = parseFileInfoFromYamlMap({
+    const { result: info, errors } = parseFileInfoFromYamlMap({
         infoMap,
         commonArgs,
         fileType: BrunoFileType.FolderSettingsFile,
-    }) as ParsingResult<ParsedInfoForFolderSettings>;
-    const { result: info, errors: infoErrors } =
-        extractResultAndErrorsFromParsingResult(infoResult);
-    collectedErrors.push(...infoErrors);
+    });
+    collectedErrors.push(...errors);
 
     return info;
 }

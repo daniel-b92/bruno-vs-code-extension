@@ -12,6 +12,7 @@ import {
     ParsedRequestVariable,
     ParsedScript,
     ParsedYamlMap,
+    ParseYamlMapWithKeyAndValueRange,
 } from "../../internal/yamlFormat/interfaces";
 
 export enum YamlParsingErrorCode {
@@ -26,8 +27,8 @@ export interface YamlParsingError {
     code: YamlParsingErrorCode;
 }
 
-export interface ParsedFolderSettingsFile {
-    info: ParsedInfoForFolderSettings;
+export type ParsedFolderSettingsFile = ParsedYamlMap<{
+    info?: ParsedInfoForFolderSettings;
     request?: {
         headers?: ParsedRequestHeader[];
         auth?: ParsedAuth;
@@ -42,24 +43,29 @@ export interface ParsedFolderSettingsFile {
         scripts?: ParsedScript[];
     };
     docs?: ParsedDocsWithType;
-}
+}>;
 
 export type ParsedInfoForRequestFile = ParsedInfoForFolderSettings & {
-    value: {
+    properties: {
         tags?: WithKeyAndValueRange<{ value: string; range: Range }[]>;
     };
 };
 
 export type ParsedInfoForFolderSettings = ParsedInfoForCollectionSettings & {
-    value: {
+    properties: {
         type?: WithKeyAndValueRange<FileInfoType>;
         sequence?: WithKeyAndValueRange<number>;
     };
 };
 
-export type ParsedInfoForCollectionSettings = WithKeyAndValueRange<{
-    name: WithKeyAndValueRange<string>;
+export type ParsedInfoForCollectionSettings = ParseYamlMapWithKeyAndValueRange<{
+    name?: WithKeyAndValueRange<string>;
 }>;
+
+export enum TopLevelEnvironmentFileProperty {
+    Name = "name",
+    Variables = "variables",
+}
 
 export type ParsedEnvironmentVariable = {
     range: Range;

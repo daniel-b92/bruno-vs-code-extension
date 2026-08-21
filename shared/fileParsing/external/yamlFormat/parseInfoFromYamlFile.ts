@@ -7,7 +7,6 @@ import {
     ParsedInfoResult,
     parseFileInfoFromYamlMap,
 } from "../../internal/yamlFormat/brunoSpecific/parseFileInfoFromYamlMap";
-import { isParsingResultOnlyErrors } from "../../internal/yamlFormat/util/isParsingResultOnlyErrors";
 import { TopLevelRequestFileProperty } from "../../internal/yamlFormat/brunoSpecific/constants/requestFileConstants";
 
 export function parseInfoFromYamlFile(
@@ -23,7 +22,7 @@ export function parseInfoFromYamlFile(
 
     const maybeTopLevelMap = parseDocumentIntoYamlMap(commonArgs);
     if ("errors" in maybeTopLevelMap) {
-        return maybeTopLevelMap.errors;
+        return { ...maybeTopLevelMap };
     }
 
     const { map: topLevelMap } = maybeTopLevelMap;
@@ -39,16 +38,21 @@ export function parseInfoFromYamlFile(
         commonArgs,
     );
 
-    collectedErrors.push(...mapItemErrors);
-    if (missingKeys.length > 0 || validMaps.length == 0) {
-        return collectedErrors.concat(
-            getErrorForMissingKeyInMap({
-                ...commonArgs,
-                missingKey: infoKey,
-                map: topLevelMap,
-            }),
-        );
+    collectedErrors.push(
+        ...mapItemErrors.concat(
+            missingKeys.length > 0
+                ? getErrorForMissingKeyInMap({
+                      ...commonArgs,
+                      missingKey: infoKey,
+                      map: topLevelMap,
+                  })
+                : [],
+        ),
+    );
+    if (validMaps.length == 0) {
+        return { errors: collectedErrors };
     }
+
     const infoMap = validMaps[0];
     const maybeResult = parseFileInfoFromYamlMap({
         infoMap,
@@ -56,10 +60,5 @@ export function parseInfoFromYamlFile(
         fileType,
     });
 
-    return isParsingResultOnlyErrors(maybeResult)
-        ? collectedErrors.concat(maybeResult)
-        : {
-              ...maybeResult,
-              errors: collectedErrors.concat(maybeResult.errors),
-          };
+    return maybeResult;
 }

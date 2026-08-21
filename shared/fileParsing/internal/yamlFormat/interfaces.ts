@@ -101,6 +101,11 @@ export interface ParsedInheritAuth {
     valueRange: Range;
 }
 
+export type ParseYamlMapWithKeyAndValueRange<T> = ParsedYamlMap<T> & {
+    keyRange: Range;
+    valueRange: Range;
+};
+
 export type ParsedYamlMap<T> = {
     properties: T;
     missingProperties: {
