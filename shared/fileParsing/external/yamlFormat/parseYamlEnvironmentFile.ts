@@ -87,7 +87,6 @@ export function parseYamlEnvironmentFile(
     );
     const missingProperties = missingKeys.map((key) => ({
         alwaysHasScalarValue: (keysForStringScalars as string[]).includes(key),
-        // All properties are mandatory.
         isMandatory: key == mandatoryKey,
         key,
     }));
