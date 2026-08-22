@@ -86,11 +86,18 @@ export function parseFolderSettingsFile(
                 : [],
         ),
     );
-    const missingProperties = missingKeys.map((key) => ({
-        key,
-        alwaysHasScalarValue: false,
-        isMandatory: key == TopLevelFolderSettingsProperty.Info,
-    }));
+    // Docs section was searched for as both a scalar and a map. So we need to filter one of the missing keys out.
+    const missingProperties = missingKeys
+        .filter(
+            (key, index) =>
+                key != TopLevelFolderSettingsProperty.Docs ||
+                missingKeys.indexOf(key) == index,
+        )
+        .map((key) => ({
+            key,
+            alwaysHasScalarValue: false,
+            isMandatory: key == TopLevelFolderSettingsProperty.Info,
+        }));
     const infoMap = validMaps.find(
         ({ key }) => key == TopLevelFolderSettingsProperty.Info,
     );
