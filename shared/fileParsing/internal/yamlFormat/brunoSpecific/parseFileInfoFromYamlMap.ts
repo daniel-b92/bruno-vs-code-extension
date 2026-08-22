@@ -59,6 +59,14 @@ export function parseFileInfoFromYamlMap(args: {
     const allExpectedScalars = expectedStringScalars.concat(
         expectedNumericScalars,
     );
+    const alwaysMandatoryKey = FileInfoProperty.Name;
+    const mandatoryKeys = [alwaysMandatoryKey].concat(
+        [BrunoFileType.FolderSettingsFile, BrunoFileType.AppFile].includes(
+            fileType,
+        )
+            ? FileInfoProperty.Type
+            : [FileInfoProperty.Type, FileInfoProperty.Seq],
+    );
 
     const {
         items: {
@@ -93,19 +101,19 @@ export function parseFileInfoFromYamlMap(args: {
                 allowedKeys: allowedKeys,
             }),
         ),
-        ...(missingKeys.includes(FileInfoProperty.Name)
-            ? [
-                  getErrorForMissingKeyInMap({
-                      ...commonArgs,
-                      missingKey: FileInfoProperty.Name,
-                      map: infoMap,
-                  }),
-              ]
-            : []),
+        ...missingKeys
+            .filter((key) => (mandatoryKeys as string[]).includes(key))
+            .map((key) =>
+                getErrorForMissingKeyInMap({
+                    ...commonArgs,
+                    missingKey: key,
+                    map: infoMap,
+                }),
+            ),
     );
     const missingProperties = missingKeys.map((key) => ({
         alwaysHasScalarValue: (allExpectedScalars as string[]).includes(key),
-        isMandatory: key == FileInfoProperty.Name,
+        isMandatory: (mandatoryKeys as string[]).includes(key),
         key,
     }));
     const name = validStringScalars.find(
