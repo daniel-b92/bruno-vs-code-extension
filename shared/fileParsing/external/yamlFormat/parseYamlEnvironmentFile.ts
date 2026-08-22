@@ -41,7 +41,7 @@ export function parseYamlEnvironmentFile(
 
     const maybeTopLevelMap = parseDocumentIntoYamlMap(commonArgs);
     if ("errors" in maybeTopLevelMap) {
-        return { ...maybeTopLevelMap };
+        return maybeTopLevelMap;
     }
     const topLevelMap = maybeTopLevelMap.map;
 

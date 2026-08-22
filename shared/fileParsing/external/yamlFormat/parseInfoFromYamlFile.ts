@@ -22,7 +22,7 @@ export function parseInfoFromYamlFile(
 
     const maybeTopLevelMap = parseDocumentIntoYamlMap(commonArgs);
     if ("errors" in maybeTopLevelMap) {
-        return { ...maybeTopLevelMap };
+        return maybeTopLevelMap;
     }
 
     const { map: topLevelMap } = maybeTopLevelMap;
