@@ -1,8 +1,5 @@
 import { Range } from "../../..";
-import {
-    FileInfoType,
-    VariableType,
-} from "../../internal/yamlFormat/brunoSpecific/constants/sharedConstants";
+import { FileInfoType, VariableType } from "./constants/sharedConstants";
 import {
     OptionalVariableFieldResult,
     ParsedAction,
@@ -62,11 +59,6 @@ export type ParsedInfoForFolderSettings = ParsedInfoForCollectionSettings & {
 export type ParsedInfoForCollectionSettings = ParseYamlMapWithKeyAndValueRange<{
     name?: WithKeyAndValueRange<string>;
 }>;
-
-export enum TopLevelEnvironmentFileProperty {
-    Name = "name",
-    Variables = "variables",
-}
 
 export type ParsedEnvironmentVariable = ParsedYamlMapWithValueRange<{
     name?: WithKeyAndValueRange<string>;

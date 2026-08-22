@@ -17,7 +17,10 @@ import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { getMapItems } from "../yamlMaps/getMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
-import { FileInfoProperty, FileInfoType } from "./constants/sharedConstants";
+import {
+    FileInfoProperty,
+    FileInfoType,
+} from "../../../external/yamlFormat/constants/sharedConstants";
 
 export type ParsedInfoResult = MaybeResultWithErrors<ParsedInfoForRequestFile>;
 

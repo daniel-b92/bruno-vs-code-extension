@@ -22,7 +22,7 @@ import {
     ActionType,
     ActionVariableProperty,
     ActionVariableScope,
-} from "./constants/actionConstants";
+} from "../../../external/yamlFormat/constants/actionConstants";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getRangeForItem } from "../util/getRangeForItem";
 

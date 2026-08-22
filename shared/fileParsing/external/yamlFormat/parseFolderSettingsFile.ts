@@ -27,7 +27,7 @@ import { parseActionsFromYamlSequence } from "../../internal/yamlFormat/brunoSpe
 import {
     FolderSettingsRequestSectionProperty,
     TopLevelFolderSettingsProperty,
-} from "../../internal/yamlFormat/brunoSpecific/constants/folderSettingsFileConstants";
+} from "./constants/folderSettingsFileConstants";
 import { parseDocsFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpecific/parseDocsFromYamlMapOrScalar";
 import { getRangeForItem } from "../../internal/yamlFormat/util/getRangeForItem";
 

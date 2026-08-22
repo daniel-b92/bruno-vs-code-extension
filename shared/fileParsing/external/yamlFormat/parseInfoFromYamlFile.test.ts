@@ -11,11 +11,8 @@ import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
 } from "../../../_testingUtils";
-import { TopLevelRequestFileProperty } from "../../internal/yamlFormat/brunoSpecific/constants/requestFileConstants";
-import {
-    FileInfoProperty,
-    FileInfoType,
-} from "../../internal/yamlFormat/brunoSpecific/constants/sharedConstants";
+import { TopLevelRequestFileProperty } from "./constants/requestFileConstants";
+import { FileInfoProperty, FileInfoType } from "./constants/sharedConstants";
 
 describe("parseInfoFromYamlFile", () => {
     it("parses an info block from a valid simple request file", () => {

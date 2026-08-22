@@ -12,8 +12,8 @@ import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { getRangeForUnknownYamlItem } from "../util/getRangeForUnknownYamlItem";
 import { getMapItems } from "../yamlMaps/getMapItems";
-import { VariableType } from "./constants/sharedConstants";
-import { EnvironmentVariableProperty } from "./constants/environmentVariableConstants";
+import { VariableType } from "../../../external/yamlFormat/constants/sharedConstants";
+import { EnvironmentVariableProperty } from "../../../external/yamlFormat/constants/environmentFileConstants";
 
 enum VariableValueWithTypeProperty {
     Type = "type",

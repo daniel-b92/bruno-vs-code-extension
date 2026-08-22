@@ -7,7 +7,7 @@ import {
     ParsedInfoResult,
     parseFileInfoFromYamlMap,
 } from "../../internal/yamlFormat/brunoSpecific/parseFileInfoFromYamlMap";
-import { TopLevelRequestFileProperty } from "../../internal/yamlFormat/brunoSpecific/constants/requestFileConstants";
+import { TopLevelRequestFileProperty } from "./constants/requestFileConstants";
 
 export function parseInfoFromYamlFile(
     docHelper: TextDocumentHelper,

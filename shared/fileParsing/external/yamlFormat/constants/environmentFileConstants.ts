@@ -6,3 +6,8 @@ export enum EnvironmentVariableProperty {
     Secret = "secret",
     Type = "type",
 }
+
+export enum TopLevelEnvironmentFileProperty {
+    Name = "name",
+    Variables = "variables",
+}

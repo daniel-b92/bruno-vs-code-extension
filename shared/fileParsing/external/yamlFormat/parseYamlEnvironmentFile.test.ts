@@ -11,8 +11,8 @@ import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
 } from "../../../_testingUtils";
-import { EnvironmentVariableProperty } from "../../internal/yamlFormat/brunoSpecific/constants/environmentVariableConstants";
-import { VariableType } from "../../internal/yamlFormat/brunoSpecific/constants/sharedConstants";
+import { EnvironmentVariableProperty } from "./constants/environmentFileConstants";
+import { VariableType } from "./constants/sharedConstants";
 
 describe("parseYamlEnvironmentFile", () => {
     it("parses a simple yaml environment file with a single variable", () => {

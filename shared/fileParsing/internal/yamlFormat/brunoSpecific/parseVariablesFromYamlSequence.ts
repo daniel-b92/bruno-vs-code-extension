@@ -12,7 +12,7 @@ import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownK
 import { getValueFieldFromVariable } from "./getValueFieldFromVariable";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
-import { RequestVariableProperty } from "./constants/sharedConstants";
+import { RequestVariableProperty } from "../../../external/yamlFormat/constants/sharedConstants";
 import { getRangeForItem } from "../util/getRangeForItem";
 
 export function parseVariablesFromYamlSequence(

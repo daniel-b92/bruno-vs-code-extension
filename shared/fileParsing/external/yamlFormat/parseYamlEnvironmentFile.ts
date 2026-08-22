@@ -2,7 +2,6 @@ import { YAMLMap } from "yaml";
 import {
     ParsedEnvironmentVariable,
     TextDocumentHelper,
-    TopLevelEnvironmentFileProperty,
     WithKeyAndValueRange,
     YamlParsingError,
 } from "../../..";
@@ -21,8 +20,11 @@ import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDo
 import { getTypedValueFromList } from "../../internal/yamlFormat/scalars/getTypedValueFromList";
 import { stripKeyFromResult } from "../../internal/yamlFormat/util/stripKeyFromResult";
 import { getValueFieldFromVariable } from "../../internal/yamlFormat/brunoSpecific/getValueFieldFromVariable";
-import { EnvironmentVariableProperty } from "../../internal/yamlFormat/brunoSpecific/constants/environmentVariableConstants";
-import { VariableType } from "../../internal/yamlFormat/brunoSpecific/constants/sharedConstants";
+import {
+    EnvironmentVariableProperty,
+    TopLevelEnvironmentFileProperty,
+} from "./constants/environmentFileConstants";
+import { VariableType } from "./constants/sharedConstants";
 
 export function parseYamlEnvironmentFile(
     docHelper: TextDocumentHelper,

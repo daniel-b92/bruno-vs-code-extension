@@ -10,13 +10,13 @@ import {
     ActionSelectorMethod,
     ActionType,
     ActionVariableScope,
-} from "./brunoSpecific/constants/actionConstants";
-import { AuthType } from "./brunoSpecific/constants/authConstants";
+} from "../../external/yamlFormat/constants/actionConstants";
+import { AuthType } from "../../external/yamlFormat/constants/authConstants";
 import {
     DocsType,
     ScriptType,
     VariableType,
-} from "./brunoSpecific/constants/sharedConstants";
+} from "../../external/yamlFormat/constants/sharedConstants";
 
 export interface CommonParsingArgs {
     docHelper: TextDocumentHelper;
@@ -121,13 +121,6 @@ export interface YamlMapMissingPropertyInfo {
     isMandatory: boolean;
     alwaysHasScalarValue: boolean;
 }
-
-export type ParsingResult<T> =
-    | YamlParsingError[]
-    | {
-          result: T;
-          errors: YamlParsingError[];
-      };
 
 export type MaybeResultWithErrors<T> = {
     result?: T;
