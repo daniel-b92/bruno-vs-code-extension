@@ -110,7 +110,7 @@ function parseScript(
     const collectedErrors: YamlParsingError[] = [];
     const missingProperties = missingKeys.map((key) => ({
         alwaysHasScalarValue: true,
-        isMandatory: false,
+        isMandatory: true,
         key,
     }));
     const maybeUntypedTypeWithKeyRange = validStringScalars.find(
