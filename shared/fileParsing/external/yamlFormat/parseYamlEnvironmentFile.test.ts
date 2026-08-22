@@ -29,7 +29,7 @@ variables:
 
         const expectedVariables: ParsedEnvironmentVariable[] = [
             {
-                range: new Range(
+                valueRange: new Range(
                     new Position(2, 4),
                     new Position(
                         4,
@@ -40,8 +40,12 @@ variables:
                     EnvironmentVariableProperty.Disabled,
                     EnvironmentVariableProperty.Secret,
                     EnvironmentVariableProperty.Type,
-                ],
-                fields: {
+                ].map((key) => ({
+                    key,
+                    alwaysHasScalarValue: true,
+                    isMandatory: false,
+                })),
+                properties: {
                     ...getDefaultVariableProperties(),
                     name: {
                         keyRange: getExpectedKeyRange(variableNameLine, "name"),
@@ -82,17 +86,21 @@ variables:
 
         expect(parsed).toEqual({
             result: {
-                name: {
-                    keyRange: getExpectedKeyRange(0, "name", 0),
-                    value: "Env1",
-                    valueRange: getExpectedSameLineValueRange(
-                        0,
-                        "name",
-                        "Env1",
-                        0,
-                    ),
+                properties: {
+                    name: {
+                        key: "name",
+                        keyRange: getExpectedKeyRange(0, "name", 0),
+                        value: "Env1",
+                        valueRange: getExpectedSameLineValueRange(
+                            0,
+                            "name",
+                            "Env1",
+                            0,
+                        ),
+                    },
+                    variables: { enabled: expectedVariables, disabled: [] },
                 },
-                variables: { enabled: expectedVariables, disabled: [] },
+                missingProperties: [],
             },
             errors: [],
         });
@@ -116,13 +124,17 @@ variables:
 
         const expectedEnabledVariables: ParsedEnvironmentVariable[] = [
             {
-                range: new Range(new Position(2, 4), new Position(5, 0)),
+                valueRange: new Range(new Position(2, 4), new Position(5, 0)),
                 missingProperties: [
                     EnvironmentVariableProperty.Disabled,
                     EnvironmentVariableProperty.Secret,
                     EnvironmentVariableProperty.Type,
-                ],
-                fields: {
+                ].map((key) => ({
+                    key,
+                    alwaysHasScalarValue: true,
+                    isMandatory: false,
+                })),
+                properties: {
                     ...getDefaultVariableProperties(),
                     name: {
                         keyRange: getExpectedKeyRange(firstVarNameLine, "name"),
@@ -162,15 +174,19 @@ variables:
         ];
         const expectedDisabledVariables: ParsedEnvironmentVariable[] = [
             {
-                range: new Range(
+                valueRange: new Range(
                     new Position(5, 4),
                     new Position(8, 4 + 2 + "disabled".length + "true".length),
                 ),
                 missingProperties: [
                     EnvironmentVariableProperty.Description,
                     EnvironmentVariableProperty.Type,
-                ],
-                fields: {
+                ].map((key) => ({
+                    key,
+                    alwaysHasScalarValue: true,
+                    isMandatory: false,
+                })),
+                properties: {
                     ...getDefaultVariableProperties(),
                     name: {
                         keyRange: getExpectedKeyRange(
@@ -232,20 +248,24 @@ variables:
 
         expect(parsed).toEqual({
             result: {
-                name: {
-                    keyRange: getExpectedKeyRange(0, "name", 0),
-                    value: "Env1",
-                    valueRange: getExpectedSameLineValueRange(
-                        0,
-                        "name",
-                        "Env1",
-                        0,
-                    ),
+                properties: {
+                    name: {
+                        key: "name",
+                        keyRange: getExpectedKeyRange(0, "name", 0),
+                        value: "Env1",
+                        valueRange: getExpectedSameLineValueRange(
+                            0,
+                            "name",
+                            "Env1",
+                            0,
+                        ),
+                    },
+                    variables: {
+                        enabled: expectedEnabledVariables,
+                        disabled: expectedDisabledVariables,
+                    },
                 },
-                variables: {
-                    enabled: expectedEnabledVariables,
-                    disabled: expectedDisabledVariables,
-                },
+                missingProperties: [],
             },
             errors: [],
         });
@@ -273,19 +293,23 @@ variables:
         }
 
         const { result, errors } = parsed;
-        expect(result.name).toEqual({
+        expect(result).toBeDefined();
+        expect(result?.properties.name).toEqual({
+            key: "name",
             keyRange: getExpectedKeyRange(0, "name", 0),
             value: "Env1",
             valueRange: getExpectedSameLineValueRange(0, "name", "Env1", 0),
         });
         expect(errors).toHaveLength(0);
-        expect(result.variables.enabled).toHaveLength(1);
-        expect(result.variables.disabled).toHaveLength(0);
+        expect(result?.properties.variables?.enabled).toHaveLength(1);
+        expect(result?.properties.variables?.disabled).toHaveLength(0);
 
-        const { fields } = result.variables.enabled[0];
+        const variable = result?.properties.variables?.enabled[0];
+        expect(variable?.properties).toBeDefined();
+        const fields = variable?.properties!;
         expect(fields.description).toBeUndefined();
         expect(fields.disabled).toEqual({ effectiveValue: false });
-        expect(fields.name.value).toEqual("var-1");
+        expect(fields.name?.value).toEqual("var-1");
         expect(fields.secret).toEqual({ effectiveValue: false });
         expect(fields.type).toEqual({
             effectiveValue: VariableType.String,
@@ -299,9 +323,11 @@ variables:
                 `Got unexpected value from the parser. Should be an object, but was ${fields.value}`,
             );
         }
-        const actualValueItem = fields.value as {
-            type: WithKeyAndValueRange<VariableType>;
-            data: WithKeyAndValueRange<string>;
+        const { properties: actualValueItem } = fields.value as {
+            properties: {
+                type: WithKeyAndValueRange<VariableType>;
+                data: WithKeyAndValueRange<string>;
+            };
         };
 
         const typeLine = 4;
@@ -340,13 +366,11 @@ variables: foo`;
             new TextDocumentHelper(documentText),
         );
 
-        if (typeof parsed == "object" && "result" in parsed) {
-            throw new Error(
-                "Expected parsed result to be only an array of errors.",
-            );
-        }
-        expect(parsed).toHaveLength(1);
-        expect(parsed[0].range).toEqual(
+        expect(parsed.errors).toHaveLength(1);
+        expect(parsed.result?.properties.name).toBeDefined();
+        expect(parsed.result?.properties.name?.value).toEqual("Env1");
+        expect(parsed.result?.properties.variables).toBeUndefined();
+        expect(parsed.errors[0].range).toEqual(
             getExpectedSameLineValueRange(1, "variables", "foo", 0),
         );
     });
@@ -391,10 +415,11 @@ invalid: bar`;
                 range,
             );
         }
-        expect(parsed.result.variables.enabled).toHaveLength(1);
-        expect(parsed.result.variables.disabled).toHaveLength(0);
-        const { fields } = parsed.result.variables.enabled[0];
-        expect(fields.name.value).toBe("var-1");
+        expect(parsed?.result?.properties.variables?.enabled).toHaveLength(1);
+        expect(parsed?.result?.properties.variables?.disabled).toHaveLength(0);
+        const { properties: fields } =
+            parsed?.result?.properties.variables?.enabled[0]!;
+        expect(fields.name?.value).toBe("var-1");
         expect(fields.description?.value).toBe("desc");
         expect(fields.type).toEqual({
             effectiveValue: VariableType.String,

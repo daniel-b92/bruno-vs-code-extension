@@ -14,7 +14,6 @@ import {
 import { AuthType } from "./brunoSpecific/constants/authConstants";
 import {
     DocsType,
-    RequestVariableProperty,
     ScriptType,
     VariableType,
 } from "./brunoSpecific/constants/sharedConstants";
@@ -37,69 +36,90 @@ export interface ParsedMapItems {
     unknownKeys: { key: string; keyRange: Range }[];
 }
 
-export interface ParsedRequestVariable {
-    missingProperties: RequestVariableProperty[];
-    fields: {
-        name: WithKeyAndValueRange<string>;
-        value?:
-            | WithKeyAndValueRange<string>
-            | {
-                  keyRange: Range;
-                  type: WithKeyAndValueRange<VariableType>;
-                  data: WithKeyAndValueRange<string>;
-              };
-        description?: WithKeyAndValueRange<string>;
-        disabled: OptionalVariableFieldResult<boolean>;
-    };
-}
-
-export interface ParsedAction {
-    type: WithKeyAndValueRange<ActionType>;
-    phase: WithKeyAndValueRange<ActionPhase>;
-    selector: {
-        expression: WithKeyAndValueRange<string>;
-        method: WithKeyAndValueRange<ActionSelectorMethod>;
-    };
-    variable: {
-        name: WithKeyAndValueRange<string>;
-        scope: WithKeyAndValueRange<ActionVariableScope>;
-    };
+export type ParsedRequestVariable = ParsedYamlMapWithValueRange<{
+    name?: WithKeyAndValueRange<string>;
+    value?:
+        | WithKeyAndValueRange<string>
+        | ParseYamlMapWithKeyAndValueRange<{
+              type?: WithKeyAndValueRange<VariableType>;
+              data?: WithKeyAndValueRange<string>;
+          }>;
     description?: WithKeyAndValueRange<string>;
     disabled: OptionalVariableFieldResult<boolean>;
-}
+}>;
 
-export interface ParsedRequestHeader {
-    name: WithKeyAndValueRange<string>;
-    value: WithKeyAndValueRange<string>;
+export type ParsedAction = ParsedYamlMapWithValueRange<{
+    type?: WithKeyAndValueRange<ActionType>;
+    phase?: WithKeyAndValueRange<ActionPhase>;
+    selector?: ParseYamlMapWithKeyAndValueRange<{
+        expression?: WithKeyAndValueRange<string>;
+        method?: WithKeyAndValueRange<ActionSelectorMethod>;
+    }>;
+    variable?: ParseYamlMapWithKeyAndValueRange<{
+        name?: WithKeyAndValueRange<string>;
+        scope?: WithKeyAndValueRange<ActionVariableScope>;
+    }>;
     description?: WithKeyAndValueRange<string>;
     disabled: OptionalVariableFieldResult<boolean>;
-}
+}>;
 
-export interface ParsedScript {
-    type: WithKeyAndValueRange<ScriptType>;
-    code: WithKeyAndValueRange<string>;
-}
+export type ParsedRequestHeader = ParsedYamlMapWithValueRange<{
+    name?: WithKeyAndValueRange<string>;
+    value?: WithKeyAndValueRange<string>;
+    description?: WithKeyAndValueRange<string>;
+    disabled: OptionalVariableFieldResult<boolean>;
+}>;
 
-export interface ParsedDocsWithType {
-    type?: WithKeyAndValueRange<DocsType>;
-    content?: WithKeyAndValueRange<string>;
-}
+export type ParsedScript = ParsedYamlMapWithValueRange<{
+    type?: WithKeyAndValueRange<ScriptType>;
+    code?: WithKeyAndValueRange<string>;
+}>;
 
-export type ParsedAuth = ParsedInheritAuth | ParsedBasicAuth | ParsedBearerAuth;
+export type ParsedDocsWithType = WithKeyAndValueRange<
+    | string
+    | ParsedYamlMap<{
+          type?: WithKeyAndValueRange<DocsType>;
+          content?: WithKeyAndValueRange<string>;
+      }>
+>;
 
-export interface ParsedBasicAuth {
+export type ParsedAuth = WithKeyAndValueRange<
+    ParsedInheritAuth | ParsedBasicAuth | ParsedBearerAuth
+>;
+
+export type ParsedBasicAuth = ParsedYamlMap<{
     type: WithKeyAndValueRange<AuthType.Basic>;
     username?: WithKeyAndValueRange<string>;
     password?: WithKeyAndValueRange<string>;
-}
+}>;
 
-export interface ParsedBearerAuth {
+export type ParsedBearerAuth = ParsedYamlMap<{
     type: WithKeyAndValueRange<AuthType.Bearer>;
     token?: WithKeyAndValueRange<string>;
-}
+}>;
 
 export interface ParsedInheritAuth {
     valueRange: Range;
+}
+
+export type ParseYamlMapWithKeyAndValueRange<T> =
+    ParsedYamlMapWithValueRange<T> & {
+        keyRange: Range;
+    };
+
+export type ParsedYamlMapWithValueRange<T> = ParsedYamlMap<T> & {
+    valueRange: Range;
+};
+
+export type ParsedYamlMap<T> = {
+    properties: T;
+    missingProperties: YamlMapMissingPropertyInfo[];
+};
+
+export interface YamlMapMissingPropertyInfo {
+    key: string;
+    isMandatory: boolean;
+    alwaysHasScalarValue: boolean;
 }
 
 export type ParsingResult<T> =
@@ -108,6 +128,11 @@ export type ParsingResult<T> =
           result: T;
           errors: YamlParsingError[];
       };
+
+export type MaybeResultWithErrors<T> = {
+    result?: T;
+    errors: YamlParsingError[];
+};
 
 export type OptionalVariableFieldResult<T> = {
     effectiveValue: T;

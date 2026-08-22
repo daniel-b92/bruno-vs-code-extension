@@ -1,8 +1,8 @@
-import { isScalar, YAMLSeq } from "yaml";
+import { YAMLSeq } from "yaml";
 import {
     CommonParsingArgs,
+    MaybeResultWithErrors,
     ParsedRequestVariable,
-    ParsingResult,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { YamlParsingError } from "../../../..";
@@ -12,13 +12,13 @@ import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownK
 import { getValueFieldFromVariable } from "./getValueFieldFromVariable";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
-import { mapFromYamlScalar } from "../scalars/mapFromYamlScalar";
 import { RequestVariableProperty } from "./constants/sharedConstants";
+import { getRangeForItem } from "../util/getRangeForItem";
 
 export function parseVariablesFromYamlSequence(
     variablesSequence: YAMLSeq,
     commonArgs: CommonParsingArgs,
-): ParsingResult<{
+): MaybeResultWithErrors<{
     enabled: ParsedRequestVariable[];
     disabled: ParsedRequestVariable[];
 }> {
@@ -61,6 +61,10 @@ export function parseVariablesFromYamlSequence(
             commonArgs,
         );
         const allAllowedKeys = Object.values(RequestVariableProperty);
+        const missingKeysWithContext = missingKeys.map((key) => ({
+            key,
+            isMandatory: key == RequestVariableProperty.Name,
+        }));
 
         errors.push(
             ...mapItemErrors.concat(
@@ -77,7 +81,23 @@ export function parseVariablesFromYamlSequence(
                             allowedKeys: allAllowedKeys,
                         }),
                     ),
+                missingKeysWithContext
+                    .filter(({ isMandatory }) => isMandatory)
+                    .map(({ key }) =>
+                        getErrorForMissingKeyInMap({
+                            ...commonArgs,
+                            map: currentMap,
+                            missingKey: key,
+                        }),
+                    ),
             ),
+        );
+        const missingProperties = missingKeysWithContext.map(
+            ({ key, isMandatory }) => ({
+                key,
+                alwaysHasScalarValue: true,
+                isMandatory,
+            }),
         );
         const { description, disabled } =
             getItemsForSimpleOptionalVariableProps(
@@ -85,52 +105,26 @@ export function parseVariablesFromYamlSequence(
                 validBooleanScalars,
             );
 
-        const maybeValue = getValueFieldFromVariable(currentMap, commonArgs);
-        if (maybeValue && "errors" in maybeValue) {
-            errors.push(...maybeValue.errors);
-        }
-
-        const valueToUse =
-            maybeValue && !("errors" in maybeValue) ? maybeValue : undefined;
+        const { result: maybeValue, errors: valueErrors } =
+            getValueFieldFromVariable(currentMap, commonArgs);
+        errors.push(...valueErrors);
 
         const name = validStringScalars.find(
             ({ key }) => key == RequestVariableProperty.Name,
         );
 
-        if (!name) {
-            // The 'name' field is the only mandatory one.
-            errors.push(
-                getErrorForMissingKeyInMap({
-                    ...commonArgs,
-                    missingKey: RequestVariableProperty.Name,
-                    map: currentMap,
-                }),
-            );
-            continue;
-        }
-
-        const variable = {
-            missingProperties: missingKeys as RequestVariableProperty[],
-            fields: {
-                name: stripKeyFromResult(name),
+        const variable: ParsedRequestVariable = {
+            valueRange: getRangeForItem(currentMap, commonArgs),
+            missingProperties,
+            properties: {
+                name: name ? stripKeyFromResult(name) : undefined,
                 description,
                 disabled,
-                value: !valueToUse
-                    ? undefined
-                    : isScalar<string>(valueToUse.value)
-                      ? mapFromYamlScalar({
-                            ...commonArgs,
-                            keyRange: valueToUse.keyRange,
-                            value: valueToUse.value,
-                        })
-                      : {
-                            ...valueToUse,
-                            ...valueToUse.value,
-                        },
+                value: maybeValue,
             },
         };
 
-        if (variable.fields.disabled.effectiveValue) {
+        if (variable.properties.disabled.effectiveValue) {
             disabledVariables.push(variable);
         } else {
             enabledVariables.push(variable);

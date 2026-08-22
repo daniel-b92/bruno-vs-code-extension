@@ -1,12 +1,16 @@
 import { isMap, isScalar, isSeq, Scalar, YAMLMap } from "yaml";
-import { Range, YamlParsingError, YamlParsingErrorCode } from "../../../..";
+import {
+    Range,
+    WithKeyAndValueRange,
+    YamlParsingError,
+    YamlParsingErrorCode,
+} from "../../../..";
 import { CommonParsingArgs, ParsedMapItems } from "../interfaces";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { fromYamlRange } from "../util/fromYamlRange";
 import { getRangeForUnknownYamlItem } from "../util/getRangeForUnknownYamlItem";
 import { getErrorForValueWithUnexpectedType } from "../parsingErrors/getErrorForValueWithUnexpectedType";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
-import { mapFromYamlScalar } from "../scalars/mapFromYamlScalar";
 
 /**
  * Parses a YAML map and categorizes its items into valid scalars, valid sequences, invalid scalars, invalid sequences, and unknown keys based on the provided expected keys.
@@ -270,4 +274,16 @@ function getValueRange(
                   code: YamlParsingErrorCode.Other,
               },
           };
+}
+
+function mapFromYamlScalar<T>(
+    args: { keyRange: Range; value: Scalar<T> } & CommonParsingArgs,
+): WithKeyAndValueRange<T> {
+    const { value: valueField, keyRange } = args;
+
+    return {
+        keyRange,
+        valueRange: getRangeForItem(valueField, args),
+        value: valueField.value,
+    };
 }

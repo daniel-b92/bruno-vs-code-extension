@@ -1,20 +1,26 @@
-import { WithKeyAndValueRange } from "@global_shared";
+import {
+    TopLevelEnvironmentFileProperty,
+    WithKeyAndValueRange,
+} from "@global_shared";
 import { Diagnostic } from "vscode-languageserver";
 import { CommonDiagnosticParams } from "../../../interfaces";
 import { getErrorForMissingTopLevelKey } from "../../util/getErrorForMissingTopLevelKey";
+import { ParsedYamlMap } from "@global_shared/fileParsing/internal/yamlFormat/interfaces";
 
 export function checkTopLevelNameIsDefined(
-    parsingResult: {
-        name:
-            | WithKeyAndValueRange<string>
-            | {
-                  missing: boolean;
-              };
-    },
+    {
+        missingProperties,
+    }: ParsedYamlMap<{
+        name?: WithKeyAndValueRange<string>;
+    }>,
     commonParams: CommonDiagnosticParams,
 ): Diagnostic | undefined {
-    return "missing" in parsingResult.name &&
-        parsingResult.name.missing === true
-        ? getErrorForMissingTopLevelKey("name", commonParams)
+    return missingProperties.some(
+        ({ key }) => key == TopLevelEnvironmentFileProperty.Name,
+    )
+        ? getErrorForMissingTopLevelKey(
+              TopLevelEnvironmentFileProperty.Name,
+              commonParams,
+          )
         : undefined;
 }

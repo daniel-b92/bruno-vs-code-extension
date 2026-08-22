@@ -2,21 +2,21 @@ import { YAMLSeq } from "yaml";
 import { YamlParsingError } from "../../../..";
 import {
     CommonParsingArgs,
+    MaybeResultWithErrors,
     ParsedRequestHeader,
-    ParsingResult,
 } from "../interfaces";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getMapItems } from "../yamlMaps/getMapItems";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { RequestHeaderProperty } from "./constants/sharedConstants";
-
-export type ParsedHeadersResult = ParsingResult<ParsedRequestHeader[]>;
+import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
+import { getRangeForItem } from "../util/getRangeForItem";
 
 export function parseHeadersFromSequence(args: {
     commonArgs: CommonParsingArgs;
     headersSequence: YAMLSeq;
-}): ParsedHeadersResult {
+}): MaybeResultWithErrors<ParsedRequestHeader[]> {
     const { commonArgs, headersSequence } = args;
     const errors: YamlParsingError[] = [];
     const result: ParsedRequestHeader[] = [];
@@ -40,6 +40,7 @@ export function parseHeadersFromSequence(args: {
         const {
             items: {
                 unknownKeys,
+                missingKeys,
                 validScalars: {
                     withStringValue: validStrings,
                     withBooleanValue: validBooleans,
@@ -56,16 +57,40 @@ export function parseHeadersFromSequence(args: {
             },
             commonArgs,
         );
+        const missingKeysWithInfo = missingKeys.map((key) => ({
+            key,
+            isMandatory:
+                // Name and value are mandatory.
+                key == RequestHeaderProperty.Name ||
+                key == RequestHeaderProperty.Value,
+        }));
+        const missingProperties = missingKeysWithInfo.map(
+            ({ key, isMandatory }) => ({
+                key,
+                alwaysHasScalarValue: true,
+                isMandatory,
+            }),
+        );
 
         errors.push(
             ...mapItemErrors,
-            ...unknownKeys.map(({ key: unknownKey, keyRange }) =>
-                getErrorForUnknownKeyInMap({
-                    ...commonArgs,
-                    unknownKey,
-                    keyRange,
-                    allowedKeys: allowedKeys,
-                }),
+            ...unknownKeys.map(
+                ({ key: unknownKey, keyRange }) =>
+                    getErrorForUnknownKeyInMap({
+                        ...commonArgs,
+                        unknownKey,
+                        keyRange,
+                        allowedKeys: allowedKeys,
+                    }),
+                ...missingKeysWithInfo
+                    .filter(({ isMandatory }) => isMandatory)
+                    .map(({ key }) =>
+                        getErrorForMissingKeyInMap({
+                            ...commonArgs,
+                            missingKey: key,
+                            map: headerMap,
+                        }),
+                    ),
             ),
         );
         const name = validStrings.find(
@@ -74,11 +99,6 @@ export function parseHeadersFromSequence(args: {
         const value = validStrings.find(
             ({ key }) => key == RequestHeaderProperty.Value,
         );
-        if (!name || !value) {
-            // Name and value are mandatory.
-            return errors;
-        }
-
         const description = validStrings.find(
             ({ key }) => key == RequestHeaderProperty.Description,
         );
@@ -87,20 +107,26 @@ export function parseHeadersFromSequence(args: {
         );
 
         result.push({
-            name: stripKeyFromResult(name),
-            value: stripKeyFromResult(value),
-            description: description
-                ? stripKeyFromResult(description)
-                : undefined,
-            disabled: {
-                effectiveValue:
-                    // The default value is `false`, if not explicitly defined.
-                    maybeDisabled !== undefined ? maybeDisabled.value : false,
-                field:
-                    maybeDisabled !== undefined
-                        ? stripKeyFromResult(maybeDisabled)
-                        : undefined,
+            valueRange: getRangeForItem(headerMap, commonArgs),
+            properties: {
+                name: name ? stripKeyFromResult(name) : undefined,
+                value: value ? stripKeyFromResult(value) : undefined,
+                description: description
+                    ? stripKeyFromResult(description)
+                    : undefined,
+                disabled: {
+                    effectiveValue:
+                        // The default value is `false`, if not explicitly defined.
+                        maybeDisabled !== undefined
+                            ? maybeDisabled.value
+                            : false,
+                    field:
+                        maybeDisabled !== undefined
+                            ? stripKeyFromResult(maybeDisabled)
+                            : undefined,
+                },
             },
+            missingProperties,
         });
     }
 

@@ -1,5 +1,4 @@
 import { Range } from "../../..";
-import { EnvironmentVariableProperty } from "../../internal/yamlFormat/brunoSpecific/constants/environmentVariableConstants";
 import {
     FileInfoType,
     VariableType,
@@ -12,6 +11,9 @@ import {
     ParsedRequestHeader,
     ParsedRequestVariable,
     ParsedScript,
+    ParsedYamlMap,
+    ParseYamlMapWithKeyAndValueRange,
+    ParsedYamlMapWithValueRange,
 } from "../../internal/yamlFormat/interfaces";
 
 export enum YamlParsingErrorCode {
@@ -26,9 +28,9 @@ export interface YamlParsingError {
     code: YamlParsingErrorCode;
 }
 
-export interface ParsedFolderSettingsFile {
-    info: ParsedInfoForFolderSettings;
-    request?: {
+export type ParsedFolderSettingsFile = ParsedYamlMap<{
+    info?: ParsedInfoForFolderSettings;
+    request?: ParseYamlMapWithKeyAndValueRange<{
         headers?: ParsedRequestHeader[];
         auth?: ParsedAuth;
         variables?: {
@@ -40,46 +42,47 @@ export interface ParsedFolderSettingsFile {
             disabled: ParsedAction[];
         };
         scripts?: ParsedScript[];
-    };
+    }>;
     docs?: ParsedDocsWithType;
-}
+}>;
 
 export type ParsedInfoForRequestFile = ParsedInfoForFolderSettings & {
-    value: {
+    properties: {
         tags?: WithKeyAndValueRange<{ value: string; range: Range }[]>;
     };
 };
 
 export type ParsedInfoForFolderSettings = ParsedInfoForCollectionSettings & {
-    value: {
+    properties: {
         type?: WithKeyAndValueRange<FileInfoType>;
         sequence?: WithKeyAndValueRange<number>;
     };
 };
 
-export type ParsedInfoForCollectionSettings = WithKeyAndValueRange<{
-    name: WithKeyAndValueRange<string>;
+export type ParsedInfoForCollectionSettings = ParseYamlMapWithKeyAndValueRange<{
+    name?: WithKeyAndValueRange<string>;
 }>;
 
-export interface ParsedEnvironmentVariable {
-    range: Range;
-    missingProperties: EnvironmentVariableProperty[];
-    fields: {
-        name: WithKeyAndValueRange<string>;
-        value?:
-            | WithKeyAndValueRange<string>
-            | {
-                  keyRange: Range;
-                  type: WithKeyAndValueRange<VariableType>;
-                  data: WithKeyAndValueRange<string>;
-              };
-        description?: WithKeyAndValueRange<string>;
-        type: OptionalVariableFieldResult<VariableType>;
-        secret: OptionalVariableFieldResult<boolean>;
-        disabled: OptionalVariableFieldResult<boolean>;
-    };
+export enum TopLevelEnvironmentFileProperty {
+    Name = "name",
+    Variables = "variables",
 }
 
+export type ParsedEnvironmentVariable = ParsedYamlMapWithValueRange<{
+    name?: WithKeyAndValueRange<string>;
+    value?:
+        | WithKeyAndValueRange<string>
+        | ({
+              keyRange: Range;
+          } & ParsedYamlMap<{
+              type?: WithKeyAndValueRange<VariableType>;
+              data?: WithKeyAndValueRange<string>;
+          }>);
+    description?: WithKeyAndValueRange<string>;
+    type: OptionalVariableFieldResult<VariableType>;
+    secret: OptionalVariableFieldResult<boolean>;
+    disabled: OptionalVariableFieldResult<boolean>;
+}>;
 export interface WithKeyAndValueRange<T> {
     keyRange: Range;
     value: T;

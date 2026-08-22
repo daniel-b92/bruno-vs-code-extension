@@ -1,4 +1,4 @@
-import { isMap, YAMLMap } from "yaml";
+import { YAMLMap } from "yaml";
 import {
     WithKeyAndValueRange,
     YamlParsingError,
@@ -9,15 +9,15 @@ import {
     ParsedAuth,
     ParsedBasicAuth,
     ParsedBearerAuth,
-    ParsingResult,
+    MaybeResultWithErrors,
     WithKeyKeyRangeAndValueRange,
+    WithKeyAndKeyRange,
 } from "../interfaces";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getMapItems } from "../yamlMaps/getMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
-import { isParsingResultOnlyErrors } from "../util/isParsingResultOnlyErrors";
 import {
     AuthType,
     BasicAuthProperty,
@@ -25,32 +25,43 @@ import {
     CommonAuthMapProperties,
     inheritAuthValue,
 } from "./constants/authConstants";
-
-type ParsedAuthResult = ParsingResult<ParsedAuth>;
+import { getRangeForItem } from "../util/getRangeForItem";
 
 export function parseAuthFromYamlMapOrScalar(args: {
     commonArgs: CommonParsingArgs;
-    authMapOrScalar: YAMLMap | WithKeyKeyRangeAndValueRange<string>;
-}): ParsedAuthResult {
+    authMapOrScalar:
+        WithKeyAndKeyRange<YAMLMap> | WithKeyKeyRangeAndValueRange<string>;
+}): MaybeResultWithErrors<ParsedAuth> {
     const { commonArgs, authMapOrScalar } = args;
+    const { keyRange, value: authFullValue } = authMapOrScalar;
     const allErrors: YamlParsingError[] = [];
 
-    if (!isMap(authMapOrScalar)) {
-        const { valueRange } = authMapOrScalar;
+    if (typeof authFullValue == "string") {
+        const { valueRange } =
+            authMapOrScalar as WithKeyKeyRangeAndValueRange<string>;
         return authMapOrScalar.value == inheritAuthValue
-            ? { result: { valueRange }, errors: [] }
-            : [
-                  {
-                      message: `Invalid Scalar string for auth. Allowed is only '${inheritAuthValue}'.`,
-                      range: valueRange,
-                      code: YamlParsingErrorCode.Other,
+            ? {
+                  result: {
+                      keyRange,
+                      value: { valueRange },
+                      valueRange,
                   },
-              ];
+                  errors: [],
+              }
+            : {
+                  errors: [
+                      {
+                          message: `Invalid Scalar string for auth. Allowed is only '${inheritAuthValue}'.`,
+                          range: valueRange,
+                          code: YamlParsingErrorCode.Other,
+                      },
+                  ],
+              };
     }
-
-    const maybeAuthType = tryToParseAuthTypeField(authMapOrScalar, commonArgs);
-    if (isParsingResultOnlyErrors(maybeAuthType)) {
-        return maybeAuthType;
+    const valueRange = getRangeForItem(authFullValue, commonArgs);
+    const maybeAuthType = tryToParseAuthTypeField(authFullValue, commonArgs);
+    if (!maybeAuthType.result) {
+        return { errors: maybeAuthType.errors };
     }
 
     const { errors: typeParsingErrors, result: authType } = maybeAuthType;
@@ -61,39 +72,47 @@ export function parseAuthFromYamlMapOrScalar(args: {
             const { auth: basicAuthResult, errors: basicAuthErrors } =
                 parseBasicAuthFromAuthMap(
                     {
-                        authMap: authMapOrScalar,
+                        authMap: authFullValue,
                         parsedType:
                             authType as WithKeyAndValueRange<AuthType.Basic>,
                     },
                     commonArgs,
                 );
             return {
-                result: basicAuthResult,
+                result: {
+                    keyRange,
+                    value: basicAuthResult,
+                    valueRange,
+                },
                 errors: allErrors.concat(basicAuthErrors),
             };
         case AuthType.Bearer:
             const { auth: bearerAuthResult, errors: bearerAuthErrors } =
                 parseBearerAuthFromAuthMap(
                     {
-                        authMap: authMapOrScalar,
+                        authMap: authFullValue,
                         parsedType:
                             authType as WithKeyAndValueRange<AuthType.Bearer>,
                     },
                     commonArgs,
                 );
             return {
-                result: bearerAuthResult,
+                result: {
+                    keyRange,
+                    value: bearerAuthResult,
+                    valueRange,
+                },
                 errors: allErrors.concat(bearerAuthErrors),
             };
         // ToDo: Add support for more auth types.
         default:
-            return allErrors;
+            return { errors: allErrors };
     }
 
     function tryToParseAuthTypeField(
         authMap: YAMLMap,
         commonParsingArgs: CommonParsingArgs,
-    ): ParsingResult<WithKeyAndValueRange<AuthType>> {
+    ): MaybeResultWithErrors<WithKeyAndValueRange<AuthType>> {
         const {
             items: {
                 missingKeys,
@@ -107,15 +126,17 @@ export function parseAuthFromYamlMapOrScalar(args: {
         );
 
         if (validStringScalars.length == 0 || missingKeys.length > 0) {
-            return errors.concat(
-                missingKeys.map((key) =>
-                    getErrorForMissingKeyInMap({
-                        ...commonParsingArgs,
-                        map: authMap,
-                        missingKey: key,
-                    }),
+            return {
+                errors: errors.concat(
+                    missingKeys.map((key) =>
+                        getErrorForMissingKeyInMap({
+                            ...commonParsingArgs,
+                            map: authMap,
+                            missingKey: key,
+                        }),
+                    ),
                 ),
-            );
+            };
         }
 
         const maybeTypedResult = getTypedValueFromList<AuthType>(
@@ -127,9 +148,7 @@ export function parseAuthFromYamlMapOrScalar(args: {
             errors,
         );
 
-        return !maybeTypedResult
-            ? errors
-            : { result: maybeTypedResult.value, errors };
+        return { result: maybeTypedResult?.value, errors };
     }
 
     function parseBasicAuthFromAuthMap(
@@ -146,6 +165,7 @@ export function parseAuthFromYamlMapOrScalar(args: {
             errors,
             items: {
                 unknownKeys,
+                missingKeys,
                 validScalars: { withStringValue: validStringScalars },
             },
         } = getMapItems(
@@ -173,9 +193,20 @@ export function parseAuthFromYamlMapOrScalar(args: {
         );
         return {
             auth: {
-                type,
-                username: username ? stripKeyFromResult(username) : undefined,
-                password: password ? stripKeyFromResult(password) : undefined,
+                properties: {
+                    type,
+                    username: username
+                        ? stripKeyFromResult(username)
+                        : undefined,
+                    password: password
+                        ? stripKeyFromResult(password)
+                        : undefined,
+                },
+                missingProperties: missingKeys.map((key) => ({
+                    key,
+                    alwaysHasScalarValue: true,
+                    isMandatory: false,
+                })),
             },
             errors: allErrors,
         };
@@ -195,6 +226,7 @@ export function parseAuthFromYamlMapOrScalar(args: {
             errors,
             items: {
                 unknownKeys,
+                missingKeys,
                 validScalars: { withStringValue: validStringScalars },
             },
         } = getMapItems(
@@ -219,8 +251,15 @@ export function parseAuthFromYamlMapOrScalar(args: {
         );
         return {
             auth: {
-                type,
-                token: token ? stripKeyFromResult(token) : undefined,
+                properties: {
+                    type,
+                    token: token ? stripKeyFromResult(token) : undefined,
+                },
+                missingProperties: missingKeys.map((key) => ({
+                    key,
+                    alwaysHasScalarValue: true,
+                    isMandatory: false,
+                })),
             },
             errors: allErrors,
         };

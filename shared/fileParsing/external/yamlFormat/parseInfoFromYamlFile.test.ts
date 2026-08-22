@@ -11,7 +11,6 @@ import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
 } from "../../../_testingUtils";
-import { isParsingResultOnlyErrors } from "../../internal/yamlFormat/util/isParsingResultOnlyErrors";
 import { TopLevelRequestFileProperty } from "../../internal/yamlFormat/brunoSpecific/constants/requestFileConstants";
 import {
     FileInfoProperty,
@@ -45,7 +44,8 @@ http:
                 new Position(0, TopLevelRequestFileProperty.Info.length),
             ),
             valueRange: new Range(new Position(1, 4), new Position(7, 0)),
-            value: {
+            missingProperties: [],
+            properties: {
                 name: {
                     keyRange: getExpectedKeyRange(
                         nameLine,
@@ -125,18 +125,13 @@ http:
     type: http
     seq: 3`;
         const docHelper = new TextDocumentHelper(documentText);
-        const parsed = parseInfoFromYamlFile(
+        const { errors } = parseInfoFromYamlFile(
             docHelper,
             BrunoFileType.RequestFile,
         );
 
-        if (!isParsingResultOnlyErrors(parsed)) {
-            throw new Error(
-                `Expected parsed result to be only an array of errors. Got ${JSON.stringify(parsed, null, 2)}`,
-            );
-        }
-        expect(parsed).toHaveLength(1);
-        expect(parsed[0].range).toEqual(docHelper.getTextRange());
+        expect(errors).toHaveLength(1);
+        expect(errors[0].range).toEqual(docHelper.getTextRange());
     });
 
     it("returns partially parsed fields together with parsing errors for partially incorrect data", () => {
@@ -147,25 +142,16 @@ http:
     tags:
         - tag-1`;
         const docHelper = new TextDocumentHelper(documentText);
-        const parsed = parseInfoFromYamlFile(
+        const { result, errors } = parseInfoFromYamlFile(
             docHelper,
             BrunoFileType.RequestFile,
         );
 
-        if (isParsingResultOnlyErrors(parsed)) {
-            throw new Error(
-                `Expected parsed result to not only be an array of errors. Got ${JSON.stringify(parsed, null, 2)}`,
-            );
-        }
-
         const {
-            result: {
-                keyRange,
-                valueRange,
-                value: { name, tags, sequence, type },
-            },
-            errors,
-        } = parsed;
+            keyRange,
+            valueRange,
+            properties: { name, tags, sequence, type },
+        } = result!;
 
         expect(keyRange).toEqual(
             getExpectedKeyRange(0, TopLevelRequestFileProperty.Info, 0),
@@ -180,7 +166,7 @@ http:
                 ),
             ),
         );
-        expect(name.value).toEqual("test 3");
+        expect(name?.value).toEqual("test 3");
         expect(tags).toBeDefined();
         expect(tags!.value).toHaveLength(1);
         expect(tags!.value[0].value).toEqual("tag-1");

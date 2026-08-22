@@ -7,7 +7,7 @@ import {
 } from "../../../..";
 import {
     CommonParsingArgs,
-    ParsingResult,
+    MaybeResultWithErrors,
     WithKeyAndKeyRange,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
@@ -19,7 +19,7 @@ import { getMapItems } from "../yamlMaps/getMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { FileInfoProperty, FileInfoType } from "./constants/sharedConstants";
 
-export type ParsedInfoResult = ParsingResult<ParsedInfoForRequestFile>;
+export type ParsedInfoResult = MaybeResultWithErrors<ParsedInfoForRequestFile>;
 
 export function parseFileInfoFromYamlMap(args: {
     commonArgs: CommonParsingArgs;
@@ -56,6 +56,17 @@ export function parseFileInfoFromYamlMap(args: {
         expectedNumericScalars,
         expectedSequenceValues,
     );
+    const allExpectedScalars = expectedStringScalars.concat(
+        expectedNumericScalars,
+    );
+    const alwaysMandatoryKey = FileInfoProperty.Name;
+    const mandatoryKeys = [alwaysMandatoryKey].concat(
+        [BrunoFileType.FolderSettingsFile, BrunoFileType.AppFile].includes(
+            fileType,
+        )
+            ? FileInfoProperty.Type
+            : [FileInfoProperty.Type, FileInfoProperty.Seq],
+    );
 
     const {
         items: {
@@ -90,25 +101,24 @@ export function parseFileInfoFromYamlMap(args: {
                 allowedKeys: allowedKeys,
             }),
         ),
+        ...missingKeys
+            .filter((key) => (mandatoryKeys as string[]).includes(key))
+            .map((key) =>
+                getErrorForMissingKeyInMap({
+                    ...commonArgs,
+                    missingKey: key,
+                    map: infoMap,
+                }),
+            ),
     );
+    const missingProperties = missingKeys.map((key) => ({
+        alwaysHasScalarValue: (allExpectedScalars as string[]).includes(key),
+        isMandatory: (mandatoryKeys as string[]).includes(key),
+        key,
+    }));
     const name = validStringScalars.find(
         ({ key }) => key == FileInfoProperty.Name,
     );
-    if (missingKeys.includes(FileInfoProperty.Name)) {
-        // Name is the only mandatory property.
-        return errors.concat(
-            getErrorForMissingKeyInMap({
-                ...commonArgs,
-                missingKey: FileInfoProperty.Name,
-                map: infoMap,
-            }),
-        );
-    }
-    if (!name) {
-        // Case where the Name property is not a Scalar string.
-        return errors;
-    }
-
     const maybeType = !checkForTypeProperty
         ? undefined
         : getTypedValueFromList(
@@ -125,8 +135,9 @@ export function parseFileInfoFromYamlMap(args: {
         result: {
             keyRange: infoKeyRange,
             valueRange: getRangeForItem(infoMap, commonArgs),
-            value: {
-                name: stripKeyFromResult(name),
+            missingProperties,
+            properties: {
+                name: name ? stripKeyFromResult(name) : undefined,
                 sequence: checkForSeqProperty
                     ? getSequenceToUse(validNumericScalars, errors)
                     : undefined,

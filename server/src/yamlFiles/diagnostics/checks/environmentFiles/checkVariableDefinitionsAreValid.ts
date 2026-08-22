@@ -12,12 +12,12 @@ export function checkVariableDefinitionsAreValid(
 ): (Diagnostic | undefined)[] {
     return variables.flatMap((variable) => {
         const {
-            fields: { name, secret },
+            properties: { name, secret },
         } = variable;
         const result: (Diagnostic | undefined)[] = [];
 
         result.push(
-            checkNameIsValid(name),
+            name ? checkNameIsValid(name) : undefined,
             checkTypeFieldIsValidIfExisting(variable),
         );
 
@@ -46,7 +46,7 @@ function checkNameIsValid({
 
 function checkSecretVariableIsValid(
     {
-        fields: {
+        properties: {
             value,
             secret: { field: secretField },
         },
@@ -80,7 +80,7 @@ function checkSecretVariableIsValid(
 }
 
 function checkTypeFieldIsValidIfExisting({
-    fields: { secret, type },
+    properties: { secret, type },
 }: ParsedEnvironmentVariable): Diagnostic | undefined {
     return !secret.effectiveValue && type.field
         ? {
@@ -92,8 +92,8 @@ function checkTypeFieldIsValidIfExisting({
 }
 
 function checkValueFieldExists({
-    range: variableRange,
-    fields: { value },
+    valueRange: variableRange,
+    properties: { value },
 }: ParsedEnvironmentVariable): Diagnostic | undefined {
     return !value
         ? {

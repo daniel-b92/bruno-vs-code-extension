@@ -1,9 +1,11 @@
 import { isMap, YAMLMap } from "yaml";
-import { YamlParsingError } from "../../../..";
+import { WithKeyAndValueRange, YamlParsingError } from "../../../..";
 import {
     CommonParsingArgs,
+    MaybeResultWithErrors,
     ParsedDocsWithType,
-    ParsingResult,
+    ParsedYamlMap,
+    WithKeyAndKeyRange,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
@@ -12,31 +14,49 @@ import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getMapItems } from "../yamlMaps/getMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { DocsProperty, DocsType } from "./constants/sharedConstants";
+import { getRangeForItem } from "../util/getRangeForItem";
 
 export function parseDocsFromYamlMapOrScalar(
     docsMapOrScalar:
-        | YAMLMap
-        | WithKeyKeyRangeAndValueRange<string>
-        | WithKeyKeyRangeAndValueRange<null>,
+        | WithKeyAndKeyRange<YAMLMap>
+        | WithKeyKeyRangeAndValueRange<string | null>,
     commonArgs: CommonParsingArgs,
-): ParsingResult<ParsedDocsWithType> {
-    if (!isMap(docsMapOrScalar)) {
-        const { value } = docsMapOrScalar;
-        return value === null
-            ? { errors: [], result: {} }
-            : {
-                  errors: [],
-                  result: { content: stripKeyFromResult(docsMapOrScalar) },
-              };
+): MaybeResultWithErrors<ParsedDocsWithType> {
+    const { keyRange } = docsMapOrScalar;
+
+    if (!isMap(docsMapOrScalar.value)) {
+        return {
+            errors: [],
+            result:
+                docsMapOrScalar === null
+                    ? undefined
+                    : stripKeyFromResult(
+                          docsMapOrScalar as WithKeyKeyRangeAndValueRange<string>,
+                      ),
+        };
     }
 
-    return parseFromMap(docsMapOrScalar, commonArgs);
+    const valueRange = getRangeForItem(docsMapOrScalar.value, commonArgs);
+    const { errors, result: value } = parseFromMap(
+        docsMapOrScalar.value,
+        commonArgs,
+    );
+    return {
+        result: value ? { keyRange, value, valueRange } : undefined,
+        errors,
+    };
 }
 
 function parseFromMap(
     docsMap: YAMLMap,
     commonArgs: CommonParsingArgs,
-): ParsingResult<ParsedDocsWithType> {
+): MaybeResultWithErrors<
+    | string
+    | ParsedYamlMap<{
+          type?: WithKeyAndValueRange<DocsType>;
+          content?: WithKeyAndValueRange<string>;
+      }>
+> {
     const errors: YamlParsingError[] = [];
     const expectedStringScalars = Object.values(DocsProperty);
 
@@ -75,25 +95,36 @@ function parseFromMap(
             }),
         ),
     );
+    const missingProperties = missingKeys.map((key) => ({
+        alwaysHasScalarValue: true,
+        isMandatory: false,
+        key,
+    }));
     const content = validStringScalars.find(
         ({ key }) => key == DocsProperty.Content,
     );
     const untypedType = validStringScalars.find(
         ({ key }) => key == DocsProperty.Type,
     );
-    if (!untypedType) {
-        return errors;
-    }
-    const maybeType = getTypedValueFromList(
-        {
-            allowedValues: Object.values(DocsType),
-            allStringValues: [untypedType],
-            keyName: DocsProperty.Type,
-        },
-        errors,
-    );
+    const maybeType = !untypedType
+        ? undefined
+        : getTypedValueFromList(
+              {
+                  allowedValues: Object.values(DocsType),
+                  allStringValues: [untypedType],
+                  keyName: DocsProperty.Type,
+              },
+              errors,
+          );
 
-    return !content || !maybeType
-        ? errors
-        : { errors, result: { content, type: maybeType.value } };
+    return {
+        errors,
+        result:
+            content || maybeType
+                ? {
+                      properties: { content, type: maybeType?.value },
+                      missingProperties,
+                  }
+                : undefined,
+    };
 }
