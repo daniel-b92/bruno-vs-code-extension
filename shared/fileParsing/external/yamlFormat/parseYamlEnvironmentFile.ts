@@ -225,7 +225,7 @@ function getVariablesFromMapItems(
         );
 
         const variable: ParsedEnvironmentVariable = {
-            range: getRangeForItem(currentMap, commonArgs),
+            valueRange: getRangeForItem(currentMap, commonArgs),
             missingProperties,
             properties: {
                 name: name ? stripKeyFromResult(name) : undefined,

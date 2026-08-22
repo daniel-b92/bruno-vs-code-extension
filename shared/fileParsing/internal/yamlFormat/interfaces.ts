@@ -36,28 +36,26 @@ export interface ParsedMapItems {
     unknownKeys: { key: string; keyRange: Range }[];
 }
 
-export type ParsedRequestVariable = ParsedYamlMap<{
+export type ParsedRequestVariable = ParseYamlMapWithValueRange<{
     name?: WithKeyAndValueRange<string>;
     value?:
         | WithKeyAndValueRange<string>
-        | ({
-              keyRange: Range;
-          } & ParsedYamlMap<{
+        | ParseYamlMapWithKeyAndValueRange<{
               type?: WithKeyAndValueRange<VariableType>;
               data?: WithKeyAndValueRange<string>;
-          }>);
+          }>;
     description?: WithKeyAndValueRange<string>;
     disabled: OptionalVariableFieldResult<boolean>;
 }>;
 
-export type ParsedAction = ParsedYamlMap<{
+export type ParsedAction = ParseYamlMapWithValueRange<{
     type?: WithKeyAndValueRange<ActionType>;
     phase?: WithKeyAndValueRange<ActionPhase>;
-    selector?: ParsedYamlMap<{
+    selector?: ParseYamlMapWithKeyAndValueRange<{
         expression?: WithKeyAndValueRange<string>;
         method?: WithKeyAndValueRange<ActionSelectorMethod>;
     }>;
-    variable?: ParsedYamlMap<{
+    variable?: ParseYamlMapWithKeyAndValueRange<{
         name?: WithKeyAndValueRange<string>;
         scope?: WithKeyAndValueRange<ActionVariableScope>;
     }>;
@@ -65,26 +63,29 @@ export type ParsedAction = ParsedYamlMap<{
     disabled: OptionalVariableFieldResult<boolean>;
 }>;
 
-export type ParsedRequestHeader = ParsedYamlMap<{
+export type ParsedRequestHeader = ParseYamlMapWithValueRange<{
     name?: WithKeyAndValueRange<string>;
     value?: WithKeyAndValueRange<string>;
     description?: WithKeyAndValueRange<string>;
     disabled: OptionalVariableFieldResult<boolean>;
 }>;
 
-export type ParsedScript = ParsedYamlMap<{
+export type ParsedScript = ParseYamlMapWithValueRange<{
     type?: WithKeyAndValueRange<ScriptType>;
     code?: WithKeyAndValueRange<string>;
 }>;
 
-export type ParsedDocsWithType =
-    | WithKeyAndValueRange<string>
+export type ParsedDocsWithType = WithKeyAndValueRange<
+    | string
     | ParsedYamlMap<{
           type?: WithKeyAndValueRange<DocsType>;
           content?: WithKeyAndValueRange<string>;
-      }>;
+      }>
+>;
 
-export type ParsedAuth = ParsedInheritAuth | ParsedBasicAuth | ParsedBearerAuth;
+export type ParsedAuth = WithKeyAndValueRange<
+    ParsedInheritAuth | ParsedBasicAuth | ParsedBearerAuth
+>;
 
 export type ParsedBasicAuth = ParsedYamlMap<{
     type: WithKeyAndValueRange<AuthType.Basic>;
@@ -101,8 +102,12 @@ export interface ParsedInheritAuth {
     valueRange: Range;
 }
 
-export type ParseYamlMapWithKeyAndValueRange<T> = ParsedYamlMap<T> & {
-    keyRange: Range;
+export type ParseYamlMapWithKeyAndValueRange<T> =
+    ParseYamlMapWithValueRange<T> & {
+        keyRange: Range;
+    };
+
+export type ParseYamlMapWithValueRange<T> = ParsedYamlMap<T> & {
     valueRange: Range;
 };
 

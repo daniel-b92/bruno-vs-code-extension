@@ -13,6 +13,7 @@ import { getValueFieldFromVariable } from "./getValueFieldFromVariable";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { RequestVariableProperty } from "./constants/sharedConstants";
+import { getRangeForItem } from "../util/getRangeForItem";
 
 export function parseVariablesFromYamlSequence(
     variablesSequence: YAMLSeq,
@@ -113,6 +114,7 @@ export function parseVariablesFromYamlSequence(
         );
 
         const variable: ParsedRequestVariable = {
+            valueRange: getRangeForItem(currentMap, commonArgs),
             missingProperties,
             properties: {
                 name: name ? stripKeyFromResult(name) : undefined,

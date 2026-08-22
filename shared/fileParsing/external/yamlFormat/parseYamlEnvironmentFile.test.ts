@@ -29,7 +29,7 @@ variables:
 
         const expectedVariables: ParsedEnvironmentVariable[] = [
             {
-                range: new Range(
+                valueRange: new Range(
                     new Position(2, 4),
                     new Position(
                         4,
@@ -124,7 +124,7 @@ variables:
 
         const expectedEnabledVariables: ParsedEnvironmentVariable[] = [
             {
-                range: new Range(new Position(2, 4), new Position(5, 0)),
+                valueRange: new Range(new Position(2, 4), new Position(5, 0)),
                 missingProperties: [
                     EnvironmentVariableProperty.Disabled,
                     EnvironmentVariableProperty.Secret,
@@ -174,7 +174,7 @@ variables:
         ];
         const expectedDisabledVariables: ParsedEnvironmentVariable[] = [
             {
-                range: new Range(
+                valueRange: new Range(
                     new Position(5, 4),
                     new Position(8, 4 + 2 + "disabled".length + "true".length),
                 ),

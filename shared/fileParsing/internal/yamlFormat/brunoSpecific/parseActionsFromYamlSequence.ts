@@ -3,11 +3,11 @@ import {
     CommonParsingArgs,
     MaybeResultWithErrors,
     ParsedAction,
-    ParsedYamlMap,
+    ParseYamlMapWithKeyAndValueRange,
     WithKeyAndKeyRange,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
-import { WithKeyAndValueRange, YamlParsingError } from "../../../..";
+import { Range, WithKeyAndValueRange, YamlParsingError } from "../../../..";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
 import { getMapItems } from "../yamlMaps/getMapItems";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
@@ -23,6 +23,7 @@ import {
     ActionVariableScope,
 } from "./constants/actionConstants";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
+import { getRangeForItem } from "../util/getRangeForItem";
 
 export function parseActionsFromYamlSequence(
     actionsSequence: YAMLSeq,
@@ -102,6 +103,7 @@ export function parseActionsFromYamlSequence(
             isMandatory: !(optionalKeys as string[]).includes(key),
         }));
         const maybeAction = parseAction(
+            getRangeForItem(currentMap, commonArgs),
             {
                 validStringScalars,
                 validBooleanScalars,
@@ -127,6 +129,7 @@ export function parseActionsFromYamlSequence(
 }
 
 function parseAction(
+    mapRange: Range,
     fields: {
         validStringScalars: WithKeyKeyRangeAndValueRange<string>[];
         validBooleanScalars: WithKeyKeyRangeAndValueRange<boolean>[];
@@ -189,16 +192,17 @@ function parseAction(
             : false;
 
     const { result: selectorResult, errors: selectorErrors } = (maybeSelectorMap
-        ? parseSelector(maybeSelectorMap.value, commonArgs)
+        ? parseSelector(maybeSelectorMap, commonArgs)
         : undefined) ?? { result: undefined, errors: [] };
     const { result: variableResult, errors: variableErrors } = (maybeVariableMap
-        ? parseVariable(maybeVariableMap.value, commonArgs)
+        ? parseVariable(maybeVariableMap, commonArgs)
         : undefined) ?? { result: undefined, errors: [] };
     errors.push(...selectorErrors, ...variableErrors);
 
     return {
         errors,
         result: {
+            valueRange: mapRange,
             properties: {
                 phase: maybePhase?.value,
                 type: maybeType?.value,
@@ -220,10 +224,10 @@ function parseAction(
 }
 
 function parseSelector(
-    selectorMap: YAMLMap,
+    { keyRange, value: selectorMap }: WithKeyAndKeyRange<YAMLMap>,
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<
-    ParsedYamlMap<{
+    ParseYamlMapWithKeyAndValueRange<{
         expression?: WithKeyAndValueRange<string>;
         method?: WithKeyAndValueRange<ActionSelectorMethod>;
     }>
@@ -284,6 +288,8 @@ function parseSelector(
     return {
         errors,
         result: {
+            keyRange,
+            valueRange: getRangeForItem(selectorMap, commonArgs),
             properties: {
                 expression: maybeExpressionWithKeyRange
                     ? stripKeyFromResult(maybeExpressionWithKeyRange)
@@ -300,10 +306,10 @@ function parseSelector(
     };
 }
 function parseVariable(
-    variableMap: YAMLMap,
+    { keyRange, value: variableMap }: WithKeyAndKeyRange<YAMLMap>,
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<
-    ParsedYamlMap<{
+    ParseYamlMapWithKeyAndValueRange<{
         name?: WithKeyAndValueRange<string>;
         scope?: WithKeyAndValueRange<ActionVariableScope>;
     }>
@@ -364,6 +370,8 @@ function parseVariable(
     return {
         errors,
         result: {
+            keyRange,
+            valueRange: getRangeForItem(variableMap, commonArgs),
             properties: {
                 name: maybeNameWithKeyRange
                     ? stripKeyFromResult(maybeNameWithKeyRange)

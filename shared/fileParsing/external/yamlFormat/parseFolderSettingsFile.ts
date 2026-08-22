@@ -29,6 +29,7 @@ import {
     TopLevelFolderSettingsProperty,
 } from "../../internal/yamlFormat/brunoSpecific/constants/folderSettingsFileConstants";
 import { parseDocsFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpecific/parseDocsFromYamlMapOrScalar";
+import { getRangeForItem } from "../../internal/yamlFormat/util/getRangeForItem";
 
 export function parseFolderSettingsFile(
     docHelper: TextDocumentHelper,
@@ -152,7 +153,7 @@ function getParsedDocs(
         return undefined;
     }
 
-    const docs = (map?.value ??
+    const docs = (map ??
         (untypedScalar as
             | WithKeyKeyRangeAndValueRange<null>
             | WithKeyKeyRangeAndValueRange<string>
@@ -170,20 +171,24 @@ function getParsedRequest(
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ) {
-    const requestMap = validSecondLevelMaps.find(
+    const maybeRequestMap = validSecondLevelMaps.find(
         ({ key }) => key == TopLevelFolderSettingsProperty.Request,
     );
 
-    if (!requestMap) {
+    if (!maybeRequestMap) {
         return undefined;
     }
+    const { keyRange, value: requestMap } = maybeRequestMap;
     const {
-        auth: parsedAuth,
-        headers: parsedHeaders,
-        variables: parsedVariables,
-        scripts: parsedScripts,
-        actions: parsedActions,
-    } = parseRequestSection(requestMap.value, commonArgs);
+        missingProperties,
+        properties: {
+            auth: parsedAuth,
+            headers: parsedHeaders,
+            variables: parsedVariables,
+            scripts: parsedScripts,
+            actions: parsedActions,
+        },
+    } = parseRequestSection(maybeRequestMap.value, commonArgs);
     const { result: auth, errors: authErrors } = parsedAuth ?? {
         result: undefined,
         errors: [],
@@ -212,7 +217,12 @@ function getParsedRequest(
         ...actionsErrors,
     );
 
-    return { auth, headers, variables, scripts, actions };
+    return {
+        properties: { auth, headers, variables, scripts, actions },
+        missingProperties,
+        keyRange,
+        valueRange: getRangeForItem(requestMap, commonArgs),
+    };
 }
 
 function parseRequestSection(
@@ -234,6 +244,7 @@ function parseRequestSection(
     const {
         items: {
             unknownKeys,
+            missingKeys,
             validMaps,
             validSequences,
             validScalars: { withStringValue: validStringScalars },
@@ -261,6 +272,12 @@ function parseRequestSection(
             ),
         ),
     );
+    const missingProperties = missingKeys.map((key) => ({
+        hasScalarValue: false,
+        // None of the properties are mandatory.
+        isMandatory: false,
+        key,
+    }));
 
     const maybeHeadersSequence = validSequences.find(
         ({ key }) => key == FolderSettingsRequestSectionProperty.Headers,
@@ -278,7 +295,7 @@ function parseRequestSection(
     const maybeAuthMap = validMaps.find(
         ({ key }) => key == FolderSettingsRequestSectionProperty.Auth,
     );
-    const authMapOrScalar = maybeAuthScalar ?? maybeAuthMap?.value;
+    const authMapOrScalar = maybeAuthScalar ?? maybeAuthMap;
     const auth = authMapOrScalar
         ? parseAuthFromYamlMapOrScalar({
               commonArgs,
@@ -311,10 +328,13 @@ function parseRequestSection(
         : undefined;
 
     return {
-        headers,
-        auth,
-        variables,
-        scripts,
-        actions,
+        missingProperties,
+        properties: {
+            headers,
+            auth,
+            variables,
+            scripts,
+            actions,
+        },
     };
 }

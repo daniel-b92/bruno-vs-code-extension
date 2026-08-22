@@ -1,4 +1,4 @@
-import { isMap, YAMLMap } from "yaml";
+import { YAMLMap } from "yaml";
 import {
     WithKeyAndValueRange,
     YamlParsingError,
@@ -11,6 +11,7 @@ import {
     ParsedBearerAuth,
     MaybeResultWithErrors,
     WithKeyKeyRangeAndValueRange,
+    WithKeyAndKeyRange,
 } from "../interfaces";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getMapItems } from "../yamlMaps/getMapItems";
@@ -24,18 +25,29 @@ import {
     CommonAuthMapProperties,
     inheritAuthValue,
 } from "./constants/authConstants";
+import { getRangeForItem } from "../util/getRangeForItem";
 
 export function parseAuthFromYamlMapOrScalar(args: {
     commonArgs: CommonParsingArgs;
-    authMapOrScalar: YAMLMap | WithKeyKeyRangeAndValueRange<string>;
+    authMapOrScalar:
+        WithKeyAndKeyRange<YAMLMap> | WithKeyKeyRangeAndValueRange<string>;
 }): MaybeResultWithErrors<ParsedAuth> {
     const { commonArgs, authMapOrScalar } = args;
+    const { keyRange, value: authFullValue } = authMapOrScalar;
     const allErrors: YamlParsingError[] = [];
 
-    if (!isMap(authMapOrScalar)) {
-        const { valueRange } = authMapOrScalar;
+    if (typeof authFullValue == "string") {
+        const { valueRange } =
+            authMapOrScalar as WithKeyKeyRangeAndValueRange<string>;
         return authMapOrScalar.value == inheritAuthValue
-            ? { result: { valueRange }, errors: [] }
+            ? {
+                  result: {
+                      keyRange,
+                      value: { valueRange },
+                      valueRange,
+                  },
+                  errors: [],
+              }
             : {
                   errors: [
                       {
@@ -46,8 +58,8 @@ export function parseAuthFromYamlMapOrScalar(args: {
                   ],
               };
     }
-
-    const maybeAuthType = tryToParseAuthTypeField(authMapOrScalar, commonArgs);
+    const valueRange = getRangeForItem(authFullValue, commonArgs);
+    const maybeAuthType = tryToParseAuthTypeField(authFullValue, commonArgs);
     if (!maybeAuthType.result) {
         return { errors: maybeAuthType.errors };
     }
@@ -60,28 +72,36 @@ export function parseAuthFromYamlMapOrScalar(args: {
             const { auth: basicAuthResult, errors: basicAuthErrors } =
                 parseBasicAuthFromAuthMap(
                     {
-                        authMap: authMapOrScalar,
+                        authMap: authFullValue,
                         parsedType:
                             authType as WithKeyAndValueRange<AuthType.Basic>,
                     },
                     commonArgs,
                 );
             return {
-                result: basicAuthResult,
+                result: {
+                    keyRange,
+                    value: basicAuthResult,
+                    valueRange,
+                },
                 errors: allErrors.concat(basicAuthErrors),
             };
         case AuthType.Bearer:
             const { auth: bearerAuthResult, errors: bearerAuthErrors } =
                 parseBearerAuthFromAuthMap(
                     {
-                        authMap: authMapOrScalar,
+                        authMap: authFullValue,
                         parsedType:
                             authType as WithKeyAndValueRange<AuthType.Bearer>,
                     },
                     commonArgs,
                 );
             return {
-                result: bearerAuthResult,
+                result: {
+                    keyRange,
+                    value: bearerAuthResult,
+                    valueRange,
+                },
                 errors: allErrors.concat(bearerAuthErrors),
             };
         // ToDo: Add support for more auth types.

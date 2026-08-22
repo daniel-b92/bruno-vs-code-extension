@@ -5,7 +5,7 @@ import {
     ParsedScript,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
-import { YamlParsingError } from "../../../..";
+import { WithKeyAndValueRange, YamlParsingError } from "../../../..";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
 import { getMapItems } from "../yamlMaps/getMapItems";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
@@ -13,6 +13,7 @@ import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { ScriptType } from "./constants/sharedConstants";
+import { getRangeForItem } from "../util/getRangeForItem";
 
 enum ScriptMapProperty {
     Type = "type",
@@ -73,14 +74,22 @@ export function parseScriptsFromYamlSequence(
                 ),
             ),
         );
-        const parsedScript = parseScript(validStringScalars, missingKeys);
-        errors.push(...parsedScript.errors);
+        const { errors: parsingErrors, result: parsedScript } = parseScript(
+            validStringScalars,
+            missingKeys,
+        );
+        errors.push(...parsingErrors);
 
-        if (!parsedScript.result) {
+        if (!parsedScript) {
             continue;
         }
 
-        scripts.push(parsedScript.result);
+        const { missingProperties, code, type } = parsedScript;
+        scripts.push({
+            missingProperties,
+            properties: { code, type },
+            valueRange: getRangeForItem(currentMap, commonArgs),
+        });
     }
 
     return {
@@ -92,7 +101,15 @@ export function parseScriptsFromYamlSequence(
 function parseScript(
     validStringScalars: WithKeyKeyRangeAndValueRange<string>[],
     missingKeys: string[],
-): MaybeResultWithErrors<ParsedScript> {
+): MaybeResultWithErrors<{
+    type?: WithKeyAndValueRange<ScriptType>;
+    code?: WithKeyAndValueRange<string>;
+    missingProperties: {
+        key: string;
+        isMandatory: boolean;
+        hasScalarValue: boolean;
+    }[];
+}> {
     const collectedErrors: YamlParsingError[] = [];
     const missingProperties = missingKeys.map((key) => ({
         hasScalarValue: true,
@@ -120,12 +137,10 @@ function parseScript(
     return {
         errors: collectedErrors,
         result: {
-            properties: {
-                code: maybeCodeWithKeyRange
-                    ? stripKeyFromResult(maybeCodeWithKeyRange)
-                    : undefined,
-                type: maybeTypedType?.value,
-            },
+            code: maybeCodeWithKeyRange
+                ? stripKeyFromResult(maybeCodeWithKeyRange)
+                : undefined,
+            type: maybeTypedType?.value,
             missingProperties,
         },
     };

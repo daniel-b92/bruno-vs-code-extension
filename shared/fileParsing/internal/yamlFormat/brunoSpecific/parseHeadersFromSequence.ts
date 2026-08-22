@@ -11,6 +11,7 @@ import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequenc
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { RequestHeaderProperty } from "./constants/sharedConstants";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
+import { getRangeForItem } from "../util/getRangeForItem";
 
 export function parseHeadersFromSequence(args: {
     commonArgs: CommonParsingArgs;
@@ -106,6 +107,7 @@ export function parseHeadersFromSequence(args: {
         );
 
         result.push({
+            valueRange: getRangeForItem(headerMap, commonArgs),
             properties: {
                 name: name ? stripKeyFromResult(name) : undefined,
                 value: value ? stripKeyFromResult(value) : undefined,
