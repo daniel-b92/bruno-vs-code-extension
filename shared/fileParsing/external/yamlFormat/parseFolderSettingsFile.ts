@@ -88,7 +88,7 @@ export function parseFolderSettingsFile(
     );
     const missingProperties = missingKeys.map((key) => ({
         key,
-        hasScalarValue: false,
+        alwaysHasScalarValue: false,
         isMandatory: key == TopLevelFolderSettingsProperty.Info,
     }));
     const infoMap = validMaps.find(
@@ -273,7 +273,7 @@ function parseRequestSection(
         ),
     );
     const missingProperties = missingKeys.map((key) => ({
-        hasScalarValue: false,
+        alwaysHasScalarValue: false,
         // None of the properties are mandatory.
         isMandatory: false,
         key,

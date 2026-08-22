@@ -67,7 +67,7 @@ export function parseHeadersFromSequence(args: {
         const missingProperties = missingKeysWithInfo.map(
             ({ key, isMandatory }) => ({
                 key,
-                hasScalarValue: true,
+                alwaysHasScalarValue: true,
                 isMandatory,
             }),
         );

@@ -86,9 +86,9 @@ export function parseYamlEnvironmentFile(
         ),
     );
     const missingProperties = missingKeys.map((key) => ({
-        hasScalarValue: (keysForStringScalars as string[]).includes(key),
+        alwaysHasScalarValue: (keysForStringScalars as string[]).includes(key),
         // All properties are mandatory.
-        isMandatory: true,
+        isMandatory: key == mandatoryKey,
         key,
     }));
 
@@ -202,7 +202,7 @@ function getVariablesFromMapItems(
         );
         const missingProperties = allMapItems.missingKeys.map((key) => ({
             key,
-            hasScalarValue: true,
+            alwaysHasScalarValue: true,
             isMandatory: key == mandatoryKey,
         }));
         const { description, disabled, secret } =

@@ -204,7 +204,7 @@ export function parseAuthFromYamlMapOrScalar(args: {
                 },
                 missingProperties: missingKeys.map((key) => ({
                     key,
-                    hasScalarValue: true,
+                    alwaysHasScalarValue: true,
                     isMandatory: false,
                 })),
             },
@@ -257,7 +257,7 @@ export function parseAuthFromYamlMapOrScalar(args: {
                 },
                 missingProperties: missingKeys.map((key) => ({
                     key,
-                    hasScalarValue: true,
+                    alwaysHasScalarValue: true,
                     isMandatory: false,
                 })),
             },

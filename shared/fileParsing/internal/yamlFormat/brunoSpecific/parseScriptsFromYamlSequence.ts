@@ -4,6 +4,7 @@ import {
     MaybeResultWithErrors,
     ParsedScript,
     WithKeyKeyRangeAndValueRange,
+    YamlMapMissingPropertyInfo,
 } from "../interfaces";
 import { WithKeyAndValueRange, YamlParsingError } from "../../../..";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
@@ -104,15 +105,11 @@ function parseScript(
 ): MaybeResultWithErrors<{
     type?: WithKeyAndValueRange<ScriptType>;
     code?: WithKeyAndValueRange<string>;
-    missingProperties: {
-        key: string;
-        isMandatory: boolean;
-        hasScalarValue: boolean;
-    }[];
+    missingProperties: YamlMapMissingPropertyInfo[];
 }> {
     const collectedErrors: YamlParsingError[] = [];
     const missingProperties = missingKeys.map((key) => ({
-        hasScalarValue: true,
+        alwaysHasScalarValue: true,
         isMandatory: false,
         key,
     }));

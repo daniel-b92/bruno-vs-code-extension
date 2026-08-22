@@ -42,7 +42,7 @@ variables:
                     EnvironmentVariableProperty.Type,
                 ].map((key) => ({
                     key,
-                    hasScalarValue: true,
+                    alwaysHasScalarValue: true,
                     isMandatory: false,
                 })),
                 properties: {
@@ -131,7 +131,7 @@ variables:
                     EnvironmentVariableProperty.Type,
                 ].map((key) => ({
                     key,
-                    hasScalarValue: true,
+                    alwaysHasScalarValue: true,
                     isMandatory: false,
                 })),
                 properties: {
@@ -183,7 +183,7 @@ variables:
                     EnvironmentVariableProperty.Type,
                 ].map((key) => ({
                     key,
-                    hasScalarValue: true,
+                    alwaysHasScalarValue: true,
                     isMandatory: false,
                 })),
                 properties: {

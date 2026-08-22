@@ -96,7 +96,7 @@ function parseFromMap(
         ),
     );
     const missingProperties = missingKeys.map((key) => ({
-        hasScalarValue: true,
+        alwaysHasScalarValue: true,
         isMandatory: false,
         key,
     }));

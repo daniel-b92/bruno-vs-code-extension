@@ -123,7 +123,7 @@ export function getValueFieldFromVariable(
         ),
     );
     const missingProperties = missingKeys.map((key) => ({
-        hasScalarValue: true,
+        alwaysHasScalarValue: true,
         // All properties are mandatory.
         isMandatory: true,
         key,

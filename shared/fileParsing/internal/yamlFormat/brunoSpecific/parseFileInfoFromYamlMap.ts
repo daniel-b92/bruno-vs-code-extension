@@ -104,7 +104,7 @@ export function parseFileInfoFromYamlMap(args: {
             : []),
     );
     const missingProperties = missingKeys.map((key) => ({
-        hasScalarValue: (allExpectedScalars as string[]).includes(key),
+        alwaysHasScalarValue: (allExpectedScalars as string[]).includes(key),
         isMandatory: key == FileInfoProperty.Name,
         key,
     }));

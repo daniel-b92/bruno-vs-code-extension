@@ -36,7 +36,7 @@ export interface ParsedMapItems {
     unknownKeys: { key: string; keyRange: Range }[];
 }
 
-export type ParsedRequestVariable = ParseYamlMapWithValueRange<{
+export type ParsedRequestVariable = ParsedYamlMapWithValueRange<{
     name?: WithKeyAndValueRange<string>;
     value?:
         | WithKeyAndValueRange<string>
@@ -48,7 +48,7 @@ export type ParsedRequestVariable = ParseYamlMapWithValueRange<{
     disabled: OptionalVariableFieldResult<boolean>;
 }>;
 
-export type ParsedAction = ParseYamlMapWithValueRange<{
+export type ParsedAction = ParsedYamlMapWithValueRange<{
     type?: WithKeyAndValueRange<ActionType>;
     phase?: WithKeyAndValueRange<ActionPhase>;
     selector?: ParseYamlMapWithKeyAndValueRange<{
@@ -63,14 +63,14 @@ export type ParsedAction = ParseYamlMapWithValueRange<{
     disabled: OptionalVariableFieldResult<boolean>;
 }>;
 
-export type ParsedRequestHeader = ParseYamlMapWithValueRange<{
+export type ParsedRequestHeader = ParsedYamlMapWithValueRange<{
     name?: WithKeyAndValueRange<string>;
     value?: WithKeyAndValueRange<string>;
     description?: WithKeyAndValueRange<string>;
     disabled: OptionalVariableFieldResult<boolean>;
 }>;
 
-export type ParsedScript = ParseYamlMapWithValueRange<{
+export type ParsedScript = ParsedYamlMapWithValueRange<{
     type?: WithKeyAndValueRange<ScriptType>;
     code?: WithKeyAndValueRange<string>;
 }>;
@@ -103,22 +103,24 @@ export interface ParsedInheritAuth {
 }
 
 export type ParseYamlMapWithKeyAndValueRange<T> =
-    ParseYamlMapWithValueRange<T> & {
+    ParsedYamlMapWithValueRange<T> & {
         keyRange: Range;
     };
 
-export type ParseYamlMapWithValueRange<T> = ParsedYamlMap<T> & {
+export type ParsedYamlMapWithValueRange<T> = ParsedYamlMap<T> & {
     valueRange: Range;
 };
 
 export type ParsedYamlMap<T> = {
     properties: T;
-    missingProperties: {
-        key: string;
-        isMandatory: boolean;
-        hasScalarValue: boolean;
-    }[];
+    missingProperties: YamlMapMissingPropertyInfo[];
 };
+
+export interface YamlMapMissingPropertyInfo {
+    key: string;
+    isMandatory: boolean;
+    alwaysHasScalarValue: boolean;
+}
 
 export type ParsingResult<T> =
     | YamlParsingError[]

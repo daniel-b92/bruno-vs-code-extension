@@ -95,7 +95,7 @@ export function parseVariablesFromYamlSequence(
         const missingProperties = missingKeysWithContext.map(
             ({ key, isMandatory }) => ({
                 key,
-                hasScalarValue: true,
+                alwaysHasScalarValue: true,
                 isMandatory,
             }),
         );

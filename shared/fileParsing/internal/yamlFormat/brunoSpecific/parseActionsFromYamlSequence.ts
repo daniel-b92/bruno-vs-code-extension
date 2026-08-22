@@ -6,6 +6,7 @@ import {
     ParseYamlMapWithKeyAndValueRange,
     WithKeyAndKeyRange,
     WithKeyKeyRangeAndValueRange,
+    YamlMapMissingPropertyInfo,
 } from "../interfaces";
 import { Range, WithKeyAndValueRange, YamlParsingError } from "../../../..";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
@@ -99,7 +100,7 @@ export function parseActionsFromYamlSequence(
         );
         const missingProperties = missingKeys.map((key) => ({
             key,
-            hasScalarValue: !(keysForMaps as string[]).includes(key),
+            alwaysHasScalarValue: !(keysForMaps as string[]).includes(key),
             isMandatory: !(optionalKeys as string[]).includes(key),
         }));
         const maybeAction = parseAction(
@@ -135,11 +136,7 @@ function parseAction(
         validBooleanScalars: WithKeyKeyRangeAndValueRange<boolean>[];
         validMaps: WithKeyAndKeyRange<YAMLMap>[];
     },
-    missingProperties: {
-        key: string;
-        isMandatory: boolean;
-        hasScalarValue: boolean;
-    }[],
+    missingProperties: YamlMapMissingPropertyInfo[],
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<ParsedAction> {
     const { validBooleanScalars, validMaps, validStringScalars } = fields;
@@ -300,7 +297,7 @@ function parseSelector(
                 key,
                 // All properties are mandatory.
                 isMandatory: true,
-                hasScalarValue: true,
+                alwaysHasScalarValue: true,
             })),
         },
     };
@@ -382,7 +379,7 @@ function parseVariable(
                 key,
                 // All properties are mandatory.
                 isMandatory: true,
-                hasScalarValue: true,
+                alwaysHasScalarValue: true,
             })),
         },
     };

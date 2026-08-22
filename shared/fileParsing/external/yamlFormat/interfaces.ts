@@ -13,7 +13,7 @@ import {
     ParsedScript,
     ParsedYamlMap,
     ParseYamlMapWithKeyAndValueRange,
-    ParseYamlMapWithValueRange,
+    ParsedYamlMapWithValueRange,
 } from "../../internal/yamlFormat/interfaces";
 
 export enum YamlParsingErrorCode {
@@ -68,7 +68,7 @@ export enum TopLevelEnvironmentFileProperty {
     Variables = "variables",
 }
 
-export type ParsedEnvironmentVariable = ParseYamlMapWithValueRange<{
+export type ParsedEnvironmentVariable = ParsedYamlMapWithValueRange<{
     name?: WithKeyAndValueRange<string>;
     value?:
         | WithKeyAndValueRange<string>
