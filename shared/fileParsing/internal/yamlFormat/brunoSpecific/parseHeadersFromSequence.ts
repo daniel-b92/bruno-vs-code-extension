@@ -9,7 +9,7 @@ import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownK
 import { getMapItems } from "../yamlMaps/getMapItems";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
-import { RequestHeaderProperty } from "./constants/sharedConstants";
+import { RequestHeaderProperty } from "../../../external/yamlFormat/constants/sharedConstants";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getRangeForItem } from "../util/getRangeForItem";
 

@@ -13,7 +13,10 @@ import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownK
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getMapItems } from "../yamlMaps/getMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
-import { DocsProperty, DocsType } from "./constants/sharedConstants";
+import {
+    DocsProperty,
+    DocsType,
+} from "../../../external/yamlFormat/constants/sharedConstants";
 import { getRangeForItem } from "../util/getRangeForItem";
 
 export function parseDocsFromYamlMapOrScalar(

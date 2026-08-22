@@ -24,7 +24,7 @@ import {
     BearerAuthProperty,
     CommonAuthMapProperties,
     inheritAuthValue,
-} from "./constants/authConstants";
+} from "../../../external/yamlFormat/constants/authConstants";
 import { getRangeForItem } from "../util/getRangeForItem";
 
 export function parseAuthFromYamlMapOrScalar(args: {

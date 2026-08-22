@@ -1,11 +1,9 @@
-import {
-    TopLevelEnvironmentFileProperty,
-    WithKeyAndValueRange,
-} from "@global_shared";
+import { WithKeyAndValueRange } from "@global_shared";
 import { Diagnostic } from "vscode-languageserver";
 import { CommonDiagnosticParams } from "../../../interfaces";
 import { getErrorForMissingTopLevelKey } from "../../util/getErrorForMissingTopLevelKey";
 import { ParsedYamlMap } from "@global_shared/fileParsing/internal/yamlFormat/interfaces";
+import { TopLevelEnvironmentFileProperty } from "../../../../../../shared/fileParsing/external/yamlFormat/constants/environmentFileConstants";
 
 export function checkTopLevelNameIsDefined(
     {
