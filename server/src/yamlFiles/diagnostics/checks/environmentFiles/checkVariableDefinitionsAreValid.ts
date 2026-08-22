@@ -92,7 +92,7 @@ function checkTypeFieldIsValidIfExisting({
 }
 
 function checkValueFieldExists({
-    range: variableRange,
+    valueRange: variableRange,
     properties: { value },
 }: ParsedEnvironmentVariable): Diagnostic | undefined {
     return !value
