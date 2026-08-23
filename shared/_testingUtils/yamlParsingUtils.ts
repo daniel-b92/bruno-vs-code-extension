@@ -1,3 +1,4 @@
+import { LineCounter, parseDocument } from "yaml";
 import { Position, Range } from "..";
 
 export function getExpectedKeyRange(
@@ -22,4 +23,10 @@ export function getExpectedSameLineValueRange(
         new Position(line, keyStartChar + key.length + 2),
         new Position(line, keyStartChar + key.length + 2 + value.length),
     );
+}
+
+export function parseTextIntoYamlDocument(text: string) {
+    return parseDocument(text, {
+        lineCounter: new LineCounter(),
+    });
 }

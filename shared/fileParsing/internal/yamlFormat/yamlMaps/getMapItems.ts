@@ -192,7 +192,7 @@ export function getMapItems(
         items,
         errors: errors.concat(
             getImplicitErrorsForAllInvalidMapItems(
-                { invalidScalars, invalidSequences },
+                { invalidScalars, invalidSequences, invalidMaps },
                 commonParsingArgs,
             ),
         ),
@@ -203,14 +203,16 @@ function getImplicitErrorsForAllInvalidMapItems(
     items: {
         invalidScalars: { key: string; valueRange: Range }[];
         invalidSequences: { key: string; valueRange: Range }[];
+        invalidMaps: { key: string; valueRange: Range }[];
     },
     commonArgs: CommonParsingArgs,
 ) {
-    const { invalidScalars, invalidSequences } = items;
+    const { invalidScalars, invalidSequences, invalidMaps } = items;
 
     return [
         { fields: invalidScalars, type: "Scalar" as const },
         { fields: invalidSequences, type: "Sequence" as const },
+        { fields: invalidMaps, type: "Map" as const },
     ].flatMap(({ fields, type }) =>
         fields.map(({ key, valueRange }) =>
             getErrorForValueWithUnexpectedType({
