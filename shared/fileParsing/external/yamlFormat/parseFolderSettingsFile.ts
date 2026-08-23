@@ -86,13 +86,13 @@ export function parseFolderSettingsFile(
                 : [],
         ),
     );
-    // Docs section was searched for as both a scalar and a map. So we need to filter one of the missing keys out.
+    // Docs section was searched for as both a scalar and a map. So only, if it is not found for both, it is really missing.
+    const isDocsSectionMissing =
+        missingKeys.filter((key) => key == TopLevelFolderSettingsProperty.Docs)
+            .length > 1;
     const missingProperties = missingKeys
-        .filter(
-            (key, index) =>
-                key != TopLevelFolderSettingsProperty.Docs ||
-                missingKeys.indexOf(key) == index,
-        )
+        .filter((key) => key != TopLevelFolderSettingsProperty.Docs)
+        .concat(isDocsSectionMissing ? TopLevelFolderSettingsProperty.Docs : [])
         .map((key) => ({
             key,
             alwaysHasScalarValue: false,
@@ -195,7 +195,7 @@ function getParsedRequest(
             scripts: parsedScripts,
             actions: parsedActions,
         },
-    } = parseRequestSection(maybeRequestMap.value, commonArgs);
+    } = parseRequestSection(maybeRequestMap.value, commonArgs, collectedErrors);
     const { result: auth, errors: authErrors } = parsedAuth ?? {
         result: undefined,
         errors: [],
@@ -235,8 +235,8 @@ function getParsedRequest(
 function parseRequestSection(
     requestMap: YAMLMap,
     commonArgs: CommonParsingArgs,
+    collectedErrors: YamlParsingError[],
 ) {
-    const collectedErrors: YamlParsingError[] = [];
     const expectedSequences = [
         FolderSettingsRequestSectionProperty.Headers,
         FolderSettingsRequestSectionProperty.Variables,
@@ -261,7 +261,7 @@ function parseRequestSection(
         requestMap,
         {
             scalars: { stringValues: expectedScalarStrings },
-            mapValues: allowedKeys,
+            mapValues: expectedMaps,
             sequenceValues: expectedSequences,
         },
         commonArgs,
@@ -279,12 +279,20 @@ function parseRequestSection(
             ),
         ),
     );
-    const missingProperties = missingKeys.map((key) => ({
-        alwaysHasScalarValue: false,
-        // None of the properties are mandatory.
-        isMandatory: false,
-        key,
-    }));
+    // Since we searched for the auth property as a scalar and as a map, it's only missing, if neither was found.
+    const isAuthMissing =
+        missingKeys.filter(
+            (key) => key == FolderSettingsRequestSectionProperty.Auth,
+        ).length > 1;
+    const missingProperties = missingKeys
+        .filter((key) => key != FolderSettingsRequestSectionProperty.Auth)
+        .concat(isAuthMissing ? FolderSettingsRequestSectionProperty.Auth : [])
+        .map((key) => ({
+            alwaysHasScalarValue: false,
+            // None of the properties are mandatory.
+            isMandatory: false,
+            key,
+        }));
 
     const maybeHeadersSequence = validSequences.find(
         ({ key }) => key == FolderSettingsRequestSectionProperty.Headers,
