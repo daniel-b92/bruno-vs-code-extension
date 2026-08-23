@@ -125,7 +125,12 @@ function parseFromMap(
         result:
             content || maybeType
                 ? {
-                      properties: { content, type: maybeType?.value },
+                      properties: {
+                          content: content
+                              ? stripKeyFromResult(content)
+                              : undefined,
+                          type: maybeType?.value,
+                      },
                       missingProperties,
                   }
                 : undefined,
