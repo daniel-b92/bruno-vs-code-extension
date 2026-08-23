@@ -39,7 +39,7 @@ function toTypedValue<T extends string>(
     if (!(allowedValues as string[]).includes(unTyped.value)) {
         return {
             error: {
-                message: `Invalid value '${unTyped}'. Allowed values are ${JSON.stringify(allowedValues, null, 2)}`,
+                message: `Invalid value '${unTyped.value}'. Allowed values are ${JSON.stringify(allowedValues, null, 2)}`,
                 range: unTyped.valueRange,
                 code: YamlParsingErrorCode.Other,
             },

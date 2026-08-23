@@ -43,7 +43,7 @@ export function parseAuthFromYamlMapOrScalar(args: {
             ? {
                   result: {
                       keyRange,
-                      value: { valueRange },
+                      value: {},
                       valueRange,
                   },
                   errors: [],

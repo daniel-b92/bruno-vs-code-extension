@@ -98,9 +98,7 @@ export type ParsedBearerAuth = ParsedYamlMap<{
     token?: WithKeyAndValueRange<string>;
 }>;
 
-export interface ParsedInheritAuth {
-    valueRange: Range;
-}
+export interface ParsedInheritAuth {}
 
 export type ParseYamlMapWithKeyAndValueRange<T> =
     ParsedYamlMapWithValueRange<T> & {

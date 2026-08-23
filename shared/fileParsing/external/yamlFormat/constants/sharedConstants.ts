@@ -19,6 +19,11 @@ export enum FileInfoProperty {
     Tags = "tags",
 }
 
+export enum ScriptMapProperty {
+    Type = "type",
+    Code = "code",
+}
+
 export enum FileInfoType {
     Folder = "folder",
     Http = "http",

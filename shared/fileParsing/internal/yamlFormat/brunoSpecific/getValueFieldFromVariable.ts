@@ -14,6 +14,7 @@ import { getRangeForUnknownYamlItem } from "../util/getRangeForUnknownYamlItem";
 import { getMapItems } from "../yamlMaps/getMapItems";
 import { VariableType } from "../../../external/yamlFormat/constants/sharedConstants";
 import { EnvironmentVariableProperty } from "../../../external/yamlFormat/constants/environmentFileConstants";
+import { stripKeyFromResult } from "../util/stripKeyFromResult";
 
 enum VariableValueWithTypeProperty {
     Type = "type",
@@ -147,7 +148,7 @@ export function getValueFieldFromVariable(
             keyRange,
             valueRange: getRangeForItem(valueMapItem, commonParams),
             properties: {
-                data,
+                data: data ? stripKeyFromResult(data) : undefined,
                 type: maybeType?.value,
             },
             missingProperties,
