@@ -74,24 +74,23 @@ export function parseHeadersFromSequence(args: {
 
         errors.push(
             ...mapItemErrors,
-            ...unknownKeys.map(
-                ({ key: unknownKey, keyRange }) =>
-                    getErrorForUnknownKeyInMap({
-                        ...commonArgs,
-                        unknownKey,
-                        keyRange,
-                        allowedKeys: allowedKeys,
-                    }),
-                ...missingKeysWithInfo
-                    .filter(({ isMandatory }) => isMandatory)
-                    .map(({ key }) =>
-                        getErrorForMissingKeyInMap({
-                            ...commonArgs,
-                            missingKey: key,
-                            map: headerMap,
-                        }),
-                    ),
+            ...unknownKeys.map(({ key: unknownKey, keyRange }) =>
+                getErrorForUnknownKeyInMap({
+                    ...commonArgs,
+                    unknownKey,
+                    keyRange,
+                    allowedKeys: allowedKeys,
+                }),
             ),
+            ...missingKeysWithInfo
+                .filter(({ isMandatory }) => isMandatory)
+                .map(({ key }) =>
+                    getErrorForMissingKeyInMap({
+                        ...commonArgs,
+                        missingKey: key,
+                        map: headerMap,
+                    }),
+                ),
         );
         const name = validStrings.find(
             ({ key }) => key == RequestHeaderProperty.Name,
