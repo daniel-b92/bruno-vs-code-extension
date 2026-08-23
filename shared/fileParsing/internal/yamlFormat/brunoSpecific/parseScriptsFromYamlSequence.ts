@@ -13,13 +13,11 @@ import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownK
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
-import { ScriptType } from "../../../external/yamlFormat/constants/sharedConstants";
+import {
+    ScriptMapProperty,
+    ScriptType,
+} from "../../../external/yamlFormat/constants/sharedConstants";
 import { getRangeForItem } from "../util/getRangeForItem";
-
-enum ScriptMapProperty {
-    Type = "type",
-    Code = "code",
-}
 
 export function parseScriptsFromYamlSequence(
     scriptsSequence: YAMLSeq,
