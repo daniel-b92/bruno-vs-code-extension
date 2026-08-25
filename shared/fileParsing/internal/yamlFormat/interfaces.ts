@@ -3,6 +3,7 @@ import {
     Range,
     TextDocumentHelper,
     WithKeyAndValueRange,
+    YamlMapMissingPropertyInfo,
     YamlParsingError,
 } from "../../..";
 import {
@@ -113,12 +114,6 @@ export type ParsedYamlMap<T> = {
     properties: T;
     missingProperties: YamlMapMissingPropertyInfo[];
 };
-
-export interface YamlMapMissingPropertyInfo {
-    key: string;
-    isMandatory: boolean;
-    alwaysHasScalarValue: boolean;
-}
 
 export type MaybeResultWithErrors<T> = {
     result?: T;

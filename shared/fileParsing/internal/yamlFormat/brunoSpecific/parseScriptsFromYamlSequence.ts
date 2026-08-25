@@ -4,9 +4,12 @@ import {
     MaybeResultWithErrors,
     ParsedScript,
     WithKeyKeyRangeAndValueRange,
-    YamlMapMissingPropertyInfo,
 } from "../interfaces";
-import { WithKeyAndValueRange, YamlParsingError } from "../../../..";
+import {
+    WithKeyAndValueRange,
+    YamlMapMissingPropertyInfo,
+    YamlParsingError,
+} from "../../../..";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
 import { getMapItems } from "../yamlMaps/getMapItems";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";

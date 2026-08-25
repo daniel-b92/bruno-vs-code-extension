@@ -50,7 +50,10 @@ export class YamlFormatDiagnosticsProvider {
         const { enabled, disabled } = parsingResult.properties.variables;
 
         const otherDiagnostics = [
-            checkTopLevelNameIsDefined(parsingResult, commonParams),
+            checkTopLevelNameIsDefined(
+                parsingResult.missingProperties,
+                commonParams,
+            ),
         ].concat(
             checkVariableDefinitionsAreValid(
                 enabled.concat(disabled),

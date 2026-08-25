@@ -6,9 +6,13 @@ import {
     ParseYamlMapWithKeyAndValueRange,
     WithKeyAndKeyRange,
     WithKeyKeyRangeAndValueRange,
-    YamlMapMissingPropertyInfo,
 } from "../interfaces";
-import { Range, WithKeyAndValueRange, YamlParsingError } from "../../../..";
+import {
+    Range,
+    WithKeyAndValueRange,
+    YamlMapMissingPropertyInfo,
+    YamlParsingError,
+} from "../../../..";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
 import { getMapItems } from "../yamlMaps/getMapItems";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
