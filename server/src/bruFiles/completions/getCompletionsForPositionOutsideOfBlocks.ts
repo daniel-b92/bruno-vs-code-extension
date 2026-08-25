@@ -20,7 +20,6 @@ import {
 import { MissingBlock } from "../shared/interfaces";
 import { getMissingMandatoryBlocks } from "../shared/getMissingMandatoryBlocks";
 import { getMissingOptionalBlocks } from "../shared/getMissingOptionalBlocks";
-import { findBlockEnd } from "../../../../shared/fileParsing/internal/bruFormat/findBlockEnd";
 import { getDictionaryBlockSnippetInsertionContent } from "./dictionaryBlocks/generic/getDictionaryBlockSnippetInsertionContent";
 
 interface BlockData {
@@ -58,7 +57,6 @@ export function getCompletionsForPositionOutsideOfBlocks(
     );
 
     const allMissingBlocks = mapToBlockData(
-        request,
         missingMandatoryBlocks.concat(missingOptionalBlocks),
     );
     const filteredItems = openingBracket
@@ -241,30 +239,17 @@ function getTextEditWithInsertFormat(
     };
 }
 
-function mapToBlockData(
-    { documentHelper, position: { line } }: LanguageFeatureBaseRequest,
-    missingBlocks: MissingBlock[],
-) {
+function mapToBlockData(missingBlocks: MissingBlock[]): BlockData[] {
     return missingBlocks.flatMap((entry) =>
         "mutuallyExclusiveBlocks" in entry
             ? entry.mutuallyExclusiveBlocks.map((name) => ({
                   blockName: name,
                   mandatory: entry.mandatory,
-                  endPosition: findBlockEnd(
-                      documentHelper,
-                      line + 1,
-                      shouldBeArrayBlock(name),
-                  ),
               }))
             : [
                   {
                       blockName: entry.name,
                       mandatory: entry.mandatory,
-                      endPosition: findBlockEnd(
-                          documentHelper,
-                          line + 1,
-                          shouldBeArrayBlock(entry.name),
-                      ),
                   },
               ],
     );
