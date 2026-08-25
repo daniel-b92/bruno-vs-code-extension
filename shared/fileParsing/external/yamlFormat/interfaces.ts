@@ -75,8 +75,15 @@ export type ParsedEnvironmentVariable = ParsedYamlMapWithValueRange<{
     secret: OptionalVariableFieldResult<boolean>;
     disabled: OptionalVariableFieldResult<boolean>;
 }>;
+
 export interface WithKeyAndValueRange<T> {
     keyRange: Range;
     value: T;
     valueRange: Range;
+}
+
+export interface YamlMapMissingPropertyInfo {
+    key: string;
+    isMandatory: boolean;
+    alwaysHasScalarValue: boolean;
 }
