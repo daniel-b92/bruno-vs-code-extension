@@ -110,22 +110,71 @@ export function getMapItems(
             continue;
         }
 
-        // The parser converts empty string for a value to `NULL`, which causes a type mismatch, when directly checking for string scalar.
+        // The parser converts empty strings to `NULL`, which causes a type mismatch, when directly checking for string scalar.
         if (isScalar<unknown>(value) && value.source === "") {
-            items.validScalars.withStringValue.push({
-                key: keyValue,
-                keyRange,
-                value: "",
-                valueRange: getRangeForItem(value, commonParsingArgs),
-            });
+            const valueRange = getRangeForItem(value, commonParsingArgs);
+
+            if (
+                expectedStringScalars != undefined &&
+                expectedStringScalars.includes(keyValue)
+            ) {
+                items.validScalars.withStringValue.push({
+                    key: keyValue,
+                    keyRange,
+                    value: "",
+                    valueRange,
+                });
+            } else {
+                errors.push(
+                    getErrorForUnexpectedType(
+                        { key: keyValue, valueRange },
+                        commonParsingArgs,
+                        {
+                            withBooleanValue: expectedBooleanScalars,
+                            withNumericValue: expectedNumericScalars,
+                            withStringValue: expectedStringScalars,
+                            withUnknownValue: expectedUnknownScalars,
+                        },
+                        expectedMapValues,
+                        expectedSequenceValues,
+                    ),
+                );
+            }
             continue;
         }
 
-        if (isTypedScalar<boolean>(keyValue, value, expectedBooleanScalars)) {
-            items.validScalars.withBooleanValue.push({
-                ...mapFromYamlScalar({ ...commonParsingArgs, keyRange, value }),
-                key: keyValue,
-            });
+        if (isScalar<boolean>(value)) {
+            if (expectedBooleanScalars?.includes(keyValue)) {
+                items.validScalars.withBooleanValue.push({
+                    ...mapFromYamlScalar({
+                        ...commonParsingArgs,
+                        keyRange,
+                        value,
+                    }),
+                    key: keyValue,
+                });
+            } else {
+                errors.push(
+                    getErrorForUnexpectedType(
+                        {
+                            key: keyValue,
+                            valueRange: getRangeForItem(
+                                value,
+                                commonParsingArgs,
+                            ),
+                        },
+                        commonParsingArgs,
+                        {
+                            withBooleanValue: expectedBooleanScalars,
+                            withNumericValue: expectedNumericScalars,
+                            withStringValue: expectedStringScalars,
+                            withUnknownValue: expectedUnknownScalars,
+                        },
+                        expectedMapValues,
+                        expectedSequenceValues,
+                    ),
+                );
+            }
             continue;
         }
         if (isTypedScalar<number>(keyValue, value, expectedNumericScalars)) {
@@ -234,6 +283,62 @@ function getImplicitErrorsForAllInvalidMapItems(
             }),
         ),
     );
+}
+
+function getErrorForUnexpectedType(
+    field: {
+        key: string;
+        valueRange: Range;
+    },
+    commonParsingArgs: CommonParsingArgs,
+    expectedScalars: {
+        withBooleanValue?: string[];
+        withNumericValue?: string[];
+        withStringValue?: string[];
+        withUnknownValue?: string[];
+    },
+    expectedMapValues?: string[],
+    expectedSequenceValues?: string[],
+) {
+    const { key, valueRange } = field;
+    const {
+        withBooleanValue: expectedBooleanScalars,
+        withNumericValue: expectedNumericScalars,
+        withStringValue: expectedStrinǵScalars,
+        withUnknownValue: expectedUnknownScalars,
+    } = expectedScalars;
+    const keyToTypeMap = (expectedBooleanScalars ?? [])
+        .map((key) => ({ key, type: "boolean" }))
+        .concat(
+            (expectedNumericScalars ?? []).map((key) => ({
+                key,
+                type: "number",
+            })),
+            (expectedStrinǵScalars ?? []).map((key) => ({
+                key,
+                type: "string",
+            })),
+            (expectedUnknownScalars ?? []).map((key) => ({
+                key,
+                type: "unknown",
+            })),
+            (expectedMapValues ?? []).map((key) => ({
+                key,
+                type: "Map",
+            })),
+            (expectedSequenceValues ?? []).map((key) => ({
+                key,
+                type: "Sequence",
+            })),
+        );
+
+    const expectedType = keyToTypeMap.find(({ key: k }) => k == key)?.type;
+    return getErrorForValueWithUnexpectedType({
+        ...commonParsingArgs,
+        key,
+        valueRange,
+        expectedType: expectedType ?? "unknown",
+    });
 }
 
 function isTypedScalar<T>(
