@@ -110,6 +110,17 @@ export function getMapItems(
             continue;
         }
 
+        // The parser converts empty string for a value to `NULL`, which causes a type mismatch, when directly checking for string scalar.
+        if (isScalar<unknown>(value) && value.source === "") {
+            items.validScalars.withStringValue.push({
+                key: keyValue,
+                keyRange,
+                value: "",
+                valueRange: getRangeForItem(value, commonParsingArgs),
+            });
+            continue;
+        }
+
         if (isTypedScalar<boolean>(keyValue, value, expectedBooleanScalars)) {
             items.validScalars.withBooleanValue.push({
                 ...mapFromYamlScalar({ ...commonParsingArgs, keyRange, value }),
