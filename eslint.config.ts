@@ -36,6 +36,7 @@ export default [
                 {
                     type: "shared_internal",
                     pattern: "shared/**/internal/**",
+                    partialMatch: false,
                 },
             ],
             "boundaries/files": [{ pattern: "**/*.ts", category: "source" }],
@@ -168,6 +169,7 @@ export default [
                 {
                     type: "shared_internal",
                     pattern: "shared/**/internal/**",
+                    partialMatch: false,
                 },
             ],
             "boundaries/files": [{ pattern: "**/*.ts", category: "source" }],
