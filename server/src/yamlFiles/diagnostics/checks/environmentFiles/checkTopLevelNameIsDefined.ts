@@ -1,7 +1,7 @@
 import { YamlMapMissingPropertyInfo } from "@global_shared";
 import { Diagnostic } from "vscode-languageserver";
 import { CommonDiagnosticParams } from "../../../interfaces";
-import { getErrorForMissingTopLevelKey } from "../../util/getErrorForMissingTopLevelKey";
+import { getErrorForMissingTopLevelKey } from "../../shared/getErrorForMissingTopLevelKey";
 import { TopLevelEnvironmentFileProperty } from "../../../../../../shared/fileParsing/external/yamlFormat/constants/environmentFileConstants";
 
 export function checkTopLevelNameIsDefined(

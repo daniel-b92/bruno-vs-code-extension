@@ -5,31 +5,34 @@ import {
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 import { CommonDiagnosticParams } from "../../../interfaces";
+import { checkVariableNamesAreUnique } from "../../shared/checkVariableNamesAreUnique";
 
 export function checkVariableDefinitionsAreValid(
     variables: ParsedEnvironmentVariable[],
     commonParams: CommonDiagnosticParams,
 ): (Diagnostic | undefined)[] {
-    return variables.flatMap((variable) => {
-        const {
-            properties: { name, secret },
-        } = variable;
-        const result: (Diagnostic | undefined)[] = [];
+    return variables
+        .flatMap((variable) => {
+            const {
+                properties: { name, secret },
+            } = variable;
+            const result: (Diagnostic | undefined)[] = [];
 
-        result.push(
-            name ? checkNameIsValid(name) : undefined,
-            checkTypeFieldIsValidIfExisting(variable),
-        );
+            result.push(
+                name ? checkNameIsValid(name) : undefined,
+                checkTypeFieldIsValidIfExisting(variable),
+            );
 
-        if (secret.effectiveValue) {
-            result.push(checkSecretVariableIsValid(variable, commonParams));
-        } else {
-            // Non-secret variables should always have a value.
-            result.push(checkValueFieldExists(variable));
-        }
+            if (secret.effectiveValue) {
+                result.push(checkSecretVariableIsValid(variable, commonParams));
+            } else {
+                // Non-secret variables should always have a value.
+                result.push(checkValueFieldExists(variable));
+            }
 
-        return result;
-    });
+            return result;
+        })
+        .concat(checkVariableNamesAreUnique(variables, commonParams));
 }
 
 function checkNameIsValid({
