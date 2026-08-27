@@ -10,6 +10,7 @@ import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import { checkTopLevelNameIsDefined } from "./diagnostics/checks/environmentFiles/checkTopLevelNameIsDefined";
 import { CommonDiagnosticParams } from "./interfaces";
 import { checkVariableDefinitionsAreValid } from "./diagnostics/checks/environmentFiles/checkVariableDefinitionsAreValid";
+import { checkVariableNamesAreUnique } from "./diagnostics/shared/checkVariableNamesAreUnique";
 
 export class YamlFormatDiagnosticsProvider {
     constructor() {}
@@ -56,7 +57,7 @@ export class YamlFormatDiagnosticsProvider {
             ),
         ].concat(
             checkVariableDefinitionsAreValid(
-                enabled.concat(disabled),
+                { enabled, disabled },
                 commonParams,
             ),
         );
@@ -68,13 +69,24 @@ export class YamlFormatDiagnosticsProvider {
     public getDiagnosticsForFolderSettingsFile(
         commonParams: CommonDiagnosticParams,
     ): Diagnostic[] {
-        const result: Diagnostic[] = [];
         const { docHelper } = commonParams;
-        const { errors } = parseFolderSettingsFile(docHelper);
+        const { errors, result: parsingResult } =
+            parseFolderSettingsFile(docHelper);
 
-        result.push(...mapParsingErrorsToDiagnostics(errors));
+        const parsingDiagnostics = mapParsingErrorsToDiagnostics(errors);
 
-        return result;
+        if (!parsingResult) {
+            return parsingDiagnostics;
+        }
+        const variables =
+            parsingResult.properties.request?.properties.variables;
+
+        const otherDiagnostics = variables
+            ? checkVariableNamesAreUnique(variables.enabled, commonParams)
+            : [];
+        return parsingDiagnostics.concat(
+            otherDiagnostics.filter((d) => d != undefined),
+        );
     }
 }
 

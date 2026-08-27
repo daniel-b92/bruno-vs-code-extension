@@ -8,10 +8,16 @@ import { CommonDiagnosticParams } from "../../../interfaces";
 import { checkVariableNamesAreUnique } from "../../shared/checkVariableNamesAreUnique";
 
 export function checkVariableDefinitionsAreValid(
-    variables: ParsedEnvironmentVariable[],
+    variables: {
+        enabled: ParsedEnvironmentVariable[];
+        disabled: ParsedEnvironmentVariable[];
+    },
     commonParams: CommonDiagnosticParams,
 ): (Diagnostic | undefined)[] {
-    return variables
+    const { enabled: enabledVars, disabled: disabledVars } = variables;
+    const allVariables = enabledVars.concat(disabledVars);
+
+    return allVariables
         .flatMap((variable) => {
             const {
                 properties: { name, secret },
@@ -32,7 +38,7 @@ export function checkVariableDefinitionsAreValid(
 
             return result;
         })
-        .concat(checkVariableNamesAreUnique(variables, commonParams));
+        .concat(checkVariableNamesAreUnique(enabledVars, commonParams));
 }
 
 function checkNameIsValid({
