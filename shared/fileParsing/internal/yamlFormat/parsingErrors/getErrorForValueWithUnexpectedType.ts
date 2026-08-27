@@ -5,7 +5,8 @@ export function getErrorForValueWithUnexpectedType(
     args: CommonParsingArgs & {
         key: string;
         valueRange: Range;
-        expectedType: string;
+        expectedType:
+            "boolean" | "number" | "string" | "Map" | "Sequence" | "Scalar";
     },
 ): YamlParsingError {
     const { valueRange, expectedType } = args;

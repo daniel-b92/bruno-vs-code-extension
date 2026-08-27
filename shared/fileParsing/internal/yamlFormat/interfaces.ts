@@ -29,7 +29,6 @@ export interface ParsedMapItems {
         withStringValue: WithKeyKeyRangeAndValueRange<string>[];
         withBooleanValue: WithKeyKeyRangeAndValueRange<boolean>[];
         withNumericValue: WithKeyKeyRangeAndValueRange<number>[];
-        withUnknownValue: WithKeyKeyRangeAndValueRange<unknown>[];
     };
     validSequences: WithKeyAndKeyRange<YAMLSeq>[];
     validMaps: WithKeyAndKeyRange<YAMLMap>[];

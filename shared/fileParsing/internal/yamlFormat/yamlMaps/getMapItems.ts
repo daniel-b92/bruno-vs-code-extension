@@ -21,7 +21,6 @@ interface ExpectedKeys {
         booleanValues?: string[];
         numericValues?: string[];
         stringValues?: string[];
-        unknownValues?: string[];
     };
     mapValues?: string[];
     sequenceValues?: string[];
@@ -32,7 +31,6 @@ interface ValidKeys {
         withStringValue: WithKeyKeyRangeAndValueRange<string>[];
         withBooleanValue: WithKeyKeyRangeAndValueRange<boolean>[];
         withNumericValue: WithKeyKeyRangeAndValueRange<number>[];
-        withUnknownValue: WithKeyKeyRangeAndValueRange<unknown>[];
     };
     validSequences: WithKeyAndKeyRange<YAMLSeq>[];
     validMaps: WithKeyAndKeyRange<YAMLMap>[];
@@ -53,7 +51,6 @@ export function getMapItems(
             booleanValues: expectedBooleanScalars,
             numericValues: expectedNumericScalars,
             stringValues: expectedStringScalars,
-            unknownValues: expectedUnknownScalars,
         },
         sequenceValues: expectedSequenceValues,
         mapValues: expectedMapValues,
@@ -61,7 +58,6 @@ export function getMapItems(
     const allExpectedScalars = (expectedBooleanScalars ?? []).concat(
         expectedNumericScalars ?? [],
         expectedStringScalars ?? [],
-        expectedUnknownScalars ?? [],
     );
     const allExpectedKeys = allExpectedScalars.concat(
         expectedSequenceValues ?? [],
@@ -72,7 +68,6 @@ export function getMapItems(
             withBooleanValue: [],
             withNumericValue: [],
             withStringValue: [],
-            withUnknownValue: [],
         },
         validSequences: [],
         validMaps: [],
@@ -208,7 +203,6 @@ function handleScalarValue(
             booleanValues: expectedBooleanScalars,
             numericValues: expectedNumericScalars,
             stringValues: expectedStringScalars,
-            unknownValues: expectedUnknownScalars,
         },
     } = expectedKeys;
     const {
@@ -216,7 +210,6 @@ function handleScalarValue(
             withBooleanValue: validBooleanScalars,
             withNumericValue: validNumericScalars,
             withStringValue: validStringScalars,
-            withUnknownValue: validUnknownScalars,
         },
     } = collectedValidKeys;
     const valueRange = getRangeForItem(value, commonParsingArgs);
@@ -308,18 +301,6 @@ function handleScalarValue(
         return;
     }
 
-    if (expectedUnknownScalars?.includes(key)) {
-        validUnknownScalars.push({
-            ...mapFromYamlScalar({
-                ...commonParsingArgs,
-                keyRange,
-                value,
-            }),
-            key,
-        });
-        return;
-    }
-
     errors.push(
         getErrorForUnexpectedType(
             { key, valueRange },
@@ -344,7 +325,6 @@ function getErrorForUnexpectedType(
             booleanValues: expectedBooleanScalars,
             numericValues: expectedNumericScalars,
             stringValues: expectedStrinǵScalars,
-            unknownValues: expectedUnknownScalars,
         },
         sequenceValues: expectedSequenceValues,
         mapValues: expectedMapValues,
@@ -360,10 +340,6 @@ function getErrorForUnexpectedType(
                 key,
                 type: "string",
             })),
-            (expectedUnknownScalars ?? []).map((key) => ({
-                key,
-                type: "unknown",
-            })),
             (expectedMapValues ?? []).map((key) => ({
                 key,
                 type: "Map",
@@ -372,14 +348,17 @@ function getErrorForUnexpectedType(
                 key,
                 type: "Sequence",
             })),
-        );
+        ) as {
+        key: string;
+        type: "boolean" | "number" | "string" | "Map" | "Sequence";
+    }[];
 
     const expectedType = keyToTypeMap.find(({ key: k }) => k == key)?.type;
     return getErrorForValueWithUnexpectedType({
         ...commonParsingArgs,
         key,
         valueRange,
-        expectedType: expectedType ?? "unknown",
+        expectedType: expectedType!,
     });
 }
 
