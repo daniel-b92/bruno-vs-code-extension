@@ -87,7 +87,7 @@ export function getMapItems(
 
     for (const { key, value } of map.items) {
         // The parser converts empty string as key to `NULL`, which causes a type mismatch, when directly checking for string scalar.
-        if (isScalar<unknown>(key) && key.source === "") {
+        if (isScalar(key) && key.source === "") {
             errors.push(
                 getErrorForUnknownKeyInMap({
                     ...commonParsingArgs,
@@ -98,7 +98,8 @@ export function getMapItems(
             );
             continue;
         }
-        const keyAsScalar = isScalar<string>(key) ? key : undefined;
+        const keyAsScalar =
+            isScalar(key) && isStringScalar(key) ? key : undefined;
 
         if (!keyAsScalar) {
             errors.push({
@@ -127,7 +128,7 @@ export function getMapItems(
             continue;
         }
 
-        if (isScalar<unknown>(value)) {
+        if (isScalar(value)) {
             handleScalarValue(
                 { key: keyValue, keyRange, value },
                 expectedKeys,
@@ -221,7 +222,7 @@ function handleScalarValue(
     const valueRange = getRangeForItem(value, commonParsingArgs);
 
     // The parser converts empty strings to `NULL`, which causes a type mismatch, when directly checking for string scalars.
-    if (isScalar<unknown>(value) && value.source === "") {
+    if (value.source === "") {
         if (expectedStringScalars?.includes(key)) {
             validStringScalars.push({
                 key,
@@ -241,7 +242,7 @@ function handleScalarValue(
         return;
     }
 
-    if (isScalar<boolean>(value)) {
+    if (isBooleanScalar(value)) {
         if (expectedBooleanScalars?.includes(key)) {
             validBooleanScalars.push({
                 ...mapFromYamlScalar({
@@ -263,7 +264,7 @@ function handleScalarValue(
         return;
     }
 
-    if (isScalar<number>(value)) {
+    if (isNumericScalar(value)) {
         if (expectedNumericScalars?.includes(key)) {
             validNumericScalars.push({
                 ...mapFromYamlScalar({
@@ -285,7 +286,7 @@ function handleScalarValue(
         return;
     }
 
-    if (isScalar<string>(value)) {
+    if (isStringScalar(value)) {
         if (expectedStringScalars?.includes(key)) {
             validStringScalars.push({
                 ...mapFromYamlScalar({
@@ -412,4 +413,18 @@ function mapFromYamlScalar<T>(
         valueRange: getRangeForItem(valueField, args),
         value: valueField.value,
     };
+}
+
+// Unfortunately, the provided typeguard isScalar<T> by the yaml package does not reliably filter out scalars with a value not matching the defined type.
+// It only seems to work reliably, for finding out if a field is a Scalar at all or not.
+function isBooleanScalar(scalar: Scalar): scalar is Scalar<boolean> {
+    return typeof scalar.value == "boolean";
+}
+
+function isNumericScalar(scalar: Scalar): scalar is Scalar<number> {
+    return typeof scalar.value == "number";
+}
+
+function isStringScalar(scalar: Scalar): scalar is Scalar<string> {
+    return typeof scalar.value == "string";
 }

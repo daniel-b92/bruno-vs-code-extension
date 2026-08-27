@@ -8,9 +8,9 @@ export function getErrorForValueWithUnexpectedType(
         expectedType: string;
     },
 ): YamlParsingError {
-    const { key, valueRange, expectedType } = args;
+    const { valueRange, expectedType } = args;
     return {
-        message: `Expected item for key '${key}' to be of type '${expectedType}'.`,
+        message: `Expected value to be of type '${expectedType}'.`,
         range: valueRange,
         code: YamlParsingErrorCode.Other,
     };
