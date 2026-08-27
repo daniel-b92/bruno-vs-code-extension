@@ -10,7 +10,7 @@ export function getErrorForUnknownKeyInMap(
 ): YamlParsingError {
     const { unknownKey, keyRange, allowedKeys } = args;
     return {
-        message: `Unknown key '${unknownKey}'. Allowed keys are ${JSON.stringify(allowedKeys, null, 2)}`,
+        message: `Unknown key '${unknownKey}'. Allowed keys are ${JSON.stringify(allowedKeys.sort(), null, 2)}`,
         range: keyRange,
         code: YamlParsingErrorCode.UnknownFieldInMap,
     };

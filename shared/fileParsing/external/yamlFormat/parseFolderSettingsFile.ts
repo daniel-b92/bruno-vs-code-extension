@@ -54,14 +54,14 @@ export function parseFolderSettingsFile(
             missingKeys,
             unknownKeys,
             validMaps,
-            validScalars: { withUnknownValue: validScalars },
+            validScalars: { withStringValue: validScalars },
         },
         errors: mapItemErrors,
     } = getMapItems(
         topLevelMap,
         {
             // Docs section can either be a scalar or a map.
-            scalars: { unknownValues: [TopLevelFolderSettingsProperty.Docs] },
+            scalars: { stringValues: [TopLevelFolderSettingsProperty.Docs] },
             mapValues: expectedTopLevelProperties,
         },
         commonArgs,

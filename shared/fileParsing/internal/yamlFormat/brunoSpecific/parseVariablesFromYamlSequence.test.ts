@@ -14,7 +14,7 @@ describe("parseVariablesFromYamlSequence", () => {
         const documentText = `-   name: some name
     value:
         type: number
-        data: 343434
+        data: "343434"
     description: sdfs`;
 
         const docHelper = new TextDocumentHelper(documentText);
@@ -72,10 +72,10 @@ describe("parseVariablesFromYamlSequence", () => {
                         valueRange: getExpectedSameLineValueRange(
                             3,
                             "data",
-                            "343434",
+                            '"343434"',
                             8,
                         ),
-                        value: 343434,
+                        value: "343434",
                     },
                 },
             },

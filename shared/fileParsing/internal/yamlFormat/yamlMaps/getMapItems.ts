@@ -1,16 +1,40 @@
-import { isMap, isScalar, isSeq, Scalar, YAMLMap } from "yaml";
+import { isMap, isScalar, isSeq, Scalar, YAMLMap, YAMLSeq } from "yaml";
 import {
     Range,
     WithKeyAndValueRange,
     YamlParsingError,
     YamlParsingErrorCode,
 } from "../../../..";
-import { CommonParsingArgs, ParsedMapItems } from "../interfaces";
+import {
+    CommonParsingArgs,
+    ParsedMapItems,
+    WithKeyAndKeyRange,
+    WithKeyKeyRangeAndValueRange,
+} from "../interfaces";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { fromYamlRange } from "../util/fromYamlRange";
-import { getRangeForUnknownYamlItem } from "../util/getRangeForUnknownYamlItem";
 import { getErrorForValueWithUnexpectedType } from "../parsingErrors/getErrorForValueWithUnexpectedType";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
+
+interface ExpectedKeys {
+    scalars: {
+        booleanValues?: string[];
+        numericValues?: string[];
+        stringValues?: string[];
+    };
+    mapValues?: string[];
+    sequenceValues?: string[];
+}
+
+interface ValidKeys {
+    validScalars: {
+        withStringValue: WithKeyKeyRangeAndValueRange<string>[];
+        withBooleanValue: WithKeyKeyRangeAndValueRange<boolean>[];
+        withNumericValue: WithKeyKeyRangeAndValueRange<number>[];
+    };
+    validSequences: WithKeyAndKeyRange<YAMLSeq>[];
+    validMaps: WithKeyAndKeyRange<YAMLMap>[];
+}
 
 /**
  * Parses a YAML map and categorizes its items into valid scalars, valid sequences, invalid scalars, invalid sequences, and unknown keys based on the provided expected keys.
@@ -19,16 +43,7 @@ import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownK
  */
 export function getMapItems(
     map: YAMLMap,
-    expectedKeys: {
-        scalars: {
-            stringValues?: string[];
-            booleanValues?: string[];
-            numericValues?: string[];
-            unknownValues?: string[];
-        };
-        sequenceValues?: string[];
-        mapValues?: string[];
-    },
+    expectedKeys: ExpectedKeys,
     commonParsingArgs: CommonParsingArgs,
 ): { items: ParsedMapItems; errors: YamlParsingError[] } {
     const {
@@ -36,7 +51,6 @@ export function getMapItems(
             booleanValues: expectedBooleanScalars,
             numericValues: expectedNumericScalars,
             stringValues: expectedStringScalars,
-            unknownValues: expectedUnknownScalars,
         },
         sequenceValues: expectedSequenceValues,
         mapValues: expectedMapValues,
@@ -44,33 +58,31 @@ export function getMapItems(
     const allExpectedScalars = (expectedBooleanScalars ?? []).concat(
         expectedNumericScalars ?? [],
         expectedStringScalars ?? [],
-        expectedUnknownScalars ?? [],
     );
     const allExpectedKeys = allExpectedScalars.concat(
         expectedSequenceValues ?? [],
         expectedMapValues ?? [],
     );
-    const items: ParsedMapItems = {
+    const validKeys: ValidKeys = {
         validScalars: {
             withBooleanValue: [],
             withNumericValue: [],
             withStringValue: [],
-            withUnknownValue: [],
         },
         validSequences: [],
         validMaps: [],
+    };
+    const items: ParsedMapItems = {
+        ...validKeys,
         // Everytime one of the expected keys is found, it will be removed from this list.
         missingKeys: allExpectedKeys.slice(),
         unknownKeys: [],
     };
     const errors: YamlParsingError[] = [];
-    const invalidScalars: { key: string; valueRange: Range }[] = [];
-    const invalidSequences: { key: string; valueRange: Range }[] = [];
-    const invalidMaps: { key: string; valueRange: Range }[] = [];
 
     for (const { key, value } of map.items) {
         // The parser converts empty string as key to `NULL`, which causes a type mismatch, when directly checking for string scalar.
-        if (isScalar<unknown>(key) && key.source === "") {
+        if (isScalar(key) && key.source === "") {
             errors.push(
                 getErrorForUnknownKeyInMap({
                     ...commonParsingArgs,
@@ -81,7 +93,8 @@ export function getMapItems(
             );
             continue;
         }
-        const keyAsScalar = isScalar<string>(key) ? key : undefined;
+        const keyAsScalar =
+            isScalar(key) && isStringScalar(key) ? key : undefined;
 
         if (!keyAsScalar) {
             errors.push({
@@ -110,131 +123,243 @@ export function getMapItems(
             continue;
         }
 
-        if (isTypedScalar<boolean>(keyValue, value, expectedBooleanScalars)) {
-            items.validScalars.withBooleanValue.push({
-                ...mapFromYamlScalar({ ...commonParsingArgs, keyRange, value }),
-                key: keyValue,
-            });
-            continue;
-        }
-        if (isTypedScalar<number>(keyValue, value, expectedNumericScalars)) {
-            items.validScalars.withNumericValue.push({
-                ...mapFromYamlScalar({ ...commonParsingArgs, keyRange, value }),
-                key: keyValue,
-            });
-            continue;
-        }
-        if (isTypedScalar<string>(keyValue, value, expectedStringScalars)) {
-            items.validScalars.withStringValue.push({
-                ...mapFromYamlScalar({ ...commonParsingArgs, keyRange, value }),
-                key: keyValue,
-            });
-            continue;
-        }
-        if (isTypedScalar<unknown>(keyValue, value, expectedUnknownScalars)) {
-            items.validScalars.withUnknownValue.push({
-                ...mapFromYamlScalar({ ...commonParsingArgs, keyRange, value }),
-                key: keyValue,
-            });
+        if (isScalar(value)) {
+            handleScalarValue(
+                { key: keyValue, keyRange, value },
+                expectedKeys,
+                {
+                    collectedValidKeys: items,
+                    errors,
+                },
+                commonParsingArgs,
+            );
             continue;
         }
 
-        if ((expectedSequenceValues ?? []).includes(keyValue) && isSeq(value)) {
-            items.validSequences.push({
-                key: keyValue,
-                keyRange,
-                value: value,
-            });
+        if (isSeq(value)) {
+            if (expectedSequenceValues?.includes(keyValue)) {
+                items.validSequences.push({
+                    key: keyValue,
+                    keyRange,
+                    value: value,
+                });
+            } else {
+                const valueRange = getRangeForItem(value, commonParsingArgs);
+                errors.push(
+                    getErrorForUnexpectedType(
+                        { key: keyValue, valueRange },
+                        expectedKeys,
+                        commonParsingArgs,
+                    ),
+                );
+            }
             continue;
         }
 
-        if ((expectedMapValues ?? []).includes(keyValue) && isMap(value)) {
-            items.validMaps.push({
-                key: keyValue,
-                keyRange,
-                value: value,
-            });
-            continue;
-        }
-
-        const maybeValueRange = getValueRange(
-            keyAsScalar.value,
-            value,
-            map,
-            commonParsingArgs,
-        );
-        if ("error" in maybeValueRange) {
-            errors.push(maybeValueRange.error);
-            continue;
-        }
-        const valueRange = maybeValueRange.range;
-
-        if (allExpectedScalars.includes(keyValue)) {
-            invalidScalars.push({ key: keyValue, valueRange });
-            continue;
-        }
-        if ((expectedSequenceValues ?? []).includes(keyValue)) {
-            invalidSequences.push({
-                key: keyValue,
-                valueRange,
-            });
-            continue;
-        }
-        if ((expectedMapValues ?? []).includes(keyValue)) {
-            invalidMaps.push({
-                key: keyValue,
-                valueRange,
-            });
+        if (isMap(value)) {
+            if (expectedMapValues?.includes(keyValue)) {
+                items.validMaps.push({
+                    key: keyValue,
+                    keyRange,
+                    value: value,
+                });
+            } else {
+                const valueRange = getRangeForItem(value, commonParsingArgs);
+                errors.push(
+                    getErrorForUnexpectedType(
+                        { key: keyValue, valueRange },
+                        expectedKeys,
+                        commonParsingArgs,
+                    ),
+                );
+            }
             continue;
         }
     }
+
     return {
         items,
-        errors: errors.concat(
-            getImplicitErrorsForAllInvalidMapItems(
-                { invalidScalars, invalidSequences, invalidMaps },
-                commonParsingArgs,
-            ),
-        ),
+        errors,
     };
 }
 
-function getImplicitErrorsForAllInvalidMapItems(
-    items: {
-        invalidScalars: { key: string; valueRange: Range }[];
-        invalidSequences: { key: string; valueRange: Range }[];
-        invalidMaps: { key: string; valueRange: Range }[];
+function handleScalarValue(
+    field: {
+        key: string;
+        keyRange: Range;
+        value: Scalar;
     },
-    commonArgs: CommonParsingArgs,
+    expectedKeys: ExpectedKeys,
+    results: {
+        collectedValidKeys: ValidKeys;
+        errors: YamlParsingError[];
+    },
+    commonParsingArgs: CommonParsingArgs,
 ) {
-    const { invalidScalars, invalidSequences, invalidMaps } = items;
+    const { key, keyRange, value } = field;
+    const { collectedValidKeys, errors } = results;
+    const {
+        scalars: {
+            booleanValues: expectedBooleanScalars,
+            numericValues: expectedNumericScalars,
+            stringValues: expectedStringScalars,
+        },
+    } = expectedKeys;
+    const {
+        validScalars: {
+            withBooleanValue: validBooleanScalars,
+            withNumericValue: validNumericScalars,
+            withStringValue: validStringScalars,
+        },
+    } = collectedValidKeys;
+    const valueRange = getRangeForItem(value, commonParsingArgs);
 
-    return [
-        { fields: invalidScalars, type: "Scalar" as const },
-        { fields: invalidSequences, type: "Sequence" as const },
-        { fields: invalidMaps, type: "Map" as const },
-    ].flatMap(({ fields, type }) =>
-        fields.map(({ key, valueRange }) =>
-            getErrorForValueWithUnexpectedType({
-                ...commonArgs,
+    // The parser converts empty strings to `NULL`, which causes a type mismatch, when directly checking for string scalars.
+    if (value.source === "") {
+        if (expectedStringScalars?.includes(key)) {
+            validStringScalars.push({
                 key,
+                keyRange,
+                value: "",
                 valueRange,
-                expectedType: type,
-            }),
+            });
+        } else {
+            errors.push(
+                getErrorForUnexpectedType(
+                    { key, valueRange },
+                    expectedKeys,
+                    commonParsingArgs,
+                ),
+            );
+        }
+        return;
+    }
+
+    if (isBooleanScalar(value)) {
+        if (expectedBooleanScalars?.includes(key)) {
+            validBooleanScalars.push({
+                ...mapFromYamlScalar({
+                    ...commonParsingArgs,
+                    keyRange,
+                    value,
+                }),
+                key,
+            });
+        } else {
+            errors.push(
+                getErrorForUnexpectedType(
+                    { key, valueRange },
+                    expectedKeys,
+                    commonParsingArgs,
+                ),
+            );
+        }
+        return;
+    }
+
+    if (isNumericScalar(value)) {
+        if (expectedNumericScalars?.includes(key)) {
+            validNumericScalars.push({
+                ...mapFromYamlScalar({
+                    ...commonParsingArgs,
+                    keyRange,
+                    value,
+                }),
+                key,
+            });
+        } else {
+            errors.push(
+                getErrorForUnexpectedType(
+                    { key, valueRange },
+                    expectedKeys,
+                    commonParsingArgs,
+                ),
+            );
+        }
+        return;
+    }
+
+    if (isStringScalar(value)) {
+        if (expectedStringScalars?.includes(key)) {
+            validStringScalars.push({
+                ...mapFromYamlScalar({
+                    ...commonParsingArgs,
+                    keyRange,
+                    value,
+                }),
+                key,
+            });
+        } else {
+            errors.push(
+                getErrorForUnexpectedType(
+                    { key, valueRange },
+                    expectedKeys,
+                    commonParsingArgs,
+                ),
+            );
+        }
+        return;
+    }
+
+    errors.push(
+        getErrorForUnexpectedType(
+            { key, valueRange },
+            expectedKeys,
+            commonParsingArgs,
         ),
     );
+    return;
 }
 
-function isTypedScalar<T>(
-    keyValue: string,
-    fieldValue: unknown,
-    expectedKeys?: string[],
-): fieldValue is Scalar<T> {
-    return (
-        expectedKeys != undefined &&
-        expectedKeys.includes(keyValue) &&
-        isScalar<T>(fieldValue)
-    );
+function getErrorForUnexpectedType(
+    field: {
+        key: string;
+        valueRange: Range;
+    },
+    expectedKeys: ExpectedKeys,
+    commonParsingArgs: CommonParsingArgs,
+) {
+    const { key, valueRange } = field;
+    const {
+        scalars: {
+            booleanValues: expectedBooleanScalars,
+            numericValues: expectedNumericScalars,
+            stringValues: expectedStrinǵScalars,
+        },
+        sequenceValues: expectedSequenceValues,
+        mapValues: expectedMapValues,
+    } = expectedKeys;
+    const keyToTypeMap = (expectedBooleanScalars ?? [])
+        .map((key) => ({ key, type: "boolean" }))
+        .concat(
+            (expectedNumericScalars ?? []).map((key) => ({
+                key,
+                type: "number",
+            })),
+            (expectedStrinǵScalars ?? []).map((key) => ({
+                key,
+                type: "string",
+            })),
+            (expectedMapValues ?? []).map((key) => ({
+                key,
+                type: "Map",
+            })),
+            (expectedSequenceValues ?? []).map((key) => ({
+                key,
+                type: "Sequence",
+            })),
+        ) as {
+        key: string;
+        type: "boolean" | "number" | "string" | "Map" | "Sequence";
+    }[];
+
+    const expectedType = keyToTypeMap.find(({ key: k }) => k == key)?.type;
+    return getErrorForValueWithUnexpectedType({
+        ...commonParsingArgs,
+        key,
+        valueRange,
+        expectedType: expectedType!,
+    });
 }
 
 function getKeyRange(
@@ -257,27 +382,6 @@ function getKeyRange(
           };
 }
 
-function getValueRange(
-    keyValue: string,
-    valueItem: unknown,
-    parentMap: YAMLMap,
-    commonParsingArgs: CommonParsingArgs,
-): { range: Range } | { error: YamlParsingError } {
-    const yamlRange = getRangeForUnknownYamlItem(valueItem);
-    const range = yamlRange
-        ? fromYamlRange(yamlRange, commonParsingArgs.docHelper)
-        : undefined;
-    return range
-        ? { range }
-        : {
-              error: {
-                  message: `Could not determine range for value of key '${keyValue}'`,
-                  range: getRangeForItem(parentMap, commonParsingArgs),
-                  code: YamlParsingErrorCode.Other,
-              },
-          };
-}
-
 function mapFromYamlScalar<T>(
     args: { keyRange: Range; value: Scalar<T> } & CommonParsingArgs,
 ): WithKeyAndValueRange<T> {
@@ -288,4 +392,18 @@ function mapFromYamlScalar<T>(
         valueRange: getRangeForItem(valueField, args),
         value: valueField.value,
     };
+}
+
+// Unfortunately, the provided typeguard isScalar<T> by the yaml package does not reliably filter out scalars with a value not matching the defined type.
+// It only seems to work reliably, for finding out if a field is a Scalar at all or not.
+function isBooleanScalar(scalar: Scalar): scalar is Scalar<boolean> {
+    return typeof scalar.value == "boolean";
+}
+
+function isNumericScalar(scalar: Scalar): scalar is Scalar<number> {
+    return typeof scalar.value == "number";
+}
+
+function isStringScalar(scalar: Scalar): scalar is Scalar<string> {
+    return typeof scalar.value == "string";
 }

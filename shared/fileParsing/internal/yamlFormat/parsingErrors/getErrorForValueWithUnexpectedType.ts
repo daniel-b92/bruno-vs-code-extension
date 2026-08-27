@@ -5,12 +5,13 @@ export function getErrorForValueWithUnexpectedType(
     args: CommonParsingArgs & {
         key: string;
         valueRange: Range;
-        expectedType: "Scalar" | "Sequence" | "Map";
+        expectedType:
+            "boolean" | "number" | "string" | "Map" | "Sequence" | "Scalar";
     },
 ): YamlParsingError {
-    const { key, valueRange, expectedType } = args;
+    const { valueRange, expectedType } = args;
     return {
-        message: `Expected item for key '${key}' to be of type '${expectedType}'.`,
+        message: `Expected value to be of type '${expectedType}'.`,
         range: valueRange,
         code: YamlParsingErrorCode.Other,
     };
