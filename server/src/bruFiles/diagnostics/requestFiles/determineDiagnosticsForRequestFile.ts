@@ -43,13 +43,14 @@ import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBloc
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
 import { checkAnnotationsAreValid } from "../shared/checks/multipleBlocks/checkAnnotationsAreValid";
+import { getAppBlockSpecificDiagnostics } from "./getAppBlockSpecificDiagnostics";
 
-export async function determineDiagnosticsForRequestFile(
+export function determineDiagnosticsForRequestFile(
     filePath: string,
     documentText: string,
     itemProvider: TypedCollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
-): Promise<DiagnosticWithCode[]> {
+): DiagnosticWithCode[] {
     const documentHelper = new TextDocumentHelper(documentText);
     const itemType = BrunoFileType.RequestFile;
     const { blocks, textOutsideOfBlocks } = parseBruFile(
@@ -64,7 +65,7 @@ export async function determineDiagnosticsForRequestFile(
         blocks,
         textOutsideOfBlocks,
     ).concat(
-        await collectBlockSpecificDiagnostics(
+        collectBlockSpecificDiagnostics(
             itemProvider,
             relatedFilesHelper,
             filePath,
@@ -167,13 +168,13 @@ function getDictionaryBlockFieldsThatShouldBeSimpleFields(
         .filter((val) => val != undefined);
 }
 
-async function collectBlockSpecificDiagnostics(
+function collectBlockSpecificDiagnostics(
     itemProvider: TypedCollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
     filePath: string,
     documentHelper: TextDocumentHelper,
     blocks: Block[],
-): Promise<(DiagnosticWithCode | undefined)[]> {
+): (DiagnosticWithCode | undefined)[] {
     const results: (DiagnosticWithCode | undefined)[] = [];
 
     const metaBlocks = blocks.filter(
@@ -185,13 +186,13 @@ async function collectBlockSpecificDiagnostics(
 
         if (isBlockDictionaryBlock(metaBlock)) {
             results.push(
-                ...(await getMetaBlockSpecificDiagnostics(
+                ...getMetaBlockSpecificDiagnostics(
                     itemProvider,
                     relatedFilesHelper,
                     filePath,
                     documentHelper,
                     metaBlock,
-                )),
+                ),
             );
         }
     }
@@ -240,6 +241,14 @@ async function collectBlockSpecificDiagnostics(
         results.push(
             ...getSettingsBlockSpecificDiagnostics(filePath, settingsBlocks[0]),
         );
+    }
+
+    const appBlocks = blocks.filter(
+        ({ name }) => name == RequestFileBlockName.App,
+    );
+
+    if (appBlocks.length == 1) {
+        results.push(...getAppBlockSpecificDiagnostics(filePath, appBlocks[0]));
     }
 
     return results;

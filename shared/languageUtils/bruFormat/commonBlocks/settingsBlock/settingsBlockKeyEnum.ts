@@ -3,4 +3,5 @@ export const SettingsBlockKey = {
     Timeout: "timeout",
     FollowRedirects: "followRedirects",
     MaxRedirects: "maxRedirects",
+    ForwardAuthorizationHeader: "forwardAuthorizationHeader",
 } as const;
