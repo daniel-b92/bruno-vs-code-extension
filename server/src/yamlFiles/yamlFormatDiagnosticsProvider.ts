@@ -81,6 +81,7 @@ export class YamlFormatDiagnosticsProvider {
         const variables =
             parsingResult.properties.request?.properties.variables;
 
+        // ToDo: Once the yaml collection items are cached, check that the sequence is unique within the parent folder.
         const otherDiagnostics = variables
             ? checkVariableNamesAreUnique(variables.enabled, commonParams)
             : [];
