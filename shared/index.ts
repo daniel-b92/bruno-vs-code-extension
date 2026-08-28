@@ -176,6 +176,9 @@ export * from "./languageUtils/bruFormat/commonBlocks/settingsBlock/settingsBloc
 export { getMandatoryKeys as getMandatoryKeysForSettingsBlock } from "./languageUtils/bruFormat/commonBlocks/settingsBlock/getMandatoryKeys";
 export { getOptionalKeys as getOptionalKeysForSettingsBlock } from "./languageUtils/bruFormat/commonBlocks/settingsBlock/getOptionalKeys";
 
+export * from "./languageUtils/bruFormat/commonBlocks/appBlockInRequestFile/appBlockInRequestFileKeys";
+export { getMandatoryKeys as getMandatoryKeysForApplockInRequestFile } from "./languageUtils/bruFormat/commonBlocks/appBlockInRequestFile/getMandatoryKeys";
+
 export { isVarsBlock as isVarsBlockInRequestFile } from "./languageUtils/bruFormat/commonBlocks/varsBlocks/isVarsBlock";
 
 // language utils - generic fields

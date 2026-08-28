@@ -43,6 +43,7 @@ import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBloc
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
 import { checkAnnotationsAreValid } from "../shared/checks/multipleBlocks/checkAnnotationsAreValid";
+import { getAppBlockSpecificDiagnostics } from "./getAppBlockSpecificDiagnostics";
 
 export function determineDiagnosticsForRequestFile(
     filePath: string,
@@ -240,6 +241,14 @@ function collectBlockSpecificDiagnostics(
         results.push(
             ...getSettingsBlockSpecificDiagnostics(filePath, settingsBlocks[0]),
         );
+    }
+
+    const appBlocks = blocks.filter(
+        ({ name }) => name == RequestFileBlockName.App,
+    );
+
+    if (appBlocks.length == 1) {
+        results.push(...getAppBlockSpecificDiagnostics(filePath, appBlocks[0]));
     }
 
     return results;

@@ -6,6 +6,7 @@ import { RelevantWithinBodyBlockDiagnosticCode } from "./relevantWithinBodyBlock
 import { RelevantWithinAuthModeBlockDiagnosticCode } from "./relevantWithinAuthModeBlockDiagnosticCodeEnum";
 import { RelevantWithinSettingsBlockDiagnosticCode } from "./relevantWithinSettingsBlockDiagnosticCodeEnum";
 import { RelevantWithinEnvironmentFileDiagnosticCode } from "./relevantWithinEnvironmentFileDiagnosticCodeEnum";
+import { RelevantWithinAppBlockDiagnosticCode } from "./relevantWithinAppBlockDiagnosticCodeEnum";
 
 export type KnownDiagnosticCode =
     | RelevantWithinAuthBlockDiagnosticCode
@@ -15,4 +16,5 @@ export type KnownDiagnosticCode =
     | NonBlockSpecificDiagnosticCode
     | RelevantWithinAuthModeBlockDiagnosticCode
     | RelevantWithinSettingsBlockDiagnosticCode
-    | RelevantWithinEnvironmentFileDiagnosticCode;
+    | RelevantWithinEnvironmentFileDiagnosticCode
+    | RelevantWithinAppBlockDiagnosticCode;
