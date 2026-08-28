@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Maintenance
+
+- Adjust diagnostics to allow new key `forwardAuthorizationHeader` in settings blocks and new dictionary block `app` in request files (both introduced in version 4.1.0 of `Bruno`).
+
 ## [1.2.5] (2026-08-05)
 
 ### Fixes / Maintenance

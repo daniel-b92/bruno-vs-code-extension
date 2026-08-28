@@ -76,6 +76,11 @@ function runChecksForSpecificFields(settingsBlock: DictionaryBlock) {
             diagnosticCode:
                 RelevantWithinSettingsBlockDiagnosticCode.FollowRedirectsValueInvalid,
         },
+        {
+            key: SettingsBlockKey.ForwardAuthorizationHeader,
+            diagnosticCode:
+                RelevantWithinSettingsBlockDiagnosticCode.ForwardAuthorizationHeaderInvalid,
+        },
     ].map(({ key, diagnosticCode }) =>
         checkIfBooleanFieldHasValidValue(validFields, key, diagnosticCode),
     );

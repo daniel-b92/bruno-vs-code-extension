@@ -7,4 +7,5 @@ export enum RelevantWithinSettingsBlockDiagnosticCode {
     FollowRedirectsValueInvalid = "bru611",
     MaxRedirectsValueInvalid = "bru612",
     TimeoutValueInvalid = "bru613",
+    ForwardAuthorizationHeaderInvalid = "bru614",
 }

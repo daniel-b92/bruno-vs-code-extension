@@ -28,6 +28,7 @@ export function shouldBeDictionaryBlock(blockName: string) {
         blockName == RequestFileBlockName.Headers ||
         blockName == RequestFileBlockName.Assertions ||
         blockName == RequestFileBlockName.Settings ||
+        blockName == RequestFileBlockName.App ||
         (getPossibleMethodBlocks() as string[]).includes(blockName) ||
         isAuthBlock(blockName) ||
         isParamsBlock(blockName) ||

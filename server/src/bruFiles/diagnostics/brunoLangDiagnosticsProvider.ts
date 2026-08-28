@@ -13,7 +13,7 @@ export class BrunoLangDiagnosticsProvider {
 
     private relatedRequestsHelper: RelatedFilesDiagnosticsHelper;
 
-    public async getDiagnosticsForBruFile(
+    public getDiagnosticsForBruFile(
         filePath: string,
         content: string,
         brunoFileType: BrunoFileType,
@@ -23,7 +23,7 @@ export class BrunoLangDiagnosticsProvider {
                 // For App files, intellisense is currently very limited.
                 return [];
             case BrunoFileType.RequestFile:
-                return await determineDiagnosticsForRequestFile(
+                return determineDiagnosticsForRequestFile(
                     filePath,
                     content,
                     this.itemProvider,
@@ -35,7 +35,7 @@ export class BrunoLangDiagnosticsProvider {
                     content,
                 );
             case BrunoFileType.FolderSettingsFile:
-                return await determineDiagnosticsForFolderSettingsFile(
+                return determineDiagnosticsForFolderSettingsFile(
                     filePath,
                     content,
                     this.itemProvider,
