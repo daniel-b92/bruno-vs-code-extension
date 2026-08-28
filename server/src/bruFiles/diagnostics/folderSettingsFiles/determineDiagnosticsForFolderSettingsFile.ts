@@ -30,12 +30,12 @@ import { TypedCollectionItemProvider } from "../../../shared";
 import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
 import { checkAnnotationsAreValid } from "../shared/checks/multipleBlocks/checkAnnotationsAreValid";
 
-export async function determineDiagnosticsForFolderSettingsFile(
+export function determineDiagnosticsForFolderSettingsFile(
     filePath: string,
     documentText: string,
     itemProvider: TypedCollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
-): Promise<DiagnosticWithCode[]> {
+): DiagnosticWithCode[] {
     const document = new TextDocumentHelper(documentText);
     const itemType = BrunoFileType.FolderSettingsFile;
 
@@ -101,13 +101,13 @@ export async function determineDiagnosticsForFolderSettingsFile(
 
     if (metaBlocks.length == 1) {
         results.push(
-            ...(await getMetaBlockSpecificDiagnostics(
+            ...getMetaBlockSpecificDiagnostics(
                 itemProvider,
                 relatedFilesHelper,
                 filePath,
                 document,
                 metaBlocks[0],
-            )),
+            ),
         );
     }
 

@@ -44,12 +44,12 @@ import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/mul
 import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
 import { checkAnnotationsAreValid } from "../shared/checks/multipleBlocks/checkAnnotationsAreValid";
 
-export async function determineDiagnosticsForRequestFile(
+export function determineDiagnosticsForRequestFile(
     filePath: string,
     documentText: string,
     itemProvider: TypedCollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
-): Promise<DiagnosticWithCode[]> {
+): DiagnosticWithCode[] {
     const documentHelper = new TextDocumentHelper(documentText);
     const itemType = BrunoFileType.RequestFile;
     const { blocks, textOutsideOfBlocks } = parseBruFile(
@@ -64,7 +64,7 @@ export async function determineDiagnosticsForRequestFile(
         blocks,
         textOutsideOfBlocks,
     ).concat(
-        await collectBlockSpecificDiagnostics(
+        collectBlockSpecificDiagnostics(
             itemProvider,
             relatedFilesHelper,
             filePath,
@@ -167,13 +167,13 @@ function getDictionaryBlockFieldsThatShouldBeSimpleFields(
         .filter((val) => val != undefined);
 }
 
-async function collectBlockSpecificDiagnostics(
+function collectBlockSpecificDiagnostics(
     itemProvider: TypedCollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
     filePath: string,
     documentHelper: TextDocumentHelper,
     blocks: Block[],
-): Promise<(DiagnosticWithCode | undefined)[]> {
+): (DiagnosticWithCode | undefined)[] {
     const results: (DiagnosticWithCode | undefined)[] = [];
 
     const metaBlocks = blocks.filter(
@@ -185,13 +185,13 @@ async function collectBlockSpecificDiagnostics(
 
         if (isBlockDictionaryBlock(metaBlock)) {
             results.push(
-                ...(await getMetaBlockSpecificDiagnostics(
+                ...getMetaBlockSpecificDiagnostics(
                     itemProvider,
                     relatedFilesHelper,
                     filePath,
                     documentHelper,
                     metaBlock,
-                )),
+                ),
             );
         }
     }

@@ -18,13 +18,13 @@ import { RelatedFilesDiagnosticsHelper } from "../../shared/helpers/relatedFiles
 import { checkFolderSequenceInMetaBlockIsUnique } from "../checks/checkFolderSequenceInMetaBlockIsUnique";
 import { TypedCollectionItemProvider } from "../../../../shared";
 
-export async function getMetaBlockSpecificDiagnostics(
+export function getMetaBlockSpecificDiagnostics(
     itemProvider: TypedCollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
-    filePath: string,
+    folderSettingsPath: string,
     documentHelper: TextDocumentHelper,
     metaBlock: Block,
-): Promise<(DiagnosticWithCode | undefined)[]> {
+): (DiagnosticWithCode | undefined)[] {
     const metaBlockKeys = getMetaBlockMandatoryKeys(
         BrunoFileType.FolderSettingsFile,
     );
@@ -52,7 +52,7 @@ export async function getMetaBlockSpecificDiagnostics(
                       RelevantWithinMetaBlockDiagnosticCode.MandatoryValuesMissingInMetaBlock,
                   ),
                   checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-                      filePath,
+                      folderSettingsPath,
                       metaBlock,
                       RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
                       metaBlockKeys,
@@ -62,44 +62,41 @@ export async function getMetaBlockSpecificDiagnostics(
             : [],
     );
 
-    for (const results of await provideRelatedFilesDiagnosticsForMetaBlock(
-        itemProvider,
+    for (const results of provideRelatedFilesDiagnosticsForMetaBlock({
         metaBlock,
-        filePath,
+        folderSettingsPath,
+        itemProvider,
+        docHelper: documentHelper,
         relatedFilesHelper,
-    )) {
+    })) {
         diagnostics.push(results.result);
     }
 
     return diagnostics;
 }
 
-async function provideRelatedFilesDiagnosticsForMetaBlock(
-    itemProvider: TypedCollectionItemProvider,
-    metaBlock: Block,
-    filePath: string,
-    relatedRequestsHelper: RelatedFilesDiagnosticsHelper,
-): Promise<
-    {
-        filePath: string;
-        result: DiagnosticWithCode;
-    }[]
-> {
-    const { code, toAdd } = await checkFolderSequenceInMetaBlockIsUnique(
-        itemProvider,
-        metaBlock,
-        filePath,
-    );
+function provideRelatedFilesDiagnosticsForMetaBlock(data: {
+    metaBlock: Block;
+    folderSettingsPath: string;
+    itemProvider: TypedCollectionItemProvider;
+    docHelper: TextDocumentHelper;
+    relatedFilesHelper: RelatedFilesDiagnosticsHelper;
+}): {
+    folderSettingsPath: string;
+    result: DiagnosticWithCode;
+}[] {
+    const { relatedFilesHelper, folderSettingsPath } = data;
+    const { code, toAdd } = checkFolderSequenceInMetaBlockIsUnique(data);
 
     if (toAdd) {
-        relatedRequestsHelper.registerDiagnostic({
+        relatedFilesHelper.registerDiagnostic({
             files: toAdd.affectedFiles,
             diagnosticCode: code,
         });
 
-        return [{ filePath, result: toAdd.diagnosticCurrentFile }];
+        return [{ folderSettingsPath, result: toAdd.diagnosticCurrentFile }];
     } else {
-        relatedRequestsHelper.unregisterDiagnostic(filePath, code);
+        relatedFilesHelper.unregisterDiagnostic(folderSettingsPath, code);
         return [];
     }
 }

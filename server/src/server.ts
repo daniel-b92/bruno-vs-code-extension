@@ -331,7 +331,7 @@ async function getDiagnosticsForBruFile(filePath: string, text: string) {
         return undefined;
     }
 
-    return await brunoLangDiagnosticsProvider.getDiagnosticsForBruFile(
+    return brunoLangDiagnosticsProvider.getDiagnosticsForBruFile(
         filePath,
         text,
         brunoFileType,

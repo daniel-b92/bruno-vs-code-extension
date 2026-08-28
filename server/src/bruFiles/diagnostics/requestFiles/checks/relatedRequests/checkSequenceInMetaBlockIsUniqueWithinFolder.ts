@@ -8,6 +8,7 @@ import {
     isCollectionItemWithSequence,
     getActiveFieldFromMetaBlock,
     isDictionaryBlockSimpleField,
+    TextDocumentHelper,
 } from "@global_shared";
 import { dirname } from "path";
 import { DiagnosticWithCode } from "../../../interfaces";
@@ -21,17 +22,19 @@ import {
 } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 
-export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
-    itemProvider: TypedCollectionItemProvider,
-    metaBlock: Block,
-    filePath: string,
-): Promise<{
+export function checkSequenceInMetaBlockIsUniqueWithinFolder(data: {
+    metaBlock: Block;
+    filePath: string;
+    docHelper: TextDocumentHelper;
+    itemProvider: TypedCollectionItemProvider;
+}): {
     code: RelevantWithinMetaBlockDiagnosticCode;
     toAdd?: {
         affectedFiles: string[];
         diagnosticCurrentFile: DiagnosticWithCode;
     };
-}> {
+} {
+    const { docHelper, filePath, itemProvider, metaBlock } = data;
     const sequenceField = getActiveFieldFromMetaBlock(
         metaBlock,
         MetaBlockKey.Sequence,
@@ -63,8 +66,9 @@ export async function checkSequenceInMetaBlockIsUniqueWithinFolder(
 
     const allAffectedFiles = otherRequestsWithSameSequence.concat(filePath);
 
-    const relatedInformation = await getDiagnosticRelatedInformation(
+    const relatedInformation = getDiagnosticRelatedInformation(
         otherRequestsWithSameSequence,
+        docHelper,
     );
 
     if (relatedInformation.length == 0) {
@@ -160,26 +164,25 @@ function getOtherRequestsInFolder(
         .map(({ item }) => item as BrunoRequestFile);
 }
 
-async function getDiagnosticRelatedInformation(
+function getDiagnosticRelatedInformation(
     otherRequestsWithSameSequence: string[],
+    docHelper: TextDocumentHelper,
 ) {
-    return (
-        await Promise.all(
-            otherRequestsWithSameSequence.map(async (path) => {
-                const range = await getRangeForSequenceValue(path);
+    return otherRequestsWithSameSequence
+        .map((path) => {
+            const range = getRangeForSequenceValue(path, docHelper);
 
-                return range
-                    ? {
-                          message: `Request with same sequence`,
-                          location: {
-                              uri: URI.file(path).toString(),
-                              range,
-                          },
-                      }
-                    : undefined;
-            }),
-        )
-    ).filter((val) => val != undefined);
+            return range
+                ? {
+                      message: `Request with same sequence`,
+                      location: {
+                          uri: URI.file(path).toString(),
+                          range,
+                      },
+                  }
+                : undefined;
+        })
+        .filter((val) => val != undefined);
 }
 
 function getDiagnosticCode() {
