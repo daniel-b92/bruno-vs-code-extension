@@ -3,7 +3,7 @@ import {
     CommonParsingArgs,
     MaybeResultWithErrors,
     ParsedAction,
-    ParseYamlMapWithKeyAndValueRange,
+    ParsedYamlMapWithKeyAndValueRange,
     WithKeyAndKeyRange,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
@@ -228,7 +228,7 @@ function parseSelector(
     { keyRange, value: selectorMap }: WithKeyAndKeyRange<YAMLMap>,
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<
-    ParseYamlMapWithKeyAndValueRange<{
+    ParsedYamlMapWithKeyAndValueRange<{
         expression?: WithKeyAndValueRange<string>;
         method?: WithKeyAndValueRange<ActionSelectorMethod>;
     }>
@@ -310,7 +310,7 @@ function parseVariable(
     { keyRange, value: variableMap }: WithKeyAndKeyRange<YAMLMap>,
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<
-    ParseYamlMapWithKeyAndValueRange<{
+    ParsedYamlMapWithKeyAndValueRange<{
         name?: WithKeyAndValueRange<string>;
         scope?: WithKeyAndValueRange<ActionVariableScope>;
     }>

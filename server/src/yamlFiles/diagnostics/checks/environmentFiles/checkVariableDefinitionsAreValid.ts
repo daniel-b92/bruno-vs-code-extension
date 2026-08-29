@@ -6,6 +6,7 @@ import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 import { CommonDiagnosticParams } from "../../../interfaces";
 import { checkVariableNamesAreUnique } from "../../shared/checkVariableNamesAreUnique";
+import { checkVariableTypesMatchValueData } from "../../shared/checkVariableValuesMatchTypes";
 
 export function checkVariableDefinitionsAreValid(
     variables: {
@@ -38,7 +39,10 @@ export function checkVariableDefinitionsAreValid(
 
             return result;
         })
-        .concat(checkVariableNamesAreUnique(enabledVars, commonParams));
+        .concat(
+            checkVariableNamesAreUnique(enabledVars, commonParams),
+            checkVariableTypesMatchValueData(variables.enabled, commonParams),
+        );
 }
 
 function checkNameIsValid({
