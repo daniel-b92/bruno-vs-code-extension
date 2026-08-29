@@ -74,11 +74,28 @@ const bru = {
 	setGlobalEnvVar: (key, value) => {},
 	/**
 	 * Get all global environment variables as an object.
-     * @returns {Record<string, string>}
+     * @returns {Record<string, any>}
 	 */
 	getAllGlobalEnvVars: () => {},
+	/**
+	 * Removes a specific global environment variable and persists the change to disk.
+     * @param {string} key
+     * @returns {void}
+	 */
+	deleteGlobalEnvVar: (key) => {},
+	/**
+	 * Removes all global environment variables and persists the change to disk.
+     * @returns {void}
+	 */
+	deleteAllGlobalEnvVars: () => {},
+	/**
+	 * Checks if a global environment variable exists.
+     * @param {string} key
+     * @returns {boolean}
+	 */
+	hasGlobalEnvVar: (key) => {},
 	/** 
-	 * Check if the environment variable exists.
+	 * Checks if an environment variable exists in the currently selected environment.
 	 * @param {string} key
      * @returns {boolean}
 	 */
@@ -91,19 +108,16 @@ const bru = {
 	getEnvVar:(key) => {},
 	/**
 	 * Get all environment variables in the current environment as an object.
-     * @returns {Record<string, string>}
+     * @returns {Record<string, any>}
 	 */
 	getAllEnvVars:() => {},
 	/**
-	 * Updates an environment variable.
-	 *
+	 * Sets an environment variable in the currently active environment and persists the change to disk.
      * @param {string} key
      * @param {unknown} value
-	 * @param {{persist: boolean}?} options Defaults to \`persist\` = \`false\`.
      * @returns {void}
-     * @throws If the "key" contains invalid characters.
 	 */
-	setEnvVar: (key, value, options = undefined) => {},
+	setEnvVar: (key, value) => {},
 	/**
 	 * Delete a specific environment variable.
 	 *
@@ -116,7 +130,7 @@ const bru = {
 	 *
      * @returns {void}
 	 */
-	deleteAllEnvVars: (key) => {},
+	deleteAllEnvVars: () => {},
 	/**
 	 * Checks if an runtime variable exists.
      * @param {string} key
@@ -152,8 +166,8 @@ const bru = {
 	 */
 	getVar: (key) => {},
 	/**
-	 * Get all runtime variables as an object.
-     * @returns {Record<string, string>}
+	 * Returns an object containing all current runtime variables as key-value pairs.
+     * @returns {Record<string, any>}
 	 */
 	getAllVars: () => {},
 	/**
@@ -169,11 +183,29 @@ const bru = {
 	 */
 	getCollectionVar: (key) => {},
 	/**
-	 * Check if a collection variable exists.
+	 * Checks if a collection-level variable with the given key exists.
      * @param {string} key
      * @returns {boolean}
 	 */
 	hasCollectionVar: (key) => {},
+	/**
+	 * Sets a collection-level variable and persists the change to disk.
+     * @param {string} key
+     * @param {unknown} value
+     * @returns {void}
+	 */
+	setCollectionVar: (key, value) => {},
+	/**
+	 * Removes a specific collection-level variable and persists the change to disk.
+     * @param {string} key
+     * @returns {void}
+	 */
+	deleteCollectionVar: (key) => {},
+	/**
+	 * Removes all collection-level variables and persists the change to disk.
+     * @returns {void}
+	 */
+	deleteAllCollectionVars: () => {},
 	/**
 	 * Retrieve the name of the current collection.
      * @returns {string}
@@ -225,12 +257,12 @@ const bru = {
 	 */
 	disableParsingResponseJson: () => {},
 	/**
-	 * Returns the location of the current collection as an absolute path.
+	 * Returns the absolute path of the collection's root directory on disk.
      * @returns {string}
 	 */
 	cwd: () => {},
 	/**
-	 * Detects whether the current script is running in Safe Mode or Developer Mode.
+	 * Returns \`true\` when running in Safe Mode (the default sandbox), or \`false\` when running in Developer Mode.
      * @returns {boolean}
 	 */
 	isSafeMode: () => {},
@@ -267,21 +299,40 @@ const bru = {
 
 	runner: {
 		/**
-		 * Sets the next request to execute withing the request runner.
-         * @param {string} nextRequestName
-         * @returns void
+		 * Alter the order of requests by specifying the next request to execute. Use the request's display name.
+         * @param {string | null} nextRequestName Request name or null to stop the run.
+         * @returns {void}
 		 */
 		setNextRequest: (nextRequestName) => {},
 		/**
-		 * Skips the current request in a test run. Only works in the pre-request script.
-         * @returns void
+		 * Skips the current request entirely during a collection run. Call this in a pre-request script.
+         * @returns {void}
 		 */
 		skipRequest: () => {},
 		/**
-		 * Stops the runner after the current request.
-         * @returns void
+		 * Immediately stops the entire collection run. No further requests are executed after this call.
+         * @returns {void}
 		 */
-		stopExecution: () => {}
+		stopExecution: () => {},
+		/**
+		 * Zero-based index of the current iteration in a data-driven run.
+		 * @type {number}
+		 */
+		iterationIndex: 0,
+		/**
+		 * Total number of iterations in the current data-driven run.
+		 * @type {number}
+		 */
+		totalIterations: 0,
+		/**
+		 * Object for accessing and manipulating the current row from an attached CSV or JSON data file.
+		 * @type {object}
+		 * @property {(key?: string) => any} get Get a field value or all fields for the current row.
+		 * @property {(key: string) => boolean} has Check if a field exists in the current iteration.
+		 * @property {(key: string) => void} unset Remove a field from the current iteration.
+		 * @property {() => string} stringify Return the current iteration row as a JSON string.
+		 */
+		iterationData: {}
 	}
 	cookies: {
         /**
@@ -517,7 +568,7 @@ const res = {
 	status: {},
 	/**
 	 * HTTP Status as Text
-	 * @type {readonly number}
+	 * @type {readonly string}
 	 */
 	statusText: {},
 	/**
