@@ -5,31 +5,40 @@ import {
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 import { CommonDiagnosticParams } from "../../../interfaces";
+import { checkVariableNamesAreUnique } from "../../shared/checkVariableNamesAreUnique";
 
 export function checkVariableDefinitionsAreValid(
-    variables: ParsedEnvironmentVariable[],
+    variables: {
+        enabled: ParsedEnvironmentVariable[];
+        disabled: ParsedEnvironmentVariable[];
+    },
     commonParams: CommonDiagnosticParams,
 ): (Diagnostic | undefined)[] {
-    return variables.flatMap((variable) => {
-        const {
-            properties: { name, secret },
-        } = variable;
-        const result: (Diagnostic | undefined)[] = [];
+    const { enabled: enabledVars, disabled: disabledVars } = variables;
+    const allVariables = enabledVars.concat(disabledVars);
 
-        result.push(
-            name ? checkNameIsValid(name) : undefined,
-            checkTypeFieldIsValidIfExisting(variable),
-        );
+    return allVariables
+        .flatMap((variable) => {
+            const {
+                properties: { name, secret },
+            } = variable;
+            const result: (Diagnostic | undefined)[] = [];
 
-        if (secret.effectiveValue) {
-            result.push(checkSecretVariableIsValid(variable, commonParams));
-        } else {
-            // Non-secret variables should always have a value.
-            result.push(checkValueFieldExists(variable));
-        }
+            result.push(
+                name ? checkNameIsValid(name) : undefined,
+                checkTypeFieldIsValidIfExisting(variable),
+            );
 
-        return result;
-    });
+            if (secret.effectiveValue) {
+                result.push(checkSecretVariableIsValid(variable, commonParams));
+            } else {
+                // Non-secret variables should always have a value.
+                result.push(checkValueFieldExists(variable));
+            }
+
+            return result;
+        })
+        .concat(checkVariableNamesAreUnique(enabledVars, commonParams));
 }
 
 function checkNameIsValid({
