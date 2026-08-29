@@ -74,11 +74,12 @@ export function determineDiagnosticsForEnvironmentFile(
         ),
         ...validDictionaryBlocks.flatMap(
             (block) =>
-                checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+                checkNoDuplicateKeysAreDefinedForDictionaryBlock({
                     filePath,
                     block,
-                    RelevantWithinEnvironmentFileDiagnosticCode.EnvironmentVariableDefinedMultipleTimes,
-                ) ?? [],
+                    diagnosticCode:
+                        RelevantWithinEnvironmentFileDiagnosticCode.EnvironmentVariableDefinedMultipleTimes,
+                }) ?? [],
         ),
         ...checkAnnotationsAreValid(validDictionaryBlocks),
         ...checkDictionaryBlocksTypeAnnotationsMatchData(

@@ -75,12 +75,13 @@ export function getMetaBlockSpecificDiagnostics(
             [MetaBlockKey.Name],
             RelevantWithinMetaBlockDiagnosticCode.MandatoryValuesMissingInMetaBlock,
         ),
-        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock({
             filePath,
-            metaBlock,
-            RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
-            mandatoryBlockKeys.concat(optionalBlockKeys),
-        ) ?? []),
+            block: metaBlock,
+            diagnosticCode:
+                RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
+            expectedKeys: mandatoryBlockKeys.concat(optionalBlockKeys),
+        }) ?? []),
         checkDictionaryBlockArrayFieldsStructure(
             filePath,
             metaBlock,

@@ -51,12 +51,13 @@ export function getMetaBlockSpecificDiagnostics(
                       [MetaBlockKey.Name],
                       RelevantWithinMetaBlockDiagnosticCode.MandatoryValuesMissingInMetaBlock,
                   ),
-                  checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-                      folderSettingsPath,
-                      metaBlock,
-                      RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
-                      metaBlockKeys,
-                  ),
+                  checkNoDuplicateKeysAreDefinedForDictionaryBlock({
+                      filePath: folderSettingsPath,
+                      block: metaBlock,
+                      diagnosticCode:
+                          RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
+                      expectedKeys: metaBlockKeys,
+                  }),
                   checkMetaBlockStartsInFirstLine(documentHelper, metaBlock)),
               ]
             : [],

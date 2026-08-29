@@ -76,12 +76,13 @@ function getDiagnosticsForNonOAuth2AuthBlock(
             mandatoryKeys,
             RelevantWithinAuthBlockDiagnosticCode.UnknownKeysDefinedInAuthBlock,
         ),
-        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock({
             filePath,
-            authBlock,
-            RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock,
-            mandatoryKeys,
-        ) ?? []),
+            block: authBlock,
+            diagnosticCode:
+                RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock,
+            expectedKeys: mandatoryKeys,
+        }) ?? []),
     );
 
     if (authBlock.name == AuthBlockName.ApiKeyAuth) {
@@ -193,12 +194,13 @@ function getDiagnosticsForOAuth2AuthBlock(
             [OAuth2ViaAuthorizationCodeBlockKeys.GrantType],
             RelevantWithinAuthBlockDiagnosticCode.KeysMissingInAuthBlock,
         ),
-        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock({
             filePath,
-            authBlock,
-            RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock,
-            [OAuth2ViaAuthorizationCodeBlockKeys.GrantType],
-        ) ?? []),
+            block: authBlock,
+            diagnosticCode:
+                RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock,
+            expectedKeys: [OAuth2ViaAuthorizationCodeBlockKeys.GrantType],
+        }) ?? []),
         grantTypeField && isDictionaryBlockSimpleField(grantTypeField)
             ? checkValueForDictionaryBlockSimpleFieldIsValid(
                   grantTypeField,
@@ -282,12 +284,13 @@ function checkOAuth2FieldsDependingOnGrantType(
             mandatoryKeys,
             RelevantWithinAuthBlockDiagnosticCode.UnknownKeysDefinedInAuthBlock,
         ),
-        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock({
             filePath,
-            authBlock,
-            RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock,
-            mandatoryKeys,
-        ) ?? []),
+            block: authBlock,
+            diagnosticCode:
+                RelevantWithinAuthBlockDiagnosticCode.DuplicateKeysDefinedInAuthBlock,
+            expectedKeys: mandatoryKeys,
+        }) ?? []),
     );
 
     if (grantType == OAuth2GrantType.AuthorizationCode) {
