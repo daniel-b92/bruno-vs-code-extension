@@ -38,7 +38,7 @@ import { extname } from "path";
 import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "./internal/shared/temporaryJsFilesUpdates/internal/interfaces";
 import { getTempJsFileContentForBruFile } from "./internal/brunoFiles/shared/codeBlocksUtils/getTempJsFileContentForBruFile";
-import { getDefinitionsForInbuiltLibraries } from "./internal/shared/temporaryJsFilesUpdates/external/getDefinitionsForInbuiltLibraries";
+import { getDefinitionsForAllInbuiltLibraries } from "./internal/shared/temporaryJsFilesUpdates/internal/inbuiltLibraryDefinitions/getDefinitionsForAllInbuiltLibraries";
 import { getCharacterForLineBreak } from "./internal/brunoFiles/shared/codeBlocksUtils/getCharacterForLineBreak";
 
 export async function activateLanguageFeatures(
@@ -346,7 +346,7 @@ async function handleOpeningOfJsDocument(
         update: {
             type: TempJsUpdateType.Creation,
             filePath: getTemporaryJsFileNameInFolder(folderForTempJsFile),
-            tempJsFileContent: getDefinitionsForInbuiltLibraries(
+            tempJsFileContent: getDefinitionsForAllInbuiltLibraries(
                 document.eol,
                 true,
             ).join(getCharacterForLineBreak(document.eol).repeat(2)),
