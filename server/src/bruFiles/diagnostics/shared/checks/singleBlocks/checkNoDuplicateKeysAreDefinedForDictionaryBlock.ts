@@ -20,10 +20,8 @@ export function checkNoDuplicateKeysAreDefinedForDictionaryBlock(data: {
     block: DictionaryBlock;
     diagnosticCode: KnownDiagnosticCode;
     expectedKeys?: string[];
-    showAsWarning?: boolean;
 }): DiagnosticWithCode[] | undefined {
-    const { block, diagnosticCode, filePath, expectedKeys, showAsWarning } =
-        data;
+    const { block, diagnosticCode, filePath, expectedKeys } = data;
     const fieldsWithDuplicateKeys = getValidDuplicateKeysFromDictionaryBlock(
         block,
         expectedKeys,
@@ -37,7 +35,9 @@ export function checkNoDuplicateKeysAreDefinedForDictionaryBlock(data: {
         filePath,
         fieldsWithDuplicateKeys,
         diagnosticCode,
-        showAsWarning ? DiagnosticSeverity.Warning : undefined,
+        // If expectedKeys are defined, it usually means that only certain keys are allowed in the block.
+        // In this case, it seems more appropriate to show the diagnostics as errors than as warnings.
+        expectedKeys ? undefined : DiagnosticSeverity.Warning,
     );
 }
 
