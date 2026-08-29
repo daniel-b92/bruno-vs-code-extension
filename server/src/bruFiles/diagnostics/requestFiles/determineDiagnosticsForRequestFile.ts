@@ -44,6 +44,7 @@ import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/mul
 import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
 import { checkAnnotationsAreValid } from "../shared/checks/multipleBlocks/checkAnnotationsAreValid";
 import { getAppBlockSpecificDiagnostics } from "./getAppBlockSpecificDiagnostics";
+import { checkDictionaryBlocksTypeAnnotationsMatchData } from "../shared/checks/multipleBlocks/checkDictionaryBlocksTypeAnnotationsMatchData";
 
 export function determineDiagnosticsForRequestFile(
     filePath: string,
@@ -128,6 +129,10 @@ function collectCommonDiagnostics(
             blocksThatShouldBeDictionaryBlocks,
         ),
         ...checkAnnotationsAreValid(validDictionaryBlocks),
+        ...checkDictionaryBlocksTypeAnnotationsMatchData(
+            filePath,
+            validDictionaryBlocks,
+        ),
         checkUrlFromMethodBlockMatchesQueryParamsBlock(filePath, blocks),
         checkUrlFromMethodBlockMatchesPathParamsBlock(filePath, blocks),
         checkCodeBlocksHaveClosingBracket(documentHelper, blocks, itemType),
