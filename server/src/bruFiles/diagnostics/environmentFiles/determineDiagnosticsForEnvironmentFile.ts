@@ -17,6 +17,7 @@ import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/mul
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { RelevantWithinEnvironmentFileDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinEnvironmentFileDiagnosticCodeEnum";
 import { checkAnnotationsAreValid } from "../shared/checks/multipleBlocks/checkAnnotationsAreValid";
+import { checkDictionaryBlocksTypeAnnotationsMatchData } from "../shared/checks/multipleBlocks/checkDictionaryBlocksTypeAnnotationsMatchData";
 
 export function determineDiagnosticsForEnvironmentFile(
     filePath: string,
@@ -80,6 +81,10 @@ export function determineDiagnosticsForEnvironmentFile(
                 ) ?? [],
         ),
         ...checkAnnotationsAreValid(validDictionaryBlocks),
+        ...checkDictionaryBlocksTypeAnnotationsMatchData(
+            filePath,
+            validDictionaryBlocks,
+        ),
     );
 
     return results.filter((val) => val != undefined) as DiagnosticWithCode[];

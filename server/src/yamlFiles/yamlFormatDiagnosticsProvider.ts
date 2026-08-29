@@ -11,6 +11,7 @@ import { checkTopLevelNameIsDefined } from "./diagnostics/checks/environmentFile
 import { CommonDiagnosticParams } from "./interfaces";
 import { checkVariableDefinitionsAreValid } from "./diagnostics/checks/environmentFiles/checkVariableDefinitionsAreValid";
 import { checkVariableNamesAreUnique } from "./diagnostics/shared/checkVariableNamesAreUnique";
+import { checkVariableTypesMatchValueData } from "./diagnostics/shared/checkVariableValuesMatchTypes";
 
 export class YamlFormatDiagnosticsProvider {
     constructor() {}
@@ -83,7 +84,15 @@ export class YamlFormatDiagnosticsProvider {
 
         // ToDo: Once the yaml collection items are cached, check that the sequence is unique within the parent folder.
         const otherDiagnostics = variables
-            ? checkVariableNamesAreUnique(variables.enabled, commonParams)
+            ? checkVariableNamesAreUnique(
+                  variables.enabled,
+                  commonParams,
+              ).concat(
+                  checkVariableTypesMatchValueData(
+                      variables.enabled,
+                      commonParams,
+                  ),
+              )
             : [];
         return parsingDiagnostics.concat(
             otherDiagnostics.filter((d) => d != undefined),
