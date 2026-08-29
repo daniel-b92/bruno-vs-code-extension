@@ -9,7 +9,7 @@ import {
     ParsedRequestVariable,
     ParsedScript,
     ParsedYamlMap,
-    ParseYamlMapWithKeyAndValueRange,
+    ParsedYamlMapWithKeyAndValueRange,
     ParsedYamlMapWithValueRange,
 } from "../../internal/yamlFormat/interfaces";
 
@@ -27,7 +27,7 @@ export interface YamlParsingError {
 
 export type ParsedFolderSettingsFile = ParsedYamlMap<{
     info?: ParsedInfoForFolderSettings;
-    request?: ParseYamlMapWithKeyAndValueRange<{
+    request?: ParsedYamlMapWithKeyAndValueRange<{
         headers?: ParsedRequestHeader[];
         auth?: ParsedAuth;
         variables?: {
@@ -56,9 +56,10 @@ export type ParsedInfoForFolderSettings = ParsedInfoForCollectionSettings & {
     };
 };
 
-export type ParsedInfoForCollectionSettings = ParseYamlMapWithKeyAndValueRange<{
-    name?: WithKeyAndValueRange<string>;
-}>;
+export type ParsedInfoForCollectionSettings =
+    ParsedYamlMapWithKeyAndValueRange<{
+        name?: WithKeyAndValueRange<string>;
+    }>;
 
 export type ParsedEnvironmentVariable = ParsedYamlMapWithValueRange<{
     name?: WithKeyAndValueRange<string>;

@@ -3,7 +3,7 @@ import { Range, WithKeyAndValueRange, YamlParsingError } from "../../../..";
 import {
     CommonParsingArgs,
     MaybeResultWithErrors,
-    ParseYamlMapWithKeyAndValueRange,
+    ParsedYamlMapWithKeyAndValueRange,
 } from "../interfaces";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
@@ -27,7 +27,7 @@ export function getValueFieldFromVariable(
 ):
     | MaybeResultWithErrors<WithKeyAndValueRange<string>>
     | MaybeResultWithErrors<
-          ParseYamlMapWithKeyAndValueRange<{
+          ParsedYamlMapWithKeyAndValueRange<{
               type?: WithKeyAndValueRange<VariableType>;
               data?: WithKeyAndValueRange<string>;
           }>

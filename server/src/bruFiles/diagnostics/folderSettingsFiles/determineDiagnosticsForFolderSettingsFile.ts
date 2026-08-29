@@ -29,6 +29,7 @@ import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/mul
 import { TypedCollectionItemProvider } from "../../../shared";
 import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
 import { checkAnnotationsAreValid } from "../shared/checks/multipleBlocks/checkAnnotationsAreValid";
+import { checkDictionaryBlocksTypeAnnotationsMatchData } from "../shared/checks/multipleBlocks/checkDictionaryBlocksTypeAnnotationsMatchData";
 
 export function determineDiagnosticsForFolderSettingsFile(
     filePath: string,
@@ -84,6 +85,10 @@ export function determineDiagnosticsForFolderSettingsFile(
             blocksThatShouldBeDictionaryBlocks,
         ),
         ...checkAnnotationsAreValid(validDictionaryBlocks),
+        ...checkDictionaryBlocksTypeAnnotationsMatchData(
+            filePath,
+            validDictionaryBlocks,
+        ),
         checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType(
             filePath,
             blocks,

@@ -39,8 +39,9 @@ function getDiagnostics(
     diagnosticCode: KnownDiagnosticCode,
 ) {
     return fieldsWithDuplicateKeys.map(({ key, fields }) => {
-        const sortedFieldsByPosition =
-            getSortedDictionaryBlockFieldsByPosition(fields);
+        const sortedFieldsByPosition = getSortedDictionaryBlockFieldsByPosition(
+            fields,
+        ) as (DictionaryBlockSimpleField | DictionaryBlockArrayField)[];
 
         return {
             message: `Key '${key}' is defined ${fields.length} times`,

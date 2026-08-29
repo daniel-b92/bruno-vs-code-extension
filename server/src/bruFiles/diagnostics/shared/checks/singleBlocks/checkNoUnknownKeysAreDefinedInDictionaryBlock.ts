@@ -38,7 +38,7 @@ function getDiagnostic(
 ) {
     const sortedFields = getSortedDictionaryBlockFieldsByPosition(
         fieldsWithUnknownKeys,
-    );
+    ) as (DictionaryBlockSimpleField | DictionaryBlockArrayField)[];
 
     return {
         message: `${

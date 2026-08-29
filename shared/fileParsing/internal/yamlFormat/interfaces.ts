@@ -40,7 +40,7 @@ export type ParsedRequestVariable = ParsedYamlMapWithValueRange<{
     name?: WithKeyAndValueRange<string>;
     value?:
         | WithKeyAndValueRange<string>
-        | ParseYamlMapWithKeyAndValueRange<{
+        | ParsedYamlMapWithKeyAndValueRange<{
               type?: WithKeyAndValueRange<VariableType>;
               data?: WithKeyAndValueRange<string>;
           }>;
@@ -51,11 +51,11 @@ export type ParsedRequestVariable = ParsedYamlMapWithValueRange<{
 export type ParsedAction = ParsedYamlMapWithValueRange<{
     type?: WithKeyAndValueRange<ActionType>;
     phase?: WithKeyAndValueRange<ActionPhase>;
-    selector?: ParseYamlMapWithKeyAndValueRange<{
+    selector?: ParsedYamlMapWithKeyAndValueRange<{
         expression?: WithKeyAndValueRange<string>;
         method?: WithKeyAndValueRange<ActionSelectorMethod>;
     }>;
-    variable?: ParseYamlMapWithKeyAndValueRange<{
+    variable?: ParsedYamlMapWithKeyAndValueRange<{
         name?: WithKeyAndValueRange<string>;
         scope?: WithKeyAndValueRange<ActionVariableScope>;
     }>;
@@ -100,7 +100,7 @@ export type ParsedBearerAuth = ParsedYamlMap<{
 
 export interface ParsedInheritAuth {}
 
-export type ParseYamlMapWithKeyAndValueRange<T> =
+export type ParsedYamlMapWithKeyAndValueRange<T> =
     ParsedYamlMapWithValueRange<T> & {
         keyRange: Range;
     };
