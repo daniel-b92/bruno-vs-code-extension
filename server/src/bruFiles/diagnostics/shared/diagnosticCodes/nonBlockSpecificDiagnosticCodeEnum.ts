@@ -39,4 +39,5 @@ export enum NonBlockSpecificDiagnosticCode {
     AnnotationBeforeNonSimpleFieldInDictionaryBlock = "bru29",
     DuplicateAnnotationOfSameSortInDictionaryBlock = "bru30",
     TypeAnnotationNotMatchingValueInDictionaryBlock = "bru31",
+    MultipleDefinitionsForSameKeyInDictionaryBlock = "bru32",
 }

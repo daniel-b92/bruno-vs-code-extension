@@ -45,6 +45,18 @@ import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from ".
 import { checkAnnotationsAreValid } from "../shared/checks/multipleBlocks/checkAnnotationsAreValid";
 import { getAppBlockSpecificDiagnostics } from "./getAppBlockSpecificDiagnostics";
 import { checkDictionaryBlocksTypeAnnotationsMatchData } from "../shared/checks/multipleBlocks/checkDictionaryBlocksTypeAnnotationsMatchData";
+import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
+import { NonBlockSpecificDiagnosticCode } from "../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+
+interface BlocksWithSpecificDiagnostics {
+    meta?: Block;
+    method?: Block;
+    auth?: Block;
+    body?: Block;
+    graphQlSpecific: Block[];
+    settings?: Block;
+    app?: Block;
+}
 
 export function determineDiagnosticsForRequestFile(
     filePath: string,
@@ -58,6 +70,8 @@ export function determineDiagnosticsForRequestFile(
         documentHelper,
         itemType,
     );
+    const { needSpecificDiagnostics, others } =
+        determineBlocksRequiringSpecificDiagnostics(blocks);
 
     const results = collectCommonDiagnostics(
         filePath,
@@ -71,11 +85,83 @@ export function determineDiagnosticsForRequestFile(
             relatedFilesHelper,
             filePath,
             documentHelper,
-            blocks,
+            needSpecificDiagnostics,
+        ),
+        others.flatMap((block) =>
+            isBlockDictionaryBlock(block)
+                ? checkNoDuplicateKeysAreDefinedForDictionaryBlock({
+                      block,
+                      diagnosticCode:
+                          NonBlockSpecificDiagnosticCode.MultipleDefinitionsForSameKeyInDictionaryBlock,
+                      filePath,
+                  })
+                : [],
         ),
     );
 
     return results.filter((val) => val != undefined) as DiagnosticWithCode[];
+}
+
+function determineBlocksRequiringSpecificDiagnostics(allBlocks: Block[]): {
+    needSpecificDiagnostics: BlocksWithSpecificDiagnostics;
+    others: Block[];
+} {
+    const metaBlocks: Block[] = [];
+    const methodBlocks: Block[] = [];
+    const authBlocks: Block[] = [];
+    const bodyBlocks: Block[] = [];
+    const graphQlSpecific: Block[] = [];
+    const settingsBlocks: Block[] = [];
+    const appBlocks: Block[] = [];
+
+    const graphQlSpecificBlockNames = getGraphQlSpecificBlocks() as string[];
+
+    const others = allBlocks.reduce((prev, curr) => {
+        if (curr.name == RequestFileBlockName.Meta) {
+            metaBlocks.push(curr);
+            return prev;
+        }
+        if (getAllMethodBlocks([curr]).length > 0) {
+            methodBlocks.push(curr);
+            return prev;
+        }
+        if (isAuthBlock(curr.name)) {
+            authBlocks.push(curr);
+            return prev;
+        }
+        if (isBodyBlock(curr.name)) {
+            bodyBlocks.push(curr);
+            return prev;
+        }
+        if (graphQlSpecificBlockNames.includes(curr.name)) {
+            graphQlSpecific.push(curr);
+            return prev;
+        }
+        if (curr.name == RequestFileBlockName.Settings) {
+            settingsBlocks.push(curr);
+            return prev;
+        }
+        if (curr.name == RequestFileBlockName.App) {
+            appBlocks.push(curr);
+            return prev;
+        }
+
+        return prev.concat(curr);
+    }, [] as Block[]);
+
+    return {
+        others,
+        needSpecificDiagnostics: {
+            graphQlSpecific,
+            app: appBlocks.length == 1 ? appBlocks[0] : undefined,
+            auth: authBlocks.length == 1 ? authBlocks[0] : undefined,
+            body: bodyBlocks.length == 1 ? bodyBlocks[0] : undefined,
+            meta: metaBlocks.length == 1 ? metaBlocks[0] : undefined,
+            method: methodBlocks.length == 1 ? methodBlocks[0] : undefined,
+            settings:
+                settingsBlocks.length == 1 ? settingsBlocks[0] : undefined,
+        },
+    };
 }
 
 function collectCommonDiagnostics(
@@ -178,58 +264,42 @@ function collectBlockSpecificDiagnostics(
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
     filePath: string,
     documentHelper: TextDocumentHelper,
-    blocks: Block[],
+    {
+        graphQlSpecific: graphQlSpecificBlocks,
+        app: appBlock,
+        auth: authBlock,
+        body: bodyBlock,
+        meta: metaBlock,
+        method: methodBlock,
+        settings: settingsBlock,
+    }: BlocksWithSpecificDiagnostics,
 ): (DiagnosticWithCode | undefined)[] {
     const results: (DiagnosticWithCode | undefined)[] = [];
 
-    const metaBlocks = blocks.filter(
-        ({ name }) => name == RequestFileBlockName.Meta,
-    );
-
-    if (metaBlocks.length == 1) {
-        const metaBlock = metaBlocks[0];
-
-        if (isBlockDictionaryBlock(metaBlock)) {
-            results.push(
-                ...getMetaBlockSpecificDiagnostics(
-                    itemProvider,
-                    relatedFilesHelper,
-                    filePath,
-                    documentHelper,
-                    metaBlock,
-                ),
-            );
-        }
-    }
-
-    const methodBlocks = getAllMethodBlocks(blocks);
-
-    if (methodBlocks.length == 1) {
+    if (metaBlock && isBlockDictionaryBlock(metaBlock)) {
         results.push(
-            ...getMethodBlockSpecificDiagnostics(filePath, methodBlocks[0]),
+            ...getMetaBlockSpecificDiagnostics(
+                itemProvider,
+                relatedFilesHelper,
+                filePath,
+                documentHelper,
+                metaBlock,
+            ),
         );
     }
-
-    const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
-
-    if (authBlocks.length == 1) {
+    if (methodBlock) {
         results.push(
-            ...getAuthBlockSpecificDiagnostics(filePath, authBlocks[0]),
+            ...getMethodBlockSpecificDiagnostics(filePath, methodBlock),
         );
     }
-
-    const bodyBlocks = blocks.filter(({ name }) => isBodyBlock(name));
-
-    if (bodyBlocks.length == 1) {
+    if (authBlock) {
+        results.push(...getAuthBlockSpecificDiagnostics(filePath, authBlock));
+    }
+    if (bodyBlock) {
         results.push(
-            ...getRequestBodyOrGraphQlBlockSpecificDiagnostics(bodyBlocks[0]),
+            ...getRequestBodyOrGraphQlBlockSpecificDiagnostics(bodyBlock),
         );
     }
-
-    const graphQlSpecificBlocks = blocks.filter(({ name }) =>
-        (getGraphQlSpecificBlocks() as string[]).includes(name),
-    );
-
     if (graphQlSpecificBlocks.length > 0) {
         results.push(
             ...graphQlSpecificBlocks.flatMap((block) =>
@@ -237,23 +307,13 @@ function collectBlockSpecificDiagnostics(
             ),
         );
     }
-
-    const settingsBlocks = blocks.filter(
-        ({ name }) => name == RequestFileBlockName.Settings,
-    );
-
-    if (settingsBlocks.length == 1) {
+    if (settingsBlock) {
         results.push(
-            ...getSettingsBlockSpecificDiagnostics(filePath, settingsBlocks[0]),
+            ...getSettingsBlockSpecificDiagnostics(filePath, settingsBlock),
         );
     }
-
-    const appBlocks = blocks.filter(
-        ({ name }) => name == RequestFileBlockName.App,
-    );
-
-    if (appBlocks.length == 1) {
-        results.push(...getAppBlockSpecificDiagnostics(filePath, appBlocks[0]));
+    if (appBlock) {
+        results.push(...getAppBlockSpecificDiagnostics(filePath, appBlock));
     }
 
     return results;
