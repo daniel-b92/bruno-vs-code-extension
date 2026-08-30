@@ -1,5 +1,5 @@
 import { Range, WithKeyAndValueRange } from "@global_shared";
-import { Diagnostic } from "vscode-languageserver";
+import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import { CommonDiagnosticParams } from "../../interfaces";
 import { URI } from "vscode-uri";
 
@@ -51,6 +51,7 @@ export function checkVariableNamesAreUnique(
         return {
             message: "Same name already defined",
             range: sortedFieldsByPosition[sortedFieldsByPosition.length - 1],
+            severity: DiagnosticSeverity.Warning,
             relatedInformation: sortedFieldsByPosition
                 .slice(0, -1)
                 .map((range) => ({

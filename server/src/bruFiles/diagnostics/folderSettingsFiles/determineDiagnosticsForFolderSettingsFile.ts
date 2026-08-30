@@ -9,6 +9,7 @@ import {
     isBlockDictionaryBlock,
     BrunoFileType,
     isDictionaryBlockField,
+    Block,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../interfaces";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
@@ -30,6 +31,14 @@ import { TypedCollectionItemProvider } from "../../../shared";
 import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
 import { checkAnnotationsAreValid } from "../shared/checks/multipleBlocks/checkAnnotationsAreValid";
 import { checkDictionaryBlocksTypeAnnotationsMatchData } from "../shared/checks/multipleBlocks/checkDictionaryBlocksTypeAnnotationsMatchData";
+import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
+import { NonBlockSpecificDiagnosticCode } from "../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+
+interface BlocksWithSpecificDiagnostics {
+    meta?: Block;
+    auth?: Block;
+    authMode?: Block;
+}
 
 export function determineDiagnosticsForFolderSettingsFile(
     filePath: string,
@@ -50,6 +59,8 @@ export function determineDiagnosticsForFolderSettingsFile(
     const validDictionaryBlocks = blocksThatShouldBeDictionaryBlocks.filter(
         isBlockDictionaryBlock,
     );
+    const { needSpecificDiagnostics, others } =
+        determineBlocksRequiringSpecificDiagnostics(blocks);
 
     const results: (DiagnosticWithCode | undefined)[] = [];
 
@@ -100,39 +111,100 @@ export function determineDiagnosticsForFolderSettingsFile(
         ),
     );
 
-    const metaBlocks = blocks.filter(
-        ({ name }) => name == RequestFileBlockName.Meta,
-    );
-
-    if (metaBlocks.length == 1) {
-        results.push(
-            ...getMetaBlockSpecificDiagnostics(
+    return results
+        .concat(
+            collectBlockSpecificDiagnostics({
+                blocks: needSpecificDiagnostics,
+                documentHelper: document,
+                filePath,
                 itemProvider,
                 relatedFilesHelper,
-                filePath,
-                document,
-                metaBlocks[0],
+            }),
+            others.flatMap((block) =>
+                isBlockDictionaryBlock(block)
+                    ? checkNoDuplicateKeysAreDefinedForDictionaryBlock({
+                          block,
+                          diagnosticCode:
+                              NonBlockSpecificDiagnosticCode.MultipleDefinitionsForSameKeyInDictionaryBlock,
+                          filePath,
+                      })
+                    : [],
+            ),
+        )
+        .filter((val) => val != undefined);
+}
+
+function determineBlocksRequiringSpecificDiagnostics(allBlocks: Block[]): {
+    needSpecificDiagnostics: BlocksWithSpecificDiagnostics;
+    others: Block[];
+} {
+    const metaBlocks: Block[] = [];
+    const authBlocks: Block[] = [];
+    const authModeBlocks: Block[] = [];
+
+    const others = allBlocks.reduce((prev, curr) => {
+        if (curr.name == RequestFileBlockName.Meta) {
+            metaBlocks.push(curr);
+            return prev;
+        }
+        if (isAuthBlock(curr.name)) {
+            authBlocks.push(curr);
+            return prev;
+        }
+        if (curr.name == SettingsFileSpecificBlock.AuthMode) {
+            authModeBlocks.push(curr);
+            return prev;
+        }
+
+        return prev.concat(curr);
+    }, [] as Block[]);
+
+    return {
+        others,
+        needSpecificDiagnostics: {
+            auth: authBlocks.length == 1 ? authBlocks[0] : undefined,
+            meta: metaBlocks.length == 1 ? metaBlocks[0] : undefined,
+            authMode:
+                authModeBlocks.length == 1 ? authModeBlocks[0] : undefined,
+        },
+    };
+}
+
+function collectBlockSpecificDiagnostics(data: {
+    blocks: BlocksWithSpecificDiagnostics;
+    filePath: string;
+    documentHelper: TextDocumentHelper;
+    itemProvider: TypedCollectionItemProvider;
+    relatedFilesHelper: RelatedFilesDiagnosticsHelper;
+}) {
+    const results: (DiagnosticWithCode | undefined)[] = [];
+    const {
+        blocks: { auth: authBlock, authMode: authModeBlock, meta: metaBlock },
+        filePath: folderSettingsPath,
+    } = data;
+
+    if (metaBlock) {
+        results.push(
+            ...getMetaBlockSpecificDiagnostics({
+                ...data,
+                metaBlock: metaBlock,
+                folderSettingsPath,
+            }),
+        );
+    }
+    if (authBlock) {
+        results.push(
+            ...getAuthBlockSpecificDiagnostics(folderSettingsPath, authBlock),
+        );
+    }
+    if (authModeBlock) {
+        results.push(
+            ...getAuthModeBlockSpecificDiagnostics(
+                folderSettingsPath,
+                authModeBlock,
             ),
         );
     }
 
-    const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
-
-    if (authBlocks.length == 1) {
-        results.push(
-            ...getAuthBlockSpecificDiagnostics(filePath, authBlocks[0]),
-        );
-    }
-
-    const authModeBlocks = blocks.filter(
-        ({ name }) => name == SettingsFileSpecificBlock.AuthMode,
-    );
-
-    if (authModeBlocks.length == 1) {
-        results.push(
-            ...getAuthModeBlockSpecificDiagnostics(filePath, authModeBlocks[0]),
-        );
-    }
-
-    return results.filter((val) => val != undefined) as DiagnosticWithCode[];
+    return results;
 }

@@ -31,13 +31,20 @@ import { checkDictionaryBlockArrayFieldsValues } from "../shared/checks/singleBl
 import { checkNoDuplicateTagsAreDefined } from "./checks/singleBlocks/checkNoDuplicateTagsAreDefined";
 import { TypedCollectionItemProvider } from "../../../shared";
 
-export function getMetaBlockSpecificDiagnostics(
-    itemProvider: TypedCollectionItemProvider,
-    relatedFilesHelper: RelatedFilesDiagnosticsHelper,
-    filePath: string,
-    documentHelper: TextDocumentHelper,
-    metaBlock: DictionaryBlock,
-): (DiagnosticWithCode | undefined)[] {
+export function getMetaBlockSpecificDiagnostics(data: {
+    itemProvider: TypedCollectionItemProvider;
+    relatedFilesHelper: RelatedFilesDiagnosticsHelper;
+    filePath: string;
+    documentHelper: TextDocumentHelper;
+    metaBlock: DictionaryBlock;
+}): (DiagnosticWithCode | undefined)[] {
+    const {
+        documentHelper,
+        filePath,
+        itemProvider,
+        metaBlock,
+        relatedFilesHelper,
+    } = data;
     const mandatoryBlockKeys = getMetaBlockMandatoryKeys(
         BrunoFileType.RequestFile,
     );
@@ -75,12 +82,13 @@ export function getMetaBlockSpecificDiagnostics(
             [MetaBlockKey.Name],
             RelevantWithinMetaBlockDiagnosticCode.MandatoryValuesMissingInMetaBlock,
         ),
-        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock({
             filePath,
-            metaBlock,
-            RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
-            mandatoryBlockKeys.concat(optionalBlockKeys),
-        ) ?? []),
+            block: metaBlock,
+            diagnosticCode:
+                RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
+            expectedKeys: mandatoryBlockKeys.concat(optionalBlockKeys),
+        }) ?? []),
         checkDictionaryBlockArrayFieldsStructure(
             filePath,
             metaBlock,

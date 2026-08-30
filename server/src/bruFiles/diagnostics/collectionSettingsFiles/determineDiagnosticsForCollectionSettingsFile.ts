@@ -9,6 +9,7 @@ import {
     isBlockDictionaryBlock,
     BrunoFileType,
     isDictionaryBlockField,
+    Block,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../interfaces";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
@@ -27,6 +28,13 @@ import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/mul
 import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
 import { checkAnnotationsAreValid } from "../shared/checks/multipleBlocks/checkAnnotationsAreValid";
 import { checkDictionaryBlocksTypeAnnotationsMatchData } from "../shared/checks/multipleBlocks/checkDictionaryBlocksTypeAnnotationsMatchData";
+import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
+import { NonBlockSpecificDiagnosticCode } from "../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+
+interface BlocksWithSpecificDiagnostics {
+    auth?: Block;
+    authMode?: Block;
+}
 
 export function determineDiagnosticsForCollectionSettingsFile(
     filePath: string,
@@ -44,6 +52,8 @@ export function determineDiagnosticsForCollectionSettingsFile(
     const validDictionaryBlocks = blocksThatShouldBeDictionaryBlocks.filter(
         isBlockDictionaryBlock,
     );
+    const { needSpecificDiagnostics, others } =
+        determineBlocksRequiringSpecificDiagnostics(blocks);
 
     const results: (DiagnosticWithCode | undefined)[] = [];
 
@@ -100,23 +110,65 @@ export function determineDiagnosticsForCollectionSettingsFile(
         ),
     );
 
-    const authBlocks = blocks.filter(({ name }) => isAuthBlock(name));
+    return results
+        .concat(
+            collectBlockSpecificDiagnostics(needSpecificDiagnostics, filePath),
+            others.flatMap((block) =>
+                isBlockDictionaryBlock(block)
+                    ? checkNoDuplicateKeysAreDefinedForDictionaryBlock({
+                          block,
+                          diagnosticCode:
+                              NonBlockSpecificDiagnosticCode.MultipleDefinitionsForSameKeyInDictionaryBlock,
+                          filePath,
+                      })
+                    : [],
+            ),
+        )
+        .filter((val) => val != undefined) as DiagnosticWithCode[];
+}
 
-    if (authBlocks.length == 1) {
+function determineBlocksRequiringSpecificDiagnostics(allBlocks: Block[]): {
+    needSpecificDiagnostics: BlocksWithSpecificDiagnostics;
+    others: Block[];
+} {
+    const authBlocks: Block[] = [];
+    const authModeBlocks: Block[] = [];
+
+    const others = allBlocks.reduce((prev, curr) => {
+        if (isAuthBlock(curr.name)) {
+            authBlocks.push(curr);
+            return prev;
+        }
+        if (curr.name == SettingsFileSpecificBlock.AuthMode) {
+            authModeBlocks.push(curr);
+            return prev;
+        }
+
+        return prev.concat(curr);
+    }, [] as Block[]);
+
+    return {
+        others,
+        needSpecificDiagnostics: {
+            auth: authBlocks.length == 1 ? authBlocks[0] : undefined,
+            authMode:
+                authModeBlocks.length == 1 ? authModeBlocks[0] : undefined,
+        },
+    };
+}
+
+function collectBlockSpecificDiagnostics(
+    { auth: authBlock, authMode: authModeBlock }: BlocksWithSpecificDiagnostics,
+    filePath: string,
+) {
+    const results: (DiagnosticWithCode | undefined)[] = [];
+    if (authBlock) {
+        results.push(...getAuthBlockSpecificDiagnostics(filePath, authBlock));
+    }
+    if (authModeBlock) {
         results.push(
-            ...getAuthBlockSpecificDiagnostics(filePath, authBlocks[0]),
+            ...getAuthModeBlockSpecificDiagnostics(filePath, authModeBlock),
         );
     }
-
-    const authModeBlocks = blocks.filter(
-        ({ name }) => name == SettingsFileSpecificBlock.AuthMode,
-    );
-
-    if (authModeBlocks.length == 1) {
-        results.push(
-            ...getAuthModeBlockSpecificDiagnostics(filePath, authModeBlocks[0]),
-        );
-    }
-
-    return results.filter((val) => val != undefined) as DiagnosticWithCode[];
+    return results;
 }

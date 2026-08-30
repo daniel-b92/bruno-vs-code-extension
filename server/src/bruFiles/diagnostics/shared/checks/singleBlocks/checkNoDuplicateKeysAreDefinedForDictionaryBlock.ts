@@ -15,12 +15,13 @@ interface FieldsWithSameKey {
     fields: (DictionaryBlockSimpleField | DictionaryBlockArrayField)[];
 }
 
-export function checkNoDuplicateKeysAreDefinedForDictionaryBlock(
-    filePath: string,
-    block: DictionaryBlock,
-    diagnosticCode: KnownDiagnosticCode,
-    expectedKeys?: string[],
-): DiagnosticWithCode[] | undefined {
+export function checkNoDuplicateKeysAreDefinedForDictionaryBlock(data: {
+    filePath: string;
+    block: DictionaryBlock;
+    diagnosticCode: KnownDiagnosticCode;
+    expectedKeys?: string[];
+}): DiagnosticWithCode[] | undefined {
+    const { block, diagnosticCode, filePath, expectedKeys } = data;
     const fieldsWithDuplicateKeys = getValidDuplicateKeysFromDictionaryBlock(
         block,
         expectedKeys,
@@ -30,13 +31,21 @@ export function checkNoDuplicateKeysAreDefinedForDictionaryBlock(
         return undefined;
     }
 
-    return getDiagnostics(filePath, fieldsWithDuplicateKeys, diagnosticCode);
+    return getDiagnostics(
+        filePath,
+        fieldsWithDuplicateKeys,
+        diagnosticCode,
+        // If expectedKeys are defined, it usually means that only certain keys are allowed in the block.
+        // In this case, it seems more appropriate to show the diagnostics as errors than as warnings.
+        expectedKeys ? undefined : DiagnosticSeverity.Warning,
+    );
 }
 
 function getDiagnostics(
     filePath: string,
     fieldsWithDuplicateKeys: FieldsWithSameKey[],
     diagnosticCode: KnownDiagnosticCode,
+    severity?: DiagnosticSeverity,
 ) {
     return fieldsWithDuplicateKeys.map(({ key, fields }) => {
         const sortedFieldsByPosition = getSortedDictionaryBlockFieldsByPosition(
@@ -47,7 +56,7 @@ function getDiagnostics(
             message: `Key '${key}' is defined ${fields.length} times`,
             range: sortedFieldsByPosition[sortedFieldsByPosition.length - 1]
                 .keyRange,
-            severity: DiagnosticSeverity.Error,
+            severity,
             code: diagnosticCode,
             relatedInformation: sortedFieldsByPosition
                 .slice(0, -1)
