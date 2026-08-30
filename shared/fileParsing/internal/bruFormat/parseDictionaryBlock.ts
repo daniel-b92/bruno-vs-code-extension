@@ -13,10 +13,13 @@ import {
 } from "../../..";
 import { getContentRangeForArrayOrDictionaryBlock } from "../../external/bruFormat/util/getContentRangeForArrayOrDictionaryBlock";
 
-interface MultilineValueSpecificData {
-    hasClosingQuotes: boolean;
-    tailingTextInLastLine?: Range;
-}
+type MultilineValueAdditionalData =
+    | { err: "missingClosingQuotes" }
+    | {
+          textInLineWithOpeningQuotes?: Range;
+          textInLineWithClosingQuotes?: Range;
+          tailingTextAfterClosingQuotes?: Range;
+      };
 
 type ParsedFieldOrLine =
     | DictionaryBlockArrayField
@@ -24,8 +27,7 @@ type ParsedFieldOrLine =
           field: DictionaryBlockSimpleField;
           startIndexInFile: number;
           couldBeStartofArrayField: boolean;
-          multilineValueSpecificData?: MultilineValueSpecificData;
-          hasClosingQuotesIfMultilineValue?: boolean;
+          multilineValueSpecificData?: MultilineValueAdditionalData;
       }
     | DictionaryBlockDescription
     | DictionaryBlockTypeAnnotation
@@ -273,9 +275,9 @@ function isSingleLineKeyValuePair(lineText: string) {
 
 function isStartOfMultilineKeyValuePair(lineContent: string) {
     const startsWithKey = /^\s*([^:]+)\s*:/.test(lineContent);
-    const endsWithStartOfMultilineString =
+    const includesStartOfMultilineString =
         isStartLineForMultilineString(lineContent);
-    return startsWithKey && endsWithStartOfMultilineString;
+    return startsWithKey && includesStartOfMultilineString;
 }
 
 function getKeyAndValueStartingInLine(
@@ -289,7 +291,7 @@ function getKeyAndValueStartingInLine(
 ):
     | {
           field: DictionaryBlockSimpleField;
-          multilineValueSpecificData?: MultilineValueSpecificData;
+          multilineValueSpecificData?: MultilineValueAdditionalData;
       }
     | undefined {
     const { lineIndex: firstLineIndex, lineText: firstLineText } = firstLine;
@@ -334,7 +336,7 @@ function getKeyAndValueStartingInLine(
     const {
         range: valueRange,
         value,
-        hasClosingQuotes,
+        additionalData,
     } = parseMultilineString(
         fullDocHelper,
         firstLineIndex,
@@ -342,9 +344,7 @@ function getKeyAndValueStartingInLine(
     );
     return {
         field: { ...keyWithRange, value, valueRange },
-        multilineValueSpecificData: {
-            hasClosingQuotes,
-        },
+        multilineValueSpecificData: additionalData,
     };
 }
 
@@ -381,27 +381,40 @@ function parseMultilineString(
 ): {
     value: string;
     range: Range;
-    hasClosingQuotes: boolean;
-    trailingTextInLastLine?: Range;
+    additionalData: MultilineValueAdditionalData;
 } {
     const surroundingQuotes = "'''";
-    const startChar =
-        fullFileDocumentHelper.getLineByIndex(stringStartLine).trimEnd()
-            .length - surroundingQuotes.length;
+    const startLineContent =
+        fullFileDocumentHelper.getLineByIndex(stringStartLine);
+    const startChar = startLineContent.lastIndexOf(surroundingQuotes);
     const stringStartPosition = new Position(stringStartLine, startChar);
+    const textInLineWithOpeningQuotes =
+        startChar < startLineContent.trimEnd().length - surroundingQuotes.length
+            ? new Range(
+                  stringStartPosition,
+                  new Position(stringStartLine, startLineContent.length),
+              )
+            : undefined;
+
+    // Skip the line with the opening quotes for parsing the content.
     let lineIndex = stringStartLine + 1;
 
     while (lineIndex <= lastBlockContentLine) {
         const line = fullFileDocumentHelper.getLineByIndex(lineIndex);
-        const isEndOfString = line.trim().startsWith("'''");
+        const isEndOfString = line.includes("'''");
 
         if (isEndOfString) {
             const endChar =
                 line.indexOf(surroundingQuotes) + surroundingQuotes.length;
             const stringEndPosition = new Position(lineIndex, endChar);
             const range = new Range(stringStartPosition, stringEndPosition);
-            const trailingTextInLastLine =
-                endChar == line.length - 1
+            const textInLineWithClosingQuotes = line
+                .trimStart()
+                .startsWith(surroundingQuotes)
+                ? undefined
+                : new Range(new Position(lineIndex, 0), stringEndPosition);
+            const tailingTextAfterClosingQuotes =
+                line.trimEnd().length == endChar
                     ? undefined
                     : new Range(
                           new Position(lineIndex, endChar),
@@ -411,8 +424,11 @@ function parseMultilineString(
             return {
                 value: fullFileDocumentHelper.getText(range),
                 range,
-                hasClosingQuotes: true,
-                trailingTextInLastLine,
+                additionalData: {
+                    tailingTextAfterClosingQuotes,
+                    textInLineWithClosingQuotes,
+                    textInLineWithOpeningQuotes,
+                },
             };
         }
 
@@ -427,7 +443,7 @@ function parseMultilineString(
     );
 
     return {
-        hasClosingQuotes: false,
+        additionalData: { err: "missingClosingQuotes" },
         range,
         value: fullFileDocumentHelper.getText(range),
     };
@@ -438,5 +454,5 @@ function getSingleLineKeyValuePairPattern() {
 }
 
 function isStartLineForMultilineString(lineContent: string) {
-    return /^.*'''\s*$/.test(lineContent);
+    return /'''/.test(lineContent);
 }
