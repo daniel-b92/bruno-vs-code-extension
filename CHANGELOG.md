@@ -3,6 +3,7 @@
 ### Features
 
 - Provide diagnostics for dictionary block fields where the value does not match the corresponding type annotation.
+- Provide diagnostics for duplicate keys for all dictionary blocks.
 
 ### Fixes / Maintenance
 
