@@ -31,13 +31,20 @@ import { checkDictionaryBlockArrayFieldsValues } from "../shared/checks/singleBl
 import { checkNoDuplicateTagsAreDefined } from "./checks/singleBlocks/checkNoDuplicateTagsAreDefined";
 import { TypedCollectionItemProvider } from "../../../shared";
 
-export function getMetaBlockSpecificDiagnostics(
-    itemProvider: TypedCollectionItemProvider,
-    relatedFilesHelper: RelatedFilesDiagnosticsHelper,
-    filePath: string,
-    documentHelper: TextDocumentHelper,
-    metaBlock: DictionaryBlock,
-): (DiagnosticWithCode | undefined)[] {
+export function getMetaBlockSpecificDiagnostics(data: {
+    itemProvider: TypedCollectionItemProvider;
+    relatedFilesHelper: RelatedFilesDiagnosticsHelper;
+    filePath: string;
+    documentHelper: TextDocumentHelper;
+    metaBlock: DictionaryBlock;
+}): (DiagnosticWithCode | undefined)[] {
+    const {
+        documentHelper,
+        filePath,
+        itemProvider,
+        metaBlock,
+        relatedFilesHelper,
+    } = data;
     const mandatoryBlockKeys = getMetaBlockMandatoryKeys(
         BrunoFileType.RequestFile,
     );

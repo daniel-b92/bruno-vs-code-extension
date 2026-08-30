@@ -18,13 +18,20 @@ import { RelatedFilesDiagnosticsHelper } from "../../shared/helpers/relatedFiles
 import { checkFolderSequenceInMetaBlockIsUnique } from "../checks/checkFolderSequenceInMetaBlockIsUnique";
 import { TypedCollectionItemProvider } from "../../../../shared";
 
-export function getMetaBlockSpecificDiagnostics(
-    itemProvider: TypedCollectionItemProvider,
-    relatedFilesHelper: RelatedFilesDiagnosticsHelper,
-    folderSettingsPath: string,
-    documentHelper: TextDocumentHelper,
-    metaBlock: Block,
-): (DiagnosticWithCode | undefined)[] {
+export function getMetaBlockSpecificDiagnostics(data: {
+    itemProvider: TypedCollectionItemProvider;
+    relatedFilesHelper: RelatedFilesDiagnosticsHelper;
+    folderSettingsPath: string;
+    documentHelper: TextDocumentHelper;
+    metaBlock: Block;
+}): (DiagnosticWithCode | undefined)[] {
+    const {
+        documentHelper,
+        folderSettingsPath,
+        itemProvider,
+        metaBlock,
+        relatedFilesHelper,
+    } = data;
     const metaBlockKeys = getMetaBlockMandatoryKeys(
         BrunoFileType.FolderSettingsFile,
     );

@@ -278,13 +278,13 @@ function collectBlockSpecificDiagnostics(
 
     if (metaBlock && isBlockDictionaryBlock(metaBlock)) {
         results.push(
-            ...getMetaBlockSpecificDiagnostics(
+            ...getMetaBlockSpecificDiagnostics({
                 itemProvider,
                 relatedFilesHelper,
                 filePath,
                 documentHelper,
                 metaBlock,
-            ),
+            }),
         );
     }
     if (methodBlock) {
