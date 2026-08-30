@@ -13,12 +13,19 @@ import {
 } from "../../..";
 import { getContentRangeForArrayOrDictionaryBlock } from "../../external/bruFormat/util/getContentRangeForArrayOrDictionaryBlock";
 
-type ParsedLine =
+interface MultilineValueSpecificData {
+    hasClosingQuotes: boolean;
+    tailingTextInLastLine?: Range;
+}
+
+type ParsedFieldOrLine =
     | DictionaryBlockArrayField
     | {
           field: DictionaryBlockSimpleField;
-          indexInFile: number;
+          startIndexInFile: number;
           couldBeStartofArrayField: boolean;
+          multilineValueSpecificData?: MultilineValueSpecificData;
+          hasClosingQuotesIfMultilineValue?: boolean;
       }
     | DictionaryBlockDescription
     | DictionaryBlockTypeAnnotation
@@ -29,7 +36,7 @@ export function parseDictionaryBlock(
     firstContentLine: number,
     lastContentLine: number,
 ) {
-    const lines: ParsedLine[] = [];
+    const lines: ParsedFieldOrLine[] = [];
 
     for (
         let lineIndex = firstContentLine;
@@ -37,18 +44,34 @@ export function parseDictionaryBlock(
         lineIndex++
     ) {
         const lineContent = docHelper.getLineByIndex(lineIndex);
-        const hasKeyValueStructure = isKeyValuePair(lineContent);
+        const hasSingleLineKeyValueStructure =
+            isSingleLineKeyValuePair(lineContent);
+        const hasMultilineKeyValueStructure =
+            isStartOfMultilineKeyValuePair(lineContent);
 
-        if (hasKeyValueStructure) {
-            const keyAndValue = getKeyAndValueFromLine(
-                lineIndex,
-                lineContent,
-            ) as DictionaryBlockSimpleField;
+        if (hasSingleLineKeyValueStructure || hasMultilineKeyValueStructure) {
+            const keyAndValue = getKeyAndValueStartingInLine(
+                {
+                    lineIndex,
+                    lineText: lineContent,
+                },
+                lastContentLine,
+                docHelper,
+                hasMultilineKeyValueStructure,
+            );
+
+            if (!keyAndValue) {
+                return undefined;
+            }
+            const { field, multilineValueSpecificData } = keyAndValue;
+            // Skip lines that belong to the value, in case it's a multiline value.
+            lineIndex = field.valueRange.end.line;
 
             lines.push({
-                field: keyAndValue,
-                indexInFile: lineIndex,
-                couldBeStartofArrayField: keyAndValue.value.trim() == "[",
+                field: keyAndValue.field,
+                multilineValueSpecificData,
+                startIndexInFile: lineIndex,
+                couldBeStartofArrayField: keyAndValue.field.value.trim() == "[",
             });
 
             continue;
@@ -57,7 +80,7 @@ export function parseDictionaryBlock(
         const previousLineIndex = lines.findIndex(
             (line) =>
                 wasLineParsedAsValidSimpleField(line) &&
-                line.indexInFile == lineIndex - 1,
+                line.startIndexInFile == lineIndex - 1,
         );
 
         const IsFirstValueLineWithinArrayField =
@@ -70,7 +93,7 @@ export function parseDictionaryBlock(
             !lineContent.includes(":");
 
         if (!IsFirstValueLineWithinArrayField) {
-            if (isDescriptionLine(lineContent)) {
+            if (isSingleLineDescription(lineContent)) {
                 const lineRange = docHelper.getRangeForLine(lineIndex, true);
 
                 if (lineRange) {
@@ -222,16 +245,16 @@ function parseArrayField(
 }
 
 function wasLineParsedAsValidSimpleField(
-    parsedLine: ParsedLine,
+    parsedLine: ParsedFieldOrLine,
 ): parsedLine is {
     field: DictionaryBlockSimpleField;
-    indexInFile: number;
+    startIndexInFile: number;
     couldBeStartofArrayField: boolean;
 } {
     return "couldBeStartofArrayField" in parsedLine;
 }
 
-function isDescriptionLine(lineText: string) {
+function isSingleLineDescription(lineText: string) {
     return /^\s*@description\(('[^']*'|"(\\"|[^"])*")\)\s*$/.test(lineText);
 }
 
@@ -244,47 +267,176 @@ function getTypeAnnotationValueForLine(lineText: string) {
         : undefined;
 }
 
-function isKeyValuePair(lineText: string) {
-    return getKeyValuePairLinePattern().test(lineText);
+function isSingleLineKeyValuePair(lineText: string) {
+    return getSingleLineKeyValuePairPattern().test(lineText);
 }
 
-function getKeyAndValueFromLine(
-    lineIndex: number,
-    lineText: string,
-): DictionaryBlockSimpleField | undefined {
-    const matches = getKeyValuePairLinePattern().exec(lineText);
+function isStartOfMultilineKeyValuePair(lineContent: string) {
+    const startsWithKey = /^\s*([^:]+)\s*:/.test(lineContent);
+    const endsWithStartOfMultilineString =
+        isStartLineForMultilineString(lineContent);
+    return startsWithKey && endsWithStartOfMultilineString;
+}
 
-    if (matches && matches.length > 2) {
-        const isDisabled = matches[1].startsWith("~");
-        const key = isDisabled
-            ? matches[1].length > 1
-                ? matches[1].substring(1)
-                : ""
-            : matches[1];
-        const value = matches[2];
-        const keyStartIndex = lineText.indexOf(key);
-        const keyEndIndex = keyStartIndex + key.length;
-        const valueStartIndex =
-            keyEndIndex + lineText.substring(keyEndIndex).indexOf(value);
+function getKeyAndValueStartingInLine(
+    firstLine: {
+        lineIndex: number;
+        lineText: string;
+    },
+    lastBlockContentLine: number,
+    fullDocHelper: TextDocumentHelper,
+    isMultilineValue: boolean,
+):
+    | {
+          field: DictionaryBlockSimpleField;
+          multilineValueSpecificData?: MultilineValueSpecificData;
+      }
+    | undefined {
+    const { lineIndex: firstLineIndex, lineText: firstLineText } = firstLine;
+    const keyWithRange = getKeyFromLine(firstLineText, firstLineIndex);
 
-        return {
-            disabled: isDisabled,
-            key,
-            value,
-            keyRange: new Range(
-                new Position(lineIndex, keyStartIndex),
-                new Position(lineIndex, keyEndIndex),
-            ),
-            valueRange: new Range(
-                new Position(lineIndex, valueStartIndex),
-                new Position(lineIndex, valueStartIndex + value.length),
-            ),
-        };
-    } else {
+    if (!keyWithRange) {
         return undefined;
     }
+
+    if (!isMultilineValue) {
+        const matches = getSingleLineKeyValuePairPattern().exec(firstLineText);
+
+        if (!matches || matches.length < 3) {
+            return undefined;
+        }
+
+        const {
+            keyRange: {
+                end: { character: keyEndIndex },
+            },
+        } = keyWithRange;
+
+        const value = matches[2];
+        const valueStartIndex =
+            keyEndIndex + firstLineText.substring(keyEndIndex).indexOf(value);
+
+        return {
+            field: {
+                ...keyWithRange,
+                value,
+                valueRange: new Range(
+                    new Position(firstLineIndex, valueStartIndex),
+                    new Position(
+                        firstLineIndex,
+                        valueStartIndex + value.length,
+                    ),
+                ),
+            },
+        };
+    }
+
+    const {
+        range: valueRange,
+        value,
+        hasClosingQuotes,
+    } = parseMultilineString(
+        fullDocHelper,
+        firstLineIndex,
+        lastBlockContentLine,
+    );
+    return {
+        field: { ...keyWithRange, value, valueRange },
+        multilineValueSpecificData: {
+            hasClosingQuotes,
+        },
+    };
 }
 
-function getKeyValuePairLinePattern() {
+function getKeyFromLine(lineContent: string, lineIndex: number) {
+    const matches = /^\s*([^:]+)\s*:/.exec(lineContent);
+
+    if (!matches || matches.length < 2) {
+        return undefined;
+    }
+
+    const isDisabled = matches[1].startsWith("~");
+    const key = isDisabled
+        ? matches[1].length > 1
+            ? matches[1].substring(1)
+            : ""
+        : matches[1];
+    const keyStartIndex = lineContent.indexOf(key);
+    const keyEndIndex = keyStartIndex + key.length;
+
+    return {
+        disabled: isDisabled,
+        key,
+        keyRange: new Range(
+            new Position(lineIndex, keyStartIndex),
+            new Position(lineIndex, keyEndIndex),
+        ),
+    };
+}
+
+function parseMultilineString(
+    fullFileDocumentHelper: TextDocumentHelper,
+    stringStartLine: number,
+    lastBlockContentLine: number,
+): {
+    value: string;
+    range: Range;
+    hasClosingQuotes: boolean;
+    trailingTextInLastLine?: Range;
+} {
+    const surroundingQuotes = "'''";
+    const startChar =
+        fullFileDocumentHelper.getLineByIndex(stringStartLine).trimEnd()
+            .length - surroundingQuotes.length;
+    const stringStartPosition = new Position(stringStartLine, startChar);
+    let lineIndex = stringStartLine + 1;
+
+    while (lineIndex <= lastBlockContentLine) {
+        const line = fullFileDocumentHelper.getLineByIndex(lineIndex);
+        const isEndOfString = line.trim().startsWith("'''");
+
+        if (isEndOfString) {
+            const endChar =
+                line.indexOf(surroundingQuotes) + surroundingQuotes.length;
+            const stringEndPosition = new Position(lineIndex, endChar);
+            const range = new Range(stringStartPosition, stringEndPosition);
+            const trailingTextInLastLine =
+                endChar == line.length - 1
+                    ? undefined
+                    : new Range(
+                          new Position(lineIndex, endChar),
+                          new Position(lineIndex, line.length),
+                      );
+
+            return {
+                value: fullFileDocumentHelper.getText(range),
+                range,
+                hasClosingQuotes: true,
+                trailingTextInLastLine,
+            };
+        }
+
+        lineIndex++;
+    }
+
+    // Case, where there are no closing quotes, so the value ends only due to the end of the block.
+    const range = new Range(
+        stringStartPosition,
+        fullFileDocumentHelper.getRangeForLine(lastBlockContentLine)?.end ??
+            new Position(lastBlockContentLine + 1, 0),
+    );
+
+    return {
+        hasClosingQuotes: false,
+        range,
+        value: fullFileDocumentHelper.getText(range),
+    };
+}
+
+function getSingleLineKeyValuePairPattern() {
     return /^\s*([^:]+)\s*:\s*(\S+.*?|.{0})\s*$/;
+}
+
+function isStartLineForMultilineString(lineContent: string) {
+    return /^.*'''\s*$/.test(lineContent);
 }
