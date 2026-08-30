@@ -10,7 +10,7 @@ import {
     DictionaryBlockDescription,
     DictionaryBlockTypeAnnotation,
     DictionaryBlockTypeAnnotationValue,
-    MultilineValueAdditionalData,
+    MultilineStringAdditionalData,
 } from "../../..";
 import { getContentRangeForArrayOrDictionaryBlock } from "../../external/bruFormat/util/getContentRangeForArrayOrDictionaryBlock";
 
@@ -96,6 +96,21 @@ export function parseDictionaryBlock(
                 }
                 continue;
             }
+            if (isStartOfMultilineDescription(lineContent)) {
+                const parsedLine = parseMultilineString(
+                    docHelper,
+                    lineIndex,
+                    lastContentLine,
+                );
+                lines.push({
+                    range: parsedLine.range,
+                    multilineValueSpecificData: parsedLine.additionalData,
+                });
+                // Skip lines that belong to the multiline description.
+                lineIndex = parsedLine.range.end.line;
+                continue;
+            }
+
             const typeAnnotationValue =
                 getTypeAnnotationValueForLine(lineContent);
             if (typeAnnotationValue) {
@@ -251,6 +266,10 @@ function isSingleLineDescription(lineText: string) {
     return /^\s*@description\(('[^']*'|"(\\"|[^"])*")\)\s*$/.test(lineText);
 }
 
+function isStartOfMultilineDescription(lineContent: string) {
+    return /^\s*@description\('''.*$/.test(lineContent);
+}
+
 function getTypeAnnotationValueForLine(lineText: string) {
     const pattern = /^\s*@(number|boolean|object)\s*$/;
     const matches = pattern.exec(lineText);
@@ -364,7 +383,7 @@ function parseMultilineString(
 ): {
     value: string;
     range: Range;
-    additionalData: MultilineValueAdditionalData;
+    additionalData: MultilineStringAdditionalData;
 } {
     const surroundingQuotes = "'''";
     const startLineContent =
@@ -408,9 +427,12 @@ function parseMultilineString(
                 value: fullFileDocumentHelper.getText(range),
                 range,
                 additionalData: {
-                    tailingTextAfterClosingQuotes,
-                    textInLineWithClosingQuotes,
-                    textInLineWithOpeningQuotes,
+                    invalidTailingTextAfterClosingQuotes:
+                        tailingTextAfterClosingQuotes,
+                    invalidIncludedTextInClosingLine:
+                        textInLineWithClosingQuotes,
+                    invalidIncludedTextInOpeningLine:
+                        textInLineWithOpeningQuotes,
                 },
             };
         }

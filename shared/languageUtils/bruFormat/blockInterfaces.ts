@@ -32,7 +32,7 @@ export interface DictionaryBlock {
 export type DictionaryBlockSimpleField = DictionaryBlockField & {
     value: string;
     valueRange: Range;
-    multilineValueSpecificData?: MultilineValueAdditionalData;
+    multilineValueSpecificData?: MultilineStringAdditionalData;
 };
 
 export type DictionaryBlockArrayField = DictionaryBlockField & {
@@ -43,6 +43,7 @@ export type DictionaryBlockArrayField = DictionaryBlockField & {
 
 export interface DictionaryBlockDescription {
     range: Range;
+    multilineValueSpecificData?: MultilineStringAdditionalData;
 }
 
 export interface DictionaryBlockTypeAnnotation {
@@ -50,12 +51,12 @@ export interface DictionaryBlockTypeAnnotation {
     value: DictionaryBlockTypeAnnotationValue;
 }
 
-export type MultilineValueAdditionalData =
+export type MultilineStringAdditionalData =
     | { err: "missingClosingQuotes" }
     | {
-          textInLineWithOpeningQuotes?: Range;
-          textInLineWithClosingQuotes?: Range;
-          tailingTextAfterClosingQuotes?: Range;
+          invalidIncludedTextInOpeningLine?: Range;
+          invalidIncludedTextInClosingLine?: Range;
+          invalidTailingTextAfterClosingQuotes?: Range;
       };
 
 export enum DictionaryBlockTypeAnnotationValue {
