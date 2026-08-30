@@ -10,16 +10,9 @@ import {
     DictionaryBlockDescription,
     DictionaryBlockTypeAnnotation,
     DictionaryBlockTypeAnnotationValue,
+    MultilineValueAdditionalData,
 } from "../../..";
 import { getContentRangeForArrayOrDictionaryBlock } from "../../external/bruFormat/util/getContentRangeForArrayOrDictionaryBlock";
-
-type MultilineValueAdditionalData =
-    | { err: "missingClosingQuotes" }
-    | {
-          textInLineWithOpeningQuotes?: Range;
-          textInLineWithClosingQuotes?: Range;
-          tailingTextAfterClosingQuotes?: Range;
-      };
 
 type ParsedFieldOrLine =
     | DictionaryBlockArrayField
@@ -27,7 +20,6 @@ type ParsedFieldOrLine =
           field: DictionaryBlockSimpleField;
           startIndexInFile: number;
           couldBeStartofArrayField: boolean;
-          multilineValueSpecificData?: MultilineValueAdditionalData;
       }
     | DictionaryBlockDescription
     | DictionaryBlockTypeAnnotation
@@ -65,15 +57,14 @@ export function parseDictionaryBlock(
             if (!keyAndValue) {
                 return undefined;
             }
-            const { field, multilineValueSpecificData } = keyAndValue;
+            const field = keyAndValue;
             // Skip lines that belong to the value, in case it's a multiline value.
             lineIndex = field.valueRange.end.line;
 
             lines.push({
-                field: keyAndValue.field,
-                multilineValueSpecificData,
+                field,
                 startIndexInFile: lineIndex,
-                couldBeStartofArrayField: keyAndValue.field.value.trim() == "[",
+                couldBeStartofArrayField: field.value.trim() == "[",
             });
 
             continue;
@@ -288,12 +279,7 @@ function getKeyAndValueStartingInLine(
     lastBlockContentLine: number,
     fullDocHelper: TextDocumentHelper,
     isMultilineValue: boolean,
-):
-    | {
-          field: DictionaryBlockSimpleField;
-          multilineValueSpecificData?: MultilineValueAdditionalData;
-      }
-    | undefined {
+): DictionaryBlockSimpleField | undefined {
     const { lineIndex: firstLineIndex, lineText: firstLineText } = firstLine;
     const keyWithRange = getKeyFromLine(firstLineText, firstLineIndex);
 
@@ -319,17 +305,12 @@ function getKeyAndValueStartingInLine(
             keyEndIndex + firstLineText.substring(keyEndIndex).indexOf(value);
 
         return {
-            field: {
-                ...keyWithRange,
-                value,
-                valueRange: new Range(
-                    new Position(firstLineIndex, valueStartIndex),
-                    new Position(
-                        firstLineIndex,
-                        valueStartIndex + value.length,
-                    ),
-                ),
-            },
+            ...keyWithRange,
+            value,
+            valueRange: new Range(
+                new Position(firstLineIndex, valueStartIndex),
+                new Position(firstLineIndex, valueStartIndex + value.length),
+            ),
         };
     }
 
@@ -343,7 +324,9 @@ function getKeyAndValueStartingInLine(
         lastBlockContentLine,
     );
     return {
-        field: { ...keyWithRange, value, valueRange },
+        ...keyWithRange,
+        value,
+        valueRange,
         multilineValueSpecificData: additionalData,
     };
 }
