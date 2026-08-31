@@ -148,6 +148,20 @@
         "dictionary": {
             "patterns": [
                 {
+                    "begin": "^\\s*([^\\s~][^\\:]+)[\\:]\\s*('''.*){1}\\s*$",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "entity.name.tag.bru"
+                        },
+                        "2": {
+                            "name": "string.bru"
+                        }
+                    },
+                    "end": "(^.*''')\\s*$",
+                    "endCaptures": { "1": { "name": "string.bru" } },
+                    "contentName": "string.bru"
+                },
+                {
                     "begin": "^\\s*([^\\s~][^\\:]+)[\\:]\\s+(\\[)\\s*$",
                     "beginCaptures": {
                         "1": {
