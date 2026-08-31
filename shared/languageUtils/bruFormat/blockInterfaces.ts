@@ -56,7 +56,7 @@ export type MultilineStringAdditionalData =
     | {
           invalidIncludedTextInOpeningLine?: Range;
           invalidIncludedTextInClosingLine?: Range;
-          invalidTailingTextAfterClosingQuotes?: Range;
+          tailingTextAfterClosingQuotes?: Range;
       };
 
 export enum DictionaryBlockTypeAnnotationValue {

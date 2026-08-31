@@ -427,7 +427,7 @@ function parseMultilineString(
                 value: fullFileDocumentHelper.getText(range),
                 range,
                 additionalData: {
-                    invalidTailingTextAfterClosingQuotes:
+                    tailingTextAfterClosingQuotes:
                         tailingTextAfterClosingQuotes,
                     invalidIncludedTextInClosingLine:
                         textInLineWithClosingQuotes,
