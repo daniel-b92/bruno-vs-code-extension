@@ -284,10 +284,7 @@ function isSingleLineKeyValuePair(lineText: string) {
 }
 
 function isStartOfMultilineKeyValuePair(lineContent: string) {
-    const startsWithKey = /^\s*([^:]+)\s*:/.test(lineContent);
-    const includesStartOfMultilineString =
-        isStartLineForMultilineString(lineContent);
-    return startsWithKey && includesStartOfMultilineString;
+    return /^\s*([^:]+)\s*:\s*'''.*$/.test(lineContent);
 }
 
 function getKeyAndValueStartingInLine(
@@ -465,8 +462,4 @@ function parseMultilineString(
 
 function getSingleLineKeyValuePairPattern() {
     return /^\s*([^:]+)\s*:\s*(\S+.*?|.{0})\s*$/;
-}
-
-function isStartLineForMultilineString(lineContent: string) {
-    return /'''/.test(lineContent);
 }
