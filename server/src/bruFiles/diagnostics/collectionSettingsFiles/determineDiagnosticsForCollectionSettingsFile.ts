@@ -8,28 +8,25 @@ import {
     getNamesForRedundantBlocksForCollectionSettingsFile,
     isBlockDictionaryBlock,
     BrunoFileType,
-    isDictionaryBlockField,
     Block,
+    isDictionaryBlockField,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../interfaces";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
 import { checkAtMostOneAuthBlockExists } from "../shared/checks/multipleBlocks/checkAtMostOneAuthBlockExists";
 import { checkAuthBlockTypeFromAuthModeBlockExists } from "../shared/checks/multipleBlocks/checkAuthBlockTypeFromAuthModeBlockExists";
 import { checkBlocksAreSeparatedBySingleEmptyLine } from "../shared/checks/multipleBlocks/checkBlocksAreSeparatedBySingleEmptyLine";
-import { checkDictionaryBlocksAreNotEmpty } from "../shared/checks/multipleBlocks/checkDictionaryBlocksAreNotEmpty";
-import { checkDictionaryBlocksHaveDictionaryStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksHaveDictionaryStructure";
 import { checkNoBlocksHaveUnknownNames } from "../shared/checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
 import { checkThatNoBlocksAreDefinedMultipleTimes } from "../shared/checks/multipleBlocks/checkThatNoBlocksAreDefinedMultipleTimes";
 import { checkThatNoTextExistsOutsideOfBlocks } from "../shared/checks/multipleBlocks/checkThatNoTextExistsOutsideOfBlocks";
 import { getAuthModeBlockSpecificDiagnostics } from "../shared/checks/multipleBlocks/getAuthModeBlockSpecificDiagnostics";
 import { checkNoRedundantBlocksExist } from "../shared/checks/multipleBlocks/checkNoRedundantBlocksExist";
 import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBlocks/checkCodeBlocksHaveClosingBracket";
-import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
-import { checkAnnotationsAreValid } from "../shared/checks/multipleBlocks/checkAnnotationsAreValid";
-import { checkDictionaryBlocksTypeAnnotationsMatchData } from "../shared/checks/multipleBlocks/checkDictionaryBlocksTypeAnnotationsMatchData";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { NonBlockSpecificDiagnosticCode } from "../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import { runDictionaryBlocksBaseChecks } from "../shared/checks/runDictionaryBlocksBaseChecks";
+import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 
 interface BlocksWithSpecificDiagnostics {
     auth?: Block;
@@ -74,12 +71,11 @@ export function determineDiagnosticsForCollectionSettingsFile(
             blocks,
             getNamesForRedundantBlocksForCollectionSettingsFile(),
         ),
-        validDictionaryBlocks.length < blocksThatShouldBeDictionaryBlocks.length
-            ? checkDictionaryBlocksHaveDictionaryStructure(
-                  filePath,
-                  blocksThatShouldBeDictionaryBlocks,
-              )
-            : undefined,
+        ...runDictionaryBlocksBaseChecks(
+            blocksThatShouldBeDictionaryBlocks,
+            validDictionaryBlocks,
+            filePath,
+        ),
         checkDictionaryBlocksSimpleFieldsStructure(
             filePath,
             validDictionaryBlocks.map((block) => ({
@@ -90,15 +86,6 @@ export function determineDiagnosticsForCollectionSettingsFile(
             })),
         ),
         checkCodeBlocksHaveClosingBracket(document, blocks, itemType),
-        checkDictionaryBlocksAreNotEmpty(
-            filePath,
-            blocksThatShouldBeDictionaryBlocks,
-        ),
-        ...checkAnnotationsAreValid(validDictionaryBlocks),
-        ...checkDictionaryBlocksTypeAnnotationsMatchData(
-            filePath,
-            validDictionaryBlocks,
-        ),
         checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType(
             filePath,
             blocks,
