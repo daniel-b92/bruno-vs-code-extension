@@ -102,14 +102,14 @@ function runDescriptionSpecificChecks(
     const textAfterClosingQuotes = tailingTextAfterClosingQuotes
         ? docHelper.getText(tailingTextAfterClosingQuotes)
         : "";
-    const allowedTextPattern = /^\s*\)\s*$/;
+    const allowedTextPattern = /^\)\s*$/;
 
     return allowedTextPattern.test(textAfterClosingQuotes)
         ? undefined
         : {
               code: NonBlockSpecificDiagnosticCode.InvalidStructureForMultilineDescriptionInDictionaryBlock,
               message:
-                  "Invalid text for multiline description after closing quotes. Allowed is only ')' with leading or trailing whitespace characters.",
+                  "Invalid text for multiline description after closing quotes. Allowed is only ')' with optionally trailing whitespaces.",
               range: tailingTextAfterClosingQuotes ?? fullDescriptionRange,
           };
 }
