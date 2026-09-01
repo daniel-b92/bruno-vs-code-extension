@@ -393,7 +393,10 @@ function parseMultilineString(
     const textInLineWithOpeningQuotes =
         startChar < startLineContent.trimEnd().length - surroundingQuotes.length
             ? new Range(
-                  stringStartPosition,
+                  new Position(
+                      stringStartLine,
+                      startChar + surroundingQuotes.length,
+                  ),
                   new Position(stringStartLine, startLineContent.length),
               )
             : undefined;
@@ -414,7 +417,13 @@ function parseMultilineString(
                 .trimStart()
                 .startsWith(surroundingQuotes)
                 ? undefined
-                : new Range(new Position(lineIndex, 0), stringEndPosition);
+                : new Range(
+                      new Position(lineIndex, 0),
+                      new Position(
+                          lineIndex,
+                          endChar - surroundingQuotes.length,
+                      ),
+                  );
             const tailingTextAfterClosingQuotes =
                 line.trimEnd().length == endChar
                     ? undefined
