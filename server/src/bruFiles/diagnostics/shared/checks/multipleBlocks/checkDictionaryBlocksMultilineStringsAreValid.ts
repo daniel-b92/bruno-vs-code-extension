@@ -39,7 +39,10 @@ export function checkDictionaryBlocksMultilineStringsAreValid(
         .filter((val) => val != undefined);
 
     return toCheck.flatMap(({ data, stringRange, type }) => {
-        const commonCheckResults = runCommonChecks(stringRange, data);
+        const commonCheckResults = runCommonChecks(stringRange, data) as (
+            | DiagnosticWithCode
+            | undefined
+        )[];
 
         if (isError(data)) {
             return commonCheckResults;
@@ -47,13 +50,18 @@ export function checkDictionaryBlocksMultilineStringsAreValid(
 
         const { tailingTextAfterClosingQuotes } = data;
 
-        return type == "description"
-            ? runDescriptionSpecificChecks(
-                  docHelper,
-                  stringRange,
-                  tailingTextAfterClosingQuotes,
-              )
-            : runValueSpecificChecks(docHelper, tailingTextAfterClosingQuotes);
+        return commonCheckResults.concat(
+            type == "description"
+                ? runDescriptionSpecificChecks(
+                      docHelper,
+                      stringRange,
+                      tailingTextAfterClosingQuotes,
+                  )
+                : runValueSpecificChecks(
+                      docHelper,
+                      tailingTextAfterClosingQuotes,
+                  ),
+        );
     });
 }
 

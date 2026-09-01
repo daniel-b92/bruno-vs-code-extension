@@ -43,10 +43,10 @@ export function determineDiagnosticsForFolderSettingsFile(
     itemProvider: TypedCollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
 ): DiagnosticWithCode[] {
-    const document = new TextDocumentHelper(documentText);
+    const docHelper = new TextDocumentHelper(documentText);
     const itemType = BrunoFileType.FolderSettingsFile;
 
-    const { blocks, textOutsideOfBlocks } = parseBruFile(document, itemType);
+    const { blocks, textOutsideOfBlocks } = parseBruFile(docHelper, itemType);
     const blocksThatShouldBeDictionaryBlocks = blocks.filter(
         ({ name }) =>
             shouldBeDictionaryBlock(name) ||
@@ -62,7 +62,7 @@ export function determineDiagnosticsForFolderSettingsFile(
     const results: (DiagnosticWithCode | undefined)[] = [];
 
     results.push(
-        checkOccurencesOfMandatoryBlocks(document, blocks),
+        checkOccurencesOfMandatoryBlocks(docHelper, blocks),
         checkThatNoBlocksAreDefinedMultipleTimes(filePath, blocks),
         checkThatNoTextExistsOutsideOfBlocks(filePath, textOutsideOfBlocks),
         checkAuthBlockTypeFromAuthModeBlockExists(filePath, blocks),
@@ -75,6 +75,7 @@ export function determineDiagnosticsForFolderSettingsFile(
         ...runDictionaryBlocksBaseChecks(
             blocksThatShouldBeDictionaryBlocks,
             validDictionaryBlocks,
+            docHelper,
             filePath,
         ),
         checkDictionaryBlocksSimpleFieldsStructure(
@@ -86,7 +87,7 @@ export function determineDiagnosticsForFolderSettingsFile(
                     .map(({ key }) => key),
             })),
         ),
-        checkCodeBlocksHaveClosingBracket(document, blocks, itemType),
+        checkCodeBlocksHaveClosingBracket(docHelper, blocks, itemType),
         checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType(
             filePath,
             blocks,
@@ -102,7 +103,7 @@ export function determineDiagnosticsForFolderSettingsFile(
         .concat(
             collectBlockSpecificDiagnostics({
                 blocks: needSpecificDiagnostics,
-                documentHelper: document,
+                documentHelper: docHelper,
                 filePath,
                 itemProvider,
                 relatedFilesHelper,

@@ -198,6 +198,7 @@ function collectCommonDiagnostics(
         ...runDictionaryBlocksBaseChecks(
             blocksThatShouldBeDictionaryBlocks,
             validDictionaryBlocks,
+            documentHelper,
             filePath,
         ),
         checkDictionaryBlocksSimpleFieldsStructure(

@@ -37,10 +37,10 @@ export function determineDiagnosticsForCollectionSettingsFile(
     filePath: string,
     documentText: string,
 ): DiagnosticWithCode[] {
-    const document = new TextDocumentHelper(documentText);
+    const docHelper = new TextDocumentHelper(documentText);
     const itemType = BrunoFileType.CollectionSettingsFile;
 
-    const { blocks, textOutsideOfBlocks } = parseBruFile(document, itemType);
+    const { blocks, textOutsideOfBlocks } = parseBruFile(docHelper, itemType);
 
     const blocksThatShouldBeDictionaryBlocks = blocks.filter(({ name }) =>
         shouldBeDictionaryBlock(name),
@@ -74,6 +74,7 @@ export function determineDiagnosticsForCollectionSettingsFile(
         ...runDictionaryBlocksBaseChecks(
             blocksThatShouldBeDictionaryBlocks,
             validDictionaryBlocks,
+            docHelper,
             filePath,
         ),
         checkDictionaryBlocksSimpleFieldsStructure(
@@ -85,7 +86,7 @@ export function determineDiagnosticsForCollectionSettingsFile(
                     .map(({ key }) => key),
             })),
         ),
-        checkCodeBlocksHaveClosingBracket(document, blocks, itemType),
+        checkCodeBlocksHaveClosingBracket(docHelper, blocks, itemType),
         checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType(
             filePath,
             blocks,

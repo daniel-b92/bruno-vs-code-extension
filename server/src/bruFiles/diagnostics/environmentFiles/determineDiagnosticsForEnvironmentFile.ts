@@ -20,10 +20,10 @@ export function determineDiagnosticsForEnvironmentFile(
     filePath: string,
     documentText: string,
 ): DiagnosticWithCode[] {
-    const document = new TextDocumentHelper(documentText);
+    const docHelper = new TextDocumentHelper(documentText);
 
     const { blocks, textOutsideOfBlocks } = parseBruFile(
-        document,
+        docHelper,
         BrunoFileType.EnvironmentFile,
     );
     const blocksThatShouldBeDictionaryBlocks = blocks.filter(
@@ -53,6 +53,7 @@ export function determineDiagnosticsForEnvironmentFile(
         ...runDictionaryBlocksBaseChecks(
             blocksThatShouldBeDictionaryBlocks,
             validDictionaryBlocks,
+            docHelper,
             filePath,
         ),
         checkDictionaryBlocksSimpleFieldsStructure(
