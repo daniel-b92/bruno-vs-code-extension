@@ -208,7 +208,7 @@
                             "name": "string.bru"
                         }
                     },
-                    "end": "(^.*''')\\)\\s*$",
+                    "end": "(^.*''')",
                     "endCaptures": { "1": { "name": "string.bru" } },
                     "contentName": "string.bru",
                     "comment": "Description with multiline value"
