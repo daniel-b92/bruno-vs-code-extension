@@ -163,6 +163,12 @@
                     "comment": "Simple field with multiline value"
                 },
                 {
+                    "begin": "^\\s*~([^\\:]+)[\\:]\\s*('''.*){1}\\s*$",
+                    "end": "^(.*'''|})\\s*$",
+                    "name": "comment.block.bru",
+                    "comment": "Disabled simple field with multiline value"
+                },
+                {
                     "begin": "^\\s*([^\\s~][^\\:]+)[\\:]\\s+(\\[)\\s*$",
                     "beginCaptures": {
                         "1": {
