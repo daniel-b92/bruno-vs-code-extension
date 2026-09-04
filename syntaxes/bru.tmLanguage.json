@@ -157,7 +157,7 @@
                             "name": "string.bru"
                         }
                     },
-                    "end": "(^.*''')\\s*$",
+                    "end": "^(.*'''|})\\s*$",
                     "endCaptures": { "1": { "name": "string.bru" } },
                     "contentName": "string.bru",
                     "comment": "Simple field with multiline value"
