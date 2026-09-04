@@ -150,6 +150,133 @@ describe("parseDictionaryBlock", () => {
             plainTextWithinValues: [],
         });
     });
+
+    it("parses a dictionary block with plain text in one line", () => {
+        const blockContent = `block {
+  key1: value 1
+  bla asas
+}`;
+        const docHelper = new TextDocumentHelper(blockContent);
+        const result = parseDictionaryBlock(docHelper, 1, 2);
+
+        expect(result).toBeDefined();
+        const { content, contentRange } = result!;
+
+        expect(contentRange).toEqual(
+            new Range(new Position(1, 0), new Position(3, 0)),
+        );
+
+        expect(content).toHaveLength(2);
+        expect(content).toContainEqual({
+            disabled: false,
+            key: "key1",
+            keyRange: getRangeForKey(1, "key1", 2),
+            value: "value 1",
+            valueRange: getRangeForSingleLineValue(1, "key1", "value 1", 2),
+        });
+        expect(content).toContainEqual({
+            text: "  bla asas",
+            range: new Range(
+                new Position(2, 0),
+                new Position(2, 2 + "bla asas".length),
+            ),
+        });
+    });
+
+    it("parses a dictionary block with different types of disabled fields", () => {
+        const blockContent = `block {
+  ~key1: value 1
+  ~arr1: [
+    val 11
+  ]
+  ~arr2: '''
+    vasas
+  '''
+}`;
+        const docHelper = new TextDocumentHelper(blockContent);
+        const result = parseDictionaryBlock(docHelper, 1, 7);
+
+        expect(result).toBeDefined();
+        const { content, contentRange } = result!;
+
+        expect(contentRange).toEqual(
+            new Range(new Position(1, 0), new Position(8, 0)),
+        );
+
+        expect(content).toHaveLength(3);
+        expect(content).toContainEqual({
+            disabled: true,
+            key: "key1",
+            keyRange: getRangeForKey(1, "key1", 3),
+            value: "value 1",
+            valueRange: getRangeForSingleLineValue(1, "key1", "value 1", 3),
+        });
+        expect(content).toContainEqual({
+            disabled: true,
+            key: "arr1",
+            keyRange: getRangeForKey(2, "arr1", 3),
+            values: [
+                {
+                    content: "val 11",
+                    range: new Range(
+                        new Position(3, 4),
+                        new Position(3, 4 + "val 11".length),
+                    ),
+                },
+            ],
+            arrayRange: {
+                start: new Position(2, 3 + "arr1".length + 3),
+                end: new Position(4, 2),
+            },
+            plainTextWithinValues: [],
+        });
+        expect(content).toContainEqual({
+            disabled: true,
+            key: "arr2",
+            keyRange: getRangeForKey(5, "arr2", 3),
+            value: "'''\n    vasas\n  '''",
+            valueRange: new Range(
+                new Position(5, 3 + "arr2: ".length),
+                new Position(7, 5),
+            ),
+            multilineValueSpecificData: {},
+        });
+    });
+
+    it("parses a dictionary block with a multiline description with invalid text in opening and closing line", () => {
+        const blockContent = `block {
+  @description(''' first line
+    vasas
+  last line ''') bla
+}`;
+        const docHelper = new TextDocumentHelper(blockContent);
+        const result = parseDictionaryBlock(docHelper, 1, 3);
+
+        expect(result).toBeDefined();
+        const { content } = result!;
+
+        expect(content).toHaveLength(1);
+        expect(content[0]).toEqual({
+            range: new Range(
+                new Position(1, "  @description(".length),
+                new Position(3, "  last line '''".length),
+            ),
+            multilineValueSpecificData: {
+                invalidIncludedTextInOpeningLine: new Range(
+                    new Position(1, 2 + "@description('''".length),
+                    docHelper.getRangeForLine(1)!.end,
+                ),
+                invalidIncludedTextInClosingLine: new Range(
+                    new Position(3, 0),
+                    new Position(3, "  last line ".length),
+                ),
+                tailingTextAfterClosingQuotes: new Range(
+                    new Position(3, "  last line '''".length),
+                    docHelper.getRangeForLine(3)!.end,
+                ),
+            },
+        });
+    });
 });
 
 function getRangeForKey(line: number, keyContent: string, startChar = 2) {
