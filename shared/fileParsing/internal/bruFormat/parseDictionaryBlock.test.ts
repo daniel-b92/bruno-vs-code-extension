@@ -277,6 +277,54 @@ describe("parseDictionaryBlock", () => {
             },
         });
     });
+
+    it("parses a dictionary block with a multiline description without closing quotes", () => {
+        const blockContent = `block {
+  @description('''
+    vasas
+    last line
+}`;
+        const docHelper = new TextDocumentHelper(blockContent);
+        const result = parseDictionaryBlock(docHelper, 1, 3);
+
+        expect(result).toBeDefined();
+        const { content } = result!;
+
+        expect(content).toHaveLength(1);
+        expect(content[0]).toEqual({
+            range: new Range(
+                new Position(1, "  @description(".length),
+                new Position(3, "    last line".length),
+            ),
+            multilineValueSpecificData: { err: "missingClosingQuotes" },
+        });
+    });
+
+    it("parses a dictionary block with a simple field with multiline value without closing quotes", () => {
+        const blockContent = `block {
+  arr2: '''
+    vasas
+    asas
+}`;
+        const docHelper = new TextDocumentHelper(blockContent);
+        const result = parseDictionaryBlock(docHelper, 1, 3);
+
+        expect(result).toBeDefined();
+        const { content } = result!;
+
+        expect(content).toHaveLength(1);
+        expect(content[0]).toEqual({
+            disabled: false,
+            key: "arr2",
+            keyRange: getRangeForKey(1, "arr2", 2),
+            value: "'''\n    vasas\n    asas",
+            valueRange: new Range(
+                new Position(1, 2 + "arr2: ".length),
+                new Position(3, 4 + "asas".length),
+            ),
+            multilineValueSpecificData: { err: "missingClosingQuotes" },
+        });
+    });
 });
 
 function getRangeForKey(line: number, keyContent: string, startChar = 2) {

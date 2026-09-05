@@ -40,11 +40,8 @@ export function parseDictionaryBlock(
         const lineContent = docHelper.getLineByIndex(lineIndex);
         const hasSingleLineKeyValueStructure =
             isSingleLineKeyValuePair(lineContent);
-        const hasMultilineKeyValueStructure = isStartOfMultilineKeyValuePair(
-            docHelper,
-            { lineIndex, lineContent },
-            lastContentLine,
-        );
+        const hasMultilineKeyValueStructure =
+            isStartOfMultilineKeyValuePair(lineContent);
 
         if (hasSingleLineKeyValueStructure || hasMultilineKeyValueStructure) {
             const keyAndValue = getKeyAndValueStartingInLine(
@@ -286,24 +283,8 @@ function isSingleLineKeyValuePair(lineText: string) {
     return getSingleLineKeyValuePairPattern().test(lineText);
 }
 
-function isStartOfMultilineKeyValuePair(
-    docHelper: TextDocumentHelper,
-    currentLine: { lineIndex: number; lineContent: string },
-    lastContentLine: number,
-) {
-    const { lineContent, lineIndex } = currentLine;
-
-    const startMatches = /^\s*([^:]+)\s*:\s*'''.*$/.test(lineContent);
-    if (!startMatches) {
-        return false;
-    }
-
-    const endPatternExists = docHelper
-        .getAllLines()
-        .filter(({ index }) => index > lineIndex && index <= lastContentLine)
-        .some(({ content }) => /'''/.test(content));
-    // If only the start pattern matches, it could also be a simple field with a single line value of "'''".
-    return endPatternExists;
+function isStartOfMultilineKeyValuePair(lineContent: string) {
+    return /^\s*([^:]+)\s*:\s*'''.*$/.test(lineContent);
 }
 
 function getKeyAndValueStartingInLine(
