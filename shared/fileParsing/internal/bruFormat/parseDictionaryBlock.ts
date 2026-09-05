@@ -26,10 +26,23 @@ type ParsedFieldOrLine =
     | PlainTextWithinBlock;
 
 export function parseDictionaryBlock(
-    docHelper: TextDocumentHelper,
-    firstContentLine: number,
-    lastContentLine: number,
+    document: {
+        docHelper: TextDocumentHelper;
+        firstContentLine: number;
+        lastContentLine: number;
+    },
+    blockInfos: {
+        supportsDescriptions: boolean;
+        supportsMultiLineValues: boolean;
+        supportsTypeAnnotations: boolean;
+    },
 ) {
+    const { docHelper, firstContentLine, lastContentLine } = document;
+    const {
+        supportsDescriptions,
+        supportsMultiLineValues,
+        supportsTypeAnnotations,
+    } = blockInfos;
     const fields: ParsedFieldOrLine[] = [];
 
     for (
@@ -41,6 +54,7 @@ export function parseDictionaryBlock(
         const hasSingleLineKeyValueStructure =
             isSingleLineKeyValuePair(lineContent);
         const hasMultilineKeyValueStructure =
+            supportsMultiLineValues &&
             isStartOfMultilineKeyValuePair(lineContent);
 
         if (hasSingleLineKeyValueStructure || hasMultilineKeyValueStructure) {
@@ -55,7 +69,11 @@ export function parseDictionaryBlock(
             );
 
             if (!keyAndValue) {
-                return undefined;
+                fields.push({
+                    text: lineContent,
+                    range: docHelper.getRangeForLine(lineIndex) as Range,
+                });
+                continue;
             }
             const field = keyAndValue;
             // Skip lines that belong to the value, in case it's a multiline value.
@@ -86,7 +104,7 @@ export function parseDictionaryBlock(
             !lineContent.includes(":");
 
         if (!IsFirstValueLineWithinArrayField) {
-            if (isSingleLineDescription(lineContent)) {
+            if (supportsDescriptions && isSingleLineDescription(lineContent)) {
                 const lineRange = docHelper.getRangeForLine(lineIndex, true);
 
                 if (lineRange) {
@@ -96,7 +114,10 @@ export function parseDictionaryBlock(
                 }
                 continue;
             }
-            if (isStartOfMultilineDescription(lineContent)) {
+            if (
+                supportsDescriptions &&
+                isStartOfMultilineDescription(lineContent)
+            ) {
                 const parsedLine = parseMultilineString(
                     docHelper,
                     lineIndex,
@@ -111,8 +132,9 @@ export function parseDictionaryBlock(
                 continue;
             }
 
-            const typeAnnotationValue =
-                getTypeAnnotationValueForLine(lineContent);
+            const typeAnnotationValue = supportsTypeAnnotations
+                ? getTypeAnnotationValueForLine(lineContent)
+                : undefined;
             if (typeAnnotationValue) {
                 const lineRange = docHelper.getRangeForLine(lineIndex, true);
 

@@ -16,7 +16,18 @@ describe("parseDictionaryBlock", () => {
   key2: value2
 }`;
         const docHelper = new TextDocumentHelper(blockContent);
-        const result = parseDictionaryBlock(docHelper, 1, 4);
+        const result = parseDictionaryBlock(
+            {
+                docHelper,
+                firstContentLine: 1,
+                lastContentLine: 4,
+            },
+            {
+                supportsDescriptions: true,
+                supportsMultiLineValues: true,
+                supportsTypeAnnotations: true,
+            },
+        );
 
         expect(result).toBeDefined();
         const { content, contentRange } = result!;
@@ -64,7 +75,14 @@ describe("parseDictionaryBlock", () => {
   key2: value2
 }`;
         const docHelper = new TextDocumentHelper(blockContent);
-        const result = parseDictionaryBlock(docHelper, 1, 5);
+        const result = parseDictionaryBlock(
+            { docHelper, firstContentLine: 1, lastContentLine: 5 },
+            {
+                supportsDescriptions: true,
+                supportsMultiLineValues: true,
+                supportsTypeAnnotations: true,
+            },
+        );
 
         expect(result).toBeDefined();
         const { content, contentRange } = result!;
@@ -117,7 +135,14 @@ describe("parseDictionaryBlock", () => {
   ]
 }`;
         const docHelper = new TextDocumentHelper(blockContent);
-        const result = parseDictionaryBlock(docHelper, 1, 4);
+        const result = parseDictionaryBlock(
+            { docHelper, firstContentLine: 1, lastContentLine: 4 },
+            {
+                supportsDescriptions: true,
+                supportsMultiLineValues: true,
+                supportsTypeAnnotations: true,
+            },
+        );
 
         expect(result).toBeDefined();
         const { content } = result!;
@@ -157,7 +182,14 @@ describe("parseDictionaryBlock", () => {
   bla asas
 }`;
         const docHelper = new TextDocumentHelper(blockContent);
-        const result = parseDictionaryBlock(docHelper, 1, 2);
+        const result = parseDictionaryBlock(
+            { docHelper, firstContentLine: 1, lastContentLine: 2 },
+            {
+                supportsDescriptions: true,
+                supportsMultiLineValues: true,
+                supportsTypeAnnotations: true,
+            },
+        );
 
         expect(result).toBeDefined();
         const { content, contentRange } = result!;
@@ -194,7 +226,14 @@ describe("parseDictionaryBlock", () => {
   '''
 }`;
         const docHelper = new TextDocumentHelper(blockContent);
-        const result = parseDictionaryBlock(docHelper, 1, 7);
+        const result = parseDictionaryBlock(
+            { docHelper, firstContentLine: 1, lastContentLine: 7 },
+            {
+                supportsDescriptions: true,
+                supportsMultiLineValues: true,
+                supportsTypeAnnotations: true,
+            },
+        );
 
         expect(result).toBeDefined();
         const { content, contentRange } = result!;
@@ -250,7 +289,14 @@ describe("parseDictionaryBlock", () => {
   last line ''') bla
 }`;
         const docHelper = new TextDocumentHelper(blockContent);
-        const result = parseDictionaryBlock(docHelper, 1, 3);
+        const result = parseDictionaryBlock(
+            { docHelper, firstContentLine: 1, lastContentLine: 3 },
+            {
+                supportsDescriptions: true,
+                supportsMultiLineValues: true,
+                supportsTypeAnnotations: true,
+            },
+        );
 
         expect(result).toBeDefined();
         const { content } = result!;
@@ -288,7 +334,14 @@ describe("parseDictionaryBlock", () => {
     last line
 }`;
         const docHelper = new TextDocumentHelper(blockContent);
-        const result = parseDictionaryBlock(docHelper, 1, 3);
+        const result = parseDictionaryBlock(
+            { docHelper, firstContentLine: 1, lastContentLine: 3 },
+            {
+                supportsDescriptions: true,
+                supportsMultiLineValues: true,
+                supportsTypeAnnotations: true,
+            },
+        );
 
         expect(result).toBeDefined();
         const { content } = result!;
@@ -310,7 +363,14 @@ describe("parseDictionaryBlock", () => {
     asas
 }`;
         const docHelper = new TextDocumentHelper(blockContent);
-        const result = parseDictionaryBlock(docHelper, 1, 3);
+        const result = parseDictionaryBlock(
+            { docHelper, firstContentLine: 1, lastContentLine: 3 },
+            {
+                supportsDescriptions: true,
+                supportsMultiLineValues: true,
+                supportsTypeAnnotations: true,
+            },
+        );
 
         expect(result).toBeDefined();
         const { content } = result!;

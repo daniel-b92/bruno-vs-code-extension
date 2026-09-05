@@ -149,6 +149,9 @@ export * from "./languageUtils/bruFormat/commonBlocks/generic/variables/getBlock
 
 export * from "./languageUtils/bruFormat/commonBlocks/generic/dictionaryBlocks/getKeyRangeContainingPosition";
 export * from "./languageUtils/bruFormat/commonBlocks/generic/dictionaryBlocks/getActiveKeysUsedInOtherLines";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/dictionaryBlocks/doesDictionaryBlockSupportDescriptions";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/dictionaryBlocks/doesDictionaryBlockSupportMultilineValues";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/dictionaryBlocks/doesDictionaryBlockSupportTypeAnnotations";
 
 export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/authBlockNameEnum";
 export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/authBlocksKeyInterfaces";
