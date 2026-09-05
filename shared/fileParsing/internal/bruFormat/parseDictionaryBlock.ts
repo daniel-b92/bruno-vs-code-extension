@@ -30,7 +30,7 @@ export function parseDictionaryBlock(
     firstContentLine: number,
     lastContentLine: number,
 ) {
-    const lines: ParsedFieldOrLine[] = [];
+    const fields: ParsedFieldOrLine[] = [];
 
     for (
         let lineIndex = firstContentLine;
@@ -61,7 +61,7 @@ export function parseDictionaryBlock(
             // Skip lines that belong to the value, in case it's a multiline value.
             lineIndex = field.valueRange.end.line;
 
-            lines.push({
+            fields.push({
                 field,
                 startIndexInFile: lineIndex,
                 couldBeStartofArrayField: field.value.trim() == "[",
@@ -70,7 +70,7 @@ export function parseDictionaryBlock(
             continue;
         }
 
-        const previousLineIndex = lines.findIndex(
+        const previousLineIndex = fields.findIndex(
             (line) =>
                 wasLineParsedAsValidSimpleField(line) &&
                 line.startIndexInFile == lineIndex - 1,
@@ -79,7 +79,7 @@ export function parseDictionaryBlock(
         const IsFirstValueLineWithinArrayField =
             previousLineIndex >= 0 &&
             (
-                lines[previousLineIndex] as {
+                fields[previousLineIndex] as {
                     couldBeStartofArrayField: boolean;
                 }
             ).couldBeStartofArrayField &&
@@ -90,7 +90,7 @@ export function parseDictionaryBlock(
                 const lineRange = docHelper.getRangeForLine(lineIndex, true);
 
                 if (lineRange) {
-                    lines.push({
+                    fields.push({
                         range: lineRange,
                     } as unknown as DictionaryBlockDescription);
                 }
@@ -102,7 +102,7 @@ export function parseDictionaryBlock(
                     lineIndex,
                     lastContentLine,
                 );
-                lines.push({
+                fields.push({
                     range: parsedLine.range,
                     multilineValueSpecificData: parsedLine.additionalData,
                 });
@@ -117,7 +117,7 @@ export function parseDictionaryBlock(
                 const lineRange = docHelper.getRangeForLine(lineIndex, true);
 
                 if (lineRange) {
-                    lines.push({
+                    fields.push({
                         range: lineRange,
                         ...typeAnnotationValue,
                     });
@@ -125,7 +125,7 @@ export function parseDictionaryBlock(
                 continue;
             }
 
-            lines.push({
+            fields.push({
                 text: lineContent,
                 range: docHelper.getRangeForLine(lineIndex) as Range,
             });
@@ -133,7 +133,7 @@ export function parseDictionaryBlock(
         }
 
         // Remove previous line that was seen as a simple field since it makes more sense to be seen as the start of an array field.
-        const fieldStartLine = lines.splice(previousLineIndex, 1)[0] as {
+        const fieldStartLine = fields.splice(previousLineIndex, 1)[0] as {
             field: DictionaryBlockSimpleField;
         };
 
@@ -156,7 +156,7 @@ export function parseDictionaryBlock(
         );
         const fieldEndLineIndex = arrayField.arrayRange.end?.line ?? undefined;
 
-        lines.push(arrayField);
+        fields.push(arrayField);
 
         // Skip lines that belong to the array field
         lineIndex =
@@ -166,7 +166,7 @@ export function parseDictionaryBlock(
     }
 
     return {
-        content: lines.map((line) =>
+        content: fields.map((line) =>
             wasLineParsedAsValidSimpleField(line) ? line.field : line,
         ),
         contentRange: getContentRangeForArrayOrDictionaryBlock(
@@ -460,12 +460,9 @@ function parseMultilineString(
 function determineNonWhitespaceTextBeforeMultilineQuotes(
     lineContent: string,
     lineIndex: number,
-    surroundingQuotesStartIndex: number,
+    quotesStartIndex: number,
 ) {
-    const textBeforeQuotes = lineContent.substring(
-        0,
-        surroundingQuotesStartIndex,
-    );
+    const textBeforeQuotes = lineContent.substring(0, quotesStartIndex);
     const trimmed = textBeforeQuotes.trim();
 
     if (trimmed.length == 0) {
@@ -483,11 +480,10 @@ function determineNonWhitespaceTextBeforeMultilineQuotes(
 function determineNonWhitespaceTextAfterMultilineQuotes(
     lineContent: string,
     lineIndex: number,
-    surroundingQuotesStartIndex: number,
+    quotesStartIndex: number,
 ) {
     const textAfterQuotesStartIndex =
-        surroundingQuotesStartIndex +
-        getSurroundingQuotesForMultilineString().length;
+        quotesStartIndex + getSurroundingQuotesForMultilineString().length;
     const textAfterQuotes = lineContent.substring(textAfterQuotesStartIndex);
     const trimmed = textAfterQuotes.trim();
 

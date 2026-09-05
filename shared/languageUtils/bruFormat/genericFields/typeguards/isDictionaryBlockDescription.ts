@@ -24,9 +24,7 @@ export function isDictionaryBlockDescription(
         return Object.keys(field).length == 1;
     }
 
-    if (!field.multilineValueSpecificData) {
-        return Object.keys(field).length == 2;
-    }
-
-    return typeof field.multilineValueSpecificData == "object";
+    return !field.multilineValueSpecificData
+        ? Object.keys(field).length == 2
+        : typeof field.multilineValueSpecificData == "object";
 }
