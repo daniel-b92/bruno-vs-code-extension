@@ -98,11 +98,11 @@ maybeArrayKey: [
 @description('<Description_Text>') or${lineBreak}@description('''${lineBreak}  <Description_Text>${lineBreak}''')`
                     : [],
                 supportsMultiLineValues
-                    ? `For this block, additionally fields with multiline values are allowed matching the following pattern
+                    ? `- For this block, additionally fields with multiline values are allowed matching the following pattern
 key2: '''${lineBreak}  line1${lineBreak}  line2${lineBreak}  '''`
                     : [],
                 supportsTypeAnnotations
-                    ? `For this block, at most one of the following type annotations per field is allowed:
+                    ? `- For this block, at most one of the following type annotations per field is allowed:
 - @number${lineBreak}- @object${lineBreak}- @boolean`
                     : [],
             )
