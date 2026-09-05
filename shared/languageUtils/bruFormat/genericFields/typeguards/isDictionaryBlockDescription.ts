@@ -16,9 +16,15 @@ export function isDictionaryBlockDescription(
         | DictionaryBlockTypeAnnotation
         | PlainTextWithinBlock,
 ): field is DictionaryBlockDescription {
-    return (
-        "range" in field &&
-        !("text" in field) &&
-        Object.keys(field).every((key) => key === "range")
-    );
+    if (!("range" in field)) {
+        return false;
+    }
+
+    if (!("multilineValueSpecificData" in field)) {
+        return Object.keys(field).length == 1;
+    }
+
+    return !field.multilineValueSpecificData
+        ? Object.keys(field).length == 2
+        : typeof field.multilineValueSpecificData == "object";
 }

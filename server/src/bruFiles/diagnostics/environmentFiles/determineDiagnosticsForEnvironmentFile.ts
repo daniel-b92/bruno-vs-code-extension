@@ -8,25 +8,22 @@ import {
 } from "@global_shared";
 import { DiagnosticWithCode } from "../interfaces";
 import { checkArrayBlocksHaveArrayStructure } from "../shared/checks/multipleBlocks/checkArrayBlocksHaveArrayStructure";
-import { checkDictionaryBlocksAreNotEmpty } from "../shared/checks/multipleBlocks/checkDictionaryBlocksAreNotEmpty";
-import { checkDictionaryBlocksHaveDictionaryStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksHaveDictionaryStructure";
 import { checkNoBlocksHaveUnknownNames } from "../shared/checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
 import { checkThatNoBlocksAreDefinedMultipleTimes } from "../shared/checks/multipleBlocks/checkThatNoBlocksAreDefinedMultipleTimes";
 import { checkThatNoTextExistsOutsideOfBlocks } from "../shared/checks/multipleBlocks/checkThatNoTextExistsOutsideOfBlocks";
-import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { RelevantWithinEnvironmentFileDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinEnvironmentFileDiagnosticCodeEnum";
-import { checkAnnotationsAreValid } from "../shared/checks/multipleBlocks/checkAnnotationsAreValid";
-import { checkDictionaryBlocksTypeAnnotationsMatchData } from "../shared/checks/multipleBlocks/checkDictionaryBlocksTypeAnnotationsMatchData";
+import { runDictionaryBlocksBaseChecks } from "../shared/checks/runDictionaryBlocksBaseChecks";
+import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 
 export function determineDiagnosticsForEnvironmentFile(
     filePath: string,
     documentText: string,
 ): DiagnosticWithCode[] {
-    const document = new TextDocumentHelper(documentText);
+    const docHelper = new TextDocumentHelper(documentText);
 
     const { blocks, textOutsideOfBlocks } = parseBruFile(
-        document,
+        docHelper,
         BrunoFileType.EnvironmentFile,
     );
     const blocksThatShouldBeDictionaryBlocks = blocks.filter(
@@ -53,12 +50,12 @@ export function determineDiagnosticsForEnvironmentFile(
                 ({ name }) => name == EnvironmentFileBlockName.SecretVars,
             ),
         ),
-        validDictionaryBlocks.length < blocksThatShouldBeDictionaryBlocks.length
-            ? checkDictionaryBlocksHaveDictionaryStructure(
-                  filePath,
-                  blocksThatShouldBeDictionaryBlocks,
-              )
-            : undefined,
+        ...runDictionaryBlocksBaseChecks(
+            blocksThatShouldBeDictionaryBlocks,
+            validDictionaryBlocks,
+            docHelper,
+            filePath,
+        ),
         checkDictionaryBlocksSimpleFieldsStructure(
             filePath,
             validDictionaryBlocks.map((block) => ({
@@ -68,22 +65,14 @@ export function determineDiagnosticsForEnvironmentFile(
                     .map(({ key }) => key),
             })),
         ),
-        checkDictionaryBlocksAreNotEmpty(
-            filePath,
-            blocksThatShouldBeDictionaryBlocks,
-        ),
         ...validDictionaryBlocks.flatMap(
             (block) =>
-                checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+                checkNoDuplicateKeysAreDefinedForDictionaryBlock({
                     filePath,
                     block,
-                    RelevantWithinEnvironmentFileDiagnosticCode.EnvironmentVariableDefinedMultipleTimes,
-                ) ?? [],
-        ),
-        ...checkAnnotationsAreValid(validDictionaryBlocks),
-        ...checkDictionaryBlocksTypeAnnotationsMatchData(
-            filePath,
-            validDictionaryBlocks,
+                    diagnosticCode:
+                        RelevantWithinEnvironmentFileDiagnosticCode.EnvironmentVariableDefinedMultipleTimes,
+                }) ?? [],
         ),
     );
 

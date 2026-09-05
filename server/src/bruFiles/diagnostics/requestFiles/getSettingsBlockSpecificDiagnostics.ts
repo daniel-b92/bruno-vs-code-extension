@@ -50,12 +50,13 @@ function runGenericChecksForAllFields(
             optionalKeys,
             RelevantWithinSettingsBlockDiagnosticCode.UnknownKeysDefinedInSettingsBlock,
         ),
-        checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+        checkNoDuplicateKeysAreDefinedForDictionaryBlock({
             filePath,
-            settingsBlock,
-            RelevantWithinSettingsBlockDiagnosticCode.DuplicateKeysDefinedInSettingsdBlock,
-            mandatoryKeys,
-        ),
+            block: settingsBlock,
+            diagnosticCode:
+                RelevantWithinSettingsBlockDiagnosticCode.DuplicateKeysDefinedInSettingsdBlock,
+            expectedKeys: mandatoryKeys,
+        }),
     );
 }
 

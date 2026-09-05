@@ -45,12 +45,13 @@ function runGenericChecksForAllFields(
             mandatoryKeys,
             RelevantWithinAppBlockDiagnosticCode.UnknownKeysDefinedInAppBlock,
         ),
-        checkNoDuplicateKeysAreDefinedForDictionaryBlock(
+        checkNoDuplicateKeysAreDefinedForDictionaryBlock({
             filePath,
             block,
-            RelevantWithinAppBlockDiagnosticCode.DuplicateKeysDefinedInAppBlock,
-            mandatoryKeys,
-        ),
+            diagnosticCode:
+                RelevantWithinAppBlockDiagnosticCode.DuplicateKeysDefinedInAppBlock,
+            expectedKeys: mandatoryKeys,
+        }),
     );
 }
 

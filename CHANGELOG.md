@@ -3,10 +3,12 @@
 ### Features
 
 - Provide diagnostics for dictionary block fields where the value does not match the corresponding type annotation.
+- Provide diagnostics for duplicate keys for all dictionary blocks.
 
 ### Fixes / Maintenance
 
 - Adjust diagnostics to allow new key `forwardAuthorizationHeader` in settings blocks and new dictionary block `app` in request files (both introduced in version 4.1.0 of `Bruno`).
+- Add support for multiline descriptions and simple field values in dictionary blocks (diagnostics and syntax highlighting).
 
 ## [1.2.5] (2026-08-05)
 

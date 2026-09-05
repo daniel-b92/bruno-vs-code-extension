@@ -148,6 +148,27 @@
         "dictionary": {
             "patterns": [
                 {
+                    "begin": "^\\s*([^\\s~][^\\:]+)[\\:]\\s*('''.*){1}\\s*$",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "entity.name.tag.bru"
+                        },
+                        "2": {
+                            "name": "string.bru"
+                        }
+                    },
+                    "end": "^(.*'''|})\\s*$",
+                    "endCaptures": { "1": { "name": "string.bru" } },
+                    "contentName": "string.bru",
+                    "comment": "Simple field with multiline value"
+                },
+                {
+                    "begin": "^\\s*~([^\\:]+)[\\:]\\s*('''.*){1}\\s*$",
+                    "end": "^(.*'''|})\\s*$",
+                    "name": "comment.block.bru",
+                    "comment": "Disabled simple field with multiline value"
+                },
+                {
                     "begin": "^\\s*([^\\s~][^\\:]+)[\\:]\\s+(\\[)\\s*$",
                     "beginCaptures": {
                         "1": {
@@ -157,12 +178,14 @@
                     },
                     "end": "^\\s*(\\]|\\})\\s*$",
                     "endCaptures": { "1": { "name": "keyword.bru" } },
-                    "contentName": "string.bru"
+                    "contentName": "string.bru",
+                    "comment": "Array field (multiple lines)"
                 },
                 {
                     "begin": "^\\s*~([^\\:]+)[\\:]\\s*\\[+\\s*$",
                     "end": "^\\s*(\\]|\\})\\s*$",
-                    "name": "comment.block.bru"
+                    "name": "comment.block.bru",
+                    "comment": "Disabled Array field (multiple lines)"
                 },
                 {
                     "match": "^\\s*([^\\s~][^\\:]+)[\\:]\\s*(.*[^\\[ ]+)\\s*$",
@@ -173,11 +196,28 @@
                         "2": {
                             "name": "string.bru"
                         }
-                    }
+                    },
+                    "comment": "Simple field with single line value"
                 },
                 {
                     "match": "^\\s*~\\s*([^\\s~][^\\:]+)[\\:]\\s*(.*[^\\[ ]+)\\s*$",
-                    "name": "comment.line.bru"
+                    "name": "comment.line.bru",
+                    "comment": "Disabled simple field with single line value"
+                },
+                {
+                    "begin": "^\\s*(@description){1}\\(('''.*){1}$",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "keyword.control.bru"
+                        },
+                        "2": {
+                            "name": "string.bru"
+                        }
+                    },
+                    "end": "(^.*''')",
+                    "endCaptures": { "1": { "name": "string.bru" } },
+                    "contentName": "string.bru",
+                    "comment": "Description with multiline value"
                 },
                 {
                     "match": "^\\s*(@description){1}\\(('[^']*'|\"(\\\\\"|[^\"])*\")\\)\\s*$",
@@ -188,11 +228,13 @@
                         "2": {
                             "name": "string.bru"
                         }
-                    }
+                    },
+                    "comment": "Description with single line value"
                 },
                 {
                     "match": "^\\s*(@number|@boolean|@object)\\s*$",
-                    "name": "keyword.control.bru"
+                    "name": "keyword.control.bru",
+                    "comment": "Type annotation (single line)"
                 }
             ]
         },

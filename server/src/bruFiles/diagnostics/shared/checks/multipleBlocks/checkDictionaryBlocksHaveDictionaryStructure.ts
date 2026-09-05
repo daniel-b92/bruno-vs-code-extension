@@ -52,11 +52,17 @@ function getDiagnostic(
         message: `At least one dictionary block does not have the correct structure. A valid dictionary block matches the following pattern:
 <blockName> {
   key1: value1
+  maybeMultilineKey: '''
+    multilineValue
+  '''
   maybeArrayKey: [
     arrVal1
   ]
 }, optionally with a description matching the pattern
-- @description('<Description_Text>')
+- @description('<Description_Text>') or 
+@description('''
+<Description_Text>
+''')
 and/or one of the following type annotations
 - @number
 - @object
