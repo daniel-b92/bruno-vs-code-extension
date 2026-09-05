@@ -1,7 +1,7 @@
 export function getDefinitionsForResObject() {
     return `/**
  * Object representing the response returned from a server
- * @see {@link https://docs.usebruno.com/scripting/javascript-reference#response} Documentation
+ * @see {@link https://docs.usebruno.com/testing/script/javascript-reference#response} Documentation
  */
 const res = {
 	/**
@@ -45,9 +45,9 @@ const res = {
 	 */
 	getStatusText:() => {},
 	/**
-	 * Returns the value of a response header. Null if the header is not present in the response.
+	 * Returns the value of a response header. Undefined if the header is not present in the response.
 	 * @param {string} name
-	 * @returns {string | null}
+	 * @returns {string | undefined}
 	 */
 	getHeader: (name) => {},
 	/**
@@ -55,6 +55,11 @@ const res = {
 	 * @returns {Record<string, string>}
 	 */
 	getHeaders:() => {},
+	/**
+	 * Read-only PropertyList interface for response headers.
+	 * @type {ReadonlyPropertyList}
+	 */
+	headerList: {},
 	/**
 	 * Get the response URL.
 	 * In case of redirects, you will get the final URL which may be different from the original request URL if redirects were followed.

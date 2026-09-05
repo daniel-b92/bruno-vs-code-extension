@@ -1,7 +1,7 @@
 export function getDefinitionsForReqObject() {
     return `/**
  * Object representing a request made by Bruno.
- * @see {@link https://docs.usebruno.com/scripting/javascript-reference#request} Documentation
+ * @see {@link https://docs.usebruno.com/testing/script/javascript-reference#request} Documentation
  */
 const req = {
 	/**
@@ -92,9 +92,9 @@ const req = {
 	 */
 	getTags: () => {},
 	/**
-	 * Returns the value of an header. Will return "null" if the header does not exist.
+	 * Returns the value of a header. Returns undefined if the header does not exist.
 	 * @param {string} name
-	 * @returns {string | null}
+	 * @returns {string | undefined}
 	 */
 	getHeader: (name) => {},
 	/**
@@ -129,6 +129,11 @@ const req = {
 	 */
 	deleteHeaders: (names) => {},
 	/**
+	 * PropertyList interface for request headers.
+	 * @type {PropertyList}
+	 */
+	headerList: {},
+	/**
 	 * Returns the current body value. The type depends on the currently selected body.
 	 * 
 	 * String for "text", "sparql" and "xml" bodies.
@@ -143,11 +148,10 @@ const req = {
 	getBody: (options = undefined) => {},
 	/**
 	 * Updates the request body. The type of the body must not change, this could cause internal errors otherwise.
-	 * @param {any} data
-	 * @param {{raw: boolean}?} options Defaults to \`raw\` = \`false\`.
+	 * @param {any} body
 	 * @returns {void}
 	 */
-	setBody: (data, options = undefined) => {},
+	setBody: (body) => {},
 	/**
 	 * Current authentication mode. If request auth mode is set to inherit, this will be the mode from collection
 	 * @type {readonly string}
@@ -195,13 +199,6 @@ const req = {
 	 * @returns {"standalone" | "runner"}
 	 */
 	getExecutionMode: () => {},
-	/**
-	 * Get the platform on which the request is being executed.
-	 * "app" When running in the Bruno desktop application.
-	 * "cli" When running through the Bruno CLI.
-	 * @returns {"app" | "cli"}
-	 */
-	getExecutionPlatform: () => {},
 	/**
  	 * Handle request errors with a custom callback function.
  	 * @param {(err: Error) => void} callback

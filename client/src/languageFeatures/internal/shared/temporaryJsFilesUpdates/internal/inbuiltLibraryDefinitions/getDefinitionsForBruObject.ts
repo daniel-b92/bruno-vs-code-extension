@@ -32,6 +32,53 @@ const bru = {
 
 function getCommonTypeDefinitions() {
     return `/**
+ * @typedef {object} PropertyHeader
+ * @property {string} key
+ * @property {string} value
+ * @property {boolean} [disabled]
+ */
+/**
+ * @typedef {object} PropertyList
+ * @property {(name: string) => string | undefined} get
+ * @property {(name: string) => PropertyHeader | undefined} one
+ * @property {() => PropertyHeader[]} all
+ * @property {() => number} count
+ * @property {((name: string, value?: string) => boolean) | ((header: {key: string}) => boolean)} has
+ * @property {(predicate: (header: PropertyHeader) => any, context?: any) => PropertyHeader | undefined} find
+ * @property {(predicate: (header: PropertyHeader) => any, context?: any) => PropertyHeader[]} filter
+ * @property {(item: string | {key: string, value: string}) => number} indexOf
+ * @property {(callback: (header: PropertyHeader, index: number) => void, context?: any) => void} each
+ * @property {<T>(callback: (header: PropertyHeader, index: number) => T, context?: any) => T[]} map
+ * @property {<T>(callback: (result: T, header: PropertyHeader, index: number) => T, initial?: T, context?: any) => T} reduce
+ * @property {(excludeDisabled?: boolean, caseSensitive?: boolean, multiValue?: boolean, sanitizeKeys?: boolean) => object} toObject
+ * @property {() => string} toString
+ * @property {() => PropertyHeader[]} toJSON
+ * @property {(header: PropertyHeader | string, value?: string) => void} add
+ * @property {(header: PropertyHeader | string, value?: string) => boolean | null} upsert
+ * @property {(keyOrPredicate: string | {key: string} | ((header: PropertyHeader) => any), context?: any) => void} remove
+ * @property {() => void} clear
+ * @property {(items: PropertyHeader[] | string) => void} populate
+ * @property {(items: PropertyHeader[] | string) => void} repopulate
+ * @property {(source: PropertyList | PropertyHeader[], prune?: boolean) => void} assimilate
+ */
+/**
+ * @typedef {object} ReadonlyPropertyList
+ * @property {(name: string) => string | undefined} get
+ * @property {(name: string) => PropertyHeader | undefined} one
+ * @property {() => PropertyHeader[]} all
+ * @property {() => number} count
+ * @property {((name: string, value?: string) => boolean) | ((header: {key: string}) => boolean)} has
+ * @property {(predicate: (header: PropertyHeader) => any, context?: any) => PropertyHeader | undefined} find
+ * @property {(predicate: (header: PropertyHeader) => any, context?: any) => PropertyHeader[]} filter
+ * @property {(item: string | {key: string, value: string}) => number} indexOf
+ * @property {(callback: (header: PropertyHeader, index: number) => void, context?: any) => void} each
+ * @property {<T>(callback: (header: PropertyHeader, index: number) => T, context?: any) => T[]} map
+ * @property {<T>(callback: (result: T, header: PropertyHeader, index: number) => T, initial?: T, context?: any) => T} reduce
+ * @property {(excludeDisabled?: boolean, caseSensitive?: boolean, multiValue?: boolean, sanitizeKeys?: boolean) => object} toObject
+ * @property {() => string} toString
+ * @property {() => PropertyHeader[]} toJSON
+ */
+/**
  * @typedef {object} RequestOptions
  * @property {string} method HTTP method (GET, POST, PUT, etc.)
  * @property {string} url The URL to send the request to.
@@ -49,6 +96,8 @@ function getCommonTypeDefinitions() {
  * @property {boolean} [secure]
  * @property {boolean} [httpOnly]
  * @property {number} [maxAge]
+ * @property {string} [expires]
+ * @property {string} [sameSite]
  */
 /**
  * @typedef {object} BrunoCookieJar
@@ -284,11 +333,6 @@ sleep: (ms) => {},
  */
 interpolate: (input) => {},
 /**
- * Prevent the automatic parsing of the JSON response body and work directly with the raw data. Use this in the pre-request script of the request.
- * @returns {void}
- */
-disableParsingResponseJson: () => {},
-/**
  * Returns the absolute path of the collection's root directory on disk.
  * @returns {string}
  */
@@ -300,7 +344,7 @@ cwd: () => {},
 isSafeMode: () => {},
 /**
  * Determines the next request to execute withing the request runner.
- * @param {string} nextRequest
+ * @param {string | null} nextRequest
  * @returns {void}
  */
 setNextRequest: (nextRequest) => {},
@@ -314,18 +358,18 @@ runRequest: (requestPath) => {},
 /**
  * Send a programmatic HTTP request within your script.
  * @param {RequestOptions} options Object containing the request parameters.
- * @param {(err: Error, response: object) => void} callback Function to handle the response.
- * @returns {void}
+ * @param {(err: Error, response: object) => void} [callback] Function to handle the response.
+ * @returns {Promise<object>}
  */
-sendRequest: (options, callback) => {},
+sendRequest: (options, callback = undefined) => {},
 /**
  * Obtain the test results of a request. Use this within test scripts.
- * @returns {Promise<object>}
+ * @returns {Promise<{name: string, status: string}[]>}
  */
 getTestResults: () => {},
 /**
  * Obtain the assertion results of a request. Use this within test scripts.
- * @returns {Promise<object>}
+ * @returns {Promise<{lhs: string, operator: string, rhs: string, status: string}[]>}
  */
 getAssertionResults: () => {},`;
 }
@@ -372,6 +416,44 @@ function getDefinitionsForRunnerSubobject() {
 
 function getDefinitionsForCookiesSubobject() {
     return `{
+	/** Get a cookie value for the current request URL. @param {string} name @returns {string | undefined} */
+	get: (name) => {},
+	/** Check whether a cookie exists, optionally matching its value. @param {string} name @param {string} [value] @returns {boolean} */
+	has: (name, value = undefined) => {},
+	/** Find one cookie entry by id. @param {string} id @returns {CookieObject | undefined} */
+	one: (id) => {},
+	/** Get all cookies for the current request URL. @returns {CookieObject[]} */
+	all: () => {},
+	/** Count cookies for the current request URL. @returns {number} */
+	count: () => {},
+	/** Get a cookie by numeric index. @param {number} index @returns {CookieObject | undefined} */
+	idx: (index) => {},
+	/** Find the index of a cookie entry. @param {CookieObject} item @returns {number} */
+	indexOf: (item) => {},
+	/** Iterate synchronously over cookies. @param {(cookie: CookieObject) => void} callback */
+	each: (callback) => {},
+	/** Find the first matching cookie. @param {(cookie: CookieObject) => any} callback @returns {CookieObject | undefined} */
+	find: (callback) => {},
+	/** Return all matching cookies. @param {(cookie: CookieObject) => any} callback @returns {CookieObject[]} */
+	filter: (callback) => {},
+	/** Map cookies to another value. @param {(cookie: CookieObject) => any} callback @returns {any[]} */
+	map: (callback) => {},
+	/** Reduce cookies to a value. @param {Function} callback @param {any} initial @returns {any} */
+	reduce: (callback, initial) => {},
+	/** Convert cookies to a name/value object. @returns {Record<string, string>} */
+	toObject: () => {},
+	/** Convert cookies to a string. @returns {string} */
+	toString: () => {},
+	/** Add and persist a request-scoped cookie. @param {CookieObject} cookie @returns {Promise<void>} */
+	add: (cookie) => {},
+	/** Add or replace and persist a request-scoped cookie. @param {CookieObject} cookie @returns {Promise<void>} */
+	upsert: (cookie) => {},
+	/** Remove and persist a request-scoped cookie. @param {string} name @returns {Promise<void>} */
+	remove: (name) => {},
+	/** Delete and persist a request-scoped cookie. @param {string} name @returns {Promise<void>} */
+	delete: (name) => {},
+	/** Clear and persist all request-scoped cookies. @returns {Promise<void>} */
+	clear: () => {},
     /**
      * Create a cookie jar instance for managing cookies.
      * @returns {BrunoCookieJar}
