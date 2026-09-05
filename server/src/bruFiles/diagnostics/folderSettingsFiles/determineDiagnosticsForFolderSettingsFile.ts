@@ -8,16 +8,14 @@ import {
     isAuthBlock,
     isBlockDictionaryBlock,
     BrunoFileType,
-    isDictionaryBlockField,
     Block,
+    isDictionaryBlockField,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../interfaces";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
 import { checkAtMostOneAuthBlockExists } from "../shared/checks/multipleBlocks/checkAtMostOneAuthBlockExists";
 import { checkAuthBlockTypeFromAuthModeBlockExists } from "../shared/checks/multipleBlocks/checkAuthBlockTypeFromAuthModeBlockExists";
 import { checkBlocksAreSeparatedBySingleEmptyLine } from "../shared/checks/multipleBlocks/checkBlocksAreSeparatedBySingleEmptyLine";
-import { checkDictionaryBlocksAreNotEmpty } from "../shared/checks/multipleBlocks/checkDictionaryBlocksAreNotEmpty";
-import { checkDictionaryBlocksHaveDictionaryStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksHaveDictionaryStructure";
 import { checkNoBlocksHaveUnknownNames } from "../shared/checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
 import { checkThatNoBlocksAreDefinedMultipleTimes } from "../shared/checks/multipleBlocks/checkThatNoBlocksAreDefinedMultipleTimes";
 import { checkThatNoTextExistsOutsideOfBlocks } from "../shared/checks/multipleBlocks/checkThatNoTextExistsOutsideOfBlocks";
@@ -26,13 +24,12 @@ import { checkOccurencesOfMandatoryBlocks } from "./checks/checkOccurencesOfMand
 import { getMetaBlockSpecificDiagnostics } from "./util/getMetaBlockSpecificDiagnostics";
 import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDiagnosticsHelper";
 import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBlocks/checkCodeBlocksHaveClosingBracket";
-import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { TypedCollectionItemProvider } from "../../../shared";
 import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
-import { checkAnnotationsAreValid } from "../shared/checks/multipleBlocks/checkAnnotationsAreValid";
-import { checkDictionaryBlocksTypeAnnotationsMatchData } from "../shared/checks/multipleBlocks/checkDictionaryBlocksTypeAnnotationsMatchData";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { NonBlockSpecificDiagnosticCode } from "../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import { runDictionaryBlocksBaseChecks } from "../shared/checks/runDictionaryBlocksBaseChecks";
+import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 
 interface BlocksWithSpecificDiagnostics {
     meta?: Block;
@@ -46,10 +43,10 @@ export function determineDiagnosticsForFolderSettingsFile(
     itemProvider: TypedCollectionItemProvider,
     relatedFilesHelper: RelatedFilesDiagnosticsHelper,
 ): DiagnosticWithCode[] {
-    const document = new TextDocumentHelper(documentText);
+    const docHelper = new TextDocumentHelper(documentText);
     const itemType = BrunoFileType.FolderSettingsFile;
 
-    const { blocks, textOutsideOfBlocks } = parseBruFile(document, itemType);
+    const { blocks, textOutsideOfBlocks } = parseBruFile(docHelper, itemType);
     const blocksThatShouldBeDictionaryBlocks = blocks.filter(
         ({ name }) =>
             shouldBeDictionaryBlock(name) ||
@@ -65,7 +62,7 @@ export function determineDiagnosticsForFolderSettingsFile(
     const results: (DiagnosticWithCode | undefined)[] = [];
 
     results.push(
-        checkOccurencesOfMandatoryBlocks(document, blocks),
+        checkOccurencesOfMandatoryBlocks(docHelper, blocks),
         checkThatNoBlocksAreDefinedMultipleTimes(filePath, blocks),
         checkThatNoTextExistsOutsideOfBlocks(filePath, textOutsideOfBlocks),
         checkAuthBlockTypeFromAuthModeBlockExists(filePath, blocks),
@@ -75,12 +72,12 @@ export function determineDiagnosticsForFolderSettingsFile(
             blocks,
             Object.values(getValidBlockNamesForFolderSettingsFile()),
         ),
-        validDictionaryBlocks.length < blocksThatShouldBeDictionaryBlocks.length
-            ? checkDictionaryBlocksHaveDictionaryStructure(
-                  filePath,
-                  blocksThatShouldBeDictionaryBlocks,
-              )
-            : undefined,
+        ...runDictionaryBlocksBaseChecks(
+            blocksThatShouldBeDictionaryBlocks,
+            validDictionaryBlocks,
+            docHelper,
+            filePath,
+        ),
         checkDictionaryBlocksSimpleFieldsStructure(
             filePath,
             validDictionaryBlocks.map((block) => ({
@@ -90,16 +87,7 @@ export function determineDiagnosticsForFolderSettingsFile(
                     .map(({ key }) => key),
             })),
         ),
-        checkCodeBlocksHaveClosingBracket(document, blocks, itemType),
-        checkDictionaryBlocksAreNotEmpty(
-            filePath,
-            blocksThatShouldBeDictionaryBlocks,
-        ),
-        ...checkAnnotationsAreValid(validDictionaryBlocks),
-        ...checkDictionaryBlocksTypeAnnotationsMatchData(
-            filePath,
-            validDictionaryBlocks,
-        ),
+        checkCodeBlocksHaveClosingBracket(docHelper, blocks, itemType),
         checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType(
             filePath,
             blocks,
@@ -115,7 +103,7 @@ export function determineDiagnosticsForFolderSettingsFile(
         .concat(
             collectBlockSpecificDiagnostics({
                 blocks: needSpecificDiagnostics,
-                documentHelper: document,
+                documentHelper: docHelper,
                 filePath,
                 itemProvider,
                 relatedFilesHelper,
