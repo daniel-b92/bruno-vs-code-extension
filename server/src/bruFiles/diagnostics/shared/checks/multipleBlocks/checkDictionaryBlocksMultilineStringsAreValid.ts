@@ -122,16 +122,24 @@ function runValueSpecificChecks(
         return undefined;
     }
     const actualContent = docHelper.getText(tailingTextAfterClosingQuotes);
-    const allowedTextPattern = /^\s*$/;
+    const trimmed = actualContent.trim();
 
-    return allowedTextPattern.test(actualContent)
-        ? undefined
-        : {
-              code: NonBlockSpecificDiagnosticCode.InvalidStructureForMultilineValueInDictionaryBlock,
-              message:
-                  "No text is allowed after closing quotes for multiline value.",
-              range: tailingTextAfterClosingQuotes,
-          };
+    if (trimmed.length == 0) {
+        return undefined;
+    }
+
+    const trimmedTextStartIndex =
+        tailingTextAfterClosingQuotes.start.character +
+        docHelper.getText(tailingTextAfterClosingQuotes).indexOf(trimmed);
+
+    return {
+        code: NonBlockSpecificDiagnosticCode.InvalidStructureForMultilineValueInDictionaryBlock,
+        message: "No text is allowed after closing quotes for multiline value.",
+        range: tailingTextAfterClosingQuotes.withPositions({
+            startChar: trimmedTextStartIndex,
+            endChar: trimmedTextStartIndex + trimmed.length,
+        }),
+    };
 }
 
 function isError(
