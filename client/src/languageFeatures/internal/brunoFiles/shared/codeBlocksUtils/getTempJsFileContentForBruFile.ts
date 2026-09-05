@@ -5,7 +5,7 @@ import {
     getCodeBlocks,
     ItemType,
 } from "@global_shared";
-import { getDefinitionsForInbuiltLibraries } from "../../../shared/temporaryJsFilesUpdates/external/getDefinitionsForInbuiltLibraries";
+import { getDefinitionsForAllInbuiltLibraries } from "../../../shared/temporaryJsFilesUpdates/internal/inbuiltLibraryDefinitions/getDefinitionsForAllInbuiltLibraries";
 import { mapBlockNameToJsFileLine } from "./mapBlockNameToJsFileFunctionName";
 import { getCharacterForLineBreak } from "./getCharacterForLineBreak";
 
@@ -24,7 +24,7 @@ export function getTempJsFileContentForBruFile(
 ${content}}`,
     );
 
-    return getDefinitionsForInbuiltLibraries(eol)
+    return getDefinitionsForAllInbuiltLibraries(eol)
         .concat(functionsForTempJsFile)
         .join(getCharacterForLineBreak(eol).repeat(2));
 }

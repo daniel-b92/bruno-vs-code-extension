@@ -9,6 +9,7 @@
 
 - Adjust diagnostics to allow new key `forwardAuthorizationHeader` in settings blocks and new dictionary block `app` in request files (both introduced in version 4.1.0 of `Bruno`).
 - Add support for multiline descriptions and simple field values in dictionary blocks (diagnostics and syntax highlighting).
+- Update definitions for `Bruno` Javascript API to match current version `4.1.0`.
 
 ## [1.2.5] (2026-08-05)
 
