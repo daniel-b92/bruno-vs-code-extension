@@ -731,8 +731,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
 
                     const sourceItem = dataWithCollection.data.item;
                     const baseItemForCopying:
-                        | CollectionItem
-                        | CollectionItemWithSequence = {
+                        CollectionItem | CollectionItemWithSequence = {
                         getItemType: () => sourceItem.getItemType(),
                         getPath: () => sourceItem.getPath(),
                         isFile: () => sourceItem.isFile(),
@@ -791,6 +790,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                             sourceItem.getPath(),
                             targetPath,
                             collection,
+                            true,
                         ))
                     ) {
                         return;
@@ -983,22 +983,27 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         sourcePath: string,
         newPath: string,
         targetCollection?: TypedCollection,
+        // confirmation should not be required in most cases, e.g. when moving a request within the same folder (e.g. to update the sequence).
+        confirmOnOverwritingSourceItem = false,
     ) {
-        if (
+        const needsConfirmation =
             targetCollection &&
             this.itemProvider.getRegisteredItem(targetCollection, newPath) &&
-            normalizePath(newPath) != normalizePath(sourcePath) // confirmation should not be required when moving a request within the same folder (e.g. to update the sequence)
-        ) {
-            const pickedOption = await vscode.window.showInformationMessage(
-                `An item with the path '${newPath}' already exists. Do you want to overwrite it?`,
-                { modal: true },
-                this.confirmationOptionForModals,
-            );
+            (confirmOnOverwritingSourceItem
+                ? true
+                : normalizePath(newPath) != normalizePath(sourcePath));
 
-            return pickedOption == this.confirmationOptionForModals;
+        if (!needsConfirmation) {
+            return true;
         }
 
-        return true;
+        const pickedOption = await vscode.window.showInformationMessage(
+            `An item with the path '${newPath}' already exists. Do you want to overwrite it?`,
+            { modal: true },
+            this.confirmationOptionForModals,
+        );
+
+        return pickedOption == this.confirmationOptionForModals;
     }
 
     private async writeFileAndOpenItOnSuccess(
