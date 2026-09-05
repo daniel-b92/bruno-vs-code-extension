@@ -263,15 +263,18 @@ describe("parseDictionaryBlock", () => {
             ),
             multilineValueSpecificData: {
                 invalidIncludedTextInOpeningLine: new Range(
-                    new Position(1, 2 + "@description('''".length),
+                    new Position(
+                        1,
+                        docHelper.getLineByIndex(1).indexOf("first line"),
+                    ),
                     docHelper.getRangeForLine(1)!.end,
                 ),
                 invalidIncludedTextInClosingLine: new Range(
-                    new Position(3, 0),
-                    new Position(3, "  last line ".length),
+                    new Position(3, 2),
+                    new Position(3, "  last line".length),
                 ),
                 tailingTextAfterClosingQuotes: new Range(
-                    new Position(3, "  last line '''".length),
+                    new Position(3, docHelper.getLineByIndex(3).indexOf(")")),
                     docHelper.getRangeForLine(3)!.end,
                 ),
             },

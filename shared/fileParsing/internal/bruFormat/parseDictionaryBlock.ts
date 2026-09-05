@@ -382,21 +382,21 @@ function parseMultilineString(
     range: Range;
     additionalData: MultilineStringAdditionalData;
 } {
-    const surroundingQuotes = "'''";
+    const surroundingQuotes = getSurroundingQuotesForMultilineString();
     const startLineContent =
         fullFileDocumentHelper.getLineByIndex(stringStartLine);
-    const startChar = startLineContent.lastIndexOf(surroundingQuotes);
-    const stringStartPosition = new Position(stringStartLine, startChar);
-    const textInLineWithOpeningQuotes =
-        startChar < startLineContent.trimEnd().length - surroundingQuotes.length
-            ? new Range(
-                  new Position(
-                      stringStartLine,
-                      startChar + surroundingQuotes.length,
-                  ),
-                  new Position(stringStartLine, startLineContent.length),
-              )
-            : undefined;
+    const startCharIncludingQuotes =
+        startLineContent.lastIndexOf(surroundingQuotes);
+    const stringStartPosition = new Position(
+        stringStartLine,
+        startCharIncludingQuotes,
+    );
+    const invalidIncludedTextInOpeningLine =
+        determineNonWhitespaceTextAfterMultilineQuotes(
+            startLineContent,
+            stringStartLine,
+            startCharIncludingQuotes,
+        );
 
     // Skip the line with the opening quotes for parsing the content.
     let lineIndex = stringStartLine + 1;
@@ -406,26 +406,26 @@ function parseMultilineString(
         const isEndOfString = line.includes("'''");
 
         if (isEndOfString) {
-            const endChar =
-                line.indexOf(surroundingQuotes) + surroundingQuotes.length;
-            const stringEndPosition = new Position(lineIndex, endChar);
+            const quotesStartIndex = line.indexOf(surroundingQuotes);
+            const endCharAfterQuotes =
+                quotesStartIndex + surroundingQuotes.length;
+            const stringEndPosition = new Position(
+                lineIndex,
+                endCharAfterQuotes,
+            );
             const range = new Range(stringStartPosition, stringEndPosition);
-            const textInLineWithClosingQuotes = line
-                .trimStart()
-                .startsWith(surroundingQuotes)
-                ? undefined
-                : new Range(
-                      new Position(lineIndex, 0),
-                      new Position(
-                          lineIndex,
-                          endChar - surroundingQuotes.length,
-                      ),
-                  );
+
+            const invalidIncludedTextInClosingLine =
+                determineNonWhitespaceTextBeforeMultilineQuotes(
+                    line,
+                    lineIndex,
+                    quotesStartIndex,
+                );
             const tailingTextAfterClosingQuotes =
-                line.trimEnd().length == endChar
+                line.trimEnd().length == endCharAfterQuotes
                     ? undefined
                     : new Range(
-                          new Position(lineIndex, endChar),
+                          new Position(lineIndex, endCharAfterQuotes),
                           new Position(lineIndex, line.length),
                       );
 
@@ -433,12 +433,9 @@ function parseMultilineString(
                 value: fullFileDocumentHelper.getText(range),
                 range,
                 additionalData: {
-                    tailingTextAfterClosingQuotes:
-                        tailingTextAfterClosingQuotes,
-                    invalidIncludedTextInClosingLine:
-                        textInLineWithClosingQuotes,
-                    invalidIncludedTextInOpeningLine:
-                        textInLineWithOpeningQuotes,
+                    tailingTextAfterClosingQuotes,
+                    invalidIncludedTextInClosingLine,
+                    invalidIncludedTextInOpeningLine,
                 },
             };
         }
@@ -460,6 +457,64 @@ function parseMultilineString(
     };
 }
 
+function determineNonWhitespaceTextBeforeMultilineQuotes(
+    lineContent: string,
+    lineIndex: number,
+    surroundingQuotesStartIndex: number,
+) {
+    const textBeforeQuotes = lineContent.substring(
+        0,
+        surroundingQuotesStartIndex,
+    );
+    const trimmed = textBeforeQuotes.trim();
+
+    if (trimmed.length == 0) {
+        return undefined;
+    }
+    const startIndex = textBeforeQuotes.indexOf(trimmed);
+    return startIndex >= 0
+        ? new Range(
+              new Position(lineIndex, startIndex),
+              new Position(lineIndex, startIndex + trimmed.length),
+          )
+        : undefined;
+}
+
+function determineNonWhitespaceTextAfterMultilineQuotes(
+    lineContent: string,
+    lineIndex: number,
+    surroundingQuotesStartIndex: number,
+) {
+    const textAfterQuotesStartIndex =
+        surroundingQuotesStartIndex +
+        getSurroundingQuotesForMultilineString().length;
+    const textAfterQuotes = lineContent.substring(textAfterQuotesStartIndex);
+    const trimmed = textAfterQuotes.trim();
+
+    if (trimmed.length == 0) {
+        return undefined;
+    }
+    const startIndexWithinTextAfterQuotes = textAfterQuotes.indexOf(trimmed);
+    return startIndexWithinTextAfterQuotes >= 0
+        ? new Range(
+              new Position(
+                  lineIndex,
+                  textAfterQuotesStartIndex + startIndexWithinTextAfterQuotes,
+              ),
+              new Position(
+                  lineIndex,
+                  textAfterQuotesStartIndex +
+                      startIndexWithinTextAfterQuotes +
+                      trimmed.length,
+              ),
+          )
+        : undefined;
+}
+
 function getSingleLineKeyValuePairPattern() {
     return /^\s*([^:]+)\s*:\s*(\S+.*?|.{0})\s*$/;
+}
+
+function getSurroundingQuotesForMultilineString() {
+    return "'''";
 }
