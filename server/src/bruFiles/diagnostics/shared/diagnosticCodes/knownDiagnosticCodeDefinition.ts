@@ -7,6 +7,7 @@ import { RelevantWithinAuthModeBlockDiagnosticCode } from "./relevantWithinAuthM
 import { RelevantWithinSettingsBlockDiagnosticCode } from "./relevantWithinSettingsBlockDiagnosticCodeEnum";
 import { RelevantWithinEnvironmentFileDiagnosticCode } from "./relevantWithinEnvironmentFileDiagnosticCodeEnum";
 import { RelevantWithinAppBlockDiagnosticCode } from "./relevantWithinAppBlockDiagnosticCodeEnum";
+import { RelevantWithinCodeBlockDiagnosticCode } from "./relevantWithinCodeBlockDiagnosticCodeEnum";
 
 export type KnownDiagnosticCode =
     | RelevantWithinAuthBlockDiagnosticCode
@@ -17,4 +18,5 @@ export type KnownDiagnosticCode =
     | RelevantWithinAuthModeBlockDiagnosticCode
     | RelevantWithinSettingsBlockDiagnosticCode
     | RelevantWithinEnvironmentFileDiagnosticCode
-    | RelevantWithinAppBlockDiagnosticCode;
+    | RelevantWithinAppBlockDiagnosticCode
+    | RelevantWithinCodeBlockDiagnosticCode;

@@ -8,6 +8,7 @@ import {
     EnvironmentFileBlockName,
     SettingsFileSpecificBlock,
     Oauth2AdditionalParamsBlockNames,
+    appFileSpecificBlocks,
 } from "../../../..";
 
 export function shouldBeDictionaryBlock(blockName: string) {
@@ -16,6 +17,7 @@ export function shouldBeDictionaryBlock(blockName: string) {
     ).concat(
         (Object.values(EnvironmentFileBlockName) as string[]).concat(
             Object.values(SettingsFileSpecificBlock),
+            appFileSpecificBlocks.app,
         ),
     );
 
@@ -29,6 +31,7 @@ export function shouldBeDictionaryBlock(blockName: string) {
         blockName == RequestFileBlockName.Assertions ||
         blockName == RequestFileBlockName.Settings ||
         blockName == RequestFileBlockName.App ||
+        blockName == appFileSpecificBlocks.app ||
         (getPossibleMethodBlocks() as string[]).includes(blockName) ||
         isAuthBlock(blockName) ||
         isParamsBlock(blockName) ||

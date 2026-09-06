@@ -1,4 +1,5 @@
 import {
+    appFileSpecificBlocks,
     isParamsBlock,
     isVarsBlockInEnvironmentFile,
     isVarsBlockInRequestFile,
@@ -19,6 +20,7 @@ export function doesDictionaryBlockSupportMultilineValues(
         (
             [
                 RequestFileBlockName.App,
+                appFileSpecificBlocks.app,
                 RequestFileBlockName.MultipartFormBody,
                 RequestFileBlockName.FormUrlEncodedBody,
                 RequestFileBlockName.FileOrBinaryBody,

@@ -100,6 +100,11 @@ export * from "./languageUtils/bruFormat/environmentFiles/environmentFileBlockNa
 export { isVarsBlock as isVarsBlockInEnvironmentFile } from "./languageUtils/bruFormat/environmentFiles/isVarsBlock";
 export * from "./languageUtils/bruFormat/commonBlocks/generic/variables/getMatchingDefinitionsFromEnvFiles";
 
+// language utils - app files
+export * from "./languageUtils/bruFormat/appFiles/appFileSpecificBlocks";
+export { getValidBlockNames as getValidAppFileBlockNames } from "./languageUtils/bruFormat/appFiles/getValidBlockNames";
+export * from "./languageUtils/bruFormat/appFiles/appBlockInAppFileKeysEnum";
+
 // language utils - common blocks
 export * from "./languageUtils/bruFormat/commonBlocks/getMethodBlockBodyFieldValueForBodyName";
 export * from "./languageUtils/bruFormat/commonBlocks/getExpectedUrlQueryParamsForQueryParamsBlock";
