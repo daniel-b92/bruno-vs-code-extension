@@ -1,6 +1,10 @@
 import { describe, it, expect } from "@jest/globals";
 import {
     DictionaryBlockTypeAnnotationValue,
+    isDictionaryBlockArrayField,
+    isDictionaryBlockDescription,
+    isDictionaryBlockSimpleField,
+    isDictionaryBlockTypeAnnotation,
     Position,
     Range,
     TextDocumentHelper,
@@ -386,6 +390,51 @@ describe("parseDictionaryBlock", () => {
                 new Position(3, 4 + "asas".length),
             ),
             multilineValueSpecificData: { err: "missingClosingQuotes" },
+        });
+    });
+
+    it("parses a dictionary block that does not support any annotations or multiline values", () => {
+        const blockContent = `block {
+  @description("first")
+  @number
+  key2: '''
+    value2
+  '''
+}`;
+        const docHelper = new TextDocumentHelper(blockContent);
+        const result = parseDictionaryBlock(
+            { docHelper, firstContentLine: 1, lastContentLine: 5 },
+            {
+                supportsDescriptions: false,
+                supportsMultiLineValues: false,
+                supportsTypeAnnotations: false,
+            },
+        );
+
+        expect(result).toBeDefined();
+        const { content } = result!;
+
+        expect(content).toHaveLength(5);
+        expect(content.filter(isDictionaryBlockDescription)).toHaveLength(0);
+        expect(content.filter(isDictionaryBlockTypeAnnotation)).toHaveLength(0);
+        expect(
+            content
+                .filter(isDictionaryBlockSimpleField)
+                .filter(
+                    ({ multilineValueSpecificData }) =>
+                        multilineValueSpecificData != undefined,
+                ),
+        ).toHaveLength(0);
+        expect(content.filter(isDictionaryBlockArrayField)).toHaveLength(0);
+
+        const simpleFields = content.filter(isDictionaryBlockSimpleField);
+        expect(simpleFields).toHaveLength(1);
+        expect(simpleFields[0]).toEqual({
+            disabled: false,
+            key: "key2",
+            keyRange: getRangeForKey(3, "key2", 2),
+            value: "'''",
+            valueRange: getRangeForSingleLineValue(3, "key2", "'''", 2),
         });
     });
 });
