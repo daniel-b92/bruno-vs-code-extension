@@ -4,6 +4,7 @@
 
 - Provide diagnostics for dictionary block fields where the value does not match the corresponding type annotation.
 - Provide diagnostics for duplicate keys for all dictionary blocks.
+- Provide proper diagnostics and syntax highlighting and some basic completions for app files.
 
 ### Fixes / Maintenance
 
