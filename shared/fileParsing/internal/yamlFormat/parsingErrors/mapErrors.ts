@@ -21,9 +21,15 @@ export function mapErrors(
                 : linePos[1]
                   ? new Position(linePos[1].line - 1, linePos[1].col - 1)
                   : startPosition;
+        const spansMultipleLines = startPosition.line != endPosition.line;
+        const messageToUse =
+            // Avoid printing line and character infos in message, if the range is only within a single line.
+            !spansMultipleLines && message.includes("at line ")
+                ? message.substring(0, message.indexOf("at line "))
+                : message;
 
         return {
-            message,
+            message: messageToUse,
             range: new Range(startPosition, endPosition),
             code: YamlParsingErrorCode.Other,
         };
