@@ -21,6 +21,7 @@ import {
     getFileContent,
     parseFileByPath,
     BrunoCollectionSettingsFile,
+    BrunoAppFile,
 } from "../..";
 import { createCollectionDirectoryInstance } from "./createCollectionDirectoryInstance";
 
@@ -57,10 +58,10 @@ export async function getCollectionItemForFile(
             return await createEnvironmentFileInstance(path);
         case BrunoFileType.RequestFile:
             return await createRequestFileInstance(path);
-        case NonBrunoSpecificItemType.OtherFileType:
         case BrunoFileType.AppFile:
-            // For App files, it is currently assumed that they are valid. Implementing diagnostics and other language features is still to do.
-            return new NonBrunoFile(path);
+            return new BrunoAppFile(path);
+        case NonBrunoSpecificItemType.OtherFileType:
+            new NonBrunoFile(path);
         default:
             return undefined;
     }

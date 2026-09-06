@@ -65,6 +65,7 @@ export * from "./baseModel/files/brunoEnvironmentFile";
 export * from "./baseModel/files/nonBrunoFile";
 export * from "./baseModel/files/brunoFolderSettingsFile";
 export * from "./baseModel/files/BrunoCollectionSettingsFile";
+export * from "./baseModel/files/brunoAppFile";
 export * from "./baseModel/typeguards/isCollectionItemWithSequence";
 export * from "./baseModel/typeguards/isRequestFile";
 export * from "./baseModel/typeguards/isCollectionDirectory";
