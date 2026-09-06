@@ -1,26 +1,22 @@
 import { Range, WithKeyAndValueRange } from "@global_shared";
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
-import { CommonDiagnosticParams } from "../../interfaces";
 import { URI } from "vscode-uri";
 
-export function checkVariableNamesAreUnique(
-    variables: {
-        properties: {
-            name?: WithKeyAndValueRange<string>;
-        };
-    }[],
-    { filePath }: CommonDiagnosticParams,
+export function checkPropertiesAreUnique<T>(
+    filePath: string,
+    properties: WithKeyAndValueRange<T>[],
+    propertyName: string,
 ): (Diagnostic | undefined)[] {
-    const groupedByName = variables.reduce(
-        (prev, { properties: { name: currentNameField } }) => {
-            if (!currentNameField) {
+    const groupedByName = properties.reduce(
+        (prev, currentPropField) => {
+            if (!currentPropField) {
                 return prev;
             }
 
-            const { value: currentName, valueRange: currentRange } =
-                currentNameField;
+            const { value: currentValue, valueRange: currentRange } =
+                currentPropField;
             const matchingIndex = prev.findIndex(
-                ({ name }) => name == currentName,
+                ({ property: name }) => name == currentValue,
             );
 
             if (matchingIndex >= 0) {
@@ -35,27 +31,27 @@ export function checkVariableNamesAreUnique(
             }
 
             return prev.concat({
-                name: currentName,
+                property: currentValue,
                 ranges: [currentRange],
             });
         },
-        [] as { name: string; ranges: Range[] }[],
+        [] as { property: T; ranges: Range[] }[],
     );
 
-    return groupedByName.map(({ name, ranges }) => {
+    return groupedByName.map(({ property: name, ranges }) => {
         if (ranges.length <= 1) {
             return undefined;
         }
         const sortedFieldsByPosition = sortByPosition(ranges.slice());
 
         return {
-            message: "Same name already defined",
+            message: `Same ${propertyName} already defined`,
             range: sortedFieldsByPosition[sortedFieldsByPosition.length - 1],
             severity: DiagnosticSeverity.Warning,
             relatedInformation: sortedFieldsByPosition
                 .slice(0, -1)
                 .map((range) => ({
-                    message: `Other definition for name '${name}'`,
+                    message: `Other definition for ${propertyName} '${name}'`,
                     location: {
                         uri: URI.file(filePath).toString(),
                         range,
