@@ -9,6 +9,10 @@ import {
     DictionaryBlock,
     AppBlockInAppFileKey,
     appFileSpecificBlocks,
+    Block,
+    getMetaBlockMandatoryKeys,
+    MetaBlockKey,
+    RequestFileBlockName,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../interfaces";
 import { checkBlocksAreSeparatedBySingleEmptyLine } from "../shared/checks/multipleBlocks/checkBlocksAreSeparatedBySingleEmptyLine";
@@ -21,6 +25,10 @@ import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/single
 import { RelevantWithinCodeBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinCodeBlockDiagnosticCodeEnum";
 import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "../shared/checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
+import { checkSequenceInMetaBlockIsValid } from "../shared/checks/singleBlocks/checkSequenceInMetaBlockIsValid";
+import { RelevantWithinMetaBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
+import { checkNoMandatoryValuesAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoMandatoryValuesAreMissingForDictionaryBlock";
+import { checkMetaBlockStartsInFirstLine } from "../shared/checks/singleBlocks/checkMetaBlockStartsInFirstLine";
 
 export function determineDiagnosticsForAppFile(
     filePath: string,
@@ -38,8 +46,11 @@ export function determineDiagnosticsForAppFile(
     const validDictionaryBlocks = blocksThatShouldBeDictionaryBlocks.filter(
         isBlockDictionaryBlock,
     );
-    const appBlockAsDictionaryBlock = validDictionaryBlocks.find(
+    const appBlocksAsDictionaryBlocks = validDictionaryBlocks.filter(
         ({ name }) => name == appFileSpecificBlocks.app,
+    );
+    const metaBlocks = blocks.filter(
+        ({ name }) => name == RequestFileBlockName.Meta,
     );
 
     const results = [
@@ -71,12 +82,68 @@ export function determineDiagnosticsForAppFile(
             blocks,
             textOutsideOfBlocks,
         ),
-        appBlockAsDictionaryBlock
-            ? runAppBlockSpecificChecks(appBlockAsDictionaryBlock, filePath)
+        appBlocksAsDictionaryBlocks.length == 1
+            ? runAppBlockSpecificChecks(
+                  appBlocksAsDictionaryBlocks[0],
+                  filePath,
+              )
+            : undefined,
+        metaBlocks.length == 1
+            ? getMetaBlockSpecificDiagnostics({
+                  documentHelper: docHelper,
+                  filePath,
+                  metaBlock: metaBlocks[0],
+              })
             : undefined,
     );
 
     return results.filter((val) => val != undefined) as DiagnosticWithCode[];
+}
+
+function getMetaBlockSpecificDiagnostics(data: {
+    filePath: string;
+    documentHelper: TextDocumentHelper;
+    metaBlock: Block;
+}): (DiagnosticWithCode | undefined)[] {
+    const { documentHelper, filePath, metaBlock } = data;
+    const expectedKeys = getMetaBlockMandatoryKeys(BrunoFileType.AppFile);
+
+    if (!expectedKeys) {
+        return [];
+    }
+
+    const diagnostics: (DiagnosticWithCode | undefined)[] = [];
+    diagnostics.push(checkSequenceInMetaBlockIsValid(metaBlock));
+
+    if (!isBlockDictionaryBlock(metaBlock)) {
+        return diagnostics;
+    }
+
+    return diagnostics.concat(
+        checkNoKeysAreMissingForDictionaryBlock(
+            metaBlock,
+            expectedKeys,
+            RelevantWithinMetaBlockDiagnosticCode.KeysMissingInMetaBlock,
+        ),
+        checkNoUnknownKeysAreDefinedInDictionaryBlock(
+            metaBlock,
+            expectedKeys,
+            RelevantWithinMetaBlockDiagnosticCode.UnknownKeysDefinedInMetaBlock,
+        ),
+        checkNoMandatoryValuesAreMissingForDictionaryBlock(
+            metaBlock,
+            [MetaBlockKey.Name],
+            RelevantWithinMetaBlockDiagnosticCode.MandatoryValuesMissingInMetaBlock,
+        ),
+        checkNoDuplicateKeysAreDefinedForDictionaryBlock({
+            filePath: filePath,
+            block: metaBlock,
+            diagnosticCode:
+                RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
+            expectedKeys: expectedKeys,
+        }) ?? [],
+        checkMetaBlockStartsInFirstLine(documentHelper, metaBlock),
+    );
 }
 
 function runAppBlockSpecificChecks(

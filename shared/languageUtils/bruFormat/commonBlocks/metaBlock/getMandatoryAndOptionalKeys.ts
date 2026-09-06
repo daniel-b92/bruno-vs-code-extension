@@ -1,7 +1,7 @@
 import { BrunoFileType, MetaBlockKey } from "../../../..";
 
 export function getMetaBlockMandatoryKeys(fileType: BrunoFileType) {
-    return fileType == BrunoFileType.RequestFile
+    return [BrunoFileType.RequestFile, BrunoFileType.AppFile].includes(fileType)
         ? [MetaBlockKey.Name, MetaBlockKey.Sequence, MetaBlockKey.Type]
         : fileType == BrunoFileType.FolderSettingsFile
           ? [MetaBlockKey.Name, MetaBlockKey.Sequence]
