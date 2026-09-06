@@ -34,7 +34,7 @@
     "repository": {
         "dictionary-block": {
             "name": "meta.dictionary-block.bru",
-            "begin": "^\\s*(meta|get|post|put|delete|options|patch|http|head|params:\\S+|headers|auth|auth:\\S+|body:multipart-form|body:form-urlencoded|body:file|vars:\\S+|assert|vars|settings)\\s*{\\s*$",
+            "begin": "^\\s*(meta|get|post|put|delete|options|patch|http|head|params:\\S+|headers|auth|auth:\\S+|body:multipart-form|body:form-urlencoded|body:file|vars:\\S+|assert|vars|settings|app)\\s*{\\s*$",
             "end": "^}\\s*$",
             "beginCaptures": { "0": { "name": "keyword.bru" } },
             "patterns": [{ "include": "#dictionary" }]
@@ -116,7 +116,7 @@
         },
         "plain-text-block": {
             "name": "meta.plain-text-block.bru",
-            "begin": "^\\s*(body:text|docs|example|app)\\s*{\\s*$",
+            "begin": "^\\s*(body:text|docs|example)\\s*{\\s*$",
             "end": "^}\\s*$",
             "beginCaptures": {
                 "0": {

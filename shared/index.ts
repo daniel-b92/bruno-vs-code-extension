@@ -65,6 +65,7 @@ export * from "./baseModel/files/brunoEnvironmentFile";
 export * from "./baseModel/files/nonBrunoFile";
 export * from "./baseModel/files/brunoFolderSettingsFile";
 export * from "./baseModel/files/BrunoCollectionSettingsFile";
+export * from "./baseModel/files/brunoAppFile";
 export * from "./baseModel/typeguards/isCollectionItemWithSequence";
 export * from "./baseModel/typeguards/isRequestFile";
 export * from "./baseModel/typeguards/isCollectionDirectory";
@@ -99,6 +100,11 @@ export * from "./languageUtils/bruFormat/requestFiles/paramsBlocks/isParamsBlock
 export * from "./languageUtils/bruFormat/environmentFiles/environmentFileBlockNameEnum";
 export { isVarsBlock as isVarsBlockInEnvironmentFile } from "./languageUtils/bruFormat/environmentFiles/isVarsBlock";
 export * from "./languageUtils/bruFormat/commonBlocks/generic/variables/getMatchingDefinitionsFromEnvFiles";
+
+// language utils - app files
+export * from "./languageUtils/bruFormat/appFiles/appFileSpecificBlocks";
+export { getValidBlockNames as getValidAppFileBlockNames } from "./languageUtils/bruFormat/appFiles/getValidBlockNames";
+export * from "./languageUtils/bruFormat/appFiles/appBlockInAppFileKeysEnum";
 
 // language utils - common blocks
 export * from "./languageUtils/bruFormat/commonBlocks/getMethodBlockBodyFieldValueForBodyName";

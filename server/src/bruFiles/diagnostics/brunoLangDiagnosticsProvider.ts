@@ -5,6 +5,7 @@ import { determineDiagnosticsForRequestFile } from "./requestFiles/determineDiag
 import { determineDiagnosticsForEnvironmentFile } from "./environmentFiles/determineDiagnosticsForEnvironmentFile";
 import { determineDiagnosticsForCollectionSettingsFile } from "./collectionSettingsFiles/determineDiagnosticsForCollectionSettingsFile";
 import { BrunoFileType } from "@global_shared";
+import { determineDiagnosticsForAppFile } from "./appFiles/determineDiagnosticsForAppFile";
 
 export class BrunoLangDiagnosticsProvider {
     constructor(private itemProvider: TypedCollectionItemProvider) {
@@ -20,8 +21,7 @@ export class BrunoLangDiagnosticsProvider {
     ) {
         switch (brunoFileType) {
             case BrunoFileType.AppFile:
-                // For App files, intellisense is currently very limited.
-                return [];
+                return determineDiagnosticsForAppFile(filePath, content);
             case BrunoFileType.RequestFile:
                 return determineDiagnosticsForRequestFile(
                     filePath,
