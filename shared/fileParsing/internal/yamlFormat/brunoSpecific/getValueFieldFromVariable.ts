@@ -36,8 +36,7 @@ export function getValueFieldFromVariable(
 
     const matchingField = variableDefinitionMap.items.find(
         ({ key }) =>
-            isScalar<string>(key) &&
-            key.value == EnvironmentVariableProperty.Value,
+            isScalar(key) && key.value == EnvironmentVariableProperty.Value,
     );
 
     if (!matchingField) {
@@ -53,8 +52,9 @@ export function getValueFieldFromVariable(
     if (!isMap(matchingField.value)) {
         const maybeTypedValue:
             { item: Scalar<string> } | { error: YamlParsingError } =
-            isScalar<string>(matchingField.value)
-                ? { item: matchingField.value }
+            isScalar(matchingField.value) &&
+            typeof matchingField.value.value == "string"
+                ? { item: matchingField.value as Scalar<string> }
                 : {
                       error: getErrorForValueWithUnexpectedType({
                           ...commonParams,
