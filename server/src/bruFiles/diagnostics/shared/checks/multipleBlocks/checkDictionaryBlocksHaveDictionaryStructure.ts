@@ -1,5 +1,8 @@
 import {
     Block,
+    doesDictionaryBlockSupportDescriptions,
+    doesDictionaryBlockSupportMultilineValues,
+    doesDictionaryBlockSupportTypeAnnotations,
     isBlockDictionaryBlock,
     isDictionaryBlockDescription,
     isDictionaryBlockField,
@@ -12,15 +15,11 @@ import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { getSortedPlainTextLinesByPosition } from "../../util/getSortedPlainTextLinesByPosition";
 import { URI } from "vscode-uri";
-import {
-    DiagnosticRelatedInformation,
-    DiagnosticSeverity,
-} from "vscode-languageserver";
 
 export function checkDictionaryBlocksHaveDictionaryStructure(
     filePath: string,
     blocksToCheck: Block[],
-): DiagnosticWithCode | undefined {
+): DiagnosticWithCode[] | undefined {
     const sortedBlocksWithoutCorrectStructure = getSortedBlocksByPosition(
         blocksToCheck.filter((block) => !isBlockDictionaryBlock(block)),
     );
@@ -47,48 +46,68 @@ function getDiagnostic(
         blockName: string;
         invalidLines: PlainTextWithinBlock[];
     }[],
-): DiagnosticWithCode {
-    return {
-        message: `At least one dictionary block does not have the correct structure. A valid dictionary block matches the following pattern:
+): DiagnosticWithCode[] {
+    return sortedBlocksWithIncorrectStructure.map(
+        ({ blockName, invalidLines }) => {
+            const sortedInvalidLines =
+                getSortedPlainTextLinesByPosition(invalidLines);
+            const range = new Range(
+                sortedInvalidLines[0].range.start,
+                sortedInvalidLines[sortedInvalidLines.length - 1].range.end,
+            );
+
+            return {
+                message: getMessageForBlock(blockName),
+                range,
+                code: NonBlockSpecificDiagnosticCode.DictionaryBlocksNotStructuredCorrectly,
+                relatedInformation:
+                    sortedInvalidLines.length <= 1
+                        ? undefined
+                        : sortedInvalidLines.map(({ range }) => ({
+                              message: `Invalid line in block '${blockName}'`,
+                              location: {
+                                  uri: URI.file(filePath).toString(),
+                                  range,
+                              },
+                          })),
+            };
+        },
+    );
+
+    function getMessageForBlock(blockName: string) {
+        const lineBreak = "\n";
+        const commonMessageStart = `Dictionary block does not have the correct structure. A valid dictionary block with a single field matches the following pattern:
 <blockName> {
   key1: value1
-  maybeMultilineKey: '''
-    multilineValue
-  '''
-  maybeArrayKey: [
-    arrVal1
-  ]
-}, optionally with a description matching the pattern
-- @description('<Description_Text>') or 
-@description('''
-<Description_Text>
-''')
-and/or one of the following type annotations
-- @number
-- @object
-- @boolean
-per key.`,
-        range: getRange(sortedBlocksWithIncorrectStructure),
-        relatedInformation:
-            sortedBlocksWithIncorrectStructure.length > 1 ||
-            sortedBlocksWithIncorrectStructure[0].invalidLines.length > 1
-                ? sortedBlocksWithIncorrectStructure.reduce(
-                      (prev, curr) =>
-                          prev.concat(
-                              curr.invalidLines.map(({ range }) => ({
-                                  message: `Invalid line in block '${curr.blockName}'`,
-                                  location: {
-                                      uri: URI.file(filePath).toString(),
-                                      range,
-                                  },
-                              })),
-                          ),
-                      [] as DiagnosticRelatedInformation[],
-                  )
-                : undefined,
-        severity: DiagnosticSeverity.Error,
-        code: getCode(),
-    };
+}
+- For some blocks, array fields matching the following pattern are allowed as well
+maybeArrayKey: [
+  arrVal1
+]`;
+
+        const supportsDescriptions =
+            doesDictionaryBlockSupportDescriptions(blockName);
+        const supportsMultiLineValues =
+            doesDictionaryBlockSupportMultilineValues(blockName);
+        const supportsTypeAnnotations =
+            doesDictionaryBlockSupportTypeAnnotations(blockName);
+        return [commonMessageStart]
+            .concat(
+                supportsDescriptions
+                    ? `- For this block, at most one description per field is allowed matching the pattern
+@description('<Description_Text>') or${lineBreak}@description('''${lineBreak}  <Description_Text>${lineBreak}''')`
+                    : [],
+                supportsMultiLineValues
+                    ? `- For this block, additionally fields with multiline values are allowed matching the following pattern
+key2: '''${lineBreak}  line1${lineBreak}  line2${lineBreak}  '''`
+                    : [],
+                supportsTypeAnnotations
+                    ? `- For this block, at most one of the following type annotations per field is allowed:
+- @number${lineBreak}- @object${lineBreak}- @boolean`
+                    : [],
+            )
+            .join(lineBreak);
+    }
 }
 
 function getLinesWithInvalidStructure(block: Block) {
@@ -100,28 +119,4 @@ function getLinesWithInvalidStructure(block: Block) {
                   !isDictionaryBlockTypeAnnotation(field),
           ) as PlainTextWithinBlock[])
         : undefined;
-}
-
-function getRange(
-    sortedBlocksWithIncorrectStructure: {
-        blockName: string;
-        invalidLines: PlainTextWithinBlock[];
-    }[],
-): Range {
-    const lastBlock =
-        sortedBlocksWithIncorrectStructure[
-            sortedBlocksWithIncorrectStructure.length - 1
-        ];
-    return new Range(
-        getSortedPlainTextLinesByPosition(
-            sortedBlocksWithIncorrectStructure[0].invalidLines,
-        )[0].range.start,
-        getSortedPlainTextLinesByPosition(lastBlock.invalidLines)[
-            lastBlock.invalidLines.length - 1
-        ].range.end,
-    );
-}
-
-function getCode() {
-    return NonBlockSpecificDiagnosticCode.DictionaryBlocksNotStructuredCorrectly;
 }
