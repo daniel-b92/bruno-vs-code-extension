@@ -12,3 +12,11 @@ export enum TopLevelRequestFileProperty {
     Docs = "docs",
     Examples = "examples",
 }
+
+export enum RequestFileSettingsProperty {
+    EncodeUrl = "encodeUrl",
+    Timeout = "timeout",
+    FollowRedirects = "followRedirects",
+    MaxRedirects = "maxRedirects",
+    ForwardAuthorizationHeader = "forwardAuthorizationHeader",
+}

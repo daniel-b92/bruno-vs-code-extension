@@ -19,6 +19,7 @@ import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
 import { TopLevelRequestFileProperty } from "./constants/requestFileConstants";
 import { parseFileInfoFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseFileInfoFromYamlMap";
 import { parseDocsFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpecific/parseDocsFromYamlMapOrScalar";
+import { parseSettingsFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseSettingsFromYamlMap";
 
 export function parseRequestFile(docHelper: TextDocumentHelper) {
     const commonArgs: CommonParsingArgs = {
@@ -100,10 +101,16 @@ export function parseRequestFile(docHelper: TextDocumentHelper) {
         commonArgs,
         collectedErrors,
     );
+    const settingsMap = validMaps.find(
+        ({ key }) => key == TopLevelRequestFileProperty.settings,
+    );
+    const settings = settingsMap
+        ? getParsedSettings(settingsMap, commonArgs, collectedErrors)
+        : undefined;
 
     return {
         errors: collectedErrors,
-        result: { properties: { info, docs }, missingProperties },
+        result: { properties: { info, docs, settings }, missingProperties },
     };
 }
 
@@ -161,4 +168,18 @@ function getParsedDocs(
     collectedErrors.push(...parsingErrors);
 
     return result;
+}
+
+function getParsedSettings(
+    settingsMap: WithKeyAndKeyRange<YAMLMap>,
+    commonArgs: CommonParsingArgs,
+    collectedErrors: YamlParsingError[],
+) {
+    const { result: settings, errors } = parseSettingsFromYamlMap(
+        settingsMap,
+        commonArgs,
+    );
+    collectedErrors.push(...errors);
+
+    return settings;
 }

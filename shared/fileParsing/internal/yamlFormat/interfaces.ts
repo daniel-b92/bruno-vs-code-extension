@@ -83,6 +83,14 @@ export type ParsedDocsWithType = WithKeyAndValueRange<
       }>
 >;
 
+export type ParsedSettings = ParsedYamlMapWithKeyAndValueRange<{
+    encodeUrl?: WithKeyAndValueRange<boolean>;
+    timeout?: WithKeyAndValueRange<"inherit"> | WithKeyAndValueRange<number>;
+    followRedirects?: WithKeyAndValueRange<boolean>;
+    maxRedirects?: WithKeyAndValueRange<number>;
+    forwardAuthorizationHeader?: WithKeyAndValueRange<boolean>;
+}>;
+
 export type ParsedAuth = WithKeyAndValueRange<
     ParsedInheritAuth | ParsedBasicAuth | ParsedBearerAuth
 >;
