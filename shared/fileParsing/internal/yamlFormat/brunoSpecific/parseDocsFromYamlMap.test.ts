@@ -14,45 +14,16 @@ import {
     ParsedDocsWithType,
     ParsedYamlMap,
     WithKeyAndKeyRange,
-    WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { YAMLMap } from "yaml";
-import { parseDocsFromYamlMapOrScalar } from "./parseDocsFromYamlMapOrScalar";
+import { parseDocsFromYamlMap } from "./parseDocsFromYamlMap";
 import {
     DocsProperty,
     DocsType,
 } from "../../../external/yamlFormat/constants/sharedConstants";
 
-describe("parseDocsFromYamlMapOrScalar", () => {
-    it("parses docs section with scalar value", () => {
-        const documentText = `docs: |-
-    some text
-    sfsdfsdf`;
-
-        const source: WithKeyKeyRangeAndValueRange<string> = {
-            key: "auth",
-            keyRange: getExpectedKeyRange(0, "docs", 0),
-            value: "some text\nsfsdfsdf",
-            valueRange: new Range(
-                new Position(1, 4),
-                new Position(2, 4 + "sfsdfsdf".length),
-            ),
-        };
-        const docHelper = new TextDocumentHelper(documentText);
-        const fullDocumentRange = docHelper.getTextRange();
-        const { result, errors } = parseDocsFromYamlMapOrScalar(source, {
-            docHelper,
-            fullDocumentRange,
-        });
-
-        expect(errors).toHaveLength(0);
-        expect(result).toBeDefined();
-        expect(result?.keyRange).toEqual(source.keyRange);
-        expect(result?.valueRange).toEqual(source.valueRange);
-        expect(result?.value).toEqual(source.value);
-    });
-
-    it("parses docs section with Yaml map value", () => {
+describe("parseDocsFromYamlMap", () => {
+    it("parses valid docs section", () => {
         const documentText = `docs:
     content: |-
         asdafd
@@ -71,7 +42,7 @@ describe("parseDocsFromYamlMapOrScalar", () => {
             value: docsMap,
         };
 
-        const { result, errors } = parseDocsFromYamlMapOrScalar(source, {
+        const { result, errors } = parseDocsFromYamlMap(source, {
             docHelper,
             fullDocumentRange,
         });
@@ -113,7 +84,7 @@ describe("parseDocsFromYamlMapOrScalar", () => {
         expect(result).toEqual(expectedValue);
     });
 
-    it("partially parses docs section provided as Yaml map containing invalid properties", () => {
+    it("partially parses docs section containing invalid properties", () => {
         const documentText = `docs:
     content: |-
         asdafd
@@ -134,7 +105,7 @@ describe("parseDocsFromYamlMapOrScalar", () => {
             value: docsMap,
         };
 
-        const { result, errors } = parseDocsFromYamlMapOrScalar(source, {
+        const { result, errors } = parseDocsFromYamlMap(source, {
             docHelper,
             fullDocumentRange,
         });

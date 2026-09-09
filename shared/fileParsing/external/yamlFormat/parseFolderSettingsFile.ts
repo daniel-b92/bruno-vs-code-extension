@@ -4,14 +4,12 @@ import {
     ParsedInfoForFolderSettings,
     TextDocumentHelper,
     YamlParsingError,
-    YamlParsingErrorCode,
 } from "../../..";
 import {
     CommonParsingArgs,
     MaybeResultWithErrors,
     ParsedDocsWithType,
     WithKeyAndKeyRange,
-    WithKeyKeyRangeAndValueRange,
 } from "../../internal/yamlFormat/interfaces";
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
 import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForMissingKeyInMap";
@@ -28,7 +26,7 @@ import {
     FolderSettingsRequestSectionProperty,
     TopLevelFolderSettingsProperty,
 } from "./constants/folderSettingsFileConstants";
-import { parseDocsFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpecific/parseDocsFromYamlMapOrScalar";
+import { parseDocsFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseDocsFromYamlMap";
 import { getRangeForItem } from "../../internal/yamlFormat/util/getRangeForItem";
 
 export function parseFolderSettingsFile(
@@ -50,18 +48,13 @@ export function parseFolderSettingsFile(
 
     const { map: topLevelMap } = maybeTopLevelMap;
     const {
-        items: {
-            missingKeys,
-            unknownKeys,
-            validMaps,
-            validScalars: { withStringValue: validScalars },
-        },
+        items: { missingKeys, unknownKeys, validMaps },
         errors: mapItemErrors,
     } = getMapItems(
         topLevelMap,
         {
-            // Docs section can either be a scalar or a map.
-            scalars: { stringValues: [TopLevelFolderSettingsProperty.Docs] },
+            // Docs section is always a Yaml map for folder settings files.
+            scalars: {},
             mapValues: expectedTopLevelProperties,
         },
         commonArgs,
@@ -86,18 +79,11 @@ export function parseFolderSettingsFile(
                 : [],
         ),
     );
-    // Docs section was searched for as both a scalar and a map. So only, if it is not found for both, it is really missing.
-    const isDocsSectionMissing =
-        missingKeys.filter((key) => key == TopLevelFolderSettingsProperty.Docs)
-            .length > 1;
-    const missingProperties = missingKeys
-        .filter((key) => key != TopLevelFolderSettingsProperty.Docs)
-        .concat(isDocsSectionMissing ? TopLevelFolderSettingsProperty.Docs : [])
-        .map((key) => ({
-            key,
-            alwaysHasScalarValue: false,
-            isMandatory: key == TopLevelFolderSettingsProperty.Info,
-        }));
+    const missingProperties = missingKeys.map((key) => ({
+        key,
+        alwaysHasScalarValue: false,
+        isMandatory: key == TopLevelFolderSettingsProperty.Info,
+    }));
     const infoMap = validMaps.find(
         ({ key }) => key == TopLevelFolderSettingsProperty.Info,
     );
@@ -105,12 +91,7 @@ export function parseFolderSettingsFile(
         ? getParsedInfo(infoMap, commonArgs, collectedErrors)
         : undefined;
     const request = getParsedRequest(validMaps, commonArgs, collectedErrors);
-    const docs = getParsedDocs(
-        validMaps,
-        validScalars,
-        commonArgs,
-        collectedErrors,
-    );
+    const docs = getParsedDocs(validMaps, commonArgs, collectedErrors);
     return {
         errors: collectedErrors,
         result: { properties: { info, request, docs }, missingProperties },
@@ -134,39 +115,17 @@ function getParsedInfo(
 
 function getParsedDocs(
     allValidMaps: WithKeyAndKeyRange<YAMLMap>[],
-    allValidScalars: WithKeyKeyRangeAndValueRange<unknown>[],
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ): ParsedDocsWithType | undefined {
     const map = allValidMaps.find(
         ({ key }) => key == TopLevelFolderSettingsProperty.Docs,
     );
-    const untypedScalar = allValidScalars.find(
-        ({ key }) => key == TopLevelFolderSettingsProperty.Docs,
-    );
-    if ((map && untypedScalar) || (!map && !untypedScalar)) {
-        return undefined;
-    }
-    if (
-        untypedScalar &&
-        untypedScalar.value !== null &&
-        typeof untypedScalar.value != "string"
-    ) {
-        collectedErrors.push({
-            code: YamlParsingErrorCode.Other,
-            message: `Docs field may only be a string or NULL, if it's a Yaml scalar`,
-            range: untypedScalar.valueRange,
-        });
+    if (!map) {
         return undefined;
     }
 
-    const docs = (map ??
-        (untypedScalar as
-            | WithKeyKeyRangeAndValueRange<null>
-            | WithKeyKeyRangeAndValueRange<string>
-            | undefined))!;
-
-    const parsingResult = parseDocsFromYamlMapOrScalar(docs, commonArgs);
+    const parsingResult = parseDocsFromYamlMap(map, commonArgs);
     const { result, errors: parsingErrors } = parsingResult;
     collectedErrors.push(...parsingErrors);
 

@@ -1,0 +1,66 @@
+info:
+  name: example
+  type: http
+  seq: 3
+  tags:
+    - sdada
+
+http:
+  method: GET
+  url: sdadsad/:var?adasd=adsasd
+  headers:
+    - name: asdsa
+      value: asd
+      description: asd
+  params:
+    - name: adasd
+      value: adsasd
+      type: query
+    - name: var
+      value: asas
+      type: path
+      description: asas
+  body:
+    type: json
+    data: "null"
+  auth: inherit
+
+runtime:
+  variables:
+    - name: asd
+      value: fddsf
+      description: sfd
+  scripts:
+    - type: before-request
+      code: asd
+    - type: after-response
+      code: asd
+    - type: tests
+      code: asff
+  assertions:
+    - expression: fdfdf
+      operator: eq
+      value: dfdfdf
+      description: sda
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: sdf
+        method: jsonq
+      variable:
+        name: dsf
+        scope: runtime
+      description: sdf
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 6
+  forwardAuthorizationHeader: true
+
+docs: sdfsdf
+app:
+  enabled: true
+  code: adsdasdasd

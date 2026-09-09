@@ -1,7 +1,7 @@
 export enum TopLevelRequestFileProperty {
     Info = "info",
     Runtime = "runtime",
-    settings = "settings",
+    Settings = "settings",
 
     // request-type specific
     Http = "http",
@@ -11,4 +11,18 @@ export enum TopLevelRequestFileProperty {
 
     Docs = "docs",
     Examples = "examples",
+    App = "app",
+}
+
+export enum RequestFileSettingsProperty {
+    EncodeUrl = "encodeUrl",
+    Timeout = "timeout",
+    FollowRedirects = "followRedirects",
+    MaxRedirects = "maxRedirects",
+    ForwardAuthorizationHeader = "forwardAuthorizationHeader",
+}
+
+export enum RequestFileAppProperty {
+    Enabled = "enabled",
+    Code = "enabled",
 }
