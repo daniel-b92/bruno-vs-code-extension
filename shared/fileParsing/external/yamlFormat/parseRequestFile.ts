@@ -4,13 +4,10 @@ import {
     ParsedInfoForRequestFile,
     TextDocumentHelper,
     YamlParsingError,
-    YamlParsingErrorCode,
 } from "../../..";
 import {
     CommonParsingArgs,
-    ParsedDocsWithType,
     WithKeyAndKeyRange,
-    WithKeyKeyRangeAndValueRange,
 } from "../../internal/yamlFormat/interfaces";
 import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForMissingKeyInMap";
 import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForUnknownKeyInMap";
@@ -18,8 +15,8 @@ import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDo
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
 import { TopLevelRequestFileProperty } from "./constants/requestFileConstants";
 import { parseFileInfoFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseFileInfoFromYamlMap";
-import { parseDocsFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpecific/parseDocsFromYamlMapOrScalar";
 import { parseSettingsFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseSettingsFromYamlMap";
+import { stripKeyFromResult } from "../../internal/yamlFormat/util/stripKeyFromResult";
 
 export function parseRequestFile(docHelper: TextDocumentHelper) {
     const commonArgs: CommonParsingArgs = {
@@ -42,15 +39,17 @@ export function parseRequestFile(docHelper: TextDocumentHelper) {
             missingKeys,
             unknownKeys,
             validMaps,
-            validScalars: { withStringValue: validScalars },
+            validScalars: { withStringValue: validStringScalars },
         },
         errors: mapItemErrors,
     } = getMapItems(
         topLevelMap,
         {
-            // Docs section can either be a scalar or a map.
+            // Docs section is always a scalar for request files.
             scalars: { stringValues: [TopLevelRequestFileProperty.Docs] },
-            mapValues: expectedTopLevelProperties,
+            mapValues: expectedTopLevelProperties.filter(
+                (prop) => prop != TopLevelRequestFileProperty.Docs,
+            ),
         },
         commonArgs,
     );
@@ -76,18 +75,11 @@ export function parseRequestFile(docHelper: TextDocumentHelper) {
         ),
     );
 
-    // Docs section was searched for as both a scalar and a map. So only, if it is not found for both, it is really missing.
-    const isDocsSectionMissing =
-        missingKeys.filter((key) => key == TopLevelRequestFileProperty.Docs)
-            .length > 1;
-    const missingProperties = missingKeys
-        .filter((key) => key != TopLevelRequestFileProperty.Docs)
-        .concat(isDocsSectionMissing ? TopLevelRequestFileProperty.Docs : [])
-        .map((key) => ({
-            key,
-            alwaysHasScalarValue: false,
-            isMandatory: key == TopLevelRequestFileProperty.Info,
-        }));
+    const missingProperties = missingKeys.map((key) => ({
+        key,
+        alwaysHasScalarValue: key == TopLevelRequestFileProperty.Docs,
+        isMandatory: key == TopLevelRequestFileProperty.Info,
+    }));
 
     const infoMap = validMaps.find(
         ({ key }) => key == TopLevelRequestFileProperty.Info,
@@ -95,12 +87,10 @@ export function parseRequestFile(docHelper: TextDocumentHelper) {
     const info = infoMap
         ? getParsedInfo(infoMap, commonArgs, collectedErrors)
         : undefined;
-    const docs = getParsedDocs(
-        validMaps,
-        validScalars,
-        commonArgs,
-        collectedErrors,
+    const docsWithKey = validStringScalars.find(
+        ({ key }) => key == TopLevelRequestFileProperty.Docs,
     );
+    const docs = docsWithKey ? stripKeyFromResult(docsWithKey) : undefined;
     const settingsMap = validMaps.find(
         ({ key }) => key == TopLevelRequestFileProperty.settings,
     );
@@ -127,47 +117,6 @@ function getParsedInfo(
     collectedErrors.push(...errors);
 
     return info;
-}
-
-function getParsedDocs(
-    allValidMaps: WithKeyAndKeyRange<YAMLMap>[],
-    allValidScalars: WithKeyKeyRangeAndValueRange<unknown>[],
-    commonArgs: CommonParsingArgs,
-    collectedErrors: YamlParsingError[],
-): ParsedDocsWithType | undefined {
-    const map = allValidMaps.find(
-        ({ key }) => key == TopLevelRequestFileProperty.Docs,
-    );
-    const untypedScalar = allValidScalars.find(
-        ({ key }) => key == TopLevelRequestFileProperty.Docs,
-    );
-    if ((map && untypedScalar) || (!map && !untypedScalar)) {
-        return undefined;
-    }
-    if (
-        untypedScalar &&
-        untypedScalar.value !== null &&
-        typeof untypedScalar.value != "string"
-    ) {
-        collectedErrors.push({
-            code: YamlParsingErrorCode.Other,
-            message: `Docs field may only be a string or NULL, if it's a Yaml scalar`,
-            range: untypedScalar.valueRange,
-        });
-        return undefined;
-    }
-
-    const docs = (map ??
-        (untypedScalar as
-            | WithKeyKeyRangeAndValueRange<null>
-            | WithKeyKeyRangeAndValueRange<string>
-            | undefined))!;
-
-    const parsingResult = parseDocsFromYamlMapOrScalar(docs, commonArgs);
-    const { result, errors: parsingErrors } = parsingResult;
-    collectedErrors.push(...parsingErrors);
-
-    return result;
 }
 
 function getParsedSettings(
