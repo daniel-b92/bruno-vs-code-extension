@@ -103,6 +103,7 @@ function getParsedMapItems(map: YAMLMap, commonArgs: CommonParsingArgs) {
 
     return { validScalars, errors, missingProperties };
 }
+
 function mapMapItemsToSettings(
     settingsMap: WithKeyAndKeyRange<YAMLMap>,
     commonArgs: CommonParsingArgs,

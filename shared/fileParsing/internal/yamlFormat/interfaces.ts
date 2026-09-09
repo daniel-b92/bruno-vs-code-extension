@@ -75,6 +75,11 @@ export type ParsedScript = ParsedYamlMapWithValueRange<{
     code?: WithKeyAndValueRange<string>;
 }>;
 
+export type ParsedRequestFileAppSection = ParsedYamlMapWithKeyAndValueRange<{
+    enabled?: WithKeyAndValueRange<boolean>;
+    code?: WithKeyAndValueRange<string>;
+}>;
+
 export type ParsedDocsWithType = WithKeyAndValueRange<
     | string
     | ParsedYamlMap<{

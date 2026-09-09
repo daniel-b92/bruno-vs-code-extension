@@ -7,16 +7,21 @@ import {
 } from "../../..";
 import {
     CommonParsingArgs,
+    ParsedRequestFileAppSection,
     WithKeyAndKeyRange,
 } from "../../internal/yamlFormat/interfaces";
 import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForMissingKeyInMap";
 import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForUnknownKeyInMap";
 import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDocumentIntoYamlMap";
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
-import { TopLevelRequestFileProperty } from "./constants/requestFileConstants";
+import {
+    RequestFileAppProperty,
+    TopLevelRequestFileProperty,
+} from "./constants/requestFileConstants";
 import { parseFileInfoFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseFileInfoFromYamlMap";
 import { parseSettingsFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseSettingsFromYamlMap";
 import { stripKeyFromResult } from "../../internal/yamlFormat/util/stripKeyFromResult";
+import { getRangeForItem } from "../../internal/yamlFormat/util/getRangeForItem";
 
 export function parseRequestFile(docHelper: TextDocumentHelper) {
     const commonArgs: CommonParsingArgs = {
@@ -92,15 +97,24 @@ export function parseRequestFile(docHelper: TextDocumentHelper) {
     );
     const docs = docsWithKey ? stripKeyFromResult(docsWithKey) : undefined;
     const settingsMap = validMaps.find(
-        ({ key }) => key == TopLevelRequestFileProperty.settings,
+        ({ key }) => key == TopLevelRequestFileProperty.Settings,
     );
     const settings = settingsMap
         ? getParsedSettings(settingsMap, commonArgs, collectedErrors)
         : undefined;
+    const appMap = validMaps.find(
+        ({ key }) => key == TopLevelRequestFileProperty.App,
+    );
+    const app = appMap
+        ? getParsedApp(appMap, commonArgs, collectedErrors)
+        : undefined;
 
     return {
         errors: collectedErrors,
-        result: { properties: { info, docs, settings }, missingProperties },
+        result: {
+            properties: { info, docs, settings, app },
+            missingProperties,
+        },
     };
 }
 
@@ -131,4 +145,78 @@ function getParsedSettings(
     collectedErrors.push(...errors);
 
     return settings;
+}
+
+function getParsedApp(
+    { keyRange, value: map }: WithKeyAndKeyRange<YAMLMap>,
+    commonArgs: CommonParsingArgs,
+    collectedErrors: YamlParsingError[],
+): ParsedRequestFileAppSection {
+    const expectedBooleanScalars = [RequestFileAppProperty.Enabled];
+    const expectedStringScalars = [RequestFileAppProperty.Code];
+
+    const {
+        errors: mapItemErrors,
+        items: {
+            unknownKeys,
+            missingKeys,
+            validScalars: {
+                withStringValue: validStringScalars,
+                withBooleanValue: validBooleanScalars,
+            },
+        },
+    } = getMapItems(
+        map,
+        {
+            scalars: {
+                stringValues: expectedStringScalars,
+                booleanValues: expectedBooleanScalars,
+            },
+        },
+        commonArgs,
+    );
+
+    const errors = mapItemErrors.concat(
+        unknownKeys.map(
+            ({ key, keyRange }) =>
+                getErrorForUnknownKeyInMap({
+                    ...commonArgs,
+                    allowedKeys: Object.values(RequestFileAppProperty),
+                    keyRange,
+                    unknownKey: key,
+                }),
+            missingKeys.map((key) =>
+                getErrorForMissingKeyInMap({
+                    ...commonArgs,
+                    map,
+                    missingKey: key,
+                }),
+            ),
+        ),
+    );
+    const missingProperties = missingKeys.map((key) => ({
+        key,
+        alwaysHasScalarValue: true,
+        isMandatory: true,
+    }));
+
+    collectedErrors.push(...errors);
+    const maybeCode = validStringScalars.find(
+        ({ key }) => key == RequestFileAppProperty.Code,
+    );
+    const maybeEnabled = validBooleanScalars.find(
+        ({ key }) => key == RequestFileAppProperty.Enabled,
+    );
+
+    return {
+        missingProperties,
+        keyRange,
+        valueRange: getRangeForItem(map, commonArgs),
+        properties: {
+            code: maybeCode ? stripKeyFromResult(maybeCode) : undefined,
+            enabled: maybeEnabled
+                ? stripKeyFromResult(maybeEnabled)
+                : undefined,
+        },
+    };
 }
