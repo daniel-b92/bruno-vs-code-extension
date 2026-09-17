@@ -246,7 +246,7 @@ function getParsedRuntime(
         properties: {
             variables: parsedVariables,
             scripts: parsedScripts,
-            assertions: ParsedAssertions,
+            assertions: parsedAssertions,
             actions: parsedActions,
         },
     } = parseRuntimeSection(yamlMap, commonArgs, collectedErrors);
@@ -259,7 +259,7 @@ function getParsedRuntime(
         errors: [],
     };
     const { result: assertions, errors: assertionsErrors } =
-        ParsedAssertions ?? {
+        parsedAssertions ?? {
             result: undefined,
             errors: [],
         };
