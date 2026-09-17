@@ -14,12 +14,13 @@ export enum TopLevelRequestFileProperty {
     App = "app",
 }
 
-export enum RequestFileSettingsProperty {
-    EncodeUrl = "encodeUrl",
-    Timeout = "timeout",
-    FollowRedirects = "followRedirects",
-    MaxRedirects = "maxRedirects",
-    ForwardAuthorizationHeader = "forwardAuthorizationHeader",
+export enum RequestFileHttpSectionProperty {
+    method = "method",
+    url = "url",
+    headers = "headers",
+    params = "params",
+    body = "body",
+    auth = "auth",
 }
 
 export enum RequestFileRuntimeProperty {
@@ -27,6 +28,14 @@ export enum RequestFileRuntimeProperty {
     Scripts = "scripts",
     Assertions = "assertions",
     Actions = "actions",
+}
+
+export enum RequestFileSettingsProperty {
+    EncodeUrl = "encodeUrl",
+    Timeout = "timeout",
+    FollowRedirects = "followRedirects",
+    MaxRedirects = "maxRedirects",
+    ForwardAuthorizationHeader = "forwardAuthorizationHeader",
 }
 
 export enum RequestFileAppProperty {
