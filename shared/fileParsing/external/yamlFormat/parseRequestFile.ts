@@ -16,12 +16,17 @@ import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDo
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
 import {
     RequestFileAppProperty,
+    RequestFileRuntimeProperty,
     TopLevelRequestFileProperty,
 } from "./constants/requestFileConstants";
 import { parseFileInfoFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseFileInfoFromYamlMap";
 import { parseSettingsFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseSettingsFromYamlMap";
 import { stripKeyFromResult } from "../../internal/yamlFormat/util/stripKeyFromResult";
 import { getRangeForItem } from "../../internal/yamlFormat/util/getRangeForItem";
+import { parseVariablesFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseVariablesFromYamlSequence";
+import { parseScriptsFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseScriptsFromYamlSequence";
+import { parseActionsFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseActionsFromYamlSequence";
+import { parseAssertionsFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseAssertionsFromYamlSequence";
 
 export function parseRequestFile(docHelper: TextDocumentHelper) {
     const commonArgs: CommonParsingArgs = {
@@ -92,6 +97,12 @@ export function parseRequestFile(docHelper: TextDocumentHelper) {
     const info = infoMap
         ? getParsedInfo(infoMap, commonArgs, collectedErrors)
         : undefined;
+    const runtimeMap = validMaps.find(
+        ({ key }) => key == TopLevelRequestFileProperty.Runtime,
+    );
+    const runtime = runtimeMap
+        ? getParsedRuntime(runtimeMap, commonArgs, collectedErrors)
+        : undefined;
     const docsWithKey = validStringScalars.find(
         ({ key }) => key == TopLevelRequestFileProperty.Docs,
     );
@@ -112,7 +123,7 @@ export function parseRequestFile(docHelper: TextDocumentHelper) {
     return {
         errors: collectedErrors,
         result: {
-            properties: { info, docs, settings, app },
+            properties: { info, runtime, docs, settings, app },
             missingProperties,
         },
     };
@@ -217,6 +228,133 @@ function getParsedApp(
             enabled: maybeEnabled
                 ? stripKeyFromResult(maybeEnabled)
                 : undefined,
+        },
+    };
+}
+
+function getParsedRuntime(
+    { keyRange, value: yamlMap }: WithKeyAndKeyRange<YAMLMap>,
+    commonArgs: CommonParsingArgs,
+    collectedErrors: YamlParsingError[],
+) {
+    const {
+        missingProperties,
+        properties: {
+            variables: parsedVariables,
+            scripts: parsedScripts,
+            assertions: ParsedAssertions,
+            actions: parsedActions,
+        },
+    } = parseRuntimeSection(yamlMap, commonArgs, collectedErrors);
+    const { result: variables, errors: variableErrors } = parsedVariables ?? {
+        result: undefined,
+        errors: [],
+    };
+    const { result: scripts, errors: scriptErrors } = parsedScripts ?? {
+        result: undefined,
+        errors: [],
+    };
+    const { result: assertions, errors: assertionsErrors } =
+        ParsedAssertions ?? {
+            result: undefined,
+            errors: [],
+        };
+    const { result: actions, errors: actionsErrors } = parsedActions ?? {
+        result: undefined,
+        errors: [],
+    };
+    collectedErrors.push(
+        ...variableErrors,
+        ...scriptErrors,
+        ...assertionsErrors,
+        ...actionsErrors,
+    );
+
+    return {
+        properties: { variables, scripts, assertions, actions },
+        missingProperties,
+        keyRange,
+        valueRange: getRangeForItem(yamlMap, commonArgs),
+    };
+}
+
+function parseRuntimeSection(
+    requestMap: YAMLMap,
+    commonArgs: CommonParsingArgs,
+    collectedErrors: YamlParsingError[],
+) {
+    const expectedProperties = Object.values(RequestFileRuntimeProperty);
+
+    const {
+        items: { unknownKeys, missingKeys, validSequences },
+        errors: sectionErrors,
+    } = getMapItems(
+        requestMap,
+        {
+            scalars: {},
+            // All properties are sequences for the runtime section.
+            sequenceValues: expectedProperties,
+        },
+        commonArgs,
+    );
+
+    collectedErrors.push(
+        ...sectionErrors.concat(
+            unknownKeys.map(({ key: unknownKey, keyRange }) =>
+                getErrorForUnknownKeyInMap({
+                    ...commonArgs,
+                    unknownKey,
+                    keyRange,
+                    allowedKeys: expectedProperties,
+                }),
+            ),
+        ),
+    );
+    const missingProperties = missingKeys.map((key) => ({
+        alwaysHasScalarValue: false,
+        // None of the properties are mandatory.
+        isMandatory: false,
+        key,
+    }));
+
+    const maybeVariablesSequence = validSequences.find(
+        ({ key }) => key == RequestFileRuntimeProperty.Variables,
+    );
+    const variables = maybeVariablesSequence
+        ? parseVariablesFromYamlSequence(
+              maybeVariablesSequence.value,
+              commonArgs,
+          )
+        : undefined;
+    const maybeScriptsSequence = validSequences.find(
+        ({ key }) => key == RequestFileRuntimeProperty.Scripts,
+    );
+    const scripts = maybeScriptsSequence
+        ? parseScriptsFromYamlSequence(maybeScriptsSequence.value, commonArgs)
+        : undefined;
+    const maybeAssertionsSequence = validSequences.find(
+        ({ key }) => key == RequestFileRuntimeProperty.Assertions,
+    );
+    const assertions = maybeAssertionsSequence
+        ? parseAssertionsFromYamlSequence(
+              maybeAssertionsSequence.value,
+              commonArgs,
+          )
+        : undefined;
+    const maybeActionsSequence = validSequences.find(
+        ({ key }) => key == RequestFileRuntimeProperty.Actions,
+    );
+    const actions = maybeActionsSequence
+        ? parseActionsFromYamlSequence(maybeActionsSequence.value, commonArgs)
+        : undefined;
+
+    return {
+        missingProperties,
+        properties: {
+            variables,
+            scripts,
+            assertions,
+            actions,
         },
     };
 }

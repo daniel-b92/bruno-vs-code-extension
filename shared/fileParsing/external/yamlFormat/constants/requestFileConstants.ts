@@ -22,6 +22,13 @@ export enum RequestFileSettingsProperty {
     ForwardAuthorizationHeader = "forwardAuthorizationHeader",
 }
 
+export enum RequestFileRuntimeProperty {
+    Variables = "variables",
+    Scripts = "scripts",
+    Assertions = "assertions",
+    Actions = "actions",
+}
+
 export enum RequestFileAppProperty {
     Enabled = "enabled",
     Code = "enabled",
