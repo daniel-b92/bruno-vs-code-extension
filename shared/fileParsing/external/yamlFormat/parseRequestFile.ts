@@ -2,11 +2,13 @@ import { YAMLMap } from "yaml";
 import {
     BrunoFileType,
     ParsedInfoForRequestFile,
+    ParsedRequestFile,
     TextDocumentHelper,
     YamlParsingError,
 } from "../../..";
 import {
     CommonParsingArgs,
+    MaybeResultWithErrors,
     ParsedRequestFileAppSection,
     WithKeyAndKeyRange,
 } from "../../internal/yamlFormat/interfaces";
@@ -28,7 +30,9 @@ import { parseScriptsFromYamlSequence } from "../../internal/yamlFormat/brunoSpe
 import { parseActionsFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseActionsFromYamlSequence";
 import { parseAssertionsFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseAssertionsFromYamlSequence";
 
-export function parseRequestFile(docHelper: TextDocumentHelper) {
+export function parseRequestFile(
+    docHelper: TextDocumentHelper,
+): MaybeResultWithErrors<ParsedRequestFile> {
     const commonArgs: CommonParsingArgs = {
         docHelper,
         fullDocumentRange: docHelper.getTextRange(),
