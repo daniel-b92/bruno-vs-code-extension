@@ -3,11 +3,14 @@ import { FileInfoType, VariableType } from "./constants/sharedConstants";
 import {
     OptionalVariableFieldResult,
     ParsedAction,
+    ParsedAssertion,
     ParsedAuth,
     ParsedDocsWithType,
+    ParsedRequestFileAppSection,
     ParsedRequestHeader,
     ParsedRequestVariable,
     ParsedScript,
+    ParsedSettings,
     ParsedYamlMap,
     ParsedYamlMapWithKeyAndValueRange,
     ParsedYamlMapWithValueRange,
@@ -24,6 +27,25 @@ export interface YamlParsingError {
     range: Range;
     code: YamlParsingErrorCode;
 }
+
+export type ParsedRequestFile = ParsedYamlMap<{
+    info?: ParsedInfoForRequestFile;
+    runtime?: ParsedYamlMapWithKeyAndValueRange<{
+        variables?: {
+            enabled: ParsedRequestVariable[];
+            disabled: ParsedRequestVariable[];
+        };
+        actions?: {
+            enabled: ParsedAction[];
+            disabled: ParsedAction[];
+        };
+        assertions?: ParsedAssertion[];
+        scripts?: ParsedScript[];
+    }>;
+    settings?: ParsedSettings;
+    docs?: WithKeyAndValueRange<string>;
+    app?: ParsedRequestFileAppSection;
+}>;
 
 export type ParsedFolderSettingsFile = ParsedYamlMap<{
     info?: ParsedInfoForFolderSettings;

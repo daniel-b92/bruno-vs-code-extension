@@ -1,4 +1,4 @@
-import { isMap, YAMLMap } from "yaml";
+import { YAMLMap } from "yaml";
 import { WithKeyAndValueRange, YamlParsingError } from "../../../..";
 import {
     CommonParsingArgs,
@@ -6,7 +6,6 @@ import {
     ParsedDocsWithType,
     ParsedYamlMap,
     WithKeyAndKeyRange,
-    WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
@@ -19,33 +18,17 @@ import {
 } from "../../../external/yamlFormat/constants/sharedConstants";
 import { getRangeForItem } from "../util/getRangeForItem";
 
-export function parseDocsFromYamlMapOrScalar(
-    docsMapOrScalar:
-        | WithKeyAndKeyRange<YAMLMap>
-        | WithKeyKeyRangeAndValueRange<string | null>,
+export function parseDocsFromYamlMap(
+    docsMap: WithKeyAndKeyRange<YAMLMap>,
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<ParsedDocsWithType> {
-    const { keyRange } = docsMapOrScalar;
+    const { keyRange, value: map } = docsMap;
 
-    if (!isMap(docsMapOrScalar.value)) {
-        return {
-            errors: [],
-            result:
-                docsMapOrScalar === null
-                    ? undefined
-                    : stripKeyFromResult(
-                          docsMapOrScalar as WithKeyKeyRangeAndValueRange<string>,
-                      ),
-        };
-    }
-
-    const valueRange = getRangeForItem(docsMapOrScalar.value, commonArgs);
-    const { errors, result: value } = parseFromMap(
-        docsMapOrScalar.value,
-        commonArgs,
-    );
+    const { errors, result: value } = parseFromMap(map, commonArgs);
     return {
-        result: value ? { keyRange, value, valueRange } : undefined,
+        result: value
+            ? { keyRange, value, valueRange: getRangeForItem(map, commonArgs) }
+            : undefined,
         errors,
     };
 }
@@ -54,11 +37,10 @@ function parseFromMap(
     docsMap: YAMLMap,
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<
-    | string
-    | ParsedYamlMap<{
-          type?: WithKeyAndValueRange<DocsType>;
-          content?: WithKeyAndValueRange<string>;
-      }>
+    ParsedYamlMap<{
+        type?: WithKeyAndValueRange<DocsType>;
+        content?: WithKeyAndValueRange<string>;
+    }>
 > {
     const errors: YamlParsingError[] = [];
     const expectedStringScalars = Object.values(DocsProperty);
@@ -122,17 +104,12 @@ function parseFromMap(
 
     return {
         errors,
-        result:
-            content || maybeType
-                ? {
-                      properties: {
-                          content: content
-                              ? stripKeyFromResult(content)
-                              : undefined,
-                          type: maybeType?.value,
-                      },
-                      missingProperties,
-                  }
-                : undefined,
+        result: {
+            properties: {
+                content: content ? stripKeyFromResult(content) : undefined,
+                type: maybeType?.value,
+            },
+            missingProperties,
+        },
     };
 }

@@ -380,7 +380,7 @@ variables: foo`;
 variables:
   - name: var-1
     type: unknown
-    value: 44
+    value: "44"
     description: desc
     other: sd
 invalid: bar`;
