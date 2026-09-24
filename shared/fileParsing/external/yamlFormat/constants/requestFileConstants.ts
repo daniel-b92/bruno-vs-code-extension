@@ -23,6 +23,36 @@ export enum RequestFileHttpSectionProperty {
     auth = "auth",
 }
 
+export enum RequestFileHttpSectionParamProperty {
+    Name = "name",
+    Value = "value",
+    Type = "type",
+    Description = "description",
+    Disabled = "disabled",
+}
+
+export enum RequestFileHttpSectionBodyProperty {
+    Type = "type",
+    Data = "data",
+}
+
+export enum HttpBodyType {
+    None = "none",
+    Json = "json",
+    Xml = "xml",
+    Text = "text",
+    MultipartForm = "multipart-form",
+    FormUrlEncoded = "form-urlencoded",
+    Sparql = "sparql",
+    File = "file",
+    Graphql = "graphql",
+}
+
+export enum HttpParamType {
+    Query = "query",
+    Path = "path",
+}
+
 export enum RequestFileRuntimeProperty {
     Variables = "variables",
     Scripts = "scripts",

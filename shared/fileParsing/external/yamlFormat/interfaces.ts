@@ -6,6 +6,8 @@ import {
     ParsedAssertion,
     ParsedAuth,
     ParsedDocsWithType,
+    ParsedHttpBody,
+    ParsedHttpParam,
     ParsedRequestFileAppSection,
     ParsedRequestHeader,
     ParsedRequestVariable,
@@ -30,6 +32,14 @@ export interface YamlParsingError {
 
 export type ParsedRequestFile = ParsedYamlMap<{
     info?: ParsedInfoForRequestFile;
+    http?: ParsedYamlMapWithKeyAndValueRange<{
+        method?: WithKeyAndValueRange<string>;
+        url?: WithKeyAndValueRange<string>;
+        headers?: ParsedRequestHeader[];
+        params?: ParsedHttpParam[];
+        body?: ParsedHttpBody;
+        auth?: ParsedAuth;
+    }>;
     runtime?: ParsedYamlMapWithKeyAndValueRange<{
         variables?: {
             enabled: ParsedRequestVariable[];

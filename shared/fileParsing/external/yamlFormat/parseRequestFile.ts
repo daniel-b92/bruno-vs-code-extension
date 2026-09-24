@@ -18,6 +18,7 @@ import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDo
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
 import {
     RequestFileAppProperty,
+    RequestFileHttpSectionProperty,
     RequestFileRuntimeProperty,
     TopLevelRequestFileProperty,
 } from "./constants/requestFileConstants";
@@ -29,6 +30,10 @@ import { parseVariablesFromYamlSequence } from "../../internal/yamlFormat/brunoS
 import { parseScriptsFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseScriptsFromYamlSequence";
 import { parseActionsFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseActionsFromYamlSequence";
 import { parseAssertionsFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseAssertionsFromYamlSequence";
+import { parseHeadersFromSequence } from "../../internal/yamlFormat/brunoSpecific/parseHeadersFromSequence";
+import { parseParamsFromSequence } from "../../internal/yamlFormat/brunoSpecific/parseParamsFromSequence";
+import { parseBodyFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseBodyFromYamlMap";
+import { parseAuthFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpecific/parseAuthFromYamlMapOrScalar";
 
 export function parseRequestFile(
     docHelper: TextDocumentHelper,
@@ -101,6 +106,12 @@ export function parseRequestFile(
     const info = infoMap
         ? getParsedInfo(infoMap, commonArgs, collectedErrors)
         : undefined;
+    const httpMap = validMaps.find(
+        ({ key }) => key == TopLevelRequestFileProperty.Http,
+    );
+    const http = httpMap
+        ? getParsedHttp(httpMap, commonArgs, collectedErrors)
+        : undefined;
     const runtimeMap = validMaps.find(
         ({ key }) => key == TopLevelRequestFileProperty.Runtime,
     );
@@ -127,7 +138,7 @@ export function parseRequestFile(
     return {
         errors: collectedErrors,
         result: {
-            properties: { info, runtime, docs, settings, app },
+            properties: { info, http, runtime, docs, settings, app },
             missingProperties,
         },
     };
@@ -146,6 +157,146 @@ function getParsedInfo(
     collectedErrors.push(...errors);
 
     return info;
+}
+
+function getParsedHttp(
+    { keyRange, value: httpMap }: WithKeyAndKeyRange<YAMLMap>,
+    commonArgs: CommonParsingArgs,
+    collectedErrors: YamlParsingError[],
+) {
+    const expectedStringScalars = [
+        RequestFileHttpSectionProperty.method,
+        RequestFileHttpSectionProperty.url,
+    ];
+    const expectedSequences = [
+        RequestFileHttpSectionProperty.headers,
+        RequestFileHttpSectionProperty.params,
+    ];
+    const expectedMaps = [
+        RequestFileHttpSectionProperty.body,
+        RequestFileHttpSectionProperty.auth,
+    ];
+    const expectedScalarStrings = [RequestFileHttpSectionProperty.auth];
+    const allowedKeys = [
+        ...expectedStringScalars,
+        ...expectedSequences,
+        ...expectedMaps,
+    ];
+
+    const {
+        items: {
+            unknownKeys,
+            missingKeys,
+            validMaps,
+            validSequences,
+            validScalars: { withStringValue: validStringScalars },
+        },
+        errors: mapItemErrors,
+    } = getMapItems(
+        httpMap,
+        {
+            scalars: {
+                stringValues: [...expectedStringScalars, ...expectedScalarStrings],
+            },
+            mapValues: expectedMaps,
+            sequenceValues: expectedSequences,
+        },
+        commonArgs,
+    );
+
+    collectedErrors.push(
+        ...mapItemErrors,
+        ...unknownKeys.map(({ key: unknownKey, keyRange: ukr }) =>
+            getErrorForUnknownKeyInMap({
+                ...commonArgs,
+                unknownKey,
+                keyRange: ukr,
+                allowedKeys,
+            }),
+        ),
+    );
+
+    const missingProperties = missingKeys.map((key) => ({
+        key,
+        alwaysHasScalarValue:
+            key == RequestFileHttpSectionProperty.method ||
+            key == RequestFileHttpSectionProperty.url,
+        isMandatory: false,
+    }));
+
+    const maybeMethod = validStringScalars.find(
+        ({ key }) => key == RequestFileHttpSectionProperty.method,
+    );
+    const maybeUrl = validStringScalars.find(
+        ({ key }) => key == RequestFileHttpSectionProperty.url,
+    );
+
+    const maybeHeadersSeq = validSequences.find(
+        ({ key }) => key == RequestFileHttpSectionProperty.headers,
+    );
+    let headers: ReturnType<typeof parseHeadersFromSequence>["result"];
+    if (maybeHeadersSeq) {
+        const { result, errors } = parseHeadersFromSequence({
+            commonArgs,
+            headersSequence: maybeHeadersSeq.value,
+        });
+        collectedErrors.push(...errors);
+        headers = result;
+    }
+
+    const maybeParamsSeq = validSequences.find(
+        ({ key }) => key == RequestFileHttpSectionProperty.params,
+    );
+    let params: ReturnType<typeof parseParamsFromSequence>["result"];
+    if (maybeParamsSeq) {
+        const { result, errors } = parseParamsFromSequence(
+            maybeParamsSeq.value,
+            commonArgs,
+        );
+        collectedErrors.push(...errors);
+        params = result;
+    }
+
+    const maybeBodyMap = validMaps.find(
+        ({ key }) => key == RequestFileHttpSectionProperty.body,
+    );
+    let body: ReturnType<typeof parseBodyFromYamlMap>["result"];
+    if (maybeBodyMap) {
+        const { result, errors } = parseBodyFromYamlMap(maybeBodyMap, commonArgs);
+        collectedErrors.push(...errors);
+        body = result;
+    }
+
+    const maybeAuthScalar = validStringScalars.find(
+        ({ key }) => key == RequestFileHttpSectionProperty.auth,
+    );
+    const maybeAuthMap = validMaps.find(
+        ({ key }) => key == RequestFileHttpSectionProperty.auth,
+    );
+    const authMapOrScalar = maybeAuthScalar ?? maybeAuthMap;
+    let auth: ReturnType<typeof parseAuthFromYamlMapOrScalar>["result"];
+    if (authMapOrScalar) {
+        const { result, errors } = parseAuthFromYamlMapOrScalar({
+            commonArgs,
+            authMapOrScalar,
+        });
+        collectedErrors.push(...errors);
+        auth = result;
+    }
+
+    return {
+        keyRange,
+        valueRange: getRangeForItem(httpMap, commonArgs),
+        missingProperties,
+        properties: {
+            method: maybeMethod ? stripKeyFromResult(maybeMethod) : undefined,
+            url: maybeUrl ? stripKeyFromResult(maybeUrl) : undefined,
+            headers,
+            params,
+            body,
+            auth,
+        },
+    };
 }
 
 function getParsedSettings(

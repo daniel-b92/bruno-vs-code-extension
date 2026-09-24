@@ -14,6 +14,10 @@ import {
 } from "../../external/yamlFormat/constants/actionConstants";
 import { AuthType } from "../../external/yamlFormat/constants/authConstants";
 import {
+    HttpBodyType,
+    HttpParamType,
+} from "../../external/yamlFormat/constants/requestFileConstants";
+import {
     AssertionOperator,
     DocsType,
     ScriptType,
@@ -86,6 +90,19 @@ export type ParsedAssertion = ParsedYamlMapWithValueRange<{
 export type ParsedRequestFileAppSection = ParsedYamlMapWithKeyAndValueRange<{
     enabled?: WithKeyAndValueRange<boolean>;
     code?: WithKeyAndValueRange<string>;
+}>;
+
+export type ParsedHttpParam = ParsedYamlMapWithValueRange<{
+    name?: WithKeyAndValueRange<string>;
+    value?: WithKeyAndValueRange<string>;
+    type?: WithKeyAndValueRange<HttpParamType>;
+    description?: WithKeyAndValueRange<string>;
+    disabled: OptionalVariableFieldResult<boolean>;
+}>;
+
+export type ParsedHttpBody = ParsedYamlMapWithKeyAndValueRange<{
+    type?: WithKeyAndValueRange<HttpBodyType>;
+    data?: WithKeyAndValueRange<string>;
 }>;
 
 export type ParsedDocsWithType = WithKeyAndValueRange<

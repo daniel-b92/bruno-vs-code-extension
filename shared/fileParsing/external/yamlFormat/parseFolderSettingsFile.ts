@@ -238,15 +238,7 @@ function parseRequestSection(
             ),
         ),
     );
-    // Since we searched for the auth property as a scalar and as a map, it's only missing, if neither was found.
-    const isAuthMissing =
-        missingKeys.filter(
-            (key) => key == FolderSettingsRequestSectionProperty.Auth,
-        ).length > 1;
-    const missingProperties = missingKeys
-        .filter((key) => key != FolderSettingsRequestSectionProperty.Auth)
-        .concat(isAuthMissing ? FolderSettingsRequestSectionProperty.Auth : [])
-        .map((key) => ({
+    const missingProperties = missingKeys.map((key) => ({
             alwaysHasScalarValue: false,
             // None of the properties are mandatory.
             isMandatory: false,

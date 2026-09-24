@@ -86,20 +86,11 @@ function getParsedMapItems(map: YAMLMap, commonArgs: CommonParsingArgs) {
             ),
         ),
     );
-    // timeout property was searched for as both a numeric and string scalar. So only, if it is not found for both, it is really missing.
-    const isTimeoutPropertyMissing =
-        missingKeys.filter((key) => key == RequestFileSettingsProperty.Timeout)
-            .length > 1;
-    const missingProperties = missingKeys
-        .filter((key) => key != RequestFileSettingsProperty.Timeout)
-        .concat(
-            isTimeoutPropertyMissing ? RequestFileSettingsProperty.Timeout : [],
-        )
-        .map((key) => ({
-            key,
-            alwaysHasScalarValue: true,
-            isMandatory: true,
-        }));
+    const missingProperties = missingKeys.map((key) => ({
+        key,
+        alwaysHasScalarValue: true,
+        isMandatory: true,
+    }));
 
     return { validScalars, errors, missingProperties };
 }
