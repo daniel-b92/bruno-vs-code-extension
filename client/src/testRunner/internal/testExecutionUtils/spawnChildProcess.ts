@@ -1,5 +1,6 @@
 import { TestRunChildProcessData, TestRunUserInputData } from "../interfaces";
 import { spawn } from "child_process";
+import { getSpawnEnv } from "./resolveCliBinaryPath";
 
 export function spawnChildProcess(childProcessData: TestRunChildProcessData) {
     const { collectionRootDirectory, reportingAndOptionalData } =
@@ -18,6 +19,7 @@ export function spawnChildProcess(childProcessData: TestRunChildProcessData) {
     const childProcess = spawn(command, commandArguments as string[], {
         cwd: collectionRootDirectory,
         shell: true,
+        env: getSpawnEnv(),
     });
 
     return { childProcess };

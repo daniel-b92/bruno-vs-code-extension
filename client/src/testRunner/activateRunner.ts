@@ -33,6 +33,7 @@ import {
 import { openRunConfigDialog } from "./internal/testExecutionUtils/openRunConfigDialog";
 import { TestRunUserInputData } from "./internal/interfaces";
 import { TestRunnerDataHelper } from ".";
+import { initializeBruCliPath } from "./internal/testExecutionUtils/resolveCliBinaryPath";
 
 export async function activateRunner(
     context: ExtensionContext,
@@ -43,13 +44,15 @@ export async function activateRunner(
         withDialog: boolean;
     }>,
 ) {
+    const logger = getLoggerFromSubscriptions(context);
+    await initializeBruCliPath(logger);
+
     const watchingTests = new Map<
         VscodeTestItem | "ALL",
         TestRunProfile | undefined
     >();
     const queue = new TestRunQueue(ctrl);
     const testRunnerDataHelper = new TestRunnerDataHelper(ctrl);
-    const logger = getLoggerFromSubscriptions(context);
 
     handleTestTreeUpdates(ctrl, collectionItemProvider, testRunnerDataHelper);
 
