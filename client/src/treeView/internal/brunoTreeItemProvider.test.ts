@@ -4,29 +4,6 @@ import { BrunoTreeItemProvider } from "./brunoTreeItemProvider";
 
 const mockItemProvider = { subscribeToUpdates: () => {} } as any;
 
-function makeItem(
-    isFile: boolean,
-    label: string,
-    sequence?: number,
-): BrunoTreeItem {
-    return {
-        isFile,
-        label,
-        getSequence: () => sequence,
-    } as unknown as BrunoTreeItem;
-}
-
-function getSortedItems(
-    provider: BrunoTreeItemProvider,
-    items: BrunoTreeItem[],
-): BrunoTreeItem[] {
-    return (
-        provider as unknown as {
-            getSortedTreeItems(items: BrunoTreeItem[]): BrunoTreeItem[];
-        }
-    ).getSortedTreeItems(items);
-}
-
 describe("BrunoTreeItemProvider - getSortedTreeItems1", () => {
     let provider: BrunoTreeItemProvider;
 
@@ -118,3 +95,26 @@ describe("BrunoTreeItemProvider - getSortedTreeItems1", () => {
         });
     });
 });
+
+function makeItem(
+    isFile: boolean,
+    label: string,
+    sequence?: number,
+): BrunoTreeItem {
+    return {
+        isFile,
+        label,
+        getSequence: () => sequence,
+    } as unknown as BrunoTreeItem;
+}
+
+function getSortedItems(
+    provider: BrunoTreeItemProvider,
+    items: BrunoTreeItem[],
+): BrunoTreeItem[] {
+    return (
+        provider as unknown as {
+            getSortedTreeItems(items: BrunoTreeItem[]): BrunoTreeItem[];
+        }
+    ).getSortedTreeItems(items);
+}
