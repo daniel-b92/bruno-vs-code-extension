@@ -35,6 +35,46 @@ describe("BrunoTreeItemProvider - getSortedTreeItems1", () => {
             expect(result[2].isFile).toBe(true);
             expect(result[3].isFile).toBe(true);
         });
+
+        it("places folder before file even when the file has a lower sequence", () => {
+            const items = [
+                makeItem(true, "file.bru", 1),
+                makeItem(false, "folder", 2),
+            ];
+            const result = getSortedItems(provider, items);
+            expect(result[0].isFile).toBe(false);
+            expect(result[1].isFile).toBe(true);
+        });
+
+        it("places folder before file even when the file has no sequence and the folder does", () => {
+            const items = [
+                makeItem(true, "a-file.bru"),
+                makeItem(false, "z-folder", 1),
+            ];
+            const result = getSortedItems(provider, items);
+            expect(result[0].isFile).toBe(false);
+            expect(result[1].isFile).toBe(true);
+        });
+
+        it("places folder before file even when the folder has no sequence and the file does", () => {
+            const items = [
+                makeItem(true, "a-file.bru", 1),
+                makeItem(false, "z-folder"),
+            ];
+            const result = getSortedItems(provider, items);
+            expect(result[0].isFile).toBe(false);
+            expect(result[1].isFile).toBe(true);
+        });
+
+        it("places folder before file even when alphabetical order would put the file first", () => {
+            const items = [
+                makeItem(true, "alpha.bru"),
+                makeItem(false, "zeta"),
+            ];
+            const result = getSortedItems(provider, items);
+            expect(result[0].isFile).toBe(false);
+            expect(result[1].isFile).toBe(true);
+        });
     });
 
     describe("alphabetical ordering (no sequences)", () => {
