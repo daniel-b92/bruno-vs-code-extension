@@ -11,3 +11,6 @@ tsPlugin
 samples/
 **/webpack.config.js
 *.vsix
+
+.claude/
+.github/
