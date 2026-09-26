@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Maintenance
+
+- Fix an issue that caused files without a `.bru` extension to not be displayed in the collection explorer.
+
 ## [1.3.0] (2026-09-06)
 
 ### Features
