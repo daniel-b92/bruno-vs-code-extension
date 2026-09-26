@@ -1,8 +1,9 @@
-## [Unreleased]
+## [1.3.1] (2026-09-26)
 
 ### Fixes / Maintenance
 
 - Fix an issue that caused files without a `.bru` extension to not be displayed in the collection explorer.
+- Make ordering of items in collection explorer not depend on the casing of the item names.
 
 ## [1.3.0] (2026-09-06)
 
