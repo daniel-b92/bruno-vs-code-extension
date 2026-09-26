@@ -21,7 +21,10 @@ describe("parseParamsFromSequence", () => {
     disabled: false`;
 
         const { commonArgs, sequence } = parse(documentText);
-        const { result, errors } = parseParamsFromSequence(sequence, commonArgs);
+        const { result, errors } = parseParamsFromSequence(
+            sequence,
+            commonArgs,
+        );
 
         expect(errors).toHaveLength(0);
         expect(result).toHaveLength(1);
@@ -43,7 +46,10 @@ describe("parseParamsFromSequence", () => {
     type: path`;
 
         const { commonArgs, sequence } = parse(documentText);
-        const { result, errors } = parseParamsFromSequence(sequence, commonArgs);
+        const { result, errors } = parseParamsFromSequence(
+            sequence,
+            commonArgs,
+        );
 
         expect(errors).toHaveLength(0);
         expect(result).toHaveLength(2);
@@ -57,7 +63,10 @@ describe("parseParamsFromSequence", () => {
     value: my-value`;
 
         const { commonArgs, sequence } = parse(documentText);
-        const { result, errors } = parseParamsFromSequence(sequence, commonArgs);
+        const { result, errors } = parseParamsFromSequence(
+            sequence,
+            commonArgs,
+        );
 
         expect(errors).toHaveLength(0);
         expect(result![0].properties.disabled.effectiveValue).toBe(false);
@@ -82,7 +91,10 @@ describe("parseParamsFromSequence", () => {
         const documentText = `-   type: query`;
 
         const { commonArgs, sequence } = parse(documentText);
-        const { result, errors } = parseParamsFromSequence(sequence, commonArgs);
+        const { result, errors } = parseParamsFromSequence(
+            sequence,
+            commonArgs,
+        );
 
         expect(errors).toHaveLength(2);
         expect(
@@ -107,7 +119,10 @@ describe("parseParamsFromSequence", () => {
     unknown: something`;
 
         const { commonArgs, sequence } = parse(documentText);
-        const { result, errors } = parseParamsFromSequence(sequence, commonArgs);
+        const { result, errors } = parseParamsFromSequence(
+            sequence,
+            commonArgs,
+        );
 
         expect(errors).toHaveLength(1);
         expect(errors[0].range).toEqual(getExpectedKeyRange(2, "unknown", 4));
@@ -121,7 +136,10 @@ describe("parseParamsFromSequence", () => {
     type: invalid-type`;
 
         const { commonArgs, sequence } = parse(documentText);
-        const { result, errors } = parseParamsFromSequence(sequence, commonArgs);
+        const { result, errors } = parseParamsFromSequence(
+            sequence,
+            commonArgs,
+        );
 
         expect(errors).toHaveLength(1);
         expect(result![0].properties.type).toBeUndefined();
@@ -134,7 +152,10 @@ describe("parseParamsFromSequence", () => {
     value: val2`;
 
         const docHelper = new TextDocumentHelper(documentText);
-        const commonArgs = { docHelper, fullDocumentRange: docHelper.getTextRange() };
+        const commonArgs = {
+            docHelper,
+            fullDocumentRange: docHelper.getTextRange(),
+        };
         const parsedDocument = parseTextIntoYamlDocument(documentText);
         const sequence = parsedDocument.contents as YAMLSeq;
         const { result } = parseParamsFromSequence(sequence, commonArgs);
@@ -169,7 +190,10 @@ describe("parseParamsFromSequence", () => {
         const documentText = `[]`;
 
         const { commonArgs, sequence } = parse(documentText);
-        const { result, errors } = parseParamsFromSequence(sequence, commonArgs);
+        const { result, errors } = parseParamsFromSequence(
+            sequence,
+            commonArgs,
+        );
 
         expect(errors).toHaveLength(0);
         expect(result).toHaveLength(0);
@@ -178,7 +202,10 @@ describe("parseParamsFromSequence", () => {
 
 function parse(documentText: string) {
     const docHelper = new TextDocumentHelper(documentText);
-    const commonArgs = { docHelper, fullDocumentRange: docHelper.getTextRange() };
+    const commonArgs = {
+        docHelper,
+        fullDocumentRange: docHelper.getTextRange(),
+    };
     const parsedDocument = parseTextIntoYamlDocument(documentText);
     const sequence = parsedDocument.contents as YAMLSeq;
     return { commonArgs, sequence };

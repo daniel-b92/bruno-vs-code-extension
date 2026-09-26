@@ -69,21 +69,20 @@ function getParsedMapItems(map: YAMLMap, commonArgs: CommonParsingArgs) {
     );
 
     const errors = mapItemErrors.concat(
-        unknownKeys.map(
-            ({ key, keyRange }) =>
-                getErrorForUnknownKeyInMap({
-                    ...commonArgs,
-                    allowedKeys: Object.values(RequestFileSettingsProperty),
-                    keyRange,
-                    unknownKey: key,
-                }),
-            missingKeys.map((key) =>
-                getErrorForMissingKeyInMap({
-                    ...commonArgs,
-                    map: map,
-                    missingKey: key,
-                }),
-            ),
+        unknownKeys.map(({ key, keyRange }) =>
+            getErrorForUnknownKeyInMap({
+                ...commonArgs,
+                allowedKeys: Object.values(RequestFileSettingsProperty),
+                keyRange,
+                unknownKey: key,
+            }),
+        ),
+        missingKeys.map((key) =>
+            getErrorForMissingKeyInMap({
+                ...commonArgs,
+                map: map,
+                missingKey: key,
+            }),
         ),
     );
     const missingProperties = missingKeys.map((key) => ({

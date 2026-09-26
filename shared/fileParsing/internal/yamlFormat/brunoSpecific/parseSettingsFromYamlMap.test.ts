@@ -15,7 +15,9 @@ describe("parseSettingsFromYamlMap", () => {
         const documentText = `settings:
     encodeUrl: true
     followRedirects: false
-    forwardAuthorizationHeader: true`;
+    forwardAuthorizationHeader: true
+    maxRedirects: 5
+    timeout: 5000`;
 
         const { commonArgs, settingsMap } = makeSettingsMap(documentText);
         const { result, errors } = parseSettingsFromYamlMap(
@@ -31,6 +33,10 @@ describe("parseSettingsFromYamlMap", () => {
 
     it("parses numeric timeout", () => {
         const documentText = `settings:
+    encodeUrl: true
+    followRedirects: true
+    forwardAuthorizationHeader: true
+    maxRedirects: 5
     timeout: 5000`;
 
         const { commonArgs, settingsMap } = makeSettingsMap(documentText);
@@ -49,6 +55,10 @@ describe("parseSettingsFromYamlMap", () => {
 
     it("parses timeout as the string 'inherit'", () => {
         const documentText = `settings:
+    encodeUrl: true
+    followRedirects: true
+    forwardAuthorizationHeader: true
+    maxRedirects: 5
     timeout: inherit`;
 
         const { commonArgs, settingsMap } = makeSettingsMap(documentText);
@@ -64,6 +74,10 @@ describe("parseSettingsFromYamlMap", () => {
 
     it("reports an error for an invalid string timeout value", () => {
         const documentText = `settings:
+    encodeUrl: true
+    followRedirects: true
+    forwardAuthorizationHeader: true
+    maxRedirects: 5
     timeout: not-a-valid-value`;
 
         const { commonArgs, settingsMap } = makeSettingsMap(documentText);
@@ -78,7 +92,11 @@ describe("parseSettingsFromYamlMap", () => {
 
     it("parses maxRedirects as a numeric scalar", () => {
         const documentText = `settings:
-    maxRedirects: 10`;
+    encodeUrl: true
+    followRedirects: true
+    forwardAuthorizationHeader: true
+    maxRedirects: 10
+    timeout: 5000`;
 
         const { commonArgs, settingsMap } = makeSettingsMap(documentText);
         const { result, errors } = parseSettingsFromYamlMap(
@@ -93,6 +111,10 @@ describe("parseSettingsFromYamlMap", () => {
     it("reports error for unknown keys", () => {
         const documentText = `settings:
     encodeUrl: true
+    followRedirects: true
+    forwardAuthorizationHeader: true
+    maxRedirects: 5
+    timeout: 5000
     unknownSetting: value`;
 
         const { commonArgs, settingsMap } = makeSettingsMap(documentText);
@@ -100,7 +122,7 @@ describe("parseSettingsFromYamlMap", () => {
 
         expect(errors).toHaveLength(1);
         expect(errors[0].range).toEqual(
-            getExpectedKeyRange(2, "unknownSetting", 4),
+            getExpectedKeyRange(6, "unknownSetting", 4),
         );
     });
 
@@ -113,7 +135,7 @@ describe("parseSettingsFromYamlMap", () => {
             commonArgs,
         );
 
-        expect(errors).toHaveLength(0);
+        expect(errors).toHaveLength(5);
         expect(result.properties.encodeUrl).toBeUndefined();
         expect(result.properties.followRedirects).toBeUndefined();
         expect(result.properties.forwardAuthorizationHeader).toBeUndefined();

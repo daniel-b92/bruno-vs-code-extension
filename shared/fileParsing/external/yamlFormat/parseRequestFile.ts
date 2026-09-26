@@ -196,7 +196,10 @@ function getParsedHttp(
         httpMap,
         {
             scalars: {
-                stringValues: [...expectedStringScalars, ...expectedScalarStrings],
+                stringValues: [
+                    ...expectedStringScalars,
+                    ...expectedScalarStrings,
+                ],
             },
             mapValues: expectedMaps,
             sequenceValues: expectedSequences,
@@ -262,7 +265,10 @@ function getParsedHttp(
     );
     let body: ReturnType<typeof parseBodyFromYamlMap>["result"];
     if (maybeBodyMap) {
-        const { result, errors } = parseBodyFromYamlMap(maybeBodyMap, commonArgs);
+        const { result, errors } = parseBodyFromYamlMap(
+            maybeBodyMap,
+            commonArgs,
+        );
         collectedErrors.push(...errors);
         body = result;
     }
@@ -343,21 +349,20 @@ function getParsedApp(
     );
 
     const errors = mapItemErrors.concat(
-        unknownKeys.map(
-            ({ key, keyRange }) =>
-                getErrorForUnknownKeyInMap({
-                    ...commonArgs,
-                    allowedKeys: Object.values(RequestFileAppProperty),
-                    keyRange,
-                    unknownKey: key,
-                }),
-            missingKeys.map((key) =>
-                getErrorForMissingKeyInMap({
-                    ...commonArgs,
-                    map,
-                    missingKey: key,
-                }),
-            ),
+        unknownKeys.map(({ key, keyRange }) =>
+            getErrorForUnknownKeyInMap({
+                ...commonArgs,
+                allowedKeys: Object.values(RequestFileAppProperty),
+                keyRange,
+                unknownKey: key,
+            }),
+        ),
+        missingKeys.map((key) =>
+            getErrorForMissingKeyInMap({
+                ...commonArgs,
+                map,
+                missingKey: key,
+            }),
         ),
     );
     const missingProperties = missingKeys.map((key) => ({

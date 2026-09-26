@@ -134,7 +134,10 @@ describe("parseBodyFromYamlMap", () => {
 
 function makeBodyMap(documentText: string) {
     const docHelper = new TextDocumentHelper(documentText);
-    const commonArgs = { docHelper, fullDocumentRange: docHelper.getTextRange() };
+    const commonArgs = {
+        docHelper,
+        fullDocumentRange: docHelper.getTextRange(),
+    };
     const parsedDocument = parseTextIntoYamlDocument(documentText);
     const innerMap = (parsedDocument.contents as YAMLMap).items[0]
         .value as YAMLMap;

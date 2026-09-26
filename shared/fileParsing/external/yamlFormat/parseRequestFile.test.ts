@@ -64,9 +64,7 @@ http:
                 getExpectedKeyRange(5, TopLevelRequestFileProperty.Http, 0),
             );
             expect(http!.properties.method?.value).toBe("GET");
-            expect(http!.properties.url?.value).toBe(
-                "https://example.com/api",
-            );
+            expect(http!.properties.url?.value).toBe("https://example.com/api");
         });
 
         it("parses a request file with http section containing headers and params", () => {
@@ -187,11 +185,7 @@ runtime:
             const runtime = result!.properties.runtime;
             expect(runtime).toBeDefined();
             expect(runtime!.keyRange).toEqual(
-                getExpectedKeyRange(
-                    9,
-                    TopLevelRequestFileProperty.Runtime,
-                    0,
-                ),
+                getExpectedKeyRange(9, TopLevelRequestFileProperty.Runtime, 0),
             );
 
             const variables = runtime!.properties.variables;
@@ -243,7 +237,10 @@ docs: some documentation text`;
 
 settings:
     encodeUrl: true
-    followRedirects: true`;
+    followRedirects: true
+    forwardAuthorizationHeader: true
+    maxRedirects: 5
+    timeout: 5000`;
 
             const { result, errors } = parseRequestFile(
                 new TextDocumentHelper(documentText),
@@ -281,6 +278,10 @@ runtime:
 
 settings:
     encodeUrl: true
+    followRedirects: true
+    forwardAuthorizationHeader: true
+    maxRedirects: 5
+    timeout: 5000
 
 docs: request docs`;
 
@@ -292,7 +293,9 @@ docs: request docs`;
             expect(result).toBeDefined();
             // Only optional sections (graphql, grpc, websocket, examples, app) should be missing.
             expect(
-                result!.missingProperties.every(({ isMandatory }) => !isMandatory),
+                result!.missingProperties.every(
+                    ({ isMandatory }) => !isMandatory,
+                ),
             ).toBeTruthy();
 
             expect(result!.properties.info).toBeDefined();
@@ -361,9 +364,7 @@ http:
             expect(errors).toHaveLength(1);
             expect(
                 errors.some(({ range }) =>
-                    range.equals(
-                        getExpectedKeyRange(8, "unknownHttpKey", 4),
-                    ),
+                    range.equals(getExpectedKeyRange(8, "unknownHttpKey", 4)),
                 ),
             ).toBeTruthy();
             expect(result!.properties.http).toBeDefined();
@@ -509,17 +510,10 @@ runtime:
             const runtime = result!.properties.runtime;
             expect(runtime).toBeDefined();
             expect(runtime!.keyRange).toEqual(
-                getExpectedKeyRange(
-                    5,
-                    TopLevelRequestFileProperty.Runtime,
-                    0,
-                ),
+                getExpectedKeyRange(5, TopLevelRequestFileProperty.Runtime, 0),
             );
             expect(runtime!.valueRange).toEqual(
-                new Range(
-                    new Position(6, 4),
-                    docHelper.getTextRange()!.end,
-                ),
+                new Range(new Position(6, 4), docHelper.getTextRange()!.end),
             );
         });
     });

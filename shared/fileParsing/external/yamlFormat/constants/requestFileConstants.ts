@@ -70,5 +70,5 @@ export enum RequestFileSettingsProperty {
 
 export enum RequestFileAppProperty {
     Enabled = "enabled",
-    Code = "enabled",
+    Code = "code",
 }

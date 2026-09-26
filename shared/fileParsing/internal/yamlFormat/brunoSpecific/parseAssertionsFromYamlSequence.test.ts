@@ -30,7 +30,9 @@ describe("parseAssertionsFromYamlSequence", () => {
             expect(result).toHaveLength(1);
             const assertion = result![0];
             expect(assertion.properties.expression?.value).toBe("res.status");
-            expect(assertion.properties.operator?.value).toBe(AssertionOperator.Equals);
+            expect(assertion.properties.operator?.value).toBe(
+                AssertionOperator.Equals,
+            );
             expect(assertion.properties.value?.value).toBe("expected_value");
             expect(assertion.properties.description?.value).toBe(
                 "status check",
@@ -51,7 +53,9 @@ describe("parseAssertionsFromYamlSequence", () => {
             expect(result).toHaveLength(1);
             const assertion = result![0];
             expect(assertion.properties.expression?.value).toBe("res.status");
-            expect(assertion.properties.operator?.value).toBe(AssertionOperator.Equals);
+            expect(assertion.properties.operator?.value).toBe(
+                AssertionOperator.Equals,
+            );
             expect(assertion.properties.value).toBeUndefined();
             expect(assertion.properties.description).toBeUndefined();
         });
