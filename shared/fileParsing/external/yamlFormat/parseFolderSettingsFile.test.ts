@@ -83,7 +83,7 @@ docs:
     name: test 3
     type: folder
     
-other: erer`;
+others: erer`;
         const docHelper = new TextDocumentHelper(documentText);
         const { result, errors } = parseFolderSettingsFile(docHelper);
 
