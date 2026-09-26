@@ -75,7 +75,7 @@ export function getMapItems(
     const items: ParsedMapItems = {
         ...validKeys,
         // Everytime one of the expected keys is found, it will be removed from this list.
-        missingKeys: allExpectedKeys.slice(),
+        missingKeys: [...new Set(allExpectedKeys)],
         unknownKeys: [],
     };
     const errors: YamlParsingError[] = [];

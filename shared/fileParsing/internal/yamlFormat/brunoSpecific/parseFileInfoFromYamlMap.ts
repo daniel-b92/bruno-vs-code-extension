@@ -188,8 +188,15 @@ function getTagsToUse(
         return undefined;
     }
 
-    if (isSeq<Scalar<string>>(maybeUntypedTagsField.value)) {
-        const value = maybeUntypedTagsField.value.items.map((item) => ({
+    if (
+        isSeq<Scalar>(maybeUntypedTagsField.value) &&
+        maybeUntypedTagsField.value.items.every(
+            ({ value }) => typeof value == "string",
+        )
+    ) {
+        const value = (
+            maybeUntypedTagsField.value.items as Scalar<string>[]
+        ).map((item) => ({
             value: item.value,
             range: getRangeForItem(item, commonArgs),
         }));

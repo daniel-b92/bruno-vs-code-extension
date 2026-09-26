@@ -14,6 +14,11 @@ import {
 } from "../../external/yamlFormat/constants/actionConstants";
 import { AuthType } from "../../external/yamlFormat/constants/authConstants";
 import {
+    HttpBodyType,
+    HttpParamType,
+} from "../../external/yamlFormat/constants/requestFileConstants";
+import {
+    AssertionOperator,
     DocsType,
     ScriptType,
     VariableType,
@@ -75,6 +80,31 @@ export type ParsedScript = ParsedYamlMapWithValueRange<{
     code?: WithKeyAndValueRange<string>;
 }>;
 
+export type ParsedAssertion = ParsedYamlMapWithValueRange<{
+    expression?: WithKeyAndValueRange<string>;
+    operator?: WithKeyAndValueRange<AssertionOperator>;
+    value?: WithKeyAndValueRange<string>;
+    description?: WithKeyAndValueRange<string>;
+}>;
+
+export type ParsedRequestFileAppSection = ParsedYamlMapWithKeyAndValueRange<{
+    enabled?: WithKeyAndValueRange<boolean>;
+    code?: WithKeyAndValueRange<string>;
+}>;
+
+export type ParsedHttpParam = ParsedYamlMapWithValueRange<{
+    name?: WithKeyAndValueRange<string>;
+    value?: WithKeyAndValueRange<string>;
+    type?: WithKeyAndValueRange<HttpParamType>;
+    description?: WithKeyAndValueRange<string>;
+    disabled: OptionalVariableFieldResult<boolean>;
+}>;
+
+export type ParsedHttpBody = ParsedYamlMapWithKeyAndValueRange<{
+    type?: WithKeyAndValueRange<HttpBodyType>;
+    data?: WithKeyAndValueRange<string>;
+}>;
+
 export type ParsedDocsWithType = WithKeyAndValueRange<
     | string
     | ParsedYamlMap<{
@@ -82,6 +112,14 @@ export type ParsedDocsWithType = WithKeyAndValueRange<
           content?: WithKeyAndValueRange<string>;
       }>
 >;
+
+export type ParsedSettings = ParsedYamlMapWithKeyAndValueRange<{
+    encodeUrl?: WithKeyAndValueRange<boolean>;
+    timeout?: WithKeyAndValueRange<"inherit"> | WithKeyAndValueRange<number>;
+    followRedirects?: WithKeyAndValueRange<boolean>;
+    maxRedirects?: WithKeyAndValueRange<number>;
+    forwardAuthorizationHeader?: WithKeyAndValueRange<boolean>;
+}>;
 
 export type ParsedAuth = WithKeyAndValueRange<
     ParsedInheritAuth | ParsedBasicAuth | ParsedBearerAuth

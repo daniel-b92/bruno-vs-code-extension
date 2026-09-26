@@ -19,11 +19,6 @@ export enum FileInfoProperty {
     Tags = "tags",
 }
 
-export enum ScriptMapProperty {
-    Type = "type",
-    Code = "code",
-}
-
 export enum FileInfoType {
     Folder = "folder",
     Http = "http",
@@ -48,8 +43,51 @@ export enum VariableType {
     String = "string",
 }
 
+export enum ScriptMapProperty {
+    Type = "type",
+    Code = "code",
+}
+
 export enum ScriptType {
     BeforeRequest = "before-request",
     AfterResponse = "after-response",
     Tests = "tests",
+}
+
+export enum AssertionMapProperty {
+    Expression = "expression",
+    Operator = "operator",
+    Value = "value",
+    Description = "description",
+}
+
+export enum AssertionOperator {
+    Equals = "eq",
+    NotEquals = "neq",
+    GreaterThan = "gt",
+    GreaterThanOrEqual = "gte",
+    LessThan = "lt",
+    LessThanOrEqual = "lte",
+    In = "in",
+    NotIn = "notIn",
+    Contains = "contains",
+    Notcontains = "notcontains",
+    Length = "length",
+    Matches = "matches",
+    NotMatches = "notMatches",
+    StartsWith = "startsWith",
+    EndsWith = "endsWith",
+    Between = "between",
+    IsEmpty = "isEmpty",
+    IsNotEmpty = "isNotEmpty",
+    IsNull = "isNull",
+    IsUndefined = "isUndefined",
+    IsDefined = "isDefined",
+    IsTruthy = "isTruthy",
+    IsFalsy = "isFalsy",
+    IsJson = "isJson",
+    IsNumber = "isNumber",
+    IsString = "isString",
+    IsBoolean = "isBoolean",
+    IsArray = "isArray",
 }
