@@ -23,6 +23,17 @@
             "preLaunchTask": "npm: compile"
         },
         {
+            "name": "Run Extension (no debug)",
+            "type": "extensionHost",
+            "request": "launch",
+            "noDebug": true,
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}",
+                "${workspaceFolder}/samples"
+            ],
+            "preLaunchTask": "npm: compile"
+        },
+        {
             "name": "Run Extension With local TS plugin",
             "type": "extensionHost",
             "request": "launch",
