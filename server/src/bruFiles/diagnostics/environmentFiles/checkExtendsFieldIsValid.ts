@@ -9,13 +9,9 @@ import { RelevantWithinEnvironmentFileDiagnosticCode } from "../shared/diagnosti
 
 export function checkExtendsFieldIsValid(
     filePath: string,
-    extendsField: EnvironmentFileExtendsField | undefined,
+    extendsField: EnvironmentFileExtendsField,
     knownEnvironmentNames?: string[],
 ): DiagnosticWithCode | undefined {
-    if (!extendsField) {
-        return undefined;
-    }
-
     const { value, valueRange } = extendsField;
     const ownEnvironmentName = basename(filePath, getExtensionForBrunoFiles());
 

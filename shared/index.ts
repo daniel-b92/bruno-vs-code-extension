@@ -99,7 +99,7 @@ export * from "./languageUtils/bruFormat/requestFiles/paramsBlocks/isParamsBlock
 // language utils - environment files
 export * from "./languageUtils/bruFormat/environmentFiles/environmentFileBlockNameEnum";
 export * from "./languageUtils/bruFormat/environmentFiles/environmentFileTopLevelFieldEnum";
-export * from "./languageUtils/bruFormat/environmentFiles/getExtendsField";
+export * from "./languageUtils/bruFormat/environmentFiles/getAllExtendsFields";
 export { isVarsBlock as isVarsBlockInEnvironmentFile } from "./languageUtils/bruFormat/environmentFiles/isVarsBlock";
 export * from "./languageUtils/bruFormat/commonBlocks/generic/variables/getMatchingDefinitionsFromEnvFiles";
 

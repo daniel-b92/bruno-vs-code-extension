@@ -13,13 +13,14 @@ export interface EnvironmentFileExtendsField {
     fullRange: Range;
 }
 
-export function getExtendsField(
+export function getAllExtendsFields(
     docHelper: TextDocumentHelper,
     textOutsideOfBlocks: TextOutsideOfBlocks[],
-): EnvironmentFileExtendsField | undefined {
+): EnvironmentFileExtendsField[] {
     const pattern = new RegExp(
         `^(\\s*)(${EnvironmentFileTopLevelField.Extends})(\\s*:\\s*)(.*?)\\s*$`,
     );
+    const result: EnvironmentFileExtendsField[] = [];
 
     for (const { range } of textOutsideOfBlocks) {
         for (
@@ -39,7 +40,7 @@ export function getExtendsField(
             const valueStart = keyEnd + match[3].length;
             const valueEnd = valueStart + match[4].length;
 
-            return {
+            result.push({
                 value: match[4],
                 keyRange: new Range(
                     new Position(lineIndex, keyStart),
@@ -53,9 +54,9 @@ export function getExtendsField(
                     new Position(lineIndex, 0),
                     new Position(lineIndex, lineContent.length),
                 ),
-            };
+            });
         }
     }
 
-    return undefined;
+    return result;
 }

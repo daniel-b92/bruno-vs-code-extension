@@ -143,4 +143,31 @@ vars {
             RelevantWithinEnvironmentFileDiagnosticCode.InvalidExtendsField,
         );
     });
+
+    it("returns a diagnostic for each 'extends' field definition after the first one", () => {
+        const documentText = `extends: Base
+extends: Other
+extends: Third
+
+vars {
+  first: 1
+}`;
+
+        const diagnostics = determineDiagnosticsForEnvironmentFile(
+            "/tmp/collection/environments/invalid.bru",
+            documentText,
+        );
+
+        expect(diagnostics).toHaveLength(2);
+        expect(
+            diagnostics.every(
+                ({ code }) =>
+                    code ==
+                    RelevantWithinEnvironmentFileDiagnosticCode.ExtendsFieldDefinedMultipleTimes,
+            ),
+        ).toBe(true);
+        expect(diagnostics.map(({ range }) => range.start.line).sort()).toEqual(
+            [1, 2],
+        );
+    });
 });

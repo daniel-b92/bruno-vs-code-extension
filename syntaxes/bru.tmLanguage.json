@@ -36,11 +36,10 @@
     ],
     "repository": {
         "top-level-simple-field": {
-            "match": "^\\s*(extends)\\s*(:)\\s*(.*[^\\[ ]+)\\s*$",
+            "match": "^\\s*(extends)\\s*:\\s*(.*[^\\[ ]+)\\s*$",
             "captures": {
                 "1": { "name": "keyword.bru" },
-                "2": { "name": "keyword.bru" },
-                "3": { "name": "string.bru" }
+                "2": { "name": "string.bru" }
             },
             "comment": "Top level simple field, e.g. 'extends' in environment files"
         },

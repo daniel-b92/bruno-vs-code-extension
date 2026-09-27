@@ -6,7 +6,7 @@ import {
     isBlockDictionaryBlock,
     BrunoFileType,
     isDictionaryBlockField,
-    getExtendsField,
+    getAllExtendsFields,
 } from "@global_shared";
 import { TypedCollectionItemProvider } from "../../../shared";
 import { DiagnosticWithCode } from "../interfaces";
@@ -19,6 +19,7 @@ import { RelevantWithinEnvironmentFileDiagnosticCode } from "../shared/diagnosti
 import { runDictionaryBlocksBaseChecks } from "../shared/checks/runDictionaryBlocksBaseChecks";
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { checkExtendsFieldIsValid } from "./checkExtendsFieldIsValid";
+import { checkExtendsFieldIsNotDefinedMultipleTimes } from "./checkExtendsFieldIsNotDefinedMultipleTimes";
 
 export function determineDiagnosticsForEnvironmentFile(
     filePath: string,
@@ -31,7 +32,9 @@ export function determineDiagnosticsForEnvironmentFile(
         docHelper,
         BrunoFileType.EnvironmentFile,
     );
-    const extendsField = getExtendsField(docHelper, textOutsideOfBlocks);
+    const extendsFields = getAllExtendsFields(docHelper, textOutsideOfBlocks);
+    const extendsField =
+        extendsFields.length == 1 ? extendsFields[0] : undefined;
     const knownEnvironmentNames = itemProvider
         ?.getAncestorCollectionForPath(filePath)
         ?.getEnvironments()
@@ -51,7 +54,17 @@ export function determineDiagnosticsForEnvironmentFile(
         checkThatNoTextExistsOutsideOfBlocks(filePath, textOutsideOfBlocks, [
             EnvironmentFileTopLevelField.Extends,
         ]),
-        checkExtendsFieldIsValid(filePath, extendsField, knownEnvironmentNames),
+        extendsField
+            ? checkExtendsFieldIsValid(
+                  filePath,
+                  extendsField,
+                  knownEnvironmentNames,
+              )
+            : undefined,
+        ...(checkExtendsFieldIsNotDefinedMultipleTimes(
+            filePath,
+            extendsFields,
+        ) ?? []),
         checkNoBlocksHaveUnknownNames(
             filePath,
             blocks,

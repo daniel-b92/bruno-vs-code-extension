@@ -146,7 +146,6 @@ function getExtendsKeyCompletionItem(
         insertTextFormat: InsertTextFormat.Snippet,
         sortText: `b_${EnvironmentFileTopLevelField.Extends}`,
         labelDetails: { description: "optional" },
-        detail: "Scalar field",
     };
 }
 
