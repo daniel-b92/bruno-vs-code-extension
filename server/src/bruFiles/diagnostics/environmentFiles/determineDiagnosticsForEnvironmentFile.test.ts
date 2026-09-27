@@ -6,6 +6,7 @@ import {
 } from "@global_shared";
 import { determineDiagnosticsForEnvironmentFile } from "./determineDiagnosticsForEnvironmentFile";
 import { NonBlockSpecificDiagnosticCode } from "../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import { RelevantWithinEnvironmentFileDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinEnvironmentFileDiagnosticCodeEnum";
 
 describe("determineDiagnosticsForEnvironmentFile", () => {
     it("parses a simple environment file string and returns diagnostics for duplicate annotations", () => {
@@ -90,5 +91,56 @@ describe("determineDiagnosticsForEnvironmentFile", () => {
         );
 
         expect(diagnostics).toHaveLength(0);
+    });
+
+    it("does not flag a valid top level 'extends' field as text outside of blocks", () => {
+        const documentText = `extends: Base
+
+vars {
+  first: 1
+}`;
+
+        const diagnostics = determineDiagnosticsForEnvironmentFile(
+            "/tmp/collection/environments/valid.bru",
+            documentText,
+        );
+
+        expect(diagnostics).toHaveLength(0);
+    });
+
+    it("returns a diagnostic when the 'extends' field has no value", () => {
+        const documentText = `extends:
+
+vars {
+  first: 1
+}`;
+
+        const diagnostics = determineDiagnosticsForEnvironmentFile(
+            "/tmp/collection/environments/invalid.bru",
+            documentText,
+        );
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0].code).toEqual(
+            RelevantWithinEnvironmentFileDiagnosticCode.InvalidExtendsField,
+        );
+    });
+
+    it("returns a diagnostic when the 'extends' field references its own environment", () => {
+        const documentText = `extends: invalid
+
+vars {
+  first: 1
+}`;
+
+        const diagnostics = determineDiagnosticsForEnvironmentFile(
+            "/tmp/collection/environments/invalid.bru",
+            documentText,
+        );
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0].code).toEqual(
+            RelevantWithinEnvironmentFileDiagnosticCode.InvalidExtendsField,
+        );
     });
 });

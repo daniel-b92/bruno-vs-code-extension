@@ -2,10 +2,13 @@ import {
     TextDocumentHelper,
     parseBruFile,
     EnvironmentFileBlockName,
+    EnvironmentFileTopLevelField,
     isBlockDictionaryBlock,
     BrunoFileType,
     isDictionaryBlockField,
+    getExtendsField,
 } from "@global_shared";
+import { TypedCollectionItemProvider } from "../../../shared";
 import { DiagnosticWithCode } from "../interfaces";
 import { checkArrayBlocksHaveArrayStructure } from "../shared/checks/multipleBlocks/checkArrayBlocksHaveArrayStructure";
 import { checkNoBlocksHaveUnknownNames } from "../shared/checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
@@ -15,10 +18,12 @@ import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/chec
 import { RelevantWithinEnvironmentFileDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinEnvironmentFileDiagnosticCodeEnum";
 import { runDictionaryBlocksBaseChecks } from "../shared/checks/runDictionaryBlocksBaseChecks";
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
+import { checkExtendsFieldIsValid } from "./checkExtendsFieldIsValid";
 
 export function determineDiagnosticsForEnvironmentFile(
     filePath: string,
     documentText: string,
+    itemProvider?: TypedCollectionItemProvider,
 ): DiagnosticWithCode[] {
     const docHelper = new TextDocumentHelper(documentText);
 
@@ -26,6 +31,11 @@ export function determineDiagnosticsForEnvironmentFile(
         docHelper,
         BrunoFileType.EnvironmentFile,
     );
+    const extendsField = getExtendsField(docHelper, textOutsideOfBlocks);
+    const knownEnvironmentNames = itemProvider
+        ?.getAncestorCollectionForPath(filePath)
+        ?.getEnvironments()
+        .map(({ environmentName }) => environmentName);
     const blocksThatShouldBeDictionaryBlocks = blocks.filter(
         ({ name }) => name == EnvironmentFileBlockName.Vars,
     );
@@ -38,7 +48,10 @@ export function determineDiagnosticsForEnvironmentFile(
 
     results.push(
         checkThatNoBlocksAreDefinedMultipleTimes(filePath, blocks),
-        checkThatNoTextExistsOutsideOfBlocks(filePath, textOutsideOfBlocks),
+        checkThatNoTextExistsOutsideOfBlocks(filePath, textOutsideOfBlocks, [
+            EnvironmentFileTopLevelField.Extends,
+        ]),
+        checkExtendsFieldIsValid(filePath, extendsField, knownEnvironmentNames),
         checkNoBlocksHaveUnknownNames(
             filePath,
             blocks,

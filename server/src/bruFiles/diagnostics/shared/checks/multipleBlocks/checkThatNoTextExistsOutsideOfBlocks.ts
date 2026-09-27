@@ -15,9 +15,25 @@ import { DiagnosticSeverity } from "vscode-languageserver";
 export function checkThatNoTextExistsOutsideOfBlocks(
     filePath: string,
     allTextOutsideOfBlocks: TextOutsideOfBlocks[],
+    allowedTopLevelFieldNames: string[] = [],
 ): DiagnosticWithCode | undefined {
+    const allowedFieldLinePattern =
+        allowedTopLevelFieldNames.length > 0
+            ? new RegExp(
+                  `^\\s*(${allowedTopLevelFieldNames.join("|")})\\s*:.*$`,
+              )
+            : undefined;
+
     const relevantTextOutsideOfBlocks = allTextOutsideOfBlocks.filter(
-        ({ text }) => !/^\s*$/.test(text),
+        ({ text }) =>
+            !text
+                .split(/\r\n|\n/)
+                .every(
+                    (line) =>
+                        /^\s*$/.test(line) ||
+                        (allowedFieldLinePattern != undefined &&
+                            allowedFieldLinePattern.test(line)),
+                ),
     );
 
     if (relevantTextOutsideOfBlocks.length == 0) {
