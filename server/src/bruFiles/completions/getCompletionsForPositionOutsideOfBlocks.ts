@@ -170,6 +170,12 @@ function getCompletionsForExtendsFieldValue(
         .getEnvironments()
         .map(({ environmentName }) => environmentName)
         .filter((environmentName) => environmentName != ownEnvironmentName)
+        .filter(
+            (environmentName) =>
+                !collection
+                    .getEnvironmentInheritanceChain(environmentName)
+                    .includes(ownEnvironmentName),
+        )
         .map((environmentName) => ({
             label: environmentName,
             textEdit: getTextEditForDictionaryBlockSimpleValue(

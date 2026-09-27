@@ -1,7 +1,5 @@
 import { describe, it, expect } from "@jest/globals";
-import { Collection } from "./collection";
-import { CollectionDirectory } from "./collectionDirectory";
-import { BrunoEnvironmentFile } from "./files/brunoEnvironmentFile";
+import { createCollectionWithEnvironments } from "../_testingUtils";
 
 describe("Collection.getEnvironmentInheritanceChain", () => {
     it("returns an empty chain when the environment does not extend anything", () => {
@@ -64,26 +62,3 @@ describe("Collection.getEnvironmentsExtending", () => {
         expect(collection.getEnvironmentsExtending("Base")).toEqual([]);
     });
 });
-
-function createCollectionWithEnvironments(
-    environments: { name: string; extends?: string }[],
-) {
-    const collection = new Collection(
-        new CollectionDirectory("/collection"),
-        undefined,
-        [],
-    );
-
-    for (const { name, extends: extendsName } of environments) {
-        collection.addItem({
-            item: new BrunoEnvironmentFile(
-                `/collection/environments/${name}.bru`,
-                [],
-                extendsName,
-            ),
-            additionalData: undefined,
-        });
-    }
-
-    return collection;
-}

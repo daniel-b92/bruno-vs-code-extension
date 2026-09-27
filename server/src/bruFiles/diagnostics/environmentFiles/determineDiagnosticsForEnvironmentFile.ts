@@ -20,6 +20,7 @@ import { runDictionaryBlocksBaseChecks } from "../shared/checks/runDictionaryBlo
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { checkExtendsFieldIsValid } from "./checkExtendsFieldIsValid";
 import { checkExtendsFieldIsNotDefinedMultipleTimes } from "./checkExtendsFieldIsNotDefinedMultipleTimes";
+import { checkExtendsFieldDoesNotCreateInheritanceLoop } from "./checkExtendsFieldDoesNotCreateInheritanceLoop";
 
 export function determineDiagnosticsForEnvironmentFile(
     filePath: string,
@@ -35,8 +36,8 @@ export function determineDiagnosticsForEnvironmentFile(
     const extendsFields = getAllExtendsFields(docHelper, textOutsideOfBlocks);
     const extendsField =
         extendsFields.length == 1 ? extendsFields[0] : undefined;
-    const knownEnvironmentNames = itemProvider
-        ?.getAncestorCollectionForPath(filePath)
+    const collection = itemProvider?.getAncestorCollectionForPath(filePath);
+    const knownEnvironmentNames = collection
         ?.getEnvironments()
         .map(({ environmentName }) => environmentName);
     const blocksThatShouldBeDictionaryBlocks = blocks.filter(
@@ -59,6 +60,13 @@ export function determineDiagnosticsForEnvironmentFile(
                   filePath,
                   extendsField,
                   knownEnvironmentNames,
+              )
+            : undefined,
+        extendsField && collection
+            ? checkExtendsFieldDoesNotCreateInheritanceLoop(
+                  filePath,
+                  extendsField,
+                  collection,
               )
             : undefined,
         ...(checkExtendsFieldIsNotDefinedMultipleTimes(
