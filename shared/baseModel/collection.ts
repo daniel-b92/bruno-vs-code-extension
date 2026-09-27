@@ -61,6 +61,39 @@ export class Collection<T> {
             }));
     }
 
+    public getEnvironmentInheritanceChain(environmentName: string): string[] {
+        const environments = this.getEnvironments();
+        const chain: string[] = [];
+        const visited = new Set<string>([environmentName]);
+
+        let currentEnvironmentName = environmentName;
+
+        for (;;) {
+            const extendsName = environments
+                .find(
+                    ({ environmentName: name }) =>
+                        name == currentEnvironmentName,
+                )
+                ?.item.getExtends();
+
+            if (extendsName == undefined || visited.has(extendsName)) {
+                break;
+            }
+
+            chain.push(extendsName);
+            visited.add(extendsName);
+            currentEnvironmentName = extendsName;
+        }
+
+        return chain;
+    }
+
+    public getEnvironmentsExtending(environmentName: string): string[] {
+        return this.getEnvironments()
+            .filter(({ item }) => item.getExtends() == environmentName)
+            .map(({ environmentName: name }) => name);
+    }
+
     public getAdditionalContextRoots() {
         return this.additionalContextRoots.slice();
     }

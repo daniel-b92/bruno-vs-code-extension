@@ -4,6 +4,7 @@ import {
     isBlockDictionaryBlock,
     isDictionaryBlockSimpleField,
     parseBlockFromFile,
+    parseBruFile,
     RequestFileBlockName,
     isDictionaryBlockField,
     Collection,
@@ -19,7 +20,7 @@ import {
     ItemType,
     CollectionItem,
     getFileContent,
-    parseFileByPath,
+    getAllExtendsFields,
     BrunoCollectionSettingsFile,
     BrunoAppFile,
 } from "../..";
@@ -68,21 +69,34 @@ export async function getCollectionItemForFile(
 }
 
 async function createEnvironmentFileInstance(path: string) {
-    const blocks = (await parseFileByPath(path, BrunoFileType.EnvironmentFile))
-        ?.blocks;
+    const content = await getFileContent(path);
 
-    const varsBlocks = blocks
-        ? blocks.filter(({ name }) => name == EnvironmentFileBlockName.Vars)
-        : undefined;
-
-    if (!varsBlocks || varsBlocks.length != 1) {
+    if (content == undefined) {
         return new BrunoEnvironmentFile(path, []);
+    }
+
+    const docHelper = new TextDocumentHelper(content);
+    const { blocks, textOutsideOfBlocks } = parseBruFile(
+        docHelper,
+        BrunoFileType.EnvironmentFile,
+    );
+
+    const extendsFields = getAllExtendsFields(docHelper, textOutsideOfBlocks);
+    const extendsEnvironmentName =
+        extendsFields.length == 1 ? extendsFields[0].value : undefined;
+
+    const varsBlocks = blocks.filter(
+        ({ name }) => name == EnvironmentFileBlockName.Vars,
+    );
+
+    if (varsBlocks.length != 1) {
+        return new BrunoEnvironmentFile(path, [], extendsEnvironmentName);
     }
 
     const varsBlock = varsBlocks[0];
 
     if (!isBlockDictionaryBlock(varsBlock)) {
-        return new BrunoEnvironmentFile(path, []);
+        return new BrunoEnvironmentFile(path, [], extendsEnvironmentName);
     }
 
     return new BrunoEnvironmentFile(
@@ -90,6 +104,7 @@ async function createEnvironmentFileInstance(path: string) {
         varsBlock.content.filter(
             (field) => isDictionaryBlockSimpleField(field) && !field.disabled,
         ) as DictionaryBlockSimpleField[],
+        extendsEnvironmentName,
     );
 }
 

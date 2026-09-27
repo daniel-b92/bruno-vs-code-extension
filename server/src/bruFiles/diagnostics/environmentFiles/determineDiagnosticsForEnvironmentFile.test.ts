@@ -132,6 +132,32 @@ extendsi: Test`;
         });
     });
 
+    it("only flags the invalid line when a valid 'extends' field is mixed with invalid text outside of blocks, for a file using '\\r\\n' line breaks", () => {
+        const documentText = [
+            "vars {",
+            "  url: https://asasas.com/",
+            "}",
+            "",
+            "extends: asasa",
+            "",
+            "extendsi: Test",
+        ].join("\r\n");
+
+        const diagnostics = determineDiagnosticsForEnvironmentFile(
+            "/tmp/collection/environments/Test1.bru",
+            documentText,
+        );
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0].code).toEqual(
+            NonBlockSpecificDiagnosticCode.TextOutsideOfBlocks,
+        );
+        expect(diagnostics[0].range).toEqual({
+            start: { line: 6, character: 0 },
+            end: { line: 6, character: 14 },
+        });
+    });
+
     it("returns a diagnostic when the 'extends' field has no value", () => {
         const documentText = `extends:
 

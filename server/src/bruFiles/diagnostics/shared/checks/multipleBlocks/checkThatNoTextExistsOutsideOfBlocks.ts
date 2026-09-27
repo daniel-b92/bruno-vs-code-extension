@@ -2,10 +2,10 @@ import {
     EnvironmentFileBlockName,
     getBlockStartPatternByName,
     getNonBlockSpecificBlockStartPattern,
+    Position,
     Range,
     RequestFileBlockName,
     SettingsFileSpecificBlock,
-    TextDocumentHelper,
     TextOutsideOfBlocks,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../../../interfaces";
@@ -24,48 +24,29 @@ export function checkThatNoTextExistsOutsideOfBlocks(
               )
             : undefined;
 
-    const relevantTextOutsideOfBlocks = allTextOutsideOfBlocks.filter(
-        ({ text }) =>
-            !text
-                .split(/\r\n|\n/)
-                .every(
-                    (line) =>
-                        /^\s*$/.test(line) ||
-                        (allowedFieldLinePattern != undefined &&
-                            allowedFieldLinePattern.test(line)),
-                ),
+    const relevantRanges = allTextOutsideOfBlocks.flatMap((chunk) =>
+        getInvalidLineGroupsWithinChunk(chunk, allowedFieldLinePattern),
     );
 
-    if (relevantTextOutsideOfBlocks.length == 0) {
+    if (relevantRanges.length == 0) {
         return undefined;
     } else {
-        relevantTextOutsideOfBlocks.sort(
-            (
-                {
-                    range: {
-                        start: { line: line1 },
-                    },
-                },
-                {
-                    range: {
-                        start: { line: line2 },
-                    },
-                },
-            ) => line1 - line2,
+        relevantRanges.sort(
+            ({ start: { line: line1 } }, { start: { line: line2 } }) =>
+                line1 - line2,
         );
 
         const range = new Range(
-            relevantTextOutsideOfBlocks[0].range.start,
-            relevantTextOutsideOfBlocks[relevantTextOutsideOfBlocks.length - 1]
-                .range.end,
+            relevantRanges[0].start,
+            relevantRanges[relevantRanges.length - 1].end,
         );
 
         const diagnostic: DiagnosticWithCode = {
-            message: getMessage(relevantTextOutsideOfBlocks),
+            message: getMessage(allTextOutsideOfBlocks, relevantRanges[0]),
             range,
             relatedInformation:
-                relevantTextOutsideOfBlocks.length > 1
-                    ? relevantTextOutsideOfBlocks.map(({ range }) => ({
+                relevantRanges.length > 1
+                    ? relevantRanges.map((range) => ({
                           message: `Text outside of blocks`,
                           location: {
                               uri: filePath,
@@ -81,18 +62,88 @@ export function checkThatNoTextExistsOutsideOfBlocks(
     }
 }
 
-function getMessage(relevantTextOutsideOfBlocks: TextOutsideOfBlocks[]) {
+function getInvalidLineGroupsWithinChunk(
+    chunk: TextOutsideOfBlocks,
+    allowedFieldLinePattern: RegExp | undefined,
+): Range[] {
+    const lines = chunk.text.split(/\r\n|\n/);
+    const isLineValid = (line: string) =>
+        /^\s*$/.test(line) ||
+        (allowedFieldLinePattern != undefined &&
+            allowedFieldLinePattern.test(line));
+
+    const result: Range[] = [];
+    let currentGroupStart: number | undefined;
+
+    for (let lineOffset = 0; lineOffset < lines.length; lineOffset++) {
+        if (isLineValid(lines[lineOffset])) {
+            if (currentGroupStart != undefined) {
+                result.push(
+                    buildRangeForLineGroup(
+                        chunk,
+                        lines,
+                        currentGroupStart,
+                        lineOffset - 1,
+                    ),
+                );
+                currentGroupStart = undefined;
+            }
+
+            continue;
+        }
+
+        if (currentGroupStart == undefined) {
+            currentGroupStart = lineOffset;
+        }
+    }
+
+    if (currentGroupStart != undefined) {
+        result.push(
+            buildRangeForLineGroup(
+                chunk,
+                lines,
+                currentGroupStart,
+                lines.length - 1,
+            ),
+        );
+    }
+
+    return result;
+}
+
+function buildRangeForLineGroup(
+    chunk: TextOutsideOfBlocks,
+    lines: string[],
+    startLineOffset: number,
+    endLineOffset: number,
+): Range {
+    const startCharacter =
+        startLineOffset == 0 ? chunk.range.start.character : 0;
+    const endCharacter =
+        endLineOffset == lines.length - 1
+            ? chunk.range.end.character
+            : lines[endLineOffset].length;
+
+    return new Range(
+        new Position(chunk.range.start.line + startLineOffset, startCharacter),
+        new Position(chunk.range.start.line + endLineOffset, endCharacter),
+    );
+}
+
+function getMessage(
+    allTextOutsideOfBlocks: TextOutsideOfBlocks[],
+    firstInvalidRange: Range,
+) {
     const commonMessage = "Text outside of blocks is not allowed.";
 
-    const docHelperForFirstText = new TextDocumentHelper(
-        relevantTextOutsideOfBlocks[0].text,
+    const firstLineContent = getLineContentForChunks(
+        allTextOutsideOfBlocks,
+        firstInvalidRange.start.line,
     );
 
     const firstLineContainsBlockStart =
-        docHelperForFirstText.getLineCount() >= 1
-            ? getNonBlockSpecificBlockStartPattern().test(
-                  docHelperForFirstText.getLineByIndex(0),
-              )
+        firstLineContent != undefined
+            ? getNonBlockSpecificBlockStartPattern().test(firstLineContent)
             : false;
 
     if (!firstLineContainsBlockStart) {
@@ -106,11 +157,25 @@ function getMessage(relevantTextOutsideOfBlocks: TextOutsideOfBlocks[]) {
         .concat(Object.values(EnvironmentFileBlockName))
         .find((blockName) =>
             getBlockStartPatternByName(blockName).test(
-                docHelperForFirstText.getLineByIndex(0),
+                firstLineContent as string,
             ),
         );
 
     return blockWithStartMatchingFirstLine
         ? `${commonMessage} Are you maybe missing a bracket for closing the block '${blockWithStartMatchingFirstLine}'?`
         : commonMessage;
+}
+
+function getLineContentForChunks(
+    chunks: TextOutsideOfBlocks[],
+    lineNumber: number,
+): string | undefined {
+    const containingChunk = chunks.find(
+        ({ range }) =>
+            range.start.line <= lineNumber && lineNumber <= range.end.line,
+    );
+
+    return containingChunk?.text.split(/\r\n|\n/)[
+        lineNumber - containingChunk.range.start.line
+    ];
 }
