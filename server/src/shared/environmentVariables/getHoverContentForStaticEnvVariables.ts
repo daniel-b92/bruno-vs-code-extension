@@ -11,6 +11,7 @@ export function getHoverContentForStaticEnvVariables(
             valueRange: Range;
         }[];
         isConfiguredEnv: boolean;
+        inheritedByEnvironmentName?: string;
     }[],
 ) {
     if (matches.length == 0) {
@@ -24,19 +25,29 @@ export function getHoverContentForStaticEnvVariables(
         getLineBreak(),
         tableHeader,
         matches
-            .map(({ file, matchingVariables, isConfiguredEnv }) => {
-                const environmentName = basename(
+            .map(
+                ({
                     file,
-                    getExtensionForBrunoFiles(),
-                );
+                    matchingVariables,
+                    isConfiguredEnv,
+                    inheritedByEnvironmentName,
+                }) => {
+                    const environmentName = basename(
+                        file,
+                        getExtensionForBrunoFiles(),
+                    );
+                    const environmentColumnText = inheritedByEnvironmentName
+                        ? `${environmentName} (inherited by '${inheritedByEnvironmentName}')`
+                        : environmentName;
 
-                return matchingVariables
-                    .map(
-                        ({ value }) =>
-                            `| ${value} | ${environmentName}  | ${isConfiguredEnv ? "&#x2611;" : "-"} |`,
-                    )
-                    .join(getLineBreak());
-            })
+                    return matchingVariables
+                        .map(
+                            ({ value }) =>
+                                `| ${value} | ${environmentColumnText}  | ${isConfiguredEnv ? "&#x2611;" : "-"} |`,
+                        )
+                        .join(getLineBreak());
+                },
+            )
             .join(getLineBreak()),
     );
 }

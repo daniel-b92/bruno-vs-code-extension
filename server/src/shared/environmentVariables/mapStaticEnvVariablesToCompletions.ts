@@ -18,6 +18,7 @@ export function mapStaticEnvVariablesToCompletions(
         environmentFile: string;
         matchingVariableKeys: string[];
         isConfiguredEnv: boolean;
+        inheritedByEnvironmentName?: string;
     }[],
     modifications?: {
         prefixForSortText?: string;
@@ -25,16 +26,24 @@ export function mapStaticEnvVariablesToCompletions(
     },
 ) {
     return matchingStaticEnvVariables.flatMap(
-        ({ environmentFile, matchingVariableKeys, isConfiguredEnv }) =>
+        ({
+            environmentFile,
+            matchingVariableKeys,
+            isConfiguredEnv,
+            inheritedByEnvironmentName,
+        }) =>
             matchingVariableKeys.map((key) => {
                 const environmentName = basename(
                     environmentFile,
                     getExtensionForBrunoFiles(),
                 );
+                const environmentLabel = inheritedByEnvironmentName
+                    ? `'${environmentName}' (inherited by '${inheritedByEnvironmentName}')`
+                    : `'${environmentName}'`;
                 const completionItem: CompletionItem = {
                     label: key,
                     labelDetails: {
-                        description: `${shouldShowWarning(functionType) ? "!Env!" : "Env"} '${environmentName}'`,
+                        description: `${shouldShowWarning(functionType) ? "!Env!" : "Env"} ${environmentLabel}`,
                     },
                     detail: shouldShowWarning(functionType)
                         ? `WARNING: Will overwrite static environment variable from env '${environmentName}'`

@@ -55,12 +55,18 @@ function getResultsForVariable(
     return mapVariablesToCompletions(
         {
             staticEnvVariables: fromEnvironmentFiles.map(
-                ({ file, matchingVariables, isConfiguredEnv }) => ({
+                ({
+                    file,
+                    matchingVariables,
+                    isConfiguredEnv,
+                    inheritedByEnvironmentName,
+                }) => ({
                     environmentFile: file,
                     matchingVariableKeys: matchingVariables.map(
                         ({ key }) => key,
                     ),
                     isConfiguredEnv,
+                    inheritedByEnvironmentName,
                 }),
             ),
             staticScriptVariables: fromScriptVariableBlocks,
