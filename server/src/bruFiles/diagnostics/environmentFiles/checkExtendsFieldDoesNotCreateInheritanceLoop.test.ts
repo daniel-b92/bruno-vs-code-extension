@@ -1,6 +1,9 @@
 import { describe, it, expect } from "@jest/globals";
-import { EnvironmentFileExtendsField, Range, Position } from "@global_shared";
-import { createCollectionWithEnvironments } from "@global_shared/_testingUtils";
+import { EnvironmentFileExtendsField } from "@global_shared";
+import {
+    createCollectionWithEnvironments,
+    getDummyRange,
+} from "@global_shared/_testingUtils";
 import { checkExtendsFieldDoesNotCreateInheritanceLoop } from "./checkExtendsFieldDoesNotCreateInheritanceLoop";
 import { RelevantWithinEnvironmentFileDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinEnvironmentFileDiagnosticCodeEnum";
 
@@ -73,7 +76,7 @@ describe("checkExtendsFieldDoesNotCreateInheritanceLoop", () => {
 });
 
 function createExtendsField(value: string): EnvironmentFileExtendsField {
-    const range = new Range(new Position(0, 0), new Position(0, 0));
+    const range = getDummyRange();
 
     return {
         value,

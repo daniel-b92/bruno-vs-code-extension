@@ -1,8 +1,7 @@
 import { Collection } from "../baseModel/collection";
 import { CollectionDirectory } from "../baseModel/collectionDirectory";
 import { BrunoEnvironmentFile } from "../baseModel/files/brunoEnvironmentFile";
-import { Position } from "../fileSystem/position";
-import { Range } from "../fileSystem/range";
+import { getDummyRange } from "./documentTestUtils";
 
 export function createCollectionWithEnvironments(
     environments: {
@@ -35,8 +34,4 @@ export function createCollectionWithEnvironments(
     }
 
     return collection;
-}
-
-function getDummyRange() {
-    return new Range(new Position(0, 0), new Position(0, 0));
 }

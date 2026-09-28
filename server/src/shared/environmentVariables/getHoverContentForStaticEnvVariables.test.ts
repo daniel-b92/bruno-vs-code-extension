@@ -1,5 +1,5 @@
 import { describe, it, expect } from "@jest/globals";
-import { Position, Range } from "@global_shared";
+import { getDummyRange } from "@global_shared/_testingUtils";
 import { getHoverContentForStaticEnvVariables } from "./getHoverContentForStaticEnvVariables";
 
 describe("getHoverContentForStaticEnvVariables", () => {
@@ -62,7 +62,7 @@ describe("getHoverContentForStaticEnvVariables", () => {
 });
 
 function getVariable(value: string) {
-    const dummyRange = new Range(new Position(0, 0), new Position(0, 0));
+    const dummyRange = getDummyRange();
     return {
         key: "key",
         value,

@@ -34,8 +34,7 @@ export function determineDiagnosticsForEnvironmentFile(
         BrunoFileType.EnvironmentFile,
     );
     const extendsFields = getAllExtendsFields(docHelper, textOutsideOfBlocks);
-    const extendsField =
-        extendsFields.length == 1 ? extendsFields[0] : undefined;
+    const extendsField = extendsFields[0];
     const collection = itemProvider?.getAncestorCollectionForPath(filePath);
     const knownEnvironmentNames = collection
         ?.getEnvironments()
