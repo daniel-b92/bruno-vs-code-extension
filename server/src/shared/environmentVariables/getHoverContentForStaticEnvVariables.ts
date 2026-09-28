@@ -1,5 +1,6 @@
 import { basename } from "path";
 import { getExtensionForBrunoFiles, Range } from "@global_shared";
+import { wrapInCodeSpan } from "../markdown/wrapInCodeSpan";
 
 export function getHoverContentForStaticEnvVariables(
     matches: {
@@ -43,7 +44,7 @@ export function getHoverContentForStaticEnvVariables(
                     return matchingVariables
                         .map(
                             ({ value }) =>
-                                `| ${value} | ${environmentColumnText}  | ${isConfiguredEnv ? "&#x2611;" : "-"} |`,
+                                `| ${wrapInCodeSpan(value)} | ${wrapInCodeSpan(environmentColumnText)} | ${isConfiguredEnv ? "&#x2611;" : "-"} |`,
                         )
                         .join(getLineBreak());
                 },

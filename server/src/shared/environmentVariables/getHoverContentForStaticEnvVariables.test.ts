@@ -16,7 +16,7 @@ describe("getHoverContentForStaticEnvVariables", () => {
             },
         ]);
 
-        expect(result).toContain("| dev-value | Dev  | &#x2611; |");
+        expect(result).toContain("| `dev-value` | `Dev` | &#x2611; |");
         expect(result).not.toContain("inherited");
     });
 
@@ -31,7 +31,7 @@ describe("getHoverContentForStaticEnvVariables", () => {
         ]);
 
         expect(result).toContain(
-            "| base-value | Base (inherited by 'Dev')  | - |",
+            "| `base-value` | `Base (inherited by 'Dev')` | - |",
         );
     });
 
@@ -44,8 +44,20 @@ describe("getHoverContentForStaticEnvVariables", () => {
             },
         ]);
 
-        expect(result).toContain("| other-value | Other  | - |");
+        expect(result).toContain("| `other-value` | `Other` | - |");
         expect(result).not.toContain("inherited");
+    });
+
+    it("escapes a value containing a backtick so the code span isn't broken", () => {
+        const result = getHoverContentForStaticEnvVariables([
+            {
+                file: "/collection/environments/Dev.bru",
+                matchingVariables: [getVariable("has`backtick")],
+                isConfiguredEnv: true,
+            },
+        ]);
+
+        expect(result).toContain("| ``has`backtick`` | `Dev` | &#x2611; |");
     });
 });
 
