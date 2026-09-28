@@ -6,7 +6,7 @@ import {
     TextDocumentHelper,
 } from "@global_shared";
 import { createCollectionWithEnvironments } from "@global_shared/_testingUtils";
-import { CancellationToken } from "vscode-languageserver";
+import { CancellationToken, TextEdit } from "vscode-languageserver";
 import { getCompletionsForPositionOutsideOfBlocks } from "./getCompletionsForPositionOutsideOfBlocks";
 import { LanguageFeatureBaseRequest, TypedCollection } from "../../shared";
 
@@ -142,6 +142,33 @@ describe("getCompletionsForPositionOutsideOfBlocks", () => {
                 ({ label }) => label == EnvironmentFileTopLevelField.Extends,
             ),
         ).toBe(true);
+    });
+
+    it("lets the user choose from the available environments when suggesting the 'extends' key", () => {
+        const collection = createCollectionWithEnvironments([
+            { name: "Dev" },
+            { name: "Staging" },
+            { name: "Prod" },
+        ]);
+
+        const result = getCompletionsForPositionOutsideOfBlocks(
+            createBaseRequest(
+                "/collection/environments/Dev.bru",
+                "",
+                new Position(0, 0),
+            ),
+            BrunoFileType.EnvironmentFile,
+            [],
+            collection,
+        );
+
+        const extendsCompletion = result?.find(
+            ({ label }) => label == EnvironmentFileTopLevelField.Extends,
+        );
+
+        expect(
+            (extendsCompletion?.textEdit as TextEdit | undefined)?.newText,
+        ).toBe(`${EnvironmentFileTopLevelField.Extends}: \${1|Staging,Prod|}`);
     });
 });
 

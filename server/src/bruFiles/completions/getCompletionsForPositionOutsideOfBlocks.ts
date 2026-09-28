@@ -110,6 +110,8 @@ export function getCompletionsForPositionOutsideOfBlocks(
     const extendsKeyCompletion = getExtendsKeyCompletionItem(
         documentHelper,
         position.line,
+        filePath,
+        collection,
     );
 
     return extendsKeyCompletion
@@ -130,6 +132,8 @@ function documentAlreadyHasExtendsField(documentHelper: TextDocumentHelper) {
 function getExtendsKeyCompletionItem(
     documentHelper: TextDocumentHelper,
     lineIndex: number,
+    filePath: string,
+    collection: TypedCollection,
 ): CompletionItem | undefined {
     const fullLineRange = documentHelper.getRangeForLine(lineIndex);
 
@@ -137,16 +141,48 @@ function getExtendsKeyCompletionItem(
         return undefined;
     }
 
+    const availableEnvironmentNames = getAvailableEnvironmentNamesForExtends(
+        filePath,
+        collection,
+    );
+
+    const valuePlaceholder =
+        availableEnvironmentNames.length > 0
+            ? `\${1|${availableEnvironmentNames.map(escapeSnippetChoiceOption).join(",")}|}`
+            : "${0}";
+
     return {
         label: EnvironmentFileTopLevelField.Extends,
         textEdit: {
-            newText: `${EnvironmentFileTopLevelField.Extends}: \${0}`,
+            newText: `${EnvironmentFileTopLevelField.Extends}: ${valuePlaceholder}`,
             range: fullLineRange,
         },
         insertTextFormat: InsertTextFormat.Snippet,
         sortText: `b_${EnvironmentFileTopLevelField.Extends}`,
         labelDetails: { description: "optional" },
     };
+}
+
+function escapeSnippetChoiceOption(option: string): string {
+    return option.replace(/[\\,|]/g, (match) => `\\${match}`);
+}
+
+function getAvailableEnvironmentNamesForExtends(
+    filePath: string,
+    collection: TypedCollection,
+): string[] {
+    const ownEnvironmentName = basename(filePath, getExtensionForBrunoFiles());
+
+    return collection
+        .getEnvironments()
+        .map(({ environmentName }) => environmentName)
+        .filter((environmentName) => environmentName != ownEnvironmentName)
+        .filter(
+            (environmentName) =>
+                !collection
+                    .getEnvironmentInheritanceChain(environmentName)
+                    .includes(ownEnvironmentName),
+        );
 }
 
 function getCompletionsForExtendsFieldValue(
@@ -164,26 +200,16 @@ function getCompletionsForExtendsFieldValue(
         return undefined;
     }
 
-    const ownEnvironmentName = basename(filePath, getExtensionForBrunoFiles());
-
-    return collection
-        .getEnvironments()
-        .map(({ environmentName }) => environmentName)
-        .filter((environmentName) => environmentName != ownEnvironmentName)
-        .filter(
-            (environmentName) =>
-                !collection
-                    .getEnvironmentInheritanceChain(environmentName)
-                    .includes(ownEnvironmentName),
-        )
-        .map((environmentName) => ({
+    return getAvailableEnvironmentNamesForExtends(filePath, collection).map(
+        (environmentName) => ({
             label: environmentName,
             textEdit: getTextEditForDictionaryBlockSimpleValue(
                 position.line,
                 currentLineContent,
                 environmentName,
             ),
-        }));
+        }),
+    );
 }
 
 function parseBlockStartLine(
