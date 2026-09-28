@@ -1,5 +1,13 @@
 export function getDefinitionsForReqObject() {
     return `/**
+ * @typedef {object} ReqFailError Error passed to \`req.onFail\`'s callback.
+ * @property {string} message
+ * @property {number} [status]
+ * @property {string} [statusText]
+ * @property {string} [url]
+ * @property {string} [method]
+ */
+/**
  * Object representing a request made by Bruno.
  * @see {@link https://docs.usebruno.com/testing/script/javascript-reference#request} Documentation
  */
@@ -201,7 +209,7 @@ const req = {
 	getExecutionMode: () => {},
 	/**
  	 * Handle request errors with a custom callback function.
- 	 * @param {(err: Error) => void} callback
+ 	 * @param {(err: ReqFailError) => void} callback
  	 * @returns {void}
  	 */
 	onFail: (callback) => {},
