@@ -40,6 +40,7 @@ import { promisify } from "util";
 import { cp, mkdir, readFile, rm, writeFile } from "fs";
 import { closeTabsRelatedToItem } from "./explorer/closeTabsRelatedToItem";
 import { showDialogForSettingEnvironment } from "./explorer/showDialogForSettingEnvironment";
+import { getDeleteConfirmationMessage } from "./explorer/getDeleteConfirmationMessage";
 import { handleFileInsertion } from "./explorer/fileUtils/handleFileInsertion";
 import {
     FileInsertionPosition,
@@ -640,14 +641,6 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         return vscode.commands.registerCommand(
             `${this.treeViewId}.deleteItem`,
             async (treeItem: BrunoTreeItem) => {
-                const picked = await vscode.window.showInformationMessage(
-                    `Delete '${treeItem.label}'?`,
-                    { modal: true },
-                    this.confirmationOptionForModals,
-                );
-                if (picked != this.confirmationOptionForModals) {
-                    return;
-                }
                 const path = treeItem.getPath();
 
                 const itemDataWithCollection =
@@ -663,6 +656,20 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 } = itemDataWithCollection;
 
                 const itemType = item.getItemType();
+
+                const picked = await vscode.window.showInformationMessage(
+                    getDeleteConfirmationMessage(
+                        `${treeItem.label}`,
+                        path,
+                        itemType,
+                        collection,
+                    ),
+                    { modal: true },
+                    this.confirmationOptionForModals,
+                );
+                if (picked != this.confirmationOptionForModals) {
+                    return;
+                }
 
                 await promisify(rm)(path, {
                     recursive: treeItem.isFile ? false : true,

@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Maintenance
+
+- Add support for inherited environment variables, that were introduced in Bruno v 4.2.0.
+
 ## [1.3.1] (2026-09-26)
 
 ### Fixes / Maintenance

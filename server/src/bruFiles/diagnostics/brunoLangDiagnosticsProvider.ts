@@ -33,6 +33,7 @@ export class BrunoLangDiagnosticsProvider {
                 return determineDiagnosticsForEnvironmentFile(
                     filePath,
                     content,
+                    this.itemProvider,
                 );
             case BrunoFileType.FolderSettingsFile:
                 return determineDiagnosticsForFolderSettingsFile(

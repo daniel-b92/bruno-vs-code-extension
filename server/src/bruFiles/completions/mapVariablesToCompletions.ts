@@ -33,6 +33,7 @@ export function mapVariablesToCompletions(
             environmentFile: string;
             matchingVariableKeys: string[];
             isConfiguredEnv: boolean;
+            inheritedByEnvironmentName?: string;
         }[];
         staticScriptVariables?: EquivalentVariableReferencesFromOtherFiles[];
         dynamicVariables: MatchingDynamicVariables;
@@ -297,6 +298,7 @@ function filterOutStaticVariablesWithDynamicReferences(
         environmentFile: string;
         matchingVariableKeys: string[];
         isConfiguredEnv: boolean;
+        inheritedByEnvironmentName?: string;
     }[],
     matchingDynamicVariables: MatchingDynamicVariables,
 ) {
@@ -307,10 +309,12 @@ function filterOutStaticVariablesWithDynamicReferences(
         ({
             environmentFile,
             isConfiguredEnv,
+            inheritedByEnvironmentName,
             matchingVariableKeys: allMatchingKeys,
         }) => ({
             environmentFile,
             isConfiguredEnv,
+            inheritedByEnvironmentName,
             matchingVariableKeys: allMatchingKeys.filter(
                 (key) => !allVariableNamesFromDynamicReferences.includes(key),
             ),

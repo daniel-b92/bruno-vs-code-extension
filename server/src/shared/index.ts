@@ -6,3 +6,6 @@ export * from "./groupReferencesByName";
 // environment variables
 export * from "./environmentVariables/getHoverContentForStaticEnvVariables";
 export * from "./environmentVariables/mapStaticEnvVariablesToCompletions";
+
+// markdown
+export * from "./markdown/wrapInCodeSpan";

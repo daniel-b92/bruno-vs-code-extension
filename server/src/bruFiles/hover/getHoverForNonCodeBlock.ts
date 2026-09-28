@@ -12,6 +12,7 @@ import {
 import {
     AdditionalCollectionData,
     TypedCollectionItemProvider,
+    wrapInCodeSpan,
 } from "../../shared";
 import { basename } from "path";
 import { Hover } from "vscode-languageserver";
@@ -134,7 +135,7 @@ function getHoverForTagOccurences(
     const content = tableHeader
         .concat(
             pathsInOwnCollection.length > 0
-                ? `| own | ${pathsInOwnCollection.filter((path) => path != filePath).length} other file(s) | ${lineBreak}`
+                ? `| ${wrapInCodeSpan("own")} | ${wrapInCodeSpan(`${pathsInOwnCollection.filter((path) => path != filePath).length} other file(s)`)} | ${lineBreak}`
                 : "",
         )
         .concat(
@@ -142,7 +143,7 @@ function getHoverForTagOccurences(
                 ? inOtherCollections
                       .map(
                           ({ collection, paths }) =>
-                              `| ${basename(collection.getRootDirectory())} | ${paths.length} |`,
+                              `| ${wrapInCodeSpan(basename(collection.getRootDirectory()))} | ${wrapInCodeSpan(String(paths.length))} |`,
                       )
                       .join(lineBreak)
                 : "",

@@ -4,6 +4,9 @@
     "scopeName": "source.bru",
     "patterns": [
         {
+            "include": "#top-level-simple-field"
+        },
+        {
             "include": "#dictionary-block"
         },
         {
@@ -32,6 +35,14 @@
         }
     ],
     "repository": {
+        "top-level-simple-field": {
+            "match": "^\\s*(extends)\\s*:\\s*(.*[^\\[ ]+)\\s*$",
+            "captures": {
+                "1": { "name": "keyword.bru" },
+                "2": { "name": "string.bru" }
+            },
+            "comment": "Top level simple field, e.g. 'extends' in environment files"
+        },
         "dictionary-block": {
             "name": "meta.dictionary-block.bru",
             "begin": "^\\s*(meta|get|post|put|delete|options|patch|http|head|params:\\S+|headers|auth|auth:\\S+|body:multipart-form|body:form-urlencoded|body:file|vars:\\S+|assert|vars|settings|app)\\s*{\\s*$",

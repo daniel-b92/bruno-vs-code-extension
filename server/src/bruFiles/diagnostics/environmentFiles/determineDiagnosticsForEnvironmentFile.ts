@@ -2,10 +2,13 @@ import {
     TextDocumentHelper,
     parseBruFile,
     EnvironmentFileBlockName,
+    EnvironmentFileTopLevelField,
     isBlockDictionaryBlock,
     BrunoFileType,
     isDictionaryBlockField,
+    getAllExtendsFields,
 } from "@global_shared";
+import { TypedCollectionItemProvider } from "../../../shared";
 import { DiagnosticWithCode } from "../interfaces";
 import { checkArrayBlocksHaveArrayStructure } from "../shared/checks/multipleBlocks/checkArrayBlocksHaveArrayStructure";
 import { checkNoBlocksHaveUnknownNames } from "../shared/checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
@@ -15,10 +18,14 @@ import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/chec
 import { RelevantWithinEnvironmentFileDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinEnvironmentFileDiagnosticCodeEnum";
 import { runDictionaryBlocksBaseChecks } from "../shared/checks/runDictionaryBlocksBaseChecks";
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
+import { checkExtendsFieldIsValid } from "./checkExtendsFieldIsValid";
+import { checkExtendsFieldIsNotDefinedMultipleTimes } from "./checkExtendsFieldIsNotDefinedMultipleTimes";
+import { checkExtendsFieldDoesNotCreateInheritanceLoop } from "./checkExtendsFieldDoesNotCreateInheritanceLoop";
 
 export function determineDiagnosticsForEnvironmentFile(
     filePath: string,
     documentText: string,
+    itemProvider?: TypedCollectionItemProvider,
 ): DiagnosticWithCode[] {
     const docHelper = new TextDocumentHelper(documentText);
 
@@ -26,6 +33,12 @@ export function determineDiagnosticsForEnvironmentFile(
         docHelper,
         BrunoFileType.EnvironmentFile,
     );
+    const extendsFields = getAllExtendsFields(docHelper, textOutsideOfBlocks);
+    const extendsField = extendsFields[0];
+    const collection = itemProvider?.getAncestorCollectionForPath(filePath);
+    const knownEnvironmentNames = collection
+        ?.getEnvironments()
+        .map(({ environmentName }) => environmentName);
     const blocksThatShouldBeDictionaryBlocks = blocks.filter(
         ({ name }) => name == EnvironmentFileBlockName.Vars,
     );
@@ -38,7 +51,27 @@ export function determineDiagnosticsForEnvironmentFile(
 
     results.push(
         checkThatNoBlocksAreDefinedMultipleTimes(filePath, blocks),
-        checkThatNoTextExistsOutsideOfBlocks(filePath, textOutsideOfBlocks),
+        checkThatNoTextExistsOutsideOfBlocks(filePath, textOutsideOfBlocks, [
+            EnvironmentFileTopLevelField.Extends,
+        ]),
+        extendsField
+            ? checkExtendsFieldIsValid(
+                  filePath,
+                  extendsField,
+                  knownEnvironmentNames,
+              )
+            : undefined,
+        extendsField && collection
+            ? checkExtendsFieldDoesNotCreateInheritanceLoop(
+                  filePath,
+                  extendsField,
+                  collection,
+              )
+            : undefined,
+        ...(checkExtendsFieldIsNotDefinedMultipleTimes(
+            filePath,
+            extendsFields,
+        ) ?? []),
         checkNoBlocksHaveUnknownNames(
             filePath,
             blocks,

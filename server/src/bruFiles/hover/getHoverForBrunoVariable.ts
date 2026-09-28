@@ -8,7 +8,10 @@ import {
     VariableReferenceType,
 } from "@global_shared";
 import { Hover, MarkupContent } from "vscode-languageserver";
-import { getHoverContentForStaticEnvVariables } from "../../shared";
+import {
+    getHoverContentForStaticEnvVariables,
+    wrapInCodeSpan,
+} from "../../shared";
 import {
     BlockRequestWithAdditionalData,
     EquivalentVariableReferencesFromOtherFiles,
@@ -153,7 +156,7 @@ function getContentForStaticScriptVarsReferences(
                             ? RequestFileBlockName.PreRequestVars
                             : RequestFileBlockName.PostResponseVars;
 
-                    return `| ${textForFileColumn} | ${textForBlockColumn} |`;
+                    return `| ${wrapInCodeSpan(textForFileColumn)} | ${wrapInCodeSpan(textForBlockColumn)} |`;
                 },
             )
             .join(lineBreak),
@@ -192,7 +195,7 @@ function getContentForDynamicReferences(
                     blockName,
                     variableReference: { referenceType, variableType },
                 }) =>
-                    `| . | ${blockName} | ${referenceType} | ${displayVariableType ? `${variableType} |` : ""}`,
+                    `| ${wrapInCodeSpan(".")} | ${wrapInCodeSpan(blockName)} | ${wrapInCodeSpan(referenceType)} | ${displayVariableType ? `${wrapInCodeSpan(variableType)} |` : ""}`,
             )
             .join(lineBreak),
         fromSameFile.length > 0 ? lineBreak : "",
@@ -205,7 +208,7 @@ function getContentForDynamicReferences(
                     },
                     otherMatchingReferences,
                 }) =>
-                    `| ${relativeToSourceFile.concat(otherMatchingReferences.length > 0 ? ` [+ ${otherMatchingReferences.length} others]` : "")} | - | ${referenceType} | ${displayVariableType ? `${variableType} |` : ""}`,
+                    `| ${wrapInCodeSpan(relativeToSourceFile.concat(otherMatchingReferences.length > 0 ? ` [+ ${otherMatchingReferences.length} others]` : ""))} | ${wrapInCodeSpan("-")} | ${wrapInCodeSpan(referenceType)} | ${displayVariableType ? `${wrapInCodeSpan(variableType)} |` : ""}`,
             )
             .join(lineBreak),
         lineBreak,

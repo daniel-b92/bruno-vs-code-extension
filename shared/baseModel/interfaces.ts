@@ -10,6 +10,8 @@ export interface ReadyOnlyCollection<T> {
         item: BrunoEnvironmentFile;
         environmentName: string;
     }[];
+    getEnvironmentInheritanceChain: (environmentName: string) => string[];
+    getEnvironmentsExtending: (environmentName: string) => string[];
     getAdditionalContextRoots: () => string[];
 }
 
