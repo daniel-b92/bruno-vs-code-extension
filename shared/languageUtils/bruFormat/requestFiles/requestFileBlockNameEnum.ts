@@ -11,6 +11,7 @@ export enum RequestFileBlockName {
     Patch = "patch",
     Head = "head",
     Http = "http",
+    Grpc = "grpc",
 
     // params
     QueryParams = "params:query",
@@ -18,6 +19,9 @@ export enum RequestFileBlockName {
 
     // headers
     Headers = "headers",
+
+    // gRPC metadata
+    Metadata = "metadata",
 
     // Auth
     BasicAuth = "auth:basic",
@@ -51,6 +55,7 @@ export enum RequestFileBlockName {
     FileOrBinaryBody = "body:file",
     GraphQlBody = "body:graphql",
     GraphQlBodyVars = "body:graphql:vars",
+    GrpcBody = "body:grpc",
 
     // Vars
     PreRequestVars = "vars:pre-request",
@@ -63,6 +68,10 @@ export enum RequestFileBlockName {
     // Scripts
     PreRequestScript = "script:pre-request",
     PostResponseScript = "script:post-response",
+    GrpcBeforeCallStartScript = "script:grpc:before-call-start",
+    GrpcBeforeMessageSendScript = "script:grpc:before-message-send",
+    GrpcAfterMessageReceiveScript = "script:grpc:after-message-receive",
+    GrpcAfterCallEndScript = "script:grpc:after-call-end",
 
     // Other
     Settings = "settings",

@@ -24,6 +24,7 @@ export function doesDictionaryBlockSupportMultilineValues(
                 RequestFileBlockName.MultipartFormBody,
                 RequestFileBlockName.FormUrlEncodedBody,
                 RequestFileBlockName.FileOrBinaryBody,
+                RequestFileBlockName.GrpcBody,
             ] as string[]
         ).includes(dictionaryBlockName)
     );

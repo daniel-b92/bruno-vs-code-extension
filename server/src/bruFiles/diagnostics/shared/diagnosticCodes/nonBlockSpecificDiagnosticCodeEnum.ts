@@ -43,4 +43,6 @@ export enum NonBlockSpecificDiagnosticCode {
     InvalidStructureForMultilineDescriptionInDictionaryBlock = "bru33",
     InvalidStructureForMultilineValueInDictionaryBlock = "bru34",
     InvalidSMultilineStringInDictionaryBlock = "bru33",
+    GrpcBlocksDefinedForNonGrpcRequestType = "bru35",
+    MethodBlockNotMatchingRequestType = "bru36",
 }

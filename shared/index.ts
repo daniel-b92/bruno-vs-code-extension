@@ -87,6 +87,9 @@ export * from "./languageUtils/shared/areVariableReferencesEquivalent";
 // language utils - request files
 export * from "./languageUtils/bruFormat/requestFiles/requestFileBlockNameEnum";
 export * from "./languageUtils/bruFormat/requestFiles/getGraphQlSpecificBlocks";
+export * from "./languageUtils/bruFormat/requestFiles/getGrpcSpecificBlocks";
+export * from "./languageUtils/bruFormat/commonBlocks/grpcBodyBlock/grpcBodyBlockKeyEnum";
+export * from "./languageUtils/bruFormat/commonBlocks/methodBlocks/getPossibleMethodBlocksForRequestType";
 export * from "./languageUtils/bruFormat/requestFiles/bodyBlocks/getBodyTypeFromBlockName";
 export * from "./languageUtils/bruFormat/requestFiles/bodyBlocks/getAllValidBodyBlocks";
 export * from "./languageUtils/bruFormat/requestFiles/bodyBlocks/isBodyBlock";

@@ -33,7 +33,7 @@ export function checkOccurencesOfMandatoryBlocks(
     const methodBlocks = getAllMethodBlocks(blocks);
 
     const incorrectNumberOfHttpMethodsDiagnostic: DiagnosticWithCode = {
-        message: `Too many or too few HTTP method blocks defined. Exactly one of the following blocks needs to be present: '${getPossibleMethodBlocks().join(
+        message: `Too many or too few method blocks defined. Exactly one of the following blocks needs to be present: '${getPossibleMethodBlocks().join(
             "', '",
         )}'`,
         range,

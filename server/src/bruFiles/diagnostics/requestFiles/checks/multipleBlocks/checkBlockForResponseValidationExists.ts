@@ -18,7 +18,9 @@ export function checkBlockForResponseValidationExists(
             ({ name }) =>
                 name == RequestFileBlockName.Tests ||
                 name == RequestFileBlockName.Assertions ||
-                name == RequestFileBlockName.PostResponseScript,
+                name == RequestFileBlockName.PostResponseScript ||
+                name == RequestFileBlockName.GrpcAfterMessageReceiveScript ||
+                name == RequestFileBlockName.GrpcAfterCallEndScript,
         ).length == 0
     ) {
         return getDiagnostic(documentHelper);
@@ -33,7 +35,7 @@ function getDiagnostic(documentHelper: TextDocumentHelper): DiagnosticWithCode {
     );
 
     return {
-        message: `No '${RequestFileBlockName.Assertions}', '${RequestFileBlockName.PostResponseScript}' or '${RequestFileBlockName.Tests}' block is defined.`,
+        message: `No '${RequestFileBlockName.Assertions}', '${RequestFileBlockName.PostResponseScript}' or '${RequestFileBlockName.Tests}' block (or a gRPC script block for after a message was received/the call ended) is defined.`,
         range: new Range(
             new Position(documentHelper.getLineCount() - 1, 0),
             new Position(documentHelper.getLineCount() - 1, lastLine.length),

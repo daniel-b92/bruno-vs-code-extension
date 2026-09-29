@@ -1,9 +1,9 @@
-import { Block, getGraphQlSpecificBlocks, RequestType } from "@global_shared";
+import { Block, getGrpcSpecificBlocks, RequestType } from "@global_shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { checkRequestTypeSpecificBlocksAreNotDefinedForOtherRequests } from "./checkRequestTypeSpecificBlocksAreNotDefinedForOtherRequests";
 
-export function checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
+export function checkGrpcSpecificBlocksAreNotDefinedForOtherRequests(
     filePath: string,
     blocks: Block[],
 ): DiagnosticWithCode | undefined {
@@ -11,11 +11,11 @@ export function checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
         filePath,
         blocks,
         {
-            requestType: RequestType.Graphql,
-            specificBlockNames: getGraphQlSpecificBlocks(),
-            requestTypeLabel: "GraphQL",
+            requestType: RequestType.Grpc,
+            specificBlockNames: getGrpcSpecificBlocks(),
+            requestTypeLabel: "gRPC",
             diagnosticCode:
-                NonBlockSpecificDiagnosticCode.GraphQlBlocksDefinedForNonGraphQlRequestType,
+                NonBlockSpecificDiagnosticCode.GrpcBlocksDefinedForNonGrpcRequestType,
         },
     );
 }

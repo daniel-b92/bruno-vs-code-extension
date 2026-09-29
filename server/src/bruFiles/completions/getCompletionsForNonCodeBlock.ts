@@ -29,6 +29,7 @@ import { getMetaBlockContentCompletions } from "./dictionaryBlocks/specificBlock
 import { getMethodBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getMethodBlockContentCompletions";
 import { getAuthBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getAuthBlockContentCompletions";
 import { getSettingsBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getSettingsBlockContentCompletions";
+import { getGrpcBodyBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getGrpcBodyBlockContentCompletions";
 import { getAuthModeBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getAuthModeBlockContentCompletions";
 import { getAllVariableReferences } from "../shared/VariableReferences/getAllVariableReferences";
 import { getTextEditForKey } from "./dictionaryBlocks/generic/getTextEditForKey";
@@ -275,6 +276,12 @@ async function getBlockSpecificCompletions(
     }
     if (blockName == RequestFileBlockName.Settings) {
         return getSettingsBlockContentCompletions(
+            request,
+            blockContainingPosition,
+        );
+    }
+    if (blockName == RequestFileBlockName.GrpcBody) {
+        return getGrpcBodyBlockContentCompletions(
             request,
             blockContainingPosition,
         );
