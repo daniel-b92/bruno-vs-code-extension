@@ -9,5 +9,6 @@ export enum EnvironmentVariableProperty {
 
 export enum TopLevelEnvironmentFileProperty {
     Name = "name",
+    Extends = "extends",
     Variables = "variables",
 }
