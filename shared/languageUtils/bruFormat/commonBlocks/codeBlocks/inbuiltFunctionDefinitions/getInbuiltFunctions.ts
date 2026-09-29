@@ -58,7 +58,7 @@ export function getInbuiltFunctions(): {
                 baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,
                 functionName: InbuiltFunctionName.DeleteEnvVar,
             },
-            referenceType: VariableReferenceType.Read,
+            referenceType: VariableReferenceType.Delete,
             variableType: BrunoVariableType.Environment,
             scope: VariableAvailabilityScopes.Collection,
         },

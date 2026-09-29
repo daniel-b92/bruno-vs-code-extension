@@ -1,7 +1,7 @@
 export function getDefinitionsForResObject() {
     return `/**
  * Object representing the response returned from a server
- * @see {@link https://docs.usebruno.com/testing/script/javascript-reference#response} Documentation
+ * @see {@link https://docs.usebruno.com/scripting/javascript-reference#response} Documentation
  */
 const res = {
 	/**

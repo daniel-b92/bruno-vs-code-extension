@@ -9,7 +9,7 @@ export function getDefinitionsForReqObject() {
  */
 /**
  * Object representing a request made by Bruno.
- * @see {@link https://docs.usebruno.com/testing/script/javascript-reference#request} Documentation
+ * @see {@link https://docs.usebruno.com/scripting/javascript-reference#request} Documentation
  */
 const req = {
 	/**

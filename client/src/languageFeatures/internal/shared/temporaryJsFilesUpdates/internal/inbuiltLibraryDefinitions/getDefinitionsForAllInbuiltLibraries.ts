@@ -9,7 +9,7 @@ import { getDefinitionsForResObject } from "./getDefinitionsForResObject";
 * This is a temporary workaround to get stop typescript from complaining and get intellisense.
 
 * Official javascript API reference:
-* https://docs.usebruno.com/testing/script/javascript-reference*/
+* https://docs.usebruno.com/scripting/javascript-reference*/
 export function getDefinitionsForAllInbuiltLibraries(
     eol: EndOfLine,
     assignToGlobalObject = false,
