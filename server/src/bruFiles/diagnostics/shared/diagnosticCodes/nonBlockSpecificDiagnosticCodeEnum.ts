@@ -45,4 +45,5 @@ export enum NonBlockSpecificDiagnosticCode {
     InvalidSMultilineStringInDictionaryBlock = "bru33",
     GrpcBlocksDefinedForNonGrpcRequestType = "bru35",
     MethodBlockNotMatchingRequestType = "bru36",
+    BlockNotValidForGrpcRequestType = "bru37",
 }

@@ -30,6 +30,7 @@ import { checkBodyBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks
 import { checkBlockForResponseValidationExists } from "./checks/multipleBlocks/checkBlockForResponseValidationExists";
 import { checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests } from "./checks/multipleBlocks/checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests";
 import { checkGrpcSpecificBlocksAreNotDefinedForOtherRequests } from "./checks/multipleBlocks/checkGrpcSpecificBlocksAreNotDefinedForOtherRequests";
+import { checkOnlyValidBlocksAreDefinedForGrpcRequests } from "./checks/multipleBlocks/checkOnlyValidBlocksAreDefinedForGrpcRequests";
 import { checkMethodBlockMatchesRequestType } from "./checks/multipleBlocks/checkMethodBlockMatchesRequestType";
 import { getGrpcBodyBlockSpecificDiagnostics } from "./getGrpcBodyBlockSpecificDiagnostics";
 import { checkUrlFromMethodBlockMatchesPathParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesPathParamsBlock";
@@ -195,6 +196,7 @@ function collectCommonDiagnostics(
         ),
         checkGrpcSpecificBlocksAreNotDefinedForOtherRequests(filePath, blocks),
         checkMethodBlockMatchesRequestType(filePath, blocks),
+        ...checkOnlyValidBlocksAreDefinedForGrpcRequests(blocks),
         checkNoBlocksHaveUnknownNames(
             filePath,
             blocks,

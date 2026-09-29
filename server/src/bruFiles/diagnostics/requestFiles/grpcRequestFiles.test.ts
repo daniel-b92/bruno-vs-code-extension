@@ -10,6 +10,7 @@ import {
 } from "@global_shared";
 import { checkGrpcSpecificBlocksAreNotDefinedForOtherRequests } from "./checks/multipleBlocks/checkGrpcSpecificBlocksAreNotDefinedForOtherRequests";
 import { checkMethodBlockMatchesRequestType } from "./checks/multipleBlocks/checkMethodBlockMatchesRequestType";
+import { checkOnlyValidBlocksAreDefinedForGrpcRequests } from "./checks/multipleBlocks/checkOnlyValidBlocksAreDefinedForGrpcRequests";
 import { getGrpcBodyBlockSpecificDiagnostics } from "./getGrpcBodyBlockSpecificDiagnostics";
 import { NonBlockSpecificDiagnosticCode } from "../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { RelevantWithinGrpcBodyBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinGrpcBodyBlockDiagnosticCodeEnum";
@@ -129,6 +130,49 @@ describe("gRPC request files", () => {
                     parseBlocks(getGrpcFileContent("http", "get")),
                 ),
             ).toBeUndefined();
+        });
+    });
+
+    describe("checkOnlyValidBlocksAreDefinedForGrpcRequests", () => {
+        it("reports no problem for a valid gRPC request", () => {
+            expect(
+                checkOnlyValidBlocksAreDefinedForGrpcRequests(
+                    parseBlocks(getGrpcFileContent("grpc", "grpc")),
+                ),
+            ).toEqual([]);
+        });
+
+        it("reports blocks that are not valid for gRPC requests", () => {
+            const content = `${getGrpcFileContent("grpc", "grpc")}
+headers {
+  a: b
+}
+
+body:json {
+  {}
+}
+`;
+
+            const result = checkOnlyValidBlocksAreDefinedForGrpcRequests(
+                parseBlocks(content),
+            );
+
+            expect(result.map(({ code }) => code)).toEqual([
+                NonBlockSpecificDiagnosticCode.BlockNotValidForGrpcRequestType,
+                NonBlockSpecificDiagnosticCode.BlockNotValidForGrpcRequestType,
+            ]);
+        });
+
+        it("does not report anything for other request types", () => {
+            expect(
+                checkOnlyValidBlocksAreDefinedForGrpcRequests(
+                    parseBlocks(`${getGrpcFileContent("http", "get")}
+headers {
+  a: b
+}
+`),
+                ),
+            ).toEqual([]);
         });
     });
 

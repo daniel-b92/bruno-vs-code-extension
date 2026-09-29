@@ -10,6 +10,7 @@ import {
     getExpectedAuthBlockForType,
     getGraphQlSpecificBlocks,
     getGrpcSpecificBlocks,
+    getValidBlockNamesForGrpcRequest,
     getValidBlockNamesForCollectionSettingsFile,
     getValidBlockNamesForFolderSettingsFile,
     isAuthBlock,
@@ -85,6 +86,9 @@ function getMissingOptionalBlocksForRequestFile(
             (!requestType ||
                 requestType == RequestType.Grpc ||
                 !(getGrpcSpecificBlocks() as string[]).includes(name)) &&
+            // Only a limited set of blocks is valid for gRPC requests.
+            (requestType != RequestType.Grpc ||
+                getValidBlockNamesForGrpcRequest().includes(name)) &&
             // OAuth2 specific additional blocks only make sense if OAuth2 authorization is used.
             (!authType ||
                 authType == AuthTypes.Oauth2 ||
