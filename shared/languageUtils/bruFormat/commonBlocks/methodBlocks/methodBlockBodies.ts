@@ -8,4 +8,5 @@ export const MethodBlockBodies = {
     MultipartForm: "multipartForm",
     FormUrlEncoded: "formUrlEncoded",
     GraphQl: "graphql",
+    Grpc: "grpc",
 } as const;

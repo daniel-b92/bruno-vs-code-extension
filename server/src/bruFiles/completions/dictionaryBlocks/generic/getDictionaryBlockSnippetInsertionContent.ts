@@ -14,6 +14,7 @@ import {
     getMetaBlockMandatoryKeys,
     getOptionalKeysForSettingsBlock,
     getPossibleMethodBlocks,
+    GrpcBodyBlockKey,
     isAuthBlock,
     LineBreakType,
     MetaBlockKey,
@@ -60,6 +61,13 @@ export function getDictionaryBlockSnippetInsertionContent(
 
     if (blockName == RequestFileBlockName.Settings) {
         return getContentForSettingsBlock(lineBreak);
+    }
+
+    if (blockName == RequestFileBlockName.GrpcBody) {
+        return getContentForDictionaryBlock(
+            Object.values(GrpcBodyBlockKey).map((key) => ({ key })),
+            lineBreak,
+        );
     }
 
     if (blockName == SettingsFileSpecificBlock.AuthMode) {

@@ -8,6 +8,7 @@ import { RelevantWithinSettingsBlockDiagnosticCode } from "./relevantWithinSetti
 import { RelevantWithinEnvironmentFileDiagnosticCode } from "./relevantWithinEnvironmentFileDiagnosticCodeEnum";
 import { RelevantWithinAppBlockDiagnosticCode } from "./relevantWithinAppBlockDiagnosticCodeEnum";
 import { RelevantWithinCodeBlockDiagnosticCode } from "./relevantWithinCodeBlockDiagnosticCodeEnum";
+import { RelevantWithinGrpcBodyBlockDiagnosticCode } from "./relevantWithinGrpcBodyBlockDiagnosticCodeEnum";
 
 export type KnownDiagnosticCode =
     | RelevantWithinAuthBlockDiagnosticCode
@@ -19,4 +20,5 @@ export type KnownDiagnosticCode =
     | RelevantWithinSettingsBlockDiagnosticCode
     | RelevantWithinEnvironmentFileDiagnosticCode
     | RelevantWithinAppBlockDiagnosticCode
-    | RelevantWithinCodeBlockDiagnosticCode;
+    | RelevantWithinCodeBlockDiagnosticCode
+    | RelevantWithinGrpcBodyBlockDiagnosticCode;

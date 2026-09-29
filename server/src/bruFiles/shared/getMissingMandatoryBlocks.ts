@@ -15,6 +15,8 @@ import {
     getBodyTypeFromBlockName,
     getExpectedAuthBlockForType,
     getPossibleMethodBlocks,
+    getPossibleMethodBlocksForRequestType,
+    MetaBlockKey,
     MethodBlockBodies,
     MethodBlockKey,
     RequestFileBlockName,
@@ -146,7 +148,13 @@ function getMissingMandatoryBlocksForRequestFile(
             blocksThatCannotBeOptional,
             missingBlocks: result.concat({
                 mandatory: true,
-                mutuallyExclusiveBlocks: getPossibleMethodBlocks(),
+                mutuallyExclusiveBlocks: getPossibleMethodBlocksForRequestType(
+                    getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
+                        allBlocks,
+                        RequestFileBlockName.Meta,
+                        MetaBlockKey.Type,
+                    )?.value,
+                ),
             }),
         };
     }

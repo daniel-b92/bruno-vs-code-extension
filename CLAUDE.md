@@ -1,6 +1,7 @@
 # Testing conventions
 
 - Test code should be kept as clean as production code — avoid duplicating test setup/helper logic across test files.
+- Within a test file, place internal utility functions (file-local helpers, fixture builders, etc.) after the actual tests, at the bottom of the file, so the tests are the first thing a reader sees.
 - Before writing a test helper (mock builders, fixture factories, etc.), check whether one already exists that can be reused or extended, rather than adding a local copy in the new test file.
 - Shared test utilities live in `shared/_testingUtils/` (re-exported from `shared/_testingUtils/index.ts`):
     - `shared` package tests import them with a relative path, e.g. `import { createCollectionWithEnvironments } from "../_testingUtils";`.

@@ -28,6 +28,7 @@ export function shouldBeDictionaryBlock(blockName: string) {
     return (
         blockName == RequestFileBlockName.Meta ||
         blockName == RequestFileBlockName.Headers ||
+        blockName == RequestFileBlockName.Metadata ||
         blockName == RequestFileBlockName.Assertions ||
         blockName == RequestFileBlockName.Settings ||
         blockName == RequestFileBlockName.App ||
@@ -41,6 +42,7 @@ export function shouldBeDictionaryBlock(blockName: string) {
                 RequestFileBlockName.MultipartFormBody,
                 RequestFileBlockName.FormUrlEncodedBody,
                 RequestFileBlockName.FileOrBinaryBody,
+                RequestFileBlockName.GrpcBody,
             ] as string[]
         ).includes(blockName) ||
         isVarsBlockInEnvironmentFile(blockName) ||

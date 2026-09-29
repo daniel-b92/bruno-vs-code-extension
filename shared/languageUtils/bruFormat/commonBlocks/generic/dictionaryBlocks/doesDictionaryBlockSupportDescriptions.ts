@@ -18,6 +18,7 @@ export function doesDictionaryBlockSupportDescriptions(
         (
             [
                 RequestFileBlockName.Meta,
+                RequestFileBlockName.GrpcBody,
                 RequestFileBlockName.Settings,
                 RequestFileBlockName.App,
                 SettingsFileSpecificBlock.AuthMode,

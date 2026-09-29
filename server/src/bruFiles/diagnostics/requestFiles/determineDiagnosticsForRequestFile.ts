@@ -29,6 +29,10 @@ import { checkAuthBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks
 import { checkBodyBlockTypeFromMethodBlockExists } from "./checks/multipleBlocks/checkBodyBlockTypeFromMethodBlockExists";
 import { checkBlockForResponseValidationExists } from "./checks/multipleBlocks/checkBlockForResponseValidationExists";
 import { checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests } from "./checks/multipleBlocks/checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests";
+import { checkGrpcSpecificBlocksAreNotDefinedForOtherRequests } from "./checks/multipleBlocks/checkGrpcSpecificBlocksAreNotDefinedForOtherRequests";
+import { checkOnlyValidBlocksAreDefinedForGrpcRequests } from "./checks/multipleBlocks/checkOnlyValidBlocksAreDefinedForGrpcRequests";
+import { checkMethodBlockMatchesRequestType } from "./checks/multipleBlocks/checkMethodBlockMatchesRequestType";
+import { getGrpcBodyBlockSpecificDiagnostics } from "./getGrpcBodyBlockSpecificDiagnostics";
 import { checkUrlFromMethodBlockMatchesPathParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesPathParamsBlock";
 import { checkUrlFromMethodBlockMatchesQueryParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesQueryParamsBlock";
 import { getMethodBlockSpecificDiagnostics } from "./getMethodBlockSpecificDiagnostics";
@@ -190,6 +194,9 @@ function collectCommonDiagnostics(
             filePath,
             blocks,
         ),
+        checkGrpcSpecificBlocksAreNotDefinedForOtherRequests(filePath, blocks),
+        checkMethodBlockMatchesRequestType(filePath, blocks),
+        ...checkOnlyValidBlocksAreDefinedForGrpcRequests(blocks),
         checkNoBlocksHaveUnknownNames(
             filePath,
             blocks,
@@ -286,6 +293,9 @@ function collectBlockSpecificDiagnostics(
     if (bodyBlock) {
         results.push(
             ...getRequestBodyOrGraphQlBlockSpecificDiagnostics(bodyBlock),
+            ...(bodyBlock.name == RequestFileBlockName.GrpcBody
+                ? getGrpcBodyBlockSpecificDiagnostics(filePath, bodyBlock)
+                : []),
         );
     }
     if (graphQlSpecificBlocks.length > 0) {

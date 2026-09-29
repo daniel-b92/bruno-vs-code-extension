@@ -2,7 +2,9 @@
 
 ### Fixes / Maintenance
 
-- Add support for inherited environment variables, that were introduced in Bruno v 4.2.0.
+- Add support for features introduced in Bruno 4.2.0:
+    - Inheritance for environment variables
+    - `grpc` requests with the newly introduced scripting blocks
 
 ## [1.3.1] (2026-09-26)
 

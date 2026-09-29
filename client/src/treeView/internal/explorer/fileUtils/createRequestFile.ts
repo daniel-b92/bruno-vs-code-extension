@@ -59,7 +59,7 @@ export async function createRequestFile(
     quickPick.onDidChangeSelection(async (picks) => {
         pickedLabels.push(...picks.map(({ label }) => label));
 
-        if (pickedLabels.length == 1) {
+        if (pickedLabels.length == 1 && pickedLabels[0] != RequestType.Grpc) {
             quickPick.hide();
 
             quickPick.step = 2;
@@ -78,6 +78,11 @@ export async function createRequestFile(
         }
 
         quickPick.dispose();
+
+        if (pickedLabels.length == 1) {
+            // For gRPC requests, there is only one possible method block, so there's no need to let the user choose it.
+            pickedLabels.push(RequestFileBlockName.Grpc);
+        }
 
         const filePath = resolve(
             parentFolderPath,
