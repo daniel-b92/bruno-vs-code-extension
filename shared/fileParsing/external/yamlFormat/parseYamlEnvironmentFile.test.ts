@@ -11,7 +11,10 @@ import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
 } from "../../../_testingUtils";
-import { EnvironmentVariableProperty } from "./constants/environmentFileConstants";
+import {
+    EnvironmentVariableProperty,
+    TopLevelEnvironmentFileProperty,
+} from "./constants/environmentFileConstants";
 import { VariableType } from "./constants/sharedConstants";
 
 describe("parseYamlEnvironmentFile", () => {
@@ -100,7 +103,13 @@ variables:
                     },
                     variables: { enabled: expectedVariables, disabled: [] },
                 },
-                missingProperties: [],
+                missingProperties: [
+                    {
+                        key: TopLevelEnvironmentFileProperty.Extends,
+                        alwaysHasScalarValue: true,
+                        isMandatory: false,
+                    },
+                ],
             },
             errors: [],
         });
@@ -265,10 +274,44 @@ variables:
                         disabled: expectedDisabledVariables,
                     },
                 },
-                missingProperties: [],
+                missingProperties: [
+                    {
+                        key: TopLevelEnvironmentFileProperty.Extends,
+                        alwaysHasScalarValue: true,
+                        isMandatory: false,
+                    },
+                ],
             },
             errors: [],
         });
+    });
+
+    it("parses the top level field 'extends' in a yaml environment file", () => {
+        const parsed = parseYamlEnvironmentFile(
+            new TextDocumentHelper(`name: second
+extends: Env1
+variables:
+  - name: var-1
+    value: test-1`),
+        );
+
+        expect(parsed.errors).toEqual([]);
+        expect("result" in parsed && parsed.result?.properties.extends).toEqual(
+            {
+                key: "extends",
+                keyRange: getExpectedKeyRange(1, "extends", 0),
+                value: "Env1",
+                valueRange: getExpectedSameLineValueRange(
+                    1,
+                    "extends",
+                    "Env1",
+                    0,
+                ),
+            },
+        );
+        expect("result" in parsed && parsed.result?.missingProperties).toEqual(
+            [],
+        );
     });
 
     it("parses a yaml environment file with a variable of type 'object'", () => {

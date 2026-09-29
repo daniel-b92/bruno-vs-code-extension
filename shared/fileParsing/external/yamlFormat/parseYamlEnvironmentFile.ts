@@ -31,6 +31,7 @@ export function parseYamlEnvironmentFile(
 ): MaybeResultWithErrors<
     ParsedYamlMap<{
         name?: WithKeyAndValueRange<string>;
+        extends?: WithKeyAndValueRange<string>;
         variables?: {
             enabled: ParsedEnvironmentVariable[];
             disabled: ParsedEnvironmentVariable[];
@@ -48,7 +49,10 @@ export function parseYamlEnvironmentFile(
     const topLevelMap = maybeTopLevelMap.map;
 
     const mandatoryKey = TopLevelEnvironmentFileProperty.Name;
-    const keysForStringScalars = [TopLevelEnvironmentFileProperty.Name];
+    const keysForStringScalars = [
+        TopLevelEnvironmentFileProperty.Name,
+        TopLevelEnvironmentFileProperty.Extends,
+    ];
     const keysForSequences = [TopLevelEnvironmentFileProperty.Variables];
 
     const {
@@ -96,6 +100,9 @@ export function parseYamlEnvironmentFile(
     const maybeNameWithKeyRange = validStringScalars.find(
         ({ key }) => key == TopLevelEnvironmentFileProperty.Name,
     );
+    const maybeExtendsWithKeyRange = validStringScalars.find(
+        ({ key }) => key == TopLevelEnvironmentFileProperty.Extends,
+    );
     const variablesSequence = validSequences.find(
         ({ key }) => key == TopLevelEnvironmentFileProperty.Variables,
     )?.value;
@@ -105,7 +112,10 @@ export function parseYamlEnvironmentFile(
         return {
             errors: collectedErrors,
             result: {
-                properties: { name: maybeNameWithKeyRange },
+                properties: {
+                    name: maybeNameWithKeyRange,
+                    extends: maybeExtendsWithKeyRange,
+                },
                 missingProperties,
             },
         };
@@ -125,6 +135,7 @@ export function parseYamlEnvironmentFile(
         result: {
             properties: {
                 name: maybeNameWithKeyRange,
+                extends: maybeExtendsWithKeyRange,
                 variables,
             },
             missingProperties,
