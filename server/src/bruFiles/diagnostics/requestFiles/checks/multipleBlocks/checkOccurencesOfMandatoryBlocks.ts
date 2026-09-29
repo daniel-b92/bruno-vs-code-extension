@@ -2,8 +2,10 @@ import {
     TextDocumentHelper,
     Block,
     RequestFileBlockName,
+    getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
     getAllMethodBlocks,
-    getPossibleMethodBlocks,
+    getPossibleMethodBlocksForRequestType,
+    MetaBlockKey,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -33,9 +35,13 @@ export function checkOccurencesOfMandatoryBlocks(
     const methodBlocks = getAllMethodBlocks(blocks);
 
     const incorrectNumberOfHttpMethodsDiagnostic: DiagnosticWithCode = {
-        message: `Too many or too few method blocks defined. Exactly one of the following blocks needs to be present: '${getPossibleMethodBlocks().join(
-            "', '",
-        )}'`,
+        message: `Too many or too few method blocks defined. Exactly one of the following blocks needs to be present: '${getPossibleMethodBlocksForRequestType(
+            getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
+                blocks,
+                RequestFileBlockName.Meta,
+                MetaBlockKey.Type,
+            )?.value,
+        ).join("', '")}'`,
         range,
         severity: DiagnosticSeverity.Error,
         code: NonBlockSpecificDiagnosticCode.IncorrectNumberofHttpMethodBlocks,
