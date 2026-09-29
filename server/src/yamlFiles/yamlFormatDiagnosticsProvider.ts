@@ -52,6 +52,9 @@ export class YamlFormatDiagnosticsProvider {
         }
         const { enabled, disabled } = parsingResult.properties.variables;
 
+        // ToDo: Once yaml env files are stored in the cache, add validations for inheritance
+        // (env name exists, is not own environment, no circular dependencies,...)
+
         const otherDiagnostics = [
             checkTopLevelNameIsDefined(
                 parsingResult.missingProperties,
