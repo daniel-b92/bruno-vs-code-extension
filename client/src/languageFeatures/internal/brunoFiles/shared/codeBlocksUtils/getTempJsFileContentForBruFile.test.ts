@@ -52,6 +52,38 @@ script:grpc:after-call-end {
         );
     });
 
+    it("hides `res` in pre-request blocks and `req` in post-response blocks for http requests", () => {
+        const content = getTempJsFileContentForBruFile(
+            `meta {
+  name: test
+  type: http
+}
+
+script:pre-request {
+  req.getUrl();
+}
+
+script:post-response {
+  res.getStatus();
+}
+
+tests {
+  req.getUrl();
+}
+`,
+            EndOfLine.LF,
+            BrunoFileType.RequestFile,
+        );
+
+        expect(content).toMatch(
+            /function \w*pre_request\w*\(\/\*\* @type \{undefined\} \*\/ res\) \{/,
+        );
+        expect(content).toMatch(
+            /function \w*post_response\w*\(\/\*\* @type \{undefined\} \*\/ req\) \{/,
+        );
+        expect(content).toMatch(/function tests\(\) \{/);
+    });
+
     it("includes all definitions if the request type is unknown", () => {
         const content = getTempJsFileContentForBruFile(
             "meta {\n  name: test\n}\n",
