@@ -300,7 +300,7 @@ function filterDefaultDiagnostics(
         endIndex: number;
     }[] = [];
 
-    for (const blockName of Object.values(TextBlockName)) {
+    for (const blockName of Object.values(CodeBlockName)) {
         const indizesForBlock = getCodeBlockStartAndEndIndex(
             fileContent,
             blockName,
@@ -372,7 +372,7 @@ function filterDiagnosticsForJsFile(
 
 function getCodeBlockStartAndEndIndex(
     fullTextContent: string,
-    blockName: TextBlockName,
+    blockName: CodeBlockName,
 ) {
     const openingBracketChar = "{";
 
@@ -495,8 +495,7 @@ function isACollectionRootFolder(
 
             try {
                 const parsedContent = JSON.parse(content) as
-                    | { type: string }
-                    | undefined;
+                    { type: string } | undefined;
 
                 return parsedContent && parsedContent.type == "collection";
             } catch {
@@ -517,10 +516,14 @@ function getNamesForInbuiltRuntimeVarsAndFunctions() {
     return ["bru", "req", "res", "test", "expect"];
 }
 
-enum TextBlockName {
+enum CodeBlockName {
     Tests = "tests",
     PreRequestScript = "script:pre-request",
     PostResponseScript = "script:post-response",
+    GrpcBeforeCallStartScript = "script:grpc:before-call-start",
+    GrpcBeforeMessageSendScript = "script:grpc:before-message-send",
+    GrpcAfterMessageReceiveScript = "script:grpc:after-message-receive",
+    GrpcAfterCallEndScript = "script:grpc:after-call-end",
 }
 
 export = init;

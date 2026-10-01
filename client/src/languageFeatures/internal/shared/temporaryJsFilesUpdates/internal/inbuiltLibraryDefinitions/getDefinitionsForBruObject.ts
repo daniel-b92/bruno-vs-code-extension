@@ -1,4 +1,4 @@
-export function getDefinitionsForBruObject() {
+export function getDefinitionsForBruObject(includeGrpcDefinitions = true) {
     const envVariableDefinitions = getDefinitionsForEnvironmentVariables();
     const globalEnvVariableDefinitions =
         getDefinitionsForGlobalEnvironmentVariables();
@@ -8,6 +8,9 @@ export function getDefinitionsForBruObject() {
     const utilityDefinitions = getDefinitionsForUtilities();
     const runnerSubObjectDefinition = getDefinitionsForRunnerSubobject();
     const cookieSubobjectDefinition = getDefinitionsForCookiesSubobject();
+    const grpcSubobjectDefinition = includeGrpcDefinitions
+        ? getDefinitionsForGrpcSubobject()
+        : undefined;
 
     return `${getCommonTypeDefinitions()}
 /**
@@ -23,6 +26,7 @@ const bru = {
 	${insertDefinitions(utilityDefinitions)}
 	runner: ${insertDefinitions(runnerSubObjectDefinition)}
 	cookies: ${insertDefinitions(cookieSubobjectDefinition)}
+	${grpcSubobjectDefinition ? `grpc: ${insertDefinitions(grpcSubobjectDefinition)}` : ""}
 };`;
 
     function insertDefinitions(definitions: string) {
@@ -77,6 +81,38 @@ function getCommonTypeDefinitions() {
  * @property {(excludeDisabled?: boolean, caseSensitive?: boolean, multiValue?: boolean, sanitizeKeys?: boolean) => object} toObject
  * @property {() => string} toString
  * @property {() => PropertyHeader[]} toJSON
+ */
+/**
+ * @typedef {object} GrpcMessage
+ * @property {any} data The protobuf payload of the message.
+ * @property {number} timestamp Epoch milliseconds.
+ */
+/**
+ * @typedef {object} GrpcMessageCollection Read-only collection of gRPC messages.
+ * @property {(index: number) => GrpcMessage | undefined} get
+ * @property {() => GrpcMessage[]} all
+ * @property {() => number} count
+ * @property {(predicate: (message: GrpcMessage) => any) => GrpcMessage[]} filter
+ * @property {<T>(callback: (message: GrpcMessage) => T) => T[]} map
+ */
+/**
+ * @typedef {object} ReadonlyGrpcMetadata
+ * @property {(key: string) => string | undefined} get
+ * @property {(key: string) => PropertyHeader | undefined} one
+ * @property {() => Record<string, string>} toObject
+ * @property {(key: string) => boolean} has
+ * @property {() => number} count
+ */
+/**
+ * @typedef {object} GrpcRequestMetadata Client metadata. Only writable in "Before Call Start" scripts.
+ * @property {(key: string) => string | undefined} get
+ * @property {(key: string) => PropertyHeader | undefined} one
+ * @property {() => Record<string, string>} toObject
+ * @property {(key: string) => boolean} has
+ * @property {() => number} count
+ * @property {(metadata: PropertyHeader) => void} add
+ * @property {(key: string, value: string) => void} upsert
+ * @property {(key: string) => void} remove
  */
 /**
  * @typedef {object} RequestOptions
@@ -308,9 +344,9 @@ getSecretVar: (key) => {},`;
 
 function getDefinitionsForUtilities() {
     return `/**
- * Returns a process environment variable by name. Returns null if the variable is not set.
+ * Returns a process environment variable by name. Returns undefined if the variable is not set.
  * @param {string} key
- * @returns {string | null}
+ * @returns {string | undefined}
  */
 getProcessEnv: (key) => {},
 /**
@@ -460,4 +496,101 @@ function getDefinitionsForCookiesSubobject() {
     */
 	jar: () => {},
 },`;
+}
+
+function getDefinitionsForGrpcSubobject() {
+    return `{
+	/**
+	 * Information about the outgoing gRPC request.
+	 */
+	request: {
+		/**
+		 * Address and port of the gRPC server.
+		 * @type {string}
+		 */
+		url: "",
+		/**
+		 * Service and RPC method name.
+		 * @type {string}
+		 */
+		method: "",
+		/**
+		 * The call variant.
+		 * @type {"unary" | "client-streaming" | "server-streaming" | "bidi-streaming"}
+		 */
+		methodType: "unary",
+		/**
+		 * Current authentication mode, e.g. "bearer" or "none".
+		 * @type {string}
+		 */
+		authMode: "",
+		/**
+		 * Path to the proto file.
+		 * @type {string}
+		 */
+		protoPath: "",
+		/**
+		 * Display name of the gRPC request.
+		 * @type {string}
+		 */
+		name: "",
+		/**
+		 * The messages that were transmitted so far (not the list authored in the UI).
+		 * Empty in "Before Call Start" scripts. Read-only.
+		 * @type {GrpcMessageCollection}
+		 */
+		messages: {},
+		/**
+		 * The current outbound message. Only available in "Before Message Send" scripts. Read-only.
+		 * @type {GrpcMessage}
+		 */
+		message: {},
+		/**
+		 * Client metadata (the HTTP/2 headers sent to the server). Only writable in "Before Call Start" scripts.
+		 * @type {GrpcRequestMetadata}
+		 */
+		metadata: {},
+	},
+	/**
+	 * Information about the gRPC response.
+	 */
+	response: {
+		/**
+		 * All received messages. Only available in "After Call End" scripts. Read-only.
+		 * @type {GrpcMessageCollection}
+		 */
+		messages: {},
+		/**
+		 * The current inbound message. Only available in "After Message Receive" scripts. Read-only.
+		 * @type {GrpcMessage}
+		 */
+		message: {},
+		/**
+		 * Server initial metadata. Available in "After Message Receive" and "After Call End" scripts. Read-only.
+		 * @type {ReadonlyGrpcMetadata}
+		 */
+		metadata: {},
+		/**
+		 * Trailing metadata from the server, including \`grpc-status\` and \`grpc-message\`.
+		 * Only available in "After Call End" scripts. Read-only.
+		 * @type {ReadonlyGrpcMetadata}
+		 */
+		trailers: {},
+		/**
+		 * Numeric gRPC status code. Only available in "After Call End" scripts.
+		 * @type {number}
+		 */
+		statusCode: 0,
+		/**
+		 * gRPC status message, e.g. "OK". Only available in "After Call End" scripts.
+		 * @type {string}
+		 */
+		statusText: "",
+		/**
+		 * Call duration in milliseconds. Only available in "After Call End" scripts.
+		 * @type {number}
+		 */
+		duration: 0,
+	},
+}`;
 }
