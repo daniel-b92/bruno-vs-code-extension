@@ -25,6 +25,33 @@ describe("getTempJsFileContentForBruFile", () => {
         },
     );
 
+    it("restricts `bru.grpc` to `request` / `response` depending on the execution group", () => {
+        const content = getTempJsFileContentForBruFile(
+            `meta {
+  name: test
+  type: grpc
+}
+
+script:grpc:before-call-start {
+  bru.setVar("a", 1);
+}
+
+script:grpc:after-call-end {
+  bru.setVar("a", 1);
+}
+`,
+            EndOfLine.LF,
+            BrunoFileType.RequestFile,
+        );
+
+        expect(content).toMatch(
+            /function \w*before_call_start\w*\(\/\*\* @type \{BruForPreRequestGrpc\} \*\/ bru\) \{/,
+        );
+        expect(content).toMatch(
+            /function \w*after_call_end\w*\(\/\*\* @type \{BruForPostResponseGrpc\} \*\/ bru\) \{/,
+        );
+    });
+
     it("includes all definitions if the request type is unknown", () => {
         const content = getTempJsFileContentForBruFile(
             "meta {\n  name: test\n}\n",

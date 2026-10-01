@@ -1,17 +1,15 @@
 import { SyntaxKind } from "typescript";
 import { parseCodeBlock, Range, TextDocumentHelper } from "@global_shared";
-import { mapBlockNameToJsFileLine } from "./mapBlockNameToJsFileFunctionName";
+import { isJsFileLineForBlock } from "./mapBlockNameToJsFileFunctionName";
 
 export function getTempJsFileBlockContent(
     fullTempJsFileContent: string,
     blockName: string,
 ): { content: string; range: Range } | undefined {
-    const expectedFunctionDeclarationLine = mapBlockNameToJsFileLine(blockName);
-
     const documentHelper = new TextDocumentHelper(fullTempJsFileContent);
     const functionDeclarationLine = documentHelper
         .getAllLines()
-        .find(({ content }) => content == expectedFunctionDeclarationLine);
+        .find(({ content }) => isJsFileLineForBlock(content, blockName));
 
     if (functionDeclarationLine == undefined) {
         return undefined;
