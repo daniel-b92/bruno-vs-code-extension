@@ -27,6 +27,8 @@ module.exports = {
                 "<rootDir>/src/**/*.spec.ts",
             ],
             moduleFileExtensions: ["ts", "tsx", "js", "json"],
+            // Compiled output contains copies of the sources & mocks, which must not be picked up.
+            modulePathIgnorePatterns: ["<rootDir>/out/"],
         },
         {
             displayName: "client",
@@ -72,6 +74,8 @@ module.exports = {
                 "<rootDir>/src/**/*.spec.ts",
             ],
             moduleFileExtensions: ["ts", "tsx", "js", "json"],
+            // Compiled output contains copies of the sources & mocks, which must not be picked up.
+            modulePathIgnorePatterns: ["<rootDir>/out/"],
         },
         {
             displayName: "shared",
@@ -91,6 +95,8 @@ module.exports = {
             transformIgnorePatterns: ["<rootDir>/node_modules/(?!(watcher)/)"],
             testMatch: ["<rootDir>/**/*.test.ts", "<rootDir>/**/*.spec.ts"],
             moduleFileExtensions: ["ts", "tsx", "js", "json"],
+            // Compiled output contains copies of the sources & mocks, which must not be picked up.
+            modulePathIgnorePatterns: ["<rootDir>/out/"],
         },
     ],
 };

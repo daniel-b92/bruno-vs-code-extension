@@ -1,4 +1,4 @@
-export function getDefinitionsForBruObject() {
+export function getDefinitionsForBruObject(includeGrpcDefinitions = true) {
     const envVariableDefinitions = getDefinitionsForEnvironmentVariables();
     const globalEnvVariableDefinitions =
         getDefinitionsForGlobalEnvironmentVariables();
@@ -8,7 +8,9 @@ export function getDefinitionsForBruObject() {
     const utilityDefinitions = getDefinitionsForUtilities();
     const runnerSubObjectDefinition = getDefinitionsForRunnerSubobject();
     const cookieSubobjectDefinition = getDefinitionsForCookiesSubobject();
-    const grpcSubobjectDefinition = getDefinitionsForGrpcSubobject();
+    const grpcSubobjectDefinition = includeGrpcDefinitions
+        ? getDefinitionsForGrpcSubobject()
+        : undefined;
 
     return `${getCommonTypeDefinitions()}
 /**
@@ -24,7 +26,7 @@ const bru = {
 	${insertDefinitions(utilityDefinitions)}
 	runner: ${insertDefinitions(runnerSubObjectDefinition)}
 	cookies: ${insertDefinitions(cookieSubobjectDefinition)}
-	grpc: ${insertDefinitions(grpcSubobjectDefinition)}
+	${grpcSubobjectDefinition ? `grpc: ${insertDefinitions(grpcSubobjectDefinition)}` : ""}
 };`;
 
     function insertDefinitions(definitions: string) {

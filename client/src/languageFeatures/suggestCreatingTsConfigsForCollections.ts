@@ -1,4 +1,4 @@
-import { basename, dirname, extname, relative, resolve } from "path";
+import { basename, dirname, extname, posix, relative, resolve } from "path";
 import {
     workspace,
     window,
@@ -176,7 +176,10 @@ async function createTsConfigs({
                         ? undefined
                         : ["**/*"].concat(
                               pathsToInclude.map((toInclude) =>
-                                  relative(dirname(configPath), toInclude),
+                                  relative(
+                                      dirname(configPath),
+                                      toInclude,
+                                  ).replace(/\\/g, "/"),
                               ),
                           );
 
@@ -215,6 +218,13 @@ function getDefaultTsConfigContent(
         '"noEmit": true',
         '"allowJs": true',
     ];
+    // Temporary JS files of the additional context roots declare globals (e.g. `req` & `res`)
+    // that must not leak into the collection, because they are not request type specific.
+    const excludedPaths = ["node_modules"].concat(
+        (pathsToInclude ?? [])
+            .filter((path) => path != "**/*")
+            .map((path) => posix.join(path, getTemporaryJsFileBasename())),
+    );
     return "{".concat(
         lineBreak,
         '\t"compilerOptions": {',
@@ -222,7 +232,7 @@ function getDefaultTsConfigContent(
         "\t\t",
         compilerOptionsLines.join(`,${lineBreak}\t\t`),
         `${lineBreak}\t},${lineBreak}`,
-        `\t"exclude": ["node_modules"]`,
+        `\t"exclude": ${JSON.stringify(excludedPaths)}`,
         pathsToInclude && pathsToInclude.length > 0
             ? `,${lineBreak}\t"include": ${JSON.stringify(pathsToInclude)}`
             : "",

@@ -7,6 +7,6 @@
         "allowJs": true,
         "types": ["node"]
     },
-    "exclude": ["node_modules"],
+    "exclude": ["node_modules", "../sharedScripts/__temp_bru_reference.js"],
     "include": ["**/*", "../sharedScripts"]
 }

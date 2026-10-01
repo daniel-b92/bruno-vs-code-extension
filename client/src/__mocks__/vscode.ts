@@ -44,6 +44,11 @@ const workspace = {
     workspaceFolders: undefined,
 };
 
+const EndOfLine = {
+    LF: 1,
+    CRLF: 2,
+};
+
 const window = {
     showInformationMessage: () => Promise.resolve(undefined),
 };
@@ -56,4 +61,5 @@ export {
     Uri,
     workspace,
     window,
+    EndOfLine,
 };
