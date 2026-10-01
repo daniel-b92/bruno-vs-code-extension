@@ -1,11 +1,11 @@
-## [Unreleased]
+## [1.3.2] (2026-10-01)
 
 ### Fixes / Maintenance
 
 - Add support for features introduced in Bruno 4.2.0:
     - Inheritance for environment variables (including syntax highlighting, diagnostics, completions and hovers)
     - `grpc` requests with the newly introduced scripting blocks (including syntax highlighting, diagnostics, completions and hovers)
-- Restrict intellisense for inbuilt Bruno runtime objects `req` and `res` in `.bru` files to coorect blocks, where they actually are available.
+- Restrict intellisense for inbuilt Bruno runtime objects `req` and `res` in `.bru` files to correct blocks, where they actually are available.
 
 ## [1.3.1] (2026-09-26)
 
