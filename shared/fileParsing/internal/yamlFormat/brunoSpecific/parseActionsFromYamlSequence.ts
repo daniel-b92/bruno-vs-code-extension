@@ -14,10 +14,8 @@ import {
     YamlParsingError,
 } from "../../../..";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
-import { getMapItems } from "../yamlMaps/getMapItems";
-import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
+import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
-import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import {
     ActionPhase,
     ActionProperty,
@@ -55,21 +53,22 @@ export function parseActionsFromYamlSequence(
     ];
     const keysForBooleanScalars = [ActionProperty.Disabled];
     const keysForMaps = [ActionProperty.Selector, ActionProperty.Variable];
-    const optionalKeys = [ActionProperty.Description, ActionProperty.Disabled];
+    const optionalKeys: string[] = [
+        ActionProperty.Description,
+        ActionProperty.Disabled,
+    ];
 
     for (const currentMap of actionsMaps) {
         const {
             items: {
-                unknownKeys,
-                missingKeys,
                 validScalars: {
                     withStringValue: validStringScalars,
                     withBooleanValue: validBooleanScalars,
                 },
                 validMaps,
             },
-            errors: mapItemErrors,
-        } = getMapItems(
+            missingProperties,
+        } = getValidatedMapItems(
             currentMap,
             {
                 scalars: {
@@ -77,36 +76,13 @@ export function parseActionsFromYamlSequence(
                     booleanValues: keysForBooleanScalars,
                 },
                 mapValues: keysForMaps,
+                mandatoryKeys: Object.values(ActionProperty).filter(
+                    (key) => !optionalKeys.includes(key),
+                ),
             },
             commonArgs,
+            errors,
         );
-
-        errors.push(
-            ...mapItemErrors.concat(
-                unknownKeys.map(({ key, keyRange }) =>
-                    getErrorForUnknownKeyInMap({
-                        ...commonArgs,
-                        unknownKey: key,
-                        keyRange,
-                        allowedKeys: Object.values(ActionProperty),
-                    }),
-                ),
-                missingKeys
-                    .filter((key) => !(optionalKeys as string[]).includes(key))
-                    .map((key) =>
-                        getErrorForMissingKeyInMap({
-                            ...commonArgs,
-                            missingKey: key,
-                            map: currentMap,
-                        }),
-                    ),
-            ),
-        );
-        const missingProperties = missingKeys.map((key) => ({
-            key,
-            alwaysHasScalarValue: !(keysForMaps as string[]).includes(key),
-            isMandatory: !(optionalKeys as string[]).includes(key),
-        }));
         const maybeAction = parseAction(
             getRangeForItem(currentMap, commonArgs),
             {
@@ -237,36 +213,19 @@ function parseSelector(
     const expectedStringScalars = Object.values(ActionSelectorProperty);
 
     const {
-        errors: mapItemErrors,
         items: {
-            missingKeys,
-            unknownKeys,
             validScalars: { withStringValue: validStringScalars },
         },
-    } = getMapItems(
+        missingProperties,
+    } = getValidatedMapItems(
         selectorMap,
-        { scalars: { stringValues: expectedStringScalars } },
+        {
+            scalars: { stringValues: expectedStringScalars },
+            // All properties are mandatory.
+            mandatoryKeys: expectedStringScalars,
+        },
         commonArgs,
-    );
-
-    errors.push(
-        ...mapItemErrors.concat(
-            missingKeys.map((key) =>
-                getErrorForMissingKeyInMap({
-                    ...commonArgs,
-                    map: selectorMap,
-                    missingKey: key,
-                }),
-            ),
-            unknownKeys.map(({ key, keyRange }) =>
-                getErrorForUnknownKeyInMap({
-                    ...commonArgs,
-                    allowedKeys: expectedStringScalars,
-                    keyRange,
-                    unknownKey: key,
-                }),
-            ),
-        ),
+        errors,
     );
 
     const maybeExpressionWithKeyRange = validStringScalars.find(
@@ -297,12 +256,7 @@ function parseSelector(
                     : undefined,
                 method: maybeTypedMethod?.value,
             },
-            missingProperties: missingKeys.map((key) => ({
-                key,
-                // All properties are mandatory.
-                isMandatory: true,
-                alwaysHasScalarValue: true,
-            })),
+            missingProperties,
         },
     };
 }
@@ -319,36 +273,19 @@ function parseVariable(
     const expectedStringScalars = Object.values(ActionVariableProperty);
 
     const {
-        errors: mapItemErrors,
         items: {
-            missingKeys,
-            unknownKeys,
             validScalars: { withStringValue: validStringScalars },
         },
-    } = getMapItems(
+        missingProperties,
+    } = getValidatedMapItems(
         variableMap,
-        { scalars: { stringValues: expectedStringScalars } },
+        {
+            scalars: { stringValues: expectedStringScalars },
+            // All properties are mandatory.
+            mandatoryKeys: expectedStringScalars,
+        },
         commonArgs,
-    );
-
-    errors.push(
-        ...mapItemErrors.concat(
-            missingKeys.map((key) =>
-                getErrorForMissingKeyInMap({
-                    ...commonArgs,
-                    map: variableMap,
-                    missingKey: key,
-                }),
-            ),
-            unknownKeys.map(({ key, keyRange }) =>
-                getErrorForUnknownKeyInMap({
-                    ...commonArgs,
-                    allowedKeys: expectedStringScalars,
-                    keyRange,
-                    unknownKey: key,
-                }),
-            ),
-        ),
+        errors,
     );
 
     const maybeNameWithKeyRange = validStringScalars.find(
@@ -379,12 +316,7 @@ function parseVariable(
                     : undefined,
                 scope: maybeTypedScope?.value,
             },
-            missingProperties: missingKeys.map((key) => ({
-                key,
-                // All properties are mandatory.
-                isMandatory: true,
-                alwaysHasScalarValue: true,
-            })),
+            missingProperties,
         },
     };
 }

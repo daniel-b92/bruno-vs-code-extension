@@ -11,11 +11,9 @@ import {
     WithKeyAndKeyRange,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
-import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
-import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getRangeForItem } from "../util/getRangeForItem";
-import { getMapItems } from "../yamlMaps/getMapItems";
+import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import {
     FileInfoProperty,
@@ -55,13 +53,6 @@ export function parseFileInfoFromYamlMap(args: {
     const expectedSequenceValues = checkForTagsProperty
         ? [FileInfoProperty.Tags]
         : [];
-    const allowedKeys = expectedStringScalars.concat(
-        expectedNumericScalars,
-        expectedSequenceValues,
-    );
-    const allExpectedScalars = expectedStringScalars.concat(
-        expectedNumericScalars,
-    );
     const alwaysMandatoryKey = FileInfoProperty.Name;
     const mandatoryKeys = [alwaysMandatoryKey].concat(
         [BrunoFileType.FolderSettingsFile, BrunoFileType.AppFile].includes(
@@ -73,16 +64,14 @@ export function parseFileInfoFromYamlMap(args: {
 
     const {
         items: {
-            missingKeys,
-            unknownKeys,
             validScalars: {
                 withStringValue: validStringScalars,
                 withNumericValue: validNumericScalars,
             },
             validSequences,
         },
-        errors: mapItemErrors,
-    } = getMapItems(
+        missingProperties,
+    } = getValidatedMapItems(
         infoMap,
         {
             scalars: {
@@ -90,35 +79,11 @@ export function parseFileInfoFromYamlMap(args: {
                 numericValues: expectedNumericScalars,
             },
             sequenceValues: expectedSequenceValues,
+            mandatoryKeys,
         },
         commonArgs,
+        errors,
     );
-
-    errors.push(
-        ...mapItemErrors,
-        ...unknownKeys.map(({ key: unknownKey, keyRange }) =>
-            getErrorForUnknownKeyInMap({
-                ...commonArgs,
-                unknownKey,
-                keyRange,
-                allowedKeys: allowedKeys,
-            }),
-        ),
-        ...missingKeys
-            .filter((key) => (mandatoryKeys as string[]).includes(key))
-            .map((key) =>
-                getErrorForMissingKeyInMap({
-                    ...commonArgs,
-                    missingKey: key,
-                    map: infoMap,
-                }),
-            ),
-    );
-    const missingProperties = missingKeys.map((key) => ({
-        alwaysHasScalarValue: (allExpectedScalars as string[]).includes(key),
-        isMandatory: (mandatoryKeys as string[]).includes(key),
-        key,
-    }));
     const name = validStringScalars.find(
         ({ key }) => key == FileInfoProperty.Name,
     );

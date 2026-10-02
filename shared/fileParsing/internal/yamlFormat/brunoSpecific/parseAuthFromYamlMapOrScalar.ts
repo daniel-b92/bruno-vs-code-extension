@@ -13,8 +13,8 @@ import {
     WithKeyKeyRangeAndValueRange,
     WithKeyAndKeyRange,
 } from "../interfaces";
-import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getMapItems } from "../yamlMaps/getMapItems";
+import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
@@ -161,28 +161,17 @@ export function parseAuthFromYamlMapOrScalar(args: {
         const { authMap, parsedType: type } = args;
         const expectedStringScalars = Object.values(BasicAuthProperty);
 
+        const allErrors: YamlParsingError[] = [];
         const {
-            errors,
             items: {
-                unknownKeys,
-                missingKeys,
                 validScalars: { withStringValue: validStringScalars },
             },
-        } = getMapItems(
+            missingProperties,
+        } = getValidatedMapItems(
             authMap,
             { scalars: { stringValues: expectedStringScalars } },
             commonParsingArgs,
-        );
-
-        const allErrors = errors.concat(
-            unknownKeys.map(({ key, keyRange }) =>
-                getErrorForUnknownKeyInMap({
-                    ...commonParsingArgs,
-                    allowedKeys: expectedStringScalars,
-                    keyRange,
-                    unknownKey: key,
-                }),
-            ),
+            allErrors,
         );
 
         const username = validStringScalars.find(
@@ -202,11 +191,7 @@ export function parseAuthFromYamlMapOrScalar(args: {
                         ? stripKeyFromResult(password)
                         : undefined,
                 },
-                missingProperties: missingKeys.map((key) => ({
-                    key,
-                    alwaysHasScalarValue: true,
-                    isMandatory: false,
-                })),
+                missingProperties,
             },
             errors: allErrors,
         };
@@ -222,28 +207,17 @@ export function parseAuthFromYamlMapOrScalar(args: {
         const { authMap, parsedType: type } = args;
         const expectedStringScalars = Object.values(BearerAuthProperty);
 
+        const allErrors: YamlParsingError[] = [];
         const {
-            errors,
             items: {
-                unknownKeys,
-                missingKeys,
                 validScalars: { withStringValue: validStringScalars },
             },
-        } = getMapItems(
+            missingProperties,
+        } = getValidatedMapItems(
             authMap,
             { scalars: { stringValues: expectedStringScalars } },
             commonParsingArgs,
-        );
-
-        const allErrors = errors.concat(
-            unknownKeys.map(({ key, keyRange }) =>
-                getErrorForUnknownKeyInMap({
-                    ...commonParsingArgs,
-                    allowedKeys: expectedStringScalars,
-                    keyRange,
-                    unknownKey: key,
-                }),
-            ),
+            allErrors,
         );
 
         const token = validStringScalars.find(
@@ -255,11 +229,7 @@ export function parseAuthFromYamlMapOrScalar(args: {
                     type,
                     token: token ? stripKeyFromResult(token) : undefined,
                 },
-                missingProperties: missingKeys.map((key) => ({
-                    key,
-                    alwaysHasScalarValue: true,
-                    isMandatory: false,
-                })),
+                missingProperties,
             },
             errors: allErrors,
         };

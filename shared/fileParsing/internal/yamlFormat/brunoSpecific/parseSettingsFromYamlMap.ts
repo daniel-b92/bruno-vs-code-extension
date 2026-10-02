@@ -7,9 +7,7 @@ import {
 } from "../interfaces";
 import { YamlMapMissingPropertyInfo, YamlParsingError } from "../../../..";
 import { RequestFileSettingsProperty } from "../../../external/yamlFormat/constants/requestFileConstants";
-import { getMapItems } from "../yamlMaps/getMapItems";
-import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
-import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
+import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
@@ -53,10 +51,11 @@ function getParsedMapItems(map: YAMLMap, commonArgs: CommonParsingArgs) {
     // timeout can either be a number or the string 'inherit'.
     const expectedStringScalars = [RequestFileSettingsProperty.Timeout];
 
+    const errors: YamlParsingError[] = [];
     const {
-        errors: mapItemErrors,
-        items: { unknownKeys, missingKeys, validScalars },
-    } = getMapItems(
+        items: { validScalars },
+        missingProperties,
+    } = getValidatedMapItems(
         map,
         {
             scalars: {
@@ -64,32 +63,12 @@ function getParsedMapItems(map: YAMLMap, commonArgs: CommonParsingArgs) {
                 booleanValues: expectedBooleanScalars,
                 numericValues: expectedNumericScalars,
             },
+            // All properties are mandatory.
+            mandatoryKeys: Object.values(RequestFileSettingsProperty),
         },
         commonArgs,
+        errors,
     );
-
-    const errors = mapItemErrors.concat(
-        unknownKeys.map(({ key, keyRange }) =>
-            getErrorForUnknownKeyInMap({
-                ...commonArgs,
-                allowedKeys: Object.values(RequestFileSettingsProperty),
-                keyRange,
-                unknownKey: key,
-            }),
-        ),
-        missingKeys.map((key) =>
-            getErrorForMissingKeyInMap({
-                ...commonArgs,
-                map: map,
-                missingKey: key,
-            }),
-        ),
-    );
-    const missingProperties = missingKeys.map((key) => ({
-        key,
-        alwaysHasScalarValue: true,
-        isMandatory: true,
-    }));
 
     return { validScalars, errors, missingProperties };
 }

@@ -5,12 +5,10 @@ import {
     MaybeResultWithErrors,
     ParsedRequestHeader,
 } from "../interfaces";
-import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
-import { getMapItems } from "../yamlMaps/getMapItems";
+import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { RequestHeaderProperty } from "../../../external/yamlFormat/constants/sharedConstants";
-import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getRangeForItem } from "../util/getRangeForItem";
 
 export function parseHeadersFromSequence(args: {
@@ -34,64 +32,31 @@ export function parseHeadersFromSequence(args: {
         RequestHeaderProperty.Description,
     ];
     const expectedBooleanScalars = [RequestHeaderProperty.Disabled];
-    const allowedKeys = expectedStringScalars.concat(expectedBooleanScalars);
-
     for (const headerMap of headerMaps) {
         const {
             items: {
-                unknownKeys,
-                missingKeys,
                 validScalars: {
                     withStringValue: validStrings,
                     withBooleanValue: validBooleans,
                 },
             },
-            errors: mapItemErrors,
-        } = getMapItems(
+            missingProperties,
+        } = getValidatedMapItems(
             headerMap,
             {
                 scalars: {
                     stringValues: expectedStringScalars,
                     booleanValues: expectedBooleanScalars,
                 },
+                mandatoryKeys: [
+                    RequestHeaderProperty.Name,
+                    RequestHeaderProperty.Value,
+                ],
             },
             commonArgs,
-        );
-        const missingKeysWithInfo = missingKeys.map((key) => ({
-            key,
-            isMandatory:
-                // Name and value are mandatory.
-                key == RequestHeaderProperty.Name ||
-                key == RequestHeaderProperty.Value,
-        }));
-        const missingProperties = missingKeysWithInfo.map(
-            ({ key, isMandatory }) => ({
-                key,
-                alwaysHasScalarValue: true,
-                isMandatory,
-            }),
+            errors,
         );
 
-        errors.push(
-            ...mapItemErrors,
-            ...unknownKeys.map(({ key: unknownKey, keyRange }) =>
-                getErrorForUnknownKeyInMap({
-                    ...commonArgs,
-                    unknownKey,
-                    keyRange,
-                    allowedKeys: allowedKeys,
-                }),
-            ),
-            ...missingKeysWithInfo
-                .filter(({ isMandatory }) => isMandatory)
-                .map(({ key }) =>
-                    getErrorForMissingKeyInMap({
-                        ...commonArgs,
-                        missingKey: key,
-                        map: headerMap,
-                    }),
-                ),
-        );
         const name = validStrings.find(
             ({ key }) => key == RequestHeaderProperty.Name,
         );

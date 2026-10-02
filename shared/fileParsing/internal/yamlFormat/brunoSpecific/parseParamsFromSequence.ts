@@ -5,9 +5,7 @@ import {
     MaybeResultWithErrors,
     ParsedHttpParam,
 } from "../interfaces";
-import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
-import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
-import { getMapItems } from "../yamlMaps/getMapItems";
+import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getRangeForItem } from "../util/getRangeForItem";
@@ -24,11 +22,12 @@ export function parseParamsFromSequence(
     const errors: YamlParsingError[] = [];
     const result: ParsedHttpParam[] = [];
 
-    const { items: paramMaps, errors: errorsFromSeq } =
-        getYamlMapsFromSequence({
+    const { items: paramMaps, errors: errorsFromSeq } = getYamlMapsFromSequence(
+        {
             ...commonArgs,
             sequence: paramsSequence,
-        });
+        },
+    );
     errors.push(...errorsFromSeq);
 
     const expectedStringScalars = [
@@ -40,63 +39,29 @@ export function parseParamsFromSequence(
     const expectedBooleanScalars = [
         RequestFileHttpSectionParamProperty.Disabled,
     ];
-    const allowedKeys = expectedStringScalars.concat(expectedBooleanScalars);
-
     for (const paramMap of paramMaps) {
         const {
             items: {
-                unknownKeys,
-                missingKeys,
                 validScalars: {
                     withStringValue: validStrings,
                     withBooleanValue: validBooleans,
                 },
             },
-            errors: mapItemErrors,
-        } = getMapItems(
+            missingProperties,
+        } = getValidatedMapItems(
             paramMap,
             {
                 scalars: {
                     stringValues: expectedStringScalars,
                     booleanValues: expectedBooleanScalars,
                 },
+                mandatoryKeys: [
+                    RequestFileHttpSectionParamProperty.Name,
+                    RequestFileHttpSectionParamProperty.Value,
+                ],
             },
             commonArgs,
-        );
-
-        const missingKeysWithInfo = missingKeys.map((key) => ({
-            key,
-            isMandatory:
-                key == RequestFileHttpSectionParamProperty.Name ||
-                key == RequestFileHttpSectionParamProperty.Value,
-        }));
-        const missingProperties = missingKeysWithInfo.map(
-            ({ key, isMandatory }) => ({
-                key,
-                alwaysHasScalarValue: true,
-                isMandatory,
-            }),
-        );
-
-        errors.push(
-            ...mapItemErrors,
-            ...unknownKeys.map(({ key: unknownKey, keyRange }) =>
-                getErrorForUnknownKeyInMap({
-                    ...commonArgs,
-                    unknownKey,
-                    keyRange,
-                    allowedKeys,
-                }),
-            ),
-            ...missingKeysWithInfo
-                .filter(({ isMandatory }) => isMandatory)
-                .map(({ key }) =>
-                    getErrorForMissingKeyInMap({
-                        ...commonArgs,
-                        missingKey: key,
-                        map: paramMap,
-                    }),
-                ),
+            errors,
         );
 
         const name = validStrings.find(

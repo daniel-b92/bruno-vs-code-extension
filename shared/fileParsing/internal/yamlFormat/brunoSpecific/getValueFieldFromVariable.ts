@@ -5,13 +5,11 @@ import {
     MaybeResultWithErrors,
     ParsedYamlMapWithKeyAndValueRange,
 } from "../interfaces";
-import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
-import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getErrorForValueWithUnexpectedType } from "../parsingErrors/getErrorForValueWithUnexpectedType";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { getRangeForUnknownYamlItem } from "../util/getRangeForUnknownYamlItem";
-import { getMapItems } from "../yamlMaps/getMapItems";
+import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { VariableType } from "../../../external/yamlFormat/constants/sharedConstants";
 import { EnvironmentVariableProperty } from "../../../external/yamlFormat/constants/environmentFileConstants";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
@@ -88,47 +86,21 @@ export function getValueFieldFromVariable(
         VariableValueWithTypeProperty.Type,
     ];
 
-    const { items: valueMapItems, errors: mapItemErrors } = getMapItems(
+    const {
+        items: {
+            validScalars: { withStringValue: validStringScalars },
+        },
+        missingProperties,
+    } = getValidatedMapItems(
         valueMapItem,
         {
-            scalars: {
-                stringValues: keysForStringScalars,
-            },
-            sequenceValues: [],
+            scalars: { stringValues: keysForStringScalars },
+            // All properties are mandatory.
+            mandatoryKeys: keysForStringScalars,
         },
         commonParams,
+        collectedErrors,
     );
-
-    const {
-        missingKeys,
-        unknownKeys,
-        validScalars: { withStringValue: validStringScalars },
-    } = valueMapItems;
-    collectedErrors.push(
-        ...mapItemErrors.concat(
-            unknownKeys.map(({ key, keyRange }) =>
-                getErrorForUnknownKeyInMap({
-                    ...commonParams,
-                    unknownKey: key,
-                    keyRange,
-                    allowedKeys: keysForStringScalars,
-                }),
-            ),
-            missingKeys.map((key) =>
-                getErrorForMissingKeyInMap({
-                    ...commonParams,
-                    missingKey: key,
-                    map: valueMapItem,
-                }),
-            ),
-        ),
-    );
-    const missingProperties = missingKeys.map((key) => ({
-        alwaysHasScalarValue: true,
-        // All properties are mandatory.
-        isMandatory: true,
-        key,
-    }));
 
     const data = validStringScalars.find(
         ({ key }) => key == VariableValueWithTypeProperty.Data,

@@ -7,11 +7,9 @@ import {
 } from "../interfaces";
 import { YamlParsingError } from "../../../..";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
-import { getMapItems } from "../yamlMaps/getMapItems";
-import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
+import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { getValueFieldFromVariable } from "./getValueFieldFromVariable";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
-import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { RequestVariableProperty } from "../../../external/yamlFormat/constants/sharedConstants";
 import { getRangeForItem } from "../util/getRangeForItem";
 
@@ -42,62 +40,25 @@ export function parseVariablesFromYamlSequence(
     for (const currentMap of variableMaps) {
         const {
             items: {
-                unknownKeys,
-                missingKeys,
                 validScalars: {
                     withStringValue: validStringScalars,
                     withBooleanValue: validBooleanScalars,
                 },
             },
-            errors: mapItemErrors,
-        } = getMapItems(
+            missingProperties,
+        } = getValidatedMapItems(
             currentMap,
             {
                 scalars: {
                     stringValues: keysForStringScalars,
                     booleanValues: keysForBooleanScalars,
                 },
+                mandatoryKeys: [RequestVariableProperty.Name],
+                // The value gets parsed separately, because it can be either a scalar or a map.
+                additionalAllowedKeys: [RequestVariableProperty.Value],
             },
             commonArgs,
-        );
-        const allAllowedKeys = Object.values(RequestVariableProperty);
-        const missingKeysWithContext = missingKeys.map((key) => ({
-            key,
-            isMandatory: key == RequestVariableProperty.Name,
-        }));
-
-        errors.push(
-            ...mapItemErrors.concat(
-                unknownKeys
-                    .filter(
-                        ({ key }) =>
-                            !(allAllowedKeys as string[]).includes(key),
-                    )
-                    .map(({ key, keyRange }) =>
-                        getErrorForUnknownKeyInMap({
-                            ...commonArgs,
-                            unknownKey: key,
-                            keyRange,
-                            allowedKeys: allAllowedKeys,
-                        }),
-                    ),
-                missingKeysWithContext
-                    .filter(({ isMandatory }) => isMandatory)
-                    .map(({ key }) =>
-                        getErrorForMissingKeyInMap({
-                            ...commonArgs,
-                            map: currentMap,
-                            missingKey: key,
-                        }),
-                    ),
-            ),
-        );
-        const missingProperties = missingKeysWithContext.map(
-            ({ key, isMandatory }) => ({
-                key,
-                alwaysHasScalarValue: true,
-                isMandatory,
-            }),
+            errors,
         );
         const { description, disabled } =
             getItemsForSimpleOptionalVariableProps(

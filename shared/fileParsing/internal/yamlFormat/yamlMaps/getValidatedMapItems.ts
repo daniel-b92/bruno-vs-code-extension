@@ -14,14 +14,23 @@ import { ExpectedKeys, getMapItems } from "./getMapItems";
  * All errors are appended to `collectedErrors`.
  *
  * @param mandatoryKeys Keys that have to be defined. All other expected keys are optional.
+ * @param additionalAllowedKeys Keys that are valid, but get handled by the caller (e.g. because they need special parsing).
+ * No errors are added for these keys, even though they are not part of the expected keys.
  */
 export function getValidatedMapItems(
     map: YAMLMap,
-    expectedKeys: ExpectedKeys & { mandatoryKeys?: string[] },
+    expectedKeys: ExpectedKeys & {
+        mandatoryKeys?: string[];
+        additionalAllowedKeys?: string[];
+    },
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ): { items: ParsedMapItems; missingProperties: YamlMapMissingPropertyInfo[] } {
-    const { mandatoryKeys = [], ...keysForParsing } = expectedKeys;
+    const {
+        mandatoryKeys = [],
+        additionalAllowedKeys = [],
+        ...keysForParsing
+    } = expectedKeys;
     const { items, errors } = getMapItems(map, keysForParsing, commonArgs);
     const { unknownKeys, missingKeys } = items;
 
@@ -32,6 +41,7 @@ export function getValidatedMapItems(
             ),
             ...(keysForParsing.mapValues ?? []),
             ...(keysForParsing.sequenceValues ?? []),
+            ...additionalAllowedKeys,
         ]),
     ];
     // Keys that can only have a scalar value (and not also a map or sequence).
@@ -42,14 +52,16 @@ export function getValidatedMapItems(
 
     collectedErrors.push(
         ...errors,
-        ...unknownKeys.map(({ key: unknownKey, keyRange }) =>
-            getErrorForUnknownKeyInMap({
-                ...commonArgs,
-                unknownKey,
-                keyRange,
-                allowedKeys,
-            }),
-        ),
+        ...unknownKeys
+            .filter(({ key }) => !additionalAllowedKeys.includes(key))
+            .map(({ key: unknownKey, keyRange }) =>
+                getErrorForUnknownKeyInMap({
+                    ...commonArgs,
+                    unknownKey,
+                    keyRange,
+                    allowedKeys,
+                }),
+            ),
         ...missingKeys
             .filter((key) => mandatoryKeys.includes(key))
             .map((missingKey) =>

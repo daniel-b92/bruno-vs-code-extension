@@ -13,9 +13,7 @@ import {
     ParsedYamlMap,
 } from "../../internal/yamlFormat/interfaces";
 import { getRangeForItem } from "../../internal/yamlFormat/util/getRangeForItem";
-import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
-import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForMissingKeyInMap";
-import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForUnknownKeyInMap";
+import { getValidatedMapItems } from "../../internal/yamlFormat/yamlMaps/getValidatedMapItems";
 import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDocumentIntoYamlMap";
 import { getTypedValueFromList } from "../../internal/yamlFormat/scalars/getTypedValueFromList";
 import { stripKeyFromResult } from "../../internal/yamlFormat/util/stripKeyFromResult";
@@ -48,54 +46,27 @@ export function parseYamlEnvironmentFile(
     }
     const topLevelMap = maybeTopLevelMap.map;
 
-    const mandatoryKey = TopLevelEnvironmentFileProperty.Name;
-    const keysForStringScalars = [
-        TopLevelEnvironmentFileProperty.Name,
-        TopLevelEnvironmentFileProperty.Extends,
-    ];
-    const keysForSequences = [TopLevelEnvironmentFileProperty.Variables];
-
     const {
         items: {
             validScalars: { withStringValue: validStringScalars },
             validSequences,
-            missingKeys,
-            unknownKeys,
         },
-        errors: mapItemErrors,
-    } = getMapItems(
+        missingProperties,
+    } = getValidatedMapItems(
         topLevelMap,
         {
-            scalars: { stringValues: keysForStringScalars },
-            sequenceValues: keysForSequences,
+            scalars: {
+                stringValues: [
+                    TopLevelEnvironmentFileProperty.Name,
+                    TopLevelEnvironmentFileProperty.Extends,
+                ],
+            },
+            sequenceValues: [TopLevelEnvironmentFileProperty.Variables],
+            mandatoryKeys: [TopLevelEnvironmentFileProperty.Name],
         },
         commonArgs,
+        collectedErrors,
     );
-
-    collectedErrors.push(
-        ...mapItemErrors.concat(
-            unknownKeys.map(({ key, keyRange }) =>
-                getErrorForUnknownKeyInMap({
-                    ...commonArgs,
-                    unknownKey: key,
-                    keyRange,
-                    allowedKeys: keysForStringScalars.concat(keysForSequences),
-                }),
-            ),
-            missingKeys.includes(mandatoryKey)
-                ? getErrorForMissingKeyInMap({
-                      ...commonArgs,
-                      missingKey: mandatoryKey,
-                      map: topLevelMap,
-                  })
-                : [],
-        ),
-    );
-    const missingProperties = missingKeys.map((key) => ({
-        alwaysHasScalarValue: (keysForStringScalars as string[]).includes(key),
-        isMandatory: key == mandatoryKey,
-        key,
-    }));
 
     const maybeNameWithKeyRange = validStringScalars.find(
         ({ key }) => key == TopLevelEnvironmentFileProperty.Name,
@@ -167,56 +138,22 @@ function getVariablesFromMapItems(
         EnvironmentVariableProperty.Disabled,
         EnvironmentVariableProperty.Secret,
     ];
-    const mandatoryKey = EnvironmentVariableProperty.Name;
 
     for (const currentMap of items) {
-        const { items: allMapItems, errors: mapItemErrors } = getMapItems(
+        const { items: allMapItems, missingProperties } = getValidatedMapItems(
             currentMap,
             {
                 scalars: {
                     stringValues: keysForStringScalars,
                     booleanValues: keysForBooleanScalars,
                 },
-                sequenceValues: [],
+                mandatoryKeys: [EnvironmentVariableProperty.Name],
+                // The value gets parsed separately, because it can be either a scalar or a map.
+                additionalAllowedKeys: [EnvironmentVariableProperty.Value],
             },
             commonArgs,
+            errors,
         );
-
-        errors.push(
-            ...mapItemErrors.concat(
-                allMapItems.unknownKeys
-                    .filter(
-                        ({ key }) =>
-                            !(
-                                Object.values(
-                                    EnvironmentVariableProperty,
-                                ) as string[]
-                            ).includes(key),
-                    )
-                    .map(({ key, keyRange }) =>
-                        getErrorForUnknownKeyInMap({
-                            ...commonArgs,
-                            unknownKey: key,
-                            keyRange,
-                            allowedKeys: keysForStringScalars.concat(
-                                keysForBooleanScalars,
-                            ),
-                        }),
-                    ),
-                allMapItems.missingKeys.includes(mandatoryKey)
-                    ? getErrorForMissingKeyInMap({
-                          ...commonArgs,
-                          missingKey: mandatoryKey,
-                          map: currentMap,
-                      })
-                    : [],
-            ),
-        );
-        const missingProperties = allMapItems.missingKeys.map((key) => ({
-            key,
-            alwaysHasScalarValue: true,
-            isMandatory: key == mandatoryKey,
-        }));
         const { description, disabled, secret } =
             getItemsForSimpleOptionalVariableProps(allMapItems);
 

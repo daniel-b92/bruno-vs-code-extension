@@ -5,16 +5,10 @@ import {
     ParsedScript,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
-import {
-    WithKeyAndValueRange,
-    YamlMapMissingPropertyInfo,
-    YamlParsingError,
-} from "../../../..";
+import { WithKeyAndValueRange, YamlParsingError } from "../../../..";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
-import { getMapItems } from "../yamlMaps/getMapItems";
-import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
+import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
-import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import {
     ScriptMapProperty,
@@ -41,52 +35,28 @@ export function parseScriptsFromYamlSequence(
     for (const currentMap of scriptMaps) {
         const {
             items: {
-                unknownKeys,
-                missingKeys,
                 validScalars: { withStringValue: validStringScalars },
             },
-            errors: mapItemErrors,
-        } = getMapItems(
+            missingProperties,
+        } = getValidatedMapItems(
             currentMap,
             {
-                scalars: {
-                    stringValues: keysForStringScalars,
-                },
+                scalars: { stringValues: keysForStringScalars },
+                // All properties are mandatory for scripts.
+                mandatoryKeys: keysForStringScalars,
             },
             commonArgs,
+            errors,
         );
-
-        errors.push(
-            ...mapItemErrors.concat(
-                unknownKeys.map(({ key, keyRange }) =>
-                    getErrorForUnknownKeyInMap({
-                        ...commonArgs,
-                        unknownKey: key,
-                        keyRange,
-                        allowedKeys: keysForStringScalars,
-                    }),
-                ),
-                // All properties are mandatory for scripts.
-                missingKeys.map((key) =>
-                    getErrorForMissingKeyInMap({
-                        ...commonArgs,
-                        map: currentMap,
-                        missingKey: key,
-                    }),
-                ),
-            ),
-        );
-        const { errors: parsingErrors, result: parsedScript } = parseScript(
-            validStringScalars,
-            missingKeys,
-        );
+        const { errors: parsingErrors, result: parsedScript } =
+            parseScript(validStringScalars);
         errors.push(...parsingErrors);
 
         if (!parsedScript) {
             continue;
         }
 
-        const { missingProperties, code, type } = parsedScript;
+        const { code, type } = parsedScript;
         scripts.push({
             missingProperties,
             properties: { code, type },
@@ -102,18 +72,11 @@ export function parseScriptsFromYamlSequence(
 
 function parseScript(
     validStringScalars: WithKeyKeyRangeAndValueRange<string>[],
-    missingKeys: string[],
 ): MaybeResultWithErrors<{
     type?: WithKeyAndValueRange<ScriptType>;
     code?: WithKeyAndValueRange<string>;
-    missingProperties: YamlMapMissingPropertyInfo[];
 }> {
     const collectedErrors: YamlParsingError[] = [];
-    const missingProperties = missingKeys.map((key) => ({
-        alwaysHasScalarValue: true,
-        isMandatory: true,
-        key,
-    }));
     const maybeUntypedTypeWithKeyRange = validStringScalars.find(
         ({ key }) => key == ScriptMapProperty.Type,
     );
@@ -139,7 +102,6 @@ function parseScript(
                 ? stripKeyFromResult(maybeCodeWithKeyRange)
                 : undefined,
             type: maybeTypedType?.value,
-            missingProperties,
         },
     };
 }

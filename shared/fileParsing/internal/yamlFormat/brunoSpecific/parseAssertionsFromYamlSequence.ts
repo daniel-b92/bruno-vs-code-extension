@@ -5,12 +5,10 @@ import {
     ParsedAssertion,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
-import { YamlParsingError } from "../../../..";
+import { YamlMapMissingPropertyInfo, YamlParsingError } from "../../../..";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
-import { getMapItems } from "../yamlMaps/getMapItems";
-import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
+import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
-import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import {
     AssertionMapProperty,
@@ -37,50 +35,27 @@ export function parseAssertionsFromYamlSequence(
     for (const currentMap of assertionMaps) {
         const {
             items: {
-                unknownKeys,
-                missingKeys,
                 validScalars: { withStringValue: validStringScalars },
             },
-            errors: mapItemErrors,
-        } = getMapItems(
+            missingProperties,
+        } = getValidatedMapItems(
             currentMap,
             {
-                scalars: {
-                    stringValues: keysForStringScalars,
-                },
+                scalars: { stringValues: keysForStringScalars },
+                mandatoryKeys: [
+                    AssertionMapProperty.Expression,
+                    AssertionMapProperty.Operator,
+                ],
             },
             commonArgs,
-        );
-
-        errors.push(
-            ...mapItemErrors.concat(
-                unknownKeys.map(({ key, keyRange }) =>
-                    getErrorForUnknownKeyInMap({
-                        ...commonArgs,
-                        unknownKey: key,
-                        keyRange,
-                        allowedKeys: keysForStringScalars,
-                    }),
-                ),
-                missingKeys
-                    .map((key) =>
-                        getMandatoryKeysForMap().includes(key)
-                            ? getErrorForMissingKeyInMap({
-                                  ...commonArgs,
-                                  map: currentMap,
-                                  missingKey: key,
-                              })
-                            : undefined,
-                    )
-                    .filter((val) => val != undefined),
-            ),
+            errors,
         );
         const { errors: parsingErrors, result: currentAssertion } =
             parseAssertion(
                 currentMap,
                 commonArgs,
                 validStringScalars,
-                missingKeys,
+                missingProperties,
             );
         errors.push(...parsingErrors);
         if (!currentAssertion) {
@@ -99,14 +74,9 @@ function parseAssertion(
     yamlMap: YAMLMap,
     commonArgs: CommonParsingArgs,
     validStringScalars: WithKeyKeyRangeAndValueRange<string>[],
-    missingKeys: string[],
+    missingProperties: YamlMapMissingPropertyInfo[],
 ): MaybeResultWithErrors<ParsedAssertion> {
     const collectedErrors: YamlParsingError[] = [];
-    const missingProperties = missingKeys.map((key) => ({
-        alwaysHasScalarValue: true,
-        isMandatory: getMandatoryKeysForMap().includes(key),
-        key,
-    }));
     const maybeExpressionWithKey = validStringScalars.find(
         ({ key }) => key == AssertionMapProperty.Expression,
     );
@@ -150,11 +120,4 @@ function parseAssertion(
             },
         },
     };
-}
-
-function getMandatoryKeysForMap() {
-    return [
-        AssertionMapProperty.Expression,
-        AssertionMapProperty.Operator,
-    ] as string[];
 }

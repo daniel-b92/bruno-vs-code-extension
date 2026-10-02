@@ -32,7 +32,6 @@ export function parseInfoFromYamlFile(
     } = getMapItems(
         topLevelMap,
         {
-            scalars: {},
             mapValues: [infoKey],
         },
         commonArgs,
