@@ -16,8 +16,8 @@ import { fromYamlRange } from "../util/fromYamlRange";
 import { getErrorForValueWithUnexpectedType } from "../parsingErrors/getErrorForValueWithUnexpectedType";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 
-interface ExpectedKeys {
-    scalars: {
+export interface ExpectedKeys {
+    scalars?: {
         booleanValues?: string[];
         numericValues?: string[];
         stringValues?: string[];
@@ -51,7 +51,7 @@ export function getMapItems(
             booleanValues: expectedBooleanScalars,
             numericValues: expectedNumericScalars,
             stringValues: expectedStringScalars,
-        },
+        } = {},
         sequenceValues: expectedSequenceValues,
         mapValues: expectedMapValues,
     } = expectedKeys;
@@ -203,7 +203,7 @@ function handleScalarValue(
             booleanValues: expectedBooleanScalars,
             numericValues: expectedNumericScalars,
             stringValues: expectedStringScalars,
-        },
+        } = {},
     } = expectedKeys;
     const {
         validScalars: {
@@ -325,7 +325,7 @@ function getErrorForUnexpectedType(
             booleanValues: expectedBooleanScalars,
             numericValues: expectedNumericScalars,
             stringValues: expectedStrinǵScalars,
-        },
+        } = {},
         sequenceValues: expectedSequenceValues,
         mapValues: expectedMapValues,
     } = expectedKeys;

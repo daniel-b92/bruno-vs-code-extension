@@ -144,4 +144,34 @@ describe("parseDocsFromYamlMap", () => {
         );
         expect(docs.properties.type).toBeUndefined();
     });
+
+    it("reports missing properties as mandatory and adds an error for each", () => {
+        const documentText = `docs:
+    type: text/markdown`;
+
+        const docHelper = new TextDocumentHelper(documentText);
+        const docsMap = (
+            parseTextIntoYamlDocument(documentText).contents as YAMLMap
+        ).items[0].value as YAMLMap;
+
+        const { result, errors } = parseDocsFromYamlMap(
+            {
+                key: "docs",
+                keyRange: getExpectedKeyRange(0, "docs", 0),
+                value: docsMap,
+            },
+            { docHelper, fullDocumentRange: docHelper.getTextRange() },
+        );
+
+        expect(errors).toHaveLength(1);
+        expect(
+            (result!.value as ParsedYamlMap<unknown>).missingProperties,
+        ).toEqual([
+            {
+                key: DocsProperty.Content,
+                alwaysHasScalarValue: true,
+                isMandatory: true,
+            },
+        ]);
+    });
 });

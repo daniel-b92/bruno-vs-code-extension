@@ -5,19 +5,15 @@ import {
     ParsedAction,
     ParsedYamlMapWithKeyAndValueRange,
     WithKeyAndKeyRange,
-    WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
-import {
-    Range,
-    WithKeyAndValueRange,
-    YamlMapMissingPropertyInfo,
-    YamlParsingError,
-} from "../../../..";
+import { Range, WithKeyAndValueRange, YamlParsingError } from "../../../..";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
-import { getMapItems } from "../yamlMaps/getMapItems";
-import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
+import {
+    ValidatedMapItems,
+    getValidatedMapItems,
+} from "../yamlMaps/getValidatedMapItems";
+import { parseIfPresent } from "../util/parseIfPresent";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
-import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import {
     ActionPhase,
     ActionProperty,
@@ -55,21 +51,13 @@ export function parseActionsFromYamlSequence(
     ];
     const keysForBooleanScalars = [ActionProperty.Disabled];
     const keysForMaps = [ActionProperty.Selector, ActionProperty.Variable];
-    const optionalKeys = [ActionProperty.Description, ActionProperty.Disabled];
+    const optionalKeys: string[] = [
+        ActionProperty.Description,
+        ActionProperty.Disabled,
+    ];
 
     for (const currentMap of actionsMaps) {
-        const {
-            items: {
-                unknownKeys,
-                missingKeys,
-                validScalars: {
-                    withStringValue: validStringScalars,
-                    withBooleanValue: validBooleanScalars,
-                },
-                validMaps,
-            },
-            errors: mapItemErrors,
-        } = getMapItems(
+        const mapItems = getValidatedMapItems(
             currentMap,
             {
                 scalars: {
@@ -77,44 +65,16 @@ export function parseActionsFromYamlSequence(
                     booleanValues: keysForBooleanScalars,
                 },
                 mapValues: keysForMaps,
+                mandatoryKeys: Object.values(ActionProperty).filter(
+                    (key) => !optionalKeys.includes(key),
+                ),
             },
             commonArgs,
+            errors,
         );
-
-        errors.push(
-            ...mapItemErrors.concat(
-                unknownKeys.map(({ key, keyRange }) =>
-                    getErrorForUnknownKeyInMap({
-                        ...commonArgs,
-                        unknownKey: key,
-                        keyRange,
-                        allowedKeys: Object.values(ActionProperty),
-                    }),
-                ),
-                missingKeys
-                    .filter((key) => !(optionalKeys as string[]).includes(key))
-                    .map((key) =>
-                        getErrorForMissingKeyInMap({
-                            ...commonArgs,
-                            missingKey: key,
-                            map: currentMap,
-                        }),
-                    ),
-            ),
-        );
-        const missingProperties = missingKeys.map((key) => ({
-            key,
-            alwaysHasScalarValue: !(keysForMaps as string[]).includes(key),
-            isMandatory: !(optionalKeys as string[]).includes(key),
-        }));
         const maybeAction = parseAction(
             getRangeForItem(currentMap, commonArgs),
-            {
-                validStringScalars,
-                validBooleanScalars,
-                validMaps,
-            },
-            missingProperties,
+            mapItems,
             commonArgs,
         );
         const { errors: actionErrors, result: action } = maybeAction;
@@ -135,20 +95,12 @@ export function parseActionsFromYamlSequence(
 
 function parseAction(
     mapRange: Range,
-    fields: {
-        validStringScalars: WithKeyKeyRangeAndValueRange<string>[];
-        validBooleanScalars: WithKeyKeyRangeAndValueRange<boolean>[];
-        validMaps: WithKeyAndKeyRange<YAMLMap>[];
-    },
-    missingProperties: YamlMapMissingPropertyInfo[],
+    { getString, getBoolean, getMap, missingProperties }: ValidatedMapItems,
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<ParsedAction> {
-    const { validBooleanScalars, validMaps, validStringScalars } = fields;
     const errors: YamlParsingError[] = [];
 
-    const maybeUntypedTypeWithKeyRange = validStringScalars.find(
-        ({ key }) => key == ActionProperty.Type,
-    );
+    const maybeUntypedTypeWithKeyRange = getString(ActionProperty.Type);
     const maybeType = maybeUntypedTypeWithKeyRange
         ? getTypedValueFromList(
               {
@@ -160,9 +112,7 @@ function parseAction(
           )
         : undefined;
 
-    const maybeUntypedPhaseWithKeyRange = validStringScalars.find(
-        ({ key }) => key == ActionProperty.Phase,
-    );
+    const maybeUntypedPhaseWithKeyRange = getString(ActionProperty.Phase);
     const maybePhase = maybeUntypedPhaseWithKeyRange
         ? getTypedValueFromList(
               {
@@ -174,31 +124,24 @@ function parseAction(
           )
         : undefined;
 
-    const maybeSelectorMap = validMaps.find(
-        ({ key }) => key == ActionProperty.Selector,
-    );
-    const maybeVariableMap = validMaps.find(
-        ({ key }) => key == ActionProperty.Variable,
-    );
-    const maybeDescriptionWithKeyRange = validStringScalars.find(
-        ({ key }) => key == ActionProperty.Description,
-    );
-    const maybeDisabledWithKeyRange = validBooleanScalars.find(
-        ({ key }) => key == ActionProperty.Disabled,
-    );
+    const maybeDescriptionWithKeyRange = getString(ActionProperty.Description);
+    const maybeDisabledWithKeyRange = getBoolean(ActionProperty.Disabled);
     // The default value for 'disabled' is false, when not defined.
     const disabledEffectiveValue =
         maybeDisabledWithKeyRange !== undefined
             ? maybeDisabledWithKeyRange.value
             : false;
 
-    const { result: selectorResult, errors: selectorErrors } = (maybeSelectorMap
-        ? parseSelector(maybeSelectorMap, commonArgs)
-        : undefined) ?? { result: undefined, errors: [] };
-    const { result: variableResult, errors: variableErrors } = (maybeVariableMap
-        ? parseVariable(maybeVariableMap, commonArgs)
-        : undefined) ?? { result: undefined, errors: [] };
-    errors.push(...selectorErrors, ...variableErrors);
+    const selector = parseIfPresent(
+        getMap(ActionProperty.Selector),
+        (selectorMap) => parseSelector(selectorMap, commonArgs),
+        errors,
+    );
+    const variable = parseIfPresent(
+        getMap(ActionProperty.Variable),
+        (variableMap) => parseVariable(variableMap, commonArgs),
+        errors,
+    );
 
     return {
         errors,
@@ -207,17 +150,13 @@ function parseAction(
             properties: {
                 phase: maybePhase?.value,
                 type: maybeType?.value,
-                description: maybeDescriptionWithKeyRange
-                    ? stripKeyFromResult(maybeDescriptionWithKeyRange)
-                    : undefined,
+                description: stripKeyFromResult(maybeDescriptionWithKeyRange),
                 disabled: {
                     effectiveValue: disabledEffectiveValue,
-                    field: maybeDisabledWithKeyRange
-                        ? stripKeyFromResult(maybeDisabledWithKeyRange)
-                        : undefined,
+                    field: stripKeyFromResult(maybeDisabledWithKeyRange),
                 },
-                selector: selectorResult,
-                variable: variableResult,
+                selector,
+                variable,
             },
             missingProperties,
         },
@@ -236,45 +175,21 @@ function parseSelector(
     const errors: YamlParsingError[] = [];
     const expectedStringScalars = Object.values(ActionSelectorProperty);
 
-    const {
-        errors: mapItemErrors,
-        items: {
-            missingKeys,
-            unknownKeys,
-            validScalars: { withStringValue: validStringScalars },
-        },
-    } = getMapItems(
+    const { getString, missingProperties } = getValidatedMapItems(
         selectorMap,
-        { scalars: { stringValues: expectedStringScalars } },
+        {
+            scalars: { stringValues: expectedStringScalars },
+            // All properties are mandatory.
+            mandatoryKeys: expectedStringScalars,
+        },
         commonArgs,
+        errors,
     );
 
-    errors.push(
-        ...mapItemErrors.concat(
-            missingKeys.map((key) =>
-                getErrorForMissingKeyInMap({
-                    ...commonArgs,
-                    map: selectorMap,
-                    missingKey: key,
-                }),
-            ),
-            unknownKeys.map(({ key, keyRange }) =>
-                getErrorForUnknownKeyInMap({
-                    ...commonArgs,
-                    allowedKeys: expectedStringScalars,
-                    keyRange,
-                    unknownKey: key,
-                }),
-            ),
-        ),
+    const maybeExpressionWithKeyRange = getString(
+        ActionSelectorProperty.Expression,
     );
-
-    const maybeExpressionWithKeyRange = validStringScalars.find(
-        ({ key }) => key == ActionSelectorProperty.Expression,
-    );
-    const maybeUntypedMethod = validStringScalars.find(
-        ({ key }) => key == ActionSelectorProperty.Method,
-    );
+    const maybeUntypedMethod = getString(ActionSelectorProperty.Method);
     const maybeTypedMethod = !maybeUntypedMethod
         ? undefined
         : getTypedValueFromList(
@@ -292,17 +207,10 @@ function parseSelector(
             keyRange,
             valueRange: getRangeForItem(selectorMap, commonArgs),
             properties: {
-                expression: maybeExpressionWithKeyRange
-                    ? stripKeyFromResult(maybeExpressionWithKeyRange)
-                    : undefined,
+                expression: stripKeyFromResult(maybeExpressionWithKeyRange),
                 method: maybeTypedMethod?.value,
             },
-            missingProperties: missingKeys.map((key) => ({
-                key,
-                // All properties are mandatory.
-                isMandatory: true,
-                alwaysHasScalarValue: true,
-            })),
+            missingProperties,
         },
     };
 }
@@ -318,45 +226,19 @@ function parseVariable(
     const errors: YamlParsingError[] = [];
     const expectedStringScalars = Object.values(ActionVariableProperty);
 
-    const {
-        errors: mapItemErrors,
-        items: {
-            missingKeys,
-            unknownKeys,
-            validScalars: { withStringValue: validStringScalars },
-        },
-    } = getMapItems(
+    const { getString, missingProperties } = getValidatedMapItems(
         variableMap,
-        { scalars: { stringValues: expectedStringScalars } },
+        {
+            scalars: { stringValues: expectedStringScalars },
+            // All properties are mandatory.
+            mandatoryKeys: expectedStringScalars,
+        },
         commonArgs,
+        errors,
     );
 
-    errors.push(
-        ...mapItemErrors.concat(
-            missingKeys.map((key) =>
-                getErrorForMissingKeyInMap({
-                    ...commonArgs,
-                    map: variableMap,
-                    missingKey: key,
-                }),
-            ),
-            unknownKeys.map(({ key, keyRange }) =>
-                getErrorForUnknownKeyInMap({
-                    ...commonArgs,
-                    allowedKeys: expectedStringScalars,
-                    keyRange,
-                    unknownKey: key,
-                }),
-            ),
-        ),
-    );
-
-    const maybeNameWithKeyRange = validStringScalars.find(
-        ({ key }) => key == ActionVariableProperty.Name,
-    );
-    const maybeUntypedScope = validStringScalars.find(
-        ({ key }) => key == ActionVariableProperty.Scope,
-    );
+    const maybeNameWithKeyRange = getString(ActionVariableProperty.Name);
+    const maybeUntypedScope = getString(ActionVariableProperty.Scope);
     const maybeTypedScope = !maybeUntypedScope
         ? undefined
         : getTypedValueFromList(
@@ -374,17 +256,10 @@ function parseVariable(
             keyRange,
             valueRange: getRangeForItem(variableMap, commonArgs),
             properties: {
-                name: maybeNameWithKeyRange
-                    ? stripKeyFromResult(maybeNameWithKeyRange)
-                    : undefined,
+                name: stripKeyFromResult(maybeNameWithKeyRange),
                 scope: maybeTypedScope?.value,
             },
-            missingProperties: missingKeys.map((key) => ({
-                key,
-                // All properties are mandatory.
-                isMandatory: true,
-                alwaysHasScalarValue: true,
-            })),
+            missingProperties,
         },
     };
 }

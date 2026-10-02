@@ -6,8 +6,7 @@ import {
     ParsedHttpBody,
     WithKeyAndKeyRange,
 } from "../interfaces";
-import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
-import { getMapItems } from "../yamlMaps/getMapItems";
+import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
@@ -29,30 +28,16 @@ export function parseBodyFromYamlMap(
     ];
 
     const {
+        getString,
         items: {
-            unknownKeys,
             validScalars: { withStringValue: validStrings },
-            missingKeys,
         },
-        errors: mapItemErrors,
-    } = getMapItems(
+        missingProperties,
+    } = getValidatedMapItems(
         map,
-        {
-            scalars: { stringValues: expectedStringScalars },
-        },
+        { scalars: { stringValues: expectedStringScalars } },
         commonArgs,
-    );
-
-    errors.push(
-        ...mapItemErrors,
-        ...unknownKeys.map(({ key: unknownKey, keyRange: ukr }) =>
-            getErrorForUnknownKeyInMap({
-                ...commonArgs,
-                unknownKey,
-                keyRange: ukr,
-                allowedKeys: expectedStringScalars,
-            }),
-        ),
+        errors,
     );
 
     const parsedType = getTypedValueFromList<HttpBodyType>(
@@ -64,15 +49,7 @@ export function parseBodyFromYamlMap(
         errors,
     )?.value;
 
-    const rawData = validStrings.find(
-        ({ key }) => key == RequestFileHttpSectionBodyProperty.Data,
-    );
-
-    const missingProperties = missingKeys.map((key) => ({
-        key,
-        alwaysHasScalarValue: true,
-        isMandatory: false,
-    }));
+    const rawData = getString(RequestFileHttpSectionBodyProperty.Data);
 
     return {
         errors,
@@ -82,7 +59,7 @@ export function parseBodyFromYamlMap(
             missingProperties,
             properties: {
                 type: parsedType,
-                data: rawData ? stripKeyFromResult(rawData) : undefined,
+                data: stripKeyFromResult(rawData),
             },
         },
     };

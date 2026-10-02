@@ -7,10 +7,8 @@ import {
     ParsedYamlMap,
     WithKeyAndKeyRange,
 } from "../interfaces";
-import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
-import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
-import { getMapItems } from "../yamlMaps/getMapItems";
+import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import {
     DocsProperty,
@@ -43,54 +41,17 @@ function parseFromMap(
     }>
 > {
     const errors: YamlParsingError[] = [];
-    const expectedStringScalars = Object.values(DocsProperty);
-
-    const {
-        items: {
-            missingKeys,
-            unknownKeys,
-            validScalars: { withStringValue: validStringScalars },
-        },
-        errors: mapItemErrors,
-    } = getMapItems(
+    const { getString, missingProperties } = getValidatedMapItems(
         docsMap,
         {
-            scalars: {
-                stringValues: expectedStringScalars,
-            },
+            scalars: { stringValues: Object.values(DocsProperty) },
+            mandatoryKeys: Object.values(DocsProperty),
         },
         commonArgs,
+        errors,
     );
-
-    errors.push(
-        ...mapItemErrors,
-        ...unknownKeys.map(({ key: unknownKey, keyRange }) =>
-            getErrorForUnknownKeyInMap({
-                ...commonArgs,
-                unknownKey,
-                keyRange,
-                allowedKeys: expectedStringScalars,
-            }),
-        ),
-        ...missingKeys.map((key) =>
-            getErrorForMissingKeyInMap({
-                ...commonArgs,
-                missingKey: key,
-                map: docsMap,
-            }),
-        ),
-    );
-    const missingProperties = missingKeys.map((key) => ({
-        alwaysHasScalarValue: true,
-        isMandatory: false,
-        key,
-    }));
-    const content = validStringScalars.find(
-        ({ key }) => key == DocsProperty.Content,
-    );
-    const untypedType = validStringScalars.find(
-        ({ key }) => key == DocsProperty.Type,
-    );
+    const content = getString(DocsProperty.Content);
+    const untypedType = getString(DocsProperty.Type);
     const maybeType = !untypedType
         ? undefined
         : getTypedValueFromList(
@@ -106,7 +67,7 @@ function parseFromMap(
         errors,
         result: {
             properties: {
-                content: content ? stripKeyFromResult(content) : undefined,
+                content: stripKeyFromResult(content),
                 type: maybeType?.value,
             },
             missingProperties,

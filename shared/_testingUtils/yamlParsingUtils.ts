@@ -1,5 +1,5 @@
 import { LineCounter, parseDocument } from "yaml";
-import { Position, Range } from "..";
+import { Position, Range, TextDocumentHelper } from "..";
 
 export function getExpectedKeyRange(
     line: number,
@@ -29,4 +29,9 @@ export function parseTextIntoYamlDocument(text: string) {
     return parseDocument(text, {
         lineCounter: new LineCounter(),
     });
+}
+
+export function makeCommonParsingArgs(documentText: string) {
+    const docHelper = new TextDocumentHelper(documentText);
+    return { docHelper, fullDocumentRange: docHelper.getTextRange() };
 }
