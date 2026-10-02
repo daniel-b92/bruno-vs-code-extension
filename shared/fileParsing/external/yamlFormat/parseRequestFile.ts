@@ -12,10 +12,8 @@ import {
     ParsedRequestFileAppSection,
     WithKeyAndKeyRange,
 } from "../../internal/yamlFormat/interfaces";
-import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForMissingKeyInMap";
-import { getErrorForUnknownKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForUnknownKeyInMap";
 import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDocumentIntoYamlMap";
-import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
+import { getValidatedMapItems } from "../../internal/yamlFormat/yamlMaps/getValidatedMapItems";
 import {
     RequestFileAppProperty,
     RequestFileHttpSectionProperty,
@@ -43,62 +41,32 @@ export function parseRequestFile(
         fullDocumentRange: docHelper.getTextRange(),
     };
     const collectedErrors: YamlParsingError[] = [];
-    const expectedTopLevelProperties = Object.values(
-        TopLevelRequestFileProperty,
-    );
 
     const maybeTopLevelMap = parseDocumentIntoYamlMap(commonArgs);
     if ("errors" in maybeTopLevelMap) {
         return maybeTopLevelMap;
     }
 
-    const { map: topLevelMap } = maybeTopLevelMap;
     const {
         items: {
-            missingKeys,
-            unknownKeys,
             validMaps,
             validScalars: { withStringValue: validStringScalars },
         },
-        errors: mapItemErrors,
-    } = getMapItems(
-        topLevelMap,
+        missingProperties,
+    } = getValidatedMapItems(
+        maybeTopLevelMap.map,
         {
             // Docs section is always a scalar for request files.
             scalars: { stringValues: [TopLevelRequestFileProperty.Docs] },
-            mapValues: expectedTopLevelProperties.filter(
+            mapValues: Object.values(TopLevelRequestFileProperty).filter(
                 (prop) => prop != TopLevelRequestFileProperty.Docs,
             ),
+            // info is the only mandatory top level property.
+            mandatoryKeys: [TopLevelRequestFileProperty.Info],
         },
         commonArgs,
+        collectedErrors,
     );
-
-    collectedErrors.push(
-        ...mapItemErrors.concat(
-            unknownKeys.map(({ key: unknownKey, keyRange }) =>
-                getErrorForUnknownKeyInMap({
-                    ...commonArgs,
-                    unknownKey,
-                    keyRange,
-                    allowedKeys: expectedTopLevelProperties,
-                }),
-            ),
-            // info is the only mandatory top level property.
-            missingKeys.includes(TopLevelRequestFileProperty.Info)
-                ? getErrorForMissingKeyInMap({
-                      ...commonArgs,
-                      missingKey: TopLevelRequestFileProperty.Info,
-                      map: topLevelMap,
-                  })
-                : [],
-        ),
-    );
-
-    const missingProperties = missingKeys.map((key) => ({
-        key,
-        alwaysHasScalarValue: key == TopLevelRequestFileProperty.Docs,
-        isMandatory: key == TopLevelRequestFileProperty.Info,
-    }));
 
     const infoMap = validMaps.find(
         ({ key }) => key == TopLevelRequestFileProperty.Info,
@@ -164,68 +132,36 @@ function getParsedHttp(
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ) {
-    const expectedStringScalars = [
-        RequestFileHttpSectionProperty.method,
-        RequestFileHttpSectionProperty.url,
-    ];
-    const expectedSequences = [
-        RequestFileHttpSectionProperty.headers,
-        RequestFileHttpSectionProperty.params,
-    ];
-    const expectedMaps = [
-        RequestFileHttpSectionProperty.body,
-        RequestFileHttpSectionProperty.auth,
-    ];
-    const expectedScalarStrings = [RequestFileHttpSectionProperty.auth];
-    const allowedKeys = [
-        ...expectedStringScalars,
-        ...expectedSequences,
-        ...expectedMaps,
-    ];
-
     const {
         items: {
-            unknownKeys,
-            missingKeys,
             validMaps,
             validSequences,
             validScalars: { withStringValue: validStringScalars },
         },
-        errors: mapItemErrors,
-    } = getMapItems(
+        missingProperties,
+    } = getValidatedMapItems(
         httpMap,
         {
             scalars: {
                 stringValues: [
-                    ...expectedStringScalars,
-                    ...expectedScalarStrings,
+                    RequestFileHttpSectionProperty.method,
+                    RequestFileHttpSectionProperty.url,
+                    // Auth can either be a scalar string with the value 'inherit' or a map with a specific type.
+                    RequestFileHttpSectionProperty.auth,
                 ],
             },
-            mapValues: expectedMaps,
-            sequenceValues: expectedSequences,
+            mapValues: [
+                RequestFileHttpSectionProperty.body,
+                RequestFileHttpSectionProperty.auth,
+            ],
+            sequenceValues: [
+                RequestFileHttpSectionProperty.headers,
+                RequestFileHttpSectionProperty.params,
+            ],
         },
         commonArgs,
+        collectedErrors,
     );
-
-    collectedErrors.push(
-        ...mapItemErrors,
-        ...unknownKeys.map(({ key: unknownKey, keyRange: ukr }) =>
-            getErrorForUnknownKeyInMap({
-                ...commonArgs,
-                unknownKey,
-                keyRange: ukr,
-                allowedKeys,
-            }),
-        ),
-    );
-
-    const missingProperties = missingKeys.map((key) => ({
-        key,
-        alwaysHasScalarValue:
-            key == RequestFileHttpSectionProperty.method ||
-            key == RequestFileHttpSectionProperty.url,
-        isMandatory: false,
-    }));
 
     const maybeMethod = validStringScalars.find(
         ({ key }) => key == RequestFileHttpSectionProperty.method,
@@ -324,54 +260,28 @@ function getParsedApp(
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ): ParsedRequestFileAppSection {
-    const expectedBooleanScalars = [RequestFileAppProperty.Enabled];
-    const expectedStringScalars = [RequestFileAppProperty.Code];
-
     const {
-        errors: mapItemErrors,
         items: {
-            unknownKeys,
-            missingKeys,
             validScalars: {
                 withStringValue: validStringScalars,
                 withBooleanValue: validBooleanScalars,
             },
         },
-    } = getMapItems(
+        missingProperties,
+    } = getValidatedMapItems(
         map,
         {
             scalars: {
-                stringValues: expectedStringScalars,
-                booleanValues: expectedBooleanScalars,
+                stringValues: [RequestFileAppProperty.Code],
+                booleanValues: [RequestFileAppProperty.Enabled],
             },
+            // All properties are mandatory for the app section.
+            mandatoryKeys: Object.values(RequestFileAppProperty),
         },
         commonArgs,
+        collectedErrors,
     );
 
-    const errors = mapItemErrors.concat(
-        unknownKeys.map(({ key, keyRange }) =>
-            getErrorForUnknownKeyInMap({
-                ...commonArgs,
-                allowedKeys: Object.values(RequestFileAppProperty),
-                keyRange,
-                unknownKey: key,
-            }),
-        ),
-        missingKeys.map((key) =>
-            getErrorForMissingKeyInMap({
-                ...commonArgs,
-                map,
-                missingKey: key,
-            }),
-        ),
-    );
-    const missingProperties = missingKeys.map((key) => ({
-        key,
-        alwaysHasScalarValue: true,
-        isMandatory: true,
-    }));
-
-    collectedErrors.push(...errors);
     const maybeCode = validStringScalars.find(
         ({ key }) => key == RequestFileAppProperty.Code,
     );
@@ -443,39 +353,18 @@ function parseRuntimeSection(
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ) {
-    const expectedProperties = Object.values(RequestFileRuntimeProperty);
-
     const {
-        items: { unknownKeys, missingKeys, validSequences },
-        errors: sectionErrors,
-    } = getMapItems(
+        items: { validSequences },
+        missingProperties,
+    } = getValidatedMapItems(
         requestMap,
         {
-            scalars: {},
-            // All properties are sequences for the runtime section.
-            sequenceValues: expectedProperties,
+            // All properties are sequences for the runtime section. None of them are mandatory.
+            sequenceValues: Object.values(RequestFileRuntimeProperty),
         },
         commonArgs,
+        collectedErrors,
     );
-
-    collectedErrors.push(
-        ...sectionErrors.concat(
-            unknownKeys.map(({ key: unknownKey, keyRange }) =>
-                getErrorForUnknownKeyInMap({
-                    ...commonArgs,
-                    unknownKey,
-                    keyRange,
-                    allowedKeys: expectedProperties,
-                }),
-            ),
-        ),
-    );
-    const missingProperties = missingKeys.map((key) => ({
-        alwaysHasScalarValue: false,
-        // None of the properties are mandatory.
-        isMandatory: false,
-        key,
-    }));
 
     const maybeVariablesSequence = validSequences.find(
         ({ key }) => key == RequestFileRuntimeProperty.Variables,
