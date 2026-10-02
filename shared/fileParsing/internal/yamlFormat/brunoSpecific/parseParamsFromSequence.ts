@@ -41,11 +41,10 @@ export function parseParamsFromSequence(
     ];
     for (const paramMap of paramMaps) {
         const {
+            getString,
+            getBoolean,
             items: {
-                validScalars: {
-                    withStringValue: validStrings,
-                    withBooleanValue: validBooleans,
-                },
+                validScalars: { withStringValue: validStrings },
             },
             missingProperties,
         } = getValidatedMapItems(
@@ -64,17 +63,13 @@ export function parseParamsFromSequence(
             errors,
         );
 
-        const name = validStrings.find(
-            ({ key }) => key == RequestFileHttpSectionParamProperty.Name,
+        const name = getString(RequestFileHttpSectionParamProperty.Name);
+        const value = getString(RequestFileHttpSectionParamProperty.Value);
+        const description = getString(
+            RequestFileHttpSectionParamProperty.Description,
         );
-        const value = validStrings.find(
-            ({ key }) => key == RequestFileHttpSectionParamProperty.Value,
-        );
-        const description = validStrings.find(
-            ({ key }) => key == RequestFileHttpSectionParamProperty.Description,
-        );
-        const maybeDisabled = validBooleans.find(
-            ({ key }) => key == RequestFileHttpSectionParamProperty.Disabled,
+        const maybeDisabled = getBoolean(
+            RequestFileHttpSectionParamProperty.Disabled,
         );
 
         const parsedType = getTypedValueFromList<HttpParamType>(
@@ -89,12 +84,10 @@ export function parseParamsFromSequence(
         result.push({
             valueRange: getRangeForItem(paramMap, commonArgs),
             properties: {
-                name: name ? stripKeyFromResult(name) : undefined,
-                value: value ? stripKeyFromResult(value) : undefined,
+                name: stripKeyFromResult(name),
+                value: stripKeyFromResult(value),
                 type: parsedType,
-                description: description
-                    ? stripKeyFromResult(description)
-                    : undefined,
+                description: stripKeyFromResult(description),
                 disabled: {
                     effectiveValue:
                         maybeDisabled !== undefined

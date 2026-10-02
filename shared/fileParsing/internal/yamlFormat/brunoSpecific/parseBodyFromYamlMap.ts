@@ -28,6 +28,7 @@ export function parseBodyFromYamlMap(
     ];
 
     const {
+        getString,
         items: {
             validScalars: { withStringValue: validStrings },
         },
@@ -48,9 +49,7 @@ export function parseBodyFromYamlMap(
         errors,
     )?.value;
 
-    const rawData = validStrings.find(
-        ({ key }) => key == RequestFileHttpSectionBodyProperty.Data,
-    );
+    const rawData = getString(RequestFileHttpSectionBodyProperty.Data);
 
     return {
         errors,
@@ -60,7 +59,7 @@ export function parseBodyFromYamlMap(
             missingProperties,
             properties: {
                 type: parsedType,
-                data: rawData ? stripKeyFromResult(rawData) : undefined,
+                data: stripKeyFromResult(rawData),
             },
         },
     };

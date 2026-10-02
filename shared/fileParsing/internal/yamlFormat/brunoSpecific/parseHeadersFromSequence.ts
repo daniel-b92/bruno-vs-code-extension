@@ -33,51 +33,34 @@ export function parseHeadersFromSequence(args: {
     ];
     const expectedBooleanScalars = [RequestHeaderProperty.Disabled];
     for (const headerMap of headerMaps) {
-        const {
-            items: {
-                validScalars: {
-                    withStringValue: validStrings,
-                    withBooleanValue: validBooleans,
+        const { getString, getBoolean, missingProperties } =
+            getValidatedMapItems(
+                headerMap,
+                {
+                    scalars: {
+                        stringValues: expectedStringScalars,
+                        booleanValues: expectedBooleanScalars,
+                    },
+                    mandatoryKeys: [
+                        RequestHeaderProperty.Name,
+                        RequestHeaderProperty.Value,
+                    ],
                 },
-            },
-            missingProperties,
-        } = getValidatedMapItems(
-            headerMap,
-            {
-                scalars: {
-                    stringValues: expectedStringScalars,
-                    booleanValues: expectedBooleanScalars,
-                },
-                mandatoryKeys: [
-                    RequestHeaderProperty.Name,
-                    RequestHeaderProperty.Value,
-                ],
-            },
-            commonArgs,
-            errors,
-        );
+                commonArgs,
+                errors,
+            );
 
-        const name = validStrings.find(
-            ({ key }) => key == RequestHeaderProperty.Name,
-        );
-        const value = validStrings.find(
-            ({ key }) => key == RequestHeaderProperty.Value,
-        );
-        const description = validStrings.find(
-            ({ key }) => key == RequestHeaderProperty.Description,
-        );
-        const maybeDisabled = validBooleans.find(
-            ({ key }) => key == RequestHeaderProperty.Disabled,
-        );
+        const name = getString(RequestHeaderProperty.Name);
+        const value = getString(RequestHeaderProperty.Value);
+        const description = getString(RequestHeaderProperty.Description);
+        const maybeDisabled = getBoolean(RequestHeaderProperty.Disabled);
 
         result.push({
             valueRange: getRangeForItem(headerMap, commonArgs),
             properties: {
-                name: name ? stripKeyFromResult(name) : undefined,
-                value: value ? stripKeyFromResult(value) : undefined,
-                description: description
-                    ? stripKeyFromResult(description)
-                    : undefined,
+                name: stripKeyFromResult(name),
+                value: stripKeyFromResult(value),
+                description: stripKeyFromResult(description),
                 disabled: {
                     effectiveValue:
                         // The default value is `false`, if not explicitly defined.

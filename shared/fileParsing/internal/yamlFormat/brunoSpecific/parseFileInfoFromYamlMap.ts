@@ -9,11 +9,13 @@ import {
     CommonParsingArgs,
     MaybeResultWithErrors,
     WithKeyAndKeyRange,
-    WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getRangeForItem } from "../util/getRangeForItem";
-import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
+import {
+    ValidatedMapItems,
+    getValidatedMapItems,
+} from "../yamlMaps/getValidatedMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import {
     FileInfoProperty,
@@ -63,12 +65,11 @@ export function parseFileInfoFromYamlMap(args: {
     );
 
     const {
+        getString,
+        getNumber,
+        getSequence,
         items: {
-            validScalars: {
-                withStringValue: validStringScalars,
-                withNumericValue: validNumericScalars,
-            },
-            validSequences,
+            validScalars: { withStringValue: validStringScalars },
         },
         missingProperties,
     } = getValidatedMapItems(
@@ -84,9 +85,7 @@ export function parseFileInfoFromYamlMap(args: {
         commonArgs,
         errors,
     );
-    const name = validStringScalars.find(
-        ({ key }) => key == FileInfoProperty.Name,
-    );
+    const name = getString(FileInfoProperty.Name);
     const maybeType = !checkForTypeProperty
         ? undefined
         : getTypedValueFromList(
@@ -105,13 +104,17 @@ export function parseFileInfoFromYamlMap(args: {
             valueRange: getRangeForItem(infoMap, commonArgs),
             missingProperties,
             properties: {
-                name: name ? stripKeyFromResult(name) : undefined,
+                name: stripKeyFromResult(name),
                 sequence: checkForSeqProperty
-                    ? getSequenceToUse(validNumericScalars, errors)
+                    ? getSequenceToUse(getNumber, errors)
                     : undefined,
                 type: maybeType ? maybeType.value : undefined,
                 tags: checkForTagsProperty
-                    ? getTagsToUse(validSequences, commonArgs, errors)
+                    ? getTagsToUse(
+                          getSequence(FileInfoProperty.Tags),
+                          commonArgs,
+                          errors,
+                      )
                     : undefined,
             },
         },
@@ -119,12 +122,10 @@ export function parseFileInfoFromYamlMap(args: {
 }
 
 function getSequenceToUse(
-    validNumericScalars: WithKeyKeyRangeAndValueRange<number>[],
+    getNumber: ValidatedMapItems["getNumber"],
     errorCollection: YamlParsingError[],
 ) {
-    const actual = validNumericScalars.find(
-        ({ key }) => key == FileInfoProperty.Seq,
-    );
+    const actual = getNumber(FileInfoProperty.Seq);
     if (!actual) {
         return undefined;
     }
@@ -142,13 +143,10 @@ function getSequenceToUse(
 }
 
 function getTagsToUse(
-    validSequences: WithKeyAndKeyRange<YAMLSeq>[],
+    maybeUntypedTagsField: WithKeyAndKeyRange<YAMLSeq> | undefined,
     commonArgs: CommonParsingArgs,
     errorCollection: YamlParsingError[],
 ) {
-    const maybeUntypedTagsField =
-        validSequences.length > 0 ? validSequences[0] : undefined;
-
     if (!maybeUntypedTagsField) {
         return undefined;
     }

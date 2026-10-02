@@ -23,6 +23,7 @@ import {
 import { parseFileInfoFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseFileInfoFromYamlMap";
 import { parseSettingsFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseSettingsFromYamlMap";
 import { stripKeyFromResult } from "../../internal/yamlFormat/util/stripKeyFromResult";
+import { parseIfPresent } from "../../internal/yamlFormat/util/parseIfPresent";
 import { getRangeForItem } from "../../internal/yamlFormat/util/getRangeForItem";
 import { parseVariablesFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseVariablesFromYamlSequence";
 import { parseScriptsFromYamlSequence } from "../../internal/yamlFormat/brunoSpecific/parseScriptsFromYamlSequence";
@@ -47,13 +48,7 @@ export function parseRequestFile(
         return maybeTopLevelMap;
     }
 
-    const {
-        items: {
-            validMaps,
-            validScalars: { withStringValue: validStringScalars },
-        },
-        missingProperties,
-    } = getValidatedMapItems(
+    const { getString, getMap, missingProperties } = getValidatedMapItems(
         maybeTopLevelMap.map,
         {
             // Docs section is always a scalar for request files.
@@ -68,39 +63,36 @@ export function parseRequestFile(
         collectedErrors,
     );
 
-    const infoMap = validMaps.find(
-        ({ key }) => key == TopLevelRequestFileProperty.Info,
-    );
-    const info = infoMap
-        ? getParsedInfo(infoMap, commonArgs, collectedErrors)
-        : undefined;
-    const httpMap = validMaps.find(
-        ({ key }) => key == TopLevelRequestFileProperty.Http,
+    const httpMap = getMap(TopLevelRequestFileProperty.Http);
+    const runtimeMap = getMap(TopLevelRequestFileProperty.Runtime);
+    const appMap = getMap(TopLevelRequestFileProperty.App);
+
+    const info: ParsedInfoForRequestFile | undefined = parseIfPresent(
+        getMap(TopLevelRequestFileProperty.Info),
+        (infoMap) =>
+            parseFileInfoFromYamlMap({
+                infoMap,
+                commonArgs,
+                fileType: BrunoFileType.RequestFile,
+            }),
+        collectedErrors,
     );
     const http = httpMap
-        ? getParsedHttp(httpMap, commonArgs, collectedErrors)
+        ? parseHttpSection(httpMap, commonArgs, collectedErrors)
         : undefined;
-    const runtimeMap = validMaps.find(
-        ({ key }) => key == TopLevelRequestFileProperty.Runtime,
-    );
     const runtime = runtimeMap
-        ? getParsedRuntime(runtimeMap, commonArgs, collectedErrors)
+        ? parseRuntimeSection(runtimeMap, commonArgs, collectedErrors)
         : undefined;
-    const docsWithKey = validStringScalars.find(
-        ({ key }) => key == TopLevelRequestFileProperty.Docs,
+    const docs = stripKeyFromResult(
+        getString(TopLevelRequestFileProperty.Docs),
     );
-    const docs = docsWithKey ? stripKeyFromResult(docsWithKey) : undefined;
-    const settingsMap = validMaps.find(
-        ({ key }) => key == TopLevelRequestFileProperty.Settings,
-    );
-    const settings = settingsMap
-        ? getParsedSettings(settingsMap, commonArgs, collectedErrors)
-        : undefined;
-    const appMap = validMaps.find(
-        ({ key }) => key == TopLevelRequestFileProperty.App,
+    const settings = parseIfPresent(
+        getMap(TopLevelRequestFileProperty.Settings),
+        (settingsMap) => parseSettingsFromYamlMap(settingsMap, commonArgs),
+        collectedErrors,
     );
     const app = appMap
-        ? getParsedApp(appMap, commonArgs, collectedErrors)
+        ? parseAppSection(appMap, commonArgs, collectedErrors)
         : undefined;
 
     return {
@@ -112,164 +104,84 @@ export function parseRequestFile(
     };
 }
 
-function getParsedInfo(
-    infoMap: WithKeyAndKeyRange<YAMLMap>,
-    commonArgs: CommonParsingArgs,
-    collectedErrors: YamlParsingError[],
-): ParsedInfoForRequestFile | undefined {
-    const { result: info, errors } = parseFileInfoFromYamlMap({
-        infoMap,
-        commonArgs,
-        fileType: BrunoFileType.RequestFile,
-    });
-    collectedErrors.push(...errors);
-
-    return info;
-}
-
-function getParsedHttp(
+function parseHttpSection(
     { keyRange, value: httpMap }: WithKeyAndKeyRange<YAMLMap>,
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ) {
-    const {
-        items: {
-            validMaps,
-            validSequences,
-            validScalars: { withStringValue: validStringScalars },
-        },
-        missingProperties,
-    } = getValidatedMapItems(
-        httpMap,
-        {
-            scalars: {
-                stringValues: [
-                    RequestFileHttpSectionProperty.method,
-                    RequestFileHttpSectionProperty.url,
-                    // Auth can either be a scalar string with the value 'inherit' or a map with a specific type.
+    const { getString, getMap, getSequence, missingProperties } =
+        getValidatedMapItems(
+            httpMap,
+            {
+                scalars: {
+                    stringValues: [
+                        RequestFileHttpSectionProperty.method,
+                        RequestFileHttpSectionProperty.url,
+                        // Auth can either be a scalar string with the value 'inherit' or a map with a specific type.
+                        RequestFileHttpSectionProperty.auth,
+                    ],
+                },
+                mapValues: [
+                    RequestFileHttpSectionProperty.body,
                     RequestFileHttpSectionProperty.auth,
                 ],
+                sequenceValues: [
+                    RequestFileHttpSectionProperty.headers,
+                    RequestFileHttpSectionProperty.params,
+                ],
             },
-            mapValues: [
-                RequestFileHttpSectionProperty.body,
-                RequestFileHttpSectionProperty.auth,
-            ],
-            sequenceValues: [
-                RequestFileHttpSectionProperty.headers,
-                RequestFileHttpSectionProperty.params,
-            ],
-        },
-        commonArgs,
-        collectedErrors,
-    );
-
-    const maybeMethod = validStringScalars.find(
-        ({ key }) => key == RequestFileHttpSectionProperty.method,
-    );
-    const maybeUrl = validStringScalars.find(
-        ({ key }) => key == RequestFileHttpSectionProperty.url,
-    );
-
-    const maybeHeadersSeq = validSequences.find(
-        ({ key }) => key == RequestFileHttpSectionProperty.headers,
-    );
-    let headers: ReturnType<typeof parseHeadersFromSequence>["result"];
-    if (maybeHeadersSeq) {
-        const { result, errors } = parseHeadersFromSequence({
             commonArgs,
-            headersSequence: maybeHeadersSeq.value,
-        });
-        collectedErrors.push(...errors);
-        headers = result;
-    }
-
-    const maybeParamsSeq = validSequences.find(
-        ({ key }) => key == RequestFileHttpSectionProperty.params,
-    );
-    let params: ReturnType<typeof parseParamsFromSequence>["result"];
-    if (maybeParamsSeq) {
-        const { result, errors } = parseParamsFromSequence(
-            maybeParamsSeq.value,
-            commonArgs,
+            collectedErrors,
         );
-        collectedErrors.push(...errors);
-        params = result;
-    }
-
-    const maybeBodyMap = validMaps.find(
-        ({ key }) => key == RequestFileHttpSectionProperty.body,
-    );
-    let body: ReturnType<typeof parseBodyFromYamlMap>["result"];
-    if (maybeBodyMap) {
-        const { result, errors } = parseBodyFromYamlMap(
-            maybeBodyMap,
-            commonArgs,
-        );
-        collectedErrors.push(...errors);
-        body = result;
-    }
-
-    const maybeAuthScalar = validStringScalars.find(
-        ({ key }) => key == RequestFileHttpSectionProperty.auth,
-    );
-    const maybeAuthMap = validMaps.find(
-        ({ key }) => key == RequestFileHttpSectionProperty.auth,
-    );
-    const authMapOrScalar = maybeAuthScalar ?? maybeAuthMap;
-    let auth: ReturnType<typeof parseAuthFromYamlMapOrScalar>["result"];
-    if (authMapOrScalar) {
-        const { result, errors } = parseAuthFromYamlMapOrScalar({
-            commonArgs,
-            authMapOrScalar,
-        });
-        collectedErrors.push(...errors);
-        auth = result;
-    }
 
     return {
         keyRange,
         valueRange: getRangeForItem(httpMap, commonArgs),
         missingProperties,
         properties: {
-            method: maybeMethod ? stripKeyFromResult(maybeMethod) : undefined,
-            url: maybeUrl ? stripKeyFromResult(maybeUrl) : undefined,
-            headers,
-            params,
-            body,
-            auth,
+            method: stripKeyFromResult(
+                getString(RequestFileHttpSectionProperty.method),
+            ),
+            url: stripKeyFromResult(
+                getString(RequestFileHttpSectionProperty.url),
+            ),
+            headers: parseIfPresent(
+                getSequence(RequestFileHttpSectionProperty.headers),
+                ({ value: headersSequence }) =>
+                    parseHeadersFromSequence({ commonArgs, headersSequence }),
+                collectedErrors,
+            ),
+            params: parseIfPresent(
+                getSequence(RequestFileHttpSectionProperty.params),
+                ({ value }) => parseParamsFromSequence(value, commonArgs),
+                collectedErrors,
+            ),
+            body: parseIfPresent(
+                getMap(RequestFileHttpSectionProperty.body),
+                (bodyMap) => parseBodyFromYamlMap(bodyMap, commonArgs),
+                collectedErrors,
+            ),
+            auth: parseIfPresent(
+                getString(RequestFileHttpSectionProperty.auth) ??
+                    getMap(RequestFileHttpSectionProperty.auth),
+                (authMapOrScalar) =>
+                    parseAuthFromYamlMapOrScalar({
+                        commonArgs,
+                        authMapOrScalar,
+                    }),
+                collectedErrors,
+            ),
         },
     };
 }
 
-function getParsedSettings(
-    settingsMap: WithKeyAndKeyRange<YAMLMap>,
-    commonArgs: CommonParsingArgs,
-    collectedErrors: YamlParsingError[],
-) {
-    const { result: settings, errors } = parseSettingsFromYamlMap(
-        settingsMap,
-        commonArgs,
-    );
-    collectedErrors.push(...errors);
-
-    return settings;
-}
-
-function getParsedApp(
-    { keyRange, value: map }: WithKeyAndKeyRange<YAMLMap>,
+function parseAppSection(
+    { keyRange, value: appMap }: WithKeyAndKeyRange<YAMLMap>,
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ): ParsedRequestFileAppSection {
-    const {
-        items: {
-            validScalars: {
-                withStringValue: validStringScalars,
-                withBooleanValue: validBooleanScalars,
-            },
-        },
-        missingProperties,
-    } = getValidatedMapItems(
-        map,
+    const { getString, getBoolean, missingProperties } = getValidatedMapItems(
+        appMap,
         {
             scalars: {
                 stringValues: [RequestFileAppProperty.Code],
@@ -282,82 +194,26 @@ function getParsedApp(
         collectedErrors,
     );
 
-    const maybeCode = validStringScalars.find(
-        ({ key }) => key == RequestFileAppProperty.Code,
-    );
-    const maybeEnabled = validBooleanScalars.find(
-        ({ key }) => key == RequestFileAppProperty.Enabled,
-    );
-
     return {
         missingProperties,
         keyRange,
-        valueRange: getRangeForItem(map, commonArgs),
+        valueRange: getRangeForItem(appMap, commonArgs),
         properties: {
-            code: maybeCode ? stripKeyFromResult(maybeCode) : undefined,
-            enabled: maybeEnabled
-                ? stripKeyFromResult(maybeEnabled)
-                : undefined,
+            code: stripKeyFromResult(getString(RequestFileAppProperty.Code)),
+            enabled: stripKeyFromResult(
+                getBoolean(RequestFileAppProperty.Enabled),
+            ),
         },
-    };
-}
-
-function getParsedRuntime(
-    { keyRange, value: yamlMap }: WithKeyAndKeyRange<YAMLMap>,
-    commonArgs: CommonParsingArgs,
-    collectedErrors: YamlParsingError[],
-) {
-    const {
-        missingProperties,
-        properties: {
-            variables: parsedVariables,
-            scripts: parsedScripts,
-            assertions: parsedAssertions,
-            actions: parsedActions,
-        },
-    } = parseRuntimeSection(yamlMap, commonArgs, collectedErrors);
-    const { result: variables, errors: variableErrors } = parsedVariables ?? {
-        result: undefined,
-        errors: [],
-    };
-    const { result: scripts, errors: scriptErrors } = parsedScripts ?? {
-        result: undefined,
-        errors: [],
-    };
-    const { result: assertions, errors: assertionsErrors } =
-        parsedAssertions ?? {
-            result: undefined,
-            errors: [],
-        };
-    const { result: actions, errors: actionsErrors } = parsedActions ?? {
-        result: undefined,
-        errors: [],
-    };
-    collectedErrors.push(
-        ...variableErrors,
-        ...scriptErrors,
-        ...assertionsErrors,
-        ...actionsErrors,
-    );
-
-    return {
-        properties: { variables, scripts, assertions, actions },
-        missingProperties,
-        keyRange,
-        valueRange: getRangeForItem(yamlMap, commonArgs),
     };
 }
 
 function parseRuntimeSection(
-    requestMap: YAMLMap,
+    { keyRange, value: runtimeMap }: WithKeyAndKeyRange<YAMLMap>,
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ) {
-    const {
-        items: { validSequences },
-        missingProperties,
-    } = getValidatedMapItems(
-        requestMap,
+    const { getSequence, missingProperties } = getValidatedMapItems(
+        runtimeMap,
         {
             // All properties are sequences for the runtime section. None of them are mandatory.
             sequenceValues: Object.values(RequestFileRuntimeProperty),
@@ -366,44 +222,33 @@ function parseRuntimeSection(
         collectedErrors,
     );
 
-    const maybeVariablesSequence = validSequences.find(
-        ({ key }) => key == RequestFileRuntimeProperty.Variables,
-    );
-    const variables = maybeVariablesSequence
-        ? parseVariablesFromYamlSequence(
-              maybeVariablesSequence.value,
-              commonArgs,
-          )
-        : undefined;
-    const maybeScriptsSequence = validSequences.find(
-        ({ key }) => key == RequestFileRuntimeProperty.Scripts,
-    );
-    const scripts = maybeScriptsSequence
-        ? parseScriptsFromYamlSequence(maybeScriptsSequence.value, commonArgs)
-        : undefined;
-    const maybeAssertionsSequence = validSequences.find(
-        ({ key }) => key == RequestFileRuntimeProperty.Assertions,
-    );
-    const assertions = maybeAssertionsSequence
-        ? parseAssertionsFromYamlSequence(
-              maybeAssertionsSequence.value,
-              commonArgs,
-          )
-        : undefined;
-    const maybeActionsSequence = validSequences.find(
-        ({ key }) => key == RequestFileRuntimeProperty.Actions,
-    );
-    const actions = maybeActionsSequence
-        ? parseActionsFromYamlSequence(maybeActionsSequence.value, commonArgs)
-        : undefined;
-
     return {
+        keyRange,
+        valueRange: getRangeForItem(runtimeMap, commonArgs),
         missingProperties,
         properties: {
-            variables,
-            scripts,
-            assertions,
-            actions,
+            variables: parseIfPresent(
+                getSequence(RequestFileRuntimeProperty.Variables),
+                ({ value }) =>
+                    parseVariablesFromYamlSequence(value, commonArgs),
+                collectedErrors,
+            ),
+            scripts: parseIfPresent(
+                getSequence(RequestFileRuntimeProperty.Scripts),
+                ({ value }) => parseScriptsFromYamlSequence(value, commonArgs),
+                collectedErrors,
+            ),
+            assertions: parseIfPresent(
+                getSequence(RequestFileRuntimeProperty.Assertions),
+                ({ value }) =>
+                    parseAssertionsFromYamlSequence(value, commonArgs),
+                collectedErrors,
+            ),
+            actions: parseIfPresent(
+                getSequence(RequestFileRuntimeProperty.Actions),
+                ({ value }) => parseActionsFromYamlSequence(value, commonArgs),
+                collectedErrors,
+            ),
         },
     };
 }

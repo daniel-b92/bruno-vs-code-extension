@@ -41,12 +41,7 @@ function parseFromMap(
     }>
 > {
     const errors: YamlParsingError[] = [];
-    const {
-        items: {
-            validScalars: { withStringValue: validStringScalars },
-        },
-        missingProperties,
-    } = getValidatedMapItems(
+    const { getString, missingProperties } = getValidatedMapItems(
         docsMap,
         {
             scalars: { stringValues: Object.values(DocsProperty) },
@@ -55,12 +50,8 @@ function parseFromMap(
         commonArgs,
         errors,
     );
-    const content = validStringScalars.find(
-        ({ key }) => key == DocsProperty.Content,
-    );
-    const untypedType = validStringScalars.find(
-        ({ key }) => key == DocsProperty.Type,
-    );
+    const content = getString(DocsProperty.Content);
+    const untypedType = getString(DocsProperty.Type);
     const maybeType = !untypedType
         ? undefined
         : getTypedValueFromList(
@@ -76,7 +67,7 @@ function parseFromMap(
         errors,
         result: {
             properties: {
-                content: content ? stripKeyFromResult(content) : undefined,
+                content: stripKeyFromResult(content),
                 type: maybeType?.value,
             },
             missingProperties,

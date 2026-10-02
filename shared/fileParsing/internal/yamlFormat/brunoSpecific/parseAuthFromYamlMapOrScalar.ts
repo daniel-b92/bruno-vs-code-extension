@@ -162,34 +162,21 @@ export function parseAuthFromYamlMapOrScalar(args: {
         const expectedStringScalars = Object.values(BasicAuthProperty);
 
         const allErrors: YamlParsingError[] = [];
-        const {
-            items: {
-                validScalars: { withStringValue: validStringScalars },
-            },
-            missingProperties,
-        } = getValidatedMapItems(
+        const { getString, missingProperties } = getValidatedMapItems(
             authMap,
             { scalars: { stringValues: expectedStringScalars } },
             commonParsingArgs,
             allErrors,
         );
 
-        const username = validStringScalars.find(
-            ({ key }) => key == BasicAuthProperty.Username,
-        );
-        const password = validStringScalars.find(
-            ({ key }) => key == BasicAuthProperty.Password,
-        );
+        const username = getString(BasicAuthProperty.Username);
+        const password = getString(BasicAuthProperty.Password);
         return {
             auth: {
                 properties: {
                     type,
-                    username: username
-                        ? stripKeyFromResult(username)
-                        : undefined,
-                    password: password
-                        ? stripKeyFromResult(password)
-                        : undefined,
+                    username: stripKeyFromResult(username),
+                    password: stripKeyFromResult(password),
                 },
                 missingProperties,
             },
@@ -208,26 +195,19 @@ export function parseAuthFromYamlMapOrScalar(args: {
         const expectedStringScalars = Object.values(BearerAuthProperty);
 
         const allErrors: YamlParsingError[] = [];
-        const {
-            items: {
-                validScalars: { withStringValue: validStringScalars },
-            },
-            missingProperties,
-        } = getValidatedMapItems(
+        const { getString, missingProperties } = getValidatedMapItems(
             authMap,
             { scalars: { stringValues: expectedStringScalars } },
             commonParsingArgs,
             allErrors,
         );
 
-        const token = validStringScalars.find(
-            ({ key }) => key == BearerAuthProperty.Token,
-        );
+        const token = getString(BearerAuthProperty.Token);
         return {
             auth: {
                 properties: {
                     type,
-                    token: token ? stripKeyFromResult(token) : undefined,
+                    token: stripKeyFromResult(token),
                 },
                 missingProperties,
             },

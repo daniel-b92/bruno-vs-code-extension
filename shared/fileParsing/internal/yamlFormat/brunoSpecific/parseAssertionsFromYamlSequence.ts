@@ -3,11 +3,13 @@ import {
     CommonParsingArgs,
     MaybeResultWithErrors,
     ParsedAssertion,
-    WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { YamlMapMissingPropertyInfo, YamlParsingError } from "../../../..";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
-import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
+import {
+    ValidatedMapItems,
+    getValidatedMapItems,
+} from "../yamlMaps/getValidatedMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import {
@@ -33,12 +35,7 @@ export function parseAssertionsFromYamlSequence(
     const keysForStringScalars = Object.values(AssertionMapProperty);
 
     for (const currentMap of assertionMaps) {
-        const {
-            items: {
-                validScalars: { withStringValue: validStringScalars },
-            },
-            missingProperties,
-        } = getValidatedMapItems(
+        const { getString, missingProperties } = getValidatedMapItems(
             currentMap,
             {
                 scalars: { stringValues: keysForStringScalars },
@@ -54,7 +51,7 @@ export function parseAssertionsFromYamlSequence(
             parseAssertion(
                 currentMap,
                 commonArgs,
-                validStringScalars,
+                getString,
                 missingProperties,
             );
         errors.push(...parsingErrors);
@@ -73,21 +70,15 @@ export function parseAssertionsFromYamlSequence(
 function parseAssertion(
     yamlMap: YAMLMap,
     commonArgs: CommonParsingArgs,
-    validStringScalars: WithKeyKeyRangeAndValueRange<string>[],
+    getString: ValidatedMapItems["getString"],
     missingProperties: YamlMapMissingPropertyInfo[],
 ): MaybeResultWithErrors<ParsedAssertion> {
     const collectedErrors: YamlParsingError[] = [];
-    const maybeExpressionWithKey = validStringScalars.find(
-        ({ key }) => key == AssertionMapProperty.Expression,
-    );
-    const maybeValueWithKey = validStringScalars.find(
-        ({ key }) => key == AssertionMapProperty.Value,
-    );
-    const maybeDescriptionWithKey = validStringScalars.find(
-        ({ key }) => key == AssertionMapProperty.Description,
-    );
-    const maybeUntypedOperatorWithKey = validStringScalars.find(
-        ({ key }) => key == AssertionMapProperty.Operator,
+    const maybeExpressionWithKey = getString(AssertionMapProperty.Expression);
+    const maybeValueWithKey = getString(AssertionMapProperty.Value);
+    const maybeDescriptionWithKey = getString(AssertionMapProperty.Description);
+    const maybeUntypedOperatorWithKey = getString(
+        AssertionMapProperty.Operator,
     );
 
     const maybeTypedOperator = !maybeUntypedOperatorWithKey
@@ -107,16 +98,10 @@ function parseAssertion(
             valueRange: getRangeForItem(yamlMap, commonArgs),
             missingProperties,
             properties: {
-                expression: maybeExpressionWithKey
-                    ? stripKeyFromResult(maybeExpressionWithKey)
-                    : undefined,
+                expression: stripKeyFromResult(maybeExpressionWithKey),
                 operator: maybeTypedOperator?.value,
-                value: maybeValueWithKey
-                    ? stripKeyFromResult(maybeValueWithKey)
-                    : undefined,
-                description: maybeDescriptionWithKey
-                    ? stripKeyFromResult(maybeDescriptionWithKey)
-                    : undefined,
+                value: stripKeyFromResult(maybeValueWithKey),
+                description: stripKeyFromResult(maybeDescriptionWithKey),
             },
         },
     };

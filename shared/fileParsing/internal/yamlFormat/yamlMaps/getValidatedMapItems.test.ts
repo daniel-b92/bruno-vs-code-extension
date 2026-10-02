@@ -75,6 +75,46 @@ describe("getValidatedMapItems", () => {
         expect(errors).toHaveLength(2);
         expect(errors[0]).toBe(existingError);
     });
+
+    describe("lookup functions", () => {
+        it("return the valid item for the key, depending on the value type", () => {
+            const { getString, getBoolean, getNumber, getMap, getSequence } =
+                run(
+                    `name: foo
+flag: true
+count: 3
+details:
+    a: b
+items:
+    - c`,
+                    {
+                        scalars: {
+                            stringValues: ["name"],
+                            booleanValues: ["flag"],
+                            numericValues: ["count"],
+                        },
+                        mapValues: ["details"],
+                        sequenceValues: ["items"],
+                    },
+                );
+
+            expect(getString("name")?.value).toBe("foo");
+            expect(getBoolean("flag")?.value).toBe(true);
+            expect(getNumber("count")?.value).toBe(3);
+            expect(getMap("details")?.key).toBe("details");
+            expect(getSequence("items")?.key).toBe("items");
+        });
+
+        it("return undefined for missing keys and for values of another type", () => {
+            const { getString, getBoolean } = run("name: 5", {
+                scalars: { stringValues: ["name", "other"], booleanValues: [] },
+            });
+
+            expect(getString("name")).toBeUndefined();
+            expect(getString("other")).toBeUndefined();
+            expect(getBoolean("name")).toBeUndefined();
+        });
+    });
 });
 
 function run(

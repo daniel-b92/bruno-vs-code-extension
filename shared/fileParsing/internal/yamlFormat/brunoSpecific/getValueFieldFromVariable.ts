@@ -87,6 +87,7 @@ export function getValueFieldFromVariable(
     ];
 
     const {
+        getString,
         items: {
             validScalars: { withStringValue: validStringScalars },
         },
@@ -102,9 +103,7 @@ export function getValueFieldFromVariable(
         collectedErrors,
     );
 
-    const data = validStringScalars.find(
-        ({ key }) => key == VariableValueWithTypeProperty.Data,
-    );
+    const data = getString(VariableValueWithTypeProperty.Data);
 
     const maybeType = getTypedValueFromList(
         {
@@ -120,7 +119,7 @@ export function getValueFieldFromVariable(
             keyRange,
             valueRange: getRangeForItem(valueMapItem, commonParams),
             properties: {
-                data: data ? stripKeyFromResult(data) : undefined,
+                data: stripKeyFromResult(data),
                 type: maybeType?.value,
             },
             missingProperties,

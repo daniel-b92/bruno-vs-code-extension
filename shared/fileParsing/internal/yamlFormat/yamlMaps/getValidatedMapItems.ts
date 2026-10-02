@@ -1,9 +1,30 @@
-import { YAMLMap } from "yaml";
+import { YAMLMap, YAMLSeq } from "yaml";
 import { YamlMapMissingPropertyInfo, YamlParsingError } from "../../../..";
-import { CommonParsingArgs, ParsedMapItems } from "../interfaces";
+import {
+    CommonParsingArgs,
+    ParsedMapItems,
+    WithKeyAndKeyRange,
+    WithKeyKeyRangeAndValueRange,
+} from "../interfaces";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { ExpectedKeys, getMapItems } from "./getMapItems";
+
+export interface ValidatedMapItems {
+    items: ParsedMapItems;
+    missingProperties: YamlMapMissingPropertyInfo[];
+    getString: (
+        key: string,
+    ) => WithKeyKeyRangeAndValueRange<string> | undefined;
+    getBoolean: (
+        key: string,
+    ) => WithKeyKeyRangeAndValueRange<boolean> | undefined;
+    getNumber: (
+        key: string,
+    ) => WithKeyKeyRangeAndValueRange<number> | undefined;
+    getMap: (key: string) => WithKeyAndKeyRange<YAMLMap> | undefined;
+    getSequence: (key: string) => WithKeyAndKeyRange<YAMLSeq> | undefined;
+}
 
 /**
  * Wraps {@link getMapItems} and additionally handles the validation that is common to all Yaml maps:
@@ -12,6 +33,9 @@ import { ExpectedKeys, getMapItems } from "./getMapItems";
  * - Derives the info about missing properties from the expected keys.
  *
  * All errors are appended to `collectedErrors`.
+ *
+ * Additionally, the result provides lookup functions for the valid items of a specific key.
+ * They return `undefined`, if the key is missing or if its value does not have the expected type.
  *
  * @param mandatoryKeys Keys that have to be defined. All other expected keys are optional.
  * @param additionalAllowedKeys Keys that are valid, but get handled by the caller (e.g. because they need special parsing).
@@ -25,7 +49,7 @@ export function getValidatedMapItems(
     },
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
-): { items: ParsedMapItems; missingProperties: YamlMapMissingPropertyInfo[] } {
+): ValidatedMapItems {
     const {
         mandatoryKeys = [],
         additionalAllowedKeys = [],
@@ -71,10 +95,20 @@ export function getValidatedMapItems(
 
     return {
         items,
+        getString: (key) => findByKey(items.validScalars.withStringValue, key),
+        getBoolean: (key) =>
+            findByKey(items.validScalars.withBooleanValue, key),
+        getNumber: (key) => findByKey(items.validScalars.withNumericValue, key),
+        getMap: (key) => findByKey(items.validMaps, key),
+        getSequence: (key) => findByKey(items.validSequences, key),
         missingProperties: missingKeys.map((key) => ({
             key,
             alwaysHasScalarValue: !nonScalarKeys.includes(key),
             isMandatory: mandatoryKeys.includes(key),
         })),
     };
+}
+
+function findByKey<T extends { key: string }>(items: T[], key: string) {
+    return items.find((item) => item.key == key);
 }
