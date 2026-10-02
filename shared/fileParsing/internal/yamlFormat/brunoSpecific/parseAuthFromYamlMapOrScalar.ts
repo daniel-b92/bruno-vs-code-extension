@@ -13,8 +13,8 @@ import {
     WithKeyKeyRangeAndValueRange,
     WithKeyAndKeyRange,
 } from "../interfaces";
-import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
 import { getMapItems } from "../yamlMaps/getMapItems";
+import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
@@ -161,52 +161,24 @@ export function parseAuthFromYamlMapOrScalar(args: {
         const { authMap, parsedType: type } = args;
         const expectedStringScalars = Object.values(BasicAuthProperty);
 
-        const {
-            errors,
-            items: {
-                unknownKeys,
-                missingKeys,
-                validScalars: { withStringValue: validStringScalars },
-            },
-        } = getMapItems(
+        const allErrors: YamlParsingError[] = [];
+        const { getString, missingProperties } = getValidatedMapItems(
             authMap,
             { scalars: { stringValues: expectedStringScalars } },
             commonParsingArgs,
+            allErrors,
         );
 
-        const allErrors = errors.concat(
-            unknownKeys.map(({ key, keyRange }) =>
-                getErrorForUnknownKeyInMap({
-                    ...commonParsingArgs,
-                    allowedKeys: expectedStringScalars,
-                    keyRange,
-                    unknownKey: key,
-                }),
-            ),
-        );
-
-        const username = validStringScalars.find(
-            ({ key }) => key == BasicAuthProperty.Username,
-        );
-        const password = validStringScalars.find(
-            ({ key }) => key == BasicAuthProperty.Password,
-        );
+        const username = getString(BasicAuthProperty.Username);
+        const password = getString(BasicAuthProperty.Password);
         return {
             auth: {
                 properties: {
                     type,
-                    username: username
-                        ? stripKeyFromResult(username)
-                        : undefined,
-                    password: password
-                        ? stripKeyFromResult(password)
-                        : undefined,
+                    username: stripKeyFromResult(username),
+                    password: stripKeyFromResult(password),
                 },
-                missingProperties: missingKeys.map((key) => ({
-                    key,
-                    alwaysHasScalarValue: true,
-                    isMandatory: false,
-                })),
+                missingProperties,
             },
             errors: allErrors,
         };
@@ -222,44 +194,22 @@ export function parseAuthFromYamlMapOrScalar(args: {
         const { authMap, parsedType: type } = args;
         const expectedStringScalars = Object.values(BearerAuthProperty);
 
-        const {
-            errors,
-            items: {
-                unknownKeys,
-                missingKeys,
-                validScalars: { withStringValue: validStringScalars },
-            },
-        } = getMapItems(
+        const allErrors: YamlParsingError[] = [];
+        const { getString, missingProperties } = getValidatedMapItems(
             authMap,
             { scalars: { stringValues: expectedStringScalars } },
             commonParsingArgs,
+            allErrors,
         );
 
-        const allErrors = errors.concat(
-            unknownKeys.map(({ key, keyRange }) =>
-                getErrorForUnknownKeyInMap({
-                    ...commonParsingArgs,
-                    allowedKeys: expectedStringScalars,
-                    keyRange,
-                    unknownKey: key,
-                }),
-            ),
-        );
-
-        const token = validStringScalars.find(
-            ({ key }) => key == BearerAuthProperty.Token,
-        );
+        const token = getString(BearerAuthProperty.Token);
         return {
             auth: {
                 properties: {
                     type,
-                    token: token ? stripKeyFromResult(token) : undefined,
+                    token: stripKeyFromResult(token),
                 },
-                missingProperties: missingKeys.map((key) => ({
-                    key,
-                    alwaysHasScalarValue: true,
-                    isMandatory: false,
-                })),
+                missingProperties,
             },
             errors: allErrors,
         };

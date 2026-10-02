@@ -3,15 +3,15 @@ import {
     CommonParsingArgs,
     MaybeResultWithErrors,
     ParsedRequestVariable,
-    WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
 import { YamlParsingError } from "../../../..";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
-import { getMapItems } from "../yamlMaps/getMapItems";
-import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
+import {
+    ValidatedMapItems,
+    getValidatedMapItems,
+} from "../yamlMaps/getValidatedMapItems";
 import { getValueFieldFromVariable } from "./getValueFieldFromVariable";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
-import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { RequestVariableProperty } from "../../../external/yamlFormat/constants/sharedConstants";
 import { getRangeForItem } from "../util/getRangeForItem";
 
@@ -40,84 +40,38 @@ export function parseVariablesFromYamlSequence(
     const keysForBooleanScalars = [RequestVariableProperty.Disabled];
 
     for (const currentMap of variableMaps) {
-        const {
-            items: {
-                unknownKeys,
-                missingKeys,
-                validScalars: {
-                    withStringValue: validStringScalars,
-                    withBooleanValue: validBooleanScalars,
+        const { getString, getBoolean, missingProperties } =
+            getValidatedMapItems(
+                currentMap,
+                {
+                    scalars: {
+                        stringValues: keysForStringScalars,
+                        booleanValues: keysForBooleanScalars,
+                    },
+                    mandatoryKeys: [RequestVariableProperty.Name],
+                    // The value gets parsed separately, because it can be either a scalar or a map.
+                    additionalAllowedKeys: [RequestVariableProperty.Value],
                 },
-            },
-            errors: mapItemErrors,
-        } = getMapItems(
-            currentMap,
-            {
-                scalars: {
-                    stringValues: keysForStringScalars,
-                    booleanValues: keysForBooleanScalars,
-                },
-            },
-            commonArgs,
-        );
-        const allAllowedKeys = Object.values(RequestVariableProperty);
-        const missingKeysWithContext = missingKeys.map((key) => ({
-            key,
-            isMandatory: key == RequestVariableProperty.Name,
-        }));
-
-        errors.push(
-            ...mapItemErrors.concat(
-                unknownKeys
-                    .filter(
-                        ({ key }) =>
-                            !(allAllowedKeys as string[]).includes(key),
-                    )
-                    .map(({ key, keyRange }) =>
-                        getErrorForUnknownKeyInMap({
-                            ...commonArgs,
-                            unknownKey: key,
-                            keyRange,
-                            allowedKeys: allAllowedKeys,
-                        }),
-                    ),
-                missingKeysWithContext
-                    .filter(({ isMandatory }) => isMandatory)
-                    .map(({ key }) =>
-                        getErrorForMissingKeyInMap({
-                            ...commonArgs,
-                            map: currentMap,
-                            missingKey: key,
-                        }),
-                    ),
-            ),
-        );
-        const missingProperties = missingKeysWithContext.map(
-            ({ key, isMandatory }) => ({
-                key,
-                alwaysHasScalarValue: true,
-                isMandatory,
-            }),
-        );
-        const { description, disabled } =
-            getItemsForSimpleOptionalVariableProps(
-                validStringScalars,
-                validBooleanScalars,
+                commonArgs,
+                errors,
             );
+        const { description, disabled } =
+            getItemsForSimpleOptionalVariableProps({
+                getString,
+                getBoolean,
+            });
 
         const { result: maybeValue, errors: valueErrors } =
             getValueFieldFromVariable(currentMap, commonArgs);
         errors.push(...valueErrors);
 
-        const name = validStringScalars.find(
-            ({ key }) => key == RequestVariableProperty.Name,
-        );
+        const name = getString(RequestVariableProperty.Name);
 
         const variable: ParsedRequestVariable = {
             valueRange: getRangeForItem(currentMap, commonArgs),
             missingProperties,
             properties: {
-                name: name ? stripKeyFromResult(name) : undefined,
+                name: stripKeyFromResult(name),
                 description,
                 disabled,
                 value: maybeValue,
@@ -140,15 +94,15 @@ export function parseVariablesFromYamlSequence(
     };
 }
 
-function getItemsForSimpleOptionalVariableProps(
-    validStringScalars: WithKeyKeyRangeAndValueRange<string>[],
-    validBooleanScalars: WithKeyKeyRangeAndValueRange<boolean>[],
-) {
-    const maybeDescriptionWithKeyRange = validStringScalars.find(
-        ({ key }) => key == RequestVariableProperty.Description,
+function getItemsForSimpleOptionalVariableProps({
+    getString,
+    getBoolean,
+}: Pick<ValidatedMapItems, "getString" | "getBoolean">) {
+    const maybeDescriptionWithKeyRange = getString(
+        RequestVariableProperty.Description,
     );
-    const maybeDisabledWithKeyRange = validBooleanScalars.find(
-        ({ key }) => key == RequestVariableProperty.Disabled,
+    const maybeDisabledWithKeyRange = getBoolean(
+        RequestVariableProperty.Disabled,
     );
     // The default value for 'disabled' is false, when not defined.
     const disabledEffectiveValue =
@@ -157,14 +111,10 @@ function getItemsForSimpleOptionalVariableProps(
             : false;
 
     return {
-        description: maybeDescriptionWithKeyRange
-            ? stripKeyFromResult(maybeDescriptionWithKeyRange)
-            : undefined,
+        description: stripKeyFromResult(maybeDescriptionWithKeyRange),
         disabled: {
             effectiveValue: disabledEffectiveValue,
-            field: maybeDisabledWithKeyRange
-                ? stripKeyFromResult(maybeDisabledWithKeyRange)
-                : undefined,
+            field: stripKeyFromResult(maybeDisabledWithKeyRange),
         },
     };
 }

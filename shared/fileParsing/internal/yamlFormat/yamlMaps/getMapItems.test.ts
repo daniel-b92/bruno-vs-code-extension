@@ -2,9 +2,9 @@ import { describe, it, expect } from "@jest/globals";
 import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
+    makeCommonParsingArgs,
     parseTextIntoYamlDocument,
 } from "../../../../_testingUtils";
-import { TextDocumentHelper } from "../../../..";
 import { YAMLMap } from "yaml";
 import { getMapItems } from "./getMapItems";
 
@@ -12,7 +12,7 @@ describe("getMapItems", () => {
     describe("missingKeys", () => {
         it("lists each expected key that is absent from the map", () => {
             const documentText = `name: foo`;
-            const commonArgs = makeCommonArgs(documentText);
+            const commonArgs = makeCommonParsingArgs(documentText);
             const map = parseTextIntoYamlDocument(documentText)
                 .contents as YAMLMap;
 
@@ -34,7 +34,7 @@ describe("getMapItems", () => {
 
         it("does not list a key twice when it appears in two expected-key categories", () => {
             const documentText = `other: bar`;
-            const commonArgs = makeCommonArgs(documentText);
+            const commonArgs = makeCommonParsingArgs(documentText);
             const map = parseTextIntoYamlDocument(documentText)
                 .contents as YAMLMap;
 
@@ -57,7 +57,7 @@ describe("getMapItems", () => {
 
         it("returns empty missingKeys when all expected keys are present", () => {
             const documentText = `name: foo\ndisabled: true`;
-            const commonArgs = makeCommonArgs(documentText);
+            const commonArgs = makeCommonParsingArgs(documentText);
             const map = parseTextIntoYamlDocument(documentText)
                 .contents as YAMLMap;
 
@@ -80,7 +80,7 @@ describe("getMapItems", () => {
     describe("unknownKeys", () => {
         it("reports keys that are not in the expected set", () => {
             const documentText = `name: foo\nextra: bar`;
-            const commonArgs = makeCommonArgs(documentText);
+            const commonArgs = makeCommonParsingArgs(documentText);
             const map = parseTextIntoYamlDocument(documentText)
                 .contents as YAMLMap;
 
@@ -101,7 +101,7 @@ describe("getMapItems", () => {
     describe("valid scalar parsing", () => {
         it("parses string scalars into validScalars.withStringValue", () => {
             const documentText = `name: hello`;
-            const commonArgs = makeCommonArgs(documentText);
+            const commonArgs = makeCommonParsingArgs(documentText);
             const map = parseTextIntoYamlDocument(documentText)
                 .contents as YAMLMap;
 
@@ -124,7 +124,7 @@ describe("getMapItems", () => {
 
         it("parses boolean scalars into validScalars.withBooleanValue", () => {
             const documentText = `disabled: true`;
-            const commonArgs = makeCommonArgs(documentText);
+            const commonArgs = makeCommonParsingArgs(documentText);
             const map = parseTextIntoYamlDocument(documentText)
                 .contents as YAMLMap;
 
@@ -143,7 +143,7 @@ describe("getMapItems", () => {
 
         it("parses numeric scalars into validScalars.withNumericValue", () => {
             const documentText = `timeout: 30`;
-            const commonArgs = makeCommonArgs(documentText);
+            const commonArgs = makeCommonParsingArgs(documentText);
             const map = parseTextIntoYamlDocument(documentText)
                 .contents as YAMLMap;
 
@@ -160,7 +160,7 @@ describe("getMapItems", () => {
 
         it("treats an empty-string value as a valid string scalar", () => {
             const documentText = `name: `;
-            const commonArgs = makeCommonArgs(documentText);
+            const commonArgs = makeCommonParsingArgs(documentText);
             const map = parseTextIntoYamlDocument(documentText)
                 .contents as YAMLMap;
 
@@ -177,7 +177,7 @@ describe("getMapItems", () => {
 
         it("records an error when a scalar value has the wrong type", () => {
             const documentText = `name: true`;
-            const commonArgs = makeCommonArgs(documentText);
+            const commonArgs = makeCommonParsingArgs(documentText);
             const map = parseTextIntoYamlDocument(documentText)
                 .contents as YAMLMap;
 
@@ -195,7 +195,7 @@ describe("getMapItems", () => {
     describe("sequence and map values", () => {
         it("parses a sequence value into validSequences", () => {
             const documentText = `tags:\n  - a\n  - b`;
-            const commonArgs = makeCommonArgs(documentText);
+            const commonArgs = makeCommonParsingArgs(documentText);
             const map = parseTextIntoYamlDocument(documentText)
                 .contents as YAMLMap;
 
@@ -212,7 +212,7 @@ describe("getMapItems", () => {
 
         it("records an error when a sequence is found for a non-sequence key", () => {
             const documentText = `name:\n  - a\n  - b`;
-            const commonArgs = makeCommonArgs(documentText);
+            const commonArgs = makeCommonParsingArgs(documentText);
             const map = parseTextIntoYamlDocument(documentText)
                 .contents as YAMLMap;
 
@@ -228,7 +228,7 @@ describe("getMapItems", () => {
 
         it("parses a nested map value into validMaps", () => {
             const documentText = `auth:\n  type: basic`;
-            const commonArgs = makeCommonArgs(documentText);
+            const commonArgs = makeCommonParsingArgs(documentText);
             const map = parseTextIntoYamlDocument(documentText)
                 .contents as YAMLMap;
 
@@ -248,7 +248,7 @@ describe("getMapItems", () => {
         it("records an error for an empty-string key", () => {
             // YAML represents "" as a key by emitting a null scalar whose source is "".
             const documentText = `: value`;
-            const commonArgs = makeCommonArgs(documentText);
+            const commonArgs = makeCommonParsingArgs(documentText);
             const map = parseTextIntoYamlDocument(documentText)
                 .contents as YAMLMap;
 
@@ -262,8 +262,3 @@ describe("getMapItems", () => {
         });
     });
 });
-
-function makeCommonArgs(documentText: string) {
-    const docHelper = new TextDocumentHelper(documentText);
-    return { docHelper, fullDocumentRange: docHelper.getTextRange() };
-}
