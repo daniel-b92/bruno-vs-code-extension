@@ -1,6 +1,12 @@
 import { Range } from "../../..";
 import { FileInfoType, VariableType } from "./constants/sharedConstants";
 import {
+    BrunoPresetsRequestType,
+    ClientCertificateType,
+    ProtoFileType,
+    ProxyProtocol,
+} from "./constants/collectionSettingsFileConstants";
+import {
     OptionalVariableFieldResult,
     ParsedAction,
     ParsedAssertion,
@@ -12,6 +18,7 @@ import {
     ParsedRequestHeader,
     ParsedRequestVariable,
     ParsedScript,
+    ParsedSettingsFileRequestSection,
     ParsedSettings,
     ParsedYamlMap,
     ParsedYamlMapWithKeyAndValueRange,
@@ -65,20 +72,63 @@ export type ParsedRequestFile = ParsedYamlMap<{
 
 export type ParsedFolderSettingsFile = ParsedYamlMap<{
     info?: ParsedInfoForFolderSettings;
-    request?: ParsedYamlMapWithKeyAndValueRange<{
-        headers?: ParsedRequestHeader[];
-        auth?: ParsedAuth;
-        variables?: {
-            enabled: ParsedRequestVariable[];
-            disabled: ParsedRequestVariable[];
-        };
-        actions?: {
-            enabled: ParsedAction[];
-            disabled: ParsedAction[];
-        };
-        scripts?: ParsedScript[];
-    }>;
+    request?: ParsedSettingsFileRequestSection;
     docs?: ParsedDocsWithType;
+}>;
+
+export type ParsedCollectionSettingsFile = ParsedYamlMap<{
+    opencollection?: WithKeyAndValueRange<string>;
+    info?: ParsedInfoForCollectionSettings;
+    config?: ParsedYamlMapWithKeyAndValueRange<{
+        protobuf?: ParsedYamlMapWithKeyAndValueRange<{
+            protoFiles?: ParsedYamlMapWithValueRange<{
+                type?: WithKeyAndValueRange<ProtoFileType>;
+                path?: WithKeyAndValueRange<string>;
+            }>[];
+            importPaths?: ParsedYamlMapWithValueRange<{
+                path?: WithKeyAndValueRange<string>;
+            }>[];
+        }>;
+        proxy?: ParsedYamlMapWithKeyAndValueRange<{
+            inherit?: WithKeyAndValueRange<boolean>;
+            disabled?: WithKeyAndValueRange<boolean>;
+            config?: ParsedYamlMapWithKeyAndValueRange<{
+                protocol?: WithKeyAndValueRange<ProxyProtocol>;
+                hostname?: WithKeyAndValueRange<string>;
+                port?: WithKeyAndValueRange<number>;
+                auth?: ParsedYamlMapWithKeyAndValueRange<{
+                    username?: WithKeyAndValueRange<string>;
+                    password?: WithKeyAndValueRange<string>;
+                    disabled?: WithKeyAndValueRange<boolean>;
+                }>;
+                bypassProxy?: WithKeyAndValueRange<string>;
+            }>;
+        }>;
+        clientCertificates?: ParsedYamlMapWithValueRange<{
+            domain?: WithKeyAndValueRange<string>;
+            type?: WithKeyAndValueRange<ClientCertificateType>;
+            certificateFilePath?: WithKeyAndValueRange<string>;
+            privateKeyFilePath?: WithKeyAndValueRange<string>;
+            pfxFilePath?: WithKeyAndValueRange<string>;
+            passphrase?: WithKeyAndValueRange<string>;
+            disabled?: WithKeyAndValueRange<boolean>;
+        }>[];
+    }>;
+    request?: ParsedSettingsFileRequestSection;
+    docs?: ParsedDocsWithType;
+    bundled?: WithKeyAndValueRange<boolean>;
+    extensions?: ParsedYamlMapWithKeyAndValueRange<{
+        bruno?: ParsedYamlMapWithKeyAndValueRange<{
+            ignore?: WithKeyAndValueRange<{ value: string; range: Range }[]>;
+            presets?: ParsedYamlMapWithKeyAndValueRange<{
+                request?: ParsedYamlMapWithKeyAndValueRange<{
+                    type?: WithKeyAndValueRange<BrunoPresetsRequestType>;
+                    url?: WithKeyAndValueRange<string>;
+                }>;
+                defaultEnvironment?: WithKeyAndValueRange<string>;
+            }>;
+        }>;
+    }>;
 }>;
 
 export type ParsedInfoForRequestFile = ParsedInfoForFolderSettings & {

@@ -124,6 +124,21 @@ export type ParsedSettings = ParsedYamlMapWithKeyAndValueRange<{
     forwardAuthorizationHeader?: WithKeyAndValueRange<boolean>;
 }>;
 
+export type ParsedSettingsFileRequestSection =
+    ParsedYamlMapWithKeyAndValueRange<{
+        headers?: ParsedRequestHeader[];
+        auth?: ParsedAuth;
+        variables?: {
+            enabled: ParsedRequestVariable[];
+            disabled: ParsedRequestVariable[];
+        };
+        actions?: {
+            enabled: ParsedAction[];
+            disabled: ParsedAction[];
+        };
+        scripts?: ParsedScript[];
+    }>;
+
 export type ParsedAuth = WithKeyAndValueRange<
     ParsedInheritAuth | ParsedBasicAuth | ParsedBearerAuth
 >;

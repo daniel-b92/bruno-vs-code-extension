@@ -2,9 +2,73 @@ opencollection: 1.0.0
 
 info:
   name: Yaml_example
+config:
+  protobuf:
+    protoFiles:
+      - type: file
+        path: ./protos/schema.proto
+    importPaths:
+      - path: ./protos
+  proxy:
+    inherit: false
+    config:
+      protocol: http
+      hostname: asd
+      port: 33
+      auth:
+        username: asdsd
+        password: asdasd
+      bypassProxy: asdasd
+  clientCertificates:
+    - domain: adadasd
+      type: pem
+      certificateFilePath: ./certs/client.pem
+      privateKeyFilePath: ./certs/client-key.pem
+      passphrase: asdasdasd
+
+request:
+  headers:
+    - name: yxcy
+      value: yxcyxc
+      description: yxcyxc
+  auth:
+    type: basic
+    username: asd
+    password: 3434tf
+  variables:
+    - name: asdasd
+      value:
+        type: number
+        data: "4545"
+      description: asdasd
+    - name: asdaasa
+      value: adsasd
+      description: asdasd
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: dsasdasd
+        method: jsonq
+      variable:
+        name: asdasd
+        scope: runtime
+      description: asdasd
+  scripts:
+    - type: before-request
+      code: aasdas
+    - type: after-response
+      code: asdcasds
+    - type: tests
+      code: asdasd
 bundled: false
 extensions:
   bruno:
     ignore:
       - node_modules
       - .git
+    presets:
+      request:
+        type: http
+        url: asdasdas
+      defaultEnvironment: Env1

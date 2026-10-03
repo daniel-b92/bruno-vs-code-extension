@@ -1,4 +1,4 @@
-import { isSeq, Scalar, YAMLMap, YAMLSeq } from "yaml";
+import { YAMLMap } from "yaml";
 import {
     BrunoFileType,
     ParsedInfoForRequestFile,
@@ -10,6 +10,7 @@ import {
     MaybeResultWithErrors,
     WithKeyAndKeyRange,
 } from "../interfaces";
+import { getStringListFromSequence } from "../yamlSequences/getStringListFromSequence";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getRangeForItem } from "../util/getRangeForItem";
 import {
@@ -55,14 +56,7 @@ export function parseFileInfoFromYamlMap(args: {
     const expectedSequenceValues = checkForTagsProperty
         ? [FileInfoProperty.Tags]
         : [];
-    const alwaysMandatoryKey = FileInfoProperty.Name;
-    const mandatoryKeys = [alwaysMandatoryKey].concat(
-        [BrunoFileType.FolderSettingsFile, BrunoFileType.AppFile].includes(
-            fileType,
-        )
-            ? FileInfoProperty.Type
-            : [FileInfoProperty.Type, FileInfoProperty.Seq],
-    );
+    const mandatoryKeys = getMandatoryKeys(fileType);
 
     const {
         getString,
@@ -110,8 +104,9 @@ export function parseFileInfoFromYamlMap(args: {
                     : undefined,
                 type: maybeType ? maybeType.value : undefined,
                 tags: checkForTagsProperty
-                    ? getTagsToUse(
+                    ? getStringListFromSequence(
                           getSequence(FileInfoProperty.Tags),
+                          "Tags",
                           commonArgs,
                           errors,
                       )
@@ -142,42 +137,18 @@ function getSequenceToUse(
     return undefined;
 }
 
-function getTagsToUse(
-    maybeUntypedTagsField: WithKeyAndKeyRange<YAMLSeq> | undefined,
-    commonArgs: CommonParsingArgs,
-    errorCollection: YamlParsingError[],
-) {
-    if (!maybeUntypedTagsField) {
-        return undefined;
+function getMandatoryKeys(fileType: BrunoFileType) {
+    switch (fileType) {
+        case BrunoFileType.CollectionSettingsFile:
+            return [FileInfoProperty.Name];
+        case BrunoFileType.FolderSettingsFile:
+        case BrunoFileType.AppFile:
+            return [FileInfoProperty.Name, FileInfoProperty.Type];
+        default:
+            return [
+                FileInfoProperty.Name,
+                FileInfoProperty.Type,
+                FileInfoProperty.Seq,
+            ];
     }
-
-    if (
-        isSeq<Scalar>(maybeUntypedTagsField.value) &&
-        maybeUntypedTagsField.value.items.every(
-            ({ value }) => typeof value == "string",
-        )
-    ) {
-        const value = (
-            maybeUntypedTagsField.value.items as Scalar<string>[]
-        ).map((item) => ({
-            value: item.value,
-            range: getRangeForItem(item, commonArgs),
-        }));
-        return {
-            keyRange: maybeUntypedTagsField.keyRange,
-            valueRange: getRangeForItem(
-                maybeUntypedTagsField.value,
-                commonArgs,
-            ),
-            value,
-        };
-    }
-
-    errorCollection.push({
-        message:
-            "Tags sequence may only contain values that are Scalar strings.",
-        range: getRangeForItem(maybeUntypedTagsField.value, commonArgs),
-        code: YamlParsingErrorCode.Other,
-    });
-    return undefined;
 }
