@@ -3,6 +3,7 @@ import { FileInfoType, VariableType } from "./constants/sharedConstants";
 import {
     BrunoPresetsRequestType,
     ClientCertificateType,
+    ProtoFileType,
     ProxyProtocol,
 } from "./constants/collectionSettingsFileConstants";
 import {
@@ -81,7 +82,7 @@ export type ParsedCollectionSettingsFile = ParsedYamlMap<{
     config?: ParsedYamlMapWithKeyAndValueRange<{
         protobuf?: ParsedYamlMapWithKeyAndValueRange<{
             protoFiles?: ParsedYamlMapWithValueRange<{
-                type?: WithKeyAndValueRange<string>;
+                type?: WithKeyAndValueRange<ProtoFileType>;
                 path?: WithKeyAndValueRange<string>;
             }>[];
             importPaths?: ParsedYamlMapWithValueRange<{

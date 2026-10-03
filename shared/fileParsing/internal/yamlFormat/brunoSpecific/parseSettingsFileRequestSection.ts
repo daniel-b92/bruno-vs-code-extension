@@ -2,6 +2,7 @@ import { YAMLMap } from "yaml";
 import { YamlParsingError } from "../../../..";
 import {
     CommonParsingArgs,
+    MaybeResultWithErrors,
     ParsedSettingsFileRequestSection,
     WithKeyAndKeyRange,
 } from "../interfaces";
@@ -21,8 +22,8 @@ import { SettingsFileRequestSectionProperty } from "../../../external/yamlFormat
 export function parseSettingsFileRequestSection(
     { keyRange, value: requestMap }: WithKeyAndKeyRange<YAMLMap>,
     commonArgs: CommonParsingArgs,
-    collectedErrors: YamlParsingError[],
-): ParsedSettingsFileRequestSection {
+): MaybeResultWithErrors<ParsedSettingsFileRequestSection> {
+    const collectedErrors: YamlParsingError[] = [];
     const { getString, getMap, getSequence, missingProperties } =
         getValidatedMapItems(
             requestMap,
@@ -45,42 +46,50 @@ export function parseSettingsFileRequestSection(
         );
 
     return {
-        keyRange,
-        valueRange: getRangeForItem(requestMap, commonArgs),
-        missingProperties,
-        properties: {
-            headers: parseIfPresent(
-                getSequence(SettingsFileRequestSectionProperty.Headers),
-                ({ value: headersSequence }) =>
-                    parseHeadersFromSequence({ commonArgs, headersSequence }),
-                collectedErrors,
-            ),
-            auth: parseIfPresent(
-                getString(SettingsFileRequestSectionProperty.Auth) ??
-                    getMap(SettingsFileRequestSectionProperty.Auth),
-                (authMapOrScalar) =>
-                    parseAuthFromYamlMapOrScalar({
-                        commonArgs,
-                        authMapOrScalar,
-                    }),
-                collectedErrors,
-            ),
-            variables: parseIfPresent(
-                getSequence(SettingsFileRequestSectionProperty.Variables),
-                ({ value }) =>
-                    parseVariablesFromYamlSequence(value, commonArgs),
-                collectedErrors,
-            ),
-            scripts: parseIfPresent(
-                getSequence(SettingsFileRequestSectionProperty.Scripts),
-                ({ value }) => parseScriptsFromYamlSequence(value, commonArgs),
-                collectedErrors,
-            ),
-            actions: parseIfPresent(
-                getSequence(SettingsFileRequestSectionProperty.Actions),
-                ({ value }) => parseActionsFromYamlSequence(value, commonArgs),
-                collectedErrors,
-            ),
+        errors: collectedErrors,
+        result: {
+            keyRange,
+            valueRange: getRangeForItem(requestMap, commonArgs),
+            missingProperties,
+            properties: {
+                headers: parseIfPresent(
+                    getSequence(SettingsFileRequestSectionProperty.Headers),
+                    ({ value: headersSequence }) =>
+                        parseHeadersFromSequence({
+                            commonArgs,
+                            headersSequence,
+                        }),
+                    collectedErrors,
+                ),
+                auth: parseIfPresent(
+                    getString(SettingsFileRequestSectionProperty.Auth) ??
+                        getMap(SettingsFileRequestSectionProperty.Auth),
+                    (authMapOrScalar) =>
+                        parseAuthFromYamlMapOrScalar({
+                            commonArgs,
+                            authMapOrScalar,
+                        }),
+                    collectedErrors,
+                ),
+                variables: parseIfPresent(
+                    getSequence(SettingsFileRequestSectionProperty.Variables),
+                    ({ value }) =>
+                        parseVariablesFromYamlSequence(value, commonArgs),
+                    collectedErrors,
+                ),
+                scripts: parseIfPresent(
+                    getSequence(SettingsFileRequestSectionProperty.Scripts),
+                    ({ value }) =>
+                        parseScriptsFromYamlSequence(value, commonArgs),
+                    collectedErrors,
+                ),
+                actions: parseIfPresent(
+                    getSequence(SettingsFileRequestSectionProperty.Actions),
+                    ({ value }) =>
+                        parseActionsFromYamlSequence(value, commonArgs),
+                    collectedErrors,
+                ),
+            },
         },
     };
 }

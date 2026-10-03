@@ -6,9 +6,9 @@ config:
   protobuf:
     protoFiles:
       - type: file
-        path: ../../../../Bilder/Bildschirmfotos/Bildschirmfoto vom 2025-11-30 20-01-23.png
+        path: ./protos/schema.proto
     importPaths:
-      - path: ../../../../Bilder/Bildschirmfotos
+      - path: ./protos
   proxy:
     inherit: false
     config:
@@ -22,8 +22,8 @@ config:
   clientCertificates:
     - domain: adadasd
       type: pem
-      certificateFilePath: ../../../../Bilder/Bildschirmfotos/Bildschirmfoto vom 2026-08-10 10-43-44.png
-      privateKeyFilePath: ../../../../Bilder/Bildschirmfotos/Bildschirmfoto vom 2025-11-30 20-01-23.png
+      certificateFilePath: ./certs/client.pem
+      privateKeyFilePath: ./certs/client-key.pem
       passphrase: asdasdasd
 
 request:

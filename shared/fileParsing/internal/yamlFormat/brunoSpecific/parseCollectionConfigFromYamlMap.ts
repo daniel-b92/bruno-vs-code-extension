@@ -17,6 +17,7 @@ import {
     CollectionConfigProperty,
     ProtobufProperty,
     ProtoFileProperty,
+    ProtoFileType,
     ProtoImportPathProperty,
     ProxyAuthProperty,
     ProxyConfigProperty,
@@ -106,40 +107,8 @@ function parseProtobuf(
                         parseMapsFromSequence({
                             commonArgs,
                             sequence,
-                            parseMap: (map, errors) => {
-                                const { getString, missingProperties } =
-                                    getValidatedMapItems(
-                                        map,
-                                        {
-                                            scalars: {
-                                                stringValues:
-                                                    Object.values(
-                                                        ProtoFileProperty,
-                                                    ),
-                                            },
-                                            mandatoryKeys: [
-                                                ProtoFileProperty.Path,
-                                            ],
-                                        },
-                                        commonArgs,
-                                        errors,
-                                    );
-                                return {
-                                    valueRange: getRangeForItem(
-                                        map,
-                                        commonArgs,
-                                    ),
-                                    missingProperties,
-                                    properties: {
-                                        type: stripKeyFromResult(
-                                            getString(ProtoFileProperty.Type),
-                                        ),
-                                        path: stripKeyFromResult(
-                                            getString(ProtoFileProperty.Path),
-                                        ),
-                                    },
-                                };
-                            },
+                            parseMap: (map, errors) =>
+                                parseProtoFile(map, commonArgs, errors),
                         }),
                     errors,
                 ),
@@ -149,42 +118,74 @@ function parseProtobuf(
                         parseMapsFromSequence({
                             commonArgs,
                             sequence,
-                            parseMap: (map, errors) => {
-                                const { getString, missingProperties } =
-                                    getValidatedMapItems(
-                                        map,
-                                        {
-                                            scalars: {
-                                                stringValues: Object.values(
-                                                    ProtoImportPathProperty,
-                                                ),
-                                            },
-                                            mandatoryKeys: [
-                                                ProtoImportPathProperty.Path,
-                                            ],
-                                        },
-                                        commonArgs,
-                                        errors,
-                                    );
-                                return {
-                                    valueRange: getRangeForItem(
-                                        map,
-                                        commonArgs,
-                                    ),
-                                    missingProperties,
-                                    properties: {
-                                        path: stripKeyFromResult(
-                                            getString(
-                                                ProtoImportPathProperty.Path,
-                                            ),
-                                        ),
-                                    },
-                                };
-                            },
+                            parseMap: (map, errors) =>
+                                parseProtoImportPath(map, commonArgs, errors),
                         }),
                     errors,
                 ),
             },
+        },
+    };
+}
+
+function parseProtoFile(
+    map: YAMLMap,
+    commonArgs: CommonParsingArgs,
+    errors: YamlParsingError[],
+): NonNullable<ParsedProtobuf["properties"]["protoFiles"]>[number] {
+    const {
+        items: {
+            validScalars: { withStringValue },
+        },
+        getString,
+        missingProperties,
+    } = getValidatedMapItems(
+        map,
+        {
+            scalars: { stringValues: Object.values(ProtoFileProperty) },
+            mandatoryKeys: [ProtoFileProperty.Path],
+        },
+        commonArgs,
+        errors,
+    );
+
+    return {
+        valueRange: getRangeForItem(map, commonArgs),
+        missingProperties,
+        properties: {
+            type: getTypedValueFromList<ProtoFileType>(
+                {
+                    allowedValues: Object.values(ProtoFileType),
+                    allStringValues: withStringValue,
+                    keyName: ProtoFileProperty.Type,
+                },
+                errors,
+            )?.value,
+            path: stripKeyFromResult(getString(ProtoFileProperty.Path)),
+        },
+    };
+}
+
+function parseProtoImportPath(
+    map: YAMLMap,
+    commonArgs: CommonParsingArgs,
+    errors: YamlParsingError[],
+): NonNullable<ParsedProtobuf["properties"]["importPaths"]>[number] {
+    const { getString, missingProperties } = getValidatedMapItems(
+        map,
+        {
+            scalars: { stringValues: Object.values(ProtoImportPathProperty) },
+            mandatoryKeys: [ProtoImportPathProperty.Path],
+        },
+        commonArgs,
+        errors,
+    );
+
+    return {
+        valueRange: getRangeForItem(map, commonArgs),
+        missingProperties,
+        properties: {
+            path: stripKeyFromResult(getString(ProtoImportPathProperty.Path)),
         },
     };
 }
@@ -278,48 +279,7 @@ function parseProxyConfig(
                 port: stripKeyFromResult(getNumber(ProxyConfigProperty.Port)),
                 auth: parseIfPresent(
                     getMap(ProxyConfigProperty.Auth),
-                    ({ keyRange, value: authMap }) => {
-                        const authErrors: YamlParsingError[] = [];
-                        const { getString, getBoolean, missingProperties } =
-                            getValidatedMapItems(
-                                authMap,
-                                {
-                                    scalars: {
-                                        stringValues: [
-                                            ProxyAuthProperty.Username,
-                                            ProxyAuthProperty.Password,
-                                        ],
-                                        booleanValues: [
-                                            ProxyAuthProperty.Disabled,
-                                        ],
-                                    },
-                                },
-                                commonArgs,
-                                authErrors,
-                            );
-                        return {
-                            errors: authErrors,
-                            result: {
-                                keyRange,
-                                valueRange: getRangeForItem(
-                                    authMap,
-                                    commonArgs,
-                                ),
-                                missingProperties,
-                                properties: {
-                                    username: stripKeyFromResult(
-                                        getString(ProxyAuthProperty.Username),
-                                    ),
-                                    password: stripKeyFromResult(
-                                        getString(ProxyAuthProperty.Password),
-                                    ),
-                                    disabled: stripKeyFromResult(
-                                        getBoolean(ProxyAuthProperty.Disabled),
-                                    ),
-                                },
-                            },
-                        };
-                    },
+                    (authMap) => parseProxyAuth(authMap, commonArgs),
                     errors,
                 ),
                 bypassProxy: stripKeyFromResult(
@@ -330,6 +290,54 @@ function parseProxyConfig(
     };
 }
 
+function parseProxyAuth(
+    { keyRange, value: authMap }: WithKeyAndKeyRange<YAMLMap>,
+    commonArgs: CommonParsingArgs,
+): MaybeResultWithErrors<
+    NonNullable<
+        NonNullable<ParsedProxy["properties"]["config"]>["properties"]["auth"]
+    >
+> {
+    const errors: YamlParsingError[] = [];
+    const { getString, getBoolean, missingProperties } = getValidatedMapItems(
+        authMap,
+        {
+            scalars: {
+                stringValues: [
+                    ProxyAuthProperty.Username,
+                    ProxyAuthProperty.Password,
+                ],
+                booleanValues: [ProxyAuthProperty.Disabled],
+            },
+        },
+        commonArgs,
+        errors,
+    );
+
+    return {
+        errors,
+        result: {
+            keyRange,
+            valueRange: getRangeForItem(authMap, commonArgs),
+            missingProperties,
+            properties: {
+                username: stripKeyFromResult(
+                    getString(ProxyAuthProperty.Username),
+                ),
+                password: stripKeyFromResult(
+                    getString(ProxyAuthProperty.Password),
+                ),
+                disabled: stripKeyFromResult(
+                    getBoolean(ProxyAuthProperty.Disabled),
+                ),
+            },
+        },
+    };
+}
+
+// TODO: Validate the certificate fields against the certificate type.
+// - Type `pem` should require `certificateFilePath` and `privateKeyFilePath` and should not allow `pfxFilePath`.
+// - Type `pkcs12` should require `pfxFilePath` and should not allow `certificateFilePath` and `privateKeyFilePath`.
 function parseClientCertificate(
     map: YAMLMap,
     commonArgs: CommonParsingArgs,
@@ -346,10 +354,14 @@ function parseClientCertificate(
         map,
         {
             scalars: {
-                stringValues: Object.values(ClientCertificateProperty).filter(
-                    (property) =>
-                        property != ClientCertificateProperty.Disabled,
-                ),
+                stringValues: [
+                    ClientCertificateProperty.Domain,
+                    ClientCertificateProperty.Type,
+                    ClientCertificateProperty.CertificateFilePath,
+                    ClientCertificateProperty.PrivateKeyFilePath,
+                    ClientCertificateProperty.PfxFilePath,
+                    ClientCertificateProperty.Passphrase,
+                ],
                 booleanValues: [ClientCertificateProperty.Disabled],
             },
             mandatoryKeys: [

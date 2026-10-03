@@ -1,7 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
 import { TextDocumentHelper } from "../../../fileSystem/textDocumentHelper";
 import { parseCollectionSettingsFile } from "../../..";
-import { TopLevelCollectionSettingsProperty } from "./constants/collectionSettingsFileConstants";
 import { YamlParsingErrorCode } from "./interfaces";
 
 describe("parseCollectionSettingsFile", () => {
@@ -82,21 +81,29 @@ extensions:
       request:
         type: http
         url: asdasdas
-      defaultEnvironment: Env1`;
+      defaultEnvironment: Env1
+docs:
+  content: some docs
+  type: text/markdown`;
 
         const { result, errors } = parseCollectionSettingsFile(
             new TextDocumentHelper(documentText),
         );
 
         expect(errors).toHaveLength(0);
-        expect(result!.missingProperties.map(({ key }) => key)).toEqual([
-            TopLevelCollectionSettingsProperty.Docs,
-        ]);
+        expect(result!.missingProperties).toHaveLength(0);
         const { properties } = result!;
 
         expect(properties.opencollection?.value).toBe("1.0.0");
         expect(properties.info?.properties.name?.value).toBe("Yaml_example");
         expect(properties.bundled?.value).toBe(false);
+        expect(properties.docs?.value).toEqual(
+            expect.objectContaining({
+                properties: expect.objectContaining({
+                    content: expect.objectContaining({ value: "some docs" }),
+                }),
+            }),
+        );
 
         const { protobuf, proxy, clientCertificates } =
             properties.config!.properties;
@@ -180,14 +187,11 @@ extensions:
 
     it("returns error if `info.name` is missing", () => {
         const { result, errors } = parseCollectionSettingsFile(
-            new TextDocumentHelper(
-                `opencollection: 1.0.0\ninfo:\n  type: folder`,
-            ),
+            new TextDocumentHelper(`opencollection: 1.0.0\ninfo: {}`),
         );
 
-        expect(errors.map(({ code }) => code)).toContain(
-            YamlParsingErrorCode.ItemDoesNotExist,
-        );
+        expect(errors).toHaveLength(1);
+        expect(errors[0].code).toBe(YamlParsingErrorCode.ItemDoesNotExist);
         expect(result!.properties.info?.properties.name).toBeUndefined();
     });
 
@@ -221,13 +225,43 @@ config:
         );
 
         // Invalid protocol, missing domain, invalid certificate type, import path that is not a map.
-        expect(errors).toHaveLength(4);
+        expect(
+            errors
+                .map(({ code, range }) => ({ code, line: range.start.line }))
+                .sort((a, b) => a.line - b.line),
+        ).toEqual([
+            { code: YamlParsingErrorCode.Other, line: 6 },
+            { code: YamlParsingErrorCode.ItemDoesNotExist, line: 8 },
+            { code: YamlParsingErrorCode.Other, line: 10 },
+            { code: YamlParsingErrorCode.Other, line: 13 },
+        ]);
         const config = result!.properties.config!.properties;
         expect(config.proxy?.properties.config?.properties.protocol).toBe(
             undefined,
         );
         expect(config.clientCertificates).toHaveLength(2);
         expect(config.protobuf?.properties.importPaths).toHaveLength(0);
+    });
+
+    it("returns error for invalid proto file type", () => {
+        const { result, errors } = parseCollectionSettingsFile(
+            new TextDocumentHelper(`opencollection: 1.0.0
+info:
+  name: a
+config:
+  protobuf:
+    protoFiles:
+      - type: folder
+        path: ./protos`),
+        );
+
+        expect(errors).toHaveLength(1);
+        expect(errors[0].range.start.line).toBe(6);
+        const [protoFile] =
+            result!.properties.config!.properties.protobuf!.properties
+                .protoFiles!;
+        expect(protoFile.properties.type).toBeUndefined();
+        expect(protoFile.properties.path?.value).toBe("./protos");
     });
 
     it("returns errors for non-boolean `disabled` values in proxy section", () => {

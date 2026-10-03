@@ -24,6 +24,10 @@ export enum ProtoFileProperty {
     Path = "path",
 }
 
+export enum ProtoFileType {
+    File = "file",
+}
+
 export enum ProtoImportPathProperty {
     Path = "path",
 }

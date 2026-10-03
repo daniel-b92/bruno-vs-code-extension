@@ -43,7 +43,6 @@ export function parseFolderSettingsFile(
         collectedErrors,
     );
 
-    const requestMap = getMap(TopLevelFolderSettingsProperty.Request);
     const info: ParsedInfoForFolderSettings | undefined = parseIfPresent(
         getMap(TopLevelFolderSettingsProperty.Info),
         (infoMap) =>
@@ -54,13 +53,11 @@ export function parseFolderSettingsFile(
             }),
         collectedErrors,
     );
-    const request = requestMap
-        ? parseSettingsFileRequestSection(
-              requestMap,
-              commonArgs,
-              collectedErrors,
-          )
-        : undefined;
+    const request = parseIfPresent(
+        getMap(TopLevelFolderSettingsProperty.Request),
+        (requestMap) => parseSettingsFileRequestSection(requestMap, commonArgs),
+        collectedErrors,
+    );
     const docs: ParsedDocsWithType | undefined = parseIfPresent(
         getMap(TopLevelFolderSettingsProperty.Docs),
         (docsMap) => parseDocsFromYamlMap(docsMap, commonArgs),

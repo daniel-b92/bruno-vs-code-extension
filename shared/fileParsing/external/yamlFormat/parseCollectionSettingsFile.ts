@@ -59,8 +59,6 @@ export function parseCollectionSettingsFile(
             collectedErrors,
         );
 
-    const requestMap = getMap(TopLevelCollectionSettingsProperty.Request);
-
     return {
         errors: collectedErrors,
         result: {
@@ -86,13 +84,12 @@ export function parseCollectionSettingsFile(
                         parseCollectionConfigFromYamlMap(configMap, commonArgs),
                     collectedErrors,
                 ),
-                request: requestMap
-                    ? parseSettingsFileRequestSection(
-                          requestMap,
-                          commonArgs,
-                          collectedErrors,
-                      )
-                    : undefined,
+                request: parseIfPresent(
+                    getMap(TopLevelCollectionSettingsProperty.Request),
+                    (requestMap) =>
+                        parseSettingsFileRequestSection(requestMap, commonArgs),
+                    collectedErrors,
+                ),
                 docs: parseIfPresent(
                     getMap(TopLevelCollectionSettingsProperty.Docs),
                     (docsMap) => parseDocsFromYamlMap(docsMap, commonArgs),

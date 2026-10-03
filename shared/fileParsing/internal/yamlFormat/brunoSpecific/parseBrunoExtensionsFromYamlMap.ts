@@ -123,57 +123,53 @@ function parsePresets(
                 ),
                 request: parseIfPresent(
                     getMap(BrunoPresetsProperty.Request),
-                    ({ keyRange, value: requestMap }) => {
-                        const requestErrors: YamlParsingError[] = [];
-                        const {
-                            getString,
-                            items: {
-                                validScalars: { withStringValue },
-                            },
-                            missingProperties,
-                        } = getValidatedMapItems(
-                            requestMap,
-                            {
-                                scalars: {
-                                    stringValues: Object.values(
-                                        BrunoPresetsRequestProperty,
-                                    ),
-                                },
-                            },
-                            commonArgs,
-                            requestErrors,
-                        );
-                        return {
-                            errors: requestErrors,
-                            result: {
-                                keyRange,
-                                valueRange: getRangeForItem(
-                                    requestMap,
-                                    commonArgs,
-                                ),
-                                missingProperties,
-                                properties: {
-                                    type: getTypedValueFromList<BrunoPresetsRequestType>(
-                                        {
-                                            allowedValues: Object.values(
-                                                BrunoPresetsRequestType,
-                                            ),
-                                            allStringValues: withStringValue,
-                                            keyName:
-                                                BrunoPresetsRequestProperty.Type,
-                                        },
-                                        requestErrors,
-                                    )?.value,
-                                    url: stripKeyFromResult(
-                                        getString(
-                                            BrunoPresetsRequestProperty.Url,
-                                        ),
-                                    ),
-                                },
-                            },
-                        };
+                    (requestMap) => parsePresetsRequest(requestMap, commonArgs),
+                    errors,
+                ),
+            },
+        },
+    };
+}
+
+function parsePresetsRequest(
+    { keyRange, value: requestMap }: WithKeyAndKeyRange<YAMLMap>,
+    commonArgs: CommonParsingArgs,
+): MaybeResultWithErrors<NonNullable<ParsedPresets["properties"]["request"]>> {
+    const errors: YamlParsingError[] = [];
+    const {
+        getString,
+        items: {
+            validScalars: { withStringValue },
+        },
+        missingProperties,
+    } = getValidatedMapItems(
+        requestMap,
+        {
+            scalars: {
+                stringValues: Object.values(BrunoPresetsRequestProperty),
+            },
+        },
+        commonArgs,
+        errors,
+    );
+
+    return {
+        errors,
+        result: {
+            keyRange,
+            valueRange: getRangeForItem(requestMap, commonArgs),
+            missingProperties,
+            properties: {
+                type: getTypedValueFromList<BrunoPresetsRequestType>(
+                    {
+                        allowedValues: Object.values(BrunoPresetsRequestType),
+                        allStringValues: withStringValue,
+                        keyName: BrunoPresetsRequestProperty.Type,
                     },
                     errors,
+                )?.value,
+                url: stripKeyFromResult(
+                    getString(BrunoPresetsRequestProperty.Url),
                 ),
             },
         },
