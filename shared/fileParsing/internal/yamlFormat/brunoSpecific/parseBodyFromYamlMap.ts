@@ -1,4 +1,4 @@
-import { YAMLMap } from "yaml";
+import { isScalar, Scalar, YAMLMap } from "yaml";
 import { YamlParsingError } from "../../../..";
 import {
     CommonParsingArgs,
@@ -59,8 +59,17 @@ export function parseBodyFromYamlMap(
             missingProperties,
             properties: {
                 type: parsedType,
-                data: stripKeyFromResult(rawData),
+                data: rawData && {
+                    ...stripKeyFromResult(rawData),
+                    isLiteralBlockScalar: isLiteralBlockScalar(
+                        map.get(RequestFileHttpSectionBodyProperty.Data, true),
+                    ),
+                },
             },
         },
     };
+}
+
+function isLiteralBlockScalar(node: unknown) {
+    return isScalar(node) && node.type == Scalar.BLOCK_LITERAL;
 }

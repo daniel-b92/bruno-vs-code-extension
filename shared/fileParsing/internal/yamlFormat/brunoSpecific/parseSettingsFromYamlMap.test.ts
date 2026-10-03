@@ -150,9 +150,7 @@ describe("parseSettingsFromYamlMap", () => {
         const { commonArgs, settingsMap } = makeSettingsMap(documentText);
         const { result } = parseSettingsFromYamlMap(settingsMap, commonArgs);
 
-        expect(result.keyRange).toEqual(
-            getExpectedKeyRange(0, "settings", 0),
-        );
+        expect(result.keyRange).toEqual(getExpectedKeyRange(0, "settings", 0));
         expect(result.valueRange).toBeDefined();
     });
 
@@ -191,7 +189,10 @@ describe("parseSettingsFromYamlMap", () => {
 
 function makeSettingsMap(documentText: string) {
     const docHelper = new TextDocumentHelper(documentText);
-    const commonArgs = { docHelper, fullDocumentRange: docHelper.getTextRange() };
+    const commonArgs = {
+        docHelper,
+        fullDocumentRange: docHelper.getTextRange(),
+    };
     const parsedDocument = parseTextIntoYamlDocument(documentText);
     const innerMap = (parsedDocument.contents as YAMLMap).items[0]
         .value as YAMLMap;

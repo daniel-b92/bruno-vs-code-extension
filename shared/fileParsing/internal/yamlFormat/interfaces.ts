@@ -102,7 +102,10 @@ export type ParsedHttpParam = ParsedYamlMapWithValueRange<{
 
 export type ParsedHttpBody = ParsedYamlMapWithKeyAndValueRange<{
     type?: WithKeyAndValueRange<HttpBodyType>;
-    data?: WithKeyAndValueRange<string>;
+    data?: WithKeyAndValueRange<string> & {
+        /** Whether the value is a literal block scalar (`|`, `|-`, `|+`). */
+        isLiteralBlockScalar: boolean;
+    };
 }>;
 
 export type ParsedDocsWithType = WithKeyAndValueRange<

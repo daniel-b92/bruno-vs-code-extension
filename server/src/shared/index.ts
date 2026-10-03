@@ -9,3 +9,6 @@ export * from "./environmentVariables/mapStaticEnvVariablesToCompletions";
 
 // markdown
 export * from "./markdown/wrapInCodeSpan";
+
+// diagnostics
+export * from "./diagnostics/checkJsonSyntax";

@@ -1,6 +1,7 @@
 import {
     BrunoFileType,
     parseFolderSettingsFile,
+    parseRequestFile,
     parseYamlEnvironmentFile,
     TextDocumentHelper,
     YamlParsingError,
@@ -13,6 +14,17 @@ import { checkVariableDefinitionsAreValid } from "./diagnostics/checks/environme
 import { checkNamePropertyIsUniqueAcrossMaps } from "./diagnostics/shared/checkNamePropertyIsUniqueAcrossMaps";
 import { checkVariableTypesMatchValueData } from "./diagnostics/shared/checkVariableValuesMatchTypes";
 import { checkTypePropertyIsUniqueAcrossMaps } from "./diagnostics/shared/checkTypePropertyIsUniqueAcrossMaps";
+import { checkEntriesAreUnique } from "./diagnostics/checks/requestFiles/checkEntriesAreUnique";
+import { checkUrlMatchesParams } from "./diagnostics/checks/requestFiles/checkUrlMatchesParams";
+import { checkRequestTypeMatchesSections } from "./diagnostics/checks/requestFiles/checkRequestTypeMatchesSections";
+import { checkBodyTypeMatchesData } from "./diagnostics/checks/requestFiles/checkBodyTypeMatchesData";
+import { checkJsonBodySyntax } from "./diagnostics/checks/requestFiles/checkJsonBodySyntax";
+import { checkAuthHasRequiredFields } from "./diagnostics/checks/requestFiles/checkAuthHasRequiredFields";
+import { checkTagsAreUnique } from "./diagnostics/checks/requestFiles/checkTagsAreUnique";
+import { checkResponseValidationExists } from "./diagnostics/checks/requestFiles/checkResponseValidationExists";
+
+const BRUNO_DIAGNOSTICS_SOURCE = "Bruno";
+const YAML_SYNTAX_DIAGNOSTICS_SOURCE = "Bruno (YAML syntax)";
 
 export class YamlFormatDiagnosticsProvider {
     constructor() {}
@@ -29,11 +41,27 @@ export class YamlFormatDiagnosticsProvider {
             fullDocumentRange: docHelper.getTextRange(),
         };
 
+        return this.getDiagnosticsWithoutSource(
+            brunoFileType,
+            commonParams,
+        ).map((diagnostic) => ({
+            ...diagnostic,
+            // Diagnostics without a specific source stem from Bruno specific checks.
+            source: diagnostic.source ?? BRUNO_DIAGNOSTICS_SOURCE,
+        }));
+    }
+
+    private getDiagnosticsWithoutSource(
+        brunoFileType: BrunoFileType,
+        commonParams: CommonDiagnosticParams,
+    ): Diagnostic[] {
         switch (brunoFileType) {
             case BrunoFileType.EnvironmentFile:
                 return this.getDiagnosticsForEnvironmentFile(commonParams);
             case BrunoFileType.FolderSettingsFile:
                 return this.getDiagnosticsForFolderSettingsFile(commonParams);
+            case BrunoFileType.RequestFile:
+                return this.getDiagnosticsForRequestFile(commonParams);
             default:
                 return [];
         }
@@ -66,6 +94,40 @@ export class YamlFormatDiagnosticsProvider {
                 commonParams,
             ),
         );
+        return parsingDiagnostics.concat(
+            otherDiagnostics.filter((d) => d != undefined),
+        );
+    }
+
+    public getDiagnosticsForRequestFile(
+        commonParams: CommonDiagnosticParams,
+    ): Diagnostic[] {
+        const { errors, result: parsingResult } = parseRequestFile(
+            commonParams.docHelper,
+        );
+        const parsingDiagnostics = mapParsingErrorsToDiagnostics(errors);
+
+        if (!parsingResult) {
+            return parsingDiagnostics;
+        }
+        const { properties } = parsingResult;
+
+        const otherDiagnostics = [
+            ...checkEntriesAreUnique(properties, commonParams),
+            ...checkUrlMatchesParams(properties.http, commonParams),
+            ...checkRequestTypeMatchesSections(properties, commonParams),
+            ...checkTagsAreUnique(properties.info, commonParams),
+            checkBodyTypeMatchesData(
+                properties.http?.properties.body,
+                commonParams,
+            ),
+            checkJsonBodySyntax(
+                properties.http?.properties.body,
+                commonParams.docHelper,
+            ),
+            checkAuthHasRequiredFields(properties.http?.properties.auth),
+            checkResponseValidationExists(properties.runtime, commonParams),
+        ];
         return parsingDiagnostics.concat(
             otherDiagnostics.filter((d) => d != undefined),
         );
@@ -132,6 +194,10 @@ function mapParsingErrorsToDiagnostics(
     return parsingErrors.map((err) => ({
         ...err,
         code: undefined,
+        source:
+            err.code == YamlParsingErrorCode.InvalidYamlSyntax
+                ? YAML_SYNTAX_DIAGNOSTICS_SOURCE
+                : undefined,
         severity:
             err.code == YamlParsingErrorCode.UnknownFieldInMap
                 ? DiagnosticSeverity.Warning
