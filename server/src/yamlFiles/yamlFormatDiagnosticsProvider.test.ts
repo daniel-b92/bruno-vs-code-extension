@@ -1,5 +1,5 @@
 import { BrunoFileType } from "@global_shared";
-import { DiagnosticSeverity } from "vscode-languageserver";
+import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
 import { YamlFormatDiagnosticsProvider } from "./yamlFormatDiagnosticsProvider";
 
 describe("YamlFormatDiagnosticsProvider for request files", () => {
@@ -13,9 +13,8 @@ http:
   headers:
     - name: h1
       value: v
-    - name: H1
+    - name: H2
       value: v2
-      disabled: true
   params:
     - name: id
       value: "5"
@@ -324,6 +323,53 @@ http:
         expect(jsonDiagnostic?.range.start.character).toBe(8 + 7);
     });
 
+    it("should only hint at disabled items and not check them", () => {
+        const diagnostics = getDiagnostics(`${infoSection}
+http:
+  method: GET
+  url: /api
+  headers:
+    - name: h1
+      value: a
+    - name: h1
+      value: b
+      disabled: true
+  params:
+    - name: q
+      value: "1"
+      type: query
+      disabled: true
+runtime:
+  variables:
+    - name: v1
+      value: a
+      disabled: true
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: x
+        method: jsonq
+      variable:
+        name: n
+        scope: runtime
+      disabled: true
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+`);
+
+        expect(diagnostics).toHaveLength(4);
+        expect(
+            diagnostics.every(
+                ({ severity, tags }) =>
+                    severity == DiagnosticSeverity.Hint &&
+                    tags?.[0] == DiagnosticTag.Unnecessary,
+            ),
+        ).toBe(true);
+    });
+
     function getDiagnostics(content: string) {
         return provider.getDiagnosticsForYamlFile(
             "/collection/request.yml",
@@ -422,6 +468,21 @@ request:
         expect(diagnostics[0].message).toContain("cannot be inherited");
     });
 
+    it("should only hint at disabled client certificates and not check them", () => {
+        const diagnostics = getDiagnostics(`${header}
+config:
+  clientCertificates:
+    - domain: a.com
+      type: pem
+      certificateFilePath: c.pem
+      disabled: true
+`);
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0].severity).toBe(DiagnosticSeverity.Hint);
+        expect(diagnostics[0].tags).toEqual([DiagnosticTag.Unnecessary]);
+    });
+
     function getDiagnostics(content: string) {
         return provider.getDiagnosticsForYamlFile(
             "/collection/opencollection.yml",
@@ -462,11 +523,73 @@ request:
         );
     });
 
+    it("should only hint at disabled items and not check them", () => {
+        const diagnostics = getDiagnostics(`${folderHeader}
+request:
+  headers:
+    - name: h1
+      value: a
+    - name: h1
+      value: b
+      disabled: true
+  variables:
+    - name: v1
+      value: a
+      disabled: true
+`);
+
+        expect(diagnostics.map(({ severity }) => severity)).toEqual([
+            DiagnosticSeverity.Hint,
+            DiagnosticSeverity.Hint,
+        ]);
+        expect(
+            diagnostics.every(
+                ({ tags }) => tags?.[0] == DiagnosticTag.Unnecessary,
+            ),
+        ).toBe(true);
+    });
+
     function getDiagnostics(content: string) {
         return provider.getDiagnosticsForYamlFile(
             "/collection/folder/folder.yml",
             content,
             BrunoFileType.FolderSettingsFile,
+        );
+    }
+});
+
+describe("YamlFormatDiagnosticsProvider for environment files", () => {
+    const provider = new YamlFormatDiagnosticsProvider();
+
+    it("should only hint at disabled variables and not check them", () => {
+        const diagnostics = getDiagnostics(`name: env
+variables:
+  - name: a
+    value: "1"
+  - name: a
+    value: "2"
+    disabled: true
+  - name: b
+    secret: true
+    value: redundant
+    disabled: true
+`);
+
+        expect(diagnostics).toHaveLength(2);
+        expect(
+            diagnostics.every(
+                ({ severity, tags }) =>
+                    severity == DiagnosticSeverity.Hint &&
+                    tags?.[0] == DiagnosticTag.Unnecessary,
+            ),
+        ).toBe(true);
+    });
+
+    function getDiagnostics(content: string) {
+        return provider.getDiagnosticsForYamlFile(
+            "/collection/environments/env.yml",
+            content,
+            BrunoFileType.EnvironmentFile,
         );
     }
 });

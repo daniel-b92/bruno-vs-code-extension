@@ -32,7 +32,7 @@ export function checkClientCertificatesMatchType(
     return (certificates ?? []).flatMap(({ properties }) => {
         const type = properties.type;
 
-        if (!type) {
+        if (!type || properties.disabled?.value) {
             return [];
         }
         const required = REQUIRED_PROPERTIES_BY_TYPE[type.value];

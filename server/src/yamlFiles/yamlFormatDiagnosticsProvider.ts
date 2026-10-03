@@ -1,5 +1,6 @@
 import {
     BrunoFileType,
+    ParsedFolderSettingsFile,
     parseCollectionSettingsFile,
     parseFolderSettingsFile,
     parseRequestFile,
@@ -22,6 +23,7 @@ import { checkBodyTypeMatchesData } from "./diagnostics/checks/requestFiles/chec
 import { checkJsonBodySyntax } from "./diagnostics/checks/requestFiles/checkJsonBodySyntax";
 import { checkAuthHasRequiredFields } from "./diagnostics/checks/requestFiles/checkAuthHasRequiredFields";
 import { checkTagsAreUnique } from "./diagnostics/checks/requestFiles/checkTagsAreUnique";
+import { getDiagnosticsForDisabledItems } from "./diagnostics/shared/getDiagnosticsForDisabledItems";
 import { checkResponseValidationExists } from "./diagnostics/checks/requestFiles/checkResponseValidationExists";
 
 const BRUNO_DIAGNOSTICS_SOURCE = "Bruno";
@@ -94,10 +96,8 @@ export class YamlFormatDiagnosticsProvider {
                 commonParams,
             ),
         ].concat(
-            checkVariableDefinitionsAreValid(
-                { enabled, disabled },
-                commonParams,
-            ),
+            checkVariableDefinitionsAreValid(enabled, commonParams),
+            getDiagnosticsForDisabledItems(disabled),
         );
         return parsingDiagnostics.concat(
             otherDiagnostics.filter((d) => d != undefined),
@@ -132,6 +132,16 @@ export class YamlFormatDiagnosticsProvider {
             ),
             checkAuthHasRequiredFields(properties.http?.properties.auth),
             checkResponseValidationExists(properties.runtime, commonParams),
+            ...getDiagnosticsForDisabledItems([
+                ...(properties.http?.properties.headers ?? []).filter(
+                    isDisabled,
+                ),
+                ...(properties.http?.properties.params ?? []).filter(
+                    isDisabled,
+                ),
+                ...(properties.runtime?.properties.variables?.disabled ?? []),
+                ...(properties.runtime?.properties.actions?.disabled ?? []),
+            ]),
         ];
         return parsingDiagnostics.concat(
             otherDiagnostics.filter((d) => d != undefined),
@@ -161,6 +171,12 @@ export class YamlFormatDiagnosticsProvider {
             ...checkClientCertificatesMatchType(
                 properties.config?.properties.clientCertificates,
             ),
+            ...getDiagnosticsForDisabledItems([
+                ...getDisabledItemsFromRequestSection(properties.request),
+                ...(
+                    properties.config?.properties.clientCertificates ?? []
+                ).filter(({ properties: { disabled } }) => disabled?.value),
+            ]),
         ];
         return parsingDiagnostics.concat(
             otherDiagnostics.filter((d) => d != undefined),
@@ -180,14 +196,41 @@ export class YamlFormatDiagnosticsProvider {
             return parsingDiagnostics;
         }
         // ToDo: Once the yaml collection items are cached, check that the sequence is unique within the parent folder.
-        const otherDiagnostics = checkSettingsFileRequestSection(
-            parsingResult.properties.request,
-            commonParams,
-        );
+        const otherDiagnostics = [
+            ...checkSettingsFileRequestSection(
+                parsingResult.properties.request,
+                commonParams,
+            ),
+            ...getDiagnosticsForDisabledItems(
+                getDisabledItemsFromRequestSection(
+                    parsingResult.properties.request,
+                ),
+            ),
+        ];
         return parsingDiagnostics.concat(
             otherDiagnostics.filter((d) => d != undefined),
         );
     }
+}
+
+function isDisabled({
+    properties: { disabled },
+}: {
+    properties: { disabled: { effectiveValue: boolean } };
+}) {
+    return disabled.effectiveValue;
+}
+
+function getDisabledItemsFromRequestSection(
+    request: ParsedFolderSettingsFile["properties"]["request"],
+) {
+    const { headers, variables, actions } = request?.properties ?? {};
+
+    return [
+        ...(headers ?? []).filter(isDisabled),
+        ...(variables?.disabled ?? []),
+        ...(actions?.disabled ?? []),
+    ];
 }
 
 function mapParsingErrorsToDiagnostics(

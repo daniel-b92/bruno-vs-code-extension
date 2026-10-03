@@ -32,7 +32,13 @@ export function checkSettingsFileRequestSection(
               )
             : []),
         ...(headers
-            ? checkNamePropertyIsUniqueAcrossMaps(headers, commonParams)
+            ? checkNamePropertyIsUniqueAcrossMaps(
+                  headers.filter(
+                      ({ properties: { disabled } }) =>
+                          !disabled.effectiveValue,
+                  ),
+                  commonParams,
+              )
             : []),
         ...(actions
             ? checkTypePropertyIsUniqueAcrossMaps(actions.enabled, commonParams)
