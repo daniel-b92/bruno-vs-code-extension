@@ -2,6 +2,7 @@ import {
     BrunoFileType,
     ParsedCollectionSettingsFile,
     ParsedFolderSettingsFile,
+    ParsedRequestFile,
     parseCollectionSettingsFile,
     parseFolderSettingsFile,
     parseRequestFile,
@@ -83,10 +84,13 @@ export class YamlFormatDiagnosticsProvider {
             parseYamlEnvironmentFile(docHelper);
         const parsingDiagnostics = mapParsingErrorsToDiagnostics(parsingErrors);
 
-        if (!parsingResult || !parsingResult.properties.variables) {
+        if (!parsingResult) {
             return parsingDiagnostics;
         }
-        const { enabled, disabled } = parsingResult.properties.variables;
+        const { enabled, disabled } = parsingResult.properties.variables ?? {
+            enabled: [],
+            disabled: [],
+        };
 
         // ToDo: Once yaml env files are stored in the cache, add validations for inheritance
         // (env name exists, is not own environment, no circular dependencies,...)
@@ -134,14 +138,9 @@ export class YamlFormatDiagnosticsProvider {
             checkAuthHasRequiredFields(properties.http?.properties.auth),
             checkResponseValidationExists(properties.runtime, commonParams),
             ...getDiagnosticsForDisabledItems([
-                ...(properties.http?.properties.headers ?? []).filter(
-                    isDisabled,
-                ),
-                ...(properties.http?.properties.params ?? []).filter(
-                    isDisabled,
-                ),
-                ...(properties.runtime?.properties.variables?.disabled ?? []),
-                ...(properties.runtime?.properties.actions?.disabled ?? []),
+                ...(properties.http?.properties.headers?.disabled ?? []),
+                ...(properties.http?.properties.params?.disabled ?? []),
+                ...getDisabledItemsFromRuntimeSection(properties.runtime),
             ]),
         ];
         return parsingDiagnostics.concat(
@@ -215,14 +214,6 @@ export class YamlFormatDiagnosticsProvider {
     }
 }
 
-function isDisabled({
-    properties: { disabled },
-}: {
-    properties: { disabled: { effectiveValue: boolean } };
-}) {
-    return disabled.effectiveValue;
-}
-
 function getDisabledProxyItems(
     proxy: NonNullable<
         ParsedCollectionSettingsFile["properties"]["config"]
@@ -246,9 +237,21 @@ function getDisabledItemsFromRequestSection(
     const { headers, variables, actions } = request?.properties ?? {};
 
     return [
-        ...(headers ?? []).filter(isDisabled),
+        ...(headers?.disabled ?? []),
         ...(variables?.disabled ?? []),
         ...(actions?.disabled ?? []),
+    ];
+}
+
+function getDisabledItemsFromRuntimeSection(
+    runtime: ParsedRequestFile["properties"]["runtime"],
+) {
+    const { variables, actions, assertions } = runtime?.properties ?? {};
+
+    return [
+        ...(variables?.disabled ?? []),
+        ...(actions?.disabled ?? []),
+        ...(assertions?.disabled ?? []),
     ];
 }
 

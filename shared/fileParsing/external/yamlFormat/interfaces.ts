@@ -23,6 +23,7 @@ import {
     ParsedYamlMap,
     ParsedYamlMapWithKeyAndValueRange,
     ParsedYamlMapWithValueRange,
+    EnabledAndDisabledItems,
 } from "../../internal/yamlFormat/interfaces";
 
 export enum YamlParsingErrorCode {
@@ -43,21 +44,15 @@ export type ParsedRequestFile = ParsedYamlMap<{
     http?: ParsedYamlMapWithKeyAndValueRange<{
         method?: WithKeyAndValueRange<string>;
         url?: WithKeyAndValueRange<string>;
-        headers?: ParsedRequestHeader[];
-        params?: ParsedHttpParam[];
+        headers?: EnabledAndDisabledItems<ParsedRequestHeader>;
+        params?: EnabledAndDisabledItems<ParsedHttpParam>;
         body?: ParsedHttpBody;
         auth?: ParsedAuth;
     }>;
     runtime?: ParsedYamlMapWithKeyAndValueRange<{
-        variables?: {
-            enabled: ParsedRequestVariable[];
-            disabled: ParsedRequestVariable[];
-        };
-        actions?: {
-            enabled: ParsedAction[];
-            disabled: ParsedAction[];
-        };
-        assertions?: ParsedAssertion[];
+        variables?: EnabledAndDisabledItems<ParsedRequestVariable>;
+        actions?: EnabledAndDisabledItems<ParsedAction>;
+        assertions?: EnabledAndDisabledItems<ParsedAssertion>;
         scripts?: ParsedScript[];
     }>;
     settings?: ParsedSettings;
@@ -176,3 +171,8 @@ export interface YamlMapMissingPropertyInfo {
     isMandatory: boolean;
     alwaysHasScalarValue: boolean;
 }
+
+export type {
+    EnabledAndDisabledItems,
+    ParsedRequestHeader,
+} from "../../internal/yamlFormat/interfaces";

@@ -2,6 +2,7 @@ import { YAMLSeq } from "yaml";
 import { YamlParsingError } from "../../../..";
 import {
     CommonParsingArgs,
+    EnabledAndDisabledItems,
     MaybeResultWithErrors,
     ParsedRequestHeader,
 } from "../interfaces";
@@ -14,10 +15,11 @@ import { getRangeForItem } from "../util/getRangeForItem";
 export function parseHeadersFromSequence(args: {
     commonArgs: CommonParsingArgs;
     headersSequence: YAMLSeq;
-}): MaybeResultWithErrors<ParsedRequestHeader[]> {
+}): MaybeResultWithErrors<EnabledAndDisabledItems<ParsedRequestHeader>> {
     const { commonArgs, headersSequence } = args;
     const errors: YamlParsingError[] = [];
-    const result: ParsedRequestHeader[] = [];
+    const enabled: ParsedRequestHeader[] = [];
+    const disabled: ParsedRequestHeader[] = [];
 
     const { items: headerMaps, errors: errorsFromSeq } =
         getYamlMapsFromSequence({
@@ -55,7 +57,7 @@ export function parseHeadersFromSequence(args: {
         const description = getString(RequestHeaderProperty.Description);
         const maybeDisabled = getBoolean(RequestHeaderProperty.Disabled);
 
-        result.push({
+        const header: ParsedRequestHeader = {
             valueRange: getRangeForItem(headerMap, commonArgs),
             properties: {
                 name: stripKeyFromResult(name),
@@ -74,11 +76,14 @@ export function parseHeadersFromSequence(args: {
                 },
             },
             missingProperties,
-        });
+        };
+        (header.properties.disabled.effectiveValue ? disabled : enabled).push(
+            header,
+        );
     }
 
     return {
         errors,
-        result,
+        result: { enabled, disabled },
     };
 }

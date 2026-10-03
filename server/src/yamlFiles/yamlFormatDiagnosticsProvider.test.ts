@@ -331,7 +331,7 @@ http:
   headers:
     - name: h1
       value: a
-    - name: h1
+    - name: H1
       value: b
       disabled: true
   params:
@@ -358,9 +358,13 @@ runtime:
     - expression: res.status
       operator: eq
       value: "200"
+    - expression: res.status
+      operator: eq
+      value: "200"
+      disabled: true
 `);
 
-        expect(diagnostics).toHaveLength(4);
+        expect(diagnostics).toHaveLength(5);
         expect(
             diagnostics.every(
                 ({ severity, tags }) =>
@@ -368,6 +372,26 @@ runtime:
                     tags?.[0] == DiagnosticTag.Unnecessary,
             ),
         ).toBe(true);
+    });
+
+    it("should warn that no response validation exists if all assertions are disabled", () => {
+        const diagnostics = getDiagnostics(`${infoSection}
+http:
+  method: GET
+  url: /api
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+      disabled: true
+`);
+
+        expect(
+            diagnostics.filter(
+                ({ severity }) => severity == DiagnosticSeverity.Warning,
+            ),
+        ).toHaveLength(1);
     });
 
     function getDiagnostics(content: string) {
@@ -543,6 +567,20 @@ request:
         expect(diagnostics[0].message).toBe("Same name already defined");
     });
 
+    it("should warn for duplicate headers that only differ in casing", () => {
+        const diagnostics = getDiagnostics(`${folderHeader}
+request:
+  headers:
+    - name: Content-Type
+      value: a
+    - name: content-type
+      value: b
+`);
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0].message).toBe("Same name already defined");
+    });
+
     it("should warn if keys are missing for the auth type", () => {
         const diagnostics = getDiagnostics(`${folderHeader}
 request:
@@ -617,6 +655,15 @@ variables:
                     tags?.[0] == DiagnosticTag.Unnecessary,
             ),
         ).toBe(true);
+    });
+
+    it("should report a missing name even if no variables are defined", () => {
+        const diagnostics = getDiagnostics(`color: red
+`);
+
+        expect(diagnostics.map(({ message }) => message)).toContain(
+            "Mandatory top-level key 'name' missing.",
+        );
     });
 
     function getDiagnostics(content: string) {

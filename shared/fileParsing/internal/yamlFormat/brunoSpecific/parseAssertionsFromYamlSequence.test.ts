@@ -27,8 +27,8 @@ describe("parseAssertionsFromYamlSequence", () => {
             );
 
             expect(errors).toHaveLength(0);
-            expect(result).toHaveLength(1);
-            const assertion = result![0];
+            expect(result?.enabled).toHaveLength(1);
+            const assertion = result!.enabled[0];
             expect(assertion.properties.expression?.value).toBe("res.status");
             expect(assertion.properties.operator?.value).toBe(
                 AssertionOperator.Equals,
@@ -50,8 +50,8 @@ describe("parseAssertionsFromYamlSequence", () => {
             );
 
             expect(errors).toHaveLength(0);
-            expect(result).toHaveLength(1);
-            const assertion = result![0];
+            expect(result?.enabled).toHaveLength(1);
+            const assertion = result!.enabled[0];
             expect(assertion.properties.expression?.value).toBe("res.status");
             expect(assertion.properties.operator?.value).toBe(
                 AssertionOperator.Equals,
@@ -75,10 +75,14 @@ describe("parseAssertionsFromYamlSequence", () => {
             );
 
             expect(errors).toHaveLength(0);
-            expect(result).toHaveLength(2);
-            expect(result![0].properties.expression?.value).toBe("res.status");
-            expect(result![1].properties.expression?.value).toBe("res.body.id");
-            expect(result![1].properties.operator?.value).toBe(
+            expect(result?.enabled).toHaveLength(2);
+            expect(result!.enabled[0].properties.expression?.value).toBe(
+                "res.status",
+            );
+            expect(result!.enabled[1].properties.expression?.value).toBe(
+                "res.body.id",
+            );
+            expect(result!.enabled[1].properties.operator?.value).toBe(
                 AssertionOperator.NotEquals,
             );
         });
@@ -93,7 +97,7 @@ describe("parseAssertionsFromYamlSequence", () => {
                 commonArgs,
             );
 
-            const assertion = result![0];
+            const assertion = result!.enabled[0];
             expect(assertion.properties.expression?.keyRange).toEqual(
                 getExpectedKeyRange(0, AssertionMapProperty.Expression, 4),
             );
@@ -119,7 +123,7 @@ describe("parseAssertionsFromYamlSequence", () => {
                 commonArgs,
             );
 
-            expect(result).toHaveLength(1);
+            expect(result?.enabled).toHaveLength(1);
             expect(
                 errors.some((e) =>
                     e.message
@@ -139,7 +143,7 @@ describe("parseAssertionsFromYamlSequence", () => {
                 commonArgs,
             );
 
-            expect(result).toHaveLength(1);
+            expect(result?.enabled).toHaveLength(1);
             expect(
                 errors.some((e) =>
                     e.message
@@ -186,7 +190,7 @@ describe("parseAssertionsFromYamlSequence", () => {
                 commonArgs,
             );
 
-            const assertion = result![0];
+            const assertion = result!.enabled[0];
             const missingValue = assertion.missingProperties.find(
                 ({ key }) => key === AssertionMapProperty.Value,
             );
@@ -206,7 +210,7 @@ describe("parseAssertionsFromYamlSequence", () => {
                 commonArgs,
             );
 
-            const assertion = result![0];
+            const assertion = result!.enabled[0];
             const missingExpression = assertion.missingProperties.find(
                 ({ key }) => key === AssertionMapProperty.Expression,
             );
@@ -250,7 +254,42 @@ describe("parseAssertionsFromYamlSequence", () => {
                 commonArgs,
             );
 
-            expect(result![0].properties.operator?.value).toBeUndefined();
+            expect(
+                result!.enabled[0].properties.operator?.value,
+            ).toBeUndefined();
+        });
+    });
+
+    describe("disabled", () => {
+        it("splits assertions by their disabled property", () => {
+            const documentText = `-   expression: res.status
+    operator: eq
+-   expression: res.body
+    operator: eq
+    disabled: true
+-   expression: res.time
+    operator: lt
+    disabled: false`;
+
+            const { commonArgs, sequence } = parse(documentText);
+            const { result, errors } = parseAssertionsFromYamlSequence(
+                sequence,
+                commonArgs,
+            );
+
+            expect(errors).toHaveLength(0);
+            expect(
+                result!.enabled.map((a) => a.properties.expression?.value),
+            ).toEqual(["res.status", "res.time"]);
+            expect(
+                result!.disabled.map((a) => a.properties.expression?.value),
+            ).toEqual(["res.body"]);
+            expect(
+                result!.enabled[0].properties.disabled.field,
+            ).toBeUndefined();
+            expect(result!.disabled[0].properties.disabled.field?.value).toBe(
+                true,
+            );
         });
     });
 

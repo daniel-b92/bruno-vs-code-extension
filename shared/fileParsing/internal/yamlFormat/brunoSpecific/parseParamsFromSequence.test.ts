@@ -27,8 +27,8 @@ describe("parseParamsFromSequence", () => {
         );
 
         expect(errors).toHaveLength(0);
-        expect(result).toHaveLength(1);
-        const param = result![0];
+        expect(result?.enabled).toHaveLength(1);
+        const param = result!.enabled[0];
         expect(param.properties.name?.value).toBe("my-param");
         expect(param.properties.value?.value).toBe("my-value");
         expect(param.properties.type?.value).toBe(HttpParamType.Query);
@@ -52,10 +52,12 @@ describe("parseParamsFromSequence", () => {
         );
 
         expect(errors).toHaveLength(0);
-        expect(result).toHaveLength(2);
-        expect(result![0].properties.name?.value).toBe("param1");
-        expect(result![1].properties.name?.value).toBe("param2");
-        expect(result![1].properties.type?.value).toBe(HttpParamType.Path);
+        expect(result?.enabled).toHaveLength(2);
+        expect(result!.enabled[0].properties.name?.value).toBe("param1");
+        expect(result!.enabled[1].properties.name?.value).toBe("param2");
+        expect(result!.enabled[1].properties.type?.value).toBe(
+            HttpParamType.Path,
+        );
     });
 
     it("defaults disabled to false when the field is absent", () => {
@@ -69,8 +71,10 @@ describe("parseParamsFromSequence", () => {
         );
 
         expect(errors).toHaveLength(0);
-        expect(result![0].properties.disabled.effectiveValue).toBe(false);
-        expect(result![0].properties.disabled.field).toBeUndefined();
+        expect(result!.enabled[0].properties.disabled.effectiveValue).toBe(
+            false,
+        );
+        expect(result!.enabled[0].properties.disabled.field).toBeUndefined();
     });
 
     it("lists optional fields as missing but not mandatory when absent", () => {
@@ -80,8 +84,8 @@ describe("parseParamsFromSequence", () => {
         const { commonArgs, sequence } = parse(documentText);
         const { result } = parseParamsFromSequence(sequence, commonArgs);
 
-        expect(result![0].missingProperties).toHaveLength(3);
-        for (const missing of result![0].missingProperties) {
+        expect(result!.enabled[0].missingProperties).toHaveLength(3);
+        for (const missing of result!.enabled[0].missingProperties) {
             expect(missing.isMandatory).toBe(false);
             expect(missing.alwaysHasScalarValue).toBe(true);
         }
@@ -98,14 +102,14 @@ describe("parseParamsFromSequence", () => {
 
         expect(errors).toHaveLength(2);
         expect(
-            result![0].missingProperties.some(
+            result!.enabled[0].missingProperties.some(
                 ({ key, isMandatory }) =>
                     key === RequestFileHttpSectionParamProperty.Name &&
                     isMandatory,
             ),
         ).toBe(true);
         expect(
-            result![0].missingProperties.some(
+            result!.enabled[0].missingProperties.some(
                 ({ key, isMandatory }) =>
                     key === RequestFileHttpSectionParamProperty.Value &&
                     isMandatory,
@@ -126,8 +130,8 @@ describe("parseParamsFromSequence", () => {
 
         expect(errors).toHaveLength(1);
         expect(errors[0].range).toEqual(getExpectedKeyRange(2, "unknown", 4));
-        expect(result![0].properties.name?.value).toBe("my-param");
-        expect(result![0].properties.value?.value).toBe("my-value");
+        expect(result!.enabled[0].properties.name?.value).toBe("my-param");
+        expect(result!.enabled[0].properties.value?.value).toBe("my-value");
     });
 
     it("reports error for invalid type value and returns undefined type", () => {
@@ -142,7 +146,7 @@ describe("parseParamsFromSequence", () => {
         );
 
         expect(errors).toHaveLength(1);
-        expect(result![0].properties.type).toBeUndefined();
+        expect(result!.enabled[0].properties.type).toBeUndefined();
     });
 
     it("returns correct valueRange for each param entry", () => {
@@ -160,10 +164,10 @@ describe("parseParamsFromSequence", () => {
         const sequence = parsedDocument.contents as YAMLSeq;
         const { result } = parseParamsFromSequence(sequence, commonArgs);
 
-        expect(result![0].valueRange).toBeDefined();
-        expect(result![1].valueRange).toBeDefined();
-        expect(result![0].valueRange.start.line).toBe(0);
-        expect(result![1].valueRange.start.line).toBe(2);
+        expect(result!.enabled[0].valueRange).toBeDefined();
+        expect(result!.enabled[1].valueRange).toBeDefined();
+        expect(result!.enabled[0].valueRange.start.line).toBe(0);
+        expect(result!.enabled[1].valueRange.start.line).toBe(2);
     });
 
     it("returns correct keyRange and valueRange for name field", () => {
@@ -173,10 +177,10 @@ describe("parseParamsFromSequence", () => {
         const { commonArgs, sequence } = parse(documentText);
         const { result } = parseParamsFromSequence(sequence, commonArgs);
 
-        expect(result![0].properties.name?.keyRange).toEqual(
+        expect(result!.enabled[0].properties.name?.keyRange).toEqual(
             getExpectedKeyRange(0, RequestFileHttpSectionParamProperty.Name, 4),
         );
-        expect(result![0].properties.name?.valueRange).toEqual(
+        expect(result!.enabled[0].properties.name?.valueRange).toEqual(
             getExpectedSameLineValueRange(
                 0,
                 RequestFileHttpSectionParamProperty.Name,
@@ -196,7 +200,7 @@ describe("parseParamsFromSequence", () => {
         );
 
         expect(errors).toHaveLength(0);
-        expect(result).toHaveLength(0);
+        expect(result?.enabled).toHaveLength(0);
     });
 });
 

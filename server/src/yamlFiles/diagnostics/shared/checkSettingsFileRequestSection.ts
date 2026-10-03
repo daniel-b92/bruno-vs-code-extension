@@ -1,6 +1,7 @@
 import { ParsedFolderSettingsFile } from "@global_shared";
 import { Diagnostic } from "vscode-languageserver";
 import { CommonDiagnosticParams } from "../../interfaces";
+import { checkHeaderNamesAreUnique } from "./checkHeaderNamesAreUnique";
 import { checkNamePropertyIsUniqueAcrossMaps } from "./checkNamePropertyIsUniqueAcrossMaps";
 import { checkVariableTypesMatchValueData } from "./checkVariableValuesMatchTypes";
 import { checkTypePropertyIsUniqueAcrossMaps } from "./checkTypePropertyIsUniqueAcrossMaps";
@@ -32,13 +33,7 @@ export function checkSettingsFileRequestSection(
               )
             : []),
         ...(headers
-            ? checkNamePropertyIsUniqueAcrossMaps(
-                  headers.filter(
-                      ({ properties: { disabled } }) =>
-                          !disabled.effectiveValue,
-                  ),
-                  commonParams,
-              )
+            ? checkHeaderNamesAreUnique(headers.enabled, commonParams.filePath)
             : []),
         ...(actions
             ? checkTypePropertyIsUniqueAcrossMaps(actions.enabled, commonParams)

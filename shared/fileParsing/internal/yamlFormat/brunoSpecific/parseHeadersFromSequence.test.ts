@@ -29,8 +29,8 @@ describe("parseHeadersFromSequence", () => {
 
         expect(errors).toHaveLength(0);
         expect(result).toBeDefined();
-        expect(result).toHaveLength(1);
-        const header = result![0];
+        expect(result?.enabled).toHaveLength(1);
+        const header = result!.enabled[0];
         expect(header.missingProperties).toHaveLength(1);
         expect(header.missingProperties[0].key).toBe(
             RequestHeaderProperty.Disabled,
@@ -104,11 +104,13 @@ describe("parseHeadersFromSequence", () => {
 
         expect(errors).toHaveLength(0);
         expect(result).toBeDefined();
-        expect(result).toHaveLength(2);
-        const headerWithOnlySomeProps = result?.find(
+        expect(result?.enabled).toHaveLength(1);
+        expect(result?.disabled).toHaveLength(1);
+        const allHeaders = [...result!.enabled, ...result!.disabled];
+        const headerWithOnlySomeProps = allHeaders.find(
             ({ missingProperties }) => missingProperties.length > 0,
         );
-        const headerWithAllProps = result?.find(
+        const headerWithAllProps = allHeaders.find(
             ({ missingProperties }) => missingProperties.length == 0,
         );
         expect(headerWithOnlySomeProps).toBeDefined();
@@ -182,8 +184,8 @@ describe("parseHeadersFromSequence", () => {
         ).toBeTruthy();
 
         expect(result).toBeDefined();
-        expect(result).toHaveLength(1);
-        const header = result![0];
+        expect(result?.enabled).toHaveLength(1);
+        const header = result!.enabled[0];
         expect(header.missingProperties).toHaveLength(2);
         expect(
             header.missingProperties.some(
