@@ -53,8 +53,12 @@ export function parseRequestFile(
         {
             // Docs section is always a scalar for request files.
             scalars: { stringValues: [TopLevelRequestFileProperty.Docs] },
+            // Examples section is always a sequence for request files.
+            sequenceValues: [TopLevelRequestFileProperty.Examples],
             mapValues: Object.values(TopLevelRequestFileProperty).filter(
-                (prop) => prop != TopLevelRequestFileProperty.Docs,
+                (prop) =>
+                    prop != TopLevelRequestFileProperty.Docs &&
+                    prop != TopLevelRequestFileProperty.Examples,
             ),
             // info is the only mandatory top level property.
             mandatoryKeys: [TopLevelRequestFileProperty.Info],
