@@ -340,11 +340,18 @@ function parseClientCertificate(
             validScalars: { withStringValue },
         },
         getString,
+        getBoolean,
         missingProperties,
     } = getValidatedMapItems(
         map,
         {
-            scalars: { stringValues: Object.values(ClientCertificateProperty) },
+            scalars: {
+                stringValues: Object.values(ClientCertificateProperty).filter(
+                    (property) =>
+                        property != ClientCertificateProperty.Disabled,
+                ),
+                booleanValues: [ClientCertificateProperty.Disabled],
+            },
             mandatoryKeys: [
                 ClientCertificateProperty.Domain,
                 ClientCertificateProperty.Type,
@@ -380,6 +387,9 @@ function parseClientCertificate(
             ),
             passphrase: stripKeyFromResult(
                 getString(ClientCertificateProperty.Passphrase),
+            ),
+            disabled: stripKeyFromResult(
+                getBoolean(ClientCertificateProperty.Disabled),
             ),
         },
     };

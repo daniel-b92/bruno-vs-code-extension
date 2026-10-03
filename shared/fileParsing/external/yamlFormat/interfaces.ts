@@ -110,6 +110,7 @@ export type ParsedCollectionSettingsFile = ParsedYamlMap<{
             privateKeyFilePath?: WithKeyAndValueRange<string>;
             pfxFilePath?: WithKeyAndValueRange<string>;
             passphrase?: WithKeyAndValueRange<string>;
+            disabled?: WithKeyAndValueRange<boolean>;
         }>[];
     }>;
     request?: ParsedSettingsFileRequestSection;

@@ -62,6 +62,7 @@ export enum ClientCertificateProperty {
     PrivateKeyFilePath = "privateKeyFilePath",
     PfxFilePath = "pfxFilePath",
     Passphrase = "passphrase",
+    Disabled = "disabled",
 }
 
 export enum ClientCertificateType {

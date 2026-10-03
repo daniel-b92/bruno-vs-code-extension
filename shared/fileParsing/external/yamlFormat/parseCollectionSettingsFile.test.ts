@@ -35,6 +35,7 @@ config:
       certificateFilePath: ./nonexistent-c92e/client-x4k.pem
       privateKeyFilePath: ./nonexistent-c92e/client-key-m2z.pem
       passphrase: asdasdasd
+      disabled: true
 
 request:
   headers:
@@ -115,6 +116,7 @@ extensions:
         expect(proxyConfig?.bypassProxy?.value).toBe("asdasd");
         expect(clientCertificates).toHaveLength(1);
         expect(clientCertificates?.[0].properties.type?.value).toBe("pem");
+        expect(clientCertificates?.[0].properties.disabled?.value).toBe(true);
         expect(clientCertificates?.[0].properties.passphrase?.value).toBe(
             "asdasdasd",
         );
@@ -287,6 +289,25 @@ extensions:
         expect(
             result!.properties.extensions?.properties.bruno?.properties.presets
                 ?.properties.request?.properties.type,
+        ).toBeUndefined();
+    });
+
+    it("returns error for non-boolean `disabled` value in client certificate", () => {
+        const { result, errors } = parseCollectionSettingsFile(
+            new TextDocumentHelper(`opencollection: 1.0.0
+info:
+  name: a
+config:
+  clientCertificates:
+    - domain: x
+      type: pem
+      disabled: 5`),
+        );
+
+        expect(errors).toHaveLength(1);
+        expect(
+            result!.properties.config?.properties.clientCertificates?.[0]
+                .properties.disabled,
         ).toBeUndefined();
     });
 
