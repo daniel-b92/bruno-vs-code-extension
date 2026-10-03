@@ -16,6 +16,11 @@ import { checkVariableTypesMatchValueData } from "./diagnostics/shared/checkVari
 import { checkTypePropertyIsUniqueAcrossMaps } from "./diagnostics/shared/checkTypePropertyIsUniqueAcrossMaps";
 import { checkEntriesAreUnique } from "./diagnostics/checks/requestFiles/checkEntriesAreUnique";
 import { checkUrlMatchesParams } from "./diagnostics/checks/requestFiles/checkUrlMatchesParams";
+import { checkRequestTypeMatchesSections } from "./diagnostics/checks/requestFiles/checkRequestTypeMatchesSections";
+import { checkBodyTypeMatchesData } from "./diagnostics/checks/requestFiles/checkBodyTypeMatchesData";
+import { checkJsonBodySyntax } from "./diagnostics/checks/requestFiles/checkJsonBodySyntax";
+import { checkAuthHasRequiredFields } from "./diagnostics/checks/requestFiles/checkAuthHasRequiredFields";
+import { checkTagsAreUnique } from "./diagnostics/checks/requestFiles/checkTagsAreUnique";
 import { checkResponseValidationExists } from "./diagnostics/checks/requestFiles/checkResponseValidationExists";
 
 export class YamlFormatDiagnosticsProvider {
@@ -93,6 +98,14 @@ export class YamlFormatDiagnosticsProvider {
         const otherDiagnostics = [
             ...checkEntriesAreUnique(properties, commonParams),
             ...checkUrlMatchesParams(properties.http, commonParams),
+            ...checkRequestTypeMatchesSections(properties, commonParams),
+            ...checkTagsAreUnique(properties.info, commonParams),
+            checkBodyTypeMatchesData(
+                properties.http?.properties.body,
+                commonParams,
+            ),
+            checkJsonBodySyntax(properties.http?.properties.body),
+            checkAuthHasRequiredFields(properties.http?.properties.auth),
             checkResponseValidationExists(properties.runtime, commonParams),
         ];
         return parsingDiagnostics.concat(

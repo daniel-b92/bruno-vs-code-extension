@@ -94,11 +94,28 @@ export function parseRequestFile(
     const app = appMap
         ? parseAppSection(appMap, commonArgs, collectedErrors)
         : undefined;
+    const requestTypeSections = [
+        TopLevelRequestFileProperty.Http,
+        TopLevelRequestFileProperty.Graphql,
+        TopLevelRequestFileProperty.Grpc,
+        TopLevelRequestFileProperty.Websocket,
+    ].flatMap((name) => {
+        const section = getMap(name);
+        return section ? [{ name, keyRange: section.keyRange }] : [];
+    });
 
     return {
         errors: collectedErrors,
         result: {
-            properties: { info, http, runtime, docs, settings, app },
+            properties: {
+                info,
+                http,
+                runtime,
+                docs,
+                settings,
+                app,
+                requestTypeSections,
+            },
             missingProperties,
         },
     };

@@ -160,6 +160,113 @@ runtime:
         },
     );
 
+    it("should warn if the request type does not match the sections", () => {
+        const diagnostics = getDiagnostics(`${infoSection}
+graphql:
+  url: /api
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+`);
+
+        expect(diagnostics.map(({ message }) => message)).toEqual([
+            "Request type 'http' requires a 'http' section.",
+            "Section 'graphql' does not match the request type 'http'.",
+        ]);
+        expect(diagnostics.every(({ severity }) => severity == 2)).toBe(true);
+    });
+
+    it("should warn for duplicate tags", () => {
+        const diagnostics = getDiagnostics(
+            validRequest({
+                info: `${infoSection}
+  tags:
+    - a
+    - b
+    - a`,
+            }),
+        );
+
+        expect(diagnostics.map(({ message }) => message)).toEqual([
+            "Same tag already defined",
+        ]);
+    });
+
+    it("should warn if the body type does not match the body data", () => {
+        const noneWithData = getDiagnostics(
+            validRequest({
+                http: `  body:
+    type: none
+    data: abc`,
+            }),
+        );
+        const jsonWithoutData = getDiagnostics(
+            validRequest({
+                http: `  body:
+    type: json`,
+            }),
+        );
+
+        expect(noneWithData.map(({ message }) => message)).toEqual([
+            "A body is defined although the body type is 'none'.",
+        ]);
+        expect(jsonWithoutData.map(({ message }) => message)).toEqual([
+            "No body data is defined for the body type 'json'.",
+        ]);
+    });
+
+    it("should report invalid JSON body data, but ignore variables", () => {
+        const invalid = getDiagnostics(
+            validRequest({
+                http: `  body:
+    type: json
+    data: '{"a": }'`,
+            }),
+        );
+        const withVariable = getDiagnostics(
+            validRequest({
+                http: `  body:
+    type: json
+    data: '{"a": {{var}}}'`,
+            }),
+        );
+
+        expect(invalid).toHaveLength(1);
+        expect(invalid[0].severity).toBe(1);
+        expect(withVariable).toEqual([]);
+    });
+
+    it("should only warn if keys are missing for the auth type", () => {
+        const basic = getDiagnostics(
+            validRequest({
+                http: `  auth:
+    type: basic
+    username: user`,
+            }),
+        );
+        const bearer = getDiagnostics(
+            validRequest({
+                http: `  auth:
+    type: bearer`,
+            }),
+        );
+        const inherit = getDiagnostics(
+            validRequest({ http: "  auth: inherit" }),
+        );
+
+        expect(basic.map(({ message }) => message)).toEqual([
+            "Missing keys for auth type 'basic': 'password'.",
+        ]);
+        expect(bearer.map(({ message }) => message)).toEqual([
+            "Missing keys for auth type 'bearer': 'token'.",
+        ]);
+        expect(
+            [...basic, ...bearer].every(({ severity }) => severity == 2),
+        ).toBe(true);
+        expect(inherit).toEqual([]);
+    });
+
     function getDiagnostics(content: string) {
         return provider.getDiagnosticsForYamlFile(
             "/collection/request.yml",
@@ -168,6 +275,19 @@ runtime:
         );
     }
 });
+
+function validRequest(sections: { info?: string; http?: string }) {
+    return `${sections.info ?? infoSection}
+http:
+  method: GET
+  url: /api
+${sections.http ?? ""}
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+`;
+}
 
 const infoSection = `info:
   name: example

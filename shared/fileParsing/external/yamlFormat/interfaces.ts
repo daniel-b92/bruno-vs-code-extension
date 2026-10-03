@@ -55,6 +55,11 @@ export type ParsedRequestFile = ParsedYamlMap<{
     settings?: ParsedSettings;
     docs?: WithKeyAndValueRange<string>;
     app?: ParsedRequestFileAppSection;
+    /**
+     * All top-level sections that are specific for a request type (e.g. `http` or `graphql`).
+     * Includes the sections that are not (yet) parsed in detail.
+     */
+    requestTypeSections: { name: string; keyRange: Range }[];
 }>;
 
 export type ParsedFolderSettingsFile = ParsedYamlMap<{
