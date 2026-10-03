@@ -31,7 +31,7 @@ export function mapErrors(
         return {
             message: messageToUse,
             range: new Range(startPosition, endPosition),
-            code: YamlParsingErrorCode.Other,
+            code: YamlParsingErrorCode.InvalidYamlSyntax,
         };
     });
 }

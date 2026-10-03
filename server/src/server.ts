@@ -1,3 +1,4 @@
+import { parse } from "yaml";
 import {
     createConnection,
     TextDocuments,
@@ -360,7 +361,28 @@ function getDiagnosticsForYamlFile(filePath: string, text: string) {
         );
     }
 
+    if (
+        // ToDo: Once yaml files are stored in the file system cache, use the itemType for identifying request files.
+        basename(filePath) != "opencollection.yml" &&
+        !isYamlAppFile(text)
+    ) {
+        return yamlDiagnosticsProvider.getDiagnosticsForYamlFile(
+            filePath,
+            text,
+            BrunoFileType.RequestFile,
+        );
+    }
+
     return undefined;
+}
+
+function isYamlAppFile(text: string) {
+    try {
+        return parse(text)?.info?.type == "app";
+    } catch {
+        // Invalid yaml syntax gets reported by the diagnostics for the file type that is assumed instead.
+        return false;
+    }
 }
 
 async function getBrunoFileTypeIfExists(
