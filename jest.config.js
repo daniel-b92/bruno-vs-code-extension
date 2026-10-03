@@ -1,6 +1,9 @@
 const path = require("path");
 
 module.exports = {
+    // Every worker loads its own TypeScript compiler via ts-jest (~1.5 GiB each).
+    // With jest's default (one worker per CPU core - 1) this can exhaust the memory on machines with many cores.
+    maxWorkers: 1,
     projects: [
         {
             displayName: "server",
