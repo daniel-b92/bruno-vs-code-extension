@@ -1,6 +1,7 @@
 import {
     BrunoFileType,
     parseFolderSettingsFile,
+    parseRequestFile,
     parseYamlEnvironmentFile,
     TextDocumentHelper,
     YamlParsingError,
@@ -13,6 +14,9 @@ import { checkVariableDefinitionsAreValid } from "./diagnostics/checks/environme
 import { checkNamePropertyIsUniqueAcrossMaps } from "./diagnostics/shared/checkNamePropertyIsUniqueAcrossMaps";
 import { checkVariableTypesMatchValueData } from "./diagnostics/shared/checkVariableValuesMatchTypes";
 import { checkTypePropertyIsUniqueAcrossMaps } from "./diagnostics/shared/checkTypePropertyIsUniqueAcrossMaps";
+import { checkEntriesAreUnique } from "./diagnostics/checks/requestFiles/checkEntriesAreUnique";
+import { checkUrlMatchesParams } from "./diagnostics/checks/requestFiles/checkUrlMatchesParams";
+import { checkResponseValidationExists } from "./diagnostics/checks/requestFiles/checkResponseValidationExists";
 
 export class YamlFormatDiagnosticsProvider {
     constructor() {}
@@ -34,6 +38,8 @@ export class YamlFormatDiagnosticsProvider {
                 return this.getDiagnosticsForEnvironmentFile(commonParams);
             case BrunoFileType.FolderSettingsFile:
                 return this.getDiagnosticsForFolderSettingsFile(commonParams);
+            case BrunoFileType.RequestFile:
+                return this.getDiagnosticsForRequestFile(commonParams);
             default:
                 return [];
         }
@@ -66,6 +72,29 @@ export class YamlFormatDiagnosticsProvider {
                 commonParams,
             ),
         );
+        return parsingDiagnostics.concat(
+            otherDiagnostics.filter((d) => d != undefined),
+        );
+    }
+
+    public getDiagnosticsForRequestFile(
+        commonParams: CommonDiagnosticParams,
+    ): Diagnostic[] {
+        const { errors, result: parsingResult } = parseRequestFile(
+            commonParams.docHelper,
+        );
+        const parsingDiagnostics = mapParsingErrorsToDiagnostics(errors);
+
+        if (!parsingResult) {
+            return parsingDiagnostics;
+        }
+        const { properties } = parsingResult;
+
+        const otherDiagnostics = [
+            ...checkEntriesAreUnique(properties, commonParams),
+            ...checkUrlMatchesParams(properties.http, commonParams),
+            checkResponseValidationExists(properties.runtime, commonParams),
+        ];
         return parsingDiagnostics.concat(
             otherDiagnostics.filter((d) => d != undefined),
         );

@@ -360,7 +360,25 @@ function getDiagnosticsForYamlFile(filePath: string, text: string) {
         );
     }
 
+    if (
+        // ToDo: Once yaml files are stored in the file system cache, use the itemType for identifying request files.
+        basename(filePath) != "opencollection.yml" &&
+        !isYamlAppFile(text)
+    ) {
+        return yamlDiagnosticsProvider.getDiagnosticsForYamlFile(
+            filePath,
+            text,
+            BrunoFileType.RequestFile,
+        );
+    }
+
     return undefined;
+}
+
+function isYamlAppFile(text: string) {
+    return /^info:\s*\n(?:[ \t]+.*\n)*?[ \t]+type:\s*["']?app["']?\s*$/m.test(
+        text,
+    );
 }
 
 async function getBrunoFileTypeIfExists(
