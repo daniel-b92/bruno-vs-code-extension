@@ -468,6 +468,40 @@ request:
         expect(diagnostics[0].message).toContain("cannot be inherited");
     });
 
+    it("should only hint at a disabled proxy, not additionally at its auth", () => {
+        const diagnostics = getDiagnostics(`${header}
+config:
+  proxy:
+    disabled: true
+    config:
+      hostname: localhost
+      auth:
+        username: u
+        disabled: true
+`);
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0].severity).toBe(DiagnosticSeverity.Hint);
+        expect(diagnostics[0].range.start.line).toBe(5);
+    });
+
+    it("should hint at disabled proxy auth", () => {
+        const diagnostics = getDiagnostics(`${header}
+config:
+  proxy:
+    config:
+      hostname: localhost
+      auth:
+        username: u
+        disabled: true
+`);
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0].severity).toBe(DiagnosticSeverity.Hint);
+        expect(diagnostics[0].tags).toEqual([DiagnosticTag.Unnecessary]);
+        expect(diagnostics[0].range.start.line).toBe(8);
+    });
+
     it("should only hint at disabled client certificates and not check them", () => {
         const diagnostics = getDiagnostics(`${header}
 config:

@@ -1,5 +1,6 @@
 import {
     BrunoFileType,
+    ParsedCollectionSettingsFile,
     ParsedFolderSettingsFile,
     parseCollectionSettingsFile,
     parseFolderSettingsFile,
@@ -173,6 +174,7 @@ export class YamlFormatDiagnosticsProvider {
             ),
             ...getDiagnosticsForDisabledItems([
                 ...getDisabledItemsFromRequestSection(properties.request),
+                ...getDisabledProxyItems(properties.config?.properties.proxy),
                 ...(
                     properties.config?.properties.clientCertificates ?? []
                 ).filter(({ properties: { disabled } }) => disabled?.value),
@@ -219,6 +221,23 @@ function isDisabled({
     properties: { disabled: { effectiveValue: boolean } };
 }) {
     return disabled.effectiveValue;
+}
+
+function getDisabledProxyItems(
+    proxy: NonNullable<
+        ParsedCollectionSettingsFile["properties"]["config"]
+    >["properties"]["proxy"],
+) {
+    if (!proxy) {
+        return [];
+    }
+    if (proxy.properties.disabled?.value) {
+        // The auth is part of the disabled proxy, so a separate hint would be redundant.
+        return [proxy];
+    }
+    const auth = proxy.properties.config?.properties.auth;
+
+    return auth?.properties.disabled?.value ? [auth] : [];
 }
 
 function getDisabledItemsFromRequestSection(
