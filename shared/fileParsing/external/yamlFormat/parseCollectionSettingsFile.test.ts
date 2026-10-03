@@ -20,13 +20,15 @@ config:
   proxy:
     inherit: false
     config:
-      protocol: http
+      protocol: socks5
       hostname: asd
       port: 33
       auth:
         username: asdsd
         password: asdasd
+        disabled: true
       bypassProxy: asdasd
+    disabled: true
   clientCertificates:
     - domain: adadasd
       type: pem
@@ -103,11 +105,13 @@ extensions:
         ).toBe("file");
         expect(protobuf?.properties.importPaths).toHaveLength(1);
         expect(proxy?.properties.inherit?.value).toBe(false);
+        expect(proxy?.properties.disabled?.value).toBe(true);
         const proxyConfig = proxy?.properties.config?.properties;
-        expect(proxyConfig?.protocol?.value).toBe("http");
+        expect(proxyConfig?.protocol?.value).toBe("socks5");
         expect(proxyConfig?.hostname?.value).toBe("asd");
         expect(proxyConfig?.port?.value).toBe(33);
         expect(proxyConfig?.auth?.properties.username?.value).toBe("asdsd");
+        expect(proxyConfig?.auth?.properties.disabled?.value).toBe(true);
         expect(proxyConfig?.bypassProxy?.value).toBe("asdasd");
         expect(clientCertificates).toHaveLength(1);
         expect(clientCertificates?.[0].properties.type?.value).toBe("pem");
@@ -222,6 +226,68 @@ config:
         );
         expect(config.clientCertificates).toHaveLength(2);
         expect(config.protobuf?.properties.importPaths).toHaveLength(0);
+    });
+
+    it("returns errors for non-boolean `disabled` values in proxy section", () => {
+        const { result, errors } = parseCollectionSettingsFile(
+            new TextDocumentHelper(`opencollection: 1.0.0
+info:
+  name: a
+config:
+  proxy:
+    disabled: yes please
+    config:
+      auth:
+        disabled: 5`),
+        );
+
+        expect(errors).toHaveLength(2);
+        const proxy = result!.properties.config!.properties.proxy!.properties;
+        expect(proxy.disabled).toBeUndefined();
+        expect(proxy.config?.properties.auth?.properties.disabled).toBe(
+            undefined,
+        );
+    });
+
+    it.each(["http", "graphql", "grpc", "ws"])(
+        "accepts '%s' as preset request type",
+        (type) => {
+            const { result, errors } = parseCollectionSettingsFile(
+                new TextDocumentHelper(`opencollection: 1.0.0
+info:
+  name: a
+extensions:
+  bruno:
+    presets:
+      request:
+        type: ${type}`),
+            );
+
+            expect(errors).toHaveLength(0);
+            expect(
+                result!.properties.extensions?.properties.bruno?.properties
+                    .presets?.properties.request?.properties.type?.value,
+            ).toBe(type);
+        },
+    );
+
+    it("returns error for invalid preset request type", () => {
+        const { result, errors } = parseCollectionSettingsFile(
+            new TextDocumentHelper(`opencollection: 1.0.0
+info:
+  name: a
+extensions:
+  bruno:
+    presets:
+      request:
+        type: websocket`),
+        );
+
+        expect(errors).toHaveLength(1);
+        expect(
+            result!.properties.extensions?.properties.bruno?.properties.presets
+                ?.properties.request?.properties.type,
+        ).toBeUndefined();
     });
 
     it("returns errors for non-string entries in the ignore list", () => {

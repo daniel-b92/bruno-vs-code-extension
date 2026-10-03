@@ -30,6 +30,7 @@ export enum ProtoImportPathProperty {
 
 export enum ProxyProperty {
     Inherit = "inherit",
+    Disabled = "disabled",
     Config = "config",
 }
 
@@ -51,6 +52,7 @@ export enum ProxyProtocol {
 export enum ProxyAuthProperty {
     Username = "username",
     Password = "password",
+    Disabled = "disabled",
 }
 
 export enum ClientCertificateProperty {
@@ -84,4 +86,11 @@ export enum BrunoPresetsProperty {
 export enum BrunoPresetsRequestProperty {
     Type = "type",
     Url = "url",
+}
+
+export enum BrunoPresetsRequestType {
+    Http = "http",
+    Graphql = "graphql",
+    Grpc = "grpc",
+    Websocket = "ws",
 }

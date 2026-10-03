@@ -1,6 +1,7 @@
 import { Range } from "../../..";
 import { FileInfoType, VariableType } from "./constants/sharedConstants";
 import {
+    BrunoPresetsRequestType,
     ClientCertificateType,
     ProxyProtocol,
 } from "./constants/collectionSettingsFileConstants";
@@ -89,6 +90,7 @@ export type ParsedCollectionSettingsFile = ParsedYamlMap<{
         }>;
         proxy?: ParsedYamlMapWithKeyAndValueRange<{
             inherit?: WithKeyAndValueRange<boolean>;
+            disabled?: WithKeyAndValueRange<boolean>;
             config?: ParsedYamlMapWithKeyAndValueRange<{
                 protocol?: WithKeyAndValueRange<ProxyProtocol>;
                 hostname?: WithKeyAndValueRange<string>;
@@ -96,6 +98,7 @@ export type ParsedCollectionSettingsFile = ParsedYamlMap<{
                 auth?: ParsedYamlMapWithKeyAndValueRange<{
                     username?: WithKeyAndValueRange<string>;
                     password?: WithKeyAndValueRange<string>;
+                    disabled?: WithKeyAndValueRange<boolean>;
                 }>;
                 bypassProxy?: WithKeyAndValueRange<string>;
             }>;
@@ -117,7 +120,7 @@ export type ParsedCollectionSettingsFile = ParsedYamlMap<{
             ignore?: WithKeyAndValueRange<{ value: string; range: Range }[]>;
             presets?: ParsedYamlMapWithKeyAndValueRange<{
                 request?: ParsedYamlMapWithKeyAndValueRange<{
-                    type?: WithKeyAndValueRange<string>;
+                    type?: WithKeyAndValueRange<BrunoPresetsRequestType>;
                     url?: WithKeyAndValueRange<string>;
                 }>;
                 defaultEnvironment?: WithKeyAndValueRange<string>;

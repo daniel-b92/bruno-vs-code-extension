@@ -197,7 +197,9 @@ function parseProxy(
     const { getBoolean, getMap, missingProperties } = getValidatedMapItems(
         proxyMap,
         {
-            scalars: { booleanValues: [ProxyProperty.Inherit] },
+            scalars: {
+                booleanValues: [ProxyProperty.Inherit, ProxyProperty.Disabled],
+            },
             mapValues: [ProxyProperty.Config],
         },
         commonArgs,
@@ -212,6 +214,9 @@ function parseProxy(
             missingProperties,
             properties: {
                 inherit: stripKeyFromResult(getBoolean(ProxyProperty.Inherit)),
+                disabled: stripKeyFromResult(
+                    getBoolean(ProxyProperty.Disabled),
+                ),
                 config: parseIfPresent(
                     getMap(ProxyProperty.Config),
                     (configMap) => parseProxyConfig(configMap, commonArgs),
@@ -275,13 +280,18 @@ function parseProxyConfig(
                     getMap(ProxyConfigProperty.Auth),
                     ({ keyRange, value: authMap }) => {
                         const authErrors: YamlParsingError[] = [];
-                        const { getString, missingProperties } =
+                        const { getString, getBoolean, missingProperties } =
                             getValidatedMapItems(
                                 authMap,
                                 {
                                     scalars: {
-                                        stringValues:
-                                            Object.values(ProxyAuthProperty),
+                                        stringValues: [
+                                            ProxyAuthProperty.Username,
+                                            ProxyAuthProperty.Password,
+                                        ],
+                                        booleanValues: [
+                                            ProxyAuthProperty.Disabled,
+                                        ],
                                     },
                                 },
                                 commonArgs,
@@ -302,6 +312,9 @@ function parseProxyConfig(
                                     ),
                                     password: stripKeyFromResult(
                                         getString(ProxyAuthProperty.Password),
+                                    ),
+                                    disabled: stripKeyFromResult(
+                                        getBoolean(ProxyAuthProperty.Disabled),
                                     ),
                                 },
                             },

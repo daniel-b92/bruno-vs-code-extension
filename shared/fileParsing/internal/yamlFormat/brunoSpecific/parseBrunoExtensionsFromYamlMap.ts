@@ -7,6 +7,7 @@ import {
 } from "../interfaces";
 import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { getStringListFromSequence } from "../yamlSequences/getStringListFromSequence";
+import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { parseIfPresent } from "../util/parseIfPresent";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
@@ -14,6 +15,7 @@ import {
     BrunoExtensionProperty,
     BrunoPresetsProperty,
     BrunoPresetsRequestProperty,
+    BrunoPresetsRequestType,
     CollectionExtensionsProperty,
 } from "../../../external/yamlFormat/constants/collectionSettingsFileConstants";
 
@@ -123,19 +125,24 @@ function parsePresets(
                     getMap(BrunoPresetsProperty.Request),
                     ({ keyRange, value: requestMap }) => {
                         const requestErrors: YamlParsingError[] = [];
-                        const { getString, missingProperties } =
-                            getValidatedMapItems(
-                                requestMap,
-                                {
-                                    scalars: {
-                                        stringValues: Object.values(
-                                            BrunoPresetsRequestProperty,
-                                        ),
-                                    },
+                        const {
+                            getString,
+                            items: {
+                                validScalars: { withStringValue },
+                            },
+                            missingProperties,
+                        } = getValidatedMapItems(
+                            requestMap,
+                            {
+                                scalars: {
+                                    stringValues: Object.values(
+                                        BrunoPresetsRequestProperty,
+                                    ),
                                 },
-                                commonArgs,
-                                requestErrors,
-                            );
+                            },
+                            commonArgs,
+                            requestErrors,
+                        );
                         return {
                             errors: requestErrors,
                             result: {
@@ -146,11 +153,17 @@ function parsePresets(
                                 ),
                                 missingProperties,
                                 properties: {
-                                    type: stripKeyFromResult(
-                                        getString(
-                                            BrunoPresetsRequestProperty.Type,
-                                        ),
-                                    ),
+                                    type: getTypedValueFromList<BrunoPresetsRequestType>(
+                                        {
+                                            allowedValues: Object.values(
+                                                BrunoPresetsRequestType,
+                                            ),
+                                            allStringValues: withStringValue,
+                                            keyName:
+                                                BrunoPresetsRequestProperty.Type,
+                                        },
+                                        requestErrors,
+                                    )?.value,
                                     url: stripKeyFromResult(
                                         getString(
                                             BrunoPresetsRequestProperty.Url,
