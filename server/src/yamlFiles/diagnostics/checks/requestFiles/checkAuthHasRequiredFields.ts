@@ -1,4 +1,4 @@
-import { AuthType, ParsedRequestFile } from "@global_shared";
+import { ParsedRequestFile } from "@global_shared";
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 
 export function checkAuthHasRequiredFields(
@@ -10,24 +10,8 @@ export function checkAuthHasRequiredFields(
     if (!auth || !("properties" in auth.value)) {
         return undefined;
     }
-    const { properties } = auth.value;
-    const missingKeys: string[] = [];
-
-    if (properties.type.value == AuthType.Basic) {
-        const { username, password } = properties as {
-            username?: unknown;
-            password?: unknown;
-        };
-        missingKeys.push(
-            ...(username ? [] : ["username"]),
-            ...(password ? [] : ["password"]),
-        );
-    } else if (
-        properties.type.value == AuthType.Bearer &&
-        !(properties as { token?: unknown }).token
-    ) {
-        missingKeys.push("token");
-    }
+    const { properties, missingProperties } = auth.value;
+    const missingKeys = missingProperties.map(({ key }) => key);
 
     return missingKeys.length > 0
         ? {

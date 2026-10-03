@@ -1,4 +1,4 @@
-import { YAMLMap } from "yaml";
+import { isScalar, YAMLMap } from "yaml";
 import {
     BrunoFileType,
     ParsedInfoForRequestFile,
@@ -94,15 +94,25 @@ export function parseRequestFile(
     const app = appMap
         ? parseAppSection(appMap, commonArgs, collectedErrors)
         : undefined;
-    const requestTypeSections = [
+    // Also includes sections with an invalid value, so that they do not get reported as missing.
+    const requestTypeSectionNames: string[] = [
         TopLevelRequestFileProperty.Http,
         TopLevelRequestFileProperty.Graphql,
         TopLevelRequestFileProperty.Grpc,
         TopLevelRequestFileProperty.Websocket,
-    ].flatMap((name) => {
-        const section = getMap(name);
-        return section ? [{ name, keyRange: section.keyRange }] : [];
-    });
+    ];
+    const requestTypeSections = maybeTopLevelMap.map.items.flatMap(({ key }) =>
+        isScalar(key) &&
+        typeof key.value == "string" &&
+        requestTypeSectionNames.includes(key.value)
+            ? [
+                  {
+                      name: key.value,
+                      keyRange: getRangeForItem(key, commonArgs),
+                  },
+              ]
+            : [],
+    );
 
     return {
         errors: collectedErrors,

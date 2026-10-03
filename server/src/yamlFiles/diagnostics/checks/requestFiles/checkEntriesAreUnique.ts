@@ -22,21 +22,38 @@ export function checkEntriesAreUnique(
 
     return [
         ...(headers
-            ? checkNamePropertyIsUniqueAcrossMaps(headers, commonParams)
+            ? checkCombinationOfPropertiesIsUnique(
+                  filePath,
+                  headers.flatMap(({ valueRange, properties: { name } }) =>
+                      // Header names are case-insensitive.
+                      name
+                          ? {
+                                values: [name.value.toLowerCase()],
+                                range: valueRange,
+                            }
+                          : [],
+                  ),
+                  ["name"],
+              )
             : []),
         ...(params
             ? checkCombinationOfPropertiesIsUnique(
                   filePath,
                   params.flatMap(
-                      ({ valueRange, properties: { type, name } }) =>
+                      ({ valueRange, properties: { type, name, value } }) =>
                           type && name
                               ? {
-                                    values: [type.value, name.value],
+                                    // Query params can be repeated with different values.
+                                    values: [
+                                        type.value,
+                                        name.value,
+                                        value?.value ?? "",
+                                    ],
                                     range: valueRange,
                                 }
                               : [],
                   ),
-                  ["type", "name"],
+                  ["type", "name", "value"],
               )
             : []),
         ...(variables
@@ -52,15 +69,22 @@ export function checkEntriesAreUnique(
             ? checkCombinationOfPropertiesIsUnique(
                   filePath,
                   assertions.flatMap(
-                      ({ valueRange, properties: { expression, operator } }) =>
+                      ({
+                          valueRange,
+                          properties: { expression, operator, value },
+                      }) =>
                           expression && operator
                               ? {
-                                    values: [expression.value, operator.value],
+                                    values: [
+                                        expression.value,
+                                        operator.value,
+                                        value?.value ?? "",
+                                    ],
                                     range: valueRange,
                                 }
                               : [],
                   ),
-                  ["expression", "operator"],
+                  ["expression", "operator", "value"],
               )
             : []),
         ...(actions

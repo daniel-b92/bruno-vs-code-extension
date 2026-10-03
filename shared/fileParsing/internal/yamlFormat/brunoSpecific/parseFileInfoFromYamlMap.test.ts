@@ -76,7 +76,9 @@ describe("parseFileInfoFromYamlMap", () => {
             });
 
             expect(errors).toHaveLength(1);
-            expect(errors[0].range).toEqual(getExpectedKeyRange(4, "unknown", 4));
+            expect(errors[0].range).toEqual(
+                getExpectedKeyRange(4, "unknown", 4),
+            );
             expect(result!.properties.name?.value).toBe("My Request");
         });
 
@@ -311,7 +313,10 @@ describe("parseFileInfoFromYamlMap", () => {
 
 function makeInfoMap(documentText: string) {
     const docHelper = new TextDocumentHelper(documentText);
-    const commonArgs = { docHelper, fullDocumentRange: docHelper.getTextRange() };
+    const commonArgs = {
+        docHelper,
+        fullDocumentRange: docHelper.getTextRange(),
+    };
     const parsedDocument = parseTextIntoYamlDocument(documentText);
     const innerMap = (parsedDocument.contents as YAMLMap).items[0]
         .value as YAMLMap;

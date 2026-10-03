@@ -24,7 +24,13 @@ export function checkJsonBodySyntax(
 
     return checkJsonSyntax(
         { content: data.value, contentRange: data.valueRange },
-        getPositionMappingForLiteralBlockScalar(data.valueRange, docHelper),
+        data.isLiteralBlockScalar
+            ? getPositionMappingForLiteralBlockScalar(
+                  data.value,
+                  data.valueRange,
+                  docHelper,
+              )
+            : undefined,
     )?.diagnostic;
 }
 
@@ -33,35 +39,41 @@ export function checkJsonBodySyntax(
  * For all other scalar styles (quoted, folded, plain), line breaks and escaping make a precise mapping unreliable.
  */
 function getPositionMappingForLiteralBlockScalar(
+    value: string,
     valueRange: Range,
     docHelper: TextDocumentHelper,
 ): PreciseErrorPositionMapping | undefined {
-    const headerLine = docHelper.getLineByIndex(valueRange.start.line);
-    const isLiteralBlockScalar = /^\|[+-]?\d*\s*(#.*)?$/.test(
-        headerLine.slice(valueRange.start.character).trim(),
-    );
-
-    if (!isLiteralBlockScalar) {
-        return undefined;
-    }
-
     const firstContentLine = valueRange.start.line + 1;
     const lastLine = Math.min(
         valueRange.end.line,
         docHelper.getLineCount() - 1,
     );
+    // Blank lines can be shorter than the indentation, so the first non-blank line determines it.
+    const firstNonBlankValueLine = value
+        .split("\n")
+        .find((line) => line.trim() != "");
+
+    if (firstNonBlankValueLine == undefined) {
+        return undefined;
+    }
 
     for (let i = firstContentLine; i <= lastLine; i++) {
         const line = docHelper.getLineByIndex(i);
 
         if (line.trim() != "") {
-            // Blank lines can be shorter than the indentation, so the first non-blank line determines it.
+            // Whitespace that is part of the value (more indentation than the block's) is not part of the block indentation.
             return {
                 firstContentLine,
-                indentation: line.length - line.trimStart().length,
+                indentation:
+                    leadingWhitespace(line) -
+                    leadingWhitespace(firstNonBlankValueLine),
             };
         }
     }
 
     return undefined;
+}
+
+function leadingWhitespace(line: string) {
+    return line.length - line.trimStart().length;
 }

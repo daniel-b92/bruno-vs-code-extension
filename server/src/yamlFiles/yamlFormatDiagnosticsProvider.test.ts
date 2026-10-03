@@ -12,7 +12,7 @@ http:
   headers:
     - name: h1
       value: v
-    - name: h1
+    - name: H1
       value: v2
       disabled: true
   params:
@@ -47,7 +47,7 @@ http:
       value: "5"
       type: path
     - name: id
-      value: "6"
+      value: "5"
       type: path
     - name: id
       value: "7"
@@ -72,7 +72,7 @@ runtime:
       value: "200"
     - expression: res.status
       operator: eq
-      value: "201"
+      value: "200"
     - expression: res.status
       operator: neq
       value: "201"
@@ -97,14 +97,39 @@ runtime:
 
         expect(diagnostics.map(({ message }) => message).sort()).toEqual([
             "Query params from URL '?a=1' do not match query params from 'params' '?id=7&a=1'",
-            "Same combination of expression, operator already defined",
-            "Same combination of type, name already defined",
+            "Same combination of expression, operator, value already defined",
+            "Same combination of type, name, value already defined",
             "Same combination of type, phase, selector expression, selector method already defined",
             "Same name already defined",
             "Same name already defined",
             "Same type already defined",
         ]);
         expect(diagnostics.every(({ severity }) => severity == 2)).toBe(true);
+    });
+
+    it("should not warn for repeated query params and assertions with different values", () => {
+        const diagnostics = getDiagnostics(`${infoSection}
+http:
+  method: GET
+  url: /items?tag=a&tag=b
+  params:
+    - name: tag
+      value: a
+      type: query
+    - name: tag
+      value: b
+      type: query
+runtime:
+  assertions:
+    - expression: res.body.status
+      operator: neq
+      value: failed
+    - expression: res.body.status
+      operator: neq
+      value: error
+`);
+
+        expect(diagnostics).toEqual([]);
     });
 
     it("should warn if path params and query params do not match the URL", () => {
@@ -265,6 +290,37 @@ runtime:
             [...basic, ...bearer].every(({ severity }) => severity == 2),
         ).toBe(true);
         expect(inherit).toEqual([]);
+    });
+
+    it("should not report a missing request type section, if the section exists with an invalid value", () => {
+        const diagnostics = getDiagnostics(`${infoSection}
+http:
+`);
+
+        expect(
+            diagnostics.some(({ message }) =>
+                String(message).includes("requires a"),
+            ),
+        ).toBe(false);
+    });
+
+    it("should point to the exact position of a JSON syntax error in a literal block scalar with an indentation indicator", () => {
+        const diagnostics = getDiagnostics(`${infoSection}
+http:
+  method: POST
+  url: /api
+  body:
+    type: json
+    data: |2
+        {"a": 1x}
+`);
+
+        const jsonDiagnostic = diagnostics.find(({ message }) =>
+            String(message).startsWith("Invalid JSON request body"),
+        );
+        // The line is indented by 8 characters in the document, the error is at column 7 within the line.
+        expect(jsonDiagnostic?.range.start.line).toBe(10);
+        expect(jsonDiagnostic?.range.start.character).toBe(8 + 7);
     });
 
     function getDiagnostics(content: string) {

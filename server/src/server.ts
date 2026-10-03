@@ -1,3 +1,4 @@
+import { parse } from "yaml";
 import {
     createConnection,
     TextDocuments,
@@ -376,9 +377,12 @@ function getDiagnosticsForYamlFile(filePath: string, text: string) {
 }
 
 function isYamlAppFile(text: string) {
-    return /^info:\s*\n(?:[ \t]+.*\n)*?[ \t]+type:\s*["']?app["']?\s*$/m.test(
-        text,
-    );
+    try {
+        return parse(text)?.info?.type == "app";
+    } catch {
+        // Invalid yaml syntax gets reported by the diagnostics for the file type that is assumed instead.
+        return false;
+    }
 }
 
 async function getBrunoFileTypeIfExists(
