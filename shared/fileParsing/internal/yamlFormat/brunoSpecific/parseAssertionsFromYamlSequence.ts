@@ -1,6 +1,7 @@
 import { YAMLMap, YAMLSeq } from "yaml";
 import {
     CommonParsingArgs,
+    EnabledAndDisabledItems,
     MaybeResultWithErrors,
     ParsedAssertion,
 } from "../interfaces";
@@ -21,8 +22,9 @@ import { getRangeForItem } from "../util/getRangeForItem";
 export function parseAssertionsFromYamlSequence(
     assertionsSequence: YAMLSeq,
     commonArgs: CommonParsingArgs,
-): MaybeResultWithErrors<ParsedAssertion[]> {
-    const result: ParsedAssertion[] = [];
+): MaybeResultWithErrors<EnabledAndDisabledItems<ParsedAssertion>> {
+    const enabled: ParsedAssertion[] = [];
+    const disabled: ParsedAssertion[] = [];
     const errors: YamlParsingError[] = [];
 
     const { items: assertionMaps, errors: sequenceParsingErrors } =
@@ -32,37 +34,47 @@ export function parseAssertionsFromYamlSequence(
         });
     errors.push(...sequenceParsingErrors);
 
-    const keysForStringScalars = Object.values(AssertionMapProperty);
+    const keysForStringScalars = Object.values(AssertionMapProperty).filter(
+        (key) => key != AssertionMapProperty.Disabled,
+    );
 
     for (const currentMap of assertionMaps) {
-        const { getString, missingProperties } = getValidatedMapItems(
-            currentMap,
-            {
-                scalars: { stringValues: keysForStringScalars },
-                mandatoryKeys: [
-                    AssertionMapProperty.Expression,
-                    AssertionMapProperty.Operator,
-                ],
-            },
-            commonArgs,
-            errors,
-        );
+        const { getString, getBoolean, missingProperties } =
+            getValidatedMapItems(
+                currentMap,
+                {
+                    scalars: {
+                        stringValues: keysForStringScalars,
+                        booleanValues: [AssertionMapProperty.Disabled],
+                    },
+                    mandatoryKeys: [
+                        AssertionMapProperty.Expression,
+                        AssertionMapProperty.Operator,
+                    ],
+                },
+                commonArgs,
+                errors,
+            );
         const { errors: parsingErrors, result: currentAssertion } =
             parseAssertion(
                 currentMap,
                 commonArgs,
                 getString,
+                getBoolean,
                 missingProperties,
             );
         errors.push(...parsingErrors);
         if (!currentAssertion) {
             continue;
         }
-        result.push(currentAssertion);
+        (currentAssertion.properties.disabled.effectiveValue
+            ? disabled
+            : enabled
+        ).push(currentAssertion);
     }
 
     return {
-        result,
+        result: { enabled, disabled },
         errors,
     };
 }
@@ -71,12 +83,14 @@ function parseAssertion(
     yamlMap: YAMLMap,
     commonArgs: CommonParsingArgs,
     getString: ValidatedMapItems["getString"],
+    getBoolean: ValidatedMapItems["getBoolean"],
     missingProperties: YamlMapMissingPropertyInfo[],
 ): MaybeResultWithErrors<ParsedAssertion> {
     const collectedErrors: YamlParsingError[] = [];
     const maybeExpressionWithKey = getString(AssertionMapProperty.Expression);
     const maybeValueWithKey = getString(AssertionMapProperty.Value);
     const maybeDescriptionWithKey = getString(AssertionMapProperty.Description);
+    const maybeDisabledWithKey = getBoolean(AssertionMapProperty.Disabled);
     const maybeUntypedOperatorWithKey = getString(
         AssertionMapProperty.Operator,
     );
@@ -102,6 +116,11 @@ function parseAssertion(
                 operator: maybeTypedOperator?.value,
                 value: stripKeyFromResult(maybeValueWithKey),
                 description: stripKeyFromResult(maybeDescriptionWithKey),
+                disabled: {
+                    // The default value is `false`, if not explicitly defined.
+                    effectiveValue: maybeDisabledWithKey?.value ?? false,
+                    field: stripKeyFromResult(maybeDisabledWithKey),
+                },
             },
         },
     };

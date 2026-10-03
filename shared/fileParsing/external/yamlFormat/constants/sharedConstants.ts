@@ -59,6 +59,7 @@ export enum AssertionMapProperty {
     Operator = "operator",
     Value = "value",
     Description = "description",
+    Disabled = "disabled",
 }
 
 export enum AssertionOperator {

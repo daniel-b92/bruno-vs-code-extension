@@ -101,17 +101,19 @@ http:
 
             const headers = http!.properties.headers;
             expect(headers).toBeDefined();
-            expect(headers).toHaveLength(1);
-            expect(headers![0].properties.name?.value).toBe("Content-Type");
-            expect(headers![0].properties.value?.value).toBe(
+            expect(headers!.enabled).toHaveLength(1);
+            expect(headers!.enabled[0].properties.name?.value).toBe(
+                "Content-Type",
+            );
+            expect(headers!.enabled[0].properties.value?.value).toBe(
                 "application/json",
             );
 
             const params = http!.properties.params;
             expect(params).toBeDefined();
-            expect(params).toHaveLength(1);
-            expect(params![0].properties.name?.value).toBe("page");
-            expect(params![0].properties.value?.value).toBe("1");
+            expect(params!.enabled).toHaveLength(1);
+            expect(params!.enabled[0].properties.name?.value).toBe("page");
+            expect(params!.enabled[0].properties.value?.value).toBe("1");
         });
 
         it("parses a request file with auth as scalar (inherit)", () => {
@@ -249,6 +251,45 @@ settings:
             expect(errors).toHaveLength(0);
             expect(result).toBeDefined();
             expect(result!.properties.settings).toBeDefined();
+        });
+
+        it("parses a request file with settings missing some properties", () => {
+            const documentText = `info:
+    name: old settings request
+    type: http
+    seq: 8
+
+settings:
+    encodeUrl: true
+    timeout: 0`;
+
+            const { result, errors } = parseRequestFile(
+                new TextDocumentHelper(documentText),
+            );
+
+            expect(errors).toHaveLength(0);
+            expect(result!.properties.settings).toBeDefined();
+        });
+
+        it("parses a request file with an examples sequence", () => {
+            const documentText = `info:
+    name: examples request
+    type: http
+    seq: 8
+
+examples:
+    - name: example
+      request:
+          url: http://example.com
+          method: GET
+      response:
+          status: 200`;
+
+            const { errors } = parseRequestFile(
+                new TextDocumentHelper(documentText),
+            );
+
+            expect(errors).toHaveLength(0);
         });
 
         it("parses a request file with all top-level sections", () => {

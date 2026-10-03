@@ -126,7 +126,7 @@ describe("parseSettingsFromYamlMap", () => {
         );
     });
 
-    it("returns undefined properties when settings map is empty", () => {
+    it("returns undefined properties without errors when settings map is empty", () => {
         const documentText = `settings: {}`;
 
         const { commonArgs, settingsMap } = makeSettingsMap(documentText);
@@ -135,7 +135,7 @@ describe("parseSettingsFromYamlMap", () => {
             commonArgs,
         );
 
-        expect(errors).toHaveLength(5);
+        expect(errors).toHaveLength(0);
         expect(result.properties.encodeUrl).toBeUndefined();
         expect(result.properties.followRedirects).toBeUndefined();
         expect(result.properties.forwardAuthorizationHeader).toBeUndefined();

@@ -36,8 +36,7 @@ export function parseSettingsFromYamlMap(
                         RequestFileSettingsProperty.Timeout,
                     ],
                 },
-                // All properties are mandatory.
-                mandatoryKeys: Object.values(RequestFileSettingsProperty),
+                // All properties are optional (e.g. older files lack newer settings).
             },
             commonArgs,
             errors,

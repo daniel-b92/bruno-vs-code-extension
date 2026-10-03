@@ -9,16 +9,10 @@ import { checkNamePropertyIsUniqueAcrossMaps } from "../../shared/checkNamePrope
 import { checkVariableTypesMatchValueData } from "../../shared/checkVariableValuesMatchTypes";
 
 export function checkVariableDefinitionsAreValid(
-    variables: {
-        enabled: ParsedEnvironmentVariable[];
-        disabled: ParsedEnvironmentVariable[];
-    },
+    enabledVars: ParsedEnvironmentVariable[],
     commonParams: CommonDiagnosticParams,
 ): (Diagnostic | undefined)[] {
-    const { enabled: enabledVars, disabled: disabledVars } = variables;
-    const allVariables = enabledVars.concat(disabledVars);
-
-    return allVariables
+    return enabledVars
         .flatMap((variable) => {
             const {
                 properties: { name, secret },
@@ -41,7 +35,7 @@ export function checkVariableDefinitionsAreValid(
         })
         .concat(
             checkNamePropertyIsUniqueAcrossMaps(enabledVars, commonParams),
-            checkVariableTypesMatchValueData(variables.enabled, commonParams),
+            checkVariableTypesMatchValueData(enabledVars, commonParams),
         );
 }
 

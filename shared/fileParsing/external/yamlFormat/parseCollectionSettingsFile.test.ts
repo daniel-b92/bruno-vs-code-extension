@@ -129,7 +129,7 @@ docs:
         );
 
         const request = properties.request!.properties;
-        expect(request.headers).toHaveLength(1);
+        expect(request.headers?.enabled).toHaveLength(1);
         expect(request.variables?.enabled).toHaveLength(2);
         expect(request.actions?.enabled).toHaveLength(1);
         expect(request.scripts).toHaveLength(3);

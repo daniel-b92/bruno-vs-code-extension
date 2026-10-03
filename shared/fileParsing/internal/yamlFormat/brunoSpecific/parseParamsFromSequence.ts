@@ -2,6 +2,7 @@ import { YAMLSeq } from "yaml";
 import { YamlParsingError } from "../../../..";
 import {
     CommonParsingArgs,
+    EnabledAndDisabledItems,
     MaybeResultWithErrors,
     ParsedHttpParam,
 } from "../interfaces";
@@ -18,9 +19,10 @@ import {
 export function parseParamsFromSequence(
     paramsSequence: YAMLSeq,
     commonArgs: CommonParsingArgs,
-): MaybeResultWithErrors<ParsedHttpParam[]> {
+): MaybeResultWithErrors<EnabledAndDisabledItems<ParsedHttpParam>> {
     const errors: YamlParsingError[] = [];
-    const result: ParsedHttpParam[] = [];
+    const enabled: ParsedHttpParam[] = [];
+    const disabled: ParsedHttpParam[] = [];
 
     const { items: paramMaps, errors: errorsFromSeq } = getYamlMapsFromSequence(
         {
@@ -81,7 +83,7 @@ export function parseParamsFromSequence(
             errors,
         )?.value;
 
-        result.push({
+        const param: ParsedHttpParam = {
             valueRange: getRangeForItem(paramMap, commonArgs),
             properties: {
                 name: stripKeyFromResult(name),
@@ -100,8 +102,11 @@ export function parseParamsFromSequence(
                 },
             },
             missingProperties,
-        });
+        };
+        (param.properties.disabled.effectiveValue ? disabled : enabled).push(
+            param,
+        );
     }
 
-    return { errors, result };
+    return { errors, result: { enabled, disabled } };
 }

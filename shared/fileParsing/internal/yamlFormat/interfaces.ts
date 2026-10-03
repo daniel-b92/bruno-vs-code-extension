@@ -85,7 +85,14 @@ export type ParsedAssertion = ParsedYamlMapWithValueRange<{
     operator?: WithKeyAndValueRange<AssertionOperator>;
     value?: WithKeyAndValueRange<string>;
     description?: WithKeyAndValueRange<string>;
+    disabled: OptionalVariableFieldResult<boolean>;
 }>;
+
+/** Items of a sequence, split by their `disabled` property. */
+export interface EnabledAndDisabledItems<T> {
+    enabled: T[];
+    disabled: T[];
+}
 
 export type ParsedRequestFileAppSection = ParsedYamlMapWithKeyAndValueRange<{
     enabled?: WithKeyAndValueRange<boolean>;
@@ -126,16 +133,10 @@ export type ParsedSettings = ParsedYamlMapWithKeyAndValueRange<{
 
 export type ParsedSettingsFileRequestSection =
     ParsedYamlMapWithKeyAndValueRange<{
-        headers?: ParsedRequestHeader[];
+        headers?: EnabledAndDisabledItems<ParsedRequestHeader>;
         auth?: ParsedAuth;
-        variables?: {
-            enabled: ParsedRequestVariable[];
-            disabled: ParsedRequestVariable[];
-        };
-        actions?: {
-            enabled: ParsedAction[];
-            disabled: ParsedAction[];
-        };
+        variables?: EnabledAndDisabledItems<ParsedRequestVariable>;
+        actions?: EnabledAndDisabledItems<ParsedAction>;
         scripts?: ParsedScript[];
     }>;
 

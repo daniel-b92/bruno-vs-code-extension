@@ -20,9 +20,7 @@ export function checkUrlMatchesParams(
         return [];
     }
 
-    const enabledParams = (http.properties.params ?? []).filter(
-        ({ properties: { disabled } }) => !disabled.effectiveValue,
-    );
+    const enabledParams = http.properties.params?.enabled ?? [];
     const getParamsWithType = (type: HttpParamType) =>
         enabledParams.filter(
             ({ properties: { type: paramType, name } }) =>

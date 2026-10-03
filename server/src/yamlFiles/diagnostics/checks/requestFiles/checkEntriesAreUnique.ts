@@ -3,6 +3,7 @@ import { Diagnostic } from "vscode-languageserver";
 import { CommonDiagnosticParams } from "../../../interfaces";
 import { checkNamePropertyIsUniqueAcrossMaps } from "../../shared/checkNamePropertyIsUniqueAcrossMaps";
 import { checkTypePropertyIsUniqueAcrossMaps } from "../../shared/checkTypePropertyIsUniqueAcrossMaps";
+import { checkHeaderNamesAreUnique } from "../../shared/checkHeaderNamesAreUnique";
 import { checkCombinationOfPropertiesIsUnique } from "../../shared/generic/checkCombinationOfPropertiesIsUnique";
 
 export function checkEntriesAreUnique(
@@ -11,31 +12,13 @@ export function checkEntriesAreUnique(
 ): (Diagnostic | undefined)[] {
     const { filePath } = commonParams;
 
-    const headers = http?.properties.headers?.filter(
-        ({ properties: { disabled } }) => !disabled.effectiveValue,
-    );
-    const params = http?.properties.params?.filter(
-        ({ properties: { disabled } }) => !disabled.effectiveValue,
-    );
+    const headers = http?.properties.headers?.enabled;
+    const params = http?.properties.params?.enabled;
     const { variables, scripts, assertions, actions } =
         runtime?.properties ?? {};
 
     return [
-        ...(headers
-            ? checkCombinationOfPropertiesIsUnique(
-                  filePath,
-                  headers.flatMap(({ valueRange, properties: { name } }) =>
-                      // Header names are case-insensitive.
-                      name
-                          ? {
-                                values: [name.value.toLowerCase()],
-                                range: valueRange,
-                            }
-                          : [],
-                  ),
-                  ["name"],
-              )
-            : []),
+        ...(headers ? checkHeaderNamesAreUnique(headers, filePath) : []),
         ...(params
             ? checkCombinationOfPropertiesIsUnique(
                   filePath,
@@ -68,7 +51,7 @@ export function checkEntriesAreUnique(
         ...(assertions
             ? checkCombinationOfPropertiesIsUnique(
                   filePath,
-                  assertions.flatMap(
+                  assertions.enabled.flatMap(
                       ({
                           valueRange,
                           properties: { expression, operator, value },

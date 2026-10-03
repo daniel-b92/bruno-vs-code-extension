@@ -9,7 +9,7 @@ export function checkResponseValidationExists(
     const { assertions, scripts } = runtime?.properties ?? {};
 
     const validationExists =
-        (assertions && assertions.length > 0) ||
+        (assertions && assertions.enabled.length > 0) ||
         scripts?.some(
             ({ properties: { type } }) =>
                 type?.value == ScriptType.AfterResponse ||
