@@ -23,6 +23,9 @@ import { checkAuthHasRequiredFields } from "./diagnostics/checks/requestFiles/ch
 import { checkTagsAreUnique } from "./diagnostics/checks/requestFiles/checkTagsAreUnique";
 import { checkResponseValidationExists } from "./diagnostics/checks/requestFiles/checkResponseValidationExists";
 
+const BRUNO_DIAGNOSTICS_SOURCE = "Bruno";
+const YAML_SYNTAX_DIAGNOSTICS_SOURCE = "Bruno (YAML syntax)";
+
 export class YamlFormatDiagnosticsProvider {
     constructor() {}
 
@@ -38,6 +41,20 @@ export class YamlFormatDiagnosticsProvider {
             fullDocumentRange: docHelper.getTextRange(),
         };
 
+        return this.getDiagnosticsWithoutSource(
+            brunoFileType,
+            commonParams,
+        ).map((diagnostic) => ({
+            ...diagnostic,
+            // Diagnostics without a specific source stem from Bruno specific checks.
+            source: diagnostic.source ?? BRUNO_DIAGNOSTICS_SOURCE,
+        }));
+    }
+
+    private getDiagnosticsWithoutSource(
+        brunoFileType: BrunoFileType,
+        commonParams: CommonDiagnosticParams,
+    ): Diagnostic[] {
         switch (brunoFileType) {
             case BrunoFileType.EnvironmentFile:
                 return this.getDiagnosticsForEnvironmentFile(commonParams);
@@ -177,6 +194,10 @@ function mapParsingErrorsToDiagnostics(
     return parsingErrors.map((err) => ({
         ...err,
         code: undefined,
+        source:
+            err.code == YamlParsingErrorCode.InvalidYamlSyntax
+                ? YAML_SYNTAX_DIAGNOSTICS_SOURCE
+                : undefined,
         severity:
             err.code == YamlParsingErrorCode.UnknownFieldInMap
                 ? DiagnosticSeverity.Warning

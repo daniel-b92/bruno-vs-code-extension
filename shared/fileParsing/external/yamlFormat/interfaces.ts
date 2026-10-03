@@ -21,6 +21,7 @@ import {
 export enum YamlParsingErrorCode {
     ItemDoesNotExist = 1,
     UnknownFieldInMap = 2,
+    InvalidYamlSyntax = 3,
     Other = 99,
 }
 
