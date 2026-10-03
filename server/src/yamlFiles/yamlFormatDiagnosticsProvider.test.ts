@@ -332,6 +332,91 @@ http:
     }
 });
 
+describe("YamlFormatDiagnosticsProvider for collection settings files", () => {
+    const provider = new YamlFormatDiagnosticsProvider();
+
+    it("should not return diagnostics for a valid collection settings file", () => {
+        const diagnostics = getDiagnostics(`${header}
+config:
+  clientCertificates:
+    - domain: a.com
+      type: pem
+      certificateFilePath: c.pem
+      privateKeyFilePath: k.pem
+    - domain: b.com
+      type: pkcs12
+      pfxFilePath: c.pfx
+request:
+  headers:
+    - name: h1
+      value: v
+`);
+
+        expect(diagnostics).toEqual([]);
+    });
+
+    it("should report missing and disallowed keys for the client certificate type", () => {
+        const diagnostics = getDiagnostics(`${header}
+config:
+  clientCertificates:
+    - domain: a.com
+      type: pem
+      certificateFilePath: c.pem
+      pfxFilePath: c.pfx
+    - domain: b.com
+      type: pkcs12
+      privateKeyFilePath: k.pem
+`);
+
+        expect(diagnostics.map(({ message }) => message)).toEqual([
+            "Missing keys for client certificate type 'pem': 'privateKeyFilePath'.",
+            "Key 'pfxFilePath' is not allowed for client certificate type 'pem'.",
+            "Missing keys for client certificate type 'pkcs12': 'pfxFilePath'.",
+            "Key 'privateKeyFilePath' is not allowed for client certificate type 'pkcs12'.",
+        ]);
+    });
+
+    it("should warn for duplicate headers in the request section", () => {
+        const diagnostics = getDiagnostics(`${header}
+request:
+  headers:
+    - name: h1
+      value: a
+    - name: h1
+      value: b
+`);
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0].message).toBe("Same name already defined");
+    });
+
+    it("should warn if keys are missing for the auth type in the request section", () => {
+        const diagnostics = getDiagnostics(`${header}
+request:
+  auth:
+    type: basic
+    username: u
+`);
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0].message).toBe(
+            "Missing keys for auth type 'basic': 'password'.",
+        );
+    });
+
+    function getDiagnostics(content: string) {
+        return provider.getDiagnosticsForYamlFile(
+            "/collection/opencollection.yml",
+            content,
+            BrunoFileType.CollectionSettingsFile,
+        );
+    }
+});
+
+const header = `opencollection: 1.0.0
+info:
+  name: example`;
+
 function validRequest(sections: { info?: string; http?: string }) {
     return `${sections.info ?? infoSection}
 http:

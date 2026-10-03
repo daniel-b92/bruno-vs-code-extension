@@ -351,6 +351,16 @@ function getDiagnosticsForYamlFile(filePath: string, text: string) {
         );
     }
     if (
+        // ToDo: Once yaml files are stored in the file system cache, use the itemType for identifying collection settings files.
+        basename(filePath) == "opencollection.yml"
+    ) {
+        return yamlDiagnosticsProvider.getDiagnosticsForYamlFile(
+            filePath,
+            text,
+            BrunoFileType.CollectionSettingsFile,
+        );
+    }
+    if (
         // ToDo: Once yaml files are stored in the file system cache, use the itemType for identifying folder settings files.
         basename(filePath) == "folder.yml"
     ) {
@@ -363,7 +373,6 @@ function getDiagnosticsForYamlFile(filePath: string, text: string) {
 
     if (
         // ToDo: Once yaml files are stored in the file system cache, use the itemType for identifying request files.
-        basename(filePath) != "opencollection.yml" &&
         !isYamlAppFile(text)
     ) {
         return yamlDiagnosticsProvider.getDiagnosticsForYamlFile(

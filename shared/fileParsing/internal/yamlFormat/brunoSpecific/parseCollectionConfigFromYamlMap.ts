@@ -335,9 +335,6 @@ function parseProxyAuth(
     };
 }
 
-// TODO: Validate the certificate fields against the certificate type.
-// - Type `pem` should require `certificateFilePath` and `privateKeyFilePath` and should not allow `pfxFilePath`.
-// - Type `pkcs12` should require `pfxFilePath` and should not allow `certificateFilePath` and `privateKeyFilePath`.
 function parseClientCertificate(
     map: YAMLMap,
     commonArgs: CommonParsingArgs,
