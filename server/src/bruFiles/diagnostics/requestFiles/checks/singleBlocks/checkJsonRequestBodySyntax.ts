@@ -15,7 +15,10 @@ export function checkJsonRequestBodySyntax(
             content: requestBody.content,
             contentRange: requestBody.contentRange,
         },
-        true,
+        {
+            firstContentLine: requestBody.contentRange.start.line,
+            indentation: 0,
+        },
     );
 
     return result

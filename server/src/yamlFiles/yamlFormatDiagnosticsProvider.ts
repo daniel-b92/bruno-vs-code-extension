@@ -104,7 +104,10 @@ export class YamlFormatDiagnosticsProvider {
                 properties.http?.properties.body,
                 commonParams,
             ),
-            checkJsonBodySyntax(properties.http?.properties.body),
+            checkJsonBodySyntax(
+                properties.http?.properties.body,
+                commonParams.docHelper,
+            ),
             checkAuthHasRequiredFields(properties.http?.properties.auth),
             checkResponseValidationExists(properties.runtime, commonParams),
         ];

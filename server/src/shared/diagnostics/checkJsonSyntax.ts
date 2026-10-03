@@ -1,6 +1,15 @@
 import { Range, TextDocumentHelper, Position } from "@global_shared";
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 
+export interface PreciseErrorPositionMapping {
+    /** The line in the document that the first line of the content is located in. */
+    firstContentLine: number;
+    /** The number of characters that each content line is indented by in the document. */
+    indentation: number;
+}
+
+const messagePrefix = "Invalid JSON request body: ";
+
 export interface JsonSyntaxCheckResult {
     diagnostic: Diagnostic;
     isUnexpectedError: boolean;
@@ -10,13 +19,14 @@ export interface JsonSyntaxCheckResult {
  * Checks that the given content is valid JSON (while ignoring variable placeholders like `{{varName}}`).
  *
  * @param requestBody The JSON content and the range that the content has in the document.
- * @param reportPreciseErrorPosition Whether the diagnostic should point to the exact error position within the content.
- * This is only valid, if the content has the same line breaks and indentation in the document as in `requestBody.content`.
+ * @param preciseErrorPositionMapping If defined, the diagnostic will point to the exact error position within the content.
+ * This is only valid, if the content has the same line breaks in the document as in `requestBody.content`
+ * and every line is only shifted by a constant indentation.
  * Otherwise, the whole `contentRange` will be used for the diagnostic.
  */
 export function checkJsonSyntax(
     requestBody: { content: string; contentRange: Range },
-    reportPreciseErrorPosition: boolean,
+    preciseErrorPositionMapping?: PreciseErrorPositionMapping,
 ): JsonSyntaxCheckResult | undefined {
     const regexForFindingVariableOccurences = /{{\S+?}}/g;
     const placeholderForVariables = "1";
@@ -41,7 +51,7 @@ export function checkJsonSyntax(
             err,
             regexForFindingVariableOccurences,
             placeholderForVariables,
-            reportPreciseErrorPosition,
+            preciseErrorPositionMapping,
         );
     }
 }
@@ -52,7 +62,7 @@ function getDiagnostic(
     errorInBlockWithReplacements: unknown,
     regexForFindingVariableOccurences: RegExp,
     placeholderForVariables: string,
-    reportPreciseErrorPosition: boolean,
+    preciseErrorPositionMapping: PreciseErrorPositionMapping | undefined,
 ): JsonSyntaxCheckResult {
     if (!(errorInBlockWithReplacements instanceof SyntaxError)) {
         return getDiagnosticForUnexpectedErrorWhileParsingJson(
@@ -61,7 +71,7 @@ function getDiagnostic(
         );
     }
 
-    const startPositionWithinBlock = reportPreciseErrorPosition
+    const startPositionWithinBlock = preciseErrorPositionMapping
         ? getPositionForSyntaxErrorWithinBlock(
               documentForBlock,
               errorInBlockWithReplacements,
@@ -70,27 +80,20 @@ function getDiagnostic(
           )
         : undefined;
 
-    if (startPositionWithinBlock) {
-        const searchString = "at position ";
+    if (startPositionWithinBlock && preciseErrorPositionMapping) {
         const positionInFullDocument = new Position(
             startPositionWithinBlock.line +
-                actualRequestBody.contentRange.start.line,
-            startPositionWithinBlock.character,
+                preciseErrorPositionMapping.firstContentLine,
+            startPositionWithinBlock.character +
+                preciseErrorPositionMapping.indentation,
         );
 
         return {
             isUnexpectedError: false,
             diagnostic: {
-                message: errorInBlockWithReplacements.message.includes(
-                    searchString,
-                )
-                    ? errorInBlockWithReplacements.message.substring(
-                          0,
-                          errorInBlockWithReplacements.message.lastIndexOf(
-                              searchString,
-                          ),
-                      )
-                    : errorInBlockWithReplacements.message,
+                message: getMessageWithoutPosition(
+                    errorInBlockWithReplacements,
+                ),
                 range: new Range(
                     positionInFullDocument,
                     positionInFullDocument,
@@ -104,6 +107,18 @@ function getDiagnostic(
             errorInBlockWithReplacements,
         );
     }
+}
+
+/**
+ * The position information in the message of the syntax error (e.g. `at position 14 (line 2 column 13)`) is relative to the extracted content,
+ * so it would be misleading when shown for the whole document.
+ */
+function getMessageWithoutPosition(error: SyntaxError) {
+    const messageWithoutPosition = error.message.replace(
+        /(\s+in JSON)?\s+at position \d+.*$/s,
+        "",
+    );
+    return `${messagePrefix}${messageWithoutPosition}`;
 }
 
 function getPositionForSyntaxErrorWithinBlock(
@@ -203,7 +218,7 @@ function getDiagnosticForUnexpectedErrorWhileParsingJson(
     return {
         isUnexpectedError: true,
         diagnostic: {
-            message: `An unexpected error ocured while trying to parse the JSON request body. ${
+            message: `An unexpected error occurred while trying to parse the JSON request body. ${
                 error instanceof Error
                     ? `Got error message '${error.message}'.`
                     : "Failed to parse message from error."
@@ -221,7 +236,7 @@ function getDiagnosticForSyntaxErrorWithoutPosition(
     return {
         isUnexpectedError: false,
         diagnostic: {
-            message: error.message,
+            message: getMessageWithoutPosition(error),
             range: blockContentRange,
             severity: DiagnosticSeverity.Error,
         },
