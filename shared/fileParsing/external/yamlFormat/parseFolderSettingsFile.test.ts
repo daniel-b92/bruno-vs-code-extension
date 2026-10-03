@@ -2,10 +2,8 @@ import { describe, it, expect } from "@jest/globals";
 import { TextDocumentHelper } from "../../../fileSystem/textDocumentHelper";
 import { parseFolderSettingsFile, Position, Range } from "../../..";
 import { getExpectedKeyRange } from "../../../_testingUtils";
-import {
-    FolderSettingsRequestSectionProperty,
-    TopLevelFolderSettingsProperty,
-} from "./constants/folderSettingsFileConstants";
+import { TopLevelFolderSettingsProperty } from "./constants/folderSettingsFileConstants";
+import { SettingsFileRequestSectionProperty } from "./constants/sharedConstants";
 
 describe("parseFolderSettingsFile", () => {
     it("parses valid file with all sections defined", () => {
@@ -188,8 +186,7 @@ docs:
         );
         expect(
             properties.request?.missingProperties.some(
-                ({ key }) =>
-                    key == FolderSettingsRequestSectionProperty.Headers,
+                ({ key }) => key == SettingsFileRequestSectionProperty.Headers,
             ),
         ).toBeTruthy();
         expect(properties.request?.properties.auth).toBeUndefined();

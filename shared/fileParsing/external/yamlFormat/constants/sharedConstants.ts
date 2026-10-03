@@ -91,3 +91,11 @@ export enum AssertionOperator {
     IsBoolean = "isBoolean",
     IsArray = "isArray",
 }
+
+export enum SettingsFileRequestSectionProperty {
+    Headers = "headers",
+    Auth = "auth",
+    Variables = "variables",
+    Actions = "actions",
+    Scripts = "scripts",
+}
