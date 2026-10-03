@@ -1,5 +1,6 @@
 import {
     BrunoFileType,
+    parseCollectionSettingsFile,
     parseFolderSettingsFile,
     parseRequestFile,
     parseYamlEnvironmentFile,
@@ -11,9 +12,9 @@ import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import { checkTopLevelNameIsDefined } from "./diagnostics/checks/environmentFiles/checkTopLevelNameIsDefined";
 import { CommonDiagnosticParams } from "./interfaces";
 import { checkVariableDefinitionsAreValid } from "./diagnostics/checks/environmentFiles/checkVariableDefinitionsAreValid";
-import { checkNamePropertyIsUniqueAcrossMaps } from "./diagnostics/shared/checkNamePropertyIsUniqueAcrossMaps";
-import { checkVariableTypesMatchValueData } from "./diagnostics/shared/checkVariableValuesMatchTypes";
-import { checkTypePropertyIsUniqueAcrossMaps } from "./diagnostics/shared/checkTypePropertyIsUniqueAcrossMaps";
+import { checkSettingsFileRequestSection } from "./diagnostics/shared/checkSettingsFileRequestSection";
+import { checkAuthIsNotInherited } from "./diagnostics/checks/collectionSettingsFiles/checkAuthIsNotInherited";
+import { checkClientCertificatesMatchType } from "./diagnostics/checks/collectionSettingsFiles/checkClientCertificatesMatchType";
 import { checkEntriesAreUnique } from "./diagnostics/checks/requestFiles/checkEntriesAreUnique";
 import { checkUrlMatchesParams } from "./diagnostics/checks/requestFiles/checkUrlMatchesParams";
 import { checkRequestTypeMatchesSections } from "./diagnostics/checks/requestFiles/checkRequestTypeMatchesSections";
@@ -58,6 +59,10 @@ export class YamlFormatDiagnosticsProvider {
         switch (brunoFileType) {
             case BrunoFileType.EnvironmentFile:
                 return this.getDiagnosticsForEnvironmentFile(commonParams);
+            case BrunoFileType.CollectionSettingsFile:
+                return this.getDiagnosticsForCollectionSettingsFile(
+                    commonParams,
+                );
             case BrunoFileType.FolderSettingsFile:
                 return this.getDiagnosticsForFolderSettingsFile(commonParams);
             case BrunoFileType.RequestFile:
@@ -133,6 +138,35 @@ export class YamlFormatDiagnosticsProvider {
         );
     }
 
+    public getDiagnosticsForCollectionSettingsFile(
+        commonParams: CommonDiagnosticParams,
+    ): Diagnostic[] {
+        const { errors, result: parsingResult } = parseCollectionSettingsFile(
+            commonParams.docHelper,
+        );
+        const parsingDiagnostics = mapParsingErrorsToDiagnostics(errors);
+
+        if (!parsingResult) {
+            return parsingDiagnostics;
+        }
+        const { properties } = parsingResult;
+
+        // ToDo: Once yaml collections are available in the cache, check that the configured default environment in presets actually exists.
+        const otherDiagnostics = [
+            ...checkSettingsFileRequestSection(
+                properties.request,
+                commonParams,
+            ),
+            checkAuthIsNotInherited(properties.request?.properties.auth),
+            ...checkClientCertificatesMatchType(
+                properties.config?.properties.clientCertificates,
+            ),
+        ];
+        return parsingDiagnostics.concat(
+            otherDiagnostics.filter((d) => d != undefined),
+        );
+    }
+
     public getDiagnosticsForFolderSettingsFile(
         commonParams: CommonDiagnosticParams,
     ): Diagnostic[] {
@@ -145,43 +179,11 @@ export class YamlFormatDiagnosticsProvider {
         if (!parsingResult) {
             return parsingDiagnostics;
         }
-        const requestProps = parsingResult.properties.request?.properties;
-
-        if (!requestProps) {
-            return parsingDiagnostics;
-        }
-        const { actions, headers, scripts, variables } = requestProps;
-
         // ToDo: Once the yaml collection items are cached, check that the sequence is unique within the parent folder.
-        const otherDiagnostics = variables
-            ? checkNamePropertyIsUniqueAcrossMaps(
-                  variables.enabled,
-                  commonParams,
-              ).concat(
-                  checkVariableTypesMatchValueData(
-                      variables.enabled,
-                      commonParams,
-                  ),
-                  headers
-                      ? checkNamePropertyIsUniqueAcrossMaps(
-                            headers,
-                            commonParams,
-                        )
-                      : [],
-                  actions
-                      ? checkTypePropertyIsUniqueAcrossMaps(
-                            actions.enabled,
-                            commonParams,
-                        )
-                      : [],
-                  scripts
-                      ? checkTypePropertyIsUniqueAcrossMaps(
-                            scripts,
-                            commonParams,
-                        )
-                      : [],
-              )
-            : [];
+        const otherDiagnostics = checkSettingsFileRequestSection(
+            parsingResult.properties.request,
+            commonParams,
+        );
         return parsingDiagnostics.concat(
             otherDiagnostics.filter((d) => d != undefined),
         );
