@@ -1,4 +1,5 @@
 import { BrunoFileType } from "@global_shared";
+import { DiagnosticSeverity } from "vscode-languageserver";
 import { YamlFormatDiagnosticsProvider } from "./yamlFormatDiagnosticsProvider";
 
 describe("YamlFormatDiagnosticsProvider for request files", () => {
@@ -374,6 +375,12 @@ config:
             "Missing keys for client certificate type 'pkcs12': 'pfxFilePath'.",
             "Key 'privateKeyFilePath' is not allowed for client certificate type 'pkcs12'.",
         ]);
+        expect(diagnostics.map(({ severity }) => severity)).toEqual([
+            DiagnosticSeverity.Error,
+            DiagnosticSeverity.Warning,
+            DiagnosticSeverity.Error,
+            DiagnosticSeverity.Warning,
+        ]);
     });
 
     it("should warn for duplicate headers in the request section", () => {
@@ -404,6 +411,17 @@ request:
         );
     });
 
+    it("should report an error if auth is inherited", () => {
+        const diagnostics = getDiagnostics(`${header}
+request:
+  auth: inherit
+`);
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0].severity).toBe(DiagnosticSeverity.Error);
+        expect(diagnostics[0].message).toContain("cannot be inherited");
+    });
+
     function getDiagnostics(content: string) {
         return provider.getDiagnosticsForYamlFile(
             "/collection/opencollection.yml",
@@ -412,6 +430,50 @@ request:
         );
     }
 });
+
+describe("YamlFormatDiagnosticsProvider for folder settings files", () => {
+    const provider = new YamlFormatDiagnosticsProvider();
+
+    it("should warn for duplicate headers even if no variables are defined", () => {
+        const diagnostics = getDiagnostics(`${folderHeader}
+request:
+  headers:
+    - name: h1
+      value: a
+    - name: h1
+      value: b
+`);
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0].message).toBe("Same name already defined");
+    });
+
+    it("should warn if keys are missing for the auth type", () => {
+        const diagnostics = getDiagnostics(`${folderHeader}
+request:
+  auth:
+    type: basic
+    username: u
+`);
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0].message).toBe(
+            "Missing keys for auth type 'basic': 'password'.",
+        );
+    });
+
+    function getDiagnostics(content: string) {
+        return provider.getDiagnosticsForYamlFile(
+            "/collection/folder/folder.yml",
+            content,
+            BrunoFileType.FolderSettingsFile,
+        );
+    }
+});
+
+const folderHeader = `info:
+  name: example
+  type: folder`;
 
 const header = `opencollection: 1.0.0
 info:

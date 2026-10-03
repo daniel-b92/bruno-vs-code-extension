@@ -1,9 +1,9 @@
-import { ParsedCollectionSettingsFile } from "@global_shared";
-import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import {
     ClientCertificateProperty,
     ClientCertificateType,
-} from "../../../../../../shared/fileParsing/external/yamlFormat/constants/collectionSettingsFileConstants";
+    ParsedCollectionSettingsFile,
+} from "@global_shared";
+import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 
 type ParsedCertificate = NonNullable<
     NonNullable<
@@ -49,6 +49,8 @@ export function checkClientCertificatesMatchType(
                               .map((key) => `'${key}'`)
                               .join(", ")}.`,
                           range: type.valueRange,
+                          // A certificate without all of its required files cannot be used.
+                          severity: DiagnosticSeverity.Error,
                       },
                   ]
                 : []),

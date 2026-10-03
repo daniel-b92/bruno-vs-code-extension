@@ -13,6 +13,7 @@ import { checkTopLevelNameIsDefined } from "./diagnostics/checks/environmentFile
 import { CommonDiagnosticParams } from "./interfaces";
 import { checkVariableDefinitionsAreValid } from "./diagnostics/checks/environmentFiles/checkVariableDefinitionsAreValid";
 import { checkSettingsFileRequestSection } from "./diagnostics/shared/checkSettingsFileRequestSection";
+import { checkAuthIsNotInherited } from "./diagnostics/checks/collectionSettingsFiles/checkAuthIsNotInherited";
 import { checkClientCertificatesMatchType } from "./diagnostics/checks/collectionSettingsFiles/checkClientCertificatesMatchType";
 import { checkEntriesAreUnique } from "./diagnostics/checks/requestFiles/checkEntriesAreUnique";
 import { checkUrlMatchesParams } from "./diagnostics/checks/requestFiles/checkUrlMatchesParams";
@@ -156,6 +157,7 @@ export class YamlFormatDiagnosticsProvider {
                 properties.request,
                 commonParams,
             ),
+            checkAuthIsNotInherited(properties.request?.properties.auth),
             ...checkClientCertificatesMatchType(
                 properties.config?.properties.clientCertificates,
             ),

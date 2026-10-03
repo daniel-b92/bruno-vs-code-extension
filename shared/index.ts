@@ -59,6 +59,7 @@ export * from "./fileParsing/external/yamlFormat/parseInfoFromYamlFile";
 export * from "./fileParsing/external/yamlFormat/constants/requestFileConstants";
 export * from "./fileParsing/external/yamlFormat/constants/sharedConstants";
 export * from "./fileParsing/external/yamlFormat/constants/authConstants";
+export * from "./fileParsing/external/yamlFormat/constants/collectionSettingsFileConstants";
 
 // model
 export * from "./baseModel/collection";
