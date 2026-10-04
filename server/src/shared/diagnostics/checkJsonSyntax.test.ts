@@ -21,7 +21,7 @@ describe("checkJsonSyntax", () => {
         )!;
 
         expect(diagnostic.message).toBe(
-            "Invalid JSON request body: Expected ',' or '}' after property value",
+            "Invalid JSON: Expected ',' or '}' after property value",
         );
         expect(diagnostic.range.start).toEqual(new Position(7, 16));
     });

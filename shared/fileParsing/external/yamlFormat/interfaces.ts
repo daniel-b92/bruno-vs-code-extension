@@ -12,6 +12,7 @@ import {
     ParsedAssertion,
     ParsedAuth,
     ParsedDocsWithType,
+    ParsedGraphqlBody,
     ParsedHttpBody,
     ParsedHttpParam,
     ParsedRequestFileAppSection,
@@ -24,6 +25,11 @@ import {
     ParsedYamlMapWithKeyAndValueRange,
     ParsedYamlMapWithValueRange,
     EnabledAndDisabledItems,
+} from "../../internal/yamlFormat/interfaces";
+
+export type {
+    ParsedAuth,
+    ParsedStringScalarWithStyle,
 } from "../../internal/yamlFormat/interfaces";
 
 export enum YamlParsingErrorCode {
@@ -47,6 +53,13 @@ export type ParsedRequestFile = ParsedYamlMap<{
         headers?: EnabledAndDisabledItems<ParsedRequestHeader>;
         params?: EnabledAndDisabledItems<ParsedHttpParam>;
         body?: ParsedHttpBody;
+        auth?: ParsedAuth;
+    }>;
+    graphql?: ParsedYamlMapWithKeyAndValueRange<{
+        method?: WithKeyAndValueRange<string>;
+        url?: WithKeyAndValueRange<string>;
+        headers?: EnabledAndDisabledItems<ParsedRequestHeader>;
+        body?: ParsedGraphqlBody;
         auth?: ParsedAuth;
     }>;
     runtime?: ParsedYamlMapWithKeyAndValueRange<{

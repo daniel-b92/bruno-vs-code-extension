@@ -8,7 +8,7 @@ export interface PreciseErrorPositionMapping {
     indentation: number;
 }
 
-const messagePrefix = "Invalid JSON request body: ";
+const messagePrefix = "Invalid JSON: ";
 
 export interface JsonSyntaxCheckResult {
     diagnostic: Diagnostic;
@@ -218,7 +218,7 @@ function getDiagnosticForUnexpectedErrorWhileParsingJson(
     return {
         isUnexpectedError: true,
         diagnostic: {
-            message: `An unexpected error occurred while trying to parse the JSON request body. ${
+            message: `An unexpected error occurred while trying to parse the JSON content. ${
                 error instanceof Error
                     ? `Got error message '${error.message}'.`
                     : "Failed to parse message from error."

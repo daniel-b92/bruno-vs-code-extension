@@ -1,3 +1,4 @@
+import { getRequestTypeSections } from "./diagnostics/shared/getRequestTypeSections";
 import {
     BrunoFileType,
     ParsedCollectionSettingsFile,
@@ -23,6 +24,7 @@ import { checkEntriesAreUnique } from "./diagnostics/checks/requestFiles/checkEn
 import { checkUrlMatchesParams } from "./diagnostics/checks/requestFiles/checkUrlMatchesParams";
 import { checkRequestTypeMatchesSections } from "./diagnostics/checks/requestFiles/checkRequestTypeMatchesSections";
 import { checkBodyTypeMatchesData } from "./diagnostics/checks/requestFiles/checkBodyTypeMatchesData";
+import { checkGraphqlVariablesSyntax } from "./diagnostics/checks/requestFiles/checkGraphqlVariablesSyntax";
 import { checkJsonBodySyntax } from "./diagnostics/checks/requestFiles/checkJsonBodySyntax";
 import { checkAuthHasRequiredFields } from "./diagnostics/checks/requestFiles/checkAuthHasRequiredFields";
 import { checkTagsAreUnique } from "./diagnostics/checks/requestFiles/checkTagsAreUnique";
@@ -124,6 +126,7 @@ export class YamlFormatDiagnosticsProvider {
             return parsingDiagnostics;
         }
         const { properties } = parsingResult;
+        const requestTypeSections = getRequestTypeSections(properties);
 
         const otherDiagnostics = [
             ...checkEntriesAreUnique(properties, commonParams),
@@ -138,10 +141,18 @@ export class YamlFormatDiagnosticsProvider {
                 properties.http?.properties.body,
                 commonParams.docHelper,
             ),
-            checkAuthHasRequiredFields(properties.http?.properties.auth),
+            checkGraphqlVariablesSyntax(
+                properties.graphql?.properties.body,
+                commonParams.docHelper,
+            ),
+            ...requestTypeSections.map(({ properties: { auth } }) =>
+                checkAuthHasRequiredFields(auth),
+            ),
             checkResponseValidationExists(properties.runtime, commonParams),
             ...getDiagnosticsForDisabledItems([
-                ...(properties.http?.properties.headers?.disabled ?? []),
+                ...requestTypeSections.flatMap(
+                    ({ properties: { headers } }) => headers?.disabled ?? [],
+                ),
                 ...(properties.http?.properties.params?.disabled ?? []),
                 ...getDisabledItemsFromRuntimeSection(properties.runtime),
             ]),

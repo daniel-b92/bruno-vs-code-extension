@@ -33,6 +33,7 @@ import { parseAssertionsFromYamlSequence } from "../../internal/yamlFormat/bruno
 import { parseHeadersFromSequence } from "../../internal/yamlFormat/brunoSpecific/parseHeadersFromSequence";
 import { parseParamsFromSequence } from "../../internal/yamlFormat/brunoSpecific/parseParamsFromSequence";
 import { parseBodyFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseBodyFromYamlMap";
+import { parseGraphqlBodyFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseGraphqlBodyFromYamlMap";
 import { parseAuthFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpecific/parseAuthFromYamlMapOrScalar";
 
 export function parseRequestFile(
@@ -75,6 +76,7 @@ export function parseRequestFile(
     );
 
     const httpMap = getMap(TopLevelRequestFileProperty.Http);
+    const graphqlMap = getMap(TopLevelRequestFileProperty.Graphql);
     const runtimeMap = getMap(TopLevelRequestFileProperty.Runtime);
     const appMap = getMap(TopLevelRequestFileProperty.App);
 
@@ -90,6 +92,9 @@ export function parseRequestFile(
     );
     const http = httpMap
         ? parseHttpSection(httpMap, commonArgs, collectedErrors)
+        : undefined;
+    const graphql = graphqlMap
+        ? parseGraphqlSection(graphqlMap, commonArgs, collectedErrors)
         : undefined;
     const runtime = runtimeMap
         ? parseRuntimeSection(runtimeMap, commonArgs, collectedErrors)
@@ -131,6 +136,7 @@ export function parseRequestFile(
             properties: {
                 info,
                 http,
+                graphql,
                 runtime,
                 docs,
                 settings,
@@ -143,13 +149,70 @@ export function parseRequestFile(
 }
 
 function parseHttpSection(
-    { keyRange, value: httpMap }: WithKeyAndKeyRange<YAMLMap>,
+    section: WithKeyAndKeyRange<YAMLMap>,
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ) {
+    const { getSequence, ...parsed } = parseRequestTypeSection({
+        section,
+        commonArgs,
+        collectedErrors,
+        additionalSequenceKeys: [RequestFileHttpSectionProperty.params],
+        parseBody: (bodyMap) => parseBodyFromYamlMap(bodyMap, commonArgs),
+    });
+
+    return {
+        ...parsed,
+        properties: {
+            ...parsed.properties,
+            params: parseIfPresent(
+                getSequence(RequestFileHttpSectionProperty.params),
+                ({ value }) => parseParamsFromSequence(value, commonArgs),
+                collectedErrors,
+            ),
+        },
+    };
+}
+
+function parseGraphqlSection(
+    section: WithKeyAndKeyRange<YAMLMap>,
+    commonArgs: CommonParsingArgs,
+    collectedErrors: YamlParsingError[],
+) {
+    const { getSequence, ...parsed } = parseRequestTypeSection({
+        section,
+        commonArgs,
+        collectedErrors,
+        additionalSequenceKeys: [],
+        parseBody: (bodyMap) =>
+            parseGraphqlBodyFromYamlMap(bodyMap, commonArgs),
+    });
+
+    return parsed;
+}
+
+/**
+ * Parses the properties that are shared between the sections of all request types (method, url, headers, body, auth).
+ * The keys of these properties are the same for all request types.
+ */
+function parseRequestTypeSection<TBody>({
+    section: { keyRange, value: sectionMap },
+    commonArgs,
+    collectedErrors,
+    additionalSequenceKeys,
+    parseBody,
+}: {
+    section: WithKeyAndKeyRange<YAMLMap>;
+    commonArgs: CommonParsingArgs;
+    collectedErrors: YamlParsingError[];
+    additionalSequenceKeys: string[];
+    parseBody: (
+        bodyMap: WithKeyAndKeyRange<YAMLMap>,
+    ) => MaybeResultWithErrors<TBody>;
+}) {
     const { getString, getMap, getSequence, missingProperties } =
         getValidatedMapItems(
-            httpMap,
+            sectionMap,
             {
                 scalars: {
                     stringValues: [
@@ -165,7 +228,7 @@ function parseHttpSection(
                 ],
                 sequenceValues: [
                     RequestFileHttpSectionProperty.headers,
-                    RequestFileHttpSectionProperty.params,
+                    ...additionalSequenceKeys,
                 ],
             },
             commonArgs,
@@ -174,8 +237,9 @@ function parseHttpSection(
 
     return {
         keyRange,
-        valueRange: getRangeForItem(httpMap, commonArgs),
+        valueRange: getRangeForItem(sectionMap, commonArgs),
         missingProperties,
+        getSequence,
         properties: {
             method: stripKeyFromResult(
                 getString(RequestFileHttpSectionProperty.method),
@@ -189,14 +253,9 @@ function parseHttpSection(
                     parseHeadersFromSequence({ commonArgs, headersSequence }),
                 collectedErrors,
             ),
-            params: parseIfPresent(
-                getSequence(RequestFileHttpSectionProperty.params),
-                ({ value }) => parseParamsFromSequence(value, commonArgs),
-                collectedErrors,
-            ),
             body: parseIfPresent(
                 getMap(RequestFileHttpSectionProperty.body),
-                (bodyMap) => parseBodyFromYamlMap(bodyMap, commonArgs),
+                parseBody,
                 collectedErrors,
             ),
             auth: parseIfPresent(

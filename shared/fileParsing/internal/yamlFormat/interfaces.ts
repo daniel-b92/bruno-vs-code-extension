@@ -107,12 +107,19 @@ export type ParsedHttpParam = ParsedYamlMapWithValueRange<{
     disabled: OptionalVariableFieldResult<boolean>;
 }>;
 
+export type ParsedStringScalarWithStyle = WithKeyAndValueRange<string> & {
+    /** Whether the value is a literal block scalar (`|`, `|-`, `|+`). */
+    isLiteralBlockScalar: boolean;
+};
+
 export type ParsedHttpBody = ParsedYamlMapWithKeyAndValueRange<{
     type?: WithKeyAndValueRange<HttpBodyType>;
-    data?: WithKeyAndValueRange<string> & {
-        /** Whether the value is a literal block scalar (`|`, `|-`, `|+`). */
-        isLiteralBlockScalar: boolean;
-    };
+    data?: ParsedStringScalarWithStyle;
+}>;
+
+export type ParsedGraphqlBody = ParsedYamlMapWithKeyAndValueRange<{
+    query?: WithKeyAndValueRange<string>;
+    variables?: ParsedStringScalarWithStyle;
 }>;
 
 export type ParsedDocsWithType = WithKeyAndValueRange<

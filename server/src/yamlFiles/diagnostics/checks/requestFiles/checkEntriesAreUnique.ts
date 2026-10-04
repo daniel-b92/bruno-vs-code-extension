@@ -4,21 +4,26 @@ import { CommonDiagnosticParams } from "../../../interfaces";
 import { checkNamePropertyIsUniqueAcrossMaps } from "../../shared/checkNamePropertyIsUniqueAcrossMaps";
 import { checkTypePropertyIsUniqueAcrossMaps } from "../../shared/checkTypePropertyIsUniqueAcrossMaps";
 import { checkHeaderNamesAreUnique } from "../../shared/checkHeaderNamesAreUnique";
+import { getRequestTypeSections } from "../../shared/getRequestTypeSections";
 import { checkCombinationOfPropertiesIsUnique } from "../../shared/generic/checkCombinationOfPropertiesIsUnique";
 
 export function checkEntriesAreUnique(
-    { http, runtime }: ParsedRequestFile["properties"],
+    properties: ParsedRequestFile["properties"],
     commonParams: CommonDiagnosticParams,
 ): (Diagnostic | undefined)[] {
     const { filePath } = commonParams;
 
-    const headers = http?.properties.headers?.enabled;
-    const params = http?.properties.params?.enabled;
+    const params = properties.http?.properties.params?.enabled;
     const { variables, scripts, assertions, actions } =
-        runtime?.properties ?? {};
+        properties.runtime?.properties ?? {};
 
     return [
-        ...(headers ? checkHeaderNamesAreUnique(headers, filePath) : []),
+        ...getRequestTypeSections(properties).flatMap(
+            ({ properties: { headers } }) =>
+                headers
+                    ? checkHeaderNamesAreUnique(headers.enabled, filePath)
+                    : [],
+        ),
         ...(params
             ? checkCombinationOfPropertiesIsUnique(
                   filePath,
