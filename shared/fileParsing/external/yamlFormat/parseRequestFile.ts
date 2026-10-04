@@ -16,7 +16,6 @@ import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDo
 import { getValidatedMapItems } from "../../internal/yamlFormat/yamlMaps/getValidatedMapItems";
 import {
     RequestFileAppProperty,
-    RequestFileGraphqlSectionProperty,
     RequestFileHttpSectionProperty,
     RequestFileRuntimeProperty,
     TopLevelRequestFileProperty,
@@ -150,13 +149,70 @@ export function parseRequestFile(
 }
 
 function parseHttpSection(
-    { keyRange, value: httpMap }: WithKeyAndKeyRange<YAMLMap>,
+    section: WithKeyAndKeyRange<YAMLMap>,
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ) {
+    const { getSequence, ...parsed } = parseRequestTypeSection({
+        section,
+        commonArgs,
+        collectedErrors,
+        additionalSequenceKeys: [RequestFileHttpSectionProperty.params],
+        parseBody: (bodyMap) => parseBodyFromYamlMap(bodyMap, commonArgs),
+    });
+
+    return {
+        ...parsed,
+        properties: {
+            ...parsed.properties,
+            params: parseIfPresent(
+                getSequence(RequestFileHttpSectionProperty.params),
+                ({ value }) => parseParamsFromSequence(value, commonArgs),
+                collectedErrors,
+            ),
+        },
+    };
+}
+
+function parseGraphqlSection(
+    section: WithKeyAndKeyRange<YAMLMap>,
+    commonArgs: CommonParsingArgs,
+    collectedErrors: YamlParsingError[],
+) {
+    const { getSequence, ...parsed } = parseRequestTypeSection({
+        section,
+        commonArgs,
+        collectedErrors,
+        additionalSequenceKeys: [],
+        parseBody: (bodyMap) =>
+            parseGraphqlBodyFromYamlMap(bodyMap, commonArgs),
+    });
+
+    return parsed;
+}
+
+/**
+ * Parses the properties that are shared between the sections of all request types (method, url, headers, body, auth).
+ * The keys of these properties are the same for all request types.
+ */
+function parseRequestTypeSection<TBody>({
+    section: { keyRange, value: sectionMap },
+    commonArgs,
+    collectedErrors,
+    additionalSequenceKeys,
+    parseBody,
+}: {
+    section: WithKeyAndKeyRange<YAMLMap>;
+    commonArgs: CommonParsingArgs;
+    collectedErrors: YamlParsingError[];
+    additionalSequenceKeys: string[];
+    parseBody: (
+        bodyMap: WithKeyAndKeyRange<YAMLMap>,
+    ) => MaybeResultWithErrors<TBody>;
+}) {
     const { getString, getMap, getSequence, missingProperties } =
         getValidatedMapItems(
-            httpMap,
+            sectionMap,
             {
                 scalars: {
                     stringValues: [
@@ -172,7 +228,7 @@ function parseHttpSection(
                 ],
                 sequenceValues: [
                     RequestFileHttpSectionProperty.headers,
-                    RequestFileHttpSectionProperty.params,
+                    ...additionalSequenceKeys,
                 ],
             },
             commonArgs,
@@ -181,8 +237,9 @@ function parseHttpSection(
 
     return {
         keyRange,
-        valueRange: getRangeForItem(httpMap, commonArgs),
+        valueRange: getRangeForItem(sectionMap, commonArgs),
         missingProperties,
+        getSequence,
         properties: {
             method: stripKeyFromResult(
                 getString(RequestFileHttpSectionProperty.method),
@@ -196,82 +253,14 @@ function parseHttpSection(
                     parseHeadersFromSequence({ commonArgs, headersSequence }),
                 collectedErrors,
             ),
-            params: parseIfPresent(
-                getSequence(RequestFileHttpSectionProperty.params),
-                ({ value }) => parseParamsFromSequence(value, commonArgs),
-                collectedErrors,
-            ),
             body: parseIfPresent(
                 getMap(RequestFileHttpSectionProperty.body),
-                (bodyMap) => parseBodyFromYamlMap(bodyMap, commonArgs),
+                parseBody,
                 collectedErrors,
             ),
             auth: parseIfPresent(
                 getString(RequestFileHttpSectionProperty.auth) ??
                     getMap(RequestFileHttpSectionProperty.auth),
-                (authMapOrScalar) =>
-                    parseAuthFromYamlMapOrScalar({
-                        commonArgs,
-                        authMapOrScalar,
-                    }),
-                collectedErrors,
-            ),
-        },
-    };
-}
-
-function parseGraphqlSection(
-    { keyRange, value: graphqlMap }: WithKeyAndKeyRange<YAMLMap>,
-    commonArgs: CommonParsingArgs,
-    collectedErrors: YamlParsingError[],
-): NonNullable<ParsedRequestFile["properties"]["graphql"]> {
-    const { getString, getMap, getSequence, missingProperties } =
-        getValidatedMapItems(
-            graphqlMap,
-            {
-                scalars: {
-                    stringValues: [
-                        RequestFileGraphqlSectionProperty.method,
-                        RequestFileGraphqlSectionProperty.url,
-                        // Auth can either be a scalar string with the value 'inherit' or a map with a specific type.
-                        RequestFileGraphqlSectionProperty.auth,
-                    ],
-                },
-                mapValues: [
-                    RequestFileGraphqlSectionProperty.body,
-                    RequestFileGraphqlSectionProperty.auth,
-                ],
-                sequenceValues: [RequestFileGraphqlSectionProperty.headers],
-            },
-            commonArgs,
-            collectedErrors,
-        );
-
-    return {
-        keyRange,
-        valueRange: getRangeForItem(graphqlMap, commonArgs),
-        missingProperties,
-        properties: {
-            method: stripKeyFromResult(
-                getString(RequestFileGraphqlSectionProperty.method),
-            ),
-            url: stripKeyFromResult(
-                getString(RequestFileGraphqlSectionProperty.url),
-            ),
-            headers: parseIfPresent(
-                getSequence(RequestFileGraphqlSectionProperty.headers),
-                ({ value: headersSequence }) =>
-                    parseHeadersFromSequence({ commonArgs, headersSequence }),
-                collectedErrors,
-            ),
-            body: parseIfPresent(
-                getMap(RequestFileGraphqlSectionProperty.body),
-                (bodyMap) => parseGraphqlBodyFromYamlMap(bodyMap, commonArgs),
-                collectedErrors,
-            ),
-            auth: parseIfPresent(
-                getString(RequestFileGraphqlSectionProperty.auth) ??
-                    getMap(RequestFileGraphqlSectionProperty.auth),
                 (authMapOrScalar) =>
                     parseAuthFromYamlMapOrScalar({
                         commonArgs,

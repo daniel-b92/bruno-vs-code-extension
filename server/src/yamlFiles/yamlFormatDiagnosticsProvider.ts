@@ -1,3 +1,4 @@
+import { getRequestTypeSections } from "./diagnostics/shared/getRequestTypeSections";
 import {
     BrunoFileType,
     ParsedCollectionSettingsFile,
@@ -125,6 +126,7 @@ export class YamlFormatDiagnosticsProvider {
             return parsingDiagnostics;
         }
         const { properties } = parsingResult;
+        const requestTypeSections = getRequestTypeSections(properties);
 
         const otherDiagnostics = [
             ...checkEntriesAreUnique(properties, commonParams),
@@ -143,13 +145,15 @@ export class YamlFormatDiagnosticsProvider {
                 properties.graphql?.properties.body,
                 commonParams.docHelper,
             ),
-            checkAuthHasRequiredFields(properties.http?.properties.auth),
-            checkAuthHasRequiredFields(properties.graphql?.properties.auth),
+            ...requestTypeSections.map(({ properties: { auth } }) =>
+                checkAuthHasRequiredFields(auth),
+            ),
             checkResponseValidationExists(properties.runtime, commonParams),
             ...getDiagnosticsForDisabledItems([
-                ...(properties.http?.properties.headers?.disabled ?? []),
+                ...requestTypeSections.flatMap(
+                    ({ properties: { headers } }) => headers?.disabled ?? [],
+                ),
                 ...(properties.http?.properties.params?.disabled ?? []),
-                ...(properties.graphql?.properties.headers?.disabled ?? []),
                 ...getDisabledItemsFromRuntimeSection(properties.runtime),
             ]),
         ];

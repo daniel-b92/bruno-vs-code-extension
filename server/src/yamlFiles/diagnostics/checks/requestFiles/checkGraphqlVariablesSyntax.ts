@@ -8,5 +8,10 @@ export function checkGraphqlVariablesSyntax(
     >["properties"]["body"],
     docHelper: TextDocumentHelper,
 ): Diagnostic | undefined {
-    return checkJsonScalarSyntax(body?.properties.variables, docHelper);
+    const variables = body?.properties.variables;
+
+    // Empty variables are valid for GraphQL requests (they are treated as an empty object).
+    return variables?.value.trim()
+        ? checkJsonScalarSyntax(variables, docHelper)
+        : undefined;
 }

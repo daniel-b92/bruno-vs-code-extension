@@ -27,6 +27,11 @@ import {
     EnabledAndDisabledItems,
 } from "../../internal/yamlFormat/interfaces";
 
+export type {
+    ParsedAuth,
+    ParsedStringScalarWithStyle,
+} from "../../internal/yamlFormat/interfaces";
+
 export enum YamlParsingErrorCode {
     ItemDoesNotExist = 1,
     UnknownFieldInMap = 2,

@@ -436,6 +436,32 @@ runtime:
             ).toHaveLength(1);
         });
 
+        it.each(['""', "|-\n      "])(
+            "should not report empty variables (%j)",
+            (variables) => {
+                const diagnostics = getDiagnostics(`info:
+  name: example
+  type: graphql
+  seq: 1
+graphql:
+  url: /graphql
+  body:
+    query: "query { a }"
+    variables: ${variables}
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+`);
+
+                expect(
+                    diagnostics.filter(({ message }) =>
+                        String(message).startsWith("Invalid JSON"),
+                    ),
+                ).toHaveLength(0);
+            },
+        );
+
         it("should report missing auth keys", () => {
             const diagnostics = getDiagnostics(`info:
   name: example
