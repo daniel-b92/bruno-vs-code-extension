@@ -20,6 +20,7 @@ import {
     RequestFileRuntimeProperty,
     TopLevelRequestFileProperty,
 } from "./constants/requestFileConstants";
+import { FileInfoProperty } from "./constants/sharedConstants";
 import { parseFileInfoFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseFileInfoFromYamlMap";
 import { parseSettingsFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseSettingsFromYamlMap";
 import { stripKeyFromResult } from "../../internal/yamlFormat/util/stripKeyFromResult";
@@ -48,6 +49,9 @@ export function parseRequestFile(
         return maybeTopLevelMap;
     }
 
+    const sectionsForOtherTypes = getSectionsForOtherRequestTypes(
+        maybeTopLevelMap.map,
+    );
     const { getString, getMap, missingProperties } = getValidatedMapItems(
         maybeTopLevelMap.map,
         {
@@ -58,8 +62,11 @@ export function parseRequestFile(
             mapValues: Object.values(TopLevelRequestFileProperty).filter(
                 (prop) =>
                     prop != TopLevelRequestFileProperty.Docs &&
-                    prop != TopLevelRequestFileProperty.Examples,
+                    prop != TopLevelRequestFileProperty.Examples &&
+                    !sectionsForOtherTypes.includes(prop),
             ),
+            // These get reported by the check for the request type matching the sections.
+            silentlyAllowedKeys: sectionsForOtherTypes,
             // info is the only mandatory top level property.
             mandatoryKeys: [TopLevelRequestFileProperty.Info],
         },
@@ -282,4 +289,25 @@ function parseRuntimeSection(
             ),
         },
     };
+}
+
+/**
+ * Determines the request type sections that are not valid for the type defined in the `info` section.
+ * If the type cannot be determined, no section is excluded.
+ */
+function getSectionsForOtherRequestTypes(topLevelMap: YAMLMap): string[] {
+    const requestTypeSections: string[] = [
+        TopLevelRequestFileProperty.Http,
+        TopLevelRequestFileProperty.Graphql,
+        TopLevelRequestFileProperty.Grpc,
+        TopLevelRequestFileProperty.Websocket,
+    ];
+    const type = topLevelMap.getIn([
+        TopLevelRequestFileProperty.Info,
+        FileInfoProperty.Type,
+    ]);
+
+    return typeof type == "string" && requestTypeSections.includes(type)
+        ? requestTypeSections.filter((section) => section != type)
+        : [];
 }

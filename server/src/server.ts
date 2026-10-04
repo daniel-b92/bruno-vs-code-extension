@@ -1,4 +1,3 @@
-import { parse } from "yaml";
 import {
     createConnection,
     TextDocuments,
@@ -38,6 +37,7 @@ import { handleHoverRequest as handleHoverRequestForBruFile } from "./bruFiles/h
 import { basename, extname } from "path";
 import { handleCompletionRequest as handleCompletionRequestForJsFile } from "./jsFiles/completionItems/handleCompletionRequest";
 import { handleHoverRequest as handleHoverRequestForJsFile } from "./jsFiles/hover/handleHoverRequest";
+import { isYamlAppFile } from "./yamlFiles/isYamlAppFile";
 import { YamlFormatDiagnosticsProvider } from "./yamlFiles/yamlFormatDiagnosticsProvider";
 
 let helpersProvider: HelpersProvider | undefined = undefined;
@@ -371,27 +371,14 @@ function getDiagnosticsForYamlFile(filePath: string, text: string) {
         );
     }
 
-    if (
-        // ToDo: Once yaml files are stored in the file system cache, use the itemType for identifying request files.
-        !isYamlAppFile(text)
-    ) {
-        return yamlDiagnosticsProvider.getDiagnosticsForYamlFile(
-            filePath,
-            text,
-            BrunoFileType.RequestFile,
-        );
-    }
-
-    return undefined;
-}
-
-function isYamlAppFile(text: string) {
-    try {
-        return parse(text)?.info?.type == "app";
-    } catch {
-        // Invalid yaml syntax gets reported by the diagnostics for the file type that is assumed instead.
-        return false;
-    }
+    return yamlDiagnosticsProvider.getDiagnosticsForYamlFile(
+        filePath,
+        text,
+        // ToDo: Once yaml files are stored in the file system cache, use the itemType for identifying app and request files.
+        isYamlAppFile(text)
+            ? BrunoFileType.AppFile
+            : BrunoFileType.RequestFile,
+    );
 }
 
 async function getBrunoFileTypeIfExists(

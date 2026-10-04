@@ -13,6 +13,43 @@ import {
 import { parseRequestFile } from "./parseRequestFile";
 
 describe("parseRequestFile", () => {
+    describe("unknown keys", () => {
+        it("only lists sections as allowed that are valid for the request type", () => {
+            const documentText = `info:
+    name: test
+    type: grpc
+    seq: 1
+code: abc`;
+
+            const { errors } = parseRequestFile(
+                new TextDocumentHelper(documentText),
+            );
+
+            expect(errors).toHaveLength(1);
+            expect(errors[0].message).toContain("Unknown key 'code'");
+            expect(errors[0].message).toContain('"grpc"');
+            expect(errors[0].message).not.toContain('"http"');
+            expect(errors[0].message).not.toContain('"graphql"');
+            expect(errors[0].message).not.toContain('"websocket"');
+        });
+
+        it("does not report sections for other request types as unknown keys", () => {
+            const documentText = `info:
+    name: test
+    type: grpc
+    seq: 1
+http:
+    method: GET
+    url: https://example.com`;
+
+            const { errors } = parseRequestFile(
+                new TextDocumentHelper(documentText),
+            );
+
+            expect(errors).toHaveLength(0);
+        });
+    });
+
     describe("valid files", () => {
         it("parses a minimal request file with only info section", () => {
             const documentText = `info:

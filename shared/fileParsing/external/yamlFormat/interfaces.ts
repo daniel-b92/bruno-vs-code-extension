@@ -65,6 +65,11 @@ export type ParsedRequestFile = ParsedYamlMap<{
     requestTypeSections: { name: string; keyRange: Range }[];
 }>;
 
+export type ParsedAppFile = ParsedYamlMap<{
+    info?: ParsedInfoForAppFile;
+    code?: WithKeyAndValueRange<string>;
+}>;
+
 export type ParsedFolderSettingsFile = ParsedYamlMap<{
     info?: ParsedInfoForFolderSettings;
     request?: ParsedSettingsFileRequestSection;
@@ -131,13 +136,17 @@ export type ParsedCollectionSettingsFile = ParsedYamlMap<{
     }>;
 }>;
 
-export type ParsedInfoForRequestFile = ParsedInfoForFolderSettings & {
+export type ParsedInfoForRequestFile = ParsedInfoWithTypeAndSequence & {
     properties: {
         tags?: WithKeyAndValueRange<{ value: string; range: Range }[]>;
     };
 };
 
-export type ParsedInfoForFolderSettings = ParsedInfoForCollectionSettings & {
+export type ParsedInfoForFolderSettings = ParsedInfoWithTypeAndSequence;
+
+export type ParsedInfoForAppFile = ParsedInfoWithTypeAndSequence;
+
+export type ParsedInfoWithTypeAndSequence = ParsedInfoForCollectionSettings & {
     properties: {
         type?: WithKeyAndValueRange<FileInfoType>;
         sequence?: WithKeyAndValueRange<number>;

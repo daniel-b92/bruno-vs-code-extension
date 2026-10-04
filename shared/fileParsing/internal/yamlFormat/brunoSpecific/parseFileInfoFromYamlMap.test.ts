@@ -290,11 +290,35 @@ describe("parseFileInfoFromYamlMap", () => {
         });
     });
 
+    describe("type restrictions per file type", () => {
+        it.each([
+            [BrunoFileType.AppFile, "folder"],
+            [BrunoFileType.AppFile, "http"],
+            [BrunoFileType.FolderSettingsFile, "app"],
+            [BrunoFileType.FolderSettingsFile, "http"],
+            [BrunoFileType.RequestFile, "app"],
+            [BrunoFileType.RequestFile, "folder"],
+        ])("reports an error for %s with type '%s'", (fileType, type) => {
+            const { commonArgs, infoMap } = makeInfoMap(
+                `info:\n    name: x\n    type: ${type}\n    seq: 1`,
+            );
+            const { result, errors } = parseFileInfoFromYamlMap({
+                commonArgs,
+                fileType,
+                infoMap,
+            });
+
+            expect(errors).toHaveLength(1);
+            expect(errors[0].message).toContain(`Invalid value '${type}'`);
+            expect(result!.properties.type).toBeUndefined();
+        });
+    });
+
     describe("AppFile", () => {
         it("parses an app file info block (name and type, no seq or tags)", () => {
             const documentText = `info:
     name: My App
-    type: folder`;
+    type: app`;
 
             const { commonArgs, infoMap } = makeInfoMap(documentText);
             const { result, errors } = parseFileInfoFromYamlMap({
@@ -305,6 +329,7 @@ describe("parseFileInfoFromYamlMap", () => {
 
             expect(errors).toHaveLength(0);
             expect(result!.properties.name?.value).toBe("My App");
+            expect(result!.properties.type?.value).toBe(FileInfoType.App);
             expect(result!.properties.sequence).toBeUndefined();
             expect(result!.properties.tags).toBeUndefined();
         });

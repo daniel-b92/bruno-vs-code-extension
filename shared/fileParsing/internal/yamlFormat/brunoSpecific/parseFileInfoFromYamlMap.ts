@@ -84,7 +84,7 @@ export function parseFileInfoFromYamlMap(args: {
         ? undefined
         : getTypedValueFromList(
               {
-                  allowedValues: Object.values(FileInfoType),
+                  allowedValues: getAllowedTypes(fileType),
                   allStringValues: validStringScalars,
                   keyName: FileInfoProperty.Type,
               },
@@ -114,6 +114,22 @@ export function parseFileInfoFromYamlMap(args: {
             },
         },
     };
+}
+
+function getAllowedTypes(fileType: BrunoFileType): FileInfoType[] {
+    switch (fileType) {
+        case BrunoFileType.AppFile:
+            return [FileInfoType.App];
+        case BrunoFileType.FolderSettingsFile:
+            return [FileInfoType.Folder];
+        default:
+            return [
+                FileInfoType.Http,
+                FileInfoType.Graphql,
+                FileInfoType.Grpc,
+                FileInfoType.Websocket,
+            ];
+    }
 }
 
 function getSequenceToUse(
