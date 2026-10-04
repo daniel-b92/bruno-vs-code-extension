@@ -8,18 +8,12 @@ import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import { checkJsonScalarSyntax } from "./checkJsonBodySyntax";
 
 export function checkWebsocketMessages(
-    {
-        message,
-        singleMessage,
-    }: NonNullable<ParsedRequestFile["properties"]["websocket"]>["properties"],
+    websocket: ParsedRequestFile["properties"]["websocket"],
     docHelper: TextDocumentHelper,
 ): (Diagnostic | undefined)[] {
-    return [
-        ...(message ?? []).map(({ properties }) =>
-            checkMessageContent(properties.message, docHelper),
-        ),
-        checkMessageContent(singleMessage, docHelper),
-    ];
+    return (websocket?.properties.message ?? []).map(({ properties }) =>
+        checkMessageContent(properties.message, docHelper),
+    );
 }
 
 function checkMessageContent(
@@ -40,7 +34,8 @@ function checkMessageContent(
         };
     }
 
-    return type.value == WebsocketMessageType.Json
+    // Empty data is not reported as invalid JSON (consistent with the check for graphql variables).
+    return type.value == WebsocketMessageType.Json && data.value.trim() != ""
         ? checkJsonScalarSyntax(data, docHelper)
         : undefined;
 }

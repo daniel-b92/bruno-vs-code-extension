@@ -146,12 +146,10 @@ export class YamlFormatDiagnosticsProvider {
                 properties.graphql?.properties.body,
                 commonParams.docHelper,
             ),
-            ...(properties.websocket
-                ? checkWebsocketMessages(
-                      properties.websocket.properties,
-                      commonParams.docHelper,
-                  )
-                : []),
+            ...checkWebsocketMessages(
+                properties.websocket,
+                commonParams.docHelper,
+            ),
             ...requestTypeSections.map(({ properties: { auth } }) =>
                 checkAuthHasRequiredFields(auth),
             ),

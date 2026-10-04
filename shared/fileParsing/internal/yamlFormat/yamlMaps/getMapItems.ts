@@ -353,12 +353,14 @@ function getErrorForUnexpectedType(
         type: "boolean" | "number" | "string" | "Map" | "Sequence";
     }[];
 
-    const expectedType = keyToTypeMap.find(({ key: k }) => k == key)?.type;
+    const expectedTypes = keyToTypeMap
+        .filter(({ key: k }) => k == key)
+        .map(({ type }) => type);
     return getErrorForValueWithUnexpectedType({
         ...commonParsingArgs,
         key,
         valueRange,
-        expectedType: expectedType!,
+        expectedTypes,
     });
 }
 

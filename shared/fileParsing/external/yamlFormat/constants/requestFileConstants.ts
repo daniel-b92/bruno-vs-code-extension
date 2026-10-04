@@ -1,3 +1,5 @@
+import { FileInfoType } from "./sharedConstants";
+
 export enum TopLevelRequestFileProperty {
     Info = "info",
     Runtime = "runtime",
@@ -106,11 +108,25 @@ export enum RequestFileSettingsProperty {
     KeepAliveInterval = "keepAliveInterval",
 }
 
-/** The settings that are valid for websocket requests. */
-export const WEBSOCKET_SETTINGS_PROPERTIES = [
-    RequestFileSettingsProperty.Timeout,
-    RequestFileSettingsProperty.KeepAliveInterval,
-];
+const SETTINGS_FOR_NON_WEBSOCKET_REQUESTS = Object.values(
+    RequestFileSettingsProperty,
+).filter((prop) => prop != RequestFileSettingsProperty.KeepAliveInterval);
+
+/**
+ * The settings that are valid per request type.
+ * For request types that are not listed (or if the type is unknown), no setting is excluded.
+ */
+export const SETTINGS_BY_REQUEST_TYPE: Partial<
+    Record<FileInfoType, RequestFileSettingsProperty[]>
+> = {
+    [FileInfoType.Http]: SETTINGS_FOR_NON_WEBSOCKET_REQUESTS,
+    [FileInfoType.Graphql]: SETTINGS_FOR_NON_WEBSOCKET_REQUESTS,
+    [FileInfoType.Grpc]: SETTINGS_FOR_NON_WEBSOCKET_REQUESTS,
+    [FileInfoType.Websocket]: [
+        RequestFileSettingsProperty.Timeout,
+        RequestFileSettingsProperty.KeepAliveInterval,
+    ],
+};
 
 export enum RequestFileAppProperty {
     Enabled = "enabled",

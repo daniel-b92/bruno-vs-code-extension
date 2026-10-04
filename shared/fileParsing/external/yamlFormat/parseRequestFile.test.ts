@@ -756,11 +756,31 @@ websocket:
             );
 
             expect(errors).toHaveLength(0);
-            const { message, singleMessage } =
-                result!.properties.websocket!.properties;
-            expect(message).toBeUndefined();
-            expect(singleMessage?.properties.type?.value).toBe("json");
-            expect(singleMessage?.properties.data?.value).toBe('{"a": 1}');
+            const { message } = result!.properties.websocket!.properties;
+            expect(message).toHaveLength(1);
+            expect(message![0].properties.title).toBeUndefined();
+            expect(message![0].properties.message?.properties.type?.value).toBe(
+                "json",
+            );
+            expect(message![0].properties.message?.properties.data?.value).toBe(
+                '{"a": 1}',
+            );
+        });
+
+        it("reports that both a Map and a Sequence are valid for an invalid message", () => {
+            const documentText = `info:
+    name: ws
+    type: websocket
+    seq: 1
+websocket:
+    message: hello`;
+
+            const { errors } = parseRequestFile(
+                new TextDocumentHelper(documentText),
+            );
+
+            expect(errors).toHaveLength(1);
+            expect(errors[0].message).toContain("'Map' or 'Sequence'");
         });
 
         it("reports an invalid message type", () => {

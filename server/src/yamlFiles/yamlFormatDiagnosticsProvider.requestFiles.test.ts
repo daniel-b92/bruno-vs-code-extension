@@ -558,6 +558,29 @@ runtime:
             ).toHaveLength(1);
         });
 
+        it("should not report invalid JSON for a message with empty data", () => {
+            const diagnostics = getDiagnostics(`info:
+  name: example
+  type: websocket
+  seq: 1
+websocket:
+  url: ws://example.com
+  message:
+    type: json
+    data: ""
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+`);
+
+            expect(
+                diagnostics.filter(({ message }) =>
+                    String(message).startsWith("Invalid JSON"),
+                ),
+            ).toHaveLength(0);
+        });
+
         it("should report a message type without data", () => {
             const diagnostics = getDiagnostics(`info:
   name: example

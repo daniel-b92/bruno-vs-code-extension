@@ -57,7 +57,7 @@ export function getValueFieldFromVariable(
                       error: getErrorForValueWithUnexpectedType({
                           ...commonParams,
                           key: EnvironmentVariableProperty.Value,
-                          expectedType: "Scalar",
+                          expectedTypes: ["Scalar"],
                           valueRange: (getRangeForUnknownYamlItem(
                               matchingField.value,
                           ) ?? fullDocumentRange) as Range,

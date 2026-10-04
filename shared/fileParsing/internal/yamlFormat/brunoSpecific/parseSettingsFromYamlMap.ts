@@ -7,7 +7,7 @@ import {
 import { YamlParsingError } from "../../../..";
 import {
     RequestFileSettingsProperty,
-    WEBSOCKET_SETTINGS_PROPERTIES,
+    SETTINGS_BY_REQUEST_TYPE,
 } from "../../../external/yamlFormat/constants/requestFileConstants";
 import { FileInfoType } from "../../../external/yamlFormat/constants/sharedConstants";
 import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
@@ -24,16 +24,10 @@ export function parseSettingsFromYamlMap(
     errors: YamlParsingError[];
 } {
     const errors: YamlParsingError[] = [];
-    // Websocket requests only support a subset of the settings and the keep alive interval is exclusive to them.
-    // If the request type is unknown, no setting is excluded.
-    const isAllowed = (property: RequestFileSettingsProperty) => {
-        if (requestType == undefined) {
-            return true;
-        }
-        return requestType == FileInfoType.Websocket
-            ? WEBSOCKET_SETTINGS_PROPERTIES.includes(property)
-            : property != RequestFileSettingsProperty.KeepAliveInterval;
-    };
+    const allowedSettings =
+        requestType && SETTINGS_BY_REQUEST_TYPE[requestType];
+    const isAllowed = (property: RequestFileSettingsProperty) =>
+        allowedSettings?.includes(property) ?? true;
     const { getString, getBoolean, getNumber, missingProperties } =
         getValidatedMapItems(
             settingsMap,

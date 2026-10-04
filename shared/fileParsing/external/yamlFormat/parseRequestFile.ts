@@ -168,7 +168,7 @@ function parseHttpSection(
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ) {
-    const { getSequence, ...parsed } = parseRequestTypeSection({
+    const { getSequence, getMap, ...parsed } = parseRequestTypeSection({
         section,
         commonArgs,
         collectedErrors,
@@ -194,11 +194,10 @@ function parseGraphqlSection(
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ) {
-    const { getSequence, ...parsed } = parseRequestTypeSection({
+    const { getSequence, getMap, ...parsed } = parseRequestTypeSection({
         section,
         commonArgs,
         collectedErrors,
-        additionalSequenceKeys: [],
         parseBody: (bodyMap) =>
             parseGraphqlBodyFromYamlMap(bodyMap, commonArgs),
     });
@@ -207,71 +206,46 @@ function parseGraphqlSection(
 }
 
 function parseWebsocketSection(
-    { keyRange, value: sectionMap }: WithKeyAndKeyRange<YAMLMap>,
+    section: WithKeyAndKeyRange<YAMLMap>,
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ) {
-    const { getString, getMap, getSequence, missingProperties } =
-        getValidatedMapItems(
-            sectionMap,
-            {
-                scalars: {
-                    stringValues: [
-                        RequestFileWebsocketSectionProperty.url,
-                        // Auth can either be a scalar string with the value 'inherit' or a map with a specific type.
-                        RequestFileWebsocketSectionProperty.auth,
-                    ],
-                },
-                mapValues: [
-                    RequestFileWebsocketSectionProperty.auth,
-                    // Message can either be a map for a single message or a sequence of messages.
-                    RequestFileWebsocketSectionProperty.message,
-                ],
-                sequenceValues: [
-                    RequestFileWebsocketSectionProperty.headers,
-                    RequestFileWebsocketSectionProperty.message,
-                ],
-            },
-            commonArgs,
-            collectedErrors,
-        );
+    const { getSequence, getMap, ...parsed } = parseRequestTypeSection({
+        section,
+        commonArgs,
+        collectedErrors,
+        additionalSequenceKeys: [RequestFileWebsocketSectionProperty.message],
+        // Message can either be a map for a single message or a sequence of messages.
+        additionalMapKeys: [RequestFileWebsocketSectionProperty.message],
+    });
+
+    const messagesFromSequence = parseIfPresent(
+        getSequence(RequestFileWebsocketSectionProperty.message),
+        ({ value }) => parseWebsocketMessagesFromSequence(value, commonArgs),
+        collectedErrors,
+    );
+    const singleMessageContent = parseIfPresent(
+        getMap(RequestFileWebsocketSectionProperty.message),
+        (messageMap) => parseWebsocketMessageContent(messageMap, commonArgs),
+        collectedErrors,
+    );
 
     return {
-        keyRange,
-        valueRange: getRangeForItem(sectionMap, commonArgs),
-        missingProperties,
+        ...parsed,
         properties: {
-            url: stripKeyFromResult(
-                getString(RequestFileWebsocketSectionProperty.url),
-            ),
-            headers: parseIfPresent(
-                getSequence(RequestFileWebsocketSectionProperty.headers),
-                ({ value: headersSequence }) =>
-                    parseHeadersFromSequence({ commonArgs, headersSequence }),
-                collectedErrors,
-            ),
-            message: parseIfPresent(
-                getSequence(RequestFileWebsocketSectionProperty.message),
-                ({ value }) =>
-                    parseWebsocketMessagesFromSequence(value, commonArgs),
-                collectedErrors,
-            ),
-            singleMessage: parseIfPresent(
-                getMap(RequestFileWebsocketSectionProperty.message),
-                (messageMap) =>
-                    parseWebsocketMessageContent(messageMap, commonArgs),
-                collectedErrors,
-            ),
-            auth: parseIfPresent(
-                getString(RequestFileWebsocketSectionProperty.auth) ??
-                    getMap(RequestFileWebsocketSectionProperty.auth),
-                (authMapOrScalar) =>
-                    parseAuthFromYamlMapOrScalar({
-                        commonArgs,
-                        authMapOrScalar,
-                    }),
-                collectedErrors,
-            ),
+            ...parsed.properties,
+            // A single message is normalized to a list with one entry, which has no title or selection state.
+            message:
+                messagesFromSequence ??
+                (singleMessageContent
+                    ? [
+                          {
+                              valueRange: singleMessageContent.valueRange,
+                              missingProperties: [],
+                              properties: { message: singleMessageContent },
+                          },
+                      ]
+                    : undefined),
         },
     };
 }
@@ -284,14 +258,17 @@ function parseRequestTypeSection<TBody>({
     section: { keyRange, value: sectionMap },
     commonArgs,
     collectedErrors,
-    additionalSequenceKeys,
+    additionalSequenceKeys = [],
+    additionalMapKeys = [],
     parseBody,
 }: {
     section: WithKeyAndKeyRange<YAMLMap>;
     commonArgs: CommonParsingArgs;
     collectedErrors: YamlParsingError[];
-    additionalSequenceKeys: string[];
-    parseBody: (
+    additionalSequenceKeys?: string[];
+    additionalMapKeys?: string[];
+    /** Method and body are only valid for request types that define a `parseBody` function. */
+    parseBody?: (
         bodyMap: WithKeyAndKeyRange<YAMLMap>,
     ) => MaybeResultWithErrors<TBody>;
 }) {
@@ -301,15 +278,18 @@ function parseRequestTypeSection<TBody>({
             {
                 scalars: {
                     stringValues: [
-                        RequestFileHttpSectionProperty.method,
+                        ...(parseBody
+                            ? [RequestFileHttpSectionProperty.method]
+                            : []),
                         RequestFileHttpSectionProperty.url,
                         // Auth can either be a scalar string with the value 'inherit' or a map with a specific type.
                         RequestFileHttpSectionProperty.auth,
                     ],
                 },
                 mapValues: [
-                    RequestFileHttpSectionProperty.body,
+                    ...(parseBody ? [RequestFileHttpSectionProperty.body] : []),
                     RequestFileHttpSectionProperty.auth,
+                    ...additionalMapKeys,
                 ],
                 sequenceValues: [
                     RequestFileHttpSectionProperty.headers,
@@ -325,6 +305,7 @@ function parseRequestTypeSection<TBody>({
         valueRange: getRangeForItem(sectionMap, commonArgs),
         missingProperties,
         getSequence,
+        getMap,
         properties: {
             method: stripKeyFromResult(
                 getString(RequestFileHttpSectionProperty.method),
@@ -338,11 +319,13 @@ function parseRequestTypeSection<TBody>({
                     parseHeadersFromSequence({ commonArgs, headersSequence }),
                 collectedErrors,
             ),
-            body: parseIfPresent(
-                getMap(RequestFileHttpSectionProperty.body),
-                parseBody,
-                collectedErrors,
-            ),
+            body:
+                parseBody &&
+                parseIfPresent(
+                    getMap(RequestFileHttpSectionProperty.body),
+                    parseBody,
+                    collectedErrors,
+                ),
             auth: parseIfPresent(
                 getString(RequestFileHttpSectionProperty.auth) ??
                     getMap(RequestFileHttpSectionProperty.auth),
