@@ -23,6 +23,7 @@ import { checkEntriesAreUnique } from "./diagnostics/checks/requestFiles/checkEn
 import { checkUrlMatchesParams } from "./diagnostics/checks/requestFiles/checkUrlMatchesParams";
 import { checkRequestTypeMatchesSections } from "./diagnostics/checks/requestFiles/checkRequestTypeMatchesSections";
 import { checkBodyTypeMatchesData } from "./diagnostics/checks/requestFiles/checkBodyTypeMatchesData";
+import { checkGraphqlVariablesSyntax } from "./diagnostics/checks/requestFiles/checkGraphqlVariablesSyntax";
 import { checkJsonBodySyntax } from "./diagnostics/checks/requestFiles/checkJsonBodySyntax";
 import { checkAuthHasRequiredFields } from "./diagnostics/checks/requestFiles/checkAuthHasRequiredFields";
 import { checkTagsAreUnique } from "./diagnostics/checks/requestFiles/checkTagsAreUnique";
@@ -138,11 +139,17 @@ export class YamlFormatDiagnosticsProvider {
                 properties.http?.properties.body,
                 commonParams.docHelper,
             ),
+            checkGraphqlVariablesSyntax(
+                properties.graphql?.properties.body,
+                commonParams.docHelper,
+            ),
             checkAuthHasRequiredFields(properties.http?.properties.auth),
+            checkAuthHasRequiredFields(properties.graphql?.properties.auth),
             checkResponseValidationExists(properties.runtime, commonParams),
             ...getDiagnosticsForDisabledItems([
                 ...(properties.http?.properties.headers?.disabled ?? []),
                 ...(properties.http?.properties.params?.disabled ?? []),
+                ...(properties.graphql?.properties.headers?.disabled ?? []),
                 ...getDisabledItemsFromRuntimeSection(properties.runtime),
             ]),
         ];

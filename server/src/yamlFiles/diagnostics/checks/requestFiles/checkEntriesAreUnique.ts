@@ -7,12 +7,12 @@ import { checkHeaderNamesAreUnique } from "../../shared/checkHeaderNamesAreUniqu
 import { checkCombinationOfPropertiesIsUnique } from "../../shared/generic/checkCombinationOfPropertiesIsUnique";
 
 export function checkEntriesAreUnique(
-    { http, runtime }: ParsedRequestFile["properties"],
+    { http, graphql, runtime }: ParsedRequestFile["properties"],
     commonParams: CommonDiagnosticParams,
 ): (Diagnostic | undefined)[] {
     const { filePath } = commonParams;
 
-    const headers = http?.properties.headers?.enabled;
+    const headers = (http ?? graphql)?.properties.headers?.enabled;
     const params = http?.properties.params?.enabled;
     const { variables, scripts, assertions, actions } =
         runtime?.properties ?? {};

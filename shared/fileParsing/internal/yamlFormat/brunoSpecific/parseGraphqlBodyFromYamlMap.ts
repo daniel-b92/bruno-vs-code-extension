@@ -1,4 +1,4 @@
-import { YAMLMap } from "yaml";
+import { isScalar, Scalar, YAMLMap } from "yaml";
 import { YamlParsingError } from "../../../..";
 import {
     CommonParsingArgs,
@@ -30,6 +30,10 @@ export function parseGraphqlBodyFromYamlMap(
         errors,
     );
 
+    const rawVariables = getString(
+        RequestFileGraphqlSectionBodyProperty.Variables,
+    );
+
     return {
         errors,
         result: {
@@ -40,10 +44,20 @@ export function parseGraphqlBodyFromYamlMap(
                 query: stripKeyFromResult(
                     getString(RequestFileGraphqlSectionBodyProperty.Query),
                 ),
-                variables: stripKeyFromResult(
-                    getString(RequestFileGraphqlSectionBodyProperty.Variables),
-                ),
+                variables: rawVariables && {
+                    ...stripKeyFromResult(rawVariables),
+                    isLiteralBlockScalar: isLiteralBlockScalar(
+                        map.get(
+                            RequestFileGraphqlSectionBodyProperty.Variables,
+                            true,
+                        ),
+                    ),
+                },
             },
         },
     };
+}
+
+function isLiteralBlockScalar(node: unknown) {
+    return isScalar(node) && node.type == Scalar.BLOCK_LITERAL;
 }

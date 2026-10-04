@@ -117,7 +117,10 @@ export type ParsedHttpBody = ParsedYamlMapWithKeyAndValueRange<{
 
 export type ParsedGraphqlBody = ParsedYamlMapWithKeyAndValueRange<{
     query?: WithKeyAndValueRange<string>;
-    variables?: WithKeyAndValueRange<string>;
+    variables?: WithKeyAndValueRange<string> & {
+        /** Whether the value is a literal block scalar (`|`, `|-`, `|+`). */
+        isLiteralBlockScalar: boolean;
+    };
 }>;
 
 export type ParsedDocsWithType = WithKeyAndValueRange<

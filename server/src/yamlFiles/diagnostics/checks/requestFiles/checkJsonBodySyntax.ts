@@ -2,6 +2,7 @@ import {
     HttpBodyType,
     ParsedRequestFile,
     Range,
+    WithKeyAndValueRange,
     TextDocumentHelper,
 } from "@global_shared";
 import { Diagnostic } from "vscode-languageserver";
@@ -18,7 +19,18 @@ export function checkJsonBodySyntax(
 ): Diagnostic | undefined {
     const { type, data } = body?.properties ?? {};
 
-    if (type?.value != HttpBodyType.Json || !data) {
+    return type?.value == HttpBodyType.Json
+        ? checkJsonScalarSyntax(data, docHelper)
+        : undefined;
+}
+
+export function checkJsonScalarSyntax(
+    data:
+        | (WithKeyAndValueRange<string> & { isLiteralBlockScalar: boolean })
+        | undefined,
+    docHelper: TextDocumentHelper,
+): Diagnostic | undefined {
+    if (!data) {
         return undefined;
     }
 

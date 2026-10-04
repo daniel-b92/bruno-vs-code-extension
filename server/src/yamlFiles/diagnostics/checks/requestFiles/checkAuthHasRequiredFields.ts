@@ -2,9 +2,13 @@ import { ParsedRequestFile } from "@global_shared";
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 
 export function checkAuthHasRequiredFields(
-    auth: NonNullable<
-        ParsedRequestFile["properties"]["http"]
-    >["properties"]["auth"],
+    auth:
+        | NonNullable<
+              ParsedRequestFile["properties"]["http"]
+          >["properties"]["auth"]
+        | NonNullable<
+              ParsedRequestFile["properties"]["graphql"]
+          >["properties"]["auth"],
 ): Diagnostic | undefined {
     // Auth that is inherited has no properties.
     if (!auth || !("properties" in auth.value)) {

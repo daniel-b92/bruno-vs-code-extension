@@ -394,6 +394,69 @@ runtime:
         ).toHaveLength(1);
     });
 
+    describe("graphql requests", () => {
+        it("should report duplicate headers, invalid variables JSON and disabled items", () => {
+            const diagnostics = getDiagnostics(`info:
+  name: example
+  type: graphql
+  seq: 1
+graphql:
+  method: POST
+  url: /graphql
+  headers:
+    - name: a
+      value: "1"
+    - name: a
+      value: "2"
+    - name: b
+      value: "3"
+      disabled: true
+  body:
+    query: "query { a }"
+    variables: |-
+      {"a": }
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+`);
+
+            expect(diagnostics.map(({ message }) => message)).toEqual(
+                expect.arrayContaining([
+                    expect.stringContaining("Same name already defined"),
+                    expect.stringContaining("JSON"),
+                ]),
+            );
+            expect(
+                diagnostics.filter(
+                    ({ severity, tags }) =>
+                        severity == DiagnosticSeverity.Hint &&
+                        tags?.[0] == DiagnosticTag.Unnecessary,
+                ),
+            ).toHaveLength(1);
+        });
+
+        it("should report missing auth keys", () => {
+            const diagnostics = getDiagnostics(`info:
+  name: example
+  type: graphql
+  seq: 1
+graphql:
+  url: /graphql
+  auth:
+    type: bearer
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+`);
+
+            expect(diagnostics.map(({ message }) => message)).toContain(
+                "Missing keys for auth type 'bearer': 'token'.",
+            );
+        });
+    });
+
     function getDiagnostics(content: string) {
         return provider.getDiagnosticsForYamlFile(
             "/collection/request.yml",
