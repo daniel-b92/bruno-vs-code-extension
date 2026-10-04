@@ -371,18 +371,14 @@ function getDiagnosticsForYamlFile(filePath: string, text: string) {
         );
     }
 
-    if (
-        // ToDo: Once yaml files are stored in the file system cache, use the itemType for identifying request files.
-        !isYamlAppFile(text)
-    ) {
-        return yamlDiagnosticsProvider.getDiagnosticsForYamlFile(
-            filePath,
-            text,
-            BrunoFileType.RequestFile,
-        );
-    }
-
-    return undefined;
+    return yamlDiagnosticsProvider.getDiagnosticsForYamlFile(
+        filePath,
+        text,
+        // ToDo: Once yaml files are stored in the file system cache, use the itemType for identifying app and request files.
+        isYamlAppFile(text)
+            ? BrunoFileType.AppFile
+            : BrunoFileType.RequestFile,
+    );
 }
 
 function isYamlAppFile(text: string) {

@@ -1,8 +1,10 @@
 import {
     BrunoFileType,
+    FileInfoType,
     ParsedCollectionSettingsFile,
     ParsedFolderSettingsFile,
     ParsedRequestFile,
+    parseAppFile,
     parseCollectionSettingsFile,
     parseFolderSettingsFile,
     parseRequestFile,
@@ -71,6 +73,8 @@ export class YamlFormatDiagnosticsProvider {
                 return this.getDiagnosticsForFolderSettingsFile(commonParams);
             case BrunoFileType.RequestFile:
                 return this.getDiagnosticsForRequestFile(commonParams);
+            case BrunoFileType.AppFile:
+                return this.getDiagnosticsForAppFile(commonParams);
             default:
                 return [];
         }
@@ -182,6 +186,31 @@ export class YamlFormatDiagnosticsProvider {
         return parsingDiagnostics.concat(
             otherDiagnostics.filter((d) => d != undefined),
         );
+    }
+
+    public getDiagnosticsForAppFile({
+        docHelper,
+    }: CommonDiagnosticParams): Diagnostic[] {
+        const { errors, result: parsingResult } = parseAppFile(docHelper);
+        const parsingDiagnostics = mapParsingErrorsToDiagnostics(errors);
+
+        if (!parsingResult) {
+            return parsingDiagnostics;
+        }
+        const type = parsingResult.properties.info?.properties.type;
+
+        // ToDo: Once the yaml collection items are cached, check that the sequence is unique within the parent folder.
+        const typeDiagnostics: Diagnostic[] =
+            type && type.value != FileInfoType.App
+                ? [
+                      {
+                          message: `App files must have the type '${FileInfoType.App}'.`,
+                          range: type.valueRange,
+                          severity: DiagnosticSeverity.Warning,
+                      },
+                  ]
+                : [];
+        return parsingDiagnostics.concat(typeDiagnostics);
     }
 
     public getDiagnosticsForFolderSettingsFile(

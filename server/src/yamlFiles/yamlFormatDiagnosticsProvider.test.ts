@@ -630,6 +630,48 @@ request:
     }
 });
 
+describe("YamlFormatDiagnosticsProvider for app files", () => {
+    const provider = new YamlFormatDiagnosticsProvider();
+
+    it("should not return diagnostics for a valid app file", () => {
+        expect(
+            getDiagnostics(`info:
+  name: app
+  type: app
+  seq: 1
+code: |
+  foo
+`),
+        ).toHaveLength(0);
+    });
+
+    it("should warn if the type is not 'app'", () => {
+        const diagnostics = getDiagnostics(`info:
+  name: app
+  type: http
+code: foo
+`);
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0].message).toBe(
+            "App files must have the type 'app'.",
+        );
+        expect(diagnostics[0].severity).toBe(DiagnosticSeverity.Warning);
+    });
+
+    it("should report a missing info section", () => {
+        expect(getDiagnostics("code: foo")).toHaveLength(1);
+    });
+
+    function getDiagnostics(content: string) {
+        return provider.getDiagnosticsForYamlFile(
+            "/collection/app.yml",
+            content,
+            BrunoFileType.AppFile,
+        );
+    }
+});
+
 describe("YamlFormatDiagnosticsProvider for environment files", () => {
     const provider = new YamlFormatDiagnosticsProvider();
 

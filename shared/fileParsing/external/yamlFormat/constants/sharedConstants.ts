@@ -21,6 +21,7 @@ export enum FileInfoProperty {
 
 export enum FileInfoType {
     Folder = "folder",
+    App = "app",
     Http = "http",
     Graphql = "graphql",
     Grpc = "grpc",

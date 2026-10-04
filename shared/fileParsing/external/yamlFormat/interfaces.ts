@@ -65,6 +65,11 @@ export type ParsedRequestFile = ParsedYamlMap<{
     requestTypeSections: { name: string; keyRange: Range }[];
 }>;
 
+export type ParsedAppFile = ParsedYamlMap<{
+    info?: ParsedInfoForFolderSettings;
+    code?: WithKeyAndValueRange<string>;
+}>;
+
 export type ParsedFolderSettingsFile = ParsedYamlMap<{
     info?: ParsedInfoForFolderSettings;
     request?: ParsedSettingsFileRequestSection;

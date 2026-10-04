@@ -9,7 +9,12 @@ export function checkRequestTypeMatchesSections(
 ): Diagnostic[] {
     const type = info?.properties.type;
 
-    if (!type || type.value == FileInfoType.Folder) {
+    if (
+        !type ||
+        type.value == FileInfoType.Folder ||
+        // Request files cannot be of type `app`. That is reported by a separate check.
+        type.value == FileInfoType.App
+    ) {
         return [];
     }
 
