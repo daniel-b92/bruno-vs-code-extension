@@ -1,3 +1,5 @@
+import { FileInfoType } from "./sharedConstants";
+
 export enum TopLevelRequestFileProperty {
     Info = "info",
     Runtime = "runtime",
@@ -49,6 +51,30 @@ export enum RequestFileGraphqlSectionBodyProperty {
     Variables = "variables",
 }
 
+export enum RequestFileWebsocketSectionProperty {
+    url = "url",
+    headers = "headers",
+    message = "message",
+    auth = "auth",
+}
+
+export enum RequestFileWebsocketMessageProperty {
+    Title = "title",
+    Selected = "selected",
+    Message = "message",
+}
+
+export enum RequestFileWebsocketMessageBodyProperty {
+    Type = "type",
+    Data = "data",
+}
+
+export enum WebsocketMessageType {
+    Json = "json",
+    Xml = "xml",
+    Text = "text",
+}
+
 export enum HttpBodyType {
     None = "none",
     Json = "json",
@@ -79,7 +105,28 @@ export enum RequestFileSettingsProperty {
     FollowRedirects = "followRedirects",
     MaxRedirects = "maxRedirects",
     ForwardAuthorizationHeader = "forwardAuthorizationHeader",
+    KeepAliveInterval = "keepAliveInterval",
 }
+
+const SETTINGS_FOR_NON_WEBSOCKET_REQUESTS = Object.values(
+    RequestFileSettingsProperty,
+).filter((prop) => prop != RequestFileSettingsProperty.KeepAliveInterval);
+
+/**
+ * The settings that are valid per request type.
+ * For request types that are not listed (or if the type is unknown), no setting is excluded.
+ */
+export const SETTINGS_BY_REQUEST_TYPE: Partial<
+    Record<FileInfoType, RequestFileSettingsProperty[]>
+> = {
+    [FileInfoType.Http]: SETTINGS_FOR_NON_WEBSOCKET_REQUESTS,
+    [FileInfoType.Graphql]: SETTINGS_FOR_NON_WEBSOCKET_REQUESTS,
+    [FileInfoType.Grpc]: SETTINGS_FOR_NON_WEBSOCKET_REQUESTS,
+    [FileInfoType.Websocket]: [
+        RequestFileSettingsProperty.Timeout,
+        RequestFileSettingsProperty.KeepAliveInterval,
+    ],
+};
 
 export enum RequestFileAppProperty {
     Enabled = "enabled",

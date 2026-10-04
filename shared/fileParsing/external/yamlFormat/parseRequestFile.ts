@@ -18,9 +18,10 @@ import {
     RequestFileAppProperty,
     RequestFileHttpSectionProperty,
     RequestFileRuntimeProperty,
+    RequestFileWebsocketSectionProperty,
     TopLevelRequestFileProperty,
 } from "./constants/requestFileConstants";
-import { FileInfoProperty } from "./constants/sharedConstants";
+import { FileInfoProperty, FileInfoType } from "./constants/sharedConstants";
 import { parseFileInfoFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseFileInfoFromYamlMap";
 import { parseSettingsFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseSettingsFromYamlMap";
 import { stripKeyFromResult } from "../../internal/yamlFormat/util/stripKeyFromResult";
@@ -34,6 +35,10 @@ import { parseHeadersFromSequence } from "../../internal/yamlFormat/brunoSpecifi
 import { parseParamsFromSequence } from "../../internal/yamlFormat/brunoSpecific/parseParamsFromSequence";
 import { parseBodyFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseBodyFromYamlMap";
 import { parseGraphqlBodyFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseGraphqlBodyFromYamlMap";
+import {
+    parseWebsocketMessageContent,
+    parseWebsocketMessagesFromSequence,
+} from "../../internal/yamlFormat/brunoSpecific/parseWebsocketMessagesFromSequence";
 import { parseAuthFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpecific/parseAuthFromYamlMapOrScalar";
 
 export function parseRequestFile(
@@ -77,6 +82,7 @@ export function parseRequestFile(
 
     const httpMap = getMap(TopLevelRequestFileProperty.Http);
     const graphqlMap = getMap(TopLevelRequestFileProperty.Graphql);
+    const websocketMap = getMap(TopLevelRequestFileProperty.Websocket);
     const runtimeMap = getMap(TopLevelRequestFileProperty.Runtime);
     const appMap = getMap(TopLevelRequestFileProperty.App);
 
@@ -96,6 +102,9 @@ export function parseRequestFile(
     const graphql = graphqlMap
         ? parseGraphqlSection(graphqlMap, commonArgs, collectedErrors)
         : undefined;
+    const websocket = websocketMap
+        ? parseWebsocketSection(websocketMap, commonArgs, collectedErrors)
+        : undefined;
     const runtime = runtimeMap
         ? parseRuntimeSection(runtimeMap, commonArgs, collectedErrors)
         : undefined;
@@ -104,7 +113,12 @@ export function parseRequestFile(
     );
     const settings = parseIfPresent(
         getMap(TopLevelRequestFileProperty.Settings),
-        (settingsMap) => parseSettingsFromYamlMap(settingsMap, commonArgs),
+        (settingsMap) =>
+            parseSettingsFromYamlMap(
+                settingsMap,
+                commonArgs,
+                getRequestType(maybeTopLevelMap.map),
+            ),
         collectedErrors,
     );
     const app = appMap
@@ -137,6 +151,7 @@ export function parseRequestFile(
                 info,
                 http,
                 graphql,
+                websocket,
                 runtime,
                 docs,
                 settings,
@@ -153,7 +168,7 @@ function parseHttpSection(
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ) {
-    const { getSequence, ...parsed } = parseRequestTypeSection({
+    const { getSequence, getMap, ...parsed } = parseRequestTypeSection({
         section,
         commonArgs,
         collectedErrors,
@@ -179,16 +194,60 @@ function parseGraphqlSection(
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ) {
-    const { getSequence, ...parsed } = parseRequestTypeSection({
+    const { getSequence, getMap, ...parsed } = parseRequestTypeSection({
         section,
         commonArgs,
         collectedErrors,
-        additionalSequenceKeys: [],
         parseBody: (bodyMap) =>
             parseGraphqlBodyFromYamlMap(bodyMap, commonArgs),
     });
 
     return parsed;
+}
+
+function parseWebsocketSection(
+    section: WithKeyAndKeyRange<YAMLMap>,
+    commonArgs: CommonParsingArgs,
+    collectedErrors: YamlParsingError[],
+) {
+    const { getSequence, getMap, ...parsed } = parseRequestTypeSection({
+        section,
+        commonArgs,
+        collectedErrors,
+        additionalSequenceKeys: [RequestFileWebsocketSectionProperty.message],
+        // Message can either be a map for a single message or a sequence of messages.
+        additionalMapKeys: [RequestFileWebsocketSectionProperty.message],
+    });
+
+    const messagesFromSequence = parseIfPresent(
+        getSequence(RequestFileWebsocketSectionProperty.message),
+        ({ value }) => parseWebsocketMessagesFromSequence(value, commonArgs),
+        collectedErrors,
+    );
+    const singleMessageContent = parseIfPresent(
+        getMap(RequestFileWebsocketSectionProperty.message),
+        (messageMap) => parseWebsocketMessageContent(messageMap, commonArgs),
+        collectedErrors,
+    );
+
+    return {
+        ...parsed,
+        properties: {
+            ...parsed.properties,
+            // A single message is normalized to a list with one entry, which has no title or selection state.
+            message:
+                messagesFromSequence ??
+                (singleMessageContent
+                    ? [
+                          {
+                              valueRange: singleMessageContent.valueRange,
+                              missingProperties: [],
+                              properties: { message: singleMessageContent },
+                          },
+                      ]
+                    : undefined),
+        },
+    };
 }
 
 /**
@@ -199,14 +258,17 @@ function parseRequestTypeSection<TBody>({
     section: { keyRange, value: sectionMap },
     commonArgs,
     collectedErrors,
-    additionalSequenceKeys,
+    additionalSequenceKeys = [],
+    additionalMapKeys = [],
     parseBody,
 }: {
     section: WithKeyAndKeyRange<YAMLMap>;
     commonArgs: CommonParsingArgs;
     collectedErrors: YamlParsingError[];
-    additionalSequenceKeys: string[];
-    parseBody: (
+    additionalSequenceKeys?: string[];
+    additionalMapKeys?: string[];
+    /** Method and body are only valid for request types that define a `parseBody` function. */
+    parseBody?: (
         bodyMap: WithKeyAndKeyRange<YAMLMap>,
     ) => MaybeResultWithErrors<TBody>;
 }) {
@@ -216,15 +278,18 @@ function parseRequestTypeSection<TBody>({
             {
                 scalars: {
                     stringValues: [
-                        RequestFileHttpSectionProperty.method,
+                        ...(parseBody
+                            ? [RequestFileHttpSectionProperty.method]
+                            : []),
                         RequestFileHttpSectionProperty.url,
                         // Auth can either be a scalar string with the value 'inherit' or a map with a specific type.
                         RequestFileHttpSectionProperty.auth,
                     ],
                 },
                 mapValues: [
-                    RequestFileHttpSectionProperty.body,
+                    ...(parseBody ? [RequestFileHttpSectionProperty.body] : []),
                     RequestFileHttpSectionProperty.auth,
+                    ...additionalMapKeys,
                 ],
                 sequenceValues: [
                     RequestFileHttpSectionProperty.headers,
@@ -240,6 +305,7 @@ function parseRequestTypeSection<TBody>({
         valueRange: getRangeForItem(sectionMap, commonArgs),
         missingProperties,
         getSequence,
+        getMap,
         properties: {
             method: stripKeyFromResult(
                 getString(RequestFileHttpSectionProperty.method),
@@ -253,11 +319,13 @@ function parseRequestTypeSection<TBody>({
                     parseHeadersFromSequence({ commonArgs, headersSequence }),
                 collectedErrors,
             ),
-            body: parseIfPresent(
-                getMap(RequestFileHttpSectionProperty.body),
-                parseBody,
-                collectedErrors,
-            ),
+            body:
+                parseBody &&
+                parseIfPresent(
+                    getMap(RequestFileHttpSectionProperty.body),
+                    parseBody,
+                    collectedErrors,
+                ),
             auth: parseIfPresent(
                 getString(RequestFileHttpSectionProperty.auth) ??
                     getMap(RequestFileHttpSectionProperty.auth),
@@ -361,12 +429,18 @@ function getSectionsForOtherRequestTypes(topLevelMap: YAMLMap): string[] {
         TopLevelRequestFileProperty.Grpc,
         TopLevelRequestFileProperty.Websocket,
     ];
+    const type = getRequestType(topLevelMap);
+
+    return typeof type == "string" && requestTypeSections.includes(type)
+        ? requestTypeSections.filter((section) => section != type)
+        : [];
+}
+
+function getRequestType(topLevelMap: YAMLMap): FileInfoType | undefined {
     const type = topLevelMap.getIn([
         TopLevelRequestFileProperty.Info,
         FileInfoProperty.Type,
     ]);
 
-    return typeof type == "string" && requestTypeSections.includes(type)
-        ? requestTypeSections.filter((section) => section != type)
-        : [];
+    return Object.values(FileInfoType).find((t) => t == type);
 }

@@ -26,6 +26,7 @@ import { checkRequestTypeMatchesSections } from "./diagnostics/checks/requestFil
 import { checkBodyTypeMatchesData } from "./diagnostics/checks/requestFiles/checkBodyTypeMatchesData";
 import { checkGraphqlVariablesSyntax } from "./diagnostics/checks/requestFiles/checkGraphqlVariablesSyntax";
 import { checkJsonBodySyntax } from "./diagnostics/checks/requestFiles/checkJsonBodySyntax";
+import { checkWebsocketMessages } from "./diagnostics/checks/requestFiles/checkWebsocketMessages";
 import { checkAuthHasRequiredFields } from "./diagnostics/checks/requestFiles/checkAuthHasRequiredFields";
 import { checkTagsAreUnique } from "./diagnostics/checks/requestFiles/checkTagsAreUnique";
 import { getDiagnosticsForDisabledItems } from "./diagnostics/shared/getDiagnosticsForDisabledItems";
@@ -143,6 +144,10 @@ export class YamlFormatDiagnosticsProvider {
             ),
             checkGraphqlVariablesSyntax(
                 properties.graphql?.properties.body,
+                commonParams.docHelper,
+            ),
+            ...checkWebsocketMessages(
+                properties.websocket,
                 commonParams.docHelper,
             ),
             ...requestTypeSections.map(({ properties: { auth } }) =>

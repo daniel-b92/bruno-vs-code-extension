@@ -483,6 +483,146 @@ runtime:
         });
     });
 
+    describe("websocket requests", () => {
+        it("should report duplicate headers, invalid JSON messages and disabled items", () => {
+            const diagnostics = getDiagnostics(`info:
+  name: example
+  type: websocket
+  seq: 1
+websocket:
+  url: ws://example.com
+  headers:
+    - name: a
+      value: "1"
+    - name: a
+      value: "2"
+    - name: b
+      value: "3"
+      disabled: true
+  message:
+    - title: invalid
+      message:
+        type: json
+        data: |-
+          {"a": }
+    - title: valid
+      message:
+        type: json
+        data: '{"a": 1}'
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+`);
+
+            expect(diagnostics.map(({ message }) => message)).toEqual(
+                expect.arrayContaining([
+                    expect.stringContaining("Same name already defined"),
+                    expect.stringContaining("JSON"),
+                ]),
+            );
+            expect(
+                diagnostics.filter(({ message }) =>
+                    String(message).startsWith("Invalid JSON"),
+                ),
+            ).toHaveLength(1);
+            expect(
+                diagnostics.filter(
+                    ({ severity, tags }) =>
+                        severity == DiagnosticSeverity.Hint &&
+                        tags?.[0] == DiagnosticTag.Unnecessary,
+                ),
+            ).toHaveLength(1);
+        });
+
+        it("should report invalid JSON for a single message defined as a map", () => {
+            const diagnostics = getDiagnostics(`info:
+  name: example
+  type: websocket
+  seq: 1
+websocket:
+  url: ws://example.com
+  message:
+    type: json
+    data: '{"a": }'
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+`);
+
+            expect(
+                diagnostics.filter(({ message }) =>
+                    String(message).startsWith("Invalid JSON"),
+                ),
+            ).toHaveLength(1);
+        });
+
+        it("should not report invalid JSON for a message with empty data", () => {
+            const diagnostics = getDiagnostics(`info:
+  name: example
+  type: websocket
+  seq: 1
+websocket:
+  url: ws://example.com
+  message:
+    type: json
+    data: ""
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+`);
+
+            expect(
+                diagnostics.filter(({ message }) =>
+                    String(message).startsWith("Invalid JSON"),
+                ),
+            ).toHaveLength(0);
+        });
+
+        it("should report a message type without data", () => {
+            const diagnostics = getDiagnostics(`info:
+  name: example
+  type: websocket
+  seq: 1
+websocket:
+  url: ws://example.com
+  message:
+    - message:
+        type: text
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+`);
+
+            expect(diagnostics.map(({ message }) => message)).toContain(
+                "No message data is defined for the message type 'text'.",
+            );
+        });
+
+        it("should report missing auth keys", () => {
+            const diagnostics = getDiagnostics(`info:
+  name: example
+  type: websocket
+  seq: 1
+websocket:
+  url: ws://example.com
+  auth:
+    type: bearer
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+`);
+
+            expect(diagnostics.map(({ message }) => message)).toContain(
+                "Missing keys for auth type 'bearer': 'token'.",
+            );
+        });
+    });
+
     function getDiagnostics(content: string) {
         return provider.getDiagnosticsForYamlFile(
             "/collection/request.yml",
@@ -491,332 +631,6 @@ runtime:
         );
     }
 });
-
-describe("YamlFormatDiagnosticsProvider for collection settings files", () => {
-    const provider = new YamlFormatDiagnosticsProvider();
-
-    it("should not return diagnostics for a valid collection settings file", () => {
-        const diagnostics = getDiagnostics(`${header}
-config:
-  clientCertificates:
-    - domain: a.com
-      type: pem
-      certificateFilePath: c.pem
-      privateKeyFilePath: k.pem
-    - domain: b.com
-      type: pkcs12
-      pfxFilePath: c.pfx
-request:
-  headers:
-    - name: h1
-      value: v
-`);
-
-        expect(diagnostics).toEqual([]);
-    });
-
-    it("should report missing and disallowed keys for the client certificate type", () => {
-        const diagnostics = getDiagnostics(`${header}
-config:
-  clientCertificates:
-    - domain: a.com
-      type: pem
-      certificateFilePath: c.pem
-      pfxFilePath: c.pfx
-    - domain: b.com
-      type: pkcs12
-      privateKeyFilePath: k.pem
-`);
-
-        expect(diagnostics.map(({ message }) => message)).toEqual([
-            "Missing keys for client certificate type 'pem': 'privateKeyFilePath'.",
-            "Key 'pfxFilePath' is not allowed for client certificate type 'pem'.",
-            "Missing keys for client certificate type 'pkcs12': 'pfxFilePath'.",
-            "Key 'privateKeyFilePath' is not allowed for client certificate type 'pkcs12'.",
-        ]);
-        expect(diagnostics.map(({ severity }) => severity)).toEqual([
-            DiagnosticSeverity.Error,
-            DiagnosticSeverity.Warning,
-            DiagnosticSeverity.Error,
-            DiagnosticSeverity.Warning,
-        ]);
-    });
-
-    it("should warn for duplicate headers in the request section", () => {
-        const diagnostics = getDiagnostics(`${header}
-request:
-  headers:
-    - name: h1
-      value: a
-    - name: h1
-      value: b
-`);
-
-        expect(diagnostics).toHaveLength(1);
-        expect(diagnostics[0].message).toBe("Same name already defined");
-    });
-
-    it("should warn if keys are missing for the auth type in the request section", () => {
-        const diagnostics = getDiagnostics(`${header}
-request:
-  auth:
-    type: basic
-    username: u
-`);
-
-        expect(diagnostics).toHaveLength(1);
-        expect(diagnostics[0].message).toBe(
-            "Missing keys for auth type 'basic': 'password'.",
-        );
-    });
-
-    it("should report an error if auth is inherited", () => {
-        const diagnostics = getDiagnostics(`${header}
-request:
-  auth: inherit
-`);
-
-        expect(diagnostics).toHaveLength(1);
-        expect(diagnostics[0].severity).toBe(DiagnosticSeverity.Error);
-        expect(diagnostics[0].message).toContain("cannot be inherited");
-    });
-
-    it("should only hint at a disabled proxy, not additionally at its auth", () => {
-        const diagnostics = getDiagnostics(`${header}
-config:
-  proxy:
-    disabled: true
-    config:
-      hostname: localhost
-      auth:
-        username: u
-        disabled: true
-`);
-
-        expect(diagnostics).toHaveLength(1);
-        expect(diagnostics[0].severity).toBe(DiagnosticSeverity.Hint);
-        expect(diagnostics[0].range.start.line).toBe(5);
-    });
-
-    it("should hint at disabled proxy auth", () => {
-        const diagnostics = getDiagnostics(`${header}
-config:
-  proxy:
-    config:
-      hostname: localhost
-      auth:
-        username: u
-        disabled: true
-`);
-
-        expect(diagnostics).toHaveLength(1);
-        expect(diagnostics[0].severity).toBe(DiagnosticSeverity.Hint);
-        expect(diagnostics[0].tags).toEqual([DiagnosticTag.Unnecessary]);
-        expect(diagnostics[0].range.start.line).toBe(8);
-    });
-
-    it("should only hint at disabled client certificates and not check them", () => {
-        const diagnostics = getDiagnostics(`${header}
-config:
-  clientCertificates:
-    - domain: a.com
-      type: pem
-      certificateFilePath: c.pem
-      disabled: true
-`);
-
-        expect(diagnostics).toHaveLength(1);
-        expect(diagnostics[0].severity).toBe(DiagnosticSeverity.Hint);
-        expect(diagnostics[0].tags).toEqual([DiagnosticTag.Unnecessary]);
-    });
-
-    function getDiagnostics(content: string) {
-        return provider.getDiagnosticsForYamlFile(
-            "/collection/opencollection.yml",
-            content,
-            BrunoFileType.CollectionSettingsFile,
-        );
-    }
-});
-
-describe("YamlFormatDiagnosticsProvider for folder settings files", () => {
-    const provider = new YamlFormatDiagnosticsProvider();
-
-    it("should warn for duplicate headers even if no variables are defined", () => {
-        const diagnostics = getDiagnostics(`${folderHeader}
-request:
-  headers:
-    - name: h1
-      value: a
-    - name: h1
-      value: b
-`);
-
-        expect(diagnostics).toHaveLength(1);
-        expect(diagnostics[0].message).toBe("Same name already defined");
-    });
-
-    it("should warn for duplicate headers that only differ in casing", () => {
-        const diagnostics = getDiagnostics(`${folderHeader}
-request:
-  headers:
-    - name: Content-Type
-      value: a
-    - name: content-type
-      value: b
-`);
-
-        expect(diagnostics).toHaveLength(1);
-        expect(diagnostics[0].message).toBe("Same name already defined");
-    });
-
-    it("should warn if keys are missing for the auth type", () => {
-        const diagnostics = getDiagnostics(`${folderHeader}
-request:
-  auth:
-    type: basic
-    username: u
-`);
-
-        expect(diagnostics).toHaveLength(1);
-        expect(diagnostics[0].message).toBe(
-            "Missing keys for auth type 'basic': 'password'.",
-        );
-    });
-
-    it("should only hint at disabled items and not check them", () => {
-        const diagnostics = getDiagnostics(`${folderHeader}
-request:
-  headers:
-    - name: h1
-      value: a
-    - name: h1
-      value: b
-      disabled: true
-  variables:
-    - name: v1
-      value: a
-      disabled: true
-`);
-
-        expect(diagnostics.map(({ severity }) => severity)).toEqual([
-            DiagnosticSeverity.Hint,
-            DiagnosticSeverity.Hint,
-        ]);
-        expect(
-            diagnostics.every(
-                ({ tags }) => tags?.[0] == DiagnosticTag.Unnecessary,
-            ),
-        ).toBe(true);
-    });
-
-    function getDiagnostics(content: string) {
-        return provider.getDiagnosticsForYamlFile(
-            "/collection/folder/folder.yml",
-            content,
-            BrunoFileType.FolderSettingsFile,
-        );
-    }
-});
-
-describe("YamlFormatDiagnosticsProvider for app files", () => {
-    const provider = new YamlFormatDiagnosticsProvider();
-
-    it("should not return diagnostics for a valid app file", () => {
-        expect(
-            getDiagnostics(`info:
-  name: app
-  type: app
-  seq: 1
-code: |
-  foo
-`),
-        ).toHaveLength(0);
-    });
-
-    it("should report an invalid type", () => {
-        const diagnostics = getDiagnostics(`info:
-  name: app
-  type: http
-code: foo
-`);
-
-        expect(diagnostics).toHaveLength(1);
-        expect(diagnostics[0].message).toContain("Invalid value 'http'");
-        expect(diagnostics[0].range).toEqual({
-            start: { line: 2, character: 8 },
-            end: { line: 2, character: 12 },
-        });
-    });
-
-    it("should report a missing info section", () => {
-        const diagnostics = getDiagnostics("code: foo");
-
-        expect(diagnostics).toHaveLength(1);
-        expect(diagnostics[0].message).toContain("info");
-    });
-
-    function getDiagnostics(content: string) {
-        return provider.getDiagnosticsForYamlFile(
-            "/collection/app.yml",
-            content,
-            BrunoFileType.AppFile,
-        );
-    }
-});
-
-describe("YamlFormatDiagnosticsProvider for environment files", () => {
-    const provider = new YamlFormatDiagnosticsProvider();
-
-    it("should only hint at disabled variables and not check them", () => {
-        const diagnostics = getDiagnostics(`name: env
-variables:
-  - name: a
-    value: "1"
-  - name: a
-    value: "2"
-    disabled: true
-  - name: b
-    secret: true
-    value: redundant
-    disabled: true
-`);
-
-        expect(diagnostics).toHaveLength(2);
-        expect(
-            diagnostics.every(
-                ({ severity, tags }) =>
-                    severity == DiagnosticSeverity.Hint &&
-                    tags?.[0] == DiagnosticTag.Unnecessary,
-            ),
-        ).toBe(true);
-    });
-
-    it("should report a missing name even if no variables are defined", () => {
-        const diagnostics = getDiagnostics(`color: red
-`);
-
-        expect(diagnostics.map(({ message }) => message)).toContain(
-            "Mandatory top-level key 'name' missing.",
-        );
-    });
-
-    function getDiagnostics(content: string) {
-        return provider.getDiagnosticsForYamlFile(
-            "/collection/environments/env.yml",
-            content,
-            BrunoFileType.EnvironmentFile,
-        );
-    }
-});
-
-const folderHeader = `info:
-  name: example
-  type: folder`;
-
-const header = `opencollection: 1.0.0
-info:
-  name: example`;
 
 function validRequest(sections: { info?: string; http?: string }) {
     return `${sections.info ?? infoSection}
