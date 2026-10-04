@@ -115,6 +115,11 @@ export type ParsedHttpBody = ParsedYamlMapWithKeyAndValueRange<{
     };
 }>;
 
+export type ParsedGraphqlBody = ParsedYamlMapWithKeyAndValueRange<{
+    query?: WithKeyAndValueRange<string>;
+    variables?: WithKeyAndValueRange<string>;
+}>;
+
 export type ParsedDocsWithType = WithKeyAndValueRange<
     | string
     | ParsedYamlMap<{

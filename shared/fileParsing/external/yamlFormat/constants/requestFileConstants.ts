@@ -36,6 +36,19 @@ export enum RequestFileHttpSectionBodyProperty {
     Data = "data",
 }
 
+export enum RequestFileGraphqlSectionProperty {
+    method = "method",
+    url = "url",
+    headers = "headers",
+    body = "body",
+    auth = "auth",
+}
+
+export enum RequestFileGraphqlSectionBodyProperty {
+    Query = "query",
+    Variables = "variables",
+}
+
 export enum HttpBodyType {
     None = "none",
     Json = "json",

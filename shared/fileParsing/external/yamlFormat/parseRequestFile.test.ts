@@ -384,6 +384,74 @@ docs: request docs`;
         });
     });
 
+    describe("graphql requests", () => {
+        it("parses a graphql request with all fields set", () => {
+            const documentText = `info:
+    name: gql
+    type: graphql
+    seq: 4
+
+graphql:
+    method: GET
+    url: https://example.com/graphql
+    headers:
+        - name: Accept
+          value: application/json
+        - name: X-Disabled
+          value: abc
+          disabled: true
+    body:
+        query: |-
+            query {
+              a
+            }
+        variables: '{"a": 1}'
+    auth: inherit
+
+docs: some docs`;
+
+            const { result, errors } = parseRequestFile(
+                new TextDocumentHelper(documentText),
+            );
+
+            expect(errors).toHaveLength(0);
+            const graphql = result!.properties.graphql!;
+            expect(graphql.properties.method?.value).toBe("GET");
+            expect(graphql.properties.url?.value).toBe(
+                "https://example.com/graphql",
+            );
+            expect(graphql.properties.headers?.enabled).toHaveLength(1);
+            expect(graphql.properties.headers?.disabled).toHaveLength(1);
+            expect(graphql.properties.body?.properties.query?.value).toBe(
+                "query {\n  a\n}",
+            );
+            expect(graphql.properties.body?.properties.variables?.value).toBe(
+                '{"a": 1}',
+            );
+            expect(graphql.properties.auth).toBeDefined();
+            expect(result!.properties.http).toBeUndefined();
+            expect(result!.properties.requestTypeSections).toHaveLength(1);
+        });
+
+        it("reports unknown keys in the graphql body", () => {
+            const documentText = `info:
+    name: gql
+    type: graphql
+    seq: 1
+graphql:
+    url: abc
+    body:
+        foo: bar`;
+
+            const { errors } = parseRequestFile(
+                new TextDocumentHelper(documentText),
+            );
+
+            expect(errors).toHaveLength(1);
+            expect(errors[0].message).toContain("Unknown key 'foo'");
+        });
+    });
+
     describe("error handling", () => {
         it("returns an error when info section is missing", () => {
             const documentText = `http:

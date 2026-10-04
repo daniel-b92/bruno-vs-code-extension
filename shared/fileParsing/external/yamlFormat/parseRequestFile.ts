@@ -16,6 +16,7 @@ import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDo
 import { getValidatedMapItems } from "../../internal/yamlFormat/yamlMaps/getValidatedMapItems";
 import {
     RequestFileAppProperty,
+    RequestFileGraphqlSectionProperty,
     RequestFileHttpSectionProperty,
     RequestFileRuntimeProperty,
     TopLevelRequestFileProperty,
@@ -33,6 +34,7 @@ import { parseAssertionsFromYamlSequence } from "../../internal/yamlFormat/bruno
 import { parseHeadersFromSequence } from "../../internal/yamlFormat/brunoSpecific/parseHeadersFromSequence";
 import { parseParamsFromSequence } from "../../internal/yamlFormat/brunoSpecific/parseParamsFromSequence";
 import { parseBodyFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseBodyFromYamlMap";
+import { parseGraphqlBodyFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseGraphqlBodyFromYamlMap";
 import { parseAuthFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpecific/parseAuthFromYamlMapOrScalar";
 
 export function parseRequestFile(
@@ -75,6 +77,7 @@ export function parseRequestFile(
     );
 
     const httpMap = getMap(TopLevelRequestFileProperty.Http);
+    const graphqlMap = getMap(TopLevelRequestFileProperty.Graphql);
     const runtimeMap = getMap(TopLevelRequestFileProperty.Runtime);
     const appMap = getMap(TopLevelRequestFileProperty.App);
 
@@ -90,6 +93,9 @@ export function parseRequestFile(
     );
     const http = httpMap
         ? parseHttpSection(httpMap, commonArgs, collectedErrors)
+        : undefined;
+    const graphql = graphqlMap
+        ? parseGraphqlSection(graphqlMap, commonArgs, collectedErrors)
         : undefined;
     const runtime = runtimeMap
         ? parseRuntimeSection(runtimeMap, commonArgs, collectedErrors)
@@ -131,6 +137,7 @@ export function parseRequestFile(
             properties: {
                 info,
                 http,
+                graphql,
                 runtime,
                 docs,
                 settings,
@@ -202,6 +209,69 @@ function parseHttpSection(
             auth: parseIfPresent(
                 getString(RequestFileHttpSectionProperty.auth) ??
                     getMap(RequestFileHttpSectionProperty.auth),
+                (authMapOrScalar) =>
+                    parseAuthFromYamlMapOrScalar({
+                        commonArgs,
+                        authMapOrScalar,
+                    }),
+                collectedErrors,
+            ),
+        },
+    };
+}
+
+function parseGraphqlSection(
+    { keyRange, value: graphqlMap }: WithKeyAndKeyRange<YAMLMap>,
+    commonArgs: CommonParsingArgs,
+    collectedErrors: YamlParsingError[],
+): NonNullable<ParsedRequestFile["properties"]["graphql"]> {
+    const { getString, getMap, getSequence, missingProperties } =
+        getValidatedMapItems(
+            graphqlMap,
+            {
+                scalars: {
+                    stringValues: [
+                        RequestFileGraphqlSectionProperty.method,
+                        RequestFileGraphqlSectionProperty.url,
+                        // Auth can either be a scalar string with the value 'inherit' or a map with a specific type.
+                        RequestFileGraphqlSectionProperty.auth,
+                    ],
+                },
+                mapValues: [
+                    RequestFileGraphqlSectionProperty.body,
+                    RequestFileGraphqlSectionProperty.auth,
+                ],
+                sequenceValues: [RequestFileGraphqlSectionProperty.headers],
+            },
+            commonArgs,
+            collectedErrors,
+        );
+
+    return {
+        keyRange,
+        valueRange: getRangeForItem(graphqlMap, commonArgs),
+        missingProperties,
+        properties: {
+            method: stripKeyFromResult(
+                getString(RequestFileGraphqlSectionProperty.method),
+            ),
+            url: stripKeyFromResult(
+                getString(RequestFileGraphqlSectionProperty.url),
+            ),
+            headers: parseIfPresent(
+                getSequence(RequestFileGraphqlSectionProperty.headers),
+                ({ value: headersSequence }) =>
+                    parseHeadersFromSequence({ commonArgs, headersSequence }),
+                collectedErrors,
+            ),
+            body: parseIfPresent(
+                getMap(RequestFileGraphqlSectionProperty.body),
+                (bodyMap) => parseGraphqlBodyFromYamlMap(bodyMap, commonArgs),
+                collectedErrors,
+            ),
+            auth: parseIfPresent(
+                getString(RequestFileGraphqlSectionProperty.auth) ??
+                    getMap(RequestFileGraphqlSectionProperty.auth),
                 (authMapOrScalar) =>
                     parseAuthFromYamlMapOrScalar({
                         commonArgs,

@@ -12,6 +12,7 @@ import {
     ParsedAssertion,
     ParsedAuth,
     ParsedDocsWithType,
+    ParsedGraphqlBody,
     ParsedHttpBody,
     ParsedHttpParam,
     ParsedRequestFileAppSection,
@@ -47,6 +48,13 @@ export type ParsedRequestFile = ParsedYamlMap<{
         headers?: EnabledAndDisabledItems<ParsedRequestHeader>;
         params?: EnabledAndDisabledItems<ParsedHttpParam>;
         body?: ParsedHttpBody;
+        auth?: ParsedAuth;
+    }>;
+    graphql?: ParsedYamlMapWithKeyAndValueRange<{
+        method?: WithKeyAndValueRange<string>;
+        url?: WithKeyAndValueRange<string>;
+        headers?: EnabledAndDisabledItems<ParsedRequestHeader>;
+        body?: ParsedGraphqlBody;
         auth?: ParsedAuth;
     }>;
     runtime?: ParsedYamlMapWithKeyAndValueRange<{
