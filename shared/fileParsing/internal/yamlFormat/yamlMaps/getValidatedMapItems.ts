@@ -40,12 +40,15 @@ export interface ValidatedMapItems {
  * @param mandatoryKeys Keys that have to be defined. All other expected keys are optional.
  * @param additionalAllowedKeys Keys that are valid, but get handled by the caller (e.g. because they need special parsing).
  * No errors are added for these keys, even though they are not part of the expected keys.
+ * @param silentlyAllowedKeys Like `additionalAllowedKeys`, but the keys are not listed as allowed keys in error messages
+ * (e.g. because they are reported by a dedicated check).
  */
 export function getValidatedMapItems(
     map: YAMLMap,
     expectedKeys: ExpectedKeys & {
         mandatoryKeys?: string[];
         additionalAllowedKeys?: string[];
+        silentlyAllowedKeys?: string[];
     },
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
@@ -53,6 +56,7 @@ export function getValidatedMapItems(
     const {
         mandatoryKeys = [],
         additionalAllowedKeys = [],
+        silentlyAllowedKeys = [],
         ...keysForParsing
     } = expectedKeys;
     const { items, errors } = getMapItems(map, keysForParsing, commonArgs);
@@ -77,7 +81,11 @@ export function getValidatedMapItems(
     collectedErrors.push(
         ...errors,
         ...unknownKeys
-            .filter(({ key }) => !additionalAllowedKeys.includes(key))
+            .filter(
+                ({ key }) =>
+                    !additionalAllowedKeys.includes(key) &&
+                    !silentlyAllowedKeys.includes(key),
+            )
             .map(({ key: unknownKey, keyRange }) =>
                 getErrorForUnknownKeyInMap({
                     ...commonArgs,
