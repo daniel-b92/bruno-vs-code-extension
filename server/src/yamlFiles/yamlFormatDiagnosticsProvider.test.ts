@@ -292,7 +292,61 @@ runtime:
         expect(inherit).toEqual([]);
     });
 
-    it("should not warn about missing keys for auth types 'oauth1' and 'oauth2'", () => {
+    it("should report an error for an invalid max body size in akamai auth", () => {
+        const negative = getDiagnostics(
+            validRequest({
+                http: `  auth:
+    type: akamai-edgegrid
+    accessToken: a
+    clientToken: b
+    clientSecret: c
+    nonce: n
+    timestamp: t
+    baseURL: u
+    headersToSign: h
+    maxBodySize: -5`,
+            }),
+        );
+        const fractional = getDiagnostics(
+            validRequest({
+                http: `  auth:
+    type: akamai-edgegrid
+    accessToken: a
+    clientToken: b
+    clientSecret: c
+    nonce: n
+    timestamp: t
+    baseURL: u
+    headersToSign: h
+    maxBodySize: 1.5`,
+            }),
+        );
+
+        for (const diagnostics of [negative, fractional]) {
+            expect(diagnostics).toHaveLength(1);
+            expect(diagnostics[0].severity).toBe(DiagnosticSeverity.Error);
+            expect(diagnostics[0].message).toBe(
+                "Only non-negative integer values are allowed.",
+            );
+        }
+    });
+
+    it("should warn if the flow is missing for oauth2 auth", () => {
+        const diagnostics = getDiagnostics(
+            validRequest({
+                http: `  auth:
+    type: oauth2
+    scope: read`,
+            }),
+        );
+
+        expect(diagnostics.map(({ message }) => message)).toEqual([
+            "Missing keys for auth type 'oauth2': 'flow'.",
+        ]);
+        expect(diagnostics[0].severity).toBe(DiagnosticSeverity.Warning);
+    });
+
+    it("should not warn about missing keys other than the flow for auth types 'oauth1' and 'oauth2'", () => {
         const oauth1 = getDiagnostics(
             validRequest({
                 http: `  auth:
@@ -590,6 +644,27 @@ request:
         expect(diagnostics).toHaveLength(1);
         expect(diagnostics[0].message).toBe(
             "Missing keys for auth type 'basic': 'password'.",
+        );
+    });
+
+    it("should report an invalid max body size in akamai auth", () => {
+        const diagnostics = getDiagnostics(`${header}
+request:
+  auth:
+    type: akamai-edgegrid
+    accessToken: a
+    clientToken: b
+    clientSecret: c
+    nonce: n
+    timestamp: t
+    baseURL: u
+    headersToSign: h
+    maxBodySize: -1
+`);
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0].message).toBe(
+            "Only non-negative integer values are allowed.",
         );
     });
 
