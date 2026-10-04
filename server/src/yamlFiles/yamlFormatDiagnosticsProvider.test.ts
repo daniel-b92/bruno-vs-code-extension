@@ -292,6 +292,29 @@ runtime:
         expect(inherit).toEqual([]);
     });
 
+    it("should not warn about missing keys for auth types 'oauth1' and 'oauth2'", () => {
+        const oauth1 = getDiagnostics(
+            validRequest({
+                http: `  auth:
+    type: oauth1
+    consumerSecret: secret
+    placement: header`,
+            }),
+        );
+        const oauth2 = getDiagnostics(
+            validRequest({
+                http: `  auth:
+    type: oauth2
+    flow: authorization_code
+    credentials:
+      placement: body`,
+            }),
+        );
+
+        expect(oauth1).toEqual([]);
+        expect(oauth2).toEqual([]);
+    });
+
     it("should not report a missing request type section, if the section exists with an invalid value", () => {
         const diagnostics = getDiagnostics(`${infoSection}
 http:

@@ -1,5 +1,11 @@
-import { ParsedAuth } from "@global_shared";
+import { AuthType, ParsedAuth } from "@global_shared";
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
+
+// For these types, which keys are relevant depends on the selected flow or the used signature method.
+const authTypesWithAllKeysOptional: AuthType[] = [
+    AuthType.Oauth1,
+    AuthType.Oauth2,
+];
 
 export function checkAuthHasRequiredFields(
     auth: ParsedAuth | undefined,
@@ -9,6 +15,9 @@ export function checkAuthHasRequiredFields(
         return undefined;
     }
     const { properties, missingProperties } = auth.value;
+    if (authTypesWithAllKeysOptional.includes(properties.type.value)) {
+        return undefined;
+    }
     const missingKeys = missingProperties.map(({ key }) => key);
 
     return missingKeys.length > 0
