@@ -12,7 +12,18 @@ import {
     ActionType,
     ActionVariableScope,
 } from "../../external/yamlFormat/constants/actionConstants";
-import { AuthType } from "../../external/yamlFormat/constants/authConstants";
+import {
+    OAuth1Placement,
+    OAuth1SignatureMethod,
+} from "../../../languageUtils/shared/oAuth1FieldValueEnums";
+import {
+    ApiKeyPlacement,
+    AuthType,
+    OAuth2AdditionalParameterPlacement,
+    OAuth2CredentialsPlacement,
+    OAuth2Flow,
+    OAuth2TokenSource,
+} from "../../external/yamlFormat/constants/authConstants";
 import {
     HttpBodyType,
     HttpParamType,
@@ -148,8 +159,20 @@ export type ParsedSettingsFileRequestSection =
     }>;
 
 export type ParsedAuth = WithKeyAndValueRange<
-    ParsedInheritAuth | ParsedBasicAuth | ParsedBearerAuth
+    ParsedInheritAuth | ParsedAuthWithType
 >;
+
+export type ParsedAuthWithType =
+    | ParsedBasicAuth
+    | ParsedBearerAuth
+    | ParsedAwsV4Auth
+    | ParsedDigestAuth
+    | ParsedWsseAuth
+    | ParsedNtlmAuth
+    | ParsedApiKeyAuth
+    | ParsedAkamaiEdgegridAuth
+    | ParsedOAuth1Auth
+    | ParsedOAuth2Auth;
 
 export type ParsedBasicAuth = ParsedYamlMap<{
     type: WithKeyAndValueRange<AuthType.Basic>;
@@ -160,6 +183,118 @@ export type ParsedBasicAuth = ParsedYamlMap<{
 export type ParsedBearerAuth = ParsedYamlMap<{
     type: WithKeyAndValueRange<AuthType.Bearer>;
     token?: WithKeyAndValueRange<string>;
+}>;
+
+export type ParsedAwsV4Auth = ParsedYamlMap<{
+    type: WithKeyAndValueRange<AuthType.Awsv4>;
+    accessKeyId?: WithKeyAndValueRange<string>;
+    secretAccessKey?: WithKeyAndValueRange<string>;
+    sessionToken?: WithKeyAndValueRange<string>;
+    service?: WithKeyAndValueRange<string>;
+    region?: WithKeyAndValueRange<string>;
+    profileName?: WithKeyAndValueRange<string>;
+}>;
+
+export type ParsedDigestAuth = ParsedYamlMap<{
+    type: WithKeyAndValueRange<AuthType.Digest>;
+    username?: WithKeyAndValueRange<string>;
+    password?: WithKeyAndValueRange<string>;
+}>;
+
+export type ParsedWsseAuth = ParsedYamlMap<{
+    type: WithKeyAndValueRange<AuthType.Wsse>;
+    username?: WithKeyAndValueRange<string>;
+    password?: WithKeyAndValueRange<string>;
+}>;
+
+export type ParsedNtlmAuth = ParsedYamlMap<{
+    type: WithKeyAndValueRange<AuthType.Ntlm>;
+    username?: WithKeyAndValueRange<string>;
+    password?: WithKeyAndValueRange<string>;
+    domain?: WithKeyAndValueRange<string>;
+}>;
+
+export type ParsedApiKeyAuth = ParsedYamlMap<{
+    type: WithKeyAndValueRange<AuthType.Apikey>;
+    key?: WithKeyAndValueRange<string>;
+    value?: WithKeyAndValueRange<string>;
+    placement?: WithKeyAndValueRange<ApiKeyPlacement>;
+}>;
+
+export type ParsedAkamaiEdgegridAuth = ParsedYamlMap<{
+    type: WithKeyAndValueRange<AuthType.AkamaiEdgegrid>;
+    accessToken?: WithKeyAndValueRange<string>;
+    clientToken?: WithKeyAndValueRange<string>;
+    clientSecret?: WithKeyAndValueRange<string>;
+    nonce?: WithKeyAndValueRange<string>;
+    timestamp?: WithKeyAndValueRange<string>;
+    baseURL?: WithKeyAndValueRange<string>;
+    headersToSign?: WithKeyAndValueRange<string>;
+    maxBodySize?: WithKeyAndValueRange<number>;
+}>;
+
+export type ParsedOAuth1Auth = ParsedYamlMap<{
+    type: WithKeyAndValueRange<AuthType.Oauth1>;
+    consumerKey?: WithKeyAndValueRange<string>;
+    consumerSecret?: WithKeyAndValueRange<string>;
+    accessToken?: WithKeyAndValueRange<string>;
+    accessTokenSecret?: WithKeyAndValueRange<string>;
+    callbackUrl?: WithKeyAndValueRange<string>;
+    verifier?: WithKeyAndValueRange<string>;
+    signatureMethod?: WithKeyAndValueRange<OAuth1SignatureMethod>;
+    privateKey?: WithKeyAndValueRange<string>;
+    timestamp?: WithKeyAndValueRange<string>;
+    nonce?: WithKeyAndValueRange<string>;
+    version?: WithKeyAndValueRange<string>;
+    realm?: WithKeyAndValueRange<string>;
+    placement?: WithKeyAndValueRange<OAuth1Placement>;
+    includeBodyHash?: WithKeyAndValueRange<boolean>;
+}>;
+
+export type ParsedOAuth2Auth = ParsedYamlMap<{
+    type: WithKeyAndValueRange<AuthType.Oauth2>;
+    flow?: WithKeyAndValueRange<OAuth2Flow>;
+    authorizationUrl?: WithKeyAndValueRange<string>;
+    accessTokenUrl?: WithKeyAndValueRange<string>;
+    refreshTokenUrl?: WithKeyAndValueRange<string>;
+    callbackUrl?: WithKeyAndValueRange<string>;
+    scope?: WithKeyAndValueRange<string>;
+    state?: WithKeyAndValueRange<string>;
+    credentials?: ParsedYamlMapWithKeyAndValueRange<{
+        clientId?: WithKeyAndValueRange<string>;
+        clientSecret?: WithKeyAndValueRange<string>;
+        placement?: WithKeyAndValueRange<OAuth2CredentialsPlacement>;
+    }>;
+    resourceOwner?: ParsedYamlMapWithKeyAndValueRange<{
+        username?: WithKeyAndValueRange<string>;
+        password?: WithKeyAndValueRange<string>;
+    }>;
+    /** Has no properties of its own. An empty map (`pkce: {}`) is how PKCE gets enabled. */
+    pkce?: ParsedYamlMapWithKeyAndValueRange<{}>;
+    additionalParameters?: ParsedYamlMapWithKeyAndValueRange<{
+        authorizationRequest?: ParsedOAuth2AdditionalParameter[];
+        accessTokenRequest?: ParsedOAuth2AdditionalParameter[];
+        refreshTokenRequest?: ParsedOAuth2AdditionalParameter[];
+    }>;
+    tokenConfig?: ParsedYamlMapWithKeyAndValueRange<{
+        id?: WithKeyAndValueRange<string>;
+        placement?: ParsedYamlMapWithKeyAndValueRange<{
+            header?: WithKeyAndValueRange<string>;
+            /** `null`, if the key is defined without a value. */
+            query?: WithKeyAndValueRange<string | null>;
+        }>;
+        source?: WithKeyAndValueRange<OAuth2TokenSource>;
+    }>;
+    settings?: ParsedYamlMapWithKeyAndValueRange<{
+        autoFetchToken?: WithKeyAndValueRange<boolean>;
+        autoRefreshToken?: WithKeyAndValueRange<boolean>;
+    }>;
+}>;
+
+export type ParsedOAuth2AdditionalParameter = ParsedYamlMapWithValueRange<{
+    name?: WithKeyAndValueRange<string>;
+    value?: WithKeyAndValueRange<string>;
+    placement?: WithKeyAndValueRange<OAuth2AdditionalParameterPlacement>;
 }>;
 
 export interface ParsedInheritAuth {}
