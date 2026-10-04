@@ -663,4 +663,192 @@ runtime:
             );
         });
     });
+
+    describe("websocket requests", () => {
+        it("parses a websocket request with all fields set", () => {
+            const documentText = `info:
+    name: ws
+    type: websocket
+    seq: 4
+
+websocket:
+    url: ws://example.com
+    headers:
+        - name: sdf
+          value: sdf
+          description: sdf
+          disabled: true
+    message:
+        - title: message 1
+          selected: false
+          message:
+              type: json
+              data: '{"a": 1}'
+    auth: inherit
+
+settings:
+    timeout: 0
+    keepAliveInterval: 5
+
+docs: some docs`;
+
+            const { result, errors } = parseRequestFile(
+                new TextDocumentHelper(documentText),
+            );
+
+            expect(errors).toHaveLength(0);
+            const { websocket, settings } = result!.properties;
+            expect(websocket!.properties.url?.value).toBe("ws://example.com");
+            expect(websocket!.properties.headers?.disabled).toHaveLength(1);
+            expect(websocket!.properties.auth).toBeDefined();
+            const messages = websocket!.properties.message!;
+            expect(messages).toHaveLength(1);
+            expect(messages[0].properties.title?.value).toBe("message 1");
+            expect(messages[0].properties.selected?.value).toBe(false);
+            expect(messages[0].properties.message?.properties.type?.value).toBe(
+                "json",
+            );
+            expect(messages[0].properties.message?.properties.data?.value).toBe(
+                '{"a": 1}',
+            );
+            expect(settings!.properties.timeout?.value).toBe(0);
+            expect(settings!.properties.keepAliveInterval?.value).toBe(5);
+            expect(result!.properties.requestTypeSections).toHaveLength(1);
+        });
+
+        it.each(["xml", "text"])("accepts message type '%s'", (type) => {
+            const documentText = `info:
+    name: ws
+    type: websocket
+    seq: 1
+websocket:
+    url: abc
+    message:
+        - title: m
+          message:
+              type: ${type}
+              data: abc`;
+
+            const { result, errors } = parseRequestFile(
+                new TextDocumentHelper(documentText),
+            );
+
+            expect(errors).toHaveLength(0);
+            expect(
+                result!.properties.websocket!.properties.message![0].properties
+                    .message?.properties.type?.value,
+            ).toBe(type);
+        });
+
+        it("parses a single message defined as a map", () => {
+            const documentText = `info:
+    name: ws
+    type: websocket
+    seq: 1
+websocket:
+    url: abc
+    message:
+        type: json
+        data: '{"a": 1}'`;
+
+            const { result, errors } = parseRequestFile(
+                new TextDocumentHelper(documentText),
+            );
+
+            expect(errors).toHaveLength(0);
+            const { message } = result!.properties.websocket!.properties;
+            expect(message).toHaveLength(1);
+            expect(message![0].properties.title).toBeUndefined();
+            expect(message![0].properties.message?.properties.type?.value).toBe(
+                "json",
+            );
+            expect(message![0].properties.message?.properties.data?.value).toBe(
+                '{"a": 1}',
+            );
+        });
+
+        it("reports that both a Map and a Sequence are valid for an invalid message", () => {
+            const documentText = `info:
+    name: ws
+    type: websocket
+    seq: 1
+websocket:
+    message: hello`;
+
+            const { errors } = parseRequestFile(
+                new TextDocumentHelper(documentText),
+            );
+
+            expect(errors).toHaveLength(1);
+            expect(errors[0].message).toContain("'Map' or 'Sequence'");
+        });
+
+        it("reports an invalid message type", () => {
+            const documentText = `info:
+    name: ws
+    type: websocket
+    seq: 1
+websocket:
+    message:
+        - message:
+              type: binary
+              data: abc`;
+
+            const { errors } = parseRequestFile(
+                new TextDocumentHelper(documentText),
+            );
+
+            expect(errors).toHaveLength(1);
+        });
+
+        it("reports keys that are not valid for websocket requests", () => {
+            const documentText = `info:
+    name: ws
+    type: websocket
+    seq: 1
+websocket:
+    url: abc
+    method: GET
+    body:
+        type: json
+settings:
+    encodeUrl: true
+    followRedirects: true`;
+
+            const { errors } = parseRequestFile(
+                new TextDocumentHelper(documentText),
+            );
+
+            const messages = errors.map(({ message }) => message);
+            expect(errors).toHaveLength(4);
+            for (const key of [
+                "method",
+                "body",
+                "encodeUrl",
+                "followRedirects",
+            ]) {
+                expect(
+                    messages.some((m) => m.includes(`Unknown key '${key}'`)),
+                ).toBeTruthy();
+            }
+        });
+
+        it("does not accept 'keepAliveInterval' for http requests", () => {
+            const documentText = `info:
+    name: a
+    type: http
+    seq: 1
+settings:
+    keepAliveInterval: 5`;
+
+            const { errors } = parseRequestFile(
+                new TextDocumentHelper(documentText),
+            );
+
+            expect(errors).toHaveLength(1);
+            expect(errors[0].message).toContain(
+                "Unknown key 'keepAliveInterval'",
+            );
+        });
+    });
 });

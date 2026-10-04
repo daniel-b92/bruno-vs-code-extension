@@ -27,6 +27,7 @@ import {
 import {
     HttpBodyType,
     HttpParamType,
+    WebsocketMessageType,
 } from "../../external/yamlFormat/constants/requestFileConstants";
 import {
     AssertionOperator,
@@ -133,6 +134,17 @@ export type ParsedGraphqlBody = ParsedYamlMapWithKeyAndValueRange<{
     variables?: ParsedStringScalarWithStyle;
 }>;
 
+export type ParsedWebsocketMessageContent = ParsedYamlMapWithKeyAndValueRange<{
+    type?: WithKeyAndValueRange<WebsocketMessageType>;
+    data?: ParsedStringScalarWithStyle;
+}>;
+
+export type ParsedWebsocketMessage = ParsedYamlMapWithValueRange<{
+    title?: WithKeyAndValueRange<string>;
+    selected?: WithKeyAndValueRange<boolean>;
+    message?: ParsedWebsocketMessageContent;
+}>;
+
 export type ParsedDocsWithType = WithKeyAndValueRange<
     | string
     | ParsedYamlMap<{
@@ -147,6 +159,7 @@ export type ParsedSettings = ParsedYamlMapWithKeyAndValueRange<{
     followRedirects?: WithKeyAndValueRange<boolean>;
     maxRedirects?: WithKeyAndValueRange<number>;
     forwardAuthorizationHeader?: WithKeyAndValueRange<boolean>;
+    keepAliveInterval?: WithKeyAndValueRange<number>;
 }>;
 
 export type ParsedSettingsFileRequestSection =

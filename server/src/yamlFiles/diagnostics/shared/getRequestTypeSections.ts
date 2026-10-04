@@ -7,6 +7,7 @@ import { ParsedRequestFile } from "@global_shared";
 export function getRequestTypeSections({
     http,
     graphql,
+    websocket,
 }: ParsedRequestFile["properties"]) {
-    return [http, graphql].filter((section) => section != undefined);
+    return [http, graphql, websocket].filter((section) => section != undefined);
 }
