@@ -277,6 +277,10 @@ export function parseAuthFromYamlMapOrScalar(args: {
     }
 }
 
+/** The Yaml keys of an auth map. They have to match the names of the properties of the parsed type. */
+type FlatAuthKey<T extends ParsedYamlMap<{ type: unknown }>> =
+    keyof T["properties"] & string;
+
 /**
  * Parses an auth map that only consists of scalar values (some of which may be restricted to a fixed set of values).
  * The names of the parsed properties are the same as the Yaml keys.
@@ -285,10 +289,10 @@ function parseFlatAuthMap<T extends ParsedYamlMap<{ type: unknown }>>(
     args: {
         authMap: YAMLMap;
         parsedType: WithKeyAndValueRange<AuthType>;
-        stringKeys: string[];
-        booleanKeys?: string[];
-        numberKeys?: string[];
-        enumKeys?: Record<string, string[]>;
+        stringKeys: FlatAuthKey<T>[];
+        booleanKeys?: FlatAuthKey<T>[];
+        numberKeys?: FlatAuthKey<T>[];
+        enumKeys?: Partial<Record<FlatAuthKey<T>, string[]>>;
     },
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
@@ -328,10 +332,13 @@ function parseFlatAuthMap<T extends ParsedYamlMap<{ type: unknown }>>(
     for (const key of numberKeys) {
         properties[key] = stripKeyFromResult(getNumber(key));
     }
-    for (const [key, allowedValues] of Object.entries(enumKeys)) {
+    for (const [key, allowedValues] of Object.entries(enumKeys) as [
+        FlatAuthKey<T>,
+        string[] | undefined,
+    ][]) {
         properties[key] = getTypedValueFromList<string>(
             {
-                allowedValues,
+                allowedValues: allowedValues ?? [],
                 allStringValues: items.validScalars.withStringValue,
                 keyName: key,
             },

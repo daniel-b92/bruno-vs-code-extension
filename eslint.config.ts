@@ -3,13 +3,13 @@ import type { Linter } from "eslint";
 import * as parser from "@typescript-eslint/parser";
 
 /**
- * Matches import specifiers containing a folder for the given format, e.g. `bruFormat` or `yaml-files`.
+ * Matches relative import specifiers containing a folder for the given format, e.g. `../bruFormat/x` or `./yaml-files`.
  * The folder name has to be the format name itself or continue with an uppercase letter, `-` or `_`.
  * Folders like `brunoSpecific` are intentionally not matched.
- * Bare package names (e.g. `yaml`) are not matched, since they do not refer to a folder of this repo.
+ * Only relative imports are matched, since packages (e.g. `yaml-language-server`) do not refer to a folder of this repo.
  */
 const getFormatFolderImportRegex = (format: "bru" | "yaml") =>
-    `(^|/)${format}[A-Z_-][^/]*(/|$)|/${format}/`;
+    `^\\..*(^|/)${format}[A-Z_-][^/]*(/|$)|^\\..*/${format}/`;
 
 const getFormatFolderGlobs = (format: "bru" | "yaml") => [
     `**/${format}[A-Z_-]*/**/*.ts`,

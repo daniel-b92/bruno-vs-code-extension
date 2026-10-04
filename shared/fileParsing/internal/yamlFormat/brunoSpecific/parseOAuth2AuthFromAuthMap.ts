@@ -1,4 +1,4 @@
-import { isScalar, YAMLMap } from "yaml";
+import { isScalar, Scalar, YAMLMap } from "yaml";
 import { WithKeyAndValueRange, YamlParsingError } from "../../../..";
 import {
     CommonParsingArgs,
@@ -388,7 +388,7 @@ function parseTokenPlacement(
     const errors: YamlParsingError[] = [];
     const queryKey = OAuth2TokenPlacementProperty.Query;
 
-    // A `query` key without a value is valid, but not supported by the generic map parsing.
+    // An explicit `null` value for `query` (e.g. `query: null` or `query: ~`) is valid, but not supported by the generic map parsing.
     const queryWithoutValue = map.items.find(
         ({ key, value }) =>
             isScalar(key) &&
@@ -428,12 +428,12 @@ function parseTokenPlacement(
                 query: queryWithoutValue
                     ? {
                           keyRange: getRangeForItem(
-                              queryWithoutValue.key as { range: never },
+                              queryWithoutValue.key as Scalar,
                               commonArgs,
                           ),
                           value: null,
                           valueRange: getRangeForItem(
-                              queryWithoutValue.value as { range: never },
+                              queryWithoutValue.value as Scalar,
                               commonArgs,
                           ),
                       }
