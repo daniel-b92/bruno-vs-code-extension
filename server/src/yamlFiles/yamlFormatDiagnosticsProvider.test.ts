@@ -645,7 +645,7 @@ code: |
         ).toHaveLength(0);
     });
 
-    it("should warn if the type is not 'app'", () => {
+    it("should report an invalid type", () => {
         const diagnostics = getDiagnostics(`info:
   name: app
   type: http
@@ -653,14 +653,18 @@ code: foo
 `);
 
         expect(diagnostics).toHaveLength(1);
-        expect(diagnostics[0].message).toBe(
-            "App files must have the type 'app'.",
-        );
-        expect(diagnostics[0].severity).toBe(DiagnosticSeverity.Warning);
+        expect(diagnostics[0].message).toContain("Invalid value 'http'");
+        expect(diagnostics[0].range).toEqual({
+            start: { line: 2, character: 8 },
+            end: { line: 2, character: 12 },
+        });
     });
 
     it("should report a missing info section", () => {
-        expect(getDiagnostics("code: foo")).toHaveLength(1);
+        const diagnostics = getDiagnostics("code: foo");
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0].message).toContain("info");
     });
 
     function getDiagnostics(content: string) {

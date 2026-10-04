@@ -1,4 +1,4 @@
-import { FileInfoType, ParsedRequestFile } from "@global_shared";
+import { ParsedRequestFile } from "@global_shared";
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 import { CommonDiagnosticParams } from "../../../interfaces";
@@ -9,12 +9,7 @@ export function checkRequestTypeMatchesSections(
 ): Diagnostic[] {
     const type = info?.properties.type;
 
-    if (
-        !type ||
-        type.value == FileInfoType.Folder ||
-        // Request files cannot be of type `app`. That is reported by a separate check.
-        type.value == FileInfoType.App
-    ) {
+    if (!type) {
         return [];
     }
 

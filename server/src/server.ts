@@ -1,4 +1,3 @@
-import { parse } from "yaml";
 import {
     createConnection,
     TextDocuments,
@@ -38,6 +37,7 @@ import { handleHoverRequest as handleHoverRequestForBruFile } from "./bruFiles/h
 import { basename, extname } from "path";
 import { handleCompletionRequest as handleCompletionRequestForJsFile } from "./jsFiles/completionItems/handleCompletionRequest";
 import { handleHoverRequest as handleHoverRequestForJsFile } from "./jsFiles/hover/handleHoverRequest";
+import { isYamlAppFile } from "./yamlFiles/isYamlAppFile";
 import { YamlFormatDiagnosticsProvider } from "./yamlFiles/yamlFormatDiagnosticsProvider";
 
 let helpersProvider: HelpersProvider | undefined = undefined;
@@ -379,15 +379,6 @@ function getDiagnosticsForYamlFile(filePath: string, text: string) {
             ? BrunoFileType.AppFile
             : BrunoFileType.RequestFile,
     );
-}
-
-function isYamlAppFile(text: string) {
-    try {
-        return parse(text)?.info?.type == "app";
-    } catch {
-        // Invalid yaml syntax gets reported by the diagnostics for the file type that is assumed instead.
-        return false;
-    }
 }
 
 async function getBrunoFileTypeIfExists(

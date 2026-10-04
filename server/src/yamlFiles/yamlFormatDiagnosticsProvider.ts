@@ -1,6 +1,5 @@
 import {
     BrunoFileType,
-    FileInfoType,
     ParsedCollectionSettingsFile,
     ParsedFolderSettingsFile,
     ParsedRequestFile,
@@ -191,26 +190,8 @@ export class YamlFormatDiagnosticsProvider {
     public getDiagnosticsForAppFile({
         docHelper,
     }: CommonDiagnosticParams): Diagnostic[] {
-        const { errors, result: parsingResult } = parseAppFile(docHelper);
-        const parsingDiagnostics = mapParsingErrorsToDiagnostics(errors);
-
-        if (!parsingResult) {
-            return parsingDiagnostics;
-        }
-        const type = parsingResult.properties.info?.properties.type;
-
         // ToDo: Once the yaml collection items are cached, check that the sequence is unique within the parent folder.
-        const typeDiagnostics: Diagnostic[] =
-            type && type.value != FileInfoType.App
-                ? [
-                      {
-                          message: `App files must have the type '${FileInfoType.App}'.`,
-                          range: type.valueRange,
-                          severity: DiagnosticSeverity.Warning,
-                      },
-                  ]
-                : [];
-        return parsingDiagnostics.concat(typeDiagnostics);
+        return mapParsingErrorsToDiagnostics(parseAppFile(docHelper).errors);
     }
 
     public getDiagnosticsForFolderSettingsFile(

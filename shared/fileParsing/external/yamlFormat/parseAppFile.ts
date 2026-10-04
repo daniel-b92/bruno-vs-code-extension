@@ -1,7 +1,7 @@
 import {
     BrunoFileType,
     ParsedAppFile,
-    ParsedInfoForFolderSettings,
+    ParsedInfoForAppFile,
     TextDocumentHelper,
     YamlParsingError,
 } from "../../..";
@@ -42,7 +42,7 @@ export function parseAppFile(
         collectedErrors,
     );
 
-    const info: ParsedInfoForFolderSettings | undefined = parseIfPresent(
+    const info: ParsedInfoForAppFile | undefined = parseIfPresent(
         getMap(TopLevelAppFileProperty.Info),
         (infoMap) =>
             parseFileInfoFromYamlMap({
