@@ -49,6 +49,30 @@ export enum RequestFileGraphqlSectionBodyProperty {
     Variables = "variables",
 }
 
+export enum RequestFileWebsocketSectionProperty {
+    url = "url",
+    headers = "headers",
+    message = "message",
+    auth = "auth",
+}
+
+export enum RequestFileWebsocketMessageProperty {
+    Title = "title",
+    Selected = "selected",
+    Message = "message",
+}
+
+export enum RequestFileWebsocketMessageBodyProperty {
+    Type = "type",
+    Data = "data",
+}
+
+export enum WebsocketMessageType {
+    Json = "json",
+    Xml = "xml",
+    Text = "text",
+}
+
 export enum HttpBodyType {
     None = "none",
     Json = "json",
@@ -79,7 +103,14 @@ export enum RequestFileSettingsProperty {
     FollowRedirects = "followRedirects",
     MaxRedirects = "maxRedirects",
     ForwardAuthorizationHeader = "forwardAuthorizationHeader",
+    KeepAliveInterval = "keepAliveInterval",
 }
+
+/** The settings that are valid for websocket requests. */
+export const WEBSOCKET_SETTINGS_PROPERTIES = [
+    RequestFileSettingsProperty.Timeout,
+    RequestFileSettingsProperty.KeepAliveInterval,
+];
 
 export enum RequestFileAppProperty {
     Enabled = "enabled",

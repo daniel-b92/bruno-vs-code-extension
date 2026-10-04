@@ -19,6 +19,7 @@ import {
     ParsedRequestHeader,
     ParsedRequestVariable,
     ParsedScript,
+    ParsedWebsocketMessage,
     ParsedSettingsFileRequestSection,
     ParsedSettings,
     ParsedYamlMap,
@@ -60,6 +61,12 @@ export type ParsedRequestFile = ParsedYamlMap<{
         url?: WithKeyAndValueRange<string>;
         headers?: EnabledAndDisabledItems<ParsedRequestHeader>;
         body?: ParsedGraphqlBody;
+        auth?: ParsedAuth;
+    }>;
+    websocket?: ParsedYamlMapWithKeyAndValueRange<{
+        url?: WithKeyAndValueRange<string>;
+        headers?: EnabledAndDisabledItems<ParsedRequestHeader>;
+        message?: ParsedWebsocketMessage[];
         auth?: ParsedAuth;
     }>;
     runtime?: ParsedYamlMapWithKeyAndValueRange<{

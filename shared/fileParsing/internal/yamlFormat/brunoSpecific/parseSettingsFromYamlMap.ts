@@ -5,7 +5,11 @@ import {
     WithKeyAndKeyRange,
 } from "../interfaces";
 import { YamlParsingError } from "../../../..";
-import { RequestFileSettingsProperty } from "../../../external/yamlFormat/constants/requestFileConstants";
+import {
+    RequestFileSettingsProperty,
+    WEBSOCKET_SETTINGS_PROPERTIES,
+} from "../../../external/yamlFormat/constants/requestFileConstants";
+import { FileInfoType } from "../../../external/yamlFormat/constants/sharedConstants";
 import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getRangeForItem } from "../util/getRangeForItem";
@@ -14,11 +18,22 @@ import { stripKeyFromResult } from "../util/stripKeyFromResult";
 export function parseSettingsFromYamlMap(
     { keyRange, value: settingsMap }: WithKeyAndKeyRange<YAMLMap>,
     commonArgs: CommonParsingArgs,
+    requestType?: FileInfoType,
 ): {
     result: ParsedSettings;
     errors: YamlParsingError[];
 } {
     const errors: YamlParsingError[] = [];
+    // Websocket requests only support a subset of the settings and the keep alive interval is exclusive to them.
+    // If the request type is unknown, no setting is excluded.
+    const isAllowed = (property: RequestFileSettingsProperty) => {
+        if (requestType == undefined) {
+            return true;
+        }
+        return requestType == FileInfoType.Websocket
+            ? WEBSOCKET_SETTINGS_PROPERTIES.includes(property)
+            : property != RequestFileSettingsProperty.KeepAliveInterval;
+    };
     const { getString, getBoolean, getNumber, missingProperties } =
         getValidatedMapItems(
             settingsMap,
@@ -29,12 +44,13 @@ export function parseSettingsFromYamlMap(
                         RequestFileSettingsProperty.EncodeUrl,
                         RequestFileSettingsProperty.FollowRedirects,
                         RequestFileSettingsProperty.ForwardAuthorizationHeader,
-                    ],
+                    ].filter(isAllowed),
                     // timeout can either be a number or the string 'inherit'.
                     numericValues: [
                         RequestFileSettingsProperty.MaxRedirects,
                         RequestFileSettingsProperty.Timeout,
-                    ],
+                        RequestFileSettingsProperty.KeepAliveInterval,
+                    ].filter(isAllowed),
                 },
                 // All properties are optional (e.g. older files lack newer settings).
             },
@@ -74,6 +90,9 @@ export function parseSettingsFromYamlMap(
                     getNumber(RequestFileSettingsProperty.MaxRedirects),
                 ),
                 timeout,
+                keepAliveInterval: stripKeyFromResult(
+                    getNumber(RequestFileSettingsProperty.KeepAliveInterval),
+                ),
             },
             missingProperties,
         },

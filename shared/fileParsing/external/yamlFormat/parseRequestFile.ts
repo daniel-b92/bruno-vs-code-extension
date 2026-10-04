@@ -18,9 +18,10 @@ import {
     RequestFileAppProperty,
     RequestFileHttpSectionProperty,
     RequestFileRuntimeProperty,
+    RequestFileWebsocketSectionProperty,
     TopLevelRequestFileProperty,
 } from "./constants/requestFileConstants";
-import { FileInfoProperty } from "./constants/sharedConstants";
+import { FileInfoProperty, FileInfoType } from "./constants/sharedConstants";
 import { parseFileInfoFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseFileInfoFromYamlMap";
 import { parseSettingsFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseSettingsFromYamlMap";
 import { stripKeyFromResult } from "../../internal/yamlFormat/util/stripKeyFromResult";
@@ -34,6 +35,7 @@ import { parseHeadersFromSequence } from "../../internal/yamlFormat/brunoSpecifi
 import { parseParamsFromSequence } from "../../internal/yamlFormat/brunoSpecific/parseParamsFromSequence";
 import { parseBodyFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseBodyFromYamlMap";
 import { parseGraphqlBodyFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseGraphqlBodyFromYamlMap";
+import { parseWebsocketMessagesFromSequence } from "../../internal/yamlFormat/brunoSpecific/parseWebsocketMessagesFromSequence";
 import { parseAuthFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpecific/parseAuthFromYamlMapOrScalar";
 
 export function parseRequestFile(
@@ -77,6 +79,7 @@ export function parseRequestFile(
 
     const httpMap = getMap(TopLevelRequestFileProperty.Http);
     const graphqlMap = getMap(TopLevelRequestFileProperty.Graphql);
+    const websocketMap = getMap(TopLevelRequestFileProperty.Websocket);
     const runtimeMap = getMap(TopLevelRequestFileProperty.Runtime);
     const appMap = getMap(TopLevelRequestFileProperty.App);
 
@@ -96,6 +99,9 @@ export function parseRequestFile(
     const graphql = graphqlMap
         ? parseGraphqlSection(graphqlMap, commonArgs, collectedErrors)
         : undefined;
+    const websocket = websocketMap
+        ? parseWebsocketSection(websocketMap, commonArgs, collectedErrors)
+        : undefined;
     const runtime = runtimeMap
         ? parseRuntimeSection(runtimeMap, commonArgs, collectedErrors)
         : undefined;
@@ -104,7 +110,12 @@ export function parseRequestFile(
     );
     const settings = parseIfPresent(
         getMap(TopLevelRequestFileProperty.Settings),
-        (settingsMap) => parseSettingsFromYamlMap(settingsMap, commonArgs),
+        (settingsMap) =>
+            parseSettingsFromYamlMap(
+                settingsMap,
+                commonArgs,
+                getRequestType(maybeTopLevelMap.map),
+            ),
         collectedErrors,
     );
     const app = appMap
@@ -137,6 +148,7 @@ export function parseRequestFile(
                 info,
                 http,
                 graphql,
+                websocket,
                 runtime,
                 docs,
                 settings,
@@ -189,6 +201,66 @@ function parseGraphqlSection(
     });
 
     return parsed;
+}
+
+function parseWebsocketSection(
+    { keyRange, value: sectionMap }: WithKeyAndKeyRange<YAMLMap>,
+    commonArgs: CommonParsingArgs,
+    collectedErrors: YamlParsingError[],
+) {
+    const { getString, getMap, getSequence, missingProperties } =
+        getValidatedMapItems(
+            sectionMap,
+            {
+                scalars: {
+                    stringValues: [
+                        RequestFileWebsocketSectionProperty.url,
+                        // Auth can either be a scalar string with the value 'inherit' or a map with a specific type.
+                        RequestFileWebsocketSectionProperty.auth,
+                    ],
+                },
+                mapValues: [RequestFileWebsocketSectionProperty.auth],
+                sequenceValues: [
+                    RequestFileWebsocketSectionProperty.headers,
+                    RequestFileWebsocketSectionProperty.message,
+                ],
+            },
+            commonArgs,
+            collectedErrors,
+        );
+
+    return {
+        keyRange,
+        valueRange: getRangeForItem(sectionMap, commonArgs),
+        missingProperties,
+        properties: {
+            url: stripKeyFromResult(
+                getString(RequestFileWebsocketSectionProperty.url),
+            ),
+            headers: parseIfPresent(
+                getSequence(RequestFileWebsocketSectionProperty.headers),
+                ({ value: headersSequence }) =>
+                    parseHeadersFromSequence({ commonArgs, headersSequence }),
+                collectedErrors,
+            ),
+            message: parseIfPresent(
+                getSequence(RequestFileWebsocketSectionProperty.message),
+                ({ value }) =>
+                    parseWebsocketMessagesFromSequence(value, commonArgs),
+                collectedErrors,
+            ),
+            auth: parseIfPresent(
+                getString(RequestFileWebsocketSectionProperty.auth) ??
+                    getMap(RequestFileWebsocketSectionProperty.auth),
+                (authMapOrScalar) =>
+                    parseAuthFromYamlMapOrScalar({
+                        commonArgs,
+                        authMapOrScalar,
+                    }),
+                collectedErrors,
+            ),
+        },
+    };
 }
 
 /**
@@ -361,12 +433,18 @@ function getSectionsForOtherRequestTypes(topLevelMap: YAMLMap): string[] {
         TopLevelRequestFileProperty.Grpc,
         TopLevelRequestFileProperty.Websocket,
     ];
+    const type = getRequestType(topLevelMap);
+
+    return typeof type == "string" && requestTypeSections.includes(type)
+        ? requestTypeSections.filter((section) => section != type)
+        : [];
+}
+
+function getRequestType(topLevelMap: YAMLMap): FileInfoType | undefined {
     const type = topLevelMap.getIn([
         TopLevelRequestFileProperty.Info,
         FileInfoProperty.Type,
     ]);
 
-    return typeof type == "string" && requestTypeSections.includes(type)
-        ? requestTypeSections.filter((section) => section != type)
-        : [];
+    return Object.values(FileInfoType).find((t) => t == type);
 }
