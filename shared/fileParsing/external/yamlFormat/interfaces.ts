@@ -122,6 +122,11 @@ export type ParsedCollectionSettingsFile = ParsedYamlMap<{
                 }>;
                 defaultEnvironment?: WithKeyAndValueRange<string>;
             }>;
+            scripts?: ParsedYamlMapWithKeyAndValueRange<{
+                additionalContextRoots?: WithKeyAndValueRange<
+                    { value: string; range: Range }[]
+                >;
+            }>;
         }>;
     }>;
 }>;

@@ -82,6 +82,9 @@ extensions:
         type: http
         url: asdasdas
       defaultEnvironment: Env1
+    scripts:
+      additionalContextRoots:
+        - "./path/to/shared/scripts"
 docs:
   content: some docs
   type: text/markdown`;
@@ -146,6 +149,11 @@ docs:
         expect(bruno.presets?.properties.request?.properties.url?.value).toBe(
             "asdasdas",
         );
+        expect(
+            bruno.scripts?.properties.additionalContextRoots?.value.map(
+                ({ value }) => value,
+            ),
+        ).toEqual(["./path/to/shared/scripts"]);
     });
 
     it("parses file with only the mandatory properties defined", () => {
