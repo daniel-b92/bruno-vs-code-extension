@@ -7,8 +7,17 @@ import {
 import {
     CommonParsingArgs,
     ParsedAuth,
+    ParsedAkamaiEdgegridAuth,
+    ParsedAuthWithType,
+    ParsedApiKeyAuth,
+    ParsedAwsV4Auth,
     ParsedBasicAuth,
     ParsedBearerAuth,
+    ParsedDigestAuth,
+    ParsedNtlmAuth,
+    ParsedOAuth1Auth,
+    ParsedWsseAuth,
+    ParsedYamlMap,
     MaybeResultWithErrors,
     WithKeyKeyRangeAndValueRange,
     WithKeyAndKeyRange,
@@ -19,13 +28,26 @@ import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import {
+    AkamaiEdgegridAuthProperty,
+    ApiKeyAuthProperty,
+    ApiKeyPlacement,
     AuthType,
+    AwsV4AuthProperty,
     BasicAuthProperty,
     BearerAuthProperty,
     CommonAuthMapProperties,
+    DigestAuthProperty,
     inheritAuthValue,
+    NtlmAuthProperty,
+    OAuth1AuthProperty,
+    WsseAuthProperty,
 } from "../../../external/yamlFormat/constants/authConstants";
+import {
+    OAuth1Placement,
+    OAuth1SignatureMethod,
+} from "../../../../languageUtils/shared/oAuth1FieldValueEnums";
 import { getRangeForItem } from "../util/getRangeForItem";
+import { parseOAuth2AuthFromAuthMap } from "./parseOAuth2AuthFromAuthMap";
 
 export function parseAuthFromYamlMapOrScalar(args: {
     commonArgs: CommonParsingArgs;
@@ -67,47 +89,20 @@ export function parseAuthFromYamlMapOrScalar(args: {
     const { errors: typeParsingErrors, result: authType } = maybeAuthType;
     allErrors.push(...typeParsingErrors);
 
-    switch (authType.value) {
-        case AuthType.Basic:
-            const { auth: basicAuthResult, errors: basicAuthErrors } =
-                parseBasicAuthFromAuthMap(
-                    {
-                        authMap: authFullValue,
-                        parsedType:
-                            authType as WithKeyAndValueRange<AuthType.Basic>,
-                    },
-                    commonArgs,
-                );
-            return {
-                result: {
-                    keyRange,
-                    value: basicAuthResult,
-                    valueRange,
-                },
-                errors: allErrors.concat(basicAuthErrors),
-            };
-        case AuthType.Bearer:
-            const { auth: bearerAuthResult, errors: bearerAuthErrors } =
-                parseBearerAuthFromAuthMap(
-                    {
-                        authMap: authFullValue,
-                        parsedType:
-                            authType as WithKeyAndValueRange<AuthType.Bearer>,
-                    },
-                    commonArgs,
-                );
-            return {
-                result: {
-                    keyRange,
-                    value: bearerAuthResult,
-                    valueRange,
-                },
-                errors: allErrors.concat(bearerAuthErrors),
-            };
-        // ToDo: Add support for more auth types.
-        default:
-            return { errors: allErrors };
+    const parsedAuth = parseAuthMapOfType(
+        authType,
+        authFullValue,
+        allErrors,
+        commonArgs,
+    );
+    if (!parsedAuth) {
+        return { errors: allErrors };
     }
+
+    return {
+        result: { keyRange, value: parsedAuth, valueRange },
+        errors: allErrors,
+    };
 
     function tryToParseAuthTypeField(
         authMap: YAMLMap,
@@ -151,67 +146,205 @@ export function parseAuthFromYamlMapOrScalar(args: {
         return { result: maybeTypedResult?.value, errors };
     }
 
-    function parseBasicAuthFromAuthMap(
-        args: {
-            authMap: YAMLMap;
-            parsedType: WithKeyAndValueRange<AuthType.Basic>;
-        },
+    function parseAuthMapOfType(
+        authType: WithKeyAndValueRange<AuthType>,
+        authMap: YAMLMap,
+        collectedErrors: YamlParsingError[],
         commonParsingArgs: CommonParsingArgs,
-    ): { auth: ParsedBasicAuth; errors: YamlParsingError[] } {
-        const { authMap, parsedType: type } = args;
-        const expectedStringScalars = Object.values(BasicAuthProperty);
+    ): ParsedAuthWithType | undefined {
+        switch (authType.value) {
+            case AuthType.Basic:
+                return parseFlatAuthMap<ParsedBasicAuth>(
+                    {
+                        authMap,
+                        parsedType: authType,
+                        stringKeys: Object.values(BasicAuthProperty),
+                    },
+                    commonParsingArgs,
+                    collectedErrors,
+                );
+            case AuthType.Bearer:
+                return parseFlatAuthMap<ParsedBearerAuth>(
+                    {
+                        authMap,
+                        parsedType: authType,
+                        stringKeys: Object.values(BearerAuthProperty),
+                    },
+                    commonParsingArgs,
+                    collectedErrors,
+                );
+            case AuthType.Awsv4:
+                return parseFlatAuthMap<ParsedAwsV4Auth>(
+                    {
+                        authMap,
+                        parsedType: authType,
+                        stringKeys: Object.values(AwsV4AuthProperty),
+                    },
+                    commonParsingArgs,
+                    collectedErrors,
+                );
+            case AuthType.Digest:
+                return parseFlatAuthMap<ParsedDigestAuth>(
+                    {
+                        authMap,
+                        parsedType: authType,
+                        stringKeys: Object.values(DigestAuthProperty),
+                    },
+                    commonParsingArgs,
+                    collectedErrors,
+                );
+            case AuthType.Wsse:
+                return parseFlatAuthMap<ParsedWsseAuth>(
+                    {
+                        authMap,
+                        parsedType: authType,
+                        stringKeys: Object.values(WsseAuthProperty),
+                    },
+                    commonParsingArgs,
+                    collectedErrors,
+                );
+            case AuthType.Ntlm:
+                return parseFlatAuthMap<ParsedNtlmAuth>(
+                    {
+                        authMap,
+                        parsedType: authType,
+                        stringKeys: Object.values(NtlmAuthProperty),
+                    },
+                    commonParsingArgs,
+                    collectedErrors,
+                );
+            case AuthType.Apikey:
+                return parseFlatAuthMap<ParsedApiKeyAuth>(
+                    {
+                        authMap,
+                        parsedType: authType,
+                        stringKeys: Object.values(ApiKeyAuthProperty),
+                        enumKeys: {
+                            [ApiKeyAuthProperty.Placement]:
+                                Object.values(ApiKeyPlacement),
+                        },
+                    },
+                    commonParsingArgs,
+                    collectedErrors,
+                );
+            case AuthType.AkamaiEdgegrid:
+                return parseFlatAuthMap<ParsedAkamaiEdgegridAuth>(
+                    {
+                        authMap,
+                        parsedType: authType,
+                        stringKeys: Object.values(
+                            AkamaiEdgegridAuthProperty,
+                        ).filter(
+                            (key) =>
+                                key != AkamaiEdgegridAuthProperty.MaxBodySize,
+                        ),
+                        numberKeys: [AkamaiEdgegridAuthProperty.MaxBodySize],
+                    },
+                    commonParsingArgs,
+                    collectedErrors,
+                );
+            case AuthType.Oauth1:
+                return parseFlatAuthMap<ParsedOAuth1Auth>(
+                    {
+                        authMap,
+                        parsedType: authType,
+                        stringKeys: Object.values(OAuth1AuthProperty).filter(
+                            (key) => key != OAuth1AuthProperty.IncludeBodyHash,
+                        ),
+                        booleanKeys: [OAuth1AuthProperty.IncludeBodyHash],
+                        enumKeys: {
+                            [OAuth1AuthProperty.Placement]:
+                                Object.values(OAuth1Placement),
+                            [OAuth1AuthProperty.SignatureMethod]: Object.values(
+                                OAuth1SignatureMethod,
+                            ),
+                        },
+                    },
+                    commonParsingArgs,
+                    collectedErrors,
+                );
+            case AuthType.Oauth2:
+                return parseOAuth2AuthFromAuthMap(
+                    {
+                        authMap,
+                        parsedType:
+                            authType as WithKeyAndValueRange<AuthType.Oauth2>,
+                    },
+                    commonParsingArgs,
+                    collectedErrors,
+                );
+        }
+    }
+}
 
-        const allErrors: YamlParsingError[] = [];
-        const { getString, missingProperties } = getValidatedMapItems(
+/** The Yaml keys of an auth map. They have to match the names of the properties of the parsed type. */
+type FlatAuthKey<T extends ParsedYamlMap<{ type: unknown }>> =
+    keyof T["properties"] & string;
+
+/**
+ * Parses an auth map that only consists of scalar values (some of which may be restricted to a fixed set of values).
+ * The names of the parsed properties are the same as the Yaml keys.
+ */
+function parseFlatAuthMap<T extends ParsedYamlMap<{ type: unknown }>>(
+    args: {
+        authMap: YAMLMap;
+        parsedType: WithKeyAndValueRange<AuthType>;
+        stringKeys: FlatAuthKey<T>[];
+        booleanKeys?: FlatAuthKey<T>[];
+        numberKeys?: FlatAuthKey<T>[];
+        enumKeys?: Partial<Record<FlatAuthKey<T>, string[]>>;
+    },
+    commonArgs: CommonParsingArgs,
+    collectedErrors: YamlParsingError[],
+): T {
+    const {
+        authMap,
+        parsedType,
+        stringKeys,
+        booleanKeys = [],
+        numberKeys = [],
+        enumKeys = {},
+    } = args;
+    const { items, getString, getBoolean, getNumber, missingProperties } =
+        getValidatedMapItems(
             authMap,
-            { scalars: { stringValues: expectedStringScalars } },
-            commonParsingArgs,
-            allErrors,
+            {
+                scalars: {
+                    stringValues: stringKeys,
+                    booleanValues: booleanKeys,
+                    numericValues: numberKeys,
+                },
+            },
+            commonArgs,
+            collectedErrors,
         );
 
-        const username = getString(BasicAuthProperty.Username);
-        const password = getString(BasicAuthProperty.Password);
-        return {
-            auth: {
-                properties: {
-                    type,
-                    username: stripKeyFromResult(username),
-                    password: stripKeyFromResult(password),
-                },
-                missingProperties,
+    const properties: Record<string, unknown> = { type: parsedType };
+    const plainStringKeys = stringKeys.filter(
+        (key) => key != CommonAuthMapProperties.type && !(key in enumKeys),
+    );
+    for (const key of plainStringKeys) {
+        properties[key] = stripKeyFromResult(getString(key));
+    }
+    for (const key of booleanKeys) {
+        properties[key] = stripKeyFromResult(getBoolean(key));
+    }
+    for (const key of numberKeys) {
+        properties[key] = stripKeyFromResult(getNumber(key));
+    }
+    for (const [key, allowedValues] of Object.entries(enumKeys) as [
+        FlatAuthKey<T>,
+        string[] | undefined,
+    ][]) {
+        properties[key] = getTypedValueFromList<string>(
+            {
+                allowedValues: allowedValues ?? [],
+                allStringValues: items.validScalars.withStringValue,
+                keyName: key,
             },
-            errors: allErrors,
-        };
+            collectedErrors,
+        )?.value;
     }
 
-    function parseBearerAuthFromAuthMap(
-        args: {
-            authMap: YAMLMap;
-            parsedType: WithKeyAndValueRange<AuthType.Bearer>;
-        },
-        commonParsingArgs: CommonParsingArgs,
-    ): { auth: ParsedBearerAuth; errors: YamlParsingError[] } {
-        const { authMap, parsedType: type } = args;
-        const expectedStringScalars = Object.values(BearerAuthProperty);
-
-        const allErrors: YamlParsingError[] = [];
-        const { getString, missingProperties } = getValidatedMapItems(
-            authMap,
-            { scalars: { stringValues: expectedStringScalars } },
-            commonParsingArgs,
-            allErrors,
-        );
-
-        const token = getString(BearerAuthProperty.Token);
-        return {
-            auth: {
-                properties: {
-                    type,
-                    token: stripKeyFromResult(token),
-                },
-                missingProperties,
-            },
-            errors: allErrors,
-        };
-    }
+    return { properties, missingProperties } as unknown as T;
 }

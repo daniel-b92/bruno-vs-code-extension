@@ -1,8 +1,48 @@
 import boundaries, { Config, Settings, Rules } from "eslint-plugin-boundaries";
+import type { Linter } from "eslint";
 import * as parser from "@typescript-eslint/parser";
+
+/**
+ * Matches relative import specifiers containing a folder for the given format, e.g. `../bruFormat/x` or `./yaml-files`.
+ * The folder name has to be the format name itself or continue with an uppercase letter, `-` or `_`.
+ * Folders like `brunoSpecific` are intentionally not matched.
+ * Only relative imports are matched, since packages (e.g. `yaml-language-server`) do not refer to a folder of this repo.
+ */
+const getFormatFolderImportRegex = (format: "bru" | "yaml") =>
+    `^\\..*(^|/)${format}[A-Z_-][^/]*(/|$)|^\\..*/${format}/`;
+
+const getFormatFolderGlobs = (format: "bru" | "yaml") => [
+    `**/${format}[A-Z_-]*/**/*.ts`,
+    `**/${format}/**/*.ts`,
+];
+
+const getForbiddenCrossFormatImportsConfig = (
+    importingFormat: "bru" | "yaml",
+    forbiddenFormat: "bru" | "yaml",
+) =>
+    ({
+        files: getFormatFolderGlobs(importingFormat),
+        languageOptions: { parser },
+        rules: {
+            "no-restricted-imports": [
+                2,
+                {
+                    patterns: [
+                        {
+                            regex: getFormatFolderImportRegex(forbiddenFormat),
+                            caseSensitive: true,
+                            message: `Code within '${importingFormat}' folders must not import from '${forbiddenFormat}' folders.`,
+                        },
+                    ],
+                },
+            ],
+        },
+    }) satisfies Linter.Config;
 
 export default [
     { ignores: ["**/node_modules/**", "**/dist/**", "**/out/**", "**/*.d.ts"] },
+    getForbiddenCrossFormatImportsConfig("yaml", "bru"),
+    getForbiddenCrossFormatImportsConfig("bru", "yaml"),
     {
         files: ["client/**/*.ts"],
         languageOptions: {

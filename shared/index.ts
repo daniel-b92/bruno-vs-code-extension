@@ -175,7 +175,7 @@ export * from "./languageUtils/bruFormat/commonBlocks/generic/dictionaryBlocks/d
 export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/authBlockNameEnum";
 export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/authBlocksKeyInterfaces";
 export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/oAuth2GrantTypeEnum";
-export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/oAuth1FieldValueEnums";
+export * from "./languageUtils/shared/oAuth1FieldValueEnums";
 export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/apiKeyAuthBlockValuesEnums";
 export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/oAuth2BlockCommonFieldsValues";
 export * from "./languageUtils/bruFormat/commonBlocks/authBlocks/getMandatoryKeysForNonOAuth2Block";

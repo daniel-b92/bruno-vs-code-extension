@@ -28,6 +28,7 @@ import { checkGraphqlVariablesSyntax } from "./diagnostics/checks/requestFiles/c
 import { checkJsonBodySyntax } from "./diagnostics/checks/requestFiles/checkJsonBodySyntax";
 import { checkWebsocketMessages } from "./diagnostics/checks/requestFiles/checkWebsocketMessages";
 import { checkAuthHasRequiredFields } from "./diagnostics/checks/requestFiles/checkAuthHasRequiredFields";
+import { checkAuthHasValidValues } from "./diagnostics/shared/checkAuthHasValidValues";
 import { checkTagsAreUnique } from "./diagnostics/checks/requestFiles/checkTagsAreUnique";
 import { getDiagnosticsForDisabledItems } from "./diagnostics/shared/getDiagnosticsForDisabledItems";
 import { checkResponseValidationExists } from "./diagnostics/checks/requestFiles/checkResponseValidationExists";
@@ -150,9 +151,10 @@ export class YamlFormatDiagnosticsProvider {
                 properties.websocket,
                 commonParams.docHelper,
             ),
-            ...requestTypeSections.map(({ properties: { auth } }) =>
+            ...requestTypeSections.flatMap(({ properties: { auth } }) => [
                 checkAuthHasRequiredFields(auth),
-            ),
+                checkAuthHasValidValues(auth),
+            ]),
             checkResponseValidationExists(properties.runtime, commonParams),
             ...getDiagnosticsForDisabledItems([
                 ...requestTypeSections.flatMap(
@@ -187,6 +189,7 @@ export class YamlFormatDiagnosticsProvider {
                 commonParams,
             ),
             checkAuthIsNotInherited(properties.request?.properties.auth),
+            checkAuthHasValidValues(properties.request?.properties.auth),
             ...checkClientCertificatesMatchType(
                 properties.config?.properties.clientCertificates,
             ),
@@ -227,6 +230,9 @@ export class YamlFormatDiagnosticsProvider {
             ...checkSettingsFileRequestSection(
                 parsingResult.properties.request,
                 commonParams,
+            ),
+            checkAuthHasValidValues(
+                parsingResult.properties.request?.properties.auth,
             ),
             ...getDiagnosticsForDisabledItems(
                 getDisabledItemsFromRequestSection(
