@@ -8,7 +8,7 @@ export interface PreciseErrorPositionMapping {
     indentation: number;
 }
 
-const messagePrefix = "Invalid JSON request body: ";
+const messagePrefix = "Invalid JSON: ";
 
 export interface JsonSyntaxCheckResult {
     diagnostic: Diagnostic;

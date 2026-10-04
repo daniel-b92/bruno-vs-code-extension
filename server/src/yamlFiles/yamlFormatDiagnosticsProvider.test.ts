@@ -316,7 +316,7 @@ http:
 `);
 
         const jsonDiagnostic = diagnostics.find(({ message }) =>
-            String(message).startsWith("Invalid JSON request body"),
+            String(message).startsWith("Invalid JSON"),
         );
         // The line is indented by 8 characters in the document, the error is at column 7 within the line.
         expect(jsonDiagnostic?.range.start.line).toBe(10);
