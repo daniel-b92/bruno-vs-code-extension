@@ -81,6 +81,11 @@ export enum CollectionExtensionsProperty {
 export enum BrunoExtensionProperty {
     Ignore = "ignore",
     Presets = "presets",
+    Scripts = "scripts",
+}
+
+export enum BrunoScriptsProperty {
+    AdditionalContextRoots = "additionalContextRoots",
 }
 
 export enum BrunoPresetsProperty {

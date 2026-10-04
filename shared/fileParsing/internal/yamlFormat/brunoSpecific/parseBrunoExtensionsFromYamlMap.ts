@@ -16,6 +16,7 @@ import {
     BrunoPresetsProperty,
     BrunoPresetsRequestProperty,
     BrunoPresetsRequestType,
+    BrunoScriptsProperty,
     CollectionExtensionsProperty,
 } from "../../../external/yamlFormat/constants/collectionSettingsFileConstants";
 
@@ -25,6 +26,7 @@ type ParsedExtensions = NonNullable<
 type ParsedBrunoExtension = NonNullable<
     ParsedExtensions["properties"]["bruno"]
 >;
+type ParsedScripts = NonNullable<ParsedBrunoExtension["properties"]["scripts"]>;
 type ParsedPresets = NonNullable<ParsedBrunoExtension["properties"]["presets"]>;
 
 export function parseExtensionsFromYamlMap(
@@ -65,7 +67,10 @@ function parseBrunoExtension(
         brunoMap,
         {
             sequenceValues: [BrunoExtensionProperty.Ignore],
-            mapValues: [BrunoExtensionProperty.Presets],
+            mapValues: [
+                BrunoExtensionProperty.Presets,
+                BrunoExtensionProperty.Scripts,
+            ],
         },
         commonArgs,
         errors,
@@ -87,6 +92,41 @@ function parseBrunoExtension(
                 presets: parseIfPresent(
                     getMap(BrunoExtensionProperty.Presets),
                     (presetsMap) => parsePresets(presetsMap, commonArgs),
+                    errors,
+                ),
+                scripts: parseIfPresent(
+                    getMap(BrunoExtensionProperty.Scripts),
+                    (scriptsMap) => parseScripts(scriptsMap, commonArgs),
+                    errors,
+                ),
+            },
+        },
+    };
+}
+
+function parseScripts(
+    { keyRange, value: scriptsMap }: WithKeyAndKeyRange<YAMLMap>,
+    commonArgs: CommonParsingArgs,
+): MaybeResultWithErrors<ParsedScripts> {
+    const errors: YamlParsingError[] = [];
+    const { getSequence, missingProperties } = getValidatedMapItems(
+        scriptsMap,
+        { sequenceValues: [BrunoScriptsProperty.AdditionalContextRoots] },
+        commonArgs,
+        errors,
+    );
+
+    return {
+        errors,
+        result: {
+            keyRange,
+            valueRange: getRangeForItem(scriptsMap, commonArgs),
+            missingProperties,
+            properties: {
+                additionalContextRoots: getStringListFromSequence(
+                    getSequence(BrunoScriptsProperty.AdditionalContextRoots),
+                    "AdditionalContextRoots",
+                    commonArgs,
                     errors,
                 ),
             },
