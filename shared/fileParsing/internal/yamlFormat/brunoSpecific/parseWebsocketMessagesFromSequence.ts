@@ -4,6 +4,7 @@ import {
     CommonParsingArgs,
     MaybeResultWithErrors,
     ParsedWebsocketMessage,
+    ParsedWebsocketMessageContent,
     WithKeyAndKeyRange,
 } from "../interfaces";
 import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
@@ -63,7 +64,8 @@ export function parseWebsocketMessagesFromSequence(
                 ),
                 message: parseIfPresent(
                     getMap(RequestFileWebsocketMessageProperty.Message),
-                    (bodyMap) => parseMessageBody(bodyMap, commonArgs),
+                    (bodyMap) =>
+                        parseWebsocketMessageContent(bodyMap, commonArgs),
                     errors,
                 ),
             },
@@ -73,12 +75,10 @@ export function parseWebsocketMessagesFromSequence(
     return { errors, result };
 }
 
-function parseMessageBody(
+export function parseWebsocketMessageContent(
     { keyRange, value: map }: WithKeyAndKeyRange<YAMLMap>,
     commonArgs: CommonParsingArgs,
-): MaybeResultWithErrors<
-    NonNullable<ParsedWebsocketMessage["properties"]["message"]>
-> {
+): MaybeResultWithErrors<ParsedWebsocketMessageContent> {
     const errors: YamlParsingError[] = [];
 
     const {

@@ -123,13 +123,15 @@ export type ParsedGraphqlBody = ParsedYamlMapWithKeyAndValueRange<{
     variables?: ParsedStringScalarWithStyle;
 }>;
 
+export type ParsedWebsocketMessageContent = ParsedYamlMapWithKeyAndValueRange<{
+    type?: WithKeyAndValueRange<WebsocketMessageType>;
+    data?: ParsedStringScalarWithStyle;
+}>;
+
 export type ParsedWebsocketMessage = ParsedYamlMapWithValueRange<{
     title?: WithKeyAndValueRange<string>;
     selected?: WithKeyAndValueRange<boolean>;
-    message?: ParsedYamlMapWithKeyAndValueRange<{
-        type?: WithKeyAndValueRange<WebsocketMessageType>;
-        data?: ParsedStringScalarWithStyle;
-    }>;
+    message?: ParsedWebsocketMessageContent;
 }>;
 
 export type ParsedDocsWithType = WithKeyAndValueRange<

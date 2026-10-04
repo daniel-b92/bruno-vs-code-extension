@@ -20,6 +20,7 @@ import {
     ParsedRequestVariable,
     ParsedScript,
     ParsedWebsocketMessage,
+    ParsedWebsocketMessageContent,
     ParsedSettingsFileRequestSection,
     ParsedSettings,
     ParsedYamlMap,
@@ -66,7 +67,10 @@ export type ParsedRequestFile = ParsedYamlMap<{
     websocket?: ParsedYamlMapWithKeyAndValueRange<{
         url?: WithKeyAndValueRange<string>;
         headers?: EnabledAndDisabledItems<ParsedRequestHeader>;
+        /** Messages, if `message` is defined as a sequence (with a title and selection state per message). */
         message?: ParsedWebsocketMessage[];
+        /** The only message, if `message` is defined as a single map with `type` and `data`. */
+        singleMessage?: ParsedWebsocketMessageContent;
         auth?: ParsedAuth;
     }>;
     runtime?: ParsedYamlMapWithKeyAndValueRange<{
@@ -207,6 +211,7 @@ export interface YamlMapMissingPropertyInfo {
 }
 
 export type {
+    ParsedWebsocketMessageContent,
     EnabledAndDisabledItems,
     ParsedRequestHeader,
 } from "../../internal/yamlFormat/interfaces";

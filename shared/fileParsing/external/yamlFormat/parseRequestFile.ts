@@ -35,7 +35,10 @@ import { parseHeadersFromSequence } from "../../internal/yamlFormat/brunoSpecifi
 import { parseParamsFromSequence } from "../../internal/yamlFormat/brunoSpecific/parseParamsFromSequence";
 import { parseBodyFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseBodyFromYamlMap";
 import { parseGraphqlBodyFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseGraphqlBodyFromYamlMap";
-import { parseWebsocketMessagesFromSequence } from "../../internal/yamlFormat/brunoSpecific/parseWebsocketMessagesFromSequence";
+import {
+    parseWebsocketMessageContent,
+    parseWebsocketMessagesFromSequence,
+} from "../../internal/yamlFormat/brunoSpecific/parseWebsocketMessagesFromSequence";
 import { parseAuthFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpecific/parseAuthFromYamlMapOrScalar";
 
 export function parseRequestFile(
@@ -219,7 +222,11 @@ function parseWebsocketSection(
                         RequestFileWebsocketSectionProperty.auth,
                     ],
                 },
-                mapValues: [RequestFileWebsocketSectionProperty.auth],
+                mapValues: [
+                    RequestFileWebsocketSectionProperty.auth,
+                    // Message can either be a map for a single message or a sequence of messages.
+                    RequestFileWebsocketSectionProperty.message,
+                ],
                 sequenceValues: [
                     RequestFileWebsocketSectionProperty.headers,
                     RequestFileWebsocketSectionProperty.message,
@@ -247,6 +254,12 @@ function parseWebsocketSection(
                 getSequence(RequestFileWebsocketSectionProperty.message),
                 ({ value }) =>
                     parseWebsocketMessagesFromSequence(value, commonArgs),
+                collectedErrors,
+            ),
+            singleMessage: parseIfPresent(
+                getMap(RequestFileWebsocketSectionProperty.message),
+                (messageMap) =>
+                    parseWebsocketMessageContent(messageMap, commonArgs),
                 collectedErrors,
             ),
             auth: parseIfPresent(

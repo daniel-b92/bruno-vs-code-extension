@@ -740,6 +740,29 @@ websocket:
             ).toBe(type);
         });
 
+        it("parses a single message defined as a map", () => {
+            const documentText = `info:
+    name: ws
+    type: websocket
+    seq: 1
+websocket:
+    url: abc
+    message:
+        type: json
+        data: '{"a": 1}'`;
+
+            const { result, errors } = parseRequestFile(
+                new TextDocumentHelper(documentText),
+            );
+
+            expect(errors).toHaveLength(0);
+            const { message, singleMessage } =
+                result!.properties.websocket!.properties;
+            expect(message).toBeUndefined();
+            expect(singleMessage?.properties.type?.value).toBe("json");
+            expect(singleMessage?.properties.data?.value).toBe('{"a": 1}');
+        });
+
         it("reports an invalid message type", () => {
             const documentText = `info:
     name: ws
