@@ -17,6 +17,7 @@ import {
     FileSystemCacheSyncingHelper,
     BrunoTreeItem,
 } from "@shared";
+import { getFeatureToggles } from "./getFeatureToggles";
 import { activateLanguageFeatures } from "./languageFeatures";
 import { suggestCreatingTsConfigsForCollections } from "./languageFeatures/suggestCreatingTsConfigsForCollections";
 import { join } from "path";
@@ -135,6 +136,9 @@ function createLanguagClient(context: ExtensionContext) {
             // Uncomment for enabling Yaml collection intellisense.
             //{ scheme: "file", language: "yaml" },
         ],
+        initializationOptions: {
+            featureToggles: getFeatureToggles(context),
+        },
         synchronize: {
             // Notify the server about file changes to '.clientrc files contained in the workspace
             fileEvents: workspace.createFileSystemWatcher("**/.clientrc"),

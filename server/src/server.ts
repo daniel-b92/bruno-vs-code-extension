@@ -37,6 +37,8 @@ import { handleHoverRequest as handleHoverRequestForBruFile } from "./bruFiles/h
 import { basename, extname } from "path";
 import { handleCompletionRequest as handleCompletionRequestForJsFile } from "./jsFiles/completionItems/handleCompletionRequest";
 import { handleHoverRequest as handleHoverRequestForJsFile } from "./jsFiles/hover/handleHoverRequest";
+import { defaultFeatureToggles, FeatureToggles } from "@global_shared";
+import { setFeatureToggles } from "./shared/featureToggles";
 import { isYamlAppFile } from "./yamlFiles/isYamlAppFile";
 import { YamlFormatDiagnosticsProvider } from "./yamlFiles/yamlFormatDiagnosticsProvider";
 
@@ -58,7 +60,14 @@ const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 disposables.push(
-    connection.onInitialize(async () => {
+    connection.onInitialize(async (params) => {
+        setFeatureToggles(
+            (
+                params.initializationOptions as
+                    { featureToggles?: FeatureToggles } | undefined
+            )?.featureToggles ?? defaultFeatureToggles,
+        );
+
         const result: InitializeResult = {
             capabilities: {
                 workspace: { workspaceFolders: { supported: true } },
@@ -375,9 +384,7 @@ function getDiagnosticsForYamlFile(filePath: string, text: string) {
         filePath,
         text,
         // ToDo: Once yaml files are stored in the file system cache, use the itemType for identifying app and request files.
-        isYamlAppFile(text)
-            ? BrunoFileType.AppFile
-            : BrunoFileType.RequestFile,
+        isYamlAppFile(text) ? BrunoFileType.AppFile : BrunoFileType.RequestFile,
     );
 }
 

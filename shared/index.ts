@@ -226,3 +226,6 @@ export { getValidBlockNames as getValidBlockNamesForFolderSettingsFile } from ".
 // language utils - collection settings
 export { getValidBlockNames as getValidBlockNamesForCollectionSettingsFile } from "./languageUtils/bruFormat/collectionSettingsFiles/getValidBlockNames";
 export { getNamesForRedundantBlocks as getNamesForRedundantBlocksForCollectionSettingsFile } from "./languageUtils/bruFormat/collectionSettingsFiles/getNamesForRedundantBlocks";
+
+// feature toggles
+export * from "./featureToggles/featureToggles";
