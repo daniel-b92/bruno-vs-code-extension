@@ -1,3 +1,6 @@
+import { CollectionFormat } from "../../baseModel/interfaces";
+import { getFileExtensionForFormat } from "./collectionFormatFileNames";
+
 export function getExtensionForBrunoFiles() {
-    return ".bru";
+    return getFileExtensionForFormat(CollectionFormat.Bru);
 }

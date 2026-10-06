@@ -22,7 +22,8 @@ describe("getCollectionItemForFile", () => {
     const createTemporaryDirectory = useTemporaryDirectories();
 
     it("caches a valid top level 'extends' field", async () => {
-        const filePath = await createBruEnvironmentFile(
+        const filePath = await createFileInTemporaryDirectory(
+            "Test.bru",
             `extends: Base\n\nvars {\n  first: 1\n}`,
         );
 
@@ -38,7 +39,8 @@ describe("getCollectionItemForFile", () => {
     });
 
     it("does not cache an 'extends' field when it is defined multiple times", async () => {
-        const filePath = await createBruEnvironmentFile(
+        const filePath = await createFileInTemporaryDirectory(
+            "Test.bru",
             `extends: Base\nextends: Other\n\nvars {\n  first: 1\n}`,
         );
 
@@ -51,7 +53,8 @@ describe("getCollectionItemForFile", () => {
     });
 
     it("caches no 'extends' field when none is present", async () => {
-        const filePath = await createBruEnvironmentFile(
+        const filePath = await createFileInTemporaryDirectory(
+            "Test.bru",
             `vars {\n  first: 1\n}`,
         );
 
@@ -86,7 +89,7 @@ describe("getCollectionItemForFile", () => {
 
     describe("for the yaml format", () => {
         it("caches sequence and tags of a request file", async () => {
-            const path = await createYamlFile(
+            const path = await createFileInTemporaryDirectory(
                 "request.yml",
                 `info:\n  name: Req\n  type: http\n  seq: 3\n  tags:\n    - smoke\n    - other\nhttp:\n  method: GET\n  url: http://localhost\n`,
             );
@@ -103,7 +106,10 @@ describe("getCollectionItemForFile", () => {
         });
 
         it("still returns a request file when the info section is invalid", async () => {
-            const path = await createYamlFile("request.yml", "foo: bar\n");
+            const path = await createFileInTemporaryDirectory(
+                "request.yml",
+                "foo: bar\n",
+            );
 
             const result = (await getCollectionItemForFile(
                 path,
@@ -117,7 +123,7 @@ describe("getCollectionItemForFile", () => {
         });
 
         it("caches extends field and enabled variables of an environment file", async () => {
-            const path = await createYamlFile(
+            const path = await createFileInTemporaryDirectory(
                 "Dev.yml",
                 [
                     "name: Dev",
@@ -154,7 +160,7 @@ describe("getCollectionItemForFile", () => {
         });
 
         it("returns an environment file without variables when the file is not valid yaml", async () => {
-            const path = await createYamlFile(
+            const path = await createFileInTemporaryDirectory(
                 "Dev.yml",
                 "variables: [unclosed\n",
             );
@@ -212,14 +218,6 @@ describe("getCollectionItemForFile", () => {
             expect(result.getSettingsFilePath()).toBeUndefined();
         });
     });
-
-    async function createBruEnvironmentFile(content: string) {
-        return await createFileInTemporaryDirectory("Test.bru", content);
-    }
-
-    async function createYamlFile(name: string, content: string) {
-        return await createFileInTemporaryDirectory(name, content);
-    }
 
     async function createFileInTemporaryDirectory(
         name: string,
