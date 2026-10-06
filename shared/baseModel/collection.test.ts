@@ -1,5 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
 import { createCollectionWithEnvironments } from "../_testingUtils";
+import { CollectionFormat } from "./interfaces";
 
 describe("Collection.getEnvironmentInheritanceChain", () => {
     it("returns an empty chain when the environment does not extend anything", () => {
@@ -60,5 +61,25 @@ describe("Collection.getEnvironmentsExtending", () => {
         const collection = createCollectionWithEnvironments([{ name: "Base" }]);
 
         expect(collection.getEnvironmentsExtending("Base")).toEqual([]);
+    });
+});
+
+describe("Collection.getEnvironments", () => {
+    it("strips the file extension matching the collection format from the environment names", () => {
+        const bruCollection = createCollectionWithEnvironments([
+            { name: "Dev" },
+        ]);
+        const yamlCollection = createCollectionWithEnvironments(
+            [{ name: "Dev" }],
+            "/collection",
+            CollectionFormat.Yaml,
+        );
+
+        expect(
+            bruCollection.getEnvironments().map((e) => e.environmentName),
+        ).toEqual(["Dev"]);
+        expect(
+            yamlCollection.getEnvironments().map((e) => e.environmentName),
+        ).toEqual(["Dev"]);
     });
 });

@@ -2,9 +2,10 @@ import { basename } from "path";
 import {
     BrunoEnvironmentFile,
     CollectionData,
+    CollectionFormat,
     CollectionDirectory,
     CollectionItem,
-    getExtensionForBrunoFiles,
+    getFileExtensionForFormat,
     isEnvironmentFile,
     normalizePath,
 } from "..";
@@ -14,6 +15,7 @@ export class Collection<T> {
         private rootFolderItem: CollectionDirectory,
         rootFolderAdditionalData: T,
         private additionalContextRoots: string[],
+        private format = CollectionFormat.Bru,
     ) {
         this.testData.push({
             item: rootFolderItem,
@@ -25,6 +27,10 @@ export class Collection<T> {
 
     public getRootDirectory() {
         return this.rootFolderItem.getPath();
+    }
+
+    public getFormat() {
+        return this.format;
     }
 
     public isRootDirectory(path: string) {
@@ -56,7 +62,7 @@ export class Collection<T> {
                 item: item as BrunoEnvironmentFile,
                 environmentName: basename(
                     item.getPath(),
-                    getExtensionForBrunoFiles(),
+                    getFileExtensionForFormat(this.format),
                 ),
             }));
     }

@@ -189,6 +189,7 @@ function createNeededHandlers(context: ExtensionContext) {
             collectionWatcher,
             getAdditionalCollectionDataProvider(testRunnerDataHelper),
             getPathsToIgnoreForCollections(),
+            getFeatureToggles(context),
             cacheRefreshNotifier,
             logger,
         );

@@ -1,5 +1,6 @@
 import { readdir } from "fs";
 import {
+    CollectionFormat,
     doesFileNameMatchCollectionSettingsFile,
     doesFileNameMatchFolderSettingsFileName,
 } from "../../../..";
@@ -9,6 +10,7 @@ import { promisify } from "util";
 export async function getFolderSettingsFilePath(
     isCollectionRootFolder: boolean,
     folderPath: string,
+    format = CollectionFormat.Bru,
 ) {
     const childItems = await promisify(readdir)(folderPath).catch(
         () => undefined,
@@ -20,8 +22,8 @@ export async function getFolderSettingsFilePath(
 
     const settingsFileName = childItems.find((name) =>
         isCollectionRootFolder
-            ? doesFileNameMatchCollectionSettingsFile(name)
-            : doesFileNameMatchFolderSettingsFileName(name),
+            ? doesFileNameMatchCollectionSettingsFile(name, format)
+            : doesFileNameMatchFolderSettingsFileName(name, format),
     );
 
     return settingsFileName ? resolve(folderPath, settingsFileName) : undefined;

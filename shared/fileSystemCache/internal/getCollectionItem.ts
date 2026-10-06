@@ -23,7 +23,12 @@ import {
     getAllExtendsFields,
     BrunoCollectionSettingsFile,
     BrunoAppFile,
+    CollectionFormat,
 } from "../..";
+import {
+    createYamlEnvironmentFileInstance,
+    createYamlRequestFileInstance,
+} from "./yamlFormat/createYamlCollectionItems";
 import { createCollectionDirectoryInstance } from "./createCollectionDirectoryInstance";
 
 export async function getCollectionItem<T>(
@@ -39,26 +44,39 @@ export async function getCollectionItem<T>(
                 await getFolderSettingsFilePath(
                     collection.isRootDirectory(path),
                     path,
+                    collection.getFormat(),
                 ),
+                collection.getFormat(),
             );
         default:
-            return await getCollectionItemForFile(path, itemType);
+            return await getCollectionItemForFile(
+                path,
+                itemType,
+                collection.getFormat(),
+            );
     }
 }
 
 export async function getCollectionItemForFile(
     path: string,
     itemType: ItemType,
+    format = CollectionFormat.Bru,
 ): Promise<CollectionItem | undefined> {
+    const isYaml = format == CollectionFormat.Yaml;
+
     switch (itemType) {
         case BrunoFileType.CollectionSettingsFile:
             return new BrunoCollectionSettingsFile(path);
         case BrunoFileType.FolderSettingsFile:
             return new BrunoFolderSettingsFile(path);
         case BrunoFileType.EnvironmentFile:
-            return await createEnvironmentFileInstance(path);
+            return isYaml
+                ? await createYamlEnvironmentFileInstance(path)
+                : await createEnvironmentFileInstance(path);
         case BrunoFileType.RequestFile:
-            return await createRequestFileInstance(path);
+            return isYaml
+                ? await createYamlRequestFileInstance(path)
+                : await createRequestFileInstance(path);
         case BrunoFileType.AppFile:
             return new BrunoAppFile(path);
         case NonBrunoSpecificItemType.OtherFileType:

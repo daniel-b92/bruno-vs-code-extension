@@ -1,10 +1,9 @@
 import {
-    AdditionalCollectionDataProviderType,
     AdditionalCollectionDataProvider,
     Collection,
     CollectionData,
     getItemType,
-    parseFileByPath,
+    getAdditionalCollectionData,
 } from "../..";
 import { getCollectionItem } from "./getCollectionItem";
 import { isModifiedItemOutdated } from "./isModifiedItemOutdated";
@@ -83,41 +82,15 @@ async function getCollectionData<T>(params: {
         return undefined;
     }
 
-    if (
-        additionalDataProvider.paramType ==
-        AdditionalCollectionDataProviderType.SimpleCollectionItem
-    ) {
-        return {
+    return {
+        item,
+        additionalData: await getAdditionalCollectionData(
             item,
-            additionalData: additionalDataProvider.callback(
-                item,
-                collection.isRootDirectory(item.getPath()),
-            ),
-        };
-    }
-
-    const {
-        callbacksForItemsRequiringFullParsing: {
-            getData,
-            getFilePathForParsing,
-        },
-        callbackForOtherItems,
-        itemTypesRequiringFullFileParsing,
-    } = additionalDataProvider;
-
-    if (itemTypesRequiringFullFileParsing.includes(item.getItemType())) {
-        const toParse = getFilePathForParsing(item);
-        return {
-            item,
-            additionalData: getData(
-                toParse
-                    ? await parseFileByPath(toParse, item.getItemType())
-                    : undefined,
-            ),
-        };
-    }
-
-    return { item, additionalData: callbackForOtherItems(item) };
+            additionalDataProvider,
+            collection.isRootDirectory(item.getPath()),
+            collection.getFormat(),
+        ),
+    };
 }
 
 function handleAlreadyRegisteredItemWithSamePath<T>(
