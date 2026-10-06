@@ -128,17 +128,18 @@ function createLanguagClient(context: ExtensionContext) {
         },
     };
 
+    const featureToggles = getFeatureToggles(context);
+
     // Options to control the language client
     const clientOptions: LanguageClientOptions = {
         documentSelector: [
             { scheme: "file", language: "bru" },
             { scheme: "file", language: "javascript" },
-            // Uncomment for enabling Yaml collection intellisense.
-            //{ scheme: "file", language: "yaml" },
+            ...(featureToggles.yamlCollectionSupport
+                ? [{ scheme: "file", language: "yaml" }]
+                : []),
         ],
-        initializationOptions: {
-            featureToggles: getFeatureToggles(context),
-        },
+        initializationOptions: { featureToggles },
         synchronize: {
             // Notify the server about file changes to '.clientrc files contained in the workspace
             fileEvents: workspace.createFileSystemWatcher("**/.clientrc"),
