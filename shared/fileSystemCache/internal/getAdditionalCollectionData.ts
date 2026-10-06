@@ -2,6 +2,7 @@ import {
     AdditionalCollectionComplexDataProvider,
     AdditionalCollectionDataProviderType,
     AdditionalCollectionSimpleDataProvider,
+    CollectionFormat,
     CollectionItem,
     parseFileByPath,
 } from "../..";
@@ -12,6 +13,7 @@ export async function getAdditionalCollectionData<T>(
         | AdditionalCollectionSimpleDataProvider<T>
         | AdditionalCollectionComplexDataProvider<T>,
     isCollectionRoot: boolean,
+    format = CollectionFormat.Bru,
 ) {
     switch (additionalDataProvider.paramType) {
         case AdditionalCollectionDataProviderType.SimpleCollectionItem:
@@ -34,7 +36,8 @@ export async function getAdditionalCollectionData<T>(
 
             const toParse = getFilePathForParsing(item);
             return getData(
-                toParse
+                // ToDo: Support extracting additional data from yaml files, too. Currently, `parseFileByPath` only supports the bru format.
+                toParse && format == CollectionFormat.Bru
                     ? await parseFileByPath(toParse, item.getItemType())
                     : undefined,
             );

@@ -1,7 +1,6 @@
 import { dirname, extname } from "path";
 import {
     checkIfPathExistsAsync,
-    getExtensionForBrunoFiles,
     normalizePath,
     doesFileNameMatchFolderSettingsFileName,
     isInFolderForEnvironmentFiles,
@@ -15,6 +14,10 @@ import {
     RequestFileBlockName,
     isDictionaryBlockSimpleField,
     MetaBlockKey,
+    CollectionFormat,
+    FileInfoType,
+    getInfoTypeFromYamlContent,
+    getFileExtensionForFormat,
 } from "../..";
 import {
     getFileSystemDataPath,
@@ -34,8 +37,9 @@ export async function getItemType<T>(
         return undefined;
     }
 
+    const format = collection.getFormat();
     const isValidBruFile =
-        extname(path) == getExtensionForBrunoFiles() &&
+        extname(path) == getFileExtensionForFormat(format) &&
         normalizePath(path).startsWith(
             normalizePath(collection.getRootDirectory()),
         );
@@ -57,14 +61,16 @@ export async function getItemType<T>(
         return BrunoFileType.EnvironmentFile;
     } else if (
         isChildElementOfCollectionRootDirectory(collection, path) &&
-        doesFileNameMatchCollectionSettingsFile(path)
+        doesFileNameMatchCollectionSettingsFile(path, format)
     ) {
         return BrunoFileType.CollectionSettingsFile;
     } else if (
         !isChildElementOfCollectionRootDirectory(collection, path) &&
-        doesFileNameMatchFolderSettingsFileName(path)
+        doesFileNameMatchFolderSettingsFileName(path, format)
     ) {
         return BrunoFileType.FolderSettingsFile;
+    } else if (format == CollectionFormat.Yaml) {
+        return await getItemTypeForOtherYamlFile(path);
     } else {
         const content = await readFile(path, { encoding: "utf-8" }).catch(
             () => undefined,
@@ -86,6 +92,26 @@ export async function getItemType<T>(
                 ?.value == "app"
             ? BrunoFileType.AppFile
             : BrunoFileType.RequestFile;
+    }
+}
+
+async function getItemTypeForOtherYamlFile(path: string) {
+    const content = await readFile(path, { encoding: "utf-8" }).catch(
+        () => undefined,
+    );
+    const infoType = content ? getInfoTypeFromYamlContent(content) : undefined;
+
+    switch (infoType) {
+        case FileInfoType.App:
+            return BrunoFileType.AppFile;
+        case FileInfoType.Http:
+        case FileInfoType.Graphql:
+        case FileInfoType.Grpc:
+        case FileInfoType.Websocket:
+            return BrunoFileType.RequestFile;
+        default:
+            // Includes yaml files that are not valid request files, like the ones with info type 'folder' outside of a folder settings file.
+            return NonBrunoSpecificItemType.OtherFileType;
     }
 }
 

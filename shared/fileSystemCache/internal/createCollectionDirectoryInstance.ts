@@ -1,5 +1,6 @@
 import {
     CollectionDirectory,
+    CollectionFormat,
     getFileContent,
     getSequenceAndTagsFromMetaBlock,
     isDictionaryBlockField,
@@ -7,13 +8,23 @@ import {
     RequestFileBlockName,
     TextDocumentHelper,
 } from "../..";
+import { getSequenceFromYamlFolderSettingsFile } from "./yamlFormat/createYamlCollectionItems";
 
 export async function createCollectionDirectoryInstance(
     folderPath: string,
     folderSettingsFilePath?: string,
+    format = CollectionFormat.Bru,
 ) {
     if (!folderSettingsFilePath) {
         return new CollectionDirectory(folderPath);
+    }
+
+    if (format == CollectionFormat.Yaml) {
+        return new CollectionDirectory(
+            folderPath,
+            folderSettingsFilePath,
+            await getSequenceFromYamlFolderSettingsFile(folderSettingsFilePath),
+        );
     }
 
     const settingsContent = await getFileContent(folderSettingsFilePath);

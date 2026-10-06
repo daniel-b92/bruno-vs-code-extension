@@ -1,30 +1,59 @@
 import { dirname, resolve } from "path";
 import {
+    CollectionFormat,
+    FeatureToggles,
     checkIfPathExistsAsync,
     convertToGlobPattern,
     getFileContent,
     getTestFileDescendants,
+    normalizePath,
 } from "../..";
 import { promisify } from "util";
 import { lstat } from "fs";
 import { glob } from "glob";
+import { getCollectionRootFileName } from "./collectionFormatFileNames";
 
 export async function getAllCollectionRootDirectories(
     workspaceFolders: string[],
+    featureToggles: FeatureToggles,
 ) {
-    const maybeFilesInCollectionRootDirs = (
-        await Promise.all(
-            workspaceFolders.map(
-                async (workspace) =>
-                    await glob(
-                        `${convertToGlobPattern(workspace)}/**/bruno.json`,
-                        { absolute: true },
-                    ),
-            ),
-        )
-    ).flat();
-    const result: { rootFolder: string; additionalContextRoots?: string[] }[] =
-        [];
+    const bruRoots = await getBruCollectionRootDirectories(workspaceFolders);
+
+    if (!featureToggles.yamlCollectionSupport) {
+        return bruRoots;
+    }
+
+    const yamlRoots = await getYamlCollectionRootDirectories(workspaceFolders);
+
+    return bruRoots.concat(
+        yamlRoots.filter(
+            ({ rootFolder }) =>
+                // If a folder is a valid root for both formats, the bru format takes precedence.
+                !bruRoots.some(
+                    ({ rootFolder: bruRoot }) =>
+                        normalizePath(bruRoot) == normalizePath(rootFolder),
+                ),
+        ),
+    );
+}
+
+export function getCollectionRootFilePath(
+    collectionRootFolder: string,
+    format: CollectionFormat,
+) {
+    return resolve(collectionRootFolder, getCollectionRootFileName(format));
+}
+
+async function getBruCollectionRootDirectories(workspaceFolders: string[]) {
+    const maybeFilesInCollectionRootDirs = await globFilesInWorkspaces(
+        workspaceFolders,
+        getCollectionRootFileName(CollectionFormat.Bru),
+    );
+    const result: {
+        rootFolder: string;
+        additionalContextRoots?: string[];
+        format: CollectionFormat;
+    }[] = [];
 
     for (const maybeCollectionRoot of maybeFilesInCollectionRootDirs.map(
         (path) => dirname(path),
@@ -34,6 +63,7 @@ export async function getAllCollectionRootDirectories(
         if (rootData) {
             result.push({
                 rootFolder: maybeCollectionRoot,
+                format: CollectionFormat.Bru,
                 ...rootData,
             });
         }
@@ -42,8 +72,54 @@ export async function getAllCollectionRootDirectories(
     return result;
 }
 
+async function getYamlCollectionRootDirectories(workspaceFolders: string[]) {
+    const result: {
+        rootFolder: string;
+        additionalContextRoots?: string[];
+        format: CollectionFormat;
+    }[] = [];
+
+    for (const path of await globFilesInWorkspaces(
+        workspaceFolders,
+        getCollectionRootFileName(CollectionFormat.Yaml),
+    )) {
+        const isFile = await promisify(lstat)(path)
+            .then((stats) => stats.isFile())
+            .catch(() => false);
+
+        if (isFile) {
+            result.push({
+                rootFolder: dirname(path),
+                format: CollectionFormat.Yaml,
+            });
+        }
+    }
+
+    return result;
+}
+
+async function globFilesInWorkspaces(
+    workspaceFolders: string[],
+    fileName: string,
+) {
+    return (
+        await Promise.all(
+            workspaceFolders.map(
+                async (workspace) =>
+                    await glob(
+                        `${convertToGlobPattern(workspace)}/**/${fileName}`,
+                        { absolute: true },
+                    ),
+            ),
+        )
+    ).flat();
+}
+
 export function getBrunoJsonFilePath(collectionRootFolder: string) {
-    return resolve(collectionRootFolder, "bruno.json");
+    return getCollectionRootFilePath(
+        collectionRootFolder,
+        CollectionFormat.Bru,
+    );
 }
 
 export async function getCollectionRootData(

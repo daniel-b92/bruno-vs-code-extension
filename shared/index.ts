@@ -12,6 +12,7 @@ export * from "./fileSystem/position";
 export * from "./fileSystem/lineBreakTypeEnum";
 export * from "./fileSystem/util/checkIfPathExistsAsync";
 export * from "./fileSystem/util/getExtensionForBrunoFiles";
+export * from "./fileSystem/util/collectionFormatFileNames";
 export * from "./fileSystem/util/normalizeDirectoryPath";
 export * from "./fileSystem/util/doesFileNameMatchFolderSettingsFileName";
 export * from "./fileSystem/util/getTestFileDescendants";
@@ -57,6 +58,7 @@ export * from "./fileParsing/external/yamlFormat/parseRequestFile";
 export * from "./fileParsing/external/yamlFormat/parseAppFile";
 export * from "./fileParsing/external/yamlFormat/parseYamlEnvironmentFile";
 export * from "./fileParsing/external/yamlFormat/parseInfoFromYamlFile";
+export * from "./fileParsing/external/yamlFormat/getInfoTypeFromYamlContent";
 export * from "./fileParsing/external/yamlFormat/constants/requestFileConstants";
 export * from "./fileParsing/external/yamlFormat/constants/appFileConstants";
 export * from "./fileParsing/external/yamlFormat/constants/sharedConstants";
@@ -226,3 +228,6 @@ export { getValidBlockNames as getValidBlockNamesForFolderSettingsFile } from ".
 // language utils - collection settings
 export { getValidBlockNames as getValidBlockNamesForCollectionSettingsFile } from "./languageUtils/bruFormat/collectionSettingsFiles/getValidBlockNames";
 export { getNamesForRedundantBlocks as getNamesForRedundantBlocksForCollectionSettingsFile } from "./languageUtils/bruFormat/collectionSettingsFiles/getNamesForRedundantBlocks";
+
+// feature toggles
+export * from "./featureToggles/featureToggles";

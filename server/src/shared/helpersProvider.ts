@@ -12,6 +12,7 @@ import {
     getAllVariablesFromBlocks,
 } from "@global_shared";
 import { Evt } from "evt";
+import { getFeatureToggles } from "./featureToggles";
 import {
     AdditionalCollectionData,
     getDefaultLogger,
@@ -31,6 +32,7 @@ export class HelpersProvider {
                 this.collectionWatcher,
                 getAdditionalCollectionDataProvider(),
                 getPathsToIgnoreForCollections(),
+                getFeatureToggles(),
                 undefined,
                 getDefaultLogger(),
             );

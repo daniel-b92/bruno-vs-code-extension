@@ -11,7 +11,9 @@ import {
     isCollectionItemWithSequence,
     Logger,
     AdditionalCollectionDataProvider,
-    getBrunoJsonFilePath,
+    getCollectionRootFilePath,
+    CollectionFormat,
+    FeatureToggles,
     getCollectionRootData,
     NotificationData,
     ReadyOnlyCollection,
@@ -25,6 +27,7 @@ export class CollectionItemProvider<T> {
         collectionWatcher: CollectionWatcher,
         private additionalDataProvider: AdditionalCollectionDataProvider<T>,
         private filePathsToIgnore: RegExp[],
+        private featureToggles: FeatureToggles,
         private cacheRefreshNotifier?: Evt<void>,
         private logger?: Logger,
     ) {
@@ -42,7 +45,7 @@ export class CollectionItemProvider<T> {
 
                 if (
                     (registeredCollection.isRootDirectory(path) ||
-                        this.doesPathMatchBrunoJsonPath(
+                        this.doesPathMatchCollectionRootFile(
                             registeredCollection,
                             path,
                         )) &&
@@ -222,6 +225,7 @@ export class CollectionItemProvider<T> {
             workSpaceFolders,
             this.filePathsToIgnore,
             this.additionalDataProvider,
+            this.featureToggles,
             this.logger,
         );
 
@@ -368,7 +372,10 @@ export class CollectionItemProvider<T> {
             return;
         }
 
-        if (this.doesPathMatchBrunoJsonPath(collectionForItem, itemPath)) {
+        if (
+            collectionForItem.getFormat() == CollectionFormat.Bru &&
+            this.doesPathMatchCollectionRootFile(collectionForItem, itemPath)
+        ) {
             const collectionRootData = await getCollectionRootData(
                 collectionForItem.getRootDirectory(),
             );
@@ -547,13 +554,18 @@ export class CollectionItemProvider<T> {
         );
     }
 
-    private doesPathMatchBrunoJsonPath(
+    private doesPathMatchCollectionRootFile(
         collection: Collection<T>,
         path: string,
     ) {
         return (
             normalizePath(path) ==
-            normalizePath(getBrunoJsonFilePath(collection.getRootDirectory()))
+            normalizePath(
+                getCollectionRootFilePath(
+                    collection.getRootDirectory(),
+                    collection.getFormat(),
+                ),
+            )
         );
     }
 }

@@ -9,6 +9,8 @@ import {
     Logger,
     getItemType,
     doesFileNameMatchFolderSettingsFileName,
+    FeatureToggles,
+    CollectionFormat,
 } from "../..";
 import { CollectionRegistry } from "./collectionRegistry";
 import { addOrReplaceCollectionData } from "./addOrReplaceItemInCollection";
@@ -24,12 +26,14 @@ export async function registerMissingCollectionsAndTheirItems<T>(
     workspaceFolders: string[],
     filePathsToIgnore: RegExp[],
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
+    featureToggles: FeatureToggles,
     logger?: Logger,
 ) {
     const allCollections = await registerAllExistingCollections(
         collectionRegistry,
         workspaceFolders,
         additionalDataProvider,
+        featureToggles,
     );
 
     logger?.debug(
@@ -70,13 +74,15 @@ async function registerItems<T>(
     fileSystemEntries: Dirent<string>[],
 ) {
     const isCollectionRoot = false;
+    const format = collection.getFormat();
     const mappedFileSystemEntries = fileSystemEntries.map((entry) => ({
         entry,
         path: getFileSystemDataPath(entry),
     }));
     const allFolderSettingsFiles = mappedFileSystemEntries.filter(
         ({ entry, path }) =>
-            entry.isFile() && doesFileNameMatchFolderSettingsFileName(path),
+            entry.isFile() &&
+            doesFileNameMatchFolderSettingsFileName(path, format),
     );
 
     await Promise.all(
@@ -98,13 +104,14 @@ async function registerItems<T>(
                     return undefined;
                 }
                 const item = entry.isFile()
-                    ? await getCollectionItemForFile(path, itemType)
+                    ? await getCollectionItemForFile(path, itemType, format)
                     : await createCollectionDirectoryInstance(
                           path,
                           allFolderSettingsFiles.find(
                               ({ path: p }) =>
                                   normalizePath(dirname(p)) == normalized,
                           )?.path,
+                          format,
                       );
 
                 if (!item) {
@@ -115,6 +122,7 @@ async function registerItems<T>(
                     item,
                     additionalDataProvider,
                     isCollectionRoot,
+                    format,
                 );
 
                 return addOrReplaceCollectionData<T>({
@@ -130,25 +138,34 @@ async function registerAllExistingCollections<T>(
     registry: CollectionRegistry<T>,
     workspaceFolders: string[],
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
+    featureToggles: FeatureToggles,
 ) {
-    const rootFoldersWithData =
-        await getAllCollectionRootDirectories(workspaceFolders);
+    const rootFoldersWithData = await getAllCollectionRootDirectories(
+        workspaceFolders,
+        featureToggles,
+    );
 
     return (
         await Promise.all(
             rootFoldersWithData.map(
-                async ({ rootFolder, additionalContextRoots }) => {
+                async ({ rootFolder, additionalContextRoots, format }) => {
                     const normalizedRootDir = normalizePath(rootFolder);
                     const rootFolderItem =
                         await createCollectionDirectoryInstance(
                             normalizedRootDir,
-                            await getFolderSettingsFilePath(true, rootFolder),
+                            await getFolderSettingsFilePath(
+                                true,
+                                rootFolder,
+                                format,
+                            ),
+                            format,
                         );
 
                     const collection = rootFolderItem
                         ? await createCollectionInstance(
                               rootFolderItem,
                               additionalDataProvider,
+                              format,
                               additionalContextRoots,
                           )
                         : undefined;
@@ -186,17 +203,20 @@ function shouldPathBeIgnored(filePathsToIgnore: RegExp[], path: string) {
 async function createCollectionInstance<T>(
     rootFolderItem: CollectionDirectory,
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
+    format: CollectionFormat,
     additionalContextRoots?: string[],
 ) {
     const additionalData = await getAdditionalCollectionData(
         rootFolderItem,
         additionalDataProvider,
         true,
+        format,
     );
 
     return new Collection(
         rootFolderItem,
         additionalData,
         additionalContextRoots ?? [],
+        format,
     );
 }

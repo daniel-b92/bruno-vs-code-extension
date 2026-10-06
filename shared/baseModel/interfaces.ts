@@ -1,7 +1,13 @@
 import { Block, BrunoEnvironmentFile, TextOutsideOfBlocks } from "..";
 
+export enum CollectionFormat {
+    Bru = "Bru",
+    Yaml = "Yaml",
+}
+
 export interface ReadyOnlyCollection<T> {
     getRootDirectory: () => string;
+    getFormat: () => CollectionFormat;
     isRootDirectory: (path: string) => boolean;
     getCommonAncestorData: (...paths: string[]) => CollectionData<T>[];
     getStoredDataForPath: (path: string) => CollectionData<T> | undefined;

@@ -11,6 +11,7 @@
             "request": "launch",
             "runtimeExecutable": "${execPath}",
             "autoAttachChildProcesses": true,
+            "env": { "BRUNO_YAML_SUPPORT": "true" },
             "args": [
                 "--extensionDevelopmentPath=${workspaceFolder}",
                 "${workspaceFolder}/samples"
@@ -27,6 +28,18 @@
             "type": "extensionHost",
             "request": "launch",
             "noDebug": true,
+            "env": { "BRUNO_YAML_SUPPORT": "true" },
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}",
+                "${workspaceFolder}/samples"
+            ],
+            "preLaunchTask": "npm: compile"
+        },
+        {
+            "name": "Run Extension (without feature toggles)",
+            "type": "extensionHost",
+            "request": "launch",
+            "noDebug": true,
             "args": [
                 "--extensionDevelopmentPath=${workspaceFolder}",
                 "${workspaceFolder}/samples"
@@ -38,6 +51,7 @@
             "type": "extensionHost",
             "request": "launch",
             "runtimeExecutable": "${execPath}",
+            "env": { "BRUNO_YAML_SUPPORT": "true" },
             "args": [
                 "--extensionDevelopmentPath=${workspaceFolder}",
                 "${workspaceFolder}/samples"
@@ -51,6 +65,7 @@
             "request": "launch",
             "noDebug": true,
             "runtimeExecutable": "${execPath}",
+            "env": { "BRUNO_YAML_SUPPORT": "true" },
             "args": [
                 "--extensionDevelopmentPath=${workspaceFolder}",
                 "${workspaceFolder}/samples"
