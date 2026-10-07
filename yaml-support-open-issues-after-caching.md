@@ -19,12 +19,6 @@ The code audit (see below) found no `.bru` assumption that is reachable without 
 
 Per the decision made during planning, consumers get yaml collections as they are. The following assumptions were found by reading the code (not by running the extension):
 
-**Test runner**
-
-- `isRelevantForTestTree` (`client/src/testRunner/activateRunner.ts`) requires `extname(path) == ".bru"` for files. A newly created or deleted yaml request is never added to or removed from the test tree.
-- The "Modified" branch in the same file has the same check. Changes to the sequence or tags of a yaml request do not update the tree.
-- The initial tree build (`TestRunnerDataHelper.getTestFileDescendants`) reads the cache and has no extension check. The initial tree therefore shows yaml requests, but live updates ignore them.
-
 **Sequence parsing is bru-only**
 
 - `parseSequenceFromMetaBlock` returns `undefined` for anything that is not `.bru`. `getSequenceForFile` and `getSequenceForFolder` rely on it, so everything that reads sequences does not work for yaml: `getSequencesForRequests`, `getSequencesForFolders`, max-sequence calculation, normalizing sequences, and updating sequences after inserting or moving items.
