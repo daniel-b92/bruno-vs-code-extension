@@ -1,6 +1,7 @@
 import { basename, resolve } from "path";
 import {
-    getExtensionForBrunoFiles,
+    CollectionFormat,
+    getFileExtensionForFormat,
     RequestType,
     RequestFileBlockName,
     MethodBlockBodies,
@@ -12,7 +13,6 @@ import {
     getContentForMetaBlock,
     getContentForDefaultMethodBlock,
     getLineBreak,
-    TypedCollection,
     FileSystemCacheSyncingHelper,
     BrunoTreeItem,
 } from "@shared";
@@ -20,6 +20,7 @@ import { commands, Uri, window } from "vscode";
 import { validateNewItemNameIsUnique } from "../validateNewItemNameIsUnique";
 import { promisify } from "util";
 import { writeFile } from "fs";
+import { stringify } from "yaml";
 
 export async function createRequestFile(
     itemProvider: TypedCollectionItemProvider,
@@ -28,15 +29,25 @@ export async function createRequestFile(
 ) {
     const parentFolderPath = item.getPath();
 
+    const collection =
+        itemProvider.getAncestorCollectionForPath(parentFolderPath);
+
+    if (!collection) {
+        window.showErrorMessage(
+            `Could not determine the collection for path '${parentFolderPath}'.`,
+        );
+        return;
+    }
+
+    const format = collection.getFormat();
+    const fileExtension = getFileExtensionForFormat(format);
+
     const requestName = await window.showInputBox({
         title: `Create request file in '${basename(parentFolderPath)}'`,
         value: "request_name",
         validateInput: (newFileName: string) => {
             return validateNewItemNameIsUnique(
-                resolve(
-                    parentFolderPath,
-                    `${newFileName}${getExtensionForBrunoFiles()}`,
-                ),
+                resolve(parentFolderPath, `${newFileName}${fileExtension}`),
             );
         },
     });
@@ -86,7 +97,7 @@ export async function createRequestFile(
 
         const filePath = resolve(
             parentFolderPath,
-            `${requestName}${getExtensionForBrunoFiles()}`,
+            `${requestName}${fileExtension}`,
         );
 
         if (pickedLabels.length != 2) {
@@ -99,9 +110,6 @@ export async function createRequestFile(
             );
         }
 
-        const collection = itemProvider.getAncestorCollectionForPath(
-            filePath,
-        ) as TypedCollection;
         const requestSequence =
             ((await getMaxSequenceForRequests(
                 itemProvider,
@@ -110,7 +118,7 @@ export async function createRequestFile(
 
         const failed = await promisify(writeFile)(
             filePath,
-            getFileContent(requestSequence, {
+            getFileContent(format, requestSequence, {
                 filePath,
                 requestName,
                 requestType: pickedLabels[0] as RequestType,
@@ -136,6 +144,7 @@ export async function createRequestFile(
 }
 
 function getFileContent(
+    format: CollectionFormat,
     requestSequence: number,
     chosenData: {
         filePath: string;
@@ -145,6 +154,15 @@ function getFileContent(
     },
 ) {
     const { filePath, requestName, requestType, methodBlockName } = chosenData;
+
+    if (format == CollectionFormat.Yaml) {
+        return getYamlFileContent(
+            requestSequence,
+            requestName,
+            requestType,
+            methodBlockName,
+        );
+    }
 
     const lineBreak = getLineBreak(filePath);
 
@@ -170,4 +188,19 @@ function getFileContent(
     );
 
     return metaBlockContent.concat(lineBreak, methodBlockContent);
+}
+
+function getYamlFileContent(
+    requestSequence: number,
+    requestName: string,
+    requestType: RequestType,
+    methodBlockName: string,
+) {
+    return stringify({
+        info: { name: requestName, type: requestType, seq: requestSequence },
+        [requestType]:
+            requestType == RequestType.Grpc
+                ? { url: "" }
+                : { method: methodBlockName.toUpperCase(), url: "" },
+    });
 }

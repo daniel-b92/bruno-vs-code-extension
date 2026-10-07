@@ -1,10 +1,5 @@
-import { basename } from "path";
-import {
-    BrunoFileType,
-    getExtensionForBrunoFiles,
-    ItemType,
-    ReadyOnlyCollection,
-} from "@global_shared";
+import { basename, extname } from "path";
+import { BrunoFileType, ItemType, ReadyOnlyCollection } from "@global_shared";
 
 export function getDeleteConfirmationMessage(
     itemLabel: string,
@@ -16,7 +11,7 @@ export function getDeleteConfirmationMessage(
         return `Delete '${itemLabel}'?`;
     }
 
-    const environmentName = basename(itemPath, getExtensionForBrunoFiles());
+    const environmentName = basename(itemPath, extname(itemPath));
     const dependentEnvironments =
         collection.getEnvironmentsExtending(environmentName);
 

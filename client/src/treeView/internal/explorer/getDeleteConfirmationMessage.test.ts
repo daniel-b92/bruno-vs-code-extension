@@ -30,6 +30,24 @@ describe("getDeleteConfirmationMessage", () => {
         expect(message).toBe("Delete 'Base.bru'?");
     });
 
+    it("determines the environment name for yaml environment files", () => {
+        const collection = createCollectionWithEnvironments([
+            { name: "Base" },
+            { name: "Staging", extends: "Base" },
+        ]);
+
+        const message = getDeleteConfirmationMessage(
+            "Base.yml",
+            "/collection/environments/Base.yml",
+            BrunoFileType.EnvironmentFile,
+            collection,
+        );
+
+        expect(message).toBe(
+            "Delete 'Base.yml'? The environment(s) 'Staging' extend it and will lose access to its variables.",
+        );
+    });
+
     it("warns about dependent environments when deleting an environment other environments extend", () => {
         const collection = createCollectionWithEnvironments([
             { name: "Base" },

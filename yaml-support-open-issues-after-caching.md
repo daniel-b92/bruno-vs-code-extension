@@ -23,13 +23,6 @@ Per the decision made during planning, consumers get yaml collections as they ar
 
 - `getTestFileDescendants` (`shared/fileSystem/util/getTestFileDescendants.ts`) globs `**/*.bru`. Its only caller `getCollectionRootData` is currently only used for bru collections, so this is harmless for now.
 
-**Tree view write operations** (the tree view displays yaml items correctly, because it reads cached item types)
-
-- `createRequestFile` creates `.bru` files with bru content in a yaml collection.
-- `showDialogForSettingEnvironment` and `getDeleteConfirmationMessage` strip `.bru` from environment file names, so yaml environments show up as "name.yml".
-- The rename logic in `collectionExplorer` uses `getExtensionForBrunoFiles()` and calls `replaceNameInMetaBlock` without a format, so it would parse yaml as bru. (`handleFileInsertion` is already format-aware.)
-- `collectionExplorer` (rename / copy of folders) calls `getFolderSettingsFilePath` without a format, which defaults to `Bru`. `folder.yml` is not found.
-
 **Server**
 
 - `getFilePathAndType` falls back to `Yml` for any file that is neither `.bru` nor `.js`. This relies on the client's document selectors.
