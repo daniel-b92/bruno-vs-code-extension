@@ -27,7 +27,7 @@ Per the decision made during planning, consumers get yaml collections as they ar
 
 - `createRequestFile` creates `.bru` files with bru content in a yaml collection.
 - `showDialogForSettingEnvironment` and `getDeleteConfirmationMessage` strip `.bru` from environment file names, so yaml environments show up as "name.yml".
-- `handleFileInsertion` (name stripping, warning messages, `doesFileNameMatchFolderSettingsFileName(newPath)`) and the rename logic in `collectionExplorer` use `getExtensionForBrunoFiles()` and call `replaceNameInMetaBlock`, which uses `parseBruFile` and would parse yaml as bru.
+- The rename logic in `collectionExplorer` uses `getExtensionForBrunoFiles()` and calls `replaceNameInMetaBlock` without a format, so it would parse yaml as bru. (`handleFileInsertion` is already format-aware.)
 - `collectionExplorer` (rename / copy of folders) calls `getFolderSettingsFilePath` without a format, which defaults to `Bru`. `folder.yml` is not found.
 
 **Server**

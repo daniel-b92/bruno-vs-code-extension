@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { BrunoTreeItemProvider } from "./brunoTreeItemProvider";
 import {
-    getExtensionForBrunoFiles,
+    getFileExtensionForFormat,
     getSequenceForFolder,
     getFolderSettingsFilePath,
     checkIfPathExistsAsync,
@@ -512,8 +512,14 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 if (isRequestFile) {
                     await replaceNameInMetaBlock(
                         newPath,
-                        newItemName.replace(getExtensionForBrunoFiles(), ""),
+                        newItemName.replace(
+                            getFileExtensionForFormat(
+                                oldCollection.getFormat(),
+                            ),
+                            "",
+                        ),
                         oldItem.getItemType(),
+                        oldCollection.getFormat(),
                     );
                     return;
                 }
@@ -529,6 +535,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                             folderSettingsPath,
                             newItemName,
                             oldItem.getItemType(),
+                            oldCollection.getFormat(),
                         );
                     }
 
@@ -599,6 +606,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         newFolderSettingsFile,
                         basename(newFolderPath),
                         BrunoFileType.FolderSettingsFile,
+                        collection.getFormat(),
                     );
                 }
             },

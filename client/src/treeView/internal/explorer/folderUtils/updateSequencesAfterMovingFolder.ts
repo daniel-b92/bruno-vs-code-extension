@@ -154,6 +154,7 @@ async function copyFolderSettingsFile(
         newPath,
         basename(destinationFolder),
         BrunoFileType.FolderSettingsFile,
+        format,
     );
 
     return newPath;
