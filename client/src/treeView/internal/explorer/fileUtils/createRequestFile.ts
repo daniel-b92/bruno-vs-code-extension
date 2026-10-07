@@ -63,6 +63,7 @@ export async function createRequestFile(
     quickPick.totalSteps = 2;
     quickPick.step = 1;
     quickPick.title = "Select the request type";
+    // ToDo: Add the request type for websocket requests (only for the `bru` format, `RequestType` currently has no websocket entry).
     quickPick.items = Object.values(RequestType).map((type) => ({
         label: type,
     }));
