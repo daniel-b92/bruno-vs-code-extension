@@ -575,12 +575,14 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 const newFolderSettingsFile = await getFolderSettingsFilePath(
                     isCollectionRootFolder,
                     newFolderPath,
+                    collection.getFormat(),
                 );
 
                 if (
                     (await getSequenceForFolder(
                         collection.getRootDirectory(),
                         originalPath,
+                        collection.getFormat(),
                     )) &&
                     newFolderSettingsFile
                 ) {

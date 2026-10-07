@@ -1,15 +1,17 @@
 import { lstat } from "fs";
-import { parseSequenceFromMetaBlock } from "../parseSequenceFromMetaBlock";
 import {
     checkIfPathExistsAsync,
+    CollectionFormat,
     getFolderSettingsFilePath,
     normalizePath,
-} from "../../../..";
+    parseSequenceFromFile,
+} from "../../..";
 import { promisify } from "util";
 
 export async function getSequenceForFolder(
     collectionRootDirectory: string,
     folderPath: string,
+    format = CollectionFormat.Bru,
 ) {
     if (
         !(await checkIfPathExistsAsync(folderPath)) ||
@@ -24,9 +26,10 @@ export async function getSequenceForFolder(
     const folderSettingsFile = await getFolderSettingsFilePath(
         false,
         folderPath,
+        format,
     );
 
     return folderSettingsFile
-        ? await parseSequenceFromMetaBlock(folderSettingsFile)
+        ? await parseSequenceFromFile(folderSettingsFile)
         : undefined;
 }

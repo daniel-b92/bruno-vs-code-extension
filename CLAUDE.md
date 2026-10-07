@@ -8,3 +8,8 @@
     - `server` (and other packages with the `@global_shared` alias) import them via `@global_shared/_testingUtils` — this works because of the wildcard path mapping (`@global_shared/*` → `shared/*`) already configured in `tsconfig.json` and `jest.config.js`, without needing the helper exported from the main `shared/index.ts` (which is reserved for production code).
 - When a helper used in one test would also be useful in another (even in a different package), extract it into `shared/_testingUtils/` instead of copy-pasting it.
 - Parsing tests must define the parsed file content (e.g. Yaml or Bru documents) explicitly as a string inside the test. Never read files from `samples/` (or other fixture files on disk) in tests.
+
+# Parsing utilities
+
+- Parsing utilities that are specific to one file format live in that format's folder under `shared/fileParsing/external/` (`bruFormat/` or `yamlFormat/`).
+- Parsing utilities that handle both formats (e.g. by dispatching on the file extension or the collection format) live in `shared/fileParsing/external/shared/`, not in a format-specific folder. When a utility in a format-specific folder starts supporting both formats, move it there.

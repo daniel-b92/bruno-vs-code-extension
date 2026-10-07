@@ -19,10 +19,8 @@ The code audit (see below) found no `.bru` assumption that is reachable without 
 
 Per the decision made during planning, consumers get yaml collections as they are. The following assumptions were found by reading the code (not by running the extension):
 
-**Sequence parsing is bru-only**
+**Sequence handling**
 
-- `parseSequenceFromMetaBlock` returns `undefined` for anything that is not `.bru`. `getSequenceForFile` and `getSequenceForFolder` rely on it, so everything that reads sequences does not work for yaml: `getSequencesForRequests`, `getSequencesForFolders`, max-sequence calculation, normalizing sequences, and updating sequences after inserting or moving items.
-- `FileSystemCacheSyncingHelper.isCachedFileInSync` compares `parseSequenceFromMetaBlock(file)` (always `undefined` for yaml) with the cached sequence. A yaml request with a sequence is therefore never "in sync", so waiting for the cache to catch up probably runs until its timeout. `determineFilesToCheckWhetherInSync` has the same gap.
 - `getTestFileDescendants` (`shared/fileSystem/util/getTestFileDescendants.ts`) globs `**/*.bru`. Its only caller `getCollectionRootData` is currently only used for bru collections, so this is harmless for now.
 
 **Tree view write operations** (the tree view displays yaml items correctly, because it reads cached item types)
