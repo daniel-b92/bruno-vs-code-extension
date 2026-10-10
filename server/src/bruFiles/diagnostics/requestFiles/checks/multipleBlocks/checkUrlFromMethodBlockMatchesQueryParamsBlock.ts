@@ -1,4 +1,5 @@
 import {
+    doesRequestTypeSupportUrlParams,
     DictionaryBlockSimpleField,
     getExpectedUrlQueryParamsForQueryParamsBlock,
     getQueryParamsFromUrl,
@@ -19,7 +20,12 @@ import { URI } from "vscode-uri";
 export function checkUrlFromMethodBlockMatchesQueryParamsBlock(
     filePath: string,
     blocks: Block[],
+    requestType: string | undefined,
 ): DiagnosticWithCode | undefined {
+    if (!doesRequestTypeSupportUrlParams(requestType)) {
+        return undefined;
+    }
+
     const queryParamsBlocks = getValidDictionaryBlocksWithName(
         blocks,
         RequestFileBlockName.QueryParams,

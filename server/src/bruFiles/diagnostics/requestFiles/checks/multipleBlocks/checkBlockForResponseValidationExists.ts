@@ -1,5 +1,6 @@
 import {
     Block,
+    RequestType,
     Position,
     Range,
     RequestFileBlockName,
@@ -12,7 +13,13 @@ import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/
 export function checkBlockForResponseValidationExists(
     documentHelper: TextDocumentHelper,
     blocks: Block[],
+    requestType: string | undefined,
 ): DiagnosticWithCode | undefined {
+    // Websocket requests do not support any blocks for validating the response.
+    if (requestType == RequestType.Ws) {
+        return undefined;
+    }
+
     if (
         blocks.filter(
             ({ name }) =>

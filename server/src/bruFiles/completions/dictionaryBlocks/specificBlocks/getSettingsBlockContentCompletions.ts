@@ -13,10 +13,11 @@ import { getCompletionsForKeys } from "../generic/getCompletionsForKeys";
 export function getSettingsBlockContentCompletions(
     request: LanguageFeatureBaseRequest,
     block: Block,
+    requestType?: string,
 ) {
     const completionsForKeys = getCompletionsForKeys(request, block, {
         mandatory: getMandatoryKeysForSettingsBlock(),
-        optional: getOptionalKeysForSettingsBlock(),
+        optional: getOptionalKeysForSettingsBlock(requestType),
     });
 
     if (completionsForKeys) {

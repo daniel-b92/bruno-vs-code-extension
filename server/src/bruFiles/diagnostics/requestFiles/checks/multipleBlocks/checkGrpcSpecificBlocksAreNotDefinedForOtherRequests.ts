@@ -1,4 +1,9 @@
-import { Block, getGrpcSpecificBlocks, RequestType } from "@global_shared";
+import {
+    Block,
+    DictionaryBlockSimpleField,
+    getGrpcSpecificBlocks,
+    RequestType,
+} from "@global_shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { checkRequestTypeSpecificBlocksAreNotDefinedForOtherRequests } from "./checkRequestTypeSpecificBlocksAreNotDefinedForOtherRequests";
@@ -6,10 +11,12 @@ import { checkRequestTypeSpecificBlocksAreNotDefinedForOtherRequests } from "./c
 export function checkGrpcSpecificBlocksAreNotDefinedForOtherRequests(
     filePath: string,
     blocks: Block[],
+    requestTypeField: DictionaryBlockSimpleField | undefined,
 ): DiagnosticWithCode | undefined {
     return checkRequestTypeSpecificBlocksAreNotDefinedForOtherRequests(
         filePath,
         blocks,
+        requestTypeField,
         {
             requestType: RequestType.Grpc,
             specificBlockNames: getGrpcSpecificBlocks(),

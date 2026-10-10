@@ -4,7 +4,6 @@ import {
     SettingsBlockKey,
     BooleanFieldValue,
     isDictionaryBlockSimpleField,
-    DictionaryBlockSimpleField,
     DictionaryBlock,
     getMandatoryKeysForSettingsBlock,
     getOptionalKeysForSettingsBlock,
@@ -12,7 +11,7 @@ import {
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
 import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "../shared/checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
-import { checkValueForDictionaryBlockSimpleFieldIsValid } from "../shared/checks/singleBlocks/checkValueForDictionaryBlockSimpleFieldIsValid";
+import { checkValueOfSingleDefinedFieldIsValid } from "../shared/checks/singleBlocks/checkValueOfSingleDefinedFieldIsValid";
 import { DiagnosticWithCode } from "../interfaces";
 import { RelevantWithinSettingsBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinSettingsBlockDiagnosticCodeEnum";
 import { doesDictionaryBlockFieldHaveValidIntegerValue } from "../shared/util/doesDictionaryBlockFieldHaveValidIntegerValue";
@@ -21,22 +20,26 @@ import { getDiagnosticForInvalidDictionaryBlockSimpleFieldValue } from "../share
 export function getSettingsBlockSpecificDiagnostics(
     filePath: string,
     settingsBlock: Block,
+    requestType?: string,
 ): (DiagnosticWithCode | undefined)[] {
     if (!isBlockDictionaryBlock(settingsBlock)) {
         return [];
     }
 
-    return runGenericChecksForAllFields(filePath, settingsBlock).concat(
-        runChecksForSpecificFields(settingsBlock),
-    );
+    return runGenericChecksForAllFields(
+        filePath,
+        settingsBlock,
+        requestType,
+    ).concat(runChecksForSpecificFields(settingsBlock));
 }
 
 function runGenericChecksForAllFields(
     filePath: string,
     settingsBlock: DictionaryBlock,
+    requestType?: string,
 ) {
     const mandatoryKeys = getMandatoryKeysForSettingsBlock();
-    const optionalKeys = getOptionalKeysForSettingsBlock();
+    const optionalKeys = getOptionalKeysForSettingsBlock(requestType);
 
     return [
         checkNoKeysAreMissingForDictionaryBlock(
@@ -83,7 +86,12 @@ function runChecksForSpecificFields(settingsBlock: DictionaryBlock) {
                 RelevantWithinSettingsBlockDiagnosticCode.ForwardAuthorizationHeaderInvalid,
         },
     ].map(({ key, diagnosticCode }) =>
-        checkIfBooleanFieldHasValidValue(validFields, key, diagnosticCode),
+        checkValueOfSingleDefinedFieldIsValid(
+            validFields,
+            key,
+            Object.values(BooleanFieldValue),
+            diagnosticCode,
+        ),
     );
 
     const fieldsForMaxRedirects = validFields.filter(
@@ -123,21 +131,23 @@ function runChecksForSpecificFields(settingsBlock: DictionaryBlock) {
         );
     }
 
+    const fieldsForKeepAliveInterval = validFields.filter(
+        ({ key }) => key == SettingsBlockKey.KeepAliveInterval,
+    );
+    if (fieldsForKeepAliveInterval.length == 1) {
+        result.push(
+            doesDictionaryBlockFieldHaveValidIntegerValue(
+                fieldsForKeepAliveInterval[0],
+                0,
+            )
+                ? undefined
+                : getDiagnosticForInvalidDictionaryBlockSimpleFieldValue(
+                      fieldsForKeepAliveInterval[0],
+                      "Only non-negative integer values are allowed.",
+                      RelevantWithinSettingsBlockDiagnosticCode.KeepAliveIntervalValueInvalid,
+                  ),
+        );
+    }
+
     return result;
-}
-
-function checkIfBooleanFieldHasValidValue(
-    allSimpleFields: DictionaryBlockSimpleField[],
-    key: string,
-    diagnosticCodeInCaseOfFailedValidation: RelevantWithinSettingsBlockDiagnosticCode,
-) {
-    const fieldsWithKey = allSimpleFields.filter(({ key: k }) => k == key);
-
-    return fieldsWithKey.length == 1
-        ? checkValueForDictionaryBlockSimpleFieldIsValid(
-              fieldsWithKey[0],
-              Object.values(BooleanFieldValue),
-              diagnosticCodeInCaseOfFailedValidation,
-          )
-        : undefined;
 }

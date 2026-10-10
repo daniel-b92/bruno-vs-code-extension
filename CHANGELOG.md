@@ -1,3 +1,11 @@
+## [1.3.3] (2026-10-10)
+
+### Fixes / Maintenance
+
+- Add support for `ws` (websocket) requests in `bru` format (including syntax highlighting, diagnostics, completions and hovers).
+- Fix an issue that caused loading of diagnostics to fail if dictionary blocks contained annotations before disabled fields.
+- Fix an issue that caused completions in code blocks of `.bru` files to include internal helper functions (e.g. `script_grpc_before_call_start`) that do not exist in Bruno.
+
 ## [1.3.2] (2026-10-01)
 
 ### Fixes / Maintenance

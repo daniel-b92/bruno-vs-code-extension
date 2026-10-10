@@ -3,6 +3,7 @@ import {
     AuthTypes,
     Block,
     BrunoFileType,
+    canBlockBeDefinedMultipleTimes,
     EnvironmentFileBlockName,
     getActiveFieldFromMethodBlock,
     getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
@@ -11,6 +12,8 @@ import {
     getGraphQlSpecificBlocks,
     getGrpcSpecificBlocks,
     getValidBlockNamesForGrpcRequest,
+    getValidBlockNamesForWsRequest,
+    getWsSpecificBlocks,
     getValidBlockNamesForCollectionSettingsFile,
     getValidBlockNamesForFolderSettingsFile,
     isAuthBlock,
@@ -77,7 +80,9 @@ function getMissingOptionalBlocksForRequestFile(
 
     const allValidOptionalBlocks = Object.values(RequestFileBlockName).filter(
         (name) =>
-            !blocksThatCannotBeOptional.includes(name) &&
+            // Blocks that can be defined multiple times are still valid suggestions if they already exist (e.g. to add another message).
+            (canBlockBeDefinedMultipleTimes(name) ||
+                !blocksThatCannotBeOptional.includes(name)) &&
             // GraphQL specific blocks only make sense if it's a GraphQL request.
             (!requestType ||
                 requestType == RequestType.Graphql ||
@@ -89,6 +94,13 @@ function getMissingOptionalBlocksForRequestFile(
             // Only a limited set of blocks is valid for gRPC requests.
             (requestType != RequestType.Grpc ||
                 getValidBlockNamesForGrpcRequest().includes(name)) &&
+            // Websocket specific blocks only make sense if it's a websocket request.
+            (!requestType ||
+                requestType == RequestType.Ws ||
+                !(getWsSpecificBlocks() as string[]).includes(name)) &&
+            // Only a limited set of blocks is valid for websocket requests.
+            (requestType != RequestType.Ws ||
+                getValidBlockNamesForWsRequest().includes(name)) &&
             // OAuth2 specific additional blocks only make sense if OAuth2 authorization is used.
             (!authType ||
                 authType == AuthTypes.Oauth2 ||
@@ -96,13 +108,19 @@ function getMissingOptionalBlocksForRequestFile(
                     Object.values(Oauth2AdditionalParamsBlockNames) as string[]
                 ).includes(name)),
     );
-    const mutuallyExclusiveBlocksForAuth = allValidOptionalBlocks.filter(
-        (name) => isAuthBlock(name),
+    const repeatableBlocks = allValidOptionalBlocks.filter(
+        canBlockBeDefinedMultipleTimes,
     );
-    const mutuallyExclusiveBlocksForBody = allValidOptionalBlocks.filter(
-        (name) => isBodyBlock(name),
+    const nonRepeatableBlocks = allValidOptionalBlocks.filter(
+        (name) => !canBlockBeDefinedMultipleTimes(name),
     );
-    const blocksWithSingleChoice = allValidOptionalBlocks.filter(
+    const mutuallyExclusiveBlocksForAuth = nonRepeatableBlocks.filter((name) =>
+        isAuthBlock(name),
+    );
+    const mutuallyExclusiveBlocksForBody = nonRepeatableBlocks.filter((name) =>
+        isBodyBlock(name),
+    );
+    const blocksWithSingleChoice = nonRepeatableBlocks.filter(
         (name) =>
             !mutuallyExclusiveBlocksForAuth
                 .concat(mutuallyExclusiveBlocksForBody)
@@ -124,7 +142,39 @@ function getMissingOptionalBlocksForRequestFile(
             allBlocks,
             false,
         ),
+        getMissingRepeatableBodyBlocks(
+            repeatableBlocks,
+            allBlocks,
+            blocksThatCannotBeOptional,
+        ),
     );
+}
+
+/**
+ * Repeatable body blocks (e.g. websocket messages) can be added as long as no other kind of body block exists.
+ * If none of them exists yet and they cannot be optional, they are already covered by the missing mandatory blocks.
+ */
+function getMissingRepeatableBodyBlocks(
+    repeatableBlocks: string[],
+    allBlocks: Block[],
+    blocksThatCannotBeOptional: string[],
+): MissingBlock[] {
+    if (
+        allBlocks.some(
+            ({ name }) =>
+                isBodyBlock(name) && !canBlockBeDefinedMultipleTimes(name),
+        )
+    ) {
+        return [];
+    }
+
+    return repeatableBlocks
+        .filter(
+            (name) =>
+                !blocksThatCannotBeOptional.includes(name) ||
+                allBlocks.some(({ name: existing }) => existing == name),
+        )
+        .map((name) => ({ mandatory: false, name }));
 }
 
 function getMissingOptionalBlocksForFolderOrCollectionSettingsFile(

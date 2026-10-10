@@ -5,6 +5,7 @@ import {
     getMandatoryKeysForMethodBlock,
     LineBreakType,
     isBodyBlock,
+    canBlockBeDefinedMultipleTimes,
     getBodyBlockTypeForNoDefinedBodyBlock,
 } from "@global_shared";
 import { LanguageFeatureBaseRequest } from "../../../../shared";
@@ -92,7 +93,14 @@ function getCompletionsForBodyFieldValue(
     const bodyBlockTypeWithoutABodyBlock =
         getBodyBlockTypeForNoDefinedBodyBlock();
 
-    if (existingBodyBlocks.length <= 1) {
+    // Multiple blocks that can be repeated (e.g. websocket messages) together count as a single body.
+    const hasAtMostOneBody =
+        existingBodyBlocks.length <= 1 ||
+        existingBodyBlocks.every(({ name }) =>
+            canBlockBeDefinedMultipleTimes(name),
+        );
+
+    if (hasAtMostOneBody) {
         return Object.values(MethodBlockBodies)
             .map((bodyType) => {
                 const label = bodyType;
@@ -112,12 +120,14 @@ function getCompletionsForBodyFieldValue(
                     return {
                         label,
                         textEdit,
-                        additionalTextEdits: [
-                            getTextEditForRemovingBlock(
-                                documentHelper,
-                                existingBodyBlocks[0],
-                            ),
-                        ].filter((val) => val != undefined),
+                        additionalTextEdits: existingBodyBlocks
+                            .map((block) =>
+                                getTextEditForRemovingBlock(
+                                    documentHelper,
+                                    block,
+                                ),
+                            )
+                            .filter((val) => val != undefined),
                     };
                 }
 

@@ -1,13 +1,14 @@
 import { describe, it, expect } from "@jest/globals";
 import {
-    BrunoFileType,
     getPossibleMethodBlocksForRequestType,
     isBlockCodeBlock,
     isBlockDictionaryBlock,
-    parseBruFile,
     RequestFileBlockName,
-    TextDocumentHelper,
 } from "@global_shared";
+import {
+    getRequestTypeFieldFromRequestFileContent,
+    parseBlocksFromRequestFileContent,
+} from "@global_shared/_testingUtils";
 import { checkGrpcSpecificBlocksAreNotDefinedForOtherRequests } from "./checks/multipleBlocks/checkGrpcSpecificBlocksAreNotDefinedForOtherRequests";
 import { checkMethodBlockMatchesRequestType } from "./checks/multipleBlocks/checkMethodBlockMatchesRequestType";
 import { checkOnlyValidBlocksAreDefinedForGrpcRequests } from "./checks/multipleBlocks/checkOnlyValidBlocksAreDefinedForGrpcRequests";
@@ -19,7 +20,9 @@ const filePath = "/collection/grpc_example.bru";
 
 describe("gRPC request files", () => {
     it("parses all gRPC specific blocks with the expected block types", () => {
-        const blocks = parseBlocks(getGrpcFileContent("grpc", "grpc"));
+        const blocks = parseBlocksFromRequestFileContent(
+            getGrpcFileContent("grpc", "grpc"),
+        );
 
         const byName = (name: string) => blocks.find((b) => b.name == name);
 
@@ -43,9 +46,9 @@ describe("gRPC request files", () => {
     });
 
     it("finds variable references in the multiline content of the gRPC body block", () => {
-        const bodyBlock = parseBlocks(getGrpcFileContent("grpc", "grpc")).find(
-            ({ name }) => name == RequestFileBlockName.GrpcBody,
-        );
+        const bodyBlock = parseBlocksFromRequestFileContent(
+            getGrpcFileContent("grpc", "grpc"),
+        ).find(({ name }) => name == RequestFileBlockName.GrpcBody);
 
         expect(
             bodyBlock?.variableReferences?.map(
@@ -83,7 +86,12 @@ describe("gRPC request files", () => {
             expect(
                 checkGrpcSpecificBlocksAreNotDefinedForOtherRequests(
                     filePath,
-                    parseBlocks(getGrpcFileContent("grpc", "grpc")),
+                    parseBlocksFromRequestFileContent(
+                        getGrpcFileContent("grpc", "grpc"),
+                    ),
+                    getRequestTypeFieldFromRequestFileContent(
+                        getGrpcFileContent("grpc", "grpc"),
+                    ),
                 ),
             ).toBeUndefined();
         });
@@ -91,7 +99,12 @@ describe("gRPC request files", () => {
         it("reports all gRPC specific blocks for other request types", () => {
             const result = checkGrpcSpecificBlocksAreNotDefinedForOtherRequests(
                 filePath,
-                parseBlocks(getGrpcFileContent("http", "get")),
+                parseBlocksFromRequestFileContent(
+                    getGrpcFileContent("http", "get"),
+                ),
+                getRequestTypeFieldFromRequestFileContent(
+                    getGrpcFileContent("http", "get"),
+                ),
             );
 
             expect(result?.code).toBe(
@@ -107,7 +120,12 @@ describe("gRPC request files", () => {
             expect(
                 checkMethodBlockMatchesRequestType(
                     filePath,
-                    parseBlocks(getGrpcFileContent("grpc", "grpc")),
+                    parseBlocksFromRequestFileContent(
+                        getGrpcFileContent("grpc", "grpc"),
+                    ),
+                    getRequestTypeFieldFromRequestFileContent(
+                        getGrpcFileContent("grpc", "grpc"),
+                    ),
                 ),
             ).toBeUndefined();
         });
@@ -116,7 +134,12 @@ describe("gRPC request files", () => {
             expect(
                 checkMethodBlockMatchesRequestType(
                     filePath,
-                    parseBlocks(getGrpcFileContent("grpc", "post")),
+                    parseBlocksFromRequestFileContent(
+                        getGrpcFileContent("grpc", "post"),
+                    ),
+                    getRequestTypeFieldFromRequestFileContent(
+                        getGrpcFileContent("grpc", "post"),
+                    ),
                 )?.code,
             ).toBe(
                 NonBlockSpecificDiagnosticCode.MethodBlockNotMatchingRequestType,
@@ -127,7 +150,12 @@ describe("gRPC request files", () => {
             expect(
                 checkMethodBlockMatchesRequestType(
                     filePath,
-                    parseBlocks(getGrpcFileContent("http", "get")),
+                    parseBlocksFromRequestFileContent(
+                        getGrpcFileContent("http", "get"),
+                    ),
+                    getRequestTypeFieldFromRequestFileContent(
+                        getGrpcFileContent("http", "get"),
+                    ),
                 ),
             ).toBeUndefined();
         });
@@ -137,7 +165,12 @@ describe("gRPC request files", () => {
         it("reports no problem for a valid gRPC request", () => {
             expect(
                 checkOnlyValidBlocksAreDefinedForGrpcRequests(
-                    parseBlocks(getGrpcFileContent("grpc", "grpc")),
+                    parseBlocksFromRequestFileContent(
+                        getGrpcFileContent("grpc", "grpc"),
+                    ),
+                    getRequestTypeFieldFromRequestFileContent(
+                        getGrpcFileContent("grpc", "grpc"),
+                    )?.value,
                 ),
             ).toEqual([]);
         });
@@ -154,7 +187,8 @@ body:json {
 `;
 
             const result = checkOnlyValidBlocksAreDefinedForGrpcRequests(
-                parseBlocks(content),
+                parseBlocksFromRequestFileContent(content),
+                getRequestTypeFieldFromRequestFileContent(content)?.value,
             );
 
             expect(result.map(({ code }) => code)).toEqual([
@@ -166,11 +200,16 @@ body:json {
         it("does not report anything for other request types", () => {
             expect(
                 checkOnlyValidBlocksAreDefinedForGrpcRequests(
-                    parseBlocks(`${getGrpcFileContent("http", "get")}
+                    parseBlocksFromRequestFileContent(`${getGrpcFileContent("http", "get")}
 headers {
   a: b
 }
 `),
+                    getRequestTypeFieldFromRequestFileContent(`${getGrpcFileContent("http", "get")}
+headers {
+  a: b
+}
+`)?.value,
                 ),
             ).toEqual([]);
         });
@@ -178,7 +217,7 @@ headers {
 
     describe("getGrpcBodyBlockSpecificDiagnostics", () => {
         const getBodyBlock = (content: string) =>
-            parseBlocks(content).find(
+            parseBlocksFromRequestFileContent(content).find(
                 ({ name }) => name == RequestFileBlockName.GrpcBody,
             )!;
 
@@ -263,11 +302,4 @@ docs {
   **docs**
 }
 `;
-}
-
-function parseBlocks(content: string) {
-    return parseBruFile(
-        new TextDocumentHelper(content),
-        BrunoFileType.RequestFile,
-    ).blocks;
 }
