@@ -1,5 +1,8 @@
 import {
     Block,
+    getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
+    MetaBlockKey,
+    RequestType,
     Position,
     Range,
     RequestFileBlockName,
@@ -13,6 +16,17 @@ export function checkBlockForResponseValidationExists(
     documentHelper: TextDocumentHelper,
     blocks: Block[],
 ): DiagnosticWithCode | undefined {
+    if (
+        // Websocket requests do not support any blocks for validating the response.
+        getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
+            blocks,
+            RequestFileBlockName.Meta,
+            MetaBlockKey.Type,
+        )?.value == RequestType.Ws
+    ) {
+        return undefined;
+    }
+
     if (
         blocks.filter(
             ({ name }) =>

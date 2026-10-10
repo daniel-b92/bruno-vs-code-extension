@@ -15,7 +15,10 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
         return;
     }
 
-    const duplicates = findDuplicateBlocks(blocks);
+    const duplicates = findDuplicateBlocks(
+        // Websocket requests can have multiple messages, which are defined as separate body blocks.
+        blocks.filter(({ name }) => name != RequestFileBlockName.WsBody),
+    );
 
     if (duplicates.length == 0) {
         return undefined;

@@ -9,6 +9,7 @@ import { RelevantWithinEnvironmentFileDiagnosticCode } from "./relevantWithinEnv
 import { RelevantWithinAppBlockDiagnosticCode } from "./relevantWithinAppBlockDiagnosticCodeEnum";
 import { RelevantWithinCodeBlockDiagnosticCode } from "./relevantWithinCodeBlockDiagnosticCodeEnum";
 import { RelevantWithinGrpcBodyBlockDiagnosticCode } from "./relevantWithinGrpcBodyBlockDiagnosticCodeEnum";
+import { RelevantWithinWsBodyBlockDiagnosticCode } from "./relevantWithinWsBodyBlockDiagnosticCodeEnum";
 
 export type KnownDiagnosticCode =
     | RelevantWithinAuthBlockDiagnosticCode
@@ -21,4 +22,5 @@ export type KnownDiagnosticCode =
     | RelevantWithinEnvironmentFileDiagnosticCode
     | RelevantWithinAppBlockDiagnosticCode
     | RelevantWithinCodeBlockDiagnosticCode
-    | RelevantWithinGrpcBodyBlockDiagnosticCode;
+    | RelevantWithinGrpcBodyBlockDiagnosticCode
+    | RelevantWithinWsBodyBlockDiagnosticCode;

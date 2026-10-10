@@ -11,5 +11,6 @@ export function getPossibleMethodBlocks() {
         RequestFileBlockName.Options,
         RequestFileBlockName.Http,
         RequestFileBlockName.Grpc,
+        RequestFileBlockName.Ws,
     ];
 }

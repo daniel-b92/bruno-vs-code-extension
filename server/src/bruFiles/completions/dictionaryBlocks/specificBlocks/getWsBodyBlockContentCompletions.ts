@@ -1,23 +1,23 @@
 import {
-    SettingsBlockKey,
-    BooleanFieldValue,
     Block,
-    getMandatoryKeysForSettingsBlock,
-    getOptionalKeysForSettingsBlock,
+    BooleanFieldValue,
+    getMandatoryKeysForWsBodyBlock,
+    getOptionalKeysForWsBodyBlock,
+    WsBodyBlockKey,
+    WsBodyBlockMessageType,
 } from "@global_shared";
 import { LanguageFeatureBaseRequest } from "../../../../shared";
+import { getCompletionsForKeys } from "../generic/getCompletionsForKeys";
 import { getFixedCompletionItems } from "../generic/getFixedCompletionItems";
 import { getLinePatternForDictionaryField } from "../generic/getLinePatternForDictionaryField";
-import { getCompletionsForKeys } from "../generic/getCompletionsForKeys";
 
-export function getSettingsBlockContentCompletions(
+export function getWsBodyBlockContentCompletions(
     request: LanguageFeatureBaseRequest,
     block: Block,
-    requestType?: string,
 ) {
     const completionsForKeys = getCompletionsForKeys(request, block, {
-        mandatory: getMandatoryKeysForSettingsBlock(),
-        optional: getOptionalKeysForSettingsBlock(requestType),
+        mandatory: getMandatoryKeysForWsBodyBlock(),
+        optional: getOptionalKeysForWsBodyBlock(),
     });
 
     if (completionsForKeys) {
@@ -28,21 +28,15 @@ export function getSettingsBlockContentCompletions(
         [
             {
                 linePattern: getLinePatternForDictionaryField(
-                    SettingsBlockKey.EncodeUrl,
+                    WsBodyBlockKey.Type,
                 ),
-                choices: Object.values(BooleanFieldValue),
+                choices: Object.values(WsBodyBlockMessageType),
             },
             {
                 linePattern: getLinePatternForDictionaryField(
-                    SettingsBlockKey.FollowRedirects,
+                    WsBodyBlockKey.Selected,
                 ),
                 choices: Object.values(BooleanFieldValue),
-            },
-            {
-                linePattern: getLinePatternForDictionaryField(
-                    SettingsBlockKey.Timeout,
-                ),
-                choices: ["inherit"],
             },
         ],
         request,

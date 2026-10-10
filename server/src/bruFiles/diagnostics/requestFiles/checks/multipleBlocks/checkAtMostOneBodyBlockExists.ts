@@ -1,4 +1,4 @@
-import { Block, isBodyBlock } from "@global_shared";
+import { Block, isBodyBlock, RequestFileBlockName } from "@global_shared";
 import { getSortedBlocksByPosition } from "../../../shared/util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -12,12 +12,32 @@ export function checkAtMostOneBodyBlockExists(
     const sortedBodyBlocks = getSortedBlocksByPosition(
         blocks.filter(({ name }) => isBodyBlock(name)),
     );
+    const sortedBodyBlocksWithoutAdditionalWsMessages =
+        withoutAdditionalWsMessageBlocks(sortedBodyBlocks);
 
-    if (sortedBodyBlocks.length > 1) {
-        return getDiagnostic(filePath, sortedBodyBlocks);
+    if (sortedBodyBlocksWithoutAdditionalWsMessages.length > 1) {
+        return getDiagnostic(
+            filePath,
+            sortedBodyBlocksWithoutAdditionalWsMessages,
+        );
     } else {
         return undefined;
     }
+}
+
+/**
+ * Websocket requests can have multiple messages, which are defined as separate body blocks.
+ * Therefore, all of the `body:ws` blocks together are only counted as a single body.
+ */
+function withoutAdditionalWsMessageBlocks(sortedBodyBlocks: Block[]) {
+    const firstWsBlock = sortedBodyBlocks.find(
+        ({ name }) => name == RequestFileBlockName.WsBody,
+    );
+
+    return sortedBodyBlocks.filter(
+        (block) =>
+            block.name != RequestFileBlockName.WsBody || block == firstWsBlock,
+    );
 }
 
 function getDiagnostic(

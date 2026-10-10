@@ -21,22 +21,26 @@ import { getDiagnosticForInvalidDictionaryBlockSimpleFieldValue } from "../share
 export function getSettingsBlockSpecificDiagnostics(
     filePath: string,
     settingsBlock: Block,
+    requestType?: string,
 ): (DiagnosticWithCode | undefined)[] {
     if (!isBlockDictionaryBlock(settingsBlock)) {
         return [];
     }
 
-    return runGenericChecksForAllFields(filePath, settingsBlock).concat(
-        runChecksForSpecificFields(settingsBlock),
-    );
+    return runGenericChecksForAllFields(
+        filePath,
+        settingsBlock,
+        requestType,
+    ).concat(runChecksForSpecificFields(settingsBlock));
 }
 
 function runGenericChecksForAllFields(
     filePath: string,
     settingsBlock: DictionaryBlock,
+    requestType?: string,
 ) {
     const mandatoryKeys = getMandatoryKeysForSettingsBlock();
-    const optionalKeys = getOptionalKeysForSettingsBlock();
+    const optionalKeys = getOptionalKeysForSettingsBlock(requestType);
 
     return [
         checkNoKeysAreMissingForDictionaryBlock(
@@ -119,6 +123,24 @@ function runChecksForSpecificFields(settingsBlock: DictionaryBlock) {
                       fieldsForTimeout[0],
                       `Only the value '${validNonNumericTimeoutValue}' or a non-negative integer value is allowed.`,
                       RelevantWithinSettingsBlockDiagnosticCode.TimeoutValueInvalid,
+                  ),
+        );
+    }
+
+    const fieldsForKeepAliveInterval = validFields.filter(
+        ({ key }) => key == SettingsBlockKey.KeepAliveInterval,
+    );
+    if (fieldsForKeepAliveInterval.length == 1) {
+        result.push(
+            doesDictionaryBlockFieldHaveValidIntegerValue(
+                fieldsForKeepAliveInterval[0],
+                0,
+            )
+                ? undefined
+                : getDiagnosticForInvalidDictionaryBlockSimpleFieldValue(
+                      fieldsForKeepAliveInterval[0],
+                      "Only non-negative integer values are allowed.",
+                      RelevantWithinSettingsBlockDiagnosticCode.KeepAliveIntervalValueInvalid,
                   ),
         );
     }

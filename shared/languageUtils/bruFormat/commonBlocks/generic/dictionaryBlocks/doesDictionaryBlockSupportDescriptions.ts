@@ -19,6 +19,7 @@ export function doesDictionaryBlockSupportDescriptions(
             [
                 RequestFileBlockName.Meta,
                 RequestFileBlockName.GrpcBody,
+                RequestFileBlockName.WsBody,
                 RequestFileBlockName.Settings,
                 RequestFileBlockName.App,
                 SettingsFileSpecificBlock.AuthMode,

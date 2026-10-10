@@ -11,6 +11,8 @@ import {
     getGraphQlSpecificBlocks,
     getGrpcSpecificBlocks,
     getValidBlockNamesForGrpcRequest,
+    getValidBlockNamesForWsRequest,
+    getWsSpecificBlocks,
     getValidBlockNamesForCollectionSettingsFile,
     getValidBlockNamesForFolderSettingsFile,
     isAuthBlock,
@@ -89,6 +91,13 @@ function getMissingOptionalBlocksForRequestFile(
             // Only a limited set of blocks is valid for gRPC requests.
             (requestType != RequestType.Grpc ||
                 getValidBlockNamesForGrpcRequest().includes(name)) &&
+            // Websocket specific blocks only make sense if it's a websocket request.
+            (!requestType ||
+                requestType == RequestType.Ws ||
+                !(getWsSpecificBlocks() as string[]).includes(name)) &&
+            // Only a limited set of blocks is valid for websocket requests.
+            (requestType != RequestType.Ws ||
+                getValidBlockNamesForWsRequest().includes(name)) &&
             // OAuth2 specific additional blocks only make sense if OAuth2 authorization is used.
             (!authType ||
                 authType == AuthTypes.Oauth2 ||
@@ -99,14 +108,15 @@ function getMissingOptionalBlocksForRequestFile(
     const mutuallyExclusiveBlocksForAuth = allValidOptionalBlocks.filter(
         (name) => isAuthBlock(name),
     );
+    // Websocket requests can have multiple messages, so the corresponding body blocks are not mutually exclusive.
     const mutuallyExclusiveBlocksForBody = allValidOptionalBlocks.filter(
-        (name) => isBodyBlock(name),
+        (name) => isBodyBlock(name) && name != RequestFileBlockName.WsBody,
     );
     const blocksWithSingleChoice = allValidOptionalBlocks.filter(
         (name) =>
             !mutuallyExclusiveBlocksForAuth
                 .concat(mutuallyExclusiveBlocksForBody)
-                .includes(name),
+                .includes(name) && name != RequestFileBlockName.WsBody,
     );
 
     return getMissingBlocksWithoutExclusivityToOthers(
@@ -124,6 +134,9 @@ function getMissingOptionalBlocksForRequestFile(
             allBlocks,
             false,
         ),
+        allValidOptionalBlocks.includes(RequestFileBlockName.WsBody)
+            ? [{ mandatory: false, name: RequestFileBlockName.WsBody }]
+            : [],
     );
 }
 

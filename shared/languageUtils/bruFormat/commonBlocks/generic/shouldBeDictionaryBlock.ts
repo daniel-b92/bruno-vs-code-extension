@@ -43,6 +43,7 @@ export function shouldBeDictionaryBlock(blockName: string) {
                 RequestFileBlockName.FormUrlEncodedBody,
                 RequestFileBlockName.FileOrBinaryBody,
                 RequestFileBlockName.GrpcBody,
+                RequestFileBlockName.WsBody,
             ] as string[]
         ).includes(blockName) ||
         isVarsBlockInEnvironmentFile(blockName) ||

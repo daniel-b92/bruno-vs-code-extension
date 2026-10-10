@@ -1,19 +1,19 @@
 import {
     Block,
-    getValidBlockNamesForGrpcRequest,
+    getValidBlockNamesForWsRequest,
     RequestType,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { checkOnlyValidBlocksAreDefinedForRequestType } from "./checkOnlyValidBlocksAreDefinedForRequestType";
 
-export function checkOnlyValidBlocksAreDefinedForGrpcRequests(
+export function checkOnlyValidBlocksAreDefinedForWsRequests(
     blocks: Block[],
 ): DiagnosticWithCode[] {
     return checkOnlyValidBlocksAreDefinedForRequestType(blocks, {
-        requestType: RequestType.Grpc,
-        validBlockNames: getValidBlockNamesForGrpcRequest(),
+        requestType: RequestType.Ws,
+        validBlockNames: getValidBlockNamesForWsRequest(),
         diagnosticCode:
-            NonBlockSpecificDiagnosticCode.BlockNotValidForGrpcRequestType,
+            NonBlockSpecificDiagnosticCode.BlockNotValidForWsRequestType,
     });
 }

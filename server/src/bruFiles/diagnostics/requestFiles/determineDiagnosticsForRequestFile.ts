@@ -15,6 +15,8 @@ import {
     BrunoFileType,
     ItemType,
     isDictionaryBlockField,
+    getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
+    MetaBlockKey,
 } from "@global_shared";
 import { TypedCollectionItemProvider } from "../../../shared";
 import { DiagnosticWithCode } from "../interfaces";
@@ -31,6 +33,9 @@ import { checkBlockForResponseValidationExists } from "./checks/multipleBlocks/c
 import { checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests } from "./checks/multipleBlocks/checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests";
 import { checkGrpcSpecificBlocksAreNotDefinedForOtherRequests } from "./checks/multipleBlocks/checkGrpcSpecificBlocksAreNotDefinedForOtherRequests";
 import { checkOnlyValidBlocksAreDefinedForGrpcRequests } from "./checks/multipleBlocks/checkOnlyValidBlocksAreDefinedForGrpcRequests";
+import { checkWsSpecificBlocksAreNotDefinedForOtherRequests } from "./checks/multipleBlocks/checkWsSpecificBlocksAreNotDefinedForOtherRequests";
+import { checkOnlyValidBlocksAreDefinedForWsRequests } from "./checks/multipleBlocks/checkOnlyValidBlocksAreDefinedForWsRequests";
+import { getWsBodyBlockSpecificDiagnostics } from "./getWsBodyBlockSpecificDiagnostics";
 import { checkMethodBlockMatchesRequestType } from "./checks/multipleBlocks/checkMethodBlockMatchesRequestType";
 import { getGrpcBodyBlockSpecificDiagnostics } from "./getGrpcBodyBlockSpecificDiagnostics";
 import { checkUrlFromMethodBlockMatchesPathParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesPathParamsBlock";
@@ -55,6 +60,7 @@ interface BlocksWithSpecificDiagnostics {
     auth?: Block;
     body?: Block;
     graphQlSpecific: Block[];
+    wsBodies: Block[];
     settings?: Block;
     app?: Block;
 }
@@ -87,6 +93,11 @@ export function determineDiagnosticsForRequestFile(
             filePath,
             documentHelper,
             needSpecificDiagnostics,
+            getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
+                blocks,
+                RequestFileBlockName.Meta,
+                MetaBlockKey.Type,
+            )?.value,
         ),
         others.flatMap((block) =>
             isBlockDictionaryBlock(block)
@@ -112,6 +123,7 @@ function determineBlocksRequiringSpecificDiagnostics(allBlocks: Block[]): {
     const authBlocks: Block[] = [];
     const bodyBlocks: Block[] = [];
     const graphQlSpecific: Block[] = [];
+    const wsBodyBlocks: Block[] = [];
     const settingsBlocks: Block[] = [];
     const appBlocks: Block[] = [];
 
@@ -128,6 +140,11 @@ function determineBlocksRequiringSpecificDiagnostics(allBlocks: Block[]): {
         }
         if (isAuthBlock(curr.name)) {
             authBlocks.push(curr);
+            return prev;
+        }
+        if (curr.name == RequestFileBlockName.WsBody) {
+            // Websocket requests can have multiple messages, so these body blocks need to be handled separately.
+            wsBodyBlocks.push(curr);
             return prev;
         }
         if (isBodyBlock(curr.name)) {
@@ -154,6 +171,7 @@ function determineBlocksRequiringSpecificDiagnostics(allBlocks: Block[]): {
         others,
         needSpecificDiagnostics: {
             graphQlSpecific,
+            wsBodies: wsBodyBlocks,
             app: appBlocks.length == 1 ? appBlocks[0] : undefined,
             auth: authBlocks.length == 1 ? authBlocks[0] : undefined,
             body: bodyBlocks.length == 1 ? bodyBlocks[0] : undefined,
@@ -197,6 +215,8 @@ function collectCommonDiagnostics(
         checkGrpcSpecificBlocksAreNotDefinedForOtherRequests(filePath, blocks),
         checkMethodBlockMatchesRequestType(filePath, blocks),
         ...checkOnlyValidBlocksAreDefinedForGrpcRequests(blocks),
+        checkWsSpecificBlocksAreNotDefinedForOtherRequests(filePath, blocks),
+        ...checkOnlyValidBlocksAreDefinedForWsRequests(blocks),
         checkNoBlocksHaveUnknownNames(
             filePath,
             blocks,
@@ -261,6 +281,7 @@ function collectBlockSpecificDiagnostics(
     documentHelper: TextDocumentHelper,
     {
         graphQlSpecific: graphQlSpecificBlocks,
+        wsBodies: wsBodyBlocks,
         app: appBlock,
         auth: authBlock,
         body: bodyBlock,
@@ -268,6 +289,7 @@ function collectBlockSpecificDiagnostics(
         method: methodBlock,
         settings: settingsBlock,
     }: BlocksWithSpecificDiagnostics,
+    requestType?: string,
 ): (DiagnosticWithCode | undefined)[] {
     const results: (DiagnosticWithCode | undefined)[] = [];
 
@@ -298,6 +320,11 @@ function collectBlockSpecificDiagnostics(
                 : []),
         );
     }
+    results.push(
+        ...wsBodyBlocks.flatMap((block) =>
+            getWsBodyBlockSpecificDiagnostics(filePath, block),
+        ),
+    );
     if (graphQlSpecificBlocks.length > 0) {
         results.push(
             ...graphQlSpecificBlocks.flatMap((block) =>
@@ -307,7 +334,11 @@ function collectBlockSpecificDiagnostics(
     }
     if (settingsBlock) {
         results.push(
-            ...getSettingsBlockSpecificDiagnostics(filePath, settingsBlock),
+            ...getSettingsBlockSpecificDiagnostics(
+                filePath,
+                settingsBlock,
+                requestType,
+            ),
         );
     }
     if (appBlock) {

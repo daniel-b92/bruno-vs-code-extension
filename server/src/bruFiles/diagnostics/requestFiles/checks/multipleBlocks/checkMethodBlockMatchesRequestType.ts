@@ -13,8 +13,8 @@ import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 
 /**
- * For gRPC requests, the method block needs to be the `grpc` block.
- * For all other request types, the `grpc` block is not valid (this is already covered by another check for the gRPC specific blocks).
+ * For gRPC and websocket requests, the method block needs to be the `grpc` or `ws` block respectively.
+ * For all other request types, these blocks are not valid (this is already covered by other checks for the request type specific blocks).
  */
 export function checkMethodBlockMatchesRequestType(
     filePath: string,
@@ -27,20 +27,24 @@ export function checkMethodBlockMatchesRequestType(
             MetaBlockKey.Type,
         );
 
-    if (requestTypeField?.value != RequestType.Grpc) {
+    const requestType = requestTypeField?.value;
+
+    if (
+        !requestTypeField ||
+        (requestType != RequestType.Grpc && requestType != RequestType.Ws)
+    ) {
         return undefined;
     }
 
-    const validMethodBlocks: string[] = getPossibleMethodBlocksForRequestType(
-        requestTypeField.value,
-    );
+    const validMethodBlocks: string[] =
+        getPossibleMethodBlocksForRequestType(requestType);
     const invalidMethodBlocks = getAllMethodBlocks(blocks).filter(
         ({ name }) => !validMethodBlocks.includes(name),
     );
 
     return invalidMethodBlocks.length > 0
         ? {
-              message: `Request type '${RequestType.Grpc}' requires the method block '${validMethodBlocks.join("', '")}'.`,
+              message: `Request type '${requestType}' requires the method block '${validMethodBlocks.join("', '")}'.`,
               range: requestTypeField.valueRange,
               relatedInformation: invalidMethodBlocks.map(
                   ({ name, nameRange }) => ({

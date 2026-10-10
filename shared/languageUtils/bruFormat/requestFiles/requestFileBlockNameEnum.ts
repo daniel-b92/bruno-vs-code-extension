@@ -12,6 +12,7 @@ export enum RequestFileBlockName {
     Head = "head",
     Http = "http",
     Grpc = "grpc",
+    Ws = "ws",
 
     // params
     QueryParams = "params:query",
@@ -56,6 +57,7 @@ export enum RequestFileBlockName {
     GraphQlBody = "body:graphql",
     GraphQlBodyVars = "body:graphql:vars",
     GrpcBody = "body:grpc",
+    WsBody = "body:ws",
 
     // Vars
     PreRequestVars = "vars:pre-request",
