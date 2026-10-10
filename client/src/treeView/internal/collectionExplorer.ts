@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { BrunoTreeItemProvider } from "./brunoTreeItemProvider";
 import {
-    getExtensionForBrunoFiles,
+    getFileExtensionForFormat,
     getSequenceForFolder,
     getFolderSettingsFilePath,
     checkIfPathExistsAsync,
@@ -512,8 +512,14 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 if (isRequestFile) {
                     await replaceNameInMetaBlock(
                         newPath,
-                        newItemName.replace(getExtensionForBrunoFiles(), ""),
+                        newItemName.replace(
+                            getFileExtensionForFormat(
+                                oldCollection.getFormat(),
+                            ),
+                            "",
+                        ),
                         oldItem.getItemType(),
+                        oldCollection.getFormat(),
                     );
                     return;
                 }
@@ -522,6 +528,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     const folderSettingsPath = await getFolderSettingsFilePath(
                         isCollectionRootFolder,
                         newPath,
+                        oldCollection.getFormat(),
                     );
 
                     if (folderSettingsPath) {
@@ -529,6 +536,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                             folderSettingsPath,
                             newItemName,
                             oldItem.getItemType(),
+                            oldCollection.getFormat(),
                         );
                     }
 
@@ -575,12 +583,14 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 const newFolderSettingsFile = await getFolderSettingsFilePath(
                     isCollectionRootFolder,
                     newFolderPath,
+                    collection.getFormat(),
                 );
 
                 if (
                     (await getSequenceForFolder(
                         collection.getRootDirectory(),
                         originalPath,
+                        collection.getFormat(),
                     )) &&
                     newFolderSettingsFile
                 ) {
@@ -597,6 +607,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                         newFolderSettingsFile,
                         basename(newFolderPath),
                         BrunoFileType.FolderSettingsFile,
+                        collection.getFormat(),
                     );
                 }
             },

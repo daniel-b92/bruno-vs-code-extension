@@ -64,8 +64,7 @@ function mapEnvironmentVariable({ properties }: ParsedEnvironmentVariable) {
         return [];
     }
 
-    const valueData =
-        "properties" in value ? value.properties.data : value;
+    const valueData = "properties" in value ? value.properties.data : value;
 
     return valueData
         ? [

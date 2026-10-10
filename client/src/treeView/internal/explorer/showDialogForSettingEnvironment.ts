@@ -1,4 +1,3 @@
-import { getExtensionForBrunoFiles } from "@global_shared";
 import {
     removeConfigForCollection,
     TypedCollection,
@@ -13,16 +12,16 @@ export async function showDialogForSettingEnvironment(
 ) {
     const environments = collection
         .getEnvironments()
-        .map(({ item, environmentName }) => ({
-            item,
+        .map(({ environmentName }) => ({
+            environmentName,
             selected: configuredEnvironmentName === environmentName,
         }));
 
     const labelForNoSelectedEnvironment = "None";
 
     const options: QuickPickItem[] = (
-        environments.map(({ item, selected }) => ({
-            label: basename(item.getPath(), getExtensionForBrunoFiles()),
+        environments.map(({ environmentName, selected }) => ({
+            label: environmentName,
             description: selected ? "Selected" : undefined,
         })) as QuickPickItem[]
     ).concat({

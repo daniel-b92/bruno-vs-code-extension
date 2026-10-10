@@ -13,7 +13,7 @@ export async function getAdditionalCollectionData<T>(
         | AdditionalCollectionSimpleDataProvider<T>
         | AdditionalCollectionComplexDataProvider<T>,
     isCollectionRoot: boolean,
-    format = CollectionFormat.Bru,
+    format: CollectionFormat,
 ) {
     switch (additionalDataProvider.paramType) {
         case AdditionalCollectionDataProviderType.SimpleCollectionItem:

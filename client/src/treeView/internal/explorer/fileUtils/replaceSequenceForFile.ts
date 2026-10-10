@@ -1,5 +1,5 @@
 import { writeFile, readFile } from "fs";
-import { MetaBlockKey, parseSequenceFromMetaBlock } from "@global_shared";
+import { MetaBlockKey, parseSequenceFromFile } from "@global_shared";
 import { promisify } from "util";
 import { window } from "vscode";
 
@@ -11,7 +11,7 @@ export async function replaceSequenceForFile(
         throw new Error(`New sequence to set for file '${filePath}' is 'NaN'.`);
     }
 
-    const originalSequence = await parseSequenceFromMetaBlock(filePath);
+    const originalSequence = await parseSequenceFromFile(filePath);
     const originalFileContent = await promisify(readFile)(
         filePath,
         "utf-8",

@@ -1,9 +1,12 @@
 import {
     BrunoFileType,
+    CollectionFormat,
     CollectionItem,
     doesFileNameMatchCollectionSettingsFile,
     doesFileNameMatchFolderSettingsFileName,
-    getExtensionForBrunoFiles,
+    getFileExtensionForFormat,
+    getFolderSettingsFileName,
+    getCollectionSettingsFileName,
     isCollectionItemWithSequence,
     isInFolderForEnvironmentFiles,
     ItemType,
@@ -30,8 +33,22 @@ export async function handleFileInsertion(
 ) {
     const { newPath } = target;
     const itemType = sourceItem.getItemType();
+    const targetCollection = itemProvider.getAncestorCollectionForPath(newPath);
 
-    const shouldContinue = await requestConfirmationIfNeeded(itemType, newPath);
+    if (!targetCollection) {
+        window.showErrorMessage(
+            `Could not determine the collection for path '${newPath}'.`,
+        );
+        return false;
+    }
+
+    const format = targetCollection.getFormat();
+
+    const shouldContinue = await requestConfirmationIfNeeded(
+        itemType,
+        newPath,
+        format,
+    );
 
     if (!shouldContinue) {
         return false;
@@ -47,8 +64,9 @@ export async function handleFileInsertion(
     if (itemType == BrunoFileType.RequestFile) {
         await replaceNameInMetaBlock(
             newPath,
-            basename(newPath).replace(getExtensionForBrunoFiles(), ""),
+            basename(newPath).replace(getFileExtensionForFormat(format), ""),
             itemType,
+            format,
         );
     }
 
@@ -58,6 +76,7 @@ export async function handleFileInsertion(
 async function requestConfirmationIfNeeded(
     itemType: ItemType,
     newPath: string,
+    format: CollectionFormat,
 ) {
     if (itemType == BrunoFileType.EnvironmentFile) {
         return (
@@ -78,20 +97,20 @@ async function requestConfirmationIfNeeded(
 
     if (itemType == BrunoFileType.FolderSettingsFile) {
         return (
-            doesFileNameMatchFolderSettingsFileName(newPath) ||
+            doesFileNameMatchFolderSettingsFileName(newPath, format) ||
             (await showWarningDialog(
                 "Insert folder settings file?",
-                `Only one folder settings file named 'folder${getExtensionForBrunoFiles()}' can be defined per folder.`,
+                `Only one folder settings file named '${getFolderSettingsFileName(format)}' can be defined per folder.`,
             ))
         );
     }
 
     if (itemType == BrunoFileType.CollectionSettingsFile) {
         return (
-            doesFileNameMatchCollectionSettingsFile(newPath) ||
+            doesFileNameMatchCollectionSettingsFile(newPath, format) ||
             (await showWarningDialog(
                 "Insert collection settings file?",
-                `Only one collection settings file named 'collection${getExtensionForBrunoFiles()}' can be defined per collection.`,
+                `Only one collection settings file named '${getCollectionSettingsFileName(format)}' can be defined per collection.`,
             ))
         );
     }

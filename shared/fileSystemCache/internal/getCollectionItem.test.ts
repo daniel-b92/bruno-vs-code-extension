@@ -30,6 +30,7 @@ describe("getCollectionItemForFile", () => {
         const result = (await getCollectionItemForFile(
             filePath,
             BrunoFileType.EnvironmentFile,
+            CollectionFormat.Bru,
         )) as BrunoEnvironmentFile;
 
         expect(result.getExtends()).toBe("Base");
@@ -47,6 +48,7 @@ describe("getCollectionItemForFile", () => {
         const result = (await getCollectionItemForFile(
             filePath,
             BrunoFileType.EnvironmentFile,
+            CollectionFormat.Bru,
         )) as BrunoEnvironmentFile;
 
         expect(result.getExtends()).toBeUndefined();
@@ -61,6 +63,7 @@ describe("getCollectionItemForFile", () => {
         const result = (await getCollectionItemForFile(
             filePath,
             BrunoFileType.EnvironmentFile,
+            CollectionFormat.Bru,
         )) as BrunoEnvironmentFile;
 
         expect(result.getExtends()).toBeUndefined();
@@ -69,6 +72,7 @@ describe("getCollectionItemForFile", () => {
         const result = await getCollectionItemForFile(
             "/some/path/script.js",
             NonBrunoSpecificItemType.OtherFileType,
+            CollectionFormat.Bru,
         );
 
         expect(result).toBeInstanceOf(NonBrunoFile);
@@ -82,6 +86,7 @@ describe("getCollectionItemForFile", () => {
         const result = await getCollectionItemForFile(
             "/some/path/unknown",
             "unknown" as BrunoFileType,
+            CollectionFormat.Bru,
         );
 
         expect(result).toBeUndefined();

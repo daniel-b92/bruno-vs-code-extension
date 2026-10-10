@@ -1,5 +1,9 @@
 import { basename, dirname, resolve } from "path";
-import { BrunoFileType, getFolderSettingsFilePath } from "@global_shared";
+import {
+    BrunoFileType,
+    CollectionFormat,
+    getFolderSettingsFilePath,
+} from "@global_shared";
 import {
     getMaxSequenceForFolders,
     getSequencesForFolders,
@@ -21,6 +25,17 @@ export async function updateSequencesAfterMovingFolder(
     target: BrunoTreeItem,
     insertionOption: FolderDropInsertionOption,
 ) {
+    const collection = itemProvider.getAncestorCollectionForPath(sourcePath);
+
+    if (!collection) {
+        window.showErrorMessage(
+            `Could not determine the collection for the folder '${sourcePath}'.`,
+        );
+        return;
+    }
+
+    const format = collection.getFormat();
+
     if (
         insertionOption == FolderDropInsertionOption.MoveIntoTargetAsSubfolder
     ) {
@@ -29,6 +44,7 @@ export async function updateSequencesAfterMovingFolder(
         const newFolderSettingsFile = await getFolderSettingsFilePath(
             false,
             newFolderPath,
+            format,
         );
 
         const newSequence =
@@ -51,6 +67,7 @@ export async function updateSequencesAfterMovingFolder(
     const newFolderSettingsFile = await copyFolderSettingsFile(
         target,
         sourcePath,
+        format,
     );
 
     if (!newFolderSettingsFile) {
@@ -76,7 +93,11 @@ export async function updateSequencesAfterMovingFolder(
 
     for (const { folderPath, sequence: initialSequence } of filtered) {
         await replaceSequenceForFile(
-            (await getFolderSettingsFilePath(false, folderPath)) as string,
+            (await getFolderSettingsFilePath(
+                false,
+                folderPath,
+                format,
+            )) as string,
             initialSequence + 1,
         );
     }
@@ -87,11 +108,13 @@ export async function updateSequencesAfterMovingFolder(
 async function copyFolderSettingsFile(
     sourceFolderItem: BrunoTreeItem,
     destinationFolder: string,
+    format: CollectionFormat,
 ) {
     const isCollectionSettings = false;
     const targetFile = await getFolderSettingsFilePath(
         isCollectionSettings,
         sourceFolderItem.getPath(),
+        format,
     );
 
     if (!targetFile) {
@@ -131,6 +154,7 @@ async function copyFolderSettingsFile(
         newPath,
         basename(destinationFolder),
         BrunoFileType.FolderSettingsFile,
+        format,
     );
 
     return newPath;
