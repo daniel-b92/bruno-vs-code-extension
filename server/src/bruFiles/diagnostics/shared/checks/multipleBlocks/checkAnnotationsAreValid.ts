@@ -5,13 +5,13 @@ import {
     DictionaryBlockSimpleField,
     DictionaryBlockTypeAnnotation,
     isDictionaryBlockDescription,
-    isDictionaryBlockField,
     isDictionaryBlockSimpleField,
     isDictionaryBlockTypeAnnotation,
 } from "@global_shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
+import { getSortedDictionaryBlockFieldsByPosition } from "../../util/getSortedDictionaryBlockFieldsByPosition";
 import { DiagnosticSeverity } from "vscode-languageserver";
 
 type InvalidityReason =
@@ -52,16 +52,13 @@ export function checkAnnotationsAreValid(
 function getInvalidAnnotationsSortedByPosition(
     block: DictionaryBlock,
 ): InvalidAnnotation[] {
-    const sortedFields = block.content.slice().sort((a, b) => {
-        const startRangeForA = isDictionaryBlockField(a)
-            ? a.keyRange.start
-            : a.range.start;
-        const startRangeForB = isDictionaryBlockField(b)
-            ? b.keyRange.start
-            : b.range.start;
+    if (!block.content.some(isAnnotationField)) {
+        return [];
+    }
 
-        return startRangeForA.line - startRangeForB.line;
-    });
+    const sortedFields = getSortedDictionaryBlockFieldsByPosition(
+        block.content,
+    );
 
     const result: InvalidAnnotation[] = [];
     let consecutiveAnnotations: AnnotationField[] = [];
