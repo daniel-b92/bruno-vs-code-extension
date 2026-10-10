@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Maintenance
+
+- Fix an issue that caused loading of diagnostics to fail if dictionary blocks contained annotations before disabled fields.
+
 ## [1.3.2] (2026-10-01)
 
 ### Fixes / Maintenance
