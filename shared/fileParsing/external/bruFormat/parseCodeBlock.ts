@@ -55,16 +55,10 @@ export function parseCodeBlock(
             blockContentEndInSubDocument.character,
         ),
     );
-    const blockContentNode = blockNode
-        .getChildren(sourceFile)
-        .find((node) => node.kind == SyntaxKind.SyntaxList);
-
-    return blockContentNode != undefined
-        ? {
-              content: contentRange.start.equals(contentRange.end)
-                  ? ""
-                  : document.getText(contentRange), // `document.getText()` only works correctly, if the start and end position of the range are not the same.
-              contentRange,
-          }
-        : undefined;
+    return {
+        content: contentRange.start.equals(contentRange.end)
+            ? ""
+            : document.getText(contentRange), // `document.getText()` only works correctly, if the start and end position of the range are not the same.
+        contentRange,
+    };
 }

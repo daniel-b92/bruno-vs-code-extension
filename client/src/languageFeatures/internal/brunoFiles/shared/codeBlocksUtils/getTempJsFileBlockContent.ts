@@ -35,6 +35,6 @@ function parseCodeBlockFromTempJsFile(
     return parseCodeBlock(
         document,
         firstContentLine,
-        SyntaxKind.FunctionDeclaration,
+        SyntaxKind.ExpressionStatement,
     );
 }

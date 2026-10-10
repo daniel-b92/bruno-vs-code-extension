@@ -45,10 +45,10 @@ script:grpc:after-call-end {
         );
 
         expect(content).toMatch(
-            /function \w*before_call_start\w*\(\/\*\* @type \{BruForPreRequestGrpc\} \*\/ bru\) \{/,
+            /\/\* script:grpc:before-call-start \*\/ void async function \(\/\*\* @type \{BruForPreRequestGrpc\} \*\/ bru\) \{/,
         );
         expect(content).toMatch(
-            /function \w*after_call_end\w*\(\/\*\* @type \{BruForPostResponseGrpc\} \*\/ bru\) \{/,
+            /\/\* script:grpc:after-call-end \*\/ void async function \(\/\*\* @type \{BruForPostResponseGrpc\} \*\/ bru\) \{/,
         );
     });
 
@@ -76,12 +76,12 @@ tests {
         );
 
         expect(content).toMatch(
-            /function \w*pre_request\w*\(\/\*\* @type \{undefined\} \*\/ res\) \{/,
+            /\/\* script:pre-request \*\/ void async function \(\/\*\* @type \{undefined\} \*\/ res\) \{/,
         );
         expect(content).toMatch(
-            /function \w*post_response\w*\(\/\*\* @type \{undefined\} \*\/ req\) \{/,
+            /\/\* script:post-response \*\/ void async function \(\/\*\* @type \{undefined\} \*\/ req\) \{/,
         );
-        expect(content).toMatch(/function tests\(\) \{/);
+        expect(content).toMatch(/\/\* tests \*\/ void async function \(\) \{/);
     });
 
     it("includes all definitions if the request type is unknown", () => {
