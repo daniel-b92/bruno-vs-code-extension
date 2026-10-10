@@ -11,7 +11,7 @@ import {
 } from "@global_shared";
 import { format } from "prettier";
 import { TextEdit } from "vscode-languageserver/node";
-import { mapBlockNameToJsFileLine } from "../shared/mapBlockNameToJsFileLine";
+import { mapBlockNameToDummyFunctionStart } from "../shared/mapBlockNameToDummyFunctionStart";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
 export async function getHandlerForFormatting(
@@ -34,7 +34,7 @@ async function getTextEditForCodeBlock(
     block: CodeBlock,
     documentLineBreak?: LineBreakType,
 ): Promise<TextEdit | undefined> {
-    const toFormat = `${mapBlockNameToJsFileLine(block.name)}${documentLineBreak}${block.content}}`;
+    const toFormat = `${mapBlockNameToDummyFunctionStart(block.name)}${documentLineBreak}${block.content}}`;
 
     const formattedWithDummyFunctionReplacement = await format(toFormat, {
         parser: "typescript",

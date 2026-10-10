@@ -1,7 +1,5 @@
 import { describe, it, expect } from "@jest/globals";
-import { EndOfLine } from "vscode";
-import { BrunoFileType } from "@global_shared";
-import { getTempJsFileContentForBruFile } from "./getTempJsFileContentForBruFile";
+import { getTempJsContentForRequestFile as getTempJsContent } from "../../../../../testUtils/getTempJsContent";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
 
 describe("getTempJsFileBlockContent", () => {
@@ -45,21 +43,25 @@ script:grpc:before-message-send {
         ).toBeUndefined();
     });
 
-    it("does not declare any named functions for the code blocks", () => {
+    it("ends the block at the closing bracket, even if the following line could continue the expression", () => {
         const tempJsContent = getTempJsContent(
-            "meta {\n  name: test\n  type: grpc\n}\n\nscript:grpc:before-call-start {\n  asd\n}\n",
+            "meta {\n  name: test\n  type: grpc\n}\n\nscript:pre-request {\n  foo();\n}\n(bar)\n}\n",
         );
 
-        expect(tempJsContent).not.toMatch(
-            /function\s+script_grpc_before_call_start/,
+        expect(
+            getTempJsFileBlockContent(tempJsContent, "script:pre-request")
+                ?.content,
+        ).toBe("  foo();\n");
+    });
+
+    it("ignores other top-level statements that are not the wrapper function", () => {
+        const tempJsContent = getTempJsContent(
+            "meta {\n  name: test\n  type: grpc\n}\n\nscript:pre-request {\n  foo();\n  }\n  bar();\n}\n",
         );
+
+        expect(
+            getTempJsFileBlockContent(tempJsContent, "script:pre-request")
+                ?.content,
+        ).toBe("  foo();\n  ");
     });
 });
-
-function getTempJsContent(bruFileContent: string) {
-    return getTempJsFileContentForBruFile(
-        bruFileContent,
-        EndOfLine.LF,
-        BrunoFileType.RequestFile,
-    );
-}
