@@ -107,11 +107,11 @@ async function registerItems<T>(
                     ? await getCollectionItemForFile(path, itemType, format)
                     : await createCollectionDirectoryInstance(
                           path,
+                          format,
                           allFolderSettingsFiles.find(
                               ({ path: p }) =>
                                   normalizePath(dirname(p)) == normalized,
                           )?.path,
-                          format,
                       );
 
                 if (!item) {
@@ -153,12 +153,12 @@ async function registerAllExistingCollections<T>(
                     const rootFolderItem =
                         await createCollectionDirectoryInstance(
                             normalizedRootDir,
+                            format,
                             await getFolderSettingsFilePath(
                                 true,
                                 rootFolder,
                                 format,
                             ),
-                            format,
                         );
 
                     const collection = rootFolderItem

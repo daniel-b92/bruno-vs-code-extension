@@ -41,12 +41,12 @@ export async function getCollectionItem<T>(
         case NonBrunoSpecificItemType.Directory:
             return await createCollectionDirectoryInstance(
                 path,
+                collection.getFormat(),
                 await getFolderSettingsFilePath(
                     collection.isRootDirectory(path),
                     path,
                     collection.getFormat(),
                 ),
-                collection.getFormat(),
             );
         default:
             return await getCollectionItemForFile(
@@ -60,7 +60,7 @@ export async function getCollectionItem<T>(
 export async function getCollectionItemForFile(
     path: string,
     itemType: ItemType,
-    format = CollectionFormat.Bru,
+    format: CollectionFormat,
 ): Promise<CollectionItem | undefined> {
     const isYaml = format == CollectionFormat.Yaml;
 

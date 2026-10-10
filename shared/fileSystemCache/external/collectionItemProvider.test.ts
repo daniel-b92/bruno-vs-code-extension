@@ -15,6 +15,7 @@ import {
     FileChangedEvent,
     FileChangeType,
     NonBrunoSpecificItemType,
+    normalizePath,
 } from "../..";
 import { useTemporaryDirectories } from "../../_testingUtils";
 
@@ -181,6 +182,13 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
         expect(collection.getFormat()).toBe(CollectionFormat.Yaml);
         expect(collection.getAdditionalContextRoots()).toEqual([]);
 
+        const notifiedPaths: string[] = [];
+        provider.subscribeToUpdates((notifications) =>
+            notifications.forEach(({ data: { item } }) =>
+                notifiedPaths.push(item.getPath()),
+            ),
+        );
+
         const rootFilePath = join(rootDir, "opencollection.yml");
         await writeFile(
             rootFilePath,
@@ -206,6 +214,12 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
         );
         expect(collection.getAdditionalContextRoots()).toEqual([
             join(rootDir, "shared"),
+        ]);
+
+        // In the yaml format, the root file is also the collection settings file. So the root directory item gets updated, too.
+        await waitUntil(() => notifiedPaths.length > 0);
+        expect(notifiedPaths.map((path) => normalizePath(path))).toEqual([
+            normalizePath(rootDir),
         ]);
     });
 

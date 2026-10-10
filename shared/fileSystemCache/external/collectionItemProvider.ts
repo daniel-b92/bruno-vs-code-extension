@@ -7,6 +7,7 @@ import {
     FileChangeType,
     BrunoFileType,
     Collection,
+    CollectionFormat,
     CollectionData,
     isCollectionItemWithSequence,
     Logger,
@@ -385,7 +386,10 @@ export class CollectionItemProvider<T> {
 
             // Currently, changes to the additionalContextRoots is not relevant for any subscribers. Therefore, no notifications
             // need to be sent.
-            return;
+            // In the yaml format, the collection root file is also the collection settings file, so it still needs to be handled below.
+            if (collectionForItem.getFormat() == CollectionFormat.Bru) {
+                return;
+            }
         }
 
         if (

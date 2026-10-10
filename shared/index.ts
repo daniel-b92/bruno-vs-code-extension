@@ -46,7 +46,7 @@ export * from "./fileParsing/external/bruFormat/util/getContentRangeForArrayOrDi
 export * from "./fileParsing/external/bruFormat/util/getNonBlockSpecificBlockStartPattern";
 export * from "./fileParsing/external/bruFormat/parseBlockFromFile";
 export * from "./fileParsing/external/shared/getSequenceForFolder";
-export * from "./fileParsing/external/bruFormat/folderSettings/getFolderSettingsFilePath";
+export * from "./fileParsing/external/shared/getFolderSettingsFilePath";
 export * from "./fileParsing/external/shared/getSequencesForRequests";
 export * from "./fileParsing/external/shared/getMaxSequenceForRequests";
 

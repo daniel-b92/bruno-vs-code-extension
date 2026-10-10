@@ -12,8 +12,8 @@ import { getSequenceFromYamlFolderSettingsFile } from "./yamlFormat/createYamlCo
 
 export async function createCollectionDirectoryInstance(
     folderPath: string,
+    format: CollectionFormat,
     folderSettingsFilePath?: string,
-    format = CollectionFormat.Bru,
 ) {
     if (!folderSettingsFilePath) {
         return new CollectionDirectory(folderPath);
