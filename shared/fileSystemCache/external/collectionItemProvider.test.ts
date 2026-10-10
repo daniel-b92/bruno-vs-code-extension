@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach } from "@jest/globals";
+import { writeFile } from "fs/promises";
 import { Evt } from "evt";
 import { basename, join } from "path";
 import {
@@ -12,17 +13,19 @@ import {
     CollectionWatcher,
     FeatureToggles,
     FileChangedEvent,
+    FileChangeType,
     NonBrunoSpecificItemType,
 } from "../..";
 import { useTemporaryDirectories } from "../../_testingUtils";
 
+const disposables: { dispose: () => void }[] = [];
+
+afterEach(() => {
+    disposables.splice(0).forEach((disposable) => disposable.dispose());
+});
+
 describe("CollectionItemProvider.refreshCache", () => {
     const createTemporaryDirectory = useTemporaryDirectories();
-    const disposables: { dispose: () => void }[] = [];
-
-    afterEach(() => {
-        disposables.splice(0).forEach((disposable) => disposable.dispose());
-    });
 
     it("only registers bru collections when the yaml toggle is off", async () => {
         const workspace = await createWorkspace();
@@ -105,27 +108,6 @@ describe("CollectionItemProvider.refreshCache", () => {
         });
     }
 
-    function createProvider(workspace: string, featureToggles: FeatureToggles) {
-        const collectionWatcher = new CollectionWatcher(
-            Evt.create<FileChangedEvent>(),
-            [workspace],
-        );
-        const provider = new CollectionItemProvider<undefined>(
-            collectionWatcher,
-            {
-                paramType:
-                    AdditionalCollectionDataProviderType.SimpleCollectionItem,
-                callback: () => undefined,
-                isAdditionalDataOutdated: () => false,
-            },
-            [],
-            featureToggles,
-        );
-        disposables.push(provider, collectionWatcher);
-
-        return provider;
-    }
-
     function getRegisteredCollectionNames(
         provider: CollectionItemProvider<undefined>,
     ) {
@@ -138,3 +120,124 @@ describe("CollectionItemProvider.refreshCache", () => {
             .sort();
     }
 });
+
+describe("CollectionItemProvider: modification of a collection root file", () => {
+    const createTemporaryDirectory = useTemporaryDirectories();
+    it("updates the additional context roots when 'bruno.json' of a bru collection is modified", async () => {
+        const workspace = await createTemporaryDirectory({
+            "collection/bruno.json": "{}",
+            "collection/request.bru":
+                "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
+        });
+        const rootDir = join(workspace, "collection");
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(
+            workspace,
+            { yamlCollectionSupport: true },
+            fileChangedEmitter,
+        );
+        await provider.refreshCache([workspace]);
+        const collection = provider.getRegisteredCollections()[0];
+
+        expect(collection.getAdditionalContextRoots()).toEqual([]);
+
+        const rootFilePath = join(rootDir, "bruno.json");
+        await writeFile(
+            rootFilePath,
+            JSON.stringify({
+                scripts: { additionalContextRoots: ["./shared"] },
+            }),
+        );
+        fileChangedEmitter.post({
+            path: rootFilePath,
+            changeType: FileChangeType.Modified,
+        });
+
+        await waitUntil(
+            () => collection.getAdditionalContextRoots().length > 0,
+        );
+        expect(collection.getAdditionalContextRoots()).toEqual([
+            join(rootDir, "shared"),
+        ]);
+    });
+
+    it("updates the additional context roots when 'opencollection.yml' of a yaml collection is modified", async () => {
+        const workspace = await createTemporaryDirectory({
+            "collection/opencollection.yml":
+                "opencollection: 1.0.0\ninfo:\n  name: yaml\n",
+            "collection/request.yml":
+                "info:\n  name: request\n  type: http\n  seq: 1\n",
+        });
+        const rootDir = join(workspace, "collection");
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(
+            workspace,
+            { yamlCollectionSupport: true },
+            fileChangedEmitter,
+        );
+        await provider.refreshCache([workspace]);
+        const collection = provider.getRegisteredCollections()[0];
+
+        expect(collection.getFormat()).toBe(CollectionFormat.Yaml);
+        expect(collection.getAdditionalContextRoots()).toEqual([]);
+
+        const rootFilePath = join(rootDir, "opencollection.yml");
+        await writeFile(
+            rootFilePath,
+            [
+                "opencollection: 1.0.0",
+                "info:",
+                "  name: yaml",
+                "extensions:",
+                "  bruno:",
+                "    scripts:",
+                "      additionalContextRoots:",
+                '        - "./shared"',
+                "",
+            ].join("\n"),
+        );
+        fileChangedEmitter.post({
+            path: rootFilePath,
+            changeType: FileChangeType.Modified,
+        });
+
+        await waitUntil(
+            () => collection.getAdditionalContextRoots().length > 0,
+        );
+        expect(collection.getAdditionalContextRoots()).toEqual([
+            join(rootDir, "shared"),
+        ]);
+    });
+
+    async function waitUntil(condition: () => boolean, timeoutInMs = 3000) {
+        const start = Date.now();
+
+        while (!condition() && Date.now() - start < timeoutInMs) {
+            await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+    }
+});
+
+function createProvider(
+    workspace: string,
+    featureToggles: FeatureToggles,
+    fileChangedEmitter = Evt.create<FileChangedEvent>(),
+) {
+    const collectionWatcher = new CollectionWatcher(fileChangedEmitter, [
+        workspace,
+    ]);
+    const provider = new CollectionItemProvider<undefined>(
+        collectionWatcher,
+        {
+            paramType:
+                AdditionalCollectionDataProviderType.SimpleCollectionItem,
+            callback: () => undefined,
+            isAdditionalDataOutdated: () => false,
+        },
+        [],
+        featureToggles,
+    );
+    disposables.push(provider, collectionWatcher);
+
+    return provider;
+}

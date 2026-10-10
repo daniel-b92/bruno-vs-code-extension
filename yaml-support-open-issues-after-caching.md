@@ -19,10 +19,6 @@ The code audit (see below) found no `.bru` assumption that is reachable without 
 
 Per the decision made during planning, consumers get yaml collections as they are. The following assumptions were found by reading the code (not by running the extension):
 
-**Sequence handling**
-
-- `getTestFileDescendants` (`shared/fileSystem/util/getTestFileDescendants.ts`) globs `**/*.bru`. Its only caller `getCollectionRootData` is currently only used for bru collections, so this is harmless for now.
-
 **Server**
 
 - `getFilePathAndType` falls back to `Yml` for any file that is neither `.bru` nor `.js`. This relies on the client's document selectors.

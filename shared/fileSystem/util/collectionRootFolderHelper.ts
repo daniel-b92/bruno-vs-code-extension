@@ -5,8 +5,9 @@ import {
     checkIfPathExistsAsync,
     convertToGlobPattern,
     getFileContent,
-    getTestFileDescendants,
     normalizePath,
+    parseCollectionSettingsFile,
+    TextDocumentHelper,
 } from "../..";
 import { promisify } from "util";
 import { lstat } from "fs";
@@ -58,7 +59,10 @@ async function getBruCollectionRootDirectories(workspaceFolders: string[]) {
     for (const maybeCollectionRoot of maybeFilesInCollectionRootDirs.map(
         (path) => dirname(path),
     )) {
-        const rootData = await getCollectionRootData(maybeCollectionRoot);
+        const rootData = await getCollectionRootData(
+            maybeCollectionRoot,
+            CollectionFormat.Bru,
+        );
 
         if (rootData) {
             result.push({
@@ -83,14 +87,17 @@ async function getYamlCollectionRootDirectories(workspaceFolders: string[]) {
         workspaceFolders,
         getCollectionRootFileName(CollectionFormat.Yaml),
     )) {
-        const isFile = await promisify(lstat)(path)
-            .then((stats) => stats.isFile())
-            .catch(() => false);
+        const rootFolder = dirname(path);
+        const rootData = await getCollectionRootData(
+            rootFolder,
+            CollectionFormat.Yaml,
+        );
 
-        if (isFile) {
+        if (rootData) {
             result.push({
-                rootFolder: dirname(path),
+                rootFolder,
                 format: CollectionFormat.Yaml,
+                ...rootData,
             });
         }
     }
@@ -124,41 +131,61 @@ export function getBrunoJsonFilePath(collectionRootFolder: string) {
 
 export async function getCollectionRootData(
     path: string,
+    format: CollectionFormat,
 ): Promise<{ additionalContextRoots?: string[] } | undefined> {
     const isDirectory = await promisify(lstat)(path)
         .then((stats) => stats.isDirectory())
         .catch(() => undefined);
 
-    const brunoJsonFilePath = isDirectory
-        ? await getBrunoJsonFilePathIfExists(path)
+    const rootFilePath = isDirectory
+        ? await getRootFilePathIfExists(path, format)
         : undefined;
 
-    if (!brunoJsonFilePath) {
+    if (!rootFilePath) {
         return undefined;
     }
 
-    const testfileDescendants = await getTestFileDescendants(path);
-    return testfileDescendants.length > 0
-        ? {
-              additionalContextRoots:
-                  await getAdditionalContextRoots(brunoJsonFilePath),
-          }
-        : undefined;
+    return {
+        additionalContextRoots:
+            format == CollectionFormat.Yaml
+                ? await getAdditionalContextRootsFromYaml(rootFilePath)
+                : await getAdditionalContextRootsFromBrunoJson(rootFilePath),
+    };
 }
 
-async function getBrunoJsonFilePathIfExists(maybeCollectionRoot: string) {
-    const brunoJsonFilePath = getBrunoJsonFilePath(maybeCollectionRoot);
+async function getRootFilePathIfExists(
+    maybeCollectionRoot: string,
+    format: CollectionFormat,
+) {
+    const rootFilePath = getCollectionRootFilePath(maybeCollectionRoot, format);
     const isExistingFile =
-        (await checkIfPathExistsAsync(brunoJsonFilePath)) &&
+        (await checkIfPathExistsAsync(rootFilePath)) &&
         ((
-            await promisify(lstat)(brunoJsonFilePath).catch(() => undefined)
+            await promisify(lstat)(rootFilePath).catch(() => undefined)
         )?.isFile() ??
             false);
 
-    return isExistingFile ? brunoJsonFilePath : undefined;
+    return isExistingFile ? rootFilePath : undefined;
 }
 
-async function getAdditionalContextRoots(brunoJsonFilePath: string) {
+async function getAdditionalContextRootsFromYaml(rootFilePath: string) {
+    const fileContent = await getFileContent(rootFilePath);
+
+    if (fileContent === undefined) {
+        return undefined;
+    }
+
+    const roots = parseCollectionSettingsFile(
+        new TextDocumentHelper(fileContent),
+    ).result?.properties.extensions?.properties.bruno?.properties.scripts
+        ?.properties.additionalContextRoots?.value;
+
+    return roots?.map(({ value }) => resolve(dirname(rootFilePath), value));
+}
+
+async function getAdditionalContextRootsFromBrunoJson(
+    brunoJsonFilePath: string,
+) {
     const fileContent = await getFileContent(brunoJsonFilePath);
 
     if (fileContent === undefined) {

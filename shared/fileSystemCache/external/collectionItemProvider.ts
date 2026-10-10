@@ -12,7 +12,6 @@ import {
     Logger,
     AdditionalCollectionDataProvider,
     getCollectionRootFilePath,
-    CollectionFormat,
     FeatureToggles,
     getCollectionRootData,
     NotificationData,
@@ -372,12 +371,10 @@ export class CollectionItemProvider<T> {
             return;
         }
 
-        if (
-            collectionForItem.getFormat() == CollectionFormat.Bru &&
-            this.doesPathMatchCollectionRootFile(collectionForItem, itemPath)
-        ) {
+        if (this.doesPathMatchCollectionRootFile(collectionForItem, itemPath)) {
             const collectionRootData = await getCollectionRootData(
                 collectionForItem.getRootDirectory(),
+                collectionForItem.getFormat(),
             );
 
             if (collectionRootData) {
