@@ -15,7 +15,7 @@ import { getDefinitionsForAllInbuiltLibraries } from "../../../shared/temporaryJ
 import {
     mapBlockNameToJsFileLine,
     TypedParameter,
-} from "./mapBlockNameToJsFileFunctionName";
+} from "./mapBlockNameToJsFileLine";
 import { getCharacterForLineBreak } from "./getCharacterForLineBreak";
 
 export function getTempJsFileContentForBruFile(
@@ -31,7 +31,7 @@ export function getTempJsFileContentForBruFile(
     const requestType = getRequestType(parsedBlocks);
     const isGrpc = requestType == RequestType.Grpc;
 
-    const functionsForTempJsFile = getCodeBlocks(parsedBlocks).map(
+    const blocksForTempJsFile = getCodeBlocks(parsedBlocks).map(
         ({ name, content }) => `${mapBlockNameToJsFileLine(
             name,
             getShadowingParameters(name, isGrpc),
@@ -41,7 +41,7 @@ ${content}}`,
 
     return getDefinitionsForAllInbuiltLibraries(eol, false, requestType)
         .concat(isGrpc ? [grpcBruTypeDefinitions] : [])
-        .concat(functionsForTempJsFile)
+        .concat(blocksForTempJsFile)
         .join(getCharacterForLineBreak(eol).repeat(2));
 }
 
