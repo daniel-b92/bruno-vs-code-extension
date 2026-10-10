@@ -92,7 +92,7 @@ function getInvalidAnnotationsSortedByPosition(block: DictionaryBlock): {
 
     const nonAnnotationFieldIndexes = sortedFields
         .map(({ field }, index) =>
-            isAnnotationField(field) || field.disabled ? undefined : index,
+            isAnnotationField(field) ? undefined : index,
         )
         .filter((v) => v != undefined);
 
