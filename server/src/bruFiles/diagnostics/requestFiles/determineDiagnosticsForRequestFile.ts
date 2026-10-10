@@ -15,8 +15,9 @@ import {
     BrunoFileType,
     ItemType,
     isDictionaryBlockField,
-    getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
-    MetaBlockKey,
+    DictionaryBlockSimpleField,
+    getRequestTypeField,
+    canBlockBeDefinedMultipleTimes,
 } from "@global_shared";
 import { TypedCollectionItemProvider } from "../../../shared";
 import { DiagnosticWithCode } from "../interfaces";
@@ -77,6 +78,7 @@ export function determineDiagnosticsForRequestFile(
         documentHelper,
         itemType,
     );
+    const requestTypeField = getRequestTypeField(blocks);
     const { needSpecificDiagnostics, others } =
         determineBlocksRequiringSpecificDiagnostics(blocks);
 
@@ -86,6 +88,7 @@ export function determineDiagnosticsForRequestFile(
         documentHelper,
         blocks,
         textOutsideOfBlocks,
+        requestTypeField,
     ).concat(
         collectBlockSpecificDiagnostics(
             itemProvider,
@@ -93,11 +96,7 @@ export function determineDiagnosticsForRequestFile(
             filePath,
             documentHelper,
             needSpecificDiagnostics,
-            getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
-                blocks,
-                RequestFileBlockName.Meta,
-                MetaBlockKey.Type,
-            )?.value,
+            requestTypeField?.value,
         ),
         others.flatMap((block) =>
             isBlockDictionaryBlock(block)
@@ -142,7 +141,7 @@ function determineBlocksRequiringSpecificDiagnostics(allBlocks: Block[]): {
             authBlocks.push(curr);
             return prev;
         }
-        if (curr.name == RequestFileBlockName.WsBody) {
+        if (canBlockBeDefinedMultipleTimes(curr.name)) {
             // Websocket requests can have multiple messages, so these body blocks need to be handled separately.
             wsBodyBlocks.push(curr);
             return prev;
@@ -189,7 +188,9 @@ function collectCommonDiagnostics(
     documentHelper: TextDocumentHelper,
     blocks: Block[],
     textOutsideOfBlocks: TextOutsideOfBlocks[],
+    requestTypeField: DictionaryBlockSimpleField | undefined,
 ): (DiagnosticWithCode | undefined)[] {
+    const requestType = requestTypeField?.value;
     const blocksThatShouldBeDictionaryBlocks = blocks.filter(({ name }) =>
         shouldBeDictionaryBlock(name),
     );
@@ -211,12 +212,21 @@ function collectCommonDiagnostics(
         checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
             filePath,
             blocks,
+            requestTypeField,
         ),
-        checkGrpcSpecificBlocksAreNotDefinedForOtherRequests(filePath, blocks),
-        checkMethodBlockMatchesRequestType(filePath, blocks),
-        ...checkOnlyValidBlocksAreDefinedForGrpcRequests(blocks),
-        checkWsSpecificBlocksAreNotDefinedForOtherRequests(filePath, blocks),
-        ...checkOnlyValidBlocksAreDefinedForWsRequests(blocks),
+        checkGrpcSpecificBlocksAreNotDefinedForOtherRequests(
+            filePath,
+            blocks,
+            requestTypeField,
+        ),
+        checkMethodBlockMatchesRequestType(filePath, blocks, requestTypeField),
+        ...checkOnlyValidBlocksAreDefinedForGrpcRequests(blocks, requestType),
+        checkWsSpecificBlocksAreNotDefinedForOtherRequests(
+            filePath,
+            blocks,
+            requestTypeField,
+        ),
+        ...checkOnlyValidBlocksAreDefinedForWsRequests(blocks, requestType),
         checkNoBlocksHaveUnknownNames(
             filePath,
             blocks,
@@ -234,14 +244,26 @@ function collectCommonDiagnostics(
                 validDictionaryBlocks,
             ),
         ),
-        checkUrlFromMethodBlockMatchesQueryParamsBlock(filePath, blocks),
-        checkUrlFromMethodBlockMatchesPathParamsBlock(filePath, blocks),
+        checkUrlFromMethodBlockMatchesQueryParamsBlock(
+            filePath,
+            blocks,
+            requestType,
+        ),
+        checkUrlFromMethodBlockMatchesPathParamsBlock(
+            filePath,
+            blocks,
+            requestType,
+        ),
         checkCodeBlocksHaveClosingBracket(documentHelper, blocks, itemType),
         checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType(
             filePath,
             blocks,
         ),
-        checkBlockForResponseValidationExists(documentHelper, blocks),
+        checkBlockForResponseValidationExists(
+            documentHelper,
+            blocks,
+            requestType,
+        ),
         checkBlocksAreSeparatedBySingleEmptyLine(
             filePath,
             blocks,

@@ -1,4 +1,9 @@
-import { Block, Range, RequestFileBlockName } from "@global_shared";
+import {
+    Block,
+    canBlockBeDefinedMultipleTimes,
+    Range,
+    RequestFileBlockName,
+} from "@global_shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -16,8 +21,7 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
     }
 
     const duplicates = findDuplicateBlocks(
-        // Websocket requests can have multiple messages, which are defined as separate body blocks.
-        blocks.filter(({ name }) => name != RequestFileBlockName.WsBody),
+        blocks.filter(({ name }) => !canBlockBeDefinedMultipleTimes(name)),
     );
 
     if (duplicates.length == 0) {

@@ -4,7 +4,6 @@ import {
     SettingsBlockKey,
     BooleanFieldValue,
     isDictionaryBlockSimpleField,
-    DictionaryBlockSimpleField,
     DictionaryBlock,
     getMandatoryKeysForSettingsBlock,
     getOptionalKeysForSettingsBlock,
@@ -12,7 +11,7 @@ import {
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
 import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "../shared/checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
-import { checkValueForDictionaryBlockSimpleFieldIsValid } from "../shared/checks/singleBlocks/checkValueForDictionaryBlockSimpleFieldIsValid";
+import { checkValueOfSingleDefinedFieldIsValid } from "../shared/checks/singleBlocks/checkValueOfSingleDefinedFieldIsValid";
 import { DiagnosticWithCode } from "../interfaces";
 import { RelevantWithinSettingsBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinSettingsBlockDiagnosticCodeEnum";
 import { doesDictionaryBlockFieldHaveValidIntegerValue } from "../shared/util/doesDictionaryBlockFieldHaveValidIntegerValue";
@@ -87,7 +86,12 @@ function runChecksForSpecificFields(settingsBlock: DictionaryBlock) {
                 RelevantWithinSettingsBlockDiagnosticCode.ForwardAuthorizationHeaderInvalid,
         },
     ].map(({ key, diagnosticCode }) =>
-        checkIfBooleanFieldHasValidValue(validFields, key, diagnosticCode),
+        checkValueOfSingleDefinedFieldIsValid(
+            validFields,
+            key,
+            Object.values(BooleanFieldValue),
+            diagnosticCode,
+        ),
     );
 
     const fieldsForMaxRedirects = validFields.filter(
@@ -146,20 +150,4 @@ function runChecksForSpecificFields(settingsBlock: DictionaryBlock) {
     }
 
     return result;
-}
-
-function checkIfBooleanFieldHasValidValue(
-    allSimpleFields: DictionaryBlockSimpleField[],
-    key: string,
-    diagnosticCodeInCaseOfFailedValidation: RelevantWithinSettingsBlockDiagnosticCode,
-) {
-    const fieldsWithKey = allSimpleFields.filter(({ key: k }) => k == key);
-
-    return fieldsWithKey.length == 1
-        ? checkValueForDictionaryBlockSimpleFieldIsValid(
-              fieldsWithKey[0],
-              Object.values(BooleanFieldValue),
-              diagnosticCodeInCaseOfFailedValidation,
-          )
-        : undefined;
 }

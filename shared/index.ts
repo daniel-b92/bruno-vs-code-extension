@@ -100,6 +100,8 @@ export * from "./languageUtils/bruFormat/requestFiles/getGraphQlSpecificBlocks";
 export * from "./languageUtils/bruFormat/requestFiles/getGrpcSpecificBlocks";
 export * from "./languageUtils/bruFormat/commonBlocks/grpcBodyBlock/grpcBodyBlockKeyEnum";
 export * from "./languageUtils/bruFormat/requestFiles/getWsSpecificBlocks";
+export * from "./languageUtils/bruFormat/requestFiles/doesRequestTypeSupportUrlParams";
+export * from "./languageUtils/bruFormat/requestFiles/canBlockBeDefinedMultipleTimes";
 export * from "./languageUtils/bruFormat/commonBlocks/wsBodyBlock/wsBodyBlockKeyEnum";
 export * from "./languageUtils/bruFormat/commonBlocks/wsBodyBlock/wsBodyBlockMessageTypeEnum";
 export * from "./languageUtils/bruFormat/commonBlocks/wsBodyBlock/getKeys";
@@ -135,6 +137,7 @@ export * from "./languageUtils/bruFormat/commonBlocks/getAllVariablesFromBlocks"
 export * from "./languageUtils/bruFormat/commonBlocks/metaBlock/metaBlockKeyEnum";
 export * from "./languageUtils/bruFormat/commonBlocks/metaBlock/requestTypeEnum";
 export * from "./languageUtils/bruFormat/commonBlocks/metaBlock/getActiveFieldFromMetaBlock";
+export * from "./languageUtils/bruFormat/commonBlocks/metaBlock/getRequestTypeField";
 export * from "./languageUtils/bruFormat/commonBlocks/metaBlock/metaBlockKeyEnum";
 export * from "./languageUtils/bruFormat/commonBlocks/metaBlock/getSequenceValueFromMetaBlock";
 export * from "./languageUtils/bruFormat/commonBlocks/metaBlock/getSequenceAndTagsFromMetaBlock";

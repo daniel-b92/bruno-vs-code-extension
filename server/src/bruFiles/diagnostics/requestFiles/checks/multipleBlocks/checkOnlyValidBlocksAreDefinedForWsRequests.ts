@@ -9,8 +9,9 @@ import { checkOnlyValidBlocksAreDefinedForRequestType } from "./checkOnlyValidBl
 
 export function checkOnlyValidBlocksAreDefinedForWsRequests(
     blocks: Block[],
+    requestType: string | undefined,
 ): DiagnosticWithCode[] {
-    return checkOnlyValidBlocksAreDefinedForRequestType(blocks, {
+    return checkOnlyValidBlocksAreDefinedForRequestType(blocks, requestType, {
         requestType: RequestType.Ws,
         validBlockNames: getValidBlockNamesForWsRequest(),
         diagnosticCode:

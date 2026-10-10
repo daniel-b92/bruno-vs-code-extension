@@ -1,10 +1,7 @@
 import {
     Block,
-    getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
     getAllMethodBlocks,
-    MetaBlockKey,
     RequestFileBlockName,
-    RequestType,
 } from "@global_shared";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { DiagnosticWithCode } from "../../../interfaces";
@@ -16,19 +13,14 @@ import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/
  */
 export function checkOnlyValidBlocksAreDefinedForRequestType(
     blocks: Block[],
+    actualRequestType: string | undefined,
     specificData: {
-        requestType: RequestType;
+        requestType: string;
         validBlockNames: string[];
         diagnosticCode: NonBlockSpecificDiagnosticCode;
     },
 ): DiagnosticWithCode[] {
     const { requestType, validBlockNames, diagnosticCode } = specificData;
-    const actualRequestType =
-        getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
-            blocks,
-            RequestFileBlockName.Meta,
-            MetaBlockKey.Type,
-        )?.value;
 
     if (actualRequestType != requestType) {
         return [];

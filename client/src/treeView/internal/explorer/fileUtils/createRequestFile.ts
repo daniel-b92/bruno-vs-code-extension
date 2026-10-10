@@ -181,7 +181,11 @@ function getFileContent(
         {
             url: "",
             auth: AuthTypes.None,
-            body: MethodBlockBodies.None,
+            // Websocket requests always use the `body:ws` blocks for their messages.
+            body:
+                requestType == RequestType.Ws
+                    ? MethodBlockBodies.Ws
+                    : MethodBlockBodies.None,
         },
         lineBreak,
     );

@@ -8,7 +8,10 @@ import {
     RequestFileBlockName,
     TextDocumentHelper,
 } from "@global_shared";
-import { parseBlocksFromRequestFileContent } from "@global_shared/_testingUtils";
+import {
+    getRequestTypeFieldFromRequestFileContent,
+    parseBlocksFromRequestFileContent,
+} from "@global_shared/_testingUtils";
 import { checkAtMostOneBodyBlockExists } from "./checks/multipleBlocks/checkAtMostOneBodyBlockExists";
 import { checkBlockForResponseValidationExists } from "./checks/multipleBlocks/checkBlockForResponseValidationExists";
 import { checkMethodBlockMatchesRequestType } from "./checks/multipleBlocks/checkMethodBlockMatchesRequestType";
@@ -18,6 +21,9 @@ import { checkThatNoBlocksAreDefinedMultipleTimes } from "../shared/checks/multi
 import { getSettingsBlockSpecificDiagnostics } from "./getSettingsBlockSpecificDiagnostics";
 import { getWsBodyBlockSpecificDiagnostics } from "./getWsBodyBlockSpecificDiagnostics";
 import { getMissingOptionalBlocks } from "../../shared/getMissingOptionalBlocks";
+import { getMissingMandatoryBlocks } from "../../shared/getMissingMandatoryBlocks";
+import { checkUrlFromMethodBlockMatchesPathParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesPathParamsBlock";
+import { checkUrlFromMethodBlockMatchesQueryParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesQueryParamsBlock";
 import { NonBlockSpecificDiagnosticCode } from "../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { RelevantWithinSettingsBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinSettingsBlockDiagnosticCodeEnum";
 import { RelevantWithinWsBodyBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinWsBodyBlockDiagnosticCodeEnum";
@@ -87,6 +93,9 @@ describe("websocket request files", () => {
                     parseBlocksFromRequestFileContent(
                         getWsFileContent("ws", "ws"),
                     ),
+                    getRequestTypeFieldFromRequestFileContent(
+                        getWsFileContent("ws", "ws"),
+                    ),
                 ),
             ).toBeUndefined();
         });
@@ -95,6 +104,9 @@ describe("websocket request files", () => {
             const result = checkWsSpecificBlocksAreNotDefinedForOtherRequests(
                 filePath,
                 parseBlocksFromRequestFileContent(
+                    getWsFileContent("http", "get"),
+                ),
+                getRequestTypeFieldFromRequestFileContent(
                     getWsFileContent("http", "get"),
                 ),
             );
@@ -112,6 +124,9 @@ describe("websocket request files", () => {
                 parseBlocksFromRequestFileContent(
                     getWsFileContent("http", "ws"),
                 ),
+                getRequestTypeFieldFromRequestFileContent(
+                    getWsFileContent("http", "ws"),
+                ),
             );
 
             expect(result?.relatedInformation).toHaveLength(3);
@@ -126,6 +141,9 @@ describe("websocket request files", () => {
                     parseBlocksFromRequestFileContent(
                         getWsFileContent("ws", "ws"),
                     ),
+                    getRequestTypeFieldFromRequestFileContent(
+                        getWsFileContent("ws", "ws"),
+                    ),
                 ),
             ).toBeUndefined();
         });
@@ -135,6 +153,9 @@ describe("websocket request files", () => {
                 checkMethodBlockMatchesRequestType(
                     filePath,
                     parseBlocksFromRequestFileContent(
+                        getWsFileContent("ws", "get"),
+                    ),
+                    getRequestTypeFieldFromRequestFileContent(
                         getWsFileContent("ws", "get"),
                     ),
                 )?.code,
@@ -151,6 +172,9 @@ describe("websocket request files", () => {
                     parseBlocksFromRequestFileContent(
                         getWsFileContent("ws", "ws"),
                     ),
+                    getRequestTypeFieldFromRequestFileContent(
+                        getWsFileContent("ws", "ws"),
+                    )?.value,
                 ),
             ).toEqual([]);
         });
@@ -168,6 +192,7 @@ params:query {
 
             const result = checkOnlyValidBlocksAreDefinedForWsRequests(
                 parseBlocksFromRequestFileContent(content),
+                getRequestTypeFieldFromRequestFileContent(content)?.value,
             );
 
             expect(result.map(({ code }) => code)).toEqual([
@@ -182,6 +207,9 @@ params:query {
                     parseBlocksFromRequestFileContent(
                         getWsFileContent("http", "get"),
                     ),
+                    getRequestTypeFieldFromRequestFileContent(
+                        getWsFileContent("http", "get"),
+                    )?.value,
                 ),
             ).toEqual([]);
         });
@@ -239,6 +267,51 @@ body:json {
         });
     });
 
+    describe("url params", () => {
+        const content = getWsFileContent("ws", "ws").replace(
+            "url: address",
+            "url: wss://host/:room?token=abc",
+        );
+
+        it("does not require params blocks for the url of websocket requests", () => {
+            const blocks = parseBlocksFromRequestFileContent(content);
+
+            expect(
+                checkUrlFromMethodBlockMatchesQueryParamsBlock(
+                    filePath,
+                    blocks,
+                    "ws",
+                ),
+            ).toBeUndefined();
+            expect(
+                checkUrlFromMethodBlockMatchesPathParamsBlock(
+                    filePath,
+                    blocks,
+                    "ws",
+                ),
+            ).toBeUndefined();
+        });
+
+        it("still requires params blocks for the url of other requests", () => {
+            const blocks = parseBlocksFromRequestFileContent(content);
+
+            expect(
+                checkUrlFromMethodBlockMatchesQueryParamsBlock(
+                    filePath,
+                    blocks,
+                    "http",
+                ),
+            ).toBeDefined();
+            expect(
+                checkUrlFromMethodBlockMatchesPathParamsBlock(
+                    filePath,
+                    blocks,
+                    "http",
+                ),
+            ).toBeDefined();
+        });
+    });
+
     describe("checkBlockForResponseValidationExists", () => {
         it("does not require blocks for response validation for websocket requests", () => {
             expect(
@@ -247,6 +320,9 @@ body:json {
                     parseBlocksFromRequestFileContent(
                         getWsFileContent("ws", "ws"),
                     ),
+                    getRequestTypeFieldFromRequestFileContent(
+                        getWsFileContent("ws", "ws"),
+                    )?.value,
                 ),
             ).toBeUndefined();
         });
@@ -258,6 +334,9 @@ body:json {
                     parseBlocksFromRequestFileContent(
                         getWsFileContent("http", "get"),
                     ),
+                    getRequestTypeFieldFromRequestFileContent(
+                        getWsFileContent("http", "get"),
+                    )?.value,
                 ),
             ).toBeDefined();
         });
@@ -412,6 +491,38 @@ body:json {
             expect(names).not.toContain(RequestFileBlockName.QueryParams);
             expect(names).not.toContain(RequestFileBlockName.PreRequestScript);
             expect(names).not.toContain(RequestFileBlockName.Tests);
+        });
+
+        it("still suggests further body:ws blocks if the method block defines the ws body", () => {
+            const content = getWsFileContent("ws", "ws");
+            const blocks = parseBlocksFromRequestFileContent(content);
+            // The method block defining 'body: ws' makes all body blocks mandatory for the method block.
+            const { blocksThatCannotBeOptional } = getMissingMandatoryBlocks(
+                BrunoFileType.RequestFile,
+                blocks,
+            );
+
+            expect(
+                getMissingOptionalBlocks(
+                    BrunoFileType.RequestFile,
+                    blocks,
+                    blocksThatCannotBeOptional.map(({ name }) => name),
+                ),
+            ).toContainEqual({
+                mandatory: false,
+                name: RequestFileBlockName.WsBody,
+            });
+        });
+
+        it("does not suggest body:ws blocks if another kind of body block exists", () => {
+            const names =
+                getMissingOptionalBlockNames(`${getWsFileContent("ws", "ws")}
+body:json {
+  {}
+}
+`);
+
+            expect(names).not.toContain(RequestFileBlockName.WsBody);
         });
 
         it("does not suggest websocket specific blocks for other request types", () => {

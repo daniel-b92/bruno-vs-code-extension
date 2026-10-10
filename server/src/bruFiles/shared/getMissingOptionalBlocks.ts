@@ -3,6 +3,7 @@ import {
     AuthTypes,
     Block,
     BrunoFileType,
+    canBlockBeDefinedMultipleTimes,
     EnvironmentFileBlockName,
     getActiveFieldFromMethodBlock,
     getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
@@ -79,7 +80,9 @@ function getMissingOptionalBlocksForRequestFile(
 
     const allValidOptionalBlocks = Object.values(RequestFileBlockName).filter(
         (name) =>
-            !blocksThatCannotBeOptional.includes(name) &&
+            // Blocks that can be defined multiple times are still valid suggestions if they already exist (e.g. to add another message).
+            (canBlockBeDefinedMultipleTimes(name) ||
+                !blocksThatCannotBeOptional.includes(name)) &&
             // GraphQL specific blocks only make sense if it's a GraphQL request.
             (!requestType ||
                 requestType == RequestType.Graphql ||
@@ -105,18 +108,23 @@ function getMissingOptionalBlocksForRequestFile(
                     Object.values(Oauth2AdditionalParamsBlockNames) as string[]
                 ).includes(name)),
     );
-    const mutuallyExclusiveBlocksForAuth = allValidOptionalBlocks.filter(
-        (name) => isAuthBlock(name),
+    const repeatableBlocks = allValidOptionalBlocks.filter(
+        canBlockBeDefinedMultipleTimes,
     );
-    // Websocket requests can have multiple messages, so the corresponding body blocks are not mutually exclusive.
-    const mutuallyExclusiveBlocksForBody = allValidOptionalBlocks.filter(
-        (name) => isBodyBlock(name) && name != RequestFileBlockName.WsBody,
+    const nonRepeatableBlocks = allValidOptionalBlocks.filter(
+        (name) => !canBlockBeDefinedMultipleTimes(name),
     );
-    const blocksWithSingleChoice = allValidOptionalBlocks.filter(
+    const mutuallyExclusiveBlocksForAuth = nonRepeatableBlocks.filter((name) =>
+        isAuthBlock(name),
+    );
+    const mutuallyExclusiveBlocksForBody = nonRepeatableBlocks.filter((name) =>
+        isBodyBlock(name),
+    );
+    const blocksWithSingleChoice = nonRepeatableBlocks.filter(
         (name) =>
             !mutuallyExclusiveBlocksForAuth
                 .concat(mutuallyExclusiveBlocksForBody)
-                .includes(name) && name != RequestFileBlockName.WsBody,
+                .includes(name),
     );
 
     return getMissingBlocksWithoutExclusivityToOthers(
@@ -134,10 +142,39 @@ function getMissingOptionalBlocksForRequestFile(
             allBlocks,
             false,
         ),
-        allValidOptionalBlocks.includes(RequestFileBlockName.WsBody)
-            ? [{ mandatory: false, name: RequestFileBlockName.WsBody }]
-            : [],
+        getMissingRepeatableBodyBlocks(
+            repeatableBlocks,
+            allBlocks,
+            blocksThatCannotBeOptional,
+        ),
     );
+}
+
+/**
+ * Repeatable body blocks (e.g. websocket messages) can be added as long as no other kind of body block exists.
+ * If none of them exists yet and they cannot be optional, they are already covered by the missing mandatory blocks.
+ */
+function getMissingRepeatableBodyBlocks(
+    repeatableBlocks: string[],
+    allBlocks: Block[],
+    blocksThatCannotBeOptional: string[],
+): MissingBlock[] {
+    if (
+        allBlocks.some(
+            ({ name }) =>
+                isBodyBlock(name) && !canBlockBeDefinedMultipleTimes(name),
+        )
+    ) {
+        return [];
+    }
+
+    return repeatableBlocks
+        .filter(
+            (name) =>
+                !blocksThatCannotBeOptional.includes(name) ||
+                allBlocks.some(({ name: existing }) => existing == name),
+        )
+        .map((name) => ({ mandatory: false, name }));
 }
 
 function getMissingOptionalBlocksForFolderOrCollectionSettingsFile(

@@ -1,7 +1,6 @@
 import {
     Block,
     BooleanFieldValue,
-    DictionaryBlock,
     getMandatoryKeysForWsBodyBlock,
     getOptionalKeysForWsBodyBlock,
     isBlockDictionaryBlock,
@@ -12,7 +11,7 @@ import {
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
 import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "../shared/checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
-import { checkValueForDictionaryBlockSimpleFieldIsValid } from "../shared/checks/singleBlocks/checkValueForDictionaryBlockSimpleFieldIsValid";
+import { checkValueOfSingleDefinedFieldIsValid } from "../shared/checks/singleBlocks/checkValueOfSingleDefinedFieldIsValid";
 import { DiagnosticWithCode } from "../interfaces";
 import { RelevantWithinWsBodyBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinWsBodyBlockDiagnosticCodeEnum";
 
@@ -30,6 +29,7 @@ export function getWsBodyBlockSpecificDiagnostics(
 
     const mandatoryKeys = getMandatoryKeysForWsBodyBlock();
     const allKeys = [...mandatoryKeys, ...getOptionalKeysForWsBodyBlock()];
+    const simpleFields = block.content.filter(isDictionaryBlockSimpleField);
 
     return [
         checkNoKeysAreMissingForDictionaryBlock(
@@ -49,37 +49,17 @@ export function getWsBodyBlockSpecificDiagnostics(
                 RelevantWithinWsBodyBlockDiagnosticCode.DuplicateKeysDefinedInWsBodyBlock,
             expectedKeys: allKeys,
         }) ?? []),
-        checkValueOfSingleDefinedField(
-            block,
+        checkValueOfSingleDefinedFieldIsValid(
+            simpleFields,
             WsBodyBlockKey.Type,
             Object.values(WsBodyBlockMessageType),
             RelevantWithinWsBodyBlockDiagnosticCode.TypeValueInvalid,
         ),
-        checkValueOfSingleDefinedField(
-            block,
+        checkValueOfSingleDefinedFieldIsValid(
+            simpleFields,
             WsBodyBlockKey.Selected,
             Object.values(BooleanFieldValue),
             RelevantWithinWsBodyBlockDiagnosticCode.SelectedValueInvalid,
         ),
     ];
-}
-
-function checkValueOfSingleDefinedField(
-    block: DictionaryBlock,
-    key: string,
-    validValues: string[],
-    diagnosticCode: RelevantWithinWsBodyBlockDiagnosticCode,
-) {
-    const fieldsWithKey = block.content
-        .filter(isDictionaryBlockSimpleField)
-        .filter(({ key: k }) => k == key);
-
-    // In case of duplicate definitions, it's ambiguous which one is meant. That case is reported by another check.
-    return fieldsWithKey.length == 1
-        ? checkValueForDictionaryBlockSimpleFieldIsValid(
-              fieldsWithKey[0],
-              validValues,
-              diagnosticCode,
-          )
-        : undefined;
 }

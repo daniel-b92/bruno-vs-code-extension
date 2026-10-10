@@ -2,9 +2,7 @@ import {
     Block,
     getAllMethodBlocks,
     getPossibleMethodBlocksForRequestType,
-    getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
-    MetaBlockKey,
-    RequestFileBlockName,
+    DictionaryBlockSimpleField,
     RequestType,
 } from "@global_shared";
 import { DiagnosticSeverity } from "vscode-languageserver";
@@ -19,14 +17,8 @@ import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/
 export function checkMethodBlockMatchesRequestType(
     filePath: string,
     blocks: Block[],
+    requestTypeField: DictionaryBlockSimpleField | undefined,
 ): DiagnosticWithCode | undefined {
-    const requestTypeField =
-        getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
-            blocks,
-            RequestFileBlockName.Meta,
-            MetaBlockKey.Type,
-        );
-
     const requestType = requestTypeField?.value;
 
     if (

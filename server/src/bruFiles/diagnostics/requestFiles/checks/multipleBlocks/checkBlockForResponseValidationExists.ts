@@ -1,7 +1,5 @@
 import {
     Block,
-    getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
-    MetaBlockKey,
     RequestType,
     Position,
     Range,
@@ -15,15 +13,10 @@ import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/
 export function checkBlockForResponseValidationExists(
     documentHelper: TextDocumentHelper,
     blocks: Block[],
+    requestType: string | undefined,
 ): DiagnosticWithCode | undefined {
-    if (
-        // Websocket requests do not support any blocks for validating the response.
-        getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
-            blocks,
-            RequestFileBlockName.Meta,
-            MetaBlockKey.Type,
-        )?.value == RequestType.Ws
-    ) {
+    // Websocket requests do not support any blocks for validating the response.
+    if (requestType == RequestType.Ws) {
         return undefined;
     }
 

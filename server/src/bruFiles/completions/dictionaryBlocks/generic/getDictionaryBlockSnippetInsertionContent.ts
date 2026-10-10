@@ -254,7 +254,7 @@ function getContentForSettingsBlock(
             ] as string[]
         ).includes(key)
             ? Object.values(BooleanFieldValue)
-            : key == SettingsBlockKey.FollowRedirects
+            : key == SettingsBlockKey.MaxRedirects
               ? "5"
               : key == SettingsBlockKey.Timeout
                 ? "inherit"
