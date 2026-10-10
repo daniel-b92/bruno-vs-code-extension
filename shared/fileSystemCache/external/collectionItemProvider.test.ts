@@ -223,6 +223,73 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
         ]);
     });
 
+    it("recognizes a bru file as request file after it was edited from invalid to valid", async () => {
+        await expectFileTypeChangeToBeHandled({
+            files: { "collection/bruno.json": "{}", "collection/req.bru": "" },
+            relativePath: "collection/req.bru",
+            validContent: "meta {\n  name: req\n  type: http\n  seq: 1\n}\n",
+        });
+    });
+
+    it("recognizes a yaml file as request file after it was edited from invalid to valid", async () => {
+        await expectFileTypeChangeToBeHandled({
+            files: {
+                "collection/opencollection.yml":
+                    "opencollection: 1.0.0\ninfo:\n  name: yaml\n",
+                "collection/req.yml": "foo: bar\n",
+            },
+            relativePath: "collection/req.yml",
+            validContent: "info:\n  name: req\n  type: http\n  seq: 1\n",
+        });
+    });
+
+    async function expectFileTypeChangeToBeHandled(params: {
+        files: Record<string, string>;
+        relativePath: string;
+        validContent: string;
+    }) {
+        const workspace = await createTemporaryDirectory(params.files);
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(
+            workspace,
+            { yamlCollectionSupport: true },
+            fileChangedEmitter,
+        );
+        await provider.refreshCache([workspace]);
+        const collection = provider.getRegisteredCollections()[0];
+        const filePath = join(workspace, params.relativePath);
+        const getRegisteredType = () =>
+            collection.getStoredDataForPath(filePath)?.item.getItemType();
+
+        expect(getRegisteredType()).toBe(
+            NonBrunoSpecificItemType.OtherFileType,
+        );
+
+        const notifications: { path: string; updateType: FileChangeType }[] =
+            [];
+        provider.subscribeToUpdates((batch) =>
+            batch.forEach(({ data: { item }, updateType }) =>
+                notifications.push({ path: item.getPath(), updateType }),
+            ),
+        );
+
+        await writeFile(filePath, params.validContent);
+        fileChangedEmitter.post({
+            path: filePath,
+            changeType: FileChangeType.Modified,
+        });
+        await waitUntil(() => getRegisteredType() == BrunoFileType.RequestFile);
+
+        expect(collection.getStoredDataForPath(filePath)?.item).toBeInstanceOf(
+            BrunoRequestFile,
+        );
+
+        await waitUntil(() => notifications.length > 0);
+        expect(notifications.map(({ updateType }) => updateType)).toContain(
+            FileChangeType.Created,
+        );
+    }
+
     async function waitUntil(condition: () => boolean, timeoutInMs = 3000) {
         const start = Date.now();
 

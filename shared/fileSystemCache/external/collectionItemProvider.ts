@@ -15,6 +15,8 @@ import {
     getCollectionRootFilePath,
     FeatureToggles,
     getCollectionRootData,
+    getItemType,
+    NonBrunoSpecificItemType,
     NotificationData,
     ReadyOnlyCollection,
 } from "../..";
@@ -393,6 +395,12 @@ export class CollectionItemProvider<T> {
         }
 
         if (
+            await this.handleChangedItemType(collectionForItem, collectionData)
+        ) {
+            return;
+        }
+
+        if (
             modifiedItem.getItemType() == BrunoFileType.FolderSettingsFile ||
             modifiedItem.getItemType() == BrunoFileType.CollectionSettingsFile
         ) {
@@ -452,6 +460,48 @@ export class CollectionItemProvider<T> {
                         : undefined,
             });
         }
+    }
+
+    /**
+     * The type of some files depends on their content (e.g. a file that was invalid or empty can become a valid request file).
+     * If the type of such a file changed, the old item is replaced by a new one.
+     *
+     * @returns `true` if the type has changed and the item was replaced.
+     */
+    private async handleChangedItemType(
+        collection: Collection<T>,
+        oldData: CollectionData<T>,
+    ) {
+        const { item } = oldData;
+        const oldType = item.getItemType();
+
+        if (
+            oldType != NonBrunoSpecificItemType.OtherFileType &&
+            oldType != BrunoFileType.RequestFile &&
+            oldType != BrunoFileType.AppFile
+        ) {
+            return false;
+        }
+
+        const newType = await getItemType(collection, item.getPath());
+
+        if (newType === undefined || newType == oldType) {
+            return false;
+        }
+
+        this.logger?.info(
+            `${this.commonPreMessageForLogging} Type of item '${item.getPath()}' changed from '${oldType}' to '${newType}'.`,
+        );
+
+        collection.removeTestItemAndDescendants(item);
+        await this.handleOutboundNotification({
+            collection,
+            data: oldData,
+            updateType: FileChangeType.Deleted,
+        });
+        await this.handleItemCreation(collection, item.getPath());
+
+        return true;
     }
 
     private async handleFolderSettingsUpdate(
