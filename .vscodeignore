@@ -3,14 +3,24 @@
 **/node_modules/**/src
 # files from node_modules are actually only needed for the npm package @zentryc5t/ts-plugin-for-bruno
 
-shared/out
+# shared code is bundled into client/dist and server/dist via webpack
+shared/**
+client/out
 **/src/**/*.ts
+**/*.test.ts
 tsPlugin
 
 **/tsconfig.json
 samples/
 **/webpack.config.js
+eslint.config.ts
+jest.config.js
+client/package-lock.json
+server/package-lock.json
 *.vsix
+
+CLAUDE.md
+yaml-support-open-issues-after-caching.md
 
 .claude/
 .github/
