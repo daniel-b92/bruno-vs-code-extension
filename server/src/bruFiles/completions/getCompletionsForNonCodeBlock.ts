@@ -16,6 +16,8 @@ import {
     LineBreakType,
     Range,
     BrunoFileType,
+    getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
+    MetaBlockKey,
 } from "@global_shared";
 import { CompletionItem } from "vscode-languageserver";
 import {
@@ -30,6 +32,7 @@ import { getMethodBlockContentCompletions } from "./dictionaryBlocks/specificBlo
 import { getAuthBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getAuthBlockContentCompletions";
 import { getSettingsBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getSettingsBlockContentCompletions";
 import { getGrpcBodyBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getGrpcBodyBlockContentCompletions";
+import { getWsBodyBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getWsBodyBlockContentCompletions";
 import { getAuthModeBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getAuthModeBlockContentCompletions";
 import { getAllVariableReferences } from "../shared/VariableReferences/getAllVariableReferences";
 import { getTextEditForKey } from "./dictionaryBlocks/generic/getTextEditForKey";
@@ -276,6 +279,17 @@ async function getBlockSpecificCompletions(
     }
     if (blockName == RequestFileBlockName.Settings) {
         return getSettingsBlockContentCompletions(
+            request,
+            blockContainingPosition,
+            getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
+                allBlocks,
+                RequestFileBlockName.Meta,
+                MetaBlockKey.Type,
+            )?.value,
+        );
+    }
+    if (blockName == RequestFileBlockName.WsBody) {
+        return getWsBodyBlockContentCompletions(
             request,
             blockContainingPosition,
         );

@@ -5,7 +5,10 @@ import {
     BrunoFileType,
     EnvironmentFileTopLevelField,
     getDefaultIndentationForDictionaryBlockFields,
+    getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
     getExtensionForBrunoFiles,
+    MetaBlockKey,
+    RequestFileBlockName,
     LineBreakType,
     Position,
     Range,
@@ -94,6 +97,11 @@ export function getCompletionsForPositionOutsideOfBlocks(
             })),
         fileType,
         collection,
+        requestType: getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
+            allBlocks,
+            RequestFileBlockName.Meta,
+            MetaBlockKey.Type,
+        )?.value,
         blockStartBracketPosition: openingBracketIndex
             ? new Position(position.line, openingBracketIndex)
             : undefined,
@@ -258,6 +266,7 @@ function mapToCompletionItems(
         }[];
         fileType: BrunoFileType;
         collection: TypedCollection;
+        requestType?: string;
         blockStartBracketPosition?: Position;
     },
 ): CompletionItem[] {
@@ -266,6 +275,7 @@ function mapToCompletionItems(
         blocksRequiringAdditionalTextEdits,
         collection,
         fileType,
+        requestType,
         blockStartBracketPosition,
     } = additionalData;
     return validBlocks
@@ -279,6 +289,7 @@ function mapToCompletionItems(
                 blockName,
                 fileType,
                 collection,
+                requestType,
                 blockStartBracketPosition,
             );
 
@@ -309,6 +320,7 @@ function getTextEditWithInsertFormat(
     blockName: string,
     fileType: BrunoFileType,
     collection: TypedCollection,
+    requestType?: string,
     blockStartBracketPosition?: Position,
 ):
     | { textEdit: TextEdit | undefined; insertTextFormat?: InsertTextFormat }
@@ -357,6 +369,7 @@ function getTextEditWithInsertFormat(
                               fileType,
                               collection,
                               lineBreak,
+                              requestType,
                           },
                           fileType == BrunoFileType.CollectionSettingsFile,
                       ) ?? defaultContent)

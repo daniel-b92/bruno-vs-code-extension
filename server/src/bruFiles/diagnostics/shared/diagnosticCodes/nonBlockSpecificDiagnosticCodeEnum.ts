@@ -46,4 +46,6 @@ export enum NonBlockSpecificDiagnosticCode {
     GrpcBlocksDefinedForNonGrpcRequestType = "bru35",
     MethodBlockNotMatchingRequestType = "bru36",
     BlockNotValidForGrpcRequestType = "bru37",
+    WsBlocksDefinedForNonWsRequestType = "bru38",
+    BlockNotValidForWsRequestType = "bru39",
 }

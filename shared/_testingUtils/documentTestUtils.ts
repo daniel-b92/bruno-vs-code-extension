@@ -1,5 +1,6 @@
 import {
     BrunoFileType,
+    getRequestTypeField,
     parseBruFile,
     Position,
     Range,
@@ -15,4 +16,8 @@ export function parseBlocksFromRequestFileContent(content: string) {
         new TextDocumentHelper(content),
         BrunoFileType.RequestFile,
     ).blocks;
+}
+
+export function getRequestTypeFieldFromRequestFileContent(content: string) {
+    return getRequestTypeField(parseBlocksFromRequestFileContent(content));
 }

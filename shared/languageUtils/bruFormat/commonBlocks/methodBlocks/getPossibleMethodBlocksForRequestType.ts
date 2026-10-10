@@ -14,9 +14,16 @@ export function getPossibleMethodBlocksForRequestType(requestType?: string) {
     if (requestType == RequestType.Grpc) {
         return [RequestFileBlockName.Grpc];
     }
+    if (requestType == RequestType.Ws) {
+        return [RequestFileBlockName.Ws];
+    }
 
     return requestType != undefined &&
         (Object.values(RequestType) as string[]).includes(requestType)
-        ? allMethodBlocks.filter((name) => name != RequestFileBlockName.Grpc)
+        ? allMethodBlocks.filter(
+              (name) =>
+                  name != RequestFileBlockName.Grpc &&
+                  name != RequestFileBlockName.Ws,
+          )
         : allMethodBlocks;
 }

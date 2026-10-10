@@ -1,11 +1,4 @@
-import {
-    DictionaryBlockSimpleField,
-    MetaBlockKey,
-    Block,
-    RequestFileBlockName,
-    RequestType,
-    getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
-} from "@global_shared";
+import { DictionaryBlockSimpleField, Block, RequestType } from "@global_shared";
 import { getSortedBlocksByPosition } from "../../../shared/util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -15,6 +8,7 @@ import { URI } from "vscode-uri";
 export function checkRequestTypeSpecificBlocksAreNotDefinedForOtherRequests(
     filePath: string,
     blocks: Block[],
+    requestTypeField: DictionaryBlockSimpleField | undefined,
     specificData: {
         requestType: RequestType;
         specificBlockNames: string[];
@@ -24,21 +18,6 @@ export function checkRequestTypeSpecificBlocksAreNotDefinedForOtherRequests(
     },
 ): DiagnosticWithCode | undefined {
     const { requestType, specificBlockNames } = specificData;
-    const metaBlocks = blocks.filter(
-        ({ name }) => name == RequestFileBlockName.Meta,
-    );
-
-    if (metaBlocks.length != 1) {
-        return undefined;
-    }
-
-    const requestTypeField =
-        getActiveSimpleFieldFromDictionaryBlockIfExistsOnce(
-            blocks,
-            RequestFileBlockName.Meta,
-            MetaBlockKey.Type,
-        );
-
     if (!requestTypeField || requestTypeField.value == requestType) {
         return undefined;
     }

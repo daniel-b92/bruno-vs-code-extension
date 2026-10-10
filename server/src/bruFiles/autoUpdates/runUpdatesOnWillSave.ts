@@ -2,6 +2,8 @@ import { URI } from "vscode-uri";
 import { TypedCollectionItemProvider } from "../../shared";
 import {
     BrunoFileType,
+    doesRequestTypeSupportUrlParams,
+    getRequestTypeField,
     getItemType,
     isBrunoFileType,
     parseBruFile,
@@ -27,6 +29,14 @@ export async function runUpdatesOnWillSave(
     if (brunoFileType == BrunoFileType.RequestFile) {
         const docHelper = new TextDocumentHelper(fileContent);
         const { blocks: parsedBlocks } = parseBruFile(docHelper, brunoFileType);
+
+        if (
+            !doesRequestTypeSupportUrlParams(
+                getRequestTypeField(parsedBlocks)?.value,
+            )
+        ) {
+            return [];
+        }
 
         return ([] as TextEdit[]).concat(
             updateUrlToMatchQueryParams(parsedBlocks),

@@ -1,14 +1,14 @@
 import {
     Block,
     DictionaryBlockSimpleField,
-    getGrpcSpecificBlocks,
+    getWsSpecificBlocks,
     RequestType,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { checkRequestTypeSpecificBlocksAreNotDefinedForOtherRequests } from "./checkRequestTypeSpecificBlocksAreNotDefinedForOtherRequests";
 
-export function checkGrpcSpecificBlocksAreNotDefinedForOtherRequests(
+export function checkWsSpecificBlocksAreNotDefinedForOtherRequests(
     filePath: string,
     blocks: Block[],
     requestTypeField: DictionaryBlockSimpleField | undefined,
@@ -18,11 +18,11 @@ export function checkGrpcSpecificBlocksAreNotDefinedForOtherRequests(
         blocks,
         requestTypeField,
         {
-            requestType: RequestType.Grpc,
-            specificBlockNames: getGrpcSpecificBlocks(),
-            requestTypeLabel: "gRPC",
+            requestType: RequestType.Ws,
+            specificBlockNames: getWsSpecificBlocks(),
+            requestTypeLabel: "websocket",
             diagnosticCode:
-                NonBlockSpecificDiagnosticCode.GrpcBlocksDefinedForNonGrpcRequestType,
+                NonBlockSpecificDiagnosticCode.WsBlocksDefinedForNonWsRequestType,
         },
     );
 }

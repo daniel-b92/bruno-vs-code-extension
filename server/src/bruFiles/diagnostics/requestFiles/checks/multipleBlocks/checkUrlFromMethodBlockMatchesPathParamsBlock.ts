@@ -1,4 +1,5 @@
 import {
+    doesRequestTypeSupportUrlParams,
     isBlockDictionaryBlock,
     DictionaryBlock,
     DictionaryBlockSimpleField,
@@ -17,7 +18,12 @@ import { URI } from "vscode-uri";
 export function checkUrlFromMethodBlockMatchesPathParamsBlock(
     filePath: string,
     blocks: Block[],
+    requestType: string | undefined,
 ): DiagnosticWithCode | undefined {
+    if (!doesRequestTypeSupportUrlParams(requestType)) {
+        return undefined;
+    }
+
     const pathParamsBlocks = blocks.filter(
         ({ name }) => name == RequestFileBlockName.PathParams,
     );

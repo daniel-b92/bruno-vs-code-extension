@@ -1,4 +1,9 @@
-import { Block, Range, RequestFileBlockName } from "@global_shared";
+import {
+    Block,
+    canBlockBeDefinedMultipleTimes,
+    Range,
+    RequestFileBlockName,
+} from "@global_shared";
 import { getSortedBlocksByPosition } from "../../util/getSortedBlocksByPosition";
 import { DiagnosticWithCode } from "../../../interfaces";
 import { NonBlockSpecificDiagnosticCode } from "../../diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
@@ -15,7 +20,9 @@ export function checkThatNoBlocksAreDefinedMultipleTimes(
         return;
     }
 
-    const duplicates = findDuplicateBlocks(blocks);
+    const duplicates = findDuplicateBlocks(
+        blocks.filter(({ name }) => !canBlockBeDefinedMultipleTimes(name)),
+    );
 
     if (duplicates.length == 0) {
         return undefined;

@@ -6,6 +6,7 @@ import {
     MethodBlockBodies,
     getMaxSequenceForRequests,
     AuthTypes,
+    getPossibleMethodBlocksForRequestType,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
@@ -59,7 +60,10 @@ export async function createRequestFile(
     quickPick.onDidChangeSelection(async (picks) => {
         pickedLabels.push(...picks.map(({ label }) => label));
 
-        if (pickedLabels.length == 1 && pickedLabels[0] != RequestType.Grpc) {
+        if (
+            pickedLabels.length == 1 &&
+            getSingleMethodBlockForRequestType(pickedLabels[0]) == undefined
+        ) {
             quickPick.hide();
 
             quickPick.step = 2;
@@ -80,8 +84,12 @@ export async function createRequestFile(
         quickPick.dispose();
 
         if (pickedLabels.length == 1) {
-            // For gRPC requests, there is only one possible method block, so there's no need to let the user choose it.
-            pickedLabels.push(RequestFileBlockName.Grpc);
+            // For gRPC and websocket requests, there is only one possible method block, so there's no need to let the user choose it.
+            pickedLabels.push(
+                getSingleMethodBlockForRequestType(
+                    pickedLabels[0],
+                ) as RequestFileBlockName,
+            );
         }
 
         const filePath = resolve(
@@ -135,6 +143,15 @@ export async function createRequestFile(
     quickPick.show();
 }
 
+function getSingleMethodBlockForRequestType(requestType: string) {
+    const possibleMethodBlocks =
+        getPossibleMethodBlocksForRequestType(requestType);
+
+    return possibleMethodBlocks.length == 1
+        ? possibleMethodBlocks[0]
+        : undefined;
+}
+
 function getFileContent(
     requestSequence: number,
     chosenData: {
@@ -164,7 +181,11 @@ function getFileContent(
         {
             url: "",
             auth: AuthTypes.None,
-            body: MethodBlockBodies.None,
+            // Websocket requests always use the `body:ws` blocks for their messages.
+            body:
+                requestType == RequestType.Ws
+                    ? MethodBlockBodies.Ws
+                    : MethodBlockBodies.None,
         },
         lineBreak,
     );

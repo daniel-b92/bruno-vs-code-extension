@@ -15,6 +15,9 @@ import {
     BrunoFileType,
     ItemType,
     isDictionaryBlockField,
+    DictionaryBlockSimpleField,
+    getRequestTypeField,
+    canBlockBeDefinedMultipleTimes,
 } from "@global_shared";
 import { TypedCollectionItemProvider } from "../../../shared";
 import { DiagnosticWithCode } from "../interfaces";
@@ -31,6 +34,9 @@ import { checkBlockForResponseValidationExists } from "./checks/multipleBlocks/c
 import { checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests } from "./checks/multipleBlocks/checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests";
 import { checkGrpcSpecificBlocksAreNotDefinedForOtherRequests } from "./checks/multipleBlocks/checkGrpcSpecificBlocksAreNotDefinedForOtherRequests";
 import { checkOnlyValidBlocksAreDefinedForGrpcRequests } from "./checks/multipleBlocks/checkOnlyValidBlocksAreDefinedForGrpcRequests";
+import { checkWsSpecificBlocksAreNotDefinedForOtherRequests } from "./checks/multipleBlocks/checkWsSpecificBlocksAreNotDefinedForOtherRequests";
+import { checkOnlyValidBlocksAreDefinedForWsRequests } from "./checks/multipleBlocks/checkOnlyValidBlocksAreDefinedForWsRequests";
+import { getWsBodyBlockSpecificDiagnostics } from "./getWsBodyBlockSpecificDiagnostics";
 import { checkMethodBlockMatchesRequestType } from "./checks/multipleBlocks/checkMethodBlockMatchesRequestType";
 import { getGrpcBodyBlockSpecificDiagnostics } from "./getGrpcBodyBlockSpecificDiagnostics";
 import { checkUrlFromMethodBlockMatchesPathParamsBlock } from "./checks/multipleBlocks/checkUrlFromMethodBlockMatchesPathParamsBlock";
@@ -55,6 +61,7 @@ interface BlocksWithSpecificDiagnostics {
     auth?: Block;
     body?: Block;
     graphQlSpecific: Block[];
+    wsBodies: Block[];
     settings?: Block;
     app?: Block;
 }
@@ -71,6 +78,7 @@ export function determineDiagnosticsForRequestFile(
         documentHelper,
         itemType,
     );
+    const requestTypeField = getRequestTypeField(blocks);
     const { needSpecificDiagnostics, others } =
         determineBlocksRequiringSpecificDiagnostics(blocks);
 
@@ -80,6 +88,7 @@ export function determineDiagnosticsForRequestFile(
         documentHelper,
         blocks,
         textOutsideOfBlocks,
+        requestTypeField,
     ).concat(
         collectBlockSpecificDiagnostics(
             itemProvider,
@@ -87,6 +96,7 @@ export function determineDiagnosticsForRequestFile(
             filePath,
             documentHelper,
             needSpecificDiagnostics,
+            requestTypeField?.value,
         ),
         others.flatMap((block) =>
             isBlockDictionaryBlock(block)
@@ -112,6 +122,7 @@ function determineBlocksRequiringSpecificDiagnostics(allBlocks: Block[]): {
     const authBlocks: Block[] = [];
     const bodyBlocks: Block[] = [];
     const graphQlSpecific: Block[] = [];
+    const wsBodyBlocks: Block[] = [];
     const settingsBlocks: Block[] = [];
     const appBlocks: Block[] = [];
 
@@ -128,6 +139,11 @@ function determineBlocksRequiringSpecificDiagnostics(allBlocks: Block[]): {
         }
         if (isAuthBlock(curr.name)) {
             authBlocks.push(curr);
+            return prev;
+        }
+        if (canBlockBeDefinedMultipleTimes(curr.name)) {
+            // Websocket requests can have multiple messages, so these body blocks need to be handled separately.
+            wsBodyBlocks.push(curr);
             return prev;
         }
         if (isBodyBlock(curr.name)) {
@@ -154,6 +170,7 @@ function determineBlocksRequiringSpecificDiagnostics(allBlocks: Block[]): {
         others,
         needSpecificDiagnostics: {
             graphQlSpecific,
+            wsBodies: wsBodyBlocks,
             app: appBlocks.length == 1 ? appBlocks[0] : undefined,
             auth: authBlocks.length == 1 ? authBlocks[0] : undefined,
             body: bodyBlocks.length == 1 ? bodyBlocks[0] : undefined,
@@ -171,7 +188,9 @@ function collectCommonDiagnostics(
     documentHelper: TextDocumentHelper,
     blocks: Block[],
     textOutsideOfBlocks: TextOutsideOfBlocks[],
+    requestTypeField: DictionaryBlockSimpleField | undefined,
 ): (DiagnosticWithCode | undefined)[] {
+    const requestType = requestTypeField?.value;
     const blocksThatShouldBeDictionaryBlocks = blocks.filter(({ name }) =>
         shouldBeDictionaryBlock(name),
     );
@@ -193,10 +212,21 @@ function collectCommonDiagnostics(
         checkGraphQlSpecificBlocksAreNotDefinedForOtherRequests(
             filePath,
             blocks,
+            requestTypeField,
         ),
-        checkGrpcSpecificBlocksAreNotDefinedForOtherRequests(filePath, blocks),
-        checkMethodBlockMatchesRequestType(filePath, blocks),
-        ...checkOnlyValidBlocksAreDefinedForGrpcRequests(blocks),
+        checkGrpcSpecificBlocksAreNotDefinedForOtherRequests(
+            filePath,
+            blocks,
+            requestTypeField,
+        ),
+        checkMethodBlockMatchesRequestType(filePath, blocks, requestTypeField),
+        ...checkOnlyValidBlocksAreDefinedForGrpcRequests(blocks, requestType),
+        checkWsSpecificBlocksAreNotDefinedForOtherRequests(
+            filePath,
+            blocks,
+            requestTypeField,
+        ),
+        ...checkOnlyValidBlocksAreDefinedForWsRequests(blocks, requestType),
         checkNoBlocksHaveUnknownNames(
             filePath,
             blocks,
@@ -214,14 +244,26 @@ function collectCommonDiagnostics(
                 validDictionaryBlocks,
             ),
         ),
-        checkUrlFromMethodBlockMatchesQueryParamsBlock(filePath, blocks),
-        checkUrlFromMethodBlockMatchesPathParamsBlock(filePath, blocks),
+        checkUrlFromMethodBlockMatchesQueryParamsBlock(
+            filePath,
+            blocks,
+            requestType,
+        ),
+        checkUrlFromMethodBlockMatchesPathParamsBlock(
+            filePath,
+            blocks,
+            requestType,
+        ),
         checkCodeBlocksHaveClosingBracket(documentHelper, blocks, itemType),
         checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType(
             filePath,
             blocks,
         ),
-        checkBlockForResponseValidationExists(documentHelper, blocks),
+        checkBlockForResponseValidationExists(
+            documentHelper,
+            blocks,
+            requestType,
+        ),
         checkBlocksAreSeparatedBySingleEmptyLine(
             filePath,
             blocks,
@@ -261,6 +303,7 @@ function collectBlockSpecificDiagnostics(
     documentHelper: TextDocumentHelper,
     {
         graphQlSpecific: graphQlSpecificBlocks,
+        wsBodies: wsBodyBlocks,
         app: appBlock,
         auth: authBlock,
         body: bodyBlock,
@@ -268,6 +311,7 @@ function collectBlockSpecificDiagnostics(
         method: methodBlock,
         settings: settingsBlock,
     }: BlocksWithSpecificDiagnostics,
+    requestType?: string,
 ): (DiagnosticWithCode | undefined)[] {
     const results: (DiagnosticWithCode | undefined)[] = [];
 
@@ -298,6 +342,11 @@ function collectBlockSpecificDiagnostics(
                 : []),
         );
     }
+    results.push(
+        ...wsBodyBlocks.flatMap((block) =>
+            getWsBodyBlockSpecificDiagnostics(filePath, block),
+        ),
+    );
     if (graphQlSpecificBlocks.length > 0) {
         results.push(
             ...graphQlSpecificBlocks.flatMap((block) =>
@@ -307,7 +356,11 @@ function collectBlockSpecificDiagnostics(
     }
     if (settingsBlock) {
         results.push(
-            ...getSettingsBlockSpecificDiagnostics(filePath, settingsBlock),
+            ...getSettingsBlockSpecificDiagnostics(
+                filePath,
+                settingsBlock,
+                requestType,
+            ),
         );
     }
     if (appBlock) {

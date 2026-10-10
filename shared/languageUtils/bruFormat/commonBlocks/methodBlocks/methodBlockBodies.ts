@@ -9,4 +9,5 @@ export const MethodBlockBodies = {
     FormUrlEncoded: "formUrlEncoded",
     GraphQl: "graphql",
     Grpc: "grpc",
+    Ws: "ws",
 } as const;
