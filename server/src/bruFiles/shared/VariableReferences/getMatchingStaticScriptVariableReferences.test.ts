@@ -4,6 +4,7 @@ import {
     CodeBlock,
     Collection,
     CollectionDirectory,
+    CollectionFormat,
     DictionaryBlock,
     Position,
     Range,
@@ -25,6 +26,7 @@ describe("getMatchingStaticScriptVariableReferences", () => {
             rootDirectoryItem,
             undefined,
             [],
+            CollectionFormat.Bru,
         );
 
         collection.addItem({

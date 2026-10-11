@@ -11,8 +11,8 @@ export function createCollectionWithEnvironments(
         extends?: string;
         variables?: { key: string; value: string }[];
     }[],
+    format: CollectionFormat,
     rootDirectory = "/collection",
-    format = CollectionFormat.Bru,
 ) {
     const collection = new Collection(
         new CollectionDirectory(rootDirectory),

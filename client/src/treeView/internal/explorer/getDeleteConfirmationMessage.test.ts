@@ -1,11 +1,14 @@
 import { describe, it, expect } from "@jest/globals";
-import { BrunoFileType } from "@global_shared";
+import { BrunoFileType, CollectionFormat } from "@global_shared";
 import { createCollectionWithEnvironments } from "@global_shared/_testingUtils";
 import { getDeleteConfirmationMessage } from "./getDeleteConfirmationMessage";
 
 describe("getDeleteConfirmationMessage", () => {
     it("returns a plain confirmation message for a non-environment item", () => {
-        const collection = createCollectionWithEnvironments([]);
+        const collection = createCollectionWithEnvironments(
+            [],
+            CollectionFormat.Bru,
+        );
 
         const message = getDeleteConfirmationMessage(
             "request.bru",
@@ -18,7 +21,10 @@ describe("getDeleteConfirmationMessage", () => {
     });
 
     it("returns a plain confirmation message for an environment with no dependents", () => {
-        const collection = createCollectionWithEnvironments([{ name: "Base" }]);
+        const collection = createCollectionWithEnvironments(
+            [{ name: "Base" }],
+            CollectionFormat.Bru,
+        );
 
         const message = getDeleteConfirmationMessage(
             "Base.bru",
@@ -31,10 +37,10 @@ describe("getDeleteConfirmationMessage", () => {
     });
 
     it("determines the environment name for yaml environment files", () => {
-        const collection = createCollectionWithEnvironments([
-            { name: "Base" },
-            { name: "Staging", extends: "Base" },
-        ]);
+        const collection = createCollectionWithEnvironments(
+            [{ name: "Base" }, { name: "Staging", extends: "Base" }],
+            CollectionFormat.Yaml,
+        );
 
         const message = getDeleteConfirmationMessage(
             "Base.yml",
@@ -49,11 +55,14 @@ describe("getDeleteConfirmationMessage", () => {
     });
 
     it("warns about dependent environments when deleting an environment other environments extend", () => {
-        const collection = createCollectionWithEnvironments([
-            { name: "Base" },
-            { name: "Staging", extends: "Base" },
-            { name: "Dev", extends: "Base" },
-        ]);
+        const collection = createCollectionWithEnvironments(
+            [
+                { name: "Base" },
+                { name: "Staging", extends: "Base" },
+                { name: "Dev", extends: "Base" },
+            ],
+            CollectionFormat.Bru,
+        );
 
         const message = getDeleteConfirmationMessage(
             "Base.bru",

@@ -189,8 +189,8 @@ describe("getCollectionItemForFile", () => {
             });
             const collection = createCollectionWithEnvironments(
                 [],
-                root,
                 CollectionFormat.Yaml,
+                root,
             );
 
             const result = (await getCollectionItem(collection, {
@@ -210,8 +210,8 @@ describe("getCollectionItemForFile", () => {
             });
             const collection = createCollectionWithEnvironments(
                 [],
-                root,
                 CollectionFormat.Yaml,
+                root,
             );
 
             const result = (await getCollectionItem(collection, {

@@ -105,8 +105,8 @@ function getYamlFolderSettings(name: string, sequence?: number) {
 function createItemProvider(rootDirectory: string, format: CollectionFormat) {
     const collection = createCollectionWithEnvironments(
         [],
-        rootDirectory,
         format,
+        rootDirectory,
     );
 
     return {

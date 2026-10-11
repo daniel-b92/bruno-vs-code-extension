@@ -179,7 +179,7 @@ async function getNameValidator(directory: string, format: CollectionFormat) {
 }
 
 function createItemProvider(directory: string, format: CollectionFormat) {
-    const collection = createCollectionWithEnvironments([], directory, format);
+    const collection = createCollectionWithEnvironments([], format, directory);
 
     return {
         getAncestorCollectionForPath: () => collection,

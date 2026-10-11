@@ -11,7 +11,7 @@ import { promisify } from "util";
 export async function getSequenceForFolder(
     collectionRootDirectory: string,
     folderPath: string,
-    format = CollectionFormat.Bru,
+    format: CollectionFormat,
 ) {
     if (
         !(await checkIfPathExistsAsync(folderPath)) ||

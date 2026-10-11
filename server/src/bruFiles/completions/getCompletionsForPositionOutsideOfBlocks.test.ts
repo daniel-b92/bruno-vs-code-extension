@@ -1,6 +1,7 @@
 import { describe, it, expect } from "@jest/globals";
 import {
     BrunoFileType,
+    CollectionFormat,
     EnvironmentFileTopLevelField,
     Position,
     TextDocumentHelper,
@@ -13,11 +14,14 @@ import { LanguageFeatureBaseRequest, TypedCollection } from "../../shared";
 describe("getCompletionsForPositionOutsideOfBlocks", () => {
     describe("'extends' field value completions", () => {
         it("suggests other environments that do not create an inheritance loop", () => {
-            const collection = createCollectionWithEnvironments([
-                { name: "Base" },
-                { name: "Staging", extends: "Base" },
-                { name: "Dev" },
-            ]);
+            const collection = createCollectionWithEnvironments(
+                [
+                    { name: "Base" },
+                    { name: "Staging", extends: "Base" },
+                    { name: "Dev" },
+                ],
+                CollectionFormat.Bru,
+            );
 
             const completions = getExtendsValueCompletions(
                 "/collection/environments/Dev.bru",
@@ -31,10 +35,10 @@ describe("getCompletionsForPositionOutsideOfBlocks", () => {
         });
 
         it("does not suggest the environment itself", () => {
-            const collection = createCollectionWithEnvironments([
-                { name: "Base" },
-                { name: "Dev" },
-            ]);
+            const collection = createCollectionWithEnvironments(
+                [{ name: "Base" }, { name: "Dev" }],
+                CollectionFormat.Bru,
+            );
 
             const completions = getExtendsValueCompletions(
                 "/collection/environments/Dev.bru",
@@ -45,11 +49,14 @@ describe("getCompletionsForPositionOutsideOfBlocks", () => {
         });
 
         it("does not suggest an environment that would directly create an inheritance loop", () => {
-            const collection = createCollectionWithEnvironments([
-                { name: "Base" },
-                { name: "Loop", extends: "Dev" },
-                { name: "Dev" },
-            ]);
+            const collection = createCollectionWithEnvironments(
+                [
+                    { name: "Base" },
+                    { name: "Loop", extends: "Dev" },
+                    { name: "Dev" },
+                ],
+                CollectionFormat.Bru,
+            );
 
             const completions = getExtendsValueCompletions(
                 "/collection/environments/Dev.bru",
@@ -62,12 +69,15 @@ describe("getCompletionsForPositionOutsideOfBlocks", () => {
         });
 
         it("does not suggest an environment that would indirectly create an inheritance loop", () => {
-            const collection = createCollectionWithEnvironments([
-                { name: "Base" },
-                { name: "Loop", extends: "Intermediate" },
-                { name: "Intermediate", extends: "Dev" },
-                { name: "Dev" },
-            ]);
+            const collection = createCollectionWithEnvironments(
+                [
+                    { name: "Base" },
+                    { name: "Loop", extends: "Intermediate" },
+                    { name: "Intermediate", extends: "Dev" },
+                    { name: "Dev" },
+                ],
+                CollectionFormat.Bru,
+            );
 
             const completions = getExtendsValueCompletions(
                 "/collection/environments/Dev.bru",
@@ -80,10 +90,10 @@ describe("getCompletionsForPositionOutsideOfBlocks", () => {
         });
 
         it("returns a text edit that replaces everything after the colon", () => {
-            const collection = createCollectionWithEnvironments([
-                { name: "Base" },
-                { name: "Dev" },
-            ]);
+            const collection = createCollectionWithEnvironments(
+                [{ name: "Base" }, { name: "Dev" }],
+                CollectionFormat.Bru,
+            );
 
             const completions = getExtendsValueCompletions(
                 "/collection/environments/Dev.bru",
@@ -101,10 +111,10 @@ describe("getCompletionsForPositionOutsideOfBlocks", () => {
         });
 
         it("returns undefined when the position is not within the 'extends' field value", () => {
-            const collection = createCollectionWithEnvironments([
-                { name: "Base" },
-                { name: "Dev" },
-            ]);
+            const collection = createCollectionWithEnvironments(
+                [{ name: "Base" }, { name: "Dev" }],
+                CollectionFormat.Bru,
+            );
 
             const result = getCompletionsForPositionOutsideOfBlocks(
                 createBaseRequest(
@@ -124,7 +134,10 @@ describe("getCompletionsForPositionOutsideOfBlocks", () => {
     });
 
     it("suggests the 'extends' key itself when the document does not have one yet", () => {
-        const collection = createCollectionWithEnvironments([{ name: "Dev" }]);
+        const collection = createCollectionWithEnvironments(
+            [{ name: "Dev" }],
+            CollectionFormat.Bru,
+        );
 
         const result = getCompletionsForPositionOutsideOfBlocks(
             createBaseRequest(
@@ -145,11 +158,10 @@ describe("getCompletionsForPositionOutsideOfBlocks", () => {
     });
 
     it("lets the user choose from the available environments when suggesting the 'extends' key", () => {
-        const collection = createCollectionWithEnvironments([
-            { name: "Dev" },
-            { name: "Staging" },
-            { name: "Prod" },
-        ]);
+        const collection = createCollectionWithEnvironments(
+            [{ name: "Dev" }, { name: "Staging" }, { name: "Prod" }],
+            CollectionFormat.Bru,
+        );
 
         const result = getCompletionsForPositionOutsideOfBlocks(
             createBaseRequest(
