@@ -1,7 +1,8 @@
 import { basename } from "path";
 import {
     EnvironmentFileExtendsField,
-    getExtensionForBrunoFiles,
+    getFileExtensionForFormat,
+    CollectionFormat,
 } from "@global_shared";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { TypedCollection } from "../../../shared";
@@ -14,7 +15,10 @@ export function checkExtendsFieldDoesNotCreateInheritanceLoop(
     collection: TypedCollection,
 ): DiagnosticWithCode | undefined {
     const { value, valueRange } = extendsField;
-    const ownEnvironmentName = basename(filePath, getExtensionForBrunoFiles());
+    const ownEnvironmentName = basename(
+        filePath,
+        getFileExtensionForFormat(CollectionFormat.Bru),
+    );
 
     if (value.trim().length == 0 || value == ownEnvironmentName) {
         return undefined;

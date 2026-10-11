@@ -6,32 +6,18 @@ Each entry is tagged:
 
 - **[OK]**: the branching is intentional and looks correct.
 - **[Gap]**: only one format is supported here (usually Bru). Known or expected while yaml support is in progress.
-- **[Fixed]**: was a finding, has since been fixed.
 - **[Check]**: possible bug or inconsistency worth a closer look.
 
 ---
 
 ## 1. Central format-to-file-name mapping
 
-- [collectionFormatFileNames.ts:3-21](shared/fileSystem/util/collectionFormatFileNames.ts#L3-L21) **[OK]**: the one place that maps a format to file names:
-
-    |                          | Bru              | Yaml                                              |
-    | ------------------------ | ---------------- | ------------------------------------------------- |
-    | file extension           | `.bru`           | `.yml`                                            |
-    | collection root file     | `bruno.json`     | `opencollection.yml`                              |
-    | collection settings file | `collection.bru` | `opencollection.yml` (same file as the root file) |
-    | folder settings file     | `folder.bru`     | `folder.yml`                                      |
-
-    Files ending in `.yaml` are never treated as Bruno files in yaml collections (they become `OtherFileType`).
-
-- [getExtensionForBrunoFiles.ts:4-6](shared/fileSystem/util/getExtensionForBrunoFiles.ts#L4-L6) **[OK]**: hard-wired to the Bru extension. Every caller of `getExtensionForBrunoFiles()` is therefore Bru-only; those callers are listed in the sections below.
-- [doesFileNameMatchCollectionSettingsFile.ts](shared/fileSystem/util/doesFileNameMatchCollectionSettingsFile.ts) / [doesFileNameMatchFolderSettingsFileName.ts](shared/fileSystem/util/doesFileNameMatchFolderSettingsFileName.ts) **[OK]**: take the format explicitly.
+- No relevant differences.
 
 ## 2. Collection detection and the `Collection` model
 
 - [collectionRootFolderHelper.ts:17-39](shared/fileSystem/util/collectionRootFolderHelper.ts#L17-L39) **[OK]**: Bru roots (`bruno.json`) are always searched. Yaml roots (`opencollection.yml`) are only searched when the `yamlCollectionSupport` toggle is on. If a folder is a valid root for both formats, Bru wins.
 - [collectionRootFolderHelper.ts:132-217](shared/fileSystem/util/collectionRootFolderHelper.ts#L132-L217) **[OK]**: `additionalContextRoots` are read from `bruno.json` (`scripts.additionalContextRoots`, JSON) for Bru, and from `opencollection.yml` (`extensions.bruno.scripts.additionalContextRoots`, via `parseCollectionSettingsFile`) for Yaml.
-- [collection.ts:18](shared/baseModel/collection.ts#L18) **[Fixed]**: the constructor parameter `format` no longer defaults to Bru and is now required. The test helper `createCollectionWithEnvironments` ([collectionTestUtils.ts](shared/_testingUtils/collectionTestUtils.ts)) had the same fallback; it now also requires the format (parameter order is `environments, format, rootDirectory`), and all its callers were updated.
 - [collection.ts:58-68](shared/baseModel/collection.ts#L58-L68) **[OK]** / **[Check]**: environment names are the file name without the format's extension. In yaml environment files there is also a top-level `name` property (checked by [checkTopLevelNameIsDefined.ts](server/src/yamlFiles/diagnostics/checks/environmentFiles/checkTopLevelNameIsDefined.ts)). It still needs checking whether Bruno uses the file name or `name` to identify yaml environments (e.g. for `extends`).
 
 ## 3. Item type detection
@@ -64,7 +50,6 @@ Each entry is tagged:
 - [parseSequenceFromFile.ts:16-45](shared/fileParsing/external/shared/parseSequenceFromFile.ts#L16-L45) **[OK]**: dispatches on the file extension. `.yml` files are read through `parseInfoFromYamlFile` (as a folder settings file if the file name is `folder.yml`, otherwise as a request file). Every other file goes to the Bru meta block parser, which in turn ignores non-`.bru` files.
 - [getSequenceValueRangeFromFileContent.ts:22-59](shared/fileParsing/external/shared/getSequenceValueRangeFromFileContent.ts#L22-L59) **[OK]**: dispatches on the extension. Yaml additionally trims trailing whitespace before comments. Returns `undefined` for unknown extensions.
 - [getFolderSettingsFilePath.ts:10-30](shared/fileParsing/external/shared/getFolderSettingsFilePath.ts#L10-L30) **[OK]**: requires the format explicitly.
-- [getSequenceForFolder.ts:14](shared/fileParsing/external/shared/getSequenceForFolder.ts#L14) **[Fixed]**: the `format` parameter is now required (the default to Bru was removed). Both callers already passed it.
 
 ## 6. Client: collection explorer (tree view)
 
@@ -129,8 +114,7 @@ Each entry is tagged:
 2. **tsPlugin collection detection** ignores `opencollection.yml` (section 9).
 3. **Yaml diagnostics run for every yaml file in the workspace** and guess the file type instead of using the cache (section 8).
 4. **Activation event** only covers `*.bru` (section 7).
-5. ~~**Default `Bru` format fallbacks** in `Collection`, `getSequenceForFolder` and the `createCollectionWithEnvironments` test helper~~ (fixed, sections 2 and 5).
-6. **Renaming a collection root folder** renames the collection only for yaml (section 6). Decide whether this is wanted.
-7. **Cross-format copy, paste and move** between Bru and Yaml collections is not handled (section 6).
-8. Different error behaviour of `createCollectionDirectoryInstance` (section 4), and root-file deletion handling (section 4, side note).
-9. Feature gaps for yaml (additional data/variable references, formatting, completions, hover, auto updates, script intellisense, cross-file diagnostics) are expected at this stage and are listed above for completeness.
+5. **Renaming a collection root folder** renames the collection only for yaml (section 6). Decide whether this is wanted.
+6. **Cross-format copy, paste and move** between Bru and Yaml collections is not handled (section 6).
+7. Different error behaviour of `createCollectionDirectoryInstance` (section 4), and root-file deletion handling (section 4, side note).
+8. Feature gaps for yaml (additional data/variable references, formatting, completions, hover, auto updates, script intellisense, cross-file diagnostics) are expected at this stage and are listed above for completeness.

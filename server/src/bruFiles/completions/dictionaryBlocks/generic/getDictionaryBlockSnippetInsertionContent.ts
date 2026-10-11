@@ -8,7 +8,6 @@ import {
     BooleanFieldValue,
     BrunoFileType,
     getDefaultIndentationForDictionaryBlockFields,
-    getExtensionForBrunoFiles,
     getMandatoryKeysForMethodBlock,
     getMandatoryKeysForNonOAuth2Block,
     getMetaBlockMandatoryKeys,
@@ -34,6 +33,8 @@ import {
     RequestType,
     SettingsBlockKey,
     SettingsFileSpecificBlock,
+    getFileExtensionForFormat,
+    CollectionFormat,
 } from "@global_shared";
 import {
     LanguageFeatureBaseRequest,
@@ -109,7 +110,7 @@ function getContentForMetaBlock({
                 key,
                 predefinedValues: basename(
                     filePath,
-                    getExtensionForBrunoFiles(),
+                    getFileExtensionForFormat(CollectionFormat.Bru),
                 ),
             };
         }

@@ -1,8 +1,9 @@
 import { basename } from "path";
 import {
-    getExtensionForBrunoFiles,
     VariableReferenceType,
     Range,
+    getFileExtensionForFormat,
+    CollectionFormat,
 } from "@global_shared";
 import { VariableSpecificRequestData } from "../interfaces";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
@@ -35,7 +36,7 @@ export function mapStaticEnvVariablesToCompletions(
             matchingVariableKeys.map((key) => {
                 const environmentName = basename(
                     environmentFile,
-                    getExtensionForBrunoFiles(),
+                    getFileExtensionForFormat(CollectionFormat.Bru),
                 );
                 const environmentLabel = inheritedByEnvironmentName
                     ? `'${environmentName}' (inherited by '${inheritedByEnvironmentName}')`

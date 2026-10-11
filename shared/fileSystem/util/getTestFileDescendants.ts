@@ -1,14 +1,15 @@
 import {
-    getExtensionForBrunoFiles,
     parseSequenceFromMetaBlock,
     filterAsync,
     convertToGlobPattern,
+    getFileExtensionForFormat,
+    CollectionFormat,
 } from "../..";
 import { glob } from "glob";
 
 export async function getTestFileDescendants(directoryPath: string) {
     const bruFilePaths = await glob(
-        `${convertToGlobPattern(directoryPath)}/**/*${getExtensionForBrunoFiles()}`,
+        `${convertToGlobPattern(directoryPath)}/**/*${getFileExtensionForFormat(CollectionFormat.Bru)}`,
         { absolute: true },
     );
 

@@ -23,12 +23,13 @@ import {
     BrunoFileType,
     FileChangeType,
     getConfiguredEnvironmentNameAsync,
-    getExtensionForBrunoFiles,
     getItemType,
     isBrunoFileType,
     isInFolderForEnvironmentFiles,
     Position,
     TextDocumentHelper,
+    getFileExtensionForFormat,
+    CollectionFormat,
 } from "@global_shared";
 import { handleCompletionRequest as handleCompletionRequestForBruFile } from "./bruFiles/completions/handleCompletionRequest";
 import { Disposable } from "vscode-languageserver/node";
@@ -409,7 +410,7 @@ function getFilePathAndType(uri: string) {
         filePath,
         type:
             // The file type is already limited by the document selectors defined in the language client.
-            extname(filePath) == getExtensionForBrunoFiles()
+            extname(filePath) == getFileExtensionForFormat(CollectionFormat.Bru)
                 ? FileTypeByExtension.Bru
                 : extname(filePath) == ".js"
                   ? FileTypeByExtension.Js

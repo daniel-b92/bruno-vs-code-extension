@@ -1,5 +1,9 @@
 import { basename } from "path";
-import { getExtensionForBrunoFiles, Range } from "@global_shared";
+import {
+    Range,
+    getFileExtensionForFormat,
+    CollectionFormat,
+} from "@global_shared";
 import { wrapInCodeSpan } from "../markdown/wrapInCodeSpan";
 
 export function getHoverContentForStaticEnvVariables(
@@ -35,7 +39,7 @@ export function getHoverContentForStaticEnvVariables(
                 }) => {
                     const environmentName = basename(
                         file,
-                        getExtensionForBrunoFiles(),
+                        getFileExtensionForFormat(CollectionFormat.Bru),
                     );
                     const environmentColumnText = inheritedByEnvironmentName
                         ? `${environmentName} (inherited by '${inheritedByEnvironmentName}')`
