@@ -14,7 +14,6 @@ import {
     YamlParsingErrorCode,
 } from "@global_shared";
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
-import { checkTopLevelNameIsDefined } from "./diagnostics/checks/environmentFiles/checkTopLevelNameIsDefined";
 import { CommonDiagnosticParams } from "./interfaces";
 import { checkVariableDefinitionsAreValid } from "./diagnostics/checks/environmentFiles/checkVariableDefinitionsAreValid";
 import { checkSettingsFileRequestSection } from "./diagnostics/shared/checkSettingsFileRequestSection";
@@ -102,17 +101,11 @@ export class YamlFormatDiagnosticsProvider {
         // ToDo: Once yaml env files are stored in the cache, add validations for inheritance
         // (env name exists, is not own environment, no circular dependencies,...)
 
-        const otherDiagnostics = [
-            checkTopLevelNameIsDefined(
-                parsingResult.missingProperties,
-                commonParams,
-            ),
-        ].concat(
-            checkVariableDefinitionsAreValid(enabled, commonParams),
-            getDiagnosticsForDisabledItems(disabled),
-        );
         return parsingDiagnostics.concat(
-            otherDiagnostics.filter((d) => d != undefined),
+            checkVariableDefinitionsAreValid(enabled, commonParams).filter(
+                (d) => d != undefined,
+            ),
+            getDiagnosticsForDisabledItems(disabled),
         );
     }
 
