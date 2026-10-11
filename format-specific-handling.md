@@ -20,11 +20,7 @@ Each entry is tagged:
 
 ## 3. Item type detection
 
-- [getItemType.ts:40-95](shared/fileSystem/util/getItemType.ts#L40-L95) **[OK]**:
-    - Only files with the collection's extension are treated as Bruno files (`.bru` files in a yaml collection and the other way round become `OtherFileType`).
-    - Environment, collection settings and folder settings files are detected by location and file name for both formats, using the format-specific names.
-    - Request vs. app file: for Bru this is decided by `meta { type: app }`. For Yaml it is decided by `info.type` (`getItemTypeForOtherYamlFile`). Yaml files with an unknown or invalid `info.type` become `OtherFileType`. A Bru file without a meta block also becomes `OtherFileType`, but a Bru file with any meta block becomes a request file.
-- In a yaml collection, `opencollection.yml` is both the root file and the collection settings file. It is therefore registered as `CollectionSettingsFile`, while `bruno.json` is an `OtherFileType`.
+- No relevant differences.
 
 ## 4. File system cache (`shared/fileSystemCache`)
 

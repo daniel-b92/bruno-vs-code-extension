@@ -25,10 +25,8 @@ describe("getItemType", () => {
             ["Folder1/websocket.yml", BrunoFileType.RequestFile],
             ["Folder1/app.yml", BrunoFileType.AppFile],
             ["Folder1/noInfo.yml", NonBrunoSpecificItemType.OtherFileType],
-            [
-                "Folder1/unknownInfoType.yml",
-                NonBrunoSpecificItemType.OtherFileType,
-            ],
+            ["Folder1/unknownInfoType.yml", BrunoFileType.RequestFile],
+            ["Folder1/folderTypeInfo.yml", BrunoFileType.RequestFile],
             ["Folder1/invalid.yml", NonBrunoSpecificItemType.OtherFileType],
             ["Folder1/legacy.bru", NonBrunoSpecificItemType.OtherFileType],
             ["Folder1/readme.md", NonBrunoSpecificItemType.OtherFileType],
@@ -58,7 +56,7 @@ describe("getItemType", () => {
 
             expect(
                 await getItemType(collection, join(root, "folder.yml")),
-            ).toBe(NonBrunoSpecificItemType.OtherFileType);
+            ).toBe(BrunoFileType.RequestFile);
         });
 
         it("returns undefined for a path that does not exist", async () => {
@@ -122,6 +120,7 @@ describe("getItemType", () => {
                 "info:\n  name: app\n  type: app\n  seq: 5\ncode: x\n",
             "Folder1/noInfo.yml": "foo: bar\n",
             "Folder1/unknownInfoType.yml": "info:\n  name: x\n  type: other\n",
+            "Folder1/folderTypeInfo.yml": "info:\n  name: x\n  type: folder\n",
             "Folder1/invalid.yml": "info: [unclosed\n",
             "Folder1/legacy.bru": "meta {\n  name: legacy\n  seq: 1\n}\n",
             "Folder1/readme.md": "# readme\n",

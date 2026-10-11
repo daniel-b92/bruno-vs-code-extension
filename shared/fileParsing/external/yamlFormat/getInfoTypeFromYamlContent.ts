@@ -1,4 +1,4 @@
-import { parseDocument } from "yaml";
+import { isMap, parseDocument } from "yaml";
 import { FileInfoType } from "./constants/sharedConstants";
 
 export function getInfoTypeFromYamlContent(text: string) {
@@ -8,4 +8,8 @@ export function getInfoTypeFromYamlContent(text: string) {
     return (Object.values(FileInfoType) as unknown[]).includes(type)
         ? (type as FileInfoType)
         : undefined;
+}
+
+export function hasInfoBlockInYamlContent(text: string) {
+    return isMap(parseDocument(text).get("info", true));
 }
