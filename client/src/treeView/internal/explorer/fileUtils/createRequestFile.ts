@@ -64,7 +64,6 @@ export async function createRequestFile(
     quickPick.totalSteps = 2;
     quickPick.step = 1;
     quickPick.title = "Select the request type";
-    // ToDo: Add the request type for websocket requests (only for the `bru` format, `RequestType` currently has no websocket entry).
     quickPick.items = Object.values(RequestType).map((type) => ({
         label: type,
     }));
@@ -218,11 +217,16 @@ function getYamlFileContent(
     requestType: RequestType,
     methodBlockName: string,
 ) {
-    return stringify({
+    const topLevelProperties = {
         info: { name: requestName, type: requestType, seq: requestSequence },
         [requestType]:
             requestType == RequestType.Grpc
                 ? { url: "" }
                 : { method: methodBlockName.toUpperCase(), url: "" },
-    });
+    };
+
+    // Bruno desktop separates the top level properties by an empty line.
+    return Object.entries(topLevelProperties)
+        .map(([key, value]) => stringify({ [key]: value }))
+        .join("\n");
 }

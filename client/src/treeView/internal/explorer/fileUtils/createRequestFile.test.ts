@@ -55,14 +55,13 @@ describe("createRequestFile", () => {
         });
 
         expect(await readdir(directory)).toEqual(["my_request.yml"]);
-        expect(
-            await readFile(join(directory, "my_request.yml"), "utf-8"),
-        ).toBe(
+        expect(await readFile(join(directory, "my_request.yml"), "utf-8")).toBe(
             [
                 "info:",
                 "  name: my_request",
                 "  type: http",
                 "  seq: 1",
+                "",
                 "http:",
                 "  method: POST",
                 '  url: ""',
@@ -87,6 +86,7 @@ describe("createRequestFile", () => {
                 "  name: grpc_request",
                 "  type: grpc",
                 "  seq: 1",
+                "",
                 "grpc:",
                 '  url: ""',
                 "",
@@ -187,8 +187,9 @@ function createItemProvider(directory: string, format: CollectionFormat) {
 }
 
 function createFakeQuickPick() {
-    let selectionListener: (picks: { label: string }[]) => Promise<void> =
-        async () => {};
+    let selectionListener: (
+        picks: { label: string }[],
+    ) => Promise<void> = async () => {};
 
     return {
         items: [] as { label: string }[],
