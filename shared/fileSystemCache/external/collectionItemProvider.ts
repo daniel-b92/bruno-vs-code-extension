@@ -19,6 +19,7 @@ import {
     NonBrunoSpecificItemType,
     NotificationData,
     ReadyOnlyCollection,
+    ConflictingCollectionRootFiles,
 } from "../..";
 import { basename, dirname } from "path";
 import { isModifiedItemOutdated } from "../internal/isModifiedItemOutdated";
@@ -32,6 +33,9 @@ export class CollectionItemProvider<T> {
         private featureToggles: FeatureToggles,
         private cacheRefreshNotifier?: Evt<void>,
         private logger?: Logger,
+        private onConflictingCollectionRootFiles?: (
+            conflicts: ConflictingCollectionRootFiles[],
+        ) => void,
     ) {
         this.collectionRegistry = new CollectionRegistry(collectionWatcher);
         this.itemUpdateEmitter = Evt.create<NotificationData<T>[]>();
@@ -229,6 +233,7 @@ export class CollectionItemProvider<T> {
             this.additionalDataProvider,
             this.featureToggles,
             this.logger,
+            this.onConflictingCollectionRootFiles,
         );
 
         const endTime = performance.now();

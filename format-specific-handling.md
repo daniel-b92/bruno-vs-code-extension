@@ -16,8 +16,6 @@ Each entry is tagged:
 
 ## 2. Collection detection and the `Collection` model
 
-- [collectionRootFolderHelper.ts:17-39](shared/fileSystem/util/collectionRootFolderHelper.ts#L17-L39) **[OK]**: Bru roots (`bruno.json`) are always searched. Yaml roots (`opencollection.yml`) are only searched when the `yamlCollectionSupport` toggle is on. If a folder is a valid root for both formats, Bru wins.
-- [collectionRootFolderHelper.ts:132-217](shared/fileSystem/util/collectionRootFolderHelper.ts#L132-L217) **[OK]**: `additionalContextRoots` are read from `bruno.json` (`scripts.additionalContextRoots`, JSON) for Bru, and from `opencollection.yml` (`extensions.bruno.scripts.additionalContextRoots`, via `parseCollectionSettingsFile`) for Yaml.
 - [collection.ts:58-68](shared/baseModel/collection.ts#L58-L68) **[OK]** / **[Check]**: environment names are the file name without the format's extension. In yaml environment files there is also a top-level `name` property (checked by [checkTopLevelNameIsDefined.ts](server/src/yamlFiles/diagnostics/checks/environmentFiles/checkTopLevelNameIsDefined.ts)). It still needs checking whether Bruno uses the file name or `name` to identify yaml environments (e.g. for `extends`).
 
 ## 3. Item type detection

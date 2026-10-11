@@ -1,4 +1,4 @@
-import { dirname, resolve } from "path";
+import { dirname, isAbsolute, relative, resolve } from "path";
 import {
     CollectionFormat,
     FeatureToggles,
@@ -15,28 +15,62 @@ import { lstat } from "fs";
 import { glob } from "glob";
 import { getCollectionRootFileName } from "./collectionFormatFileNames";
 
+export type CollectionRootDirectory = {
+    rootFolder: string;
+    additionalContextRoots?: string[];
+    format: CollectionFormat;
+};
+
+export type ConflictingCollectionRootFiles = {
+    rootFilePath: string;
+    conflictingFilePaths: string[];
+};
+
 export async function getAllCollectionRootDirectories(
     workspaceFolders: string[],
     featureToggles: FeatureToggles,
-) {
-    const bruRoots = await getBruCollectionRootDirectories(workspaceFolders);
-
+): Promise<{
+    roots: CollectionRootDirectory[];
+    conflicts: ConflictingCollectionRootFiles[];
+}> {
     if (!featureToggles.yamlCollectionSupport) {
-        return bruRoots;
+        return {
+            roots: await getBruCollectionRootDirectories(
+                await globFilesInWorkspaces(
+                    workspaceFolders,
+                    getCollectionRootFileName(CollectionFormat.Bru),
+                ),
+            ),
+            conflicts: [],
+        };
     }
 
-    const yamlRoots = await getYamlCollectionRootDirectories(workspaceFolders);
-
-    return bruRoots.concat(
-        yamlRoots.filter(
-            ({ rootFolder }) =>
-                // If a folder is a valid root for both formats, the bru format takes precedence.
-                !bruRoots.some(
-                    ({ rootFolder: bruRoot }) =>
-                        normalizePath(bruRoot) == normalizePath(rootFolder),
-                ),
-        ),
+    const bruRootFiles = await globFilesInWorkspaces(
+        workspaceFolders,
+        getCollectionRootFileName(CollectionFormat.Bru),
     );
+    const yamlRootFiles = await globFilesInWorkspaces(
+        workspaceFolders,
+        getCollectionRootFileName(CollectionFormat.Yaml),
+    );
+    const { conflicts, nonConflicting } = splitByConflicts(
+        bruRootFiles.concat(yamlRootFiles),
+    );
+    const isNonConflicting = (path: string) =>
+        nonConflicting.some((other) => isSamePath(other, path));
+
+    return {
+        roots: (
+            await getBruCollectionRootDirectories(
+                bruRootFiles.filter(isNonConflicting),
+            )
+        ).concat(
+            await getYamlCollectionRootDirectories(
+                yamlRootFiles.filter(isNonConflicting),
+            ),
+        ),
+        conflicts,
+    };
 }
 
 export function getCollectionRootFilePath(
@@ -46,64 +80,81 @@ export function getCollectionRootFilePath(
     return resolve(collectionRootFolder, getCollectionRootFileName(format));
 }
 
-async function getBruCollectionRootDirectories(workspaceFolders: string[]) {
-    const maybeFilesInCollectionRootDirs = await globFilesInWorkspaces(
-        workspaceFolders,
-        getCollectionRootFileName(CollectionFormat.Bru),
+async function getBruCollectionRootDirectories(rootFilePaths: string[]) {
+    return await getRootDirectoriesForFiles(
+        rootFilePaths,
+        CollectionFormat.Bru,
     );
-    const result: {
-        rootFolder: string;
-        additionalContextRoots?: string[];
-        format: CollectionFormat;
-    }[] = [];
+}
 
-    for (const maybeCollectionRoot of maybeFilesInCollectionRootDirs.map(
-        (path) => dirname(path),
-    )) {
-        const rootData = await getCollectionRootData(
-            maybeCollectionRoot,
-            CollectionFormat.Bru,
-        );
+async function getYamlCollectionRootDirectories(rootFilePaths: string[]) {
+    return await getRootDirectoriesForFiles(
+        rootFilePaths,
+        CollectionFormat.Yaml,
+    );
+}
+
+async function getRootDirectoriesForFiles(
+    rootFilePaths: string[],
+    format: CollectionFormat,
+) {
+    const result: CollectionRootDirectory[] = [];
+
+    for (const rootFolder of rootFilePaths.map((path) => dirname(path))) {
+        const rootData = await getCollectionRootData(rootFolder, format);
 
         if (rootData) {
-            result.push({
-                rootFolder: maybeCollectionRoot,
-                format: CollectionFormat.Bru,
-                ...rootData,
-            });
+            result.push({ rootFolder, format, ...rootData });
         }
     }
 
     return result;
 }
 
-async function getYamlCollectionRootDirectories(workspaceFolders: string[]) {
-    const result: {
-        rootFolder: string;
-        additionalContextRoots?: string[];
-        format: CollectionFormat;
-    }[] = [];
+/**
+ * A collection root file only counts, if no other collection root file (of any format)
+ * exists in the same directory or in any of its subdirectories.
+ */
+function splitByConflicts(rootFilePaths: string[]) {
+    const uniquePaths = rootFilePaths.filter(
+        (path, index) =>
+            rootFilePaths.findIndex((other) => isSamePath(other, path)) ==
+            index,
+    );
+    const conflicts: ConflictingCollectionRootFiles[] = [];
+    const nonConflicting: string[] = [];
 
-    for (const path of await globFilesInWorkspaces(
-        workspaceFolders,
-        getCollectionRootFileName(CollectionFormat.Yaml),
-    )) {
-        const rootFolder = dirname(path);
-        const rootData = await getCollectionRootData(
-            rootFolder,
-            CollectionFormat.Yaml,
+    for (const rootFilePath of uniquePaths) {
+        const conflictingFilePaths = uniquePaths.filter(
+            (other) =>
+                !isSamePath(other, rootFilePath) &&
+                isInDirectoryOrSubdirectory(
+                    dirname(other),
+                    dirname(rootFilePath),
+                ),
         );
 
-        if (rootData) {
-            result.push({
-                rootFolder,
-                format: CollectionFormat.Yaml,
-                ...rootData,
-            });
+        if (conflictingFilePaths.length > 0) {
+            conflicts.push({ rootFilePath, conflictingFilePaths });
+        } else {
+            nonConflicting.push(rootFilePath);
         }
     }
 
-    return result;
+    return { conflicts, nonConflicting };
+}
+
+function isSamePath(a: string, b: string) {
+    return normalizePath(a) == normalizePath(b);
+}
+
+function isInDirectoryOrSubdirectory(path: string, directory: string) {
+    const relativePath = relative(
+        normalizePath(directory),
+        normalizePath(path),
+    );
+
+    return !relativePath.startsWith("..") && !isAbsolute(relativePath);
 }
 
 async function globFilesInWorkspaces(

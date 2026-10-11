@@ -1,5 +1,5 @@
 import { describe, it, expect } from "@jest/globals";
-import { basename } from "path";
+import { basename, join } from "path";
 import { useTemporaryDirectories } from "../../_testingUtils";
 import { CollectionFormat } from "../../baseModel/interfaces";
 import { getAllCollectionRootDirectories } from "./collectionRootFolderHelper";
@@ -10,7 +10,7 @@ describe("getAllCollectionRootDirectories", () => {
     it("ignores yaml collections when the yaml toggle is off", async () => {
         const workspace = await createWorkspace();
 
-        const roots = await getAllCollectionRootDirectories([workspace], {
+        const { roots } = await getAllCollectionRootDirectories([workspace], {
             yamlCollectionSupport: false,
         });
 
@@ -23,14 +23,42 @@ describe("getAllCollectionRootDirectories", () => {
     it("also finds yaml collections when the yaml toggle is on", async () => {
         const workspace = await createWorkspace();
 
-        const roots = await getAllCollectionRootDirectories([workspace], {
+        const { roots, conflicts } = await getAllCollectionRootDirectories([workspace], {
             yamlCollectionSupport: true,
         });
 
         expect(getRootNamesWithFormat(roots)).toEqual([
-            "bothFormats (Bru)",
             "bruCollection (Bru)",
             "yamlCollection (Yaml)",
+        ]);
+        expect(
+            conflicts.map(({ rootFilePath }) => rootFilePath).sort(),
+        ).toEqual([
+            join(workspace, "bothFormats", "bruno.json"),
+            join(workspace, "bothFormats", "opencollection.yml"),
+        ]);
+    });
+
+    it("ignores a root that contains another root in a subdirectory when the yaml toggle is on", async () => {
+        const workspace = await createTemporaryDirectory({
+            "outer/bruno.json": "{}",
+            "outer/req.bru": bruRequest,
+            "outer/inner/opencollection.yml": "info:\n  name: yaml\n",
+        });
+
+        const { roots, conflicts } = await getAllCollectionRootDirectories(
+            [workspace],
+            { yamlCollectionSupport: true },
+        );
+
+        expect(getRootNamesWithFormat(roots)).toEqual(["inner (Yaml)"]);
+        expect(conflicts).toEqual([
+            {
+                rootFilePath: join(workspace, "outer", "bruno.json"),
+                conflictingFilePaths: [
+                    join(workspace, "outer", "inner", "opencollection.yml"),
+                ],
+            },
         ]);
     });
 
@@ -39,7 +67,7 @@ describe("getAllCollectionRootDirectories", () => {
             "notACollection/opencollection.yml/child.txt": "",
         });
 
-        const roots = await getAllCollectionRootDirectories([workspace], {
+        const { roots } = await getAllCollectionRootDirectories([workspace], {
             yamlCollectionSupport: true,
         });
 
@@ -47,18 +75,18 @@ describe("getAllCollectionRootDirectories", () => {
     });
 
     async function createWorkspace() {
-        const bruRequest = "meta {\n  name: req\n  type: http\n  seq: 1\n}\n";
-
         return await createTemporaryDirectory({
             "bruCollection/bruno.json": "{}",
             "bruCollection/req.bru": bruRequest,
             "yamlCollection/opencollection.yml": "info:\n  name: yaml\n",
-            // When both root files exist, the bru format takes precedence.
+            // When both root files exist in one directory, they conflict with each other.
             "bothFormats/bruno.json": "{}",
             "bothFormats/req.bru": bruRequest,
             "bothFormats/opencollection.yml": "info:\n  name: both\n",
         });
     }
+
+    const bruRequest = "meta {\n  name: req\n  type: http\n  seq: 1\n}\n";
 
     function getRootNamesWithFormat(
         roots: { rootFolder: string; format: CollectionFormat }[],
