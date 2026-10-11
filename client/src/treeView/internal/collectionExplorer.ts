@@ -10,6 +10,8 @@ import {
     CollectionItem,
     CollectionItemWithSequence,
     isCollectionItemWithSequence,
+    CollectionFormat,
+    getBrunoJsonFilePath,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
@@ -26,6 +28,7 @@ import { basename, dirname, extname, resolve } from "path";
 import { validateNewItemNameIsUnique } from "./explorer/validateNewItemNameIsUnique";
 import { createRequestFile } from "./explorer/fileUtils/createRequestFile";
 import { replaceItemName } from "./explorer/fileUtils/replaceItemName";
+import { replaceNameInBrunoJson } from "./explorer/fileUtils/replaceNameInBrunoJson";
 import { getPathForDuplicatedItem } from "./explorer/getPathForDuplicatedItem";
 import { renameFileOrFolder } from "./explorer/renameFileOrFolder";
 import { normalizeSequencesForRequestFiles } from "./explorer/fileUtils/normalizeSequencesForRequestFiles";
@@ -535,6 +538,16 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                             newItemName,
                             oldItem.getItemType(),
                             oldCollection.getFormat(),
+                        );
+                    }
+
+                    if (
+                        isCollectionRootFolder &&
+                        oldCollection.getFormat() == CollectionFormat.Bru
+                    ) {
+                        await replaceNameInBrunoJson(
+                            getBrunoJsonFilePath(newPath),
+                            newItemName,
                         );
                     }
 

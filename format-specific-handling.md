@@ -32,10 +32,6 @@ Each entry is tagged:
 
 ## 6. Client: collection explorer (tree view)
 
-- [collectionExplorer.ts:510-544](client/src/treeView/internal/collectionExplorer.ts#L510-L544) (rename) **[Check]**: renaming a **collection root folder** looks up the root folder's settings file and replaces the name in it.
-    - Yaml: this is `opencollection.yml`, so `info.name` (the collection name) is rewritten to the new folder name.
-    - Bru: this is `collection.bru`, which normally has no `meta` name, and the name in `bruno.json` is not touched. So the collection name only changes for yaml.
-    - For folders, `oldItem.getItemType()` is `Directory` (not `FolderSettingsFile`). This currently works because the name is parsed for every file type.
 - [handleFileInsertion.ts:45-116](client/src/treeView/internal/explorer/fileUtils/handleFileInsertion.ts#L45-L116) **[OK]** / **[Check]**: the name replacement and the settings-file confirmation dialogs use the **target** collection's format.
     - Copying or pasting a file from a Bru collection into a Yaml collection (or the other way round) is not handled: the file keeps its original extension and content, and is then treated as `OtherFileType`.
     - The `replace(getFileExtensionForFormat(format), "")` call does not remove the foreign extension.
