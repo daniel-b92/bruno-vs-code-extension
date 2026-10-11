@@ -6,6 +6,7 @@ import {
     convertToGlobPattern,
     getFileContent,
     getTestFileDescendants,
+    isInFolderForEnvironmentFiles,
     normalizePath,
     parseCollectionSettingsFile,
     TextDocumentHelper,
@@ -49,10 +50,13 @@ export async function getAllCollectionRootDirectories(
         workspaceFolders,
         getCollectionRootFileName(CollectionFormat.Bru),
     );
-    const yamlRootFiles = await globFilesInWorkspaces(
-        workspaceFolders,
-        getCollectionRootFileName(CollectionFormat.Yaml),
-    );
+    // An environment named like the root file (`environments/opencollection.yml`) is no collection root.
+    const yamlRootFiles = (
+        await globFilesInWorkspaces(
+            workspaceFolders,
+            getCollectionRootFileName(CollectionFormat.Yaml),
+        )
+    ).filter((path) => !isInFolderForEnvironmentFiles(path));
     const { conflicts, nonConflicting } = splitByConflicts(
         bruRootFiles.concat(yamlRootFiles),
     );

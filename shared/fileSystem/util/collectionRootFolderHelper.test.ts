@@ -23,9 +23,12 @@ describe("getAllCollectionRootDirectories", () => {
     it("also finds yaml collections when the yaml toggle is on", async () => {
         const workspace = await createWorkspace();
 
-        const { roots, conflicts } = await getAllCollectionRootDirectories([workspace], {
-            yamlCollectionSupport: true,
-        });
+        const { roots, conflicts } = await getAllCollectionRootDirectories(
+            [workspace],
+            {
+                yamlCollectionSupport: true,
+            },
+        );
 
         expect(getRootNamesWithFormat(roots)).toEqual([
             "bruCollection (Bru)",
@@ -60,6 +63,23 @@ describe("getAllCollectionRootDirectories", () => {
                 ],
             },
         ]);
+    });
+
+    it("does not treat an environment named 'opencollection' as a conflicting root file", async () => {
+        const workspace = await createTemporaryDirectory({
+            "yamlCollection/opencollection.yml": "info:\n  name: yaml\n",
+            "yamlCollection/environments/opencollection.yml": "name: env\n",
+        });
+
+        const { roots, conflicts } = await getAllCollectionRootDirectories(
+            [workspace],
+            { yamlCollectionSupport: true },
+        );
+
+        expect(getRootNamesWithFormat(roots)).toEqual([
+            "yamlCollection (Yaml)",
+        ]);
+        expect(conflicts).toEqual([]);
     });
 
     it("does not treat a folder as a yaml collection when 'opencollection.yml' is a directory", async () => {
