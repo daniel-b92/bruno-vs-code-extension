@@ -15,7 +15,7 @@ import { normalizeSequencesForFolders } from "./normalizeSequencesForFolders";
 import { Uri, window, workspace, WorkspaceEdit } from "vscode";
 import { FolderDropInsertionOption } from "../folderDropInsertionOptionEnum";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";
-import { replaceNameInMetaBlock } from "../fileUtils/replaceNameInMetaBlock";
+import { replaceItemName } from "../fileUtils/replaceItemName";
 import { promisify } from "util";
 import { readFile } from "fs";
 
@@ -150,7 +150,7 @@ async function copyFolderSettingsFile(
         return undefined;
     }
 
-    await replaceNameInMetaBlock(
+    await replaceItemName(
         newPath,
         basename(destinationFolder),
         BrunoFileType.FolderSettingsFile,

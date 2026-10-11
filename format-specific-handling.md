@@ -28,14 +28,10 @@ Each entry is tagged:
 
 ## 5. Shared parsing dispatchers (`shared/fileParsing/external/shared`)
 
-- [parseSequenceFromFile.ts:16-45](shared/fileParsing/external/shared/parseSequenceFromFile.ts#L16-L45) **[OK]**: dispatches on the file extension. `.yml` files are read through `parseInfoFromYamlFile` (as a folder settings file if the file name is `folder.yml`, otherwise as a request file). Every other file goes to the Bru meta block parser, which in turn ignores non-`.bru` files.
-- [getSequenceValueRangeFromFileContent.ts:22-59](shared/fileParsing/external/shared/getSequenceValueRangeFromFileContent.ts#L22-L59) **[OK]**: dispatches on the extension. Yaml additionally trims trailing whitespace before comments. Returns `undefined` for unknown extensions.
-- [getFolderSettingsFilePath.ts:10-30](shared/fileParsing/external/shared/getFolderSettingsFilePath.ts#L10-L30) **[OK]**: requires the format explicitly.
+- No relevant differences.
 
 ## 6. Client: collection explorer (tree view)
 
-- [createRequestFile.ts:43-44](client/src/treeView/internal/explorer/fileUtils/createRequestFile.ts#L43-L44), [createRequestFile.ts:175-232](client/src/treeView/internal/explorer/fileUtils/createRequestFile.ts#L175-L232) **[OK]**: the extension depends on the collection format. Content is either Bru `meta` + method block, or yaml `info` + request-type section serialised with `yaml.stringify`. For yaml, gRPC requests get no `method`, and the auth/body defaults written for Bru (`auth: none`, `body: none`/`ws`) are not written.
-- [replaceNameInMetaBlock.ts:35-38](client/src/treeView/internal/explorer/fileUtils/replaceNameInMetaBlock.ts#L35-L38) **[OK]**: replaces the name in the Bru `meta.name` field or the yaml `info.name` field.
 - [collectionExplorer.ts:510-544](client/src/treeView/internal/collectionExplorer.ts#L510-L544) (rename) **[Check]**: renaming a **collection root folder** looks up the root folder's settings file and replaces the name in it.
     - Yaml: this is `opencollection.yml`, so `info.name` (the collection name) is rewritten to the new folder name.
     - Bru: this is `collection.bru`, which normally has no `meta` name, and the name in `bruno.json` is not touched. So the collection name only changes for yaml.

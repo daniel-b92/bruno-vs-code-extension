@@ -25,7 +25,7 @@ import {
 import { basename, dirname, extname, resolve } from "path";
 import { validateNewItemNameIsUnique } from "./explorer/validateNewItemNameIsUnique";
 import { createRequestFile } from "./explorer/fileUtils/createRequestFile";
-import { replaceNameInMetaBlock } from "./explorer/fileUtils/replaceNameInMetaBlock";
+import { replaceItemName } from "./explorer/fileUtils/replaceItemName";
 import { getPathForDuplicatedItem } from "./explorer/getPathForDuplicatedItem";
 import { renameFileOrFolder } from "./explorer/renameFileOrFolder";
 import { normalizeSequencesForRequestFiles } from "./explorer/fileUtils/normalizeSequencesForRequestFiles";
@@ -508,7 +508,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 }
 
                 if (isRequestFile) {
-                    await replaceNameInMetaBlock(
+                    await replaceItemName(
                         newPath,
                         newItemName.replace(
                             getFileExtensionForFormat(
@@ -530,7 +530,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     );
 
                     if (folderSettingsPath) {
-                        await replaceNameInMetaBlock(
+                        await replaceItemName(
                             folderSettingsPath,
                             newItemName,
                             oldItem.getItemType(),

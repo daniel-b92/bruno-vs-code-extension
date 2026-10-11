@@ -4,9 +4,9 @@ import { join } from "path";
 import { parse } from "yaml";
 import { BrunoFileType, CollectionFormat, ItemType } from "@global_shared";
 import { useTemporaryDirectories } from "@global_shared/_testingUtils";
-import { replaceNameInMetaBlock } from "./replaceNameInMetaBlock";
+import { replaceItemName } from "./replaceItemName";
 
-describe("replaceNameInMetaBlock", () => {
+describe("replaceItemName", () => {
     const createTemporaryDirectory = useTemporaryDirectories();
 
     it("replaces only the name in the meta block of a bru file", async () => {
@@ -77,7 +77,7 @@ describe("replaceNameInMetaBlock", () => {
         });
         const filePath = join(directory, fileName);
 
-        await replaceNameInMetaBlock(filePath, newName, itemType, format);
+        await replaceItemName(filePath, newName, itemType, format);
 
         return await readFile(filePath, "utf-8");
     }
