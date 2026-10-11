@@ -24,15 +24,7 @@ Each entry is tagged:
 
 ## 4. File system cache (`shared/fileSystemCache`)
 
-- [createCollectionDirectoryInstance.ts:22-54](shared/fileSystemCache/internal/createCollectionDirectoryInstance.ts#L22-L54) **[Check]**: the two formats behave differently on errors:
-    - Yaml: the settings file path is always stored on the directory. The sequence is `undefined` if the file is unreadable or invalid.
-    - Bru: an unreadable `folder.bru` makes the function return `undefined`, so the directory is not registered at all. A `folder.bru` without a valid meta block gives a directory **without** a settings file path.
-    - This difference is already mentioned in [yaml-support-open-issues-after-caching.md](yaml-support-open-issues-after-caching.md).
 - [getCollectionItem.ts:65-86](shared/fileSystemCache/internal/getCollectionItem.ts#L65-L86) **[OK]**:
-    - Environment and request files are built from format-specific parsing: Bru `vars` block / `meta` block, or Yaml `variables` / `info`.
-    - Settings and app files are format-independent.
-    - Bru environment files skip disabled vars; yaml uses `variables.enabled`.
-- [createYamlCollectionItems.ts](shared/fileSystemCache/internal/yamlFormat/createYamlCollectionItems.ts) **[OK]**: the yaml counterparts of the Bru item factories.
 - [getAdditionalCollectionData.ts:37-43](shared/fileSystemCache/internal/getAdditionalCollectionData.ts#L37-L43) **[Gap]**: full-parsing additional data is only computed for Bru; yaml items get `getData(undefined)`. This matters for the server's variable references (see [helpersProvider.ts:56-80](server/src/shared/helpersProvider.ts#L56-L80), which is built on Bru blocks via `getAllVariablesFromBlocks`). There is already a ToDo for this.
 - [collectionItemProvider.ts:377-395](shared/fileSystemCache/external/collectionItemProvider.ts#L377-L395) **[OK]**: when the collection root file is modified, a Bru collection only refreshes `additionalContextRoots` and returns. A Yaml collection then goes on to the settings-file handling, because `opencollection.yml` is also the collection settings file.
 - [collectionItemProvider.ts:47-61](shared/fileSystemCache/external/collectionItemProvider.ts#L47-L61) **[Check]**: deleting the collection root file counts as deleting the collection. For yaml this also covers deleting the collection settings file, while deleting `collection.bru` in a Bru collection only removes one item.
@@ -110,5 +102,5 @@ Each entry is tagged:
 4. **Activation event** only covers `*.bru` (section 7).
 5. **Renaming a collection root folder** renames the collection only for yaml (section 6). Decide whether this is wanted.
 6. **Cross-format copy, paste and move** between Bru and Yaml collections is not handled (section 6).
-7. Different error behaviour of `createCollectionDirectoryInstance` (section 4), and root-file deletion handling (section 4, side note).
+7. Root-file deletion handling (section 4, side note).
 8. Feature gaps for yaml (additional data/variable references, formatting, completions, hover, auto updates, script intellisense, cross-file diagnostics) are expected at this stage and are listed above for completeness.
