@@ -2,7 +2,6 @@ import * as vscode from "vscode";
 import { BrunoTreeItemProvider } from "./brunoTreeItemProvider";
 import {
     getFileExtensionForFormat,
-    getSequenceForFolder,
     getFolderSettingsFilePath,
     checkIfPathExistsAsync,
     normalizePath,
@@ -17,7 +16,6 @@ import {
     OutputChannelLogger,
     DialogOptionLabelEnum,
     MultiFileOperationWithStatus,
-    getMaxSequenceForFolders,
     TypedCollectionData,
     TypedCollection,
     FileSystemCacheSyncingHelper,
@@ -30,9 +28,9 @@ import { createRequestFile } from "./explorer/fileUtils/createRequestFile";
 import { replaceNameInMetaBlock } from "./explorer/fileUtils/replaceNameInMetaBlock";
 import { getPathForDuplicatedItem } from "./explorer/getPathForDuplicatedItem";
 import { renameFileOrFolder } from "./explorer/renameFileOrFolder";
-import { replaceSequenceForFile } from "./explorer/fileUtils/replaceSequenceForFile";
 import { normalizeSequencesForRequestFiles } from "./explorer/fileUtils/normalizeSequencesForRequestFiles";
 import { normalizeSequencesForFolders } from "./explorer/folderUtils/normalizeSequencesForFolders";
+import { updateSettingsFileOfDuplicatedFolder } from "./explorer/folderUtils/updateSettingsFileOfDuplicatedFolder";
 import { moveFolderIntoTargetFolder } from "./explorer/folderUtils/moveFolderIntoTargetFolder";
 import { FolderDropInsertionOption } from "./explorer/folderDropInsertionOptionEnum";
 import { moveFileIntoFolder } from "./explorer/fileUtils/moveFileIntoFolder";
@@ -553,11 +551,10 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             `${this.treeViewId}.duplicateFolder`,
             async (item: BrunoTreeItem) => {
                 const originalPath = item.getPath();
-                const isCollectionRootFolder = false;
 
                 const collection =
                     this.itemProvider.getAncestorCollectionForPath(
-                        item.getPath(),
+                        originalPath,
                     );
 
                 const newFolderPath =
@@ -580,36 +577,11 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     },
                 );
 
-                const newFolderSettingsFile = await getFolderSettingsFilePath(
-                    isCollectionRootFolder,
+                await updateSettingsFileOfDuplicatedFolder(
+                    this.itemProvider,
+                    originalPath,
                     newFolderPath,
-                    collection.getFormat(),
                 );
-
-                if (
-                    (await getSequenceForFolder(
-                        collection.getRootDirectory(),
-                        originalPath,
-                        collection.getFormat(),
-                    )) &&
-                    newFolderSettingsFile
-                ) {
-                    await replaceSequenceForFile(
-                        newFolderSettingsFile,
-                        1 +
-                            ((await getMaxSequenceForFolders(
-                                this.itemProvider,
-                                dirname(originalPath),
-                            )) ?? 0),
-                    );
-
-                    await replaceNameInMetaBlock(
-                        newFolderSettingsFile,
-                        basename(newFolderPath),
-                        BrunoFileType.FolderSettingsFile,
-                        collection.getFormat(),
-                    );
-                }
             },
         );
     }

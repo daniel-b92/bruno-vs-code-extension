@@ -328,7 +328,7 @@ function handleTestTreeUpdates(
                         item,
                     );
                 } else if (item.getSequence() == undefined) {
-                    // This case can e.g. happen if the sequence in the a .bru file is changed to an invalid value
+                    // This case can e.g. happen if the sequence in the a request file is changed to an invalid value
                     removeTestItemFromTree(
                         controller,
                         collection,
@@ -388,8 +388,7 @@ function isRelevantForTestTree(
     item: CollectionItemWithSequence,
 ) {
     return (
-        (item.isFile() &&
-            item.getSequence() != undefined) ||
+        (item.isFile() && item.getSequence() != undefined) ||
         (item instanceof CollectionDirectory &&
             testRunnerDataHelper.getTestFileDescendants(collection, item)
                 .length > 0)
