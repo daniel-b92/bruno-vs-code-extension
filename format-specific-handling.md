@@ -32,14 +32,7 @@ Each entry is tagged:
 
 ## 6. Client: collection explorer (tree view)
 
-- [handleFileInsertion.ts:45-116](client/src/treeView/internal/explorer/fileUtils/handleFileInsertion.ts#L45-L116) **[OK]** / **[Check]**: the name replacement and the settings-file confirmation dialogs use the **target** collection's format.
-    - Copying or pasting a file from a Bru collection into a Yaml collection (or the other way round) is not handled: the file keeps its original extension and content, and is then treated as `OtherFileType`.
-    - The `replace(getFileExtensionForFormat(format), "")` call does not remove the foreign extension.
-- [collectionExplorer.ts:174-213](client/src/treeView/internal/collectionExplorer.ts#L174-L213) + [moveFileIntoFolder.ts](client/src/treeView/internal/explorer/fileUtils/moveFileIntoFolder.ts) **[Check]**: drag and drop of files between collections does not look at the formats either. The same cross-format issue applies as for copy/paste.
-- [updateSequencesAfterMovingFolder.ts:28-37](client/src/treeView/internal/explorer/folderUtils/updateSequencesAfterMovingFolder.ts#L28-L37) **[Check]**: takes the format from the **source** collection. That format is then used to look up folder settings files in the target folder. This is only relevant when moving folders between collections of different formats.
-- [updateSettingsFileOfDuplicatedFolder.ts:26-49](client/src/treeView/internal/explorer/folderUtils/updateSettingsFileOfDuplicatedFolder.ts#L26-L49), [getSequencesForFolders.ts:41-50](client/src/shared/fileParsing/folderSettings/getSequencesForFolders.ts#L41-L50) **[OK]**: pass the collection format through.
-- [replaceSequenceForFile.ts](client/src/treeView/internal/explorer/fileUtils/replaceSequenceForFile.ts), [normalizeSequencesForRequestFiles.ts](client/src/treeView/internal/explorer/fileUtils/normalizeSequencesForRequestFiles.ts), [normalizeSequencesForFolders.ts](client/src/treeView/internal/explorer/folderUtils/normalizeSequencesForFolders.ts) **[OK]**: format-independent; they rely on the extension-based dispatchers in section 5.
-- [getDeleteConfirmationMessage.ts:14](client/src/treeView/internal/explorer/getDeleteConfirmationMessage.ts#L14) **[OK]**: strips whatever extension the file has (`extname`), so it works for both formats.
+- No relevant differences.
 
 ## 7. Client: language features and cache syncing
 

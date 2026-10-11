@@ -318,6 +318,18 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             target.getPath(),
         );
 
+        // TODO: Support drag-and-drop between collections with different formats (Bru <-> Yaml).
+        // This would require converting the file content and adjusting the file extension.
+        if (
+            targetCollection &&
+            targetCollection.getFormat() != sourceCollection.getFormat()
+        ) {
+            vscode.window.showErrorMessage(
+                `Moving items between collections with different formats (Bru and Yaml) is not supported.`,
+            );
+            return undefined;
+        }
+
         return {
             originalItemData,
             sourcePath: originalItemData.item.getPath(),

@@ -42,7 +42,27 @@ export async function handleFileInsertion(
         return false;
     }
 
+    const sourceCollection = itemProvider.getAncestorCollectionForPath(
+        sourceItem.getPath(),
+    );
+
+    if (!sourceCollection) {
+        window.showErrorMessage(
+            `Could not determine the collection for path '${sourceItem.getPath()}'.`,
+        );
+        return false;
+    }
+
     const format = targetCollection.getFormat();
+
+    // TODO: Support copying/moving items between collections with different formats (Bru <-> Yaml).
+    // This would require converting the file content and adjusting the file extension.
+    if (sourceCollection.getFormat() != format) {
+        window.showErrorMessage(
+            `Inserting files between collections with different formats (Bru and Yaml) is not supported.`,
+        );
+        return false;
+    }
 
     const shouldContinue = await requestConfirmationIfNeeded(
         itemType,
