@@ -24,12 +24,7 @@ Each entry is tagged:
 
 ## 4. File system cache (`shared/fileSystemCache`)
 
-- [getCollectionItem.ts:65-86](shared/fileSystemCache/internal/getCollectionItem.ts#L65-L86) **[OK]**:
 - [getAdditionalCollectionData.ts:37-43](shared/fileSystemCache/internal/getAdditionalCollectionData.ts#L37-L43) **[Gap]**: full-parsing additional data is only computed for Bru; yaml items get `getData(undefined)`. This matters for the server's variable references (see [helpersProvider.ts:56-80](server/src/shared/helpersProvider.ts#L56-L80), which is built on Bru blocks via `getAllVariablesFromBlocks`). There is already a ToDo for this.
-- [collectionItemProvider.ts:377-395](shared/fileSystemCache/external/collectionItemProvider.ts#L377-L395) **[OK]**: when the collection root file is modified, a Bru collection only refreshes `additionalContextRoots` and returns. A Yaml collection then goes on to the settings-file handling, because `opencollection.yml` is also the collection settings file.
-- [collectionItemProvider.ts:47-61](shared/fileSystemCache/external/collectionItemProvider.ts#L47-L61) **[Check]**: deleting the collection root file counts as deleting the collection. For yaml this also covers deleting the collection settings file, while deleting `collection.bru` in a Bru collection only removes one item.
-    - Side note, not format-specific: `handleCollectionDeletion(path)` receives the _root file_ path here. `CollectionRegistry.unregisterCollection` compares it against root _directories_, so deleting only the root file seems to log a warning instead of unregistering the collection.
-- [registerMissingCollectionsAndTheirItems.ts:77-126](shared/fileSystemCache/internal/registerMissingCollectionsAndTheirItems.ts#L77-L126) **[OK]**: passes `collection.getFormat()` through to all format-aware helpers.
 
 ## 5. Shared parsing dispatchers (`shared/fileParsing/external/shared`)
 
@@ -102,5 +97,4 @@ Each entry is tagged:
 4. **Activation event** only covers `*.bru` (section 7).
 5. **Renaming a collection root folder** renames the collection only for yaml (section 6). Decide whether this is wanted.
 6. **Cross-format copy, paste and move** between Bru and Yaml collections is not handled (section 6).
-7. Root-file deletion handling (section 4, side note).
-8. Feature gaps for yaml (additional data/variable references, formatting, completions, hover, auto updates, script intellisense, cross-file diagnostics) are expected at this stage and are listed above for completeness.
+7. Feature gaps for yaml (additional data/variable references, formatting, completions, hover, auto updates, script intellisense, cross-file diagnostics) are expected at this stage and are listed above for completeness.

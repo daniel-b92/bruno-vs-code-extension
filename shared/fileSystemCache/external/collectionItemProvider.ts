@@ -61,7 +61,9 @@ export class CollectionItemProvider<T> {
                     this.logger?.info(
                         `${this.commonPreMessageForLogging} Handling deletion of collection '${path}'.`,
                     );
-                    this.handleCollectionDeletion(path);
+                    this.handleCollectionDeletion(
+                        registeredCollection.getRootDirectory(),
+                    );
                     return;
                 }
 

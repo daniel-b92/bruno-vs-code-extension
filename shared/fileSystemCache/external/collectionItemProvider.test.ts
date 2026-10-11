@@ -295,15 +295,87 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
             FileChangeType.Created,
         );
     }
+});
 
-    async function waitUntil(condition: () => boolean, timeoutInMs = 3000) {
-        const start = Date.now();
+describe("CollectionItemProvider: deletion of a collection root file", () => {
+    const createTemporaryDirectory = useTemporaryDirectories();
 
-        while (!condition() && Date.now() - start < timeoutInMs) {
-            await new Promise((resolve) => setTimeout(resolve, 20));
-        }
+    it("unregisters a bru collection when 'bruno.json' is deleted", async () => {
+        await expectCollectionToBeUnregisteredOnRootFileDeletion({
+            files: {
+                "collection/bruno.json": "{}",
+                "collection/request.bru":
+                    "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
+            },
+            rootFileName: "bruno.json",
+        });
+    });
+
+    it("unregisters a yaml collection when 'opencollection.yml' is deleted", async () => {
+        await expectCollectionToBeUnregisteredOnRootFileDeletion({
+            files: {
+                "collection/opencollection.yml":
+                    "opencollection: 1.0.0\ninfo:\n  name: yaml\n",
+                "collection/request.yml":
+                    "info:\n  name: request\n  type: http\n  seq: 1\n",
+            },
+            rootFileName: "opencollection.yml",
+        });
+    });
+
+    async function expectCollectionToBeUnregisteredOnRootFileDeletion(params: {
+        files: Record<string, string>;
+        rootFileName: string;
+    }) {
+        const workspace = await createTemporaryDirectory(params.files);
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(
+            workspace,
+            { yamlCollectionSupport: true },
+            fileChangedEmitter,
+        );
+        await provider.refreshCache([workspace]);
+
+        expect(provider.getRegisteredCollections()).toHaveLength(1);
+
+        const notifications: { path: string; updateType: FileChangeType }[] =
+            [];
+        provider.subscribeToUpdates((batch) =>
+            batch.forEach(({ data: { item }, updateType }) =>
+                notifications.push({ path: item.getPath(), updateType }),
+            ),
+        );
+
+        fileChangedEmitter.post({
+            path: join(workspace, "collection", params.rootFileName),
+            changeType: FileChangeType.Deleted,
+        });
+
+        await waitUntil(() => provider.getRegisteredCollections().length == 0);
+        expect(provider.getRegisteredCollections()).toHaveLength(0);
+
+        await waitUntil(() => notifications.length > 0);
+        expect(
+            notifications.map(({ path, updateType }) => ({
+                path: normalizePath(path),
+                updateType,
+            })),
+        ).toEqual([
+            {
+                path: normalizePath(join(workspace, "collection")),
+                updateType: FileChangeType.Deleted,
+            },
+        ]);
     }
 });
+
+async function waitUntil(condition: () => boolean, timeoutInMs = 3000) {
+    const start = Date.now();
+
+    while (!condition() && Date.now() - start < timeoutInMs) {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+}
 
 function createProvider(
     workspace: string,

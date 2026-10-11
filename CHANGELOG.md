@@ -3,6 +3,7 @@
 ### Fixes / Maintenance
 
 - Make handling of unreadable or invalid `folder.bru` files consistent with the `yaml` format: The folder is now still registered with its settings file (without a sequence) instead of being skipped or having no settings file.
+- Fix an issue that caused a collection to stay registered in the cache when only its root file (`bruno.json` or `opencollection.yml`) was deleted.
 
 ## [1.3.3] (2026-10-10)
 
