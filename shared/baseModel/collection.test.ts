@@ -4,17 +4,23 @@ import { CollectionFormat } from "./interfaces";
 
 describe("Collection.getEnvironmentInheritanceChain", () => {
     it("returns an empty chain when the environment does not extend anything", () => {
-        const collection = createCollectionWithEnvironments([{ name: "Base" }]);
+        const collection = createCollectionWithEnvironments(
+            [{ name: "Base" }],
+            CollectionFormat.Bru,
+        );
 
         expect(collection.getEnvironmentInheritanceChain("Base")).toEqual([]);
     });
 
     it("returns the ordered chain of ancestors, nearest parent first", () => {
-        const collection = createCollectionWithEnvironments([
-            { name: "Base" },
-            { name: "Staging", extends: "Base" },
-            { name: "Dev", extends: "Staging" },
-        ]);
+        const collection = createCollectionWithEnvironments(
+            [
+                { name: "Base" },
+                { name: "Staging", extends: "Base" },
+                { name: "Dev", extends: "Staging" },
+            ],
+            CollectionFormat.Bru,
+        );
 
         expect(collection.getEnvironmentInheritanceChain("Dev")).toEqual([
             "Staging",
@@ -23,18 +29,22 @@ describe("Collection.getEnvironmentInheritanceChain", () => {
     });
 
     it("stops instead of looping when the chain contains a cycle", () => {
-        const collection = createCollectionWithEnvironments([
-            { name: "A", extends: "B" },
-            { name: "B", extends: "A" },
-        ]);
+        const collection = createCollectionWithEnvironments(
+            [
+                { name: "A", extends: "B" },
+                { name: "B", extends: "A" },
+            ],
+            CollectionFormat.Bru,
+        );
 
         expect(collection.getEnvironmentInheritanceChain("A")).toEqual(["B"]);
     });
 
     it("stops when the referenced environment does not exist", () => {
-        const collection = createCollectionWithEnvironments([
-            { name: "Dev", extends: "Unknown" },
-        ]);
+        const collection = createCollectionWithEnvironments(
+            [{ name: "Dev", extends: "Unknown" }],
+            CollectionFormat.Bru,
+        );
 
         expect(collection.getEnvironmentInheritanceChain("Dev")).toEqual([
             "Unknown",
@@ -44,12 +54,15 @@ describe("Collection.getEnvironmentInheritanceChain", () => {
 
 describe("Collection.getEnvironmentsExtending", () => {
     it("returns the environments directly extending the given one", () => {
-        const collection = createCollectionWithEnvironments([
-            { name: "Base" },
-            { name: "Staging", extends: "Base" },
-            { name: "Dev", extends: "Base" },
-            { name: "Other" },
-        ]);
+        const collection = createCollectionWithEnvironments(
+            [
+                { name: "Base" },
+                { name: "Staging", extends: "Base" },
+                { name: "Dev", extends: "Base" },
+                { name: "Other" },
+            ],
+            CollectionFormat.Bru,
+        );
 
         expect(collection.getEnvironmentsExtending("Base").sort()).toEqual([
             "Dev",
@@ -58,7 +71,10 @@ describe("Collection.getEnvironmentsExtending", () => {
     });
 
     it("returns an empty array when no environment extends it", () => {
-        const collection = createCollectionWithEnvironments([{ name: "Base" }]);
+        const collection = createCollectionWithEnvironments(
+            [{ name: "Base" }],
+            CollectionFormat.Bru,
+        );
 
         expect(collection.getEnvironmentsExtending("Base")).toEqual([]);
     });
@@ -66,12 +82,12 @@ describe("Collection.getEnvironmentsExtending", () => {
 
 describe("Collection.getEnvironments", () => {
     it("strips the file extension matching the collection format from the environment names", () => {
-        const bruCollection = createCollectionWithEnvironments([
-            { name: "Dev" },
-        ]);
+        const bruCollection = createCollectionWithEnvironments(
+            [{ name: "Dev" }],
+            CollectionFormat.Bru,
+        );
         const yamlCollection = createCollectionWithEnvironments(
             [{ name: "Dev" }],
-            "/collection",
             CollectionFormat.Yaml,
         );
 

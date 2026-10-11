@@ -1,7 +1,7 @@
 import { dirname, resolve } from "path";
 import {
     normalizePath,
-    parseSequenceFromMetaBlock,
+    parseSequenceFromFile,
     filterAsync,
     BrunoFileType,
     CollectionData,
@@ -38,7 +38,7 @@ export async function determineFilesToCheckWhetherInSync<T>(
     const { getRegisteredItem } = cachedData;
 
     if (!hasMultiFileOperationRecentlyBeenActive(parentFolder)) {
-        const sequence = await parseSequenceFromMetaBlock(requestedFilePath);
+        const sequence = await parseSequenceFromFile(requestedFilePath);
         return [{ path: requestedFilePath, sequence }];
     }
 
@@ -88,7 +88,7 @@ async function getRequestFilesFromFolderThatAreNotInSync<T>(
             )
         ).map(async (path) => ({
             path,
-            sequence: await parseSequenceFromMetaBlock(path),
+            sequence: await parseSequenceFromFile(path),
         })),
     );
 

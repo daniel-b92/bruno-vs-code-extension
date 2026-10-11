@@ -3,14 +3,14 @@ import {
     CollectionFormat,
     doesFileNameMatchCollectionSettingsFile,
     doesFileNameMatchFolderSettingsFileName,
-} from "../../../..";
+} from "../../..";
 import { resolve } from "path";
 import { promisify } from "util";
 
 export async function getFolderSettingsFilePath(
     isCollectionRootFolder: boolean,
     folderPath: string,
-    format = CollectionFormat.Bru,
+    format: CollectionFormat,
 ) {
     const childItems = await promisify(readdir)(folderPath).catch(
         () => undefined,

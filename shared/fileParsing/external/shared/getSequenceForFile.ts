@@ -1,5 +1,5 @@
 import {
-    parseSequenceFromMetaBlock,
+    parseSequenceFromFile,
     BrunoFileType,
     getItemType,
     ReadyOnlyCollection,
@@ -15,5 +15,5 @@ export async function getSequenceForFile<T>(
         return undefined;
     }
 
-    return await parseSequenceFromMetaBlock(filePath);
+    return await parseSequenceFromFile(filePath);
 }

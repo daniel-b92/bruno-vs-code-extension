@@ -1,5 +1,5 @@
 import { describe, it, expect } from "@jest/globals";
-import { EnvironmentFileExtendsField } from "@global_shared";
+import { CollectionFormat, EnvironmentFileExtendsField } from "@global_shared";
 import {
     createCollectionWithEnvironments,
     getDummyRange,
@@ -9,10 +9,10 @@ import { RelevantWithinEnvironmentFileDiagnosticCode } from "../shared/diagnosti
 
 describe("checkExtendsFieldDoesNotCreateInheritanceLoop", () => {
     it("returns undefined when the extended environment does not extend anything", () => {
-        const collection = createCollectionWithEnvironments([
-            { name: "Base" },
-            { name: "Dev" },
-        ]);
+        const collection = createCollectionWithEnvironments(
+            [{ name: "Base" }, { name: "Dev" }],
+            CollectionFormat.Bru,
+        );
 
         const result = checkExtendsFieldDoesNotCreateInheritanceLoop(
             "/collection/environments/Dev.bru",
@@ -24,11 +24,14 @@ describe("checkExtendsFieldDoesNotCreateInheritanceLoop", () => {
     });
 
     it("returns undefined for a valid chain of more than one environment", () => {
-        const collection = createCollectionWithEnvironments([
-            { name: "Base" },
-            { name: "Staging", extends: "Base" },
-            { name: "Dev" },
-        ]);
+        const collection = createCollectionWithEnvironments(
+            [
+                { name: "Base" },
+                { name: "Staging", extends: "Base" },
+                { name: "Dev" },
+            ],
+            CollectionFormat.Bru,
+        );
 
         const result = checkExtendsFieldDoesNotCreateInheritanceLoop(
             "/collection/environments/Dev.bru",
@@ -40,10 +43,10 @@ describe("checkExtendsFieldDoesNotCreateInheritanceLoop", () => {
     });
 
     it("returns a diagnostic when the extended environment directly extends this one", () => {
-        const collection = createCollectionWithEnvironments([
-            { name: "Base", extends: "Dev" },
-            { name: "Dev" },
-        ]);
+        const collection = createCollectionWithEnvironments(
+            [{ name: "Base", extends: "Dev" }, { name: "Dev" }],
+            CollectionFormat.Bru,
+        );
 
         const result = checkExtendsFieldDoesNotCreateInheritanceLoop(
             "/collection/environments/Dev.bru",
@@ -57,11 +60,14 @@ describe("checkExtendsFieldDoesNotCreateInheritanceLoop", () => {
     });
 
     it("returns a diagnostic when the extended environment indirectly extends this one", () => {
-        const collection = createCollectionWithEnvironments([
-            { name: "Base", extends: "Staging" },
-            { name: "Staging", extends: "Dev" },
-            { name: "Dev" },
-        ]);
+        const collection = createCollectionWithEnvironments(
+            [
+                { name: "Base", extends: "Staging" },
+                { name: "Staging", extends: "Dev" },
+                { name: "Dev" },
+            ],
+            CollectionFormat.Bru,
+        );
 
         const result = checkExtendsFieldDoesNotCreateInheritanceLoop(
             "/collection/environments/Dev.bru",

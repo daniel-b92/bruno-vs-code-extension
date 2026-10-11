@@ -16,10 +16,9 @@ import { startTestRun } from "./internal/startTestRun";
 import { TestRunQueue } from "./internal/testRunQueue";
 import { addTestItemAndAncestorsToTestTree } from "./testTreeUtils/addTestItemAndAncestorsToTestTree";
 import { getTestId } from "./testTreeUtils/testTreeHelper";
-import { dirname, extname } from "path";
+import { dirname } from "path";
 import {
     normalizePath,
-    getExtensionForBrunoFiles,
     FileChangeType,
     CollectionDirectory,
     CollectionItemWithSequence,
@@ -311,7 +310,6 @@ function handleTestTreeUpdates(
             } else if (
                 updateType == FileChangeType.Modified &&
                 item.isFile() &&
-                extname(item.getPath()) == getExtensionForBrunoFiles() &&
                 (update.changedData?.sequenceChanged ||
                     update.changedData?.tagsChanged ||
                     update.changedData?.additionalDataChanged)
@@ -330,7 +328,7 @@ function handleTestTreeUpdates(
                         item,
                     );
                 } else if (item.getSequence() == undefined) {
-                    // This case can e.g. happen if the sequence in the a .bru file is changed to an invalid value
+                    // This case can e.g. happen if the sequence in the a request file is changed to an invalid value
                     removeTestItemFromTree(
                         controller,
                         collection,
@@ -390,9 +388,7 @@ function isRelevantForTestTree(
     item: CollectionItemWithSequence,
 ) {
     return (
-        (item.isFile() &&
-            extname(item.getPath()) == getExtensionForBrunoFiles() &&
-            item.getSequence() != undefined) ||
+        (item.isFile() && item.getSequence() != undefined) ||
         (item instanceof CollectionDirectory &&
             testRunnerDataHelper.getTestFileDescendants(collection, item)
                 .length > 0)

@@ -1,5 +1,8 @@
 import { writeFile, readFile } from "fs";
-import { MetaBlockKey, parseSequenceFromMetaBlock } from "@global_shared";
+import {
+    getSequenceValueRangeFromFileContent,
+    TextDocumentHelper,
+} from "@global_shared";
 import { promisify } from "util";
 import { window } from "vscode";
 
@@ -11,7 +14,6 @@ export async function replaceSequenceForFile(
         throw new Error(`New sequence to set for file '${filePath}' is 'NaN'.`);
     }
 
-    const originalSequence = await parseSequenceFromMetaBlock(filePath);
     const originalFileContent = await promisify(readFile)(
         filePath,
         "utf-8",
@@ -24,20 +26,28 @@ export async function replaceSequenceForFile(
         return;
     }
 
-    if (originalSequence != undefined) {
-        await promisify(writeFile)(
-            filePath,
-            originalFileContent.replace(
-                new RegExp(
-                    `${MetaBlockKey.Sequence}:\\s*${originalSequence}\\s*$`,
-                    "m",
-                ),
-                `${MetaBlockKey.Sequence}: ${newSequence}`,
-            ),
-        ).catch(() => {
-            window.showErrorMessage(
-                `An unexpected error occured while trying to replace the sequence.`,
-            );
-        });
+    const sequenceRange = getSequenceValueRangeFromFileContent(
+        filePath,
+        originalFileContent,
+    );
+
+    if (!sequenceRange) {
+        return;
     }
+
+    await promisify(writeFile)(
+        filePath,
+        new TextDocumentHelper(originalFileContent).getFullTextWithReplacement(
+            {
+                lineIndex: sequenceRange.start.line,
+                startCharIndex: sequenceRange.start.character,
+                endCharIndex: sequenceRange.end.character,
+            },
+            `${newSequence}`,
+        ),
+    ).catch(() => {
+        window.showErrorMessage(
+            `An unexpected error occured while trying to replace the sequence.`,
+        );
+    });
 }

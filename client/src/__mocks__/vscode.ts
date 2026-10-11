@@ -42,6 +42,7 @@ const Uri = {
 const workspace = {
     getConfiguration: () => ({ get: () => undefined }),
     workspaceFolders: undefined,
+    textDocuments: [] as { fileName: string; eol: number }[],
 };
 
 const EndOfLine = {
@@ -51,6 +52,15 @@ const EndOfLine = {
 
 const window = {
     showInformationMessage: () => Promise.resolve(undefined),
+    showErrorMessage: () => Promise.resolve(undefined),
+    showInputBox: (_options?: unknown): Promise<string | undefined> =>
+        Promise.resolve(undefined),
+    createQuickPick: (): unknown => ({}),
+};
+
+const commands = {
+    executeCommand: (_command: string, ..._args: unknown[]) =>
+        Promise.resolve(undefined),
 };
 
 export {
@@ -61,5 +71,6 @@ export {
     Uri,
     workspace,
     window,
+    commands,
     EndOfLine,
 };

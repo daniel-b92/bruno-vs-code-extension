@@ -1,12 +1,19 @@
 import { describe, it, expect } from "@jest/globals";
+import { CollectionFormat } from "../../../../../baseModel/interfaces";
 import { createCollectionWithEnvironments } from "../../../../../_testingUtils";
 import { getMatchingDefinitionsFromEnvFiles } from "./getMatchingDefinitionsFromEnvFiles";
 
 describe("getMatchingDefinitionsFromEnvFiles", () => {
     it("does not mark a match as inherited when it is the configured environment itself", () => {
-        const collection = createCollectionWithEnvironments([
-            { name: "Dev", variables: [{ key: "token", value: "dev-token" }] },
-        ]);
+        const collection = createCollectionWithEnvironments(
+            [
+                {
+                    name: "Dev",
+                    variables: [{ key: "token", value: "dev-token" }],
+                },
+            ],
+            CollectionFormat.Bru,
+        );
 
         const result = getMatchingDefinitionsFromEnvFiles(
             collection,
@@ -23,13 +30,16 @@ describe("getMatchingDefinitionsFromEnvFiles", () => {
     });
 
     it("marks a match as inherited when it comes from an ancestor of the configured environment", () => {
-        const collection = createCollectionWithEnvironments([
-            {
-                name: "Base",
-                variables: [{ key: "token", value: "base-token" }],
-            },
-            { name: "Dev", extends: "Base" },
-        ]);
+        const collection = createCollectionWithEnvironments(
+            [
+                {
+                    name: "Base",
+                    variables: [{ key: "token", value: "base-token" }],
+                },
+                { name: "Dev", extends: "Base" },
+            ],
+            CollectionFormat.Bru,
+        );
 
         const result = getMatchingDefinitionsFromEnvFiles(
             collection,
@@ -47,13 +57,16 @@ describe("getMatchingDefinitionsFromEnvFiles", () => {
     });
 
     it("does not mark a match as inherited when it comes from an unrelated environment", () => {
-        const collection = createCollectionWithEnvironments([
-            { name: "Dev" },
-            {
-                name: "Other",
-                variables: [{ key: "token", value: "other-token" }],
-            },
-        ]);
+        const collection = createCollectionWithEnvironments(
+            [
+                { name: "Dev" },
+                {
+                    name: "Other",
+                    variables: [{ key: "token", value: "other-token" }],
+                },
+            ],
+            CollectionFormat.Bru,
+        );
 
         const result = getMatchingDefinitionsFromEnvFiles(
             collection,
@@ -71,13 +84,16 @@ describe("getMatchingDefinitionsFromEnvFiles", () => {
     });
 
     it("does not mark anything as inherited when no environment is configured", () => {
-        const collection = createCollectionWithEnvironments([
-            {
-                name: "Base",
-                variables: [{ key: "token", value: "base-token" }],
-            },
-            { name: "Dev", extends: "Base" },
-        ]);
+        const collection = createCollectionWithEnvironments(
+            [
+                {
+                    name: "Base",
+                    variables: [{ key: "token", value: "base-token" }],
+                },
+                { name: "Dev", extends: "Base" },
+            ],
+            CollectionFormat.Bru,
+        );
 
         const result = getMatchingDefinitionsFromEnvFiles(collection);
 

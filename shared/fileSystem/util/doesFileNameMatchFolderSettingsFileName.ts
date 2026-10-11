@@ -4,7 +4,7 @@ import { getFolderSettingsFileName } from "./collectionFormatFileNames";
 
 export function doesFileNameMatchFolderSettingsFileName(
     path: string,
-    format = CollectionFormat.Bru,
+    format: CollectionFormat,
 ) {
     return basename(path) == getFolderSettingsFileName(format);
 }

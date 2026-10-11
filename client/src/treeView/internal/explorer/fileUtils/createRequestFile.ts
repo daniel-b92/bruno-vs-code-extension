@@ -1,19 +1,20 @@
 import { basename, resolve } from "path";
 import {
-    getExtensionForBrunoFiles,
+    CollectionFormat,
+    getFileExtensionForFormat,
     RequestType,
     RequestFileBlockName,
     MethodBlockBodies,
     getMaxSequenceForRequests,
     AuthTypes,
     getPossibleMethodBlocksForRequestType,
+    FileInfoType,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
     getContentForMetaBlock,
     getContentForDefaultMethodBlock,
     getLineBreak,
-    TypedCollection,
     FileSystemCacheSyncingHelper,
     BrunoTreeItem,
 } from "@shared";
@@ -21,6 +22,7 @@ import { commands, Uri, window } from "vscode";
 import { validateNewItemNameIsUnique } from "../validateNewItemNameIsUnique";
 import { promisify } from "util";
 import { writeFile } from "fs";
+import { stringify } from "yaml";
 
 export async function createRequestFile(
     itemProvider: TypedCollectionItemProvider,
@@ -29,15 +31,25 @@ export async function createRequestFile(
 ) {
     const parentFolderPath = item.getPath();
 
+    const collection =
+        itemProvider.getAncestorCollectionForPath(parentFolderPath);
+
+    if (!collection) {
+        window.showErrorMessage(
+            `Could not determine the collection for path '${parentFolderPath}'.`,
+        );
+        return;
+    }
+
+    const format = collection.getFormat();
+    const fileExtension = getFileExtensionForFormat(format);
+
     const requestName = await window.showInputBox({
         title: `Create request file in '${basename(parentFolderPath)}'`,
         value: "request_name",
         validateInput: (newFileName: string) => {
             return validateNewItemNameIsUnique(
-                resolve(
-                    parentFolderPath,
-                    `${newFileName}${getExtensionForBrunoFiles()}`,
-                ),
+                resolve(parentFolderPath, `${newFileName}${fileExtension}`),
             );
         },
     });
@@ -94,7 +106,7 @@ export async function createRequestFile(
 
         const filePath = resolve(
             parentFolderPath,
-            `${requestName}${getExtensionForBrunoFiles()}`,
+            `${requestName}${fileExtension}`,
         );
 
         if (pickedLabels.length != 2) {
@@ -107,9 +119,6 @@ export async function createRequestFile(
             );
         }
 
-        const collection = itemProvider.getAncestorCollectionForPath(
-            filePath,
-        ) as TypedCollection;
         const requestSequence =
             ((await getMaxSequenceForRequests(
                 itemProvider,
@@ -118,7 +127,7 @@ export async function createRequestFile(
 
         const failed = await promisify(writeFile)(
             filePath,
-            getFileContent(requestSequence, {
+            getFileContent(format, requestSequence, {
                 filePath,
                 requestName,
                 requestType: pickedLabels[0] as RequestType,
@@ -153,6 +162,7 @@ function getSingleMethodBlockForRequestType(requestType: string) {
 }
 
 function getFileContent(
+    format: CollectionFormat,
     requestSequence: number,
     chosenData: {
         filePath: string;
@@ -162,6 +172,15 @@ function getFileContent(
     },
 ) {
     const { filePath, requestName, requestType, methodBlockName } = chosenData;
+
+    if (format == CollectionFormat.Yaml) {
+        return getYamlFileContent(
+            requestSequence,
+            requestName,
+            requestType,
+            methodBlockName,
+        );
+    }
 
     const lineBreak = getLineBreak(filePath);
 
@@ -191,4 +210,40 @@ function getFileContent(
     );
 
     return metaBlockContent.concat(lineBreak, methodBlockContent);
+}
+
+function getYamlFileContent(
+    requestSequence: number,
+    requestName: string,
+    requestType: RequestType,
+    methodBlockName: string,
+) {
+    const yamlType = getYamlTypeForRequestType(requestType);
+    const topLevelProperties = {
+        info: { name: requestName, type: yamlType, seq: requestSequence },
+        [yamlType]:
+            requestType == RequestType.Grpc
+                ? { url: "" }
+                : requestType == RequestType.Ws
+                  ? { url: "" }
+                  : { method: methodBlockName.toUpperCase(), url: "" },
+    };
+
+    // Bruno desktop separates the top level properties by an empty line.
+    return Object.entries(topLevelProperties)
+        .map(([key, value]) => stringify({ [key]: value }))
+        .join("\n");
+}
+
+function getYamlTypeForRequestType(requestType: RequestType): FileInfoType {
+    switch (requestType) {
+        case RequestType.Http:
+            return FileInfoType.Http;
+        case RequestType.Graphql:
+            return FileInfoType.Graphql;
+        case RequestType.Grpc:
+            return FileInfoType.Grpc;
+        case RequestType.Ws:
+            return FileInfoType.Websocket;
+    }
 }

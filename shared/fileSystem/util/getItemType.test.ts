@@ -37,8 +37,8 @@ describe("getItemType", () => {
             const root = await createYamlCollectionDirectory();
             const collection = createCollectionWithEnvironments(
                 [],
-                root,
                 CollectionFormat.Yaml,
+                root,
             );
 
             expect(
@@ -52,8 +52,8 @@ describe("getItemType", () => {
             });
             const collection = createCollectionWithEnvironments(
                 [],
-                root,
                 CollectionFormat.Yaml,
+                root,
             );
 
             expect(
@@ -65,8 +65,8 @@ describe("getItemType", () => {
             const root = await createYamlCollectionDirectory();
             const collection = createCollectionWithEnvironments(
                 [],
-                root,
                 CollectionFormat.Yaml,
+                root,
             );
 
             expect(
@@ -94,7 +94,11 @@ describe("getItemType", () => {
                 "Folder1/http.yml": "info:\n  name: http\n  type: http\n",
                 "opencollection.yml": "info:\n  name: x\n",
             });
-            const collection = createCollectionWithEnvironments([], root);
+            const collection = createCollectionWithEnvironments(
+                [],
+                CollectionFormat.Bru,
+                root,
+            );
 
             expect(
                 await getItemType(collection, join(root, relativePath)),

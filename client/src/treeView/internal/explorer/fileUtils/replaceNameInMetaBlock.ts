@@ -7,14 +7,21 @@ import {
     isDictionaryBlockSimpleField,
     getActiveFieldFromMetaBlock,
     ItemType,
+    CollectionFormat,
+    parseInfoFromYamlFile,
+    BrunoFileType,
+    Range,
+    excludeTrailingWhitespace,
 } from "@global_shared";
 import { readFile, writeFile } from "fs";
 import { window } from "vscode";
+import { stringify } from "yaml";
 
 export async function replaceNameInMetaBlock(
     filePath: string,
     newName: string,
     itemType: ItemType,
+    format: CollectionFormat,
 ) {
     const fileContent = await promisify(readFile)(filePath, "utf-8").catch(
         () => undefined,
@@ -27,32 +34,61 @@ export async function replaceNameInMetaBlock(
 
     const documentHelper = new TextDocumentHelper(fileContent);
 
+    const nameRange =
+        format == CollectionFormat.Yaml
+            ? getNameRangeFromYamlFile(documentHelper, itemType)
+            : getNameRangeFromBruFile(documentHelper, itemType);
+
+    if (nameRange) {
+        await promisify(writeFile)(
+            filePath,
+            documentHelper.getFullTextWithReplacement(
+                {
+                    lineIndex: nameRange.start.line,
+                    startCharIndex: nameRange.start.character,
+                    endCharIndex: nameRange.end.character,
+                },
+                format == CollectionFormat.Yaml
+                    ? stringify(newName, { lineWidth: 0 }).trimEnd()
+                    : newName,
+            ),
+        ).catch(() => {
+            window.showErrorMessage(
+                `An unexpected error occured while replacing name in meta block.`,
+            );
+        });
+    }
+}
+
+function getNameRangeFromBruFile(
+    documentHelper: TextDocumentHelper,
+    itemType: ItemType,
+): Range | undefined {
     const metaBlock = parseBruFile(documentHelper, itemType).blocks.find(
         ({ name }) => name == RequestFileBlockName.Meta,
     );
+    const nameField = metaBlock
+        ? getActiveFieldFromMetaBlock(metaBlock, MetaBlockKey.Name)
+        : undefined;
 
-    if (metaBlock) {
-        const nameField = getActiveFieldFromMetaBlock(
-            metaBlock,
-            MetaBlockKey.Name,
-        );
+    return nameField && isDictionaryBlockSimpleField(nameField)
+        ? nameField.valueRange
+        : undefined;
+}
 
-        if (nameField && isDictionaryBlockSimpleField(nameField)) {
-            await promisify(writeFile)(
-                filePath,
-                documentHelper.getFullTextWithReplacement(
-                    {
-                        lineIndex: nameField.valueRange.start.line,
-                        startCharIndex: nameField.valueRange.start.character,
-                        endCharIndex: nameField.valueRange.end.character,
-                    },
-                    newName,
-                ),
-            ).catch(() => {
-                window.showErrorMessage(
-                    `An unexpected error occured while replacing name in meta block.`,
-                );
-            });
-        }
-    }
+function getNameRangeFromYamlFile(
+    documentHelper: TextDocumentHelper,
+    itemType: ItemType,
+): Range | undefined {
+    const parsed = parseInfoFromYamlFile(
+        documentHelper,
+        itemType as BrunoFileType,
+    );
+
+    const range =
+        "result" in parsed
+            ? parsed.result?.properties.name?.valueRange
+            : undefined;
+
+    return range ? excludeTrailingWhitespace(range, documentHelper) : undefined;
 }

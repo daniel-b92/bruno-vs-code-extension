@@ -3,7 +3,7 @@ import { Uri, window, workspace, WorkspaceEdit } from "vscode";
 export async function renameFileOrFolder(
     sourcePath: string,
     targetPath: string,
-    isFile: boolean
+    isFile: boolean,
 ) {
     const workspaceEdit = new WorkspaceEdit();
 
@@ -17,7 +17,7 @@ export async function renameFileOrFolder(
         window.showErrorMessage(
             `Renaming / Moving ${
                 isFile ? "file" : "folder"
-            } '${sourcePath}' failed unexpectedly.`
+            } '${sourcePath}' failed unexpectedly.`,
         );
 
         return false;

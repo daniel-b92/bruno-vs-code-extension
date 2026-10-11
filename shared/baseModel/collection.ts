@@ -15,7 +15,7 @@ export class Collection<T> {
         private rootFolderItem: CollectionDirectory,
         rootFolderAdditionalData: T,
         private additionalContextRoots: string[],
-        private format = CollectionFormat.Bru,
+        private format: CollectionFormat,
     ) {
         this.testData.push({
             item: rootFolderItem,
