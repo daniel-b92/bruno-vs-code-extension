@@ -44,6 +44,7 @@ export * from "./fileParsing/external/bruFormat/util/getBlockStartPatternByName"
 export * from "./fileParsing/external/shared/codeBlocks/getInbuiltFunctionAndFirstParameterIfStringLiteral";
 export * from "./fileParsing/external/shared/parseSequenceFromFile";
 export * from "./fileParsing/external/shared/getSequenceValueRangeFromFileContent";
+export * from "./fileParsing/external/shared/parseInfoFromYamlRequestOrFolderFile";
 export * from "./fileParsing/external/bruFormat/util/getContentRangeForArrayOrDictionaryBlock";
 export * from "./fileParsing/external/bruFormat/util/getNonBlockSpecificBlockStartPattern";
 export * from "./fileParsing/external/bruFormat/parseBlockFromFile";

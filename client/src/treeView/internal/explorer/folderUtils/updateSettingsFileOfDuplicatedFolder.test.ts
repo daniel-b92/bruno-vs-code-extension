@@ -3,7 +3,7 @@ import { readFile } from "fs/promises";
 import { join } from "path";
 import { CollectionFormat } from "@global_shared";
 import {
-    createCollectionWithEnvironments,
+    createItemProviderStub,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
 import { TypedCollectionItemProvider } from "@shared";
@@ -20,7 +20,10 @@ describe("updateSettingsFileOfDuplicatedFolder", () => {
         });
 
         await updateSettingsFileOfDuplicatedFolder(
-            createItemProvider(root, CollectionFormat.Bru),
+            createItemProviderStub<TypedCollectionItemProvider>(
+                root,
+                CollectionFormat.Bru,
+            ),
             join(root, "second"),
             join(root, "second_copy"),
         );
@@ -37,7 +40,10 @@ describe("updateSettingsFileOfDuplicatedFolder", () => {
         });
 
         await updateSettingsFileOfDuplicatedFolder(
-            createItemProvider(root, CollectionFormat.Yaml),
+            createItemProviderStub<TypedCollectionItemProvider>(
+                root,
+                CollectionFormat.Yaml,
+            ),
             join(root, "first"),
             join(root, "first_copy"),
         );
@@ -54,7 +60,10 @@ describe("updateSettingsFileOfDuplicatedFolder", () => {
         });
 
         await updateSettingsFileOfDuplicatedFolder(
-            createItemProvider(root, CollectionFormat.Bru),
+            createItemProviderStub<TypedCollectionItemProvider>(
+                root,
+                CollectionFormat.Bru,
+            ),
             join(root, "first"),
             join(root, "first_copy"),
         );
@@ -71,7 +80,10 @@ describe("updateSettingsFileOfDuplicatedFolder", () => {
         });
 
         await updateSettingsFileOfDuplicatedFolder(
-            createItemProvider(root, CollectionFormat.Yaml),
+            createItemProviderStub<TypedCollectionItemProvider>(
+                root,
+                CollectionFormat.Yaml,
+            ),
             join(root, "first"),
             join(root, "first_copy"),
         );
@@ -100,16 +112,4 @@ function getYamlFolderSettings(name: string, sequence?: number) {
         ...(sequence === undefined ? [] : [`  seq: ${sequence}`]),
         "",
     ].join("\n");
-}
-
-function createItemProvider(rootDirectory: string, format: CollectionFormat) {
-    const collection = createCollectionWithEnvironments(
-        [],
-        format,
-        rootDirectory,
-    );
-
-    return {
-        getAncestorCollectionForPath: () => collection,
-    } as unknown as TypedCollectionItemProvider;
 }

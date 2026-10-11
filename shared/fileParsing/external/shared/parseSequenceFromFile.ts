@@ -2,12 +2,10 @@ import { lstat, readFile } from "fs";
 import { extname } from "path";
 import { promisify } from "util";
 import {
-    BrunoFileType,
     checkIfPathExistsAsync,
     CollectionFormat,
-    doesFileNameMatchFolderSettingsFileName,
     getFileExtensionForFormat,
-    parseInfoFromYamlFile,
+    parseInfoFromYamlRequestOrFolderFile,
     parseSequenceFromMetaBlock,
     TextDocumentHelper,
 } from "../../..";
@@ -33,13 +31,8 @@ export async function parseSequenceFromFile(filePath: string) {
 
     return content === undefined
         ? undefined
-        : parseInfoFromYamlFile(
+        : parseInfoFromYamlRequestOrFolderFile(
+              filePath,
               new TextDocumentHelper(content),
-              doesFileNameMatchFolderSettingsFileName(
-                  filePath,
-                  CollectionFormat.Yaml,
-              )
-                  ? BrunoFileType.FolderSettingsFile
-                  : BrunoFileType.RequestFile,
           ).result?.properties.sequence?.value;
 }

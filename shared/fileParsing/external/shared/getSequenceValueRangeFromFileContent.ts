@@ -1,13 +1,11 @@
 import { extname } from "path";
 import {
-    BrunoFileType,
     CollectionFormat,
-    doesFileNameMatchFolderSettingsFileName,
     getExtensionForBrunoFiles,
     getFileExtensionForFormat,
     getSequenceFieldFromMetaBlock,
     isDictionaryBlockSimpleField,
-    parseInfoFromYamlFile,
+    parseInfoFromYamlRequestOrFolderFile,
     Position,
     Range,
     TextDocumentHelper,
@@ -35,14 +33,9 @@ export function getSequenceValueRangeFromFileContent(
     }
 
     if (extension == getFileExtensionForFormat(CollectionFormat.Yaml)) {
-        const parsed = parseInfoFromYamlFile(
+        const parsed = parseInfoFromYamlRequestOrFolderFile(
+            filePath,
             documentHelper,
-            doesFileNameMatchFolderSettingsFileName(
-                filePath,
-                CollectionFormat.Yaml,
-            )
-                ? BrunoFileType.FolderSettingsFile
-                : BrunoFileType.RequestFile,
         );
 
         const valueRange =

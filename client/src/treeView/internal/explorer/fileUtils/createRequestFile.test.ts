@@ -8,7 +8,7 @@ import {
     RequestType,
 } from "@global_shared";
 import {
-    createCollectionWithEnvironments,
+    createItemProviderStub,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
 import {
@@ -167,7 +167,7 @@ async function runCreateRequestFile(
     jest.spyOn(window, "createQuickPick").mockReturnValue(quickPick as never);
 
     await createRequestFile(
-        createItemProvider(directory, format),
+        createItemProviderStub<TypedCollectionItemProvider>(directory, format),
         {
             waitForFileToBeRegisteredInCache: async () => {},
         } as unknown as FileSystemCacheSyncingHelper,
@@ -188,7 +188,7 @@ async function getNameValidator(directory: string, format: CollectionFormat) {
     );
 
     await createRequestFile(
-        createItemProvider(directory, format),
+        createItemProviderStub<TypedCollectionItemProvider>(directory, format),
         {} as FileSystemCacheSyncingHelper,
         { getPath: () => directory } as BrunoTreeItem,
     );
@@ -198,14 +198,6 @@ async function getNameValidator(directory: string, format: CollectionFormat) {
     };
 
     return options.validateInput;
-}
-
-function createItemProvider(directory: string, format: CollectionFormat) {
-    const collection = createCollectionWithEnvironments([], format, directory);
-
-    return {
-        getAncestorCollectionForPath: () => collection,
-    } as unknown as TypedCollectionItemProvider;
 }
 
 function createFakeQuickPick() {

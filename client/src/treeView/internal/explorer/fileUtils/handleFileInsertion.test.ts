@@ -8,7 +8,7 @@ import {
     CollectionItem,
 } from "@global_shared";
 import {
-    createCollectionWithEnvironments,
+    createItemProviderStub,
     useTemporaryDirectories,
 } from "@global_shared/_testingUtils";
 import { TypedCollectionItemProvider } from "@shared";
@@ -43,14 +43,10 @@ describe("handleFileInsertion", () => {
                 insertionPosition: RequestFileInsertionPositionType.Folder,
                 newPath: targetPath,
             },
-            {
-                getAncestorCollectionForPath: () =>
-                    createCollectionWithEnvironments(
-                        [],
-                        CollectionFormat.Bru,
-                        directory,
-                    ),
-            } as unknown as TypedCollectionItemProvider,
+            createItemProviderStub<TypedCollectionItemProvider>(
+                directory,
+                CollectionFormat.Bru,
+            ),
         );
 
         expect(result).toBe(false);
