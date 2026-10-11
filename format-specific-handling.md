@@ -16,7 +16,7 @@ Each entry is tagged:
 
 ## 2. Collection detection and the `Collection` model
 
-- [collection.ts:58-68](shared/baseModel/collection.ts#L58-L68) **[OK]** / **[Check]**: environment names are the file name without the format's extension. In yaml environment files there is also a top-level `name` property (checked by [checkTopLevelNameIsDefined.ts](server/src/yamlFiles/diagnostics/checks/environmentFiles/checkTopLevelNameIsDefined.ts)). It still needs checking whether Bruno uses the file name or `name` to identify yaml environments (e.g. for `extends`).
+- No relevant differences.
 
 ## 3. Item type detection
 
