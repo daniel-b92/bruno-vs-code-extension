@@ -94,6 +94,28 @@ describe("createRequestFile", () => {
         );
     });
 
+    it("creates a yaml request file for a websocket request with the yaml type and without a method", async () => {
+        const directory = await createTemporaryDirectory();
+
+        await runCreateRequestFile(directory, CollectionFormat.Yaml, {
+            requestName: "ws_request",
+            pickedLabels: [RequestType.Ws],
+        });
+
+        expect(await readFile(join(directory, "ws_request.yml"), "utf-8")).toBe(
+            [
+                "info:",
+                "  name: ws_request",
+                "  type: websocket",
+                "  seq: 1",
+                "",
+                "websocket:",
+                '  url: ""',
+                "",
+            ].join("\n"),
+        );
+    });
+
     it("validates the new name against the extension of the collection format", async () => {
         const directory = await createTemporaryDirectory({
             "existing.yml": "",

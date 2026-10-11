@@ -61,7 +61,7 @@ export async function handleFileInsertion(
         newContent,
     );
 
-    if (itemType == BrunoFileType.RequestFile) {
+    if (wasSuccessful && itemType == BrunoFileType.RequestFile) {
         await replaceNameInMetaBlock(
             newPath,
             basename(newPath).replace(getFileExtensionForFormat(format), ""),

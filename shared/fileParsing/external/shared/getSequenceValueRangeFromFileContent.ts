@@ -59,7 +59,7 @@ export function getSequenceValueRangeFromFileContent(
 }
 
 /** For yaml scalars followed by a comment, the parsed range can include the whitespace in front of the comment. */
-function excludeTrailingWhitespace(
+export function excludeTrailingWhitespace(
     range: Range,
     documentHelper: TextDocumentHelper,
 ) {

@@ -11,9 +11,11 @@ import {
     parseInfoFromYamlFile,
     BrunoFileType,
     Range,
+    excludeTrailingWhitespace,
 } from "@global_shared";
 import { readFile, writeFile } from "fs";
 import { window } from "vscode";
+import { stringify } from "yaml";
 
 export async function replaceNameInMetaBlock(
     filePath: string,
@@ -46,7 +48,9 @@ export async function replaceNameInMetaBlock(
                     startCharIndex: nameRange.start.character,
                     endCharIndex: nameRange.end.character,
                 },
-                newName,
+                format == CollectionFormat.Yaml
+                    ? stringify(newName, { lineWidth: 0 }).trimEnd()
+                    : newName,
             ),
         ).catch(() => {
             window.showErrorMessage(
@@ -81,7 +85,10 @@ function getNameRangeFromYamlFile(
         itemType as BrunoFileType,
     );
 
-    return "result" in parsed
-        ? parsed.result?.properties.name?.valueRange
-        : undefined;
+    const range =
+        "result" in parsed
+            ? parsed.result?.properties.name?.valueRange
+            : undefined;
+
+    return range ? excludeTrailingWhitespace(range, documentHelper) : undefined;
 }

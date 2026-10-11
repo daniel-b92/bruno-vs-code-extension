@@ -225,7 +225,13 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
 
     it("recognizes a bru file as request file after it was edited from invalid to valid", async () => {
         await expectFileTypeChangeToBeHandled({
-            files: { "collection/bruno.json": "{}", "collection/req.bru": "" },
+            files: {
+                "collection/bruno.json": "{}",
+                // A Bru collection is only recognized if it contains at least one valid request file.
+                "collection/other.bru":
+                    "meta {\n  name: other\n  type: http\n  seq: 2\n}\n",
+                "collection/req.bru": "",
+            },
             relativePath: "collection/req.bru",
             validContent: "meta {\n  name: req\n  type: http\n  seq: 1\n}\n",
         });

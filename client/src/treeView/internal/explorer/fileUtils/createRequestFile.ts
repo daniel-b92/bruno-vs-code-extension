@@ -8,6 +8,7 @@ import {
     getMaxSequenceForRequests,
     AuthTypes,
     getPossibleMethodBlocksForRequestType,
+    FileInfoType,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
@@ -217,16 +218,32 @@ function getYamlFileContent(
     requestType: RequestType,
     methodBlockName: string,
 ) {
+    const yamlType = getYamlTypeForRequestType(requestType);
     const topLevelProperties = {
-        info: { name: requestName, type: requestType, seq: requestSequence },
-        [requestType]:
+        info: { name: requestName, type: yamlType, seq: requestSequence },
+        [yamlType]:
             requestType == RequestType.Grpc
                 ? { url: "" }
-                : { method: methodBlockName.toUpperCase(), url: "" },
+                : requestType == RequestType.Ws
+                  ? { url: "" }
+                  : { method: methodBlockName.toUpperCase(), url: "" },
     };
 
     // Bruno desktop separates the top level properties by an empty line.
     return Object.entries(topLevelProperties)
         .map(([key, value]) => stringify({ [key]: value }))
         .join("\n");
+}
+
+function getYamlTypeForRequestType(requestType: RequestType): FileInfoType {
+    switch (requestType) {
+        case RequestType.Http:
+            return FileInfoType.Http;
+        case RequestType.Graphql:
+            return FileInfoType.Graphql;
+        case RequestType.Grpc:
+            return FileInfoType.Grpc;
+        case RequestType.Ws:
+            return FileInfoType.Websocket;
+    }
 }

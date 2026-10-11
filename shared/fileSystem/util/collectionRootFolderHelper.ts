@@ -5,6 +5,7 @@ import {
     checkIfPathExistsAsync,
     convertToGlobPattern,
     getFileContent,
+    getTestFileDescendants,
     normalizePath,
     parseCollectionSettingsFile,
     TextDocumentHelper,
@@ -142,6 +143,14 @@ export async function getCollectionRootData(
         : undefined;
 
     if (!rootFilePath) {
+        return undefined;
+    }
+
+    // A stray `bruno.json` (e.g. left over from a migration to Yaml) must not be treated as a Bru collection.
+    if (
+        format == CollectionFormat.Bru &&
+        (await getTestFileDescendants(path)).length == 0
+    ) {
         return undefined;
     }
 
