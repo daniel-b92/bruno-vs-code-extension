@@ -7,14 +7,16 @@ import {
 
 export function getRequestFileDocumentSelector(
     featureToggles: FeatureToggles,
+    formats: CollectionFormat[] = Object.values(CollectionFormat),
 ): DocumentSelector {
-    return [
-        CollectionFormat.Bru,
-        ...(featureToggles.yamlCollectionSupport
-            ? [CollectionFormat.Yaml]
-            : []),
-    ].map((format) => ({
-        scheme: "file",
-        pattern: `**/*${getFileExtensionForFormat(format)}`,
-    }));
+    return formats
+        .filter(
+            (format) =>
+                format != CollectionFormat.Yaml ||
+                featureToggles.yamlCollectionSupport,
+        )
+        .map((format) => ({
+            scheme: "file",
+            pattern: `**/*${getFileExtensionForFormat(format)}`,
+        }));
 }
