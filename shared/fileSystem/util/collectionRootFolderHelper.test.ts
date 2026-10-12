@@ -82,6 +82,70 @@ describe("getAllCollectionRootDirectories", () => {
         expect(conflicts).toEqual([]);
     });
 
+    it("does not let a stray 'bruno.json' hide a yaml collection", async () => {
+        const workspace = await createTemporaryDirectory({
+            "col/bruno.json": "{}",
+            "col/opencollection.yml": "info:\n  name: yaml\n",
+        });
+
+        const { roots, conflicts } = await getAllCollectionRootDirectories(
+            [workspace],
+            { yamlCollectionSupport: true },
+        );
+
+        expect(getRootNamesWithFormat(roots)).toEqual(["col (Yaml)"]);
+        expect(conflicts).toEqual([]);
+    });
+
+    it("finds a yaml collection located in a folder named 'environments'", async () => {
+        const workspace = await createTemporaryDirectory({
+            "environments/opencollection.yml": "info:\n  name: yaml\n",
+        });
+
+        const { roots } = await getAllCollectionRootDirectories([workspace], {
+            yamlCollectionSupport: true,
+        });
+
+        expect(getRootNamesWithFormat(roots)).toEqual(["environments (Yaml)"]);
+    });
+
+    it("detects nested bru collections independent of the yaml toggle", async () => {
+        const workspace = await createTemporaryDirectory({
+            "outer/bruno.json": "{}",
+            "outer/req.bru": bruRequest,
+            "outer/inner/bruno.json": "{}",
+            "outer/inner/req.bru": bruRequest,
+        });
+
+        for (const yamlCollectionSupport of [false, true]) {
+            const { roots, conflicts } = await getAllCollectionRootDirectories(
+                [workspace],
+                { yamlCollectionSupport },
+            );
+
+            expect(getRootNamesWithFormat(roots)).toEqual(["inner (Bru)"]);
+            expect(conflicts.map(({ rootFilePath }) => rootFilePath)).toEqual([
+                join(workspace, "outer", "bruno.json"),
+            ]);
+        }
+    });
+
+    it("does not treat a request named 'opencollection' as a nested collection root", async () => {
+        const workspace = await createTemporaryDirectory({
+            "api/opencollection.yml": "info:\n  name: api\n",
+            "api/users/opencollection.yml":
+                "info:\n  name: users\n  type: http\n  seq: 1\n",
+        });
+
+        const { roots, conflicts } = await getAllCollectionRootDirectories(
+            [workspace],
+            { yamlCollectionSupport: true },
+        );
+
+        expect(getRootNamesWithFormat(roots)).toEqual(["api (Yaml)"]);
+        expect(conflicts).toEqual([]);
+    });
+
     it("does not treat a folder as a yaml collection when 'opencollection.yml' is a directory", async () => {
         const workspace = await createTemporaryDirectory({
             "notACollection/opencollection.yml/child.txt": "",

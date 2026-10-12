@@ -17,7 +17,6 @@ import {
     CollectionFormat,
     FileInfoType,
     getInfoTypeFromYamlContent,
-    hasInfoBlockInYamlContent,
     getFileExtensionForFormat,
 } from "../..";
 import {
@@ -100,14 +99,20 @@ async function getItemTypeForOtherYamlFile(path: string) {
     const content = await readFile(path, { encoding: "utf-8" }).catch(
         () => undefined,
     );
-    if (!content || !hasInfoBlockInYamlContent(content)) {
-        return NonBrunoSpecificItemType.OtherFileType;
-    }
+    const infoType = content ? getInfoTypeFromYamlContent(content) : undefined;
 
-    // Like for Bru files, any file with an info block that is not an app file is treated as a request file.
-    return getInfoTypeFromYamlContent(content) == FileInfoType.App
-        ? BrunoFileType.AppFile
-        : BrunoFileType.RequestFile;
+    switch (infoType) {
+        case FileInfoType.App:
+            return BrunoFileType.AppFile;
+        case FileInfoType.Http:
+        case FileInfoType.Graphql:
+        case FileInfoType.Grpc:
+        case FileInfoType.Websocket:
+            return BrunoFileType.RequestFile;
+        default:
+            // Includes yaml files that are not valid request files, like the ones with info type 'folder' outside of a folder settings file or other yaml files with an 'info' block (e.g. OpenAPI specs).
+            return NonBrunoSpecificItemType.OtherFileType;
+    }
 }
 
 function isChildElementOfCollectionRootDirectory<T>(

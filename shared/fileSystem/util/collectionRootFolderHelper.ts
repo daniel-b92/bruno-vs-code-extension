@@ -1,10 +1,11 @@
-import { dirname, isAbsolute, relative, resolve } from "path";
+import { basename, dirname, isAbsolute, join, relative, resolve } from "path";
 import {
     CollectionFormat,
     FeatureToggles,
     checkIfPathExistsAsync,
     convertToGlobPattern,
     getFileContent,
+    getInfoTypeFromYamlContent,
     getTestFileDescendants,
     isInFolderForEnvironmentFiles,
     normalizePath,
@@ -34,45 +35,39 @@ export async function getAllCollectionRootDirectories(
     roots: CollectionRootDirectory[];
     conflicts: ConflictingCollectionRootFiles[];
 }> {
-    if (!featureToggles.yamlCollectionSupport) {
-        return {
-            roots: await getBruCollectionRootDirectories(
-                await globFilesInWorkspaces(
-                    workspaceFolders,
-                    getCollectionRootFileName(CollectionFormat.Bru),
-                ),
-            ),
-            conflicts: [],
-        };
-    }
-
     const bruRootFiles = await globFilesInWorkspaces(
         workspaceFolders,
         getCollectionRootFileName(CollectionFormat.Bru),
     );
-    // An environment named like the root file (`environments/opencollection.yml`) is no collection root.
-    const yamlRootFiles = (
-        await globFilesInWorkspaces(
-            workspaceFolders,
-            getCollectionRootFileName(CollectionFormat.Yaml),
-        )
-    ).filter((path) => !isInFolderForEnvironmentFiles(path));
-    const { conflicts, nonConflicting } = splitByConflicts(
-        bruRootFiles.concat(yamlRootFiles),
+    const yamlRootFiles = featureToggles.yamlCollectionSupport
+        ? await globFilesInWorkspaces(
+              workspaceFolders,
+              getCollectionRootFileName(CollectionFormat.Yaml),
+          )
+        : [];
+
+    // Only valid roots can conflict with each other (e.g. a stray `bruno.json` must not hide a Yaml collection).
+    const candidates = (
+        await getRootCandidates(bruRootFiles, CollectionFormat.Bru)
+    ).concat(
+        await getRootCandidates(
+            yamlRootFiles.filter(
+                (path) =>
+                    !isEnvironmentFileNamedLikeRootFile(path, yamlRootFiles),
+            ),
+            CollectionFormat.Yaml,
+        ),
     );
-    const isNonConflicting = (path: string) =>
-        nonConflicting.some((other) => isSamePath(other, path));
+    const { conflicts, nonConflicting } = splitByConflicts(
+        candidates.map(({ rootFilePath }) => rootFilePath),
+    );
 
     return {
-        roots: (
-            await getBruCollectionRootDirectories(
-                bruRootFiles.filter(isNonConflicting),
+        roots: candidates
+            .filter(({ rootFilePath }) =>
+                nonConflicting.some((other) => isSamePath(other, rootFilePath)),
             )
-        ).concat(
-            await getYamlCollectionRootDirectories(
-                yamlRootFiles.filter(isNonConflicting),
-            ),
-        ),
+            .map(({ rootFilePath: _, ...root }) => root),
         conflicts,
     };
 }
@@ -84,31 +79,34 @@ export function getCollectionRootFilePath(
     return resolve(collectionRootFolder, getCollectionRootFileName(format));
 }
 
-async function getBruCollectionRootDirectories(rootFilePaths: string[]) {
-    return await getRootDirectoriesForFiles(
-        rootFilePaths,
-        CollectionFormat.Bru,
+/**
+ * An environment named like the root file (`<collection>/environments/opencollection.yml`) is no collection root.
+ * A collection that is itself located in a folder named 'environments' is still found, since its parent has no root file.
+ */
+function isEnvironmentFileNamedLikeRootFile(
+    path: string,
+    allYamlRootFiles: string[],
+) {
+    return (
+        isInFolderForEnvironmentFiles(path) &&
+        allYamlRootFiles.some((other) =>
+            isSamePath(other, join(dirname(dirname(path)), basename(path))),
+        )
     );
 }
 
-async function getYamlCollectionRootDirectories(rootFilePaths: string[]) {
-    return await getRootDirectoriesForFiles(
-        rootFilePaths,
-        CollectionFormat.Yaml,
-    );
-}
-
-async function getRootDirectoriesForFiles(
+async function getRootCandidates(
     rootFilePaths: string[],
     format: CollectionFormat,
 ) {
-    const result: CollectionRootDirectory[] = [];
+    const result: (CollectionRootDirectory & { rootFilePath: string })[] = [];
 
-    for (const rootFolder of rootFilePaths.map((path) => dirname(path))) {
+    for (const rootFilePath of rootFilePaths) {
+        const rootFolder = dirname(rootFilePath);
         const rootData = await getCollectionRootData(rootFolder, format);
 
         if (rootData) {
-            result.push({ rootFolder, format, ...rootData });
+            result.push({ rootFilePath, rootFolder, format, ...rootData });
         }
     }
 
@@ -209,11 +207,31 @@ export async function getCollectionRootData(
         return undefined;
     }
 
+    const fileContent = await getFileContent(rootFilePath);
+
+    if (format == CollectionFormat.Bru) {
+        return {
+            additionalContextRoots:
+                await getAdditionalContextRootsFromBrunoJson(
+                    rootFilePath,
+                    fileContent,
+                ),
+        };
+    }
+
+    // A request, folder or app file that is just named like the root file (`info.type` is only set for those) is no collection root.
+    if (
+        fileContent !== undefined &&
+        getInfoTypeFromYamlContent(fileContent) !== undefined
+    ) {
+        return undefined;
+    }
+
     return {
-        additionalContextRoots:
-            format == CollectionFormat.Yaml
-                ? await getAdditionalContextRootsFromYaml(rootFilePath)
-                : await getAdditionalContextRootsFromBrunoJson(rootFilePath),
+        additionalContextRoots: getAdditionalContextRootsFromYaml(
+            rootFilePath,
+            fileContent,
+        ),
     };
 }
 
@@ -232,9 +250,10 @@ async function getRootFilePathIfExists(
     return isExistingFile ? rootFilePath : undefined;
 }
 
-async function getAdditionalContextRootsFromYaml(rootFilePath: string) {
-    const fileContent = await getFileContent(rootFilePath);
-
+function getAdditionalContextRootsFromYaml(
+    rootFilePath: string,
+    fileContent: string | undefined,
+) {
     if (fileContent === undefined) {
         return undefined;
     }
@@ -249,9 +268,8 @@ async function getAdditionalContextRootsFromYaml(rootFilePath: string) {
 
 async function getAdditionalContextRootsFromBrunoJson(
     brunoJsonFilePath: string,
+    fileContent: string | undefined,
 ) {
-    const fileContent = await getFileContent(brunoJsonFilePath);
-
     if (fileContent === undefined) {
         return undefined;
     }

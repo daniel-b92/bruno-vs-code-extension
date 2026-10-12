@@ -5,6 +5,7 @@
 - Make handling of unreadable or invalid `folder.bru` files consistent with the `yaml` format: The folder is now still registered with its settings file (without a sequence) instead of being skipped or having no settings file.
 - Fix an issue that caused a collection to stay registered in the cache when only its root file (`bruno.json` or `opencollection.yml`) was deleted.
 - Make renaming of a collection root folder in the collection explorer consistent with the `yaml` format: For `bru` collections, the `name` in `bruno.json` (and the `name` in the `meta` block of `collection.bru`, if present) is now adjusted too.
+- Fix handling of nested collection root files: A collection root file (`bruno.json` or `opencollection.yml`) is now ignored if another collection root file exists in the same directory or in one of its subdirectories (a warning is shown in that case).
 
 ## [1.3.3] (2026-10-10)
 
