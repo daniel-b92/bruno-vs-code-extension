@@ -33,6 +33,8 @@ runtime:
           code: |-
               test("Status code is 404", function () {
                 expect(res.getStatus()).to.equal(404);
+                const arr = [232, 22323];
+                arr.filter((v) => v > 0)
               });
 
 settings:

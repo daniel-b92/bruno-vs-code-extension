@@ -1,10 +1,16 @@
 import { dirname, extname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
+import {
+    maskYamlCollectionFileContent,
+    maskYamlFileContent,
+} from "./yamlFiles/maskYamlFileContent";
 
 function init(_modules: {
     typescript: typeof import("typescript/lib/tsserverlibrary");
 }) {
     function create(info: ts.server.PluginCreateInfo) {
+        maskYamlFilesForTypescriptServer(info);
+
         // Set up decorator object
         const proxy: ts.LanguageService = Object.create(null);
 
@@ -27,7 +33,7 @@ function init(_modules: {
         };
 
         proxy.getSemanticDiagnostics = (fileName) => {
-            const isBruFile = isBrunoFile(fileName);
+            const hasCodeBlocks = hasEmbeddedCodeBlocks(fileName);
 
             const allDiagnostics = filterDefaultDiagnostics(
                 info,
@@ -35,11 +41,11 @@ function init(_modules: {
                 info.languageService.getSemanticDiagnostics(fileName),
             );
 
-            // The ts server always reports errors when importing a Javascript function in a .bru file.
-            return isBruFile
+            // The ts server always reports errors when importing a Javascript function in a .bru or .yml file.
+            return hasCodeBlocks
                 ? allDiagnostics.filter(
                       // Do not show diagnostics that only make sense for Typescript files.
-                      // Bru file code blocks should be treated like Javascript functions instead.
+                      // Code blocks should be treated like Javascript functions instead.
                       // A list of diagnostics can be found here: https://github.com/microsoft/TypeScript/blob/main/src/compiler/diagnosticMessages.json
                       ({ code }) => ![7_006, 7_031, 18_046].includes(code),
                   )
@@ -50,7 +56,7 @@ function init(_modules: {
             const defaultDiagnostics =
                 info.languageService.getSuggestionDiagnostics(fileName);
 
-            const isBruFile = isBrunoFile(fileName);
+            const hasCodeBlocks = hasEmbeddedCodeBlocks(fileName);
 
             const allDiagnostics = filterDefaultDiagnostics(
                 info,
@@ -58,11 +64,11 @@ function init(_modules: {
                 defaultDiagnostics,
             ) as ts.DiagnosticWithLocation[];
 
-            // The ts server always reports errors when importing a Javascript function in a .bru file.
-            return isBruFile
+            // The ts server always reports errors when importing a Javascript function in a .bru or .yml file.
+            return hasCodeBlocks
                 ? allDiagnostics.filter(
                       // Do not show diagnostics that only make sense for Typescript files.
-                      // Bru file code blocks should be treated like Javascript functions instead.
+                      // Code blocks should be treated like Javascript functions instead.
                       // A list of diagnostics can be found here: https://github.com/microsoft/TypeScript/blob/main/src/compiler/diagnosticMessages.json
                       ({ code }) =>
                           (code < 7_043 || code > 7_050) &&
@@ -74,9 +80,9 @@ function init(_modules: {
                   : allDiagnostics; // Bruno currently only supports CommonJS modules.)
         };
 
-        // All hovers are provided by the extension implementation for '.bru' files.
+        // All hovers are provided by the extension implementation for '.bru' and '.yml' files.
         proxy.getQuickInfoAtPosition = (fileName, position) => {
-            if (isBrunoFile(fileName)) {
+            if (hasEmbeddedCodeBlocks(fileName)) {
                 return undefined;
             }
 
@@ -87,8 +93,8 @@ function init(_modules: {
         };
 
         proxy.getCompletionsAtPosition = (fileName, position, options) => {
-            // All completions are provided by the extension implementation for '.bru' files.
-            if (isBrunoFile(fileName)) {
+            // All completions are provided by the extension implementation for '.bru' and '.yml' files.
+            if (hasEmbeddedCodeBlocks(fileName)) {
                 return undefined;
             }
 
@@ -277,12 +283,69 @@ function init(_modules: {
     };
 }
 
+const hostsWithMaskedYamlFiles = new WeakSet<ts.LanguageServiceHost>();
+
+/**
+ * The Typescript server parses Yaml files like Typescript files, so that the Yaml content would affect the meaning of the code within scripts.
+ * Therefore, the Typescript server only gets to see the code of scripts within Yaml collection files (see `maskYamlCollectionFileContent`).
+ * All other Yaml files are masked completely.
+ */
+function maskYamlFilesForTypescriptServer(info: ts.server.PluginCreateInfo) {
+    const host = info.languageServiceHost;
+
+    // Masking already masked content would remove all scripts.
+    if (hostsWithMaskedYamlFiles.has(host)) {
+        return;
+    }
+
+    hostsWithMaskedYamlFiles.add(host);
+
+    const getOriginalSnapshot = host.getScriptSnapshot.bind(host);
+    // A new snapshot is only created, if the content of a file changes.
+    const maskedSnapshots = new WeakMap<
+        ts.IScriptSnapshot,
+        ts.IScriptSnapshot
+    >();
+
+    host.getScriptSnapshot = (fileName) => {
+        const originalSnapshot = getOriginalSnapshot(fileName);
+
+        if (!originalSnapshot || !isYamlFile(fileName)) {
+            return originalSnapshot;
+        }
+
+        const cachedSnapshot = maskedSnapshots.get(originalSnapshot);
+
+        if (cachedSnapshot) {
+            return cachedSnapshot;
+        }
+
+        const originalContent = originalSnapshot.getText(
+            0,
+            originalSnapshot.getLength(),
+        );
+
+        // Snapshots created from a string do not support incremental parsing, so the file is always parsed completely.
+        const maskedSnapshot = ts.ScriptSnapshot.fromString(
+            isFileFromYamlCollection(info, fileName)
+                ? maskYamlCollectionFileContent(originalContent)
+                : maskYamlFileContent(originalContent),
+        );
+
+        maskedSnapshots.set(originalSnapshot, maskedSnapshot);
+
+        return maskedSnapshot;
+    };
+}
+
 function filterDefaultDiagnostics(
     info: ts.server.PluginCreateInfo,
     fileName: string,
     defaultDiagnostics: (ts.Diagnostic | ts.DiagnosticWithLocation)[],
 ) {
-    if (!isBrunoFile(fileName)) {
+    if (isYamlFile(fileName)) {
+        return filterDiagnosticsForYamlFile(info, fileName, defaultDiagnostics);
+    } else if (!isBruFile(fileName)) {
         return extname(fileName) == ".js"
             ? filterDiagnosticsForJsFile(info, fileName, defaultDiagnostics)
             : defaultDiagnostics;
@@ -326,6 +389,25 @@ function filterDefaultDiagnostics(
         ),
         fileContent,
     );
+}
+
+/**
+ * The Typescript server only sees the code of scripts within Yaml files (see `maskYamlFilesForTypescriptServer`).
+ * Therefore, all diagnostics are already located within code blocks.
+ */
+function filterDiagnosticsForYamlFile(
+    info: ts.server.PluginCreateInfo,
+    fileName: string,
+    defaultDiagnostics: (ts.Diagnostic | ts.DiagnosticWithLocation)[],
+) {
+    const fileContent = getFileContent(info, fileName);
+
+    return fileContent
+        ? filterOutDiagnosticsForInbuiltRuntimeFunctions(
+              defaultDiagnostics,
+              fileContent,
+          )
+        : [];
 }
 
 function filterDiagnosticsForJsFile(
@@ -461,28 +543,49 @@ function isInABrunoCollection(
     info: ts.server.PluginCreateInfo,
     fileName: string,
 ) {
+    return getFormatOfContainingCollection(info, fileName) != undefined;
+}
+
+/**
+ * Collection files in the Yaml format always use the extension `.yml`.
+ */
+function isFileFromYamlCollection(
+    info: ts.server.PluginCreateInfo,
+    fileName: string,
+) {
+    return (
+        extname(fileName) == ".yml" &&
+        getFormatOfContainingCollection(info, fileName) ==
+            CollectionFormat.Yaml
+    );
+}
+
+function getFormatOfContainingCollection(
+    info: ts.server.PluginCreateInfo,
+    fileName: string,
+) {
     let currentDirectory = dirname(fileName);
-    let isCollectionRoot = isACollectionRootFolder(info, currentDirectory);
+    let format = getFormatIfCollectionRootFolder(info, currentDirectory);
 
     while (
         info.serverHost.directoryExists(currentDirectory) &&
-        !isCollectionRoot &&
+        !format &&
         dirname(currentDirectory) != currentDirectory // dirname of a base folder in the file system seems to return the input folder again
     ) {
         currentDirectory = dirname(currentDirectory);
-        isCollectionRoot = isACollectionRootFolder(info, currentDirectory);
+        format = getFormatIfCollectionRootFolder(info, currentDirectory);
     }
 
-    return isCollectionRoot;
+    return format;
 }
 
-function isACollectionRootFolder(
+function getFormatIfCollectionRootFolder(
     info: ts.server.PluginCreateInfo,
     directoryPath: string,
 ) {
-    return info.serverHost
+    const collectionRootFile = info.serverHost
         .readDirectory(directoryPath, undefined, undefined, undefined, 1)
-        .some((fileName) => {
+        .find((fileName) => {
             const isBruCollectionRootFile = fileName.endsWith("bruno.json");
             const isYamlCollectionRootFile =
                 fileName.endsWith("opencollection.yml");
@@ -501,13 +604,20 @@ function isACollectionRootFolder(
                 ? isBrunoJsonForCollection(content)
                 : isOpenCollectionRootFileContent(content);
         });
+
+    if (!collectionRootFile) {
+        return undefined;
+    }
+
+    return collectionRootFile.endsWith("bruno.json")
+        ? CollectionFormat.Bru
+        : CollectionFormat.Yaml;
 }
 
 function isBrunoJsonForCollection(content: string) {
     try {
         const parsedContent = JSON.parse(content) as
-            | { type: string }
-            | undefined;
+            { type: string } | undefined;
 
         return parsedContent && parsedContent.type == "collection";
     } catch {
@@ -523,8 +633,16 @@ function isOpenCollectionRootFileContent(content: string) {
     return /^opencollection\s*:/m.test(content);
 }
 
-function isBrunoFile(fileName: string) {
+function hasEmbeddedCodeBlocks(fileName: string) {
+    return isBruFile(fileName) || isYamlFile(fileName);
+}
+
+function isBruFile(fileName: string) {
     return extname(fileName) == ".bru";
+}
+
+function isYamlFile(fileName: string) {
+    return [".yml", ".yaml"].includes(extname(fileName));
 }
 
 function getTempJsFileBaseNameWithoutExtension() {
@@ -533,6 +651,11 @@ function getTempJsFileBaseNameWithoutExtension() {
 
 function getNamesForInbuiltRuntimeVarsAndFunctions() {
     return ["bru", "req", "res", "test", "expect"];
+}
+
+enum CollectionFormat {
+    Bru = "bru",
+    Yaml = "yaml",
 }
 
 enum CodeBlockName {

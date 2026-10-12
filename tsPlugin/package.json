@@ -12,7 +12,8 @@
         "url": "git+https://github.com/daniel-b92/bruno-vs-code-extension.git#main"
     },
     "dependencies": {
-        "typescript": "^6.0.3"
+        "typescript": "^6.0.3",
+        "yaml": "^2.9.0"
     },
     "devDependencies": {
         "@types/node": "^26.1.2"

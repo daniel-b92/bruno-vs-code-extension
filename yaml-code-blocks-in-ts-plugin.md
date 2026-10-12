@@ -2,6 +2,8 @@
 
 Goal: provide TS diagnostics and renaming for JS code inside Yaml collection files (`runtime.scripts[].code` in request files, `request.scripts[].code` in `folder.yml` / `opencollection.yml`), similar to what already works for `.bru` files.
 
+Status: implemented in [maskYamlFileContent.ts](tsPlugin/src/yamlFiles/maskYamlFileContent.ts) and [tsPlugin/src/index.ts](tsPlugin/src/index.ts) (`maskYamlFilesForTypescriptServer`).
+
 Starting point: adding `yaml` to the `languages` of the `typescriptServerPlugins` contribution in [package.json](package.json). This makes VS Code send `yaml` documents to the TS server, which parses them like Typescript files (unknown file extensions fall back to `ScriptKind.TS`).
 
 ## Why filtering diagnostics (like for Bru) is not enough
@@ -67,7 +69,7 @@ Instead of filtering what the TS server returns, change what it sees. The plugin
 - **Each script is wrapped in a block** to get the same scoping as for Bru files (fixes issue 2):
     - The `{` is written into the blanked space before the content (e.g. where `code: |-` was).
     - The `}` is written into the next blanked non-line-break character after the content (e.g. the indentation or key of the following line). If there is none (the script is at the end of the file), it is appended at the end of the text. Appending does not shift any existing positions.
-    - Optionally, a function wrapper (e.g. `(async () => {` … `})()`) could be used instead of a plain block, since Bruno executes the scripts within an async function. That would make top-level `return` / `await` valid. The line containing `code: |-` usually has enough free space for this. This should only be done if it is also done for Bru files, to keep both formats consistent.
+    - Not implemented (yet): a function wrapper (e.g. `(async () => {` … `})()`) could be used instead of a plain block, since Bruno executes the scripts within an async function. That would make top-level `return` / `await` valid. The line containing `code: |-` usually has enough free space for this. This should only be done if it is also done for Bru files, to keep both formats consistent.
 - **Yaml files outside of a Bruno collection are masked completely** (all spaces), so the TS server returns no diagnostics, outline, hovers, … for them (issue 5). Completions still need to be suppressed explicitly, because TS offers global completions even at blank positions.
 
 ### Snapshot details
@@ -77,12 +79,9 @@ Instead of filtering what the TS server returns, change what it sees. The plugin
 
 ### Finding script contents in the plugin
 
-The plugin is a standalone npm package and cannot import from `shared/`. Options:
+The plugin is a standalone npm package and cannot import from `shared/`. It therefore depends on the `yaml` package itself and locates `runtime.scripts[].code` (request files) and `request.scripts[].code` (folder / collection settings files) via the parsed document.
 
-- Add the `yaml` package as a dependency of the plugin and locate `runtime.scripts[].code` (request files) and `request.scripts[].code` (folder / collection settings files) via the parsed document.
-- Write a small line-based scanner for `code: |` entries and the following more-indented lines.
-
-The `yaml` package is the more robust option.
+Only `.yml` files inside a collection whose root contains an `opencollection.yml` are treated as collection files, since Yaml collections always use this extension. All other `.yml` / `.yaml` files (including Yaml files inside Bru collections) are masked completely.
 
 ### Behaviour of the other plugin overrides
 

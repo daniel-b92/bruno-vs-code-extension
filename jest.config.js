@@ -101,5 +101,24 @@ module.exports = {
             // Compiled output contains copies of the sources & mocks, which must not be picked up.
             modulePathIgnorePatterns: ["<rootDir>/out/"],
         },
+        {
+            displayName: "tsPlugin",
+            testEnvironment: "node",
+            rootDir: path.resolve(__dirname, "tsPlugin"),
+            transform: {
+                "^.+\\.[tj]s$": [
+                    "ts-jest",
+                    {
+                        tsconfig: path.resolve(
+                            __dirname,
+                            "tsPlugin/tsconfig.json",
+                        ),
+                    },
+                ],
+            },
+            testMatch: ["<rootDir>/src/**/*.test.ts"],
+            moduleFileExtensions: ["ts", "js", "json"],
+            modulePathIgnorePatterns: ["<rootDir>/out/"],
+        },
     ],
 };

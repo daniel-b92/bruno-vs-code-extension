@@ -36,12 +36,13 @@
     "scripts": {
         "vscode:prepublish": "npm run package",
         "compile": "cd client && webpack --mode development && cd ../server && webpack --mode development && cd ..",
-        "compileWithLocalTsPlugin": "cd tsPlugin && tsc --project tsconfig.json && mkdir -p ../node_modules/typescript-for-bruno && cp ./out/index.js ../node_modules/typescript-for-bruno && cd ../client && webpack --mode development && cd ../server && webpack --mode development && cd ..",
+        "compileWithLocalTsPlugin": "cd tsPlugin && tsc --project tsconfig.json && mkdir -p ../node_modules/typescript-for-bruno && cp -r ./out/. ../node_modules/typescript-for-bruno && cd ../client && webpack --mode development && cd ../server && webpack --mode development && cd ..",
         "lint": "eslint \"**/*.ts\"",
         "watch": "cd client && webpack --mode development --watch",
         "package": "cd client && webpack --mode production --devtool hidden-source-map && cd ../server && webpack --mode production --devtool hidden-source-map && cd ..",
         "test-server": "jest --selectProjects server",
         "test-shared": "jest --selectProjects shared",
+        "test-ts-plugin": "jest --selectProjects tsPlugin",
         "test": "jest"
     },
     "dependencies": {
@@ -121,10 +122,11 @@
         "typescriptServerPlugins": [
             {
                 "enableForWorkspaceTypeScriptVersions": true,
-                "name": "@zentryc5t/ts-plugin-for-bruno",
+                "name": "typescript-for-bruno",
                 "languages": [
                     "bru",
-                    "js"
+                    "js",
+                    "yaml"
                 ]
             }
         ],
