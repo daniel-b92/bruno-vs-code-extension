@@ -110,7 +110,7 @@ async function getItemTypeForOtherYamlFile(path: string) {
         case FileInfoType.Websocket:
             return BrunoFileType.RequestFile;
         default:
-            // Includes yaml files that are not valid request files, like the ones with info type 'folder' outside of a folder settings file.
+            // Includes yaml files that are not valid request files, like the ones with info type 'folder' outside of a folder settings file or other yaml files with an 'info' block (e.g. OpenAPI specs).
             return NonBrunoSpecificItemType.OtherFileType;
     }
 }

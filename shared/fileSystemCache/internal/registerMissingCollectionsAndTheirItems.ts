@@ -11,6 +11,7 @@ import {
     doesFileNameMatchFolderSettingsFileName,
     FeatureToggles,
     CollectionFormat,
+    ConflictingCollectionRootFiles,
 } from "../..";
 import { CollectionRegistry } from "./collectionRegistry";
 import { addOrReplaceCollectionData } from "./addOrReplaceItemInCollection";
@@ -28,12 +29,16 @@ export async function registerMissingCollectionsAndTheirItems<T>(
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
     featureToggles: FeatureToggles,
     logger?: Logger,
+    onConflictingCollectionRootFiles?: (
+        conflicts: ConflictingCollectionRootFiles[],
+    ) => void,
 ) {
     const allCollections = await registerAllExistingCollections(
         collectionRegistry,
         workspaceFolders,
         additionalDataProvider,
         featureToggles,
+        onConflictingCollectionRootFiles,
     );
 
     logger?.debug(
@@ -139,11 +144,16 @@ async function registerAllExistingCollections<T>(
     workspaceFolders: string[],
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
     featureToggles: FeatureToggles,
+    onConflictingCollectionRootFiles?: (
+        conflicts: ConflictingCollectionRootFiles[],
+    ) => void,
 ) {
-    const rootFoldersWithData = await getAllCollectionRootDirectories(
-        workspaceFolders,
-        featureToggles,
-    );
+    const { roots: rootFoldersWithData, conflicts } =
+        await getAllCollectionRootDirectories(workspaceFolders, featureToggles);
+
+    if (conflicts.length > 0) {
+        onConflictingCollectionRootFiles?.(conflicts);
+    }
 
     return (
         await Promise.all(

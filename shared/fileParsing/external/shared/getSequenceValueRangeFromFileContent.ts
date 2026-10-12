@@ -1,7 +1,6 @@
 import { extname } from "path";
 import {
     CollectionFormat,
-    getExtensionForBrunoFiles,
     getFileExtensionForFormat,
     getSequenceFieldFromMetaBlock,
     isDictionaryBlockSimpleField,
@@ -24,7 +23,7 @@ export function getSequenceValueRangeFromFileContent(
     const documentHelper = new TextDocumentHelper(content);
     const extension = extname(filePath);
 
-    if (extension == getExtensionForBrunoFiles()) {
+    if (extension == getFileExtensionForFormat(CollectionFormat.Bru)) {
         const sequenceField = getSequenceFieldFromMetaBlock(documentHelper);
 
         return sequenceField && isDictionaryBlockSimpleField(sequenceField)

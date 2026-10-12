@@ -193,6 +193,15 @@ function createNeededHandlers(context: ExtensionContext) {
             getFeatureToggles(context),
             cacheRefreshNotifier,
             logger,
+            (conflicts) =>
+                window.showWarningMessage(
+                    `Ignoring ${conflicts.length} Bruno collection root file(s), because other collection root files exist in the same directory or its subdirectories: ${conflicts
+                        .map(
+                            ({ rootFilePath, conflictingFilePaths }) =>
+                                `'${rootFilePath}' (conflicts with ${conflictingFilePaths.map((path) => `'${path}'`).join(", ")})`,
+                        )
+                        .join("; ")}`,
+                ),
         );
 
     const cacheSyncingHelper = new FileSystemCacheSyncingHelper(

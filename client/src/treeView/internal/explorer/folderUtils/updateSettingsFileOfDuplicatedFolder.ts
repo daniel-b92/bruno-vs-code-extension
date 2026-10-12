@@ -5,7 +5,7 @@ import {
     getSequenceForFolder,
 } from "@global_shared";
 import { getMaxSequenceForFolders, TypedCollectionItemProvider } from "@shared";
-import { replaceNameInMetaBlock } from "../fileUtils/replaceNameInMetaBlock";
+import { replaceItemName } from "../fileUtils/replaceItemName";
 import { replaceSequenceForFile } from "../fileUtils/replaceSequenceForFile";
 
 /**
@@ -34,7 +34,7 @@ export async function updateSettingsFileOfDuplicatedFolder(
         return;
     }
 
-    await replaceNameInMetaBlock(
+    await replaceItemName(
         newFolderSettingsFile,
         basename(newFolderPath),
         BrunoFileType.FolderSettingsFile,

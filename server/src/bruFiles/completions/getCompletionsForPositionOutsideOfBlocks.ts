@@ -6,7 +6,6 @@ import {
     EnvironmentFileTopLevelField,
     getDefaultIndentationForDictionaryBlockFields,
     getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
-    getExtensionForBrunoFiles,
     MetaBlockKey,
     RequestFileBlockName,
     LineBreakType,
@@ -16,6 +15,8 @@ import {
     shouldBeCodeBlock,
     shouldBeDictionaryBlock,
     TextDocumentHelper,
+    getFileExtensionForFormat,
+    CollectionFormat,
 } from "@global_shared";
 import { LanguageFeatureBaseRequest, TypedCollection } from "../../shared";
 import {
@@ -179,7 +180,10 @@ function getAvailableEnvironmentNamesForExtends(
     filePath: string,
     collection: TypedCollection,
 ): string[] {
-    const ownEnvironmentName = basename(filePath, getExtensionForBrunoFiles());
+    const ownEnvironmentName = basename(
+        filePath,
+        getFileExtensionForFormat(CollectionFormat.Bru),
+    );
 
     return collection
         .getEnvironments()

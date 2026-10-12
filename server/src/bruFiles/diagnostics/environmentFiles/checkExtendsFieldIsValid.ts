@@ -1,7 +1,8 @@
 import { basename } from "path";
 import {
     EnvironmentFileExtendsField,
-    getExtensionForBrunoFiles,
+    getFileExtensionForFormat,
+    CollectionFormat,
 } from "@global_shared";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { DiagnosticWithCode } from "../interfaces";
@@ -13,7 +14,10 @@ export function checkExtendsFieldIsValid(
     knownEnvironmentNames?: string[],
 ): DiagnosticWithCode | undefined {
     const { value, valueRange } = extendsField;
-    const ownEnvironmentName = basename(filePath, getExtensionForBrunoFiles());
+    const ownEnvironmentName = basename(
+        filePath,
+        getFileExtensionForFormat(CollectionFormat.Bru),
+    );
 
     if (value.trim().length == 0) {
         return getDiagnostic(

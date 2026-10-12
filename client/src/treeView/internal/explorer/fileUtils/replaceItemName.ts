@@ -17,7 +17,7 @@ import { readFile, writeFile } from "fs";
 import { window } from "vscode";
 import { stringify } from "yaml";
 
-export async function replaceNameInMetaBlock(
+export async function replaceItemName(
     filePath: string,
     newName: string,
     itemType: ItemType,
@@ -54,7 +54,7 @@ export async function replaceNameInMetaBlock(
             ),
         ).catch(() => {
             window.showErrorMessage(
-                `An unexpected error occured while replacing name in meta block.`,
+                `An unexpected error occured while replacing item name.`,
             );
         });
     }

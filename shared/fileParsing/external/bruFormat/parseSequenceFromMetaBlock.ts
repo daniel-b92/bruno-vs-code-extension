@@ -1,10 +1,11 @@
 import { lstat, readFile } from "fs";
 import {
     checkIfPathExistsAsync,
-    getExtensionForBrunoFiles,
     getSequenceFieldFromMetaBlock,
     isDictionaryBlockSimpleField,
     TextDocumentHelper,
+    getFileExtensionForFormat,
+    CollectionFormat,
 } from "../../..";
 import { extname } from "path";
 import { promisify } from "util";
@@ -15,7 +16,7 @@ export async function parseSequenceFromMetaBlock(filePath: string) {
         !(await promisify(lstat)(filePath)
             .then((stats) => stats.isFile())
             .catch(() => undefined)) ||
-        extname(filePath) != getExtensionForBrunoFiles()
+        extname(filePath) != getFileExtensionForFormat(CollectionFormat.Bru)
     ) {
         return undefined;
     }

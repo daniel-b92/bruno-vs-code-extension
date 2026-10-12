@@ -16,7 +16,7 @@ import { DialogOptionLabelEnum, TypedCollectionItemProvider } from "@shared";
 import { copyFile } from "fs";
 import { basename, dirname } from "path";
 import { promisify } from "util";
-import { replaceNameInMetaBlock } from "./replaceNameInMetaBlock";
+import { replaceItemName } from "./replaceItemName";
 import { window } from "vscode";
 import { updateSequencesAfterInsertingRequestFile } from "./updateSequencesAfterInsertingRequestFile";
 import { FileInsertionPosition } from "./interfaces";
@@ -42,7 +42,27 @@ export async function handleFileInsertion(
         return false;
     }
 
+    const sourceCollection = itemProvider.getAncestorCollectionForPath(
+        sourceItem.getPath(),
+    );
+
+    if (!sourceCollection) {
+        window.showErrorMessage(
+            `Could not determine the collection for path '${sourceItem.getPath()}'.`,
+        );
+        return false;
+    }
+
     const format = targetCollection.getFormat();
+
+    // TODO: Support copying/moving items between collections with different formats (Bru <-> Yaml).
+    // This would require converting the file content and adjusting the file extension.
+    if (sourceCollection.getFormat() != format) {
+        window.showErrorMessage(
+            `Inserting files between collections with different formats (Bru and Yaml) is not supported.`,
+        );
+        return false;
+    }
 
     const shouldContinue = await requestConfirmationIfNeeded(
         itemType,
@@ -62,7 +82,7 @@ export async function handleFileInsertion(
     );
 
     if (wasSuccessful && itemType == BrunoFileType.RequestFile) {
-        await replaceNameInMetaBlock(
+        await replaceItemName(
             newPath,
             basename(newPath).replace(getFileExtensionForFormat(format), ""),
             itemType,

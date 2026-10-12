@@ -30,12 +30,12 @@ variables:
     });
 
     it("should report a missing name even if no variables are defined", () => {
-        const diagnostics = getDiagnostics(`color: red
+        const diagnostics = getDiagnostics(`variables: []
 `);
 
-        expect(diagnostics.map(({ message }) => message)).toContain(
-            "Mandatory top-level key 'name' missing.",
-        );
+        expect(diagnostics.map(({ message }) => message)).toEqual([
+            "Mandatory key 'name' missing in Yaml map.",
+        ]);
     });
 
     function getDiagnostics(content: string) {

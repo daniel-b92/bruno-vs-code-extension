@@ -27,7 +27,15 @@ export async function createCollectionDirectoryInstance(
         );
     }
 
-    const settingsContent = await getFileContent(folderSettingsFilePath);
+    return new CollectionDirectory(
+        folderPath,
+        folderSettingsFilePath,
+        await getSequenceFromBruFolderSettingsFile(folderSettingsFilePath),
+    );
+}
+
+async function getSequenceFromBruFolderSettingsFile(path: string) {
+    const settingsContent = await getFileContent(path);
 
     if (settingsContent === undefined) {
         return undefined;
@@ -38,18 +46,8 @@ export async function createCollectionDirectoryInstance(
         RequestFileBlockName.Meta,
     )?.content;
 
-    const isDictionaryBlock =
-        Array.isArray(metaBlockContent) &&
-        metaBlockContent.every((field) => isDictionaryBlockField(field));
-
-    if (!isDictionaryBlock) {
-        return new CollectionDirectory(folderPath);
-    }
-
-    const { sequence } = getSequenceAndTagsFromMetaBlock(metaBlockContent);
-    return new CollectionDirectory(
-        folderPath,
-        folderSettingsFilePath,
-        sequence,
-    );
+    return Array.isArray(metaBlockContent) &&
+        metaBlockContent.every((field) => isDictionaryBlockField(field))
+        ? getSequenceAndTagsFromMetaBlock(metaBlockContent).sequence
+        : undefined;
 }

@@ -19,7 +19,6 @@ import {
 } from "@shared";
 import {
     checkIfPathExistsAsync,
-    getExtensionForBrunoFiles,
     filterAsync,
     CollectionWatcher,
     getTemporaryJsFileNameInFolder,
@@ -29,6 +28,8 @@ import {
     isBrunoFileType,
     getItemType,
     normalizePath,
+    getFileExtensionForFormat,
+    CollectionFormat,
 } from "@global_shared";
 import { provideTsLangCompletionItems } from "./internal/brunoFiles/completionItems/provideTsLangCompletionItems";
 import { provideInfosOnHover as provideInfosOnHoverForBruFiles } from "./internal/brunoFiles/hover/provideInfosOnHover";
@@ -141,7 +142,7 @@ async function onDidChangeActiveTextEditor(
     ) {
         const path = editor.document.fileName;
 
-        if (extname(path) == getExtensionForBrunoFiles()) {
+        if (extname(path) == getFileExtensionForFormat(CollectionFormat.Bru)) {
             handleOpeningOfBruDocument(
                 queue,
                 itemProvider,
@@ -211,7 +212,10 @@ async function onWillSaveTextDocument(
 ) {
     const { document } = event;
 
-    if (extname(document.fileName) == getExtensionForBrunoFiles()) {
+    if (
+        extname(document.fileName) ==
+        getFileExtensionForFormat(CollectionFormat.Bru)
+    ) {
         await onWillSaveBruDocument(
             queue,
             itemProvider,

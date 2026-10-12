@@ -10,6 +10,8 @@ import {
     CollectionItem,
     CollectionItemWithSequence,
     isCollectionItemWithSequence,
+    CollectionFormat,
+    getBrunoJsonFilePath,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
@@ -25,7 +27,8 @@ import {
 import { basename, dirname, extname, resolve } from "path";
 import { validateNewItemNameIsUnique } from "./explorer/validateNewItemNameIsUnique";
 import { createRequestFile } from "./explorer/fileUtils/createRequestFile";
-import { replaceNameInMetaBlock } from "./explorer/fileUtils/replaceNameInMetaBlock";
+import { replaceItemName } from "./explorer/fileUtils/replaceItemName";
+import { replaceNameInBrunoJson } from "./explorer/fileUtils/replaceNameInBrunoJson";
 import { getPathForDuplicatedItem } from "./explorer/getPathForDuplicatedItem";
 import { renameFileOrFolder } from "./explorer/renameFileOrFolder";
 import { normalizeSequencesForRequestFiles } from "./explorer/fileUtils/normalizeSequencesForRequestFiles";
@@ -315,6 +318,18 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
             target.getPath(),
         );
 
+        // TODO: Support drag-and-drop between collections with different formats (Bru <-> Yaml).
+        // This would require converting the file content and adjusting the file extension.
+        if (
+            targetCollection &&
+            targetCollection.getFormat() != sourceCollection.getFormat()
+        ) {
+            vscode.window.showErrorMessage(
+                `Moving items between collections with different formats (Bru and Yaml) is not supported.`,
+            );
+            return undefined;
+        }
+
         return {
             originalItemData,
             sourcePath: originalItemData.item.getPath(),
@@ -508,7 +523,7 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 }
 
                 if (isRequestFile) {
-                    await replaceNameInMetaBlock(
+                    await replaceItemName(
                         newPath,
                         newItemName.replace(
                             getFileExtensionForFormat(
@@ -530,11 +545,21 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                     );
 
                     if (folderSettingsPath) {
-                        await replaceNameInMetaBlock(
+                        await replaceItemName(
                             folderSettingsPath,
                             newItemName,
                             oldItem.getItemType(),
                             oldCollection.getFormat(),
+                        );
+                    }
+
+                    if (
+                        isCollectionRootFolder &&
+                        oldCollection.getFormat() == CollectionFormat.Bru
+                    ) {
+                        await replaceNameInBrunoJson(
+                            getBrunoJsonFilePath(newPath),
+                            newItemName,
                         );
                     }
 
