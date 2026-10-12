@@ -1,9 +1,20 @@
 import { DocumentSelector } from "vscode";
-import { getFileExtensionForFormat, CollectionFormat } from "@global_shared";
+import {
+    getFileExtensionForFormat,
+    CollectionFormat,
+    FeatureToggles,
+} from "@global_shared";
 
-export function getRequestFileDocumentSelector(): DocumentSelector {
-    return {
+export function getRequestFileDocumentSelector(
+    featureToggles: FeatureToggles,
+): DocumentSelector {
+    return [
+        CollectionFormat.Bru,
+        ...(featureToggles.yamlCollectionSupport
+            ? [CollectionFormat.Yaml]
+            : []),
+    ].map((format) => ({
         scheme: "file",
-        pattern: `**/*${getFileExtensionForFormat(CollectionFormat.Bru)}`,
-    };
+        pattern: `**/*${getFileExtensionForFormat(format)}`,
+    }));
 }

@@ -96,6 +96,7 @@ export async function activate(context: ExtensionContext) {
                     collectionItemProvider,
                     cacheSyncingHelper,
                     startTestRunEmitter.event,
+                    getFeatureToggles(context),
                 );
             },
         ),

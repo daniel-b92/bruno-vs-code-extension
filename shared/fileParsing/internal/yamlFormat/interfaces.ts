@@ -89,7 +89,7 @@ export type ParsedRequestHeader = ParsedYamlMapWithValueRange<{
 
 export type ParsedScript = ParsedYamlMapWithValueRange<{
     type?: WithKeyAndValueRange<ScriptType>;
-    code?: WithKeyAndValueRange<string>;
+    code?: ParsedStringScalarWithStyle;
 }>;
 
 export type ParsedAssertion = ParsedYamlMapWithValueRange<{

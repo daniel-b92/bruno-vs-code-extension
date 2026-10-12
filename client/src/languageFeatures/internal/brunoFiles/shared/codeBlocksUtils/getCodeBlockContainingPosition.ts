@@ -1,22 +1,18 @@
 import { Position as VsCodePosition } from "vscode";
 import {
-    parseBruFile,
-    TextDocumentHelper,
-    getCodeBlocks,
+    CollectionFormat,
     ItemType,
+    getJsCodeBlocksFromFile,
 } from "@global_shared";
 import { mapToVsCodeRange } from "@shared";
 
 export function getCodeBlockContainingPosition(
-    bruFileContent: string,
+    fileContent: string,
     position: VsCodePosition,
     itemType: ItemType,
+    format: CollectionFormat,
 ) {
-    const blocksToCheck = getCodeBlocks(
-        parseBruFile(new TextDocumentHelper(bruFileContent), itemType).blocks,
-    );
-
-    return blocksToCheck.find(({ contentRange }) =>
-        mapToVsCodeRange(contentRange).contains(position),
+    return getJsCodeBlocksFromFile(fileContent, itemType, format).blocks.find(
+        ({ contentRange }) => mapToVsCodeRange(contentRange).contains(position),
     );
 }

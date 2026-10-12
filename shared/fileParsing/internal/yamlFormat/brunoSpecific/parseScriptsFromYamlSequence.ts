@@ -1,8 +1,9 @@
-import { YAMLSeq } from "yaml";
+import { YAMLMap, YAMLSeq } from "yaml";
 import {
     CommonParsingArgs,
     MaybeResultWithErrors,
     ParsedScript,
+    ParsedStringScalarWithStyle,
 } from "../interfaces";
 import { WithKeyAndValueRange, YamlParsingError } from "../../../..";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
@@ -10,13 +11,13 @@ import {
     ValidatedMapItems,
     getValidatedMapItems,
 } from "../yamlMaps/getValidatedMapItems";
-import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import {
     ScriptMapProperty,
     ScriptType,
 } from "../../../external/yamlFormat/constants/sharedConstants";
 import { getRangeForItem } from "../util/getRangeForItem";
+import { getStringWithBlockScalarInfo } from "../util/getStringWithBlockScalarInfo";
 
 export function parseScriptsFromYamlSequence(
     scriptsSequence: YAMLSeq,
@@ -46,7 +47,7 @@ export function parseScriptsFromYamlSequence(
             errors,
         );
         const { errors: parsingErrors, result: parsedScript } =
-            parseScript(getString);
+            parseScript(currentMap, getString);
         errors.push(...parsingErrors);
 
         if (!parsedScript) {
@@ -68,10 +69,11 @@ export function parseScriptsFromYamlSequence(
 }
 
 function parseScript(
+    map: YAMLMap,
     getString: ValidatedMapItems["getString"],
 ): MaybeResultWithErrors<{
     type?: WithKeyAndValueRange<ScriptType>;
-    code?: WithKeyAndValueRange<string>;
+    code?: ParsedStringScalarWithStyle;
 }> {
     const collectedErrors: YamlParsingError[] = [];
     const maybeUntypedTypeWithKeyRange = getString(ScriptMapProperty.Type);
@@ -91,7 +93,11 @@ function parseScript(
     return {
         errors: collectedErrors,
         result: {
-            code: stripKeyFromResult(maybeCodeWithKeyRange),
+            code: getStringWithBlockScalarInfo(
+                map,
+                ScriptMapProperty.Code,
+                maybeCodeWithKeyRange,
+            ),
             type: maybeTypedType?.value,
         },
     };

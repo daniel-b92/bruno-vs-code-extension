@@ -2,6 +2,7 @@ import {
     languages,
     commands,
     CompletionList,
+    DocumentSelector,
     CompletionItem,
     TextEdit,
     Range as VsCodeRange,
@@ -13,14 +14,13 @@ import {
     TypedCollectionItemProvider,
 } from "@shared";
 import {
-    RequestFileBlockName,
-    Block,
+    JsCodeBlock,
+    CollectionFormat,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
 } from "@global_shared";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
-import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
-import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
+import { mapToRangeWithinSourceFile } from "../shared/codeBlocksUtils/mapToRangeWithinSourceFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import {
     TempJsSyncRequest,
@@ -38,12 +38,13 @@ type CompletionItemRange =
     | undefined;
 
 export function provideTsLangCompletionItems(
+    documentSelector: DocumentSelector,
     queue: TempJsFileUpdateQueue,
     collectionItemProvider: TypedCollectionItemProvider,
     logger?: OutputChannelLogger,
 ) {
     return languages.registerCompletionItemProvider(
-        getRequestFileDocumentSelector(),
+        documentSelector,
         {
             async provideCompletionItems(document, position, token) {
                 const collection =
@@ -62,6 +63,7 @@ export function provideTsLangCompletionItems(
                     document.getText(),
                     position,
                     itemType,
+                    collection.getFormat(),
                 );
 
                 if (!blockContainingPosition) {
@@ -73,20 +75,23 @@ export function provideTsLangCompletionItems(
                     return undefined;
                 }
 
+                // The language server currently only provides completions for environment variables in Bru files.
                 const envVariableResult =
-                    getFirstParameterForInbuiltFunctionIfStringLiteral(
-                        mapToEnvVarNameParams(
-                            {
-                                file: {
-                                    collection,
-                                    blockContainingPosition,
-                                },
-                                request: { document, position, token },
-                                logger,
-                            },
-                            getInbuiltFunctionIdentifiers(),
-                        ),
-                    );
+                    collection.getFormat() == CollectionFormat.Bru
+                        ? getFirstParameterForInbuiltFunctionIfStringLiteral(
+                              mapToEnvVarNameParams(
+                                  {
+                                      file: {
+                                          collection,
+                                          blockContainingPosition,
+                                      },
+                                      request: { document, position, token },
+                                      logger,
+                                  },
+                                  getInbuiltFunctionIdentifiers(),
+                              ),
+                          )
+                        : undefined;
 
                 if (envVariableResult) {
                     // Completions for environment variables are already provided via the language server.
@@ -98,9 +103,9 @@ export function provideTsLangCompletionItems(
                     queue,
                     {
                         collection,
-                        bruFileContentSnapshot: document.getText(),
-                        bruFilePath: document.fileName,
-                        bruFileEol: document.eol,
+                        sourceFileContentSnapshot: document.getText(),
+                        sourceFilePath: document.fileName,
+                        sourceFileEol: document.eol,
                         token,
                     },
                     blockContainingPosition,
@@ -120,7 +125,7 @@ export function provideTsLangCompletionItems(
 async function getResultsViaTempJsFile(
     queue: TempJsFileUpdateQueue,
     tempJsRequest: TempJsSyncRequest,
-    blockInBruFile: Block,
+    blockInSourceFile: JsCodeBlock,
     position: VsCodePosition,
     logger?: OutputChannelLogger,
 ) {
@@ -147,9 +152,9 @@ async function getResultsViaTempJsFile(
         temporaryJsDoc.uri,
         getPositionWithinTempJsFile(
             temporaryJsDoc.getText(),
-            blockInBruFile.name as RequestFileBlockName,
+            blockInSourceFile.name,
             mapFromVsCodePosition(
-                position.translate(-blockInBruFile.contentRange.start.line),
+                position.translate(-blockInSourceFile.contentRange.start.line),
             ),
         ),
     );
@@ -179,7 +184,7 @@ async function getResultsViaTempJsFile(
             .map((item) =>
                 getMappedItem(
                     item,
-                    blockInBruFile,
+                    blockInSourceFile,
                     currentTempJsContent,
                     knownRangeMappings,
                     logger,
@@ -209,7 +214,7 @@ async function getResultsViaTempJsFile(
  */
 function getMappedItem(
     item: CompletionItem,
-    blockInBruFile: Block,
+    blockInSourceFile: JsCodeBlock,
     currentTempJsContent: string,
     knownRangeMappings: {
         rangeInTempJsFile: VsCodeRange;
@@ -220,7 +225,7 @@ function getMappedItem(
     const { range: mappedRange, couldBeMapped: couldRangeBeMapped } =
         getMappedItemRange(
             item.range,
-            blockInBruFile,
+            blockInSourceFile,
             currentTempJsContent,
             knownRangeMappings,
             logger,
@@ -233,7 +238,7 @@ function getMappedItem(
     const { textEdit: mappedTextEdit, couldBeMapped: couldTextEditBeMapped } =
         getMappedItemTextEdit(
             item.textEdit,
-            blockInBruFile,
+            blockInSourceFile,
             currentTempJsContent,
             knownRangeMappings,
             logger,
@@ -254,7 +259,7 @@ function getMappedItem(
 
 function getMappedItemRange(
     itemRange: CompletionItemRange,
-    blockInBruFile: Block,
+    blockInSourceFile: JsCodeBlock,
     currentTempJsContent: string,
     knownRangeMappings: {
         rangeInTempJsFile: VsCodeRange;
@@ -269,7 +274,7 @@ function getMappedItemRange(
     if (itemRange instanceof VsCodeRange) {
         return {
             range: mapTempJsRangeToBruFileRange(
-                blockInBruFile,
+                blockInSourceFile,
                 currentTempJsContent,
                 itemRange,
                 knownRangeMappings,
@@ -280,7 +285,7 @@ function getMappedItemRange(
     }
 
     const mappedInsertion = mapTempJsRangeToBruFileRange(
-        blockInBruFile,
+        blockInSourceFile,
         currentTempJsContent,
         itemRange.inserting,
         knownRangeMappings,
@@ -288,7 +293,7 @@ function getMappedItemRange(
     );
 
     const mappedReplacement = mapTempJsRangeToBruFileRange(
-        blockInBruFile,
+        blockInSourceFile,
         currentTempJsContent,
         itemRange.replacing,
         knownRangeMappings,
@@ -310,7 +315,7 @@ function getMappedItemRange(
 
 function getMappedItemTextEdit(
     itemTextEdit: TextEdit | undefined,
-    blockInBruFile: Block,
+    blockInSourceFile: JsCodeBlock,
     currentTempJsContent: string,
     knownRangeMappings: {
         rangeInTempJsFile: VsCodeRange;
@@ -323,7 +328,7 @@ function getMappedItemTextEdit(
     }
 
     const mappedTextEditRange = mapTempJsRangeToBruFileRange(
-        blockInBruFile,
+        blockInSourceFile,
         currentTempJsContent,
         itemTextEdit.range,
         knownRangeMappings,
@@ -341,7 +346,7 @@ function getMappedItemTextEdit(
 }
 
 function mapTempJsRangeToBruFileRange(
-    blockInBruFile: Block,
+    blockInSourceFile: JsCodeBlock,
     fullJsFileContent: string,
     rangeInJsFile: VsCodeRange,
     knownRangeMappings: {
@@ -359,8 +364,8 @@ function mapTempJsRangeToBruFileRange(
         return knownMapping.rangeInBruFile;
     }
 
-    const mappedRange = mapToRangeWithinBruFile(
-        blockInBruFile,
+    const mappedRange = mapToRangeWithinSourceFile(
+        blockInSourceFile,
         fullJsFileContent,
         rangeInJsFile,
         logger,

@@ -36,8 +36,8 @@ Each entry is tagged:
 
 ## 7. Client: language features and cache syncing
 
-- [activateLanguageFeatures.ts:144](client/src/languageFeatures/activateLanguageFeatures.ts#L144), [activateLanguageFeatures.ts:214](client/src/languageFeatures/activateLanguageFeatures.ts#L214) **[Gap]**: temp JS file handling (script intellisense) only runs when a `.bru` document is opened or saved. Yaml files with scripts get no JS intellisense.
-- [getRequestFileDocumentSelector.ts:5](client/src/languageFeatures/internal/brunoFiles/shared/getRequestFileDocumentSelector.ts#L5) **[Gap]**: the client-side completion, hover, definition and signature help providers for code blocks are registered for `**/*.bru` only.
+- [activateLanguageFeatures.ts](client/src/languageFeatures/activateLanguageFeatures.ts) **[OK]**: temp JS file handling (script intellisense) runs for `.bru` and (with the toggle on) `.yml` documents that are part of a collection of the matching format. For Yaml, only scripts defined as literal block scalars (`code: |`) are supported, because the raw document lines are copied into the temp JS file (see [getScriptBlocksFromYamlFile.ts](shared/fileParsing/external/yamlFormat/getScriptBlocksFromYamlFile.ts)). Diagnostics for JS code inside yaml files are not provided.
+- [getRequestFileDocumentSelector.ts](client/src/languageFeatures/internal/brunoFiles/shared/getRequestFileDocumentSelector.ts) **[OK]**: the client-side completion, hover, definition and signature help providers for code blocks are registered for `.bru` and (with the toggle on) `.yml` files. Environment variable completions/hovers from the server are only skipped for Bru, since the server does not provide them for Yaml yet.
 - [extension.ts:134-141](client/src/extension.ts#L134-L141) **[OK]** / **[Check]**: the `yaml` language is added to the LSP document selector only when the toggle is on. **All** yaml documents in the workspace are then sent to the server, not just those inside collections (see the server section).
 - [package.json:32-34](package.json#L32-L34) **[Gap]**: the only activation event is `workspaceContains:**/*.bru`. A workspace that only contains yaml collections does not activate the extension.
 
@@ -64,8 +64,5 @@ Each entry is tagged:
 
 ## 9. TypeScript plugin
 
-- [tsPlugin/src/index.ts:479-505](tsPlugin/src/index.ts#L479-L505) **[Check]**: `isACollectionRootFolder` only recognises folders containing a `bruno.json` with `type: "collection"`. JS files inside **yaml** collections are therefore not seen as "in a Bruno collection", so the plugin's special handling is skipped for them:
-    - filtering temp-file completions,
-    - protecting inbuilt runtime functions from renaming,
-    - suppressing diagnostics.
+- [tsPlugin/src/index.ts](tsPlugin/src/index.ts) **[OK]**: `isACollectionRootFolder` recognises folders with a `bruno.json` of `type: "collection"` as well as folders with an `opencollection.yml` that defines the top-level key `opencollection`. (Needs a new release of the npm package to take effect in the published extension.)
 - [tsPlugin/src/index.ts:507-509](tsPlugin/src/index.ts#L507-L509) **[OK]**: `isBrunoFile` only matches `.bru`. This is intentional, since only Bru files embed JS code blocks that the TS server sees.

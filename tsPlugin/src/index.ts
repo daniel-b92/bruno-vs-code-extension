@@ -483,7 +483,11 @@ function isACollectionRootFolder(
     return info.serverHost
         .readDirectory(directoryPath, undefined, undefined, undefined, 1)
         .some((fileName) => {
-            if (!fileName.endsWith("bruno.json")) {
+            const isBruCollectionRootFile = fileName.endsWith("bruno.json");
+            const isYamlCollectionRootFile =
+                fileName.endsWith("opencollection.yml");
+
+            if (!isBruCollectionRootFile && !isYamlCollectionRootFile) {
                 return false;
             }
 
@@ -493,15 +497,30 @@ function isACollectionRootFolder(
                 return false;
             }
 
-            try {
-                const parsedContent = JSON.parse(content) as
-                    { type: string } | undefined;
-
-                return parsedContent && parsedContent.type == "collection";
-            } catch {
-                return false;
-            }
+            return isBruCollectionRootFile
+                ? isBrunoJsonForCollection(content)
+                : isOpenCollectionRootFileContent(content);
         });
+}
+
+function isBrunoJsonForCollection(content: string) {
+    try {
+        const parsedContent = JSON.parse(content) as
+            | { type: string }
+            | undefined;
+
+        return parsedContent && parsedContent.type == "collection";
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Request, folder and environment files can be named `opencollection.yml` as well.
+ * Only the actual collection root file defines the top-level key `opencollection`.
+ */
+function isOpenCollectionRootFileContent(content: string) {
+    return /^opencollection\s*:/m.test(content);
 }
 
 function isBrunoFile(fileName: string) {
