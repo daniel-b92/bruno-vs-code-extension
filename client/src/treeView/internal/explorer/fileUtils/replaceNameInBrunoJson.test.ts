@@ -18,6 +18,28 @@ describe("replaceNameInBrunoJson", () => {
         );
     });
 
+    it("keeps CRLF line breaks and tab indentation", async () => {
+        const result = await replaceInFile(
+            '{\r\n\t"version": "1",\r\n\t"name": "old",\r\n\t"type": "collection"\r\n}',
+            "new",
+        );
+
+        expect(result).toBe(
+            '{\r\n\t"version": "1",\r\n\t"name": "new",\r\n\t"type": "collection"\r\n}',
+        );
+    });
+
+    it("keeps a single-line format and ignores nested or escaped 'name' keys", async () => {
+        const result = await replaceInFile(
+            '{"scripts": {"name": "x"}, "a": "\\"name\\": 1", "name":"old\\"q", "z": 1}',
+            'n"ew',
+        );
+
+        expect(result).toBe(
+            '{"scripts": {"name": "x"}, "a": "\\"name\\": 1", "name":"n\\"ew", "z": 1}',
+        );
+    });
+
     it("does not touch a file without a name field", async () => {
         const content = '{"version": "1"}';
 

@@ -1,6 +1,7 @@
 import { promisify } from "util";
 import { readFile, writeFile } from "fs";
 import { window } from "vscode";
+import { applyEdits, modify } from "jsonc-parser";
 
 export async function replaceNameInBrunoJson(
     filePath: string,
@@ -11,6 +12,9 @@ export async function replaceNameInBrunoJson(
     );
 
     if (fileContent === undefined) {
+        window.showErrorMessage(
+            `An unexpected error occured while replacing collection name.`,
+        );
         return;
     }
 
@@ -31,16 +35,14 @@ export async function replaceNameInBrunoJson(
         return;
     }
 
-    const indentation = /^[ \t]+(?=")/m.exec(fileContent)?.[0] ?? "    ";
-    const trailingNewline = fileContent.endsWith("\n") ? "\n" : "";
-
+    // Only the value is replaced, so that line breaks, indentation and any other formatting stay as they were.
     await promisify(writeFile)(
         filePath,
-        JSON.stringify({ ...parsed, name: newName }, undefined, indentation) +
-            trailingNewline,
+        applyEdits(fileContent, modify(fileContent, ["name"], newName, {})),
     ).catch(() => {
         window.showErrorMessage(
             `An unexpected error occured while replacing collection name.`,
         );
     });
 }
+
