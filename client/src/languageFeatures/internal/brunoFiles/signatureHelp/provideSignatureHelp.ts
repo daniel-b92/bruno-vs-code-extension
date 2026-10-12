@@ -1,11 +1,4 @@
-import {
-    commands,
-    Disposable,
-    languages,
-    SignatureHelp,
-    SignatureHelpProvider,
-} from "vscode";
-import { CollectionFormat, FeatureToggles } from "@global_shared";
+import { commands, DocumentSelector, languages, SignatureHelp } from "vscode";
 import {
     mapFromVsCodePosition,
     OutputChannelLogger,
@@ -14,43 +7,15 @@ import {
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { getCodeBlockContainingPosition } from "../shared/codeBlocksUtils/getCodeBlockContainingPosition";
-import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { waitForTempJsFileToBeInSync } from "../../shared/temporaryJsFilesUpdates/external/waitForTempJsFileToBeInSync";
 
 export function provideSignatureHelp(
-    featureToggles: FeatureToggles,
+    documentSelector: DocumentSelector,
     queue: TempJsFileUpdateQueue,
     collectionItemProvider: TypedCollectionItemProvider,
     logger?: OutputChannelLogger,
 ) {
-    const provider = getProvider(queue, collectionItemProvider, logger);
-
-    return Disposable.from(
-        languages.registerSignatureHelpProvider(
-            getRequestFileDocumentSelector(featureToggles, [
-                CollectionFormat.Bru,
-            ]),
-            provider,
-        ),
-        // Bru files get their signature help from the TS server directly (see `typescriptServerPlugins` in the `package.json`),
-        // but for Yaml files, this provider is the only source and therefore needs to be triggered automatically.
-        languages.registerSignatureHelpProvider(
-            getRequestFileDocumentSelector(featureToggles, [
-                CollectionFormat.Yaml,
-            ]),
-            provider,
-            // Same trigger characters as used by the Typescript language features of VS Code.
-            { triggerCharacters: ["(", ",", "<"], retriggerCharacters: [")"] },
-        ),
-    );
-}
-
-function getProvider(
-    queue: TempJsFileUpdateQueue,
-    collectionItemProvider: TypedCollectionItemProvider,
-    logger?: OutputChannelLogger,
-): SignatureHelpProvider {
-    return {
+    return languages.registerSignatureHelpProvider(documentSelector, {
         async provideSignatureHelp(document, position, token) {
             const collection =
                 collectionItemProvider.getAncestorCollectionForPath(
@@ -119,5 +84,5 @@ function getProvider(
                 ),
             );
         },
-    };
+    });
 }

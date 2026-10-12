@@ -85,7 +85,7 @@ export async function activateLanguageFeatures(
             logger,
         ),
         provideSignatureHelpForBruFiles(
-            featureToggles,
+            documentSelector,
             tempJsFilesUpdateQueue,
             collectionItemProvider,
             logger,
