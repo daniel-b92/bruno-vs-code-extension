@@ -1,6 +1,6 @@
 import * as ts from "typescript/lib/tsserverlibrary";
 import {
-    areAllChangesWithinCodeBlocks,
+    createCheckForChangesWithinCodeBlocks,
     getFormatOptionsForFile,
 } from "../codeChanges/codeChanges";
 
@@ -17,8 +17,11 @@ export function overrideCodeChanges(
         errorCodes,
         formatOptions,
         preferences,
-    ) =>
-        info.languageService
+    ) => {
+        const areAllChangesWithinCodeBlocks =
+            createCheckForChangesWithinCodeBlocks(info);
+
+        return info.languageService
             .getCodeFixesAtPosition(
                 fileName,
                 start,
@@ -30,9 +33,8 @@ export function overrideCodeChanges(
                 }),
                 preferences,
             )
-            .filter(({ changes }) =>
-                areAllChangesWithinCodeBlocks(info, changes),
-            );
+            .filter(({ changes }) => areAllChangesWithinCodeBlocks(changes));
+    };
 
     proxy.getCombinedCodeFix = (scope, fixId, formatOptions, preferences) => {
         const combinedFix = info.languageService.getCombinedCodeFix(
@@ -46,7 +48,7 @@ export function overrideCodeChanges(
         );
 
         // Only applying some of the changes could result in invalid code.
-        return areAllChangesWithinCodeBlocks(info, combinedFix.changes)
+        return createCheckForChangesWithinCodeBlocks(info)(combinedFix.changes)
             ? combinedFix
             : { changes: [] };
     };
@@ -81,7 +83,7 @@ export function overrideCodeChanges(
         );
 
         return refactorEdits &&
-            areAllChangesWithinCodeBlocks(info, refactorEdits.edits)
+            createCheckForChangesWithinCodeBlocks(info)(refactorEdits.edits)
             ? refactorEdits
             : undefined;
     };

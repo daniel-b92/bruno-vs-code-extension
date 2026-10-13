@@ -42,65 +42,108 @@ export function getFormatOptionsForFile(
     };
 }
 
-/**
- * Checks whether the given changes only modify the code within code blocks, if they affect '.bru' or '.yml' files.
- */
-export function areAllChangesWithinCodeBlocks(
-    info: ts.server.PluginCreateInfo,
-    changes: readonly ts.FileTextChanges[],
-) {
-    return changes.every(({ fileName, textChanges, isNewFile }) => {
-        if (!hasEmbeddedCodeBlocks(fileName)) {
-            return true;
-        } else if (isNewFile) {
-            return false;
-        }
-
-        const originalContent = getOriginalFileContent(info, fileName);
-
-        if (!originalContent) {
-            return false;
-        }
-
-        // Comparing the content outside of code blocks also detects changes that end a code block early,
-        // e.g. an inserted line within a Yaml block scalar that is not indented enough.
-        const originalContentOutsideOfCode = getContentOutsideOfCodeBlocks(
-            info,
-            fileName,
-            originalContent,
-        );
-        const modifiedContentOutsideOfCode = getContentOutsideOfCodeBlocks(
-            info,
-            fileName,
-            applyTextChanges(originalContent, textChanges),
-        );
-
-        return (
-            originalContentOutsideOfCode.length ==
-                modifiedContentOutsideOfCode.length &&
-            originalContentOutsideOfCode.every(
-                (part, index) => part == modifiedContentOutsideOfCode[index],
-            )
-        );
-    });
+interface CodeRange {
+    start: number;
+    end: number;
 }
 
-function getContentOutsideOfCodeBlocks(
+interface OriginalFile {
+    content: string;
+    contentOutsideOfCode: string[];
+    getCodeRanges: (fileContent: string) => CodeRange[];
+}
+
+/**
+ * Returns a function that checks whether the given changes only modify the code within code blocks, if they affect '.bru' or '.yml' files.
+ *
+ * The returned function determines the data for the original content of each file only once,
+ * since the changes of many code fixes usually affect the same file.
+ */
+export function createCheckForChangesWithinCodeBlocks(
+    info: ts.server.PluginCreateInfo,
+) {
+    const originalFiles = new Map<string, OriginalFile | undefined>();
+
+    return (changes: readonly ts.FileTextChanges[]) =>
+        changes.every(({ fileName, textChanges, isNewFile }) => {
+            if (!hasEmbeddedCodeBlocks(fileName)) {
+                return true;
+            } else if (isNewFile) {
+                return false;
+            }
+
+            if (!originalFiles.has(fileName)) {
+                originalFiles.set(fileName, getOriginalFile(info, fileName));
+            }
+
+            const originalFile = originalFiles.get(fileName);
+
+            if (!originalFile) {
+                return false;
+            }
+
+            const { content, contentOutsideOfCode, getCodeRanges } =
+                originalFile;
+            const modifiedContent = applyTextChanges(content, textChanges);
+
+            // Comparing the content outside of code blocks also detects changes that end a code block early,
+            // e.g. an inserted line within a Yaml block scalar that is not indented enough.
+            const modifiedContentOutsideOfCode = getContentOutsideOfCodeRanges(
+                modifiedContent,
+                getCodeRanges(modifiedContent),
+            );
+
+            return (
+                contentOutsideOfCode.length ==
+                    modifiedContentOutsideOfCode.length &&
+                contentOutsideOfCode.every(
+                    (part, index) =>
+                        part == modifiedContentOutsideOfCode[index],
+                )
+            );
+        });
+}
+
+function getOriginalFile(
     info: ts.server.PluginCreateInfo,
     fileName: string,
-    fileContent: string,
-) {
-    const codeRanges = isBruFile(fileName)
-        ? getCodeBlockIndizesForBruFile(fileContent)
-              .map(({ startIndex, endIndex }) => ({
-                  start: startIndex,
-                  end: endIndex - 1, // index of the closing bracket
-              }))
-              .sort(({ start: start1 }, { start: start2 }) => start1 - start2)
-        : isFileFromYamlCollection(info, fileName)
-          ? getScriptContentRanges(fileName, fileContent)
-          : [];
+): OriginalFile | undefined {
+    const content = getOriginalFileContent(info, fileName);
 
+    if (!content) {
+        return undefined;
+    }
+
+    const getCodeRanges = isBruFile(fileName)
+        ? getCodeRangesForBruFile
+        : isFileFromYamlCollection(info, fileName)
+          ? (fileContent: string) =>
+                getScriptContentRanges(fileName, fileContent)
+          : () => [];
+
+    return {
+        content,
+        contentOutsideOfCode: getContentOutsideOfCodeRanges(
+            content,
+            getCodeRanges(content),
+        ),
+        getCodeRanges,
+    };
+}
+
+function getCodeRangesForBruFile(fileContent: string): CodeRange[] {
+    return getCodeBlockIndizesForBruFile(fileContent)
+        .map(({ startIndex, endIndex }) => ({
+            start: startIndex,
+            end: endIndex - 1, // index of the closing bracket
+        }))
+        .sort(({ start: start1 }, { start: start2 }) => start1 - start2);
+}
+
+function getContentOutsideOfCodeRanges(
+    fileContent: string,
+    codeRanges: CodeRange[],
+) {
     return codeRanges
         .map(({ start }, index) =>
             fileContent.substring(

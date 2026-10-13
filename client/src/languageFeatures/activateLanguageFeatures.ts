@@ -153,12 +153,18 @@ async function onDidChangeActiveTextEditor(
     ) {
         const path = editor.document.fileName;
 
-        if (isCollectionFileWithMatchingExtension(itemProvider, path)) {
+        const collection = getCollectionIfFileHasMatchingExtension(
+            itemProvider,
+            path,
+        );
+
+        if (collection) {
             handleOpeningOfCollectionFile(
                 queue,
                 itemProvider,
                 cacheSyncingHelper,
                 tempJsFilesProvider,
+                collection,
                 editor.document,
             );
         } else if (
@@ -235,7 +241,7 @@ async function onWillSaveTextDocument(
     const { document } = event;
 
     if (
-        isCollectionFileWithMatchingExtension(itemProvider, document.fileName)
+        getCollectionIfFileHasMatchingExtension(itemProvider, document.fileName)
     ) {
         await onWillSaveCollectionFile(
             queue,
@@ -251,6 +257,7 @@ async function handleOpeningOfCollectionFile(
     itemProvider: TypedCollectionItemProvider,
     cacheSyncingHelper: FileSystemCacheSyncingHelper,
     tempJsFilesProvider: TempJsFilesProvider,
+    collection: TypedCollection,
     { fileName, getText, eol }: TextDocument,
 ) {
     const toDispose: Disposable[] = [];
@@ -269,81 +276,65 @@ async function handleOpeningOfCollectionFile(
         shouldAbortNotifier,
     );
 
-    const collection = itemProvider.getAncestorCollectionForPath(fileName);
-    if (!collection) {
-        await deleteNonMandatoryTempJsFiles(
-            queue,
+    try {
+        const brunoFileType = await getBrunoFileTypeIfExists(
             itemProvider,
-            tempJsFilesProvider,
-        );
-        return;
-    }
-
-    const brunoFileType = await getBrunoFileTypeIfExists(
-        itemProvider,
-        fileName,
-    );
-
-    if (shouldAbort) {
-        for (const d of toDispose) {
-            d.dispose();
-        }
-        return;
-    }
-
-    if (!brunoFileType) {
-        await deleteNonMandatoryTempJsFiles(
-            queue,
-            itemProvider,
-            tempJsFilesProvider,
-        );
-        return;
-    }
-
-    if (brunoFileType == BrunoFileType.RequestFile) {
-        // Sometimes it can take a few seconds until the cache is up to date (e.g. when moving a file to a different folder).
-        await cacheSyncingHelper.waitForFileToBeRegisteredInCache(
-            collection.getRootDirectory(),
             fileName,
-            shouldAbortNotifier.event,
         );
-    }
 
-    if (shouldAbort) {
+        if (shouldAbort) {
+            return;
+        }
+
+        if (!brunoFileType) {
+            await deleteNonMandatoryTempJsFiles(
+                queue,
+                itemProvider,
+                tempJsFilesProvider,
+            );
+            return;
+        }
+
+        if (brunoFileType == BrunoFileType.RequestFile) {
+            // Sometimes it can take a few seconds until the cache is up to date (e.g. when moving a file to a different folder).
+            await cacheSyncingHelper.waitForFileToBeRegisteredInCache(
+                collection.getRootDirectory(),
+                fileName,
+                shouldAbortNotifier.event,
+            );
+        }
+
+        if (shouldAbort) {
+            return;
+        }
+
+        if (!getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType)) {
+            await deleteNonMandatoryTempJsFiles(
+                queue,
+                itemProvider,
+                tempJsFilesProvider,
+            );
+            return;
+        }
+
+        await queue.addToQueue({
+            update: {
+                type: TempJsUpdateType.Creation,
+                filePath: getTemporaryJsFileNameInFolder(
+                    collection.getRootDirectory(),
+                ),
+                tempJsFileContent: getTempJsFileContent(
+                    getText(),
+                    eol,
+                    brunoFileType,
+                    collection.getFormat(),
+                ),
+            },
+        });
+    } finally {
         for (const d of toDispose) {
             d.dispose();
         }
-        return;
-    }
-
-    if (!getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType)) {
-        await deleteNonMandatoryTempJsFiles(
-            queue,
-            itemProvider,
-            tempJsFilesProvider,
-        );
-        return;
-    }
-
-    const collectionRootFolder = (
-        itemProvider.getAncestorCollectionForPath(fileName) as TypedCollection
-    ).getRootDirectory();
-
-    await queue.addToQueue({
-        update: {
-            type: TempJsUpdateType.Creation,
-            filePath: getTemporaryJsFileNameInFolder(collectionRootFolder),
-            tempJsFileContent: getTempJsFileContent(
-                getText(),
-                eol,
-                brunoFileType,
-                collection.getFormat(),
-            ),
-        },
-    });
-
-    for (const d of toDispose) {
-        d.dispose();
     }
 }
 
@@ -435,16 +426,16 @@ async function deleteNonMandatoryTempJsFiles(
     });
 }
 
-function isCollectionFileWithMatchingExtension(
+function getCollectionIfFileHasMatchingExtension(
     itemProvider: TypedCollectionItemProvider,
     filePath: string,
 ) {
     const collection = itemProvider.getAncestorCollectionForPath(filePath);
 
-    return (
-        collection != undefined &&
+    return collection &&
         extname(filePath) == getFileExtensionForFormat(collection.getFormat())
-    );
+        ? collection
+        : undefined;
 }
 
 function getBrunoFileTypesThatCanHaveCodeBlocks() {
