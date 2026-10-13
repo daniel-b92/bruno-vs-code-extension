@@ -30,7 +30,8 @@
     ],
     "icon": "./icon.png",
     "activationEvents": [
-        "workspaceContains:**/*.bru"
+        "workspaceContains:**/*.bru",
+        "workspaceContains:**/opencollection.yml"
     ],
     "main": "./client/dist/extension",
     "scripts": {

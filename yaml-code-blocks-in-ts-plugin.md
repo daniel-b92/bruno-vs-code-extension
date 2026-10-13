@@ -95,6 +95,5 @@ The checks in the plugin that are currently based on `isBrunoFile` (only `.bru`)
 
 ## Open points
 
-- Activation: the extension currently only activates for workspaces containing `.bru` files (`activationEvents` in [package.json](package.json)). The TS plugin itself is loaded by the TS extension independently of that, so masking would also apply in Yaml-only workspaces.
 - Quick fixes / refactorings that insert code at the top of the file (e.g. adding an import) would insert JS into the Yaml content. This already applies to Bru files today and could be addressed later by filtering code fixes for positions outside of code blocks.
 - The change requires a new release of the plugin's npm package before it takes effect in the published extension.

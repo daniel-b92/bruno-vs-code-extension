@@ -44,6 +44,10 @@ import {
 let client: LanguageClient;
 
 export async function activate(context: ExtensionContext) {
+    if (await shouldSkipActivation(context)) {
+        return;
+    }
+
     client = createLanguagClient(context);
 
     const toAwait: Thenable<void>[] = [];
@@ -104,6 +108,16 @@ export async function activate(context: ExtensionContext) {
 
     await Promise.all(toAwait);
     suggestCreatingTsConfigsForCollections(collectionItemProvider);
+}
+
+// The activation event for `opencollection.yml` files is static, so it also triggers the activation when the Yaml feature toggle is off.
+// In that case, the extension should only continue if the workspace contains Bru files.
+async function shouldSkipActivation(context: ExtensionContext) {
+    if (getFeatureToggles(context).yamlCollectionSupport) {
+        return false;
+    }
+
+    return (await workspace.findFiles("**/*.bru", undefined, 1)).length == 0;
 }
 
 export function deactivate() {
