@@ -1,11 +1,26 @@
 import { EndOfLine } from "vscode";
-import { BrunoFileType } from "@global_shared";
-import { getTempJsFileContentForBruFile } from "../languageFeatures/internal/brunoFiles/shared/codeBlocksUtils/getTempJsFileContentForBruFile";
+import { BrunoFileType, CollectionFormat } from "@global_shared";
+import { getTempJsFileContent } from "../languageFeatures/internal/brunoFiles/shared/codeBlocksUtils/getTempJsFileContent";
 
-export function getTempJsContentForRequestFile(bruFileContent: string) {
-    return getTempJsFileContentForBruFile(
-        bruFileContent,
+export function getTempJsContentForBruRequestFile(bruFileContent: string) {
+    return getTempJsContentForRequestFile(bruFileContent, CollectionFormat.Bru);
+}
+
+export function getTempJsContentForYamlRequestFile(yamlFileContent: string) {
+    return getTempJsContentForRequestFile(
+        yamlFileContent,
+        CollectionFormat.Yaml,
+    );
+}
+
+function getTempJsContentForRequestFile(
+    fileContent: string,
+    format: CollectionFormat,
+) {
+    return getTempJsFileContent(
+        fileContent,
         EndOfLine.LF,
         BrunoFileType.RequestFile,
+        format,
     );
 }

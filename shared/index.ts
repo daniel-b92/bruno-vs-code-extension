@@ -60,6 +60,8 @@ export * from "./fileParsing/external/yamlFormat/parseRequestFile";
 export * from "./fileParsing/external/yamlFormat/parseAppFile";
 export * from "./fileParsing/external/yamlFormat/parseYamlEnvironmentFile";
 export * from "./fileParsing/external/yamlFormat/parseInfoFromYamlFile";
+export * from "./fileParsing/external/yamlFormat/getScriptBlocksFromYamlFile";
+export * from "./fileParsing/external/shared/codeBlocks/getJsCodeBlocksFromFile";
 export * from "./fileParsing/external/yamlFormat/getInfoTypeFromYamlContent";
 export * from "./fileParsing/external/yamlFormat/constants/requestFileConstants";
 export * from "./fileParsing/external/yamlFormat/constants/appFileConstants";

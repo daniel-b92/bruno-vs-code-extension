@@ -30,6 +30,7 @@ import {
     normalizePath,
     getFileExtensionForFormat,
     CollectionFormat,
+    FeatureToggles,
 } from "@global_shared";
 import { provideTsLangCompletionItems } from "./internal/brunoFiles/completionItems/provideTsLangCompletionItems";
 import { provideInfosOnHover as provideInfosOnHoverForBruFiles } from "./internal/brunoFiles/hover/provideInfosOnHover";
@@ -38,9 +39,11 @@ import { provideDefinitions as provideDefinitionsForBruFiles } from "./internal/
 import { extname } from "path";
 import { TempJsFileUpdateQueue } from "./internal/shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "./internal/shared/temporaryJsFilesUpdates/internal/interfaces";
-import { getTempJsFileContentForBruFile } from "./internal/brunoFiles/shared/codeBlocksUtils/getTempJsFileContentForBruFile";
+import { getTempJsFileContent } from "./internal/brunoFiles/shared/codeBlocksUtils/getTempJsFileContent";
+import { getRequestFileDocumentSelector } from "./internal/brunoFiles/shared/getRequestFileDocumentSelector";
 import { getDefinitionsForAllInbuiltLibraries } from "./internal/shared/temporaryJsFilesUpdates/internal/inbuiltLibraryDefinitions/getDefinitionsForAllInbuiltLibraries";
 import { getCharacterForLineBreak } from "./internal/brunoFiles/shared/codeBlocksUtils/getCharacterForLineBreak";
+import { configureTsServerPlugin } from "./configureTsServerPlugin";
 
 export async function activateLanguageFeatures(
     context: ExtensionContext,
@@ -48,8 +51,12 @@ export async function activateLanguageFeatures(
     collectionItemProvider: TypedCollectionItemProvider,
     cacheSyncingHelper: FileSystemCacheSyncingHelper,
     testRunStartedEvent: VsCodeEvent<unknown>,
+    featureToggles: FeatureToggles,
 ) {
+    const documentSelector = getRequestFileDocumentSelector(featureToggles);
     const logger = getLoggerFromSubscriptions(context);
+
+    await configureTsServerPlugin(context, featureToggles, logger);
 
     const tempJsFilesUpdateQueue = new TempJsFileUpdateQueue(
         testRunStartedEvent,
@@ -69,21 +76,25 @@ export async function activateLanguageFeatures(
         tempJsFilesUpdateQueue,
         tempJsFilesProvider,
         provideTsLangCompletionItems(
+            documentSelector,
             tempJsFilesUpdateQueue,
             collectionItemProvider,
             logger,
         ),
         provideInfosOnHoverForBruFiles(
+            documentSelector,
             tempJsFilesUpdateQueue,
             collectionItemProvider,
             logger,
         ),
         provideSignatureHelpForBruFiles(
+            documentSelector,
             tempJsFilesUpdateQueue,
             collectionItemProvider,
             logger,
         ),
         provideDefinitionsForBruFiles(
+            documentSelector,
             tempJsFilesUpdateQueue,
             collectionItemProvider,
             logger,
@@ -142,13 +153,30 @@ async function onDidChangeActiveTextEditor(
     ) {
         const path = editor.document.fileName;
 
-        if (extname(path) == getFileExtensionForFormat(CollectionFormat.Bru)) {
-            handleOpeningOfBruDocument(
+        const collection = getCollectionIfFileHasMatchingExtension(
+            itemProvider,
+            path,
+        );
+
+        if (collection) {
+            handleOpeningOfCollectionFile(
                 queue,
                 itemProvider,
                 cacheSyncingHelper,
                 tempJsFilesProvider,
+                collection,
                 editor.document,
+            );
+        } else if (
+            extname(path) == getFileExtensionForFormat(CollectionFormat.Bru)
+        ) {
+            window.showWarningMessage(
+                "'bru' file seems to not be part of a valid collection. Therefore, intellisense will be limited.",
+            );
+            await deleteNonMandatoryTempJsFiles(
+                queue,
+                itemProvider,
+                tempJsFilesProvider,
             );
         } else if (extname(path) == getExtensionForTempJsFiles()) {
             handleOpeningOfJsDocument(
@@ -213,10 +241,9 @@ async function onWillSaveTextDocument(
     const { document } = event;
 
     if (
-        extname(document.fileName) ==
-        getFileExtensionForFormat(CollectionFormat.Bru)
+        getCollectionIfFileHasMatchingExtension(itemProvider, document.fileName)
     ) {
-        await onWillSaveBruDocument(
+        await onWillSaveCollectionFile(
             queue,
             itemProvider,
             tempJsFilesProvider,
@@ -225,11 +252,12 @@ async function onWillSaveTextDocument(
     }
 }
 
-async function handleOpeningOfBruDocument(
+async function handleOpeningOfCollectionFile(
     queue: TempJsFileUpdateQueue,
     itemProvider: TypedCollectionItemProvider,
     cacheSyncingHelper: FileSystemCacheSyncingHelper,
     tempJsFilesProvider: TempJsFilesProvider,
+    collection: TypedCollection,
     { fileName, getText, eol }: TextDocument,
 ) {
     const toDispose: Disposable[] = [];
@@ -248,83 +276,65 @@ async function handleOpeningOfBruDocument(
         shouldAbortNotifier,
     );
 
-    const collection = itemProvider.getAncestorCollectionForPath(fileName);
-    if (!collection) {
-        window.showWarningMessage(
-            "'bru' file seems to not be part of a valid collection. Therefore, intellisense will be limited.",
-        );
-        await deleteNonMandatoryTempJsFiles(
-            queue,
+    try {
+        const brunoFileType = await getBrunoFileTypeIfExists(
             itemProvider,
-            tempJsFilesProvider,
-        );
-        return;
-    }
-
-    const brunoFileType = await getBrunoFileTypeIfExists(
-        itemProvider,
-        fileName,
-    );
-
-    if (shouldAbort) {
-        for (const d of toDispose) {
-            d.dispose();
-        }
-        return;
-    }
-
-    if (!brunoFileType) {
-        await deleteNonMandatoryTempJsFiles(
-            queue,
-            itemProvider,
-            tempJsFilesProvider,
-        );
-        return;
-    }
-
-    if (brunoFileType == BrunoFileType.RequestFile) {
-        // Sometimes it can take a few seconds until the cache is up to date (e.g. when moving a file to a different folder).
-        await cacheSyncingHelper.waitForFileToBeRegisteredInCache(
-            collection.getRootDirectory(),
             fileName,
-            shouldAbortNotifier.event,
         );
-    }
 
-    if (shouldAbort) {
+        if (shouldAbort) {
+            return;
+        }
+
+        if (!brunoFileType) {
+            await deleteNonMandatoryTempJsFiles(
+                queue,
+                itemProvider,
+                tempJsFilesProvider,
+            );
+            return;
+        }
+
+        if (brunoFileType == BrunoFileType.RequestFile) {
+            // Sometimes it can take a few seconds until the cache is up to date (e.g. when moving a file to a different folder).
+            await cacheSyncingHelper.waitForFileToBeRegisteredInCache(
+                collection.getRootDirectory(),
+                fileName,
+                shouldAbortNotifier.event,
+            );
+        }
+
+        if (shouldAbort) {
+            return;
+        }
+
+        if (!getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType)) {
+            await deleteNonMandatoryTempJsFiles(
+                queue,
+                itemProvider,
+                tempJsFilesProvider,
+            );
+            return;
+        }
+
+        await queue.addToQueue({
+            update: {
+                type: TempJsUpdateType.Creation,
+                filePath: getTemporaryJsFileNameInFolder(
+                    collection.getRootDirectory(),
+                ),
+                tempJsFileContent: getTempJsFileContent(
+                    getText(),
+                    eol,
+                    brunoFileType,
+                    collection.getFormat(),
+                ),
+            },
+        });
+    } finally {
         for (const d of toDispose) {
             d.dispose();
         }
-        return;
-    }
-
-    if (!getBrunoFileTypesThatCanHaveCodeBlocks().includes(brunoFileType)) {
-        await deleteNonMandatoryTempJsFiles(
-            queue,
-            itemProvider,
-            tempJsFilesProvider,
-        );
-        return;
-    }
-
-    const collectionRootFolder = (
-        itemProvider.getAncestorCollectionForPath(fileName) as TypedCollection
-    ).getRootDirectory();
-
-    await queue.addToQueue({
-        update: {
-            type: TempJsUpdateType.Creation,
-            filePath: getTemporaryJsFileNameInFolder(collectionRootFolder),
-            tempJsFileContent: getTempJsFileContentForBruFile(
-                getText(),
-                eol,
-                brunoFileType,
-            ),
-        },
-    });
-
-    for (const d of toDispose) {
-        d.dispose();
     }
 }
 
@@ -358,7 +368,7 @@ async function handleOpeningOfJsDocument(
     });
 }
 
-async function onWillSaveBruDocument(
+async function onWillSaveCollectionFile(
     queue: TempJsFileUpdateQueue,
     itemProvider: TypedCollectionItemProvider,
     tempJsFilesProvider: TempJsFilesProvider,
@@ -414,6 +424,18 @@ async function deleteNonMandatoryTempJsFiles(
             filePaths: existingFiles,
         },
     });
+}
+
+function getCollectionIfFileHasMatchingExtension(
+    itemProvider: TypedCollectionItemProvider,
+    filePath: string,
+) {
+    const collection = itemProvider.getAncestorCollectionForPath(filePath);
+
+    return collection &&
+        extname(filePath) == getFileExtensionForFormat(collection.getFormat())
+        ? collection
+        : undefined;
 }
 
 function getBrunoFileTypesThatCanHaveCodeBlocks() {

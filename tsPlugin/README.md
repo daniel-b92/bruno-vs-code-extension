@@ -14,3 +14,7 @@ For using the local TS plugin within the VS Code extension, please follow these 
 
 - Replace the `name` in the base [package.json](../package.json) for the `typescriptServerPlugins` contibution field with the name `typescript-for-bruno`.
 - Use the launch configuration `Run Extension With local TS plugin` for launching the extension
+
+## Configuration
+
+Scripts within Yaml collection files are only handled, if the plugin is configured with `{ "yamlCollectionSupport": true }` (e.g. via the `configurePlugin` function of the API of the VS Code Typescript extension). Otherwise, the Typescript server does not see any content of Yaml files.

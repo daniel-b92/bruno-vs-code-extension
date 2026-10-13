@@ -1,52 +1,36 @@
-import { commands, Hover, languages } from "vscode";
+import { commands, DocumentSelector, Hover, languages } from "vscode";
 import {
-    Block,
-    CodeBlock,
+    CollectionFormat,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
-    isBlockCodeBlock,
-    parseBruFile,
-    RequestFileBlockName,
-    TextDocumentHelper,
+    JsCodeBlock,
 } from "@global_shared";
 import { TypedCollection, TypedCollectionItemProvider } from "@shared";
-import { getRequestFileDocumentSelector } from "../shared/getRequestFileDocumentSelector";
 import { getPositionWithinTempJsFile } from "../shared/codeBlocksUtils/getPositionWithinTempJsFile";
-import { mapToRangeWithinBruFile } from "../shared/codeBlocksUtils/mapToRangeWithinBruFile";
+import { mapToRangeWithinSourceFile } from "../shared/codeBlocksUtils/mapToRangeWithinSourceFile";
 import { TempJsFileUpdateQueue } from "../../shared/temporaryJsFilesUpdates/external/tempJsFileUpdateQueue";
 import { LanguageFeatureRequest } from "../../shared/interfaces";
-import {
-    mapFromVsCodePosition,
-    mapToVsCodeRange,
-    OutputChannelLogger,
-} from "@shared";
+import { mapFromVsCodePosition, OutputChannelLogger } from "@shared";
 import { waitForTempJsFileToBeInSync } from "../../shared/temporaryJsFilesUpdates/external/waitForTempJsFileToBeInSync";
 import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
+import { getCodeBlockContainingPosition } from "../shared/codeBlocksUtils/getCodeBlockContainingPosition";
 
-interface ProviderParamsForNonCodeBlock {
+interface ProviderParamsForCodeBlock {
     file: {
         collection: TypedCollection;
-        allBlocks: Block[];
-        blockContainingPosition: Block;
+        blockContainingPosition: JsCodeBlock;
     };
     hoverRequest: LanguageFeatureRequest;
     logger?: OutputChannelLogger;
 }
 
-interface ProviderParamsForCodeBlock extends ProviderParamsForNonCodeBlock {
-    file: {
-        collection: TypedCollection;
-        allBlocks: Block[];
-        blockContainingPosition: CodeBlock;
-    };
-}
-
 export function provideInfosOnHover(
+    documentSelector: DocumentSelector,
     queue: TempJsFileUpdateQueue,
     itemProvider: TypedCollectionItemProvider,
     logger?: OutputChannelLogger,
 ) {
-    return languages.registerHoverProvider(getRequestFileDocumentSelector(), {
+    return languages.registerHoverProvider(documentSelector, {
         async provideHover(document, position, token) {
             const collection = itemProvider.getAncestorCollectionForPath(
                 document.fileName,
@@ -59,31 +43,30 @@ export function provideInfosOnHover(
                 return null;
             }
 
-            const docHelper = new TextDocumentHelper(document.getText());
-            const { blocks: allBlocks } = parseBruFile(docHelper, itemType);
-
-            const blockContainingPosition = allBlocks.find(({ contentRange }) =>
-                mapToVsCodeRange(contentRange).contains(position),
+            const blockContainingPosition = getCodeBlockContainingPosition(
+                document.getText(),
+                position,
+                itemType,
+                collection.getFormat(),
             );
 
             if (!blockContainingPosition) {
                 return undefined;
             }
 
+            const params: ProviderParamsForCodeBlock = {
+                file: { collection, blockContainingPosition },
+                hoverRequest: { document, position, token },
+                logger,
+            };
+
+            // The hover content is printed twice when also providing hovers via client (even if the provided content is different).
+            // The language server currently only provides hovers for environment variables in Bru files.
             if (
-                isBlockCodeBlock(blockContainingPosition) &&
-                // The hover content is printed twice when also providing hovers via client (even if the provided content is different).
-                !isCodeBlockRequestHandledByServer({
-                    file: { collection, allBlocks, blockContainingPosition },
-                    hoverRequest: { document, position, token },
-                    logger,
-                })
+                collection.getFormat() != CollectionFormat.Bru ||
+                !isCodeBlockRequestHandledByServer(params)
             ) {
-                return getResultsViaTempJsFile(queue, {
-                    file: { collection, allBlocks, blockContainingPosition },
-                    hoverRequest: { document, position, token },
-                    logger,
-                });
+                return getResultsViaTempJsFile(queue, params);
             }
 
             return undefined;
@@ -103,9 +86,9 @@ async function getResultsViaTempJsFile(
         tempJsUpdateQueue,
         {
             collection,
-            bruFileContentSnapshot: document.getText(),
-            bruFilePath: document.fileName,
-            bruFileEol: document.eol,
+            sourceFileContentSnapshot: document.getText(),
+            sourceFilePath: document.fileName,
+            sourceFileEol: document.eol,
             token,
         },
         logger,
@@ -125,7 +108,7 @@ async function getResultsViaTempJsFile(
         temporaryJsDoc.uri,
         getPositionWithinTempJsFile(
             temporaryJsDoc.getText(),
-            blockContainingPosition.name as RequestFileBlockName,
+            blockContainingPosition.name,
             mapFromVsCodePosition(
                 position.translate(
                     -blockContainingPosition.contentRange.start.line,
@@ -139,7 +122,7 @@ async function getResultsViaTempJsFile(
         : resultFromJsFile[0].range
           ? new Hover(
                 resultFromJsFile[0].contents,
-                mapToRangeWithinBruFile(
+                mapToRangeWithinSourceFile(
                     blockContainingPosition,
                     temporaryJsDoc.getText(),
                     resultFromJsFile[0].range,

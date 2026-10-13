@@ -14,13 +14,13 @@ import { OutputChannelLogger, TypedCollection } from "@shared";
 import { TempJsFileUpdateQueue } from "./tempJsFileUpdateQueue";
 import { TempJsUpdateType } from "../internal/interfaces";
 import { basename } from "path";
-import { getTempJsFileContentForBruFile } from "../../../brunoFiles/shared/codeBlocksUtils/getTempJsFileContentForBruFile";
+import { getTempJsFileContent } from "../../../brunoFiles/shared/codeBlocksUtils/getTempJsFileContent";
 
 export interface TempJsSyncRequest {
     collection: TypedCollection;
-    bruFileContentSnapshot: string;
-    bruFilePath: string;
-    bruFileEol: EndOfLine;
+    sourceFileContentSnapshot: string;
+    sourceFilePath: string;
+    sourceFileEol: EndOfLine;
     token?: CancellationToken;
 }
 
@@ -30,9 +30,9 @@ export async function waitForTempJsFileToBeInSync(
     logger?: OutputChannelLogger,
 ): Promise<TextDocument | undefined> {
     const {
-        bruFilePath,
-        bruFileContentSnapshot,
-        bruFileEol,
+        sourceFilePath,
+        sourceFileContentSnapshot,
+        sourceFileEol,
         collection,
         token,
     } = request;
@@ -40,16 +40,17 @@ export async function waitForTempJsFileToBeInSync(
         collection.getRootDirectory(),
     );
     const itemType = collection
-        ?.getStoredDataForPath(bruFilePath)
+        ?.getStoredDataForPath(sourceFilePath)
         ?.item.getItemType();
     if (!itemType) {
         return undefined;
     }
 
-    const desiredTempJsFileContentInitially = getTempJsFileContentForBruFile(
-        bruFileContentSnapshot,
-        bruFileEol,
+    const desiredTempJsFileContentInitially = getTempJsFileContent(
+        sourceFileContentSnapshot,
+        sourceFileEol,
         itemType,
+        collection.getFormat(),
     );
 
     if (shouldAbort(token)) {
@@ -128,11 +129,11 @@ export async function waitForTempJsFileToBeInSync(
                     );
                     resolve({ document: e.document });
                 } else if (
-                    e.document.uri.fsPath == bruFilePath &&
+                    e.document.uri.fsPath == sourceFilePath &&
                     e.contentChanges.length > 0
                 ) {
                     logger?.debug(
-                        `Aborting waiting for temp Js file to be in sync because source file '${basename(bruFilePath)}' has been modified.`,
+                        `Aborting waiting for temp Js file to be in sync because source file '${basename(sourceFilePath)}' has been modified.`,
                     );
                     resolve({ shouldRetry: true });
                 }
@@ -142,9 +143,9 @@ export async function waitForTempJsFileToBeInSync(
         // If the source file is modified or deleted in the meantime, the request will be outdated, so it can be canceled.
         toDispose.push(
             workspace.onDidDeleteFiles((e) => {
-                if (e.files.some(({ fsPath }) => fsPath == bruFilePath)) {
+                if (e.files.some(({ fsPath }) => fsPath == sourceFilePath)) {
                     logger?.debug(
-                        `Aborting waiting for temp Js file to be in sync because source file '${basename(bruFilePath)}' has been deleted.`,
+                        `Aborting waiting for temp Js file to be in sync because source file '${basename(sourceFilePath)}' has been deleted.`,
                     );
                     resolve({ shouldRetry: false });
                 }
@@ -173,17 +174,17 @@ export async function waitForTempJsFileToBeInSync(
             return undefined;
         }
 
-        const currentBruFileDoc = await workspace.openTextDocument(
-            Uri.file(bruFilePath),
+        const currentSourceFileDoc = await workspace.openTextDocument(
+            Uri.file(sourceFilePath),
         );
 
-        const newBruFileContentSnapshot = currentBruFileDoc.getText();
+        const newSourceFileContentSnapshot = currentSourceFileDoc.getText();
 
         return await waitForTempJsFileToBeInSync(
             queue,
             {
                 ...request,
-                bruFileContentSnapshot: newBruFileContentSnapshot,
+                sourceFileContentSnapshot: newSourceFileContentSnapshot,
             },
             logger,
         );

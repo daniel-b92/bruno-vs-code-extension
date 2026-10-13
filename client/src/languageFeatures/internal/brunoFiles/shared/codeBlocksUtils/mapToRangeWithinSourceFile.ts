@@ -1,21 +1,21 @@
-import { Block } from "@global_shared";
+import { JsCodeBlock } from "@global_shared";
 import { mapToVsCodeRange, OutputChannelLogger } from "@shared";
 import { Range as VsCodeRange, Position as VsCodePosition } from "vscode";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
 
-export function mapToRangeWithinBruFile(
-    blockInBruFile: Block,
+export function mapToRangeWithinSourceFile(
+    blockInSourceFile: Pick<JsCodeBlock, "name" | "contentRange">,
     fullJsFileContent: string,
     rangeInJsFile: VsCodeRange,
     logger?: OutputChannelLogger,
 ) {
-    const start = mapToPositionWithinBruFile(
-        blockInBruFile,
+    const start = mapToPositionWithinSourceFile(
+        blockInSourceFile,
         fullJsFileContent,
         rangeInJsFile.start,
     );
-    const end = mapToPositionWithinBruFile(
-        blockInBruFile,
+    const end = mapToPositionWithinSourceFile(
+        blockInSourceFile,
         fullJsFileContent,
         rangeInJsFile.end,
     );
@@ -32,13 +32,13 @@ export function mapToRangeWithinBruFile(
     return start && end ? new VsCodeRange(start, end) : undefined;
 }
 
-function mapToPositionWithinBruFile(
-    blockInBruFile: Block,
+function mapToPositionWithinSourceFile(
+    blockInSourceFile: Pick<JsCodeBlock, "name" | "contentRange">,
     fullJsFileContent: string,
     positionInJsFile: VsCodePosition,
 ) {
     const blockInJsFileContainingPosition = getBlockFromJsFileWherePositionIsIn(
-        blockInBruFile,
+        blockInSourceFile,
         fullJsFileContent,
         positionInJsFile,
     );
@@ -52,18 +52,18 @@ function mapToPositionWithinBruFile(
     );
 
     return positionWithinBlock.translate(
-        blockInBruFile.contentRange.start.line,
+        blockInSourceFile.contentRange.start.line,
     );
 }
 
 function getBlockFromJsFileWherePositionIsIn(
-    blockInBruFile: Block,
+    blockInSourceFile: Pick<JsCodeBlock, "name" | "contentRange">,
     fullJsFileContent: string,
     positionInJsFile: VsCodePosition,
 ) {
     const tempJsFileBlock = getTempJsFileBlockContent(
         fullJsFileContent,
-        blockInBruFile.name,
+        blockInSourceFile.name,
     );
 
     return tempJsFileBlock &&

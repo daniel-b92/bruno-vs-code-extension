@@ -1,19 +1,12 @@
-import {
-    Position,
-    RequestFileBlockName,
-    TextDocumentHelper,
-} from "@global_shared";
+import { Position, TextDocumentHelper } from "@global_shared";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
 
 export function getPositionWithinTempJsFile(
     tempJsFileContent: string,
-    blockNameInBruFile: RequestFileBlockName,
+    blockName: string,
     positionWithinBlock: Position,
 ) {
-    const block = getTempJsFileBlockContent(
-        tempJsFileContent,
-        blockNameInBruFile,
-    );
+    const block = getTempJsFileBlockContent(tempJsFileContent, blockName);
 
     if (!block) {
         return undefined;

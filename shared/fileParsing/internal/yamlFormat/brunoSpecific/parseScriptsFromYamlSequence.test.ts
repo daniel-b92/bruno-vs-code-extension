@@ -51,6 +51,7 @@ describe("parseScriptsFromYamlSequence", () => {
                     fullDocumentRange.end,
                 ),
                 value: "sdcsdcdscdscsdsvfs\nscdasdasfdasdas",
+                isLiteralBlockScalar: true,
             },
         };
         expect(script.properties).toEqual(expectedProperties);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "@jest/globals";
-import { getTempJsContentForRequestFile as getTempJsContent } from "../../../../../testUtils/getTempJsContent";
+import { getTempJsContentForBruRequestFile as getTempJsContent } from "../../../../../testUtils/getTempJsContent";
 import { getTempJsFileBlockContent } from "./getTempJsFileBlockContent";
 
 describe("getTempJsFileBlockContent", () => {
