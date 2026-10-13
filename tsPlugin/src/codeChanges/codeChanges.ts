@@ -24,7 +24,7 @@ export function getFormatOptionsForFile(
 
     const originalContent = getOriginalFileContent(info, fileName);
     const scriptIndentation = originalContent
-        ? getIndentationOfScripts(originalContent, range)
+        ? getIndentationOfScripts(fileName, originalContent, range)
         : undefined;
     const indentSize =
         formatOptions.indentSize ??
@@ -98,7 +98,7 @@ function getContentOutsideOfCodeBlocks(
               }))
               .sort(({ start: start1 }, { start: start2 }) => start1 - start2)
         : isFileFromYamlCollection(info, fileName)
-          ? getScriptContentRanges(fileContent)
+          ? getScriptContentRanges(fileName, fileContent)
           : [];
 
     return codeRanges

@@ -4,6 +4,7 @@ import {
     CompletionList,
     DocumentSelector,
     CompletionItem,
+    CompletionItemKind,
     TextEdit,
     Range as VsCodeRange,
     Position as VsCodePosition,
@@ -181,13 +182,15 @@ async function getResultsViaTempJsFile(
     }[] = [];
 
     // Shadowing the objects in the temp JS file changes their type, but they would still be suggested by name.
+    // The shadowing parameters are suggested as variables, so that e.g. properties with the same name are still suggested.
     const unavailableObjects =
         getUnavailableInbuiltObjectsForHttpBlock(blockInSourceFile);
 
     const result = new CompletionList<CompletionItem>(
         resultFromJsFile.items
             .filter(
-                ({ label }) =>
+                ({ label, kind }) =>
+                    kind != CompletionItemKind.Variable ||
                     !unavailableObjects.some(
                         (name) =>
                             name ==

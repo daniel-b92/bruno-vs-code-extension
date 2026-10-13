@@ -1,4 +1,6 @@
-import { isMap, isScalar, isSeq, parseDocument, Scalar } from "yaml";
+import { basename } from "path";
+import { Document, isMap, isScalar, isSeq, parseDocument, Scalar } from "yaml";
+import { ScriptType } from "../constants";
 
 /**
  * Returns the content of a Yaml file from a Bruno collection the way it should be seen by the Typescript server.
@@ -7,12 +9,14 @@ import { isMap, isScalar, isSeq, parseDocument, Scalar } from "yaml";
  * Line breaks are kept, so that all offsets and line / character positions are equal to the ones in the original content.
  * Each script is wrapped in a block (`{ ... }`), so that its declarations are scoped like the ones in code blocks of `.bru` files.
  *
- * Only scripts defined as literal block scalars (`code: |`) are kept.
- * For all other scalar styles, the raw text in the file is not equal to the code (e.g. due to quotes or line folding).
+ * Only the scripts returned by `getScriptContentRanges` are kept.
  */
-export function maskYamlCollectionFileContent(fileContent: string) {
+export function maskYamlCollectionFileContent(
+    fileName: string,
+    fileContent: string,
+) {
     const maskedCharacters = maskYamlFileContent(fileContent).split("");
-    const scriptRanges = getScriptContentRanges(fileContent);
+    const scriptRanges = getScriptContentRanges(fileName, fileContent);
     let firstFreeIndex = 0;
     let suffix = "";
 
@@ -44,8 +48,11 @@ export function maskYamlCollectionFileContent(fileContent: string) {
         maskedCharacters[openingBracketIndex] = "{";
 
         if (closingBracketIndex == undefined) {
-            // Appending a character at the end does not shift any positions.
-            suffix = "}";
+            // Appending characters at the end does not shift any positions.
+            // A line break is needed if the script ends at the end of the file, since the closing bracket could otherwise be part of a line comment.
+            suffix = isLineBreak(fileContent[fileContent.length - 1])
+                ? "}"
+                : "\n}";
         } else {
             maskedCharacters[closingBracketIndex] = "}";
             firstFreeIndex = closingBracketIndex + 1;
@@ -64,17 +71,27 @@ export function maskYamlFileContent(fileContent: string) {
 
 /**
  * Scripts are defined in `runtime.scripts` for request files and in `request.scripts` for folder and collection settings files.
+ *
+ * The same scripts are returned as by `getScriptBlocksFromYamlFile` in the shared folder of the extension:
+ * Only scripts with a valid type that are defined as literal block scalars (`code: |`) are included.
+ * For all other scalar styles, the raw text in the file is not equal to the code (e.g. due to quotes or line folding).
  */
-export function getScriptContentRanges(fileContent: string) {
+export function getScriptContentRanges(fileName: string, fileContent: string) {
     const document = parseDocument(fileContent);
+    const scripts = document.getIn(
+        isSettingsFile(fileName, document)
+            ? ["request", "scripts"]
+            : ["runtime", "scripts"],
+        true,
+    );
 
-    return [
-        document.getIn(["runtime", "scripts"], true),
-        document.getIn(["request", "scripts"], true),
-    ]
-        .flatMap((scripts) => (isSeq(scripts) ? scripts.items : []))
+    return (isSeq(scripts) ? scripts.items : [])
         .flatMap((script) => {
-            const code = isMap(script) ? script.get("code", true) : undefined;
+            if (!isMap(script) || !isValidScriptType(script.get("type"))) {
+                return [];
+            }
+
+            const code = script.get("code", true);
 
             if (
                 !isScalar(code) ||
@@ -94,6 +111,18 @@ export function getScriptContentRanges(fileContent: string) {
             return range ? [range] : [];
         })
         .sort(({ start: start1 }, { start: start2 }) => start1 - start2);
+}
+
+/**
+ * Folder settings files are always named `folder.yml`.
+ * The collection settings file is the only file that defines the top-level key `opencollection`.
+ */
+function isSettingsFile(fileName: string, document: Document) {
+    return basename(fileName) == "folder.yml" || document.has("opencollection");
+}
+
+function isValidScriptType(type: unknown) {
+    return (Object.values(ScriptType) as unknown[]).includes(type);
 }
 
 /**

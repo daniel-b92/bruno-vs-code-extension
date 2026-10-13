@@ -20,3 +20,12 @@ export function getTempJsFileBaseNameWithoutExtension() {
 export function getNamesForInbuiltRuntimeVarsAndFunctions() {
     return ["bru", "req", "res", "test", "expect"];
 }
+
+/**
+ * Same as `ScriptType` for Yaml files in the shared folder of the extension.
+ */
+export enum ScriptType {
+    BeforeRequest = "before-request",
+    AfterResponse = "after-response",
+    Tests = "tests",
+}

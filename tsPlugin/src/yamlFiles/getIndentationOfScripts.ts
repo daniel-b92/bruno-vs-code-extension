@@ -7,11 +7,12 @@ import { getScriptContentRanges } from "./maskYamlFileContent";
  * Lines with this indentation are always part of the block scalar, even if it uses an explicit indentation indicator (e.g. `code: |2-`).
  */
 export function getIndentationOfScripts(
+    fileName: string,
     fileContent: string,
     range: { start: number; end: number },
 ) {
     const indentations = new Set(
-        getScriptContentRanges(fileContent)
+        getScriptContentRanges(fileName, fileContent)
             .filter(
                 ({ start, end }) => start <= range.end && range.start <= end,
             )

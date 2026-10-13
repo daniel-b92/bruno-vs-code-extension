@@ -43,6 +43,7 @@ import { getTempJsFileContent } from "./internal/brunoFiles/shared/codeBlocksUti
 import { getRequestFileDocumentSelector } from "./internal/brunoFiles/shared/getRequestFileDocumentSelector";
 import { getDefinitionsForAllInbuiltLibraries } from "./internal/shared/temporaryJsFilesUpdates/internal/inbuiltLibraryDefinitions/getDefinitionsForAllInbuiltLibraries";
 import { getCharacterForLineBreak } from "./internal/brunoFiles/shared/codeBlocksUtils/getCharacterForLineBreak";
+import { configureTsServerPlugin } from "./configureTsServerPlugin";
 
 export async function activateLanguageFeatures(
     context: ExtensionContext,
@@ -54,6 +55,8 @@ export async function activateLanguageFeatures(
 ) {
     const documentSelector = getRequestFileDocumentSelector(featureToggles);
     const logger = getLoggerFromSubscriptions(context);
+
+    await configureTsServerPlugin(context, featureToggles, logger);
 
     const tempJsFilesUpdateQueue = new TempJsFileUpdateQueue(
         testRunStartedEvent,

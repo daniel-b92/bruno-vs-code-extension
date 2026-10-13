@@ -2,6 +2,7 @@ import { describe, it, expect } from "@jest/globals";
 import { dirname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
 import init = require("./index");
+import { PluginConfig } from "./pluginConfiguration";
 
 const helperModule = `function helper() {
     return 1;
@@ -163,7 +164,53 @@ runtime:
     );
 });
 
-function createLanguageServiceWithPlugin(files: Record<string, string>) {
+describe("Yaml collection support", () => {
+    const requestFile = "/collection/request.yml";
+    const collectionFiles = {
+        "/collection/opencollection.yml": "opencollection: 1.0.0\n",
+        [requestFile]: `runtime:
+  scripts:
+    - type: tests
+      code: |-
+        valeu;
+`,
+    };
+
+    it("only provides diagnostics for scripts in Yaml files once Yaml collections are supported", () => {
+        const plugin = createPlugin({ yamlCollectionSupport: false });
+        const languageService = createLanguageServiceWithPlugin(
+            collectionFiles,
+            plugin,
+        );
+
+        expect(languageService.getSemanticDiagnostics(requestFile)).toEqual([]);
+
+        plugin.onConfigurationChanged({ yamlCollectionSupport: true });
+
+        expect(
+            languageService
+                .getSemanticDiagnostics(requestFile)
+                .map(({ code }) => code),
+        ).toEqual([2_304]); // Cannot find name 'valeu'.
+    });
+
+    it("does not provide formatting edits for Yaml files", () => {
+        const languageService =
+            createLanguageServiceWithPlugin(collectionFiles);
+
+        expect(
+            languageService.getFormattingEditsForDocument(
+                requestFile,
+                ts.getDefaultFormatCodeSettings(),
+            ),
+        ).toEqual([]);
+    });
+});
+
+function createLanguageServiceWithPlugin(
+    files: Record<string, string>,
+    plugin = createPlugin({ yamlCollectionSupport: true }),
+) {
     const languageServiceHost: ts.LanguageServiceHost = {
         getScriptFileNames: () =>
             Object.keys(files).filter(
@@ -200,11 +247,18 @@ function createLanguageServiceWithPlugin(files: Record<string, string>) {
             ),
     } as unknown as ts.server.ServerHost;
 
-    return init({ typescript: ts }).create({
+    return plugin.create({
         languageService: ts.createLanguageService(languageServiceHost),
         languageServiceHost,
         serverHost,
     } as ts.server.PluginCreateInfo);
+}
+
+function createPlugin(config: PluginConfig) {
+    const plugin = init({ typescript: ts });
+    plugin.onConfigurationChanged(config);
+
+    return plugin;
 }
 
 function getCodeFixNames(

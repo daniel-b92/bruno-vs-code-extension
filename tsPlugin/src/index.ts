@@ -2,17 +2,21 @@ import * as ts from "typescript/lib/tsserverlibrary";
 import { maskYamlFilesForTypescriptServer } from "./yamlFiles/maskYamlFilesForTypescriptServer";
 import { overrideCodeChanges } from "./languageService/codeChangeOverrides";
 import { overrideDiagnostics } from "./languageService/diagnosticsOverrides";
+import { overrideFormatting } from "./languageService/formattingOverrides";
 import {
     overrideHoverAndCompletions,
     overrideReferencesAndDefinitions,
     overrideRename,
 } from "./languageService/navigationOverrides";
+import { PluginConfig, PluginConfiguration } from "./pluginConfiguration";
 
 function init(_modules: {
     typescript: typeof import("typescript/lib/tsserverlibrary");
 }) {
+    const configuration = new PluginConfiguration();
+
     function create(info: ts.server.PluginCreateInfo) {
-        maskYamlFilesForTypescriptServer(info);
+        maskYamlFilesForTypescriptServer(info, configuration);
 
         // Set up decorator object
         const proxy: ts.LanguageService = Object.create(null);
@@ -32,12 +36,18 @@ function init(_modules: {
         overrideRename(info, proxy);
         overrideReferencesAndDefinitions(info, proxy);
         overrideCodeChanges(info, proxy);
+        overrideFormatting(info, proxy);
 
         return proxy;
     }
 
+    function onConfigurationChanged(config: Partial<PluginConfig> | undefined) {
+        configuration.update(config);
+    }
+
     return {
         create,
+        onConfigurationChanged,
     };
 }
 

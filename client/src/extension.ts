@@ -111,13 +111,22 @@ export async function activate(context: ExtensionContext) {
 }
 
 // The activation event for `opencollection.yml` files is static, so it also triggers the activation when the Yaml feature toggle is off.
-// In that case, the extension should only continue if the workspace contains Bru files.
+// In that case, the activation is skipped if it could only have been triggered by Yaml collections.
+// The extension can also be activated for single Bru files that are not part of the workspace (e.g. if no folder is opened).
 async function shouldSkipActivation(context: ExtensionContext) {
-    if (getFeatureToggles(context).yamlCollectionSupport) {
+    if (
+        getFeatureToggles(context).yamlCollectionSupport ||
+        workspace.textDocuments.some(({ languageId }) => languageId == "bru")
+    ) {
         return false;
     }
 
-    return (await workspace.findFiles("**/*.bru", undefined, 1)).length == 0;
+    const [bruFiles, yamlCollectionRootFiles] = await Promise.all([
+        workspace.findFiles("**/*.bru", undefined, 1),
+        workspace.findFiles("**/opencollection.yml", undefined, 1),
+    ]);
+
+    return bruFiles.length == 0 && yamlCollectionRootFiles.length > 0;
 }
 
 export function deactivate() {
