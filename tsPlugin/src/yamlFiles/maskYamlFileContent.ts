@@ -65,7 +65,7 @@ export function maskYamlFileContent(fileContent: string) {
 /**
  * Scripts are defined in `runtime.scripts` for request files and in `request.scripts` for folder and collection settings files.
  */
-function getScriptContentRanges(fileContent: string) {
+export function getScriptContentRanges(fileContent: string) {
     const document = parseDocument(fileContent);
 
     return [

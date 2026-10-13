@@ -1,6 +1,8 @@
 import { dirname, extname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
+import { getIndentationOfScripts } from "./yamlFiles/getIndentationOfScripts";
 import {
+    getScriptContentRanges,
     maskYamlCollectionFileContent,
     maskYamlFileContent,
 } from "./yamlFiles/maskYamlFileContent";
@@ -275,6 +277,89 @@ function init(_modules: {
                 : defaultImplementations;
         };
 
+        // Some code fixes and refactorings insert code outside of code blocks (e.g. an import at the top of the file),
+        // which would corrupt the content of '.bru' and '.yml' files.
+        proxy.getCodeFixesAtPosition = (
+            fileName,
+            start,
+            end,
+            errorCodes,
+            formatOptions,
+            preferences,
+        ) =>
+            info.languageService
+                .getCodeFixesAtPosition(
+                    fileName,
+                    start,
+                    end,
+                    errorCodes,
+                    getFormatOptionsForFile(info, fileName, formatOptions, {
+                        start,
+                        end,
+                    }),
+                    preferences,
+                )
+                .filter(({ changes }) =>
+                    areAllChangesWithinCodeBlocks(info, changes),
+                );
+
+        proxy.getCombinedCodeFix = (
+            scope,
+            fixId,
+            formatOptions,
+            preferences,
+        ) => {
+            const combinedFix = info.languageService.getCombinedCodeFix(
+                scope,
+                fixId,
+                getFormatOptionsForFile(info, scope.fileName, formatOptions, {
+                    start: 0,
+                    end: Number.MAX_SAFE_INTEGER,
+                }),
+                preferences,
+            );
+
+            // Only applying some of the changes could result in invalid code.
+            return areAllChangesWithinCodeBlocks(info, combinedFix.changes)
+                ? combinedFix
+                : { changes: [] };
+        };
+
+        proxy.getEditsForRefactor = (
+            fileName,
+            formatOptions,
+            positionOrRange,
+            refactorName,
+            actionName,
+            preferences,
+            interactiveRefactorArguments,
+        ) => {
+            const refactorEdits = info.languageService.getEditsForRefactor(
+                fileName,
+                getFormatOptionsForFile(
+                    info,
+                    fileName,
+                    formatOptions,
+                    typeof positionOrRange == "number"
+                        ? { start: positionOrRange, end: positionOrRange }
+                        : {
+                              start: positionOrRange.pos,
+                              end: positionOrRange.end,
+                          },
+                ),
+                positionOrRange,
+                refactorName,
+                actionName,
+                preferences,
+                interactiveRefactorArguments,
+            );
+
+            return refactorEdits &&
+                areAllChangesWithinCodeBlocks(info, refactorEdits.edits)
+                ? refactorEdits
+                : undefined;
+        };
+
         return proxy;
     }
 
@@ -283,7 +368,10 @@ function init(_modules: {
     };
 }
 
-const hostsWithMaskedYamlFiles = new WeakSet<ts.LanguageServiceHost>();
+const originalSnapshotGettersForHosts = new WeakMap<
+    ts.LanguageServiceHost,
+    (fileName: string) => ts.IScriptSnapshot | undefined
+>();
 
 /**
  * The Typescript server parses Yaml files like Typescript files, so that the Yaml content would affect the meaning of the code within scripts.
@@ -294,13 +382,12 @@ function maskYamlFilesForTypescriptServer(info: ts.server.PluginCreateInfo) {
     const host = info.languageServiceHost;
 
     // Masking already masked content would remove all scripts.
-    if (hostsWithMaskedYamlFiles.has(host)) {
+    if (originalSnapshotGettersForHosts.has(host)) {
         return;
     }
 
-    hostsWithMaskedYamlFiles.add(host);
-
     const getOriginalSnapshot = host.getScriptSnapshot.bind(host);
+    originalSnapshotGettersForHosts.set(host, getOriginalSnapshot);
     // A new snapshot is only created, if the content of a file changes.
     const maskedSnapshots = new WeakMap<
         ts.IScriptSnapshot,
@@ -357,22 +444,7 @@ function filterDefaultDiagnostics(
         return [];
     }
 
-    const indizes: {
-        blockName: string;
-        startIndex: number;
-        endIndex: number;
-    }[] = [];
-
-    for (const blockName of Object.values(CodeBlockName)) {
-        const indizesForBlock = getCodeBlockStartAndEndIndex(
-            fileContent,
-            blockName,
-        );
-
-        if (indizesForBlock) {
-            indizes.push({ blockName, ...indizesForBlock });
-        }
-    }
+    const indizes = getCodeBlockIndizesForBruFile(fileContent);
 
     if (indizes.length == 0) {
         return [];
@@ -450,6 +522,159 @@ function filterDiagnosticsForJsFile(
             ? { ...diagnostic, relatedInformation: undefined }
             : diagnostic;
     });
+}
+
+/**
+ * The Typescript server indents the top-level statements of scripts in Yaml files relative to column 0,
+ * since each script is wrapped in a block that is not indented (see `maskYamlCollectionFileContent`).
+ * Inserted lines (e.g. when extracting a constant) would therefore end the Yaml block scalar.
+ * To avoid this, the base indentation is set to the indentation of the scripts minus one indentation level for the wrapping block.
+ */
+function getFormatOptionsForFile(
+    info: ts.server.PluginCreateInfo,
+    fileName: string,
+    formatOptions: ts.FormatCodeSettings,
+    range: { start: number; end: number },
+): ts.FormatCodeSettings {
+    if (!isFileFromYamlCollection(info, fileName)) {
+        return formatOptions;
+    }
+
+    const originalContent = getOriginalFileContent(info, fileName);
+    const scriptIndentation = originalContent
+        ? getIndentationOfScripts(originalContent, range)
+        : undefined;
+    const indentSize =
+        formatOptions.indentSize ??
+        ts.getDefaultFormatCodeSettings().indentSize!;
+
+    if (scriptIndentation == undefined || scriptIndentation < indentSize) {
+        return formatOptions;
+    }
+
+    return {
+        ...formatOptions,
+        baseIndentSize: scriptIndentation - indentSize,
+        // Tabs are not allowed for indenting Yaml content.
+        convertTabsToSpaces: true,
+    };
+}
+
+/**
+ * Checks whether the given changes only modify the code within code blocks, if they affect '.bru' or '.yml' files.
+ */
+function areAllChangesWithinCodeBlocks(
+    info: ts.server.PluginCreateInfo,
+    changes: readonly ts.FileTextChanges[],
+) {
+    return changes.every(({ fileName, textChanges, isNewFile }) => {
+        if (!hasEmbeddedCodeBlocks(fileName)) {
+            return true;
+        } else if (isNewFile) {
+            return false;
+        }
+
+        const originalContent = getOriginalFileContent(info, fileName);
+
+        if (!originalContent) {
+            return false;
+        }
+
+        // Comparing the content outside of code blocks also detects changes that end a code block early,
+        // e.g. an inserted line within a Yaml block scalar that is not indented enough.
+        const originalContentOutsideOfCode = getContentOutsideOfCodeBlocks(
+            info,
+            fileName,
+            originalContent,
+        );
+        const modifiedContentOutsideOfCode = getContentOutsideOfCodeBlocks(
+            info,
+            fileName,
+            applyTextChanges(originalContent, textChanges),
+        );
+
+        return (
+            originalContentOutsideOfCode.length ==
+                modifiedContentOutsideOfCode.length &&
+            originalContentOutsideOfCode.every(
+                (part, index) => part == modifiedContentOutsideOfCode[index],
+            )
+        );
+    });
+}
+
+function getContentOutsideOfCodeBlocks(
+    info: ts.server.PluginCreateInfo,
+    fileName: string,
+    fileContent: string,
+) {
+    const codeRanges = isBruFile(fileName)
+        ? getCodeBlockIndizesForBruFile(fileContent)
+              .map(({ startIndex, endIndex }) => ({
+                  start: startIndex,
+                  end: endIndex - 1, // index of the closing bracket
+              }))
+              .sort(({ start: start1 }, { start: start2 }) => start1 - start2)
+        : isFileFromYamlCollection(info, fileName)
+          ? getScriptContentRanges(fileContent)
+          : [];
+
+    return codeRanges
+        .map(({ start }, index) =>
+            fileContent.substring(
+                index == 0 ? 0 : codeRanges[index - 1].end,
+                start,
+            ),
+        )
+        .concat(
+            fileContent.substring(
+                codeRanges.length > 0
+                    ? codeRanges[codeRanges.length - 1].end
+                    : 0,
+            ),
+        );
+}
+
+/**
+ * The text changes for a file do not overlap and their spans refer to the original content.
+ */
+function applyTextChanges(
+    fileContent: string,
+    textChanges: readonly ts.TextChange[],
+) {
+    return [...textChanges]
+        .sort(
+            ({ span: { start: start1 } }, { span: { start: start2 } }) =>
+                start2 - start1,
+        )
+        .reduce(
+            (content, { span: { start, length }, newText }) =>
+                content.substring(0, start) +
+                newText +
+                content.substring(start + length),
+            fileContent,
+        );
+}
+
+function getCodeBlockIndizesForBruFile(fileContent: string) {
+    const indizes: {
+        blockName: string;
+        startIndex: number;
+        endIndex: number;
+    }[] = [];
+
+    for (const blockName of Object.values(CodeBlockName)) {
+        const indizesForBlock = getCodeBlockStartAndEndIndex(
+            fileContent,
+            blockName,
+        );
+
+        if (indizesForBlock) {
+            indizes.push({ blockName, ...indizesForBlock });
+        }
+    }
+
+    return indizes;
 }
 
 function getCodeBlockStartAndEndIndex(
@@ -539,6 +764,25 @@ function getFileContent(info: ts.server.PluginCreateInfo, fileName: string) {
     }
 }
 
+/**
+ * For Yaml files, the content returned by the language service host is masked (see `maskYamlFilesForTypescriptServer`).
+ */
+function getOriginalFileContent(
+    info: ts.server.PluginCreateInfo,
+    fileName: string,
+) {
+    const getOriginalSnapshot = originalSnapshotGettersForHosts.get(
+        info.languageServiceHost,
+    );
+    const scriptSnapshot = getOriginalSnapshot
+        ? getOriginalSnapshot(fileName)
+        : info.languageServiceHost.getScriptSnapshot(fileName);
+
+    return scriptSnapshot
+        ? scriptSnapshot.getText(0, scriptSnapshot.getLength())
+        : info.languageServiceHost.readFile(fileName);
+}
+
 function isInABrunoCollection(
     info: ts.server.PluginCreateInfo,
     fileName: string,
@@ -555,8 +799,7 @@ function isFileFromYamlCollection(
 ) {
     return (
         extname(fileName) == ".yml" &&
-        getFormatOfContainingCollection(info, fileName) ==
-            CollectionFormat.Yaml
+        getFormatOfContainingCollection(info, fileName) == CollectionFormat.Yaml
     );
 }
 
