@@ -36,8 +36,6 @@ Each entry is tagged:
 
 ## 7. Client: language features and cache syncing
 
-- [activateLanguageFeatures.ts](client/src/languageFeatures/activateLanguageFeatures.ts) **[OK]**: temp JS file handling (script intellisense) runs for `.bru` and (with the toggle on) `.yml` documents that are part of a collection of the matching format. For Yaml, only scripts defined as literal block scalars (`code: |`) are supported, because the raw document lines are copied into the temp JS file (see [getScriptBlocksFromYamlFile.ts](shared/fileParsing/external/yamlFormat/getScriptBlocksFromYamlFile.ts)). Diagnostics and renaming for JS code inside yaml files are provided by the TS plugin (see the TypeScript plugin section).
-- [getRequestFileDocumentSelector.ts](client/src/languageFeatures/internal/brunoFiles/shared/getRequestFileDocumentSelector.ts) **[OK]**: the client-side completion, hover, definition and signature help providers for code blocks are registered for `.bru` and (with the toggle on) `.yml` files. Environment variable completions/hovers from the server are only skipped for Bru, since the server does not provide them for Yaml yet.
 - [extension.ts:134-141](client/src/extension.ts#L134-L141) **[OK]** / **[Check]**: the `yaml` language is added to the LSP document selector only when the toggle is on. **All** yaml documents in the workspace are then sent to the server, not just those inside collections (see the server section).
 
 ## 8. Server (language server)
@@ -63,5 +61,4 @@ Each entry is tagged:
 
 ## 9. TypeScript plugin
 
-- [tsPlugin/src/index.ts](tsPlugin/src/index.ts) **[OK]**: `isACollectionRootFolder` recognises folders with a `bruno.json` of `type: "collection"` as well as folders with an `opencollection.yml` that defines the top-level key `opencollection`. (Needs a new release of the npm package to take effect in the published extension.)
-- [maskYamlFileContent.ts](tsPlugin/src/yamlFiles/maskYamlFileContent.ts) **[OK]**: the TS server parses yaml files like TS files. Therefore the plugin masks their content (see [yaml-code-blocks-in-ts-plugin.md](yaml-code-blocks-in-ts-plugin.md)): `.yml` files inside a yaml collection only keep the code of scripts (literal block scalars), each wrapped in a block. All other yaml files are masked completely. After that, `hasEmbeddedCodeBlocks` treats `.bru` and yaml files the same way (diagnostic filters, no completions / hovers from the TS server).
+- No open ToDos.
