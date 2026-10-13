@@ -12,6 +12,7 @@ import {
     mapBlockNameToJsFileLine,
     TypedParameter,
 } from "./mapBlockNameToJsFileLine";
+import { getUnavailableInbuiltObjectsForHttpBlock } from "./getUnavailableInbuiltObjectsForHttpBlock";
 import { getCharacterForLineBreak } from "./getCharacterForLineBreak";
 
 export function getTempJsFileContent(
@@ -57,9 +58,11 @@ const grpcBruTypeDefinitions = `/** @typedef {Omit<typeof bru, "grpc"> & { grpc:
  * `req` is additionally available in `tests` blocks.
  */
 function getShadowingParameters(
-    { executionGroup, isTestsBlock }: JsCodeBlock,
+    block: JsCodeBlock,
     isGrpc: boolean,
 ): TypedParameter[] {
+    const { executionGroup } = block;
+
     if (isGrpc) {
         return [
             {
@@ -75,10 +78,8 @@ function getShadowingParameters(
         ];
     }
 
-    return executionGroup == BlockRuntimeExecutionGroup.PreRequest
-        ? [{ name: "res", type: "undefined" }]
-        : executionGroup == BlockRuntimeExecutionGroup.PostResponse &&
-            !isTestsBlock
-          ? [{ name: "req", type: "undefined" }]
-          : [];
+    return getUnavailableInbuiltObjectsForHttpBlock(block).map((name) => ({
+        name,
+        type: "undefined",
+    }));
 }

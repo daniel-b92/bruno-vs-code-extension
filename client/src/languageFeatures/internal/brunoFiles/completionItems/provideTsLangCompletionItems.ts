@@ -27,6 +27,7 @@ import {
     waitForTempJsFileToBeInSync,
 } from "../../shared/temporaryJsFilesUpdates/external/waitForTempJsFileToBeInSync";
 import { mapToEnvVarNameParams } from "../shared/codeBlocksUtils/mapToGetEnvVarNameParams";
+import { getUnavailableInbuiltObjectsForHttpBlock } from "../shared/codeBlocksUtils/getUnavailableInbuiltObjectsForHttpBlock";
 import { getCodeBlockContainingPosition } from "../shared/codeBlocksUtils/getCodeBlockContainingPosition";
 
 type CompletionItemRange =
@@ -179,8 +180,20 @@ async function getResultsViaTempJsFile(
         rangeInBruFile: VsCodeRange;
     }[] = [];
 
+    // Shadowing the objects in the temp JS file changes their type, but they would still be suggested by name.
+    const unavailableObjects =
+        getUnavailableInbuiltObjectsForHttpBlock(blockInSourceFile);
+
     const result = new CompletionList<CompletionItem>(
         resultFromJsFile.items
+            .filter(
+                ({ label }) =>
+                    !unavailableObjects.some(
+                        (name) =>
+                            name ==
+                            (typeof label == "string" ? label : label.label),
+                    ),
+            )
             .map((item) =>
                 getMappedItem(
                     item,
