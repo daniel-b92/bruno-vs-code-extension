@@ -120,5 +120,23 @@ module.exports = {
             moduleFileExtensions: ["ts", "js", "json"],
             modulePathIgnorePatterns: ["<rootDir>/out/"],
         },
+        {
+            displayName: "syntaxes",
+            testEnvironment: "node",
+            rootDir: path.resolve(__dirname, "syntaxes"),
+            transform: {
+                "^.+\\.ts$": [
+                    "ts-jest",
+                    {
+                        tsconfig: path.resolve(
+                            __dirname,
+                            "syntaxes/tsconfig.json",
+                        ),
+                    },
+                ],
+            },
+            testMatch: ["<rootDir>/**/*.test.ts"],
+            moduleFileExtensions: ["ts", "js", "json"],
+        },
     ],
 };

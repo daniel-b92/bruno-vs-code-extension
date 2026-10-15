@@ -1,0 +1,11 @@
+{
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "rootDir": ".",
+        "outDir": "out",
+        "noEmit": true,
+        // The types of vscode-oniguruma refer to the WebAssembly namespace, which is not part of the configured libs.
+        "skipLibCheck": true
+    },
+    "exclude": ["node_modules", "**/*.md", "out"]
+}

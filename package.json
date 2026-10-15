@@ -44,7 +44,9 @@
         "test-server": "jest --selectProjects server",
         "test-shared": "jest --selectProjects shared",
         "test-ts-plugin": "jest --selectProjects tsPlugin",
-        "test": "jest"
+        "test": "jest",
+        "test-syntaxes": "jest --selectProjects syntaxes",
+        "generate-syntaxes": "jiti syntaxes/generation/generateGrammars.ts"
     },
     "dependencies": {
         "@zentryc5t/ts-plugin-for-bruno": "^3.0.3",
@@ -78,6 +80,8 @@
         "ts-jest": "^29.4.12",
         "ts-loader": "^9.6.2",
         "typescript": "^6.0.3",
+        "vscode-oniguruma": "^2.0.1",
+        "vscode-textmate": "^9.3.2",
         "webpack": "^5.109.2",
         "webpack-cli": "^7.2.3"
     },
