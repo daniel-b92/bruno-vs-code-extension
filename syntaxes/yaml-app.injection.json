@@ -1,7 +1,7 @@
 {
     "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
     "scopeName": "source.bruno.yaml-app.injection",
-    "comment": "Highlights the code (block scalar) within the 'app' section of Bruno yaml request files as HTML.",
+    "comment": "Highlights the code (block scalar) within the 'app' section of Bruno yaml request files as HTML. Generated via 'npm run generate-syntaxes' (see 'syntaxes/generation/'), do not edit manually.",
     "injectionSelector": "L:meta.bruno.app-section.yaml -meta.embedded",
     "patterns": [
         {

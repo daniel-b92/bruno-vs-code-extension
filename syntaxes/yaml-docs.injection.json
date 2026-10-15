@@ -1,7 +1,7 @@
 {
     "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
     "scopeName": "source.bruno.yaml-docs.injection",
-    "comment": "Highlights the content of docs (block scalars) within the docs sections of Bruno yaml files as Markdown.",
+    "comment": "Highlights the content of docs (block scalars) within the docs sections of Bruno yaml files as Markdown. Generated via 'npm run generate-syntaxes' (see 'syntaxes/generation/'), do not edit manually.",
     "injectionSelector": "L:meta.bruno.docs-section.yaml -meta.embedded",
     "patterns": [
         {

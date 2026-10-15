@@ -1,18 +1,19 @@
 import { resolve } from "path";
+import { yamlBodiesInjection } from "./yamlBodiesInjection";
 import {
-    createYamlBodiesInjectionGrammar,
-    yamlBodiesInjectionFileName,
-} from "./yamlBodiesInjection";
-import { InjectionGrammar } from "./yamlRuleBuilders";
+    yamlAppInjection,
+    yamlDocsInjection,
+    yamlScriptsInjection,
+} from "./yamlSectionContentInjections";
+import { yamlSectionsInjection } from "./yamlSectionsInjection";
+import { GeneratedGrammar, InjectionGrammar } from "./yamlRuleBuilders";
 
-export const generatedGrammars: {
-    fileName: string;
-    create: () => InjectionGrammar;
-}[] = [
-    {
-        fileName: yamlBodiesInjectionFileName,
-        create: createYamlBodiesInjectionGrammar,
-    },
+export const generatedGrammars: GeneratedGrammar[] = [
+    yamlSectionsInjection,
+    yamlScriptsInjection,
+    yamlBodiesInjection,
+    yamlDocsInjection,
+    yamlAppInjection,
 ];
 
 export function getGeneratedGrammarPath(fileName: string) {

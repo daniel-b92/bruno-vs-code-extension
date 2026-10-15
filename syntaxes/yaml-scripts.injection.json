@@ -1,7 +1,7 @@
 {
     "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
     "scopeName": "source.bruno.yaml-scripts.injection",
-    "comment": "Highlights script code (block scalars) within the scripts sections of Bruno yaml files as Javascript.",
+    "comment": "Highlights script code (block scalars) within the scripts sections of Bruno yaml files as Javascript. Generated via 'npm run generate-syntaxes' (see 'syntaxes/generation/'), do not edit manually.",
     "injectionSelector": "L:meta.bruno.scripts-section.yaml -meta.embedded",
     "patterns": [
         {
