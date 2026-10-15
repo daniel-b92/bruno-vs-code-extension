@@ -81,7 +81,7 @@
         },
         "docs-string": {
             "comment": "Docs defined directly as a string (e.g. in request files).",
-            "begin": "^(docs)[ \\t]*(:)[ \\t]+(\\|)([-+]?)[ \\t]*$",
+            "begin": "^(docs)[ \\t]*(:)[ \\t]+(\\|)([1-9]?[-+]?|[-+][1-9])[ \\t]*$",
             "while": "^(?=[ \\t]|$)",
             "beginCaptures": {
                 "1": {
@@ -124,7 +124,7 @@
         },
         "app-file-code": {
             "comment": "Only app files have a top-level 'code' field.",
-            "begin": "^(code)[ \\t]*(:)[ \\t]+(\\|)([-+]?)[ \\t]*$",
+            "begin": "^(code)[ \\t]*(:)[ \\t]+(\\|)([1-9]?[-+]?|[-+][1-9])[ \\t]*$",
             "while": "^(?=[ \\t]|$)",
             "beginCaptures": {
                 "1": {

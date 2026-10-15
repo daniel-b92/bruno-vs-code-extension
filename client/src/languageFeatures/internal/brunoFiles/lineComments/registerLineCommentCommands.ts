@@ -1,12 +1,17 @@
 import { commands, Range, Selection, TextEditor, TextEditorEdit } from "vscode";
-import { CollectionFormat, getJsCodeBlocksFromFile } from "@global_shared";
+import {
+    CollectionFormat,
+    getBlocksWithoutLineCommentsFromYamlFile,
+    getJsCodeBlocksFromFile,
+} from "@global_shared";
 import { mapToVsCodeRange, TypedCollectionItemProvider } from "@shared";
 import { getLineCommentEdits, LineCommentAction } from "./getLineCommentEdits";
 
 /**
  * For code blocks within Yaml files, the inbuilt commands for line comments use the comment syntax for Yaml (`#`), since VS Code determines
  * the language via the token at the start of the first selected line, which is always the Yaml indentation.
- * The registered commands use Javascript line comments within code blocks instead and fall back to the inbuilt commands otherwise.
+ * The registered commands use Javascript line comments within code blocks instead. Within blocks of languages without line comments (JSON, XML, HTML, Markdown), they do nothing.
+ * Otherwise, they fall back to the inbuilt commands.
  */
 export function registerLineCommentCommands(
     itemProvider: TypedCollectionItemProvider,
@@ -30,7 +35,7 @@ export function registerLineCommentCommands(
     ].map(({ command, action, fallbackCommand }) =>
         commands.registerTextEditorCommand(command, (editor, editBuilder) => {
             if (
-                !applyJsLineCommentsInCodeBlocks(
+                !handleLineCommentsInCodeBlocks(
                     itemProvider,
                     editor,
                     editBuilder,
@@ -44,9 +49,10 @@ export function registerLineCommentCommands(
 }
 
 /**
- * @returns whether the edits were applied. This is only the case if all selections are within code blocks of a Yaml file.
+ * @returns whether the command was handled. This is the case if all selections are within code blocks of a Yaml file (then, the edits are applied)
+ * or if any selection overlaps with a block without line comments (then, nothing is done).
  */
-function applyJsLineCommentsInCodeBlocks(
+function handleLineCommentsInCodeBlocks(
     itemProvider: TypedCollectionItemProvider,
     { document, selections }: TextEditor,
     editBuilder: TextEditorEdit,
@@ -83,7 +89,15 @@ function applyJsLineCommentsInCodeBlocks(
             ),
         )
     ) {
-        return false;
+        // Inserting `#` would change the content of blocks with languages that do not support line comments (e.g. a request body), so nothing is done for those.
+        return getBlocksWithoutLineCommentsFromYamlFile(document.getText())
+            .map(mapToVsCodeRange)
+            .some(({ start, end }) =>
+                selectedLineRanges.some(
+                    ({ firstLine, lastLine }) =>
+                        firstLine <= end.line && start.line <= lastLine,
+                ),
+            );
     }
 
     const handledLines = new Set<number>();
