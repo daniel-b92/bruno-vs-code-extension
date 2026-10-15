@@ -172,7 +172,13 @@
                 "scopeName": "bruno.yaml-sections.injection",
                 "injectTo": [
                     "source.yaml"
-                ]
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.html": "html",
+                    "meta.embedded.block.markdown": "markdown",
+                    "source.js": "javascript",
+                    "source.css": "css"
+                }
             },
             {
                 "path": "./syntaxes/yaml-scripts.injection.json",
@@ -193,7 +199,28 @@
                 "embeddedLanguages": {
                     "meta.embedded.block.json": "json",
                     "meta.embedded.block.xml": "xml",
+                    "meta.embedded.block.html": "html",
                     "meta.embedded.block.graphql": "bru-graphql-block"
+                }
+            },
+            {
+                "path": "./syntaxes/yaml-docs.injection.json",
+                "scopeName": "bruno.yaml-docs.injection",
+                "injectTo": [
+                    "source.yaml"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.markdown": "markdown"
+                }
+            },
+            {
+                "path": "./syntaxes/yaml-app.injection.json",
+                "scopeName": "bruno.yaml-app.injection",
+                "injectTo": [
+                    "source.yaml"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.html": "html"
                 }
             }
         ],

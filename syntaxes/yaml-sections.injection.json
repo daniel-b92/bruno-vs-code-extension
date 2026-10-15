@@ -1,7 +1,7 @@
 {
     "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
     "scopeName": "bruno.yaml-sections.injection",
-    "comment": "Marks top-level sections of Bruno yaml files that can contain embedded code blocks. The scopes added here are used as injection selectors by the more specific yaml injection grammars, so that those only apply within the expected sections and not to arbitrary yaml files.",
+    "comment": "Marks top-level sections of Bruno yaml files that can contain embedded code blocks. The scopes added here are used as injection selectors by the more specific yaml injection grammars, so that those only apply within the expected sections and not to arbitrary yaml files. Top-level block scalars that contain code are highlighted directly here.",
     "injectionSelector": "L:source.yaml",
     "patterns": [
         {
@@ -9,6 +9,18 @@
         },
         {
             "include": "#body-section"
+        },
+        {
+            "include": "#app-section"
+        },
+        {
+            "include": "#docs-string"
+        },
+        {
+            "include": "#docs-section"
+        },
+        {
+            "include": "#app-file-code"
         }
     ],
     "repository": {
@@ -32,7 +44,7 @@
         },
         "body-section": {
             "name": "meta.bruno.body-section.yaml",
-            "begin": "^(http|graphql|websocket|examples)[ \\t]*(:)(?=[ \\t]|$)",
+            "begin": "^(http|graphql|grpc|websocket|examples)[ \\t]*(:)(?=[ \\t]|$)",
             "while": "^(?=[ \\t]|#|$)",
             "beginCaptures": {
                 "1": {
@@ -45,6 +57,104 @@
             "patterns": [
                 {
                     "include": "source.yaml.1.2#block-node"
+                }
+            ]
+        },
+        "app-section": {
+            "comment": "The 'app' section of request files.",
+            "name": "meta.bruno.app-section.yaml",
+            "begin": "^(app)[ \\t]*(:)(?=[ \\t]|$)",
+            "while": "^(?=[ \\t]|#|$)",
+            "beginCaptures": {
+                "1": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "2": {
+                    "name": "punctuation.separator.map.value.yaml"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "source.yaml.1.2#block-node"
+                }
+            ]
+        },
+        "docs-string": {
+            "comment": "Docs defined directly as a string (e.g. in request files).",
+            "begin": "^(docs)[ \\t]*(:)[ \\t]+(\\|)([-+]?)[ \\t]*$",
+            "while": "^(?=[ \\t]|$)",
+            "beginCaptures": {
+                "1": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "2": {
+                    "name": "punctuation.separator.map.value.yaml"
+                },
+                "3": {
+                    "name": "keyword.control.flow.block-scalar.literal.yaml"
+                },
+                "4": {
+                    "name": "storage.modifier.chomping-indicator.yaml"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#markdown-content"
+                }
+            ]
+        },
+        "docs-section": {
+            "comment": "Docs defined as a map with the fields 'content' and 'type' (e.g. in folder and collection settings files).",
+            "name": "meta.bruno.docs-section.yaml",
+            "begin": "^(docs)[ \\t]*(:)(?=[ \\t]|$)",
+            "while": "^(?=[ \\t]|#|$)",
+            "beginCaptures": {
+                "1": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "2": {
+                    "name": "punctuation.separator.map.value.yaml"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "source.yaml.1.2#block-node"
+                }
+            ]
+        },
+        "app-file-code": {
+            "comment": "Only app files have a top-level 'code' field.",
+            "begin": "^(code)[ \\t]*(:)[ \\t]+(\\|)([-+]?)[ \\t]*$",
+            "while": "^(?=[ \\t]|$)",
+            "beginCaptures": {
+                "1": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "2": {
+                    "name": "punctuation.separator.map.value.yaml"
+                },
+                "3": {
+                    "name": "keyword.control.flow.block-scalar.literal.yaml"
+                },
+                "4": {
+                    "name": "storage.modifier.chomping-indicator.yaml"
+                }
+            },
+            "contentName": "meta.embedded.block.html",
+            "patterns": [
+                {
+                    "include": "text.html.basic"
+                }
+            ]
+        },
+        "markdown-content": {
+            "comment": "Markdown is indentation sensitive, so the indentation of the block scalar's content needs to be consumed before handing over to the markdown grammar (otherwise, everything would be an indented code block). Also used by the docs injection grammar.",
+            "begin": "\\G([ \\t]+)(?=\\S)",
+            "while": "\\G(?:\\1|[ \\t]*$)",
+            "contentName": "meta.embedded.block.markdown",
+            "patterns": [
+                {
+                    "include": "text.html.markdown"
                 }
             ]
         }

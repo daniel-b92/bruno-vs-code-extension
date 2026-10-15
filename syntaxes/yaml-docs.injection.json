@@ -1,0 +1,36 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "scopeName": "bruno.yaml-docs.injection",
+    "comment": "Highlights the content of docs (block scalars) within the docs sections of Bruno yaml files as Markdown.",
+    "injectionSelector": "L:meta.bruno.docs-section.yaml -meta.embedded",
+    "patterns": [
+        {
+            "include": "#content"
+        }
+    ],
+    "repository": {
+        "content": {
+            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(content)[ \\t]*(:)[ \\t]+(\\|)([-+]?)[ \\t]*$",
+            "while": "\\G(?:\\1\\2(?=[ \\t])|[ \\t]*$)",
+            "beginCaptures": {
+                "3": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "4": {
+                    "name": "punctuation.separator.map.value.yaml"
+                },
+                "5": {
+                    "name": "keyword.control.flow.block-scalar.literal.yaml"
+                },
+                "6": {
+                    "name": "storage.modifier.chomping-indicator.yaml"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "bruno.yaml-sections.injection#markdown-content"
+                }
+            ]
+        }
+    }
+}

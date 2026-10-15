@@ -14,10 +14,16 @@
             "include": "#sparql-body"
         },
         {
+            "include": "#html-body"
+        },
+        {
             "include": "#graphql-query"
         },
         {
             "include": "#graphql-variables"
+        },
+        {
+            "include": "#grpc-message"
         }
     ],
     "repository": {
@@ -153,6 +159,50 @@
                 }
             ]
         },
+        "html-body": {
+            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(type)[ \\t]*(:)[ \\t]+(html)[ \\t]*$",
+            "while": "\\G(?:\\1\\2|[ \\t]*$)",
+            "beginCaptures": {
+                "3": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "4": {
+                    "name": "punctuation.separator.map.value.yaml"
+                },
+                "5": {
+                    "name": "string.unquoted.plain.out.yaml"
+                }
+            },
+            "patterns": [
+                {
+                    "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(data)[ \\t]*(:)[ \\t]+(\\|)([-+]?)[ \\t]*$",
+                    "while": "\\G(?:\\1\\2(?=[ \\t])|[ \\t]*$)",
+                    "beginCaptures": {
+                        "3": {
+                            "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                        },
+                        "4": {
+                            "name": "punctuation.separator.map.value.yaml"
+                        },
+                        "5": {
+                            "name": "keyword.control.flow.block-scalar.literal.yaml"
+                        },
+                        "6": {
+                            "name": "storage.modifier.chomping-indicator.yaml"
+                        }
+                    },
+                    "contentName": "meta.embedded.block.html",
+                    "patterns": [
+                        {
+                            "include": "text.html.basic"
+                        }
+                    ]
+                },
+                {
+                    "include": "#yaml-mapping-content"
+                }
+            ]
+        },
         "graphql-query": {
             "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(query)[ \\t]*(:)[ \\t]+(\\|)([-+]?)[ \\t]*$",
             "while": "\\G(?:\\1\\2(?=[ \\t])|[ \\t]*$)",
@@ -179,6 +229,30 @@
         },
         "graphql-variables": {
             "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(variables)[ \\t]*(:)[ \\t]+(\\|)([-+]?)[ \\t]*$",
+            "while": "\\G(?:\\1\\2(?=[ \\t])|[ \\t]*$)",
+            "beginCaptures": {
+                "3": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "4": {
+                    "name": "punctuation.separator.map.value.yaml"
+                },
+                "5": {
+                    "name": "keyword.control.flow.block-scalar.literal.yaml"
+                },
+                "6": {
+                    "name": "storage.modifier.chomping-indicator.yaml"
+                }
+            },
+            "contentName": "meta.embedded.block.json",
+            "patterns": [
+                {
+                    "include": "source.json"
+                }
+            ]
+        },
+        "grpc-message": {
+            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(message)[ \\t]*(:)[ \\t]+(\\|)([-+]?)[ \\t]*$",
             "while": "\\G(?:\\1\\2(?=[ \\t])|[ \\t]*$)",
             "beginCaptures": {
                 "3": {
