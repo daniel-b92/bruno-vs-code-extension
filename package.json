@@ -161,7 +161,7 @@
             },
             {
                 "path": "./syntaxes/injection.json",
-                "scopeName": "json-block.injection",
+                "scopeName": "source.bruno.json-block.injection",
                 "injectTo": [
                     "source.bru",
                     "source.yaml"
@@ -169,7 +169,7 @@
             },
             {
                 "path": "./syntaxes/yaml-sections.injection.json",
-                "scopeName": "bruno.yaml-sections.injection",
+                "scopeName": "source.bruno.yaml-sections.injection",
                 "injectTo": [
                     "source.yaml"
                 ],
@@ -182,7 +182,7 @@
             },
             {
                 "path": "./syntaxes/yaml-scripts.injection.json",
-                "scopeName": "bruno.yaml-scripts.injection",
+                "scopeName": "source.bruno.yaml-scripts.injection",
                 "injectTo": [
                     "source.yaml"
                 ],
@@ -192,7 +192,7 @@
             },
             {
                 "path": "./syntaxes/yaml-bodies.injection.json",
-                "scopeName": "bruno.yaml-bodies.injection",
+                "scopeName": "source.bruno.yaml-bodies.injection",
                 "injectTo": [
                     "source.yaml"
                 ],
@@ -205,7 +205,7 @@
             },
             {
                 "path": "./syntaxes/yaml-docs.injection.json",
-                "scopeName": "bruno.yaml-docs.injection",
+                "scopeName": "source.bruno.yaml-docs.injection",
                 "injectTo": [
                     "source.yaml"
                 ],
@@ -215,7 +215,7 @@
             },
             {
                 "path": "./syntaxes/yaml-app.injection.json",
-                "scopeName": "bruno.yaml-app.injection",
+                "scopeName": "source.bruno.yaml-app.injection",
                 "injectTo": [
                     "source.yaml"
                 ],

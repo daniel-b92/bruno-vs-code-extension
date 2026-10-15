@@ -1,5 +1,5 @@
 {
-    "scopeName": "json-block.injection",
+    "scopeName": "source.bruno.json-block.injection",
     "injectionSelector": "L:meta.json-or-graphql-vars-body-block.bru, L:meta.bruno.body-section.yaml meta.embedded.block.json",
     "patterns": [
         {

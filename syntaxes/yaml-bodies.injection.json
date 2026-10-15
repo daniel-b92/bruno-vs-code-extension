@@ -1,6 +1,6 @@
 {
     "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-    "scopeName": "bruno.yaml-bodies.injection",
+    "scopeName": "source.bruno.yaml-bodies.injection",
     "comment": "Highlights request bodies (block scalars) within the body sections of Bruno yaml files according to their language. For bodies whose language is determined by a sibling 'type' field, the 'type' field needs to be defined before the 'data' field.",
     "injectionSelector": "L:meta.bruno.body-section.yaml -meta.embedded",
     "patterns": [
