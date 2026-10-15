@@ -1,6 +1,6 @@
 {
     "scopeName": "json-block.injection",
-    "injectionSelector": "L:meta.json-or-graphql-vars-body-block.bru",
+    "injectionSelector": "L:meta.json-or-graphql-vars-body-block.bru, L:meta.bruno.body-section.yaml meta.embedded.block.json",
     "patterns": [
         {
             "include": "#variable-reference"

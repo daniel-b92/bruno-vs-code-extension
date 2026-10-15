@@ -1,0 +1,52 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "scopeName": "bruno.yaml-sections.injection",
+    "comment": "Marks top-level sections of Bruno yaml files that can contain embedded code blocks. The scopes added here are used as injection selectors by the more specific yaml injection grammars, so that those only apply within the expected sections and not to arbitrary yaml files.",
+    "injectionSelector": "L:source.yaml",
+    "patterns": [
+        {
+            "include": "#scripts-section"
+        },
+        {
+            "include": "#body-section"
+        }
+    ],
+    "repository": {
+        "scripts-section": {
+            "name": "meta.bruno.scripts-section.yaml",
+            "begin": "^(runtime|request)[ \\t]*(:)(?=[ \\t]|$)",
+            "while": "^(?=[ \\t]|#|$)",
+            "beginCaptures": {
+                "1": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "2": {
+                    "name": "punctuation.separator.map.value.yaml"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "source.yaml.1.2#block-node"
+                }
+            ]
+        },
+        "body-section": {
+            "name": "meta.bruno.body-section.yaml",
+            "begin": "^(http|graphql|websocket|examples)[ \\t]*(:)(?=[ \\t]|$)",
+            "while": "^(?=[ \\t]|#|$)",
+            "beginCaptures": {
+                "1": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "2": {
+                    "name": "punctuation.separator.map.value.yaml"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "source.yaml.1.2#block-node"
+                }
+            ]
+        }
+    }
+}

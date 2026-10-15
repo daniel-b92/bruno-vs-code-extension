@@ -163,8 +163,38 @@
                 "path": "./syntaxes/injection.json",
                 "scopeName": "json-block.injection",
                 "injectTo": [
-                    "source.bru"
+                    "source.bru",
+                    "source.yaml"
                 ]
+            },
+            {
+                "path": "./syntaxes/yaml-sections.injection.json",
+                "scopeName": "bruno.yaml-sections.injection",
+                "injectTo": [
+                    "source.yaml"
+                ]
+            },
+            {
+                "path": "./syntaxes/yaml-scripts.injection.json",
+                "scopeName": "bruno.yaml-scripts.injection",
+                "injectTo": [
+                    "source.yaml"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.javascript": "javascript"
+                }
+            },
+            {
+                "path": "./syntaxes/yaml-bodies.injection.json",
+                "scopeName": "bruno.yaml-bodies.injection",
+                "injectTo": [
+                    "source.yaml"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.json": "json",
+                    "meta.embedded.block.xml": "xml",
+                    "meta.embedded.block.graphql": "bru-graphql-block"
+                }
             }
         ],
         "commands": [
@@ -255,6 +285,21 @@
                 "command": "bruAsCode.restartLanguageServer",
                 "title": "Restart language server",
                 "category": "Bru-as-Code"
+            },
+            {
+                "command": "bruAsCode.toggleLineComment",
+                "title": "Toggle line comment",
+                "category": "Bru-as-Code"
+            },
+            {
+                "command": "bruAsCode.addLineComment",
+                "title": "Add line comment",
+                "category": "Bru-as-Code"
+            },
+            {
+                "command": "bruAsCode.removeLineComment",
+                "title": "Remove line comment",
+                "category": "Bru-as-Code"
             }
         ],
         "views": {
@@ -335,8 +380,42 @@
                     "when": "view == brunoCollectionsView",
                     "group": "execution@5"
                 }
+            ],
+            "commandPalette": [
+                {
+                    "command": "bruAsCode.toggleLineComment",
+                    "when": "false"
+                },
+                {
+                    "command": "bruAsCode.addLineComment",
+                    "when": "false"
+                },
+                {
+                    "command": "bruAsCode.removeLineComment",
+                    "when": "false"
+                }
             ]
-        }
+        },
+        "keybindings": [
+            {
+                "command": "bruAsCode.toggleLineComment",
+                "key": "ctrl+/",
+                "mac": "cmd+/",
+                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml && bruAsCode.yamlCollectionSupport"
+            },
+            {
+                "command": "bruAsCode.addLineComment",
+                "key": "ctrl+k ctrl+c",
+                "mac": "cmd+k cmd+c",
+                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml && bruAsCode.yamlCollectionSupport"
+            },
+            {
+                "command": "bruAsCode.removeLineComment",
+                "key": "ctrl+k ctrl+u",
+                "mac": "cmd+k cmd+u",
+                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml && bruAsCode.yamlCollectionSupport"
+            }
+        ]
     },
     "allowScripts": {
         "unrs-resolver@1.12.2": true

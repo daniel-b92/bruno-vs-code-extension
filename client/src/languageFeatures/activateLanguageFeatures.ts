@@ -1,4 +1,5 @@
 import {
+    commands,
     ExtensionContext,
     TabInputText,
     TextDocument,
@@ -44,6 +45,7 @@ import { getRequestFileDocumentSelector } from "./internal/brunoFiles/shared/get
 import { getDefinitionsForAllInbuiltLibraries } from "./internal/shared/temporaryJsFilesUpdates/internal/inbuiltLibraryDefinitions/getDefinitionsForAllInbuiltLibraries";
 import { getCharacterForLineBreak } from "./internal/brunoFiles/shared/codeBlocksUtils/getCharacterForLineBreak";
 import { configureTsServerPlugin } from "./configureTsServerPlugin";
+import { registerLineCommentCommands } from "./internal/brunoFiles/lineComments/registerLineCommentCommands";
 
 export async function activateLanguageFeatures(
     context: ExtensionContext,
@@ -125,6 +127,18 @@ export async function activateLanguageFeatures(
             );
         }),
     );
+
+    if (featureToggles.yamlCollectionSupport) {
+        context.subscriptions.push(
+            ...registerLineCommentCommands(collectionItemProvider),
+        );
+        // Used for enabling the keybindings of the line comment commands.
+        await commands.executeCommand(
+            "setContext",
+            "bruAsCode.yamlCollectionSupport",
+            true,
+        );
+    }
 }
 
 async function onDidChangeActiveTextEditor(
