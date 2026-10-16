@@ -10,7 +10,7 @@ describe("Yaml syntax highlighting", () => {
         it.each(["runtime", "request"])(
             "highlights script code in the '%s' section as Javascript",
             async (section) => {
-                await expectLanguages([
+                await expectLanguagesInBrunoFile([
                     ["yaml", `${section}:`],
                     ["yaml", "  scripts:"],
                     ["yaml", "    - type: before-request"],
@@ -24,7 +24,7 @@ describe("Yaml syntax highlighting", () => {
         );
 
         it("does not let an unclosed string leak beyond the end of the block scalar", async () => {
-            await expectLanguages([
+            await expectLanguagesInBrunoFile([
                 ["yaml", "runtime:"],
                 ["yaml", "  scripts:"],
                 ["yaml", "    - type: before-request"],
@@ -38,7 +38,7 @@ describe("Yaml syntax highlighting", () => {
         });
 
         it("does not highlight 'code' fields outside of known sections", async () => {
-            await expectLanguages([
+            await expectLanguagesInBrunoFile([
                 ["yaml", "settings:"],
                 ["yaml", "  code: |"],
                 ["yaml", "    const a = 1;"],
@@ -55,7 +55,7 @@ describe("Yaml syntax highlighting", () => {
         ])(
             "highlights the data of bodies with type '%s' as %s",
             async (type, language, data) => {
-                await expectLanguages([
+                await expectLanguagesInBrunoFile([
                     ["yaml", "http:"],
                     ["yaml", "  method: POST"],
                     ["yaml", "  body:"],
@@ -71,7 +71,7 @@ describe("Yaml syntax highlighting", () => {
         it.each(["websocket", "examples"])(
             "highlights bodies in the '%s' section",
             async (section) => {
-                await expectLanguages([
+                await expectLanguagesInBrunoFile([
                     ["yaml", `${section}:`],
                     ["yaml", "  - name: example"],
                     ["yaml", "    body:"],
@@ -83,7 +83,7 @@ describe("Yaml syntax highlighting", () => {
         );
 
         it("tokenizes sibling fields of the 'type' field as yaml", async () => {
-            await expectLanguages([
+            await expectLanguagesInBrunoFile([
                 ["yaml", "examples:"],
                 ["yaml", "  - response:"],
                 ["yaml", "      body:"],
@@ -96,7 +96,7 @@ describe("Yaml syntax highlighting", () => {
         });
 
         it("does not guess the language of bodies with type 'text'", async () => {
-            await expectLanguages([
+            await expectLanguagesInBrunoFile([
                 ["yaml", "http:"],
                 ["yaml", "  body:"],
                 ["yaml", "    type: text"],
@@ -116,7 +116,7 @@ describe("Yaml syntax highlighting", () => {
         ])(
             "guesses the language %s for data starting with '%s' if the 'type' field is defined after it",
             async (language, firstLine) => {
-                await expectLanguages([
+                await expectLanguagesInBrunoFile([
                     ["yaml", "http:"],
                     ["yaml", "  body:"],
                     ["yaml", "    data: |"],
@@ -129,7 +129,7 @@ describe("Yaml syntax highlighting", () => {
         );
 
         it("highlights GraphQL queries and variables", async () => {
-            await expectLanguages([
+            await expectLanguagesInBrunoFile([
                 ["yaml", "graphql:"],
                 ["yaml", "  body:"],
                 ["yaml", "    query: |-"],
@@ -140,7 +140,7 @@ describe("Yaml syntax highlighting", () => {
         });
 
         it("highlights gRPC messages as JSON", async () => {
-            await expectLanguages([
+            await expectLanguagesInBrunoFile([
                 ["yaml", "grpc:"],
                 ["yaml", "  message: |"],
                 ["json", '    { "a": 1 }'],
@@ -154,6 +154,7 @@ describe("Yaml syntax highlighting", () => {
         it("highlights variable references in JSON bodies", async () => {
             const tokens = await tokenizeYaml(
                 [
+                    ...brunoFileHeader,
                     "http:",
                     "  body:",
                     "    type: json",
@@ -163,12 +164,14 @@ describe("Yaml syntax highlighting", () => {
             );
 
             expect(
-                tokens[4].find(({ text }) => text == "{{myVar}}")?.scopes,
+                tokens[brunoFileHeader.length + 4].find(
+                    ({ text }) => text == "{{myVar}}",
+                )?.scopes,
             ).toContain("variable.language");
         });
 
         it("does not highlight bodies outside of known sections", async () => {
-            await expectLanguages([
+            await expectLanguagesInBrunoFile([
                 ["yaml", "something:"],
                 ["yaml", "  body:"],
                 ["yaml", "    type: json"],
@@ -180,7 +183,7 @@ describe("Yaml syntax highlighting", () => {
 
     describe("docs", () => {
         it("highlights top-level docs as Markdown", async () => {
-            await expectLanguages([
+            await expectLanguagesInBrunoFile([
                 ["yaml", "docs: |"],
                 ["markdown", "  # Heading"],
                 ["markdown", "  text"],
@@ -189,7 +192,7 @@ describe("Yaml syntax highlighting", () => {
         });
 
         it("highlights the content of docs sections as Markdown", async () => {
-            await expectLanguages([
+            await expectLanguagesInBrunoFile([
                 ["yaml", "docs:"],
                 ["yaml", "  content: |-"],
                 ["markdown", "    # Heading"],
@@ -209,7 +212,7 @@ describe("Yaml syntax highlighting", () => {
         });
 
         it("highlights the code in the 'app' section of request files as HTML", async () => {
-            await expectLanguages([
+            await expectLanguagesInBrunoFile([
                 ["yaml", "app:"],
                 ["yaml", "  code: |"],
                 ["html", '    <div class="a">'],
@@ -218,14 +221,83 @@ describe("Yaml syntax highlighting", () => {
         });
     });
 
-    it("uses stub grammars that tokenize strings", async () => {
-        const tokens = await tokenizeYaml(
-            ["grpc:", "  message: |", '    "a"'].join("\n"),
+    describe("files that are not Bruno files", () => {
+        it.each([
+            ["a different key", "name: something"],
+            ["a comment", "# info:"],
+            ["an indented key", "  info:"],
+            ["a key starting with 'info'", "information:"],
+        ])(
+            "does not highlight any sections if the first line is %s",
+            async (_, firstLine) => {
+                await expectLanguages([
+                    ["yaml", firstLine],
+                    ["yaml", "docs: |"],
+                    ["yaml", "  # Heading"],
+                    ["yaml", "code: |"],
+                    ["yaml", '  <div class="a">'],
+                    ["yaml", "runtime:"],
+                    ["yaml", "  scripts:"],
+                    ["yaml", "    - type: tests"],
+                    ["yaml", "      code: |"],
+                    ["yaml", "        test();"],
+                    ["yaml", "http:"],
+                    ["yaml", "  body:"],
+                    ["yaml", "    type: json"],
+                    ["yaml", "    data: |"],
+                    ["yaml", "      {}"],
+                ]);
+            },
         );
 
-        expect(tokens[2][0].scopes).toContain(stubStringScope);
+        it("does not highlight any sections if the 'info' key is not in the first line", async () => {
+            await expectLanguages([
+                ["yaml", "name: something"],
+                ["yaml", "info:"],
+                ["yaml", "  type: app"],
+                ["yaml", "code: |"],
+                ["yaml", '  <div class="a">'],
+            ]);
+        });
+    });
+
+    it("highlights sections in collection files (starting with 'opencollection')", async () => {
+        await expectLanguages([
+            ["yaml", "opencollection: 1.0.0"],
+            ["yaml", "request:"],
+            ["yaml", "  scripts:"],
+            ["yaml", "    - type: before-request"],
+            ["yaml", "      code: |"],
+            ["javascript", "        a();"],
+            ["yaml", "docs:"],
+            ["yaml", "  content: |"],
+            ["markdown", "    # Heading"],
+        ]);
+    });
+
+    it("uses stub grammars that tokenize strings", async () => {
+        const tokens = await tokenizeYaml(
+            [...brunoFileHeader, "grpc:", "  message: |", '    "a"'].join("\n"),
+        );
+
+        expect(tokens[brunoFileHeader.length + 2][0].scopes).toContain(
+            stubStringScope,
+        );
     });
 });
+
+/** The first lines of a Bruno request file (Bruno yaml files are only highlighted if they start with one of the known keys). */
+const brunoFileHeader = ["info:", "  type: http"];
+
+/**
+ * Like {@link expectLanguages}, but prepends the {@link brunoFileHeader} to the given lines.
+ */
+async function expectLanguagesInBrunoFile(lines: [string, string][]) {
+    await expectLanguages([
+        ...brunoFileHeader.map((line): [string, string] => ["yaml", line]),
+        ...lines,
+    ]);
+}
 
 /**
  * Checks the language of the tokens in each line.

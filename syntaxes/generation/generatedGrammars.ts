@@ -1,5 +1,6 @@
 import { resolve } from "path";
 import { yamlBodiesInjection } from "./yamlBodiesInjection";
+import { yamlDocumentInjection } from "./yamlDocumentInjection";
 import {
     yamlAppInjection,
     yamlDocsInjection,
@@ -9,6 +10,7 @@ import { yamlSectionsInjection } from "./yamlSectionsInjection";
 import { GeneratedGrammar, InjectionGrammar } from "./yamlRuleBuilders";
 
 export const generatedGrammars: GeneratedGrammar[] = [
+    yamlDocumentInjection,
     yamlSectionsInjection,
     yamlScriptsInjection,
     yamlBodiesInjection,

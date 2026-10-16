@@ -1,8 +1,8 @@
 {
     "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
     "scopeName": "source.bruno.yaml-sections.injection",
-    "comment": "Marks top-level sections of Bruno yaml files that can contain embedded code blocks. The scopes added here are used as injection selectors by the more specific yaml injection grammars, so that those only apply within the expected sections and not to arbitrary yaml files. Top-level block scalars that contain code are highlighted directly here. Generated via 'npm run generate-syntaxes' (see 'syntaxes/generation/'), do not edit manually.",
-    "injectionSelector": "L:source.yaml",
+    "comment": "Marks top-level sections of Bruno yaml files that can contain embedded code blocks. The scopes added here are used as injection selectors by the more specific yaml injection grammars, so that those only apply within the expected sections. Top-level block scalars that contain code are highlighted directly here. Generated via 'npm run generate-syntaxes' (see 'syntaxes/generation/'), do not edit manually.",
+    "injectionSelector": "L:meta.bruno.document.yaml",
     "patterns": [
         {
             "include": "#scripts-section"

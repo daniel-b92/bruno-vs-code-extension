@@ -1,4 +1,5 @@
 import { embeddedLanguages } from "./embeddedLanguages";
+import { brunoDocumentScope } from "./yamlDocumentInjection";
 import {
     createInjectionGrammar,
     GeneratedGrammar,
@@ -27,8 +28,8 @@ export const yamlSectionsInjection: GeneratedGrammar = {
         createInjectionGrammar({
             scopeName: yamlSectionsInjectionScope,
             comment:
-                "Marks top-level sections of Bruno yaml files that can contain embedded code blocks. The scopes added here are used as injection selectors by the more specific yaml injection grammars, so that those only apply within the expected sections and not to arbitrary yaml files. Top-level block scalars that contain code are highlighted directly here.",
-            injectionSelector: "L:source.yaml",
+                "Marks top-level sections of Bruno yaml files that can contain embedded code blocks. The scopes added here are used as injection selectors by the more specific yaml injection grammars, so that those only apply within the expected sections. Top-level block scalars that contain code are highlighted directly here.",
+            injectionSelector: `L:${brunoDocumentScope}`,
             rules: {
                 "scripts-section": getTopLevelSectionRule(
                     ["runtime", "request"],

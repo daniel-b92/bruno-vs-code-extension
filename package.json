@@ -172,6 +172,13 @@
                 ]
             },
             {
+                "path": "./syntaxes/yaml-document.injection.json",
+                "scopeName": "source.bruno.yaml-document.injection",
+                "injectTo": [
+                    "source.yaml"
+                ]
+            },
+            {
                 "path": "./syntaxes/yaml-sections.injection.json",
                 "scopeName": "source.bruno.yaml-sections.injection",
                 "injectTo": [

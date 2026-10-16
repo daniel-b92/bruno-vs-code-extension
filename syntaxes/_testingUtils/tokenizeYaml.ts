@@ -75,6 +75,7 @@ const grammarPaths: Record<string, string> = {
 
 const injectionGrammarFileNames = [
     "injection.json",
+    "yaml-document.injection.json",
     "yaml-sections.injection.json",
     "yaml-scripts.injection.json",
     "yaml-bodies.injection.json",
