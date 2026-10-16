@@ -44,7 +44,9 @@
         "test-server": "jest --selectProjects server",
         "test-shared": "jest --selectProjects shared",
         "test-ts-plugin": "jest --selectProjects tsPlugin",
-        "test": "jest"
+        "test": "jest",
+        "test-syntaxes": "jest --selectProjects syntaxes",
+        "generate-syntaxes": "jiti syntaxes/generation/generateGrammars.ts"
     },
     "dependencies": {
         "@zentryc5t/ts-plugin-for-bruno": "^3.0.3",
@@ -78,6 +80,8 @@
         "ts-jest": "^29.4.12",
         "ts-loader": "^9.6.2",
         "typescript": "^6.0.3",
+        "vscode-oniguruma": "^2.0.1",
+        "vscode-textmate": "^9.3.2",
         "webpack": "^5.109.2",
         "webpack-cli": "^7.2.3"
     },
@@ -161,10 +165,78 @@
             },
             {
                 "path": "./syntaxes/injection.json",
-                "scopeName": "json-block.injection",
+                "scopeName": "source.bruno.json-block.injection",
                 "injectTo": [
-                    "source.bru"
+                    "source.bru",
+                    "source.yaml"
                 ]
+            },
+            {
+                "path": "./syntaxes/yaml-document.injection.json",
+                "scopeName": "source.bruno.yaml-document.injection",
+                "injectTo": [
+                    "source.yaml"
+                ]
+            },
+            {
+                "path": "./syntaxes/yaml-sections.injection.json",
+                "scopeName": "source.bruno.yaml-sections.injection",
+                "injectTo": [
+                    "source.yaml"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.html": "html",
+                    "meta.embedded.block.markdown": "markdown",
+                    "source.js": "javascript",
+                    "source.css": "css"
+                }
+            },
+            {
+                "path": "./syntaxes/yaml-scripts.injection.json",
+                "scopeName": "source.bruno.yaml-scripts.injection",
+                "injectTo": [
+                    "source.yaml"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.javascript": "javascript"
+                }
+            },
+            {
+                "path": "./syntaxes/yaml-bodies.injection.json",
+                "scopeName": "source.bruno.yaml-bodies.injection",
+                "injectTo": [
+                    "source.yaml"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.json": "json",
+                    "meta.embedded.block.xml": "xml",
+                    "meta.embedded.block.html": "html",
+                    "source.js": "javascript",
+                    "source.css": "css",
+                    "meta.embedded.block.graphql": "bru-graphql-block"
+                }
+            },
+            {
+                "path": "./syntaxes/yaml-docs.injection.json",
+                "scopeName": "source.bruno.yaml-docs.injection",
+                "injectTo": [
+                    "source.yaml"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.markdown": "markdown"
+                }
+            },
+            {
+                "path": "./syntaxes/yaml-app.injection.json",
+                "scopeName": "source.bruno.yaml-app.injection",
+                "injectTo": [
+                    "source.yaml"
+                ],
+                "embeddedLanguages": {
+                    "meta.embedded.block.html": "html",
+                    "source.js": "javascript",
+                    "source.css": "css"
+                }
             }
         ],
         "commands": [
@@ -255,6 +327,21 @@
                 "command": "bruAsCode.restartLanguageServer",
                 "title": "Restart language server",
                 "category": "Bru-as-Code"
+            },
+            {
+                "command": "bruAsCode.toggleLineComment",
+                "title": "Toggle line comment",
+                "category": "Bru-as-Code"
+            },
+            {
+                "command": "bruAsCode.addLineComment",
+                "title": "Add line comment",
+                "category": "Bru-as-Code"
+            },
+            {
+                "command": "bruAsCode.removeLineComment",
+                "title": "Remove line comment",
+                "category": "Bru-as-Code"
             }
         ],
         "views": {
@@ -335,8 +422,42 @@
                     "when": "view == brunoCollectionsView",
                     "group": "execution@5"
                 }
+            ],
+            "commandPalette": [
+                {
+                    "command": "bruAsCode.toggleLineComment",
+                    "when": "false"
+                },
+                {
+                    "command": "bruAsCode.addLineComment",
+                    "when": "false"
+                },
+                {
+                    "command": "bruAsCode.removeLineComment",
+                    "when": "false"
+                }
             ]
-        }
+        },
+        "keybindings": [
+            {
+                "command": "bruAsCode.toggleLineComment",
+                "key": "ctrl+/",
+                "mac": "cmd+/",
+                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml && bruAsCode.yamlCollectionSupport"
+            },
+            {
+                "command": "bruAsCode.addLineComment",
+                "key": "ctrl+k ctrl+c",
+                "mac": "cmd+k cmd+c",
+                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml && bruAsCode.yamlCollectionSupport"
+            },
+            {
+                "command": "bruAsCode.removeLineComment",
+                "key": "ctrl+k ctrl+u",
+                "mac": "cmd+k cmd+u",
+                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml && bruAsCode.yamlCollectionSupport"
+            }
+        ]
     },
     "allowScripts": {
         "unrs-resolver@1.12.2": true

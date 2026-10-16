@@ -1,0 +1,422 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "scopeName": "source.bruno.yaml-bodies.injection",
+    "comment": "Highlights request bodies (block scalars) within the body sections of Bruno yaml files according to their language. For bodies whose language is determined by a sibling 'type' field, the language is taken from the 'type' field if it is defined before the 'data' field. Otherwise, it is guessed from the first line of the 'data' content, since TextMate grammars cannot look ahead to following lines. Generated via 'npm run generate-syntaxes' (see 'syntaxes/generation/'), do not edit manually.",
+    "injectionSelector": "L:meta.bruno.body-section.yaml -meta.embedded -meta.bruno.typed-body.yaml",
+    "patterns": [
+        {
+            "include": "#json-body"
+        },
+        {
+            "include": "#xml-body"
+        },
+        {
+            "include": "#sparql-body"
+        },
+        {
+            "include": "#html-body"
+        },
+        {
+            "include": "#text-body"
+        },
+        {
+            "include": "#untyped-data"
+        },
+        {
+            "include": "#graphql-query"
+        },
+        {
+            "include": "#graphql-variables"
+        },
+        {
+            "include": "#grpc-message"
+        }
+    ],
+    "repository": {
+        "json-body": {
+            "name": "meta.bruno.typed-body.yaml",
+            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(type)[ \\t]*(:)[ \\t]+([\"']?)(json)\\5[ \\t]*(?:#.*)?$",
+            "while": "\\G(?:\\1\\2|[ \\t]*$)",
+            "beginCaptures": {
+                "3": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "4": {
+                    "name": "punctuation.separator.map.value.yaml"
+                },
+                "5": {
+                    "name": "string.unquoted.plain.out.yaml"
+                },
+                "6": {
+                    "name": "string.unquoted.plain.out.yaml"
+                }
+            },
+            "patterns": [
+                {
+                    "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(data)[ \\t]*(:)[ \\t]+(\\|)([1-9]?[-+]?|[-+][1-9])[ \\t]*$",
+                    "while": "\\G(?:\\1\\2(?=[ \\t])|[ \\t]*$)",
+                    "beginCaptures": {
+                        "3": {
+                            "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                        },
+                        "4": {
+                            "name": "punctuation.separator.map.value.yaml"
+                        },
+                        "5": {
+                            "name": "keyword.control.flow.block-scalar.literal.yaml"
+                        },
+                        "6": {
+                            "name": "storage.modifier.chomping-indicator.yaml"
+                        }
+                    },
+                    "contentName": "meta.embedded.block.json",
+                    "patterns": [
+                        {
+                            "include": "source.json"
+                        }
+                    ]
+                },
+                {
+                    "include": "#yaml-mapping-content"
+                }
+            ]
+        },
+        "xml-body": {
+            "name": "meta.bruno.typed-body.yaml",
+            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(type)[ \\t]*(:)[ \\t]+([\"']?)(xml)\\5[ \\t]*(?:#.*)?$",
+            "while": "\\G(?:\\1\\2|[ \\t]*$)",
+            "beginCaptures": {
+                "3": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "4": {
+                    "name": "punctuation.separator.map.value.yaml"
+                },
+                "5": {
+                    "name": "string.unquoted.plain.out.yaml"
+                },
+                "6": {
+                    "name": "string.unquoted.plain.out.yaml"
+                }
+            },
+            "patterns": [
+                {
+                    "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(data)[ \\t]*(:)[ \\t]+(\\|)([1-9]?[-+]?|[-+][1-9])[ \\t]*$",
+                    "while": "\\G(?:\\1\\2(?=[ \\t])|[ \\t]*$)",
+                    "beginCaptures": {
+                        "3": {
+                            "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                        },
+                        "4": {
+                            "name": "punctuation.separator.map.value.yaml"
+                        },
+                        "5": {
+                            "name": "keyword.control.flow.block-scalar.literal.yaml"
+                        },
+                        "6": {
+                            "name": "storage.modifier.chomping-indicator.yaml"
+                        }
+                    },
+                    "contentName": "meta.embedded.block.xml",
+                    "patterns": [
+                        {
+                            "include": "text.xml"
+                        }
+                    ]
+                },
+                {
+                    "include": "#yaml-mapping-content"
+                }
+            ]
+        },
+        "sparql-body": {
+            "name": "meta.bruno.typed-body.yaml",
+            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(type)[ \\t]*(:)[ \\t]+([\"']?)(sparql)\\5[ \\t]*(?:#.*)?$",
+            "while": "\\G(?:\\1\\2|[ \\t]*$)",
+            "beginCaptures": {
+                "3": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "4": {
+                    "name": "punctuation.separator.map.value.yaml"
+                },
+                "5": {
+                    "name": "string.unquoted.plain.out.yaml"
+                },
+                "6": {
+                    "name": "string.unquoted.plain.out.yaml"
+                }
+            },
+            "patterns": [
+                {
+                    "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(data)[ \\t]*(:)[ \\t]+(\\|)([1-9]?[-+]?|[-+][1-9])[ \\t]*$",
+                    "while": "\\G(?:\\1\\2(?=[ \\t])|[ \\t]*$)",
+                    "beginCaptures": {
+                        "3": {
+                            "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                        },
+                        "4": {
+                            "name": "punctuation.separator.map.value.yaml"
+                        },
+                        "5": {
+                            "name": "keyword.control.flow.block-scalar.literal.yaml"
+                        },
+                        "6": {
+                            "name": "storage.modifier.chomping-indicator.yaml"
+                        }
+                    },
+                    "contentName": "meta.embedded.block.sparql",
+                    "patterns": [
+                        {
+                            "include": "source.sparql"
+                        }
+                    ]
+                },
+                {
+                    "include": "#yaml-mapping-content"
+                }
+            ]
+        },
+        "html-body": {
+            "name": "meta.bruno.typed-body.yaml",
+            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(type)[ \\t]*(:)[ \\t]+([\"']?)(html)\\5[ \\t]*(?:#.*)?$",
+            "while": "\\G(?:\\1\\2|[ \\t]*$)",
+            "beginCaptures": {
+                "3": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "4": {
+                    "name": "punctuation.separator.map.value.yaml"
+                },
+                "5": {
+                    "name": "string.unquoted.plain.out.yaml"
+                },
+                "6": {
+                    "name": "string.unquoted.plain.out.yaml"
+                }
+            },
+            "patterns": [
+                {
+                    "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(data)[ \\t]*(:)[ \\t]+(\\|)([1-9]?[-+]?|[-+][1-9])[ \\t]*$",
+                    "while": "\\G(?:\\1\\2(?=[ \\t])|[ \\t]*$)",
+                    "beginCaptures": {
+                        "3": {
+                            "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                        },
+                        "4": {
+                            "name": "punctuation.separator.map.value.yaml"
+                        },
+                        "5": {
+                            "name": "keyword.control.flow.block-scalar.literal.yaml"
+                        },
+                        "6": {
+                            "name": "storage.modifier.chomping-indicator.yaml"
+                        }
+                    },
+                    "contentName": "meta.embedded.block.html",
+                    "patterns": [
+                        {
+                            "include": "text.html.basic"
+                        }
+                    ]
+                },
+                {
+                    "include": "#yaml-mapping-content"
+                }
+            ]
+        },
+        "text-body": {
+            "comment": "Bodies with type 'text' are not highlighted. This region only prevents the language of their 'data' field from being guessed by '#untyped-data'.",
+            "name": "meta.bruno.typed-body.yaml",
+            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(type)[ \\t]*(:)[ \\t]+([\"']?)(text)\\5[ \\t]*(?:#.*)?$",
+            "while": "\\G(?:\\1\\2|[ \\t]*$)",
+            "beginCaptures": {
+                "3": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "4": {
+                    "name": "punctuation.separator.map.value.yaml"
+                },
+                "5": {
+                    "name": "string.unquoted.plain.out.yaml"
+                },
+                "6": {
+                    "name": "string.unquoted.plain.out.yaml"
+                }
+            },
+            "patterns": [
+                {
+                    "include": "#yaml-mapping-content"
+                }
+            ]
+        },
+        "untyped-data": {
+            "comment": "A 'data' block scalar without a preceding 'type' field (e.g. because the 'type' field is defined after it). The language is guessed from the first non-empty line of the content.",
+            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(data)[ \\t]*(:)[ \\t]+(\\|)([1-9]?[-+]?|[-+][1-9])[ \\t]*$",
+            "while": "\\G(?:\\1\\2(?=[ \\t])|[ \\t]*$)",
+            "beginCaptures": {
+                "3": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "4": {
+                    "name": "punctuation.separator.map.value.yaml"
+                },
+                "5": {
+                    "name": "keyword.control.flow.block-scalar.literal.yaml"
+                },
+                "6": {
+                    "name": "storage.modifier.chomping-indicator.yaml"
+                }
+            },
+            "patterns": [
+                {
+                    "begin": "\\G[ \\t]*(?=[{\\[])",
+                    "while": "\\G",
+                    "contentName": "meta.embedded.block.json",
+                    "patterns": [
+                        {
+                            "include": "source.json"
+                        }
+                    ]
+                },
+                {
+                    "begin": "\\G[ \\t]*(?=(?i)<(?:!doctype[ \\t]+html|html)\\b)",
+                    "while": "\\G",
+                    "contentName": "meta.embedded.block.html",
+                    "patterns": [
+                        {
+                            "include": "text.html.basic"
+                        }
+                    ]
+                },
+                {
+                    "begin": "\\G[ \\t]*(?=<)",
+                    "while": "\\G",
+                    "contentName": "meta.embedded.block.xml",
+                    "patterns": [
+                        {
+                            "include": "text.xml"
+                        }
+                    ]
+                },
+                {
+                    "begin": "\\G[ \\t]*(?=(?i)(?:prefix|base|select|construct|describe|ask)\\b)",
+                    "while": "\\G",
+                    "contentName": "meta.embedded.block.sparql",
+                    "patterns": [
+                        {
+                            "include": "source.sparql"
+                        }
+                    ]
+                },
+                {
+                    "comment": "Any other content is not highlighted. Prevents the following lines from being used for guessing the language.",
+                    "begin": "\\G[ \\t]*(?=\\S)",
+                    "while": "\\G",
+                    "contentName": "string.unquoted.block.yaml"
+                }
+            ]
+        },
+        "graphql-query": {
+            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(query)[ \\t]*(:)[ \\t]+(\\|)([1-9]?[-+]?|[-+][1-9])[ \\t]*$",
+            "while": "\\G(?:\\1\\2(?=[ \\t])|[ \\t]*$)",
+            "beginCaptures": {
+                "3": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "4": {
+                    "name": "punctuation.separator.map.value.yaml"
+                },
+                "5": {
+                    "name": "keyword.control.flow.block-scalar.literal.yaml"
+                },
+                "6": {
+                    "name": "storage.modifier.chomping-indicator.yaml"
+                }
+            },
+            "contentName": "meta.embedded.block.graphql",
+            "patterns": [
+                {
+                    "include": "source.graphql.bru"
+                }
+            ]
+        },
+        "graphql-variables": {
+            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(variables)[ \\t]*(:)[ \\t]+(\\|)([1-9]?[-+]?|[-+][1-9])[ \\t]*$",
+            "while": "\\G(?:\\1\\2(?=[ \\t])|[ \\t]*$)",
+            "beginCaptures": {
+                "3": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "4": {
+                    "name": "punctuation.separator.map.value.yaml"
+                },
+                "5": {
+                    "name": "keyword.control.flow.block-scalar.literal.yaml"
+                },
+                "6": {
+                    "name": "storage.modifier.chomping-indicator.yaml"
+                }
+            },
+            "contentName": "meta.embedded.block.json",
+            "patterns": [
+                {
+                    "include": "source.json"
+                }
+            ]
+        },
+        "grpc-message": {
+            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(message)[ \\t]*(:)[ \\t]+(\\|)([1-9]?[-+]?|[-+][1-9])[ \\t]*$",
+            "while": "\\G(?:\\1\\2(?=[ \\t])|[ \\t]*$)",
+            "beginCaptures": {
+                "3": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "4": {
+                    "name": "punctuation.separator.map.value.yaml"
+                },
+                "5": {
+                    "name": "keyword.control.flow.block-scalar.literal.yaml"
+                },
+                "6": {
+                    "name": "storage.modifier.chomping-indicator.yaml"
+                }
+            },
+            "contentName": "meta.embedded.block.json",
+            "patterns": [
+                {
+                    "include": "source.json"
+                }
+            ]
+        },
+        "yaml-mapping-content": {
+            "comment": "The same patterns that the built-in yaml grammar uses within block mappings, for tokenizing the sibling fields of a body's 'type' field.",
+            "patterns": [
+                {
+                    "include": "source.yaml.1.2#block-map-key-double"
+                },
+                {
+                    "include": "source.yaml#block-map-key-single"
+                },
+                {
+                    "include": "source.yaml.1.2#block-map-key-plain"
+                },
+                {
+                    "include": "source.yaml.1.2#block-map-key-explicit"
+                },
+                {
+                    "include": "source.yaml.1.2#block-map-value"
+                },
+                {
+                    "include": "source.yaml.1.2#flow-mapping"
+                },
+                {
+                    "include": "source.yaml.1.2#flow-sequence"
+                },
+                {
+                    "include": "source.yaml.1.2#presentation-detail"
+                }
+            ]
+        }
+    }
+}

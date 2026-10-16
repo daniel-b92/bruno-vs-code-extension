@@ -1,0 +1,37 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "scopeName": "source.bruno.yaml-app.injection",
+    "comment": "Highlights the code (block scalar) within the 'app' section of Bruno yaml request files as HTML. Generated via 'npm run generate-syntaxes' (see 'syntaxes/generation/'), do not edit manually.",
+    "injectionSelector": "L:meta.bruno.app-section.yaml -meta.embedded",
+    "patterns": [
+        {
+            "include": "#code"
+        }
+    ],
+    "repository": {
+        "code": {
+            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(code)[ \\t]*(:)[ \\t]+(\\|)([1-9]?[-+]?|[-+][1-9])[ \\t]*$",
+            "while": "\\G(?:\\1\\2(?=[ \\t])|[ \\t]*$)",
+            "beginCaptures": {
+                "3": {
+                    "name": "meta.map.key.yaml string.unquoted.plain.yaml entity.name.tag.yaml"
+                },
+                "4": {
+                    "name": "punctuation.separator.map.value.yaml"
+                },
+                "5": {
+                    "name": "keyword.control.flow.block-scalar.literal.yaml"
+                },
+                "6": {
+                    "name": "storage.modifier.chomping-indicator.yaml"
+                }
+            },
+            "contentName": "meta.embedded.block.html",
+            "patterns": [
+                {
+                    "include": "text.html.basic"
+                }
+            ]
+        }
+    }
+}

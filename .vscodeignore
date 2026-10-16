@@ -9,6 +9,8 @@ client/out
 **/src/**/*.ts
 **/*.test.ts
 tsPlugin
+syntaxes/**/*.ts
+syntaxes/_testingUtils/
 
 **/tsconfig.json
 samples/

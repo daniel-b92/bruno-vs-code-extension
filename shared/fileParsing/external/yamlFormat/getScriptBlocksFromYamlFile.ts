@@ -1,11 +1,6 @@
-import {
-    BrunoFileType,
-    ItemType,
-    Position,
-    Range,
-    TextDocumentHelper,
-} from "../../..";
+import { BrunoFileType, ItemType, Range, TextDocumentHelper } from "../../..";
 import { ParsedScript } from "../../internal/yamlFormat/interfaces";
+import { getBlockScalarContentRange } from "./getBlockScalarContentRange";
 import { FileInfoType, ScriptType } from "./constants/sharedConstants";
 import { parseCollectionSettingsFile } from "./parseCollectionSettingsFile";
 import { parseFolderSettingsFile } from "./parseFolderSettingsFile";
@@ -74,25 +69,15 @@ function mapToBlock(
         return undefined;
     }
 
-    const firstContentLine = code.valueRange.start.line + 1;
-    const { end } = code.valueRange;
-    // The range of a block scalar usually ends at the start of the line following the content.
-    const lastContentLine = end.character == 0 ? end.line - 1 : end.line;
+    const contentRange = getBlockScalarContentRange(
+        code.valueRange.start.line,
+        code.valueRange.end,
+        docHelper,
+    );
 
-    if (
-        lastContentLine < firstContentLine ||
-        lastContentLine >= docHelper.getLineCount()
-    ) {
+    if (!contentRange) {
         return undefined;
     }
-
-    const contentRange = new Range(
-        new Position(firstContentLine, 0),
-        new Position(
-            lastContentLine,
-            docHelper.getLineByIndex(lastContentLine).length,
-        ),
-    );
 
     return {
         name: `scripts[${index}]:${type.value}`,
