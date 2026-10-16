@@ -17,10 +17,12 @@ const commentToken = "//";
 /**
  * Determines the edits for adding or removing Javascript line comments for the given lines, similar to the inbuilt VS Code commands.
  * Lines that only contain whitespace are ignored, unless all given lines only contain whitespace.
+ * In that case, the comments are inserted at least at the given indentation of the surrounding block, since less indented lines would end a Yaml block scalar.
  */
 export function getLineCommentEdits(
     lines: string[],
     action: LineCommentAction,
+    blockIndentation: number,
 ): LineCommentEdit[] {
     const nonBlankLines = lines
         .map((text, lineIndex) => ({
@@ -37,7 +39,7 @@ export function getLineCommentEdits(
                   lineIndex,
                   character: text.length,
                   deleteCount: 0,
-                  insertText: `${commentToken} `,
+                  insertText: `${" ".repeat(Math.max(0, blockIndentation - text.length))}${commentToken} `,
               }));
     }
 

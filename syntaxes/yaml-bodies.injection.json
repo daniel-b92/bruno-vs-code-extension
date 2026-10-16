@@ -35,7 +35,7 @@
     "repository": {
         "json-body": {
             "name": "meta.bruno.typed-body.yaml",
-            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(type)[ \\t]*(:)[ \\t]+(json)[ \\t]*$",
+            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(type)[ \\t]*(:)[ \\t]+([\"']?)(json)\\5[ \\t]*(?:#.*)?$",
             "while": "\\G(?:\\1\\2|[ \\t]*$)",
             "beginCaptures": {
                 "3": {
@@ -45,6 +45,9 @@
                     "name": "punctuation.separator.map.value.yaml"
                 },
                 "5": {
+                    "name": "string.unquoted.plain.out.yaml"
+                },
+                "6": {
                     "name": "string.unquoted.plain.out.yaml"
                 }
             },
@@ -80,7 +83,7 @@
         },
         "xml-body": {
             "name": "meta.bruno.typed-body.yaml",
-            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(type)[ \\t]*(:)[ \\t]+(xml)[ \\t]*$",
+            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(type)[ \\t]*(:)[ \\t]+([\"']?)(xml)\\5[ \\t]*(?:#.*)?$",
             "while": "\\G(?:\\1\\2|[ \\t]*$)",
             "beginCaptures": {
                 "3": {
@@ -90,6 +93,9 @@
                     "name": "punctuation.separator.map.value.yaml"
                 },
                 "5": {
+                    "name": "string.unquoted.plain.out.yaml"
+                },
+                "6": {
                     "name": "string.unquoted.plain.out.yaml"
                 }
             },
@@ -125,7 +131,7 @@
         },
         "sparql-body": {
             "name": "meta.bruno.typed-body.yaml",
-            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(type)[ \\t]*(:)[ \\t]+(sparql)[ \\t]*$",
+            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(type)[ \\t]*(:)[ \\t]+([\"']?)(sparql)\\5[ \\t]*(?:#.*)?$",
             "while": "\\G(?:\\1\\2|[ \\t]*$)",
             "beginCaptures": {
                 "3": {
@@ -135,6 +141,9 @@
                     "name": "punctuation.separator.map.value.yaml"
                 },
                 "5": {
+                    "name": "string.unquoted.plain.out.yaml"
+                },
+                "6": {
                     "name": "string.unquoted.plain.out.yaml"
                 }
             },
@@ -170,7 +179,7 @@
         },
         "html-body": {
             "name": "meta.bruno.typed-body.yaml",
-            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(type)[ \\t]*(:)[ \\t]+(html)[ \\t]*$",
+            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(type)[ \\t]*(:)[ \\t]+([\"']?)(html)\\5[ \\t]*(?:#.*)?$",
             "while": "\\G(?:\\1\\2|[ \\t]*$)",
             "beginCaptures": {
                 "3": {
@@ -180,6 +189,9 @@
                     "name": "punctuation.separator.map.value.yaml"
                 },
                 "5": {
+                    "name": "string.unquoted.plain.out.yaml"
+                },
+                "6": {
                     "name": "string.unquoted.plain.out.yaml"
                 }
             },
@@ -216,7 +228,7 @@
         "text-body": {
             "comment": "Bodies with type 'text' are not highlighted. This region only prevents the language of their 'data' field from being guessed by '#untyped-data'.",
             "name": "meta.bruno.typed-body.yaml",
-            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(type)[ \\t]*(:)[ \\t]+(text)[ \\t]*$",
+            "begin": "(?=((?<=[-?:]) )?+)\\G([ \\t]*+)(type)[ \\t]*(:)[ \\t]+([\"']?)(text)\\5[ \\t]*(?:#.*)?$",
             "while": "\\G(?:\\1\\2|[ \\t]*$)",
             "beginCaptures": {
                 "3": {
@@ -226,6 +238,9 @@
                     "name": "punctuation.separator.map.value.yaml"
                 },
                 "5": {
+                    "name": "string.unquoted.plain.out.yaml"
+                },
+                "6": {
                     "name": "string.unquoted.plain.out.yaml"
                 }
             },

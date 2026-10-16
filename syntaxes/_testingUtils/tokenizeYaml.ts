@@ -8,6 +8,7 @@ import {
     Registry,
     StateStack,
 } from "vscode-textmate";
+import { getContributedGrammars } from "./contributedGrammars";
 import { loadWASM, OnigScanner, OnigString } from "vscode-oniguruma";
 
 export interface Token {
@@ -60,7 +61,6 @@ export const stubStringScope = "string.quoted.stub";
 
 const embeddedScopePrefix = "meta.embedded.block.";
 
-const syntaxesFolder = resolve(__dirname, "..");
 const yamlGrammarsFolder = resolve(__dirname, "grammars");
 
 const grammarPaths: Record<string, string> = {
@@ -70,18 +70,7 @@ const grammarPaths: Record<string, string> = {
         yamlGrammarsFolder,
         "yaml-embedded.tmLanguage.json",
     ),
-    "source.graphql.bru": resolve(syntaxesFolder, "graphql.json"),
 };
-
-const injectionGrammarFileNames = [
-    "injection.json",
-    "yaml-document.injection.json",
-    "yaml-sections.injection.json",
-    "yaml-scripts.injection.json",
-    "yaml-bodies.injection.json",
-    "yaml-docs.injection.json",
-    "yaml-app.injection.json",
-];
 
 const stubbedGrammarScopes = [
     "source.js",
@@ -96,14 +85,14 @@ let registry: Registry | undefined;
 
 function getRegistry() {
     if (!registry) {
-        const injectionScopes = injectionGrammarFileNames.map((fileName) => {
-            const path = resolve(syntaxesFolder, fileName);
-            const { scopeName } = JSON.parse(readFileSync(path, "utf8")) as {
-                scopeName: string;
-            };
+        // The grammars contributed by the extension are loaded from its `package.json`, so that the tests cover what is actually shipped.
+        const contributedGrammars = getContributedGrammars();
+        contributedGrammars.forEach(({ scopeName, path }) => {
             grammarPaths[scopeName] = path;
-            return scopeName;
         });
+        const injectionScopes = contributedGrammars
+            .filter(({ injectTo }) => injectTo?.includes("source.yaml"))
+            .map(({ scopeName }) => scopeName);
 
         registry = new Registry({
             onigLib: loadOnigLib(),

@@ -105,6 +105,19 @@ describe("Yaml syntax highlighting", () => {
             ]);
         });
 
+        it.each(['"text"', "'text'", "text # comment"])(
+            "recognizes the body type %s",
+            async (typeLine) => {
+                await expectLanguagesInBrunoFile([
+                    ["yaml", "http:"],
+                    ["yaml", "  body:"],
+                    ["yaml", `    type: ${typeLine}`],
+                    ["yaml", "    data: |"],
+                    ["yaml", "      { not json }"],
+                ]);
+            },
+        );
+
         it.each([
             ["json", "{"],
             ["json", "["],

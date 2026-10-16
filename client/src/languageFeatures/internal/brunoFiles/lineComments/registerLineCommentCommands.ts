@@ -1,4 +1,11 @@
-import { commands, Range, Selection, TextEditor, TextEditorEdit } from "vscode";
+import {
+    commands,
+    Range,
+    Selection,
+    TextDocument,
+    TextEditor,
+    TextEditorEdit,
+} from "vscode";
 import {
     CollectionFormat,
     getBlocksWithoutLineCommentsFromYamlFile,
@@ -116,6 +123,7 @@ function handleLineCommentsInCodeBlocks(
         } of getLineCommentEdits(
             lineNumbers.map((line) => document.lineAt(line).text),
             action,
+            getBlockIndentation(document, codeBlockRanges, firstLine),
         )) {
             const line = lineNumbers[lineIndex];
 
@@ -129,6 +137,32 @@ function handleLineCommentsInCodeBlocks(
     }
 
     return true;
+}
+
+/**
+ * @returns the minimal indentation of the non-blank lines of the code block that contains the given line.
+ */
+function getBlockIndentation(
+    document: TextDocument,
+    codeBlockRanges: Range[],
+    line: number,
+) {
+    const block = codeBlockRanges.find(
+        ({ start, end }) => start.line <= line && line <= end.line,
+    );
+
+    if (!block) {
+        return 0;
+    }
+
+    const indentations = Array.from(
+        { length: block.end.line - block.start.line + 1 },
+        (_, index) => document.lineAt(block.start.line + index).text,
+    )
+        .filter((text) => text.trim().length > 0)
+        .map((text) => text.length - text.trimStart().length);
+
+    return indentations.length > 0 ? Math.min(...indentations) : 0;
 }
 
 function getSelectedLineRange({ start, end }: Selection) {

@@ -109,6 +109,7 @@ export function getEmbeddedLanguageBlockScalarRule(
 
 /**
  * A region that starts with the line `<key>: <value>` and continues over the sibling lines (i.e. lines with the same indentation).
+ * The value may be quoted and followed by a comment.
  */
 export function getSiblingFieldsRegionRule(
     key: string,
@@ -117,15 +118,19 @@ export function getSiblingFieldsRegionRule(
 ): GrammarRule {
     const { comment, name, patterns } = rule;
     const { prefix, firstCaptureGroup } = nestedKey;
+    const quoteGroup = firstCaptureGroup + 2;
 
     return {
         ...(comment ? { comment } : {}),
         ...(name ? { name } : {}),
-        begin: `${prefix}(${key})[ \\t]*(:)[ \\t]+(${value})[ \\t]*$`,
+        begin: `${prefix}(${key})[ \\t]*(:)[ \\t]+(["']?)(${value})\\${quoteGroup}[ \\t]*(?:#.*)?$`,
         while: "\\G(?:\\1\\2|[ \\t]*$)",
         beginCaptures: {
             ...getMapKeyCaptures(firstCaptureGroup),
-            [firstCaptureGroup + 2]: {
+            [quoteGroup]: {
+                name: "string.unquoted.plain.out.yaml",
+            },
+            [quoteGroup + 1]: {
                 name: "string.unquoted.plain.out.yaml",
             },
         },

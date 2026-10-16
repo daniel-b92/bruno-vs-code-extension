@@ -7,7 +7,8 @@ import {
     Scalar,
     visit,
 } from "yaml";
-import { Position, Range } from "../../..";
+import { Position, Range, TextDocumentHelper } from "../../..";
+import { getBlockScalarContentRange } from "./getBlockScalarContentRange";
 
 const typesWithoutLineComments = ["json", "xml", "html"];
 const jsonKeys = ["variables", "message"];
@@ -19,6 +20,7 @@ const jsonKeys = ["variables", "message"];
 export function getBlocksWithoutLineCommentsFromYamlFile(
     fileContent: string,
 ): Range[] {
+    const docHelper = new TextDocumentHelper(fileContent);
     const lineCounter = new LineCounter();
     const document = parseDocument(fileContent, { lineCounter });
 
@@ -59,7 +61,7 @@ export function getBlocksWithoutLineCommentsFromYamlFile(
                 const range = getContentRange(
                     pair.value.range,
                     lineCounter,
-                    fileContent,
+                    docHelper,
                 );
                 if (range) {
                     ranges.push(range);
@@ -81,24 +83,17 @@ function isBlockScalar(node: unknown): node is Scalar {
 function getContentRange(
     range: [number, number, number] | null | undefined,
     lineCounter: LineCounter,
-    fileContent: string,
+    docHelper: TextDocumentHelper,
 ) {
     if (!range) {
         return undefined;
     }
 
-    const headerLine = lineCounter.linePos(range[0]).line - 1;
     const end = lineCounter.linePos(range[1]);
-    // The range of a block scalar usually ends at the start of the line following the content.
-    const lastLine = end.col == 1 ? end.line - 2 : end.line - 1;
-    const firstLine = headerLine + 1;
 
-    if (lastLine < firstLine) {
-        return undefined;
-    }
-
-    return new Range(
-        new Position(firstLine, 0),
-        new Position(lastLine, fileContent.split("\n")[lastLine].length),
+    return getBlockScalarContentRange(
+        lineCounter.linePos(range[0]).line - 1,
+        new Position(end.line - 1, end.col - 1),
+        docHelper,
     );
 }

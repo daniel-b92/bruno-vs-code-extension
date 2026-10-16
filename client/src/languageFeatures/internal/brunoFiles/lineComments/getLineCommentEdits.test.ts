@@ -12,7 +12,7 @@ describe("getLineCommentEdits", () => {
         expect(
             applyEdits(
                 lines,
-                getLineCommentEdits(lines, LineCommentAction.Toggle),
+                getLineCommentEdits(lines, LineCommentAction.Toggle, 0),
             ),
         ).toEqual(["    // if (a) {", "    //   // b();", "", "    // }"]);
     });
@@ -23,7 +23,7 @@ describe("getLineCommentEdits", () => {
         expect(
             applyEdits(
                 lines,
-                getLineCommentEdits(lines, LineCommentAction.Toggle),
+                getLineCommentEdits(lines, LineCommentAction.Toggle, 0),
             ),
         ).toEqual(["    if (a) {", "", "      b();", "    }"]);
     });
@@ -34,7 +34,7 @@ describe("getLineCommentEdits", () => {
         expect(
             applyEdits(
                 lines,
-                getLineCommentEdits(lines, LineCommentAction.Add),
+                getLineCommentEdits(lines, LineCommentAction.Add, 0),
             ),
         ).toEqual(["  // // a();", "  // b();"]);
     });
@@ -45,7 +45,7 @@ describe("getLineCommentEdits", () => {
         expect(
             applyEdits(
                 lines,
-                getLineCommentEdits(lines, LineCommentAction.Remove),
+                getLineCommentEdits(lines, LineCommentAction.Remove, 0),
             ),
         ).toEqual(["  a();", "  b();"]);
     });
@@ -56,12 +56,23 @@ describe("getLineCommentEdits", () => {
         expect(
             applyEdits(
                 lines,
-                getLineCommentEdits(lines, LineCommentAction.Toggle),
+                getLineCommentEdits(lines, LineCommentAction.Toggle, 0),
             ),
         ).toEqual(["    // "]);
-        expect(getLineCommentEdits(lines, LineCommentAction.Remove)).toEqual(
+        expect(getLineCommentEdits(lines, LineCommentAction.Remove, 0)).toEqual(
             [],
         );
+    });
+
+    it("pads empty and short whitespace-only lines to the indentation of the surrounding block", () => {
+        const lines = ["", "  ", "        "];
+
+        expect(
+            applyEdits(
+                lines,
+                getLineCommentEdits(lines, LineCommentAction.Toggle, 8),
+            ),
+        ).toEqual(["        // ", "        // ", "        // "]);
     });
 });
 
