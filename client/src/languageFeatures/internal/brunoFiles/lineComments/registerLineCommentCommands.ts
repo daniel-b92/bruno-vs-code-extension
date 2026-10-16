@@ -49,7 +49,14 @@ export function registerLineCommentCommands(
                     action,
                 )
             ) {
-                commands.executeCommand(fallbackCommand);
+                void Promise.resolve(
+                    commands.executeCommand(fallbackCommand),
+                ).catch((error) =>
+                    console.error(
+                        `Fallback command '${fallbackCommand}' failed`,
+                        error,
+                    ),
+                );
             }
         }),
     );

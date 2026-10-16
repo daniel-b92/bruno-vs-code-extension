@@ -211,6 +211,8 @@
                     "meta.embedded.block.json": "json",
                     "meta.embedded.block.xml": "xml",
                     "meta.embedded.block.html": "html",
+                    "source.js": "javascript",
+                    "source.css": "css",
                     "meta.embedded.block.graphql": "bru-graphql-block"
                 }
             },
@@ -231,7 +233,9 @@
                     "source.yaml"
                 ],
                 "embeddedLanguages": {
-                    "meta.embedded.block.html": "html"
+                    "meta.embedded.block.html": "html",
+                    "source.js": "javascript",
+                    "source.css": "css"
                 }
             }
         ],
