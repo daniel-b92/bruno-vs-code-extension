@@ -30,6 +30,7 @@ import { checkAuthHasRequiredFields } from "./diagnostics/checks/requestFiles/ch
 import { checkAuthHasValidValues } from "./diagnostics/shared/checkAuthHasValidValues";
 import { checkTagsAreUnique } from "./diagnostics/checks/requestFiles/checkTagsAreUnique";
 import { getDiagnosticsForDisabledItems } from "./diagnostics/shared/getDiagnosticsForDisabledItems";
+import { checkFileStartsWithExpectedSection } from "./diagnostics/shared/checkFileStartsWithExpectedSection";
 import { checkResponseValidationExists } from "./diagnostics/checks/requestFiles/checkResponseValidationExists";
 
 const BRUNO_DIAGNOSTICS_SOURCE = "Bruno";
@@ -50,10 +51,15 @@ export class YamlFormatDiagnosticsProvider {
             fullDocumentRange: docHelper.getTextRange(),
         };
 
-        return this.getDiagnosticsWithoutSource(
-            brunoFileType,
-            commonParams,
-        ).map((diagnostic) => ({
+        const highlightingDiagnostic =
+            brunoFileType == BrunoFileType.EnvironmentFile
+                ? undefined
+                : checkFileStartsWithExpectedSection(commonParams);
+
+        return [
+            ...this.getDiagnosticsWithoutSource(brunoFileType, commonParams),
+            ...(highlightingDiagnostic ? [highlightingDiagnostic] : []),
+        ].map((diagnostic) => ({
             ...diagnostic,
             // Diagnostics without a specific source stem from Bruno specific checks.
             source: diagnostic.source ?? BRUNO_DIAGNOSTICS_SOURCE,

@@ -101,3 +101,9 @@ export enum SettingsFileRequestSectionProperty {
     Actions = "actions",
     Scripts = "scripts",
 }
+
+/**
+ * The top-level keys that files with embedded code (request, folder, app and collection settings files) are expected to start with.
+ * The syntax highlighting for the embedded code is only active if the first line of the file defines one of these keys.
+ */
+export const yamlFileFirstLineKeys = ["info", "opencollection"];
