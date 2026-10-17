@@ -24,8 +24,11 @@ import {
     FileChangeType,
     getConfiguredEnvironmentNameAsync,
     getItemType,
-    isBrunoFileType,
+    NonBrunoSpecificItemType,
     isInFolderForEnvironmentFiles,
+    doesFileNameMatchFolderSettingsFileName,
+    doesFileNameMatchCollectionSettingsFile,
+    isBrunoFileType,
     Position,
     TextDocumentHelper,
     getFileExtensionForFormat,
@@ -35,7 +38,7 @@ import { handleCompletionRequest as handleCompletionRequestForBruFile } from "./
 import { Disposable } from "vscode-languageserver/node";
 import { BrunoLangDiagnosticsProvider } from "./bruFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { handleHoverRequest as handleHoverRequestForBruFile } from "./bruFiles/hover/handleHoverRequest";
-import { basename, extname } from "path";
+import { extname } from "path";
 import { handleCompletionRequest as handleCompletionRequestForJsFile } from "./jsFiles/completionItems/handleCompletionRequest";
 import { handleHoverRequest as handleHoverRequestForJsFile } from "./jsFiles/hover/handleHoverRequest";
 import { defaultFeatureToggles, FeatureToggles } from "@global_shared";
@@ -45,12 +48,13 @@ import { YamlFormatDiagnosticsProvider } from "./yamlFiles/yamlFormatDiagnostics
 
 let helpersProvider: HelpersProvider | undefined = undefined;
 let brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider;
-const yamlDiagnosticsProvider = new YamlFormatDiagnosticsProvider();
+let yamlDiagnosticsProvider: YamlFormatDiagnosticsProvider;
 const disposables: Disposable[] = [];
 enum FileTypeByExtension {
     Bru = ".bru",
     Js = ".js",
     Yml = ".yml",
+    Other = "other",
 }
 
 // Create a connection for the server, using Node's IPC as a transport.
@@ -114,6 +118,10 @@ disposables.push(
         );
 
         disposables.push(brunoLangDiagnosticsProvider);
+
+        yamlDiagnosticsProvider = new YamlFormatDiagnosticsProvider(
+            itemProvider,
+        );
 
         itemProvider.subscribeToUpdates((changes) => {
             if (
@@ -214,7 +222,7 @@ disposables.push(
         const items =
             (type == FileTypeByExtension.Bru
                 ? await getDiagnosticsForBruFile(filePath, content)
-                : getDiagnosticsForYamlFile(filePath, content)) ?? [];
+                : await getDiagnosticsForYamlFile(filePath, content)) ?? [];
 
         return {
             ...defaultResponse,
@@ -349,44 +357,61 @@ async function getDiagnosticsForBruFile(filePath: string, text: string) {
     );
 }
 
-function getDiagnosticsForYamlFile(filePath: string, text: string) {
-    if (
-        // ToDo: Once yaml files are stored in the file system cache, use the itemType for identifying environment files.
-        isInFolderForEnvironmentFiles(filePath)
-    ) {
-        return yamlDiagnosticsProvider.getDiagnosticsForYamlFile(
-            filePath,
-            text,
-            BrunoFileType.EnvironmentFile,
-        );
-    }
-    if (
-        // ToDo: Once yaml files are stored in the file system cache, use the itemType for identifying collection settings files.
-        basename(filePath) == "opencollection.yml"
-    ) {
-        return yamlDiagnosticsProvider.getDiagnosticsForYamlFile(
-            filePath,
-            text,
-            BrunoFileType.CollectionSettingsFile,
-        );
-    }
-    if (
-        // ToDo: Once yaml files are stored in the file system cache, use the itemType for identifying folder settings files.
-        basename(filePath) == "folder.yml"
-    ) {
-        return yamlDiagnosticsProvider.getDiagnosticsForYamlFile(
-            filePath,
-            text,
-            BrunoFileType.FolderSettingsFile,
-        );
+async function getDiagnosticsForYamlFile(filePath: string, text: string) {
+    const fileType = helpersProvider
+        ? await getYamlFileTypeIfExists(
+              helpersProvider.getItemProvider(),
+              filePath,
+          )
+        : undefined;
+
+    if (!fileType || !yamlDiagnosticsProvider) {
+        // Not a Bruno file within a registered yaml collection (e.g. a CI config).
+        return undefined;
     }
 
     return yamlDiagnosticsProvider.getDiagnosticsForYamlFile(
         filePath,
         text,
-        // ToDo: Once yaml files are stored in the file system cache, use the itemType for identifying app and request files.
-        isYamlAppFile(text) ? BrunoFileType.AppFile : BrunoFileType.RequestFile,
+        fileType == BrunoFileType.RequestFile ||
+            fileType == BrunoFileType.AppFile
+            ? // The cache only reflects the file content on disk, so use the current editor content to tell app files and request files apart.
+              isYamlAppFile(text)
+                ? BrunoFileType.AppFile
+                : BrunoFileType.RequestFile
+            : fileType,
     );
+}
+
+async function getYamlFileTypeIfExists(
+    itemProvider: TypedCollectionItemProvider,
+    filePath: string,
+) {
+    const collection = itemProvider.getAncestorCollectionForPath(filePath);
+
+    if (!collection || collection.getFormat() != CollectionFormat.Yaml) {
+        return undefined;
+    }
+
+    const itemType = await getItemType(collection, filePath);
+
+    if (itemType && isBrunoFileType(itemType)) {
+        return itemType;
+    }
+
+    // Includes files that are still being written (e.g. with a missing or invalid `info.type`), so that the user is informed that they are not recognized.
+    return itemType == NonBrunoSpecificItemType.OtherFileType &&
+        !isInFolderForEnvironmentFiles(filePath) &&
+        !doesFileNameMatchFolderSettingsFileName(
+            filePath,
+            CollectionFormat.Yaml,
+        ) &&
+        !doesFileNameMatchCollectionSettingsFile(
+            filePath,
+            CollectionFormat.Yaml,
+        )
+        ? NonBrunoSpecificItemType.OtherFileType
+        : undefined;
 }
 
 async function getBrunoFileTypeIfExists(
@@ -414,6 +439,9 @@ function getFilePathAndType(uri: string) {
                 ? FileTypeByExtension.Bru
                 : extname(filePath) == ".js"
                   ? FileTypeByExtension.Js
-                  : FileTypeByExtension.Yml,
+                  : extname(filePath) ==
+                      getFileExtensionForFormat(CollectionFormat.Yaml)
+                    ? FileTypeByExtension.Yml
+                    : FileTypeByExtension.Other,
     };
 }

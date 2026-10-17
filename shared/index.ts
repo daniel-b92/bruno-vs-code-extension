@@ -43,14 +43,14 @@ export * from "./fileParsing/external/bruFormat/util/getBlockStartPatternByName"
 export * from "./fileParsing/external/shared/codeBlocks/getInbuiltFunctionAndFirstParameterIfStringLiteral";
 export * from "./fileParsing/external/shared/parseSequenceFromFile";
 export * from "./fileParsing/external/shared/getSequenceValueRangeFromFileContent";
-export * from "./fileParsing/external/shared/parseInfoFromYamlRequestOrFolderFile";
+export * from "./fileParsing/external/shared/parseInfoFromYamlFileWithSequence";
 export * from "./fileParsing/external/bruFormat/util/getContentRangeForArrayOrDictionaryBlock";
 export * from "./fileParsing/external/bruFormat/util/getNonBlockSpecificBlockStartPattern";
 export * from "./fileParsing/external/bruFormat/parseBlockFromFile";
 export * from "./fileParsing/external/shared/getSequenceForFolder";
 export * from "./fileParsing/external/shared/getFolderSettingsFilePath";
-export * from "./fileParsing/external/shared/getSequencesForRequests";
-export * from "./fileParsing/external/shared/getMaxSequenceForRequests";
+export * from "./fileParsing/external/shared/getSequencesForRequestsAndAppFiles";
+export * from "./fileParsing/external/shared/getMaxSequenceForRequestsAndAppFiles";
 
 // file parsing - yaml format
 export * from "./fileParsing/external/yamlFormat/interfaces";
@@ -84,6 +84,7 @@ export * from "./baseModel/files/brunoAppFile";
 export * from "./baseModel/typeguards/isCollectionItemWithSequence";
 export * from "./baseModel/typeguards/isRequestFile";
 export * from "./baseModel/typeguards/isCollectionDirectory";
+export * from "./baseModel/typeguards/isRequestFileOrCollectionDirectory";
 export * from "./baseModel/typeguards/isEnvironmentFile";
 
 // logging

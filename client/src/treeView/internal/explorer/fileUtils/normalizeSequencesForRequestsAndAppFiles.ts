@@ -1,12 +1,12 @@
-import { getSequencesForRequests } from "@global_shared";
+import { getSequencesForRequestsAndAppFiles } from "@global_shared";
 import { TypedCollectionItemProvider } from "../../../../shared";
 import { replaceSequenceForFile } from "./replaceSequenceForFile";
 
-export async function normalizeSequencesForRequestFiles(
+export async function normalizeSequencesForRequestsAndAppFiles(
     itemProvider: TypedCollectionItemProvider,
     parentDirectoryPath: string,
 ) {
-    const initialSequences = await getSequencesForRequests(
+    const initialSequences = await getSequencesForRequestsAndAppFiles(
         itemProvider,
         parentDirectoryPath,
     );

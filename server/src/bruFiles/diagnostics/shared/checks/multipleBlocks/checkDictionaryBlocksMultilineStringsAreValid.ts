@@ -40,8 +40,7 @@ export function checkDictionaryBlocksMultilineStringsAreValid(
 
     return toCheck.flatMap(({ data, stringRange, type }) => {
         const commonCheckResults = runCommonChecks(stringRange, data) as (
-            | DiagnosticWithCode
-            | undefined
+            DiagnosticWithCode | undefined
         )[];
 
         if (isError(data)) {

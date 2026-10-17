@@ -1,6 +1,7 @@
 import { describe, it, expect } from "@jest/globals";
 import { join } from "path";
 import {
+    BrunoAppFile,
     BrunoEnvironmentFile,
     BrunoFileType,
     BrunoRequestFile,
@@ -222,6 +223,36 @@ describe("getCollectionItemForFile", () => {
             expect(result.getSequence()).toBeUndefined();
             expect(result.getSettingsFilePath()).toBeUndefined();
         });
+    });
+
+    it("caches the sequence of a bru app file", async () => {
+        const filePath = await createFileInTemporaryDirectory(
+            "app.bru",
+            `meta {\n  name: app\n  type: app\n  seq: 4\n}\n`,
+        );
+
+        const result = (await getCollectionItemForFile(
+            filePath,
+            BrunoFileType.AppFile,
+            CollectionFormat.Bru,
+        )) as BrunoAppFile;
+
+        expect(result.getSequence()).toBe(4);
+    });
+
+    it("caches the sequence of a yaml app file", async () => {
+        const filePath = await createFileInTemporaryDirectory(
+            "app.yml",
+            `info:\n  name: app\n  type: app\n  seq: 4\ncode: foo\n`,
+        );
+
+        const result = (await getCollectionItemForFile(
+            filePath,
+            BrunoFileType.AppFile,
+            CollectionFormat.Yaml,
+        )) as BrunoAppFile;
+
+        expect(result.getSequence()).toBe(4);
     });
 
     async function createFileInTemporaryDirectory(

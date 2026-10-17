@@ -3,7 +3,7 @@ import { promisify } from "util";
 import { readdir } from "fs";
 import { CollectionItemProvider, getSequenceForFile } from "../../..";
 
-export async function getSequencesForRequests<T>(
+export async function getSequencesForRequestsAndAppFiles<T>(
     itemProvider: CollectionItemProvider<T>,
     directory: string,
 ): Promise<{ path: string; sequence: number }[]> {

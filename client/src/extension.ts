@@ -34,7 +34,7 @@ import {
     FileChangedEvent,
     CollectionItem,
     isRequestFile,
-    isCollectionItemWithSequence,
+    isRequestFileOrCollectionDirectory,
     CollectionItemProvider,
     getPathsToIgnoreForCollections,
     AdditionalCollectionSimpleDataProvider,
@@ -160,7 +160,7 @@ function createLanguagClient(context: ExtensionContext) {
             { scheme: "file", language: "bru" },
             { scheme: "file", language: "javascript" },
             ...(featureToggles.yamlCollectionSupport
-                ? [{ scheme: "file", language: "yaml" }]
+                ? [{ scheme: "file", language: "yaml", pattern: "**/*.yml" }]
                 : []),
         ],
         initializationOptions: { featureToggles },
@@ -276,7 +276,7 @@ function getAdditionalCollectionDataProvider(
                 item.getPath(),
                 item.isFile(),
                 isCollectionRoot,
-                isCollectionItemWithSequence(item)
+                isRequestFileOrCollectionDirectory(item)
                     ? item.getSequence()
                     : undefined,
                 isRequestFile(item) ? item.getTags() : undefined,

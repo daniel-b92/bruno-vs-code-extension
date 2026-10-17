@@ -30,8 +30,7 @@ export function checkDictionaryBlockArrayFieldsStructure(
 function getDiagnostic(
     filePath: string,
     invalidFieldsSortedByPosition: (
-        | DictionaryBlockSimpleField
-        | DictionaryBlockArrayField
+        DictionaryBlockSimpleField | DictionaryBlockArrayField
     )[],
 ): DiagnosticWithCode {
     return {
@@ -80,8 +79,7 @@ function getInvalidFieldsSortedByPosition(
 
 function getRange(
     invalidFieldsSortedByPosition: (
-        | DictionaryBlockSimpleField
-        | DictionaryBlockArrayField
+        DictionaryBlockSimpleField | DictionaryBlockArrayField
     )[],
 ) {
     return new Range(

@@ -1,11 +1,8 @@
 import {
     DictionaryBlockSimpleField,
-    normalizePath,
     Block,
     MetaBlockKey,
     getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
-    isCollectionDirectory,
-    CollectionDirectory,
     TextDocumentHelper,
 } from "@global_shared";
 import { basename, dirname } from "path";
@@ -14,6 +11,7 @@ import { RelevantWithinMetaBlockDiagnosticCode } from "../../shared/diagnosticCo
 import { doesDictionaryBlockFieldHaveValidIntegerValue } from "../../shared/util/doesDictionaryBlockFieldHaveValidIntegerValue";
 import { getRangeForSequenceValue } from "../../shared/util/getRangeForSequenceValue";
 import { TypedCollectionItemProvider } from "../../../../shared";
+import { getSequencesForOtherFoldersWithSameParent } from "../../../../shared/diagnostics/relatedFiles/getSequencesForOtherFoldersWithSameParent";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 
@@ -116,64 +114,6 @@ function getDiagnostic(
             })
             .filter((val) => val != undefined),
     };
-}
-
-function getSequencesForOtherFoldersWithSameParent(
-    itemProvider: TypedCollectionItemProvider,
-    folderSettingsFile: string,
-): {
-    folderSettingsFile: string;
-    folderPath: string;
-    sequence: number;
-}[] {
-    return getOtherFoldersWithValidSequenceAndSameParentFolder(
-        itemProvider,
-        folderSettingsFile,
-    ).map(({ folderSettingsPath, directory }) => ({
-        folderSettingsFile: folderSettingsPath,
-        folderPath: directory.getPath(),
-        sequence: directory.getSequence() as number,
-    }));
-}
-
-function getOtherFoldersWithValidSequenceAndSameParentFolder(
-    itemProvider: TypedCollectionItemProvider,
-    referenceFolderSettings: string,
-): {
-    directory: CollectionDirectory;
-    folderSettingsPath: string;
-}[] {
-    const collection = itemProvider.getAncestorCollectionForPath(
-        referenceFolderSettings,
-    );
-
-    if (!collection) {
-        console.warn(
-            `Could not determine collection for folder settings path '${referenceFolderSettings}'`,
-        );
-        return [];
-    }
-
-    return collection
-        .getAllStoredDataForCollection()
-        .map(({ item }) => item)
-        .filter(isCollectionDirectory)
-        .filter((item) => {
-            const itemPath = item.getPath();
-
-            return (
-                normalizePath(dirname(itemPath)) ==
-                    normalizePath(dirname(dirname(referenceFolderSettings))) &&
-                item.getSequence() != undefined &&
-                normalizePath(itemPath) !=
-                    normalizePath(dirname(referenceFolderSettings))
-            );
-        })
-        .map((item) => ({
-            directory: item,
-            // Only if there is a folder settings file, the folder can have a valid sequence.
-            folderSettingsPath: item.getSettingsFilePath() as string,
-        }));
 }
 
 function getDiagnosticCode() {

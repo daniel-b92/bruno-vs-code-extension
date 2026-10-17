@@ -5,8 +5,8 @@ import {
     CollectionDirectory,
     CollectionItemWithSequence,
     CollectionItem,
-    isCollectionItemWithSequence,
     isRequestFile,
+    isRequestFileOrCollectionDirectory,
 } from "@global_shared";
 import { TypedCollection } from "@shared";
 
@@ -66,7 +66,7 @@ export class TestRunnerDataHelper {
                 (item) =>
                     item.isFile() &&
                     item.getPath().startsWith(normalizedDirectoryPath) &&
-                    isCollectionItemWithSequence(item) &&
+                    isRequestFile(item) &&
                     item.getSequence() != undefined,
             ) as CollectionItemWithSequence[];
     }
@@ -74,7 +74,7 @@ export class TestRunnerDataHelper {
     public dispose() {}
 
     private getVsCodeTestItemSortText(item: CollectionItem) {
-        return isCollectionItemWithSequence(item) && item.getSequence()
+        return isRequestFileOrCollectionDirectory(item) && item.getSequence()
             ? (item instanceof CollectionDirectory ? "" : "b").concat(
                   new Array((item.getSequence() as number) + 1).join("a"),
               )

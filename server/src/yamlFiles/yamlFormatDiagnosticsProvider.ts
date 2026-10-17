@@ -1,6 +1,7 @@
 import { getRequestTypeSections } from "./diagnostics/shared/getRequestTypeSections";
 import {
     BrunoFileType,
+    NonBrunoSpecificItemType,
     ParsedCollectionSettingsFile,
     ParsedFolderSettingsFile,
     ParsedRequestFile,
@@ -15,6 +16,12 @@ import {
 } from "@global_shared";
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import { CommonDiagnosticParams } from "./interfaces";
+import { TypedCollectionItemProvider } from "../shared/interfaces";
+import { checkExtendsFieldIsValid } from "../shared/diagnostics/environmentFiles/checkExtendsFieldIsValid";
+import { checkExtendsFieldDoesNotCreateInheritanceLoop } from "../shared/diagnostics/environmentFiles/checkExtendsFieldDoesNotCreateInheritanceLoop";
+import { checkSequenceDoesNotClashWithAppFiles } from "./diagnostics/checks/requestFiles/checkSequenceDoesNotClashWithAppFiles";
+import { checkSequenceIsUniqueWithinFolder } from "./diagnostics/checks/requestFiles/checkSequenceIsUniqueWithinFolder";
+import { checkFolderSequenceIsUnique } from "./diagnostics/checks/folderSettingsFiles/checkFolderSequenceIsUnique";
 import { checkVariableDefinitionsAreValid } from "./diagnostics/checks/environmentFiles/checkVariableDefinitionsAreValid";
 import { checkSettingsFileRequestSection } from "./diagnostics/shared/checkSettingsFileRequestSection";
 import { checkAuthIsNotInherited } from "./diagnostics/checks/collectionSettingsFiles/checkAuthIsNotInherited";
@@ -31,18 +38,19 @@ import { checkAuthHasValidValues } from "./diagnostics/shared/checkAuthHasValidV
 import { checkTagsAreUnique } from "./diagnostics/checks/requestFiles/checkTagsAreUnique";
 import { getDiagnosticsForDisabledItems } from "./diagnostics/shared/getDiagnosticsForDisabledItems";
 import { checkFileStartsWithExpectedSection } from "./diagnostics/shared/checkFileStartsWithExpectedSection";
+import { getDiagnosticsForUnrecognizedFile } from "./diagnostics/checks/unrecognizedFiles/getDiagnosticsForUnrecognizedFile";
 import { checkResponseValidationExists } from "./diagnostics/checks/requestFiles/checkResponseValidationExists";
 
 const BRUNO_DIAGNOSTICS_SOURCE = "Bruno";
 const YAML_SYNTAX_DIAGNOSTICS_SOURCE = "Bruno (YAML syntax)";
 
 export class YamlFormatDiagnosticsProvider {
-    constructor() {}
+    constructor(private itemProvider: TypedCollectionItemProvider) {}
 
     public getDiagnosticsForYamlFile(
         filePath: string,
         content: string,
-        brunoFileType: BrunoFileType,
+        brunoFileType: BrunoFileType | NonBrunoSpecificItemType.OtherFileType,
     ) {
         const docHelper = new TextDocumentHelper(content);
         const commonParams: CommonDiagnosticParams = {
@@ -52,7 +60,8 @@ export class YamlFormatDiagnosticsProvider {
         };
 
         const highlightingDiagnostic =
-            brunoFileType == BrunoFileType.EnvironmentFile
+            brunoFileType == BrunoFileType.EnvironmentFile ||
+            brunoFileType == NonBrunoSpecificItemType.OtherFileType
                 ? undefined
                 : checkFileStartsWithExpectedSection(commonParams);
 
@@ -67,7 +76,7 @@ export class YamlFormatDiagnosticsProvider {
     }
 
     private getDiagnosticsWithoutSource(
-        brunoFileType: BrunoFileType,
+        brunoFileType: BrunoFileType | NonBrunoSpecificItemType.OtherFileType,
         commonParams: CommonDiagnosticParams,
     ): Diagnostic[] {
         switch (brunoFileType) {
@@ -83,6 +92,8 @@ export class YamlFormatDiagnosticsProvider {
                 return this.getDiagnosticsForRequestFile(commonParams);
             case BrunoFileType.AppFile:
                 return this.getDiagnosticsForAppFile(commonParams);
+            case NonBrunoSpecificItemType.OtherFileType:
+                return getDiagnosticsForUnrecognizedFile(commonParams);
             default:
                 return [];
         }
@@ -104,10 +115,33 @@ export class YamlFormatDiagnosticsProvider {
             disabled: [],
         };
 
-        // ToDo: Once yaml env files are stored in the cache, add validations for inheritance
-        // (env name exists, is not own environment, no circular dependencies,...)
+        const { extends: extendsField } = parsingResult.properties;
+        const collection = this.itemProvider.getAncestorCollectionForPath(
+            commonParams.filePath,
+        );
+        // The 'extends' field is a parsed yaml map entry, so it cannot be defined multiple times.
+        const extendsDiagnostics =
+            extendsField && extendsField.value.trim().length > 0
+                ? [
+                      checkExtendsFieldIsValid(
+                          commonParams.filePath,
+                          extendsField,
+                          collection
+                              ?.getEnvironments()
+                              .map(({ environmentName }) => environmentName),
+                      ),
+                      collection
+                          ? checkExtendsFieldDoesNotCreateInheritanceLoop(
+                                commonParams.filePath,
+                                extendsField,
+                                collection,
+                            )
+                          : undefined,
+                  ].filter((d) => d != undefined)
+                : [];
 
         return parsingDiagnostics.concat(
+            extendsDiagnostics,
             checkVariableDefinitionsAreValid(enabled, commonParams).filter(
                 (d) => d != undefined,
             ),
@@ -131,6 +165,19 @@ export class YamlFormatDiagnosticsProvider {
 
         const otherDiagnostics = [
             ...checkEntriesAreUnique(properties, commonParams),
+            checkSequenceIsUniqueWithinFolder(
+                properties.info?.properties.sequence,
+                commonParams.docHelper,
+                commonParams.filePath,
+                this.itemProvider,
+            ),
+            checkSequenceDoesNotClashWithAppFiles({
+                sequence: properties.info?.properties.sequence,
+                docHelper: commonParams.docHelper,
+                filePath: commonParams.filePath,
+                fileType: BrunoFileType.RequestFile,
+                itemProvider: this.itemProvider,
+            }),
             ...checkUrlMatchesParams(properties.http, commonParams),
             ...checkRequestTypeMatchesSections(properties, commonParams),
             ...checkTagsAreUnique(properties.info, commonParams),
@@ -207,9 +254,19 @@ export class YamlFormatDiagnosticsProvider {
 
     public getDiagnosticsForAppFile({
         docHelper,
+        filePath,
     }: CommonDiagnosticParams): Diagnostic[] {
-        // ToDo: Once the yaml collection items are cached, check that the sequence is unique within the parent folder.
-        return mapParsingErrorsToDiagnostics(parseAppFile(docHelper).errors);
+        const { errors, result } = parseAppFile(docHelper);
+
+        return mapParsingErrorsToDiagnostics(errors).concat(
+            checkSequenceDoesNotClashWithAppFiles({
+                sequence: result?.properties.info?.properties.sequence,
+                docHelper,
+                filePath,
+                fileType: BrunoFileType.AppFile,
+                itemProvider: this.itemProvider,
+            }) ?? [],
+        );
     }
 
     public getDiagnosticsForFolderSettingsFile(
@@ -224,8 +281,13 @@ export class YamlFormatDiagnosticsProvider {
         if (!parsingResult) {
             return parsingDiagnostics;
         }
-        // ToDo: Once the yaml collection items are cached, check that the sequence is unique within the parent folder.
         const otherDiagnostics = [
+            checkFolderSequenceIsUnique(
+                parsingResult.properties.info?.properties.sequence,
+                commonParams.docHelper,
+                commonParams.filePath,
+                this.itemProvider,
+            ),
             ...checkSettingsFileRequestSection(
                 parsingResult.properties.request,
                 commonParams,

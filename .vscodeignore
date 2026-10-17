@@ -6,6 +6,7 @@
 # shared code is bundled into client/dist and server/dist via webpack
 shared/**
 client/out
+server/out
 **/src/**/*.ts
 **/*.test.ts
 tsPlugin

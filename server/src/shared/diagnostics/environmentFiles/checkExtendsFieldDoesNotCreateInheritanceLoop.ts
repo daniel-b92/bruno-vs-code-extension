@@ -1,24 +1,17 @@
-import { basename } from "path";
-import {
-    EnvironmentFileExtendsField,
-    getFileExtensionForFormat,
-    CollectionFormat,
-} from "@global_shared";
+import { basename, extname } from "path";
 import { DiagnosticSeverity } from "vscode-languageserver";
-import { TypedCollection } from "../../../shared";
-import { DiagnosticWithCode } from "../interfaces";
-import { RelevantWithinEnvironmentFileDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinEnvironmentFileDiagnosticCodeEnum";
+import { TypedCollection } from "../../interfaces";
+import { ExtendsFieldWithValueRange } from "./checkExtendsFieldIsValid";
+import { DiagnosticWithCode } from "../../../bruFiles/diagnostics/interfaces";
+import { RelevantWithinEnvironmentFileDiagnosticCode } from "../../../bruFiles/diagnostics/shared/diagnosticCodes/relevantWithinEnvironmentFileDiagnosticCodeEnum";
 
 export function checkExtendsFieldDoesNotCreateInheritanceLoop(
     filePath: string,
-    extendsField: EnvironmentFileExtendsField,
+    extendsField: ExtendsFieldWithValueRange,
     collection: TypedCollection,
 ): DiagnosticWithCode | undefined {
     const { value, valueRange } = extendsField;
-    const ownEnvironmentName = basename(
-        filePath,
-        getFileExtensionForFormat(CollectionFormat.Bru),
-    );
+    const ownEnvironmentName = basename(filePath, extname(filePath));
 
     if (value.trim().length == 0 || value == ownEnvironmentName) {
         return undefined;

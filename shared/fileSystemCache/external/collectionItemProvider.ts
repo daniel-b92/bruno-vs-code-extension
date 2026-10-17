@@ -426,6 +426,7 @@ export class CollectionItemProvider<T> {
             }
         } else if (
             modifiedItem.getItemType() == BrunoFileType.EnvironmentFile ||
+            modifiedItem.getItemType() == BrunoFileType.AppFile ||
             (isCollectionItemWithSequence(modifiedItem) &&
                 modifiedItem.getItemType() == BrunoFileType.RequestFile)
         ) {

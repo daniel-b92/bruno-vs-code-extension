@@ -7,6 +7,10 @@
 - Make renaming of a collection root folder in the collection explorer consistent with the `yaml` format: For `bru` collections, the `name` in `bruno.json` (and the `name` in the `meta` block of `collection.bru`, if present) is now adjusted too.
 - Fix handling of nested collection root files: A collection root file (`bruno.json` or `opencollection.yml`) is now ignored if another collection root file exists in the same directory or in one of its subdirectories (a warning is shown in that case).
 - Fix an issue that caused quick fixes and refactorings in code blocks of `.bru` files to insert code outside of the code blocks (e.g. an import at the top of the file or a function at the end of the file), which corrupted the file. These quick fixes and refactorings are not offered anymore.
+- Show a warning in `.bru` request files and app files if their sequence clashes with the sequence of an app file in the same folder.
+- Take app files into account when suggesting a sequence in `meta` blocks. For app files, the suggested sequence was previously based on sibling folders.
+- Take app files into account for sequences in the collection explorer: When creating, moving, pasting or deleting request files or app files, the sequences of both are now adjusted together, so that they do not clash.
+- Fix an issue that could cause the test explorer to miss updates when several files (e.g. an environment file and a request file) changed at the same time.
 
 ## [1.3.3] (2026-10-10)
 

@@ -22,7 +22,7 @@ import {
     FileChangeType,
     CollectionDirectory,
     CollectionItemWithSequence,
-    isCollectionItemWithSequence,
+    isRequestFileOrCollectionDirectory,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
@@ -234,7 +234,7 @@ export async function activateRunner(
         } = maybeData;
 
         if (
-            !isCollectionItemWithSequence(item) ||
+            !isRequestFileOrCollectionDirectory(item) ||
             !isRelevantForTestTree(testRunnerDataHelper, collection, item)
         ) {
             showMessageForNonRunnableItem();
@@ -297,8 +297,8 @@ function handleTestTreeUpdates(
                 updateType,
             } = update;
 
-            if (!isCollectionItemWithSequence(item)) {
-                return;
+            if (!isRequestFileOrCollectionDirectory(item)) {
+                continue;
             }
 
             if (

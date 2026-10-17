@@ -5,8 +5,17 @@
             "@global_shared": ["../shared/index.ts"],
             "@global_shared/*": ["../shared/*"]
         },
+        "rootDir": ".",
+        "outDir": "out",
         "allowJs": true,
-        "types": ["jest"]
+        "types": ["node", "jest"]
     },
-    "exclude": ["node_modules", "dist", "jest.config.js", "webpack.config.js"]
+    "exclude": [
+        "node_modules",
+        "dist",
+        "out",
+        "jest.config.js",
+        "webpack.config.js"
+    ],
+    "references": [{ "path": "../shared" }]
 }

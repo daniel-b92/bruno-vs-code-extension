@@ -17,3 +17,14 @@
 
 - Parsing utilities that are specific to one file format live in that format's folder under `shared/fileParsing/external/` (`bruFormat/` or `yamlFormat/`).
 - Parsing utilities that handle both formats (e.g. by dispatching on the file extension or the collection format) live in `shared/fileParsing/external/shared/`, not in a format-specific folder. When a utility in a format-specific folder starts supporting both formats, move it there.
+
+# Changelog
+
+- After finishing a change (and when reviewing a branch), check whether `CHANGELOG.md` needs an entry, and if so, add it under `## [Unreleased]` without being asked. Mention in the reply that the changelog was updated (or why no entry was needed).
+- Only document changes in behavior that users of the published extension can notice (e.g. new or changed diagnostics, completions, hovers, syntax highlighting, collection explorer or test explorer behavior, fixed bugs). Refactorings, renames, test changes and changes to tooling or documentation need no entry.
+- Only document behavior that is reachable in the published extension. Feature toggles (see `shared/featureToggles/featureToggles.ts`) are always disabled there, since they can only be enabled in development mode via `client/src/getFeatureToggles.ts`. Changes that only take effect while a toggle is enabled (currently e.g. everything that only affects `yaml` collections, because `yamlCollectionSupport` is disabled) need no entry. Changes to shared code that also affect the `bru` format do need one.
+- Follow the style of the existing entries: one bullet per change, starting with a verb (e.g. "Fix an issue that caused ...", "Add support for ...", "Show a warning ..."), with file names, block names and similar in backticks. Put fixes and small improvements under `### Fixes / Maintenance` and larger new functionality under `### Features`. Extend an existing entry in `[Unreleased]` instead of adding a second one for the same change.
+
+# Type checking
+
+- Type-check with `npm run check-types`. Don't use `tsc -p <project>` or `tsc --noEmit` for `client` or `server`: both reference `shared` as a TypeScript project and would read its possibly outdated build output from `shared/out` instead of its sources.

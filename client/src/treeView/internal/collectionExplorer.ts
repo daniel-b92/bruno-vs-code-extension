@@ -31,7 +31,7 @@ import { replaceItemName } from "./explorer/fileUtils/replaceItemName";
 import { replaceNameInBrunoJson } from "./explorer/fileUtils/replaceNameInBrunoJson";
 import { getPathForDuplicatedItem } from "./explorer/getPathForDuplicatedItem";
 import { renameFileOrFolder } from "./explorer/renameFileOrFolder";
-import { normalizeSequencesForRequestFiles } from "./explorer/fileUtils/normalizeSequencesForRequestFiles";
+import { normalizeSequencesForRequestsAndAppFiles } from "./explorer/fileUtils/normalizeSequencesForRequestsAndAppFiles";
 import { normalizeSequencesForFolders } from "./explorer/folderUtils/normalizeSequencesForFolders";
 import { updateSettingsFileOfDuplicatedFolder } from "./explorer/folderUtils/updateSettingsFileOfDuplicatedFolder";
 import { moveFolderIntoTargetFolder } from "./explorer/folderUtils/moveFolderIntoTargetFolder";
@@ -686,10 +686,11 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
                 // ToDo: Replace usage of item provider in called utility functions with passing collection as a parameter directly.
 
                 if (
-                    itemType == BrunoFileType.RequestFile &&
+                    (itemType == BrunoFileType.RequestFile ||
+                        itemType == BrunoFileType.AppFile) &&
                     (await checkIfPathExistsAsync(dirname(path)))
                 ) {
-                    await normalizeSequencesForRequestFiles(
+                    await normalizeSequencesForRequestsAndAppFiles(
                         this.itemProvider,
                         dirname(path),
                     );

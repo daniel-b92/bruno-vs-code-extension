@@ -21,7 +21,11 @@ export class BrunoLangDiagnosticsProvider {
     ) {
         switch (brunoFileType) {
             case BrunoFileType.AppFile:
-                return determineDiagnosticsForAppFile(filePath, content);
+                return determineDiagnosticsForAppFile(
+                    filePath,
+                    content,
+                    this.itemProvider,
+                );
             case BrunoFileType.RequestFile:
                 return determineDiagnosticsForRequestFile(
                     filePath,
