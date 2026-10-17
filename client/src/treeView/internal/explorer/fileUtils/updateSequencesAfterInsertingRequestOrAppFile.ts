@@ -1,14 +1,14 @@
 import {
-    getMaxSequenceForRequests,
-    getSequencesForRequests,
+    getMaxSequenceForRequestsAndAppFiles,
+    getSequencesForRequestsAndAppFiles,
     normalizePath,
 } from "@global_shared";
 import { TypedCollectionItemProvider } from "@shared";
-import { normalizeSequencesForRequestFiles } from "./normalizeSequencesForRequestFiles";
+import { normalizeSequencesForRequestsAndAppFiles } from "./normalizeSequencesForRequestsAndAppFiles";
 import { replaceSequenceForFile } from "./replaceSequenceForFile";
 import { FileInsertionPosition } from "./interfaces";
 
-export async function updateSequencesAfterInsertingRequestFile(
+export async function updateSequencesAfterInsertingRequestOrAppFile(
     itemProvider: TypedCollectionItemProvider,
     targetPosition: FileInsertionPosition,
     newPath: string,
@@ -23,11 +23,11 @@ export async function updateSequencesAfterInsertingRequestFile(
         typeof targetPosition == "object"
             ? targetPosition.item.getSequence()
                 ? (targetPosition.item.getSequence() as number) + 1
-                : ((await getMaxSequenceForRequests(
+                : ((await getMaxSequenceForRequestsAndAppFiles(
                       itemProvider,
                       targetDirectory,
                   )) ?? 0) + 1
-            : ((await getMaxSequenceForRequests(
+            : ((await getMaxSequenceForRequestsAndAppFiles(
                   itemProvider,
                   targetDirectory,
               )) ?? 0) + 1;
@@ -36,7 +36,10 @@ export async function updateSequencesAfterInsertingRequestFile(
 
     if (typeof targetPosition == "object") {
         const filtered = (
-            await getSequencesForRequests(itemProvider, targetDirectory)
+            await getSequencesForRequestsAndAppFiles(
+                itemProvider,
+                targetDirectory,
+            )
         ).filter(
             ({ path, sequence }) => path != newPath && sequence >= newSequence,
         );
@@ -46,12 +49,18 @@ export async function updateSequencesAfterInsertingRequestFile(
         }
     }
 
-    await normalizeSequencesForRequestFiles(itemProvider, targetDirectory);
+    await normalizeSequencesForRequestsAndAppFiles(
+        itemProvider,
+        targetDirectory,
+    );
 
     if (
         otherDirectory != undefined &&
         normalizePath(targetDirectory) != normalizePath(otherDirectory)
     ) {
-        await normalizeSequencesForRequestFiles(itemProvider, otherDirectory);
+        await normalizeSequencesForRequestsAndAppFiles(
+            itemProvider,
+            otherDirectory,
+        );
     }
 }

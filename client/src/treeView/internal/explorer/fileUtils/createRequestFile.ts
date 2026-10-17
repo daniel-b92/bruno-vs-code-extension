@@ -5,7 +5,7 @@ import {
     RequestType,
     RequestFileBlockName,
     MethodBlockBodies,
-    getMaxSequenceForRequests,
+    getMaxSequenceForRequestsAndAppFiles,
     AuthTypes,
     getPossibleMethodBlocksForRequestType,
     FileInfoType,
@@ -120,7 +120,7 @@ export async function createRequestFile(
         }
 
         const requestSequence =
-            ((await getMaxSequenceForRequests(
+            ((await getMaxSequenceForRequestsAndAppFiles(
                 itemProvider,
                 parentFolderPath,
             )) ?? 0) + 1;

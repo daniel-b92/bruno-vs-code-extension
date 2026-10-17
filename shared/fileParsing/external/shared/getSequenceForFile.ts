@@ -9,8 +9,12 @@ export async function getSequenceForFile<T>(
     collection: ReadyOnlyCollection<T>,
     filePath: string,
 ) {
+    const itemType = await getItemType(collection, filePath);
+
+    // Request files and app files share the same sequence range within a folder.
     if (
-        (await getItemType(collection, filePath)) != BrunoFileType.RequestFile
+        itemType != BrunoFileType.RequestFile &&
+        itemType != BrunoFileType.AppFile
     ) {
         return undefined;
     }

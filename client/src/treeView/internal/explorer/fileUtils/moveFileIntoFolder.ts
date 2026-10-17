@@ -2,7 +2,7 @@ import { BrunoFileType, ItemType } from "@global_shared";
 import { TypedCollectionItemProvider, BrunoTreeItem } from "@shared";
 import { renameFileOrFolder } from "../renameFileOrFolder";
 import { showErrorMessageForFailedDragAndDrop } from "../showErrorMessageForFailedDragAndDrop";
-import { updateSequencesAfterInsertingRequestFile } from "./updateSequencesAfterInsertingRequestFile";
+import { updateSequencesAfterInsertingRequestOrAppFile } from "./updateSequencesAfterInsertingRequestOrAppFile";
 import { dirname } from "path";
 import { RequestFileInsertionPositionType } from "./interfaces";
 
@@ -23,7 +23,7 @@ export async function moveFileIntoFolder(
 
     if (fileType == BrunoFileType.RequestFile) {
         // Only when moving a request file, sequences of requests may need to be adjusted
-        await updateSequencesAfterInsertingRequestFile(
+        await updateSequencesAfterInsertingRequestOrAppFile(
             itemProvider,
             target.isFile
                 ? {

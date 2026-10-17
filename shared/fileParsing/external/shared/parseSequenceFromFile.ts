@@ -5,12 +5,12 @@ import {
     checkIfPathExistsAsync,
     CollectionFormat,
     getFileExtensionForFormat,
-    parseInfoFromYamlRequestOrFolderFile,
+    parseInfoFromYamlFileWithSequence,
     parseSequenceFromMetaBlock,
     TextDocumentHelper,
 } from "../../..";
 
-/** Parses the sequence from a request file or a folder settings file, depending on the file's format. */
+/** Parses the sequence from a request file, an app file or a folder settings file, depending on the file's format. */
 export async function parseSequenceFromFile(filePath: string) {
     if (extname(filePath) != getFileExtensionForFormat(CollectionFormat.Yaml)) {
         return await parseSequenceFromMetaBlock(filePath);
@@ -31,7 +31,7 @@ export async function parseSequenceFromFile(filePath: string) {
 
     return content === undefined
         ? undefined
-        : parseInfoFromYamlRequestOrFolderFile(
+        : parseInfoFromYamlFileWithSequence(
               filePath,
               new TextDocumentHelper(content),
           ).result?.properties.sequence?.value;

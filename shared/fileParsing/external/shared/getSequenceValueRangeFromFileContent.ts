@@ -4,14 +4,14 @@ import {
     getFileExtensionForFormat,
     getSequenceFieldFromMetaBlock,
     isDictionaryBlockSimpleField,
-    parseInfoFromYamlRequestOrFolderFile,
+    parseInfoFromYamlFileWithSequence,
     Position,
     Range,
     TextDocumentHelper,
 } from "../../..";
 
 /**
- * Determines the range of the sequence value inside the content of a request file or a folder settings file.
+ * Determines the range of the sequence value inside the content of a request file, an app file or a folder settings file.
  * The file format is determined by the extension of the given file path.
  *
  * Returns `undefined`, if the format cannot be determined or the file does not contain a valid sequence.
@@ -32,7 +32,7 @@ export function getSequenceValueRangeFromFileContent(
     }
 
     if (extension == getFileExtensionForFormat(CollectionFormat.Yaml)) {
-        const parsed = parseInfoFromYamlRequestOrFolderFile(
+        const parsed = parseInfoFromYamlFileWithSequence(
             filePath,
             documentHelper,
         );

@@ -7,8 +7,8 @@ import {
     getFileExtensionForFormat,
     getFolderSettingsFileName,
     getCollectionSettingsFileName,
+    isCollectionItemWithSequence,
     isInFolderForEnvironmentFiles,
-    isRequestFile,
     ItemType,
     normalizePath,
 } from "@global_shared";
@@ -18,7 +18,7 @@ import { basename, dirname } from "path";
 import { promisify } from "util";
 import { replaceItemName } from "./replaceItemName";
 import { window } from "vscode";
-import { updateSequencesAfterInsertingRequestFile } from "./updateSequencesAfterInsertingRequestFile";
+import { updateSequencesAfterInsertingRequestOrAppFile } from "./updateSequencesAfterInsertingRequestOrAppFile";
 import { FileInsertionPosition } from "./interfaces";
 import { writeFile } from "fs/promises";
 
@@ -169,12 +169,17 @@ async function insertFile(
         return false;
     }
 
-    if (isRequestFile(sourceItem) && sourceItem.getSequence() != undefined) {
+    if (
+        (sourceItem.getItemType() == BrunoFileType.RequestFile ||
+            sourceItem.getItemType() == BrunoFileType.AppFile) &&
+        isCollectionItemWithSequence(sourceItem) &&
+        sourceItem.getSequence() != undefined
+    ) {
         const sourceItemDirectory = dirname(sourceItem.getPath());
         const targetDirectory = dirname(newPath);
-        // Only if the source file has a sequence, sequences of requests may need to be adjusted.
+        // Only if the source file has a sequence, sequences of requests and app files may need to be adjusted.
 
-        await updateSequencesAfterInsertingRequestFile(
+        await updateSequencesAfterInsertingRequestOrAppFile(
             itemProvider,
             insertionPosition,
             newPath,

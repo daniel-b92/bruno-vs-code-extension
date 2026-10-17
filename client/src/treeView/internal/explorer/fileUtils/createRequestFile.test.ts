@@ -116,6 +116,23 @@ describe("createRequestFile", () => {
         );
     });
 
+    it("uses a sequence after the ones of existing request files and app files", async () => {
+        const directory = await createTemporaryDirectory({
+            "existing_request.bru":
+                "meta {\n  name: existing_request\n  type: http\n  seq: 2\n}\n",
+            "app.bru": "meta {\n  name: app\n  type: app\n  seq: 4\n}\n",
+        });
+
+        await runCreateRequestFile(directory, CollectionFormat.Bru, {
+            requestName: "my_request",
+            pickedLabels: [RequestType.Http, RequestFileBlockName.Post],
+        });
+
+        expect(
+            await readFile(join(directory, "my_request.bru"), "utf-8"),
+        ).toContain("seq: 5");
+    });
+
     it("validates the new name against the extension of the collection format", async () => {
         const directory = await createTemporaryDirectory({
             "existing.yml": "",

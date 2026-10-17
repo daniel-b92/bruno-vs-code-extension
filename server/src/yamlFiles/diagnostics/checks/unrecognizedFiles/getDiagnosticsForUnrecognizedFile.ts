@@ -35,6 +35,12 @@ export function getDiagnosticsForUnrecognizedFile({
             },
         ];
     }
+
+    if ((supportedTypes as string[]).includes(rawType.value)) {
+        // The cache only reflects the file on disk, so the type was probably added in the editor and is recognized once the file is saved.
+        return [];
+    }
+
     const start = docHelper.getPositionForOffset(
         new Position(0, 0),
         rawType.startOffset,

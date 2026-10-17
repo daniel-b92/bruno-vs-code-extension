@@ -49,6 +49,15 @@ describe("YamlFormatDiagnosticsProvider for unrecognized files", () => {
         });
     });
 
+    it("should not report a supported info type that is not saved yet", () => {
+        const diagnostics = getDiagnostics(`info:
+  name: foo
+  type: http
+`);
+
+        expect(diagnostics).toHaveLength(0);
+    });
+
     function getDiagnostics(content: string) {
         return provider.getDiagnosticsForYamlFile(
             "/collection/foo.yml",
