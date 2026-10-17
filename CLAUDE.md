@@ -17,3 +17,7 @@
 
 - Parsing utilities that are specific to one file format live in that format's folder under `shared/fileParsing/external/` (`bruFormat/` or `yamlFormat/`).
 - Parsing utilities that handle both formats (e.g. by dispatching on the file extension or the collection format) live in `shared/fileParsing/external/shared/`, not in a format-specific folder. When a utility in a format-specific folder starts supporting both formats, move it there.
+
+# Type checking
+
+- Type-check with `npm run check-types`. Don't use `tsc -p <project>` or `tsc --noEmit` for `client` or `server`: both reference `shared` as a TypeScript project and would read its possibly outdated build output from `shared/out` instead of its sources.
