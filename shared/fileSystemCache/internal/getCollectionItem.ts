@@ -27,6 +27,7 @@ import {
 } from "../..";
 import {
     createYamlEnvironmentFileInstance,
+    createYamlAppFileInstance,
     createYamlRequestFileInstance,
 } from "./yamlFormat/createYamlCollectionItems";
 import { createCollectionDirectoryInstance } from "./createCollectionDirectoryInstance";
@@ -78,7 +79,9 @@ export async function getCollectionItemForFile(
                 ? await createYamlRequestFileInstance(path)
                 : await createRequestFileInstance(path);
         case BrunoFileType.AppFile:
-            return new BrunoAppFile(path);
+            return isYaml
+                ? await createYamlAppFileInstance(path)
+                : await createAppFileInstance(path);
         case NonBrunoSpecificItemType.OtherFileType:
             return new NonBrunoFile(path);
         default:
@@ -149,4 +152,23 @@ async function createRequestFileInstance(path: string) {
     const { sequence, tags } =
         getSequenceAndTagsFromMetaBlock(metaBlockContent);
     return new BrunoRequestFile(path, sequence, tags);
+}
+
+async function createAppFileInstance(path: string) {
+    const fileContent = await getFileContent(path);
+    const metaBlockContent =
+        fileContent === undefined
+            ? undefined
+            : parseBlockFromFile(
+                  new TextDocumentHelper(fileContent),
+                  RequestFileBlockName.Meta,
+              )?.content;
+
+    return new BrunoAppFile(
+        path,
+        Array.isArray(metaBlockContent) &&
+            metaBlockContent.every((field) => isDictionaryBlockField(field))
+            ? getSequenceAndTagsFromMetaBlock(metaBlockContent).sequence
+            : undefined,
+    );
 }

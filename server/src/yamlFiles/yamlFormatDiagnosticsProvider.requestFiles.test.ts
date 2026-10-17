@@ -4,6 +4,7 @@ import {
 } from "@global_shared/_testingUtils";
 import { TypedCollectionItemProvider } from "../shared/interfaces";
 import {
+    BrunoAppFile,
     BrunoFileType,
     BrunoRequestFile,
     CollectionFormat,
@@ -43,6 +44,24 @@ runtime:
             severity: DiagnosticSeverity.Error,
             range: { start: { line: 3 }, end: { line: 3 } },
         });
+    });
+
+    it("should warn about an app file in the same folder with the same sequence", () => {
+        const diagnostics = getDiagnosticsWithOtherItems(
+            [new BrunoAppFile("/collection/app.yml", 1)],
+            `${infoSection}
+http:
+  method: GET
+  url: /api
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+`,
+        );
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0].severity).toBe(DiagnosticSeverity.Warning);
     });
 
     it("should not report requests in the same folder with other sequences", () => {
@@ -761,15 +780,24 @@ runtime:
         others: { path: string; sequence: number }[],
         content: string,
     ) {
+        return getDiagnosticsWithOtherItems(
+            others.map(
+                ({ path, sequence }) => new BrunoRequestFile(path, sequence),
+            ),
+            content,
+        );
+    }
+
+    function getDiagnosticsWithOtherItems(
+        others: (BrunoRequestFile | BrunoAppFile)[],
+        content: string,
+    ) {
         const collection = createCollectionWithEnvironments(
             [],
             CollectionFormat.Yaml,
         );
-        others.forEach(({ path, sequence }) =>
-            collection.addItem({
-                item: new BrunoRequestFile(path, sequence),
-                additionalData: undefined,
-            }),
+        others.forEach((item) =>
+            collection.addItem({ item, additionalData: undefined }),
         );
 
         return new YamlFormatDiagnosticsProvider(

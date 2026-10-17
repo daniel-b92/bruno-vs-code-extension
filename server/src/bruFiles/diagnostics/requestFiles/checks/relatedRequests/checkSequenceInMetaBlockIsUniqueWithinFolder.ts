@@ -1,6 +1,7 @@
 import {
     DictionaryBlockSimpleField,
     Block,
+    BrunoFileType,
     MetaBlockKey,
     getActiveFieldFromMetaBlock,
     isDictionaryBlockSimpleField,
@@ -11,7 +12,7 @@ import { RelevantWithinMetaBlockDiagnosticCode } from "../../../shared/diagnosti
 import { doesDictionaryBlockFieldHaveValidIntegerValue } from "../../../shared/util/doesDictionaryBlockFieldHaveValidIntegerValue";
 import { getRangeForSequenceValue } from "../../../shared/util/getRangeForSequenceValue";
 import { TypedCollectionItemProvider } from "../../../../../shared";
-import { getSequencesForOtherRequestsInFolder } from "../../../../../shared/diagnostics/relatedFiles/getSequencesForOtherRequestsInFolder";
+import { getSequencesForOtherFilesInFolder } from "../../../../../shared/diagnostics/relatedFiles/getSequencesForOtherFilesInFolder";
 import {
     DiagnosticRelatedInformation,
     DiagnosticSeverity,
@@ -43,9 +44,10 @@ export function checkSequenceInMetaBlockIsUniqueWithinFolder(data: {
         return { code: getDiagnosticCode() };
     }
 
-    const otherRequestsInFolder = getSequencesForOtherRequestsInFolder(
+    const otherRequestsInFolder = getSequencesForOtherFilesInFolder(
         itemProvider,
         filePath,
+        [BrunoFileType.RequestFile],
     );
 
     const otherRequestsWithSameSequence = otherRequestsInFolder

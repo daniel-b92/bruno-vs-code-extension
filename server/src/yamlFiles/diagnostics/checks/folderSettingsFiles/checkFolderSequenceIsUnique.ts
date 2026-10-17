@@ -7,7 +7,7 @@ import { basename } from "path";
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import { TypedCollectionItemProvider } from "../../../../shared/interfaces";
 import { getSequencesForOtherFoldersWithSameParent } from "../../../../shared/diagnostics/relatedFiles/getSequencesForOtherFoldersWithSameParent";
-import { getRelatedInformationForSequences } from "../../shared/getRelatedInformationForSequences";
+import { getRelatedInformationForSequences } from "../../../../shared/diagnostics/relatedFiles/getRelatedInformationForSequences";
 
 export function checkFolderSequenceIsUnique(
     sequence: WithKeyAndValueRange<number> | undefined,

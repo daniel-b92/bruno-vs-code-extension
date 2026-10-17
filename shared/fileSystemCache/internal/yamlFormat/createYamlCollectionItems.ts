@@ -1,4 +1,5 @@
 import {
+    BrunoAppFile,
     BrunoEnvironmentFile,
     BrunoFileType,
     BrunoRequestFile,
@@ -37,6 +38,20 @@ export async function getSequenceFromYamlFolderSettingsFile(path: string) {
               new TextDocumentHelper(content),
               BrunoFileType.FolderSettingsFile,
           ).result?.properties.sequence?.value;
+}
+
+export async function createYamlAppFileInstance(path: string) {
+    const content = await getFileContent(path);
+
+    return new BrunoAppFile(
+        path,
+        content === undefined
+            ? undefined
+            : parseInfoFromYamlFile(
+                  new TextDocumentHelper(content),
+                  BrunoFileType.AppFile,
+              ).result?.properties.sequence?.value,
+    );
 }
 
 export async function createYamlEnvironmentFileInstance(path: string) {

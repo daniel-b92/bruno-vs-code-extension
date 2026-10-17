@@ -24,6 +24,7 @@ import { checkMetaBlockStartsInFirstLine } from "../shared/checks/singleBlocks/c
 import { DiagnosticWithCode } from "../interfaces";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDiagnosticsHelper";
+import { checkSequenceDoesNotClashWithAppFiles } from "../shared/checks/singleBlocks/checkSequenceDoesNotClashWithAppFiles";
 import { checkSequenceInMetaBlockIsValid } from "../shared/checks/singleBlocks/checkSequenceInMetaBlockIsValid";
 import { checkSequenceInMetaBlockIsUniqueWithinFolder } from "./checks/relatedRequests/checkSequenceInMetaBlockIsUniqueWithinFolder";
 import { checkDictionaryBlockArrayFieldsStructure } from "../shared/checks/singleBlocks/checkDictionaryBlockArrayFieldsStructure";
@@ -114,6 +115,15 @@ export function getMetaBlockSpecificDiagnostics(data: {
         tagsField && isDictionaryBlockArrayField(tagsField)
             ? runChecksForTagsField(filePath, tagsField)
             : [],
+    );
+
+    diagnostics.push(
+        checkSequenceDoesNotClashWithAppFiles({
+            metaBlock,
+            filePath,
+            fileType: BrunoFileType.RequestFile,
+            itemProvider,
+        }),
     );
 
     for (const results of provideRelatedFilesDiagnosticsForMetaBlock({

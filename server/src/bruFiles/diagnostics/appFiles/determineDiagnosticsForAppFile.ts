@@ -15,6 +15,8 @@ import {
     RequestFileBlockName,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../interfaces";
+import { TypedCollectionItemProvider } from "../../../shared";
+import { checkSequenceDoesNotClashWithAppFiles } from "../shared/checks/singleBlocks/checkSequenceDoesNotClashWithAppFiles";
 import { checkBlocksAreSeparatedBySingleEmptyLine } from "../shared/checks/multipleBlocks/checkBlocksAreSeparatedBySingleEmptyLine";
 import { checkNoBlocksHaveUnknownNames } from "../shared/checks/multipleBlocks/checkNoBlocksHaveUnknownNames";
 import { checkThatNoBlocksAreDefinedMultipleTimes } from "../shared/checks/multipleBlocks/checkThatNoBlocksAreDefinedMultipleTimes";
@@ -33,6 +35,7 @@ import { checkMetaBlockStartsInFirstLine } from "../shared/checks/singleBlocks/c
 export function determineDiagnosticsForAppFile(
     filePath: string,
     documentText: string,
+    itemProvider?: TypedCollectionItemProvider,
 ): DiagnosticWithCode[] {
     const docHelper = new TextDocumentHelper(documentText);
     const itemType = BrunoFileType.AppFile;
@@ -93,6 +96,7 @@ export function determineDiagnosticsForAppFile(
                   documentHelper: docHelper,
                   filePath,
                   metaBlock: metaBlocks[0],
+                  itemProvider,
               })
             : undefined,
     );
@@ -104,8 +108,9 @@ function getMetaBlockSpecificDiagnostics(data: {
     filePath: string;
     documentHelper: TextDocumentHelper;
     metaBlock: Block;
+    itemProvider?: TypedCollectionItemProvider;
 }): (DiagnosticWithCode | undefined)[] {
-    const { documentHelper, filePath, metaBlock } = data;
+    const { documentHelper, filePath, metaBlock, itemProvider } = data;
     const expectedKeys = getMetaBlockMandatoryKeys(BrunoFileType.AppFile);
 
     if (!expectedKeys) {
@@ -113,7 +118,17 @@ function getMetaBlockSpecificDiagnostics(data: {
     }
 
     const diagnostics: (DiagnosticWithCode | undefined)[] = [];
-    diagnostics.push(checkSequenceInMetaBlockIsValid(metaBlock));
+    diagnostics.push(
+        checkSequenceInMetaBlockIsValid(metaBlock),
+        itemProvider
+            ? checkSequenceDoesNotClashWithAppFiles({
+                  metaBlock,
+                  filePath,
+                  fileType: BrunoFileType.AppFile,
+                  itemProvider,
+              })
+            : undefined,
+    );
 
     if (!isBlockDictionaryBlock(metaBlock)) {
         return diagnostics;

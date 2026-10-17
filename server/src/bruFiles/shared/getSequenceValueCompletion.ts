@@ -4,6 +4,7 @@ import {
     BrunoFileType,
     CollectionItemWithSequence,
     isCollectionItemWithSequence,
+    ItemType,
     NonBrunoSpecificItemType,
     normalizePath,
 } from "@global_shared";
@@ -23,7 +24,8 @@ export function getSequenceValueCompletion(
     const relevantSiblings = getRelevantSiblings(
         collection,
         filePath,
-        itemType == BrunoFileType.RequestFile,
+        itemType == BrunoFileType.RequestFile ||
+            itemType == BrunoFileType.AppFile,
     );
 
     const relevantSiblingSequences = relevantSiblings
@@ -40,9 +42,10 @@ function getRelevantSiblings(
     filePath: string,
     isRequestFile: boolean,
 ) {
-    const relevantItemType = isRequestFile
-        ? BrunoFileType.RequestFile
-        : NonBrunoSpecificItemType.Directory;
+    // App files and request files share the same sequence range within a folder.
+    const relevantItemTypes: ItemType[] = isRequestFile
+        ? [BrunoFileType.RequestFile, BrunoFileType.AppFile]
+        : [NonBrunoSpecificItemType.Directory];
     const relevantReferencePath = isRequestFile ? filePath : dirname(filePath);
 
     return collection
@@ -54,7 +57,7 @@ function getRelevantSiblings(
                 normalizePath(item.getPath()) !=
                     normalizePath(relevantReferencePath) &&
                 isCollectionItemWithSequence(item) &&
-                item.getItemType() == relevantItemType,
+                relevantItemTypes.includes(item.getItemType()),
         )
         .map(({ item }) => item) as CollectionItemWithSequence[];
 }

@@ -1,12 +1,13 @@
 import {
+    BrunoFileType,
     excludeTrailingWhitespace,
     TextDocumentHelper,
     WithKeyAndValueRange,
 } from "@global_shared";
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import { TypedCollectionItemProvider } from "../../../../shared/interfaces";
-import { getSequencesForOtherRequestsInFolder } from "../../../../shared/diagnostics/relatedFiles/getSequencesForOtherRequestsInFolder";
-import { getRelatedInformationForSequences } from "../../shared/getRelatedInformationForSequences";
+import { getSequencesForOtherFilesInFolder } from "../../../../shared/diagnostics/relatedFiles/getSequencesForOtherFilesInFolder";
+import { getRelatedInformationForSequences } from "../../../../shared/diagnostics/relatedFiles/getRelatedInformationForSequences";
 
 export function checkSequenceIsUniqueWithinFolder(
     sequence: WithKeyAndValueRange<number> | undefined,
@@ -18,9 +19,10 @@ export function checkSequenceIsUniqueWithinFolder(
         return undefined;
     }
 
-    const otherFiles = getSequencesForOtherRequestsInFolder(
+    const otherFiles = getSequencesForOtherFilesInFolder(
         itemProvider,
         filePath,
+        [BrunoFileType.RequestFile],
     )
         .filter(
             ({ sequence: otherSequence }) => otherSequence == sequence.value,

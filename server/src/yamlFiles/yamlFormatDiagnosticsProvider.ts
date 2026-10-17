@@ -19,6 +19,7 @@ import { CommonDiagnosticParams } from "./interfaces";
 import { TypedCollectionItemProvider } from "../shared/interfaces";
 import { checkExtendsFieldIsValid } from "../shared/diagnostics/environmentFiles/checkExtendsFieldIsValid";
 import { checkExtendsFieldDoesNotCreateInheritanceLoop } from "../shared/diagnostics/environmentFiles/checkExtendsFieldDoesNotCreateInheritanceLoop";
+import { checkSequenceDoesNotClashWithAppFiles } from "./diagnostics/checks/requestFiles/checkSequenceDoesNotClashWithAppFiles";
 import { checkSequenceIsUniqueWithinFolder } from "./diagnostics/checks/requestFiles/checkSequenceIsUniqueWithinFolder";
 import { checkFolderSequenceIsUnique } from "./diagnostics/checks/folderSettingsFiles/checkFolderSequenceIsUnique";
 import { checkVariableDefinitionsAreValid } from "./diagnostics/checks/environmentFiles/checkVariableDefinitionsAreValid";
@@ -170,6 +171,13 @@ export class YamlFormatDiagnosticsProvider {
                 commonParams.filePath,
                 this.itemProvider,
             ),
+            checkSequenceDoesNotClashWithAppFiles({
+                sequence: properties.info?.properties.sequence,
+                docHelper: commonParams.docHelper,
+                filePath: commonParams.filePath,
+                fileType: BrunoFileType.RequestFile,
+                itemProvider: this.itemProvider,
+            }),
             ...checkUrlMatchesParams(properties.http, commonParams),
             ...checkRequestTypeMatchesSections(properties, commonParams),
             ...checkTagsAreUnique(properties.info, commonParams),
@@ -246,9 +254,19 @@ export class YamlFormatDiagnosticsProvider {
 
     public getDiagnosticsForAppFile({
         docHelper,
+        filePath,
     }: CommonDiagnosticParams): Diagnostic[] {
-        // ToDo: Once the yaml collection items are cached, check that the sequence is unique within the parent folder.
-        return mapParsingErrorsToDiagnostics(parseAppFile(docHelper).errors);
+        const { errors, result } = parseAppFile(docHelper);
+
+        return mapParsingErrorsToDiagnostics(errors).concat(
+            checkSequenceDoesNotClashWithAppFiles({
+                sequence: result?.properties.info?.properties.sequence,
+                docHelper,
+                filePath,
+                fileType: BrunoFileType.AppFile,
+                itemProvider: this.itemProvider,
+            }) ?? [],
+        );
     }
 
     public getDiagnosticsForFolderSettingsFile(

@@ -1,6 +1,14 @@
-import { createItemProviderStub } from "@global_shared/_testingUtils";
+import {
+    createCollectionWithEnvironments,
+    createItemProviderStub,
+} from "@global_shared/_testingUtils";
 import { TypedCollectionItemProvider } from "../shared/interfaces";
-import { BrunoFileType, CollectionFormat } from "@global_shared";
+import {
+    BrunoAppFile,
+    BrunoFileType,
+    BrunoRequestFile,
+    CollectionFormat,
+} from "@global_shared";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { YamlFormatDiagnosticsProvider } from "./yamlFormatDiagnosticsProvider";
 
@@ -58,6 +66,58 @@ code: foo
         expect(diagnostics).toHaveLength(1);
         expect(diagnostics[0].message).toContain("info");
     });
+
+    it.each([
+        ["an app file", new BrunoAppFile("/collection/other.yml", 1)],
+        ["a request file", new BrunoRequestFile("/collection/other.yml", 1)],
+    ])(
+        "should warn if %s in the same folder has the same sequence",
+        (_, otherItem) => {
+            const diagnostics = getDiagnosticsWithOtherItem(otherItem);
+
+            expect(diagnostics).toHaveLength(1);
+            expect(diagnostics[0]).toMatchObject({
+                severity: DiagnosticSeverity.Warning,
+                range: { start: { line: 3 }, end: { line: 3 } },
+            });
+        },
+    );
+
+    it("should not warn if the other file in the folder has another sequence", () => {
+        expect(
+            getDiagnosticsWithOtherItem(
+                new BrunoAppFile("/collection/other.yml", 2),
+            ),
+        ).toEqual([]);
+    });
+
+    function getDiagnosticsWithOtherItem(
+        otherItem: BrunoAppFile | BrunoRequestFile,
+    ) {
+        const collection = createCollectionWithEnvironments(
+            [],
+            CollectionFormat.Yaml,
+        );
+        collection.addItem({ item: otherItem, additionalData: undefined });
+
+        return new YamlFormatDiagnosticsProvider(
+            createItemProviderStub<TypedCollectionItemProvider>(
+                "/collection",
+                CollectionFormat.Yaml,
+                collection,
+            ),
+        ).getDiagnosticsForYamlFile(
+            "/collection/app.yml",
+            `info:
+  name: app
+  type: app
+  seq: 1
+code: |
+  foo
+`,
+            BrunoFileType.AppFile,
+        );
+    }
 
     function getDiagnostics(content: string) {
         return provider.getDiagnosticsForYamlFile(
