@@ -84,6 +84,7 @@ export * from "./baseModel/files/brunoAppFile";
 export * from "./baseModel/typeguards/isCollectionItemWithSequence";
 export * from "./baseModel/typeguards/isRequestFile";
 export * from "./baseModel/typeguards/isCollectionDirectory";
+export * from "./baseModel/typeguards/isRequestFileOrCollectionDirectory";
 export * from "./baseModel/typeguards/isEnvironmentFile";
 
 // logging

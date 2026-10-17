@@ -7,8 +7,8 @@ import {
     getFileExtensionForFormat,
     getFolderSettingsFileName,
     getCollectionSettingsFileName,
-    isCollectionItemWithSequence,
     isInFolderForEnvironmentFiles,
+    isRequestFile,
     ItemType,
     normalizePath,
 } from "@global_shared";
@@ -169,10 +169,7 @@ async function insertFile(
         return false;
     }
 
-    if (
-        isCollectionItemWithSequence(sourceItem) &&
-        sourceItem.getSequence() != undefined
-    ) {
+    if (isRequestFile(sourceItem) && sourceItem.getSequence() != undefined) {
         const sourceItemDirectory = dirname(sourceItem.getPath());
         const targetDirectory = dirname(newPath);
         // Only if the source file has a sequence, sequences of requests may need to be adjusted.

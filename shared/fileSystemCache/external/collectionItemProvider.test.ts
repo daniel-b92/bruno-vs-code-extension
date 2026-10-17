@@ -4,6 +4,7 @@ import { Evt } from "evt";
 import { basename, join } from "path";
 import {
     AdditionalCollectionDataProviderType,
+    BrunoAppFile,
     BrunoEnvironmentFile,
     BrunoFileType,
     BrunoRequestFile,
@@ -221,6 +222,43 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
         expect(notifiedPaths.map((path) => normalizePath(path))).toEqual([
             normalizePath(rootDir),
         ]);
+    });
+
+    it("updates the cached sequence of a bru app file when it is modified", async () => {
+        const workspace = await createTemporaryDirectory({
+            "collection/bruno.json": "{}",
+            "collection/request.bru":
+                "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
+            "collection/app.bru":
+                "meta {\n  name: app\n  type: app\n  seq: 2\n}\n",
+        });
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(
+            workspace,
+            { yamlCollectionSupport: true },
+            fileChangedEmitter,
+        );
+        await provider.refreshCache([workspace]);
+        const collection = provider.getRegisteredCollections()[0];
+        const filePath = join(workspace, "collection/app.bru");
+        const getSequence = () =>
+            (
+                collection.getStoredDataForPath(filePath)?.item as BrunoAppFile
+            ).getSequence();
+
+        expect(getSequence()).toBe(2);
+
+        await writeFile(
+            filePath,
+            "meta {\n  name: app\n  type: app\n  seq: 5\n}\n",
+        );
+        fileChangedEmitter.post({
+            path: filePath,
+            changeType: FileChangeType.Modified,
+        });
+
+        await waitUntil(() => getSequence() == 5);
+        expect(getSequence()).toBe(5);
     });
 
     it("recognizes a bru file as request file after it was edited from invalid to valid", async () => {

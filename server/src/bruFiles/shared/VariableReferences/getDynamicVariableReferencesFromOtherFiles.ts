@@ -6,7 +6,7 @@ import {
     BrunoVariableReference,
     CollectionItemWithSequence,
     normalizePath,
-    isCollectionItemWithSequence,
+    isRequestFileOrCollectionDirectory,
     BrunoVariableType,
 } from "@global_shared";
 import { TypedCollection, TypedCollectionData } from "../../../shared";
@@ -101,7 +101,7 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
             ),
         );
 
-        if (isCollectionItemWithSequence(currentItem)) {
+        if (isRequestFileOrCollectionDirectory(currentItem)) {
             referencesFromDescendantsOfAncestors.push(
                 ...getReferencesFromFolderDescendants(
                     {
@@ -192,7 +192,7 @@ function getReferencesFromFolderDescendants(
                 normalizePath(dirname(item.getPath())) ==
                 normalizePath(parentFolder.getPath());
 
-            if (!isSibling || !isCollectionItemWithSequence(item)) {
+            if (!isSibling || !isRequestFileOrCollectionDirectory(item)) {
                 return false;
             }
 
@@ -378,8 +378,8 @@ function isFirstReferenceMoreRelevant(
     if (
         relevantAncestorDataForRef1 == undefined ||
         relevantAncestorDataForRef2 == undefined ||
-        !isCollectionItemWithSequence(relevantAncestorDataForRef1.item) ||
-        !isCollectionItemWithSequence(relevantAncestorDataForRef2.item)
+        !isRequestFileOrCollectionDirectory(relevantAncestorDataForRef1.item) ||
+        !isRequestFileOrCollectionDirectory(relevantAncestorDataForRef2.item)
     ) {
         return undefined;
     }

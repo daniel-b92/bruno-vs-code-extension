@@ -34,7 +34,7 @@ import {
     FileChangedEvent,
     CollectionItem,
     isRequestFile,
-    isCollectionItemWithSequence,
+    isRequestFileOrCollectionDirectory,
     CollectionItemProvider,
     getPathsToIgnoreForCollections,
     AdditionalCollectionSimpleDataProvider,
@@ -276,7 +276,7 @@ function getAdditionalCollectionDataProvider(
                 item.getPath(),
                 item.isFile(),
                 isCollectionRoot,
-                isCollectionItemWithSequence(item)
+                isRequestFileOrCollectionDirectory(item)
                     ? item.getSequence()
                     : undefined,
                 isRequestFile(item) ? item.getTags() : undefined,
