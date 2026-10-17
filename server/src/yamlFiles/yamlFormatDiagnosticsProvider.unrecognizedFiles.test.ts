@@ -1,9 +1,16 @@
-import { NonBrunoSpecificItemType } from "@global_shared";
+import { createItemProviderStub } from "@global_shared/_testingUtils";
+import { TypedCollectionItemProvider } from "../shared/interfaces";
+import { NonBrunoSpecificItemType, CollectionFormat } from "@global_shared";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { YamlFormatDiagnosticsProvider } from "./yamlFormatDiagnosticsProvider";
 
 describe("YamlFormatDiagnosticsProvider for unrecognized files", () => {
-    const provider = new YamlFormatDiagnosticsProvider();
+    const provider = new YamlFormatDiagnosticsProvider(
+        createItemProviderStub<TypedCollectionItemProvider>(
+            "/collection",
+            CollectionFormat.Yaml,
+        ),
+    );
 
     it("should only hint that the file is not recognized if there is no info type", () => {
         const diagnostics = getDiagnostics(`info:

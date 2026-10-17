@@ -1,9 +1,66 @@
-import { BrunoFileType } from "@global_shared";
+import {
+    createCollectionWithEnvironments,
+    createItemProviderStub,
+} from "@global_shared/_testingUtils";
+import { TypedCollectionItemProvider } from "../shared/interfaces";
+import {
+    BrunoFileType,
+    BrunoRequestFile,
+    CollectionFormat,
+} from "@global_shared";
 import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
 import { YamlFormatDiagnosticsProvider } from "./yamlFormatDiagnosticsProvider";
 
 describe("YamlFormatDiagnosticsProvider for request files", () => {
-    const provider = new YamlFormatDiagnosticsProvider();
+    const provider = new YamlFormatDiagnosticsProvider(
+        createItemProviderStub<TypedCollectionItemProvider>(
+            "/collection",
+            CollectionFormat.Yaml,
+        ),
+    );
+
+    it("should report another request in the same folder with the same sequence", () => {
+        const diagnostics = getDiagnosticsWithOtherRequests(
+            [
+                { path: "/collection/other.yml", sequence: 1 },
+                { path: "/collection/nested/other.yml", sequence: 1 },
+            ],
+            `${infoSection}
+http:
+  method: GET
+  url: /api
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+`,
+        );
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0]).toMatchObject({
+            message:
+                "Other requests with the same sequence already exists within this folder.",
+            severity: DiagnosticSeverity.Error,
+            range: { start: { line: 3 }, end: { line: 3 } },
+        });
+    });
+
+    it("should not report requests in the same folder with other sequences", () => {
+        const diagnostics = getDiagnosticsWithOtherRequests(
+            [{ path: "/collection/other.yml", sequence: 2 }],
+            `${infoSection}
+http:
+  method: GET
+  url: /api
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+`,
+        );
+
+        expect(diagnostics).toEqual([]);
+    });
 
     it("should not return diagnostics for a valid request file", () => {
         const diagnostics = getDiagnostics(`${infoSection}
@@ -699,6 +756,34 @@ runtime:
             );
         });
     });
+
+    function getDiagnosticsWithOtherRequests(
+        others: { path: string; sequence: number }[],
+        content: string,
+    ) {
+        const collection = createCollectionWithEnvironments(
+            [],
+            CollectionFormat.Yaml,
+        );
+        others.forEach(({ path, sequence }) =>
+            collection.addItem({
+                item: new BrunoRequestFile(path, sequence),
+                additionalData: undefined,
+            }),
+        );
+
+        return new YamlFormatDiagnosticsProvider(
+            createItemProviderStub<TypedCollectionItemProvider>(
+                "/collection",
+                CollectionFormat.Yaml,
+                collection,
+            ),
+        ).getDiagnosticsForYamlFile(
+            "/collection/request.yml",
+            content,
+            BrunoFileType.RequestFile,
+        );
+    }
 
     function getDiagnostics(content: string) {
         return provider.getDiagnosticsForYamlFile(

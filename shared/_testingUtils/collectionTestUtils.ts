@@ -41,19 +41,15 @@ export function createCollectionWithEnvironments(
 }
 
 /**
- * Creates a stub of an item provider, that resolves every path to the same (empty) collection.
+ * Creates a stub of an item provider, that resolves every path to the same collection.
+ * Without a given collection, an empty one is used.
  * The provider type is specific to each package, so it has to be passed as type argument.
  */
 export function createItemProviderStub<TProvider>(
     rootDirectory: string,
     format: CollectionFormat,
+    collection = createCollectionWithEnvironments([], format, rootDirectory),
 ) {
-    const collection = createCollectionWithEnvironments(
-        [],
-        format,
-        rootDirectory,
-    );
-
     return {
         getAncestorCollectionForPath: () => collection,
     } as unknown as TProvider;

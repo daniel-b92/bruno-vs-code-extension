@@ -5,7 +5,7 @@ import {
     getDummyRange,
 } from "@global_shared/_testingUtils";
 import { checkExtendsFieldDoesNotCreateInheritanceLoop } from "./checkExtendsFieldDoesNotCreateInheritanceLoop";
-import { RelevantWithinEnvironmentFileDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinEnvironmentFileDiagnosticCodeEnum";
+import { RelevantWithinEnvironmentFileDiagnosticCode } from "../../../bruFiles/diagnostics/shared/diagnosticCodes/relevantWithinEnvironmentFileDiagnosticCodeEnum";
 
 describe("checkExtendsFieldDoesNotCreateInheritanceLoop", () => {
     it("returns undefined when the extended environment does not extend anything", () => {

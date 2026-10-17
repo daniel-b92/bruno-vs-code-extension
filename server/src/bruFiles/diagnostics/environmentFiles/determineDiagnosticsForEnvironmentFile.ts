@@ -18,9 +18,9 @@ import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/chec
 import { RelevantWithinEnvironmentFileDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinEnvironmentFileDiagnosticCodeEnum";
 import { runDictionaryBlocksBaseChecks } from "../shared/checks/runDictionaryBlocksBaseChecks";
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
-import { checkExtendsFieldIsValid } from "./checkExtendsFieldIsValid";
+import { checkExtendsFieldIsValid } from "../../../shared/diagnostics/environmentFiles/checkExtendsFieldIsValid";
 import { checkExtendsFieldIsNotDefinedMultipleTimes } from "./checkExtendsFieldIsNotDefinedMultipleTimes";
-import { checkExtendsFieldDoesNotCreateInheritanceLoop } from "./checkExtendsFieldDoesNotCreateInheritanceLoop";
+import { checkExtendsFieldDoesNotCreateInheritanceLoop } from "../../../shared/diagnostics/environmentFiles/checkExtendsFieldDoesNotCreateInheritanceLoop";
 
 export function determineDiagnosticsForEnvironmentFile(
     filePath: string,

@@ -1,9 +1,16 @@
-import { BrunoFileType } from "@global_shared";
+import { createItemProviderStub } from "@global_shared/_testingUtils";
+import { TypedCollectionItemProvider } from "../shared/interfaces";
+import { BrunoFileType, CollectionFormat } from "@global_shared";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { YamlFormatDiagnosticsProvider } from "./yamlFormatDiagnosticsProvider";
 
 describe("YamlFormatDiagnosticsProvider for app files", () => {
-    const provider = new YamlFormatDiagnosticsProvider();
+    const provider = new YamlFormatDiagnosticsProvider(
+        createItemProviderStub<TypedCollectionItemProvider>(
+            "/collection",
+            CollectionFormat.Yaml,
+        ),
+    );
 
     it("should not return diagnostics for a valid app file", () => {
         expect(

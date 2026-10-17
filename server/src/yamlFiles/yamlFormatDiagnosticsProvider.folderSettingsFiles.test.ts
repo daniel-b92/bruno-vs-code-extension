@@ -1,9 +1,51 @@
-import { BrunoFileType } from "@global_shared";
+import {
+    createCollectionWithEnvironments,
+    createItemProviderStub,
+} from "@global_shared/_testingUtils";
+import { TypedCollectionItemProvider } from "../shared/interfaces";
+import {
+    BrunoFileType,
+    CollectionDirectory,
+    CollectionFormat,
+} from "@global_shared";
 import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
 import { YamlFormatDiagnosticsProvider } from "./yamlFormatDiagnosticsProvider";
 
 describe("YamlFormatDiagnosticsProvider for folder settings files", () => {
-    const provider = new YamlFormatDiagnosticsProvider();
+    const provider = new YamlFormatDiagnosticsProvider(
+        createItemProviderStub<TypedCollectionItemProvider>(
+            "/collection",
+            CollectionFormat.Yaml,
+        ),
+    );
+
+    it("should report another folder with the same parent and the same sequence", () => {
+        const diagnostics = getDiagnosticsWithOtherFolders(
+            [
+                { name: "sibling", sequence: 2 },
+                { name: "other", sequence: 3 },
+            ],
+            `${folderHeader}
+  seq: 2`,
+        );
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0]).toMatchObject({
+            message:
+                "Other folders with the same sequence already exist for the same parent folder.",
+            severity: DiagnosticSeverity.Error,
+        });
+    });
+
+    it("should not report folders with other sequences", () => {
+        const diagnostics = getDiagnosticsWithOtherFolders(
+            [{ name: "sibling", sequence: 3 }],
+            `${folderHeader}
+  seq: 2`,
+        );
+
+        expect(diagnostics).toEqual([]);
+    });
 
     it("should warn for duplicate headers even if no variables are defined", () => {
         const diagnostics = getDiagnostics(`${folderHeader}
@@ -72,6 +114,38 @@ request:
             ),
         ).toBe(true);
     });
+
+    function getDiagnosticsWithOtherFolders(
+        others: { name: string; sequence: number }[],
+        content: string,
+    ) {
+        const collection = createCollectionWithEnvironments(
+            [],
+            CollectionFormat.Yaml,
+        );
+        others.forEach(({ name, sequence }) =>
+            collection.addItem({
+                item: new CollectionDirectory(
+                    `/collection/${name}`,
+                    `/collection/${name}/folder.yml`,
+                    sequence,
+                ),
+                additionalData: undefined,
+            }),
+        );
+
+        return new YamlFormatDiagnosticsProvider(
+            createItemProviderStub<TypedCollectionItemProvider>(
+                "/collection",
+                CollectionFormat.Yaml,
+                collection,
+            ),
+        ).getDiagnosticsForYamlFile(
+            "/collection/folder/folder.yml",
+            content,
+            BrunoFileType.FolderSettingsFile,
+        );
+    }
 
     function getDiagnostics(content: string) {
         return provider.getDiagnosticsForYamlFile(

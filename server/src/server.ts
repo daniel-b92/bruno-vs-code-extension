@@ -48,7 +48,7 @@ import { YamlFormatDiagnosticsProvider } from "./yamlFiles/yamlFormatDiagnostics
 
 let helpersProvider: HelpersProvider | undefined = undefined;
 let brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider;
-const yamlDiagnosticsProvider = new YamlFormatDiagnosticsProvider();
+let yamlDiagnosticsProvider: YamlFormatDiagnosticsProvider;
 const disposables: Disposable[] = [];
 enum FileTypeByExtension {
     Bru = ".bru",
@@ -118,6 +118,10 @@ disposables.push(
         );
 
         disposables.push(brunoLangDiagnosticsProvider);
+
+        yamlDiagnosticsProvider = new YamlFormatDiagnosticsProvider(
+            itemProvider,
+        );
 
         itemProvider.subscribeToUpdates((changes) => {
             if (
@@ -361,7 +365,7 @@ async function getDiagnosticsForYamlFile(filePath: string, text: string) {
           )
         : undefined;
 
-    if (!fileType) {
+    if (!fileType || !yamlDiagnosticsProvider) {
         // Not a Bruno file within a registered yaml collection (e.g. a CI config).
         return undefined;
     }
