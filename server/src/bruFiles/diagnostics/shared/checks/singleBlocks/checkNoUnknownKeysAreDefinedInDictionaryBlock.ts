@@ -30,8 +30,7 @@ export function checkNoUnknownKeysAreDefinedInDictionaryBlock(
 
 function getDiagnostic(
     fieldsWithUnknownKeys: (
-        | DictionaryBlockSimpleField
-        | DictionaryBlockArrayField
+        DictionaryBlockSimpleField | DictionaryBlockArrayField
     )[],
     diagnosticCode: KnownDiagnosticCode,
     expectedKeys: string[],
@@ -56,8 +55,7 @@ function getDiagnostic(
 
 function getRange(
     sortedUnknownFields: (
-        | DictionaryBlockSimpleField
-        | DictionaryBlockArrayField
+        DictionaryBlockSimpleField | DictionaryBlockArrayField
     )[],
 ): Range {
     return new Range(

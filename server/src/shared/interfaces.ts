@@ -20,8 +20,7 @@ export type TypedCollection = ReadyOnlyCollection<AdditionalCollectionData>;
 export type TypedCollectionData = CollectionData<AdditionalCollectionData>;
 
 export type AdditionalCollectionData =
-    | { reference: BrunoVariableReference; block: string }[]
-    | undefined;
+    { reference: BrunoVariableReference; block: string }[] | undefined;
 
 export interface LanguageRequestWithTestEnvironmentInfo {
     baseRequest: LanguageFeatureBaseRequest;

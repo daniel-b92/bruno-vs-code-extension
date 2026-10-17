@@ -113,8 +113,7 @@ export function getAllVariableReferences(
                   },
               },
               variableType as
-                  | BrunoVariableType.Folder
-                  | BrunoVariableType.Request,
+                  BrunoVariableType.Folder | BrunoVariableType.Request,
           )
         : [];
 

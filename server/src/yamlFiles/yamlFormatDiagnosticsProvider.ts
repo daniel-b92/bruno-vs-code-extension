@@ -1,6 +1,7 @@
 import { getRequestTypeSections } from "./diagnostics/shared/getRequestTypeSections";
 import {
     BrunoFileType,
+    NonBrunoSpecificItemType,
     ParsedCollectionSettingsFile,
     ParsedFolderSettingsFile,
     ParsedRequestFile,
@@ -31,6 +32,7 @@ import { checkAuthHasValidValues } from "./diagnostics/shared/checkAuthHasValidV
 import { checkTagsAreUnique } from "./diagnostics/checks/requestFiles/checkTagsAreUnique";
 import { getDiagnosticsForDisabledItems } from "./diagnostics/shared/getDiagnosticsForDisabledItems";
 import { checkFileStartsWithExpectedSection } from "./diagnostics/shared/checkFileStartsWithExpectedSection";
+import { getDiagnosticsForUnrecognizedFile } from "./diagnostics/checks/unrecognizedFiles/getDiagnosticsForUnrecognizedFile";
 import { checkResponseValidationExists } from "./diagnostics/checks/requestFiles/checkResponseValidationExists";
 
 const BRUNO_DIAGNOSTICS_SOURCE = "Bruno";
@@ -42,7 +44,7 @@ export class YamlFormatDiagnosticsProvider {
     public getDiagnosticsForYamlFile(
         filePath: string,
         content: string,
-        brunoFileType: BrunoFileType,
+        brunoFileType: BrunoFileType | NonBrunoSpecificItemType.OtherFileType,
     ) {
         const docHelper = new TextDocumentHelper(content);
         const commonParams: CommonDiagnosticParams = {
@@ -52,7 +54,8 @@ export class YamlFormatDiagnosticsProvider {
         };
 
         const highlightingDiagnostic =
-            brunoFileType == BrunoFileType.EnvironmentFile
+            brunoFileType == BrunoFileType.EnvironmentFile ||
+            brunoFileType == NonBrunoSpecificItemType.OtherFileType
                 ? undefined
                 : checkFileStartsWithExpectedSection(commonParams);
 
@@ -67,7 +70,7 @@ export class YamlFormatDiagnosticsProvider {
     }
 
     private getDiagnosticsWithoutSource(
-        brunoFileType: BrunoFileType,
+        brunoFileType: BrunoFileType | NonBrunoSpecificItemType.OtherFileType,
         commonParams: CommonDiagnosticParams,
     ): Diagnostic[] {
         switch (brunoFileType) {
@@ -83,6 +86,8 @@ export class YamlFormatDiagnosticsProvider {
                 return this.getDiagnosticsForRequestFile(commonParams);
             case BrunoFileType.AppFile:
                 return this.getDiagnosticsForAppFile(commonParams);
+            case NonBrunoSpecificItemType.OtherFileType:
+                return getDiagnosticsForUnrecognizedFile(commonParams);
             default:
                 return [];
         }

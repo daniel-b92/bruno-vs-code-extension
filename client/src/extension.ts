@@ -160,7 +160,7 @@ function createLanguagClient(context: ExtensionContext) {
             { scheme: "file", language: "bru" },
             { scheme: "file", language: "javascript" },
             ...(featureToggles.yamlCollectionSupport
-                ? [{ scheme: "file", language: "yaml" }]
+                ? [{ scheme: "file", language: "yaml", pattern: "**/*.yml" }]
                 : []),
         ],
         initializationOptions: { featureToggles },

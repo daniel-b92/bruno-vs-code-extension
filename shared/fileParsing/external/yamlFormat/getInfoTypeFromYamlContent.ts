@@ -1,4 +1,4 @@
-import { parseDocument } from "yaml";
+import { isScalar, parseDocument } from "yaml";
 import { FileInfoType } from "./constants/sharedConstants";
 
 export function getInfoTypeFromYamlContent(text: string) {
@@ -7,5 +7,20 @@ export function getInfoTypeFromYamlContent(text: string) {
 
     return (Object.values(FileInfoType) as unknown[]).includes(type)
         ? (type as FileInfoType)
+        : undefined;
+}
+
+/**
+ * Returns the raw value of `info.type` (if it is a string) together with its start and end offset, regardless of whether it is a supported type.
+ */
+export function getRawInfoTypeFromYamlContent(text: string) {
+    const node = parseDocument(text).getIn(["info", "type"], true);
+
+    return isScalar(node) && typeof node.value == "string" && node.range
+        ? {
+              value: node.value,
+              startOffset: node.range[0],
+              endOffset: node.range[1],
+          }
         : undefined;
 }
