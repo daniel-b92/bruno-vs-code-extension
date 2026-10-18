@@ -11,6 +11,7 @@
 - Take app files into account when suggesting a sequence in `meta` blocks. For app files, the suggested sequence was previously based on sibling folders.
 - Take app files into account for sequences in the collection explorer: When creating, moving, pasting or deleting request files or app files, the sequences of both are now adjusted together, so that they do not clash.
 - Fix an issue that could cause the test explorer to miss updates when several files (e.g. an environment file and a request file) changed at the same time.
+- Fix an issue that caused the extension to be offered as a formatter for all JavaScript files in the workspace, although it only formats `.bru` files.
 
 ## [1.3.3] (2026-10-10)
 

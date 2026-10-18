@@ -9,6 +9,8 @@ import {
 
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { getHandlerForFormatting } from "./bruFiles/formatting/getHandlerForFormatting";
+import { getHandlerForYamlFormatting } from "./yamlFiles/formatting/getHandlerForYamlFormatting";
+import { FormattingRegistration } from "./shared/formattingRegistration";
 import {
     getDefaultLogger,
     HelpersProvider,
@@ -24,6 +26,7 @@ import {
     FileChangeType,
     getConfiguredEnvironmentNameAsync,
     getItemType,
+    ItemType,
     NonBrunoSpecificItemType,
     isInFolderForEnvironmentFiles,
     doesFileNameMatchFolderSettingsFileName,
@@ -49,6 +52,7 @@ import { YamlFormatDiagnosticsProvider } from "./yamlFiles/yamlFormatDiagnostics
 let helpersProvider: HelpersProvider | undefined = undefined;
 let brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider;
 let yamlDiagnosticsProvider: YamlFormatDiagnosticsProvider;
+let formattingRegistration: FormattingRegistration;
 const disposables: Disposable[] = [];
 enum FileTypeByExtension {
     Bru = ".bru",
@@ -83,7 +87,7 @@ disposables.push(
                     openClose: true,
                     save: true,
                 },
-                documentFormattingProvider: true,
+                // Formatting is registered dynamically (see `FormattingRegistration`).
                 completionProvider: {
                     triggerCharacters: [":", " ", "{", ".", "/", '"', "'", "`"],
                     completionItem: { labelDetailsSupport: true },
@@ -101,6 +105,10 @@ disposables.push(
 
 disposables.push(
     connection.onInitialized(async () => {
+        formattingRegistration = new FormattingRegistration(connection);
+        disposables.push(formattingRegistration);
+        void formattingRegistration.registerForBruFiles();
+
         const workspaceFolders = await getWorkspaceFolders();
         helpersProvider = new HelpersProvider(workspaceFolders);
         disposables.push(helpersProvider);
@@ -123,7 +131,21 @@ disposables.push(
             itemProvider,
         );
 
+        const updateFormattingRegistration = () =>
+            formattingRegistration.update(
+                itemProvider
+                    .getRegisteredCollections()
+                    .filter(
+                        (collection) =>
+                            collection.getFormat() == CollectionFormat.Yaml,
+                    )
+                    .map((collection) => collection.getRootDirectory()),
+            );
+        updateFormattingRegistration();
+
         itemProvider.subscribeToUpdates((changes) => {
+            updateFormattingRegistration();
+
             if (
                 changes.some(
                     (change) =>
@@ -143,7 +165,10 @@ disposables.push(
 disposables.push(
     connection.onDocumentFormatting(({ textDocument: { uri } }) => {
         const { filePath, type } = getFilePathAndType(uri);
-        if (type != FileTypeByExtension.Bru) {
+        if (
+            type != FileTypeByExtension.Bru &&
+            type != FileTypeByExtension.Yml
+        ) {
             return undefined;
         }
 
@@ -158,9 +183,16 @@ disposables.push(
         }
 
         const document = documents.get(uri);
-        return document
+        if (!document) {
+            return undefined;
+        }
+
+        return type == FileTypeByExtension.Bru
             ? getHandlerForFormatting(document, itemType)
-            : undefined;
+            : getHandlerForYamlFormatting(
+                  document,
+                  getYamlFileTypeForEditorContent(itemType, document.getText()),
+              );
     }),
 );
 
@@ -373,14 +405,21 @@ async function getDiagnosticsForYamlFile(filePath: string, text: string) {
     return yamlDiagnosticsProvider.getDiagnosticsForYamlFile(
         filePath,
         text,
-        fileType == BrunoFileType.RequestFile ||
-            fileType == BrunoFileType.AppFile
-            ? // The cache only reflects the file content on disk, so use the current editor content to tell app files and request files apart.
-              isYamlAppFile(text)
-                ? BrunoFileType.AppFile
-                : BrunoFileType.RequestFile
-            : fileType,
+        getYamlFileTypeForEditorContent(fileType, text),
     );
+}
+
+/** The cache only reflects the file content on disk, so the current editor content is used to tell app files and request files apart. */
+function getYamlFileTypeForEditorContent<T extends ItemType>(
+    fileType: T,
+    text: string,
+): T | BrunoFileType.AppFile | BrunoFileType.RequestFile {
+    return fileType == BrunoFileType.RequestFile ||
+        fileType == BrunoFileType.AppFile
+        ? isYamlAppFile(text)
+            ? BrunoFileType.AppFile
+            : BrunoFileType.RequestFile
+        : fileType;
 }
 
 async function getYamlFileTypeIfExists(

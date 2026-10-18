@@ -40,9 +40,8 @@ Each entry is tagged:
 
 ## 8. Server (language server)
 
-- [server.ts:134-140](server/src/server.ts#L134-L140) **[Gap]**: formatting is only provided for Bru.
-- [server.ts:185-190](server/src/server.ts#L185-L190) / [server.ts:248-253](server/src/server.ts#L248-L253) **[Gap]**: completions and hover are only provided for Bru and JS files.
-- [server.ts:257-259](server/src/server.ts#L257-L259) **[Gap]**: will-save auto updates (URL ↔ params syncing, [runUpdatesOnWillSave.ts](server/src/bruFiles/autoUpdates/runUpdatesOnWillSave.ts)) only run for Bru.
+- [server.ts:221-226](server/src/server.ts#L221-L226) / [server.ts:284-289](server/src/server.ts#L284-L289) **[Gap]**: completions and hover are only provided for Bru and JS files.
+- [server.ts:293-295](server/src/server.ts#L293-L295) **[Gap]**: will-save auto updates (URL ↔ params syncing, [runUpdatesOnWillSave.ts](server/src/bruFiles/autoUpdates/runUpdatesOnWillSave.ts)) only run for Bru.
 - [mapStaticEnvVariablesToCompletions.ts:36-39](server/src/shared/environmentVariables/mapStaticEnvVariablesToCompletions.ts#L36-L39), [getHoverContentForStaticEnvVariables.ts:36-39](server/src/shared/environmentVariables/getHoverContentForStaticEnvVariables.ts#L36-L39) **[Check]**: the environment name is computed as `basename(file, getExtensionForBrunoFiles())`. These helpers are shared with **JS file** completions and hover, which also work inside yaml collections. There the environment would be shown as e.g. `local.yml` instead of `local`. Using `collection.getEnvironments()` (or `getFileExtensionForFormat(collection.getFormat())`) would fix this.
 - `server/src/bruFiles/**` (e.g. [getCompletionsForPositionOutsideOfBlocks.ts:182](server/src/bruFiles/completions/getCompletionsForPositionOutsideOfBlocks.ts#L182), [getDictionaryBlockSnippetInsertionContent.ts:112](server/src/bruFiles/completions/dictionaryBlocks/generic/getDictionaryBlockSnippetInsertionContent.ts#L112)) **[OK]**: uses of `getExtensionForBrunoFiles()` here are intentional, since these code paths are only reached for `.bru` documents.
 
