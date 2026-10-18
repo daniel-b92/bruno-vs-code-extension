@@ -38,6 +38,7 @@ import {
     CollectionFormat,
 } from "@global_shared";
 import { handleCompletionRequest as handleCompletionRequestForBruFile } from "./bruFiles/completions/handleCompletionRequest";
+import { handleCompletionRequest as handleCompletionRequestForYamlFile } from "./yamlFiles/completions/handleCompletionRequest";
 import { Disposable } from "vscode-languageserver/node";
 import { BrunoLangDiagnosticsProvider } from "./bruFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { handleHoverRequest as handleHoverRequestForBruFile } from "./bruFiles/hover/handleHoverRequest";
@@ -227,6 +228,8 @@ disposables.push(
             switch (type) {
                 case FileTypeByExtension.Bru:
                     return handleCompletionRequestForBruFile(params);
+                case FileTypeByExtension.Yml:
+                    return handleCompletionRequestForYamlFile(params);
                 case FileTypeByExtension.Js:
                     return handleCompletionRequestForJsFile(params);
             }

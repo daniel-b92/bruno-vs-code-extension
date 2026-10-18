@@ -2,7 +2,6 @@ import {
     Block,
     BrunoFileType,
     getDictionaryBlockArrayField,
-    getExistingRequestFileTags,
     getMetaBlockMandatoryKeys,
     getMetaBlockOptionalKeys,
     MetaBlockKey,
@@ -15,12 +14,12 @@ import {
     TypedCollection,
     TypedCollectionItemProvider,
 } from "../../../../shared";
-import { basename } from "path";
-import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
+import { CompletionItem } from "vscode-languageserver";
 import { getFixedCompletionItems } from "../generic/getFixedCompletionItems";
 import { getLinePatternForDictionaryField } from "../generic/getLinePatternForDictionaryField";
 import { getCompletionsForKeys } from "../generic/getCompletionsForKeys";
-import { getSequenceValueCompletion } from "../../../shared/getSequenceValueCompletion";
+import { getTagCompletions } from "../../../../shared/getTagCompletions";
+import { getSequenceValueCompletion } from "../../../../shared/getSequenceValueCompletion";
 
 export function getMetaBlockContentCompletions(
     itemProvider: TypedCollectionItemProvider,
@@ -123,40 +122,12 @@ function getTagsValueCompletions(
         return [];
     }
 
-    const tagsByCollections = getExistingRequestFileTags(itemProvider, {
+    return getTagCompletions({
+        itemProvider,
         collection,
-        pathToIgnore: filePath,
+        filePath,
+        alreadyDefinedTags: tagsField.values.map(({ content }) => content),
     });
-
-    return tagsByCollections
-        .filter(
-            // Filter out already defined tags in the same document.
-            ({ tag }) => tagsField.values.every(({ content: c }) => c != tag),
-        )
-        .map(
-            ({
-                tag,
-                pathsInOwnCollection: inOwnCollection,
-                inOtherCollections,
-            }) => {
-                const alreadyUsedInOwnCollection = inOwnCollection.length > 0;
-
-                return {
-                    label: tag,
-                    labelDetails: {
-                        description: alreadyUsedInOwnCollection
-                            ? "Used in own collection"
-                            : inOtherCollections.length == 1
-                              ? `Used in collection '${basename(inOtherCollections[0].collection.getRootDirectory())}'`
-                              : `Used in ${inOtherCollections.length} other collections`,
-                    },
-                    sortText: alreadyUsedInOwnCollection
-                        ? `a_${tag}`
-                        : `b_${tag}`,
-                    kind: CompletionItemKind.Constant,
-                };
-            },
-        );
 }
 
 function getRequestTypeValueCompletions(request: LanguageFeatureBaseRequest) {

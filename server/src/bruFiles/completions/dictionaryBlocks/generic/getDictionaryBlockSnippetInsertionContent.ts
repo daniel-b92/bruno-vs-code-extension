@@ -41,7 +41,7 @@ import {
     TypedCollection,
 } from "../../../../shared";
 import { basename } from "path";
-import { getSequenceValueCompletion } from "../../../shared/getSequenceValueCompletion";
+import { getSequenceValueCompletion } from "../../../../shared/getSequenceValueCompletion";
 
 interface CommonParams {
     baseRequest: LanguageFeatureBaseRequest;

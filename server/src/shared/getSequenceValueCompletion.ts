@@ -1,5 +1,5 @@
 import { dirname } from "path";
-import { TypedCollection } from "../../shared";
+import { TypedCollection } from "./interfaces";
 import {
     BrunoFileType,
     CollectionItemWithSequence,

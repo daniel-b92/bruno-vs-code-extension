@@ -1,4 +1,3 @@
-import { basename } from "path";
 import {
     Block,
     BlockBracket,
@@ -15,8 +14,6 @@ import {
     shouldBeCodeBlock,
     shouldBeDictionaryBlock,
     TextDocumentHelper,
-    getFileExtensionForFormat,
-    CollectionFormat,
 } from "@global_shared";
 import { LanguageFeatureBaseRequest, TypedCollection } from "../../shared";
 import {
@@ -24,6 +21,7 @@ import {
     InsertTextFormat,
     TextEdit,
 } from "vscode-languageserver";
+import { getAvailableEnvironmentNamesForExtends } from "../../shared/getAvailableEnvironmentNamesForExtends";
 import { MissingBlock } from "../shared/interfaces";
 import { getMissingMandatoryBlocks } from "../shared/getMissingMandatoryBlocks";
 import { getMissingOptionalBlocks } from "../shared/getMissingOptionalBlocks";
@@ -174,27 +172,6 @@ function getExtendsKeyCompletionItem(
 
 function escapeSnippetChoiceOption(option: string): string {
     return option.replace(/[\\,|]/g, (match) => `\\${match}`);
-}
-
-function getAvailableEnvironmentNamesForExtends(
-    filePath: string,
-    collection: TypedCollection,
-): string[] {
-    const ownEnvironmentName = basename(
-        filePath,
-        getFileExtensionForFormat(CollectionFormat.Bru),
-    );
-
-    return collection
-        .getEnvironments()
-        .map(({ environmentName }) => environmentName)
-        .filter((environmentName) => environmentName != ownEnvironmentName)
-        .filter(
-            (environmentName) =>
-                !collection
-                    .getEnvironmentInheritanceChain(environmentName)
-                    .includes(ownEnvironmentName),
-        );
 }
 
 function getCompletionsForExtendsFieldValue(
