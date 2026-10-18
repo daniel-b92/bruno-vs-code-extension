@@ -2,17 +2,32 @@ import { BrunoFileType, ItemType } from "@global_shared";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { getHandlerForYamlFormatting } from "./getHandlerForYamlFormatting";
 
-// Prettier can't be loaded in jest (it needs dynamic imports of ES modules), so it's replaced by a simple stand-in.
-// The stand-in appends a semicolon to every line (that doesn't end with one yet) and uses the configured line break.
+// Prettier can't be loaded in jest (it needs dynamic imports of ES modules), so it's replaced by simple stand-ins.
+// The stand-in for scripts appends a semicolon to every line (that doesn't end with one yet) and uses the configured line break.
+// The stand-in for Yaml collapses multiple spaces after a colon to one and fails for content containing `!invalid`.
 jest.mock("prettier", () => ({
-    format: async (code: string, { endOfLine }: { endOfLine: string }) =>
-        code
-            .split(/\r?\n/)
-            .map((line) =>
-                line.trim() == "" || line.endsWith(";") ? line : `${line};`,
-            )
-            .join(endOfLine == "crlf" ? "\r\n" : "\n") +
-        (endOfLine == "crlf" ? "\r\n" : "\n"),
+    format: async (
+        code: string,
+        { parser, endOfLine }: { parser: string; endOfLine: string },
+    ) => {
+        const lineBreak = endOfLine == "crlf" ? "\r\n" : "\n";
+
+        if (parser == "yaml") {
+            if (code.includes("!invalid")) {
+                throw new Error("Invalid Yaml");
+            }
+            return code.replace(/^(\s*(?:- )?[\w-]+:) {2,}(\S)/gm, "$1 $2");
+        }
+
+        return (
+            code
+                .split(/\r?\n/)
+                .map((line) =>
+                    line.trim() == "" || line.endsWith(";") ? line : `${line};`,
+                )
+                .join(lineBreak) + lineBreak
+        );
+    },
 }));
 
 describe("getHandlerForYamlFormatting", () => {
@@ -111,6 +126,73 @@ runtime:
         ).toBe(
             "info:\n  name: test\n  type: http\nruntime:\n  scripts:\n    - type: tests\n      code: |\n        const s = `a;\n           \n        b`;\n",
         );
+    });
+
+    it("should format the structure of the Yaml file and the scripts", async () => {
+        expect(
+            await format(`info:
+  name:   test
+  type: http
+runtime:
+  scripts:
+    - type:   tests
+      code: |
+        test("x")
+`),
+        ).toBe(`info:
+  name: test
+  type: http
+runtime:
+  scripts:
+    - type: tests
+      code: |
+        test("x");
+`);
+    });
+
+    it("should return a single edit for the whole document", async () => {
+        expect(
+            await getEdits(`info:
+  name:   test
+  type: http
+runtime:
+  scripts:
+    - type: tests
+      code: |
+        test("x")
+`),
+        ).toHaveLength(1);
+    });
+
+    it("should format the Yaml structure for files without scripts", async () => {
+        expect(
+            await format(
+                `info:\n  name:   test\n  type: http\n`,
+                BrunoFileType.RequestFile,
+            ),
+        ).toBe(`info:\n  name: test\n  type: http\n`);
+    });
+
+    it("should still format scripts if the Yaml cannot be parsed", async () => {
+        expect(
+            await format(`info:
+  name:   !invalid
+  type: http
+runtime:
+  scripts:
+    - type: tests
+      code: |
+        test("x")
+`),
+        ).toBe(`info:
+  name:   !invalid
+  type: http
+runtime:
+  scripts:
+    - type: tests
+      code: |
+        test("x");
+`);
     });
 
     it("should keep scripts that are already formatted", async () => {
