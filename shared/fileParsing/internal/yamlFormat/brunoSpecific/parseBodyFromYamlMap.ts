@@ -9,7 +9,6 @@ import {
 import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { getStringWithBlockScalarInfo } from "../util/getStringWithBlockScalarInfo";
 import { getRangeForItem } from "../util/getRangeForItem";
-import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import {
     HttpBodyType,
     RequestFileHttpSectionBodyProperty,
@@ -27,27 +26,24 @@ export function parseBodyFromYamlMap(
         RequestFileHttpSectionBodyProperty.Data,
     ];
 
-    const {
-        getString,
-        items: {
-            validScalars: { withStringValue: validStrings },
-        },
-        missingProperties,
-    } = getValidatedMapItems(
+    const { getString, getEnumValue } = getValidatedMapItems(
         map,
-        { scalars: { stringValues: expectedStringScalars } },
+        {
+            scalars: {
+                stringValues: expectedStringScalars,
+                enumValues: {
+                    [RequestFileHttpSectionBodyProperty.Type]:
+                        Object.values(HttpBodyType),
+                },
+            },
+        },
         commonArgs,
         errors,
     );
 
-    const parsedType = getTypedValueFromList<HttpBodyType>(
-        {
-            allStringValues: validStrings,
-            keyName: RequestFileHttpSectionBodyProperty.Type,
-            allowedValues: Object.values(HttpBodyType),
-        },
-        errors,
-    )?.value;
+    const parsedType = getEnumValue<HttpBodyType>(
+        RequestFileHttpSectionBodyProperty.Type,
+    );
 
     const rawData = getString(RequestFileHttpSectionBodyProperty.Data);
 
@@ -56,7 +52,6 @@ export function parseBodyFromYamlMap(
         result: {
             keyRange,
             valueRange: getRangeForItem(map, commonArgs),
-            missingProperties,
             properties: {
                 type: parsedType,
                 data: getStringWithBlockScalarInfo(

@@ -40,21 +40,25 @@ export function parseVariablesFromYamlSequence(
     const keysForBooleanScalars = [RequestVariableProperty.Disabled];
 
     for (const currentMap of variableMaps) {
-        const { getString, getBoolean, missingProperties } =
-            getValidatedMapItems(
-                currentMap,
-                {
-                    scalars: {
-                        stringValues: keysForStringScalars,
-                        booleanValues: keysForBooleanScalars,
-                    },
-                    mandatoryKeys: [RequestVariableProperty.Name],
-                    // The value gets parsed separately, because it can be either a scalar or a map.
-                    additionalAllowedKeys: [RequestVariableProperty.Value],
+        const { getString, getBoolean } = getValidatedMapItems(
+            currentMap,
+            {
+                scalars: {
+                    stringValues: keysForStringScalars,
+                    booleanValues: keysForBooleanScalars,
                 },
-                commonArgs,
-                errors,
-            );
+                mandatoryKeys: [RequestVariableProperty.Name],
+                // The value gets parsed separately, because it can be either a scalar or a map.
+                additionalAllowedKeys: [
+                    {
+                        key: RequestVariableProperty.Value,
+                        valueKinds: ["string", "map"],
+                    },
+                ],
+            },
+            commonArgs,
+            errors,
+        );
         const { description, disabled } =
             getItemsForSimpleOptionalVariableProps({
                 getString,
@@ -69,7 +73,6 @@ export function parseVariablesFromYamlSequence(
 
         const variable: ParsedRequestVariable = {
             valueRange: getRangeForItem(currentMap, commonArgs),
-            missingProperties,
             properties: {
                 name: stripKeyFromResult(name),
                 description,

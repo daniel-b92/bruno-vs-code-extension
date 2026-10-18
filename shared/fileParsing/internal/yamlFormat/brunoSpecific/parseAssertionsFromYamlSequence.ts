@@ -5,14 +5,13 @@ import {
     MaybeResultWithErrors,
     ParsedAssertion,
 } from "../interfaces";
-import { YamlMapMissingPropertyInfo, YamlParsingError } from "../../../..";
+import { YamlParsingError } from "../../../..";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
 import {
     ValidatedMapItems,
     getValidatedMapItems,
 } from "../yamlMaps/getValidatedMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
-import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import {
     AssertionMapProperty,
     AssertionOperator,
@@ -35,33 +34,38 @@ export function parseAssertionsFromYamlSequence(
     errors.push(...sequenceParsingErrors);
 
     const keysForStringScalars = Object.values(AssertionMapProperty).filter(
-        (key) => key != AssertionMapProperty.Disabled,
+        (key) =>
+            key != AssertionMapProperty.Disabled &&
+            key != AssertionMapProperty.Operator,
     );
 
     for (const currentMap of assertionMaps) {
-        const { getString, getBoolean, missingProperties } =
-            getValidatedMapItems(
-                currentMap,
-                {
-                    scalars: {
-                        stringValues: keysForStringScalars,
-                        booleanValues: [AssertionMapProperty.Disabled],
+        const { getString, getBoolean, getEnumValue } = getValidatedMapItems(
+            currentMap,
+            {
+                scalars: {
+                    stringValues: keysForStringScalars,
+                    booleanValues: [AssertionMapProperty.Disabled],
+                    enumValues: {
+                        [AssertionMapProperty.Operator]:
+                            Object.values(AssertionOperator),
                     },
-                    mandatoryKeys: [
-                        AssertionMapProperty.Expression,
-                        AssertionMapProperty.Operator,
-                    ],
                 },
-                commonArgs,
-                errors,
-            );
+                mandatoryKeys: [
+                    AssertionMapProperty.Expression,
+                    AssertionMapProperty.Operator,
+                ],
+            },
+            commonArgs,
+            errors,
+        );
         const { errors: parsingErrors, result: currentAssertion } =
             parseAssertion(
                 currentMap,
                 commonArgs,
                 getString,
                 getBoolean,
-                missingProperties,
+                getEnumValue,
             );
         errors.push(...parsingErrors);
         if (!currentAssertion) {
@@ -84,36 +88,24 @@ function parseAssertion(
     commonArgs: CommonParsingArgs,
     getString: ValidatedMapItems["getString"],
     getBoolean: ValidatedMapItems["getBoolean"],
-    missingProperties: YamlMapMissingPropertyInfo[],
+    getEnumValue: ValidatedMapItems["getEnumValue"],
 ): MaybeResultWithErrors<ParsedAssertion> {
     const collectedErrors: YamlParsingError[] = [];
     const maybeExpressionWithKey = getString(AssertionMapProperty.Expression);
     const maybeValueWithKey = getString(AssertionMapProperty.Value);
     const maybeDescriptionWithKey = getString(AssertionMapProperty.Description);
     const maybeDisabledWithKey = getBoolean(AssertionMapProperty.Disabled);
-    const maybeUntypedOperatorWithKey = getString(
+    const maybeTypedOperator = getEnumValue<AssertionOperator>(
         AssertionMapProperty.Operator,
     );
-
-    const maybeTypedOperator = !maybeUntypedOperatorWithKey
-        ? undefined
-        : getTypedValueFromList(
-              {
-                  allowedValues: Object.values(AssertionOperator),
-                  allStringValues: [maybeUntypedOperatorWithKey],
-                  keyName: AssertionMapProperty.Operator,
-              },
-              collectedErrors,
-          );
 
     return {
         errors: collectedErrors,
         result: {
             valueRange: getRangeForItem(yamlMap, commonArgs),
-            missingProperties,
             properties: {
                 expression: stripKeyFromResult(maybeExpressionWithKey),
-                operator: maybeTypedOperator?.value,
+                operator: maybeTypedOperator,
                 value: stripKeyFromResult(maybeValueWithKey),
                 description: stripKeyFromResult(maybeDescriptionWithKey),
                 disabled: {

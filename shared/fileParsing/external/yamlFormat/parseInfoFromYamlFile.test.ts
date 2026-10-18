@@ -41,7 +41,6 @@ http:
                 new Position(0, TopLevelRequestFileProperty.Info.length),
             ),
             valueRange: new Range(new Position(1, 4), new Position(7, 0)),
-            missingProperties: [],
             properties: {
                 name: {
                     keyRange: getExpectedKeyRange(

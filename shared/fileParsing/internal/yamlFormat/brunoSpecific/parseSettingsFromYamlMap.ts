@@ -11,7 +11,6 @@ import {
 } from "../../../external/yamlFormat/constants/requestFileConstants";
 import { FileInfoType } from "../../../external/yamlFormat/constants/sharedConstants";
 import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
-import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 
@@ -28,41 +27,34 @@ export function parseSettingsFromYamlMap(
         requestType && SETTINGS_BY_REQUEST_TYPE[requestType];
     const isAllowed = (property: RequestFileSettingsProperty) =>
         allowedSettings?.includes(property) ?? true;
-    const { getString, getBoolean, getNumber, missingProperties } =
-        getValidatedMapItems(
-            settingsMap,
-            {
-                scalars: {
-                    stringValues: [RequestFileSettingsProperty.Timeout],
-                    booleanValues: [
-                        RequestFileSettingsProperty.EncodeUrl,
-                        RequestFileSettingsProperty.FollowRedirects,
-                        RequestFileSettingsProperty.ForwardAuthorizationHeader,
-                    ].filter(isAllowed),
-                    // timeout can either be a number or the string 'inherit'.
-                    numericValues: [
-                        RequestFileSettingsProperty.MaxRedirects,
-                        RequestFileSettingsProperty.Timeout,
-                        RequestFileSettingsProperty.KeepAliveInterval,
-                    ].filter(isAllowed),
+    const { getEnumValue, getBoolean, getNumber } = getValidatedMapItems(
+        settingsMap,
+        {
+            scalars: {
+                // timeout can either be a number or the string 'inherit'.
+                enumValues: {
+                    [RequestFileSettingsProperty.Timeout]: ["inherit"],
                 },
-                // All properties are optional (e.g. older files lack newer settings).
+                booleanValues: [
+                    RequestFileSettingsProperty.EncodeUrl,
+                    RequestFileSettingsProperty.FollowRedirects,
+                    RequestFileSettingsProperty.ForwardAuthorizationHeader,
+                ].filter(isAllowed),
+                numericValues: [
+                    RequestFileSettingsProperty.MaxRedirects,
+                    RequestFileSettingsProperty.Timeout,
+                    RequestFileSettingsProperty.KeepAliveInterval,
+                ].filter(isAllowed),
             },
-            commonArgs,
-            errors,
-        );
+            // All properties are optional (e.g. older files lack newer settings).
+        },
+        commonArgs,
+        errors,
+    );
 
-    const timeoutAsString = getString(RequestFileSettingsProperty.Timeout);
-    const timeout = timeoutAsString
-        ? getTypedValueFromList(
-              {
-                  allowedValues: ["inherit"],
-                  allStringValues: [timeoutAsString],
-                  keyName: RequestFileSettingsProperty.Timeout,
-              },
-              errors,
-          )?.value
-        : stripKeyFromResult(getNumber(RequestFileSettingsProperty.Timeout));
+    const timeout =
+        getEnumValue<"inherit">(RequestFileSettingsProperty.Timeout) ??
+        stripKeyFromResult(getNumber(RequestFileSettingsProperty.Timeout));
 
     return {
         result: {
@@ -88,7 +80,6 @@ export function parseSettingsFromYamlMap(
                     getNumber(RequestFileSettingsProperty.KeepAliveInterval),
                 ),
             },
-            missingProperties,
         },
         errors,
     };

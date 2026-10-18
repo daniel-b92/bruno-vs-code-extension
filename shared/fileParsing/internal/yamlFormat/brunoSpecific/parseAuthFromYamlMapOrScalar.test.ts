@@ -2,9 +2,16 @@ import { describe, it, expect } from "@jest/globals";
 import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
+    getMissingKeys,
+    makeCommonParsingArgs,
     parseTextIntoYamlDocument,
 } from "../../../../_testingUtils";
-import { Position, Range, TextDocumentHelper } from "../../../..";
+import {
+    Position,
+    Range,
+    TextDocumentHelper,
+    YamlMapDescriptor,
+} from "../../../..";
 import {
     OAuth1Placement,
     OAuth1SignatureMethod,
@@ -59,6 +66,48 @@ describe("parseAuthFromYamlMapOrScalar", () => {
         expect(result?.value).toEqual({});
     });
 
+    it("records a descriptor that expects only the type, if the type is missing", () => {
+        const { result, errors, mapDescriptors } = parseAuth(`auth:
+    username: foo`);
+
+        expect(result).toBeUndefined();
+        expect(errors).toHaveLength(1);
+        expect(mapDescriptors).toHaveLength(1);
+        expect(mapDescriptors[0].expectedKeys).toEqual([
+            {
+                key: "type",
+                valueKinds: ["string"],
+                isMandatory: true,
+                allowedValues: Object.values(AuthType),
+            },
+        ]);
+        expect(mapDescriptors[0].definedKeys.map(({ key }) => key)).toEqual([
+            "username",
+        ]);
+    });
+
+    it("records a descriptor that expects only the type, if the type is invalid", () => {
+        const { result, errors, mapDescriptors } = parseAuth(`auth:
+    type: foo`);
+
+        expect(result).toBeUndefined();
+        expect(errors).toHaveLength(1);
+        expect(mapDescriptors).toHaveLength(1);
+        expect(mapDescriptors[0].expectedKeys.map(({ key }) => key)).toEqual([
+            "type",
+        ]);
+    });
+
+    it("records a single descriptor with the keys of the auth type, if the type is valid", () => {
+        const { mapDescriptors } = parseAuth(`auth:
+    type: basic`);
+
+        expect(mapDescriptors).toHaveLength(1);
+        expect(mapDescriptors[0].expectedKeys.map(({ key }) => key)).toEqual(
+            Object.values(BasicAuthProperty),
+        );
+    });
+
     it("returns an error for invalid scalar value", () => {
         const documentText = `auth: inherits`;
 
@@ -109,7 +158,6 @@ describe("parseAuthFromYamlMapOrScalar", () => {
         expect(result?.keyRange).toEqual(source.keyRange);
 
         const expectedValue: ParsedBasicAuth = {
-            missingProperties: [],
             properties: {
                 type: {
                     keyRange: getExpectedKeyRange(1, BasicAuthProperty.Type, 4),
@@ -194,7 +242,6 @@ describe("parseAuthFromYamlMapOrScalar", () => {
 
         expect(result).toBeDefined();
         const auth = result?.value as ParsedBasicAuth;
-        expect(auth.missingProperties).toHaveLength(0);
         expect(auth.properties.username).toBeUndefined();
         expect(auth.properties.password).toEqual({
             keyRange: getExpectedKeyRange(4, BasicAuthProperty.Password, 4),
@@ -220,7 +267,6 @@ describe("parseAuthFromYamlMapOrScalar", () => {
 
         expect(errors).toHaveLength(0);
         const auth = result?.value as ParsedAwsV4Auth;
-        expect(auth.missingProperties).toHaveLength(0);
         expect(auth.properties.type.value).toBe(AuthType.Awsv4);
         expect(auth.properties.accessKeyId?.value).toBe("id");
         expect(auth.properties.secretAccessKey?.value).toBe("secret");
@@ -315,7 +361,6 @@ describe("parseAuthFromYamlMapOrScalar", () => {
 
         expect(errors).toHaveLength(0);
         const auth = result?.value as ParsedAkamaiEdgegridAuth;
-        expect(auth.missingProperties).toHaveLength(0);
         expect(auth.properties.type.value).toBe(AuthType.AkamaiEdgegrid);
         expect(auth.properties.accessToken?.value).toBe("at");
         expect(auth.properties.clientToken?.value).toBe("ct");
@@ -414,7 +459,6 @@ describe("parseAuthFromYamlMapOrScalar", () => {
 
         expect(errors).toHaveLength(0);
         const auth = result?.value as ParsedOAuth2Auth;
-        expect(auth.missingProperties).toHaveLength(0);
         const { properties } = auth;
         expect(properties.type.value).toBe(AuthType.Oauth2);
         expect(properties.flow?.value).toBe(OAuth2Flow.AuthorizationCode);
@@ -461,7 +505,7 @@ describe("parseAuthFromYamlMapOrScalar", () => {
     });
 
     it("parses auth of type 'oauth2' with a token placement in query without value", () => {
-        const { result, errors } = parseAuth(`auth:
+        const { result, errors, mapDescriptors } = parseAuth(`auth:
     type: oauth2
     flow: implicit
     tokenConfig:
@@ -476,8 +520,11 @@ describe("parseAuthFromYamlMapOrScalar", () => {
             getExpectedKeyRange(5, "query", 12),
         );
         expect(placement?.properties.header).toBeUndefined();
-        expect(placement?.missingProperties).toEqual([
-            { key: "header", isMandatory: false, alwaysHasScalarValue: true },
+        const placementDescriptor = mapDescriptors.find(({ expectedKeys }) =>
+            expectedKeys.some(({ key }) => key == "header"),
+        )!;
+        expect(getMissingKeys(placementDescriptor)).toEqual([
+            { key: "header", isMandatory: false, valueKinds: ["string"] },
         ]);
     });
 
@@ -507,19 +554,20 @@ describe("parseAuthFromYamlMapOrScalar", () => {
 function parseAuth(documentText: string): {
     result?: ParsedAuth;
     errors: ReturnType<typeof parseAuthFromYamlMapOrScalar>["errors"];
+    mapDescriptors: YamlMapDescriptor[];
 } {
-    const docHelper = new TextDocumentHelper(documentText);
-    const fullDocumentRange = docHelper.getTextRange();
+    const commonArgs = makeCommonParsingArgs(documentText);
     const parsedDocument = parseTextIntoYamlDocument(documentText);
     const authMap = (parsedDocument.contents as YAMLMap).items[0]
         .value as YAMLMap;
 
-    return parseAuthFromYamlMapOrScalar({
+    const parsed = parseAuthFromYamlMapOrScalar({
         authMapOrScalar: {
             key: "auth",
             keyRange: getExpectedKeyRange(0, "auth", 0),
             value: authMap,
         },
-        commonArgs: { docHelper, fullDocumentRange },
+        commonArgs,
     });
+    return { ...parsed, mapDescriptors: commonArgs.mapDescriptors };
 }

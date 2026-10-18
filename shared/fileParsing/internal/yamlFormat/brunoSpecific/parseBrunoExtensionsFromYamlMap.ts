@@ -7,7 +7,6 @@ import {
 } from "../interfaces";
 import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { getStringListFromSequence } from "../yamlSequences/getStringListFromSequence";
-import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { parseIfPresent } from "../util/parseIfPresent";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
@@ -34,7 +33,7 @@ export function parseExtensionsFromYamlMap(
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<ParsedExtensions> {
     const errors: YamlParsingError[] = [];
-    const { getMap, missingProperties } = getValidatedMapItems(
+    const { getMap } = getValidatedMapItems(
         extensionsMap,
         { mapValues: Object.values(CollectionExtensionsProperty) },
         commonArgs,
@@ -46,7 +45,6 @@ export function parseExtensionsFromYamlMap(
         result: {
             keyRange,
             valueRange: getRangeForItem(extensionsMap, commonArgs),
-            missingProperties,
             properties: {
                 bruno: parseIfPresent(
                     getMap(CollectionExtensionsProperty.Bruno),
@@ -63,7 +61,7 @@ function parseBrunoExtension(
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<ParsedBrunoExtension> {
     const errors: YamlParsingError[] = [];
-    const { getMap, getSequence, missingProperties } = getValidatedMapItems(
+    const { getMap, getSequence } = getValidatedMapItems(
         brunoMap,
         {
             sequenceValues: [BrunoExtensionProperty.Ignore],
@@ -81,7 +79,6 @@ function parseBrunoExtension(
         result: {
             keyRange,
             valueRange: getRangeForItem(brunoMap, commonArgs),
-            missingProperties,
             properties: {
                 ignore: getStringListFromSequence(
                     getSequence(BrunoExtensionProperty.Ignore),
@@ -109,7 +106,7 @@ function parseScripts(
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<ParsedScripts> {
     const errors: YamlParsingError[] = [];
-    const { getSequence, missingProperties } = getValidatedMapItems(
+    const { getSequence } = getValidatedMapItems(
         scriptsMap,
         { sequenceValues: [BrunoScriptsProperty.AdditionalContextRoots] },
         commonArgs,
@@ -121,7 +118,6 @@ function parseScripts(
         result: {
             keyRange,
             valueRange: getRangeForItem(scriptsMap, commonArgs),
-            missingProperties,
             properties: {
                 additionalContextRoots: getStringListFromSequence(
                     getSequence(BrunoScriptsProperty.AdditionalContextRoots),
@@ -139,7 +135,7 @@ function parsePresets(
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<ParsedPresets> {
     const errors: YamlParsingError[] = [];
-    const { getString, getMap, missingProperties } = getValidatedMapItems(
+    const { getString, getMap } = getValidatedMapItems(
         presetsMap,
         {
             scalars: {
@@ -156,7 +152,6 @@ function parsePresets(
         result: {
             keyRange,
             valueRange: getRangeForItem(presetsMap, commonArgs),
-            missingProperties,
             properties: {
                 defaultEnvironment: stripKeyFromResult(
                     getString(BrunoPresetsProperty.DefaultEnvironment),
@@ -176,17 +171,16 @@ function parsePresetsRequest(
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<NonNullable<ParsedPresets["properties"]["request"]>> {
     const errors: YamlParsingError[] = [];
-    const {
-        getString,
-        items: {
-            validScalars: { withStringValue },
-        },
-        missingProperties,
-    } = getValidatedMapItems(
+    const { getString, getEnumValue } = getValidatedMapItems(
         requestMap,
         {
             scalars: {
                 stringValues: Object.values(BrunoPresetsRequestProperty),
+                enumValues: {
+                    [BrunoPresetsRequestProperty.Type]: Object.values(
+                        BrunoPresetsRequestType,
+                    ),
+                },
             },
         },
         commonArgs,
@@ -198,16 +192,10 @@ function parsePresetsRequest(
         result: {
             keyRange,
             valueRange: getRangeForItem(requestMap, commonArgs),
-            missingProperties,
             properties: {
-                type: getTypedValueFromList<BrunoPresetsRequestType>(
-                    {
-                        allowedValues: Object.values(BrunoPresetsRequestType),
-                        allStringValues: withStringValue,
-                        keyName: BrunoPresetsRequestProperty.Type,
-                    },
-                    errors,
-                )?.value,
+                type: getEnumValue<BrunoPresetsRequestType>(
+                    BrunoPresetsRequestProperty.Type,
+                ),
                 url: stripKeyFromResult(
                     getString(BrunoPresetsRequestProperty.Url),
                 ),

@@ -11,7 +11,6 @@ import {
     WithKeyAndKeyRange,
 } from "../interfaces";
 import { getStringListFromSequence } from "../yamlSequences/getStringListFromSequence";
-import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getRangeForItem } from "../util/getRangeForItem";
 import {
     ValidatedMapItems,
@@ -47,9 +46,7 @@ export function parseFileInfoFromYamlMap(args: {
         BrunoFileType.RequestFile,
     ].includes(fileType);
     const checkForTagsProperty = fileType == BrunoFileType.RequestFile;
-    const expectedStringScalars = [FileInfoProperty.Name].concat(
-        checkForTypeProperty ? FileInfoProperty.Type : [],
-    );
+    const expectedStringScalars = [FileInfoProperty.Name];
     const expectedNumericScalars = checkForSeqProperty
         ? [FileInfoProperty.Seq]
         : [];
@@ -58,51 +55,39 @@ export function parseFileInfoFromYamlMap(args: {
         : [];
     const mandatoryKeys = getMandatoryKeys(fileType);
 
-    const {
-        getString,
-        getNumber,
-        getSequence,
-        items: {
-            validScalars: { withStringValue: validStringScalars },
-        },
-        missingProperties,
-    } = getValidatedMapItems(
-        infoMap,
-        {
-            scalars: {
-                stringValues: expectedStringScalars,
-                numericValues: expectedNumericScalars,
+    const { getString, getNumber, getSequence, getEnumValue } =
+        getValidatedMapItems(
+            infoMap,
+            {
+                scalars: {
+                    stringValues: expectedStringScalars,
+                    enumValues: checkForTypeProperty
+                        ? { [FileInfoProperty.Type]: getAllowedTypes(fileType) }
+                        : {},
+                    numericValues: expectedNumericScalars,
+                },
+                sequenceValues: expectedSequenceValues,
+                mandatoryKeys,
             },
-            sequenceValues: expectedSequenceValues,
-            mandatoryKeys,
-        },
-        commonArgs,
-        errors,
-    );
+            commonArgs,
+            errors,
+        );
     const name = getString(FileInfoProperty.Name);
-    const maybeType = !checkForTypeProperty
-        ? undefined
-        : getTypedValueFromList(
-              {
-                  allowedValues: getAllowedTypes(fileType),
-                  allStringValues: validStringScalars,
-                  keyName: FileInfoProperty.Type,
-              },
-              errors,
-          );
+    const maybeType = checkForTypeProperty
+        ? getEnumValue<FileInfoType>(FileInfoProperty.Type)
+        : undefined;
 
     return {
         errors,
         result: {
             keyRange: infoKeyRange,
             valueRange: getRangeForItem(infoMap, commonArgs),
-            missingProperties,
             properties: {
                 name: stripKeyFromResult(name),
                 sequence: checkForSeqProperty
                     ? getSequenceToUse(getNumber, errors)
                     : undefined,
-                type: maybeType ? maybeType.value : undefined,
+                type: maybeType,
                 tags: checkForTagsProperty
                     ? getStringListFromSequence(
                           getSequence(FileInfoProperty.Tags),

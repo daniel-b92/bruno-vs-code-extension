@@ -2,9 +2,10 @@ import { describe, it, expect } from "@jest/globals";
 import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
+    getMissingKeys,
+    makeCommonParsingArgs,
     parseTextIntoYamlDocument,
 } from "../../../../_testingUtils";
-import { TextDocumentHelper } from "../../../..";
 import { YAMLMap } from "yaml";
 import { WithKeyAndKeyRange } from "../interfaces";
 import { parseBodyFromYamlMap } from "./parseBodyFromYamlMap";
@@ -24,7 +25,6 @@ describe("parseBodyFromYamlMap", () => {
         expect(result).toBeDefined();
         expect(result!.properties.type?.value).toBe(HttpBodyType.Json);
         expect(result!.properties.data?.value).toBe("some-payload");
-        expect(result!.missingProperties).toHaveLength(0);
     });
 
     it("returns undefined data and lists data as missing when only type is present", () => {
@@ -38,10 +38,8 @@ describe("parseBodyFromYamlMap", () => {
         expect(result!.properties.type?.value).toBe(HttpBodyType.Xml);
         expect(result!.properties.data).toBeUndefined();
         expect(
-            result!.missingProperties.some(
-                ({ key }) => key === RequestFileHttpSectionBodyProperty.Data,
-            ),
-        ).toBe(true);
+            getMissingKeys(commonArgs.mapDescriptors[0]).map(({ key }) => key),
+        ).toEqual([RequestFileHttpSectionBodyProperty.Data]);
     });
 
     it("returns undefined type and lists type as missing when only data is present", () => {
@@ -55,10 +53,8 @@ describe("parseBodyFromYamlMap", () => {
         expect(result!.properties.type).toBeUndefined();
         expect(result!.properties.data?.value).toBe("hello");
         expect(
-            result!.missingProperties.some(
-                ({ key }) => key === RequestFileHttpSectionBodyProperty.Type,
-            ),
-        ).toBe(true);
+            getMissingKeys(commonArgs.mapDescriptors[0]).map(({ key }) => key),
+        ).toEqual([RequestFileHttpSectionBodyProperty.Type]);
     });
 
     it("lists both keys as missing when the body map is empty", () => {
@@ -71,7 +67,7 @@ describe("parseBodyFromYamlMap", () => {
         expect(result).toBeDefined();
         expect(result!.properties.type).toBeUndefined();
         expect(result!.properties.data).toBeUndefined();
-        expect(result!.missingProperties).toHaveLength(2);
+        expect(getMissingKeys(commonArgs.mapDescriptors[0])).toHaveLength(2);
     });
 
     it("records an error and returns undefined type when type value is not a valid HttpBodyType", () => {
@@ -118,26 +114,23 @@ describe("parseBodyFromYamlMap", () => {
         );
     });
 
-    it("marks missing properties as always having a scalar value and as non-mandatory", () => {
+    it("describes missing keys as string keys that are non-mandatory", () => {
         const documentText = `body: {}`;
         const { commonArgs, bodyMap } = makeBodyMap(documentText);
 
-        const { result } = parseBodyFromYamlMap(bodyMap, commonArgs);
+        parseBodyFromYamlMap(bodyMap, commonArgs);
 
-        expect(result).toBeDefined();
-        for (const missing of result!.missingProperties) {
-            expect(missing.alwaysHasScalarValue).toBe(true);
+        const missingKeys = getMissingKeys(commonArgs.mapDescriptors[0]);
+        expect(missingKeys).toHaveLength(2);
+        for (const missing of missingKeys) {
+            expect(missing.valueKinds).toEqual(["string"]);
             expect(missing.isMandatory).toBe(false);
         }
     });
 });
 
 function makeBodyMap(documentText: string) {
-    const docHelper = new TextDocumentHelper(documentText);
-    const commonArgs = {
-        docHelper,
-        fullDocumentRange: docHelper.getTextRange(),
-    };
+    const commonArgs = makeCommonParsingArgs(documentText);
     const parsedDocument = parseTextIntoYamlDocument(documentText);
     const innerMap = (parsedDocument.contents as YAMLMap).items[0]
         .value as YAMLMap;

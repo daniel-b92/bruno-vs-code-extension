@@ -1,5 +1,9 @@
 import { isScalar, Scalar, YAMLMap } from "yaml";
-import { WithKeyAndValueRange, YamlParsingError } from "../../../..";
+import {
+    WithKeyAndValueRange,
+    YamlMapDescriptor,
+    YamlParsingError,
+} from "../../../..";
 import {
     CommonParsingArgs,
     MaybeResultWithErrors,
@@ -8,7 +12,6 @@ import {
     WithKeyAndKeyRange,
 } from "../interfaces";
 import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
-import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { parseMapsFromSequence } from "../yamlSequences/parseMapsFromSequence";
 import { parseIfPresent } from "../util/parseIfPresent";
 import { getRangeForItem } from "../util/getRangeForItem";
@@ -61,20 +64,22 @@ export function parseOAuth2AuthFromAuthMap(
     collectedErrors: YamlParsingError[],
 ): ParsedOAuth2Auth {
     const { authMap, parsedType: type } = args;
-    const { items, getString, getMap, missingProperties } =
-        getValidatedMapItems(
-            authMap,
-            {
-                scalars: {
-                    stringValues: Object.values(OAuth2AuthProperty).filter(
-                        (key) => !mapKeys.includes(key),
-                    ),
+    const { getString, getMap, getEnumValue } = getValidatedMapItems(
+        authMap,
+        {
+            scalars: {
+                stringValues: Object.values(OAuth2AuthProperty).filter(
+                    (key) => !mapKeys.includes(key),
+                ),
+                enumValues: {
+                    [OAuth2AuthProperty.Flow]: Object.values(OAuth2Flow),
                 },
-                mapValues: mapKeys,
             },
-            commonArgs,
-            collectedErrors,
-        );
+            mapValues: mapKeys,
+        },
+        commonArgs,
+        collectedErrors,
+    );
 
     const parseNestedMap = <T>(
         key: OAuth2AuthProperty,
@@ -84,14 +89,7 @@ export function parseOAuth2AuthFromAuthMap(
     return {
         properties: {
             type,
-            flow: getTypedValueFromList<OAuth2Flow>(
-                {
-                    allowedValues: Object.values(OAuth2Flow),
-                    allStringValues: items.validScalars.withStringValue,
-                    keyName: OAuth2AuthProperty.Flow,
-                },
-                collectedErrors,
-            )?.value,
+            flow: getEnumValue<OAuth2Flow>(OAuth2AuthProperty.Flow),
             authorizationUrl: stripKeyFromResult(
                 getString(OAuth2AuthProperty.AuthorizationUrl),
             ),
@@ -127,7 +125,6 @@ export function parseOAuth2AuthFromAuthMap(
                 parseSettings(map, commonArgs),
             ),
         },
-        missingProperties,
     };
 }
 
@@ -138,9 +135,18 @@ function parseCredentials(
     NonNullable<ParsedOAuth2Auth["properties"]["credentials"]>
 > {
     const errors: YamlParsingError[] = [];
-    const { items, getString, missingProperties } = getValidatedMapItems(
+    const { getString, getEnumValue } = getValidatedMapItems(
         map,
-        { scalars: { stringValues: Object.values(OAuth2CredentialsProperty) } },
+        {
+            scalars: {
+                stringValues: Object.values(OAuth2CredentialsProperty),
+                enumValues: {
+                    [OAuth2CredentialsProperty.Placement]: Object.values(
+                        OAuth2CredentialsPlacement,
+                    ),
+                },
+            },
+        },
         commonArgs,
         errors,
     );
@@ -150,7 +156,6 @@ function parseCredentials(
         result: {
             keyRange,
             valueRange: getRangeForItem(map, commonArgs),
-            missingProperties,
             properties: {
                 clientId: stripKeyFromResult(
                     getString(OAuth2CredentialsProperty.ClientId),
@@ -158,16 +163,9 @@ function parseCredentials(
                 clientSecret: stripKeyFromResult(
                     getString(OAuth2CredentialsProperty.ClientSecret),
                 ),
-                placement: getTypedValueFromList<OAuth2CredentialsPlacement>(
-                    {
-                        allowedValues: Object.values(
-                            OAuth2CredentialsPlacement,
-                        ),
-                        allStringValues: items.validScalars.withStringValue,
-                        keyName: OAuth2CredentialsProperty.Placement,
-                    },
-                    errors,
-                )?.value,
+                placement: getEnumValue<OAuth2CredentialsPlacement>(
+                    OAuth2CredentialsProperty.Placement,
+                ),
             },
         },
     };
@@ -180,7 +178,7 @@ function parseResourceOwner(
     NonNullable<ParsedOAuth2Auth["properties"]["resourceOwner"]>
 > {
     const errors: YamlParsingError[] = [];
-    const { getString, missingProperties } = getValidatedMapItems(
+    const { getString } = getValidatedMapItems(
         map,
         {
             scalars: {
@@ -196,7 +194,6 @@ function parseResourceOwner(
         result: {
             keyRange,
             valueRange: getRangeForItem(map, commonArgs),
-            missingProperties,
             properties: {
                 username: stripKeyFromResult(
                     getString(OAuth2ResourceOwnerProperty.Username),
@@ -214,19 +211,13 @@ function parsePkce(
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<NonNullable<ParsedOAuth2Auth["properties"]["pkce"]>> {
     const errors: YamlParsingError[] = [];
-    const { missingProperties } = getValidatedMapItems(
-        map,
-        {},
-        commonArgs,
-        errors,
-    );
+    getValidatedMapItems(map, {}, commonArgs, errors);
 
     return {
         errors,
         result: {
             keyRange,
             valueRange: getRangeForItem(map, commonArgs),
-            missingProperties,
             properties: {},
         },
     };
@@ -237,7 +228,7 @@ function parseAdditionalParameters(
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<ParsedAdditionalParameters> {
     const errors: YamlParsingError[] = [];
-    const { getSequence, missingProperties } = getValidatedMapItems(
+    const { getSequence } = getValidatedMapItems(
         map,
         { sequenceValues: Object.values(OAuth2AdditionalParametersProperty) },
         commonArgs,
@@ -266,7 +257,6 @@ function parseAdditionalParameters(
         result: {
             keyRange,
             valueRange: getRangeForItem(map, commonArgs),
-            missingProperties,
             properties: {
                 authorizationRequest: parseParameters(
                     OAuth2AdditionalParametersProperty.AuthorizationRequest,
@@ -287,17 +277,15 @@ function parseAdditionalParameter(
     commonArgs: CommonParsingArgs,
     errors: YamlParsingError[],
 ): ParsedOAuth2AdditionalParameter {
-    const {
-        items: {
-            validScalars: { withStringValue },
-        },
-        getString,
-        missingProperties,
-    } = getValidatedMapItems(
+    const { getString, getEnumValue } = getValidatedMapItems(
         map,
         {
             scalars: {
                 stringValues: Object.values(OAuth2AdditionalParameterProperty),
+                enumValues: {
+                    [OAuth2AdditionalParameterProperty.Placement]:
+                        Object.values(OAuth2AdditionalParameterPlacement),
+                },
             },
             mandatoryKeys: [
                 OAuth2AdditionalParameterProperty.Name,
@@ -310,7 +298,6 @@ function parseAdditionalParameter(
 
     return {
         valueRange: getRangeForItem(map, commonArgs),
-        missingProperties,
         properties: {
             name: stripKeyFromResult(
                 getString(OAuth2AdditionalParameterProperty.Name),
@@ -318,17 +305,9 @@ function parseAdditionalParameter(
             value: stripKeyFromResult(
                 getString(OAuth2AdditionalParameterProperty.Value),
             ),
-            placement:
-                getTypedValueFromList<OAuth2AdditionalParameterPlacement>(
-                    {
-                        allowedValues: Object.values(
-                            OAuth2AdditionalParameterPlacement,
-                        ),
-                        allStringValues: withStringValue,
-                        keyName: OAuth2AdditionalParameterProperty.Placement,
-                    },
-                    errors,
-                )?.value,
+            placement: getEnumValue<OAuth2AdditionalParameterPlacement>(
+                OAuth2AdditionalParameterProperty.Placement,
+            ),
         },
     };
 }
@@ -338,28 +317,27 @@ function parseTokenConfig(
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<ParsedTokenConfig> {
     const errors: YamlParsingError[] = [];
-    const { items, getString, getMap, missingProperties } =
-        getValidatedMapItems(
-            map,
-            {
-                scalars: {
-                    stringValues: [
-                        OAuth2TokenConfigProperty.Id,
-                        OAuth2TokenConfigProperty.Source,
-                    ],
+    const { getString, getMap, getEnumValue } = getValidatedMapItems(
+        map,
+        {
+            scalars: {
+                stringValues: [OAuth2TokenConfigProperty.Id],
+                enumValues: {
+                    [OAuth2TokenConfigProperty.Source]:
+                        Object.values(OAuth2TokenSource),
                 },
-                mapValues: [OAuth2TokenConfigProperty.Placement],
             },
-            commonArgs,
-            errors,
-        );
+            mapValues: [OAuth2TokenConfigProperty.Placement],
+        },
+        commonArgs,
+        errors,
+    );
 
     return {
         errors,
         result: {
             keyRange,
             valueRange: getRangeForItem(map, commonArgs),
-            missingProperties,
             properties: {
                 id: stripKeyFromResult(getString(OAuth2TokenConfigProperty.Id)),
                 placement: parseIfPresent(
@@ -368,14 +346,9 @@ function parseTokenConfig(
                         parseTokenPlacement(placementMap, commonArgs),
                     errors,
                 ),
-                source: getTypedValueFromList<OAuth2TokenSource>(
-                    {
-                        allowedValues: Object.values(OAuth2TokenSource),
-                        allStringValues: items.validScalars.withStringValue,
-                        keyName: OAuth2TokenConfigProperty.Source,
-                    },
-                    errors,
-                )?.value,
+                source: getEnumValue<OAuth2TokenSource>(
+                    OAuth2TokenConfigProperty.Source,
+                ),
             },
         },
     };
@@ -402,25 +375,39 @@ function parseTokenPlacement(
         mapToValidate.delete(queryKey);
     }
 
-    const { getString, missingProperties } = getValidatedMapItems(
+    // The descriptor of the map gets recorded separately, so that the `query` key can be added to it afterwards.
+    const placementDescriptors: YamlMapDescriptor[] = [];
+    const { getString } = getValidatedMapItems(
         mapToValidate,
         {
             scalars: {
                 stringValues: Object.values(OAuth2TokenPlacementProperty),
             },
         },
-        commonArgs,
+        { ...commonArgs, mapDescriptors: placementDescriptors },
         errors,
     );
+    if (queryWithoutValue) {
+        // The key was removed from the validated map, but it is still defined in the document.
+        placementDescriptors[0].definedKeys.push({
+            key: queryKey,
+            keyRange: getRangeForItem(
+                queryWithoutValue.key as Scalar,
+                commonArgs,
+            ),
+            valueRange: getRangeForItem(
+                queryWithoutValue.value as Scalar,
+                commonArgs,
+            ),
+        });
+    }
+    commonArgs.mapDescriptors?.push(...placementDescriptors);
 
     return {
         errors,
         result: {
             keyRange,
             valueRange: getRangeForItem(map, commonArgs),
-            missingProperties: missingProperties.filter(
-                ({ key }) => !(queryWithoutValue && key == queryKey),
-            ),
             properties: {
                 header: stripKeyFromResult(
                     getString(OAuth2TokenPlacementProperty.Header),
@@ -450,7 +437,7 @@ function parseSettings(
     NonNullable<ParsedOAuth2Auth["properties"]["settings"]>
 > {
     const errors: YamlParsingError[] = [];
-    const { getBoolean, missingProperties } = getValidatedMapItems(
+    const { getBoolean } = getValidatedMapItems(
         map,
         {
             scalars: {
@@ -466,7 +453,6 @@ function parseSettings(
         result: {
             keyRange,
             valueRange: getRangeForItem(map, commonArgs),
-            missingProperties,
             properties: {
                 autoFetchToken: stripKeyFromResult(
                     getBoolean(OAuth2SettingsProperty.AutoFetchToken),

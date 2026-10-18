@@ -6,10 +6,12 @@ import {
     Position,
     Range,
     WithKeyAndValueRange,
+    YamlMapDescriptor,
 } from "../../..";
 import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
+    getMissingKeys,
 } from "../../../_testingUtils";
 import {
     EnvironmentVariableProperty,
@@ -24,8 +26,10 @@ variables:
   - name: var-1
     value: test-1
     description: desc`;
+        const mapDescriptors: YamlMapDescriptor[] = [];
         const parsed = parseYamlEnvironmentFile(
             new TextDocumentHelper(documentText),
+            { mapDescriptors },
         );
 
         const variableNameLine = 2;
@@ -39,15 +43,6 @@ variables:
                         4 + 2 + "description".length + "desc".length,
                     ),
                 ),
-                missingProperties: [
-                    EnvironmentVariableProperty.Disabled,
-                    EnvironmentVariableProperty.Secret,
-                    EnvironmentVariableProperty.Type,
-                ].map((key) => ({
-                    key,
-                    alwaysHasScalarValue: true,
-                    isMandatory: false,
-                })),
                 properties: {
                     ...getDefaultVariableProperties(),
                     name: {
@@ -103,16 +98,17 @@ variables:
                     },
                     variables: { enabled: expectedVariables, disabled: [] },
                 },
-                missingProperties: [
-                    {
-                        key: TopLevelEnvironmentFileProperty.Extends,
-                        alwaysHasScalarValue: true,
-                        isMandatory: false,
-                    },
-                ],
             },
             errors: [],
         });
+        expect(getMissingKeyNamesPerMap(mapDescriptors)).toEqual([
+            [TopLevelEnvironmentFileProperty.Extends],
+            [
+                EnvironmentVariableProperty.Disabled,
+                EnvironmentVariableProperty.Secret,
+                EnvironmentVariableProperty.Type,
+            ],
+        ]);
     });
 
     it("parses a yaml environment file with multiple variables", () => {
@@ -125,8 +121,10 @@ variables:
     value: test-2
     secret: true
     disabled: true`;
+        const mapDescriptors: YamlMapDescriptor[] = [];
         const parsed = parseYamlEnvironmentFile(
             new TextDocumentHelper(documentText),
+            { mapDescriptors },
         );
         const firstVarNameLine = 2;
         const secondVarNameLine = 5;
@@ -134,15 +132,6 @@ variables:
         const expectedEnabledVariables: ParsedEnvironmentVariable[] = [
             {
                 valueRange: new Range(new Position(2, 4), new Position(5, 0)),
-                missingProperties: [
-                    EnvironmentVariableProperty.Disabled,
-                    EnvironmentVariableProperty.Secret,
-                    EnvironmentVariableProperty.Type,
-                ].map((key) => ({
-                    key,
-                    alwaysHasScalarValue: true,
-                    isMandatory: false,
-                })),
                 properties: {
                     ...getDefaultVariableProperties(),
                     name: {
@@ -187,14 +176,6 @@ variables:
                     new Position(5, 4),
                     new Position(8, 4 + 2 + "disabled".length + "true".length),
                 ),
-                missingProperties: [
-                    EnvironmentVariableProperty.Description,
-                    EnvironmentVariableProperty.Type,
-                ].map((key) => ({
-                    key,
-                    alwaysHasScalarValue: true,
-                    isMandatory: false,
-                })),
                 properties: {
                     ...getDefaultVariableProperties(),
                     name: {
@@ -274,25 +255,34 @@ variables:
                         disabled: expectedDisabledVariables,
                     },
                 },
-                missingProperties: [
-                    {
-                        key: TopLevelEnvironmentFileProperty.Extends,
-                        alwaysHasScalarValue: true,
-                        isMandatory: false,
-                    },
-                ],
             },
             errors: [],
         });
+        expect(getMissingKeyNamesPerMap(mapDescriptors)).toEqual([
+            [TopLevelEnvironmentFileProperty.Extends],
+            // var-1
+            [
+                EnvironmentVariableProperty.Disabled,
+                EnvironmentVariableProperty.Secret,
+                EnvironmentVariableProperty.Type,
+            ],
+            // var-2
+            [
+                EnvironmentVariableProperty.Description,
+                EnvironmentVariableProperty.Type,
+            ],
+        ]);
     });
 
     it("parses the top level field 'extends' in a yaml environment file", () => {
+        const mapDescriptors: YamlMapDescriptor[] = [];
         const parsed = parseYamlEnvironmentFile(
             new TextDocumentHelper(`name: second
 extends: Env1
 variables:
   - name: var-1
     value: test-1`),
+            { mapDescriptors },
         );
 
         expect(parsed.errors).toEqual([]);
@@ -309,9 +299,7 @@ variables:
                 ),
             },
         );
-        expect("result" in parsed && parsed.result?.missingProperties).toEqual(
-            [],
-        );
+        expect(getMissingKeys(mapDescriptors[0])).toEqual([]);
     });
 
     it("parses a yaml environment file with a variable of type 'object'", () => {
@@ -479,4 +467,13 @@ function getDefaultVariableProperties() {
         secret: { effectiveValue: false },
         type: { effectiveValue: VariableType.String },
     };
+}
+
+/** The names of the missing keys (sorted) for every validated map, in the order of validation. */
+function getMissingKeyNamesPerMap(mapDescriptors: YamlMapDescriptor[]) {
+    return mapDescriptors.map((descriptor) =>
+        getMissingKeys(descriptor)
+            .map(({ key }) => key)
+            .sort(),
+    );
 }

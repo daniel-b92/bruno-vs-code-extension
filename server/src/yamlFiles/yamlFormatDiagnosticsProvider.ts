@@ -11,6 +11,7 @@ import {
     parseRequestFile,
     parseYamlEnvironmentFile,
     TextDocumentHelper,
+    YamlMapDescriptor,
     YamlParsingError,
     YamlParsingErrorCode,
 } from "@global_shared";
@@ -152,8 +153,10 @@ export class YamlFormatDiagnosticsProvider {
     public getDiagnosticsForRequestFile(
         commonParams: CommonDiagnosticParams,
     ): Diagnostic[] {
+        const mapDescriptors: YamlMapDescriptor[] = [];
         const { errors, result: parsingResult } = parseRequestFile(
             commonParams.docHelper,
+            { mapDescriptors },
         );
         const parsingDiagnostics = mapParsingErrorsToDiagnostics(errors);
 
@@ -198,7 +201,7 @@ export class YamlFormatDiagnosticsProvider {
                 commonParams.docHelper,
             ),
             ...requestTypeSections.flatMap(({ properties: { auth } }) => [
-                checkAuthHasRequiredFields(auth),
+                checkAuthHasRequiredFields(auth, mapDescriptors),
                 checkAuthHasValidValues(auth),
             ]),
             checkResponseValidationExists(properties.runtime, commonParams),
@@ -218,8 +221,10 @@ export class YamlFormatDiagnosticsProvider {
     public getDiagnosticsForCollectionSettingsFile(
         commonParams: CommonDiagnosticParams,
     ): Diagnostic[] {
+        const mapDescriptors: YamlMapDescriptor[] = [];
         const { errors, result: parsingResult } = parseCollectionSettingsFile(
             commonParams.docHelper,
+            { mapDescriptors },
         );
         const parsingDiagnostics = mapParsingErrorsToDiagnostics(errors);
 
@@ -233,6 +238,7 @@ export class YamlFormatDiagnosticsProvider {
             ...checkSettingsFileRequestSection(
                 properties.request,
                 commonParams,
+                mapDescriptors,
             ),
             checkAuthIsNotInherited(properties.request?.properties.auth),
             checkAuthHasValidValues(properties.request?.properties.auth),
@@ -273,8 +279,11 @@ export class YamlFormatDiagnosticsProvider {
         commonParams: CommonDiagnosticParams,
     ): Diagnostic[] {
         const { docHelper } = commonParams;
-        const { errors, result: parsingResult } =
-            parseFolderSettingsFile(docHelper);
+        const mapDescriptors: YamlMapDescriptor[] = [];
+        const { errors, result: parsingResult } = parseFolderSettingsFile(
+            docHelper,
+            { mapDescriptors },
+        );
 
         const parsingDiagnostics = mapParsingErrorsToDiagnostics(errors);
 
@@ -291,6 +300,7 @@ export class YamlFormatDiagnosticsProvider {
             ...checkSettingsFileRequestSection(
                 parsingResult.properties.request,
                 commonParams,
+                mapDescriptors,
             ),
             checkAuthHasValidValues(
                 parsingResult.properties.request?.properties.auth,

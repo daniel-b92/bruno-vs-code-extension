@@ -2,9 +2,11 @@ import { describe, it, expect } from "@jest/globals";
 import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
+    getMissingKeys,
+    makeCommonParsingArgs,
     parseTextIntoYamlDocument,
 } from "../../../../_testingUtils";
-import { BrunoFileType, TextDocumentHelper } from "../../../..";
+import { BrunoFileType } from "../../../..";
 import { YAMLMap } from "yaml";
 import { WithKeyAndKeyRange } from "../interfaces";
 import { parseFileInfoFromYamlMap } from "./parseFileInfoFromYamlMap";
@@ -38,7 +40,6 @@ describe("parseFileInfoFromYamlMap", () => {
             expect(result!.properties.tags?.value).toHaveLength(2);
             expect(result!.properties.tags?.value[0].value).toBe("tag-a");
             expect(result!.properties.tags?.value[1].value).toBe("tag-b");
-            expect(result!.missingProperties).toHaveLength(0);
         });
 
         it("parses a minimal request file info block (name, type, seq only)", () => {
@@ -86,31 +87,20 @@ describe("parseFileInfoFromYamlMap", () => {
             const documentText = `info: {}`;
 
             const { commonArgs, infoMap } = makeInfoMap(documentText);
-            const { result, errors } = parseFileInfoFromYamlMap({
+            const { errors } = parseFileInfoFromYamlMap({
                 commonArgs,
                 fileType: BrunoFileType.RequestFile,
                 infoMap,
             });
 
             expect(errors).toHaveLength(3);
-            expect(
-                result!.missingProperties.some(
-                    ({ key, isMandatory }) =>
-                        key === FileInfoProperty.Name && isMandatory,
-                ),
-            ).toBe(true);
-            expect(
-                result!.missingProperties.some(
-                    ({ key, isMandatory }) =>
-                        key === FileInfoProperty.Type && isMandatory,
-                ),
-            ).toBe(true);
-            expect(
-                result!.missingProperties.some(
-                    ({ key, isMandatory }) =>
-                        key === FileInfoProperty.Seq && isMandatory,
-                ),
-            ).toBe(true);
+            expect(getMandatoryMissingKeys(commonArgs)).toEqual(
+                expect.arrayContaining([
+                    FileInfoProperty.Name,
+                    FileInfoProperty.Type,
+                    FileInfoProperty.Seq,
+                ]),
+            );
         });
 
         it("reports error for seq value of zero and returns undefined sequence", () => {
@@ -251,25 +241,19 @@ describe("parseFileInfoFromYamlMap", () => {
             const documentText = `info: {}`;
 
             const { commonArgs, infoMap } = makeInfoMap(documentText);
-            const { result, errors } = parseFileInfoFromYamlMap({
+            const { errors } = parseFileInfoFromYamlMap({
                 commonArgs,
                 fileType: BrunoFileType.FolderSettingsFile,
                 infoMap,
             });
 
             expect(errors).toHaveLength(2);
-            expect(
-                result!.missingProperties.some(
-                    ({ key, isMandatory }) =>
-                        key === FileInfoProperty.Name && isMandatory,
-                ),
-            ).toBe(true);
-            expect(
-                result!.missingProperties.some(
-                    ({ key, isMandatory }) =>
-                        key === FileInfoProperty.Type && isMandatory,
-                ),
-            ).toBe(true);
+            expect(getMandatoryMissingKeys(commonArgs)).toEqual(
+                expect.arrayContaining([
+                    FileInfoProperty.Name,
+                    FileInfoProperty.Type,
+                ]),
+            );
         });
 
         it("parses seq for folder settings file (allowed but not mandatory)", () => {
@@ -337,11 +321,7 @@ describe("parseFileInfoFromYamlMap", () => {
 });
 
 function makeInfoMap(documentText: string) {
-    const docHelper = new TextDocumentHelper(documentText);
-    const commonArgs = {
-        docHelper,
-        fullDocumentRange: docHelper.getTextRange(),
-    };
+    const commonArgs = makeCommonParsingArgs(documentText);
     const parsedDocument = parseTextIntoYamlDocument(documentText);
     const innerMap = (parsedDocument.contents as YAMLMap).items[0]
         .value as YAMLMap;
@@ -351,4 +331,12 @@ function makeInfoMap(documentText: string) {
         value: innerMap,
     };
     return { commonArgs, infoMap };
+}
+
+function getMandatoryMissingKeys({
+    mapDescriptors,
+}: ReturnType<typeof makeCommonParsingArgs>) {
+    return getMissingKeys(mapDescriptors[0])
+        .filter(({ isMandatory }) => isMandatory)
+        .map(({ key }) => key);
 }

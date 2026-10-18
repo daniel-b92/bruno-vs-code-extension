@@ -4,6 +4,7 @@ import {
     TextDocumentHelper,
     WithKeyAndValueRange,
     YamlParsingError,
+    YamlParsingOptions,
 } from "../../..";
 import { getYamlMapsFromSequence } from "../../internal/yamlFormat/yamlSequences/getYamlMapsFromSequence";
 import {
@@ -14,7 +15,6 @@ import {
 import { getRangeForItem } from "../../internal/yamlFormat/util/getRangeForItem";
 import { getValidatedMapItems } from "../../internal/yamlFormat/yamlMaps/getValidatedMapItems";
 import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDocumentIntoYamlMap";
-import { getTypedValueFromList } from "../../internal/yamlFormat/scalars/getTypedValueFromList";
 import { stripKeyFromResult } from "../../internal/yamlFormat/util/stripKeyFromResult";
 import { getValueFieldFromVariable } from "../../internal/yamlFormat/brunoSpecific/getValueFieldFromVariable";
 import {
@@ -25,6 +25,7 @@ import { VariableType } from "./constants/sharedConstants";
 
 export function parseYamlEnvironmentFile(
     docHelper: TextDocumentHelper,
+    options?: YamlParsingOptions,
 ): MaybeResultWithErrors<
     ParsedYamlMap<{
         name?: WithKeyAndValueRange<string>;
@@ -36,7 +37,11 @@ export function parseYamlEnvironmentFile(
     }>
 > {
     const fullDocumentRange = docHelper.getTextRange();
-    const commonArgs = { docHelper, fullDocumentRange };
+    const commonArgs: CommonParsingArgs = {
+        docHelper,
+        fullDocumentRange,
+        mapDescriptors: options?.mapDescriptors,
+    };
     const collectedErrors: YamlParsingError[] = [];
 
     const maybeTopLevelMap = parseDocumentIntoYamlMap(commonArgs);
@@ -45,7 +50,7 @@ export function parseYamlEnvironmentFile(
     }
     const topLevelMap = maybeTopLevelMap.map;
 
-    const { getString, getSequence, missingProperties } = getValidatedMapItems(
+    const { getString, getSequence } = getValidatedMapItems(
         topLevelMap,
         {
             scalars: {
@@ -80,7 +85,6 @@ export function parseYamlEnvironmentFile(
                     name: maybeNameWithKeyRange,
                     extends: maybeExtendsWithKeyRange,
                 },
-                missingProperties,
             },
         };
     }
@@ -102,7 +106,6 @@ export function parseYamlEnvironmentFile(
                 extends: maybeExtendsWithKeyRange,
                 variables,
             },
-            missingProperties,
         },
         errors: collectedErrors.concat(firstErrorBatch, secondErrorBatch),
     };
@@ -125,7 +128,6 @@ function getVariablesFromMapItems(
     const keysForStringScalars = [
         EnvironmentVariableProperty.Description,
         EnvironmentVariableProperty.Name,
-        EnvironmentVariableProperty.Type,
     ];
     const keysForBooleanScalars = [
         EnvironmentVariableProperty.Disabled,
@@ -133,23 +135,25 @@ function getVariablesFromMapItems(
     ];
 
     for (const currentMap of items) {
-        const {
-            items: {
-                validScalars: { withStringValue: validStringScalars },
-            },
-            getString,
-            getBoolean,
-            missingProperties,
-        } = getValidatedMapItems(
+        const { getString, getBoolean, getEnumValue } = getValidatedMapItems(
             currentMap,
             {
                 scalars: {
                     stringValues: keysForStringScalars,
                     booleanValues: keysForBooleanScalars,
+                    enumValues: {
+                        [EnvironmentVariableProperty.Type]:
+                            Object.values(VariableType),
+                    },
                 },
                 mandatoryKeys: [EnvironmentVariableProperty.Name],
                 // The value gets parsed separately, because it can be either a scalar or a map.
-                additionalAllowedKeys: [EnvironmentVariableProperty.Value],
+                additionalAllowedKeys: [
+                    {
+                        key: EnvironmentVariableProperty.Value,
+                        valueKinds: ["string", "map"],
+                    },
+                ],
             },
             commonArgs,
             errors,
@@ -157,13 +161,8 @@ function getVariablesFromMapItems(
         const disabled = getBoolean(EnvironmentVariableProperty.Disabled);
         const secret = getBoolean(EnvironmentVariableProperty.Secret);
 
-        const type = getTypedValueFromList(
-            {
-                allStringValues: validStringScalars,
-                allowedValues: Object.values(VariableType),
-                keyName: EnvironmentVariableProperty.Type,
-            },
-            errors,
+        const type = getEnumValue<VariableType>(
+            EnvironmentVariableProperty.Type,
         );
         const { result: maybeValue, errors: valueErrors } =
             getValueFieldFromVariable(currentMap, commonArgs);
@@ -171,7 +170,6 @@ function getVariablesFromMapItems(
 
         const variable: ParsedEnvironmentVariable = {
             valueRange: getRangeForItem(currentMap, commonArgs),
-            missingProperties,
             properties: {
                 name: stripKeyFromResult(
                     getString(EnvironmentVariableProperty.Name),
@@ -196,8 +194,8 @@ function getVariablesFromMapItems(
                 value: maybeValue,
                 type: type
                     ? {
-                          effectiveValue: type.value.value,
-                          field: type.value,
+                          effectiveValue: type.value,
+                          field: type,
                       }
                     : // The default value for 'type' is 'string', when not defined.
                       { effectiveValue: VariableType.String },

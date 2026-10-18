@@ -7,7 +7,6 @@ import {
     ParsedYamlMap,
     WithKeyAndKeyRange,
 } from "../interfaces";
-import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import {
@@ -41,36 +40,28 @@ function parseFromMap(
     }>
 > {
     const errors: YamlParsingError[] = [];
-    const { getString, missingProperties } = getValidatedMapItems(
+    const { getString, getEnumValue } = getValidatedMapItems(
         docsMap,
         {
-            scalars: { stringValues: Object.values(DocsProperty) },
+            scalars: {
+                stringValues: Object.values(DocsProperty),
+                enumValues: { [DocsProperty.Type]: Object.values(DocsType) },
+            },
             mandatoryKeys: Object.values(DocsProperty),
         },
         commonArgs,
         errors,
     );
     const content = getString(DocsProperty.Content);
-    const untypedType = getString(DocsProperty.Type);
-    const maybeType = !untypedType
-        ? undefined
-        : getTypedValueFromList(
-              {
-                  allowedValues: Object.values(DocsType),
-                  allStringValues: [untypedType],
-                  keyName: DocsProperty.Type,
-              },
-              errors,
-          );
+    const maybeType = getEnumValue<DocsType>(DocsProperty.Type);
 
     return {
         errors,
         result: {
             properties: {
                 content: stripKeyFromResult(content),
-                type: maybeType?.value,
+                type: maybeType,
             },
-            missingProperties,
         },
     };
 }

@@ -4,6 +4,7 @@ import {
     ParsedInfoForFolderSettings,
     TextDocumentHelper,
     YamlParsingError,
+    YamlParsingOptions,
 } from "../../..";
 import {
     CommonParsingArgs,
@@ -20,10 +21,12 @@ import { parseIfPresent } from "../../internal/yamlFormat/util/parseIfPresent";
 
 export function parseFolderSettingsFile(
     docHelper: TextDocumentHelper,
+    options?: YamlParsingOptions,
 ): MaybeResultWithErrors<ParsedFolderSettingsFile> {
     const commonArgs: CommonParsingArgs = {
         docHelper,
         fullDocumentRange: docHelper.getTextRange(),
+        mapDescriptors: options?.mapDescriptors,
     };
     const collectedErrors: YamlParsingError[] = [];
 
@@ -32,7 +35,7 @@ export function parseFolderSettingsFile(
         return maybeTopLevelMap;
     }
 
-    const { getMap, missingProperties } = getValidatedMapItems(
+    const { getMap } = getValidatedMapItems(
         maybeTopLevelMap.map,
         {
             // Docs section is always a Yaml map for folder settings files.
@@ -66,6 +69,6 @@ export function parseFolderSettingsFile(
 
     return {
         errors: collectedErrors,
-        result: { properties: { info, request, docs }, missingProperties },
+        result: { properties: { info, request, docs } },
     };
 }

@@ -1,9 +1,10 @@
 import { describe, it, expect } from "@jest/globals";
 import { TextDocumentHelper } from "../../../fileSystem/textDocumentHelper";
-import { Position, Range } from "../../..";
+import { Position, Range, YamlMapDescriptor } from "../../..";
 import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
+    getMissingKeys,
 } from "../../../_testingUtils";
 import {
     RequestFileHttpSectionProperty,
@@ -363,15 +364,17 @@ settings:
 
 docs: request docs`;
 
+            const mapDescriptors: YamlMapDescriptor[] = [];
             const { result, errors } = parseRequestFile(
                 new TextDocumentHelper(documentText),
+                { mapDescriptors },
             );
 
             expect(errors).toHaveLength(0);
             expect(result).toBeDefined();
             // Only optional sections (graphql, grpc, websocket, examples, app) should be missing.
             expect(
-                result!.missingProperties.every(
+                getMissingKeys(mapDescriptors[0]).every(
                     ({ isMandatory }) => !isMandatory,
                 ),
             ).toBeTruthy();
@@ -458,13 +461,15 @@ graphql:
     method: GET
     url: https://example.com`;
 
+            const mapDescriptors: YamlMapDescriptor[] = [];
             const { result, errors } = parseRequestFile(
                 new TextDocumentHelper(documentText),
+                { mapDescriptors },
             );
 
             expect(errors).toHaveLength(1);
             expect(result).toBeDefined();
-            expect(result!.missingProperties).toContainEqual(
+            expect(getMissingKeys(mapDescriptors[0])).toContainEqual(
                 expect.objectContaining({
                     key: TopLevelRequestFileProperty.Info,
                     isMandatory: true,
@@ -552,17 +557,25 @@ runtime:
 http:
     method: GET`;
 
+            const mapDescriptors: YamlMapDescriptor[] = [];
             const { result, errors } = parseRequestFile(
                 new TextDocumentHelper(documentText),
+                { mapDescriptors },
             );
 
             expect(errors).toHaveLength(0);
-            const http = result!.properties.http;
-            expect(http).toBeDefined();
-            expect(http!.missingProperties).toContainEqual(
+            expect(result!.properties.http).toBeDefined();
+            expect(
+                getMissingKeys(
+                    findDescriptorWithExpectedKey(
+                        mapDescriptors,
+                        RequestFileHttpSectionProperty.url,
+                    ),
+                ),
+            ).toContainEqual(
                 expect.objectContaining({
                     key: RequestFileHttpSectionProperty.url,
-                    alwaysHasScalarValue: true,
+                    valueKinds: ["string"],
                 }),
             );
         });
@@ -578,14 +591,22 @@ runtime:
         - type: before-request
           code: console.log("hi")`;
 
+            const mapDescriptors: YamlMapDescriptor[] = [];
             const { result, errors } = parseRequestFile(
                 new TextDocumentHelper(documentText),
+                { mapDescriptors },
             );
 
             expect(errors).toHaveLength(0);
-            const runtime = result!.properties.runtime;
-            expect(runtime).toBeDefined();
-            expect(runtime!.missingProperties).toContainEqual(
+            expect(result!.properties.runtime).toBeDefined();
+            expect(
+                getMissingKeys(
+                    findDescriptorWithExpectedKey(
+                        mapDescriptors,
+                        RequestFileRuntimeProperty.Variables,
+                    ),
+                ),
+            ).toContainEqual(
                 expect.objectContaining({
                     key: RequestFileRuntimeProperty.Variables,
                     isMandatory: false,
@@ -852,3 +873,13 @@ settings:
         });
     });
 });
+
+/** Finds the descriptor of the map that is expected to define the given key (so that missing keys can be attributed to the right map). */
+function findDescriptorWithExpectedKey(
+    mapDescriptors: YamlMapDescriptor[],
+    key: string,
+) {
+    return mapDescriptors.find(({ expectedKeys }) =>
+        expectedKeys.some((expected) => expected.key == key),
+    )!;
+}

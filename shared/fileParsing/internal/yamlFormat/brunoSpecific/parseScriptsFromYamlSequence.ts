@@ -11,7 +11,6 @@ import {
     ValidatedMapItems,
     getValidatedMapItems,
 } from "../yamlMaps/getValidatedMapItems";
-import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import {
     ScriptMapProperty,
     ScriptType,
@@ -36,18 +35,26 @@ export function parseScriptsFromYamlSequence(
     const keysForStringScalars = Object.values(ScriptMapProperty);
 
     for (const currentMap of scriptMaps) {
-        const { getString, missingProperties } = getValidatedMapItems(
+        const { getString, getEnumValue } = getValidatedMapItems(
             currentMap,
             {
-                scalars: { stringValues: keysForStringScalars },
+                scalars: {
+                    stringValues: keysForStringScalars,
+                    enumValues: {
+                        [ScriptMapProperty.Type]: Object.values(ScriptType),
+                    },
+                },
                 // All properties are mandatory for scripts.
                 mandatoryKeys: keysForStringScalars,
             },
             commonArgs,
             errors,
         );
-        const { errors: parsingErrors, result: parsedScript } =
-            parseScript(currentMap, getString);
+        const { errors: parsingErrors, result: parsedScript } = parseScript(
+            currentMap,
+            getString,
+            getEnumValue,
+        );
         errors.push(...parsingErrors);
 
         if (!parsedScript) {
@@ -56,7 +63,6 @@ export function parseScriptsFromYamlSequence(
 
         const { code, type } = parsedScript;
         scripts.push({
-            missingProperties,
             properties: { code, type },
             valueRange: getRangeForItem(currentMap, commonArgs),
         });
@@ -71,24 +77,15 @@ export function parseScriptsFromYamlSequence(
 function parseScript(
     map: YAMLMap,
     getString: ValidatedMapItems["getString"],
+    getEnumValue: ValidatedMapItems["getEnumValue"],
 ): MaybeResultWithErrors<{
     type?: WithKeyAndValueRange<ScriptType>;
     code?: ParsedStringScalarWithStyle;
 }> {
     const collectedErrors: YamlParsingError[] = [];
-    const maybeUntypedTypeWithKeyRange = getString(ScriptMapProperty.Type);
     const maybeCodeWithKeyRange = getString(ScriptMapProperty.Code);
 
-    const maybeTypedType = !maybeUntypedTypeWithKeyRange
-        ? undefined
-        : getTypedValueFromList(
-              {
-                  allowedValues: Object.values(ScriptType),
-                  allStringValues: [maybeUntypedTypeWithKeyRange],
-                  keyName: ScriptMapProperty.Type,
-              },
-              collectedErrors,
-          );
+    const maybeTypedType = getEnumValue<ScriptType>(ScriptMapProperty.Type);
 
     return {
         errors: collectedErrors,
@@ -98,7 +95,7 @@ function parseScript(
                 ScriptMapProperty.Code,
                 maybeCodeWithKeyRange,
             ),
-            type: maybeTypedType?.value,
+            type: maybeTypedType,
         },
     };
 }

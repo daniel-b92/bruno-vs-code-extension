@@ -6,7 +6,6 @@ import {
     WithKeyAndKeyRange,
 } from "../interfaces";
 import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
-import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { parseMapsFromSequence } from "../yamlSequences/parseMapsFromSequence";
 import { parseIfPresent } from "../util/parseIfPresent";
 import { getRangeForItem } from "../util/getRangeForItem";
@@ -36,7 +35,7 @@ export function parseCollectionConfigFromYamlMap(
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<ParsedConfig> {
     const errors: YamlParsingError[] = [];
-    const { getMap, getSequence, missingProperties } = getValidatedMapItems(
+    const { getMap, getSequence } = getValidatedMapItems(
         configMap,
         {
             mapValues: [
@@ -54,7 +53,6 @@ export function parseCollectionConfigFromYamlMap(
         result: {
             keyRange,
             valueRange: getRangeForItem(configMap, commonArgs),
-            missingProperties,
             properties: {
                 protobuf: parseIfPresent(
                     getMap(CollectionConfigProperty.Protobuf),
@@ -87,7 +85,7 @@ function parseProtobuf(
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<ParsedProtobuf> {
     const errors: YamlParsingError[] = [];
-    const { getSequence, missingProperties } = getValidatedMapItems(
+    const { getSequence } = getValidatedMapItems(
         protobufMap,
         { sequenceValues: Object.values(ProtobufProperty) },
         commonArgs,
@@ -99,7 +97,6 @@ function parseProtobuf(
         result: {
             keyRange,
             valueRange: getRangeForItem(protobufMap, commonArgs),
-            missingProperties,
             properties: {
                 protoFiles: parseIfPresent(
                     getSequence(ProtobufProperty.ProtoFiles),
@@ -133,16 +130,15 @@ function parseProtoFile(
     commonArgs: CommonParsingArgs,
     errors: YamlParsingError[],
 ): NonNullable<ParsedProtobuf["properties"]["protoFiles"]>[number] {
-    const {
-        items: {
-            validScalars: { withStringValue },
-        },
-        getString,
-        missingProperties,
-    } = getValidatedMapItems(
+    const { getString, getEnumValue } = getValidatedMapItems(
         map,
         {
-            scalars: { stringValues: Object.values(ProtoFileProperty) },
+            scalars: {
+                stringValues: Object.values(ProtoFileProperty),
+                enumValues: {
+                    [ProtoFileProperty.Type]: Object.values(ProtoFileType),
+                },
+            },
             mandatoryKeys: [ProtoFileProperty.Path],
         },
         commonArgs,
@@ -151,16 +147,8 @@ function parseProtoFile(
 
     return {
         valueRange: getRangeForItem(map, commonArgs),
-        missingProperties,
         properties: {
-            type: getTypedValueFromList<ProtoFileType>(
-                {
-                    allowedValues: Object.values(ProtoFileType),
-                    allStringValues: withStringValue,
-                    keyName: ProtoFileProperty.Type,
-                },
-                errors,
-            )?.value,
+            type: getEnumValue<ProtoFileType>(ProtoFileProperty.Type),
             path: stripKeyFromResult(getString(ProtoFileProperty.Path)),
         },
     };
@@ -171,7 +159,7 @@ function parseProtoImportPath(
     commonArgs: CommonParsingArgs,
     errors: YamlParsingError[],
 ): NonNullable<ParsedProtobuf["properties"]["importPaths"]>[number] {
-    const { getString, missingProperties } = getValidatedMapItems(
+    const { getString } = getValidatedMapItems(
         map,
         {
             scalars: { stringValues: Object.values(ProtoImportPathProperty) },
@@ -183,7 +171,6 @@ function parseProtoImportPath(
 
     return {
         valueRange: getRangeForItem(map, commonArgs),
-        missingProperties,
         properties: {
             path: stripKeyFromResult(getString(ProtoImportPathProperty.Path)),
         },
@@ -195,7 +182,7 @@ function parseProxy(
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<ParsedProxy> {
     const errors: YamlParsingError[] = [];
-    const { getBoolean, getMap, missingProperties } = getValidatedMapItems(
+    const { getBoolean, getMap } = getValidatedMapItems(
         proxyMap,
         {
             scalars: {
@@ -212,7 +199,6 @@ function parseProxy(
         result: {
             keyRange,
             valueRange: getRangeForItem(proxyMap, commonArgs),
-            missingProperties,
             properties: {
                 inherit: stripKeyFromResult(getBoolean(ProxyProperty.Inherit)),
                 disabled: stripKeyFromResult(
@@ -233,23 +219,18 @@ function parseProxyConfig(
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<NonNullable<ParsedProxy["properties"]["config"]>> {
     const errors: YamlParsingError[] = [];
-    const {
-        items: {
-            validScalars: { withStringValue },
-        },
-        getString,
-        getNumber,
-        getMap,
-        missingProperties,
-    } = getValidatedMapItems(
+    const { getString, getEnumValue, getNumber, getMap } = getValidatedMapItems(
         configMap,
         {
             scalars: {
                 stringValues: [
-                    ProxyConfigProperty.Protocol,
                     ProxyConfigProperty.Hostname,
                     ProxyConfigProperty.BypassProxy,
                 ],
+                enumValues: {
+                    [ProxyConfigProperty.Protocol]:
+                        Object.values(ProxyProtocol),
+                },
                 numericValues: [ProxyConfigProperty.Port],
             },
             mapValues: [ProxyConfigProperty.Auth],
@@ -263,16 +244,10 @@ function parseProxyConfig(
         result: {
             keyRange,
             valueRange: getRangeForItem(configMap, commonArgs),
-            missingProperties,
             properties: {
-                protocol: getTypedValueFromList<ProxyProtocol>(
-                    {
-                        allowedValues: Object.values(ProxyProtocol),
-                        allStringValues: withStringValue,
-                        keyName: ProxyConfigProperty.Protocol,
-                    },
-                    errors,
-                )?.value,
+                protocol: getEnumValue<ProxyProtocol>(
+                    ProxyConfigProperty.Protocol,
+                ),
                 hostname: stripKeyFromResult(
                     getString(ProxyConfigProperty.Hostname),
                 ),
@@ -299,7 +274,7 @@ function parseProxyAuth(
     >
 > {
     const errors: YamlParsingError[] = [];
-    const { getString, getBoolean, missingProperties } = getValidatedMapItems(
+    const { getString, getBoolean } = getValidatedMapItems(
         authMap,
         {
             scalars: {
@@ -319,7 +294,6 @@ function parseProxyAuth(
         result: {
             keyRange,
             valueRange: getRangeForItem(authMap, commonArgs),
-            missingProperties,
             properties: {
                 username: stripKeyFromResult(
                     getString(ProxyAuthProperty.Username),
@@ -340,26 +314,23 @@ function parseClientCertificate(
     commonArgs: CommonParsingArgs,
     errors: YamlParsingError[],
 ): NonNullable<ParsedConfig["properties"]["clientCertificates"]>[number] {
-    const {
-        items: {
-            validScalars: { withStringValue },
-        },
-        getString,
-        getBoolean,
-        missingProperties,
-    } = getValidatedMapItems(
+    const { getString, getEnumValue, getBoolean } = getValidatedMapItems(
         map,
         {
             scalars: {
                 stringValues: [
                     ClientCertificateProperty.Domain,
-                    ClientCertificateProperty.Type,
                     ClientCertificateProperty.CertificateFilePath,
                     ClientCertificateProperty.PrivateKeyFilePath,
                     ClientCertificateProperty.PfxFilePath,
                     ClientCertificateProperty.Passphrase,
                 ],
                 booleanValues: [ClientCertificateProperty.Disabled],
+                enumValues: {
+                    [ClientCertificateProperty.Type]: Object.values(
+                        ClientCertificateType,
+                    ),
+                },
             },
             mandatoryKeys: [
                 ClientCertificateProperty.Domain,
@@ -372,19 +343,13 @@ function parseClientCertificate(
 
     return {
         valueRange: getRangeForItem(map, commonArgs),
-        missingProperties,
         properties: {
             domain: stripKeyFromResult(
                 getString(ClientCertificateProperty.Domain),
             ),
-            type: getTypedValueFromList<ClientCertificateType>(
-                {
-                    allowedValues: Object.values(ClientCertificateType),
-                    allStringValues: withStringValue,
-                    keyName: ClientCertificateProperty.Type,
-                },
-                errors,
-            )?.value,
+            type: getEnumValue<ClientCertificateType>(
+                ClientCertificateProperty.Type,
+            ),
             certificateFilePath: stripKeyFromResult(
                 getString(ClientCertificateProperty.CertificateFilePath),
             ),

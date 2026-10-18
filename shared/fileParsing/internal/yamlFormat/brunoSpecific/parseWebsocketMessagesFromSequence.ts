@@ -12,7 +12,6 @@ import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequenc
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { getStringWithBlockScalarInfo } from "../util/getStringWithBlockScalarInfo";
-import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { parseIfPresent } from "../util/parseIfPresent";
 import {
     RequestFileWebsocketMessageBodyProperty,
@@ -34,27 +33,23 @@ export function parseWebsocketMessagesFromSequence(
     errors.push(...errorsFromSeq);
 
     const result = messageMaps.map((messageMap): ParsedWebsocketMessage => {
-        const { getString, getBoolean, getMap, missingProperties } =
-            getValidatedMapItems(
-                messageMap,
-                {
-                    scalars: {
-                        stringValues: [
-                            RequestFileWebsocketMessageProperty.Title,
-                        ],
-                        booleanValues: [
-                            RequestFileWebsocketMessageProperty.Selected,
-                        ],
-                    },
-                    mapValues: [RequestFileWebsocketMessageProperty.Message],
+        const { getString, getBoolean, getMap } = getValidatedMapItems(
+            messageMap,
+            {
+                scalars: {
+                    stringValues: [RequestFileWebsocketMessageProperty.Title],
+                    booleanValues: [
+                        RequestFileWebsocketMessageProperty.Selected,
+                    ],
                 },
-                commonArgs,
-                errors,
-            );
+                mapValues: [RequestFileWebsocketMessageProperty.Message],
+            },
+            commonArgs,
+            errors,
+        );
 
         return {
             valueRange: getRangeForItem(messageMap, commonArgs),
-            missingProperties,
             properties: {
                 title: stripKeyFromResult(
                     getString(RequestFileWebsocketMessageProperty.Title),
@@ -81,40 +76,32 @@ export function parseWebsocketMessageContent(
 ): MaybeResultWithErrors<ParsedWebsocketMessageContent> {
     const errors: YamlParsingError[] = [];
 
-    const {
-        getString,
-        items: {
-            validScalars: { withStringValue: validStrings },
-        },
-        missingProperties,
-    } = getValidatedMapItems(
+    const { getString, getEnumValue } = getValidatedMapItems(
         map,
         {
             scalars: {
                 stringValues: Object.values(
                     RequestFileWebsocketMessageBodyProperty,
                 ),
+                enumValues: {
+                    [RequestFileWebsocketMessageBodyProperty.Type]:
+                        Object.values(WebsocketMessageType),
+                },
             },
         },
         commonArgs,
         errors,
     );
 
-    const type = getTypedValueFromList<WebsocketMessageType>(
-        {
-            allStringValues: validStrings,
-            keyName: RequestFileWebsocketMessageBodyProperty.Type,
-            allowedValues: Object.values(WebsocketMessageType),
-        },
-        errors,
-    )?.value;
+    const type = getEnumValue<WebsocketMessageType>(
+        RequestFileWebsocketMessageBodyProperty.Type,
+    );
 
     return {
         errors,
         result: {
             keyRange,
             valueRange: getRangeForItem(map, commonArgs),
-            missingProperties,
             properties: {
                 type,
                 data: getStringWithBlockScalarInfo(

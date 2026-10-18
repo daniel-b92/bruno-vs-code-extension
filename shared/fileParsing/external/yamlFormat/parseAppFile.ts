@@ -4,6 +4,7 @@ import {
     ParsedInfoForAppFile,
     TextDocumentHelper,
     YamlParsingError,
+    YamlParsingOptions,
 } from "../../..";
 import {
     CommonParsingArgs,
@@ -18,10 +19,12 @@ import { TopLevelAppFileProperty } from "./constants/appFileConstants";
 
 export function parseAppFile(
     docHelper: TextDocumentHelper,
+    options?: YamlParsingOptions,
 ): MaybeResultWithErrors<ParsedAppFile> {
     const commonArgs: CommonParsingArgs = {
         docHelper,
         fullDocumentRange: docHelper.getTextRange(),
+        mapDescriptors: options?.mapDescriptors,
     };
     const collectedErrors: YamlParsingError[] = [];
 
@@ -30,7 +33,7 @@ export function parseAppFile(
         return maybeTopLevelMap;
     }
 
-    const { getString, getMap, missingProperties } = getValidatedMapItems(
+    const { getString, getMap } = getValidatedMapItems(
         maybeTopLevelMap.map,
         {
             // Code is always a scalar for app files.
@@ -56,6 +59,6 @@ export function parseAppFile(
 
     return {
         errors: collectedErrors,
-        result: { properties: { info, code }, missingProperties },
+        result: { properties: { info, code } },
     };
 }

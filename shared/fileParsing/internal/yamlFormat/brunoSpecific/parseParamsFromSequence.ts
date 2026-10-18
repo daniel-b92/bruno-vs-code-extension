@@ -10,7 +10,6 @@ import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { getYamlMapsFromSequence } from "../yamlSequences/getYamlMapsFromSequence";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getRangeForItem } from "../util/getRangeForItem";
-import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import {
     HttpParamType,
     RequestFileHttpSectionParamProperty,
@@ -42,19 +41,16 @@ export function parseParamsFromSequence(
         RequestFileHttpSectionParamProperty.Disabled,
     ];
     for (const paramMap of paramMaps) {
-        const {
-            getString,
-            getBoolean,
-            items: {
-                validScalars: { withStringValue: validStrings },
-            },
-            missingProperties,
-        } = getValidatedMapItems(
+        const { getString, getBoolean, getEnumValue } = getValidatedMapItems(
             paramMap,
             {
                 scalars: {
                     stringValues: expectedStringScalars,
                     booleanValues: expectedBooleanScalars,
+                    enumValues: {
+                        [RequestFileHttpSectionParamProperty.Type]:
+                            Object.values(HttpParamType),
+                    },
                 },
                 mandatoryKeys: [
                     RequestFileHttpSectionParamProperty.Name,
@@ -74,14 +70,9 @@ export function parseParamsFromSequence(
             RequestFileHttpSectionParamProperty.Disabled,
         );
 
-        const parsedType = getTypedValueFromList<HttpParamType>(
-            {
-                allStringValues: validStrings,
-                keyName: RequestFileHttpSectionParamProperty.Type,
-                allowedValues: Object.values(HttpParamType),
-            },
-            errors,
-        )?.value;
+        const parsedType = getEnumValue<HttpParamType>(
+            RequestFileHttpSectionParamProperty.Type,
+        );
 
         const param: ParsedHttpParam = {
             valueRange: getRangeForItem(paramMap, commonArgs),
@@ -101,7 +92,6 @@ export function parseParamsFromSequence(
                             : undefined,
                 },
             },
-            missingProperties,
         };
         (param.properties.disabled.effectiveValue ? disabled : enabled).push(
             param,

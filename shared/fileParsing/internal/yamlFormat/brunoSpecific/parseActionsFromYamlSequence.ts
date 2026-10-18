@@ -23,7 +23,6 @@ import {
     ActionVariableProperty,
     ActionVariableScope,
 } from "../../../external/yamlFormat/constants/actionConstants";
-import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getRangeForItem } from "../util/getRangeForItem";
 
 export function parseActionsFromYamlSequence(
@@ -44,11 +43,7 @@ export function parseActionsFromYamlSequence(
         });
     errors.push(...sequenceParsingErrors);
 
-    const keysForStringScalars = [
-        ActionProperty.Description,
-        ActionProperty.Phase,
-        ActionProperty.Type,
-    ];
+    const keysForStringScalars = [ActionProperty.Description];
     const keysForBooleanScalars = [ActionProperty.Disabled];
     const keysForMaps = [ActionProperty.Selector, ActionProperty.Variable];
     const optionalKeys: string[] = [
@@ -63,6 +58,10 @@ export function parseActionsFromYamlSequence(
                 scalars: {
                     stringValues: keysForStringScalars,
                     booleanValues: keysForBooleanScalars,
+                    enumValues: {
+                        [ActionProperty.Phase]: Object.values(ActionPhase),
+                        [ActionProperty.Type]: Object.values(ActionType),
+                    },
                 },
                 mapValues: keysForMaps,
                 mandatoryKeys: Object.values(ActionProperty).filter(
@@ -95,34 +94,13 @@ export function parseActionsFromYamlSequence(
 
 function parseAction(
     mapRange: Range,
-    { getString, getBoolean, getMap, missingProperties }: ValidatedMapItems,
+    { getString, getBoolean, getMap, getEnumValue }: ValidatedMapItems,
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<ParsedAction> {
     const errors: YamlParsingError[] = [];
 
-    const maybeUntypedTypeWithKeyRange = getString(ActionProperty.Type);
-    const maybeType = maybeUntypedTypeWithKeyRange
-        ? getTypedValueFromList(
-              {
-                  allowedValues: Object.values(ActionType),
-                  allStringValues: [maybeUntypedTypeWithKeyRange],
-                  keyName: ActionProperty.Type,
-              },
-              errors,
-          )
-        : undefined;
-
-    const maybeUntypedPhaseWithKeyRange = getString(ActionProperty.Phase);
-    const maybePhase = maybeUntypedPhaseWithKeyRange
-        ? getTypedValueFromList(
-              {
-                  allowedValues: Object.values(ActionPhase),
-                  allStringValues: [maybeUntypedPhaseWithKeyRange],
-                  keyName: ActionProperty.Phase,
-              },
-              errors,
-          )
-        : undefined;
+    const maybeType = getEnumValue<ActionType>(ActionProperty.Type);
+    const maybePhase = getEnumValue<ActionPhase>(ActionProperty.Phase);
 
     const maybeDescriptionWithKeyRange = getString(ActionProperty.Description);
     const maybeDisabledWithKeyRange = getBoolean(ActionProperty.Disabled);
@@ -148,8 +126,8 @@ function parseAction(
         result: {
             valueRange: mapRange,
             properties: {
-                phase: maybePhase?.value,
-                type: maybeType?.value,
+                phase: maybePhase,
+                type: maybeType,
                 description: stripKeyFromResult(maybeDescriptionWithKeyRange),
                 disabled: {
                     effectiveValue: disabledEffectiveValue,
@@ -158,7 +136,6 @@ function parseAction(
                 selector,
                 variable,
             },
-            missingProperties,
         },
     };
 }
@@ -175,10 +152,16 @@ function parseSelector(
     const errors: YamlParsingError[] = [];
     const expectedStringScalars = Object.values(ActionSelectorProperty);
 
-    const { getString, missingProperties } = getValidatedMapItems(
+    const { getString, getEnumValue } = getValidatedMapItems(
         selectorMap,
         {
-            scalars: { stringValues: expectedStringScalars },
+            scalars: {
+                stringValues: expectedStringScalars,
+                enumValues: {
+                    [ActionSelectorProperty.Method]:
+                        Object.values(ActionSelectorMethod),
+                },
+            },
             // All properties are mandatory.
             mandatoryKeys: expectedStringScalars,
         },
@@ -189,17 +172,9 @@ function parseSelector(
     const maybeExpressionWithKeyRange = getString(
         ActionSelectorProperty.Expression,
     );
-    const maybeUntypedMethod = getString(ActionSelectorProperty.Method);
-    const maybeTypedMethod = !maybeUntypedMethod
-        ? undefined
-        : getTypedValueFromList(
-              {
-                  allowedValues: Object.values(ActionSelectorMethod),
-                  allStringValues: [maybeUntypedMethod],
-                  keyName: ActionSelectorProperty.Method,
-              },
-              errors,
-          );
+    const maybeTypedMethod = getEnumValue<ActionSelectorMethod>(
+        ActionSelectorProperty.Method,
+    );
 
     return {
         errors,
@@ -208,9 +183,8 @@ function parseSelector(
             valueRange: getRangeForItem(selectorMap, commonArgs),
             properties: {
                 expression: stripKeyFromResult(maybeExpressionWithKeyRange),
-                method: maybeTypedMethod?.value,
+                method: maybeTypedMethod,
             },
-            missingProperties,
         },
     };
 }
@@ -226,10 +200,16 @@ function parseVariable(
     const errors: YamlParsingError[] = [];
     const expectedStringScalars = Object.values(ActionVariableProperty);
 
-    const { getString, missingProperties } = getValidatedMapItems(
+    const { getString, getEnumValue } = getValidatedMapItems(
         variableMap,
         {
-            scalars: { stringValues: expectedStringScalars },
+            scalars: {
+                stringValues: expectedStringScalars,
+                enumValues: {
+                    [ActionVariableProperty.Scope]:
+                        Object.values(ActionVariableScope),
+                },
+            },
             // All properties are mandatory.
             mandatoryKeys: expectedStringScalars,
         },
@@ -238,17 +218,9 @@ function parseVariable(
     );
 
     const maybeNameWithKeyRange = getString(ActionVariableProperty.Name);
-    const maybeUntypedScope = getString(ActionVariableProperty.Scope);
-    const maybeTypedScope = !maybeUntypedScope
-        ? undefined
-        : getTypedValueFromList(
-              {
-                  allowedValues: Object.values(ActionVariableScope),
-                  allStringValues: [maybeUntypedScope],
-                  keyName: ActionVariableProperty.Scope,
-              },
-              errors,
-          );
+    const maybeTypedScope = getEnumValue<ActionVariableScope>(
+        ActionVariableProperty.Scope,
+    );
 
     return {
         errors,
@@ -257,9 +229,8 @@ function parseVariable(
             valueRange: getRangeForItem(variableMap, commonArgs),
             properties: {
                 name: stripKeyFromResult(maybeNameWithKeyRange),
-                scope: maybeTypedScope?.value,
+                scope: maybeTypedScope,
             },
-            missingProperties,
         },
     };
 }

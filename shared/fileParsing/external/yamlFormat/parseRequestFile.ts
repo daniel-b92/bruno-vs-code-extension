@@ -5,6 +5,7 @@ import {
     ParsedRequestFile,
     TextDocumentHelper,
     YamlParsingError,
+    YamlParsingOptions,
 } from "../../..";
 import {
     CommonParsingArgs,
@@ -43,10 +44,12 @@ import { parseAuthFromYamlMapOrScalar } from "../../internal/yamlFormat/brunoSpe
 
 export function parseRequestFile(
     docHelper: TextDocumentHelper,
+    options?: YamlParsingOptions,
 ): MaybeResultWithErrors<ParsedRequestFile> {
     const commonArgs: CommonParsingArgs = {
         docHelper,
         fullDocumentRange: docHelper.getTextRange(),
+        mapDescriptors: options?.mapDescriptors,
     };
     const collectedErrors: YamlParsingError[] = [];
 
@@ -58,7 +61,7 @@ export function parseRequestFile(
     const sectionsForOtherTypes = getSectionsForOtherRequestTypes(
         maybeTopLevelMap.map,
     );
-    const { getString, getMap, missingProperties } = getValidatedMapItems(
+    const { getString, getMap } = getValidatedMapItems(
         maybeTopLevelMap.map,
         {
             // Docs section is always a scalar for request files.
@@ -158,7 +161,6 @@ export function parseRequestFile(
                 app,
                 requestTypeSections,
             },
-            missingProperties,
         },
     };
 }
@@ -241,7 +243,6 @@ function parseWebsocketSection(
                     ? [
                           {
                               valueRange: singleMessageContent.valueRange,
-                              missingProperties: [],
                               properties: { message: singleMessageContent },
                           },
                       ]
@@ -272,38 +273,36 @@ function parseRequestTypeSection<TBody>({
         bodyMap: WithKeyAndKeyRange<YAMLMap>,
     ) => MaybeResultWithErrors<TBody>;
 }) {
-    const { getString, getMap, getSequence, missingProperties } =
-        getValidatedMapItems(
-            sectionMap,
-            {
-                scalars: {
-                    stringValues: [
-                        ...(parseBody
-                            ? [RequestFileHttpSectionProperty.method]
-                            : []),
-                        RequestFileHttpSectionProperty.url,
-                        // Auth can either be a scalar string with the value 'inherit' or a map with a specific type.
-                        RequestFileHttpSectionProperty.auth,
-                    ],
-                },
-                mapValues: [
-                    ...(parseBody ? [RequestFileHttpSectionProperty.body] : []),
+    const { getString, getMap, getSequence } = getValidatedMapItems(
+        sectionMap,
+        {
+            scalars: {
+                stringValues: [
+                    ...(parseBody
+                        ? [RequestFileHttpSectionProperty.method]
+                        : []),
+                    RequestFileHttpSectionProperty.url,
+                    // Auth can either be a scalar string with the value 'inherit' or a map with a specific type.
                     RequestFileHttpSectionProperty.auth,
-                    ...additionalMapKeys,
-                ],
-                sequenceValues: [
-                    RequestFileHttpSectionProperty.headers,
-                    ...additionalSequenceKeys,
                 ],
             },
-            commonArgs,
-            collectedErrors,
-        );
+            mapValues: [
+                ...(parseBody ? [RequestFileHttpSectionProperty.body] : []),
+                RequestFileHttpSectionProperty.auth,
+                ...additionalMapKeys,
+            ],
+            sequenceValues: [
+                RequestFileHttpSectionProperty.headers,
+                ...additionalSequenceKeys,
+            ],
+        },
+        commonArgs,
+        collectedErrors,
+    );
 
     return {
         keyRange,
         valueRange: getRangeForItem(sectionMap, commonArgs),
-        missingProperties,
         getSequence,
         getMap,
         properties: {
@@ -345,7 +344,7 @@ function parseAppSection(
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ): ParsedRequestFileAppSection {
-    const { getString, getBoolean, missingProperties } = getValidatedMapItems(
+    const { getString, getBoolean } = getValidatedMapItems(
         appMap,
         {
             scalars: {
@@ -360,7 +359,6 @@ function parseAppSection(
     );
 
     return {
-        missingProperties,
         keyRange,
         valueRange: getRangeForItem(appMap, commonArgs),
         properties: {
@@ -377,7 +375,7 @@ function parseRuntimeSection(
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
 ) {
-    const { getSequence, missingProperties } = getValidatedMapItems(
+    const { getSequence } = getValidatedMapItems(
         runtimeMap,
         {
             // All properties are sequences for the runtime section. None of them are mandatory.
@@ -390,7 +388,6 @@ function parseRuntimeSection(
     return {
         keyRange,
         valueRange: getRangeForItem(runtimeMap, commonArgs),
-        missingProperties,
         properties: {
             variables: parseIfPresent(
                 getSequence(RequestFileRuntimeProperty.Variables),

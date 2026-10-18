@@ -2,9 +2,11 @@ import { describe, it, expect } from "@jest/globals";
 import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
+    getMissingKeys,
+    makeCommonParsingArgs,
     parseTextIntoYamlDocument,
 } from "../../../../_testingUtils";
-import { Position, Range, TextDocumentHelper } from "../../../..";
+import { Position, Range } from "../../../..";
 import { YAMLMap } from "yaml";
 import { getValueFieldFromVariable } from "./getValueFieldFromVariable";
 import { VariableType } from "../../../external/yamlFormat/constants/sharedConstants";
@@ -220,42 +222,34 @@ value:
             const documentText = `name: my-var
 value:
     data: "1"`;
-            const { map, docHelper, fullDocumentRange } =
+            const { map, ...commonArgs } =
                 parseVariableDefinitionMap(documentText);
 
-            const { result, errors } = getValueFieldFromVariable(map, {
-                docHelper,
-                fullDocumentRange,
-            });
+            const { errors } = getValueFieldFromVariable(map, commonArgs);
 
             expect(errors).toHaveLength(1);
-            const { missingProperties } = result as {
-                missingProperties: { key: string }[];
-            };
             expect(
-                missingProperties.some(({ key }) => key === "type"),
-            ).toBeTruthy();
+                getMissingKeys(commonArgs.mapDescriptors[0]).map(
+                    ({ key }) => key,
+                ),
+            ).toEqual(["type"]);
         });
 
         it("reports error when data subfield is missing", () => {
             const documentText = `name: my-var
 value:
     type: string`;
-            const { map, docHelper, fullDocumentRange } =
+            const { map, ...commonArgs } =
                 parseVariableDefinitionMap(documentText);
 
-            const { result, errors } = getValueFieldFromVariable(map, {
-                docHelper,
-                fullDocumentRange,
-            });
+            const { errors } = getValueFieldFromVariable(map, commonArgs);
 
             expect(errors).toHaveLength(1);
-            const { missingProperties } = result as {
-                missingProperties: { key: string }[];
-            };
             expect(
-                missingProperties.some(({ key }) => key === "data"),
-            ).toBeTruthy();
+                getMissingKeys(commonArgs.mapDescriptors[0]).map(
+                    ({ key }) => key,
+                ),
+            ).toEqual(["data"]);
         });
     });
 
@@ -279,14 +273,9 @@ value:
     });
 });
 
-function parseVariableDefinitionMap(documentText: string): {
-    map: YAMLMap;
-    docHelper: TextDocumentHelper;
-    fullDocumentRange: Range;
-} {
-    const docHelper = new TextDocumentHelper(documentText);
-    const fullDocumentRange = docHelper.getTextRange();
+function parseVariableDefinitionMap(documentText: string) {
+    const commonArgs = makeCommonParsingArgs(documentText);
     const parsedDocument = parseTextIntoYamlDocument(documentText);
     const map = parsedDocument.contents as YAMLMap;
-    return { map, docHelper, fullDocumentRange };
+    return { map, ...commonArgs };
 }

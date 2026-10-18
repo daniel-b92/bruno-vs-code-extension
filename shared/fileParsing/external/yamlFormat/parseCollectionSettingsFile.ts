@@ -3,6 +3,7 @@ import {
     ParsedCollectionSettingsFile,
     TextDocumentHelper,
     YamlParsingError,
+    YamlParsingOptions,
 } from "../../..";
 import {
     CommonParsingArgs,
@@ -21,10 +22,12 @@ import { TopLevelCollectionSettingsProperty } from "./constants/collectionSettin
 
 export function parseCollectionSettingsFile(
     docHelper: TextDocumentHelper,
+    options?: YamlParsingOptions,
 ): MaybeResultWithErrors<ParsedCollectionSettingsFile> {
     const commonArgs: CommonParsingArgs = {
         docHelper,
         fullDocumentRange: docHelper.getTextRange(),
+        mapDescriptors: options?.mapDescriptors,
     };
     const collectedErrors: YamlParsingError[] = [];
 
@@ -33,31 +36,30 @@ export function parseCollectionSettingsFile(
         return maybeTopLevelMap;
     }
 
-    const { getString, getBoolean, getMap, missingProperties } =
-        getValidatedMapItems(
-            maybeTopLevelMap.map,
-            {
-                scalars: {
-                    stringValues: [
-                        TopLevelCollectionSettingsProperty.OpenCollection,
-                    ],
-                    booleanValues: [TopLevelCollectionSettingsProperty.Bundled],
-                },
-                mapValues: [
-                    TopLevelCollectionSettingsProperty.Info,
-                    TopLevelCollectionSettingsProperty.Config,
-                    TopLevelCollectionSettingsProperty.Request,
-                    TopLevelCollectionSettingsProperty.Docs,
-                    TopLevelCollectionSettingsProperty.Extensions,
-                ],
-                mandatoryKeys: [
+    const { getString, getBoolean, getMap } = getValidatedMapItems(
+        maybeTopLevelMap.map,
+        {
+            scalars: {
+                stringValues: [
                     TopLevelCollectionSettingsProperty.OpenCollection,
-                    TopLevelCollectionSettingsProperty.Info,
                 ],
+                booleanValues: [TopLevelCollectionSettingsProperty.Bundled],
             },
-            commonArgs,
-            collectedErrors,
-        );
+            mapValues: [
+                TopLevelCollectionSettingsProperty.Info,
+                TopLevelCollectionSettingsProperty.Config,
+                TopLevelCollectionSettingsProperty.Request,
+                TopLevelCollectionSettingsProperty.Docs,
+                TopLevelCollectionSettingsProperty.Extensions,
+            ],
+            mandatoryKeys: [
+                TopLevelCollectionSettingsProperty.OpenCollection,
+                TopLevelCollectionSettingsProperty.Info,
+            ],
+        },
+        commonArgs,
+        collectedErrors,
+    );
 
     return {
         errors: collectedErrors,
@@ -105,7 +107,6 @@ export function parseCollectionSettingsFile(
                     collectedErrors,
                 ),
             },
-            missingProperties,
         },
     };
 }

@@ -1,5 +1,12 @@
 import { LineCounter, parseDocument } from "yaml";
-import { Position, Range, TextDocumentHelper } from "..";
+import {
+    Position,
+    Range,
+    TextDocumentHelper,
+    YamlExpectedKeyInfo,
+    YamlMapDescriptor,
+} from "..";
+import { CommonParsingArgs } from "../fileParsing/internal/yamlFormat/interfaces";
 
 export function getExpectedKeyRange(
     line: number,
@@ -31,7 +38,23 @@ export function parseTextIntoYamlDocument(text: string) {
     });
 }
 
-export function makeCommonParsingArgs(documentText: string) {
+/** The returned args collect a descriptor for every map that gets validated while parsing. */
+export function makeCommonParsingArgs(
+    documentText: string,
+): CommonParsingArgs & { mapDescriptors: YamlMapDescriptor[] } {
     const docHelper = new TextDocumentHelper(documentText);
-    return { docHelper, fullDocumentRange: docHelper.getTextRange() };
+    return {
+        docHelper,
+        fullDocumentRange: docHelper.getTextRange(),
+        mapDescriptors: [],
+    };
+}
+
+/** The expected keys of a map that are not defined in it. */
+export function getMissingKeys({
+    definedKeys,
+    expectedKeys,
+}: YamlMapDescriptor): YamlExpectedKeyInfo[] {
+    const definedKeyNames = definedKeys.map(({ key }) => key);
+    return expectedKeys.filter(({ key }) => !definedKeyNames.includes(key));
 }

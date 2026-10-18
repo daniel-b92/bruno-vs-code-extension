@@ -31,7 +31,6 @@ describe("parseScriptsFromYamlSequence", () => {
         expect(result).toBeDefined();
         expect(result).toHaveLength(1);
         const script = result![0];
-        expect(script.missingProperties).toHaveLength(0);
         expect(script.valueRange).toEqual(
             new Range(new Position(0, 4), fullDocumentRange.end),
         );
@@ -138,7 +137,6 @@ describe("parseScriptsFromYamlSequence", () => {
         expect(result).toBeDefined();
         expect(result).toHaveLength(1);
         const script = result![0];
-        expect(script.missingProperties).toHaveLength(0);
         expect(script.valueRange).toEqual(
             new Range(new Position(0, 4), fullDocumentRange.end),
         );

@@ -18,7 +18,7 @@ export function parseGraphqlBodyFromYamlMap(
 ): MaybeResultWithErrors<ParsedGraphqlBody> {
     const errors: YamlParsingError[] = [];
 
-    const { getString, missingProperties } = getValidatedMapItems(
+    const { getString } = getValidatedMapItems(
         map,
         {
             scalars: {
@@ -40,7 +40,6 @@ export function parseGraphqlBodyFromYamlMap(
         result: {
             keyRange,
             valueRange: getRangeForItem(map, commonArgs),
-            missingProperties,
             properties: {
                 query: stripKeyFromResult(
                     getString(RequestFileGraphqlSectionBodyProperty.Query),
