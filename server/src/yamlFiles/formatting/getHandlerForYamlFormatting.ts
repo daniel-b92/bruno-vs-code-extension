@@ -55,8 +55,16 @@ export async function getHandlerForYamlFormatting(
           ];
 }
 
-/** Returns the unchanged text if it cannot be parsed, so that the scripts can still be formatted. */
+/**
+ * Returns the unchanged text if it cannot be parsed, so that the scripts can still be formatted.
+ * Also returns the unchanged text if the file contains block scalars with an explicit indentation indicator,
+ * because their content is relative to the parent's indentation, which would be changed by the Yaml formatter.
+ */
 async function formatYamlStructure(text: string, lineBreak: LineBreakType) {
+    if (text.split(/\r?\n/).some(hasExplicitIndentationIndicatorInHeader)) {
+        return text;
+    }
+
     try {
         return await format(text, {
             parser: "yaml",
@@ -120,12 +128,18 @@ async function getTextEditForScript(
         .join(lineBreak);
 
     // Scripts are executed inside of a function, so `return` and `await` are valid at the top level.
-    const formatted = (
-        await format(code, {
-            parser: "babel",
-            endOfLine: lineBreak == LineBreakType.Crlf ? "crlf" : "lf",
-        })
-    ).trimEnd();
+    let formatted: string;
+    try {
+        formatted = (
+            await format(code, {
+                parser: "babel",
+                endOfLine: lineBreak == LineBreakType.Crlf ? "crlf" : "lf",
+            })
+        ).trimEnd();
+    } catch {
+        // Scripts that cannot be parsed are left as they are, so that the other scripts and the Yaml structure are still formatted.
+        return undefined;
+    }
 
     const newText = formatted
         .split(lineBreak)
@@ -147,11 +161,13 @@ function hasExplicitIndentationIndicator(
     contentRange: Range,
     documentHelper: TextDocumentHelper,
 ) {
-    const headerLine = documentHelper.getLineByIndex(
-        contentRange.start.line - 1,
+    return hasExplicitIndentationIndicatorInHeader(
+        documentHelper.getLineByIndex(contentRange.start.line - 1),
     );
+}
 
-    return /[|>](?:[+-]?\d|\d[+-]?)/.test(headerLine);
+function hasExplicitIndentationIndicatorInHeader(headerLine: string) {
+    return /[|>](?:[+-]?\d|\d[+-]?)\s*(?:#.*)?$/.test(headerLine);
 }
 
 function getIndentation(line: string) {

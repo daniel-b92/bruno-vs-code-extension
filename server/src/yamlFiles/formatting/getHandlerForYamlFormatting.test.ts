@@ -5,6 +5,7 @@ import { getHandlerForYamlFormatting } from "./getHandlerForYamlFormatting";
 // Prettier can't be loaded in jest (it needs dynamic imports of ES modules), so it's replaced by simple stand-ins.
 // The stand-in for scripts appends a semicolon to every line (that doesn't end with one yet) and uses the configured line break.
 // The stand-in for Yaml collapses multiple spaces after a colon to one and fails for content containing `!invalid`.
+// The stand-in for scripts fails for content containing `!broken`.
 jest.mock("prettier", () => ({
     format: async (
         code: string,
@@ -17,6 +18,10 @@ jest.mock("prettier", () => ({
                 throw new Error("Invalid Yaml");
             }
             return code.replace(/^(\s*(?:- )?[\w-]+:) {2,}(\S)/gm, "$1 $2");
+        }
+
+        if (code.includes("!broken")) {
+            throw new Error("Invalid script");
         }
 
         return (
@@ -193,6 +198,48 @@ runtime:
       code: |
         test("x");
 `);
+    });
+
+    it("should still format the other scripts and the Yaml structure if a script cannot be parsed", async () => {
+        expect(
+            await format(`info:
+  name:   test
+  type: http
+runtime:
+  scripts:
+    - type: before-request
+      code: |
+        !broken
+    - type: tests
+      code: |
+        test("x")
+`),
+        ).toBe(`info:
+  name: test
+  type: http
+runtime:
+  scripts:
+    - type: before-request
+      code: |
+        !broken
+    - type: tests
+      code: |
+        test("x");
+`);
+    });
+
+    it("should not format the Yaml structure if a block scalar has an explicit indentation indicator", async () => {
+        expect(
+            await getEdits(`info:
+  name:   test
+  type: http
+runtime:
+  scripts:
+    - type: tests
+      code: |2
+          const a = 1
+`),
+        ).toHaveLength(0);
     });
 
     it("should keep scripts that are already formatted", async () => {
