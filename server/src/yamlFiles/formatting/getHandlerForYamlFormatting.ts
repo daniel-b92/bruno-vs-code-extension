@@ -76,7 +76,8 @@ async function getTextEditForScript(
 
     const newText = formatted
         .split(lineBreak)
-        .map((line) => (line.trim() == "" ? "" : `${indentation}${line}`))
+        // Whitespace-only lines are only kept by prettier if they are part of a literal (e.g. a template string), so they must not be changed.
+        .map((line) => (line == "" ? "" : `${indentation}${line}`))
         .join(lineBreak);
 
     const range = new Range(

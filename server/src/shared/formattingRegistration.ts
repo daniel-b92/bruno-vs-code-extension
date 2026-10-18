@@ -16,6 +16,10 @@ export class FormattingRegistration implements Disposable {
 
     /** Needs to be called whenever the set of Yaml collections might have changed. */
     public update(yamlCollectionRootDirectories: string[]) {
+        if (this.disposed) {
+            return this.pendingUpdate;
+        }
+
         const key = JSON.stringify([...yamlCollectionRootDirectories].sort());
 
         if (key == this.currentKey) {
@@ -46,10 +50,17 @@ export class FormattingRegistration implements Disposable {
                 ),
             )
             .then((registration) => {
-                this.registration = registration;
+                if (this.disposed) {
+                    // The registration was requested before disposing, but only finished afterwards.
+                    registration.dispose();
+                } else {
+                    this.registration = registration;
+                }
             })
             .catch((error) => {
                 this.registration = undefined;
+                // Allows to retry the registration on the next update, even if the collections did not change.
+                this.currentKey = undefined;
                 this.connection.console.error(
                     `Failed to register the formatting provider: ${error}`,
                 );
@@ -58,12 +69,14 @@ export class FormattingRegistration implements Disposable {
         return this.pendingUpdate;
     }
 
+    /** Unregisters synchronously, because the connection gets disposed right after this. */
     public dispose() {
-        this.pendingUpdate = this.pendingUpdate.then(() =>
-            this.registration?.dispose(),
-        );
+        this.disposed = true;
+        this.registration?.dispose();
+        this.registration = undefined;
     }
 
+    private disposed = false;
     private currentKey: string | undefined = undefined;
     private registration: Disposable | undefined = undefined;
     private pendingUpdate: Promise<void> = Promise.resolve();

@@ -44,7 +44,7 @@ runtime:
 `);
     });
 
-    it("should format all scripts of a file and keep blank lines", async () => {
+    it("should format all scripts of a file and keep blank lines between and after scripts", async () => {
         expect(
             await format(`info:
   name: test
@@ -54,7 +54,6 @@ runtime:
     - type: before-request
       code: |
         bru.setVar("a", 1)
-
 
         bru.setVar("b", 2)
 
@@ -70,7 +69,6 @@ runtime:
     - type: before-request
       code: |
         bru.setVar("a", 1);
-
 
         bru.setVar("b", 2);
 
@@ -102,6 +100,17 @@ runtime:
         first;
             second;
 `);
+    });
+
+    it("should keep whitespace-only lines within a script", async () => {
+        // The second line of the template string consists of 3 spaces (after the indentation of the block scalar).
+        expect(
+            await format(
+                "info:\n  name: test\n  type: http\nruntime:\n  scripts:\n    - type: tests\n      code: |\n        const s = `a\n           \n        b`\n",
+            ),
+        ).toBe(
+            "info:\n  name: test\n  type: http\nruntime:\n  scripts:\n    - type: tests\n      code: |\n        const s = `a;\n           \n        b`;\n",
+        );
     });
 
     it("should keep scripts that are already formatted", async () => {
