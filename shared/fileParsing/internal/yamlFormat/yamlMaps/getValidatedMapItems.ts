@@ -31,7 +31,8 @@ export interface ValidatedMapItems {
     getSequence: (key: string) => WithKeyAndKeyRange<YAMLSeq> | undefined;
     /**
      * Returns the string value for a key that has been passed as an enum key.
-     * Adds an error, if the value is not one of the allowed values (and returns `undefined` then).
+     * Returns `undefined`, if the key is missing or if the value is not one of the allowed values.
+     * The error for an invalid value has already been added when validating the map.
      */
     getEnumValue: <T extends string>(
         key: string,
@@ -42,6 +43,7 @@ export interface ValidatedMapItems {
  * Wraps {@link getMapItems} and additionally handles the validation that is common to all Yaml maps:
  * - Adds an error for every unknown key.
  * - Adds an error for every missing mandatory key.
+ * - Adds an error for every enum key with a value that is not one of the allowed values.
  * - Records a descriptor of the map, if the common args have a sink for them.
  *
  * All errors are appended to `collectedErrors`.
@@ -94,6 +96,23 @@ export function getValidatedMapItems(
         commonArgs,
     });
 
+    const enumValues = keysForParsing.scalars?.enumValues ?? {};
+    const validEnumFields = Object.entries(enumValues).flatMap(
+        ([key, allowedValues]) => {
+            const field = findByKey(items.validScalars.withStringValue, key);
+            if (!field) {
+                return [];
+            }
+            if (!allowedValues.includes(field.value)) {
+                collectedErrors.push(
+                    getErrorForInvalidEnumValue(field, allowedValues),
+                );
+                return [];
+            }
+            return [field];
+        },
+    );
+
     collectedErrors.push(
         ...errors,
         ...unknownKeys
@@ -126,21 +145,10 @@ export function getValidatedMapItems(
         getNumber: (key) => findByKey(items.validScalars.withNumericValue, key),
         getMap: (key) => findByKey(items.validMaps, key),
         getSequence: (key) => findByKey(items.validSequences, key),
-        getEnumValue: <T extends string>(key: string) => {
-            const field = findByKey(items.validScalars.withStringValue, key);
-            if (!field) {
-                return undefined;
-            }
-            const allowedValues =
-                keysForParsing.scalars?.enumValues?.[key] ?? [];
-            if (!allowedValues.includes(field.value)) {
-                collectedErrors.push(
-                    getErrorForInvalidEnumValue(field, allowedValues),
-                );
-                return undefined;
-            }
-            return stripKeyFromResult(field) as WithKeyAndValueRange<T>;
-        },
+        getEnumValue: <T extends string>(key: string) =>
+            stripKeyFromResult(findByKey(validEnumFields, key)) as
+                | WithKeyAndValueRange<T>
+                | undefined,
     };
 }
 

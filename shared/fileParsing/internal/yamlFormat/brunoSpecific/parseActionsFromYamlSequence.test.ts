@@ -40,7 +40,7 @@ describe("parseActionsFromYamlSequence", () => {
         expect(result!.enabled).toHaveLength(1);
 
         const action = result!.enabled[0];
-        // Descriptors get recorded for the nested maps before the one for the action itself.
+        // Descriptors are recorded for the action itself before the ones for its nested maps.
         const actionDescriptor = commonArgs.mapDescriptors.find(
             ({ expectedKeys }) =>
                 expectedKeys.some(({ key }) => key == ActionProperty.Disabled),

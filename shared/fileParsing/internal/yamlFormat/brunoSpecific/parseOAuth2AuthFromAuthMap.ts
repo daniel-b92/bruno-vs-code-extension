@@ -1,5 +1,9 @@
 import { isScalar, Scalar, YAMLMap } from "yaml";
-import { WithKeyAndValueRange, YamlParsingError } from "../../../..";
+import {
+    WithKeyAndValueRange,
+    YamlMapDescriptor,
+    YamlParsingError,
+} from "../../../..";
 import {
     CommonParsingArgs,
     MaybeResultWithErrors,
@@ -371,6 +375,8 @@ function parseTokenPlacement(
         mapToValidate.delete(queryKey);
     }
 
+    // The descriptor of the map gets recorded separately, so that the `query` key can be added to it afterwards.
+    const placementDescriptors: YamlMapDescriptor[] = [];
     const { getString } = getValidatedMapItems(
         mapToValidate,
         {
@@ -378,12 +384,12 @@ function parseTokenPlacement(
                 stringValues: Object.values(OAuth2TokenPlacementProperty),
             },
         },
-        commonArgs,
+        { ...commonArgs, mapDescriptors: placementDescriptors },
         errors,
     );
     if (queryWithoutValue) {
         // The key was removed from the validated map, but it is still defined in the document.
-        commonArgs.mapDescriptors?.at(-1)?.definedKeys.push({
+        placementDescriptors[0].definedKeys.push({
             key: queryKey,
             keyRange: getRangeForItem(
                 queryWithoutValue.key as Scalar,
@@ -395,6 +401,7 @@ function parseTokenPlacement(
             ),
         });
     }
+    commonArgs.mapDescriptors?.push(...placementDescriptors);
 
     return {
         errors,

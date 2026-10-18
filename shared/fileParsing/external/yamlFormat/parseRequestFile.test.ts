@@ -565,7 +565,14 @@ http:
 
             expect(errors).toHaveLength(0);
             expect(result!.properties.http).toBeDefined();
-            expect(mapDescriptors.flatMap(getMissingKeys)).toContainEqual(
+            expect(
+                getMissingKeys(
+                    findDescriptorWithExpectedKey(
+                        mapDescriptors,
+                        RequestFileHttpSectionProperty.url,
+                    ),
+                ),
+            ).toContainEqual(
                 expect.objectContaining({
                     key: RequestFileHttpSectionProperty.url,
                     valueKinds: ["string"],
@@ -592,7 +599,14 @@ runtime:
 
             expect(errors).toHaveLength(0);
             expect(result!.properties.runtime).toBeDefined();
-            expect(mapDescriptors.flatMap(getMissingKeys)).toContainEqual(
+            expect(
+                getMissingKeys(
+                    findDescriptorWithExpectedKey(
+                        mapDescriptors,
+                        RequestFileRuntimeProperty.Variables,
+                    ),
+                ),
+            ).toContainEqual(
                 expect.objectContaining({
                     key: RequestFileRuntimeProperty.Variables,
                     isMandatory: false,
@@ -859,3 +873,13 @@ settings:
         });
     });
 });
+
+/** Finds the descriptor of the map that is expected to define the given key (so that missing keys can be attributed to the right map). */
+function findDescriptorWithExpectedKey(
+    mapDescriptors: YamlMapDescriptor[],
+    key: string,
+) {
+    return mapDescriptors.find(({ expectedKeys }) =>
+        expectedKeys.some((expected) => expected.key == key),
+    )!;
+}

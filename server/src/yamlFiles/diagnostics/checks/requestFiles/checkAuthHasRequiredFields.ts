@@ -2,7 +2,6 @@ import {
     AuthType,
     OAuth2AuthProperty,
     ParsedAuth,
-    Range,
     YamlMapDescriptor,
 } from "@global_shared";
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
@@ -27,7 +26,7 @@ export function checkAuthHasRequiredFields(
         definedKeys.some(
             ({ key, keyRange }) =>
                 key == "type" &&
-                areRangesEqual(keyRange, properties.type.keyRange),
+                keyRange.equals(properties.type.keyRange),
         ),
     );
     if (!authMapDescriptor) {
@@ -54,13 +53,4 @@ export function checkAuthHasRequiredFields(
               severity: DiagnosticSeverity.Warning,
           }
         : undefined;
-}
-
-function areRangesEqual(a: Range, b: Range) {
-    return (
-        a.start.line == b.start.line &&
-        a.start.character == b.start.character &&
-        a.end.line == b.end.line &&
-        a.end.character == b.end.character
-    );
 }

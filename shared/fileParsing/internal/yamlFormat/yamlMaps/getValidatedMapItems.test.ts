@@ -103,19 +103,22 @@ describe("getValidatedMapItems", () => {
         ]);
     });
 
-    it("does not record a descriptor if there is no sink for them", () => {
+    it("does not fail if there is no sink for descriptors", () => {
         const map = parseTextIntoYamlDocument("name: foo").contents as YAMLMap;
         const { mapDescriptors, ...commonArgs } =
             makeCommonParsingArgs("name: foo");
+        const errors: YamlParsingError[] = [];
 
-        getValidatedMapItems(
+        const { getString } = getValidatedMapItems(
             map,
             { scalars: { stringValues: ["name"] } },
             commonArgs,
-            [],
+            errors,
         );
 
-        expect(mapDescriptors).toEqual([]);
+        expect(commonArgs).not.toHaveProperty("mapDescriptors");
+        expect(errors).toEqual([]);
+        expect(getString("name")?.value).toBe("foo");
     });
 
     describe("enum values", () => {
@@ -141,11 +144,19 @@ describe("getValidatedMapItems", () => {
                 scalars: { enumValues: { type: ["a", "b"] } },
             });
 
-            // The error is added when the value is requested.
-            expect(errors).toHaveLength(0);
+            expect(getEnumValue("type")).toBeUndefined();
+            // Requesting the value more than once does not add more errors.
             expect(getEnumValue("type")).toBeUndefined();
             expect(errors).toHaveLength(1);
             expect(errors[0].message).toContain("Invalid value 'c'");
+        });
+
+        it("adds an error for an invalid value, even if the value is never requested", () => {
+            const { errors } = run("type: c", {
+                scalars: { enumValues: { type: ["a", "b"] } },
+            });
+
+            expect(errors).toHaveLength(1);
         });
 
         it("returns undefined for a missing key", () => {

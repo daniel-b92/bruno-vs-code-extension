@@ -101,14 +101,14 @@ variables:
             },
             errors: [],
         });
-        expect(getMissingKeyNames(mapDescriptors)).toEqual(
+        expect(getMissingKeyNamesPerMap(mapDescriptors)).toEqual([
+            [TopLevelEnvironmentFileProperty.Extends],
             [
-                TopLevelEnvironmentFileProperty.Extends,
                 EnvironmentVariableProperty.Disabled,
                 EnvironmentVariableProperty.Secret,
                 EnvironmentVariableProperty.Type,
-            ].sort(),
-        );
+            ],
+        ]);
     });
 
     it("parses a yaml environment file with multiple variables", () => {
@@ -258,16 +258,20 @@ variables:
             },
             errors: [],
         });
-        expect(getMissingKeyNames(mapDescriptors)).toEqual(
+        expect(getMissingKeyNamesPerMap(mapDescriptors)).toEqual([
+            [TopLevelEnvironmentFileProperty.Extends],
+            // var-1
             [
-                TopLevelEnvironmentFileProperty.Extends,
                 EnvironmentVariableProperty.Disabled,
                 EnvironmentVariableProperty.Secret,
                 EnvironmentVariableProperty.Type,
+            ],
+            // var-2
+            [
                 EnvironmentVariableProperty.Description,
                 EnvironmentVariableProperty.Type,
-            ].sort(),
-        );
+            ],
+        ]);
     });
 
     it("parses the top level field 'extends' in a yaml environment file", () => {
@@ -465,9 +469,11 @@ function getDefaultVariableProperties() {
     };
 }
 
-function getMissingKeyNames(mapDescriptors: YamlMapDescriptor[]) {
-    return mapDescriptors
-        .flatMap(getMissingKeys)
-        .map(({ key }) => key)
-        .sort();
+/** The names of the missing keys (sorted) for every validated map, in the order of validation. */
+function getMissingKeyNamesPerMap(mapDescriptors: YamlMapDescriptor[]) {
+    return mapDescriptors.map((descriptor) =>
+        getMissingKeys(descriptor)
+            .map(({ key }) => key)
+            .sort(),
+    );
 }

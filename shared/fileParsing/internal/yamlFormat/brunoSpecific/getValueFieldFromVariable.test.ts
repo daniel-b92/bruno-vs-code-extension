@@ -222,7 +222,7 @@ value:
             const documentText = `name: my-var
 value:
     data: "1"`;
-            const { map, commonArgs } =
+            const { map, ...commonArgs } =
                 parseVariableDefinitionMap(documentText);
 
             const { errors } = getValueFieldFromVariable(map, commonArgs);
@@ -239,7 +239,7 @@ value:
             const documentText = `name: my-var
 value:
     type: string`;
-            const { map, commonArgs } =
+            const { map, ...commonArgs } =
                 parseVariableDefinitionMap(documentText);
 
             const { errors } = getValueFieldFromVariable(map, commonArgs);
@@ -277,5 +277,5 @@ function parseVariableDefinitionMap(documentText: string) {
     const commonArgs = makeCommonParsingArgs(documentText);
     const parsedDocument = parseTextIntoYamlDocument(documentText);
     const map = parsedDocument.contents as YAMLMap;
-    return { map, commonArgs, ...commonArgs };
+    return { map, ...commonArgs };
 }
