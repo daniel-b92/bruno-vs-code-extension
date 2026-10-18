@@ -21,9 +21,21 @@ export interface ExpectedKeys {
         booleanValues?: string[];
         numericValues?: string[];
         stringValues?: string[];
+        /** Keys with a string value that has to be one of the listed values. Those keys are string keys as well. */
+        enumValues?: Record<string, readonly string[]>;
     };
     mapValues?: string[];
     sequenceValues?: string[];
+}
+
+/** All keys that can have a string value, including the ones that have to be one of a list of values. */
+export function getStringKeys({ scalars }: ExpectedKeys): string[] {
+    return [
+        ...new Set([
+            ...(scalars?.stringValues ?? []),
+            ...Object.keys(scalars?.enumValues ?? {}),
+        ]),
+    ];
 }
 
 interface ValidKeys {
@@ -50,14 +62,13 @@ export function getMapItems(
         scalars: {
             booleanValues: expectedBooleanScalars,
             numericValues: expectedNumericScalars,
-            stringValues: expectedStringScalars,
         } = {},
         sequenceValues: expectedSequenceValues,
         mapValues: expectedMapValues,
     } = expectedKeys;
     const allExpectedScalars = (expectedBooleanScalars ?? []).concat(
         expectedNumericScalars ?? [],
-        expectedStringScalars ?? [],
+        getStringKeys(expectedKeys),
     );
     const allExpectedKeys = allExpectedScalars.concat(
         expectedSequenceValues ?? [],
@@ -77,6 +88,7 @@ export function getMapItems(
         // Everytime one of the expected keys is found, it will be removed from this list.
         missingKeys: [...new Set(allExpectedKeys)],
         unknownKeys: [],
+        definedKeys: [],
     };
     const errors: YamlParsingError[] = [];
 
@@ -112,6 +124,13 @@ export function getMapItems(
             continue;
         }
         const keyRange = maybeKeyRange.range;
+        items.definedKeys.push({
+            key: keyValue,
+            keyRange,
+            valueRange: value
+                ? getRangeForItem(value, commonParsingArgs)
+                : undefined,
+        });
 
         const missingKeyIndex = items.missingKeys.findIndex(
             (notFoundYet) => notFoundYet == keyValue,
@@ -202,9 +221,9 @@ function handleScalarValue(
         scalars: {
             booleanValues: expectedBooleanScalars,
             numericValues: expectedNumericScalars,
-            stringValues: expectedStringScalars,
         } = {},
     } = expectedKeys;
+    const expectedStringScalars = getStringKeys(expectedKeys);
     const {
         validScalars: {
             withBooleanValue: validBooleanScalars,
@@ -216,7 +235,7 @@ function handleScalarValue(
 
     // The parser converts empty strings to `NULL`, which causes a type mismatch, when directly checking for string scalars.
     if (value.source === "") {
-        if (expectedStringScalars?.includes(key)) {
+        if (expectedStringScalars.includes(key)) {
             validStringScalars.push({
                 key,
                 keyRange,
@@ -280,7 +299,7 @@ function handleScalarValue(
     }
 
     if (isStringScalar(value)) {
-        if (expectedStringScalars?.includes(key)) {
+        if (expectedStringScalars.includes(key)) {
             validStringScalars.push({
                 ...mapFromYamlScalar({
                     ...commonParsingArgs,
@@ -324,7 +343,6 @@ function getErrorForUnexpectedType(
         scalars: {
             booleanValues: expectedBooleanScalars,
             numericValues: expectedNumericScalars,
-            stringValues: expectedStrinǵScalars,
         } = {},
         sequenceValues: expectedSequenceValues,
         mapValues: expectedMapValues,
@@ -336,7 +354,7 @@ function getErrorForUnexpectedType(
                 key,
                 type: "number",
             })),
-            (expectedStrinǵScalars ?? []).map((key) => ({
+            getStringKeys(expectedKeys).map((key) => ({
                 key,
                 type: "string",
             })),

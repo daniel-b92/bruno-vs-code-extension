@@ -1,18 +1,23 @@
 import { YAMLMap, YAMLSeq } from "yaml";
-import { YamlMapMissingPropertyInfo, YamlParsingError } from "../../../..";
+import { WithKeyAndValueRange, YamlParsingError } from "../../../..";
 import {
     CommonParsingArgs,
     ParsedMapItems,
     WithKeyAndKeyRange,
     WithKeyKeyRangeAndValueRange,
 } from "../interfaces";
+import { getErrorForInvalidEnumValue } from "../parsingErrors/getErrorForInvalidEnumValue";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
 import { getErrorForUnknownKeyInMap } from "../parsingErrors/getErrorForUnknownKeyInMap";
-import { ExpectedKeys, getMapItems } from "./getMapItems";
+import { stripKeyFromResult } from "../util/stripKeyFromResult";
+import { ExpectedKeys, getMapItems, getStringKeys } from "./getMapItems";
+import {
+    AdditionalAllowedKey,
+    recordMapDescriptor,
+} from "./recordMapDescriptor";
 
 export interface ValidatedMapItems {
     items: ParsedMapItems;
-    missingProperties: YamlMapMissingPropertyInfo[];
     getString: (
         key: string,
     ) => WithKeyKeyRangeAndValueRange<string> | undefined;
@@ -24,13 +29,20 @@ export interface ValidatedMapItems {
     ) => WithKeyKeyRangeAndValueRange<number> | undefined;
     getMap: (key: string) => WithKeyAndKeyRange<YAMLMap> | undefined;
     getSequence: (key: string) => WithKeyAndKeyRange<YAMLSeq> | undefined;
+    /**
+     * Returns the string value for a key that has been passed as an enum key.
+     * Adds an error, if the value is not one of the allowed values (and returns `undefined` then).
+     */
+    getEnumValue: <T extends string>(
+        key: string,
+    ) => WithKeyAndValueRange<T> | undefined;
 }
 
 /**
  * Wraps {@link getMapItems} and additionally handles the validation that is common to all Yaml maps:
  * - Adds an error for every unknown key.
  * - Adds an error for every missing mandatory key.
- * - Derives the info about missing properties from the expected keys.
+ * - Records a descriptor of the map, if the common args have a sink for them.
  *
  * All errors are appended to `collectedErrors`.
  *
@@ -40,6 +52,7 @@ export interface ValidatedMapItems {
  * @param mandatoryKeys Keys that have to be defined. All other expected keys are optional.
  * @param additionalAllowedKeys Keys that are valid, but get handled by the caller (e.g. because they need special parsing).
  * No errors are added for these keys, even though they are not part of the expected keys.
+ * They are listed as expected keys in the descriptor with the given value kinds.
  * @param silentlyAllowedKeys Like `additionalAllowedKeys`, but the keys are not listed as allowed keys in error messages
  * (e.g. because they are reported by a dedicated check).
  */
@@ -47,7 +60,7 @@ export function getValidatedMapItems(
     map: YAMLMap,
     expectedKeys: ExpectedKeys & {
         mandatoryKeys?: string[];
-        additionalAllowedKeys?: string[];
+        additionalAllowedKeys?: AdditionalAllowedKey[];
         silentlyAllowedKeys?: string[];
     },
     commonArgs: CommonParsingArgs,
@@ -64,27 +77,31 @@ export function getValidatedMapItems(
 
     const allowedKeys = [
         ...new Set([
-            ...Object.values(keysForParsing.scalars ?? {}).flatMap(
-                (keys) => keys ?? [],
-            ),
+            ...(keysForParsing.scalars?.booleanValues ?? []),
+            ...(keysForParsing.scalars?.numericValues ?? []),
+            ...getStringKeys(keysForParsing),
             ...(keysForParsing.mapValues ?? []),
             ...(keysForParsing.sequenceValues ?? []),
-            ...additionalAllowedKeys,
+            ...additionalAllowedKeys.map(({ key }) => key),
         ]),
     ];
-    // Keys that can only have a scalar value (and not also a map or sequence).
-    const nonScalarKeys = [
-        ...(keysForParsing.mapValues ?? []),
-        ...(keysForParsing.sequenceValues ?? []),
-    ];
+
+    recordMapDescriptor({
+        items,
+        expectedKeys: keysForParsing,
+        mandatoryKeys,
+        additionalKeys: additionalAllowedKeys,
+        commonArgs,
+    });
 
     collectedErrors.push(
         ...errors,
         ...unknownKeys
             .filter(
                 ({ key }) =>
-                    !additionalAllowedKeys.includes(key) &&
-                    !silentlyAllowedKeys.includes(key),
+                    !additionalAllowedKeys.some(
+                        ({ key: allowedKey }) => allowedKey == key,
+                    ) && !silentlyAllowedKeys.includes(key),
             )
             .map(({ key: unknownKey, keyRange }) =>
                 getErrorForUnknownKeyInMap({
@@ -109,11 +126,21 @@ export function getValidatedMapItems(
         getNumber: (key) => findByKey(items.validScalars.withNumericValue, key),
         getMap: (key) => findByKey(items.validMaps, key),
         getSequence: (key) => findByKey(items.validSequences, key),
-        missingProperties: missingKeys.map((key) => ({
-            key,
-            alwaysHasScalarValue: !nonScalarKeys.includes(key),
-            isMandatory: mandatoryKeys.includes(key),
-        })),
+        getEnumValue: <T extends string>(key: string) => {
+            const field = findByKey(items.validScalars.withStringValue, key);
+            if (!field) {
+                return undefined;
+            }
+            const allowedValues =
+                keysForParsing.scalars?.enumValues?.[key] ?? [];
+            if (!allowedValues.includes(field.value)) {
+                collectedErrors.push(
+                    getErrorForInvalidEnumValue(field, allowedValues),
+                );
+                return undefined;
+            }
+            return stripKeyFromResult(field) as WithKeyAndValueRange<T>;
+        },
     };
 }
 

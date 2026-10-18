@@ -3,6 +3,8 @@ import { YAMLSeq } from "yaml";
 import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
+    getMissingKeys,
+    makeCommonParsingArgs,
     parseTextIntoYamlDocument,
 } from "../../../../_testingUtils";
 import { parseActionsFromYamlSequence } from "./parseActionsFromYamlSequence";
@@ -25,11 +27,11 @@ describe("parseActionsFromYamlSequence", () => {
   description: sdsd`;
 
         const yamlDocument = parseTextIntoYamlDocument(documentText);
-        const docHelper = new TextDocumentHelper(documentText);
-        const fullDocumentRange = docHelper.getTextRange();
+        const commonArgs = makeCommonParsingArgs(documentText);
+        const { fullDocumentRange } = commonArgs;
         const { result, errors } = parseActionsFromYamlSequence(
             yamlDocument.contents as YAMLSeq,
-            { docHelper, fullDocumentRange },
+            commonArgs,
         );
 
         expect(errors).toHaveLength(0);
@@ -38,12 +40,18 @@ describe("parseActionsFromYamlSequence", () => {
         expect(result!.enabled).toHaveLength(1);
 
         const action = result!.enabled[0];
-        expect(action.missingProperties).toHaveLength(1);
-        expect(action.missingProperties[0]).toEqual({
-            alwaysHasScalarValue: true,
-            isMandatory: false,
-            key: ActionProperty.Disabled,
-        });
+        // Descriptors get recorded for the nested maps before the one for the action itself.
+        const actionDescriptor = commonArgs.mapDescriptors.find(
+            ({ expectedKeys }) =>
+                expectedKeys.some(({ key }) => key == ActionProperty.Disabled),
+        )!;
+        expect(getMissingKeys(actionDescriptor)).toEqual([
+            {
+                key: ActionProperty.Disabled,
+                valueKinds: ["boolean"],
+                isMandatory: false,
+            },
+        ]);
         expect(action.valueRange).toEqual(
             new Range(new Position(0, 2), fullDocumentRange.end),
         );
@@ -52,7 +60,6 @@ describe("parseActionsFromYamlSequence", () => {
             ActionPhase.AfterResponse,
         );
         expect(action.properties.selector).toEqual({
-            missingProperties: [],
             keyRange: getExpectedKeyRange(2, "variable", 2),
             valueRange: new Range(new Position(3, 4), new Position(5, 0)),
             properties: {
@@ -80,7 +87,6 @@ describe("parseActionsFromYamlSequence", () => {
         });
 
         expect(action.properties.variable).toEqual({
-            missingProperties: [],
             keyRange: getExpectedKeyRange(5, "selector", 2),
             valueRange: new Range(new Position(6, 4), new Position(8, 0)),
             properties: {
@@ -228,7 +234,6 @@ describe("parseActionsFromYamlSequence", () => {
         expect(result!.enabled).toHaveLength(1);
 
         const action = result!.enabled[0];
-        expect(action.missingProperties).toHaveLength(3);
         expect(action.properties.selector).toBeUndefined();
 
         expect(action.properties.variable?.properties.name?.value).toEqual(

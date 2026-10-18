@@ -24,33 +24,31 @@ export function parseSettingsFileRequestSection(
     commonArgs: CommonParsingArgs,
 ): MaybeResultWithErrors<ParsedSettingsFileRequestSection> {
     const collectedErrors: YamlParsingError[] = [];
-    const { getString, getMap, getSequence, missingProperties } =
-        getValidatedMapItems(
-            requestMap,
-            {
-                // Auth can either be a Scalar string with the value 'inherit' or a map with a specific type.
-                scalars: {
-                    stringValues: [SettingsFileRequestSectionProperty.Auth],
-                },
-                mapValues: [SettingsFileRequestSectionProperty.Auth],
-                sequenceValues: [
-                    SettingsFileRequestSectionProperty.Headers,
-                    SettingsFileRequestSectionProperty.Variables,
-                    SettingsFileRequestSectionProperty.Scripts,
-                    SettingsFileRequestSectionProperty.Actions,
-                ],
-                // None of the properties are mandatory.
+    const { getString, getMap, getSequence } = getValidatedMapItems(
+        requestMap,
+        {
+            // Auth can either be a Scalar string with the value 'inherit' or a map with a specific type.
+            scalars: {
+                stringValues: [SettingsFileRequestSectionProperty.Auth],
             },
-            commonArgs,
-            collectedErrors,
-        );
+            mapValues: [SettingsFileRequestSectionProperty.Auth],
+            sequenceValues: [
+                SettingsFileRequestSectionProperty.Headers,
+                SettingsFileRequestSectionProperty.Variables,
+                SettingsFileRequestSectionProperty.Scripts,
+                SettingsFileRequestSectionProperty.Actions,
+            ],
+            // None of the properties are mandatory.
+        },
+        commonArgs,
+        collectedErrors,
+    );
 
     return {
         errors: collectedErrors,
         result: {
             keyRange,
             valueRange: getRangeForItem(requestMap, commonArgs),
-            missingProperties,
             properties: {
                 headers: parseIfPresent(
                     getSequence(SettingsFileRequestSectionProperty.Headers),

@@ -201,10 +201,26 @@ export interface WithKeyAndValueRange<T> {
     valueRange: Range;
 }
 
-export interface YamlMapMissingPropertyInfo {
+export type YamlValueKind =
+    "string" | "boolean" | "number" | "map" | "sequence";
+
+export interface YamlParsingOptions {
+    /** If defined, a descriptor is appended for every map that gets validated while parsing. */
+    mapDescriptors?: YamlMapDescriptor[];
+}
+
+/** Describes a Yaml map that has been validated while parsing: Which keys are expected for it and which are defined. */
+export interface YamlMapDescriptor {
+    /** All keys defined in the map, including unknown ones. */
+    definedKeys: { key: string; keyRange: Range; valueRange?: Range }[];
+    expectedKeys: YamlExpectedKeyInfo[];
+}
+
+export interface YamlExpectedKeyInfo {
     key: string;
     isMandatory: boolean;
-    alwaysHasScalarValue: boolean;
+    valueKinds: YamlValueKind[];
+    allowedValues?: readonly string[];
 }
 
 export type {

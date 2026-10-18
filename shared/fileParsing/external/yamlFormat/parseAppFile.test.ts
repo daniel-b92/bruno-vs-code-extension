@@ -1,7 +1,7 @@
 import { describe, it, expect } from "@jest/globals";
 import { TextDocumentHelper } from "../../../fileSystem/textDocumentHelper";
-import { FileInfoType, parseAppFile } from "../../..";
-import { getExpectedKeyRange } from "../../../_testingUtils";
+import { FileInfoType, parseAppFile, YamlMapDescriptor } from "../../..";
+import { getExpectedKeyRange, getMissingKeys } from "../../../_testingUtils";
 import { TopLevelAppFileProperty } from "./constants/appFileConstants";
 
 describe("parseAppFile", () => {
@@ -20,7 +20,6 @@ code: |
         );
 
         expect(errors).toHaveLength(0);
-        expect(result!.missingProperties).toHaveLength(0);
         const { info, code } = result!.properties;
         expect(info?.keyRange).toEqual(
             getExpectedKeyRange(0, TopLevelAppFileProperty.Info, 0),
@@ -35,9 +34,10 @@ code: |
     });
 
     it("reports missing mandatory properties", () => {
-        const { result } = parseAppFile(new TextDocumentHelper(`foo: bar`));
+        const mapDescriptors: YamlMapDescriptor[] = [];
+        parseAppFile(new TextDocumentHelper(`foo: bar`), { mapDescriptors });
 
-        const mandatory = result!.missingProperties.filter(
+        const mandatory = getMissingKeys(mapDescriptors[0]).filter(
             ({ isMandatory }) => isMandatory,
         );
         expect(mandatory.map(({ key }) => key)).toEqual([
@@ -46,14 +46,18 @@ code: |
     });
 
     it("does not require the code property", () => {
+        const mapDescriptors: YamlMapDescriptor[] = [];
         const { result, errors } = parseAppFile(
             new TextDocumentHelper(`info:\n  name: test\n  type: app`),
+            { mapDescriptors },
         );
 
         expect(errors).toHaveLength(0);
         expect(result!.properties.code).toBeUndefined();
         expect(
-            result!.missingProperties.filter(({ isMandatory }) => isMandatory),
+            getMissingKeys(mapDescriptors[0]).filter(
+                ({ isMandatory }) => isMandatory,
+            ),
         ).toHaveLength(0);
     });
 

@@ -6,7 +6,6 @@ import {
     ParsedYamlMapWithKeyAndValueRange,
 } from "../interfaces";
 import { getErrorForValueWithUnexpectedType } from "../parsingErrors/getErrorForValueWithUnexpectedType";
-import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import { getRangeForItem } from "../util/getRangeForItem";
 import { getRangeForUnknownYamlItem } from "../util/getRangeForUnknownYamlItem";
 import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
@@ -86,16 +85,16 @@ export function getValueFieldFromVariable(
         VariableValueWithTypeProperty.Type,
     ];
 
-    const {
-        getString,
-        items: {
-            validScalars: { withStringValue: validStringScalars },
-        },
-        missingProperties,
-    } = getValidatedMapItems(
+    const { getString, getEnumValue } = getValidatedMapItems(
         valueMapItem,
         {
-            scalars: { stringValues: keysForStringScalars },
+            scalars: {
+                stringValues: keysForStringScalars,
+                enumValues: {
+                    [VariableValueWithTypeProperty.Type]:
+                        Object.values(VariableType),
+                },
+            },
             // All properties are mandatory.
             mandatoryKeys: keysForStringScalars,
         },
@@ -105,13 +104,8 @@ export function getValueFieldFromVariable(
 
     const data = getString(VariableValueWithTypeProperty.Data);
 
-    const maybeType = getTypedValueFromList(
-        {
-            allowedValues: Object.values(VariableType),
-            allStringValues: validStringScalars,
-            keyName: VariableValueWithTypeProperty.Type,
-        },
-        collectedErrors,
+    const maybeType = getEnumValue<VariableType>(
+        VariableValueWithTypeProperty.Type,
     );
 
     return {
@@ -120,9 +114,8 @@ export function getValueFieldFromVariable(
             valueRange: getRangeForItem(valueMapItem, commonParams),
             properties: {
                 data: stripKeyFromResult(data),
-                type: maybeType?.value,
+                type: maybeType,
             },
-            missingProperties,
         },
         errors: collectedErrors,
     };

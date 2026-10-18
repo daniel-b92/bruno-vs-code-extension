@@ -2,9 +2,11 @@ import { describe, it, expect } from "@jest/globals";
 import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
+    getMissingKeys,
+    makeCommonParsingArgs,
     parseTextIntoYamlDocument,
 } from "../../../../_testingUtils";
-import { Position, Range, TextDocumentHelper } from "../../../..";
+import { Position, Range } from "../../../..";
 import { YAMLSeq } from "yaml";
 import { RequestHeaderProperty } from "../../../external/yamlFormat/constants/sharedConstants";
 import { parseHeadersFromSequence } from "./parseHeadersFromSequence";
@@ -15,26 +17,22 @@ describe("parseHeadersFromSequence", () => {
     value: dfgdfg
     description: sdsds`;
 
-        const docHelper = new TextDocumentHelper(documentText);
-        const fullDocumentRange = docHelper.getTextRange();
+        const commonArgs = makeCommonParsingArgs(documentText);
+        const { docHelper, fullDocumentRange } = commonArgs;
         const parsedDocument = parseTextIntoYamlDocument(documentText);
         const sequence = parsedDocument.contents as YAMLSeq;
         const { result, errors } = parseHeadersFromSequence({
             headersSequence: sequence,
-            commonArgs: {
-                docHelper,
-                fullDocumentRange,
-            },
+            commonArgs,
         });
 
         expect(errors).toHaveLength(0);
         expect(result).toBeDefined();
         expect(result?.enabled).toHaveLength(1);
         const header = result!.enabled[0];
-        expect(header.missingProperties).toHaveLength(1);
-        expect(header.missingProperties[0].key).toBe(
-            RequestHeaderProperty.Disabled,
-        );
+        expect(
+            getMissingKeys(commonArgs.mapDescriptors[0]).map(({ key }) => key),
+        ).toEqual([RequestHeaderProperty.Disabled]);
         expect(header.valueRange).toEqual(
             new Range(new Position(0, 4), fullDocumentRange.end),
         );
@@ -90,16 +88,13 @@ describe("parseHeadersFromSequence", () => {
     description: sdsds
     disabled: true`;
 
-        const docHelper = new TextDocumentHelper(documentText);
-        const fullDocumentRange = docHelper.getTextRange();
+        const commonArgs = makeCommonParsingArgs(documentText);
+        const { fullDocumentRange } = commonArgs;
         const parsedDocument = parseTextIntoYamlDocument(documentText);
         const sequence = parsedDocument.contents as YAMLSeq;
         const { result, errors } = parseHeadersFromSequence({
             headersSequence: sequence,
-            commonArgs: {
-                docHelper,
-                fullDocumentRange,
-            },
+            commonArgs,
         });
 
         expect(errors).toHaveLength(0);
@@ -108,26 +103,28 @@ describe("parseHeadersFromSequence", () => {
         expect(result?.disabled).toHaveLength(1);
         const allHeaders = [...result!.enabled, ...result!.disabled];
         const headerWithOnlySomeProps = allHeaders.find(
-            ({ missingProperties }) => missingProperties.length > 0,
+            ({ properties }) => properties.description === undefined,
         );
         const headerWithAllProps = allHeaders.find(
-            ({ missingProperties }) => missingProperties.length == 0,
+            ({ properties }) => properties.description !== undefined,
         );
         expect(headerWithOnlySomeProps).toBeDefined();
         expect(headerWithAllProps).toBeDefined();
 
-        expect(
-            headerWithOnlySomeProps?.missingProperties.some(
-                ({ key, isMandatory }) =>
-                    key == RequestHeaderProperty.Description && !isMandatory,
-            ),
-        ).toBeTruthy();
-        expect(
-            headerWithOnlySomeProps?.missingProperties.some(
-                ({ key, isMandatory }) =>
-                    key == RequestHeaderProperty.Disabled && !isMandatory,
-            ),
-        ).toBeTruthy();
+        const descriptorsWithMissingKeys = commonArgs.mapDescriptors.filter(
+            (descriptor) => getMissingKeys(descriptor).length > 0,
+        );
+        expect(descriptorsWithMissingKeys).toHaveLength(1);
+        expect(getMissingKeys(descriptorsWithMissingKeys[0])).toEqual([
+            expect.objectContaining({
+                key: RequestHeaderProperty.Description,
+                isMandatory: false,
+            }),
+            expect.objectContaining({
+                key: RequestHeaderProperty.Disabled,
+                isMandatory: false,
+            }),
+        ]);
         expect(headerWithOnlySomeProps?.valueRange).toEqual(
             new Range(new Position(0, 4), new Position(2, 0)),
         );
@@ -144,16 +141,13 @@ describe("parseHeadersFromSequence", () => {
     description: 
         - value: ssdfd`;
 
-        const docHelper = new TextDocumentHelper(documentText);
-        const fullDocumentRange = docHelper.getTextRange();
+        const commonArgs = makeCommonParsingArgs(documentText);
+        const { docHelper, fullDocumentRange } = commonArgs;
         const parsedDocument = parseTextIntoYamlDocument(documentText);
         const sequence = parsedDocument.contents as YAMLSeq;
         const { result, errors } = parseHeadersFromSequence({
             headersSequence: sequence,
-            commonArgs: {
-                docHelper,
-                fullDocumentRange,
-            },
+            commonArgs,
         });
 
         expect(errors).toHaveLength(3);
@@ -186,17 +180,9 @@ describe("parseHeadersFromSequence", () => {
         expect(result).toBeDefined();
         expect(result?.enabled).toHaveLength(1);
         const header = result!.enabled[0];
-        expect(header.missingProperties).toHaveLength(2);
         expect(
-            header.missingProperties.some(
-                ({ key }) => key == RequestHeaderProperty.Name,
-            ),
-        ).toBeTruthy();
-        expect(
-            header.missingProperties.some(
-                ({ key }) => key == RequestHeaderProperty.Disabled,
-            ),
-        ).toBeTruthy();
+            getMissingKeys(commonArgs.mapDescriptors[0]).map(({ key }) => key),
+        ).toEqual([RequestHeaderProperty.Name, RequestHeaderProperty.Disabled]);
         expect(header.valueRange).toEqual(
             new Range(new Position(0, 4), fullDocumentRange.end),
         );

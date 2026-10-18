@@ -23,10 +23,11 @@ import {
     WithKeyAndKeyRange,
 } from "../interfaces";
 import { getMapItems } from "../yamlMaps/getMapItems";
+import { recordMapDescriptor } from "../yamlMaps/recordMapDescriptor";
+import { getErrorForInvalidEnumValue } from "../parsingErrors/getErrorForInvalidEnumValue";
 import { getValidatedMapItems } from "../yamlMaps/getValidatedMapItems";
 import { stripKeyFromResult } from "../util/stripKeyFromResult";
 import { getErrorForMissingKeyInMap } from "../parsingErrors/getErrorForMissingKeyInMap";
-import { getTypedValueFromList } from "../scalars/getTypedValueFromList";
 import {
     AkamaiEdgegridAuthProperty,
     ApiKeyAuthProperty,
@@ -108,19 +109,32 @@ export function parseAuthFromYamlMapOrScalar(args: {
         authMap: YAMLMap,
         commonParsingArgs: CommonParsingArgs,
     ): MaybeResultWithErrors<WithKeyAndValueRange<AuthType>> {
-        const {
-            items: {
-                missingKeys,
-                validScalars: { withStringValue: validStringScalars },
+        const allowedTypes = Object.values(AuthType);
+        const expectedKeys = {
+            scalars: {
+                enumValues: { [CommonAuthMapProperties.type]: allowedTypes },
             },
-            errors,
-        } = getMapItems(
+        };
+        const { items, errors } = getMapItems(
             authMap,
-            { scalars: { stringValues: [CommonAuthMapProperties.type] } },
+            expectedKeys,
             commonParsingArgs,
         );
+        const {
+            missingKeys,
+            validScalars: { withStringValue: validStringScalars },
+        } = items;
+        // If the type is valid, the map gets validated (and recorded) later on, when parsing the keys specific to the type.
+        const recordDescriptorForTypeField = () =>
+            recordMapDescriptor({
+                items,
+                expectedKeys,
+                mandatoryKeys: [CommonAuthMapProperties.type],
+                commonArgs: commonParsingArgs,
+            });
 
         if (validStringScalars.length == 0 || missingKeys.length > 0) {
+            recordDescriptorForTypeField();
             return {
                 errors: errors.concat(
                     missingKeys.map((key) =>
@@ -134,16 +148,20 @@ export function parseAuthFromYamlMapOrScalar(args: {
             };
         }
 
-        const maybeTypedResult = getTypedValueFromList<AuthType>(
-            {
-                allowedValues: Object.values(AuthType),
-                allStringValues: validStringScalars,
-                keyName: CommonAuthMapProperties.type,
-            },
-            errors,
-        );
+        const typeField = stripKeyFromResult(validStringScalars[0]);
+        if (!(allowedTypes as string[]).includes(typeField.value)) {
+            recordDescriptorForTypeField();
+            return {
+                errors: errors.concat(
+                    getErrorForInvalidEnumValue(typeField, allowedTypes),
+                ),
+            };
+        }
 
-        return { result: maybeTypedResult?.value, errors };
+        return {
+            result: typeField as WithKeyAndValueRange<AuthType>,
+            errors,
+        };
     }
 
     function parseAuthMapOfType(
@@ -292,7 +310,7 @@ function parseFlatAuthMap<T extends ParsedYamlMap<{ type: unknown }>>(
         stringKeys: FlatAuthKey<T>[];
         booleanKeys?: FlatAuthKey<T>[];
         numberKeys?: FlatAuthKey<T>[];
-        enumKeys?: Partial<Record<FlatAuthKey<T>, string[]>>;
+        enumKeys?: Partial<Record<FlatAuthKey<T>, readonly string[]>>;
     },
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
@@ -305,7 +323,7 @@ function parseFlatAuthMap<T extends ParsedYamlMap<{ type: unknown }>>(
         numberKeys = [],
         enumKeys = {},
     } = args;
-    const { items, getString, getBoolean, getNumber, missingProperties } =
+    const { getString, getBoolean, getNumber, getEnumValue } =
         getValidatedMapItems(
             authMap,
             {
@@ -313,6 +331,7 @@ function parseFlatAuthMap<T extends ParsedYamlMap<{ type: unknown }>>(
                     stringValues: stringKeys,
                     booleanValues: booleanKeys,
                     numericValues: numberKeys,
+                    enumValues: enumKeys as Record<string, readonly string[]>,
                 },
             },
             commonArgs,
@@ -332,19 +351,9 @@ function parseFlatAuthMap<T extends ParsedYamlMap<{ type: unknown }>>(
     for (const key of numberKeys) {
         properties[key] = stripKeyFromResult(getNumber(key));
     }
-    for (const [key, allowedValues] of Object.entries(enumKeys) as [
-        FlatAuthKey<T>,
-        string[] | undefined,
-    ][]) {
-        properties[key] = getTypedValueFromList<string>(
-            {
-                allowedValues: allowedValues ?? [],
-                allStringValues: items.validScalars.withStringValue,
-                keyName: key,
-            },
-            collectedErrors,
-        )?.value;
+    for (const key of Object.keys(enumKeys)) {
+        properties[key] = getEnumValue(key);
     }
 
-    return { properties, missingProperties } as unknown as T;
+    return { properties } as unknown as T;
 }

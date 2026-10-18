@@ -2,9 +2,10 @@ import { describe, it, expect } from "@jest/globals";
 import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
+    getMissingKeys,
+    makeCommonParsingArgs,
     parseTextIntoYamlDocument,
 } from "../../../../_testingUtils";
-import { TextDocumentHelper } from "../../../..";
 import { YAMLSeq } from "yaml";
 import {
     AssertionMapProperty,
@@ -180,40 +181,33 @@ describe("parseAssertionsFromYamlSequence", () => {
             expect(errors).toHaveLength(0);
         });
 
-        it("records missing optional keys in missingProperties without isMandatory", () => {
+        it("records missing optional keys in the descriptor without isMandatory", () => {
             const documentText = `-   expression: res.status
     operator: eq`;
 
             const { commonArgs, sequence } = parse(documentText);
-            const { result } = parseAssertionsFromYamlSequence(
-                sequence,
-                commonArgs,
-            );
+            parseAssertionsFromYamlSequence(sequence, commonArgs);
 
-            const assertion = result!.enabled[0];
-            const missingValue = assertion.missingProperties.find(
+            const missingKeys = getMissingKeys(commonArgs.mapDescriptors[0]);
+            const missingValue = missingKeys.find(
                 ({ key }) => key === AssertionMapProperty.Value,
             );
-            const missingDescription = assertion.missingProperties.find(
+            const missingDescription = missingKeys.find(
                 ({ key }) => key === AssertionMapProperty.Description,
             );
             expect(missingValue?.isMandatory).toBe(false);
             expect(missingDescription?.isMandatory).toBe(false);
         });
 
-        it("records missing mandatory keys in missingProperties with isMandatory", () => {
+        it("records missing mandatory keys in the descriptor with isMandatory", () => {
             const documentText = `-   operator: eq`;
 
             const { commonArgs, sequence } = parse(documentText);
-            const { result } = parseAssertionsFromYamlSequence(
-                sequence,
-                commonArgs,
-            );
+            parseAssertionsFromYamlSequence(sequence, commonArgs);
 
-            const assertion = result!.enabled[0];
-            const missingExpression = assertion.missingProperties.find(
-                ({ key }) => key === AssertionMapProperty.Expression,
-            );
+            const missingExpression = getMissingKeys(
+                commonArgs.mapDescriptors[0],
+            ).find(({ key }) => key === AssertionMapProperty.Expression);
             expect(missingExpression?.isMandatory).toBe(true);
         });
     });
@@ -316,11 +310,7 @@ describe("parseAssertionsFromYamlSequence", () => {
 });
 
 function parse(documentText: string) {
-    const docHelper = new TextDocumentHelper(documentText);
-    const commonArgs = {
-        docHelper,
-        fullDocumentRange: docHelper.getTextRange(),
-    };
+    const commonArgs = makeCommonParsingArgs(documentText);
     const sequence = parseTextIntoYamlDocument(documentText)
         .contents as YAMLSeq;
     return { commonArgs, sequence };

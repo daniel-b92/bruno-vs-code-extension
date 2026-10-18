@@ -2,12 +2,15 @@ import { describe, it, expect } from "@jest/globals";
 import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
+    getMissingKeys,
+    makeCommonParsingArgs,
     parseTextIntoYamlDocument,
 } from "../../../../_testingUtils";
-import { Position, Range, TextDocumentHelper } from "../../../..";
+import { Position, Range } from "../../../..";
 import { YAMLSeq } from "yaml";
 import { RequestVariableProperty } from "../../../external/yamlFormat/constants/sharedConstants";
 import { parseVariablesFromYamlSequence } from "./parseVariablesFromYamlSequence";
+import { CommonParsingArgs } from "../interfaces";
 
 describe("parseVariablesFromYamlSequence", () => {
     it("parses single variable from Yaml sequence", () => {
@@ -17,14 +20,14 @@ describe("parseVariablesFromYamlSequence", () => {
         data: "343434"
     description: sdfs`;
 
-        const docHelper = new TextDocumentHelper(documentText);
-        const fullDocumentRange = docHelper.getTextRange();
+        const commonArgs = makeCommonParsingArgs(documentText);
+        const { docHelper, fullDocumentRange } = commonArgs;
         const parsedDocument = parseTextIntoYamlDocument(documentText);
         const sequence = parsedDocument.contents as YAMLSeq;
-        const { result, errors } = parseVariablesFromYamlSequence(sequence, {
-            docHelper,
-            fullDocumentRange,
-        });
+        const { result, errors } = parseVariablesFromYamlSequence(
+            sequence,
+            commonArgs,
+        );
 
         expect(errors).toHaveLength(0);
         expect(result).toBeDefined();
@@ -32,10 +35,11 @@ describe("parseVariablesFromYamlSequence", () => {
         expect(result!.disabled).toHaveLength(0);
         const variable = result?.enabled[0];
         expect(variable).toBeDefined();
-        expect(variable!.missingProperties).toHaveLength(1);
-        expect(variable!.missingProperties[0].key).toEqual(
-            RequestVariableProperty.Disabled,
-        );
+        expect(
+            getMissingKeys(variableDescriptor(commonArgs)).map(
+                ({ key }) => key,
+            ),
+        ).toEqual([RequestVariableProperty.Disabled]);
         expect(variable!.valueRange).toEqual(
             new Range(new Position(0, 4), fullDocumentRange.end),
         );
@@ -49,7 +53,6 @@ describe("parseVariablesFromYamlSequence", () => {
                 value: "some name",
             },
             value: {
-                missingProperties: [],
                 keyRange: getExpectedKeyRange(
                     1,
                     RequestVariableProperty.Value,
@@ -106,14 +109,14 @@ describe("parseVariablesFromYamlSequence", () => {
 -   name: other
     value: fergergeg
     disabled: true`;
-        const docHelper = new TextDocumentHelper(documentText);
-        const fullDocumentRange = docHelper.getTextRange();
+        const commonArgs = makeCommonParsingArgs(documentText);
+        const { fullDocumentRange } = commonArgs;
         const parsedDocument = parseTextIntoYamlDocument(documentText);
         const sequence = parsedDocument.contents as YAMLSeq;
-        const { result, errors } = parseVariablesFromYamlSequence(sequence, {
-            docHelper,
-            fullDocumentRange,
-        });
+        const { result, errors } = parseVariablesFromYamlSequence(
+            sequence,
+            commonArgs,
+        );
 
         expect(errors).toHaveLength(0);
         expect(result).toBeDefined();
@@ -137,14 +140,14 @@ describe("parseVariablesFromYamlSequence", () => {
         data: uuuhuh
     desc: sdfs`;
 
-        const docHelper = new TextDocumentHelper(documentText);
-        const fullDocumentRange = docHelper.getTextRange();
+        const commonArgs = makeCommonParsingArgs(documentText);
+        const { fullDocumentRange } = commonArgs;
         const parsedDocument = parseTextIntoYamlDocument(documentText);
         const sequence = parsedDocument.contents as YAMLSeq;
-        const { result, errors } = parseVariablesFromYamlSequence(sequence, {
-            docHelper,
-            fullDocumentRange,
-        });
+        const { result, errors } = parseVariablesFromYamlSequence(
+            sequence,
+            commonArgs,
+        );
 
         expect(errors).toHaveLength(2);
         // Error for invalid value for subproperty 'type' in value field.
@@ -165,17 +168,14 @@ describe("parseVariablesFromYamlSequence", () => {
         expect(result).toBeDefined();
         expect(result?.enabled).toHaveLength(1);
         const variable = result!.enabled[0];
-        expect(variable.missingProperties).toHaveLength(2);
         expect(
-            variable.missingProperties.some(
-                ({ key }) => key == RequestVariableProperty.Description,
+            getMissingKeys(variableDescriptor(commonArgs)).map(
+                ({ key }) => key,
             ),
-        ).toBeTruthy();
-        expect(
-            variable.missingProperties.some(
-                ({ key }) => key == RequestVariableProperty.Disabled,
-            ),
-        ).toBeTruthy();
+        ).toEqual([
+            RequestVariableProperty.Description,
+            RequestVariableProperty.Disabled,
+        ]);
 
         expect(variable.valueRange).toEqual(
             new Range(new Position(0, 4), fullDocumentRange.end),
@@ -183,3 +183,11 @@ describe("parseVariablesFromYamlSequence", () => {
         expect(variable.properties.name?.value).toBe("some name");
     });
 });
+
+function variableDescriptor({
+    mapDescriptors,
+}: Required<Pick<CommonParsingArgs, "mapDescriptors">>) {
+    return mapDescriptors.find(({ expectedKeys }) =>
+        expectedKeys.some(({ key }) => key == RequestVariableProperty.Name),
+    )!;
+}

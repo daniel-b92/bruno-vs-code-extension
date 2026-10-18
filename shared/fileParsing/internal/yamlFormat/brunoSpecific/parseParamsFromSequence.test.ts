@@ -2,6 +2,8 @@ import { describe, it, expect } from "@jest/globals";
 import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
+    getMissingKeys,
+    makeCommonParsingArgs,
     parseTextIntoYamlDocument,
 } from "../../../../_testingUtils";
 import { TextDocumentHelper } from "../../../..";
@@ -35,7 +37,6 @@ describe("parseParamsFromSequence", () => {
         expect(param.properties.description?.value).toBe("a description");
         expect(param.properties.disabled.effectiveValue).toBe(false);
         expect(param.properties.disabled.field?.value).toBe(false);
-        expect(param.missingProperties).toHaveLength(0);
     });
 
     it("parses multiple params", () => {
@@ -82,39 +83,30 @@ describe("parseParamsFromSequence", () => {
     value: my-value`;
 
         const { commonArgs, sequence } = parse(documentText);
-        const { result } = parseParamsFromSequence(sequence, commonArgs);
+        parseParamsFromSequence(sequence, commonArgs);
 
-        expect(result!.enabled[0].missingProperties).toHaveLength(3);
-        for (const missing of result!.enabled[0].missingProperties) {
+        const missingKeys = getMissingKeys(commonArgs.mapDescriptors[0]);
+        expect(missingKeys).toHaveLength(3);
+        for (const missing of missingKeys) {
             expect(missing.isMandatory).toBe(false);
-            expect(missing.alwaysHasScalarValue).toBe(true);
         }
     });
 
-    it("marks name and value as mandatory in missingProperties", () => {
+    it("marks name and value as mandatory in the descriptor", () => {
         const documentText = `-   type: query`;
 
         const { commonArgs, sequence } = parse(documentText);
-        const { result, errors } = parseParamsFromSequence(
-            sequence,
-            commonArgs,
-        );
+        const { errors } = parseParamsFromSequence(sequence, commonArgs);
 
         expect(errors).toHaveLength(2);
         expect(
-            result!.enabled[0].missingProperties.some(
-                ({ key, isMandatory }) =>
-                    key === RequestFileHttpSectionParamProperty.Name &&
-                    isMandatory,
-            ),
-        ).toBe(true);
-        expect(
-            result!.enabled[0].missingProperties.some(
-                ({ key, isMandatory }) =>
-                    key === RequestFileHttpSectionParamProperty.Value &&
-                    isMandatory,
-            ),
-        ).toBe(true);
+            getMissingKeys(commonArgs.mapDescriptors[0])
+                .filter(({ isMandatory }) => isMandatory)
+                .map(({ key }) => key),
+        ).toEqual([
+            RequestFileHttpSectionParamProperty.Name,
+            RequestFileHttpSectionParamProperty.Value,
+        ]);
     });
 
     it("reports error for unknown key and still parses valid keys", () => {
@@ -205,11 +197,7 @@ describe("parseParamsFromSequence", () => {
 });
 
 function parse(documentText: string) {
-    const docHelper = new TextDocumentHelper(documentText);
-    const commonArgs = {
-        docHelper,
-        fullDocumentRange: docHelper.getTextRange(),
-    };
+    const commonArgs = makeCommonParsingArgs(documentText);
     const parsedDocument = parseTextIntoYamlDocument(documentText);
     const sequence = parsedDocument.contents as YAMLSeq;
     return { commonArgs, sequence };

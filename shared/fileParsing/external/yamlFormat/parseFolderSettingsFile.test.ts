@@ -1,7 +1,12 @@
 import { describe, it, expect } from "@jest/globals";
 import { TextDocumentHelper } from "../../../fileSystem/textDocumentHelper";
-import { parseFolderSettingsFile, Position, Range } from "../../..";
-import { getExpectedKeyRange } from "../../../_testingUtils";
+import {
+    parseFolderSettingsFile,
+    Position,
+    Range,
+    YamlMapDescriptor,
+} from "../../..";
+import { getExpectedKeyRange, getMissingKeys } from "../../../_testingUtils";
 import { TopLevelFolderSettingsProperty } from "./constants/folderSettingsFileConstants";
 import { SettingsFileRequestSectionProperty } from "./constants/sharedConstants";
 
@@ -48,7 +53,6 @@ docs:
 
         expect(errors).toHaveLength(0);
         expect(result).toBeDefined();
-        expect(result!.missingProperties).toHaveLength(0);
         const properties = result!.properties;
 
         expect(properties.info).toBeDefined();
@@ -83,21 +87,25 @@ docs:
     
 other: erer`;
         const docHelper = new TextDocumentHelper(documentText);
-        const { result, errors } = parseFolderSettingsFile(docHelper);
+        const mapDescriptors: YamlMapDescriptor[] = [];
+        const { result, errors } = parseFolderSettingsFile(docHelper, {
+            mapDescriptors,
+        });
 
         expect(errors).toHaveLength(1);
         expect(errors[0].range).toEqual(getExpectedKeyRange(4, "other", 0));
 
         expect(result).toBeDefined();
-        expect(result!.missingProperties).toHaveLength(
+        const missingKeys = getMissingKeys(mapDescriptors[0]);
+        expect(missingKeys).toHaveLength(
             Object.values(TopLevelFolderSettingsProperty).length - 1,
         );
-        expect(result!.missingProperties).toContainEqual({
+        expect(missingKeys).toContainEqual({
             key: TopLevelFolderSettingsProperty.Request,
             isMandatory: false,
-            alwaysHasScalarValue: false,
+            valueKinds: ["map"],
         });
-        expect(result!.missingProperties).not.toContain(
+        expect(missingKeys.map(({ key }) => key)).not.toContain(
             TopLevelFolderSettingsProperty.Info,
         );
         expect(result!.properties.info).toBeDefined();
@@ -124,7 +132,10 @@ docs:
   content: fghfghfg`;
 
         const docHelper = new TextDocumentHelper(documentText);
-        const { result, errors } = parseFolderSettingsFile(docHelper);
+        const mapDescriptors: YamlMapDescriptor[] = [];
+        const { result, errors } = parseFolderSettingsFile(docHelper, {
+            mapDescriptors,
+        });
 
         expect(errors).toHaveLength(5);
         // Error for invalid property 'typo' in info section.
@@ -166,7 +177,6 @@ docs:
         ).toBeTruthy();
 
         expect(result).toBeDefined();
-        expect(result!.missingProperties).toHaveLength(0);
         const properties = result!.properties;
 
         expect(properties.info).toBeDefined();
@@ -184,9 +194,13 @@ docs:
         expect(properties.request?.valueRange).toEqual(
             new Range(new Position(5, 2), new Position(14, 0)),
         );
+        // The request section has no headers defined.
         expect(
-            properties.request?.missingProperties.some(
-                ({ key }) => key == SettingsFileRequestSectionProperty.Headers,
+            mapDescriptors.some((descriptor) =>
+                getMissingKeys(descriptor).some(
+                    ({ key }) =>
+                        key == SettingsFileRequestSectionProperty.Headers,
+                ),
             ),
         ).toBeTruthy();
         expect(properties.request?.properties.auth).toBeUndefined();

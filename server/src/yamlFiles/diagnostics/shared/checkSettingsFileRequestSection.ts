@@ -1,4 +1,4 @@
-import { ParsedFolderSettingsFile } from "@global_shared";
+import { ParsedFolderSettingsFile, YamlMapDescriptor } from "@global_shared";
 import { Diagnostic } from "vscode-languageserver";
 import { CommonDiagnosticParams } from "../../interfaces";
 import { checkHeaderNamesAreUnique } from "./checkHeaderNamesAreUnique";
@@ -13,6 +13,7 @@ import { checkAuthHasRequiredFields } from "../checks/requestFiles/checkAuthHasR
 export function checkSettingsFileRequestSection(
     request: ParsedFolderSettingsFile["properties"]["request"],
     commonParams: CommonDiagnosticParams,
+    mapDescriptors: YamlMapDescriptor[],
 ): (Diagnostic | undefined)[] {
     if (!request) {
         return [];
@@ -20,7 +21,7 @@ export function checkSettingsFileRequestSection(
     const { actions, auth, headers, scripts, variables } = request.properties;
 
     return [
-        checkAuthHasRequiredFields(auth),
+        checkAuthHasRequiredFields(auth, mapDescriptors),
         ...(variables
             ? checkNamePropertyIsUniqueAcrossMaps(
                   variables.enabled,

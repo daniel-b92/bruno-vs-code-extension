@@ -1,6 +1,7 @@
 import { describe, it, expect } from "@jest/globals";
 import { TextDocumentHelper } from "../../../fileSystem/textDocumentHelper";
-import { parseCollectionSettingsFile } from "../../..";
+import { parseCollectionSettingsFile, YamlMapDescriptor } from "../../..";
+import { getMissingKeys } from "../../../_testingUtils";
 import { YamlParsingErrorCode } from "./interfaces";
 
 describe("parseCollectionSettingsFile", () => {
@@ -94,7 +95,6 @@ docs:
         );
 
         expect(errors).toHaveLength(0);
-        expect(result!.missingProperties).toHaveLength(0);
         const { properties } = result!;
 
         expect(properties.opencollection?.value).toBe("1.0.0");
@@ -157,10 +157,12 @@ docs:
     });
 
     it("parses file with only the mandatory properties defined", () => {
+        const mapDescriptors: YamlMapDescriptor[] = [];
         const { result, errors } = parseCollectionSettingsFile(
             new TextDocumentHelper(
                 `opencollection: 1.0.0\ninfo:\n  name: my collection`,
             ),
+            { mapDescriptors },
         );
 
         expect(errors).toHaveLength(0);
@@ -168,7 +170,9 @@ docs:
             "my collection",
         );
         expect(
-            result!.missingProperties.filter(({ isMandatory }) => isMandatory),
+            getMissingKeys(mapDescriptors[0]).filter(
+                ({ isMandatory }) => isMandatory,
+            ),
         ).toHaveLength(0);
     });
 

@@ -3,7 +3,7 @@ import {
     Range,
     TextDocumentHelper,
     WithKeyAndValueRange,
-    YamlMapMissingPropertyInfo,
+    YamlMapDescriptor,
     YamlParsingError,
 } from "../../..";
 import {
@@ -39,6 +39,8 @@ import {
 export interface CommonParsingArgs {
     docHelper: TextDocumentHelper;
     fullDocumentRange: Range;
+    /** If defined, a descriptor gets appended for every validated map. */
+    mapDescriptors?: YamlMapDescriptor[];
 }
 
 export interface ParsedMapItems {
@@ -51,6 +53,8 @@ export interface ParsedMapItems {
     validMaps: WithKeyAndKeyRange<YAMLMap>[];
     missingKeys: string[];
     unknownKeys: { key: string; keyRange: Range }[];
+    /** All keys that are defined in the map, including unknown ones and ones with an invalid value. */
+    definedKeys: { key: string; keyRange: Range; valueRange?: Range }[];
 }
 
 export type ParsedRequestVariable = ParsedYamlMapWithValueRange<{
@@ -323,7 +327,6 @@ export type ParsedYamlMapWithValueRange<T> = ParsedYamlMap<T> & {
 
 export type ParsedYamlMap<T> = {
     properties: T;
-    missingProperties: YamlMapMissingPropertyInfo[];
 };
 
 export type MaybeResultWithErrors<T> = {

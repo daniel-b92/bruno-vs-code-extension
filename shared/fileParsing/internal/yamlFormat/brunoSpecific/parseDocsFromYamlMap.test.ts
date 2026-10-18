@@ -2,6 +2,8 @@ import { describe, it, expect } from "@jest/globals";
 import {
     getExpectedKeyRange,
     getExpectedSameLineValueRange,
+    getMissingKeys,
+    makeCommonParsingArgs,
     parseTextIntoYamlDocument,
 } from "../../../../_testingUtils";
 import {
@@ -54,7 +56,6 @@ describe("parseDocsFromYamlMap", () => {
             keyRange: source.keyRange,
             valueRange: new Range(new Position(1, 4), fullDocumentRange.end),
             value: {
-                missingProperties: [],
                 properties: {
                     content: {
                         keyRange: getExpectedKeyRange(
@@ -138,7 +139,6 @@ describe("parseDocsFromYamlMap", () => {
             type?: WithKeyAndValueRange<DocsType>;
             content?: WithKeyAndValueRange<string>;
         }>;
-        expect(docs.missingProperties).toHaveLength(0);
         expect(docs.properties.content?.value).toBe(
             "asdafd\nsdfsd\nsdfsdfdsfsdfdsfsdf",
         );
@@ -149,29 +149,27 @@ describe("parseDocsFromYamlMap", () => {
         const documentText = `docs:
     type: text/markdown`;
 
-        const docHelper = new TextDocumentHelper(documentText);
+        const commonArgs = makeCommonParsingArgs(documentText);
         const docsMap = (
             parseTextIntoYamlDocument(documentText).contents as YAMLMap
         ).items[0].value as YAMLMap;
 
-        const { result, errors } = parseDocsFromYamlMap(
+        const { errors } = parseDocsFromYamlMap(
             {
                 key: "docs",
                 keyRange: getExpectedKeyRange(0, "docs", 0),
                 value: docsMap,
             },
-            { docHelper, fullDocumentRange: docHelper.getTextRange() },
+            commonArgs,
         );
 
         expect(errors).toHaveLength(1);
-        expect(
-            (result!.value as ParsedYamlMap<unknown>).missingProperties,
-        ).toEqual([
-            {
+        expect(getMissingKeys(commonArgs.mapDescriptors[0])).toEqual([
+            expect.objectContaining({
                 key: DocsProperty.Content,
-                alwaysHasScalarValue: true,
+                valueKinds: ["string"],
                 isMandatory: true,
-            },
+            }),
         ]);
     });
 });

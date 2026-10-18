@@ -35,22 +35,21 @@ export function parseHeadersFromSequence(args: {
     ];
     const expectedBooleanScalars = [RequestHeaderProperty.Disabled];
     for (const headerMap of headerMaps) {
-        const { getString, getBoolean, missingProperties } =
-            getValidatedMapItems(
-                headerMap,
-                {
-                    scalars: {
-                        stringValues: expectedStringScalars,
-                        booleanValues: expectedBooleanScalars,
-                    },
-                    mandatoryKeys: [
-                        RequestHeaderProperty.Name,
-                        RequestHeaderProperty.Value,
-                    ],
+        const { getString, getBoolean } = getValidatedMapItems(
+            headerMap,
+            {
+                scalars: {
+                    stringValues: expectedStringScalars,
+                    booleanValues: expectedBooleanScalars,
                 },
-                commonArgs,
-                errors,
-            );
+                mandatoryKeys: [
+                    RequestHeaderProperty.Name,
+                    RequestHeaderProperty.Value,
+                ],
+            },
+            commonArgs,
+            errors,
+        );
 
         const name = getString(RequestHeaderProperty.Name);
         const value = getString(RequestHeaderProperty.Value);
@@ -75,7 +74,6 @@ export function parseHeadersFromSequence(args: {
                             : undefined,
                 },
             },
-            missingProperties,
         };
         (header.properties.disabled.effectiveValue ? disabled : enabled).push(
             header,

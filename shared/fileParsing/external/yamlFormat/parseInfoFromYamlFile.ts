@@ -1,6 +1,7 @@
 import { BrunoFileType, TextDocumentHelper, YamlParsingError } from "../../..";
 import { CommonParsingArgs } from "../../internal/yamlFormat/interfaces";
 import { getMapItems } from "../../internal/yamlFormat/yamlMaps/getMapItems";
+import { recordMapDescriptor } from "../../internal/yamlFormat/yamlMaps/recordMapDescriptor";
 import { getErrorForMissingKeyInMap } from "../../internal/yamlFormat/parsingErrors/getErrorForMissingKeyInMap";
 import { parseDocumentIntoYamlMap } from "../../internal/yamlFormat/util/parseDocumentIntoYamlMap";
 import {
@@ -26,16 +27,19 @@ export function parseInfoFromYamlFile(
     }
 
     const { map: topLevelMap } = maybeTopLevelMap;
-    const {
-        items: { missingKeys, validMaps },
-        errors: mapItemErrors,
-    } = getMapItems(
+    const expectedKeys = { mapValues: [infoKey] };
+    const { items, errors: mapItemErrors } = getMapItems(
         topLevelMap,
-        {
-            mapValues: [infoKey],
-        },
+        expectedKeys,
         commonArgs,
     );
+    const { missingKeys, validMaps } = items;
+    recordMapDescriptor({
+        items,
+        expectedKeys,
+        mandatoryKeys: [infoKey],
+        commonArgs,
+    });
 
     collectedErrors.push(
         ...mapItemErrors.concat(
