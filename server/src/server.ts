@@ -9,6 +9,8 @@ import {
 
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { getHandlerForFormatting } from "./bruFiles/formatting/getHandlerForFormatting";
+import { getHandlerForYamlFormatting } from "./yamlFiles/formatting/getHandlerForYamlFormatting";
+import { FormattingRegistration } from "./shared/formattingRegistration";
 import {
     getDefaultLogger,
     HelpersProvider,
@@ -49,6 +51,7 @@ import { YamlFormatDiagnosticsProvider } from "./yamlFiles/yamlFormatDiagnostics
 let helpersProvider: HelpersProvider | undefined = undefined;
 let brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider;
 let yamlDiagnosticsProvider: YamlFormatDiagnosticsProvider;
+let formattingRegistration: FormattingRegistration;
 const disposables: Disposable[] = [];
 enum FileTypeByExtension {
     Bru = ".bru",
@@ -83,7 +86,7 @@ disposables.push(
                     openClose: true,
                     save: true,
                 },
-                documentFormattingProvider: true,
+                // Formatting is registered dynamically (see `FormattingRegistration`).
                 completionProvider: {
                     triggerCharacters: [":", " ", "{", ".", "/", '"', "'", "`"],
                     completionItem: { labelDetailsSupport: true },
@@ -123,7 +126,23 @@ disposables.push(
             itemProvider,
         );
 
+        formattingRegistration = new FormattingRegistration(connection);
+        disposables.push(formattingRegistration);
+        const updateFormattingRegistration = () =>
+            formattingRegistration.update(
+                itemProvider
+                    .getRegisteredCollections()
+                    .filter(
+                        (collection) =>
+                            collection.getFormat() == CollectionFormat.Yaml,
+                    )
+                    .map((collection) => collection.getRootDirectory()),
+            );
+        updateFormattingRegistration();
+
         itemProvider.subscribeToUpdates((changes) => {
+            updateFormattingRegistration();
+
             if (
                 changes.some(
                     (change) =>
@@ -143,7 +162,10 @@ disposables.push(
 disposables.push(
     connection.onDocumentFormatting(({ textDocument: { uri } }) => {
         const { filePath, type } = getFilePathAndType(uri);
-        if (type != FileTypeByExtension.Bru) {
+        if (
+            type != FileTypeByExtension.Bru &&
+            type != FileTypeByExtension.Yml
+        ) {
             return undefined;
         }
 
@@ -158,9 +180,13 @@ disposables.push(
         }
 
         const document = documents.get(uri);
-        return document
+        if (!document) {
+            return undefined;
+        }
+
+        return type == FileTypeByExtension.Bru
             ? getHandlerForFormatting(document, itemType)
-            : undefined;
+            : getHandlerForYamlFormatting(document, itemType);
     }),
 );
 

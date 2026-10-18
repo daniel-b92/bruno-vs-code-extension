@@ -40,7 +40,7 @@ Each entry is tagged:
 
 ## 8. Server (language server)
 
-- [server.ts:134-140](server/src/server.ts#L134-L140) **[Gap]**: formatting is only provided for Bru.
+- [getHandlerForYamlFormatting.ts](server/src/yamlFiles/formatting/getHandlerForYamlFormatting.ts) **[OK]**: formatting of yaml files only covers scripts defined as literal block scalars (`code: |`) that have no explicit indentation indicator. Formatting is registered dynamically ([formattingRegistration.ts](server/src/shared/formattingRegistration.ts)), so that yaml files only get this formatter assigned if they are part of a yaml collection.
 - [server.ts:185-190](server/src/server.ts#L185-L190) / [server.ts:248-253](server/src/server.ts#L248-L253) **[Gap]**: completions and hover are only provided for Bru and JS files.
 - [server.ts:257-259](server/src/server.ts#L257-L259) **[Gap]**: will-save auto updates (URL ↔ params syncing, [runUpdatesOnWillSave.ts](server/src/bruFiles/autoUpdates/runUpdatesOnWillSave.ts)) only run for Bru.
 - [mapStaticEnvVariablesToCompletions.ts:36-39](server/src/shared/environmentVariables/mapStaticEnvVariablesToCompletions.ts#L36-L39), [getHoverContentForStaticEnvVariables.ts:36-39](server/src/shared/environmentVariables/getHoverContentForStaticEnvVariables.ts#L36-L39) **[Check]**: the environment name is computed as `basename(file, getExtensionForBrunoFiles())`. These helpers are shared with **JS file** completions and hover, which also work inside yaml collections. There the environment would be shown as e.g. `local.yml` instead of `local`. Using `collection.getEnvironments()` (or `getFileExtensionForFormat(collection.getFormat())`) would fix this.
