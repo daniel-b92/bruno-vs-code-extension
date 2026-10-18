@@ -207,6 +207,8 @@ export type YamlValueKind =
 export interface YamlParsingOptions {
     /** If defined, a descriptor is appended for every map that gets validated while parsing. */
     mapDescriptors?: YamlMapDescriptor[];
+    /** If true, parsing continues with the (possibly partial) Yaml document, even if it contains syntax errors. The syntax errors are not reported then. */
+    continueOnSyntaxErrors?: boolean;
 }
 
 /** Describes a Yaml map that has been validated while parsing: Which keys are expected for it and which are defined. */

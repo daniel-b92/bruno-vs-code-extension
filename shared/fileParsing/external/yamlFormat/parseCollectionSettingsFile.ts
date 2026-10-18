@@ -28,6 +28,7 @@ export function parseCollectionSettingsFile(
         docHelper,
         fullDocumentRange: docHelper.getTextRange(),
         mapDescriptors: options?.mapDescriptors,
+        continueOnSyntaxErrors: options?.continueOnSyntaxErrors,
     };
     const collectedErrors: YamlParsingError[] = [];
 
