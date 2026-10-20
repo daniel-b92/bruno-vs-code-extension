@@ -46,7 +46,7 @@ describe("parseAuthFromYamlMapOrScalar", () => {
     it("parses auth of type 'inherit'", () => {
         const documentText = `auth: inherit`;
 
-        const source: WithKeyKeyRangeAndValueRange<string> = {
+        const source: WithKeyKeyRangeAndValueRange<"inherit"> = {
             key: "auth",
             keyRange: getExpectedKeyRange(0, "auth", 0),
             value: "inherit",
@@ -106,29 +106,6 @@ describe("parseAuthFromYamlMapOrScalar", () => {
         expect(mapDescriptors[0].expectedKeys.map(({ key }) => key)).toEqual(
             Object.values(BasicAuthProperty),
         );
-    });
-
-    it("returns an error for invalid scalar value", () => {
-        const documentText = `auth: inherits`;
-
-        const source: WithKeyKeyRangeAndValueRange<string> = {
-            key: "auth",
-            keyRange: getExpectedKeyRange(0, "auth", 0),
-            value: "inherits",
-            valueRange: getExpectedSameLineValueRange(0, "auth", "inherits", 0),
-        };
-        const docHelper = new TextDocumentHelper(documentText);
-        const fullDocumentRange = docHelper.getTextRange();
-        const { result, errors } = parseAuthFromYamlMapOrScalar({
-            authMapOrScalar: source,
-            commonArgs: { docHelper, fullDocumentRange },
-        });
-
-        expect(errors).toHaveLength(1);
-        expect(errors[0].range).toEqual(
-            getExpectedSameLineValueRange(0, "auth", "inherits", 0),
-        );
-        expect(result).toBeUndefined();
     });
 
     it("parses auth of type 'basic'", () => {

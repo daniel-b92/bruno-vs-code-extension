@@ -27,6 +27,7 @@ import { getMissingMandatoryBlocks } from "../shared/getMissingMandatoryBlocks";
 import { getMissingOptionalBlocks } from "../shared/getMissingOptionalBlocks";
 import { getDictionaryBlockSnippetInsertionContent } from "./dictionaryBlocks/generic/getDictionaryBlockSnippetInsertionContent";
 import { getTextEditForDictionaryBlockSimpleValue } from "./dictionaryBlocks/generic/getTextEditForDictionaryBlockSimpleValue";
+import { escapeSnippetChoiceOption } from "../../shared/escapeSnippetChoiceOption";
 
 interface BlockData {
     blockName: string;
@@ -168,10 +169,6 @@ function getExtendsKeyCompletionItem(
         sortText: `b_${EnvironmentFileTopLevelField.Extends}`,
         labelDetails: { description: "optional" },
     };
-}
-
-function escapeSnippetChoiceOption(option: string): string {
-    return option.replace(/[\\,|]/g, (match) => `\\${match}`);
 }
 
 function getCompletionsForExtendsFieldValue(

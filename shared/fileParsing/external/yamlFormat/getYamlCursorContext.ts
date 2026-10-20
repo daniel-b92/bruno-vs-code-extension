@@ -70,7 +70,7 @@ export type YamlCursorContext =
       };
 
 const PLACEHOLDER_KEY = "__bruAsCodeCompletion__";
-const KEY_POSITION_REGEX = /^\s*(-\s+)?([\w-]*)$/;
+const KEY_POSITION_REGEX = /^\s*(-\s+)?((?:\w[\w-]*)?)$/;
 const VALUE_POSITION_REGEX = /^\s*(?:-\s+)?([\w-]+):(\s*)(\S*)$/;
 const KEY_WITHOUT_VALUE_REGEX = /^(\s*(?:-\s+)?)[\w-]+:\s*(#.*)?$/;
 
@@ -123,47 +123,60 @@ export function getYamlCursorContext({
 }
 
 /**
- * Determines the descriptor of a map that does not exist yet, but would be created by an insertion at the key position of the given context.
- * This allows finding out the expected keys of a nested map (or of the items of a sequence of maps), before inserting it.
+ * Determines the descriptors of maps that do not exist yet, but would be created by an insertion at the key position of the given context.
+ * This allows finding out the expected keys of nested maps (or of the items of sequences of maps), before inserting them.
+ * All maps are determined with a single parse of the document.
  *
+ * @param probeCount The number of maps whose descriptors are to be determined.
  * @param getInsertedText Returns the text to insert (starting at the column of the key, with absolute indentation in subsequent lines).
- * It needs to contain the given probe key as the only key of the map, whose descriptor is to be determined.
+ * For every map whose descriptor is to be determined, it needs to contain the respective probe key as the only key of the map.
+ * @returns The descriptor for each probe key (in the same order), or `undefined` for probe keys that could not be found in any map.
  */
-export function getYamlDescriptorForInsertedMap({
+export function getYamlDescriptorsForInsertedMaps({
     docHelper,
     fileType,
     context: { replaceRange, indentation, reindentationRange },
+    probeCount,
     getInsertedText,
 }: {
     docHelper: TextDocumentHelper;
     fileType: BrunoFileType;
     context: Extract<YamlCursorContext, { kind: "key" }>;
-    getInsertedText: (probeKey: string) => string;
-}): YamlMapDescriptor | undefined {
+    probeCount: number;
+    getInsertedText: (probeKeys: string[]) => string;
+}): (YamlMapDescriptor | undefined)[] {
     const { line, character } = replaceRange.start;
     const linePrefix = reindentationRange
         ? " ".repeat(indentation)
         : docHelper.getLineByIndex(line).substring(0, character);
+    const probeKeys = Array.from(
+        { length: probeCount },
+        (_, index) => `${PLACEHOLDER_KEY}${index}`,
+    );
 
-    const descriptor = getDescriptorsForText(
+    const descriptors = getDescriptorsForText(
         getTextWithReplacedLine(
             docHelper,
             line,
-            `${linePrefix}${getInsertedText(PLACEHOLDER_KEY)}`,
+            `${linePrefix}${getInsertedText(probeKeys)}`,
         ),
         fileType,
-    ).find(({ definedKeys }) =>
-        definedKeys.some(({ key }) => key == PLACEHOLDER_KEY),
     );
 
-    return descriptor
-        ? {
-              ...descriptor,
-              definedKeys: descriptor.definedKeys.filter(
-                  ({ key }) => key != PLACEHOLDER_KEY,
-              ),
-          }
-        : undefined;
+    return probeKeys.map((probeKey) => {
+        const descriptor = descriptors.find(({ definedKeys }) =>
+            definedKeys.some(({ key }) => key == probeKey),
+        );
+
+        return descriptor
+            ? {
+                  ...descriptor,
+                  definedKeys: descriptor.definedKeys.filter(
+                      ({ key }) => !probeKeys.includes(key),
+                  ),
+              }
+            : undefined;
+    });
 }
 
 function getContextForKeyPosition({
@@ -199,7 +212,9 @@ function getContextForKeyPosition({
     }
 
     const lineContent = docHelper.getLineByIndex(line);
+    // The patched key could end the block scalar (e.g. for a blank line left of its indentation), so the unpatched text needs to be checked as well.
     if (
+        isInBlockScalar(docHelper.getText(), new Position(line, keyStart)) ||
         isInBlockScalar(
             getTextWithReplacedLine(
                 docHelper,
@@ -347,7 +362,9 @@ function getCandidateColumnsForKey(
         ...new Set(
             fittingCandidates
                 .concat(candidatesFurtherIn)
-                .map(({ column }) => column),
+                .map(({ column }) => column)
+                // The document may not contain any keys yet (e.g. if it is empty), so the position of the cursor itself is the last resort.
+                .concat(column),
         ),
     ];
 }
@@ -446,17 +463,27 @@ function getContextForValuePosition({
         // Trailing whitespace before the cursor (e.g. the space after the colon) must not be part of the range.
         replaceRange: new Range(
             new Position(line, character - typedWord.length),
-            new Position(
-                line,
-                Math.max(
-                    character,
-                    docHelper.getLineByIndex(line).trimEnd().length,
-                ),
-            ),
+            new Position(line, getEndOfValue(docHelper, line, character)),
         ),
         isMissingSpaceAfterColon,
         path: [...pair.containingKeys, key],
     };
+}
+
+/** Returns the end of the value in the given line, which excludes trailing whitespace and a trailing comment. */
+function getEndOfValue(
+    docHelper: TextDocumentHelper,
+    line: number,
+    cursorCharacter: number,
+) {
+    const lineContent = docHelper.getLineByIndex(line);
+    const commentStart = lineContent.substring(cursorCharacter).search(/\s+#/);
+    const valueEnd =
+        commentStart >= 0
+            ? cursorCharacter + commentStart
+            : lineContent.trimEnd().length;
+
+    return Math.max(cursorCharacter, valueEnd);
 }
 
 function getDescriptorsForText(text: string, fileType: BrunoFileType) {

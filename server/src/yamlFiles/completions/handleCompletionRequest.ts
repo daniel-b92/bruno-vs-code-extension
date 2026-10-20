@@ -5,6 +5,7 @@ import {
     isBrunoFileType,
     Logger,
     TopLevelEnvironmentFileProperty,
+    TopLevelRequestFileProperty,
     YamlCursorContext,
 } from "@global_shared";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
@@ -17,8 +18,6 @@ import { getTagCompletions } from "../../shared/getTagCompletions";
 import { getAvailableEnvironmentNamesForExtends } from "../../shared/getAvailableEnvironmentNamesForExtends";
 import { getYamlFileTypeForEditorContent } from "../getYamlFileTypeForEditorContent";
 import { getKeyCompletions, isOnlyKind } from "./getKeyCompletions";
-
-const INFO_KEY = "info";
 
 export async function handleCompletionRequest({
     baseRequest,
@@ -58,19 +57,29 @@ export async function handleCompletionRequest({
     }
 
     switch (context.kind) {
-        case "key":
-            return getKeyCompletions(context, {
+        case "key": {
+            const items = getKeyCompletions(context, {
                 docHelper: documentHelper,
                 fileType: itemType,
                 getDefaultValue: (path) =>
-                    isPath(path, [INFO_KEY, FileInfoProperty.Seq])
+                    isPath(path, [
+                        TopLevelRequestFileProperty.Info,
+                        FileInfoProperty.Seq,
+                    ])
                         ? getSequenceValueCompletion(
                               collection,
                               filePath,
                               itemType,
                           )?.toString()
                         : undefined,
+                isCancellationRequested: () => token.isCancellationRequested,
             });
+
+            if (!items) {
+                addLogEntryForCancellation(logger);
+            }
+            return items;
+        }
         case "value":
             return getValueCompletions(context, {
                 fileType: itemType,
@@ -78,7 +87,10 @@ export async function handleCompletionRequest({
                 collection,
             });
         case "sequenceValue":
-            return isPath(context.path, [INFO_KEY, FileInfoProperty.Tags])
+            return isPath(context.path, [
+                TopLevelRequestFileProperty.Info,
+                FileInfoProperty.Tags,
+            ])
                 ? getTagCompletions({
                       itemProvider,
                       collection,
@@ -115,7 +127,9 @@ async function getValueCompletions(
         },
     });
 
-    if (isPath(path, [INFO_KEY, FileInfoProperty.Seq])) {
+    if (
+        isPath(path, [TopLevelRequestFileProperty.Info, FileInfoProperty.Seq])
+    ) {
         const sequence = getSequenceValueCompletion(
             collection,
             filePath,

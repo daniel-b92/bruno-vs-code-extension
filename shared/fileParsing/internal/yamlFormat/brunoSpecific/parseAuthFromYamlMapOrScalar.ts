@@ -1,9 +1,5 @@
 import { YAMLMap } from "yaml";
-import {
-    WithKeyAndValueRange,
-    YamlParsingError,
-    YamlParsingErrorCode,
-} from "../../../..";
+import { WithKeyAndValueRange, YamlParsingError } from "../../../..";
 import {
     CommonParsingArgs,
     ParsedAuth,
@@ -49,34 +45,24 @@ import {
 import { getRangeForItem } from "../util/getRangeForItem";
 import { parseOAuth2AuthFromAuthMap } from "./parseOAuth2AuthFromAuthMap";
 
+/**
+ * @param authMapOrScalar A scalar value has to be validated beforehand, since the only allowed one is `inherit`.
+ */
 export function parseAuthFromYamlMapOrScalar(args: {
     commonArgs: CommonParsingArgs;
-    authMapOrScalar: WithKeyAndKeyRange<YAMLMap> | WithKeyAndValueRange<string>;
+    authMapOrScalar:
+        | WithKeyAndKeyRange<YAMLMap>
+        | WithKeyAndValueRange<typeof inheritAuthValue>;
 }): MaybeResultWithErrors<ParsedAuth> {
     const { commonArgs, authMapOrScalar } = args;
     const { keyRange, value: authFullValue } = authMapOrScalar;
     const allErrors: YamlParsingError[] = [];
 
     if (typeof authFullValue == "string") {
-        const { valueRange } = authMapOrScalar as WithKeyAndValueRange<string>;
-        return authMapOrScalar.value == inheritAuthValue
-            ? {
-                  result: {
-                      keyRange,
-                      value: {},
-                      valueRange,
-                  },
-                  errors: [],
-              }
-            : {
-                  errors: [
-                      {
-                          message: `Invalid Scalar string for auth. Allowed is only '${inheritAuthValue}'.`,
-                          range: valueRange,
-                          code: YamlParsingErrorCode.Other,
-                      },
-                  ],
-              };
+        const { valueRange } = authMapOrScalar as WithKeyAndValueRange<
+            typeof inheritAuthValue
+        >;
+        return { result: { keyRange, value: {}, valueRange }, errors: [] };
     }
     const valueRange = getRangeForItem(authFullValue, commonArgs);
     const maybeAuthType = tryToParseAuthTypeField(authFullValue, commonArgs);

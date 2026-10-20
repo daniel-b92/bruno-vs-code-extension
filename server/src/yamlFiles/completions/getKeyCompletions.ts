@@ -1,6 +1,6 @@
 import {
     BrunoFileType,
-    getYamlDescriptorForInsertedMap,
+    getYamlDescriptorsForInsertedMaps,
     getYamlIndentationStep,
     LineBreakType,
     TextDocumentHelper,
@@ -16,6 +16,7 @@ import {
     InsertTextFormat,
     InsertTextMode,
 } from "vscode-languageserver";
+import { escapeSnippetChoiceOption } from "../../shared/escapeSnippetChoiceOption";
 
 type KeyContext = Extract<YamlCursorContext, { kind: "key" }>;
 
@@ -40,10 +41,16 @@ interface RenderOptions {
     indentationStep: number;
     getDefaultValue: (path: string[]) => string | undefined;
     /**
-     * For finding out the structure of a nested map, the insertion is rendered as plain Yaml (without snippet syntax).
-     * The children of the given node are replaced by the probe key.
+     * For finding out the structure of nested maps, the insertion is rendered as plain Yaml (without snippet syntax).
+     * The children of each node in the map are replaced by the respective probe key.
      */
-    probe?: { node: KeyNode; key: string };
+    probes?: Map<KeyNode, string>;
+}
+
+/** A node whose mandatory child keys are yet to be determined, along with the top level node of the completion it belongs to. */
+interface PendingNode {
+    root: KeyNode;
+    node: KeyNode;
 }
 
 /** Limits the number of nested maps for which the mandatory keys are inserted as well. */
@@ -60,6 +67,7 @@ const SUGGEST_COMMAND = {
  * If at least two mandatory keys are missing, an additional completion inserts all of them at once.
  *
  * @param getDefaultValue Returns the value to prefill for a mandatory key with the given path, if there is one.
+ * @returns `undefined`, if cancellation was requested.
  */
 export function getKeyCompletions(
     context: KeyContext,
@@ -67,12 +75,14 @@ export function getKeyCompletions(
         docHelper,
         fileType,
         getDefaultValue,
+        isCancellationRequested,
     }: {
         docHelper: TextDocumentHelper;
         fileType: BrunoFileType;
         getDefaultValue: (path: string[]) => string | undefined;
+        isCancellationRequested: () => boolean;
     },
-): CompletionItem[] {
+): CompletionItem[] | undefined {
     const {
         descriptor: { expectedKeys, definedKeys },
         replaceRange,
@@ -91,33 +101,47 @@ export function getKeyCompletions(
         .flatMap((keyInfo) => {
             const variants = splitByValueKind(keyInfo);
 
-            return variants.map((variantInfo, index) => {
-                const node: KeyNode = {
-                    keyInfo: variantInfo,
-                    path: [...path, keyInfo.key],
-                    variant:
-                        variants.length > 1
-                            ? {
-                                  index,
-                                  description: describeValueKind(variantInfo),
-                              }
-                            : undefined,
-                };
-                addMandatoryChildKeys(node, 0, (probedNode) =>
-                    getYamlDescriptorForInsertedMap({
-                        docHelper,
-                        fileType,
-                        context,
-                        getInsertedText: (probeKey) =>
-                            renderKeys([node], indentation, {
-                                ...options,
-                                probe: { node: probedNode, key: probeKey },
-                            }),
-                    }),
-                );
-                return node;
-            });
+            return variants.map((variantInfo, index): KeyNode => ({
+                keyInfo: variantInfo,
+                path: [...path, keyInfo.key],
+                variant:
+                    variants.length > 1
+                        ? {
+                              index,
+                              description: describeValueKind(variantInfo),
+                          }
+                        : undefined,
+            }));
         });
+
+    const wasCancelled = !addMandatoryChildKeys(
+        nodes,
+        (pendingNodes) =>
+            getYamlDescriptorsForInsertedMaps({
+                docHelper,
+                fileType,
+                context,
+                probeCount: pendingNodes.length,
+                getInsertedText: (probeKeys) =>
+                    renderKeys(
+                        [...new Set(pendingNodes.map(({ root }) => root))],
+                        indentation,
+                        {
+                            ...options,
+                            probes: new Map(
+                                pendingNodes.map(({ node }, index) => [
+                                    node,
+                                    probeKeys[index],
+                                ]),
+                            ),
+                        },
+                    ),
+            }),
+        isCancellationRequested,
+    );
+    if (wasCancelled) {
+        return undefined;
+    }
 
     const toItem = (
         text: string,
@@ -277,36 +301,76 @@ function getOnlyAllowedValue({ keyInfo }: KeyNode) {
 }
 
 /**
- * Determines the mandatory keys of a map value (or a sequence of maps) and recursively the ones of their nested maps.
- * The child nodes are added to the tree one by one, because finding out the keys of a nested map requires rendering the tree up to that map.
+ * Determines the mandatory keys of map values (or sequences of maps) and recursively the ones of their nested maps.
+ * The nesting levels are determined one after another, because finding out the keys of a nested map requires rendering the tree up to that map.
+ * Within a nesting level, the maps of all nodes are determined at once, since each determination requires parsing the whole document.
+ *
+ * @param getDescriptors Returns the descriptor of the map of each given node (in the same order), if it could be determined.
+ * @returns `false`, if cancellation was requested.
  */
 function addMandatoryChildKeys(
-    node: KeyNode,
-    depth: number,
-    getDescriptorForChildren: (node: KeyNode) => YamlMapDescriptor | undefined,
+    rootNodes: KeyNode[],
+    getDescriptors: (
+        pendingNodes: PendingNode[],
+    ) => (YamlMapDescriptor | undefined)[],
+    isCancellationRequested: () => boolean,
 ) {
-    if (depth >= MAX_NESTING_DEPTH || !isMapOrSequence(node)) {
-        return;
+    let pendingNodes: PendingNode[] = rootNodes
+        .filter(isMapOrSequence)
+        .map((node) => ({ root: node, node }));
+
+    for (
+        let depth = 0;
+        depth < MAX_NESTING_DEPTH && pendingNodes.length > 0;
+        depth++
+    ) {
+        const nextPendingNodes: PendingNode[] = [];
+
+        for (const batch of groupByVariantIndex(pendingNodes)) {
+            if (isCancellationRequested()) {
+                return false;
+            }
+
+            const descriptors = getDescriptors(batch);
+
+            batch.forEach(({ root, node }, index) => {
+                const descriptor = descriptors[index];
+                if (!descriptor) {
+                    // E.g. for a sequence of scalars.
+                    return;
+                }
+
+                node.mandatoryChildKeys = descriptor.expectedKeys
+                    .filter(({ isMandatory }) => isMandatory)
+                    .map((keyInfo) => ({
+                        // For a key with values of different kinds, the first variant is inserted.
+                        keyInfo: splitByValueKind(keyInfo)[0],
+                        path: [...node.path, keyInfo.key],
+                    }));
+                nextPendingNodes.push(
+                    ...node.mandatoryChildKeys
+                        .filter(isMapOrSequence)
+                        .map((child) => ({ root, node: child })),
+                );
+            });
+        }
+
+        pendingNodes = nextPendingNodes;
     }
 
-    const descriptor = getDescriptorForChildren(node);
-    if (!descriptor) {
-        // E.g. for a sequence of scalars.
-        return;
+    return true;
+}
+
+/** The variants of a key cannot be inserted into the same map, so they need to be determined separately. */
+function groupByVariantIndex(pendingNodes: PendingNode[]) {
+    const groups = new Map<number, PendingNode[]>();
+
+    for (const pendingNode of pendingNodes) {
+        const index = pendingNode.root.variant?.index ?? 0;
+        groups.set(index, [...(groups.get(index) ?? []), pendingNode]);
     }
 
-    node.mandatoryChildKeys = [];
-    for (const keyInfo of descriptor.expectedKeys.filter(
-        ({ isMandatory }) => isMandatory,
-    )) {
-        // For a key with values of different kinds, the first variant is inserted.
-        const child: KeyNode = {
-            keyInfo: splitByValueKind(keyInfo)[0],
-            path: [...node.path, keyInfo.key],
-        };
-        node.mandatoryChildKeys.push(child);
-        addMandatoryChildKeys(child, depth + 1, getDescriptorForChildren);
-    }
+    return [...groups.values()];
 }
 
 /**
@@ -353,28 +417,29 @@ function renderChildren(
     options: RenderOptions,
     tabStops: { next: number },
 ) {
-    const { probe } = options;
+    const { probes } = options;
+    const probeKey = probes?.get(node);
 
-    if (probe?.node == node) {
-        return `${probe.key}: x`;
+    if (probeKey) {
+        return `${probeKey}: x`;
     }
 
     if (node.mandatoryChildKeys?.length) {
         return renderKeys(node.mandatoryChildKeys, column, options, tabStops);
     }
 
-    return probe ? "" : `$${tabStops.next++}`;
+    return probes ? "" : `$${tabStops.next++}`;
 }
 
 function renderScalarValue(
     { keyInfo, path }: KeyNode,
-    { probe, getDefaultValue }: RenderOptions,
+    { probes, getDefaultValue }: RenderOptions,
     tabStops: { next: number },
 ) {
     const { valueKinds, allowedValues } = keyInfo;
     const values = getFixedScalarValues(keyInfo);
 
-    if (probe) {
+    if (probes) {
         return (
             allowedValues?.[0] ??
             values?.[0] ??
@@ -389,7 +454,7 @@ function renderScalarValue(
     const tabStop = tabStops.next++;
 
     if (values) {
-        return `\${${tabStop}|${values.map(escapeForSnippetChoice).join(",")}|}`;
+        return `\${${tabStop}|${values.map(escapeSnippetChoiceOption).join(",")}|}`;
     }
 
     const defaultValue = getDefaultValue(path);
@@ -412,8 +477,4 @@ function getLineStart(column: number, { lineBreak }: RenderOptions) {
 
 function escapeForSnippet(text: string) {
     return text.replace(/[$}\\]/g, "\\$&");
-}
-
-function escapeForSnippetChoice(text: string) {
-    return text.replace(/[$}\\,|]/g, "\\$&");
 }

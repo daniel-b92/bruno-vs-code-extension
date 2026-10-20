@@ -2,7 +2,7 @@ import { describe, it, expect } from "@jest/globals";
 import {
     BrunoFileType,
     getYamlCursorContext,
-    getYamlDescriptorForInsertedMap,
+    getYamlDescriptorsForInsertedMaps,
     Position,
     TextDocumentHelper,
 } from "../../..";
@@ -148,6 +148,38 @@ describe("getYamlCursorContext", () => {
             ]);
 
             expect(context).toBeUndefined();
+        });
+
+        it("should not find a context on a blank line within a literal block scalar, left of its indentation", () => {
+            const context = getContext([
+                "runtime:",
+                "  scripts:",
+                "    - type: before-request",
+                "      code: |-",
+                "        console.log(1);",
+                "§",
+                "        console.log(2);",
+            ]);
+
+            expect(context).toBeUndefined();
+        });
+
+        it("should find the top level map in an empty file", () => {
+            const context = getContext(["in§"]);
+
+            expect(context).toMatchObject({ kind: "key", path: [] });
+            expect(getExpectedKeys(context)).toContain("info");
+        });
+
+        it("should find the top level map in a file that only contains a comment", () => {
+            const context = getContext(["# comment", "in§"]);
+
+            expect(context).toMatchObject({ kind: "key", path: [] });
+            expect(getExpectedKeys(context)).toContain("info");
+        });
+
+        it("should not treat a dash that starts a sequence item as a typed key", () => {
+            expect(getContext(["info:", "  -§"])).toBeUndefined();
         });
 
         it("should not re-indent a key at a valid indentation", () => {
@@ -327,6 +359,22 @@ describe("getYamlCursorContext", () => {
             });
         });
 
+        it("should not include a trailing comment in the range to replace", () => {
+            const context = getContext([
+                "http:",
+                "  auth:",
+                "    type: ba§sic # comment",
+            ]);
+
+            expect(context).toMatchObject({
+                kind: "value",
+                replaceRange: {
+                    start: { line: 2, character: 10 },
+                    end: { line: 2, character: 15 },
+                },
+            });
+        });
+
         it("should find the info sequence value in a request file", () => {
             const context = getContext(["info:", "  name: a", "  seq: §"]);
 
@@ -350,30 +398,34 @@ describe("getYamlCursorContext", () => {
     });
 });
 
-describe("getYamlDescriptorForInsertedMap", () => {
-    it("should return the expected keys of a nested map that does not exist yet", () => {
+describe("getYamlDescriptorsForInsertedMaps", () => {
+    it("should return the expected keys of nested maps that do not exist yet", () => {
         const lines = ["http:", "  method: GET", "  §"];
         const context = getContext(lines);
 
-        const descriptor =
+        const descriptors =
             context?.kind == "key"
-                ? getYamlDescriptorForInsertedMap({
+                ? getYamlDescriptorsForInsertedMaps({
                       docHelper: new TextDocumentHelper(
                           lines.join("\n").replace("§", ""),
                       ),
                       fileType: BrunoFileType.RequestFile,
                       context,
-                      getInsertedText: (probeKey) =>
-                          `headers:\n    - ${probeKey}: x`,
+                      probeCount: 2,
+                      getInsertedText: ([headersProbe, authProbe]) =>
+                          `headers:\n    - ${headersProbe}: x\n  auth:\n    ${authProbe}: x`,
                   })
-                : undefined;
+                : [];
 
-        expect(descriptor?.definedKeys).toEqual([]);
+        expect(descriptors).toHaveLength(2);
+        expect(descriptors.map((d) => d?.definedKeys)).toEqual([[], []]);
         expect(
-            descriptor?.expectedKeys
-                .filter(({ isMandatory }) => isMandatory)
-                .map(({ key }) => key),
-        ).toEqual(["name", "value"]);
+            descriptors.map((d) =>
+                d?.expectedKeys
+                    .filter(({ isMandatory }) => isMandatory)
+                    .map(({ key }) => key),
+            ),
+        ).toEqual([["name", "value"], ["type"]]);
     });
 });
 

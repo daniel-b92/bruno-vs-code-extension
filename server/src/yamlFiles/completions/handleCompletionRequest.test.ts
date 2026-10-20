@@ -7,7 +7,10 @@ import {
     Position,
     TextDocumentHelper,
 } from "@global_shared";
-import { createCollectionWithEnvironments } from "@global_shared/_testingUtils";
+import {
+    createCollectionWithEnvironments,
+    createItemProviderStub,
+} from "@global_shared/_testingUtils";
 import { CancellationToken, InsertTextMode } from "vscode-languageserver";
 import { TypedCollectionItemProvider } from "../../shared";
 import { handleCompletionRequest } from "./handleCompletionRequest";
@@ -527,8 +530,10 @@ async function complete(
             token: CancellationToken.None,
         },
         collection,
-        itemProvider: {
-            getRegisteredCollections: () => [collection],
-        } as unknown as TypedCollectionItemProvider,
+        itemProvider: createItemProviderStub<TypedCollectionItemProvider>(
+            collection.getRootDirectory(),
+            CollectionFormat.Yaml,
+            collection,
+        ),
     });
 }
