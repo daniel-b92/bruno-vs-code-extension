@@ -341,6 +341,42 @@ describe("handleCompletionRequest for yaml files", () => {
         });
     });
 
+    it("keeps the space after the colon when completing a value", async () => {
+        const result = await complete(
+            requestPath,
+            "http:\n  headers:\n    - name: Accept\n      disabled: \n",
+            new Position(3, 16),
+        );
+
+        expect(result?.find(({ label }) => label == "false")?.textEdit).toEqual(
+            {
+                newText: "false",
+                range: {
+                    start: { line: 3, character: 16 },
+                    end: { line: 3, character: 16 },
+                },
+            },
+        );
+    });
+
+    it("inserts a space before the value, if it directly follows the colon", async () => {
+        const result = await complete(
+            requestPath,
+            "http:\n  headers:\n    - name: Accept\n      disabled:\n",
+            new Position(3, 15),
+        );
+
+        expect(result?.find(({ label }) => label == "false")?.textEdit).toEqual(
+            {
+                newText: " false",
+                range: {
+                    start: { line: 3, character: 15 },
+                    end: { line: 3, character: 15 },
+                },
+            },
+        );
+    });
+
     it("does not suggest tags that are already defined", async () => {
         const result = await complete(
             requestPath,

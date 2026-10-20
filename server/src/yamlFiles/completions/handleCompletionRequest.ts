@@ -94,6 +94,7 @@ async function getValueCompletions(
         path,
         keyInfo,
         replaceRange,
+        isMissingSpaceAfterColon,
     }: Extract<YamlCursorContext, { kind: "value" }>,
     {
         fileType,
@@ -108,7 +109,10 @@ async function getValueCompletions(
     const toItem = (value: string): CompletionItem => ({
         label: value,
         kind: CompletionItemKind.Value,
-        textEdit: { range: replaceRange, newText: value },
+        textEdit: {
+            range: replaceRange,
+            newText: isMissingSpaceAfterColon ? ` ${value}` : value,
+        },
     });
 
     if (isPath(path, [INFO_KEY, FileInfoProperty.Seq])) {

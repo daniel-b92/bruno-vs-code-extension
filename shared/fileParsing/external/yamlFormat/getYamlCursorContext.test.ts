@@ -239,6 +239,7 @@ describe("getYamlCursorContext", () => {
                     start: { line: 2, character: 10 },
                     end: { line: 2, character: 12 },
                 },
+                isMissingSpaceAfterColon: false,
             });
             expect(
                 context?.kind == "value" && context.keyInfo?.allowedValues,
@@ -258,6 +259,33 @@ describe("getYamlCursorContext", () => {
                     start: { line: 2, character: 10 },
                     end: { line: 2, character: 15 },
                 },
+            });
+        });
+
+        it("should not replace the space between the colon and the cursor", () => {
+            const context = getContext(["http:", "  auth:", "    type: §"]);
+
+            expect(context).toMatchObject({
+                kind: "value",
+                replaceRange: {
+                    start: { line: 2, character: 10 },
+                    end: { line: 2, character: 10 },
+                },
+                isMissingSpaceAfterColon: false,
+            });
+        });
+
+        it("should detect a missing space between the colon and the value", () => {
+            const context = getContext(["http:", "  auth:", "    type:§"]);
+
+            expect(context).toMatchObject({
+                kind: "value",
+                path: ["http", "auth", "type"],
+                replaceRange: {
+                    start: { line: 2, character: 9 },
+                    end: { line: 2, character: 9 },
+                },
+                isMissingSpaceAfterColon: true,
             });
         });
 

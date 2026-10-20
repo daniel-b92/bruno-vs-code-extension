@@ -54,6 +54,8 @@ export type YamlCursorContext =
           keyInfo?: YamlExpectedKeyInfo;
           /** The (partial) value being typed (or an empty range at the cursor). */
           replaceRange: Range;
+          /** Whether the value directly follows the colon of the key, so that a separating space needs to be inserted before it. */
+          isMissingSpaceAfterColon: boolean;
           /** Includes the key that the value belongs to, e.g. `["info", "seq"]`. */
           path: string[];
       }
@@ -69,7 +71,7 @@ export type YamlCursorContext =
 
 const PLACEHOLDER_KEY = "__bruAsCodeCompletion__";
 const KEY_POSITION_REGEX = /^\s*(-\s+)?([\w-]*)$/;
-const VALUE_POSITION_REGEX = /^\s*(?:-\s+)?([\w-]+):\s*(\S*)$/;
+const VALUE_POSITION_REGEX = /^\s*(?:-\s+)?([\w-]+):(\s*)(\S*)$/;
 const KEY_WITHOUT_VALUE_REGEX = /^(\s*(?:-\s+)?)[\w-]+:\s*(#.*)?$/;
 
 /**
@@ -114,7 +116,8 @@ export function getYamlCursorContext({
               fileType,
               position,
               key: valueMatch[1],
-              typedWord: valueMatch[2],
+              isMissingSpaceAfterColon: valueMatch[2] == "",
+              typedWord: valueMatch[3],
           })
         : undefined;
 }
@@ -403,12 +406,14 @@ function getContextForValuePosition({
     fileType,
     position: { line, character },
     key,
+    isMissingSpaceAfterColon,
     typedWord,
 }: {
     docHelper: TextDocumentHelper;
     fileType: BrunoFileType;
     position: Position;
     key: string;
+    isMissingSpaceAfterColon: boolean;
     typedWord: string;
 }): YamlCursorContext | undefined {
     const text = docHelper.getText();
@@ -429,10 +434,18 @@ function getContextForValuePosition({
             ({ key: expectedKey }) => expectedKey == key,
         ),
         // The rest of the line gets replaced as well, so that no remainder of a previous value is left.
+        // Trailing whitespace before the cursor (e.g. the space after the colon) must not be part of the range.
         replaceRange: new Range(
             new Position(line, character - typedWord.length),
-            new Position(line, docHelper.getLineByIndex(line).trimEnd().length),
+            new Position(
+                line,
+                Math.max(
+                    character,
+                    docHelper.getLineByIndex(line).trimEnd().length,
+                ),
+            ),
         ),
+        isMissingSpaceAfterColon,
         path: [...pair.containingKeys, key],
     };
 }
