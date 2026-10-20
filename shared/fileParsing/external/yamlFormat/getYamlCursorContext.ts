@@ -269,15 +269,24 @@ function getContextForKeyWithLinePrefix({
         const { keyRange } = descriptor.definedKeys.find((defined) =>
             isKeyAtLine(defined, line, key),
         )!;
+        const otherKeys = descriptor.definedKeys.filter(
+            (defined) => !isKeyAtLine(defined, line, key),
+        );
+
+        if (
+            otherKeys.some(
+                ({ keyRange: { start } }) =>
+                    start.character != keyRange.start.character,
+            )
+        ) {
+            // The parser is error tolerant and may assign a key at an invalid indentation to a map (e.g. a key
+            // at the indentation of the items of a preceding sequence is assigned to the map containing the sequence).
+            return undefined;
+        }
 
         return {
             kind: "key",
-            descriptor: {
-                ...descriptor,
-                definedKeys: descriptor.definedKeys.filter(
-                    (defined) => !isKeyAtLine(defined, line, key),
-                ),
-            },
+            descriptor: { ...descriptor, definedKeys: otherKeys },
             replaceRange,
             indentation: keyRange.start.character,
             path: pair.containingKeys,

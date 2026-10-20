@@ -203,6 +203,29 @@ describe("getYamlCursorContext", () => {
             });
         });
 
+        it("should re-indent a key at the indentation of the items of a preceding sequence to the outer map", () => {
+            const context = getContext([
+                "http:",
+                "    body:",
+                "        type: json",
+                "    params:",
+                "        - name: a",
+                "          value: b",
+                "        au§",
+            ]);
+
+            expect(context).toMatchObject({
+                kind: "key",
+                path: ["http"],
+                indentation: 4,
+                reindentationRange: {
+                    start: { line: 6, character: 0 },
+                    end: { line: 6, character: 8 },
+                },
+            });
+            expect(getDefinedKeys(context)).toEqual(["body", "params"]);
+        });
+
         it("should indent a key below a key without value by the indentation step of the document", () => {
             const context = getContext(["http:", "    auth:", "      §"]);
 
