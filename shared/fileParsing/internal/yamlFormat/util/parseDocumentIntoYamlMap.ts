@@ -7,12 +7,12 @@ import { YamlParsingError } from "../../../external/yamlFormat/interfaces";
 export function parseDocumentIntoYamlMap(
     commonArgs: CommonParsingArgs,
 ): { map: YAMLMap } | { errors: YamlParsingError[] } {
-    const { fullDocumentRange, docHelper } = commonArgs;
+    const { fullDocumentRange, docHelper, continueOnSyntaxErrors } = commonArgs;
     const document = parseDocument(docHelper.getText(), {
         lineCounter: new LineCounter(),
     });
 
-    if (document.errors.length > 0) {
+    if (document.errors.length > 0 && !continueOnSyntaxErrors) {
         // Cannot continue with a technical parsing error.
         return { errors: mapErrors(document.errors, fullDocumentRange) };
     }

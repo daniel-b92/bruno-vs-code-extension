@@ -28,6 +28,7 @@ export function parseCollectionSettingsFile(
         docHelper,
         fullDocumentRange: docHelper.getTextRange(),
         mapDescriptors: options?.mapDescriptors,
+        continueOnSyntaxErrors: options?.continueOnSyntaxErrors,
     };
     const collectedErrors: YamlParsingError[] = [];
 
@@ -89,7 +90,13 @@ export function parseCollectionSettingsFile(
                 request: parseIfPresent(
                     getMap(TopLevelCollectionSettingsProperty.Request),
                     (requestMap) =>
-                        parseSettingsFileRequestSection(requestMap, commonArgs),
+                        parseSettingsFileRequestSection(
+                            requestMap,
+                            commonArgs,
+                            {
+                                canInheritAuth: false,
+                            },
+                        ),
                     collectedErrors,
                 ),
                 docs: parseIfPresent(

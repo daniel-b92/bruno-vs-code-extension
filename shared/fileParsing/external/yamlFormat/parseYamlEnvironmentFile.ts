@@ -41,6 +41,7 @@ export function parseYamlEnvironmentFile(
         docHelper,
         fullDocumentRange,
         mapDescriptors: options?.mapDescriptors,
+        continueOnSyntaxErrors: options?.continueOnSyntaxErrors,
     };
     const collectedErrors: YamlParsingError[] = [];
 

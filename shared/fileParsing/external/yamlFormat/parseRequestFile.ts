@@ -23,6 +23,7 @@ import {
     TopLevelRequestFileProperty,
 } from "./constants/requestFileConstants";
 import { FileInfoProperty, FileInfoType } from "./constants/sharedConstants";
+import { inheritAuthValue } from "./constants/authConstants";
 import { parseFileInfoFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseFileInfoFromYamlMap";
 import { parseSettingsFromYamlMap } from "../../internal/yamlFormat/brunoSpecific/parseSettingsFromYamlMap";
 import { stripKeyFromResult } from "../../internal/yamlFormat/util/stripKeyFromResult";
@@ -50,6 +51,7 @@ export function parseRequestFile(
         docHelper,
         fullDocumentRange: docHelper.getTextRange(),
         mapDescriptors: options?.mapDescriptors,
+        continueOnSyntaxErrors: options?.continueOnSyntaxErrors,
     };
     const collectedErrors: YamlParsingError[] = [];
 
@@ -273,32 +275,37 @@ function parseRequestTypeSection<TBody>({
         bodyMap: WithKeyAndKeyRange<YAMLMap>,
     ) => MaybeResultWithErrors<TBody>;
 }) {
-    const { getString, getMap, getSequence } = getValidatedMapItems(
-        sectionMap,
-        {
-            scalars: {
-                stringValues: [
-                    ...(parseBody
-                        ? [RequestFileHttpSectionProperty.method]
-                        : []),
-                    RequestFileHttpSectionProperty.url,
+    const { getString, getMap, getSequence, getEnumValue } =
+        getValidatedMapItems(
+            sectionMap,
+            {
+                scalars: {
+                    stringValues: [
+                        ...(parseBody
+                            ? [RequestFileHttpSectionProperty.method]
+                            : []),
+                        RequestFileHttpSectionProperty.url,
+                    ],
                     // Auth can either be a scalar string with the value 'inherit' or a map with a specific type.
+                    enumValues: {
+                        [RequestFileHttpSectionProperty.auth]: [
+                            inheritAuthValue,
+                        ],
+                    },
+                },
+                mapValues: [
+                    ...(parseBody ? [RequestFileHttpSectionProperty.body] : []),
                     RequestFileHttpSectionProperty.auth,
+                    ...additionalMapKeys,
+                ],
+                sequenceValues: [
+                    RequestFileHttpSectionProperty.headers,
+                    ...additionalSequenceKeys,
                 ],
             },
-            mapValues: [
-                ...(parseBody ? [RequestFileHttpSectionProperty.body] : []),
-                RequestFileHttpSectionProperty.auth,
-                ...additionalMapKeys,
-            ],
-            sequenceValues: [
-                RequestFileHttpSectionProperty.headers,
-                ...additionalSequenceKeys,
-            ],
-        },
-        commonArgs,
-        collectedErrors,
-    );
+            commonArgs,
+            collectedErrors,
+        );
 
     return {
         keyRange,
@@ -326,8 +333,9 @@ function parseRequestTypeSection<TBody>({
                     collectedErrors,
                 ),
             auth: parseIfPresent(
-                getString(RequestFileHttpSectionProperty.auth) ??
-                    getMap(RequestFileHttpSectionProperty.auth),
+                getEnumValue<typeof inheritAuthValue>(
+                    RequestFileHttpSectionProperty.auth,
+                ) ?? getMap(RequestFileHttpSectionProperty.auth),
                 (authMapOrScalar) =>
                     parseAuthFromYamlMapOrScalar({
                         commonArgs,

@@ -159,6 +159,26 @@ describe("getValidatedMapItems", () => {
             expect(errors).toHaveLength(1);
         });
 
+        it("accepts hidden values, but does not list them in the descriptor", () => {
+            const { errors, getEnumValue, descriptor } = run("auth: inherit", {
+                scalars: { enumValues: { type: ["a"] } },
+                mapValues: ["auth"],
+                hiddenEnumValues: { auth: ["inherit"], type: ["b"] },
+            });
+
+            expect(errors).toEqual([]);
+            expect(getEnumValue("auth")?.value).toBe("inherit");
+            expect(descriptor.expectedKeys).toEqual([
+                {
+                    key: "type",
+                    valueKinds: ["string"],
+                    isMandatory: false,
+                    allowedValues: ["a"],
+                },
+                { key: "auth", valueKinds: ["map"], isMandatory: false },
+            ]);
+        });
+
         it("returns undefined for a missing key", () => {
             const { getEnumValue } = run("other: c", {
                 scalars: {

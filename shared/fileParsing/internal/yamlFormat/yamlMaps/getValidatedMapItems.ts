@@ -57,6 +57,8 @@ export interface ValidatedMapItems {
  * They are listed as expected keys in the descriptor with the given value kinds.
  * @param silentlyAllowedKeys Like `additionalAllowedKeys`, but the keys are not listed as allowed keys in error messages
  * (e.g. because they are reported by a dedicated check).
+ * @param hiddenEnumValues Values for enum keys that are valid as well, but are not listed as allowed values in the descriptor
+ * (e.g. because they are reported by a dedicated check). A key that only has hidden values is not listed with a string value in the descriptor.
  */
 export function getValidatedMapItems(
     map: YAMLMap,
@@ -64,6 +66,7 @@ export function getValidatedMapItems(
         mandatoryKeys?: string[];
         additionalAllowedKeys?: AdditionalAllowedKey[];
         silentlyAllowedKeys?: string[];
+        hiddenEnumValues?: Record<string, readonly string[]>;
     },
     commonArgs: CommonParsingArgs,
     collectedErrors: YamlParsingError[],
@@ -72,8 +75,13 @@ export function getValidatedMapItems(
         mandatoryKeys = [],
         additionalAllowedKeys = [],
         silentlyAllowedKeys = [],
-        ...keysForParsing
+        hiddenEnumValues = {},
+        ...keysForDescriptor
     } = expectedKeys;
+    const keysForParsing = addHiddenEnumValues(
+        keysForDescriptor,
+        hiddenEnumValues,
+    );
     const { items, errors } = getMapItems(map, keysForParsing, commonArgs);
     const { unknownKeys, missingKeys } = items;
 
@@ -90,7 +98,7 @@ export function getValidatedMapItems(
 
     recordMapDescriptor({
         items,
-        expectedKeys: keysForParsing,
+        expectedKeys: keysForDescriptor,
         mandatoryKeys,
         additionalKeys: additionalAllowedKeys,
         commonArgs,
@@ -147,8 +155,22 @@ export function getValidatedMapItems(
         getSequence: (key) => findByKey(items.validSequences, key),
         getEnumValue: <T extends string>(key: string) =>
             stripKeyFromResult(findByKey(validEnumFields, key)) as
-                | WithKeyAndValueRange<T>
-                | undefined,
+                WithKeyAndValueRange<T> | undefined,
+    };
+}
+
+function addHiddenEnumValues(
+    expectedKeys: ExpectedKeys,
+    hiddenEnumValues: Record<string, readonly string[]>,
+): ExpectedKeys {
+    const enumValues = { ...expectedKeys.scalars?.enumValues };
+    for (const [key, values] of Object.entries(hiddenEnumValues)) {
+        enumValues[key] = [...(enumValues[key] ?? []), ...values];
+    }
+
+    return {
+        ...expectedKeys,
+        scalars: { ...expectedKeys.scalars, enumValues },
     };
 }
 

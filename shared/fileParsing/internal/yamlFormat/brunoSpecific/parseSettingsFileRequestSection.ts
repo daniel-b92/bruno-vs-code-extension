@@ -15,22 +15,31 @@ import { parseVariablesFromYamlSequence } from "./parseVariablesFromYamlSequence
 import { parseScriptsFromYamlSequence } from "./parseScriptsFromYamlSequence";
 import { parseActionsFromYamlSequence } from "./parseActionsFromYamlSequence";
 import { SettingsFileRequestSectionProperty } from "../../../external/yamlFormat/constants/sharedConstants";
+import { inheritAuthValue } from "../../../external/yamlFormat/constants/authConstants";
 
 /**
  * Parses the `request` section, which has the same structure for folder settings files and collection settings files.
+ *
+ * @param canInheritAuth Whether the auth can be inherited from a parent.
+ * If not, an inherited auth is still parsed (so that it can be reported by a dedicated check), but it is not suggested.
  */
 export function parseSettingsFileRequestSection(
     { keyRange, value: requestMap }: WithKeyAndKeyRange<YAMLMap>,
     commonArgs: CommonParsingArgs,
+    { canInheritAuth }: { canInheritAuth: boolean },
 ): MaybeResultWithErrors<ParsedSettingsFileRequestSection> {
     const collectedErrors: YamlParsingError[] = [];
-    const { getString, getMap, getSequence } = getValidatedMapItems(
+    // Auth can either be a Scalar string with the value 'inherit' or a map with a specific type.
+    const inheritableAuthValues = {
+        [SettingsFileRequestSectionProperty.Auth]: [inheritAuthValue],
+    };
+    const { getMap, getSequence, getEnumValue } = getValidatedMapItems(
         requestMap,
         {
-            // Auth can either be a Scalar string with the value 'inherit' or a map with a specific type.
             scalars: {
-                stringValues: [SettingsFileRequestSectionProperty.Auth],
+                enumValues: canInheritAuth ? inheritableAuthValues : {},
             },
+            hiddenEnumValues: canInheritAuth ? {} : inheritableAuthValues,
             mapValues: [SettingsFileRequestSectionProperty.Auth],
             sequenceValues: [
                 SettingsFileRequestSectionProperty.Headers,
@@ -60,8 +69,9 @@ export function parseSettingsFileRequestSection(
                     collectedErrors,
                 ),
                 auth: parseIfPresent(
-                    getString(SettingsFileRequestSectionProperty.Auth) ??
-                        getMap(SettingsFileRequestSectionProperty.Auth),
+                    getEnumValue<typeof inheritAuthValue>(
+                        SettingsFileRequestSectionProperty.Auth,
+                    ) ?? getMap(SettingsFileRequestSectionProperty.Auth),
                     (authMapOrScalar) =>
                         parseAuthFromYamlMapOrScalar({
                             commonArgs,

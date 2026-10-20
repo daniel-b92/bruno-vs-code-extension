@@ -41,6 +41,8 @@ export interface CommonParsingArgs {
     fullDocumentRange: Range;
     /** If defined, a descriptor gets appended for every validated map. */
     mapDescriptors?: YamlMapDescriptor[];
+    /** See `YamlParsingOptions`. */
+    continueOnSyntaxErrors?: boolean;
 }
 
 export interface ParsedMapItems {

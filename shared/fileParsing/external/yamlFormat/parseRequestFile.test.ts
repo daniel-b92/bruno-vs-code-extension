@@ -173,6 +173,26 @@ http:
             expect(result!.properties.http?.properties.auth).toBeDefined();
         });
 
+        it("returns a single error for auth as an invalid scalar", () => {
+            const documentText = `info:
+    name: auth request
+    type: http
+    seq: 4
+
+http:
+    method: GET
+    url: https://example.com
+    auth: inherits`;
+
+            const { result, errors } = parseRequestFile(
+                new TextDocumentHelper(documentText),
+            );
+
+            expect(errors).toHaveLength(1);
+            expect(errors[0].message).toContain("inherits");
+            expect(result!.properties.http?.properties.auth).toBeUndefined();
+        });
+
         it("parses a request file with auth as map (basic)", () => {
             const documentText = `info:
     name: auth request
