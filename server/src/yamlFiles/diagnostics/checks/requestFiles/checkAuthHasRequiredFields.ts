@@ -25,8 +25,7 @@ export function checkAuthHasRequiredFields(
     const authMapDescriptor = mapDescriptors.find(({ definedKeys }) =>
         definedKeys.some(
             ({ key, keyRange }) =>
-                key == "type" &&
-                keyRange.equals(properties.type.keyRange),
+                key == "type" && keyRange.equals(properties.type.keyRange),
         ),
     );
     if (!authMapDescriptor) {

@@ -22,11 +22,9 @@ import {
 import { URI } from "vscode-uri";
 import { runUpdatesOnWillSave } from "./bruFiles/autoUpdates/runUpdatesOnWillSave";
 import {
-    BrunoFileType,
     FileChangeType,
     getConfiguredEnvironmentNameAsync,
     getItemType,
-    ItemType,
     NonBrunoSpecificItemType,
     isInFolderForEnvironmentFiles,
     doesFileNameMatchFolderSettingsFileName,
@@ -47,7 +45,7 @@ import { handleCompletionRequest as handleCompletionRequestForJsFile } from "./j
 import { handleHoverRequest as handleHoverRequestForJsFile } from "./jsFiles/hover/handleHoverRequest";
 import { defaultFeatureToggles, FeatureToggles } from "@global_shared";
 import { setFeatureToggles } from "./shared/featureToggles";
-import { isYamlAppFile } from "./yamlFiles/isYamlAppFile";
+import { getYamlFileTypeForEditorContent } from "./yamlFiles/getYamlFileTypeForEditorContent";
 import { YamlFormatDiagnosticsProvider } from "./yamlFiles/yamlFormatDiagnosticsProvider";
 
 let helpersProvider: HelpersProvider | undefined = undefined;
@@ -410,19 +408,6 @@ async function getDiagnosticsForYamlFile(filePath: string, text: string) {
         text,
         getYamlFileTypeForEditorContent(fileType, text),
     );
-}
-
-/** The cache only reflects the file content on disk, so the current editor content is used to tell app files and request files apart. */
-function getYamlFileTypeForEditorContent<T extends ItemType>(
-    fileType: T,
-    text: string,
-): T | BrunoFileType.AppFile | BrunoFileType.RequestFile {
-    return fileType == BrunoFileType.RequestFile ||
-        fileType == BrunoFileType.AppFile
-        ? isYamlAppFile(text)
-            ? BrunoFileType.AppFile
-            : BrunoFileType.RequestFile
-        : fileType;
 }
 
 async function getYamlFileTypeIfExists(

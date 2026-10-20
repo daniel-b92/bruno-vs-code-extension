@@ -2,6 +2,7 @@ import {
     BrunoFileType,
     FileInfoProperty,
     getYamlCursorContext,
+    isBrunoFileType,
     LineBreakType,
     Logger,
     TextDocumentHelper,
@@ -14,7 +15,6 @@ import {
     CompletionItem,
     CompletionItemKind,
     InsertTextFormat,
-    Range as LspRange,
 } from "vscode-languageserver";
 import {
     LanguageRequestWithTestEnvironmentInfo,
@@ -23,6 +23,7 @@ import {
 import { getSequenceValueCompletion } from "../../shared/getSequenceValueCompletion";
 import { getTagCompletions } from "../../shared/getTagCompletions";
 import { getAvailableEnvironmentNamesForExtends } from "../../shared/getAvailableEnvironmentNamesForExtends";
+import { getYamlFileTypeForEditorContent } from "../getYamlFileTypeForEditorContent";
 
 const INDENTATION_STEP = 2;
 const INFO_KEY = "info";
@@ -36,13 +37,18 @@ export async function handleCompletionRequest({
     CompletionItem[] | undefined
 > {
     const { documentHelper, position, token, filePath } = baseRequest;
-    const itemType = collection
+    const cachedItemType = collection
         .getStoredDataForPath(filePath)
         ?.item.getItemType();
 
-    if (!itemType || !isBrunoFileType(itemType)) {
+    if (!cachedItemType || !isBrunoFileType(cachedItemType)) {
         return undefined;
     }
+
+    const itemType = getYamlFileTypeForEditorContent(
+        cachedItemType,
+        documentHelper.getText(),
+    );
 
     const context = getYamlCursorContext({
         docHelper: documentHelper,
@@ -74,7 +80,7 @@ export async function handleCompletionRequest({
                       itemProvider,
                       collection,
                       filePath,
-                      alreadyDefinedTags: getAlreadyDefinedTags(documentHelper),
+                      alreadyDefinedTags: context.existingValues,
                   })
                 : undefined;
     }
@@ -89,7 +95,6 @@ function getKeyCompletions(
     docHelper: TextDocumentHelper,
 ): CompletionItem[] {
     const lineBreak = docHelper.getMostUsedLineBreak() ?? LineBreakType.Lf;
-    const range = toLspRange(replaceRange);
 
     return expectedKeys
         .filter(({ key }) => definedKeys.every((defined) => defined.key != key))
@@ -104,7 +109,7 @@ function getKeyCompletions(
             return {
                 label: key,
                 kind: CompletionItemKind.Property,
-                textEdit: { range, newText: insertion.text },
+                textEdit: { range: replaceRange, newText: insertion.text },
                 insertTextFormat: insertion.isSnippet
                     ? InsertTextFormat.Snippet
                     : undefined,
@@ -160,11 +165,10 @@ async function getValueCompletions(
         collection: TypedCollection;
     },
 ): Promise<CompletionItem[] | undefined> {
-    const range = toLspRange(replaceRange);
     const toItem = (value: string): CompletionItem => ({
         label: value,
         kind: CompletionItemKind.Value,
-        textEdit: { range, newText: value },
+        textEdit: { range: replaceRange, newText: value },
     });
 
     if (isPath(path, [INFO_KEY, FileInfoProperty.Seq])) {
@@ -198,33 +202,6 @@ async function getValueCompletions(
         : undefined;
 }
 
-/** The (plain) scalar items of the `info.tags` sequence in the document. */
-function getAlreadyDefinedTags(docHelper: TextDocumentHelper) {
-    const lines = docHelper.getAllLines().map(({ content }) => content);
-    const tagsLineIndex = lines.findIndex((line) =>
-        new RegExp(`^\\s+${FileInfoProperty.Tags}\\s*:`).test(line),
-    );
-
-    if (tagsLineIndex < 0) {
-        return [];
-    }
-
-    const tagsIndentation = lines[tagsLineIndex].search(/\S/);
-    const tags: string[] = [];
-
-    for (const line of lines.slice(tagsLineIndex + 1)) {
-        const item = /^(\s*)-\s+(.*?)\s*$/.exec(line);
-        if (!item || item[1].length < tagsIndentation) {
-            break;
-        }
-        if (item[2]) {
-            tags.push(item[2].replace(/^(["'])(.*)\1$/, "$2"));
-        }
-    }
-
-    return tags;
-}
-
 function isOnlyKind(kinds: YamlValueKind[], kind: YamlValueKind) {
     return kinds.length > 0 && kinds.every((k) => k == kind);
 }
@@ -234,20 +211,6 @@ function isPath(actual: string[], expected: string[]) {
         actual.length == expected.length &&
         actual.every((segment, i) => segment == expected[i])
     );
-}
-
-function isBrunoFileType(itemType: unknown): itemType is BrunoFileType {
-    return Object.values(BrunoFileType).includes(itemType as BrunoFileType);
-}
-
-function toLspRange(range: {
-    start: { line: number; character: number };
-    end: { line: number; character: number };
-}): LspRange {
-    return {
-        start: { line: range.start.line, character: range.start.character },
-        end: { line: range.end.line, character: range.end.character },
-    };
 }
 
 function addLogEntryForCancellation(logger?: Logger) {

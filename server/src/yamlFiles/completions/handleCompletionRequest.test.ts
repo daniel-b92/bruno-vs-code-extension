@@ -7,7 +7,7 @@ import {
 } from "@global_shared";
 import { createCollectionWithEnvironments } from "@global_shared/_testingUtils";
 import { CancellationToken } from "vscode-languageserver";
-import { TypedCollection, TypedCollectionItemProvider } from "../../shared";
+import { TypedCollectionItemProvider } from "../../shared";
 import { handleCompletionRequest } from "./handleCompletionRequest";
 
 const requestPath = "/collection/request.yml";
@@ -60,7 +60,52 @@ describe("handleCompletionRequest for yaml files", () => {
         });
     });
 
+    describe("key insertion", () => {
+        it("inserts a sequence snippet for sequence keys", async () => {
+            const result = await complete(
+                requestPath,
+                "info:\n  name: Foo\n  type: http\n  \n",
+                new Position(3, 2),
+            );
+
+            expect(
+                result?.find(({ label }) => label == "tags")?.textEdit,
+            ).toMatchObject({ newText: "tags:\n    - $0" });
+        });
+
+        it("triggers the value suggestion for keys with a fixed set of values", async () => {
+            const result = await complete(
+                requestPath,
+                "info:\n  name: Foo\n  \n",
+                new Position(2, 2),
+            );
+
+            expect(
+                result?.find(({ label }) => label == "type")?.command,
+            ).toEqual({
+                title: "Suggest values",
+                command: "editor.action.triggerSuggest",
+            });
+            expect(
+                result?.find(({ label }) => label == "seq")?.command,
+            ).toBeUndefined();
+        });
+    });
+
     describe("value completions", () => {
+        it("suggests true and false for boolean keys", async () => {
+            const result = await complete(
+                requestPath,
+                "http:\n  headers:\n    - name: Accept\n      disabled: \n",
+                new Position(3, 16),
+            );
+
+            expect(result?.map(({ label }) => label)).toEqual([
+                "true",
+                "false",
+            ]);
+        });
+
         it("suggests the allowed values of an enum key", async () => {
             const result = await complete(
                 requestPath,
@@ -97,11 +142,38 @@ describe("handleCompletionRequest for yaml files", () => {
         });
     });
 
+    it("replaces the rest of the line when completing a value", async () => {
+        const result = await complete(
+            requestPath,
+            "info:\n  name: Foo\n  type: ht\n",
+            new Position(2, 9),
+        );
+
+        expect(result?.find(({ label }) => label == "http")?.textEdit).toEqual({
+            newText: "http",
+            range: {
+                start: { line: 2, character: 8 },
+                end: { line: 2, character: 10 },
+            },
+        });
+    });
+
+    it("does not suggest tags that are already defined", async () => {
+        const result = await complete(
+            requestPath,
+            "info:\n  name: Foo\n  tags:\n    - a\n    - \n",
+            new Position(4, 6),
+            [new BrunoRequestFile("/collection/other.yml", 1, ["a", "b"])],
+        );
+
+        expect(result?.map(({ label }) => label)).toEqual(["b"]);
+    });
+
     it("returns no completions for a position within a value", async () => {
         const result = await complete(
             requestPath,
             "info:\n  name: Foo bar\n",
-            new Position(1, 10),
+            new Position(1, 12),
         );
 
         expect(result).toBeUndefined();
@@ -115,7 +187,7 @@ async function complete(
     additionalRequestFiles: BrunoRequestFile[] = [],
     environments: string[] = [],
 ) {
-    const collection: TypedCollection = createCollectionWithEnvironments(
+    const collection = createCollectionWithEnvironments(
         environments.map((name) => ({ name })),
         CollectionFormat.Yaml,
     );
@@ -124,11 +196,7 @@ async function complete(
         new BrunoRequestFile(requestPath),
     ];
     items.forEach((item) =>
-        (
-            collection as unknown as {
-                addItem: (data: unknown) => void;
-            }
-        ).addItem({ item, additionalData: undefined }),
+        collection.addItem({ item, additionalData: undefined }),
     );
 
     return handleCompletionRequest({
@@ -139,6 +207,8 @@ async function complete(
             token: CancellationToken.None,
         },
         collection,
-        itemProvider: {} as TypedCollectionItemProvider,
+        itemProvider: {
+            getRegisteredCollections: () => [collection],
+        } as unknown as TypedCollectionItemProvider,
     });
 }

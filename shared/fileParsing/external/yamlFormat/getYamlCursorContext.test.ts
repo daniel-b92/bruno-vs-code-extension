@@ -133,6 +133,7 @@ describe("getYamlCursorContext", () => {
                     start: { line: 4, character: 6 },
                     end: { line: 4, character: 8 },
                 },
+                existingValues: ["first"],
             });
         });
 
@@ -184,6 +185,22 @@ describe("getYamlCursorContext", () => {
             expect(
                 context?.kind == "value" && context.keyInfo?.allowedValues,
             ).toContain("basic");
+        });
+
+        it("should replace the remainder of the value after the cursor", () => {
+            const context = getContext([
+                "http:",
+                "  auth:",
+                "    type: ba§sic",
+            ]);
+
+            expect(context).toMatchObject({
+                kind: "value",
+                replaceRange: {
+                    start: { line: 2, character: 10 },
+                    end: { line: 2, character: 15 },
+                },
+            });
         });
 
         it("should find the key within a sequence item", () => {

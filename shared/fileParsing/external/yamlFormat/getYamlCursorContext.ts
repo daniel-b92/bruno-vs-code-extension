@@ -53,6 +53,8 @@ export type YamlCursorContext =
           replaceRange: Range;
           /** The keys leading to the sequence, e.g. `["info", "tags"]`. */
           path: string[];
+          /** The scalar items that the sequence already contains (apart from the one being typed). */
+          existingValues: string[];
       };
 
 const PLACEHOLDER_KEY = "__bruAsCodeCompletion__";
@@ -161,6 +163,7 @@ function getContextForKeyPosition({
               kind: "sequenceValue",
               replaceRange,
               path: pair.containingKeys,
+              existingValues: pair.siblingScalars,
           }
         : undefined;
 }
@@ -195,9 +198,10 @@ function getContextForValuePosition({
         keyInfo: descriptor.expectedKeys.find(
             ({ key: expectedKey }) => expectedKey == key,
         ),
+        // The rest of the line gets replaced as well, so that no remainder of a previous value is left.
         replaceRange: new Range(
             new Position(line, character - typedWord.length),
-            new Position(line, character),
+            new Position(line, docHelper.getLineByIndex(line).trimEnd().length),
         ),
         path: [...pair.containingKeys, key],
     };
@@ -255,7 +259,12 @@ function getPairAtLine(text: string, line: number, key: string) {
     const lineCounter = new LineCounter();
     const document = parseDocument(text, { lineCounter });
     let result:
-        { containingKeys: string[]; isSequenceItem: boolean } | undefined;
+        | {
+              containingKeys: string[];
+              isSequenceItem: boolean;
+              siblingScalars: string[];
+          }
+        | undefined;
 
     visit(document, {
         Pair(_, pair, ancestors) {
@@ -268,12 +277,18 @@ function getPairAtLine(text: string, line: number, key: string) {
                 return undefined;
             }
 
+            const sequence = ancestors[ancestors.length - 2];
             result = {
                 containingKeys: ancestors
                     .filter(isPair)
                     .map(({ key }) => String(isScalar(key) ? key.value : key)),
                 // The parent of the pair is the map, whose parent is the sequence (if the map is a sequence item).
-                isSequenceItem: isSeq(ancestors[ancestors.length - 2]),
+                isSequenceItem: isSeq(sequence),
+                siblingScalars: isSeq(sequence)
+                    ? sequence.items
+                          .filter(isScalar)
+                          .map(({ value }) => String(value))
+                    : [],
             };
             return visit.BREAK;
         },
