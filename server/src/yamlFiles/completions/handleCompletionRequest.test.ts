@@ -6,7 +6,7 @@ import {
     TextDocumentHelper,
 } from "@global_shared";
 import { createCollectionWithEnvironments } from "@global_shared/_testingUtils";
-import { CancellationToken } from "vscode-languageserver";
+import { CancellationToken, InsertTextMode } from "vscode-languageserver";
 import { TypedCollectionItemProvider } from "../../shared";
 import { handleCompletionRequest } from "./handleCompletionRequest";
 
@@ -37,7 +37,7 @@ describe("handleCompletionRequest for yaml files", () => {
 
             const httpItem = result?.find(({ label }) => label == "http");
             expect(httpItem?.textEdit).toEqual({
-                newText: "http:\n  $0",
+                newText: "http:\n  $1",
                 range: {
                     start: { line: 3, character: 0 },
                     end: { line: 3, character: 2 },
@@ -70,9 +70,119 @@ describe("handleCompletionRequest for yaml files", () => {
 
             expect(
                 result?.find(({ label }) => label == "tags")?.textEdit,
-            ).toMatchObject({ newText: "tags:\n    - $0" });
+            ).toMatchObject({ newText: "tags:\n    - $1" });
         });
 
+        it("uses the indentation step of the document", async () => {
+            const result = await complete(
+                requestPath,
+                "info:\n    name: Foo\n    \n",
+                new Position(2, 4),
+            );
+
+            expect(
+                result?.find(({ label }) => label == "tags")?.textEdit,
+            ).toMatchObject({ newText: "tags:\n        - $1" });
+        });
+
+        it("inserts the mandatory keys of the items for a sequence of maps", async () => {
+            const result = await complete(
+                requestPath,
+                "http:\n  method: GET\n  \n",
+                new Position(2, 2),
+            );
+
+            const headersItem = result?.find(({ label }) => label == "headers");
+            expect(headersItem?.textEdit).toMatchObject({
+                newText: "headers:\n    - name: $1\n      value: $2",
+            });
+            expect(headersItem?.command).toBeUndefined();
+        });
+
+        it("lets the user choose between the allowed values of mandatory keys", async () => {
+            const result = await complete(
+                requestPath,
+                "runtime:\n  \n",
+                new Position(1, 2),
+            );
+
+            expect(
+                result?.find(({ label }) => label == "scripts")?.textEdit,
+            ).toMatchObject({
+                newText:
+                    "scripts:\n    - type: ${1|before-request,after-response,tests|}\n      code: $2",
+            });
+        });
+
+        it("inserts the mandatory keys of nested maps and the only allowed values", async () => {
+            const result = await complete(
+                requestPath,
+                "runtime:\n  \n",
+                new Position(1, 2),
+            );
+
+            expect(
+                result?.find(({ label }) => label == "actions")?.textEdit,
+            ).toMatchObject({
+                newText: [
+                    "actions:",
+                    "    - phase: after-response",
+                    "      type: set-variable",
+                    "      selector:",
+                    "        expression: $1",
+                    "        method: jsonq",
+                    "      variable:",
+                    "        name: $2",
+                    "        scope: runtime",
+                ].join("\n"),
+            });
+        });
+
+        it("prefills the next free sequence when inserting the info map", async () => {
+            const result = await complete(
+                requestPath,
+                "http:\n  method: GET\n",
+                new Position(2, 0),
+                [new BrunoRequestFile("/collection/other.yml", 4)],
+            );
+
+            expect(
+                result?.find(({ label }) => label == "info")?.textEdit,
+            ).toMatchObject({
+                newText:
+                    "info:\n  name: $1\n  type: ${2|http,graphql,grpc,websocket|}\n  seq: ${3:5}",
+            });
+        });
+
+        it("triggers the suggestion for the content of a map without mandatory keys", async () => {
+            const result = await complete(
+                requestPath,
+                "info:\n  name: Foo\n",
+                new Position(2, 0),
+            );
+
+            expect(
+                result?.find(({ label }) => label == "http")?.command,
+            ).toEqual({
+                title: "Suggest",
+                command: "editor.action.triggerSuggest",
+            });
+        });
+
+        it("inserts the snippets with their indentation as is", async () => {
+            const result = await complete(
+                requestPath,
+                "http:\n  method: GET\n  \n",
+                new Position(2, 2),
+            );
+
+            expect(
+                result?.every(
+                    ({ insertTextMode }) =>
+                        insertTextMode == InsertTextMode.asIs,
+                ),
+            ).toBe(true);
+        });
         it("triggers the value suggestion for keys with a fixed set of values", async () => {
             const result = await complete(
                 requestPath,
@@ -83,12 +193,85 @@ describe("handleCompletionRequest for yaml files", () => {
             expect(
                 result?.find(({ label }) => label == "type")?.command,
             ).toEqual({
-                title: "Suggest values",
+                title: "Suggest",
                 command: "editor.action.triggerSuggest",
             });
             expect(
                 result?.find(({ label }) => label == "seq")?.command,
             ).toBeUndefined();
+        });
+    });
+
+    describe("re-indentation", () => {
+        it("fixes the indentation of a key that is too far in", async () => {
+            const result = await complete(
+                requestPath,
+                "http:\n  method: GET\n     pa\n",
+                new Position(2, 7),
+            );
+
+            const paramsItem = result?.find(({ label }) => label == "params");
+            expect(paramsItem?.textEdit).toEqual({
+                newText: "params:\n    - name: $1\n      value: $2",
+                range: {
+                    start: { line: 2, character: 5 },
+                    end: { line: 2, character: 7 },
+                },
+            });
+            expect(paramsItem?.additionalTextEdits).toEqual([
+                {
+                    newText: "  ",
+                    range: {
+                        start: { line: 2, character: 0 },
+                        end: { line: 2, character: 5 },
+                    },
+                },
+            ]);
+        });
+
+        it("does not change the indentation of a key at a valid position", async () => {
+            const result = await complete(
+                requestPath,
+                "http:\n  method: GET\n  \n",
+                new Position(2, 2),
+            );
+
+            expect(
+                result?.every(
+                    ({ additionalTextEdits }) => !additionalTextEdits,
+                ),
+            ).toBe(true);
+        });
+    });
+
+    describe("completion for all mandatory keys", () => {
+        it("inserts all missing mandatory keys at once", async () => {
+            const result = await complete(
+                requestPath,
+                "info:\n  \n",
+                new Position(1, 2),
+                [new BrunoRequestFile("/collection/other.yml", 1)],
+            );
+
+            expect(result?.[0]).toMatchObject({
+                label: "name, type, seq",
+                textEdit: {
+                    newText:
+                        "name: $1\n  type: ${2|http,graphql,grpc,websocket|}\n  seq: ${3:2}",
+                },
+            });
+        });
+
+        it("is not provided, if less than two mandatory keys are missing", async () => {
+            const result = await complete(
+                requestPath,
+                "info:\n  name: Foo\n  type: http\n  \n",
+                new Position(3, 2),
+            );
+
+            expect(result?.some(({ label }) => label.includes(","))).toBe(
+                false,
+            );
         });
     });
 

@@ -3,19 +3,11 @@ import {
     FileInfoProperty,
     getYamlCursorContext,
     isBrunoFileType,
-    LineBreakType,
     Logger,
-    TextDocumentHelper,
     TopLevelEnvironmentFileProperty,
     YamlCursorContext,
-    YamlExpectedKeyInfo,
-    YamlValueKind,
 } from "@global_shared";
-import {
-    CompletionItem,
-    CompletionItemKind,
-    InsertTextFormat,
-} from "vscode-languageserver";
+import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 import {
     LanguageRequestWithTestEnvironmentInfo,
     TypedCollection,
@@ -24,8 +16,8 @@ import { getSequenceValueCompletion } from "../../shared/getSequenceValueComplet
 import { getTagCompletions } from "../../shared/getTagCompletions";
 import { getAvailableEnvironmentNamesForExtends } from "../../shared/getAvailableEnvironmentNamesForExtends";
 import { getYamlFileTypeForEditorContent } from "../getYamlFileTypeForEditorContent";
+import { getKeyCompletions, isOnlyKind } from "./getKeyCompletions";
 
-const INDENTATION_STEP = 2;
 const INFO_KEY = "info";
 
 export async function handleCompletionRequest({
@@ -67,7 +59,18 @@ export async function handleCompletionRequest({
 
     switch (context.kind) {
         case "key":
-            return getKeyCompletions(context, documentHelper);
+            return getKeyCompletions(context, {
+                docHelper: documentHelper,
+                fileType: itemType,
+                getDefaultValue: (path) =>
+                    isPath(path, [INFO_KEY, FileInfoProperty.Seq])
+                        ? getSequenceValueCompletion(
+                              collection,
+                              filePath,
+                              itemType,
+                          )?.toString()
+                        : undefined,
+            });
         case "value":
             return getValueCompletions(context, {
                 fileType: itemType,
@@ -84,69 +87,6 @@ export async function handleCompletionRequest({
                   })
                 : undefined;
     }
-}
-
-function getKeyCompletions(
-    {
-        descriptor: { expectedKeys, definedKeys },
-        replaceRange,
-        indentation,
-    }: Extract<YamlCursorContext, { kind: "key" }>,
-    docHelper: TextDocumentHelper,
-): CompletionItem[] {
-    const lineBreak = docHelper.getMostUsedLineBreak() ?? LineBreakType.Lf;
-
-    return expectedKeys
-        .filter(({ key }) => definedKeys.every((defined) => defined.key != key))
-        .map((keyInfo) => {
-            const { key, isMandatory } = keyInfo;
-            const insertion = getKeyInsertion(
-                keyInfo,
-                lineBreak,
-                indentation + INDENTATION_STEP,
-            );
-
-            return {
-                label: key,
-                kind: CompletionItemKind.Property,
-                textEdit: { range: replaceRange, newText: insertion.text },
-                insertTextFormat: insertion.isSnippet
-                    ? InsertTextFormat.Snippet
-                    : undefined,
-                command: insertion.triggersValueSuggestion
-                    ? {
-                          title: "Suggest values",
-                          command: "editor.action.triggerSuggest",
-                      }
-                    : undefined,
-                sortText: isMandatory ? `a_${key}` : `b_${key}`,
-                labelDetails: isMandatory ? undefined : { detail: " optional" },
-            };
-        });
-}
-
-function getKeyInsertion(
-    { key, valueKinds, allowedValues }: YamlExpectedKeyInfo,
-    lineBreak: LineBreakType,
-    childIndentation: number,
-) {
-    const childPrefix = `${lineBreak}${" ".repeat(childIndentation)}`;
-
-    if (isOnlyKind(valueKinds, "map")) {
-        return { text: `${key}:${childPrefix}$0`, isSnippet: true };
-    }
-
-    if (isOnlyKind(valueKinds, "sequence")) {
-        return { text: `${key}:${childPrefix}- $0`, isSnippet: true };
-    }
-
-    return {
-        text: `${key}: `,
-        isSnippet: false,
-        triggersValueSuggestion:
-            (allowedValues?.length ?? 0) > 0 ||
-            isOnlyKind(valueKinds, "boolean"),
-    };
 }
 
 async function getValueCompletions(
@@ -200,10 +140,6 @@ async function getValueCompletions(
     return isOnlyKind(keyInfo.valueKinds, "boolean")
         ? ["true", "false"].map(toItem)
         : undefined;
-}
-
-function isOnlyKind(kinds: YamlValueKind[], kind: YamlValueKind) {
-    return kinds.length > 0 && kinds.every((k) => k == kind);
 }
 
 function isPath(actual: string[], expected: string[]) {

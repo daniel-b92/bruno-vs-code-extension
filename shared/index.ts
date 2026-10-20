@@ -65,6 +65,7 @@ export * from "./fileParsing/external/yamlFormat/getBlocksWithoutLineCommentsFro
 export * from "./fileParsing/external/shared/codeBlocks/getJsCodeBlocksFromFile";
 export * from "./fileParsing/external/yamlFormat/getInfoTypeFromYamlContent";
 export * from "./fileParsing/external/yamlFormat/getYamlCursorContext";
+export * from "./fileParsing/external/yamlFormat/getYamlIndentationStep";
 export * from "./fileParsing/external/yamlFormat/constants/requestFileConstants";
 export * from "./fileParsing/external/yamlFormat/constants/appFileConstants";
 export * from "./fileParsing/external/yamlFormat/constants/sharedConstants";

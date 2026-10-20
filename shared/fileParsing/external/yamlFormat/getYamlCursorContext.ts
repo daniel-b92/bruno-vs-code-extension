@@ -4,6 +4,7 @@ import {
     isSeq,
     LineCounter,
     parseDocument,
+    Scalar,
     visit,
 } from "yaml";
 import {
@@ -20,6 +21,7 @@ import { parseFolderSettingsFile } from "./parseFolderSettingsFile";
 import { parseCollectionSettingsFile } from "./parseCollectionSettingsFile";
 import { parseYamlEnvironmentFile } from "./parseYamlEnvironmentFile";
 import { parseAppFile } from "./parseAppFile";
+import { getYamlIndentationStep } from "./getYamlIndentationStep";
 
 /**
  * Where the cursor is within a Yaml file.
@@ -32,8 +34,16 @@ export type YamlCursorContext =
           descriptor: YamlMapDescriptor;
           /** The word being typed (or an empty range at the cursor). */
           replaceRange: Range;
-          /** The character index of the key within its line (after a leading `- `, if there is one). */
+          /**
+           * The character index that the key needs to have within its line (after a leading `- `, if there is one).
+           * May differ from the current position of the key, if the line has to be re-indented (see `reindentationRange`).
+           */
           indentation: number;
+          /**
+           * The leading whitespace of the line, if it has to be replaced by `indentation` spaces.
+           * This is the case, if the key is not positioned at a valid indentation for any map (e.g. because the cursor is too far in or out).
+           */
+          reindentationRange?: Range;
           /** The keys of the maps containing the cursor, e.g. `["http"]`. Empty for the top level. */
           path: string[];
       }
@@ -60,6 +70,7 @@ export type YamlCursorContext =
 const PLACEHOLDER_KEY = "__bruAsCodeCompletion__";
 const KEY_POSITION_REGEX = /^\s*(-\s+)?([\w-]*)$/;
 const VALUE_POSITION_REGEX = /^\s*(?:-\s+)?([\w-]+):\s*(\S*)$/;
+const KEY_WITHOUT_VALUE_REGEX = /^(\s*(?:-\s+)?)[\w-]+:\s*(#.*)?$/;
 
 /**
  * Finds out which Yaml map (and which part of it) the cursor belongs to.
@@ -108,6 +119,50 @@ export function getYamlCursorContext({
         : undefined;
 }
 
+/**
+ * Determines the descriptor of a map that does not exist yet, but would be created by an insertion at the key position of the given context.
+ * This allows finding out the expected keys of a nested map (or of the items of a sequence of maps), before inserting it.
+ *
+ * @param getInsertedText Returns the text to insert (starting at the column of the key, with absolute indentation in subsequent lines).
+ * It needs to contain the given probe key as the only key of the map, whose descriptor is to be determined.
+ */
+export function getYamlDescriptorForInsertedMap({
+    docHelper,
+    fileType,
+    context: { replaceRange, indentation, reindentationRange },
+    getInsertedText,
+}: {
+    docHelper: TextDocumentHelper;
+    fileType: BrunoFileType;
+    context: Extract<YamlCursorContext, { kind: "key" }>;
+    getInsertedText: (probeKey: string) => string;
+}): YamlMapDescriptor | undefined {
+    const { line, character } = replaceRange.start;
+    const linePrefix = reindentationRange
+        ? " ".repeat(indentation)
+        : docHelper.getLineByIndex(line).substring(0, character);
+
+    const descriptor = getDescriptorsForText(
+        getTextWithReplacedLine(
+            docHelper,
+            line,
+            `${linePrefix}${getInsertedText(PLACEHOLDER_KEY)}`,
+        ),
+        fileType,
+    ).find(({ definedKeys }) =>
+        definedKeys.some(({ key }) => key == PLACEHOLDER_KEY),
+    );
+
+    return descriptor
+        ? {
+              ...descriptor,
+              definedKeys: descriptor.definedKeys.filter(
+                  ({ key }) => key != PLACEHOLDER_KEY,
+              ),
+          }
+        : undefined;
+}
+
 function getContextForKeyPosition({
     docHelper,
     fileType,
@@ -121,18 +176,86 @@ function getContextForKeyPosition({
     hasSequenceItemPrefix: boolean;
     typedWord: string;
 }): YamlCursorContext | undefined {
+    const keyStart = character - typedWord.length;
+    const args = {
+        docHelper,
+        fileType,
+        line,
+        typedWord,
+        replaceRange: new Range(
+            new Position(line, keyStart),
+            new Position(line, character),
+        ),
+    };
+
+    if (hasSequenceItemPrefix) {
+        return getContextForKeyWithLinePrefix({
+            ...args,
+            linePrefix: docHelper.getLineByIndex(line).substring(0, keyStart),
+        });
+    }
+
+    const lineContent = docHelper.getLineByIndex(line);
+    if (
+        isInBlockScalar(
+            getTextWithReplacedLine(
+                docHelper,
+                line,
+                `${lineContent.substring(0, keyStart)}${typedWord || PLACEHOLDER_KEY}:`,
+            ),
+            new Position(line, keyStart),
+        )
+    ) {
+        // The line is part of a multiline string (e.g. a script), so it must not be re-indented.
+        return undefined;
+    }
+
+    for (const column of getCandidateColumnsForKey(args, keyStart)) {
+        const context = getContextForKeyWithLinePrefix({
+            ...args,
+            linePrefix: " ".repeat(column),
+        });
+
+        if (context?.kind == "key") {
+            return column == keyStart
+                ? context
+                : {
+                      ...context,
+                      reindentationRange: new Range(
+                          new Position(line, 0),
+                          new Position(line, keyStart),
+                      ),
+                  };
+        }
+    }
+
+    return undefined;
+}
+
+/**
+ * Determines the context for a key, if the given line starts with `linePrefix`, followed by the key.
+ * For a `- ` item that is not part of a sequence of maps, a `sequenceValue` context is returned.
+ */
+function getContextForKeyWithLinePrefix({
+    docHelper,
+    fileType,
+    line,
+    linePrefix,
+    typedWord,
+    replaceRange,
+}: {
+    docHelper: TextDocumentHelper;
+    fileType: BrunoFileType;
+    line: number;
+    linePrefix: string;
+    typedWord: string;
+    replaceRange: Range;
+}): YamlCursorContext | undefined {
     const key = typedWord || PLACEHOLDER_KEY;
-    const patchedText = docHelper.getFullTextWithReplacement(
-        {
-            lineIndex: line,
-            startCharIndex: character - typedWord.length,
-            endCharIndex: docHelper.getLineByIndex(line).length,
-        },
-        `${key}:`,
-    );
-    const replaceRange = new Range(
-        new Position(line, character - typedWord.length),
-        new Position(line, character),
+    const patchedText = getTextWithReplacedLine(
+        docHelper,
+        line,
+        `${linePrefix}${key}:`,
     );
 
     const descriptors = getDescriptorsForText(patchedText, fileType);
@@ -158,7 +281,7 @@ function getContextForKeyPosition({
         };
     }
 
-    return hasSequenceItemPrefix && pair?.isSequenceItem
+    return linePrefix.trimStart().startsWith("-") && pair?.isSequenceItem
         ? {
               kind: "sequenceValue",
               replaceRange,
@@ -166,6 +289,113 @@ function getContextForKeyPosition({
               existingValues: pair.siblingScalars,
           }
         : undefined;
+}
+
+/**
+ * Returns the columns at which a key in the given line could belong to a map, ordered by how well they fit the given column.
+ * The candidates are the columns of the keys within the document and the column of a new nested map below a key without a value.
+ * The best fit is the largest candidate that is not further in than the given column (like Yaml would interpret a dedented line).
+ * If there is none, the closest candidate further in is used.
+ */
+function getCandidateColumnsForKey(
+    {
+        docHelper,
+        fileType,
+        line,
+    }: { docHelper: TextDocumentHelper; fileType: BrunoFileType; line: number },
+    column: number,
+) {
+    const candidates = getDescriptorsForText(
+        getTextWithReplacedLine(docHelper, line, ""),
+        fileType,
+    )
+        .flatMap(({ definedKeys }) => definedKeys)
+        .map(({ keyRange: { start } }) => ({
+            column: start.character,
+            minColumn: start.character,
+        }));
+
+    const parentKeyColumn = getColumnOfPreviousKeyWithoutValue(docHelper, line);
+    if (parentKeyColumn != undefined) {
+        // Any position further in than the parent key would make the key part of a nested map.
+        candidates.push({
+            column: parentKeyColumn + getYamlIndentationStep(docHelper),
+            minColumn: parentKeyColumn + 1,
+        });
+    }
+
+    const fittingCandidates = candidates
+        .filter(({ minColumn }) => minColumn <= column)
+        .sort((a, b) => b.minColumn - a.minColumn);
+    const candidatesFurtherIn = candidates
+        .filter(({ minColumn }) => minColumn > column)
+        .sort((a, b) => a.minColumn - b.minColumn);
+
+    return [
+        ...new Set(
+            fittingCandidates
+                .concat(candidatesFurtherIn)
+                .map(({ column }) => column),
+        ),
+    ];
+}
+
+/** Returns the column of the key in the last non-empty line before the given one, if that key has no value in the same line. */
+function getColumnOfPreviousKeyWithoutValue(
+    docHelper: TextDocumentHelper,
+    line: number,
+) {
+    const previousLine = docHelper
+        .getAllLines()
+        .slice(0, line)
+        .reverse()
+        .find(
+            ({ content }) =>
+                content.trim() != "" && !content.trimStart().startsWith("#"),
+        );
+    const match = previousLine
+        ? KEY_WITHOUT_VALUE_REGEX.exec(previousLine.content)
+        : null;
+
+    return match ? match[1].length : undefined;
+}
+
+/** Whether the given position is part of the content of a block scalar (e.g. a script defined via `code: |-`). */
+function isInBlockScalar(text: string, position: Position) {
+    const offset = new TextDocumentHelper(text).getOffsetForPosition(position);
+    let result = false;
+
+    visit(parseDocument(text), {
+        Scalar(_, { type, range }) {
+            if (
+                (type == Scalar.BLOCK_LITERAL || type == Scalar.BLOCK_FOLDED) &&
+                range &&
+                range[0] < offset &&
+                offset < range[1]
+            ) {
+                result = true;
+                return visit.BREAK;
+            }
+            return undefined;
+        },
+    });
+
+    return result;
+}
+
+function getTextWithReplacedLine(
+    docHelper: TextDocumentHelper,
+    line: number,
+    newContent: string,
+) {
+    return docHelper.getFullTextWithReplacement(
+        {
+            lineIndex: line,
+            startCharIndex: 0,
+            endCharIndex: docHelper.getLineByIndex(line).length,
+        },
+        newContent,
+    );
 }
 
 function getContextForValuePosition({

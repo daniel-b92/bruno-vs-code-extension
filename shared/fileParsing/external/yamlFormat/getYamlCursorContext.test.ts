@@ -2,6 +2,7 @@ import { describe, it, expect } from "@jest/globals";
 import {
     BrunoFileType,
     getYamlCursorContext,
+    getYamlDescriptorForInsertedMap,
     Position,
     TextDocumentHelper,
 } from "../../..";
@@ -149,10 +150,67 @@ describe("getYamlCursorContext", () => {
             expect(context).toBeUndefined();
         });
 
-        it("should not find a context for invalid indentation", () => {
-            const context = getContext(["http:", "  method: GET", "   §"]);
+        it("should not re-indent a key at a valid indentation", () => {
+            const context = getContext(["http:", "  method: GET", "  §"]);
 
-            expect(context).toBeUndefined();
+            expect(context).toMatchObject({ kind: "key", indentation: 2 });
+            expect(
+                context?.kind == "key" && context.reindentationRange,
+            ).toBeUndefined();
+        });
+
+        it("should re-indent a key that is too far in to the deepest possible map", () => {
+            const context = getContext([
+                "http:",
+                "    auth:",
+                "        type: basic",
+                "        password: secret",
+                "         §",
+                "runtime:",
+            ]);
+
+            expect(context).toMatchObject({
+                kind: "key",
+                path: ["http", "auth"],
+                indentation: 8,
+                reindentationRange: {
+                    start: { line: 4, character: 0 },
+                    end: { line: 4, character: 9 },
+                },
+            });
+        });
+
+        it("should re-indent a key between two indentation levels to the outer map", () => {
+            const context = getContext([
+                "http:",
+                "    auth:",
+                "        type: basic",
+                "      par§",
+            ]);
+
+            expect(context).toMatchObject({
+                kind: "key",
+                path: ["http"],
+                indentation: 4,
+                replaceRange: {
+                    start: { line: 3, character: 6 },
+                    end: { line: 3, character: 9 },
+                },
+                reindentationRange: {
+                    start: { line: 3, character: 0 },
+                    end: { line: 3, character: 6 },
+                },
+            });
+        });
+
+        it("should indent a key below a key without value by the indentation step of the document", () => {
+            const context = getContext(["http:", "    auth:", "      §"]);
+
+            expect(context).toMatchObject({
+                kind: "key",
+                path: ["http", "auth"],
+                indentation: 8,
+            });
         });
 
         it("should not find a context, if text follows the cursor", () => {
@@ -238,6 +296,33 @@ describe("getYamlCursorContext", () => {
         expect(getExpectedKeys(context)).toEqual(
             expect.arrayContaining(["name", "extends", "variables"]),
         );
+    });
+});
+
+describe("getYamlDescriptorForInsertedMap", () => {
+    it("should return the expected keys of a nested map that does not exist yet", () => {
+        const lines = ["http:", "  method: GET", "  §"];
+        const context = getContext(lines);
+
+        const descriptor =
+            context?.kind == "key"
+                ? getYamlDescriptorForInsertedMap({
+                      docHelper: new TextDocumentHelper(
+                          lines.join("\n").replace("§", ""),
+                      ),
+                      fileType: BrunoFileType.RequestFile,
+                      context,
+                      getInsertedText: (probeKey) =>
+                          `headers:\n    - ${probeKey}: x`,
+                  })
+                : undefined;
+
+        expect(descriptor?.definedKeys).toEqual([]);
+        expect(
+            descriptor?.expectedKeys
+                .filter(({ isMandatory }) => isMandatory)
+                .map(({ key }) => key),
+        ).toEqual(["name", "value"]);
     });
 });
 
