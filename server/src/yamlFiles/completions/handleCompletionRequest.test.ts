@@ -1,7 +1,9 @@
 import { describe, it, expect } from "@jest/globals";
 import {
+    BrunoCollectionSettingsFile,
     BrunoRequestFile,
     CollectionFormat,
+    CollectionItem,
     Position,
     TextDocumentHelper,
 } from "@global_shared";
@@ -12,6 +14,7 @@ import { handleCompletionRequest } from "./handleCompletionRequest";
 
 const requestPath = "/collection/request.yml";
 const environmentPath = "/collection/environments/Dev.yml";
+const collectionSettingsPath = "/collection/opencollection.yml";
 
 describe("handleCompletionRequest for yaml files", () => {
     describe("key completions", () => {
@@ -202,6 +205,97 @@ describe("handleCompletionRequest for yaml files", () => {
         });
     });
 
+    describe("keys with values of different kinds", () => {
+        it("provides a separate completion for a scalar and a map value", async () => {
+            const result = await complete(
+                requestPath,
+                "http:\n  method: GET\n  \n",
+                new Position(2, 2),
+            );
+
+            expect(result?.filter(({ label }) => label == "auth")).toEqual([
+                expect.objectContaining({
+                    textEdit: expect.objectContaining({
+                        newText: "auth: inherit",
+                    }),
+                    command: undefined,
+                    labelDetails: {
+                        detail: " optional",
+                        description: "inherit",
+                    },
+                    sortText: "b_auth_0",
+                }),
+                expect.objectContaining({
+                    textEdit: expect.objectContaining({
+                        newText:
+                            "auth:\n    type: ${1|awsv4,basic,wsse,bearer,digest,ntlm,apikey,oauth1,oauth2,akamai-edgegrid|}",
+                    }),
+                    command: undefined,
+                    labelDetails: { detail: " optional", description: "map" },
+                    sortText: "b_auth_1",
+                }),
+            ]);
+        });
+
+        it("describes the scalar completion by its kind, if there is not exactly one allowed value", async () => {
+            const result = await complete(
+                environmentPath,
+                "name: Dev\nvariables:\n  - name: a\n    \n",
+                new Position(3, 4),
+                [],
+                ["Dev"],
+            );
+
+            const valueItems = result?.filter(({ label }) => label == "value");
+            expect(
+                valueItems?.map(
+                    ({ labelDetails }) => labelDetails?.description,
+                ),
+            ).toEqual(["string", "map"]);
+            expect(valueItems?.[0].textEdit).toMatchObject({
+                newText: "value: ",
+            });
+        });
+
+        it("does not insert the only allowed value of a key that accepts other scalar kinds", async () => {
+            const result = await complete(
+                requestPath,
+                "settings:\n  \n",
+                new Position(1, 2),
+            );
+
+            const timeoutItems = result?.filter(
+                ({ label }) => label == "timeout",
+            );
+            expect(timeoutItems).toHaveLength(1);
+            expect(timeoutItems?.[0].textEdit).toMatchObject({
+                newText: "timeout: ",
+            });
+            expect(timeoutItems?.[0].command).toEqual({
+                title: "Suggest",
+                command: "editor.action.triggerSuggest",
+            });
+        });
+
+        it("does not suggest inheriting the auth in a collection settings file", async () => {
+            const result = await complete(
+                collectionSettingsPath,
+                "request:\n  \n",
+                new Position(1, 2),
+                [new BrunoCollectionSettingsFile(collectionSettingsPath)],
+            );
+
+            const authItems = result?.filter(({ label }) => label == "auth");
+            expect(authItems).toHaveLength(1);
+            expect(authItems?.[0].textEdit).toMatchObject({
+                newText: expect.stringMatching(/^auth:\n {4}type: /),
+            });
+            expect(authItems?.[0].labelDetails).toEqual({
+                detail: " optional",
+            });
+        });
+    });
+
     describe("re-indentation", () => {
         it("fixes the indentation of a key that is too far in", async () => {
             const result = await complete(
@@ -312,6 +406,16 @@ describe("handleCompletionRequest for yaml files", () => {
             expect(result?.map(({ label }) => label)).toEqual(["5"]);
         });
 
+        it("suggests the allowed scalar values of a key that can have a map value as well", async () => {
+            const result = await complete(
+                requestPath,
+                "http:\n  method: GET\n  auth: \n",
+                new Position(2, 8),
+            );
+
+            expect(result?.map(({ label }) => label)).toEqual(["inherit"]);
+        });
+
         it("suggests the environments that can be extended", async () => {
             const result = await complete(
                 environmentPath,
@@ -403,17 +507,14 @@ async function complete(
     filePath: string,
     text: string,
     position: Position,
-    additionalRequestFiles: BrunoRequestFile[] = [],
+    additionalItems: CollectionItem[] = [],
     environments: string[] = [],
 ) {
     const collection = createCollectionWithEnvironments(
         environments.map((name) => ({ name })),
         CollectionFormat.Yaml,
     );
-    const items = [
-        ...additionalRequestFiles,
-        new BrunoRequestFile(requestPath),
-    ];
+    const items = [...additionalItems, new BrunoRequestFile(requestPath)];
     items.forEach((item) =>
         collection.addItem({ item, additionalData: undefined }),
     );

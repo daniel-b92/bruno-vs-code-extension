@@ -59,7 +59,10 @@ export function parseFolderSettingsFile(
     );
     const request = parseIfPresent(
         getMap(TopLevelFolderSettingsProperty.Request),
-        (requestMap) => parseSettingsFileRequestSection(requestMap, commonArgs),
+        (requestMap) =>
+            parseSettingsFileRequestSection(requestMap, commonArgs, {
+                canInheritAuth: true,
+            }),
         collectedErrors,
     );
     const docs: ParsedDocsWithType | undefined = parseIfPresent(

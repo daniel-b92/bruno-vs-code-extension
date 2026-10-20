@@ -90,7 +90,13 @@ export function parseCollectionSettingsFile(
                 request: parseIfPresent(
                     getMap(TopLevelCollectionSettingsProperty.Request),
                     (requestMap) =>
-                        parseSettingsFileRequestSection(requestMap, commonArgs),
+                        parseSettingsFileRequestSection(
+                            requestMap,
+                            commonArgs,
+                            {
+                                canInheritAuth: false,
+                            },
+                        ),
                     collectedErrors,
                 ),
                 docs: parseIfPresent(

@@ -222,6 +222,7 @@ export interface YamlExpectedKeyInfo {
     key: string;
     isMandatory: boolean;
     valueKinds: YamlValueKind[];
+    /** The allowed values for a scalar value. If the key can have a map or sequence value as well, they do not restrict those. */
     allowedValues?: readonly string[];
 }
 

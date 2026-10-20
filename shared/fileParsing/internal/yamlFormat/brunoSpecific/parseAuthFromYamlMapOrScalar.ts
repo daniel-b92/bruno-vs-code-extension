@@ -19,7 +19,6 @@ import {
     ParsedWsseAuth,
     ParsedYamlMap,
     MaybeResultWithErrors,
-    WithKeyKeyRangeAndValueRange,
     WithKeyAndKeyRange,
 } from "../interfaces";
 import { getMapItems } from "../yamlMaps/getMapItems";
@@ -52,16 +51,14 @@ import { parseOAuth2AuthFromAuthMap } from "./parseOAuth2AuthFromAuthMap";
 
 export function parseAuthFromYamlMapOrScalar(args: {
     commonArgs: CommonParsingArgs;
-    authMapOrScalar:
-        WithKeyAndKeyRange<YAMLMap> | WithKeyKeyRangeAndValueRange<string>;
+    authMapOrScalar: WithKeyAndKeyRange<YAMLMap> | WithKeyAndValueRange<string>;
 }): MaybeResultWithErrors<ParsedAuth> {
     const { commonArgs, authMapOrScalar } = args;
     const { keyRange, value: authFullValue } = authMapOrScalar;
     const allErrors: YamlParsingError[] = [];
 
     if (typeof authFullValue == "string") {
-        const { valueRange } =
-            authMapOrScalar as WithKeyKeyRangeAndValueRange<string>;
+        const { valueRange } = authMapOrScalar as WithKeyAndValueRange<string>;
         return authMapOrScalar.value == inheritAuthValue
             ? {
                   result: {
