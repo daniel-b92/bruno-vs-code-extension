@@ -1,18 +1,19 @@
 import { describe, expect, it } from "@jest/globals";
 import {
+    BrunoVariableReference,
     BrunoVariableType,
-    CodeBlock,
     Collection,
     CollectionDirectory,
     CollectionFormat,
-    DictionaryBlock,
     Position,
     Range,
     RequestFileBlockName,
     VariableAvailabilityScopes,
     VariableReferenceType,
+    VariableScopeSection,
+    VariableScopeSectionKind,
 } from "@global_shared";
-import { BlockRequestWithAdditionalData } from "../interfaces";
+import { VariableSectionRequest } from "./interfaces";
 import { getMatchingStaticScriptVariableReferences } from "./getMatchingStaticScriptVariableReferences";
 
 describe("getMatchingStaticScriptVariableReferences", () => {
@@ -34,31 +35,23 @@ describe("getMatchingStaticScriptVariableReferences", () => {
             additionalData: [
                 {
                     reference: createReference(),
-                    block: RequestFileBlockName.PreRequestScript,
+                    sectionKind: VariableScopeSectionKind.PreRequestScript,
+                    sectionName: RequestFileBlockName.PreRequestVars,
                 },
             ] as any,
         });
 
-        const currentBlock = {
+        const currentSection: VariableScopeSection = {
+            kind: VariableScopeSectionKind.PreRequestScript,
             name: RequestFileBlockName.PreRequestScript,
-            nameRange: defaultRange,
-            content: "",
-            contentRange: defaultRange,
-        } as CodeBlock;
+            range: defaultRange,
+            variableReferences: [],
+        };
 
-        const preRequestVarsBlock = {
+        const preRequestVarsSection: VariableScopeSection = {
+            kind: VariableScopeSectionKind.PreRequestVars,
             name: RequestFileBlockName.PreRequestVars,
-            nameRange: defaultRange,
-            content: [
-                {
-                    key: "any",
-                    keyRange: defaultRange,
-                    disabled: false,
-                    value: "bla",
-                    valueRange: defaultRange,
-                },
-            ],
-            contentRange: defaultRange,
+            range: defaultRange,
             variableReferences: [
                 createReference(),
                 createReference({
@@ -66,7 +59,7 @@ describe("getMatchingStaticScriptVariableReferences", () => {
                     scope: VariableAvailabilityScopes.Global,
                 }),
             ],
-        } as DictionaryBlock;
+        };
 
         const request = {
             request: {
@@ -77,10 +70,10 @@ describe("getMatchingStaticScriptVariableReferences", () => {
             },
             file: {
                 collection,
-                allBlocks: [currentBlock, preRequestVarsBlock],
-                blockContainingPosition: currentBlock,
+                allSections: [currentSection, preRequestVarsSection],
+                sectionContainingPosition: currentSection,
             },
-        } as unknown as BlockRequestWithAdditionalData<CodeBlock>;
+        } as unknown as VariableSectionRequest;
 
         const result = getMatchingStaticScriptVariableReferences(
             request,
@@ -99,7 +92,13 @@ describe("getMatchingStaticScriptVariableReferences", () => {
         expect(
             referenceGroup.mostRelevantReference.reference.variableName,
         ).toBe("folderVar");
+        expect(referenceGroup.mostRelevantReference.sectionName).toBe(
+            RequestFileBlockName.PreRequestVars,
+        );
         expect(referenceGroup.otherMatchingReferences).toHaveLength(1);
+        expect(referenceGroup.otherMatchingReferences[0].sectionName).toBe(
+            RequestFileBlockName.PreRequestVars,
+        );
         expect(referenceGroup.otherMatchingReferences[0].path.absolute).toBe(
             `${rootDirectory}/requests`,
         );
@@ -110,10 +109,8 @@ describe("getMatchingStaticScriptVariableReferences", () => {
 });
 
 function createReference(
-    overrides: Partial<
-        NonNullable<CodeBlock["variableReferences"]>[number]
-    > = {},
-) {
+    overrides: Partial<BrunoVariableReference> = {},
+): BrunoVariableReference {
     return {
         variableName: "folderVar",
         variableNameRange: new Range(new Position(0, 0), new Position(0, 9)),

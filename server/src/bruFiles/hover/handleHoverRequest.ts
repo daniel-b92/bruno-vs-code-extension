@@ -1,7 +1,8 @@
 import { isBlockCodeBlock, parseBruFile } from "@global_shared";
 import { LanguageRequestWithTestEnvironmentInfo } from "../../shared";
 import { getHoverForNonCodeBlock } from "./getHoverForNonCodeBlock";
-import { getHoverForCodeBlock } from "./getHoverForCodeBlock";
+import { getHoverForVariableInCodeSection } from "../../shared/variables/getHoverForVariableInCodeSection";
+import { toVariableSectionRequest } from "../shared/interfaces";
 
 export function handleHoverRequest({
     baseRequest,
@@ -30,12 +31,12 @@ export function handleHoverRequest({
     }
 
     if (isBlockCodeBlock(blockContainingPosition)) {
-        return getHoverForCodeBlock(
-            {
+        return getHoverForVariableInCodeSection(
+            toVariableSectionRequest({
                 file: { collection, allBlocks, blockContainingPosition },
                 request: baseRequest,
                 logger,
-            },
+            }),
             configuredEnvironmentName,
         );
     }

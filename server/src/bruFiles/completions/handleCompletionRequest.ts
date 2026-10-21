@@ -6,7 +6,8 @@ import {
 } from "@global_shared";
 import { CompletionItem } from "vscode-languageserver";
 import { LanguageRequestWithTestEnvironmentInfo } from "../../shared";
-import { getCompletionsForCodeBlock } from "./getCompletionsForCodeBlock";
+import { getCompletionsForVariableInCodeSection } from "../../shared/variables/getCompletionsForVariableInCodeSection";
+import { toVariableSectionRequest } from "../shared/interfaces";
 import { getCompletionsForNonCodeBlock } from "./getCompletionsForNonCodeBlock";
 import { getCompletionsForPositionOutsideOfBlocks } from "./getCompletionsForPositionOutsideOfBlocks";
 
@@ -49,12 +50,12 @@ export async function handleCompletionRequest({
     }
 
     return isBlockCodeBlock(blockContainingPosition)
-        ? getCompletionsForCodeBlock(
-              {
+        ? getCompletionsForVariableInCodeSection(
+              toVariableSectionRequest({
                   request: baseRequest,
                   file: { allBlocks, blockContainingPosition, collection },
                   logger,
-              },
+              }),
               configuredEnvironmentName,
           )
         : getCompletionsForNonCodeBlock(

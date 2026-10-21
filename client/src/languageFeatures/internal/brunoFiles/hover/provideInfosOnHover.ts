@@ -1,6 +1,5 @@
 import { commands, DocumentSelector, Hover, languages } from "vscode";
 import {
-    CollectionFormat,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
     JsCodeBlock,
@@ -61,11 +60,7 @@ export function provideInfosOnHover(
             };
 
             // The hover content is printed twice when also providing hovers via client (even if the provided content is different).
-            // The language server currently only provides hovers for environment variables in Bru files.
-            if (
-                collection.getFormat() != CollectionFormat.Bru ||
-                !isCodeBlockRequestHandledByServer(params)
-            ) {
+            if (!isCodeBlockRequestHandledByServer(params)) {
                 return getResultsViaTempJsFile(queue, params);
             }
 

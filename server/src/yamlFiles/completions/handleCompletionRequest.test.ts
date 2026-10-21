@@ -1,6 +1,7 @@
 import { describe, it, expect } from "@jest/globals";
 import {
     BrunoCollectionSettingsFile,
+    BrunoFolderSettingsFile,
     BrunoRequestFile,
     CollectionFormat,
     CollectionItem,
@@ -8,15 +9,19 @@ import {
     TextDocumentHelper,
 } from "@global_shared";
 import {
-    createCollectionWithEnvironments,
-    createItemProviderStub,
+    createCollectionWithItems,
 } from "@global_shared/_testingUtils";
-import { CancellationToken, InsertTextMode } from "vscode-languageserver";
+import {
+    CancellationToken,
+    InsertTextMode,
+    TextEdit,
+} from "vscode-languageserver";
 import { TypedCollectionItemProvider } from "../../shared";
 import { handleCompletionRequest } from "./handleCompletionRequest";
 
 const requestPath = "/collection/request.yml";
 const environmentPath = "/collection/environments/Dev.yml";
+const folderSettingsPath = "/collection/folder/folder.yml";
 const collectionSettingsPath = "/collection/opencollection.yml";
 
 describe("handleCompletionRequest for yaml files", () => {
@@ -504,6 +509,331 @@ describe("handleCompletionRequest for yaml files", () => {
 
         expect(result).toBeUndefined();
     });
+
+    describe("variable completions", () => {
+        it("suggests variables within `{{` in non-code sections", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  scripts:
+    - type: before-request
+      code: |
+        bru.setVar("dyn", 1);
+http:
+  method: GET
+  url: "{{"
+`,
+                new Position(7, 10),
+            );
+
+            expect(result?.map(({ label }) => label)).toContain("dyn");
+        });
+
+        it("does not suggest variables when the cursor is behind the closing quote of a string", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  scripts:
+    - type: before-request
+      code: |
+        bru.setVar("dyn", 1);
+http:
+  method: GET
+  url: "{{dy}}"
+`,
+                new Position(7, 15),
+            );
+
+            expect(result ?? []).toEqual([]);
+        });
+
+        it("wraps the value in quotes when `{{` starts an unquoted value", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  scripts:
+    - type: before-request
+      code: |
+        bru.setVar("dyn", 1);
+http:
+  method: GET
+  url: {{dy
+`,
+                new Position(7, 11),
+            );
+
+            const item = result?.find(({ label }) => label == "dyn");
+            expect(item?.filterText).toBe("{{dyn");
+            expect(item?.textEdit).toEqual({
+                newText: `"{{dyn}}"`,
+                range: {
+                    start: { line: 7, character: 7 },
+                    end: { line: 7, character: 11 },
+                },
+            });
+        });
+
+        it("replaces existing closing braces when wrapping an unquoted value in quotes", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  scripts:
+    - type: before-request
+      code: |
+        bru.setVar("dyn", 1);
+http:
+  method: GET
+  url: {{dy}}
+`,
+                new Position(7, 11),
+            );
+
+            expect(
+                result?.find(({ label }) => label == "dyn")?.textEdit,
+            ).toEqual({
+                newText: `"{{dyn}}"`,
+                range: {
+                    start: { line: 7, character: 7 },
+                    end: { line: 7, character: 13 },
+                },
+            });
+        });
+
+        it("does not wrap the value in quotes when more text follows the variable", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  scripts:
+    - type: before-request
+      code: |
+        bru.setVar("dyn", 1);
+http:
+  method: GET
+  url: {{dy}}/path
+`,
+                new Position(7, 11),
+            );
+
+            expect(
+                result?.find(({ label }) => label == "dyn")?.textEdit,
+            ).toEqual({
+                newText: "dyn",
+                range: {
+                    start: { line: 7, character: 9 },
+                    end: { line: 7, character: 11 },
+                },
+            });
+        });
+
+        it.each([
+            ['  "X-Api-Key": {{dy', 19],
+            ["  x.y: {{dy", 11],
+            ["  url: {{dy # comment", 11],
+        ])(
+            "wraps the value in quotes for the unquoted value '%s'",
+            async (line, character) => {
+                const result = await complete(
+                    requestPath,
+                    `runtime:
+  scripts:
+    - type: before-request
+      code: |
+        bru.setVar("dyn", 1);
+http:
+${line}
+`,
+                    new Position(6, character),
+                );
+
+                const item = result?.find(({ label }) => label == "dyn");
+                expect((item?.textEdit as TextEdit | undefined)?.newText).toBe(
+                    `"{{dyn}}"`,
+                );
+            },
+        );
+
+        it("does not wrap the value in quotes within a block scalar", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  scripts:
+    - type: before-request
+      code: |
+        bru.setVar("dyn", 1);
+http:
+  body:
+    type: text
+    data: |-
+      {{dy
+`,
+                new Position(9, 10),
+            );
+
+            expect(
+                result?.find(({ label }) => label == "dyn")?.textEdit,
+            ).toEqual({
+                newText: "dyn}}",
+                range: {
+                    start: { line: 9, character: 8 },
+                    end: { line: 9, character: 10 },
+                },
+            });
+        });
+
+        it("suggests variables for variable access within scripts", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  variables:
+    - name: first
+      value: "1"
+  scripts:
+    - type: before-request
+      code: |
+        bru.getRequestVar("");
+`,
+                new Position(7, 27),
+            );
+
+            expect(result?.map(({ label }) => label)).toContain("first");
+        });
+
+        it("does not suggest keys within scripts", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  scripts:
+    - type: after-response
+      code: |
+        con
+`,
+                new Position(4, 11),
+            );
+
+            expect(result ?? []).toEqual([]);
+        });
+    });
+
+    describe("names of script variables", () => {
+        it("suggests variables that are read in a before-request script for 'variables[].name'", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  variables:
+    - name: 
+      value: "1"
+  scripts:
+    - type: before-request
+      code: |
+        bru.getRequestVar("token");
+`,
+                new Position(2, 12),
+            );
+
+            expect(result?.map(({ label }) => label)).toEqual(["token"]);
+            expect(result?.[0].textEdit).toEqual({
+                range: { start: new Position(2, 12), end: new Position(2, 12) },
+                newText: "token",
+            });
+        });
+
+        it("inserts a separating space, if the cursor directly follows the colon", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  variables:
+    - name:
+  scripts:
+    - type: before-request
+      code: |
+        bru.getRequestVar("token");
+`,
+                new Position(2, 11),
+            );
+
+            expect(
+                result?.map(({ textEdit }) => (textEdit as TextEdit).newText),
+            ).toEqual([" token"]);
+        });
+
+        it("suggests variables that are read in an after-response script for the name of 'set-variable' actions", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  actions:
+    - type: set-variable
+      variable:
+        name: 
+  scripts:
+    - type: after-response
+      code: |
+        bru.getRequestVar("token");
+`,
+                new Position(4, 14),
+            );
+
+            expect(result?.map(({ label }) => label)).toEqual(["token"]);
+        });
+
+        it("does not suggest names that are already defined in other items", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  variables:
+    - name: token
+      value: "1"
+    - name: 
+      value: "2"
+  scripts:
+    - type: before-request
+      code: |
+        bru.getRequestVar("token");
+        bru.getRequestVar("other");
+`,
+                new Position(4, 12),
+            );
+
+            expect(result?.map(({ label }) => label)).toEqual(["other"]);
+        });
+
+        it("suggests names that are only read in the values of other script variables", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  variables:
+    - name: other
+      value: "{{token}}"
+    - name: 
+      value: "2"
+  scripts:
+    - type: before-request
+      code: |
+        bru.getRequestVar("token");
+`,
+                new Position(4, 12),
+            );
+
+            expect(result?.map(({ label }) => label)).toContain("token");
+        });
+
+        it("uses the 'request' container in folder settings files", async () => {
+            const result = await complete(
+                folderSettingsPath,
+                `request:
+  variables:
+    - name: 
+  scripts:
+    - type: before-request
+      code: |
+        bru.getFolderVar("token");
+`,
+                new Position(2, 12),
+                [new BrunoFolderSettingsFile(folderSettingsPath)],
+            );
+
+            expect(result?.map(({ label }) => label)).toEqual(["token"]);
+        });
+    });
 });
 
 async function complete(
@@ -513,14 +843,12 @@ async function complete(
     additionalItems: CollectionItem[] = [],
     environments: string[] = [],
 ) {
-    const collection = createCollectionWithEnvironments(
-        environments.map((name) => ({ name })),
-        CollectionFormat.Yaml,
-    );
-    const items = [...additionalItems, new BrunoRequestFile(requestPath)];
-    items.forEach((item) =>
-        collection.addItem({ item, additionalData: undefined }),
-    );
+    const { collection, itemProvider } =
+        createCollectionWithItems<TypedCollectionItemProvider>(
+            [...additionalItems, new BrunoRequestFile(requestPath)],
+            CollectionFormat.Yaml,
+            environments,
+        );
 
     return handleCompletionRequest({
         baseRequest: {
@@ -530,10 +858,6 @@ async function complete(
             token: CancellationToken.None,
         },
         collection,
-        itemProvider: createItemProviderStub<TypedCollectionItemProvider>(
-            collection.getRootDirectory(),
-            CollectionFormat.Yaml,
-            collection,
-        ),
+        itemProvider,
     });
 }

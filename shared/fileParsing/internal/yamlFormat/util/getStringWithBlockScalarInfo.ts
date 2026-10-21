@@ -16,11 +16,15 @@ export function getStringWithBlockScalarInfo(
     return (
         rawString && {
             ...stripKeyFromResult(rawString),
-            isLiteralBlockScalar: isLiteralBlockScalar(map.get(key, true)),
+            isLiteralBlockScalar: hasScalarType(
+                map.get(key, true),
+                Scalar.BLOCK_LITERAL,
+            ),
+            isPlainScalar: hasScalarType(map.get(key, true), Scalar.PLAIN),
         }
     );
 }
 
-function isLiteralBlockScalar(node: unknown) {
-    return isScalar(node) && node.type == Scalar.BLOCK_LITERAL;
+function hasScalarType(node: unknown, type: Scalar.Type) {
+    return isScalar(node) && node.type == type;
 }

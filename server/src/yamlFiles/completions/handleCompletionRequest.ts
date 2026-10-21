@@ -3,9 +3,15 @@ import {
     FileInfoProperty,
     getYamlCursorContext,
     isBrunoFileType,
+    hasVariableSupport,
+    isCodeSection,
+    isScriptVarsSection,
+    isStartOfYamlPlainScalar,
     Logger,
     TopLevelEnvironmentFileProperty,
     TopLevelRequestFileProperty,
+    VariableReferenceType,
+    VariableScopeSectionKind,
     YamlCursorContext,
 } from "@global_shared";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
@@ -16,6 +22,11 @@ import {
 import { getSequenceValueCompletion } from "../../shared/getSequenceValueCompletion";
 import { getTagCompletions } from "../../shared/getTagCompletions";
 import { getAvailableEnvironmentNamesForExtends } from "../../shared/getAvailableEnvironmentNamesForExtends";
+import { getCompletionsForReadOnlyVariablesInNonCodeSection } from "../../shared/variables/getCompletionsForReadOnlyVariablesInNonCodeSection";
+import { getCompletionsForVariableInCodeSection } from "../../shared/variables/getCompletionsForVariableInCodeSection";
+import { getCompletionsForWriteOnlyVariablesInNonCodeSection } from "../../shared/variables/getCompletionsForWriteOnlyVariablesInNonCodeSection";
+import { VariableSectionRequest } from "../../shared/variables/interfaces";
+import { getVariableSectionRequest } from "../getVariableSectionRequest";
 import { getYamlFileTypeForEditorContent } from "../getYamlFileTypeForEditorContent";
 import { getKeyCompletions, isOnlyKind } from "./getKeyCompletions";
 
@@ -23,6 +34,7 @@ export async function handleCompletionRequest({
     baseRequest,
     collection,
     itemProvider,
+    configuredEnvironmentName,
     logger,
 }: LanguageRequestWithTestEnvironmentInfo): Promise<
     CompletionItem[] | undefined
@@ -40,6 +52,42 @@ export async function handleCompletionRequest({
         cachedItemType,
         documentHelper.getText(),
     );
+
+    const variableRequest = getVariableSectionRequest(
+        baseRequest,
+        collection,
+        itemType,
+        logger,
+    );
+
+    if (variableRequest) {
+        const { kind } = variableRequest.file.sectionContainingPosition;
+
+        if (isCodeSection(kind)) {
+            // Within code sections, only variables are relevant.
+            return getCompletionsForVariableInCodeSection(
+                variableRequest,
+                configuredEnvironmentName,
+            );
+        }
+
+        if (!isScriptVarsSection(kind) && hasVariableSupport(kind)) {
+            const variableCompletions =
+                getCompletionsForReadOnlyVariablesInNonCodeSection(
+                    variableRequest,
+                    configuredEnvironmentName,
+                    (rangeOfVariable) =>
+                        isStartOfYamlPlainScalar(
+                            documentHelper,
+                            rangeOfVariable,
+                        ),
+                );
+
+            if (variableCompletions.length > 0) {
+                return variableCompletions;
+            }
+        }
+    }
 
     const context = getYamlCursorContext({
         docHelper: documentHelper,
@@ -80,12 +128,24 @@ export async function handleCompletionRequest({
             }
             return items;
         }
-        case "value":
+        case "value": {
+            const variableNameCompletions = variableRequest
+                ? getCompletionsForVariableNameValue(
+                      context,
+                      variableRequest,
+                      configuredEnvironmentName,
+                  )
+                : undefined;
+            if (variableNameCompletions) {
+                return variableNameCompletions;
+            }
+
             return getValueCompletions(context, {
                 fileType: itemType,
                 filePath,
                 collection,
             });
+        }
         case "sequenceValue":
             return isPath(context.path, [
                 TopLevelRequestFileProperty.Info,
@@ -99,6 +159,75 @@ export async function handleCompletionRequest({
                   })
                 : undefined;
     }
+}
+
+/**
+ * Suggests the variable names that are read in scripts for the names of script variables (`variables[].name` and `actions[].variable.name`).
+ *
+ * @returns `undefined`, if the cursor is not at the name of a script variable.
+ */
+function getCompletionsForVariableNameValue(
+    {
+        path,
+        replaceRange,
+        isMissingSpaceAfterColon,
+    }: Extract<YamlCursorContext, { kind: "value" }>,
+    variableRequest: VariableSectionRequest,
+    configuredEnvironment?: string,
+): CompletionItem[] | undefined {
+    const expectedKind = getKindOfScriptVariableNamePath(path);
+    const section =
+        variableRequest.file.sectionContainingPosition.kind == expectedKind
+            ? variableRequest.file.sectionContainingPosition
+            : variableRequest.file.allSections.find(
+                  ({ kind }) => kind == expectedKind,
+              );
+
+    if (!section) {
+        return undefined;
+    }
+
+    return getCompletionsForWriteOnlyVariablesInNonCodeSection(
+        {
+            ...variableRequest,
+            file: {
+                ...variableRequest.file,
+                sectionContainingPosition: section,
+            },
+        },
+        {
+            variableRange: replaceRange,
+            alreadyDefinedNames: section.variableReferences
+                .filter(
+                    ({ referenceType, variableNameRange }) =>
+                        // Variables that are only read in the section (e.g. in `value`) are not defined by it.
+                        referenceType == VariableReferenceType.Write &&
+                        variableNameRange.start.line != replaceRange.start.line,
+                )
+                .map(({ variableName }) => variableName),
+            getTextEdit: (variableName, rangeToReplace) => ({
+                range: rangeToReplace,
+                newText: isMissingSpaceAfterColon
+                    ? ` ${variableName}`
+                    : variableName,
+            }),
+        },
+        configuredEnvironment,
+    );
+}
+
+function getKindOfScriptVariableNamePath(path: string[]) {
+    const [secondLast, last] = path.slice(-2);
+
+    if (last != "name") {
+        return undefined;
+    }
+    if (secondLast == "variables") {
+        return VariableScopeSectionKind.PreRequestVars;
+    }
+    return secondLast == "variable"
+        ? VariableScopeSectionKind.PostResponseVars
+        : undefined;
 }
 
 async function getValueCompletions(

@@ -51,6 +51,7 @@ describe("parseScriptsFromYamlSequence", () => {
                 ),
                 value: "sdcsdcdscdscsdsvfs\nscdasdasfdasdas",
                 isLiteralBlockScalar: true,
+                isPlainScalar: false,
             },
         };
         expect(script.properties).toEqual(expectedProperties);

@@ -7,7 +7,8 @@ import {
     Block,
     TextOutsideOfBlocks,
     ArrayBlockField,
-    getBlocksWithoutVariableSupport,
+    getVariableScopeSectionKindForBlockName,
+    hasVariableSupport,
     TextDocumentHelper,
     getNonBlockSpecificBlockStartPattern,
     BlockType,
@@ -119,9 +120,9 @@ function tryToParseBlock(
         startingLineIndex,
         endPosition,
     } = blockData;
-    const dataForSearchingVariableReferences = (
-        getBlocksWithoutVariableSupport() as string[]
-    ).includes(blockName)
+    const dataForSearchingVariableReferences = !hasVariableSupport(
+        getVariableScopeSectionKindForBlockName(blockName),
+    )
         ? undefined
         : { itemType };
 

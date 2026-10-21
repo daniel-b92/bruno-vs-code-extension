@@ -14,8 +14,11 @@ export function getBrunoVariableReferencesInCodeBlock(
     fullDocumentHelper: TextDocumentHelper,
     contentRange: Range,
 ): BrunoVariableReference[] {
-    const { start: contentStartPosition } = contentRange;
-    const relevantContent = fullDocumentHelper.getText(contentRange);
+    // The content may start within a line (e.g. a script defined as a single-line scalar). Padding it keeps all offsets relative to the start of the line.
+    const contentStartPosition = new Position(contentRange.start.line, 0);
+    const relevantContent = " "
+        .repeat(contentRange.start.character)
+        .concat(fullDocumentHelper.getText(contentRange));
     const functionsToSearchFor = getInbuiltFunctionIdentifiers();
 
     const matchingContentWithinSubdocument = Array.from(

@@ -6,8 +6,8 @@ import {
 import {
     EquivalentVariableReferencesFromOtherFiles,
     MatchingDynamicVariables,
-} from "../bruFiles/shared/interfaces";
-import { areReferencesEquivalentForLanguageFeatures } from "../bruFiles/shared/VariableReferences/areReferencesEquivalentForLanguageFeatures";
+} from "./variables/interfaces";
+import { areReferencesEquivalentForLanguageFeatures } from "./variables/areReferencesEquivalentForLanguageFeatures";
 
 export interface ReferenceFromOwnFileDetails {
     blockName: string;
