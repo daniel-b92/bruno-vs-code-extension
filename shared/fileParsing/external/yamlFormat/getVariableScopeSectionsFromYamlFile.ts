@@ -1,4 +1,5 @@
 import {
+    Document,
     isMap,
     isScalar,
     isSeq,
@@ -14,6 +15,7 @@ import {
     BrunoVariableReference,
     BrunoVariableType,
     getPatternForVarsReadReferenceInNonCodeBlock,
+    isScriptVarsSection,
     ItemType,
     Position,
     Range,
@@ -45,12 +47,13 @@ export function getVariableScopeSectionsFromYamlFile(
     }
 
     const lineCounter = new LineCounter();
-    const { contents } = parseDocument(docHelper.getText(), { lineCounter });
+    const document = parseDocument(docHelper.getText(), { lineCounter });
+    const { contents } = document;
     const context: Context = { docHelper, lineCounter, itemType };
 
     return (
         isMap(contents) ? getSectionsFromMap(contents, context) : []
-    ).concat(getScriptSections(docHelper, itemType));
+    ).concat(getScriptSections(docHelper, itemType, document));
 }
 
 interface Context {
@@ -69,8 +72,13 @@ function isItemTypeSupported(itemType: ItemType) {
     ).includes(itemType);
 }
 
-function getScriptSections(docHelper: TextDocumentHelper, itemType: ItemType) {
+function getScriptSections(
+    docHelper: TextDocumentHelper,
+    itemType: ItemType,
+    parsedDocument: Document,
+) {
     return getScriptBlocksFromYamlFile(docHelper, itemType, {
+        parsedDocument,
         continueOnSyntaxErrors: true,
         includeSingleLinePlainScalars: true,
     }).blocks.map(
@@ -190,23 +198,12 @@ function createSection(
         variableReferences:
             kind == VariableScopeSectionKind.NoVariableSupport
                 ? []
-                : isScriptVarsKind(kind)
+                : isScriptVarsSection(kind)
                   ? getWriteReferences(node, kind, context).concat(
                         getReadReferencesInNode(node, context),
                     )
                   : getReadReferencesInNode(node, context),
     };
-}
-
-function isScriptVarsKind(
-    kind: VariableScopeSectionKind,
-): kind is
-    | VariableScopeSectionKind.PreRequestVars
-    | VariableScopeSectionKind.PostResponseVars {
-    return (
-        kind == VariableScopeSectionKind.PreRequestVars ||
-        kind == VariableScopeSectionKind.PostResponseVars
-    );
 }
 
 function getReadReferencesInNode(

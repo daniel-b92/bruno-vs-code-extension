@@ -1,4 +1,4 @@
-import { YAMLMap, YAMLSeq } from "yaml";
+import { Document, YAMLMap, YAMLSeq } from "yaml";
 import {
     Range,
     TextDocumentHelper,
@@ -43,6 +43,8 @@ export interface CommonParsingArgs {
     mapDescriptors?: YamlMapDescriptor[];
     /** See `YamlParsingOptions`. */
     continueOnSyntaxErrors?: boolean;
+    /** See `YamlParsingOptions`. */
+    parsedDocument?: Document;
 }
 
 export interface ParsedMapItems {

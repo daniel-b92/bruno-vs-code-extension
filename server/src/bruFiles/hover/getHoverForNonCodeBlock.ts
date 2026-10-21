@@ -1,13 +1,12 @@
 import {
     Block,
     getDictionaryBlockArrayField,
-    getExistingRequestFileTags,
     Logger,
     MetaBlockKey,
     RequestFileBlockName,
 } from "@global_shared";
 import { TypedCollectionItemProvider } from "../../shared";
-import { getHoverForTagOccurences } from "../../shared/getHoverForTagOccurences";
+import { getHoverForExistingTag } from "../../shared/getHoverForExistingTag";
 import { Hover } from "vscode-languageserver";
 import { getHoverForVariableInNonCodeSection } from "../../shared/variables/getHoverForVariableInNonCodeSection";
 import {
@@ -62,16 +61,12 @@ function getHoverForTagsInMetaBlock(
         return undefined;
     }
 
-    const tagOccurences = getExistingRequestFileTags(itemProvider, {
-        collection,
-        pathToIgnore: filePath,
-    }).filter(({ tag }) => tag == tagValueField.content);
-
-    if (tagOccurences.length < 1) {
-        return { contents: "No other usages found." };
-    }
-
-    return getHoverForTagOccurences(filePath, documentHelper, tagOccurences[0]);
+    return getHoverForExistingTag(
+        tagValueField.content,
+        filePath,
+        documentHelper,
+        { itemProvider, collection },
+    );
 }
 
 function addLogEntryForCancellation(logger?: Logger) {

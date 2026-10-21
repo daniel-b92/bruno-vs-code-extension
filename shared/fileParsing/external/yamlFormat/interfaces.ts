@@ -1,3 +1,4 @@
+import { Document } from "yaml";
 import { Range } from "../../..";
 import { FileInfoType, VariableType } from "./constants/sharedConstants";
 import {
@@ -209,6 +210,8 @@ export interface YamlParsingOptions {
     mapDescriptors?: YamlMapDescriptor[];
     /** If true, parsing continues with the (possibly partial) Yaml document, even if it contains syntax errors. The syntax errors are not reported then. */
     continueOnSyntaxErrors?: boolean;
+    /** If defined, this already parsed document is used instead of parsing the text of the given document helper again. It needs to be the parsed text of that document helper. */
+    parsedDocument?: Document;
 }
 
 /** Describes a Yaml map that has been validated while parsing: Which keys are expected for it and which are defined. */

@@ -9,8 +9,7 @@ import {
     TextDocumentHelper,
 } from "@global_shared";
 import {
-    createCollectionWithEnvironments,
-    createItemProviderStub,
+    createCollectionWithItems,
 } from "@global_shared/_testingUtils";
 import {
     CancellationToken,
@@ -626,6 +625,61 @@ http:
             });
         });
 
+        it.each([
+            ['  "X-Api-Key": {{dy', 19],
+            ["  x.y: {{dy", 11],
+            ["  url: {{dy # comment", 11],
+        ])(
+            "wraps the value in quotes for the unquoted value '%s'",
+            async (line, character) => {
+                const result = await complete(
+                    requestPath,
+                    `runtime:
+  scripts:
+    - type: before-request
+      code: |
+        bru.setVar("dyn", 1);
+http:
+${line}
+`,
+                    new Position(6, character),
+                );
+
+                const item = result?.find(({ label }) => label == "dyn");
+                expect((item?.textEdit as TextEdit | undefined)?.newText).toBe(
+                    `"{{dyn}}"`,
+                );
+            },
+        );
+
+        it("does not wrap the value in quotes within a block scalar", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  scripts:
+    - type: before-request
+      code: |
+        bru.setVar("dyn", 1);
+http:
+  body:
+    type: text
+    data: |-
+      {{dy
+`,
+                new Position(9, 10),
+            );
+
+            expect(
+                result?.find(({ label }) => label == "dyn")?.textEdit,
+            ).toEqual({
+                newText: "dyn}}",
+                range: {
+                    start: { line: 9, character: 8 },
+                    end: { line: 9, character: 10 },
+                },
+            });
+        });
+
         it("suggests variables for variable access within scripts", async () => {
             const result = await complete(
                 requestPath,
@@ -742,6 +796,26 @@ http:
             expect(result?.map(({ label }) => label)).toEqual(["other"]);
         });
 
+        it("suggests names that are only read in the values of other script variables", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  variables:
+    - name: other
+      value: "{{token}}"
+    - name: 
+      value: "2"
+  scripts:
+    - type: before-request
+      code: |
+        bru.getRequestVar("token");
+`,
+                new Position(4, 12),
+            );
+
+            expect(result?.map(({ label }) => label)).toContain("token");
+        });
+
         it("uses the 'request' container in folder settings files", async () => {
             const result = await complete(
                 folderSettingsPath,
@@ -769,14 +843,12 @@ async function complete(
     additionalItems: CollectionItem[] = [],
     environments: string[] = [],
 ) {
-    const collection = createCollectionWithEnvironments(
-        environments.map((name) => ({ name })),
-        CollectionFormat.Yaml,
-    );
-    const items = [...additionalItems, new BrunoRequestFile(requestPath)];
-    items.forEach((item) =>
-        collection.addItem({ item, additionalData: undefined }),
-    );
+    const { collection, itemProvider } =
+        createCollectionWithItems<TypedCollectionItemProvider>(
+            [...additionalItems, new BrunoRequestFile(requestPath)],
+            CollectionFormat.Yaml,
+            environments,
+        );
 
     return handleCompletionRequest({
         baseRequest: {
@@ -786,10 +858,6 @@ async function complete(
             token: CancellationToken.None,
         },
         collection,
-        itemProvider: createItemProviderStub<TypedCollectionItemProvider>(
-            collection.getRootDirectory(),
-            CollectionFormat.Yaml,
-            collection,
-        ),
+        itemProvider,
     });
 }

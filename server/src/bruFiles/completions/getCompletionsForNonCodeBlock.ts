@@ -23,6 +23,7 @@ import {
     BlockRequestWithAdditionalData,
     toVariableSectionRequest,
 } from "../shared/interfaces";
+import { VariableSectionRequest } from "../../shared/variables/interfaces";
 import { getCompletionsForReadOnlyVariablesInNonCodeSection } from "../../shared/variables/getCompletionsForReadOnlyVariablesInNonCodeSection";
 import { getCompletionsForWriteOnlyVariablesInNonCodeSection } from "../../shared/variables/getCompletionsForWriteOnlyVariablesInNonCodeSection";
 import { getMetaBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getMetaBlockContentCompletions";
@@ -44,8 +45,8 @@ export async function getCompletionsForNonCodeBlock(
         file: { blockContainingPosition, allBlocks, collection },
     } = fullRequest;
 
-    const { kind: sectionKind } =
-        toVariableSectionRequest(fullRequest).file.sectionContainingPosition;
+    const variableRequest = toVariableSectionRequest(fullRequest);
+    const { kind: sectionKind } = variableRequest.file.sectionContainingPosition;
     const blockHasVariableSupport = hasVariableSupport(sectionKind);
     // For Script variable blocks only write-only variables can be defined.
     const blockSupportsOnlyWriteOnlyVars =
@@ -64,27 +65,30 @@ export async function getCompletionsForNonCodeBlock(
             ? []
             : blockSupportsOnlyWriteOnlyVars
               ? getCompletionsForBlockWithWriteOnlyVariables(
-                    fullRequest,
+                    variableRequest,
+                    blockContainingPosition,
                     configuredEnvironment,
                 )
               : getCompletionsForReadOnlyVariablesInNonCodeSection(
-                    toVariableSectionRequest(fullRequest),
+                    variableRequest,
                     configuredEnvironment,
+                    // Quoting is only relevant for Yaml.
+                    () => false,
                 ),
     );
 }
 
 function getCompletionsForBlockWithWriteOnlyVariables(
-    fullRequest: BlockRequestWithAdditionalData<Block>,
+    variableRequest: VariableSectionRequest,
+    block: Block,
     configuredEnvironment?: string,
 ) {
     const {
         request: { position },
-        file: { blockContainingPosition: block },
-    } = fullRequest;
+    } = variableRequest;
 
     return getCompletionsForWriteOnlyVariablesInNonCodeSection(
-        toVariableSectionRequest(fullRequest),
+        variableRequest,
         {
             variableRange: getKeyRangeContainingPosition(position, block),
             alreadyDefinedNames: getActiveKeysUsedInOtherLines(

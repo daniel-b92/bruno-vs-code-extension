@@ -6,9 +6,11 @@ import {
     hasVariableSupport,
     isCodeSection,
     isScriptVarsSection,
+    isStartOfYamlPlainScalar,
     Logger,
     TopLevelEnvironmentFileProperty,
     TopLevelRequestFileProperty,
+    VariableReferenceType,
     VariableScopeSectionKind,
     YamlCursorContext,
 } from "@global_shared";
@@ -74,7 +76,11 @@ export async function handleCompletionRequest({
                 getCompletionsForReadOnlyVariablesInNonCodeSection(
                     variableRequest,
                     configuredEnvironmentName,
-                    true,
+                    (rangeOfVariable) =>
+                        isStartOfYamlPlainScalar(
+                            documentHelper,
+                            rangeOfVariable,
+                        ),
                 );
 
             if (variableCompletions.length > 0) {
@@ -193,7 +199,9 @@ function getCompletionsForVariableNameValue(
             variableRange: replaceRange,
             alreadyDefinedNames: section.variableReferences
                 .filter(
-                    ({ variableNameRange }) =>
+                    ({ referenceType, variableNameRange }) =>
+                        // Variables that are only read in the section (e.g. in `value`) are not defined by it.
+                        referenceType == VariableReferenceType.Write &&
                         variableNameRange.start.line != replaceRange.start.line,
                 )
                 .map(({ variableName }) => variableName),

@@ -1,5 +1,5 @@
 import { Collection } from "../baseModel/collection";
-import { CollectionFormat } from "../baseModel/interfaces";
+import { CollectionFormat, CollectionItem } from "../baseModel/interfaces";
 import { getFileExtensionForFormat } from "../fileSystem/util/collectionFormatFileNames";
 import { CollectionDirectory } from "../baseModel/collectionDirectory";
 import { BrunoEnvironmentFile } from "../baseModel/files/brunoEnvironmentFile";
@@ -54,4 +54,31 @@ export function createItemProviderStub<TProvider>(
         getAncestorCollectionForPath: () => collection,
         getRegisteredCollections: () => [collection],
     } as unknown as TProvider;
+}
+
+/**
+ * Creates a collection that contains the given items (and environments), together with an item provider stub for it.
+ * The provider type is specific to each package, so it has to be passed as type argument.
+ */
+export function createCollectionWithItems<TProvider>(
+    items: CollectionItem[],
+    format: CollectionFormat,
+    environmentNames: string[] = [],
+) {
+    const collection = createCollectionWithEnvironments(
+        environmentNames.map((name) => ({ name })),
+        format,
+    );
+    items.forEach((item) =>
+        collection.addItem({ item, additionalData: undefined }),
+    );
+
+    return {
+        collection,
+        itemProvider: createItemProviderStub<TProvider>(
+            collection.getRootDirectory(),
+            format,
+            collection,
+        ),
+    };
 }

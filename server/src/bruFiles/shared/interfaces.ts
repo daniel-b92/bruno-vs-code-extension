@@ -19,15 +19,14 @@ export function toVariableSectionRequest({
     file: { collection, allBlocks, blockContainingPosition },
     logger,
 }: BlockRequestWithAdditionalData<Block>): VariableSectionRequest {
-    const allSections = getVariableScopeSectionsFromBlocks(allBlocks);
-
     return {
         request,
         file: {
             collection,
-            allSections,
-            sectionContainingPosition:
-                allSections[allBlocks.indexOf(blockContainingPosition)],
+            allSections: getVariableScopeSectionsFromBlocks(allBlocks),
+            sectionContainingPosition: getVariableScopeSectionsFromBlocks([
+                blockContainingPosition,
+            ])[0],
         },
         logger,
     };

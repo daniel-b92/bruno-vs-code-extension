@@ -5,10 +5,7 @@ import {
     Position,
     TextDocumentHelper,
 } from "@global_shared";
-import {
-    createCollectionWithEnvironments,
-    createItemProviderStub,
-} from "@global_shared/_testingUtils";
+import { createCollectionWithItems } from "@global_shared/_testingUtils";
 import { CancellationToken, Hover } from "vscode-languageserver";
 import { TypedCollectionItemProvider } from "../../shared";
 import { handleHoverRequest } from "./handleHoverRequest";
@@ -87,14 +84,11 @@ http:
 });
 
 function hover(text: string, position: Position) {
-    const collection = createCollectionWithEnvironments(
-        [],
-        CollectionFormat.Yaml,
-    );
-    collection.addItem({
-        item: new BrunoRequestFile(requestPath),
-        additionalData: undefined,
-    });
+    const { collection, itemProvider } =
+        createCollectionWithItems<TypedCollectionItemProvider>(
+            [new BrunoRequestFile(requestPath)],
+            CollectionFormat.Yaml,
+        );
 
     return handleHoverRequest({
         baseRequest: {
@@ -104,11 +98,7 @@ function hover(text: string, position: Position) {
             token: CancellationToken.None,
         },
         collection,
-        itemProvider: createItemProviderStub<TypedCollectionItemProvider>(
-            collection.getRootDirectory(),
-            CollectionFormat.Yaml,
-            collection,
-        ),
+        itemProvider,
     });
 }
 

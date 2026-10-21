@@ -14,9 +14,12 @@ import { mapVariablesToCompletions } from "./mapVariablesToCompletions";
 
 export function getCompletionsForReadOnlyVariablesInNonCodeSection(
     fullRequest: VariableSectionRequest,
-    configuredEnvironment?: string,
-    /** Set for Yaml, where a plain scalar starting with `{{` would be read as a flow mapping instead of a string. */
-    quoteValueStartingWithBraces = false,
+    configuredEnvironment: string | undefined,
+    /**
+     * In Yaml, a plain scalar starting with `{{` would be read as a flow mapping instead of a string.
+     * Determines whether the given range (the opening braces up to the end of the variable) is the start of a plain scalar and needs to be quoted.
+     */
+    isQuotingRequired: (rangeOfVariable: Range) => boolean,
 ) {
     const { request, logger } = fullRequest;
     const { documentHelper, position } = request;
@@ -29,7 +32,7 @@ export function getCompletionsForReadOnlyVariablesInNonCodeSection(
     const variableParsingResult = getVariable(
         request,
         lineContent,
-        quoteValueStartingWithBraces,
+        isQuotingRequired,
         logger,
     );
     if (!variableParsingResult) {
@@ -112,7 +115,7 @@ export function getCompletionsForReadOnlyVariablesInNonCodeSection(
 function getVariable(
     { position, token }: LanguageFeatureBaseRequest,
     lineContent: string,
-    quoteValueStartingWithBraces: boolean,
+    isQuotingRequired: (rangeOfVariable: Range) => boolean,
     logger?: Logger,
 ) {
     const { character, line } = position;
@@ -150,20 +153,22 @@ function getVariable(
 
     const textBehindInsertion = lineContent.substring(endCharForInsertion);
     const hasClosingBraces = textBehindInsertion.startsWith("}}");
+    const textBehindVariable = textBehindInsertion.substring(
+        hasClosingBraces ? 2 : 0,
+    );
+    const rangeOfVariable = new Range(
+        new Position(line, startChar),
+        new Position(line, endCharForInsertion + (hasClosingBraces ? 2 : 0)),
+    );
+    // If more text follows the variable, it is not the whole value, so wrapping it in quotes would not be correct.
     const isOnlyContentOfValue =
-        UNQUOTED_VALUE_START_REGEX.test(lineContent.substring(0, startChar)) &&
-        textBehindInsertion.substring(hasClosingBraces ? 2 : 0).trim() == "";
+        COMMENT_OR_BLANK_REGEX.test(textBehindVariable);
 
     return {
         quotedValueRange:
-            quoteValueStartingWithBraces && isOnlyContentOfValue
-                ? new Range(
-                      new Position(line, startChar),
-                      new Position(
-                          line,
-                          endCharForInsertion + (hasClosingBraces ? 2 : 0),
-                      ),
-                  )
+            isOnlyContentOfValue &&
+            isQuotingRequired(rangeOfVariable)
+                ? rangeOfVariable
                 : undefined,
         variable: {
             name: matchingText.substring(2),
@@ -178,8 +183,8 @@ function getVariable(
     };
 }
 
-/** Matches the text in front of a Yaml value (after the key or the sequence dash), if the value itself is not quoted. */
-const UNQUOTED_VALUE_START_REGEX = /^\s*(-\s+)?([\w-]+:\s+)?$/;
+/** Matches text that is empty or only consists of a trailing comment. */
+const COMMENT_OR_BLANK_REGEX = /^\s*(#.*)?$/;
 
 function addLogEntryForCancellation(logger?: Logger) {
     logger?.debug(

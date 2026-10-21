@@ -1,13 +1,12 @@
 import {
     BrunoFileType,
-    getExistingRequestFileTags,
     isBrunoFileType,
     isCodeSection,
     parseRequestFile,
 } from "@global_shared";
 import { Hover } from "vscode-languageserver";
 import { LanguageRequestWithTestEnvironmentInfo } from "../../shared";
-import { getHoverForTagOccurences } from "../../shared/getHoverForTagOccurences";
+import { getHoverForExistingTag } from "../../shared/getHoverForExistingTag";
 import { getHoverForVariableInCodeSection } from "../../shared/variables/getHoverForVariableInCodeSection";
 import { getHoverForVariableInNonCodeSection } from "../../shared/variables/getHoverForVariableInNonCodeSection";
 import { getYamlFileTypeForEditorContent } from "../getYamlFileTypeForEditorContent";
@@ -84,12 +83,8 @@ function getHoverForTag({
         return undefined;
     }
 
-    const tagOccurences = getExistingRequestFileTags(itemProvider, {
+    return getHoverForExistingTag(tagAtPosition.value, filePath, documentHelper, {
+        itemProvider,
         collection,
-        pathToIgnore: filePath,
-    }).filter(({ tag }) => tag == tagAtPosition.value);
-
-    return tagOccurences.length < 1
-        ? { contents: "No other usages found." }
-        : getHoverForTagOccurences(filePath, documentHelper, tagOccurences[0]);
+    });
 }

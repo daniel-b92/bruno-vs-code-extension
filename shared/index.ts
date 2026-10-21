@@ -68,6 +68,7 @@ export * from "./fileParsing/external/shared/codeBlocks/getJsCodeBlocksFromFile"
 export * from "./fileParsing/external/yamlFormat/getInfoTypeFromYamlContent";
 export * from "./fileParsing/external/yamlFormat/getYamlCursorContext";
 export * from "./fileParsing/external/yamlFormat/getYamlIndentationStep";
+export * from "./fileParsing/external/yamlFormat/isStartOfYamlPlainScalar";
 export * from "./fileParsing/external/yamlFormat/constants/requestFileConstants";
 export * from "./fileParsing/external/yamlFormat/constants/appFileConstants";
 export * from "./fileParsing/external/yamlFormat/constants/sharedConstants";
@@ -176,7 +177,6 @@ export * from "./languageUtils/bruFormat/commonBlocks/generic/getDefaultIndentat
 export * from "./languageUtils/bruFormat/commonBlocks/generic/getActiveFieldFromDictionaryBlock";
 export * from "./languageUtils/bruFormat/commonBlocks/generic/getActiveSimpleFieldFromDictionaryBlockIfExistsOnce";
 export * from "./languageUtils/bruFormat/commonBlocks/generic/getSortedBlocksByPosition";
-
 
 export * from "./languageUtils/bruFormat/commonBlocks/generic/typeguards/isBlockDictionaryBlock";
 export * from "./languageUtils/bruFormat/commonBlocks/generic/typeguards/isBlockCodeBlock";
