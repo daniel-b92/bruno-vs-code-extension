@@ -4,7 +4,10 @@ import {
     AdditionalCollectionSimpleDataProvider,
     CollectionFormat,
     CollectionItem,
-    parseFileByPath,
+    BrunoFileType,
+    getVariableScopeSectionsFromFileByPath,
+    ItemType,
+    NonBrunoSpecificItemType,
 } from "../..";
 
 export async function getAdditionalCollectionData<T>(
@@ -35,11 +38,32 @@ export async function getAdditionalCollectionData<T>(
             }
 
             const toParse = getFilePathForParsing(item);
-            return getData(
-                // ToDo: Support extracting additional data from yaml files, too. Currently, `parseFileByPath` only supports the bru format.
-                toParse && format == CollectionFormat.Bru
-                    ? await parseFileByPath(toParse, item.getItemType())
-                    : undefined,
-            );
+            const sections = toParse
+                ? await getVariableScopeSectionsFromFileByPath(
+                      toParse,
+                      getItemTypeForParsing(
+                          item.getItemType(),
+                          isCollectionRoot,
+                          format,
+                      ),
+                      format,
+                  )
+                : undefined;
+
+            return getData(sections ? { sections } : undefined);
     }
+}
+
+function getItemTypeForParsing(
+    itemType: ItemType,
+    isCollectionRoot: boolean,
+    format: CollectionFormat,
+) {
+    // For the Bru format, directories are parsed as is. In the Yaml format, the exact type of settings file is needed.
+    return format == CollectionFormat.Yaml &&
+        itemType == NonBrunoSpecificItemType.Directory
+        ? isCollectionRoot
+            ? BrunoFileType.CollectionSettingsFile
+            : BrunoFileType.FolderSettingsFile
+        : itemType;
 }

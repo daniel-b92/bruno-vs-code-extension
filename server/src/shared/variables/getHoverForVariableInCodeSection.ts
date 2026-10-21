@@ -1,18 +1,18 @@
-import { CodeBlock, Logger } from "@global_shared";
+import { Logger } from "@global_shared";
 import { getHoverForBrunoVariable } from "./getHoverForBrunoVariable";
-import { BlockRequestWithAdditionalData } from "../shared/interfaces";
+import { VariableSectionRequest } from "./interfaces";
 
-export async function getHoverForCodeBlock(
-    fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
+export function getHoverForVariableInCodeSection(
+    fullRequest: VariableSectionRequest,
     configuredEnvironmentName?: string,
 ) {
     const {
         request: { token, position },
-        file: { blockContainingPosition },
+        file: { sectionContainingPosition },
         logger,
     } = fullRequest;
 
-    const variableReference = blockContainingPosition.variableReferences?.find(
+    const variableReference = sectionContainingPosition.variableReferences.find(
         ({ variableNameRange }) => variableNameRange.contains(position),
     );
 
@@ -34,6 +34,6 @@ export async function getHoverForCodeBlock(
 
 function addLogEntryForCancellation(logger?: Logger) {
     logger?.debug(
-        "Cancellation requested while trying to determine hover for position in code block.",
+        "Cancellation requested while trying to determine hover for position in code section.",
     );
 }

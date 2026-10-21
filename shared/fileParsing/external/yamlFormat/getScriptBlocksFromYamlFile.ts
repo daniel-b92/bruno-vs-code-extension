@@ -1,4 +1,5 @@
 import { BrunoFileType, ItemType, Range, TextDocumentHelper } from "../../..";
+import { YamlParsingOptions } from "./interfaces";
 import { ParsedScript } from "../../internal/yamlFormat/interfaces";
 import { getBlockScalarContentRange } from "./getBlockScalarContentRange";
 import { FileInfoType, ScriptType } from "./constants/sharedConstants";
@@ -22,8 +23,9 @@ export interface YamlScriptBlock {
 export function getScriptBlocksFromYamlFile(
     docHelper: TextDocumentHelper,
     itemType: ItemType,
+    options?: YamlParsingOptions,
 ): { requestType?: FileInfoType; blocks: YamlScriptBlock[] } {
-    const { scripts, requestType } = parseScripts(docHelper, itemType);
+    const { scripts, requestType } = parseScripts(docHelper, itemType, options);
 
     return {
         requestType,
@@ -34,10 +36,15 @@ export function getScriptBlocksFromYamlFile(
     };
 }
 
-function parseScripts(docHelper: TextDocumentHelper, itemType: ItemType) {
+function parseScripts(
+    docHelper: TextDocumentHelper,
+    itemType: ItemType,
+    options?: YamlParsingOptions,
+) {
     switch (itemType) {
         case BrunoFileType.RequestFile: {
-            const { properties } = parseRequestFile(docHelper).result ?? {};
+            const { properties } =
+                parseRequestFile(docHelper, options).result ?? {};
             return {
                 scripts: properties?.runtime?.properties.scripts ?? [],
                 requestType: properties?.info?.properties.type?.value,
@@ -46,14 +53,14 @@ function parseScripts(docHelper: TextDocumentHelper, itemType: ItemType) {
         case BrunoFileType.FolderSettingsFile:
             return {
                 scripts:
-                    parseFolderSettingsFile(docHelper).result?.properties
-                        .request?.properties.scripts ?? [],
+                    parseFolderSettingsFile(docHelper, options).result
+                        ?.properties.request?.properties.scripts ?? [],
             };
         case BrunoFileType.CollectionSettingsFile:
             return {
                 scripts:
-                    parseCollectionSettingsFile(docHelper).result?.properties
-                        .request?.properties.scripts ?? [],
+                    parseCollectionSettingsFile(docHelper, options).result
+                        ?.properties.request?.properties.scripts ?? [],
             };
         default:
             return { scripts: [] };

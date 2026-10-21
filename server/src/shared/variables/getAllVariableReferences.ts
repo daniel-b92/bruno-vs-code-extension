@@ -1,20 +1,20 @@
 import {
-    Block,
     BrunoFileType,
     BrunoVariableReference,
     BrunoVariableType,
-    CodeBlock,
     getMatchingDefinitionsFromEnvFiles,
+    getScriptSectionForScriptVarsSection,
+    isScriptVarsSection,
     ItemType,
     Logger,
     normalizePath,
-    RequestFileBlockName,
     VariableReferenceType,
+    VariableScopeSectionKind,
 } from "@global_shared";
 import {
-    BlockRequestWithAdditionalData,
+    VariableSectionRequest,
     VariableReferenceFromOtherFile,
-} from "../interfaces";
+} from "./interfaces";
 import { getDynamicVariableReferencesWithinFile } from "./getDynamicVariableReferencesWithinFile";
 import { getDynamicVariableReferencesFromOtherFiles } from "./getDynamicVariableReferencesFromOtherFiles";
 import { getMatchingStaticScriptVariableReferences } from "./getMatchingStaticScriptVariableReferences";
@@ -23,7 +23,7 @@ import { dirname, relative } from "path";
 import { areReferencesEquivalentForLanguageFeatures } from "./areReferencesEquivalentForLanguageFeatures";
 
 export function getAllVariableReferences(
-    fullRequest: BlockRequestWithAdditionalData<Block>,
+    fullRequest: VariableSectionRequest,
     sourceReference: {
         referenceType: VariableReferenceType;
         variableType: BrunoVariableType;
@@ -34,7 +34,7 @@ export function getAllVariableReferences(
     },
 ) {
     const {
-        file: { blockContainingPosition, collection },
+        file: { sectionContainingPosition, collection },
         request: baseRequest,
         logger,
     } = fullRequest;
@@ -42,24 +42,16 @@ export function getAllVariableReferences(
     const { variableNameForFiltering, configuredEnvironment } =
         environmentVarsParams;
     const { referenceType, variableType } = sourceReference;
-    const isSourceBlockBlockForScriptVariables = (
-        [
-            RequestFileBlockName.PreRequestVars,
-            RequestFileBlockName.PostResponseVars,
-        ] as string[]
-    ).includes(blockContainingPosition.name);
+    const { kind: sourceSectionKind } = sectionContainingPosition;
 
-    if (isSourceBlockBlockForScriptVariables) {
-        // In script vars blocks, variables can only be set, not read.
-        // So the only relevant variable references are in the blocks that can read the variables that are set within the source block.
-        const scriptBlockToCheck = getScriptBlockForVariableBlock(
-            blockContainingPosition.name as
-                | RequestFileBlockName.PreRequestVars
-                | RequestFileBlockName.PostResponseVars,
-        );
+    if (isScriptVarsSection(sourceSectionKind)) {
+        // In script vars sections, variables can only be set, not read.
+        // So the only relevant variable references are in the sections that can read the variables that are set within the source section.
+        const scriptSectionToCheck =
+            getScriptSectionForScriptVarsSection(sourceSectionKind);
 
-        const refs = getVariableRefsForScriptVarsBlock(
-            scriptBlockToCheck,
+        const refs = getVariableRefsForScriptVarsSection(
+            scriptSectionToCheck,
             fullRequest,
             sourceReference,
         );
@@ -104,14 +96,7 @@ export function getAllVariableReferences(
         BrunoVariableType.Request,
     ].includes(variableType)
         ? getMatchingStaticScriptVariableReferences(
-              {
-                  ...fullRequest,
-                  file: {
-                      ...fullRequest.file,
-                      blockContainingPosition: fullRequest.file
-                          .blockContainingPosition as CodeBlock,
-                  },
-              },
+              fullRequest,
               variableType as
                   BrunoVariableType.Folder | BrunoVariableType.Request,
           )
@@ -154,14 +139,14 @@ export function getAllVariableReferences(
     };
 }
 
-function getVariableRefsForScriptVarsBlock(
-    blockToCheck:
-        | RequestFileBlockName.PreRequestScript
-        | RequestFileBlockName.PostResponseScript,
+function getVariableRefsForScriptVarsSection(
+    sectionToCheck:
+        | VariableScopeSectionKind.PreRequestScript
+        | VariableScopeSectionKind.PostResponseScript,
     {
-        file: { allBlocks, collection },
+        file: { allSections, collection },
         request: { filePath },
-    }: BlockRequestWithAdditionalData<Block>,
+    }: VariableSectionRequest,
     sourceReference: {
         referenceType: VariableReferenceType;
     },
@@ -197,8 +182,11 @@ function getVariableRefsForScriptVarsBlock(
             ? BrunoVariableType.Request
             : BrunoVariableType.Folder;
 
+    const sectionNameToDisplay =
+        allSections.find(({ kind }) => kind == sectionToCheck)?.name ??
+        String(sectionToCheck);
     const refsWithinSameFile =
-        allBlocks.find(({ name }) => name == blockToCheck)
+        allSections.find(({ kind }) => kind == sectionToCheck)
             ?.variableReferences ?? [];
 
     if (itemType == BrunoFileType.RequestFile) {
@@ -209,7 +197,7 @@ function getVariableRefsForScriptVarsBlock(
                 referenceType,
                 variableType,
             ).map((ref) => ({
-                blockName: blockToCheck,
+                blockName: sectionNameToDisplay,
                 variableReference: ref,
             })),
             fromOtherFiles: [],
@@ -229,12 +217,12 @@ function getVariableRefsForScriptVarsBlock(
 
     const relevantRefsForDescendants = descendantItems.flatMap(
         ({ item, additionalData }) => {
-            const refsInRelevantBlock = additionalData?.filter(
-                ({ block }) => block == blockToCheck,
+            const refsInRelevantSection = additionalData?.filter(
+                ({ sectionKind }) => sectionKind == sectionToCheck,
             );
-            return !refsInRelevantBlock || refsInRelevantBlock.length == 0
+            return !refsInRelevantSection || refsInRelevantSection.length == 0
                 ? []
-                : refsInRelevantBlock.map(({ reference }) => ({
+                : refsInRelevantSection.map(({ reference }) => ({
                       path: item.getPath(),
                       reference,
                   }));
@@ -246,7 +234,10 @@ function getVariableRefsForScriptVarsBlock(
             refsWithinSameFile,
             referenceType,
             variableType,
-        ).map((ref) => ({ blockName: blockToCheck, variableReference: ref })),
+        ).map((ref) => ({
+            blockName: sectionNameToDisplay,
+            variableReference: ref,
+        })),
         fromOtherFiles: relevantRefsForDescendants.flatMap(
             ({ path, reference }) => {
                 const relevantRefs = filterDynamicReferences(
@@ -278,16 +269,6 @@ function addLogEntryForCancellation(logger?: Logger) {
     logger?.debug(
         `Cancellation requested while searching for variable references.`,
     );
-}
-
-function getScriptBlockForVariableBlock(
-    variableBlockName:
-        | RequestFileBlockName.PreRequestVars
-        | RequestFileBlockName.PostResponseVars,
-) {
-    return variableBlockName == RequestFileBlockName.PreRequestVars
-        ? RequestFileBlockName.PreRequestScript
-        : RequestFileBlockName.PostResponseScript;
 }
 
 function groupReferencesWithSameRelevance(

@@ -504,6 +504,59 @@ describe("handleCompletionRequest for yaml files", () => {
 
         expect(result).toBeUndefined();
     });
+
+    describe("variable completions", () => {
+        it("suggests variables within `{{` in non-code sections", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  scripts:
+    - type: before-request
+      code: |
+        bru.setVar("dyn", 1);
+http:
+  method: GET
+  url: "{{"
+`,
+                new Position(7, 10),
+            );
+
+            expect(result?.map(({ label }) => label)).toContain("dyn");
+        });
+
+        it("suggests variables for variable access within scripts", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  variables:
+    - name: first
+      value: "1"
+  scripts:
+    - type: before-request
+      code: |
+        bru.getRequestVar("");
+`,
+                new Position(7, 27),
+            );
+
+            expect(result?.map(({ label }) => label)).toContain("first");
+        });
+
+        it("does not suggest keys within scripts", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  scripts:
+    - type: after-response
+      code: |
+        con
+`,
+                new Position(4, 11),
+            );
+
+            expect(result ?? []).toEqual([]);
+        });
+    });
 });
 
 async function complete(

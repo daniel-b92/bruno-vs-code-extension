@@ -10,7 +10,7 @@ import {
     groupReferencesByName,
     mapStaticEnvVariablesToCompletions,
     ReferenceFromOwnFileDetails,
-} from "../../shared";
+} from "..";
 import {
     CompletionItem,
     CompletionItemKind,
@@ -19,7 +19,7 @@ import {
 import {
     EquivalentVariableReferencesFromOtherFiles,
     MatchingDynamicVariables,
-} from "../shared/interfaces";
+} from "./interfaces";
 
 export type GetTextEditForVariableCompletion = (
     variableName: string,

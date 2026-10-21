@@ -1,35 +1,35 @@
 import {
     BrunoVariableReference,
     BrunoVariableType,
-    CodeBlock,
     normalizePath,
-    RequestFileBlockName,
+    VariableScopeSectionKind,
     VariableAvailabilityScope,
     VariableAvailabilityScopes,
     VariableReferenceType,
 } from "@global_shared";
 import {
-    BlockRequestWithAdditionalData,
+    VariableSectionRequest,
     EquivalentVariableReferencesFromOtherFiles,
     VariableReferenceFromOtherFile,
-} from "../interfaces";
+} from "./interfaces";
 import { relative } from "path";
 import { areReferencesEquivalentForLanguageFeatures } from "./areReferencesEquivalentForLanguageFeatures";
 import { isDynamicVariableReference } from "./isDynamicVariableReference";
 
 export function getMatchingStaticScriptVariableReferences(
     {
-        file: { allBlocks, blockContainingPosition, collection },
+        file: { allSections, sectionContainingPosition, collection },
         request: { filePath },
-    }: BlockRequestWithAdditionalData<CodeBlock>,
+    }: VariableSectionRequest,
     variableType: BrunoVariableType.Folder | BrunoVariableType.Request,
 ): EquivalentVariableReferencesFromOtherFiles[] {
     const relevantScope =
-        blockContainingPosition.name == RequestFileBlockName.PreRequestScript
+        sectionContainingPosition.kind ==
+        VariableScopeSectionKind.PreRequestScript
             ? VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
             : VariableAvailabilityScopes.PostResponseScriptForOwnItemAndDescendants;
     // Avoid using cached data for determining references within own file because unsaved changes would be ignored.
-    const allReferencesFromSameFile = allBlocks.flatMap(
+    const allReferencesFromSameFile = allSections.flatMap(
         ({ variableReferences }) => variableReferences ?? [],
     );
 

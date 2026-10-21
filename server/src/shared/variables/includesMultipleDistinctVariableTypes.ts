@@ -1,4 +1,4 @@
-import { MatchingDynamicVariables } from "../interfaces";
+import { MatchingDynamicVariables } from "./interfaces";
 
 export function includesMultipleDistinctVariableTypes({
     fromSameFile,

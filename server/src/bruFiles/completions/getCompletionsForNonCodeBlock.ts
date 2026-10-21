@@ -1,13 +1,11 @@
 import {
     Block,
     BrunoVariableType,
-    getBlocksWithoutVariableSupport,
-    getMatchingTextContainingPosition,
+    hasVariableSupport,
+    isScriptVarsSection,
     getPossibleMethodBlocks,
     isAuthBlock,
     isBrunoFileType,
-    Logger,
-    Position,
     RequestFileBlockName,
     SettingsFileSpecificBlock,
     VariableReferenceType,
@@ -25,8 +23,12 @@ import {
     TypedCollection,
     TypedCollectionItemProvider,
 } from "../../shared";
-import { BlockRequestWithAdditionalData } from "../shared/interfaces";
-import { mapVariablesToCompletions } from "./mapVariablesToCompletions";
+import {
+    BlockRequestWithAdditionalData,
+    toVariableSectionRequest,
+} from "../shared/interfaces";
+import { getCompletionsForReadOnlyVariablesInNonCodeSection } from "../../shared/variables/getCompletionsForReadOnlyVariablesInNonCodeSection";
+import { mapVariablesToCompletions } from "../../shared/variables/mapVariablesToCompletions";
 import { getMetaBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getMetaBlockContentCompletions";
 import { getMethodBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getMethodBlockContentCompletions";
 import { getAuthBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getAuthBlockContentCompletions";
@@ -34,7 +36,7 @@ import { getSettingsBlockContentCompletions } from "./dictionaryBlocks/specificB
 import { getGrpcBodyBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getGrpcBodyBlockContentCompletions";
 import { getWsBodyBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getWsBodyBlockContentCompletions";
 import { getAuthModeBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getAuthModeBlockContentCompletions";
-import { getAllVariableReferences } from "../shared/VariableReferences/getAllVariableReferences";
+import { getAllVariableReferences } from "../../shared/variables/getAllVariableReferences";
 import { getTextEditForKey } from "./dictionaryBlocks/generic/getTextEditForKey";
 
 export async function getCompletionsForNonCodeBlock(
@@ -47,18 +49,12 @@ export async function getCompletionsForNonCodeBlock(
         file: { blockContainingPosition, allBlocks, collection },
     } = fullRequest;
 
-    const blockHasVariableSupport = !(
-        getBlocksWithoutVariableSupport() as string[]
-    ).includes(blockContainingPosition.name);
+    const { kind: sectionKind } =
+        toVariableSectionRequest(fullRequest).file.sectionContainingPosition;
+    const blockHasVariableSupport = hasVariableSupport(sectionKind);
+    // For Script variable blocks only write-only variables can be defined.
     const blockSupportsOnlyWriteOnlyVars =
-        blockHasVariableSupport &&
-        // For Script variable blocks only write-only variables can be defined.
-        (
-            [
-                RequestFileBlockName.PreRequestVars,
-                RequestFileBlockName.PostResponseVars,
-            ] as string[]
-        ).includes(blockContainingPosition.name);
+        blockHasVariableSupport && isScriptVarsSection(sectionKind);
 
     return (
         (await getBlockSpecificCompletions(
@@ -76,85 +72,10 @@ export async function getCompletionsForNonCodeBlock(
                     fullRequest,
                     configuredEnvironment,
                 )
-              : getCompletionsForBlockWithReadOnlyVariables(
-                    fullRequest,
+              : getCompletionsForReadOnlyVariablesInNonCodeSection(
+                    toVariableSectionRequest(fullRequest),
                     configuredEnvironment,
                 ),
-    );
-}
-
-function getCompletionsForBlockWithReadOnlyVariables(
-    fullRequest: BlockRequestWithAdditionalData<Block>,
-    configuredEnvironment?: string,
-) {
-    const { request, logger } = fullRequest;
-    const { documentHelper, position } = request;
-    const { line } = position;
-    const functionType = VariableReferenceType.Read;
-    // In non-code blocks with read-only variables, all kinds of variables can be accessed via the same syntax.
-    const variableType = BrunoVariableType.Unknown;
-    const lineContent = documentHelper.getLineByIndex(line);
-
-    const variableParsingResult = getVariable(request, lineContent, logger);
-    if (!variableParsingResult) {
-        return [];
-    }
-
-    const { variable, toAppendOnInsertion } = variableParsingResult;
-
-    const allRefs = getAllVariableReferences(
-        fullRequest,
-        {
-            referenceType: functionType,
-            variableType,
-        },
-        {
-            configuredEnvironment,
-        },
-    );
-
-    if (!allRefs) {
-        return [];
-    }
-
-    const {
-        staticReferences: { fromEnvironmentFiles },
-        dynamicReferences: { withinSameFile, fromOtherFiles },
-    } = allRefs;
-
-    return mapVariablesToCompletions(
-        {
-            staticEnvVariables: fromEnvironmentFiles.map(
-                ({
-                    file,
-                    matchingVariables,
-                    isConfiguredEnv,
-                    inheritedByEnvironmentName,
-                }) => ({
-                    environmentFile: file,
-                    matchingVariableKeys: matchingVariables.map(
-                        ({ key }) => key,
-                    ),
-                    isConfiguredEnv,
-                    inheritedByEnvironmentName,
-                }),
-            ),
-            dynamicVariables: {
-                fromSameFile: withinSameFile,
-                fromOtherFiles,
-            },
-        },
-        {
-            variable,
-            functionType,
-            variableType,
-            documentLineBreak:
-                documentHelper.getMostUsedLineBreak() ?? LineBreakType.Lf,
-        },
-        (variableName: string, rangeToReplace: Range) => ({
-            newText: `${variableName}${toAppendOnInsertion}`,
-            range: rangeToReplace,
-        }),
     );
 }
 
@@ -171,7 +92,7 @@ function getCompletionsForBlockWithWriteOnlyVariables(
     const variableType = BrunoVariableType.Runtime;
 
     const allRefs = getAllVariableReferences(
-        fullRequest,
+        toVariableSectionRequest(fullRequest),
         {
             referenceType: functionType,
             variableType,
@@ -309,61 +230,4 @@ async function getBlockSpecificCompletions(
         );
     }
     return [];
-}
-
-function getVariable(
-    { position, token }: LanguageFeatureBaseRequest,
-    lineContent: string,
-    logger?: Logger,
-) {
-    const { character, line } = position;
-    const matchingTextResult = getMatchingTextContainingPosition(
-        position,
-        lineContent,
-        /{{[^{}\s]*/,
-    );
-
-    if (!matchingTextResult) {
-        return undefined;
-    }
-
-    const {
-        text: matchingText,
-        startChar,
-        endChar: endCharForMatchingText,
-    } = matchingTextResult;
-    // If the position is not after both starting brackets, provided completions would be inserted in an invalid location.
-    if (character < startChar + 2 || character > endCharForMatchingText) {
-        return undefined;
-    }
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return undefined;
-    }
-
-    // Avoid overwriting content that may not be directly related to the variable.
-    const endCharForInsertion = Math.min(
-        endCharForMatchingText,
-        position.character,
-    );
-
-    return {
-        variable: {
-            name: matchingText.substring(2),
-            start: new Position(line, startChar + 2),
-            end: new Position(line, endCharForInsertion),
-        },
-        toAppendOnInsertion: !lineContent
-            .substring(endCharForInsertion)
-            .startsWith("}")
-            ? "}}"
-            : "",
-    };
-}
-
-function addLogEntryForCancellation(logger?: Logger) {
-    logger?.debug(
-        `Cancellation requested for completion provider for bruno language.`,
-    );
 }

@@ -1,5 +1,4 @@
 import {
-    Block,
     BrunoVariableReference,
     BrunoVariableType,
     Logger,
@@ -8,20 +7,17 @@ import {
     VariableReferenceType,
 } from "@global_shared";
 import { Hover, MarkupContent } from "vscode-languageserver";
+import { getHoverContentForStaticEnvVariables, wrapInCodeSpan } from "..";
 import {
-    getHoverContentForStaticEnvVariables,
-    wrapInCodeSpan,
-} from "../../shared";
-import {
-    BlockRequestWithAdditionalData,
+    VariableSectionRequest,
     EquivalentVariableReferencesFromOtherFiles,
     MatchingDynamicVariables,
-} from "../shared/interfaces";
-import { includesMultipleDistinctVariableTypes } from "../shared/VariableReferences/includesMultipleDistinctVariableTypes";
-import { getAllVariableReferences } from "../shared/VariableReferences/getAllVariableReferences";
+} from "./interfaces";
+import { includesMultipleDistinctVariableTypes } from "./includesMultipleDistinctVariableTypes";
+import { getAllVariableReferences } from "./getAllVariableReferences";
 
 export function getHoverForBrunoVariable(
-    fullRequest: BlockRequestWithAdditionalData<Block>,
+    fullRequest: VariableSectionRequest,
     variableReference: BrunoVariableReference,
     configuredEnvironmentName?: string,
 ): Hover | undefined {

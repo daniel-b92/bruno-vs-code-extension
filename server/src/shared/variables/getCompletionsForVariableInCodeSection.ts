@@ -1,23 +1,19 @@
-import {
-    CodeBlock,
-    BrunoVariableReference,
-    LineBreakType,
-} from "@global_shared";
+import { BrunoVariableReference, LineBreakType } from "@global_shared";
 import { CompletionItem } from "vscode-languageserver";
 import { mapVariablesToCompletions } from "./mapVariablesToCompletions";
-import { BlockRequestWithAdditionalData } from "../shared/interfaces";
-import { getAllVariableReferences } from "../shared/VariableReferences/getAllVariableReferences";
+import { VariableSectionRequest } from "./interfaces";
+import { getAllVariableReferences } from "./getAllVariableReferences";
 
-export function getCompletionsForCodeBlock(
-    fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
+export function getCompletionsForVariableInCodeSection(
+    fullRequest: VariableSectionRequest,
     configuredEnvironment?: string,
 ): CompletionItem[] {
     const {
         request: { position },
-        file: { blockContainingPosition },
+        file: { sectionContainingPosition },
     } = fullRequest;
 
-    const variableReference = blockContainingPosition.variableReferences?.find(
+    const variableReference = sectionContainingPosition.variableReferences.find(
         ({ variableNameRange }) => variableNameRange.contains(position),
     );
 
@@ -33,7 +29,7 @@ export function getCompletionsForCodeBlock(
 }
 
 function getResultsForVariable(
-    fullRequest: BlockRequestWithAdditionalData<CodeBlock>,
+    fullRequest: VariableSectionRequest,
     variableReference: BrunoVariableReference,
     configuredEnvironment?: string,
 ) {

@@ -40,6 +40,7 @@ import { handleCompletionRequest as handleCompletionRequestForYamlFile } from ".
 import { Disposable } from "vscode-languageserver/node";
 import { BrunoLangDiagnosticsProvider } from "./bruFiles/diagnostics/brunoLangDiagnosticsProvider";
 import { handleHoverRequest as handleHoverRequestForBruFile } from "./bruFiles/hover/handleHoverRequest";
+import { handleHoverRequest as handleHoverRequestForYamlFile } from "./yamlFiles/hover/handleHoverRequest";
 import { extname } from "path";
 import { handleCompletionRequest as handleCompletionRequestForJsFile } from "./jsFiles/completionItems/handleCompletionRequest";
 import { handleHoverRequest as handleHoverRequestForJsFile } from "./jsFiles/hover/handleHoverRequest";
@@ -291,6 +292,8 @@ connection.onHover(async ({ textDocument: { uri }, position }, token) => {
     switch (type) {
         case FileTypeByExtension.Bru:
             return handleHoverRequestForBruFile(params);
+        case FileTypeByExtension.Yml:
+            return handleHoverRequestForYamlFile(params);
         case FileTypeByExtension.Js:
             return handleHoverRequestForJsFile(params);
     }

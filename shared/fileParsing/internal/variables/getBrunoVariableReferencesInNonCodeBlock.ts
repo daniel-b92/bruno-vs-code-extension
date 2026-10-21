@@ -33,7 +33,7 @@ export function getBrunoVariableReferencesInNonCodeBlock(
     );
 }
 
-function getReadReferences(
+export function getReadReferences(
     fullDocumentHelper: TextDocumentHelper,
     contentRange: Range,
 ) {
@@ -59,8 +59,11 @@ function getReadReferences(
             );
             const variableStartPositionInFullDocument =
                 fullDocumentHelper.getPositionForOffset(
-                    contentRange.start,
-                    match.index + variableStartOffsetWithinMatch,
+                    // The offset is relative to the start of the line, so ranges that don't start at the beginning of a line need to be considered.
+                    new Position(contentRange.start.line, 0),
+                    contentRange.start.character +
+                        match.index +
+                        variableStartOffsetWithinMatch,
                 );
 
             return variableStartPositionInFullDocument

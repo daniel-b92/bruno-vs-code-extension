@@ -1,4 +1,4 @@
-import { Block, BrunoEnvironmentFile, TextOutsideOfBlocks } from "..";
+import { BrunoEnvironmentFile, VariableScopeSection } from "..";
 
 export enum CollectionFormat {
     Bru = "Bru",
@@ -58,8 +58,7 @@ export interface AdditionalCollectionComplexDataProvider<T> {
 }
 
 export interface ParsedFileDataForComplexProvider {
-    blocks: Block[];
-    textOutsideOfBlocks: TextOutsideOfBlocks[];
+    sections: VariableScopeSection[];
 }
 
 export type CollectionData<T> = {

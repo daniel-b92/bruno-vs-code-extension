@@ -24,7 +24,7 @@ Each entry is tagged:
 
 ## 4. File system cache (`shared/fileSystemCache`)
 
-- [getAdditionalCollectionData.ts:37-43](shared/fileSystemCache/internal/getAdditionalCollectionData.ts#L37-L43) **[Gap]**: full-parsing additional data is only computed for Bru; yaml items get `getData(undefined)`. This matters for the server's variable references (see [helpersProvider.ts:56-80](server/src/shared/helpersProvider.ts#L56-L80), which is built on Bru blocks via `getAllVariablesFromBlocks`). There is already a ToDo for this.
+- No open ToDos. Additional data (variable references) is derived from format-neutral `VariableScopeSection`s for both formats ([getAdditionalCollectionData.ts](shared/fileSystemCache/internal/getAdditionalCollectionData.ts)).
 
 ## 5. Shared parsing dispatchers (`shared/fileParsing/external/shared`)
 
@@ -40,9 +40,8 @@ Each entry is tagged:
 
 ## 8. Server (language server)
 
-- [server.ts:291-296](server/src/server.ts#L291-L296) **[Gap]**: hover is only provided for Bru and JS files. Completions are provided for yaml files as well ([yamlFiles/completions/handleCompletionRequest.ts](server/src/yamlFiles/completions/handleCompletionRequest.ts)), covering keys, enum/boolean values, `info.seq`, `info.tags` and environment `extends`, but not yet variables.
+- Completions and hovers are provided for yaml files as well ([yamlFiles/completions/handleCompletionRequest.ts](server/src/yamlFiles/completions/handleCompletionRequest.ts), [yamlFiles/hover/handleHoverRequest.ts](server/src/yamlFiles/hover/handleHoverRequest.ts)), including variables and tags.
 - [server.ts:299-301](server/src/server.ts#L299-L301) **[Gap]**: will-save auto updates (URL ↔ params syncing, [runUpdatesOnWillSave.ts](server/src/bruFiles/autoUpdates/runUpdatesOnWillSave.ts)) only run for Bru.
-- [mapStaticEnvVariablesToCompletions.ts:36-39](server/src/shared/environmentVariables/mapStaticEnvVariablesToCompletions.ts#L36-L39), [getHoverContentForStaticEnvVariables.ts:36-39](server/src/shared/environmentVariables/getHoverContentForStaticEnvVariables.ts#L36-L39) **[Check]**: the environment name is computed as `basename(file, getExtensionForBrunoFiles())`. These helpers are shared with **JS file** completions and hover, which also work inside yaml collections. There the environment would be shown as e.g. `local.yml` instead of `local`. Using `collection.getEnvironments()` (or `getFileExtensionForFormat(collection.getFormat())`) would fix this.
 - `server/src/bruFiles/**` (e.g. [getDictionaryBlockSnippetInsertionContent.ts:113](server/src/bruFiles/completions/dictionaryBlocks/generic/getDictionaryBlockSnippetInsertionContent.ts#L113)) **[OK]**: hard-coded uses of `getFileExtensionForFormat(CollectionFormat.Bru)` here are intentional, since these code paths are only reached for `.bru` documents.
 
 ## 9. TypeScript plugin

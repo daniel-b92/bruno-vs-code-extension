@@ -9,7 +9,6 @@ import {
     NonBrunoSpecificItemType,
     areVariableReferencesEquivalent,
     CollectionDirectory,
-    getAllVariablesFromBlocks,
 } from "@global_shared";
 import { Evt } from "evt";
 import { getFeatureToggles } from "./featureToggles";
@@ -62,9 +61,13 @@ function getAdditionalCollectionDataProvider(): AdditionalCollectionComplexDataP
         ],
         callbacksForItemsRequiringFullParsing: {
             getData(parsedData) {
-                return parsedData
-                    ? getAllVariablesFromBlocks(parsedData.blocks)
-                    : undefined;
+                return parsedData?.sections.flatMap(
+                    ({ kind, variableReferences }) =>
+                        variableReferences.map((reference) => ({
+                            reference,
+                            sectionKind: kind,
+                        })),
+                );
             },
             getFilePathForParsing(item) {
                 return item.isFile()

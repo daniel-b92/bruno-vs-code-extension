@@ -16,7 +16,6 @@ import {
 } from "@shared";
 import {
     JsCodeBlock,
-    CollectionFormat,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
 } from "@global_shared";
@@ -77,23 +76,20 @@ export function provideTsLangCompletionItems(
                     return undefined;
                 }
 
-                // The language server currently only provides completions for environment variables in Bru files.
                 const envVariableResult =
-                    collection.getFormat() == CollectionFormat.Bru
-                        ? getFirstParameterForInbuiltFunctionIfStringLiteral(
-                              mapToEnvVarNameParams(
-                                  {
-                                      file: {
-                                          collection,
-                                          blockContainingPosition,
-                                      },
-                                      request: { document, position, token },
-                                      logger,
-                                  },
-                                  getInbuiltFunctionIdentifiers(),
-                              ),
-                          )
-                        : undefined;
+                    getFirstParameterForInbuiltFunctionIfStringLiteral(
+                        mapToEnvVarNameParams(
+                            {
+                                file: {
+                                    collection,
+                                    blockContainingPosition,
+                                },
+                                request: { document, position, token },
+                                logger,
+                            },
+                            getInbuiltFunctionIdentifiers(),
+                        ),
+                    );
 
                 if (envVariableResult) {
                     // Completions for environment variables are already provided via the language server.

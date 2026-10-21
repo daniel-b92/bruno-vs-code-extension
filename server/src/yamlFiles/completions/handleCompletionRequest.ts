@@ -3,6 +3,9 @@ import {
     FileInfoProperty,
     getYamlCursorContext,
     isBrunoFileType,
+    hasVariableSupport,
+    isCodeSection,
+    isScriptVarsSection,
     Logger,
     TopLevelEnvironmentFileProperty,
     TopLevelRequestFileProperty,
@@ -16,6 +19,9 @@ import {
 import { getSequenceValueCompletion } from "../../shared/getSequenceValueCompletion";
 import { getTagCompletions } from "../../shared/getTagCompletions";
 import { getAvailableEnvironmentNamesForExtends } from "../../shared/getAvailableEnvironmentNamesForExtends";
+import { getCompletionsForReadOnlyVariablesInNonCodeSection } from "../../shared/variables/getCompletionsForReadOnlyVariablesInNonCodeSection";
+import { getCompletionsForVariableInCodeSection } from "../../shared/variables/getCompletionsForVariableInCodeSection";
+import { getVariableSectionRequest } from "../getVariableSectionRequest";
 import { getYamlFileTypeForEditorContent } from "../getYamlFileTypeForEditorContent";
 import { getKeyCompletions, isOnlyKind } from "./getKeyCompletions";
 
@@ -23,6 +29,7 @@ export async function handleCompletionRequest({
     baseRequest,
     collection,
     itemProvider,
+    configuredEnvironmentName,
     logger,
 }: LanguageRequestWithTestEnvironmentInfo): Promise<
     CompletionItem[] | undefined
@@ -40,6 +47,38 @@ export async function handleCompletionRequest({
         cachedItemType,
         documentHelper.getText(),
     );
+
+    const variableRequest = getVariableSectionRequest(
+        baseRequest,
+        collection,
+        itemType,
+        logger,
+    );
+
+    if (variableRequest) {
+        const { kind } = variableRequest.file.sectionContainingPosition;
+
+        if (isCodeSection(kind)) {
+            // Within code sections, only variables are relevant.
+            return getCompletionsForVariableInCodeSection(
+                variableRequest,
+                configuredEnvironmentName,
+            );
+        }
+
+        if (!isScriptVarsSection(kind) && hasVariableSupport(kind)) {
+            const variableCompletions =
+                getCompletionsForReadOnlyVariablesInNonCodeSection(
+                    variableRequest,
+                    configuredEnvironmentName,
+                    `"'`,
+                );
+
+            if (variableCompletions.length > 0) {
+                return variableCompletions;
+            }
+        }
+    }
 
     const context = getYamlCursorContext({
         docHelper: documentHelper,

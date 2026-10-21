@@ -9,6 +9,7 @@ import {
     BrunoVariableType,
     ReadyOnlyCollection,
     LineBreakType,
+    VariableScopeSectionKind,
 } from "@global_shared";
 import { CancellationToken } from "vscode-languageserver";
 
@@ -20,7 +21,11 @@ export type TypedCollection = ReadyOnlyCollection<AdditionalCollectionData>;
 export type TypedCollectionData = CollectionData<AdditionalCollectionData>;
 
 export type AdditionalCollectionData =
-    { reference: BrunoVariableReference; block: string }[] | undefined;
+    | {
+          reference: BrunoVariableReference;
+          sectionKind: VariableScopeSectionKind;
+      }[]
+    | undefined;
 
 export interface LanguageRequestWithTestEnvironmentInfo {
     baseRequest: LanguageFeatureBaseRequest;

@@ -1,9 +1,5 @@
-import { basename } from "path";
-import {
-    Range,
-    getFileExtensionForFormat,
-    CollectionFormat,
-} from "@global_shared";
+import { parse } from "path";
+import { Range } from "@global_shared";
 import { wrapInCodeSpan } from "../markdown/wrapInCodeSpan";
 
 export function getHoverContentForStaticEnvVariables(
@@ -37,10 +33,7 @@ export function getHoverContentForStaticEnvVariables(
                     isConfiguredEnv,
                     inheritedByEnvironmentName,
                 }) => {
-                    const environmentName = basename(
-                        file,
-                        getFileExtensionForFormat(CollectionFormat.Bru),
-                    );
+                    const environmentName = parse(file).name;
                     const environmentColumnText = inheritedByEnvironmentName
                         ? `${environmentName} (inherited by '${inheritedByEnvironmentName}')`
                         : environmentName;

@@ -34,7 +34,6 @@ export * from "./fileSystemCache/external/interfaces";
 
 // file parsing - bru format
 export * from "./fileParsing/external/bruFormat/parseBruFile";
-export * from "./fileParsing/external/bruFormat/parseFileByPath";
 export * from "./fileParsing/external/bruFormat/parseCodeBlock";
 export * from "./fileParsing/external/shared/getSequenceForFile";
 export * from "./fileParsing/external/bruFormat/getSequenceFieldFromMetaBlock";
@@ -61,6 +60,9 @@ export * from "./fileParsing/external/yamlFormat/parseAppFile";
 export * from "./fileParsing/external/yamlFormat/parseYamlEnvironmentFile";
 export * from "./fileParsing/external/yamlFormat/parseInfoFromYamlFile";
 export * from "./fileParsing/external/yamlFormat/getScriptBlocksFromYamlFile";
+export * from "./fileParsing/external/yamlFormat/getVariableScopeSectionsFromYamlFile";
+export * from "./fileParsing/external/bruFormat/getVariableScopeSectionsFromBlocks";
+export * from "./fileParsing/external/shared/getVariableScopeSectionsFromFile";
 export * from "./fileParsing/external/yamlFormat/getBlocksWithoutLineCommentsFromYamlFile";
 export * from "./fileParsing/external/shared/codeBlocks/getJsCodeBlocksFromFile";
 export * from "./fileParsing/external/yamlFormat/getInfoTypeFromYamlContent";
@@ -102,6 +104,9 @@ export * from "./vsCodeSettings/interfaces";
 export * from "./languageUtils/bruFormat/blockInterfaces";
 export * from "./languageUtils/bruFormat/contentInterfaces";
 export * from "./languageUtils/shared/areVariableReferencesEquivalent";
+export * from "./languageUtils/shared/variables/interfaces";
+export * from "./languageUtils/bruFormat/commonBlocks/generic/variables/getVariableScopeSectionKindForBlockName";
+export * from "./languageUtils/shared/variables/variableScopeSectionHelpers";
 
 // language utils - request files
 export * from "./languageUtils/bruFormat/requestFiles/requestFileBlockNameEnum";
@@ -141,7 +146,6 @@ export * from "./languageUtils/bruFormat/commonBlocks/getMethodBlockBodyFieldVal
 export * from "./languageUtils/bruFormat/commonBlocks/getExpectedUrlQueryParamsForQueryParamsBlock";
 export * from "./languageUtils/bruFormat/commonBlocks/getPathParamsFromPathParamsBlock";
 export * from "./languageUtils/bruFormat/commonBlocks/settingsFileSpecificBlockEnum";
-export * from "./languageUtils/bruFormat/commonBlocks/getAllVariablesFromBlocks";
 
 export * from "./languageUtils/bruFormat/commonBlocks/metaBlock/metaBlockKeyEnum";
 export * from "./languageUtils/bruFormat/commonBlocks/metaBlock/requestTypeEnum";
@@ -173,16 +177,12 @@ export * from "./languageUtils/bruFormat/commonBlocks/generic/getActiveFieldFrom
 export * from "./languageUtils/bruFormat/commonBlocks/generic/getActiveSimpleFieldFromDictionaryBlockIfExistsOnce";
 export * from "./languageUtils/bruFormat/commonBlocks/generic/getSortedBlocksByPosition";
 
-export * from "./languageUtils/bruFormat/commonBlocks/generic/runtimeBehavior/getBlockRuntimeExecutionGroup";
-export * from "./languageUtils/bruFormat/commonBlocks/generic/runtimeBehavior/getBlocksWithEarlierExecutionGroups";
-export * from "./languageUtils/bruFormat/commonBlocks/generic/runtimeBehavior/getBlocksWithLaterExecutionGroups";
 
 export * from "./languageUtils/bruFormat/commonBlocks/generic/typeguards/isBlockDictionaryBlock";
 export * from "./languageUtils/bruFormat/commonBlocks/generic/typeguards/isBlockCodeBlock";
 export * from "./languageUtils/bruFormat/commonBlocks/generic/typeguards/isBlockArrayBlock";
 
-export * from "./languageUtils/bruFormat/commonBlocks/generic/variables/getPatternForVariablesInNonCodeBlock";
-export * from "./languageUtils/bruFormat/commonBlocks/generic/variables/getBlocksWithoutVariableSupport";
+export * from "./languageUtils/shared/variables/getPatternForVariablesInNonCodeBlock";
 
 export * from "./languageUtils/bruFormat/commonBlocks/generic/dictionaryBlocks/getKeyRangeContainingPosition";
 export * from "./languageUtils/bruFormat/commonBlocks/generic/dictionaryBlocks/getActiveKeysUsedInOtherLines";

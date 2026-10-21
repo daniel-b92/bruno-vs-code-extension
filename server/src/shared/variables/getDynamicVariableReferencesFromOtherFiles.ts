@@ -9,12 +9,12 @@ import {
     isRequestFileOrCollectionDirectory,
     BrunoVariableType,
 } from "@global_shared";
-import { TypedCollection, TypedCollectionData } from "../../../shared";
+import { TypedCollection, TypedCollectionData } from "..";
 import { dirname, relative } from "path";
 import {
     VariableReferenceFromOtherFile,
     EquivalentVariableReferencesFromOtherFiles,
-} from "../interfaces";
+} from "./interfaces";
 import { areReferencesEquivalentForLanguageFeatures } from "./areReferencesEquivalentForLanguageFeatures";
 import { filterDynamicReferences } from "./filterDynamicReferences";
 

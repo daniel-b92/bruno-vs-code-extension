@@ -1,13 +1,8 @@
-import { basename } from "path";
-import {
-    VariableReferenceType,
-    Range,
-    getFileExtensionForFormat,
-    CollectionFormat,
-} from "@global_shared";
+import { parse } from "path";
+import { VariableReferenceType, Range } from "@global_shared";
 import { VariableSpecificRequestData } from "../interfaces";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
-import { GetTextEditForVariableCompletion } from "../../bruFiles/completions/mapVariablesToCompletions";
+import { GetTextEditForVariableCompletion } from "../variables/mapVariablesToCompletions";
 
 export function mapStaticEnvVariablesToCompletions(
     {
@@ -34,10 +29,7 @@ export function mapStaticEnvVariablesToCompletions(
             inheritedByEnvironmentName,
         }) =>
             matchingVariableKeys.map((key) => {
-                const environmentName = basename(
-                    environmentFile,
-                    getFileExtensionForFormat(CollectionFormat.Bru),
-                );
+                const environmentName = parse(environmentFile).name;
                 const environmentLabel = inheritedByEnvironmentName
                     ? `'${environmentName}' (inherited by '${inheritedByEnvironmentName}')`
                     : `'${environmentName}'`;

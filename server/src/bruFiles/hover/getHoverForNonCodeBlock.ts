@@ -1,23 +1,19 @@
 import {
     Block,
-    getBlocksWithoutVariableSupport,
     getDictionaryBlockArrayField,
     getExistingRequestFileTags,
     Logger,
     MetaBlockKey,
     RequestFileBlockName,
-    TagOccurences,
-    TextDocumentHelper,
 } from "@global_shared";
-import {
-    AdditionalCollectionData,
-    TypedCollectionItemProvider,
-    wrapInCodeSpan,
-} from "../../shared";
-import { basename } from "path";
+import { TypedCollectionItemProvider } from "../../shared";
+import { getHoverForTagOccurences } from "../../shared/getHoverForTagOccurences";
 import { Hover } from "vscode-languageserver";
-import { getHoverForBrunoVariable } from "./getHoverForBrunoVariable";
-import { BlockRequestWithAdditionalData } from "../shared/interfaces";
+import { getHoverForVariableInNonCodeSection } from "../../shared/variables/getHoverForVariableInNonCodeSection";
+import {
+    BlockRequestWithAdditionalData,
+    toVariableSectionRequest,
+} from "../shared/interfaces";
 
 export function getHoverForNonCodeBlock(
     itemProvider: TypedCollectionItemProvider,
@@ -26,8 +22,8 @@ export function getHoverForNonCodeBlock(
 ) {
     return params.file.blockContainingPosition.name == RequestFileBlockName.Meta
         ? getHoverForTagsInMetaBlock(itemProvider, params)
-        : getHoverForVariablesInNonCodeBlocks(
-              params,
+        : getHoverForVariableInNonCodeSection(
+              toVariableSectionRequest(params),
               configuredEnvironmentName,
           );
 }
@@ -76,80 +72,6 @@ function getHoverForTagsInMetaBlock(
     }
 
     return getHoverForTagOccurences(filePath, documentHelper, tagOccurences[0]);
-}
-
-function getHoverForVariablesInNonCodeBlocks(
-    fullRequest: BlockRequestWithAdditionalData<Block>,
-    configuredEnvironmentName?: string,
-): Hover | undefined {
-    const {
-        file: { blockContainingPosition },
-        request: { position, token },
-        logger,
-    } = fullRequest;
-
-    if (
-        (getBlocksWithoutVariableSupport() as string[]).includes(
-            blockContainingPosition.name,
-        )
-    ) {
-        return undefined;
-    }
-
-    const variableReference = blockContainingPosition.variableReferences?.find(
-        ({ variableNameRange }) => variableNameRange.contains(position),
-    );
-
-    if (!variableReference) {
-        return undefined;
-    }
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return undefined;
-    }
-
-    return getHoverForBrunoVariable(
-        fullRequest,
-        variableReference,
-        configuredEnvironmentName,
-    );
-}
-
-function getHoverForTagOccurences(
-    filePath: string,
-    docHelper: TextDocumentHelper,
-    {
-        pathsInOwnCollection,
-        inOtherCollections,
-    }: TagOccurences<AdditionalCollectionData>,
-): Hover | undefined {
-    const lineBreak = docHelper.getMostUsedLineBreak();
-    const tableHeader = `| collection | usages |
-| :--------------- | ----------------: | ${lineBreak}`;
-
-    if (pathsInOwnCollection.length == 0 && inOtherCollections.length == 0) {
-        return { contents: "No other usages found." };
-    }
-
-    const content = tableHeader
-        .concat(
-            pathsInOwnCollection.length > 0
-                ? `| ${wrapInCodeSpan("own")} | ${wrapInCodeSpan(`${pathsInOwnCollection.filter((path) => path != filePath).length} other file(s)`)} | ${lineBreak}`
-                : "",
-        )
-        .concat(
-            inOtherCollections.length > 0
-                ? inOtherCollections
-                      .map(
-                          ({ collection, paths }) =>
-                              `| ${wrapInCodeSpan(basename(collection.getRootDirectory()))} | ${wrapInCodeSpan(String(paths.length))} |`,
-                      )
-                      .join(lineBreak)
-                : "",
-        );
-
-    return { contents: { kind: "markdown", value: content } };
 }
 
 function addLogEntryForCancellation(logger?: Logger) {

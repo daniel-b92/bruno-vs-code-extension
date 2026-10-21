@@ -183,6 +183,15 @@ The variable machinery only reads two things from a `Block`: `variableReferences
     - `provideTsLangCompletionItems.ts` (L80-102) only defers env-var completions inside `bru.getEnvVar("…")` to the server for Bru. Extend that to yaml.
     - `provideInfosOnHover.ts` (L64-70) always answers for yaml. Mirror the Bru handling so that server hovers for variables in scripts don't get duplicated or swallowed.
 
+### Known limitations after implementing step 4
+
+- **Static script variable labels:** the "block" label for static script variables from other files (`mapStaticScriptVariables` in `mapVariablesToCompletions.ts`, `getContentForStaticScriptVarsReferences` in `getHoverForBrunoVariable.ts`) is always `vars:pre-request` / `vars:post-response`, also in yaml collections. A format-aware label (e.g. `runtime.variables`, `runtime.actions`, `request.variables`) would need the collection format to be passed down to these functions.
+- **No variable name completions in yaml:** variable names in `runtime.variables[].name` and `variable.name` of set-variable actions get no completions. This only exists for Bru (`getCompletionsForBlockWithWriteOnlyVariables`, based on Bru dictionary fields). Yaml sections of kind `PreRequestVars`/`PostResponseVars` are skipped for variable completions in `yamlFiles/completions/handleCompletionRequest.ts`.
+- **Quote handling for `{{` completions:** the shared `getCompletionsForReadOnlyVariablesInNonCodeSection` takes `nonVariableNameCharacters`. The yaml handler passes `"` and `'`, so the closing quote of a string is not treated as part of the variable name. Bru uses the unchanged pattern.
+- **Read references in yaml** are only found in single-line plain/quoted scalars and in block scalars. Multi-line plain/quoted scalars are skipped, and so are scripts that are not literal block scalars. Variable values (`runtime.variables[].value`) are not searched for `{{var}}`.
+- **Unsupported yaml sections:** environment and app files get no variable sections. The `config` and `extensions` sections of collection settings count as `NoVariableSupport`.
+- **No tests yet** for the yaml branch of `getAdditionalCollectionData` (mapping a directory to the folder/collection settings file type).
+
 ## Step 5: Optional, cheap via descriptors
 
 A generic key hover: expected type, mandatory/optional, allowed values. Bru doesn't have this, so it's beyond parity. Only do it if wanted.
