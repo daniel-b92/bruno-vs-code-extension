@@ -1,6 +1,7 @@
 import { describe, it, expect } from "@jest/globals";
 import {
     BrunoCollectionSettingsFile,
+    BrunoFolderSettingsFile,
     BrunoRequestFile,
     CollectionFormat,
     CollectionItem,
@@ -11,12 +12,17 @@ import {
     createCollectionWithEnvironments,
     createItemProviderStub,
 } from "@global_shared/_testingUtils";
-import { CancellationToken, InsertTextMode } from "vscode-languageserver";
+import {
+    CancellationToken,
+    InsertTextMode,
+    TextEdit,
+} from "vscode-languageserver";
 import { TypedCollectionItemProvider } from "../../shared";
 import { handleCompletionRequest } from "./handleCompletionRequest";
 
 const requestPath = "/collection/request.yml";
 const environmentPath = "/collection/environments/Dev.yml";
+const folderSettingsPath = "/collection/folder/folder.yml";
 const collectionSettingsPath = "/collection/opencollection.yml";
 
 describe("handleCompletionRequest for yaml files", () => {
@@ -555,6 +561,107 @@ http:
             );
 
             expect(result ?? []).toEqual([]);
+        });
+    });
+
+    describe("names of script variables", () => {
+        it("suggests variables that are read in a before-request script for 'variables[].name'", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  variables:
+    - name: 
+      value: "1"
+  scripts:
+    - type: before-request
+      code: |
+        bru.getRequestVar("token");
+`,
+                new Position(2, 12),
+            );
+
+            expect(result?.map(({ label }) => label)).toEqual(["token"]);
+            expect(result?.[0].textEdit).toEqual({
+                range: { start: new Position(2, 12), end: new Position(2, 12) },
+                newText: "token",
+            });
+        });
+
+        it("inserts a separating space, if the cursor directly follows the colon", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  variables:
+    - name:
+  scripts:
+    - type: before-request
+      code: |
+        bru.getRequestVar("token");
+`,
+                new Position(2, 11),
+            );
+
+            expect(
+                result?.map(({ textEdit }) => (textEdit as TextEdit).newText),
+            ).toEqual([" token"]);
+        });
+
+        it("suggests variables that are read in an after-response script for the name of 'set-variable' actions", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  actions:
+    - type: set-variable
+      variable:
+        name: 
+  scripts:
+    - type: after-response
+      code: |
+        bru.getRequestVar("token");
+`,
+                new Position(4, 14),
+            );
+
+            expect(result?.map(({ label }) => label)).toEqual(["token"]);
+        });
+
+        it("does not suggest names that are already defined in other items", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  variables:
+    - name: token
+      value: "1"
+    - name: 
+      value: "2"
+  scripts:
+    - type: before-request
+      code: |
+        bru.getRequestVar("token");
+        bru.getRequestVar("other");
+`,
+                new Position(4, 12),
+            );
+
+            expect(result?.map(({ label }) => label)).toEqual(["other"]);
+        });
+
+        it("uses the 'request' container in folder settings files", async () => {
+            const result = await complete(
+                folderSettingsPath,
+                `request:
+  variables:
+    - name: 
+  scripts:
+    - type: before-request
+      code: |
+        bru.getFolderVar("token");
+`,
+                new Position(2, 12),
+                [new BrunoFolderSettingsFile(folderSettingsPath)],
+            );
+
+            expect(result?.map(({ label }) => label)).toEqual(["token"]);
         });
     });
 });

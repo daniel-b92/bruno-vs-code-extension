@@ -1,6 +1,5 @@
 import {
     Block,
-    BrunoVariableType,
     hasVariableSupport,
     isScriptVarsSection,
     getPossibleMethodBlocks,
@@ -8,11 +7,8 @@ import {
     isBrunoFileType,
     RequestFileBlockName,
     SettingsFileSpecificBlock,
-    VariableReferenceType,
     getActiveKeysUsedInOtherLines,
     getKeyRangeContainingPosition,
-    LineBreakType,
-    Range,
     BrunoFileType,
     getActiveSimpleFieldFromDictionaryBlockIfExistsOnce,
     MetaBlockKey,
@@ -28,7 +24,7 @@ import {
     toVariableSectionRequest,
 } from "../shared/interfaces";
 import { getCompletionsForReadOnlyVariablesInNonCodeSection } from "../../shared/variables/getCompletionsForReadOnlyVariablesInNonCodeSection";
-import { mapVariablesToCompletions } from "../../shared/variables/mapVariablesToCompletions";
+import { getCompletionsForWriteOnlyVariablesInNonCodeSection } from "../../shared/variables/getCompletionsForWriteOnlyVariablesInNonCodeSection";
 import { getMetaBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getMetaBlockContentCompletions";
 import { getMethodBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getMethodBlockContentCompletions";
 import { getAuthBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getAuthBlockContentCompletions";
@@ -36,7 +32,6 @@ import { getSettingsBlockContentCompletions } from "./dictionaryBlocks/specificB
 import { getGrpcBodyBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getGrpcBodyBlockContentCompletions";
 import { getWsBodyBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getWsBodyBlockContentCompletions";
 import { getAuthModeBlockContentCompletions } from "./dictionaryBlocks/specificBlocks/getAuthModeBlockContentCompletions";
-import { getAllVariableReferences } from "../../shared/variables/getAllVariableReferences";
 import { getTextEditForKey } from "./dictionaryBlocks/generic/getTextEditForKey";
 
 export async function getCompletionsForNonCodeBlock(
@@ -84,83 +79,28 @@ function getCompletionsForBlockWithWriteOnlyVariables(
     configuredEnvironment?: string,
 ) {
     const {
-        request: { documentHelper, position },
+        request: { position },
         file: { blockContainingPosition: block },
     } = fullRequest;
-    const functionType = VariableReferenceType.Write;
-    // For non-code blocks with write-only variable access options, only simple variables can be set.
-    const variableType = BrunoVariableType.Runtime;
 
-    const allRefs = getAllVariableReferences(
+    return getCompletionsForWriteOnlyVariablesInNonCodeSection(
         toVariableSectionRequest(fullRequest),
         {
-            referenceType: functionType,
-            variableType,
+            variableRange: getKeyRangeContainingPosition(position, block),
+            alreadyDefinedNames: getActiveKeysUsedInOtherLines(
+                position.line,
+                block,
+            ),
+            getTextEdit: (variableName, rangeToReplace, lineBreak) =>
+                getTextEditForKey(
+                    lineBreak,
+                    rangeToReplace,
+                    variableName,
+                    true,
+                ),
         },
-        {
-            configuredEnvironment,
-        },
+        configuredEnvironment,
     );
-
-    if (!allRefs) {
-        return [];
-    }
-
-    const activeKeysInOtherLines = getActiveKeysUsedInOtherLines(
-        position.line,
-        block,
-    );
-    const variableRange = getKeyRangeContainingPosition(position, block);
-
-    const nonDuplicateRefsFromOtherFiles =
-        // For Script variable blocks, the only relevant references can be in code blocks, which means dynamic references.
-        allRefs.dynamicReferences.fromOtherFiles.filter(
-            ({
-                mostRelevantReference: {
-                    reference: { variableName },
-                },
-            }) => !activeKeysInOtherLines.includes(variableName),
-        );
-    const nonDuplicateRefsFromSameFile =
-        // For Script variable blocks, the only relevant references can be in code blocks, which means dynamic references.
-        allRefs.dynamicReferences.withinSameFile.filter(
-            ({ variableReference: { variableName } }) =>
-                !activeKeysInOtherLines.includes(variableName),
-        );
-
-    return !variableRange
-        ? []
-        : mapVariablesToCompletions(
-              {
-                  staticEnvVariables: [],
-                  staticScriptVariables: [],
-                  dynamicVariables: {
-                      fromSameFile: nonDuplicateRefsFromSameFile,
-                      fromOtherFiles: nonDuplicateRefsFromOtherFiles,
-                  },
-              },
-              {
-                  variable: {
-                      ...variableRange,
-                      name: documentHelper.getText(variableRange),
-                  },
-                  functionType,
-                  variableType,
-                  documentLineBreak:
-                      documentHelper.getMostUsedLineBreak() ?? LineBreakType.Lf,
-              },
-              (
-                  variableName: string,
-                  rangeToReplace: Range,
-                  lineBreak: LineBreakType,
-              ) =>
-                  getTextEditForKey(
-                      lineBreak,
-                      rangeToReplace,
-                      variableName,
-                      true,
-                  ),
-          );
 }
 
 async function getBlockSpecificCompletions(

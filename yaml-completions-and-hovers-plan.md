@@ -185,7 +185,6 @@ The variable machinery only reads two things from a `Block`: `variableReferences
 
 ### Known limitations after implementing step 4
 
-- **No variable name completions in yaml:** variable names in `runtime.variables[].name` and `variable.name` of set-variable actions get no completions. This only exists for Bru (`getCompletionsForBlockWithWriteOnlyVariables`, based on Bru dictionary fields). Yaml sections of kind `PreRequestVars`/`PostResponseVars` are skipped for variable completions in `yamlFiles/completions/handleCompletionRequest.ts`.
 - **Quote handling for `{{` completions:** the shared `getCompletionsForReadOnlyVariablesInNonCodeSection` takes `nonVariableNameCharacters`. The yaml handler passes `"` and `'`, so the closing quote of a string is not treated as part of the variable name. Bru uses the unchanged pattern.
 - **Read references in yaml** are only found in single-line plain/quoted scalars and in block scalars. Multi-line plain/quoted scalars are skipped, and so are scripts that are not literal block scalars. Variable values (`runtime.variables[].value`) are not searched for `{{var}}`.
 - **Unsupported yaml sections:** environment and app files get no variable sections. The `config` and `extensions` sections of collection settings count as `NoVariableSupport`.
