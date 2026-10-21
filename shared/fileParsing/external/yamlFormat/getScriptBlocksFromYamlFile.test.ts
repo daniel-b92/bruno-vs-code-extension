@@ -1,6 +1,9 @@
 import { describe, it, expect } from "@jest/globals";
-import { BrunoFileType, TextDocumentHelper } from "../../..";
-import { getScriptBlocksFromYamlFile } from "./getScriptBlocksFromYamlFile";
+import { BrunoFileType, Position, Range, TextDocumentHelper } from "../../..";
+import {
+    getScriptBlocksFromYamlFile,
+    YamlScriptBlockOptions,
+} from "./getScriptBlocksFromYamlFile";
 import { FileInfoType, ScriptType } from "./constants/sharedConstants";
 
 describe("getScriptBlocksFromYamlFile", () => {
@@ -83,11 +86,46 @@ request:
 
         expect(blocks).toHaveLength(0);
     });
+
+    it("returns single-line plain scalars only if requested", () => {
+        const content = `runtime:
+  scripts:
+    - type: before-request
+      code: bru.setVar("a", 1); # comment
+    - type: tests
+      code: "bru.setVar('b', 1);"
+`;
+
+        expect(getBlocks(content, BrunoFileType.RequestFile).blocks).toEqual(
+            [],
+        );
+
+        const { blocks } = getBlocks(content, BrunoFileType.RequestFile, {
+            includeSingleLinePlainScalars: true,
+        });
+
+        expect(blocks).toEqual([
+            expect.objectContaining({
+                name: "scripts[0]:before-request",
+                scriptType: ScriptType.BeforeRequest,
+                content: 'bru.setVar("a", 1);',
+                contentRange: new Range(
+                    new Position(3, 12),
+                    new Position(3, 31),
+                ),
+            }),
+        ]);
+    });
 });
 
-function getBlocks(content: string, itemType: BrunoFileType) {
+function getBlocks(
+    content: string,
+    itemType: BrunoFileType,
+    options?: YamlScriptBlockOptions,
+) {
     return getScriptBlocksFromYamlFile(
         new TextDocumentHelper(content),
         itemType,
+        options,
     );
 }

@@ -2,6 +2,8 @@ import { describe, expect, it } from "@jest/globals";
 import {
     BrunoFileType,
     BrunoVariableType,
+    Position,
+    Range,
     TextDocumentHelper,
     VariableAvailabilityScopes,
     VariableReferenceType,
@@ -88,6 +90,85 @@ docs: |
         });
     });
 
+    it("finds read references in multi-line plain and quoted scalars", () => {
+        const sections = getSections(
+            BrunoFileType.RequestFile,
+            `http:
+  method: GET
+  url: "{{first}}/some
+    /{{second}}"
+  headers:
+    - name: a
+      value: plain
+        {{third}}
+`,
+        );
+
+        const references = findSection(sections, "http").variableReferences;
+
+        expect(
+            references.map(
+                ({ variableName, variableNameRange: { start } }) => ({
+                    variableName,
+                    line: start.line,
+                    character: start.character,
+                }),
+            ),
+        ).toEqual([
+            { variableName: "first", line: 2, character: 10 },
+            { variableName: "second", line: 3, character: 7 },
+            { variableName: "third", line: 7, character: 10 },
+        ]);
+    });
+
+    it("ignores references in quoted scalars when escape sequences make the value differ from the text", () => {
+        const sections = getSections(
+            BrunoFileType.RequestFile,
+            `http:
+  method: GET
+  url: "\\x7b\\x7bescaped}}"
+  headers:
+    - name: a
+      value: "{{normal}}"
+`,
+        );
+
+        expect(
+            findSection(sections, "http").variableReferences.map(
+                (r) => r.variableName,
+            ),
+        ).toEqual(["normal"]);
+    });
+
+    it("finds read references in values of variables, in addition to the write references", () => {
+        const sections = getSections(
+            BrunoFileType.RequestFile,
+            `runtime:
+  variables:
+    - name: first
+      value: "{{other}}"
+`,
+        );
+
+        expect(
+            findSection(sections, "runtime.variables").variableReferences.map(
+                ({ variableName, referenceType }) => ({
+                    variableName,
+                    referenceType,
+                }),
+            ),
+        ).toEqual([
+            {
+                variableName: "first",
+                referenceType: VariableReferenceType.Write,
+            },
+            {
+                variableName: "other",
+                referenceType: VariableReferenceType.Read,
+            },
+        ]);
+    });
+
     it("finds read references in block scalars", () => {
         const sections = getSections(
             BrunoFileType.RequestFile,
@@ -116,7 +197,7 @@ docs: |
             `runtime:
   variables:
     - name: first
-      value: "{{ignored}}"
+      value: "1"
     - name: disabledVar
       value: x
       disabled: true
@@ -186,6 +267,33 @@ docs: |
                 variables: ["a"],
             },
             { kind: VariableScopeSectionKind.Tests, variables: ["b"] },
+        ]);
+    });
+
+    it("creates sections for scripts defined as single-line plain scalars", () => {
+        const sections = getSections(
+            BrunoFileType.RequestFile,
+            `runtime:
+  scripts:
+    - type: before-request
+      code: bru.setVar("a", 1); # comment
+    - type: tests
+      code: "bru.getEnvVar('quoted');"
+`,
+        );
+
+        expect(sections).toHaveLength(1);
+        expect(sections[0].kind).toBe(
+            VariableScopeSectionKind.PreRequestScript,
+        );
+        expect(sections[0].variableReferences).toEqual([
+            expect.objectContaining({
+                variableName: "a",
+                variableNameRange: new Range(
+                    new Position(3, 24),
+                    new Position(3, 25),
+                ),
+            }),
         ]);
     });
 

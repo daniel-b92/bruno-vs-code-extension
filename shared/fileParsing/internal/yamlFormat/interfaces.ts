@@ -128,6 +128,8 @@ export type ParsedHttpParam = ParsedYamlMapWithValueRange<{
 export type ParsedStringScalarWithStyle = WithKeyAndValueRange<string> & {
     /** Whether the value is a literal block scalar (`|`, `|-`, `|+`). */
     isLiteralBlockScalar: boolean;
+    /** Whether the value is a plain (unquoted) scalar. */
+    isPlainScalar: boolean;
 };
 
 export type ParsedHttpBody = ParsedYamlMapWithKeyAndValueRange<{

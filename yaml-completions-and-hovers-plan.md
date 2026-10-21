@@ -183,12 +183,6 @@ The variable machinery only reads two things from a `Block`: `variableReferences
     - `provideTsLangCompletionItems.ts` (L80-102) only defers env-var completions inside `bru.getEnvVar("…")` to the server for Bru. Extend that to yaml.
     - `provideInfosOnHover.ts` (L64-70) always answers for yaml. Mirror the Bru handling so that server hovers for variables in scripts don't get duplicated or swallowed.
 
-### Known limitations after implementing step 4
-
-- **Read references in yaml** are only found in single-line plain/quoted scalars and in block scalars. Multi-line plain/quoted scalars are skipped, and so are scripts that are not literal block scalars. Variable values (`runtime.variables[].value`) are not searched for `{{var}}`.
-- **Unsupported yaml sections:** environment and app files get no variable sections. The `config` and `extensions` sections of collection settings count as `NoVariableSupport`.
-- **No tests yet** for the yaml branch of `getAdditionalCollectionData` (mapping a directory to the folder/collection settings file type).
-
 ## Step 5: Optional, cheap via descriptors
 
 A generic key hover: expected type, mandatory/optional, allowed values. Bru doesn't have this, so it's beyond parity. Only do it if wanted.

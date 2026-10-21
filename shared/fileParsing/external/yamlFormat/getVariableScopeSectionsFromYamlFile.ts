@@ -13,6 +13,7 @@ import {
     BrunoFileType,
     BrunoVariableReference,
     BrunoVariableType,
+    getPatternForVarsReadReferenceInNonCodeBlock,
     ItemType,
     Position,
     Range,
@@ -33,7 +34,7 @@ import { ScriptType } from "./constants/sharedConstants";
  * Syntax errors in the document are tolerated, so that the sections can also be determined while the user is typing.
  *
  * Read references (`{{var}}`) are only found in single-line plain/quoted scalars and in block scalars.
- * Scripts are only considered, if they are defined as literal block scalars.
+ * Scripts are only considered, if they are defined as literal block scalars or single-line plain scalars.
  */
 export function getVariableScopeSectionsFromYamlFile(
     docHelper: TextDocumentHelper,
@@ -71,6 +72,7 @@ function isItemTypeSupported(itemType: ItemType) {
 function getScriptSections(docHelper: TextDocumentHelper, itemType: ItemType) {
     return getScriptBlocksFromYamlFile(docHelper, itemType, {
         continueOnSyntaxErrors: true,
+        includeSingleLinePlainScalars: true,
     }).blocks.map(
         ({ name, scriptType, contentRange }): VariableScopeSection => ({
             kind: mapScriptTypeToKind(scriptType),
@@ -189,7 +191,9 @@ function createSection(
             kind == VariableScopeSectionKind.NoVariableSupport
                 ? []
                 : isScriptVarsKind(kind)
-                  ? getWriteReferences(node, kind, context)
+                  ? getWriteReferences(node, kind, context).concat(
+                        getReadReferencesInNode(node, context),
+                    )
                   : getReadReferencesInNode(node, context),
     };
 }
@@ -213,40 +217,59 @@ function getReadReferencesInNode(
 
     visit(node, {
         Scalar(_, scalar) {
-            const range = getSearchableRangeOfScalar(
-                scalar,
-                lineCounter,
-                docHelper,
+            references.push(
+                ...getReadReferencesInScalar(scalar, lineCounter, docHelper),
             );
-            if (range) {
-                references.push(...getReadReferences(docHelper, range));
-            }
         },
     });
 
     return references;
 }
 
-function getSearchableRangeOfScalar(
+function getReadReferencesInScalar(
     scalar: Scalar,
     lineCounter: LineCounter,
     docHelper: TextDocumentHelper,
 ) {
     if (typeof scalar.value != "string" || !scalar.range) {
-        return undefined;
+        return [];
     }
 
     const start = toPosition(scalar.range[0], lineCounter);
     const end = toPosition(scalar.range[1], lineCounter);
-
-    if (
+    const isBlockScalar =
         scalar.type == Scalar.BLOCK_LITERAL ||
-        scalar.type == Scalar.BLOCK_FOLDED
-    ) {
-        return getBlockScalarContentRange(start.line, end, docHelper);
+        scalar.type == Scalar.BLOCK_FOLDED;
+    const range = isBlockScalar
+        ? getBlockScalarContentRange(start.line, end, docHelper)
+        : new Range(start, end);
+
+    if (!range) {
+        return [];
     }
 
-    return start.line == end.line ? new Range(start, end) : undefined;
+    const references = getReadReferences(docHelper, range);
+
+    // Escape sequences in quoted scalars can make the text in the document differ from the actual value.
+    return isBlockScalar ||
+        haveSameNames(references, getReadReferencesInString(scalar.value))
+        ? references
+        : [];
+}
+
+function getReadReferencesInString(value: string) {
+    return Array.from(
+        value.matchAll(
+            new RegExp(getPatternForVarsReadReferenceInNonCodeBlock(), "g"),
+        ),
+    ).map(([match]) => match.slice(2, -2));
+}
+
+function haveSameNames(references: BrunoVariableReference[], names: string[]) {
+    return (
+        references.length == names.length &&
+        references.every(({ variableName }, i) => variableName == names[i])
+    );
 }
 
 function getWriteReferences(
