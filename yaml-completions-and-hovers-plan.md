@@ -185,7 +185,6 @@ The variable machinery only reads two things from a `Block`: `variableReferences
 
 ### Known limitations after implementing step 4
 
-- **Quote handling for `{{` completions:** the shared `getCompletionsForReadOnlyVariablesInNonCodeSection` takes `nonVariableNameCharacters`. The yaml handler passes `"` and `'`, so the closing quote of a string is not treated as part of the variable name. Bru uses the unchanged pattern.
 - **Read references in yaml** are only found in single-line plain/quoted scalars and in block scalars. Multi-line plain/quoted scalars are skipped, and so are scripts that are not literal block scalars. Variable values (`runtime.variables[].value`) are not searched for `{{var}}`.
 - **Unsupported yaml sections:** environment and app files get no variable sections. The `config` and `extensions` sections of collection settings count as `NoVariableSupport`.
 - **No tests yet** for the yaml branch of `getAdditionalCollectionData` (mapping a directory to the folder/collection settings file type).

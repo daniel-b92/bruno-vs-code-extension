@@ -13,6 +13,7 @@
 - Fix an issue that could cause the test explorer to miss updates when several files (e.g. an environment file and a request file) changed at the same time.
 - Fix an issue that caused the extension to be offered as a formatter for all JavaScript files in the workspace, although it only formats `.bru` files.
 - Use the term "section" instead of "block" in the variable completions and variable hovers of `.bru` files (e.g. `Section 'vars:pre-request'`), so that the wording is consistent with the `yaml` format.
+- Fix an issue that caused the closing quote of a string to be removed when selecting a variable completion directly behind it (e.g. in a `body:json` block).
 
 ## [1.3.3] (2026-10-10)
 

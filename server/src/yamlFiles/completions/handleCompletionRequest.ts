@@ -74,7 +74,7 @@ export async function handleCompletionRequest({
                 getCompletionsForReadOnlyVariablesInNonCodeSection(
                     variableRequest,
                     configuredEnvironmentName,
-                    `"'`,
+                    true,
                 );
 
             if (variableCompletions.length > 0) {

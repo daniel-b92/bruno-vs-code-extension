@@ -15,8 +15,8 @@ import { mapVariablesToCompletions } from "./mapVariablesToCompletions";
 export function getCompletionsForReadOnlyVariablesInNonCodeSection(
     fullRequest: VariableSectionRequest,
     configuredEnvironment?: string,
-    /** Characters that can never be part of a variable name, e.g. the quotes that surround a Yaml string. */
-    nonVariableNameCharacters = "",
+    /** Set for Yaml, where a plain scalar starting with `{{` would be read as a flow mapping instead of a string. */
+    quoteValueStartingWithBraces = false,
 ) {
     const { request, logger } = fullRequest;
     const { documentHelper, position } = request;
@@ -29,14 +29,15 @@ export function getCompletionsForReadOnlyVariablesInNonCodeSection(
     const variableParsingResult = getVariable(
         request,
         lineContent,
-        nonVariableNameCharacters,
+        quoteValueStartingWithBraces,
         logger,
     );
     if (!variableParsingResult) {
         return [];
     }
 
-    const { variable, toAppendOnInsertion } = variableParsingResult;
+    const { variable, toAppendOnInsertion, quotedValueRange } =
+        variableParsingResult;
 
     const allRefs = getAllVariableReferences(
         fullRequest,
@@ -58,7 +59,7 @@ export function getCompletionsForReadOnlyVariablesInNonCodeSection(
         dynamicReferences: { withinSameFile, fromOtherFiles },
     } = allRefs;
 
-    return mapVariablesToCompletions(
+    const completions = mapVariablesToCompletions(
         {
             staticEnvVariables: fromEnvironmentFiles.map(
                 ({
@@ -87,26 +88,39 @@ export function getCompletionsForReadOnlyVariablesInNonCodeSection(
             documentLineBreak:
                 documentHelper.getMostUsedLineBreak() ?? LineBreakType.Lf,
         },
-        (variableName: string, rangeToReplace: Range) => ({
-            newText: `${variableName}${toAppendOnInsertion}`,
-            range: rangeToReplace,
-        }),
+        (variableName: string, rangeToReplace: Range) =>
+            quotedValueRange
+                ? {
+                      newText: `"{{${variableName}}}"`,
+                      range: quotedValueRange,
+                  }
+                : {
+                      newText: `${variableName}${toAppendOnInsertion}`,
+                      range: rangeToReplace,
+                  },
     );
+
+    // The text edit starts at the opening braces, so the filtering has to take them into account.
+    return quotedValueRange
+        ? completions.map((item) => ({
+              ...item,
+              filterText: `{{${item.label}`,
+          }))
+        : completions;
 }
 
 function getVariable(
     { position, token }: LanguageFeatureBaseRequest,
     lineContent: string,
-    nonVariableNameCharacters: string,
+    quoteValueStartingWithBraces: boolean,
     logger?: Logger,
 ) {
     const { character, line } = position;
     const matchingTextResult = getMatchingTextContainingPosition(
         position,
         lineContent,
-        new RegExp(
-            `{{[^{}\\s${escapeForCharacterClass(nonVariableNameCharacters)}]*`,
-        ),
+        // Quotes can never be part of a variable name, so a closing quote of a surrounding string is not treated as such.
+        /{{[^{}\s"']*/,
     );
 
     if (!matchingTextResult) {
@@ -134,7 +148,23 @@ function getVariable(
         position.character,
     );
 
+    const textBehindInsertion = lineContent.substring(endCharForInsertion);
+    const hasClosingBraces = textBehindInsertion.startsWith("}}");
+    const isOnlyContentOfValue =
+        UNQUOTED_VALUE_START_REGEX.test(lineContent.substring(0, startChar)) &&
+        textBehindInsertion.substring(hasClosingBraces ? 2 : 0).trim() == "";
+
     return {
+        quotedValueRange:
+            quoteValueStartingWithBraces && isOnlyContentOfValue
+                ? new Range(
+                      new Position(line, startChar),
+                      new Position(
+                          line,
+                          endCharForInsertion + (hasClosingBraces ? 2 : 0),
+                      ),
+                  )
+                : undefined,
         variable: {
             name: matchingText.substring(2),
             start: new Position(line, startChar + 2),
@@ -148,12 +178,11 @@ function getVariable(
     };
 }
 
+/** Matches the text in front of a Yaml value (after the key or the sequence dash), if the value itself is not quoted. */
+const UNQUOTED_VALUE_START_REGEX = /^\s*(-\s+)?([\w-]+:\s+)?$/;
+
 function addLogEntryForCancellation(logger?: Logger) {
     logger?.debug(
         `Cancellation requested for completion provider for variables.`,
     );
-}
-
-function escapeForCharacterClass(characters: string) {
-    return characters.replace(/[\\\]^-]/g, "\\$&");
 }

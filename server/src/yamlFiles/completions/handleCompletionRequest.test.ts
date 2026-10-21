@@ -530,6 +530,102 @@ http:
             expect(result?.map(({ label }) => label)).toContain("dyn");
         });
 
+        it("does not suggest variables when the cursor is behind the closing quote of a string", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  scripts:
+    - type: before-request
+      code: |
+        bru.setVar("dyn", 1);
+http:
+  method: GET
+  url: "{{dy}}"
+`,
+                new Position(7, 15),
+            );
+
+            expect(result ?? []).toEqual([]);
+        });
+
+        it("wraps the value in quotes when `{{` starts an unquoted value", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  scripts:
+    - type: before-request
+      code: |
+        bru.setVar("dyn", 1);
+http:
+  method: GET
+  url: {{dy
+`,
+                new Position(7, 11),
+            );
+
+            const item = result?.find(({ label }) => label == "dyn");
+            expect(item?.filterText).toBe("{{dyn");
+            expect(item?.textEdit).toEqual({
+                newText: `"{{dyn}}"`,
+                range: {
+                    start: { line: 7, character: 7 },
+                    end: { line: 7, character: 11 },
+                },
+            });
+        });
+
+        it("replaces existing closing braces when wrapping an unquoted value in quotes", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  scripts:
+    - type: before-request
+      code: |
+        bru.setVar("dyn", 1);
+http:
+  method: GET
+  url: {{dy}}
+`,
+                new Position(7, 11),
+            );
+
+            expect(
+                result?.find(({ label }) => label == "dyn")?.textEdit,
+            ).toEqual({
+                newText: `"{{dyn}}"`,
+                range: {
+                    start: { line: 7, character: 7 },
+                    end: { line: 7, character: 13 },
+                },
+            });
+        });
+
+        it("does not wrap the value in quotes when more text follows the variable", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  scripts:
+    - type: before-request
+      code: |
+        bru.setVar("dyn", 1);
+http:
+  method: GET
+  url: {{dy}}/path
+`,
+                new Position(7, 11),
+            );
+
+            expect(
+                result?.find(({ label }) => label == "dyn")?.textEdit,
+            ).toEqual({
+                newText: "dyn",
+                range: {
+                    start: { line: 7, character: 9 },
+                    end: { line: 7, character: 11 },
+                },
+            });
+        });
+
         it("suggests variables for variable access within scripts", async () => {
             const result = await complete(
                 requestPath,
