@@ -1,4 +1,7 @@
-import { createItemProviderStub } from "@global_shared/_testingUtils";
+import {
+    createCollectionWithEnvironments,
+    createItemProviderStub,
+} from "@global_shared/_testingUtils";
 import { TypedCollectionItemProvider } from "../shared/interfaces";
 import { BrunoFileType, CollectionFormat } from "@global_shared";
 import { DiagnosticSeverity, DiagnosticTag } from "vscode-languageserver";
@@ -147,8 +150,54 @@ config:
         expect(diagnostics[0].tags).toEqual([DiagnosticTag.Unnecessary]);
     });
 
-    function getDiagnostics(content: string) {
-        return provider.getDiagnosticsForYamlFile(
+    it("should warn if the default environment does not exist", () => {
+        const diagnostics = getDiagnostics(
+            `${header}
+extensions:
+  bruno:
+    presets:
+      defaultEnvironment: Unknown
+`,
+            providerWithEnvironments(["Local"]),
+        );
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0].severity).toBe(DiagnosticSeverity.Warning);
+        expect(diagnostics[0].message).toBe(
+            "Default environment 'Unknown' does not exist in this collection.",
+        );
+        expect(diagnostics[0].range.start.line).toBe(6);
+    });
+
+    it("should not warn if the default environment exists", () => {
+        const diagnostics = getDiagnostics(
+            `${header}
+extensions:
+  bruno:
+    presets:
+      defaultEnvironment: Local
+`,
+            providerWithEnvironments(["Local"]),
+        );
+
+        expect(diagnostics).toEqual([]);
+    });
+
+    function providerWithEnvironments(names: string[]) {
+        return new YamlFormatDiagnosticsProvider(
+            createItemProviderStub<TypedCollectionItemProvider>(
+                "/collection",
+                CollectionFormat.Yaml,
+                createCollectionWithEnvironments(
+                    names.map((name) => ({ name })),
+                    CollectionFormat.Yaml,
+                ),
+            ),
+        );
+    }
+
+    function getDiagnostics(content: string, otherProvider = provider) {
+        return otherProvider.getDiagnosticsForYamlFile(
             "/collection/opencollection.yml",
             content,
             BrunoFileType.CollectionSettingsFile,

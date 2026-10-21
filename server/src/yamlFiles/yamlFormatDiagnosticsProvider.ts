@@ -26,6 +26,7 @@ import { checkFolderSequenceIsUnique } from "./diagnostics/checks/folderSettings
 import { checkVariableDefinitionsAreValid } from "./diagnostics/checks/environmentFiles/checkVariableDefinitionsAreValid";
 import { checkSettingsFileRequestSection } from "./diagnostics/shared/checkSettingsFileRequestSection";
 import { checkAuthIsNotInherited } from "./diagnostics/checks/collectionSettingsFiles/checkAuthIsNotInherited";
+import { checkDefaultEnvironmentExists } from "./diagnostics/checks/collectionSettingsFiles/checkDefaultEnvironmentExists";
 import { checkClientCertificatesMatchType } from "./diagnostics/checks/collectionSettingsFiles/checkClientCertificatesMatchType";
 import { checkEntriesAreUnique } from "./diagnostics/checks/requestFiles/checkEntriesAreUnique";
 import { checkUrlMatchesParams } from "./diagnostics/checks/requestFiles/checkUrlMatchesParams";
@@ -233,8 +234,17 @@ export class YamlFormatDiagnosticsProvider {
         }
         const { properties } = parsingResult;
 
-        // ToDo: Once yaml collections are available in the cache, check that the configured default environment in presets actually exists.
+        const collection = this.itemProvider.getAncestorCollectionForPath(
+            commonParams.filePath,
+        );
         const otherDiagnostics = [
+            checkDefaultEnvironmentExists(
+                properties.extensions?.properties.bruno?.properties.presets
+                    ?.properties.defaultEnvironment,
+                collection
+                    ?.getEnvironments()
+                    .map(({ environmentName }) => environmentName),
+            ),
             ...checkSettingsFileRequestSection(
                 properties.request,
                 commonParams,
