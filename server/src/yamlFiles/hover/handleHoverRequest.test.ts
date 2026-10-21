@@ -54,7 +54,7 @@ runtime:
   url: "{{first}}/path"
 `;
 
-        expect(hover(text, new Position(1, 4))).toBeUndefined();
+        expect(hover(text, new Position(1, 12))).toBeUndefined();
     });
 
     it("returns no hover for variable-like text in sections without variable support", () => {
@@ -64,6 +64,28 @@ runtime:
 `;
 
         expect(hover(text, new Position(1, 12))).toBeUndefined();
+    });
+
+    it("shows the expected type and allowed values for a key", () => {
+        const text = `info:
+  name: Foo
+  type: http
+`;
+
+        const result = hover(text, new Position(2, 4));
+
+        expect(getHoverText(result)).toContain("**type** (");
+        expect(getHoverText(result)).toContain("Type: string");
+        expect(getHoverText(result)).toContain("`http`");
+    });
+
+    it("returns no key hover for an unknown key", () => {
+        const text = `http:
+  method: GET
+  foo: x
+`;
+
+        expect(hover(text, new Position(2, 3))).toBeUndefined();
     });
 
     it("shows the tag usages for a tag", () => {

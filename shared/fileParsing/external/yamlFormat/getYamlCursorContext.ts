@@ -486,7 +486,7 @@ function getEndOfValue(
     return Math.max(cursorCharacter, valueEnd);
 }
 
-function getDescriptorsForText(text: string, fileType: BrunoFileType) {
+export function getDescriptorsForText(text: string, fileType: BrunoFileType) {
     const mapDescriptors: YamlMapDescriptor[] = [];
     const options: YamlParsingOptions = {
         mapDescriptors,
