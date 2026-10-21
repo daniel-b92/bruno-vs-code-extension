@@ -1,10 +1,4 @@
-import {
-    VariableReferenceType,
-    Range,
-    VariableAvailabilityScopes,
-    RequestFileBlockName,
-    LineBreakType,
-} from "@global_shared";
+import { VariableReferenceType, Range, LineBreakType } from "@global_shared";
 import {
     VariableSpecificRequestData,
     groupReferencesByName,
@@ -19,6 +13,7 @@ import {
 import {
     EquivalentVariableReferencesFromOtherFiles,
     MatchingDynamicVariables,
+    StaticScriptVariableReference,
 } from "./interfaces";
 
 export type GetTextEditForVariableCompletion = (
@@ -35,7 +30,7 @@ export function mapVariablesToCompletions(
             isConfiguredEnv: boolean;
             inheritedByEnvironmentName?: string;
         }[];
-        staticScriptVariables?: EquivalentVariableReferencesFromOtherFiles[];
+        staticScriptVariables?: EquivalentVariableReferencesFromOtherFiles<StaticScriptVariableReference>[];
         dynamicVariables: MatchingDynamicVariables;
     },
     requestData: VariableSpecificRequestData,
@@ -85,7 +80,7 @@ function mapStaticScriptVariables(
         functionType: sourceReferenceType,
         documentLineBreak,
     }: VariableSpecificRequestData,
-    allReferences: EquivalentVariableReferencesFromOtherFiles[],
+    allReferences: EquivalentVariableReferencesFromOtherFiles<StaticScriptVariableReference>[],
     modifications: {
         prefixForSortText: string;
         getTextEditForCompletion?: GetTextEditForVariableCompletion;
@@ -98,21 +93,16 @@ function mapStaticScriptVariables(
             mostRelevantReference: {
                 path: { relativeToSourceFile: relativePath },
                 indirectionLevel,
-                reference: { variableName, scope },
+                reference: { variableName },
+                sectionName,
             },
         }) => {
-            const varsBlockName =
-                scope ==
-                VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
-                    ? RequestFileBlockName.PreRequestVars
-                    : RequestFileBlockName.PostResponseVars;
-
             return {
                 label: variableName,
                 labelDetails: {
                     description:
                         relativePath == "."
-                            ? `Block ${varsBlockName}`
+                            ? `Section ${sectionName}`
                             : relativePath,
                 },
                 kind: CompletionItemKind.Constant,
@@ -220,14 +210,14 @@ function getCompletionForRefsWithinOwnFile(
         labelDetails: {
             description:
                 hasDuplicateReferences && allDistinctBlocks.length > 1
-                    ? `Blocks '${allDistinctBlocks.join("','")}'`
-                    : `Block '${blockName}'`,
+                    ? `Sections '${allDistinctBlocks.join("','")}'`
+                    : `Section '${blockName}'`,
         },
         kind: getKind(referenceType),
         detail:
             !hasDuplicateReferences && referencesFromOtherFiles == undefined
                 ? undefined
-                : `${totalNumberOfReferences} relevant references in ${allDistinctBlocks.length > 1 ? `blocks ${JSON.stringify(allDistinctBlocks)}` : `block '${blockName}'`}.`.concat(
+                : `${totalNumberOfReferences} relevant references in ${allDistinctBlocks.length > 1 ? `sections ${JSON.stringify(allDistinctBlocks)}` : `section '${blockName}'`}.`.concat(
                       referencesFromOtherFiles == undefined
                           ? ""
                           : ` and in ${referencesFromOtherFiles.otherMatchingReferences.length + 1} other file(s)`,

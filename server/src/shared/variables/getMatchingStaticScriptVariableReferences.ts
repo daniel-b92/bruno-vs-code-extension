@@ -10,7 +10,7 @@ import {
 import {
     VariableSectionRequest,
     EquivalentVariableReferencesFromOtherFiles,
-    VariableReferenceFromOtherFile,
+    StaticScriptVariableReference,
 } from "./interfaces";
 import { relative } from "path";
 import { areReferencesEquivalentForLanguageFeatures } from "./areReferencesEquivalentForLanguageFeatures";
@@ -22,7 +22,7 @@ export function getMatchingStaticScriptVariableReferences(
         request: { filePath },
     }: VariableSectionRequest,
     variableType: BrunoVariableType.Folder | BrunoVariableType.Request,
-): EquivalentVariableReferencesFromOtherFiles[] {
+): EquivalentVariableReferencesFromOtherFiles<StaticScriptVariableReference>[] {
     const relevantScope =
         sectionContainingPosition.kind ==
         VariableScopeSectionKind.PreRequestScript
@@ -30,7 +30,11 @@ export function getMatchingStaticScriptVariableReferences(
             : VariableAvailabilityScopes.PostResponseScriptForOwnItemAndDescendants;
     // Avoid using cached data for determining references within own file because unsaved changes would be ignored.
     const allReferencesFromSameFile = allSections.flatMap(
-        ({ variableReferences }) => variableReferences ?? [],
+        ({ name: sectionName, variableReferences }) =>
+            (variableReferences ?? []).map((reference) => ({
+                reference,
+                sectionName,
+            })),
     );
 
     const relevantReferencesFromSameFile = {
@@ -56,7 +60,10 @@ export function getMatchingStaticScriptVariableReferences(
                 relativeToSourceFile: relative(filePath, item.getPath()),
             },
             references: getRelevantReferences(
-                additionalData?.map(({ reference }) => reference) ?? [],
+                additionalData?.map(({ reference, sectionName }) => ({
+                    reference,
+                    sectionName,
+                })) ?? [],
                 variableType,
                 relevantScope,
             ),
@@ -75,12 +82,12 @@ export function getMatchingStaticScriptVariableReferences(
 }
 
 function getRelevantReferences(
-    refs: BrunoVariableReference[],
+    refs: ReferenceWithSectionName[],
     variableType: BrunoVariableType,
     relevantScope: VariableAvailabilityScope,
 ) {
     return refs.filter(
-        ({ referenceType, scope, variableType: v }) =>
+        ({ reference: { referenceType, scope, variableType: v } }) =>
             !isDynamicVariableReference(scope) &&
             referenceType == VariableReferenceType.Write &&
             scope == relevantScope &&
@@ -91,68 +98,65 @@ function getRelevantReferences(
 function groupReferences(
     allReferences: {
         path: { absolute: string; relativeToSourceFile: string };
-        references: BrunoVariableReference[];
+        references: ReferenceWithSectionName[];
         indirectionLevel: number;
     }[],
 ) {
     return allReferences
         .flatMap(({ path, indirectionLevel, references }) =>
-            references.map((reference) => ({
+            references.map(({ reference, sectionName }) => ({
                 path,
                 indirectionLevel,
                 reference,
+                sectionName,
             })),
         )
-        .reduce(
-            (prev, curr) => {
-                const matchingReferenceIndex = prev.findIndex(
-                    ({ mostRelevantReference: { reference: registered } }) =>
-                        areReferencesEquivalentForLanguageFeatures(
-                            curr.reference,
-                            registered,
-                        ),
-                );
+        .reduce((prev, curr) => {
+            const matchingReferenceIndex = prev.findIndex(
+                ({ mostRelevantReference: { reference: registered } }) =>
+                    areReferencesEquivalentForLanguageFeatures(
+                        curr.reference,
+                        registered,
+                    ),
+            );
 
-                if (matchingReferenceIndex < 0) {
-                    return prev.concat({
-                        mostRelevantReference: curr,
-                        otherMatchingReferences: [],
-                    });
-                }
+            if (matchingReferenceIndex < 0) {
+                return prev.concat({
+                    mostRelevantReference: curr,
+                    otherMatchingReferences: [],
+                });
+            }
 
-                const mostRelevantSoFar =
-                    prev[matchingReferenceIndex].mostRelevantReference;
+            const mostRelevantSoFar =
+                prev[matchingReferenceIndex].mostRelevantReference;
 
-                if (
-                    curr.indirectionLevel < mostRelevantSoFar.indirectionLevel
-                ) {
-                    return prev.map((entry, index) =>
-                        index != matchingReferenceIndex
-                            ? entry
-                            : {
-                                  mostRelevantReference: curr,
-                                  otherMatchingReferences:
-                                      entry.otherMatchingReferences.concat(
-                                          mostRelevantSoFar,
-                                      ),
-                              },
-                    );
-                }
-
+            if (curr.indirectionLevel < mostRelevantSoFar.indirectionLevel) {
                 return prev.map((entry, index) =>
                     index != matchingReferenceIndex
                         ? entry
                         : {
-                              mostRelevantReference:
-                                  entry.mostRelevantReference,
+                              mostRelevantReference: curr,
                               otherMatchingReferences:
-                                  entry.otherMatchingReferences.concat(curr),
+                                  entry.otherMatchingReferences.concat(
+                                      mostRelevantSoFar,
+                                  ),
                           },
                 );
-            },
-            [] as {
-                mostRelevantReference: VariableReferenceFromOtherFile;
-                otherMatchingReferences: VariableReferenceFromOtherFile[];
-            }[],
-        );
+            }
+
+            return prev.map((entry, index) =>
+                index != matchingReferenceIndex
+                    ? entry
+                    : {
+                          mostRelevantReference: entry.mostRelevantReference,
+                          otherMatchingReferences:
+                              entry.otherMatchingReferences.concat(curr),
+                      },
+            );
+        }, [] as EquivalentVariableReferencesFromOtherFiles<StaticScriptVariableReference>[]);
+}
+
+interface ReferenceWithSectionName {
+    reference: BrunoVariableReference;
+    sectionName: string;
 }

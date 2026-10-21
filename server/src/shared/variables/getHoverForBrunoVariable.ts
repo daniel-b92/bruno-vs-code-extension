@@ -2,8 +2,6 @@ import {
     BrunoVariableReference,
     BrunoVariableType,
     Logger,
-    RequestFileBlockName,
-    VariableAvailabilityScopes,
     VariableReferenceType,
 } from "@global_shared";
 import { Hover, MarkupContent } from "vscode-languageserver";
@@ -12,6 +10,7 @@ import {
     VariableSectionRequest,
     EquivalentVariableReferencesFromOtherFiles,
     MatchingDynamicVariables,
+    StaticScriptVariableReference,
 } from "./interfaces";
 import { includesMultipleDistinctVariableTypes } from "./includesMultipleDistinctVariableTypes";
 import { getAllVariableReferences } from "./getAllVariableReferences";
@@ -111,7 +110,7 @@ export function getHoverForBrunoVariable(
 }
 
 function getContentForStaticScriptVarsReferences(
-    references: EquivalentVariableReferencesFromOtherFiles[],
+    references: EquivalentVariableReferencesFromOtherFiles<StaticScriptVariableReference>[],
     sourceReferenceType: VariableReferenceType,
 ) {
     if (references.length == 0) {
@@ -119,7 +118,7 @@ function getContentForStaticScriptVarsReferences(
     }
 
     const lineBreak = getLineBreak();
-    const tableHeader = "| file | block |".concat(
+    const tableHeader = "| file | section |".concat(
         lineBreak,
         "| :--------------- | :----------------: |",
         lineBreak,
@@ -137,7 +136,7 @@ function getContentForStaticScriptVarsReferences(
                 ({
                     mostRelevantReference: {
                         path: { relativeToSourceFile },
-                        reference: { scope },
+                        sectionName,
                     },
                     otherMatchingReferences,
                 }) => {
@@ -146,13 +145,8 @@ function getContentForStaticScriptVarsReferences(
                             ? ` [+ ${otherMatchingReferences.length} others]`
                             : "",
                     );
-                    const textForBlockColumn =
-                        scope ==
-                        VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
-                            ? RequestFileBlockName.PreRequestVars
-                            : RequestFileBlockName.PostResponseVars;
 
-                    return `| ${wrapInCodeSpan(textForFileColumn)} | ${wrapInCodeSpan(textForBlockColumn)} |`;
+                    return `| ${wrapInCodeSpan(textForFileColumn)} | ${wrapInCodeSpan(sectionName)} |`;
                 },
             )
             .join(lineBreak),
@@ -175,7 +169,7 @@ function getContentForDynamicReferences(
             fromSameFile,
             fromOtherFiles,
         }) || sourceFileVariableType == BrunoVariableType.Unknown;
-    const tableHeader = "| file | block | reference type |".concat(
+    const tableHeader = "| file | section | reference type |".concat(
         displayVariableType ? "variable type |" : "",
         `${lineBreak} | :--------------- | :----------------: | :----------------: |`,
         displayVariableType ? ":----------------: |" : "",

@@ -36,6 +36,7 @@ describe("getMatchingStaticScriptVariableReferences", () => {
                 {
                     reference: createReference(),
                     sectionKind: VariableScopeSectionKind.PreRequestScript,
+                    sectionName: RequestFileBlockName.PreRequestVars,
                 },
             ] as any,
         });
@@ -91,7 +92,13 @@ describe("getMatchingStaticScriptVariableReferences", () => {
         expect(
             referenceGroup.mostRelevantReference.reference.variableName,
         ).toBe("folderVar");
+        expect(referenceGroup.mostRelevantReference.sectionName).toBe(
+            RequestFileBlockName.PreRequestVars,
+        );
         expect(referenceGroup.otherMatchingReferences).toHaveLength(1);
+        expect(referenceGroup.otherMatchingReferences[0].sectionName).toBe(
+            RequestFileBlockName.PreRequestVars,
+        );
         expect(referenceGroup.otherMatchingReferences[0].path.absolute).toBe(
             `${rootDirectory}/requests`,
         );

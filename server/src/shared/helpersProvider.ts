@@ -62,10 +62,11 @@ function getAdditionalCollectionDataProvider(): AdditionalCollectionComplexDataP
         callbacksForItemsRequiringFullParsing: {
             getData(parsedData) {
                 return parsedData?.sections.flatMap(
-                    ({ kind, variableReferences }) =>
+                    ({ kind, name, variableReferences }) =>
                         variableReferences.map((reference) => ({
                             reference,
                             sectionKind: kind,
+                            sectionName: name,
                         })),
                 );
             },

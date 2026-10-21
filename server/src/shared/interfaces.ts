@@ -24,6 +24,7 @@ export type AdditionalCollectionData =
     | {
           reference: BrunoVariableReference;
           sectionKind: VariableScopeSectionKind;
+          sectionName: string;
       }[]
     | undefined;
 

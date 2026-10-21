@@ -23,9 +23,16 @@ export interface MatchingDynamicVariables {
     fromOtherFiles: EquivalentVariableReferencesFromOtherFiles[];
 }
 
-export interface EquivalentVariableReferencesFromOtherFiles {
-    mostRelevantReference: VariableReferenceFromOtherFile;
-    otherMatchingReferences: VariableReferenceFromOtherFile[];
+export interface EquivalentVariableReferencesFromOtherFiles<
+    T extends VariableReferenceFromOtherFile = VariableReferenceFromOtherFile,
+> {
+    mostRelevantReference: T;
+    otherMatchingReferences: T[];
+}
+
+export interface StaticScriptVariableReference extends VariableReferenceFromOtherFile {
+    /** The name of the section in which the reference is defined (e.g. the Bru block name or the Yaml key path). */
+    sectionName: string;
 }
 
 export interface VariableReferenceFromOtherFile {
