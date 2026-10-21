@@ -5,7 +5,7 @@ import {
     TextDocumentHelper,
     YamlExpectedKeyInfo,
 } from "../../..";
-import { getDescriptorsForText } from "./getYamlCursorContext";
+import { getDescriptorsForText } from "./getDescriptorsForText";
 
 /**
  * Finds the key at the given position and returns the information about what the parser expects for it.

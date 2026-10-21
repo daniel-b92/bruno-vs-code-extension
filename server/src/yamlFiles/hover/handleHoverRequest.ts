@@ -1,12 +1,15 @@
 import {
     BrunoFileType,
-    isBrunoFileType,
     getYamlKeyInfoAtPosition,
+    isBrunoFileType,
     isCodeSection,
     parseRequestFile,
 } from "@global_shared";
 import { Hover } from "vscode-languageserver";
-import { LanguageRequestWithTestEnvironmentInfo } from "../../shared";
+import {
+    LanguageFeatureBaseRequest,
+    LanguageRequestWithTestEnvironmentInfo,
+} from "../../shared";
 import { getHoverForExistingTag } from "../../shared/getHoverForExistingTag";
 import { getHoverForVariableInCodeSection } from "../../shared/variables/getHoverForVariableInCodeSection";
 import { getHoverForVariableInNonCodeSection } from "../../shared/variables/getHoverForVariableInNonCodeSection";
@@ -46,6 +49,7 @@ export function handleHoverRequest({
         }
     }
 
+    // ToDo: The document is parsed separately for the tags, the variable sections and the keys. Reuse a single tolerant parse for all of them.
     const variableRequest = getVariableSectionRequest(
         baseRequest,
         collection,
@@ -69,10 +73,7 @@ export function handleHoverRequest({
 }
 
 function getHoverForKey(
-    {
-        documentHelper,
-        position,
-    }: LanguageRequestWithTestEnvironmentInfo["baseRequest"],
+    { documentHelper, position }: LanguageFeatureBaseRequest,
     fileType: BrunoFileType,
 ) {
     const keyAtPosition = getYamlKeyInfoAtPosition({
