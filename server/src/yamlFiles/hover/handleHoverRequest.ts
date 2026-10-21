@@ -1,14 +1,19 @@
 import {
     BrunoFileType,
+    getYamlKeyInfoAtPosition,
     isBrunoFileType,
     isCodeSection,
     parseRequestFile,
 } from "@global_shared";
 import { Hover } from "vscode-languageserver";
-import { LanguageRequestWithTestEnvironmentInfo } from "../../shared";
+import {
+    LanguageFeatureBaseRequest,
+    LanguageRequestWithTestEnvironmentInfo,
+} from "../../shared";
 import { getHoverForExistingTag } from "../../shared/getHoverForExistingTag";
 import { getHoverForVariableInCodeSection } from "../../shared/variables/getHoverForVariableInCodeSection";
 import { getHoverForVariableInNonCodeSection } from "../../shared/variables/getHoverForVariableInNonCodeSection";
+import { getHoverForYamlKey } from "./getHoverForYamlKey";
 import { getYamlFileTypeForEditorContent } from "../getYamlFileTypeForEditorContent";
 import { getVariableSectionRequest } from "../getVariableSectionRequest";
 
@@ -44,6 +49,7 @@ export function handleHoverRequest({
         }
     }
 
+    // ToDo: The document is parsed separately for the tags, the variable sections and the keys. Reuse a single tolerant parse for all of them.
     const variableRequest = getVariableSectionRequest(
         baseRequest,
         collection,
@@ -51,19 +57,34 @@ export function handleHoverRequest({
         logger,
     );
 
-    if (!variableRequest) {
-        return undefined;
-    }
+    const variableHover = variableRequest
+        ? isCodeSection(variableRequest.file.sectionContainingPosition.kind)
+            ? getHoverForVariableInCodeSection(
+                  variableRequest,
+                  configuredEnvironmentName,
+              )
+            : getHoverForVariableInNonCodeSection(
+                  variableRequest,
+                  configuredEnvironmentName,
+              )
+        : undefined;
 
-    return isCodeSection(variableRequest.file.sectionContainingPosition.kind)
-        ? getHoverForVariableInCodeSection(
-              variableRequest,
-              configuredEnvironmentName,
-          )
-        : getHoverForVariableInNonCodeSection(
-              variableRequest,
-              configuredEnvironmentName,
-          );
+    return variableHover ?? getHoverForKey(baseRequest, itemType);
+}
+
+function getHoverForKey(
+    { documentHelper, position }: LanguageFeatureBaseRequest,
+    fileType: BrunoFileType,
+) {
+    const keyAtPosition = getYamlKeyInfoAtPosition({
+        docHelper: documentHelper,
+        fileType,
+        position,
+    });
+
+    return keyAtPosition
+        ? getHoverForYamlKey(keyAtPosition.keyInfo, keyAtPosition.keyRange)
+        : undefined;
 }
 
 function getHoverForTag({
@@ -83,8 +104,13 @@ function getHoverForTag({
         return undefined;
     }
 
-    return getHoverForExistingTag(tagAtPosition.value, filePath, documentHelper, {
-        itemProvider,
-        collection,
-    });
+    return getHoverForExistingTag(
+        tagAtPosition.value,
+        filePath,
+        documentHelper,
+        {
+            itemProvider,
+            collection,
+        },
+    );
 }

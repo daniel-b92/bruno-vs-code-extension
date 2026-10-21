@@ -67,6 +67,7 @@ export * from "./fileParsing/external/yamlFormat/getBlocksWithoutLineCommentsFro
 export * from "./fileParsing/external/shared/codeBlocks/getJsCodeBlocksFromFile";
 export * from "./fileParsing/external/yamlFormat/getInfoTypeFromYamlContent";
 export * from "./fileParsing/external/yamlFormat/getYamlCursorContext";
+export * from "./fileParsing/external/yamlFormat/getYamlKeyInfoAtPosition";
 export * from "./fileParsing/external/yamlFormat/getYamlIndentationStep";
 export * from "./fileParsing/external/yamlFormat/isStartOfYamlPlainScalar";
 export * from "./fileParsing/external/yamlFormat/constants/requestFileConstants";
