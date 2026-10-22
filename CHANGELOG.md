@@ -3,6 +3,7 @@
 ### Features
 
 - Add quick fixes for the diagnostics about a URL that does not match the `params:query` or `params:path` block in `.bru` request files. For query params, the URL or the `params:query` block can be updated to match the other one (if the `params:query` block is missing, the query params can be removed from the URL instead); for path params, the `params:path` block can be updated to match the URL.
+- Use the request URL from the collection-wide `presets` in `bruno.json` as the default URL when creating a request file in the collection explorer (including matching `params:query` and `params:path` blocks for query and path params in the URL), and preselect the preset's `requestType` in the request type selection.
 
 ### Fixes / Maintenance
 

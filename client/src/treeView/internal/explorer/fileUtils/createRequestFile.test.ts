@@ -1,7 +1,7 @@
 import { describe, it, expect, jest, afterEach } from "@jest/globals";
 import { readdir, readFile } from "fs/promises";
 import { join } from "path";
-import { commands, window } from "vscode";
+import { commands, window, workspace } from "vscode";
 import {
     CollectionFormat,
     RequestFileBlockName,
@@ -133,6 +133,137 @@ describe("createRequestFile", () => {
         ).toContain("seq: 5");
     });
 
+    it("uses the request URL from the presets for any request type and creates matching params blocks (bru)", async () => {
+        const directory = await createTemporaryDirectory({
+            "bruno.json": JSON.stringify({
+                presets: {
+                    requestType: "graphql",
+                    requestUrl: "{{baseUrl}}/users/:id?limit=10&sort=asc",
+                },
+            }),
+        });
+
+        await runCreateRequestFile(directory, CollectionFormat.Bru, {
+            requestName: "my_request",
+            pickedLabels: [RequestType.Http, RequestFileBlockName.Get],
+        });
+
+        expect(await readFile(join(directory, "my_request.bru"), "utf-8")).toBe(
+            [
+                "meta {",
+                "  name: my_request",
+                "  type: http",
+                "  seq: 1",
+                "}",
+                "",
+                "get {",
+                "  url: {{baseUrl}}/users/:id?limit=10&sort=asc",
+                "  body: none",
+                "  auth: none",
+                "}",
+                "",
+                "params:query {",
+                "  limit: 10",
+                "  sort: asc",
+                "}",
+                "",
+                "params:path {",
+                "  id: ",
+                "}",
+                "",
+            ].join("\n"),
+        );
+    });
+
+    it("uses the request URL from the presets and creates matching params for an http request (yaml)", async () => {
+        const directory = await createTemporaryDirectory({
+            "opencollection.yml": [
+                "extensions:",
+                "  bruno:",
+                "    presets:",
+                "      request:",
+                "        type: http",
+                "        url: https://example.com/users/:id?limit=10",
+                "",
+            ].join("\n"),
+        });
+
+        await runCreateRequestFile(directory, CollectionFormat.Yaml, {
+            requestName: "my_request",
+            pickedLabels: [RequestType.Http, RequestFileBlockName.Get],
+        });
+
+        expect(await readFile(join(directory, "my_request.yml"), "utf-8")).toBe(
+            [
+                "info:",
+                "  name: my_request",
+                "  type: http",
+                "  seq: 1",
+                "",
+                "http:",
+                "  method: GET",
+                "  url: https://example.com/users/:id?limit=10",
+                "  params:",
+                "    - name: limit",
+                '      value: "10"',
+                "      type: query",
+                "    - name: id",
+                '      value: ""',
+                "      type: path",
+                "",
+            ].join("\n"),
+        );
+    });
+
+    it("does not create params for websocket requests", async () => {
+        const directory = await createTemporaryDirectory({
+            "bruno.json": JSON.stringify({
+                presets: { requestUrl: "ws://localhost/:id?a=b" },
+            }),
+        });
+
+        await runCreateRequestFile(directory, CollectionFormat.Bru, {
+            requestName: "ws_request",
+            pickedLabels: [RequestType.Ws],
+        });
+
+        const content = await readFile(
+            join(directory, "ws_request.bru"),
+            "utf-8",
+        );
+
+        expect(content).toContain("url: ws://localhost/:id?a=b");
+        expect(content).not.toContain("params:");
+    });
+
+    it("preselects the request type from the presets", async () => {
+        const directory = await createTemporaryDirectory({
+            "bruno.json": JSON.stringify({
+                presets: { requestType: "graphql" },
+            }),
+        });
+
+        const { quickPick } = await runCreateRequestFile(
+            directory,
+            CollectionFormat.Bru,
+            { requestName: "my_request", pickedLabels: [] },
+        );
+
+        expect(quickPick.activeItems).toEqual([{ label: RequestType.Graphql }]);
+    });
+
+    it("preselects no request type without presets", async () => {
+        const directory = await createTemporaryDirectory();
+
+        const { quickPick } = await runCreateRequestFile(
+            directory,
+            CollectionFormat.Bru,
+            { requestName: "my_request", pickedLabels: [] },
+        );
+
+        expect(quickPick.activeItems).toEqual([]);
+    });
+
     it("validates the new name against the extension of the collection format", async () => {
         const directory = await createTemporaryDirectory({
             "existing.yml": "",
@@ -179,6 +310,10 @@ async function runCreateRequestFile(
 ) {
     jest.spyOn(window, "showInputBox").mockResolvedValue(requestName);
     jest.spyOn(commands, "executeCommand").mockResolvedValue(undefined);
+    // Use a fixed line break, so that the tests do not depend on the platform.
+    jest.spyOn(workspace, "getConfiguration").mockReturnValue({
+        get: () => "\n",
+    } as never);
 
     const quickPick = createFakeQuickPick();
     jest.spyOn(window, "createQuickPick").mockReturnValue(quickPick as never);
@@ -194,6 +329,8 @@ async function runCreateRequestFile(
     for (const label of pickedLabels) {
         await quickPick.select(label);
     }
+
+    return { quickPick };
 }
 
 async function getNameValidator(directory: string, format: CollectionFormat) {
@@ -224,6 +361,7 @@ function createFakeQuickPick() {
 
     return {
         items: [] as { label: string }[],
+        activeItems: [] as { label: string }[],
         onDidChangeSelection: (
             listener: (picks: { label: string }[]) => Promise<void>,
         ) => {

@@ -9,12 +9,17 @@ import {
     AuthTypes,
     getPossibleMethodBlocksForRequestType,
     FileInfoType,
+    getCollectionPresets,
+    sanitizeUrlForNewRequest,
+    doesRequestTypeSupportUrlParams,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
     getContentForMetaBlock,
     getContentForDefaultMethodBlock,
     getLineBreak,
+    getContentForUrlParamsBlocks,
+    getYamlParamsForUrl,
     FileSystemCacheSyncingHelper,
     BrunoTreeItem,
 } from "@shared";
@@ -58,6 +63,10 @@ export async function createRequestFile(
         return;
     }
 
+    const presets = await getCollectionPresets(
+        collection.getRootDirectory(),
+        format,
+    );
     const pickedLabels: string[] = [];
 
     const quickPick = window.createQuickPick();
@@ -68,6 +77,9 @@ export async function createRequestFile(
     quickPick.items = Object.values(RequestType).map((type) => ({
         label: type,
     }));
+    quickPick.activeItems = quickPick.items.filter(
+        ({ label }) => label == presets?.requestType,
+    );
 
     quickPick.onDidChangeSelection(async (picks) => {
         pickedLabels.push(...picks.map(({ label }) => label));
@@ -125,13 +137,17 @@ export async function createRequestFile(
                 parentFolderPath,
             )) ?? 0) + 1;
 
+        const requestType = pickedLabels[0] as RequestType;
+        const url = sanitizeUrlForNewRequest(presets?.requestUrl ?? "");
+
         const failed = await promisify(writeFile)(
             filePath,
             getFileContent(format, requestSequence, {
                 filePath,
                 requestName,
-                requestType: pickedLabels[0] as RequestType,
+                requestType,
                 methodBlockName: pickedLabels[1],
+                url,
             }),
         ).catch(() => true);
 
@@ -169,9 +185,11 @@ function getFileContent(
         requestName: string;
         requestType: RequestType;
         methodBlockName: string;
+        url: string;
     },
 ) {
-    const { filePath, requestName, requestType, methodBlockName } = chosenData;
+    const { filePath, requestName, requestType, methodBlockName, url } =
+        chosenData;
 
     if (format == CollectionFormat.Yaml) {
         return getYamlFileContent(
@@ -179,6 +197,7 @@ function getFileContent(
             requestName,
             requestType,
             methodBlockName,
+            url,
         );
     }
 
@@ -198,7 +217,7 @@ function getFileContent(
         filePath,
         methodBlockName,
         {
-            url: "",
+            url,
             auth: AuthTypes.None,
             // Websocket requests always use the `body:ws` blocks for their messages.
             body:
@@ -209,7 +228,13 @@ function getFileContent(
         lineBreak,
     );
 
-    return metaBlockContent.concat(lineBreak, methodBlockContent);
+    const paramsBlocksContent = doesRequestTypeSupportUrlParams(requestType)
+        ? getContentForUrlParamsBlocks(filePath, url, lineBreak)
+        : [];
+
+    return [metaBlockContent, methodBlockContent, ...paramsBlocksContent].join(
+        lineBreak,
+    );
 }
 
 function getYamlFileContent(
@@ -217,16 +242,22 @@ function getYamlFileContent(
     requestName: string,
     requestType: RequestType,
     methodBlockName: string,
+    url: string,
 ) {
     const yamlType = getYamlTypeForRequestType(requestType);
     const topLevelProperties = {
         info: { name: requestName, type: yamlType, seq: requestSequence },
         [yamlType]:
-            requestType == RequestType.Grpc
-                ? { url: "" }
-                : requestType == RequestType.Ws
-                  ? { url: "" }
-                  : { method: methodBlockName.toUpperCase(), url: "" },
+            requestType == RequestType.Grpc || requestType == RequestType.Ws
+                ? { url }
+                : {
+                      method: methodBlockName.toUpperCase(),
+                      url,
+                      // Only the `http` section can contain `params`.
+                      ...(requestType == RequestType.Http
+                          ? getYamlParamsForUrl(url)
+                          : {}),
+                  },
     };
 
     // Bruno desktop separates the top level properties by an empty line.
