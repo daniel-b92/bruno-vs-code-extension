@@ -6,7 +6,6 @@ import {
     getPathParamsFromUrl,
     getPathParamsFromPathParamsBlock,
     getDefaultIndentationForDictionaryBlockFields,
-    getMethodBlockIfValid,
     DictionaryBlock,
     DictionaryBlockSimpleField,
     isDictionaryBlockSimpleField,
@@ -14,9 +13,12 @@ import {
     Range,
     Position,
     LineBreakType,
-    getSortedBlocksByPosition,
 } from "@global_shared";
 import { TextEdit } from "vscode-languageserver";
+import {
+    insertNewBlockAfterMethodBlock,
+    removeBlock,
+} from "./dictionaryBlockEdits";
 
 export function updatePathParamsKeysToMatchUrl(
     docHelper: TextDocumentHelper,
@@ -44,6 +46,8 @@ export function updatePathParamsKeysToMatchUrl(
             ? getPathParamsFromPathParamsBlock(pathParamsBlocks[0])
             : undefined;
 
+    const edits: TextEdit[] = [];
+
     if (
         doesTheFirstListContainEntriesTheSecondDoesNot(
             listFromUrl,
@@ -57,11 +61,13 @@ export function updatePathParamsKeysToMatchUrl(
               )
             : listFromUrl;
 
-        return addMissingEntriesInPathParamsBlock(
-            docHelper,
-            paramsToAdd,
-            blocks,
-            pathParamsBlocks,
+        edits.push(
+            addMissingEntriesInPathParamsBlock(
+                docHelper,
+                paramsToAdd,
+                blocks,
+                pathParamsBlocks,
+            ),
         );
     }
 
@@ -73,7 +79,7 @@ export function updatePathParamsKeysToMatchUrl(
         )
     ) {
         if (listFromUrl.length == 0) {
-            return removeBlock(blocks, pathParamsBlocks[0]);
+            return removeBlock(docHelper, pathParamsBlocks[0]);
         }
         if (
             pathParamsBlocks[0].content.every((field) =>
@@ -85,14 +91,16 @@ export function updatePathParamsKeysToMatchUrl(
                     !listFromUrl.includes(fromPathParamsBlock),
             );
 
-            return removeEntriesFromPathParamsBlock(
-                paramsToRemove,
-                pathParamsBlocks[0].content,
+            edits.push(
+                ...removeEntriesFromPathParamsBlock(
+                    paramsToRemove,
+                    pathParamsBlocks[0].content,
+                ),
             );
         }
     }
 
-    return [];
+    return edits;
 }
 
 function doesTheFirstListContainEntriesTheSecondDoesNot(
@@ -106,26 +114,6 @@ function doesTheFirstListContainEntriesTheSecondDoesNot(
             list1.filter((entryFromList1) => !list2.includes(entryFromList1))
                 .length > 0)
     );
-}
-
-function removeBlock(allBlocks: Block[], pathParamsBlock: DictionaryBlock) {
-    const sortedBlocks = getSortedBlocksByPosition(allBlocks);
-
-    const pathParamsBlockIndex = sortedBlocks.findIndex(
-        ({ name }) => name == pathParamsBlock.name,
-    );
-
-    if (pathParamsBlockIndex > 0) {
-        const previousBlockEnd =
-            sortedBlocks[pathParamsBlockIndex - 1].contentRange.end;
-
-        return TextEdit.del(
-            new Range(previousBlockEnd, pathParamsBlock.contentRange.end),
-        );
-    }
-
-    const nextBlockStart = sortedBlocks[1].nameRange.start;
-    return TextEdit.del(new Range(new Position(0, 0), nextBlockStart));
 }
 
 function removeEntriesFromPathParamsBlock(
@@ -153,33 +141,24 @@ function addMissingEntriesInPathParamsBlock(
 ) {
     const lineBreak = docHelper.getMostUsedLineBreak() ?? LineBreakType.Lf;
 
-    const blockContentToInsert = paramsToAdd
-        .map(
-            (urlSubstring) =>
-                `${" ".repeat(
-                    getDefaultIndentationForDictionaryBlockFields(),
-                )}${urlSubstring}: `,
-        )
-        .join(lineBreak);
+    const linesToInsert = paramsToAdd.map(
+        (urlSubstring) =>
+            `${" ".repeat(
+                getDefaultIndentationForDictionaryBlockFields(),
+            )}${urlSubstring}: ${lineBreak}`,
+    );
 
     if (parsedPathParamsBlocks.length == 0) {
-        const methodBlock = getMethodBlockIfValid(
+        return insertNewBlockAfterMethodBlock(
             allParsedBlocks,
-        ) as DictionaryBlock;
-
-        return TextEdit.insert(
-            new Position(
-                methodBlock.contentRange.end.line,
-                methodBlock.contentRange.end.character + 1,
-            ),
-            `${lineBreak.repeat(2)}${
-                RequestFileBlockName.PathParams
-            } {${lineBreak}${blockContentToInsert}${lineBreak}}`,
+            RequestFileBlockName.PathParams,
+            linesToInsert,
+            lineBreak,
         );
     }
 
     return TextEdit.insert(
         new Position(parsedPathParamsBlocks[0].contentRange.end.line, 0),
-        `${blockContentToInsert}${lineBreak}`,
+        linesToInsert.join(""),
     );
 }

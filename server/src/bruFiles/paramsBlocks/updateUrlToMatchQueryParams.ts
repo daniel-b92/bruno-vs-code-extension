@@ -12,21 +12,34 @@ import {
 } from "@global_shared";
 import { TextEdit } from "vscode-languageserver";
 
+/**
+ * Makes the query params of the URL match the enabled entries of the query params block.
+ * If the query params block is missing, all query params are removed from the URL.
+ */
 export function updateUrlToMatchQueryParams(
     blocks: Block[],
 ): TextEdit | TextEdit[] {
     const urlField = getUrlFieldFromMethodBlock(blocks);
-    const queryParamsBlocks = getValidDictionaryBlocksWithName(
+    const allQueryParamsBlocks = blocks.filter(
+        ({ name }) => name == RequestFileBlockName.QueryParams,
+    );
+    const validQueryParamsBlocks = getValidDictionaryBlocksWithName(
         blocks,
         RequestFileBlockName.QueryParams,
     );
+    const queryParamsBlockFields =
+        validQueryParamsBlocks.length == 1
+            ? validQueryParamsBlocks[0].content
+            : [];
 
     if (
         !urlField ||
         urlField.disabled ||
         !isDictionaryBlockSimpleField(urlField) ||
-        queryParamsBlocks.length != 1 ||
-        !queryParamsBlocks[0].content.every((field) =>
+        allQueryParamsBlocks.length > 1 ||
+        // An invalid query params block must not be treated like a missing one.
+        validQueryParamsBlocks.length != allQueryParamsBlocks.length ||
+        !queryParamsBlockFields.every((field) =>
             isDictionaryBlockSimpleField(field),
         )
     ) {
@@ -34,10 +47,9 @@ export function updateUrlToMatchQueryParams(
     }
 
     const queryParamsFromUrl = getQueryParamsFromUrl(urlField.value);
+    // Without a query params block, there are no fields and therefore all query params are removed from the URL.
     const queryParamsFromQueryParamsBlock =
-        getExpectedUrlQueryParamsForQueryParamsBlock(
-            queryParamsBlocks[0].content,
-        );
+        getExpectedUrlQueryParamsForQueryParamsBlock(queryParamsBlockFields);
 
     if (
         (!queryParamsFromUrl && queryParamsFromQueryParamsBlock.size > 0) ||

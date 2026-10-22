@@ -114,7 +114,7 @@ function getDiagnosticForMissingPathParamsInUrl(
             missingUrlSubstrings.length == 1
                 ? `'${missingUrlSubstrings[0]}'`
                 : JSON.stringify(missingUrlSubstrings, undefined, 2)
-        }. Saving may fix this issue since the path params will be automatically updated, to match the url on saving.`,
+        }. Use the quick fix to remove the entries that are not part of the URL from the '${RequestFileBlockName.PathParams}' block.`,
         range: urlFieldInMethodBlock.valueRange,
         severity: DiagnosticSeverity.Warning,
         relatedInformation: [

@@ -5,6 +5,7 @@ import {
     TextDocumentSyncKind,
     InitializeResult,
     CancellationToken,
+    CodeActionKind,
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -21,6 +22,7 @@ import {
 } from "./shared";
 import { URI } from "vscode-uri";
 import { runUpdatesOnWillSave } from "./bruFiles/autoUpdates/runUpdatesOnWillSave";
+import { handleCodeActionRequest as handleCodeActionRequestForBruFile } from "./bruFiles/quickFixes/handleCodeActionRequest";
 import {
     FileChangeType,
     getConfiguredEnvironmentNameAsync,
@@ -30,6 +32,7 @@ import {
     doesFileNameMatchFolderSettingsFileName,
     doesFileNameMatchCollectionSettingsFile,
     isBrunoFileType,
+    BrunoFileType,
     Position,
     TextDocumentHelper,
     getFileExtensionForFormat,
@@ -42,6 +45,7 @@ import { BrunoLangDiagnosticsProvider } from "./bruFiles/diagnostics/brunoLangDi
 import { handleHoverRequest as handleHoverRequestForBruFile } from "./bruFiles/hover/handleHoverRequest";
 import { handleHoverRequest as handleHoverRequestForYamlFile } from "./yamlFiles/hover/handleHoverRequest";
 import { extname } from "path";
+import { readFile } from "fs/promises";
 import { handleCompletionRequest as handleCompletionRequestForJsFile } from "./jsFiles/completionItems/handleCompletionRequest";
 import { handleHoverRequest as handleHoverRequestForJsFile } from "./jsFiles/hover/handleHoverRequest";
 import { defaultFeatureToggles, FeatureToggles } from "@global_shared";
@@ -97,6 +101,9 @@ disposables.push(
                     workspaceDiagnostics: false,
                 },
                 hoverProvider: true,
+                codeActionProvider: {
+                    codeActionKinds: [CodeActionKind.QuickFix],
+                },
             },
         };
         return result;
@@ -299,18 +306,49 @@ connection.onHover(async ({ textDocument: { uri }, position }, token) => {
     }
 });
 
-documents.onWillSaveWaitUntil(async ({ document: { uri } }) => {
-    if (getFilePathAndType(uri).type != FileTypeByExtension.Bru) {
+documents.onWillSaveWaitUntil(async ({ document }) => {
+    const { filePath, type } = getFilePathAndType(document.uri);
+    const itemProvider = helpersProvider?.getItemProvider();
+
+    if (type != FileTypeByExtension.Bru || !itemProvider) {
         return [];
     }
 
+    // Only request files can have query params blocks and path params blocks.
+    if (
+        (await getBrunoFileTypeIfExists(itemProvider, filePath)) !=
+        BrunoFileType.RequestFile
+    ) {
+        return [];
+    }
+
+    // The file on disk still has the content of the last save.
+    const lastSavedContent = await readFile(filePath, "utf-8").catch(
+        () => undefined,
+    );
+
+    return lastSavedContent === undefined
+        ? []
+        : runUpdatesOnWillSave(lastSavedContent, document.getText());
+});
+
+connection.onCodeAction(async ({ textDocument: { uri }, context }) => {
+    const { filePath, type } = getFilePathAndType(uri);
     const document = documents.get(uri);
-    return document && helpersProvider
-        ? runUpdatesOnWillSave(
+    const itemProvider = helpersProvider?.getItemProvider();
+
+    if (type != FileTypeByExtension.Bru || !document || !itemProvider) {
+        return [];
+    }
+
+    // Only request files can have query params blocks and path params blocks.
+    return (await getBrunoFileTypeIfExists(itemProvider, filePath)) ==
+        BrunoFileType.RequestFile
+        ? handleCodeActionRequestForBruFile({
               uri,
-              document.getText(),
-              helpersProvider.getItemProvider(),
-          )
+              fileContent: document.getText(),
+              diagnostics: context.diagnostics,
+          })
         : [];
 });
 
