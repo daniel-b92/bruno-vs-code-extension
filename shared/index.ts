@@ -50,6 +50,7 @@ export * from "./fileParsing/external/shared/getSequenceForFolder";
 export * from "./fileParsing/external/shared/getFolderSettingsFilePath";
 export * from "./fileParsing/external/shared/getSequencesForRequestsAndAppFiles";
 export * from "./fileParsing/external/shared/getMaxSequenceForRequestsAndAppFiles";
+export * from "./fileParsing/external/shared/getCollectionPresets";
 
 // file parsing - yaml format
 export * from "./fileParsing/external/yamlFormat/interfaces";
@@ -237,6 +238,8 @@ export * from "./languageUtils/bruFormat/genericFields/typeguards/isDictionaryBl
 
 // language utils - urls
 export * from "./languageUtils/shared/urls/getQueryParamsFromUrl";
+export * from "./languageUtils/shared/urls/getQueryParamEntriesFromUrl";
+export * from "./languageUtils/shared/urls/getParamsFromUrl";
 export * from "./languageUtils/shared/urls/getPathParamsFromUrl";
 export * from "./languageUtils/shared/urls/getUrlSubstringForQueryParams";
 

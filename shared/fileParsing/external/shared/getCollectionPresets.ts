@@ -1,35 +1,37 @@
 import {
-    BrunoPresetsRequestType,
     CollectionFormat,
     getCollectionRootFilePath,
     getFileContent,
     parseCollectionSettingsFile,
     RequestType,
     TextDocumentHelper,
-} from "@global_shared";
+} from "../../..";
 
-/**
- * Returns the request URL that is configured in the collection-wide presets, if it applies to the given request type.
- */
-export async function getDefaultRequestUrlFromPresets(
+export type CollectionPresets = {
+    requestType?: RequestType;
+    requestUrl?: string;
+};
+
+export async function getCollectionPresets(
     collectionRootFolder: string,
     format: CollectionFormat,
-    requestType: RequestType,
 ) {
     const fileContent = await getFileContent(
         getCollectionRootFilePath(collectionRootFolder, format),
     );
 
-    if (fileContent === undefined) {
-        return undefined;
-    }
+    return fileContent === undefined
+        ? undefined
+        : getCollectionPresetsFromFileContent(format, fileContent);
+}
 
-    const presets =
-        format == CollectionFormat.Bru
-            ? getPresetsFromBrunoJson(fileContent)
-            : getPresetsFromYaml(fileContent);
-
-    return presets?.type == requestType ? presets.url : undefined;
+export function getCollectionPresetsFromFileContent(
+    format: CollectionFormat,
+    fileContent: string,
+): CollectionPresets | undefined {
+    return format == CollectionFormat.Bru
+        ? getPresetsFromBrunoJson(fileContent)
+        : getPresetsFromYaml(fileContent);
 }
 
 function getPresetsFromBrunoJson(fileContent: string) {
@@ -51,9 +53,10 @@ function getPresetsFromBrunoJson(fileContent: string) {
             unknown
         >;
 
-        return typeof requestType == "string" && typeof requestUrl == "string"
-            ? { type: requestType, url: requestUrl }
-            : undefined;
+        return {
+            requestType: toRequestType(requestType),
+            requestUrl: typeof requestUrl == "string" ? requestUrl : undefined,
+        };
     } catch {
         return undefined;
     }
@@ -65,16 +68,12 @@ function getPresetsFromYaml(fileContent: string) {
     ).result?.properties.extensions?.properties.bruno?.properties.presets
         ?.properties.request?.properties;
 
-    const type = request?.type?.value;
-    const url = request?.url?.value;
-
-    return type !== undefined && url !== undefined
-        ? { type: toRequestType(type), url }
-        : undefined;
+    return {
+        requestType: toRequestType(request?.type?.value),
+        requestUrl: request?.url?.value,
+    };
 }
 
-function toRequestType(presetType: BrunoPresetsRequestType) {
-    return presetType == BrunoPresetsRequestType.Websocket
-        ? RequestType.Ws
-        : (presetType as string);
+function toRequestType(presetType: unknown) {
+    return Object.values(RequestType).find((type) => type == presetType);
 }

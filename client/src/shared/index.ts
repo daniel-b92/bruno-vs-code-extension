@@ -10,6 +10,7 @@ export * from "./fileParsing/folderSettings/getMaxSequenceForFolders";
 // test file writing
 export * from "./testFileWriting/getContentForMetaBlock";
 export * from "./testFileWriting/getContentForDefaultMethodBlock";
+export * from "./testFileWriting/getContentForUrlParamsBlocks";
 export * from "./testFileWriting/interfaces";
 
 // model

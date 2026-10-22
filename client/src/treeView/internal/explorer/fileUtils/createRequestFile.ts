@@ -9,12 +9,18 @@ import {
     AuthTypes,
     getPossibleMethodBlocksForRequestType,
     FileInfoType,
+    getCollectionPresets,
+    getParamsFromUrl,
+    doesRequestTypeSupportUrlParams,
+    HttpParamType,
+    RequestFileHttpSectionParamProperty,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
     getContentForMetaBlock,
     getContentForDefaultMethodBlock,
     getLineBreak,
+    getContentForUrlParamsBlocks,
     FileSystemCacheSyncingHelper,
     BrunoTreeItem,
 } from "@shared";
@@ -23,7 +29,6 @@ import { validateNewItemNameIsUnique } from "../validateNewItemNameIsUnique";
 import { promisify } from "util";
 import { writeFile } from "fs";
 import { stringify } from "yaml";
-import { getDefaultRequestUrlFromPresets } from "./getDefaultRequestUrlFromPresets";
 
 export async function createRequestFile(
     itemProvider: TypedCollectionItemProvider,
@@ -59,6 +64,10 @@ export async function createRequestFile(
         return;
     }
 
+    const presets = await getCollectionPresets(
+        collection.getRootDirectory(),
+        format,
+    );
     const pickedLabels: string[] = [];
 
     const quickPick = window.createQuickPick();
@@ -69,6 +78,9 @@ export async function createRequestFile(
     quickPick.items = Object.values(RequestType).map((type) => ({
         label: type,
     }));
+    quickPick.activeItems = quickPick.items.filter(
+        ({ label }) => label == presets?.requestType,
+    );
 
     quickPick.onDidChangeSelection(async (picks) => {
         pickedLabels.push(...picks.map(({ label }) => label));
@@ -127,12 +139,7 @@ export async function createRequestFile(
             )) ?? 0) + 1;
 
         const requestType = pickedLabels[0] as RequestType;
-        const url =
-            (await getDefaultRequestUrlFromPresets(
-                collection.getRootDirectory(),
-                format,
-                requestType,
-            )) ?? "";
+        const url = presets?.requestUrl ?? "";
 
         const failed = await promisify(writeFile)(
             filePath,
@@ -222,7 +229,13 @@ function getFileContent(
         lineBreak,
     );
 
-    return metaBlockContent.concat(lineBreak, methodBlockContent);
+    const paramsBlocksContent = doesRequestTypeSupportUrlParams(requestType)
+        ? getContentForUrlParamsBlocks(filePath, url, lineBreak)
+        : [];
+
+    return [metaBlockContent, methodBlockContent, ...paramsBlocksContent].join(
+        lineBreak,
+    );
 }
 
 function getYamlFileContent(
@@ -238,13 +251,34 @@ function getYamlFileContent(
         [yamlType]:
             requestType == RequestType.Grpc || requestType == RequestType.Ws
                 ? { url }
-                : { method: methodBlockName.toUpperCase(), url },
+                : {
+                      method: methodBlockName.toUpperCase(),
+                      url,
+                      // Only the `http` section can contain `params`.
+                      ...(requestType == RequestType.Http
+                          ? getYamlParams(url)
+                          : {}),
+                  },
     };
 
     // Bruno desktop separates the top level properties by an empty line.
     return Object.entries(topLevelProperties)
         .map(([key, value]) => stringify({ [key]: value }))
         .join("\n");
+}
+
+function getYamlParams(url: string) {
+    const { query, path } = getParamsFromUrl(url);
+    const params = [
+        ...query.map((param) => ({ ...param, type: HttpParamType.Query })),
+        ...path.map((param) => ({ ...param, type: HttpParamType.Path })),
+    ].map(({ name, value, type }) => ({
+        [RequestFileHttpSectionParamProperty.Name]: name,
+        [RequestFileHttpSectionParamProperty.Value]: value,
+        [RequestFileHttpSectionParamProperty.Type]: type,
+    }));
+
+    return params.length > 0 ? { params } : {};
 }
 
 function getYamlTypeForRequestType(requestType: RequestType): FileInfoType {

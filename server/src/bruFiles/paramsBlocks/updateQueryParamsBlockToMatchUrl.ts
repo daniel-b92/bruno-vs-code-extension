@@ -10,6 +10,7 @@ import {
     Range,
     Position,
     LineBreakType,
+    getQueryParamEntriesFromUrl,
 } from "@global_shared";
 import { TextEdit } from "vscode-languageserver";
 import {
@@ -43,7 +44,7 @@ export function updateQueryParamsBlockToMatchUrl(
     }
 
     const lineBreak = docHelper.getMostUsedLineBreak() ?? LineBreakType.Lf;
-    const linesForUrlParams = getEntriesFromUrl(urlField.value).map(
+    const linesForUrlParams = getQueryParamEntriesFromUrl(urlField.value).map(
         ([key, value]) =>
             `${" ".repeat(
                 getDefaultIndentationForDictionaryBlockFields(),
@@ -82,28 +83,6 @@ function isEmptyOrSimpleFieldsOnlyBlock(block: Block) {
         Array.isArray(block.content) &&
         block.content.every((field) => isDictionaryBlockSimpleField(field))
     );
-}
-
-function getEntriesFromUrl(url: string) {
-    if (!url.includes("?")) {
-        return [];
-    }
-
-    // Not using `URLSearchParams` here to keep the values exactly as they are written in the URL.
-    return url
-        .substring(url.indexOf("?") + 1)
-        .split("&")
-        .filter((param) => param != "")
-        .map((param): [string, string] => {
-            const indexOfSeparator = param.indexOf("=");
-
-            return indexOfSeparator < 0
-                ? [param, ""]
-                : [
-                      param.substring(0, indexOfSeparator),
-                      param.substring(indexOfSeparator + 1),
-                  ];
-        });
 }
 
 function getEnabledFields(queryParamsBlock: DictionaryBlock) {
