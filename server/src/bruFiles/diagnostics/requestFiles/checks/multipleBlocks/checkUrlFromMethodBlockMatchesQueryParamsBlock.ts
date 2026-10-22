@@ -99,7 +99,7 @@ function getDiagnosticForUrlNotMatchingQueryParamsBlock(
             RequestFileBlockName.QueryParams
         }' block '${getUrlSubstringForQueryParams(
             queryParamsFromQueryParamsBlock,
-        )}'. Saving may fix this issue since the url will be automatically updated, to match the query params on saving.`,
+        )}'. Use the quick fix to update either of them to match the other.`,
         range: urlFieldInMethodBlock.valueRange,
         severity: DiagnosticSeverity.Error,
         relatedInformation: [

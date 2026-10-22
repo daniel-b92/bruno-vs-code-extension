@@ -40,9 +40,7 @@ Each entry is tagged:
 
 ## 8. Server (language server)
 
-- Completions and hovers are provided for yaml files as well ([yamlFiles/completions/handleCompletionRequest.ts](server/src/yamlFiles/completions/handleCompletionRequest.ts), [yamlFiles/hover/handleHoverRequest.ts](server/src/yamlFiles/hover/handleHoverRequest.ts)), including variables and tags.
-- [server.ts:299-301](server/src/server.ts#L299-L301) **[Gap]**: will-save auto updates (URL ↔ params syncing, [runUpdatesOnWillSave.ts](server/src/bruFiles/autoUpdates/runUpdatesOnWillSave.ts)) only run for Bru.
-- `server/src/bruFiles/**` (e.g. [getDictionaryBlockSnippetInsertionContent.ts:113](server/src/bruFiles/completions/dictionaryBlocks/generic/getDictionaryBlockSnippetInsertionContent.ts#L113)) **[OK]**: hard-coded uses of `getFileExtensionForFormat(CollectionFormat.Bru)` here are intentional, since these code paths are only reached for `.bru` documents.
+- [handleCodeActionRequest.ts](server/src/bruFiles/quickFixes/handleCodeActionRequest.ts) **[Gap]**: quick fixes for URL ↔ params mismatches (`params:query` / `params:path` blocks) only exist for Bru.
 
 ## 9. TypeScript plugin
 

@@ -5,6 +5,7 @@ import {
     TextDocumentSyncKind,
     InitializeResult,
     CancellationToken,
+    CodeActionKind,
 } from "vscode-languageserver/node";
 
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -20,7 +21,7 @@ import {
     TypedCollectionItemProvider,
 } from "./shared";
 import { URI } from "vscode-uri";
-import { runUpdatesOnWillSave } from "./bruFiles/autoUpdates/runUpdatesOnWillSave";
+import { handleCodeActionRequest as handleCodeActionRequestForBruFile } from "./bruFiles/quickFixes/handleCodeActionRequest";
 import {
     FileChangeType,
     getConfiguredEnvironmentNameAsync,
@@ -30,6 +31,7 @@ import {
     doesFileNameMatchFolderSettingsFileName,
     doesFileNameMatchCollectionSettingsFile,
     isBrunoFileType,
+    BrunoFileType,
     Position,
     TextDocumentHelper,
     getFileExtensionForFormat,
@@ -82,8 +84,6 @@ disposables.push(
                 workspace: { workspaceFolders: { supported: true } },
                 textDocumentSync: {
                     change: TextDocumentSyncKind.Full,
-                    willSaveWaitUntil: true,
-                    willSave: true,
                     openClose: true,
                     save: true,
                 },
@@ -97,6 +97,9 @@ disposables.push(
                     workspaceDiagnostics: false,
                 },
                 hoverProvider: true,
+                codeActionProvider: {
+                    codeActionKinds: [CodeActionKind.QuickFix],
+                },
             },
         };
         return result;
@@ -299,18 +302,23 @@ connection.onHover(async ({ textDocument: { uri }, position }, token) => {
     }
 });
 
-documents.onWillSaveWaitUntil(async ({ document: { uri } }) => {
-    if (getFilePathAndType(uri).type != FileTypeByExtension.Bru) {
+connection.onCodeAction(async ({ textDocument: { uri }, context }) => {
+    const { filePath, type } = getFilePathAndType(uri);
+    const document = documents.get(uri);
+    const itemProvider = helpersProvider?.getItemProvider();
+
+    if (type != FileTypeByExtension.Bru || !document || !itemProvider) {
         return [];
     }
 
-    const document = documents.get(uri);
-    return document && helpersProvider
-        ? runUpdatesOnWillSave(
+    // Only request files can have query params blocks and path params blocks.
+    return (await getBrunoFileTypeIfExists(itemProvider, filePath)) ==
+        BrunoFileType.RequestFile
+        ? handleCodeActionRequestForBruFile({
               uri,
-              document.getText(),
-              helpersProvider.getItemProvider(),
-          )
+              fileContent: document.getText(),
+              diagnostics: context.diagnostics,
+          })
         : [];
 });
 

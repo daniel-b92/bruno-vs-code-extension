@@ -44,6 +44,8 @@ export function updatePathParamsKeysToMatchUrl(
             ? getPathParamsFromPathParamsBlock(pathParamsBlocks[0])
             : undefined;
 
+    const edits: TextEdit[] = [];
+
     if (
         doesTheFirstListContainEntriesTheSecondDoesNot(
             listFromUrl,
@@ -57,11 +59,13 @@ export function updatePathParamsKeysToMatchUrl(
               )
             : listFromUrl;
 
-        return addMissingEntriesInPathParamsBlock(
-            docHelper,
-            paramsToAdd,
-            blocks,
-            pathParamsBlocks,
+        edits.push(
+            addMissingEntriesInPathParamsBlock(
+                docHelper,
+                paramsToAdd,
+                blocks,
+                pathParamsBlocks,
+            ),
         );
     }
 
@@ -85,14 +89,16 @@ export function updatePathParamsKeysToMatchUrl(
                     !listFromUrl.includes(fromPathParamsBlock),
             );
 
-            return removeEntriesFromPathParamsBlock(
-                paramsToRemove,
-                pathParamsBlocks[0].content,
+            edits.push(
+                ...removeEntriesFromPathParamsBlock(
+                    paramsToRemove,
+                    pathParamsBlocks[0].content,
+                ),
             );
         }
     }
 
-    return [];
+    return edits;
 }
 
 function doesTheFirstListContainEntriesTheSecondDoesNot(
