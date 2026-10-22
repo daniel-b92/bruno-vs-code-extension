@@ -1,23 +1,27 @@
 import {
     BrunoFileType,
-    CollectionFormat,
-    getVariableScopeSectionsFromFile,
+    getVariableScopeSectionsFromYamlFile,
     Logger,
+    ParsedYamlDocument,
 } from "@global_shared";
 import { LanguageFeatureBaseRequest, TypedCollection } from "../shared";
 import { VariableSectionRequest } from "../shared/variables/interfaces";
 
-/** @returns `undefined`, if the position is not within any section that can be handled. */
+/**
+ * @param parsedDocument If defined, it is used instead of parsing the document text again.
+ * @returns `undefined`, if the position is not within any section that can be handled.
+ */
 export function getVariableSectionRequest(
     request: LanguageFeatureBaseRequest,
     collection: TypedCollection,
     fileType: BrunoFileType,
     logger?: Logger,
+    parsedDocument?: ParsedYamlDocument,
 ): VariableSectionRequest | undefined {
-    const allSections = getVariableScopeSectionsFromFile(
-        request.documentHelper.getText(),
+    const allSections = getVariableScopeSectionsFromYamlFile(
+        request.documentHelper,
         fileType,
-        CollectionFormat.Yaml,
+        parsedDocument,
     );
     const sectionContainingPosition = allSections.find(({ range }) =>
         range.contains(request.position),

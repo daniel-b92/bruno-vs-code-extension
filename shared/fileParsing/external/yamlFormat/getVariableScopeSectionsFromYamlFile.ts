@@ -5,7 +5,6 @@ import {
     isSeq,
     LineCounter,
     Node,
-    parseDocument,
     Scalar,
     visit,
     YAMLMap,
@@ -31,6 +30,7 @@ import { getBlockScalarContentRange } from "./getBlockScalarContentRange";
 import { getScriptBlocksFromYamlFile } from "./getScriptBlocksFromYamlFile";
 import { ActionType } from "./constants/actionConstants";
 import { ScriptType } from "./constants/sharedConstants";
+import { ParsedYamlDocument, parseYamlDocument } from "./parseYamlDocument";
 
 /**
  * Syntax errors in the document are tolerated, so that the sections can also be determined while the user is typing.
@@ -41,13 +41,15 @@ import { ScriptType } from "./constants/sharedConstants";
 export function getVariableScopeSectionsFromYamlFile(
     docHelper: TextDocumentHelper,
     itemType: ItemType,
+    /** If defined, it is used instead of parsing the text again. It needs to be the parsed text of the given document helper. */
+    alreadyParsed?: ParsedYamlDocument,
 ): VariableScopeSection[] {
     if (!isItemTypeSupported(itemType)) {
         return [];
     }
 
-    const lineCounter = new LineCounter();
-    const document = parseDocument(docHelper.getText(), { lineCounter });
+    const { document, lineCounter } =
+        alreadyParsed ?? parseYamlDocument(docHelper.getText());
     const { contents } = document;
     const context: Context = { docHelper, lineCounter, itemType };
 
