@@ -13,20 +13,9 @@ import {
     TextEdit,
 } from "vscode-languageserver";
 import { NonBlockSpecificDiagnosticCode } from "../diagnostics/shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
-import { updatePathParamsKeysToMatchUrl } from "./updatePathParamsKeysToMatchUrl";
-import { updateQueryParamsBlockToMatchUrl } from "./updateQueryParamsBlockToMatchUrl";
-import { updateUrlToMatchQueryParams } from "./updateUrlToMatchQueryParams";
-
-// TODO: Additionally sync the URL and the params blocks while typing (the quick fixes below stay as the fallback).
-//  Possible approach:
-//  - Do it on the client (`workspace.onDidChangeTextDocument` + `WorkspaceEdit`), since an edit sent by the server via
-//    `workspace/applyEdit` can be rejected for an outdated document version while typing and always creates its own undo step.
-//  - Only react to real typing (ignore undo/redo, paste, find & replace, reverts of the file and other extensions' edits),
-//    and debounce, so that half-typed states (e.g. `:i` on the way to `:id`) do not change the other side.
-//  - Only sync in the direction that was edited and only rename/add entries. Never delete entries that have a value
-//    (e.g. because a `:id` got retyped); that stays up to the quick fix `Update 'params:path' block to match URL`.
-//  - Optionally use `textDocument/linkedEditingRange` for renaming a path param / query key at both places at once
-//    (the editor handles undo and races itself, but it only works if the user enables `editor.linkedEditing`).
+import { updatePathParamsKeysToMatchUrl } from "../paramsBlocks/updatePathParamsKeysToMatchUrl";
+import { updateQueryParamsBlockToMatchUrl } from "../paramsBlocks/updateQueryParamsBlockToMatchUrl";
+import { updateUrlToMatchQueryParams } from "../paramsBlocks/updateUrlToMatchQueryParams";
 
 export function handleCodeActionRequest({
     uri,
@@ -96,7 +85,13 @@ function getFixesForDiagnostic(
                 updateQueryParamsBlock,
             ];
         case NonBlockSpecificDiagnosticCode.QueryParamsBlockMissing:
-            return [updateQueryParamsBlock];
+            return [
+                {
+                    title: "Remove query params from URL",
+                    getEdits: edits.updateUrl,
+                },
+                updateQueryParamsBlock,
+            ];
         case NonBlockSpecificDiagnosticCode.UrlFromMethodBlockMissingPathParams:
         case NonBlockSpecificDiagnosticCode.PathParamsBlockMissingValuesFromUrl:
         case NonBlockSpecificDiagnosticCode.UrlFromMethodBlockNotMatchingPathParamsBlock:

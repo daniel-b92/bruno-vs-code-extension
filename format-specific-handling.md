@@ -40,6 +40,7 @@ Each entry is tagged:
 
 ## 8. Server (language server)
 
+- [server.ts](server/src/server.ts) **[Gap]**: will-save auto updates (URL ↔ params syncing, [runUpdatesOnWillSave.ts](server/src/bruFiles/autoUpdates/runUpdatesOnWillSave.ts)) only run for Bru.
 - [handleCodeActionRequest.ts](server/src/bruFiles/quickFixes/handleCodeActionRequest.ts) **[Gap]**: quick fixes for URL ↔ params mismatches (`params:query` / `params:path` blocks) only exist for Bru.
 
 ## 9. TypeScript plugin

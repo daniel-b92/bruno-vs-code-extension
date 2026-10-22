@@ -94,7 +94,7 @@ describe("handleCodeActionRequest", () => {
             );
         });
 
-        it("adds a missing query params block", () => {
+        it("offers to remove the query params from the URL or to add the missing query params block", () => {
             const content = getRequestFile("https://example.com?a=1&b=2");
 
             const actions = getActions(
@@ -103,13 +103,49 @@ describe("handleCodeActionRequest", () => {
             );
 
             expect(actions.map(({ title }) => title)).toEqual([
+                "Remove query params from URL",
                 "Update 'params:query' block to match URL",
             ]);
             expect(applyAction(content, actions[0])).toEqual(
+                getRequestFile("https://example.com"),
+            );
+            expect(applyAction(content, actions[1])).toEqual(
                 getRequestFile(
                     "https://example.com?a=1&b=2",
                     "params:query {\n  a: 1\n  b: 2\n}",
                 ),
+            );
+        });
+
+        it("removes the whole query params block if no entries would be left", () => {
+            const content = `${getRequestFile(
+                "https://example.com",
+                "params:query {\n  a: 1\n  b: 2\n}",
+            )}\nbody:json {\n  {}\n}\n`;
+
+            const [, updateBlock] = getActions(
+                content,
+                NonBlockSpecificDiagnosticCode.UrlFromMethodBlockNotMatchingQueryParamsBlock,
+            );
+
+            expect(applyAction(content, updateBlock)).toEqual(
+                `${getRequestFile("https://example.com")}\nbody:json {\n  {}\n}\n`,
+            );
+        });
+
+        it("removes the whole query params block if it is the last block of the file", () => {
+            const content = getRequestFile(
+                "https://example.com",
+                "params:query {\n  a: 1\n}",
+            );
+
+            const [, updateBlock] = getActions(
+                content,
+                NonBlockSpecificDiagnosticCode.UrlFromMethodBlockNotMatchingQueryParamsBlock,
+            );
+
+            expect(applyAction(content, updateBlock)).toEqual(
+                getRequestFile("https://example.com"),
             );
         });
 
@@ -119,7 +155,7 @@ describe("handleCodeActionRequest", () => {
                 "\r\n",
             );
 
-            const [action] = getActions(
+            const [, action] = getActions(
                 content,
                 NonBlockSpecificDiagnosticCode.QueryParamsBlockMissing,
             );

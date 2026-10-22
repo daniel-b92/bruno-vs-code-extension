@@ -53,10 +53,18 @@ export function updateQueryParamsBlockToMatchUrl(
             : [];
     }
 
-    return replaceEnabledFields(
-        queryParamsBlocks[0] as DictionaryBlock,
-        linesForUrlParams.join(""),
-    );
+    const queryParamsBlock = queryParamsBlocks[0] as DictionaryBlock;
+
+    // Empty dictionary blocks are invalid, so the block needs to be removed if no entries would be left.
+    if (
+        linesForUrlParams.length == 0 &&
+        getEnabledFields(queryParamsBlock).length ==
+            queryParamsBlock.content.length
+    ) {
+        return [removeBlock(docHelper, queryParamsBlock)];
+    }
+
+    return replaceEnabledFields(queryParamsBlock, linesForUrlParams.join(""));
 }
 
 function isEmptyOrSimpleFieldsOnlyBlock(block: Block) {
@@ -106,13 +114,40 @@ function insertNewBlock(
     );
 }
 
+function removeBlock(docHelper: TextDocumentHelper, block: DictionaryBlock) {
+    const startLine = block.nameRange.start.line;
+    const endLine = block.contentRange.end.line;
+    // Also remove the blank line separating the block from the previous one.
+    const firstLineToRemove =
+        startLine > 0 && docHelper.getLineByIndex(startLine - 1).trim() == ""
+            ? startLine - 1
+            : startLine;
+    const isLastLine = endLine + 1 >= docHelper.getLineCount();
+
+    return TextEdit.del(
+        new Range(
+            new Position(firstLineToRemove, 0),
+            isLastLine
+                ? new Position(
+                      endLine,
+                      docHelper.getLineByIndex(endLine).length,
+                  )
+                : new Position(endLine + 1, 0),
+        ),
+    );
+}
+
+function getEnabledFields(queryParamsBlock: DictionaryBlock) {
+    return (queryParamsBlock.content as DictionaryBlockSimpleField[]).filter(
+        ({ disabled }) => !disabled,
+    );
+}
+
 function replaceEnabledFields(
     queryParamsBlock: DictionaryBlock,
     newContent: string,
 ) {
-    const enabledFields = (
-        queryParamsBlock.content as DictionaryBlockSimpleField[]
-    ).filter(({ disabled }) => !disabled);
+    const enabledFields = getEnabledFields(queryParamsBlock);
 
     if (enabledFields.length == 0) {
         return newContent.length > 0

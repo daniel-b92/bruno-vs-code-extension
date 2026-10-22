@@ -2,11 +2,11 @@
 
 ### Features
 
-- Add quick fixes for the diagnostics about a URL that does not match the `params:query` or `params:path` block in `.bru` request files. For query params, the URL or the `params:query` block can be updated to match the other one; for path params, the `params:path` block can be updated to match the URL.
+- Add quick fixes for the diagnostics about a URL that does not match the `params:query` or `params:path` block in `.bru` request files. For query params, the URL or the `params:query` block can be updated to match the other one (if the `params:query` block is missing, the query params can be removed from the URL instead); for path params, the `params:path` block can be updated to match the URL.
 
 ### Fixes / Maintenance
 
-- Remove the automatic update of the URL and the `params:query` / `params:path` blocks of `.bru` request files on saving, since it could unexpectedly overwrite changes. The new quick fixes can be used instead.
+- Only update the URL and the `params:query` / `params:path` blocks of `.bru` request files on saving, if exactly one of the two was modified since the last save (previously, the `params:query` block always overwrote the URL's query params). The other side is then updated to match the modified one. If both were modified, nothing is changed and the new quick fixes can be used instead. Path param values are never overwritten from the URL, and the `params:query` block is removed if no query params are left.
 - Make handling of unreadable or invalid `folder.bru` files consistent with the `yaml` format: The folder is now still registered with its settings file (without a sequence) instead of being skipped or having no settings file.
 - Fix an issue that caused a collection to stay registered in the cache when only its root file (`bruno.json` or `opencollection.yml`) was deleted.
 - Make renaming of a collection root folder in the collection explorer consistent with the `yaml` format: For `bru` collections, the `name` in `bruno.json` (and the `name` in the `meta` block of `collection.bru`, if present) is now adjusted too.

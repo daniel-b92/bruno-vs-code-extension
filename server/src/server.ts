@@ -21,6 +21,7 @@ import {
     TypedCollectionItemProvider,
 } from "./shared";
 import { URI } from "vscode-uri";
+import { runUpdatesOnWillSave } from "./bruFiles/autoUpdates/runUpdatesOnWillSave";
 import { handleCodeActionRequest as handleCodeActionRequestForBruFile } from "./bruFiles/quickFixes/handleCodeActionRequest";
 import {
     FileChangeType,
@@ -44,6 +45,7 @@ import { BrunoLangDiagnosticsProvider } from "./bruFiles/diagnostics/brunoLangDi
 import { handleHoverRequest as handleHoverRequestForBruFile } from "./bruFiles/hover/handleHoverRequest";
 import { handleHoverRequest as handleHoverRequestForYamlFile } from "./yamlFiles/hover/handleHoverRequest";
 import { extname } from "path";
+import { readFile } from "fs/promises";
 import { handleCompletionRequest as handleCompletionRequestForJsFile } from "./jsFiles/completionItems/handleCompletionRequest";
 import { handleHoverRequest as handleHoverRequestForJsFile } from "./jsFiles/hover/handleHoverRequest";
 import { defaultFeatureToggles, FeatureToggles } from "@global_shared";
@@ -84,6 +86,8 @@ disposables.push(
                 workspace: { workspaceFolders: { supported: true } },
                 textDocumentSync: {
                     change: TextDocumentSyncKind.Full,
+                    willSaveWaitUntil: true,
+                    willSave: true,
                     openClose: true,
                     save: true,
                 },
@@ -300,6 +304,32 @@ connection.onHover(async ({ textDocument: { uri }, position }, token) => {
         case FileTypeByExtension.Js:
             return handleHoverRequestForJsFile(params);
     }
+});
+
+documents.onWillSaveWaitUntil(async ({ document }) => {
+    const { filePath, type } = getFilePathAndType(document.uri);
+    const itemProvider = helpersProvider?.getItemProvider();
+
+    if (type != FileTypeByExtension.Bru || !itemProvider) {
+        return [];
+    }
+
+    // Only request files can have query params blocks and path params blocks.
+    if (
+        (await getBrunoFileTypeIfExists(itemProvider, filePath)) !=
+        BrunoFileType.RequestFile
+    ) {
+        return [];
+    }
+
+    // The file on disk still has the content of the last save.
+    const lastSavedContent = await readFile(filePath, "utf-8").catch(
+        () => undefined,
+    );
+
+    return lastSavedContent === undefined
+        ? []
+        : runUpdatesOnWillSave(lastSavedContent, document.getText());
 });
 
 connection.onCodeAction(async ({ textDocument: { uri }, context }) => {
