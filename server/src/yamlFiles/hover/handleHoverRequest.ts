@@ -35,12 +35,12 @@ export function handleHoverRequest({
         return undefined;
     }
 
+    const parsed = parseYamlDocument(documentHelper.getText());
     const itemType = getYamlFileTypeForEditorContent(
         cachedItemType,
         documentHelper.getText(),
+        parsed.document,
     );
-
-    const parsed = parseYamlDocument(documentHelper.getText());
 
     if (itemType == BrunoFileType.RequestFile) {
         const tagHover = getHoverForTag(

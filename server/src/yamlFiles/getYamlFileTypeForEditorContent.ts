@@ -1,3 +1,4 @@
+import { Document } from "yaml";
 import { BrunoFileType, ItemType } from "@global_shared";
 import { isYamlAppFile } from "./isYamlAppFile";
 
@@ -5,10 +6,12 @@ import { isYamlAppFile } from "./isYamlAppFile";
 export function getYamlFileTypeForEditorContent<T extends ItemType>(
     fileType: T,
     text: string,
+    /** If defined, it is used instead of parsing the text again. It needs to be the parsed text. */
+    parsedDocument?: Document,
 ): T | BrunoFileType.AppFile | BrunoFileType.RequestFile {
     return fileType == BrunoFileType.RequestFile ||
         fileType == BrunoFileType.AppFile
-        ? isYamlAppFile(text)
+        ? isYamlAppFile(text, parsedDocument)
             ? BrunoFileType.AppFile
             : BrunoFileType.RequestFile
         : fileType;
