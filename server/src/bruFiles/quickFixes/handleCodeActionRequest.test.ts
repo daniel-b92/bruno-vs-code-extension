@@ -290,6 +290,30 @@ describe("handleCodeActionRequest", () => {
         ).toEqual([]);
     });
 
+    it("offers a fix shared by multiple diagnostics only once", () => {
+        const content = getRequestFile(
+            "https://example.com/:a/:c",
+            "params:path {\n  a: 1\n  b: 2\n}",
+        );
+        const diagnostics = [
+            getDiagnostic(
+                NonBlockSpecificDiagnosticCode.UrlFromMethodBlockMissingPathParams,
+            ),
+            getDiagnostic(
+                NonBlockSpecificDiagnosticCode.PathParamsBlockMissingValuesFromUrl,
+            ),
+        ];
+
+        const actions = handleCodeActionRequest({
+            uri,
+            fileContent: content,
+            diagnostics,
+        });
+
+        expect(actions).toHaveLength(1);
+        expect(actions[0].diagnostics).toEqual(diagnostics);
+    });
+
     it("links each fix to the diagnostic it belongs to", () => {
         const content = getRequestFile("https://example.com?a=1");
         const diagnostic = getDiagnostic(

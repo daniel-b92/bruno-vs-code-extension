@@ -33,26 +33,38 @@ export function handleCodeActionRequest({
         return [];
     }
 
-    return diagnostics.flatMap((diagnostic) =>
+    const actionsByTitle = new Map<string, CodeAction>();
+
+    diagnostics.forEach((diagnostic) => {
         getFixesForDiagnostic(diagnostic.code, {
             updateUrl: () => updateUrlToMatchQueryParams(blocks),
             updateQueryParamsBlock: () =>
                 updateQueryParamsBlockToMatchUrl(docHelper, blocks),
             updatePathParamsBlock: () =>
                 updatePathParamsKeysToMatchUrl(docHelper, blocks),
-        })
-            .map(({ title, getEdits }) => ({
-                title,
-                edits: ([] as TextEdit[]).concat(getEdits()),
-            }))
-            .filter(({ edits }) => edits.length > 0)
-            .map(({ title, edits }): CodeAction => ({
-                title,
-                kind: CodeActionKind.QuickFix,
-                diagnostics: [diagnostic],
-                edit: { changes: { [uri]: edits } },
-            })),
-    );
+        }).forEach(({ title, getEdits }) => {
+            const existingAction = actionsByTitle.get(title);
+
+            // Different diagnostics can share the same fix, which must only be offered once.
+            if (existingAction) {
+                existingAction.diagnostics?.push(diagnostic);
+                return;
+            }
+
+            const edits = ([] as TextEdit[]).concat(getEdits());
+
+            if (edits.length > 0) {
+                actionsByTitle.set(title, {
+                    title,
+                    kind: CodeActionKind.QuickFix,
+                    diagnostics: [diagnostic],
+                    edit: { changes: { [uri]: edits } },
+                });
+            }
+        });
+    });
+
+    return Array.from(actionsByTitle.values());
 }
 
 function getFixesForDiagnostic(

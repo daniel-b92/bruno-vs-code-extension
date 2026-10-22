@@ -3,7 +3,6 @@ import {
     RequestFileBlockName,
     Block,
     getDefaultIndentationForDictionaryBlockFields,
-    getMethodBlockIfValid,
     DictionaryBlock,
     DictionaryBlockSimpleField,
     isDictionaryBlockSimpleField,
@@ -13,6 +12,10 @@ import {
     LineBreakType,
 } from "@global_shared";
 import { TextEdit } from "vscode-languageserver";
+import {
+    insertNewBlockAfterMethodBlock,
+    removeBlock,
+} from "./dictionaryBlockEdits";
 
 /**
  * Counterpart to `updateUrlToMatchQueryParams`: Makes the enabled entries of the query params block match the URL.
@@ -49,7 +52,14 @@ export function updateQueryParamsBlockToMatchUrl(
 
     if (queryParamsBlocks.length == 0) {
         return linesForUrlParams.length > 0
-            ? [insertNewBlock(blocks, linesForUrlParams.join(""), lineBreak)]
+            ? [
+                  insertNewBlockAfterMethodBlock(
+                      blocks,
+                      RequestFileBlockName.QueryParams,
+                      linesForUrlParams,
+                      lineBreak,
+                  ),
+              ]
             : [];
     }
 
@@ -94,47 +104,6 @@ function getEntriesFromUrl(url: string) {
                       param.substring(indexOfSeparator + 1),
                   ];
         });
-}
-
-function insertNewBlock(
-    allBlocks: Block[],
-    blockContentToInsert: string,
-    lineBreak: string,
-) {
-    const methodBlock = getMethodBlockIfValid(allBlocks) as DictionaryBlock;
-
-    return TextEdit.insert(
-        new Position(
-            methodBlock.contentRange.end.line,
-            methodBlock.contentRange.end.character + 1,
-        ),
-        `${lineBreak.repeat(2)}${
-            RequestFileBlockName.QueryParams
-        } {${lineBreak}${blockContentToInsert}}`,
-    );
-}
-
-function removeBlock(docHelper: TextDocumentHelper, block: DictionaryBlock) {
-    const startLine = block.nameRange.start.line;
-    const endLine = block.contentRange.end.line;
-    // Also remove the blank line separating the block from the previous one.
-    const firstLineToRemove =
-        startLine > 0 && docHelper.getLineByIndex(startLine - 1).trim() == ""
-            ? startLine - 1
-            : startLine;
-    const isLastLine = endLine + 1 >= docHelper.getLineCount();
-
-    return TextEdit.del(
-        new Range(
-            new Position(firstLineToRemove, 0),
-            isLastLine
-                ? new Position(
-                      endLine,
-                      docHelper.getLineByIndex(endLine).length,
-                  )
-                : new Position(endLine + 1, 0),
-        ),
-    );
 }
 
 function getEnabledFields(queryParamsBlock: DictionaryBlock) {
