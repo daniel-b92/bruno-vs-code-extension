@@ -23,6 +23,7 @@ import { validateNewItemNameIsUnique } from "../validateNewItemNameIsUnique";
 import { promisify } from "util";
 import { writeFile } from "fs";
 import { stringify } from "yaml";
+import { getDefaultRequestUrlFromPresets } from "./getDefaultRequestUrlFromPresets";
 
 export async function createRequestFile(
     itemProvider: TypedCollectionItemProvider,
@@ -125,13 +126,22 @@ export async function createRequestFile(
                 parentFolderPath,
             )) ?? 0) + 1;
 
+        const requestType = pickedLabels[0] as RequestType;
+        const url =
+            (await getDefaultRequestUrlFromPresets(
+                collection.getRootDirectory(),
+                format,
+                requestType,
+            )) ?? "";
+
         const failed = await promisify(writeFile)(
             filePath,
             getFileContent(format, requestSequence, {
                 filePath,
                 requestName,
-                requestType: pickedLabels[0] as RequestType,
+                requestType,
                 methodBlockName: pickedLabels[1],
+                url,
             }),
         ).catch(() => true);
 
@@ -169,9 +179,11 @@ function getFileContent(
         requestName: string;
         requestType: RequestType;
         methodBlockName: string;
+        url: string;
     },
 ) {
-    const { filePath, requestName, requestType, methodBlockName } = chosenData;
+    const { filePath, requestName, requestType, methodBlockName, url } =
+        chosenData;
 
     if (format == CollectionFormat.Yaml) {
         return getYamlFileContent(
@@ -179,6 +191,7 @@ function getFileContent(
             requestName,
             requestType,
             methodBlockName,
+            url,
         );
     }
 
@@ -198,7 +211,7 @@ function getFileContent(
         filePath,
         methodBlockName,
         {
-            url: "",
+            url,
             auth: AuthTypes.None,
             // Websocket requests always use the `body:ws` blocks for their messages.
             body:
@@ -217,16 +230,15 @@ function getYamlFileContent(
     requestName: string,
     requestType: RequestType,
     methodBlockName: string,
+    url: string,
 ) {
     const yamlType = getYamlTypeForRequestType(requestType);
     const topLevelProperties = {
         info: { name: requestName, type: yamlType, seq: requestSequence },
         [yamlType]:
-            requestType == RequestType.Grpc
-                ? { url: "" }
-                : requestType == RequestType.Ws
-                  ? { url: "" }
-                  : { method: methodBlockName.toUpperCase(), url: "" },
+            requestType == RequestType.Grpc || requestType == RequestType.Ws
+                ? { url }
+                : { method: methodBlockName.toUpperCase(), url },
     };
 
     // Bruno desktop separates the top level properties by an empty line.
