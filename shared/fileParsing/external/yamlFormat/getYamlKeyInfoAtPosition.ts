@@ -1,3 +1,4 @@
+import { Document } from "yaml";
 import {
     BrunoFileType,
     Position,
@@ -16,14 +17,18 @@ export function getYamlKeyInfoAtPosition({
     docHelper,
     fileType,
     position,
+    parsedDocument,
 }: {
     docHelper: TextDocumentHelper;
     fileType: BrunoFileType;
     position: Position;
+    /** If defined, it is used instead of parsing the text again. It needs to be the parsed text of the given document helper. */
+    parsedDocument?: Document;
 }): { keyInfo: YamlExpectedKeyInfo; keyRange: Range } | undefined {
     for (const { definedKeys, expectedKeys } of getDescriptorsForText(
         docHelper.getText(),
         fileType,
+        parsedDocument,
     )) {
         const defined = definedKeys.find(({ keyRange }) =>
             keyRange.contains(position),

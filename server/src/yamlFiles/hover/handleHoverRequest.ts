@@ -4,7 +4,9 @@ import {
     isBrunoFileType,
     isCodeSection,
     parseRequestFile,
+    parseYamlDocument,
 } from "@global_shared";
+import { Document } from "yaml";
 import { Hover } from "vscode-languageserver";
 import {
     LanguageFeatureBaseRequest,
@@ -33,28 +35,33 @@ export function handleHoverRequest({
         return undefined;
     }
 
+    const parsed = parseYamlDocument(documentHelper.getText());
     const itemType = getYamlFileTypeForEditorContent(
         cachedItemType,
         documentHelper.getText(),
+        parsed.document,
     );
 
     if (itemType == BrunoFileType.RequestFile) {
-        const tagHover = getHoverForTag({
-            baseRequest,
-            itemProvider,
-            collection,
-        });
+        const tagHover = getHoverForTag(
+            {
+                baseRequest,
+                itemProvider,
+                collection,
+            },
+            parsed.document,
+        );
         if (tagHover) {
             return tagHover;
         }
     }
 
-    // ToDo: The document is parsed separately for the tags, the variable sections and the keys. Reuse a single tolerant parse for all of them.
     const variableRequest = getVariableSectionRequest(
         baseRequest,
         collection,
         itemType,
         logger,
+        parsed,
     );
 
     const variableHover = variableRequest
@@ -69,17 +76,21 @@ export function handleHoverRequest({
               )
         : undefined;
 
-    return variableHover ?? getHoverForKey(baseRequest, itemType);
+    return (
+        variableHover ?? getHoverForKey(baseRequest, itemType, parsed.document)
+    );
 }
 
 function getHoverForKey(
     { documentHelper, position }: LanguageFeatureBaseRequest,
     fileType: BrunoFileType,
+    parsedDocument: Document,
 ) {
     const keyAtPosition = getYamlKeyInfoAtPosition({
         docHelper: documentHelper,
         fileType,
         position,
+        parsedDocument,
     });
 
     return keyAtPosition
@@ -87,17 +98,22 @@ function getHoverForKey(
         : undefined;
 }
 
-function getHoverForTag({
-    baseRequest: { documentHelper, filePath, position },
-    itemProvider,
-    collection,
-}: Pick<
-    LanguageRequestWithTestEnvironmentInfo,
-    "baseRequest" | "itemProvider" | "collection"
->) {
+function getHoverForTag(
+    {
+        baseRequest: { documentHelper, filePath, position },
+        itemProvider,
+        collection,
+    }: Pick<
+        LanguageRequestWithTestEnvironmentInfo,
+        "baseRequest" | "itemProvider" | "collection"
+    >,
+    parsedDocument: Document,
+) {
     const tags =
-        parseRequestFile(documentHelper, { continueOnSyntaxErrors: true })
-            .result?.properties.info?.properties.tags?.value ?? [];
+        parseRequestFile(documentHelper, {
+            continueOnSyntaxErrors: true,
+            parsedDocument,
+        }).result?.properties.info?.properties.tags?.value ?? [];
     const tagAtPosition = tags.find(({ range }) => range.contains(position));
 
     if (!tagAtPosition) {

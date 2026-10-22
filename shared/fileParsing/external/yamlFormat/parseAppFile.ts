@@ -26,6 +26,7 @@ export function parseAppFile(
         fullDocumentRange: docHelper.getTextRange(),
         mapDescriptors: options?.mapDescriptors,
         continueOnSyntaxErrors: options?.continueOnSyntaxErrors,
+        parsedDocument: options?.parsedDocument,
     };
     const collectedErrors: YamlParsingError[] = [];
 
