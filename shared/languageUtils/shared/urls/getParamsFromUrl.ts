@@ -7,6 +7,10 @@ export function getParamsFromUrl(url: string) {
             name,
             value,
         })),
-        path: getPathParamsFromUrl(url).map((name) => ({ name, value: "" })),
+        // Duplicate path params would result in duplicate keys in the generated request file.
+        path: [...new Set(getPathParamsFromUrl(url))].map((name) => ({
+            name,
+            value: "",
+        })),
     };
 }

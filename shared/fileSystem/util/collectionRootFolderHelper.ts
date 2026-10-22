@@ -9,8 +9,8 @@ import {
     getTestFileDescendants,
     isInFolderForEnvironmentFiles,
     normalizePath,
-    parseCollectionSettingsFile,
-    TextDocumentHelper,
+    getBrunoJsonSection,
+    getYamlBrunoExtension,
 } from "../..";
 import { promisify } from "util";
 import { lstat } from "fs";
@@ -211,11 +211,10 @@ export async function getCollectionRootData(
 
     if (format == CollectionFormat.Bru) {
         return {
-            additionalContextRoots:
-                await getAdditionalContextRootsFromBrunoJson(
-                    rootFilePath,
-                    fileContent,
-                ),
+            additionalContextRoots: getAdditionalContextRootsFromBrunoJson(
+                rootFilePath,
+                fileContent,
+            ),
         };
     }
 
@@ -258,15 +257,14 @@ function getAdditionalContextRootsFromYaml(
         return undefined;
     }
 
-    const roots = parseCollectionSettingsFile(
-        new TextDocumentHelper(fileContent),
-    ).result?.properties.extensions?.properties.bruno?.properties.scripts
-        ?.properties.additionalContextRoots?.value;
+    const roots =
+        getYamlBrunoExtension(fileContent)?.scripts?.properties
+            .additionalContextRoots?.value;
 
     return roots?.map(({ value }) => resolve(dirname(rootFilePath), value));
 }
 
-async function getAdditionalContextRootsFromBrunoJson(
+function getAdditionalContextRootsFromBrunoJson(
     brunoJsonFilePath: string,
     fileContent: string | undefined,
 ) {
@@ -274,26 +272,13 @@ async function getAdditionalContextRootsFromBrunoJson(
         return undefined;
     }
 
-    try {
-        const parsed = JSON.parse(fileContent) as unknown;
+    const additionalContextRoots = getBrunoJsonSection(fileContent, "scripts")
+        ?.additionalContextRoots;
 
-        if (
-            typeof parsed == "object" &&
-            parsed != null &&
-            "scripts" in parsed &&
-            typeof parsed.scripts == "object" &&
-            parsed.scripts != null &&
-            "additionalContextRoots" in parsed.scripts
-        ) {
-            const { additionalContextRoots } = parsed.scripts;
-            return Array.isArray(additionalContextRoots) &&
-                additionalContextRoots.every((item) => typeof item == "string")
-                ? additionalContextRoots.map((root) =>
-                      resolve(dirname(brunoJsonFilePath), root),
-                  )
-                : undefined;
-        }
-    } catch {
-        return undefined;
-    }
+    return Array.isArray(additionalContextRoots) &&
+        additionalContextRoots.every((item) => typeof item == "string")
+        ? (additionalContextRoots as string[]).map((root) =>
+              resolve(dirname(brunoJsonFilePath), root),
+          )
+        : undefined;
 }

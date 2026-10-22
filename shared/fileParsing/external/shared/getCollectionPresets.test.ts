@@ -25,13 +25,13 @@ describe("getCollectionPresetsFromFileContent", () => {
         ).toEqual({ requestType: undefined, requestUrl: "http://a" });
     });
 
-    it("returns undefined for a bruno.json without presets or with invalid JSON", () => {
+    it("returns no values for a bruno.json without presets or with invalid JSON", () => {
         expect(
             getCollectionPresetsFromFileContent(CollectionFormat.Bru, "{}"),
-        ).toBeUndefined();
+        ).toEqual({ requestType: undefined, requestUrl: undefined });
         expect(
             getCollectionPresetsFromFileContent(CollectionFormat.Bru, "{"),
-        ).toBeUndefined();
+        ).toEqual({ requestType: undefined, requestUrl: undefined });
     });
 
     it("reads the presets from a yaml collection root file", () => {

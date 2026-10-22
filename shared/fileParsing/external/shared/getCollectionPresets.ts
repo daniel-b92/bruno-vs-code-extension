@@ -1,10 +1,10 @@
 import {
     CollectionFormat,
     getCollectionRootFilePath,
+    getBrunoJsonSection,
     getFileContent,
-    parseCollectionSettingsFile,
+    getYamlBrunoExtension,
     RequestType,
-    TextDocumentHelper,
 } from "../../..";
 
 export type CollectionPresets = {
@@ -28,45 +28,28 @@ export async function getCollectionPresets(
 export function getCollectionPresetsFromFileContent(
     format: CollectionFormat,
     fileContent: string,
-): CollectionPresets | undefined {
+): CollectionPresets {
     return format == CollectionFormat.Bru
         ? getPresetsFromBrunoJson(fileContent)
         : getPresetsFromYaml(fileContent);
 }
 
 function getPresetsFromBrunoJson(fileContent: string) {
-    try {
-        const parsed = JSON.parse(fileContent) as unknown;
+    const presets = getBrunoJsonSection(fileContent, "presets");
 
-        if (
-            typeof parsed != "object" ||
-            parsed == null ||
-            !("presets" in parsed) ||
-            typeof parsed.presets != "object" ||
-            parsed.presets == null
-        ) {
-            return undefined;
-        }
-
-        const { requestType, requestUrl } = parsed.presets as Record<
-            string,
-            unknown
-        >;
-
-        return {
-            requestType: toRequestType(requestType),
-            requestUrl: typeof requestUrl == "string" ? requestUrl : undefined,
-        };
-    } catch {
-        return undefined;
-    }
+    return {
+        requestType: toRequestType(presets?.requestType),
+        requestUrl:
+            typeof presets?.requestUrl == "string"
+                ? presets.requestUrl
+                : undefined,
+    };
 }
 
 function getPresetsFromYaml(fileContent: string) {
-    const request = parseCollectionSettingsFile(
-        new TextDocumentHelper(fileContent),
-    ).result?.properties.extensions?.properties.bruno?.properties.presets
-        ?.properties.request?.properties;
+    const request =
+        getYamlBrunoExtension(fileContent)?.presets?.properties.request
+            ?.properties;
 
     return {
         requestType: toRequestType(request?.type?.value),

@@ -10,10 +10,8 @@ import {
     getPossibleMethodBlocksForRequestType,
     FileInfoType,
     getCollectionPresets,
-    getParamsFromUrl,
+    sanitizeUrlForNewRequest,
     doesRequestTypeSupportUrlParams,
-    HttpParamType,
-    RequestFileHttpSectionParamProperty,
 } from "@global_shared";
 import {
     TypedCollectionItemProvider,
@@ -21,6 +19,7 @@ import {
     getContentForDefaultMethodBlock,
     getLineBreak,
     getContentForUrlParamsBlocks,
+    getYamlParamsForUrl,
     FileSystemCacheSyncingHelper,
     BrunoTreeItem,
 } from "@shared";
@@ -139,7 +138,7 @@ export async function createRequestFile(
             )) ?? 0) + 1;
 
         const requestType = pickedLabels[0] as RequestType;
-        const url = presets?.requestUrl ?? "";
+        const url = sanitizeUrlForNewRequest(presets?.requestUrl ?? "");
 
         const failed = await promisify(writeFile)(
             filePath,
@@ -256,7 +255,7 @@ function getYamlFileContent(
                       url,
                       // Only the `http` section can contain `params`.
                       ...(requestType == RequestType.Http
-                          ? getYamlParams(url)
+                          ? getYamlParamsForUrl(url)
                           : {}),
                   },
     };
@@ -265,20 +264,6 @@ function getYamlFileContent(
     return Object.entries(topLevelProperties)
         .map(([key, value]) => stringify({ [key]: value }))
         .join("\n");
-}
-
-function getYamlParams(url: string) {
-    const { query, path } = getParamsFromUrl(url);
-    const params = [
-        ...query.map((param) => ({ ...param, type: HttpParamType.Query })),
-        ...path.map((param) => ({ ...param, type: HttpParamType.Path })),
-    ].map(({ name, value, type }) => ({
-        [RequestFileHttpSectionParamProperty.Name]: name,
-        [RequestFileHttpSectionParamProperty.Value]: value,
-        [RequestFileHttpSectionParamProperty.Type]: type,
-    }));
-
-    return params.length > 0 ? { params } : {};
 }
 
 function getYamlTypeForRequestType(requestType: RequestType): FileInfoType {

@@ -18,6 +18,12 @@ describe("getParamsFromUrl", () => {
         });
     });
 
+    it("returns repeated path params only once", () => {
+        expect(getParamsFromUrl("{{host}}/:id/children/:id").path).toEqual([
+            { name: "id", value: "" },
+        ]);
+    });
+
     it("returns no params for a URL without any", () => {
         expect(getParamsFromUrl("https://example.com/users")).toEqual({
             query: [],

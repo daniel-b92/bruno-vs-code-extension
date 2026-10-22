@@ -11,6 +11,7 @@ export * from "./fileParsing/folderSettings/getMaxSequenceForFolders";
 export * from "./testFileWriting/getContentForMetaBlock";
 export * from "./testFileWriting/getContentForDefaultMethodBlock";
 export * from "./testFileWriting/getContentForUrlParamsBlocks";
+export * from "./testFileWriting/getYamlParamsForUrl";
 export * from "./testFileWriting/interfaces";
 
 // model

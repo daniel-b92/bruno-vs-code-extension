@@ -310,9 +310,9 @@ async function runCreateRequestFile(
 ) {
     jest.spyOn(window, "showInputBox").mockResolvedValue(requestName);
     jest.spyOn(commands, "executeCommand").mockResolvedValue(undefined);
-    // Falls back to the default line break of the platform.
+    // Use a fixed line break, so that the tests do not depend on the platform.
     jest.spyOn(workspace, "getConfiguration").mockReturnValue({
-        get: (_section: string, defaultValue: unknown) => defaultValue,
+        get: () => "\n",
     } as never);
 
     const quickPick = createFakeQuickPick();
