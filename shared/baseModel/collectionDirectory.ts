@@ -1,13 +1,17 @@
 import {
     CollectionItemWithSequence,
+    CollectionItemWithTags,
     NonBrunoSpecificItemType,
 } from "./interfaces";
 
-export class CollectionDirectory implements CollectionItemWithSequence {
+export class CollectionDirectory
+    implements CollectionItemWithSequence, CollectionItemWithTags
+{
     constructor(
         private path: string,
         private settingsFilePath?: string,
         private sequence?: number,
+        private tags?: string[],
     ) {}
 
     public getPath() {
@@ -16,6 +20,10 @@ export class CollectionDirectory implements CollectionItemWithSequence {
 
     public getSequence() {
         return this.sequence;
+    }
+
+    public getTags() {
+        return this.tags;
     }
 
     public isFile() {

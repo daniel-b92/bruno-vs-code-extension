@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Features
+
+- Add support for tags in folder settings files (`folder.bru`): The `tags` field in the `meta` block is no longer reported as unknown, duplicate or malformed tags are reported, and the folder tags are shown in the collection explorer and the test explorer. Folder tags are also included in the tag completions and hovers of request files and in the include/exclude tags dialog of the test runner. Completions and hovers are also available for the `tags` field in `folder.bru`.
+
 ## [1.4.0] (2026-10-22)
 
 ### Features

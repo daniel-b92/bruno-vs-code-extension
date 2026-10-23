@@ -25,6 +25,10 @@ export interface CollectionItemWithSequence extends CollectionItem {
     getSequence: () => number | undefined;
 }
 
+export interface CollectionItemWithTags extends CollectionItem {
+    getTags: () => string[] | undefined;
+}
+
 export interface CollectionItem {
     getPath: () => string;
     isFile: () => boolean;

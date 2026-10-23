@@ -29,7 +29,7 @@ export * from "./fileSystemCache/external/collectionItemProvider";
 export * from "./fileSystemCache/external/isBrunoFileType";
 export * from "./fileSystemCache/external/getDistinctTagsForCollection";
 export * from "./fileSystemCache/external/getPathsToIgnoreForCollections";
-export * from "./fileSystemCache/external/getExistingRequestFileTags";
+export * from "./fileSystemCache/external/getExistingTags";
 export * from "./fileSystemCache/external/interfaces";
 
 // file parsing - bru format
@@ -92,6 +92,7 @@ export * from "./baseModel/files/brunoFolderSettingsFile";
 export * from "./baseModel/files/BrunoCollectionSettingsFile";
 export * from "./baseModel/files/brunoAppFile";
 export * from "./baseModel/typeguards/isCollectionItemWithSequence";
+export * from "./baseModel/typeguards/isCollectionItemWithTags";
 export * from "./baseModel/typeguards/isRequestFile";
 export * from "./baseModel/typeguards/isCollectionDirectory";
 export * from "./baseModel/typeguards/isRequestFileOrCollectionDirectory";

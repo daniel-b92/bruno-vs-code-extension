@@ -47,6 +47,25 @@ describe("YamlFormatDiagnosticsProvider for folder settings files", () => {
         expect(diagnostics).toEqual([]);
     });
 
+    it("should not report valid tags", () => {
+        expect(
+            getDiagnostics(`${folderHeader}
+  tags:
+    - a
+    - b`),
+        ).toEqual([]);
+    });
+
+    it("should report duplicate tags", () => {
+        const diagnostics = getDiagnostics(`${folderHeader}
+  tags:
+    - a
+    - a`);
+
+        expect(diagnostics).toHaveLength(1);
+        expect(diagnostics[0].message).toBe("Same tag already defined");
+    });
+
     it("should warn for duplicate headers even if no variables are defined", () => {
         const diagnostics = getDiagnostics(`${folderHeader}
 request:

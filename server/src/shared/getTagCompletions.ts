@@ -1,5 +1,5 @@
 import { basename } from "path";
-import { getExistingRequestFileTags } from "@global_shared";
+import { getExistingTags } from "@global_shared";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 import { TypedCollection, TypedCollectionItemProvider } from "./interfaces";
 
@@ -14,7 +14,7 @@ export function getTagCompletions({
     filePath: string;
     alreadyDefinedTags: string[];
 }): CompletionItem[] {
-    return getExistingRequestFileTags(itemProvider, {
+    return getExistingTags(itemProvider, {
         collection,
         pathToIgnore: filePath,
     })

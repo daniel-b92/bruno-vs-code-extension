@@ -1,7 +1,8 @@
 import {
     normalizePath,
-    BrunoRequestFile,
-    isRequestFile,
+    CollectionItem,
+    isCollectionDirectory,
+    isCollectionItemWithTags,
     CollectionItemProvider,
     ReadyOnlyCollection,
 } from "../..";
@@ -20,7 +21,7 @@ interface ItemIdentifier<T> {
     path: string;
 }
 
-export function getExistingRequestFileTags<T>(
+export function getExistingTags<T>(
     itemProvider: CollectionItemProvider<T>,
     forOwnCollection: {
         collection: ReadyOnlyCollection<T>;
@@ -73,23 +74,24 @@ function getTagsForCollection<T>(
 ) {
     return collection
         .getAllStoredDataForCollection()
-        .filter(
-            ({ item }) =>
-                isRequestFile(item) &&
-                item.getPath() != pathToIgnore &&
-                item.getTags() &&
-                (item.getTags() as string[]).length > 0,
-        )
         .flatMap(({ item }) => {
-            const tags = (item as BrunoRequestFile).getTags() as string[];
+            const path = getTagDefinitionFilePath(item);
+            const tags = isCollectionItemWithTags(item)
+                ? item.getTags()
+                : undefined;
 
-            return {
-                path: item.getPath(),
-                tags: tags.filter(
-                    // filter out duplicate tags within same files
-                    (tag, index) => tags.indexOf(tag) == index,
-                ),
-            };
+            return path === undefined ||
+                path == pathToIgnore ||
+                !tags ||
+                tags.length == 0
+                ? []
+                : {
+                      path,
+                      tags: tags.filter(
+                          // filter out duplicate tags within same files
+                          (tag, index) => tags.indexOf(tag) == index,
+                      ),
+                  };
         })
         .flatMap(({ path, tags }) => tags.map((tag) => ({ path, tag })));
 }
@@ -160,4 +162,11 @@ function hasBaseDirectory<T>(
         normalizePath(collection.getRootDirectory()) ==
         normalizePath(baseDirectory)
     );
+}
+
+/** The file in which the tags of the given item are defined (the settings file for directories). */
+function getTagDefinitionFilePath(item: CollectionItem) {
+    return isCollectionDirectory(item)
+        ? item.getSettingsFilePath()
+        : item.getPath();
 }

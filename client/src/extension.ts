@@ -33,7 +33,7 @@ import {
     CollectionWatcher,
     FileChangedEvent,
     CollectionItem,
-    isRequestFile,
+    isCollectionItemWithTags,
     isRequestFileOrCollectionDirectory,
     CollectionItemProvider,
     getPathsToIgnoreForCollections,
@@ -279,7 +279,7 @@ function getAdditionalCollectionDataProvider(
                 isRequestFileOrCollectionDirectory(item)
                     ? item.getSequence()
                     : undefined,
-                isRequestFile(item) ? item.getTags() : undefined,
+                isCollectionItemWithTags(item) ? item.getTags() : undefined,
             ),
             testItem: testRunnerDataHelper.createVsCodeTestItem(item),
         }),

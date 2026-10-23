@@ -163,13 +163,15 @@ export type ParsedCollectionSettingsFile = ParsedYamlMap<{
     }>;
 }>;
 
-export type ParsedInfoForRequestFile = ParsedInfoWithTypeAndSequence & {
+export type ParsedInfoWithTags = ParsedInfoWithTypeAndSequence & {
     properties: {
         tags?: WithKeyAndValueRange<{ value: string; range: Range }[]>;
     };
 };
 
-export type ParsedInfoForFolderSettings = ParsedInfoWithTypeAndSequence;
+export type ParsedInfoForRequestFile = ParsedInfoWithTags;
+
+export type ParsedInfoForFolderSettings = ParsedInfoWithTags;
 
 export type ParsedInfoForAppFile = ParsedInfoWithTypeAndSequence;
 

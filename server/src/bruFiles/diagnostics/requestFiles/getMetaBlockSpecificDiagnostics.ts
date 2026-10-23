@@ -8,7 +8,6 @@ import {
     RequestFileBlockName,
     DictionaryBlock,
     isDictionaryBlockArrayField,
-    DictionaryBlockArrayField,
     getMetaBlockMandatoryKeys,
     getMetaBlockOptionalKeys,
     BrunoFileType,
@@ -28,8 +27,7 @@ import { checkSequenceDoesNotClashWithAppFiles } from "../shared/checks/singleBl
 import { checkSequenceInMetaBlockIsValid } from "../shared/checks/singleBlocks/checkSequenceInMetaBlockIsValid";
 import { checkSequenceInMetaBlockIsUniqueWithinFolder } from "./checks/relatedRequests/checkSequenceInMetaBlockIsUniqueWithinFolder";
 import { checkDictionaryBlockArrayFieldsStructure } from "../shared/checks/singleBlocks/checkDictionaryBlockArrayFieldsStructure";
-import { checkDictionaryBlockArrayFieldsValues } from "../shared/checks/singleBlocks/checkDictionaryBlockArrayFieldsValues";
-import { checkNoDuplicateTagsAreDefined } from "./checks/singleBlocks/checkNoDuplicateTagsAreDefined";
+import { runChecksForTagsField } from "../shared/checks/singleBlocks/runChecksForTagsField";
 import { TypedCollectionItemProvider } from "../../../shared";
 
 export function getMetaBlockSpecificDiagnostics(data: {
@@ -163,13 +161,4 @@ function provideRelatedFilesDiagnosticsForMetaBlock(data: {
         relatedRequestsHelper.unregisterDiagnostic(filePath, code);
         return [];
     }
-}
-
-function runChecksForTagsField(
-    filePath: string,
-    tagsField: DictionaryBlockArrayField,
-) {
-    return [
-        checkDictionaryBlockArrayFieldsValues(filePath, [tagsField]),
-    ].concat(checkNoDuplicateTagsAreDefined(filePath, tagsField));
 }

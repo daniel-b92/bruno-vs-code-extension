@@ -1,6 +1,6 @@
 import { DictionaryBlockArrayField, Range } from "@global_shared";
 import { DiagnosticWithCode } from "../../../interfaces";
-import { RelevantWithinMetaBlockDiagnosticCode } from "../../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
+import { RelevantWithinMetaBlockDiagnosticCode } from "../../diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { DiagnosticSeverity } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 

@@ -1,4 +1,4 @@
-import { isRequestFile, ReadyOnlyCollection } from "../..";
+import { isCollectionItemWithTags, ReadyOnlyCollection } from "../..";
 
 export function getDistinctTagsForCollection<T>(
     collection: ReadyOnlyCollection<T>,
@@ -6,7 +6,7 @@ export function getDistinctTagsForCollection<T>(
     const allTags = collection
         .getAllStoredDataForCollection()
         .map(({ item }) => item)
-        .filter((item) => isRequestFile(item))
+        .filter((item) => isCollectionItemWithTags(item))
         .flatMap((item) => item.getTags())
         .filter((tag) => tag != undefined);
 

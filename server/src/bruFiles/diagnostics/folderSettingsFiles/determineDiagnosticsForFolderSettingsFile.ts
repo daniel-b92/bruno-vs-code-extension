@@ -9,7 +9,6 @@ import {
     isBlockDictionaryBlock,
     BrunoFileType,
     Block,
-    isDictionaryBlockField,
 } from "@global_shared";
 import { DiagnosticWithCode } from "../interfaces";
 import { getAuthBlockSpecificDiagnostics } from "../getAuthBlockSpecificDiagnostics";
@@ -29,6 +28,7 @@ import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from ".
 import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
 import { NonBlockSpecificDiagnosticCode } from "../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { runDictionaryBlocksBaseChecks } from "../shared/checks/runDictionaryBlocksBaseChecks";
+import { getDictionaryBlockFieldsThatShouldBeSimpleFields } from "../shared/checks/multipleBlocks/getDictionaryBlockFieldsThatShouldBeSimpleFields";
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 
 interface BlocksWithSpecificDiagnostics {
@@ -80,12 +80,9 @@ export function determineDiagnosticsForFolderSettingsFile(
         ),
         checkDictionaryBlocksSimpleFieldsStructure(
             filePath,
-            validDictionaryBlocks.map((block) => ({
-                block,
-                keys: block.content
-                    .filter(isDictionaryBlockField)
-                    .map(({ key }) => key),
-            })),
+            getDictionaryBlockFieldsThatShouldBeSimpleFields(
+                validDictionaryBlocks,
+            ),
         ),
         checkCodeBlocksHaveClosingBracket(docHelper, blocks, itemType),
         checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType(

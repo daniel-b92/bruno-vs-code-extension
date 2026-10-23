@@ -29,15 +29,24 @@ export async function createYamlRequestFileInstance(path: string) {
     );
 }
 
-export async function getSequenceFromYamlFolderSettingsFile(path: string) {
+export async function getSequenceAndTagsFromYamlFolderSettingsFile(
+    path: string,
+) {
     const content = await getFileContent(path);
 
-    return content === undefined
-        ? undefined
-        : parseInfoFromYamlFile(
-              new TextDocumentHelper(content),
-              BrunoFileType.FolderSettingsFile,
-          ).result?.properties.sequence?.value;
+    if (content === undefined) {
+        return { sequence: undefined, tags: undefined };
+    }
+
+    const infoProperties = parseInfoFromYamlFile(
+        new TextDocumentHelper(content),
+        BrunoFileType.FolderSettingsFile,
+    ).result?.properties;
+
+    return {
+        sequence: infoProperties?.sequence?.value,
+        tags: infoProperties?.tags?.value.map(({ value }) => value),
+    };
 }
 
 export async function createYamlAppFileInstance(path: string) {

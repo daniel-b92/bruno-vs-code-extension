@@ -5,6 +5,7 @@ import {
     CollectionDirectory,
     CollectionItemWithSequence,
     CollectionItem,
+    isCollectionItemWithTags,
     isRequestFile,
     isRequestFileOrCollectionDirectory,
 } from "@global_shared";
@@ -24,7 +25,7 @@ export class TestRunnerDataHelper {
         testItem.canResolveChildren = !item.isFile();
         testItem.sortText = this.getVsCodeTestItemSortText(item);
 
-        if (isRequestFile(item) && item.getTags()) {
+        if (isCollectionItemWithTags(item) && item.getTags()) {
             testItem.description = "tags: (".concat(
                 (item.getTags() as string[]).map((t) => `'${t}'`).join(","),
                 ")",
