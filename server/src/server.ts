@@ -21,7 +21,9 @@ import {
     TypedCollectionItemProvider,
 } from "./shared";
 import { URI } from "vscode-uri";
-import { runUpdatesOnWillSave } from "./bruFiles/autoUpdates/runUpdatesOnWillSave";
+import { runUpdatesOnWillSave as runUpdatesOnWillSaveForBruFile } from "./bruFiles/autoUpdates/runUpdatesOnWillSave";
+import { runUpdatesOnWillSave as runUpdatesOnWillSaveForYamlFile } from "./yamlFiles/autoUpdates/runUpdatesOnWillSave";
+import { handleCodeActionRequest as handleCodeActionRequestForYamlFile } from "./yamlFiles/quickFixes/handleCodeActionRequest";
 import { handleCodeActionRequest as handleCodeActionRequestForBruFile } from "./bruFiles/quickFixes/handleCodeActionRequest";
 import {
     FileChangeType,
@@ -310,14 +312,21 @@ documents.onWillSaveWaitUntil(async ({ document }) => {
     const { filePath, type } = getFilePathAndType(document.uri);
     const itemProvider = helpersProvider?.getItemProvider();
 
-    if (type != FileTypeByExtension.Bru || !itemProvider) {
+    if (
+        (type != FileTypeByExtension.Bru && type != FileTypeByExtension.Yml) ||
+        !itemProvider
+    ) {
         return [];
     }
 
-    // Only request files can have query params blocks and path params blocks.
+    // Only request files can have query params and path params.
     if (
-        (await getBrunoFileTypeIfExists(itemProvider, filePath)) !=
-        BrunoFileType.RequestFile
+        (await getFileTypeForEditorContent(
+            itemProvider,
+            filePath,
+            type,
+            document.getText(),
+        )) != BrunoFileType.RequestFile
     ) {
         return [];
     }
@@ -327,9 +336,13 @@ documents.onWillSaveWaitUntil(async ({ document }) => {
         () => undefined,
     );
 
-    return lastSavedContent === undefined
-        ? []
-        : runUpdatesOnWillSave(lastSavedContent, document.getText());
+    if (lastSavedContent === undefined) {
+        return [];
+    }
+
+    return type == FileTypeByExtension.Bru
+        ? runUpdatesOnWillSaveForBruFile(lastSavedContent, document.getText())
+        : runUpdatesOnWillSaveForYamlFile(lastSavedContent, document.getText());
 });
 
 connection.onCodeAction(async ({ textDocument: { uri }, context }) => {
@@ -337,19 +350,35 @@ connection.onCodeAction(async ({ textDocument: { uri }, context }) => {
     const document = documents.get(uri);
     const itemProvider = helpersProvider?.getItemProvider();
 
-    if (type != FileTypeByExtension.Bru || !document || !itemProvider) {
+    if (
+        (type != FileTypeByExtension.Bru && type != FileTypeByExtension.Yml) ||
+        !document ||
+        !itemProvider
+    ) {
         return [];
     }
 
-    // Only request files can have query params blocks and path params blocks.
-    return (await getBrunoFileTypeIfExists(itemProvider, filePath)) ==
-        BrunoFileType.RequestFile
-        ? handleCodeActionRequestForBruFile({
-              uri,
-              fileContent: document.getText(),
-              diagnostics: context.diagnostics,
-          })
-        : [];
+    // Only request files can have query params and path params.
+    if (
+        (await getFileTypeForEditorContent(
+            itemProvider,
+            filePath,
+            type,
+            document.getText(),
+        )) != BrunoFileType.RequestFile
+    ) {
+        return [];
+    }
+
+    const params = {
+        uri,
+        fileContent: document.getText(),
+        diagnostics: context.diagnostics,
+    };
+
+    return type == FileTypeByExtension.Bru
+        ? handleCodeActionRequestForBruFile(params)
+        : handleCodeActionRequestForYamlFile(params);
 });
 
 connection.onExit(() => {
@@ -366,6 +395,24 @@ disposables.push(documents.listen(connection));
 
 // Listen on the connection
 connection.listen();
+
+async function getFileTypeForEditorContent(
+    itemProvider: TypedCollectionItemProvider,
+    filePath: string,
+    type: FileTypeByExtension.Bru | FileTypeByExtension.Yml,
+    text: string,
+) {
+    if (type == FileTypeByExtension.Bru) {
+        return getBrunoFileTypeIfExists(itemProvider, filePath);
+    }
+
+    const cachedType = await getYamlFileTypeIfExists(itemProvider, filePath);
+
+    // The cache can't tell app files and request files apart for Yaml files.
+    return cachedType
+        ? getYamlFileTypeForEditorContent(cachedType, text)
+        : undefined;
+}
 
 async function getWorkspaceFolders() {
     return (

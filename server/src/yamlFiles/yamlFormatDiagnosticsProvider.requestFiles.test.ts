@@ -1,3 +1,4 @@
+import { YamlDiagnosticCode } from "./diagnostics/yamlDiagnosticCodeEnum";
 import {
     createCollectionWithEnvironments,
     createItemProviderStub,
@@ -226,6 +227,10 @@ runtime:
         expect(diagnostics.map(({ message }) => message)).toEqual([
             "Path params missing in the URL: 'other'. Path params from the URL without a matching entry in 'params': 'id'",
             "Query params from URL '?a=1' do not match query params from 'params' ''",
+        ]);
+        expect(diagnostics.map(({ code }) => code)).toEqual([
+            YamlDiagnosticCode.UrlNotMatchingPathParams,
+            YamlDiagnosticCode.UrlNotMatchingQueryParams,
         ]);
     });
 

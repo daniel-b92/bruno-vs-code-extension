@@ -210,7 +210,7 @@ export class YamlFormatDiagnosticsProvider {
                 ...requestTypeSections.flatMap(
                     ({ properties: { headers } }) => headers?.disabled ?? [],
                 ),
-                ...(properties.http?.properties.params?.disabled ?? []),
+                ...(properties.http?.properties.params?.value.disabled ?? []),
                 ...getDisabledItemsFromRuntimeSection(properties.runtime),
             ]),
         ];

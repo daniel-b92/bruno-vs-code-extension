@@ -13,7 +13,7 @@ export function checkEntriesAreUnique(
 ): (Diagnostic | undefined)[] {
     const { filePath } = commonParams;
 
-    const params = properties.http?.properties.params?.enabled;
+    const params = properties.http?.properties.params?.value.enabled;
     const { variables, scripts, assertions, actions } =
         properties.runtime?.properties ?? {};
 

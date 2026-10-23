@@ -187,7 +187,22 @@ function parseHttpSection(
             ...parsed.properties,
             params: parseIfPresent(
                 getSequence(RequestFileHttpSectionProperty.params),
-                ({ value }) => parseParamsFromSequence(value, commonArgs),
+                ({ keyRange: paramsKeyRange, value }) => {
+                    const { result, errors } = parseParamsFromSequence(
+                        value,
+                        commonArgs,
+                    );
+
+                    return {
+                        errors,
+                        result: result && {
+                            keyRange: paramsKeyRange,
+                            value: result,
+                            valueRange: getRangeForItem(value, commonArgs),
+                            isFlowSequence: !!value.flow,
+                        },
+                    };
+                },
                 collectedErrors,
             ),
         },

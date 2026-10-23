@@ -6,12 +6,8 @@ import {
     RequestFileBlockName,
     TextDocumentHelper,
 } from "@global_shared";
-import {
-    CodeAction,
-    CodeActionKind,
-    Diagnostic,
-    TextEdit,
-} from "vscode-languageserver";
+import { CodeAction, Diagnostic, TextEdit } from "vscode-languageserver";
+import { toQuickFixes } from "../../shared/urlParamsSyncing/toQuickFixes";
 import { NonBlockSpecificDiagnosticCode } from "../diagnostics/shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { updatePathParamsKeysToMatchUrl } from "../paramsBlocks/updatePathParamsKeysToMatchUrl";
 import { updateQueryParamsBlockToMatchUrl } from "../paramsBlocks/updateQueryParamsBlockToMatchUrl";
@@ -33,38 +29,15 @@ export function handleCodeActionRequest({
         return [];
     }
 
-    const actionsByTitle = new Map<string, CodeAction>();
-
-    diagnostics.forEach((diagnostic) => {
-        getFixesForDiagnostic(diagnostic.code, {
+    return toQuickFixes(uri, diagnostics, ({ code }) =>
+        getFixesForDiagnostic(code, {
             updateUrl: () => updateUrlToMatchQueryParams(blocks),
             updateQueryParamsBlock: () =>
                 updateQueryParamsBlockToMatchUrl(docHelper, blocks),
             updatePathParamsBlock: () =>
                 updatePathParamsKeysToMatchUrl(docHelper, blocks),
-        }).forEach(({ title, getEdits }) => {
-            const existingAction = actionsByTitle.get(title);
-
-            // Different diagnostics can share the same fix, which must only be offered once.
-            if (existingAction) {
-                existingAction.diagnostics?.push(diagnostic);
-                return;
-            }
-
-            const edits = ([] as TextEdit[]).concat(getEdits());
-
-            if (edits.length > 0) {
-                actionsByTitle.set(title, {
-                    title,
-                    kind: CodeActionKind.QuickFix,
-                    diagnostics: [diagnostic],
-                    edit: { changes: { [uri]: edits } },
-                });
-            }
-        });
-    });
-
-    return Array.from(actionsByTitle.values());
+        }),
+    );
 }
 
 function getFixesForDiagnostic(

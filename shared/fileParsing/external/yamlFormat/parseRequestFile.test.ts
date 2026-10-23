@@ -149,9 +149,14 @@ http:
 
             const params = http!.properties.params;
             expect(params).toBeDefined();
-            expect(params!.enabled).toHaveLength(1);
-            expect(params!.enabled[0].properties.name?.value).toBe("page");
-            expect(params!.enabled[0].properties.value?.value).toBe("1");
+            expect(params!.keyRange).toEqual(getExpectedKeyRange(13, "params"));
+            expect(params!.valueRange.start).toEqual(new Position(14, 8));
+            expect(params!.isFlowSequence).toBe(false);
+            expect(params!.value.enabled).toHaveLength(1);
+            expect(params!.value.enabled[0].properties.name?.value).toBe(
+                "page",
+            );
+            expect(params!.value.enabled[0].properties.value?.value).toBe("1");
         });
 
         it("parses a request file with auth as scalar (inherit)", () => {
