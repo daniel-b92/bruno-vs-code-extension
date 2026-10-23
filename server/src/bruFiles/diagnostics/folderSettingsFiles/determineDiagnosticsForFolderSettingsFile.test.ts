@@ -33,14 +33,42 @@ describe("determineDiagnosticsForFolderSettingsFile", () => {
 
             expect(diagnostics.length).toBeGreaterThan(0);
         });
+
+        it("reports a missing sequence", () => {
+            const diagnostics = getDiagnostics([], ["name: folder"]);
+
+            expect(diagnostics).toHaveLength(1);
+            expect(diagnostics[0].code).toBe(
+                RelevantWithinMetaBlockDiagnosticCode.KeysMissingInMetaBlock,
+            );
+        });
+
+        it("reports unknown keys", () => {
+            const diagnostics = getDiagnostics(["unknown: a"]);
+
+            expect(diagnostics).toHaveLength(1);
+            expect(diagnostics[0].code).toBe(
+                RelevantWithinMetaBlockDiagnosticCode.UnknownKeysDefinedInMetaBlock,
+            );
+        });
+
+        it("reports duplicate keys", () => {
+            const diagnostics = getDiagnostics(["seq: 2"]);
+
+            expect(diagnostics).toHaveLength(1);
+            expect(diagnostics[0].code).toBe(
+                RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
+            );
+        });
     });
 });
 
-function getDiagnostics(additionalMetaLines: string[]) {
+function getDiagnostics(
+    additionalMetaLines: string[],
+    metaLines = ["name: folder", "seq: 1"],
+) {
     const content = `meta {
-  name: folder
-  seq: 1
-  ${additionalMetaLines.join("\n  ")}
+  ${metaLines.concat(additionalMetaLines).join("\n  ")}
 }
 `;
 

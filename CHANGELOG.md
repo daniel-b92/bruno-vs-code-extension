@@ -1,8 +1,9 @@
 ## [Unreleased]
 
-### Features
+### Fixes / Maintenance
 
-- Add support for tags in folder settings files (`folder.bru`): The `tags` field in the `meta` block is no longer reported as unknown, duplicate or malformed tags are reported, and the folder tags are shown in the collection explorer and the test explorer. Folder tags are also included in the tag completions and hovers of request files and in the include/exclude tags dialog of the test runner. Completions and hovers are also available for the `tags` field in `folder.bru`.
+- Add support for tags in folder settings files (`folder.bru`), which was introduced in version 4.3.0 of Bruno.
+- Fix an issue that caused the `meta` block of `folder.bru` files not to be checked for missing, unknown, duplicate keys and missing `name` values.
 
 ## [1.4.0] (2026-10-22)
 

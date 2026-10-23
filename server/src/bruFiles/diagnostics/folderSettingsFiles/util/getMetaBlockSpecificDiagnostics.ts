@@ -3,12 +3,20 @@ import {
     Block,
     isBlockDictionaryBlock,
     MetaBlockKey,
+    getMetaBlockMandatoryKeys,
+    getMetaBlockOptionalKeys,
+    BrunoFileType,
     getActiveFieldFromDictionaryBlock,
     isDictionaryBlockArrayField,
     isDictionaryBlockField,
     shouldBeDictionaryArrayField,
     RequestFileBlockName,
 } from "@global_shared";
+import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
+import { checkNoKeysAreMissingForDictionaryBlock } from "../../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
+import { checkNoMandatoryValuesAreMissingForDictionaryBlock } from "../../shared/checks/singleBlocks/checkNoMandatoryValuesAreMissingForDictionaryBlock";
+import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "../../shared/checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
+import { RelevantWithinMetaBlockDiagnosticCode } from "../../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { checkDictionaryBlockArrayFieldsStructure } from "../../shared/checks/singleBlocks/checkDictionaryBlockArrayFieldsStructure";
 import { runChecksForTagsField } from "../../shared/checks/singleBlocks/runChecksForTagsField";
 import { checkMetaBlockStartsInFirstLine } from "../../shared/checks/singleBlocks/checkMetaBlockStartsInFirstLine";
@@ -32,6 +40,17 @@ export function getMetaBlockSpecificDiagnostics(data: {
         metaBlock,
         relatedFilesHelper,
     } = data;
+    const mandatoryKeys = getMetaBlockMandatoryKeys(
+        BrunoFileType.FolderSettingsFile,
+    );
+    const optionalKeys = getMetaBlockOptionalKeys(
+        BrunoFileType.FolderSettingsFile,
+    );
+
+    if (!mandatoryKeys || !optionalKeys) {
+        return [];
+    }
+
     const diagnostics: (DiagnosticWithCode | undefined)[] = [
         checkSequenceInMetaBlockIsValid(metaBlock),
     ];
@@ -43,6 +62,28 @@ export function getMetaBlockSpecificDiagnostics(data: {
         );
 
         diagnostics.push(
+            checkNoKeysAreMissingForDictionaryBlock(
+                metaBlock,
+                mandatoryKeys,
+                RelevantWithinMetaBlockDiagnosticCode.KeysMissingInMetaBlock,
+            ),
+            checkNoUnknownKeysAreDefinedInDictionaryBlock(
+                metaBlock,
+                mandatoryKeys.concat(optionalKeys),
+                RelevantWithinMetaBlockDiagnosticCode.UnknownKeysDefinedInMetaBlock,
+            ),
+            checkNoMandatoryValuesAreMissingForDictionaryBlock(
+                metaBlock,
+                [MetaBlockKey.Name],
+                RelevantWithinMetaBlockDiagnosticCode.MandatoryValuesMissingInMetaBlock,
+            ),
+            ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock({
+                filePath: folderSettingsPath,
+                block: metaBlock,
+                diagnosticCode:
+                    RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
+                expectedKeys: mandatoryKeys.concat(optionalKeys),
+            }) ?? []),
             checkDictionaryBlockArrayFieldsStructure(
                 folderSettingsPath,
                 metaBlock,
