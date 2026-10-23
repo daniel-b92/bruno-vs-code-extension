@@ -1,5 +1,10 @@
 import { describe, it, expect } from "@jest/globals";
-import { applyTextEdits } from "@global_shared/_testingUtils";
+import {
+    applyTextEdits,
+    getYamlHttpRequestFile,
+    pathParam,
+    queryParam,
+} from "@global_shared/_testingUtils";
 import { CodeAction, Diagnostic } from "vscode-languageserver";
 import { handleCodeActionRequest } from "./handleCodeActionRequest";
 import { YamlDiagnosticCode } from "../diagnostics/yamlDiagnosticCodeEnum";
@@ -9,13 +14,9 @@ const uri = "file:///collection/request.yml";
 describe("handleCodeActionRequest", () => {
     describe("query params", () => {
         it("offers both directions if the URL does not match 'params'", () => {
-            const content = getRequestFile("/api?a=1&b=2", [
-                "- name: a",
-                '  value: "1"',
-                "  type: query",
-                "- name: c",
-                '  value: "3"',
-                "  type: query",
+            const content = getYamlHttpRequestFile("/api?a=1&b=2", [
+                queryParam("a", "1"),
+                queryParam("c", "3"),
             ]);
 
             const actions = getActions(
@@ -31,22 +32,16 @@ describe("handleCodeActionRequest", () => {
                 content.replace("/api?a=1&b=2", "/api?a=1&c=3"),
             );
             expect(applyAction(content, actions[1])).toEqual(
-                getRequestFile("/api?a=1&b=2", [
-                    "- name: a",
-                    '  value: "1"',
-                    "  type: query",
-                    "- name: b",
-                    '  value: "2"',
-                    "  type: query",
+                getYamlHttpRequestFile("/api?a=1&b=2", [
+                    queryParam("a", "1"),
+                    queryParam("b", "2"),
                 ]),
             );
         });
 
         it("removes the 'params' key if the URL has no query params", () => {
-            const content = getRequestFile("/api", [
-                "- name: a",
-                '  value: "1"',
-                "  type: query",
+            const content = getYamlHttpRequestFile("/api", [
+                queryParam("a", "1"),
             ]);
 
             const [, updateParams] = getActions(
@@ -55,12 +50,12 @@ describe("handleCodeActionRequest", () => {
             );
 
             expect(applyAction(content, updateParams)).toEqual(
-                getRequestFile("/api", []),
+                getYamlHttpRequestFile("/api"),
             );
         });
 
         it("links the diagnostic to the fix", () => {
-            const content = getRequestFile("/api?a=1", []);
+            const content = getYamlHttpRequestFile("/api?a=1");
             const diagnostic = getDiagnostic(
                 YamlDiagnosticCode.UrlNotMatchingQueryParams,
             );
@@ -78,9 +73,8 @@ describe("handleCodeActionRequest", () => {
         });
 
         it("does not offer to update 'params' if it is a flow sequence", () => {
-            const content = getRequestFile("/api?a=1", []).concat(
-                "  params: []\n",
-            );
+            const content =
+                getYamlHttpRequestFile("/api?a=1").concat("  params: []\n");
 
             expect(
                 getActions(
@@ -93,7 +87,7 @@ describe("handleCodeActionRequest", () => {
 
     describe("path params", () => {
         it("adds the missing path params", () => {
-            const content = getRequestFile("/api/:id", []);
+            const content = getYamlHttpRequestFile("/api/:id");
 
             const actions = getActions(
                 content,
@@ -104,19 +98,13 @@ describe("handleCodeActionRequest", () => {
                 "Update path params in 'params' to match URL",
             ]);
             expect(applyAction(content, actions[0])).toEqual(
-                getRequestFile("/api/:id", [
-                    "- name: id",
-                    '  value: ""',
-                    "  type: path",
-                ]),
+                getYamlHttpRequestFile("/api/:id", [pathParam("id", "")]),
             );
         });
 
         it("removes path params that are not part of the URL", () => {
-            const content = getRequestFile("/api", [
-                "- name: id",
-                '  value: ""',
-                "  type: path",
+            const content = getYamlHttpRequestFile("/api", [
+                pathParam("id", ""),
             ]);
 
             const [action] = getActions(
@@ -125,38 +113,23 @@ describe("handleCodeActionRequest", () => {
             );
 
             expect(applyAction(content, action)).toEqual(
-                getRequestFile("/api", []),
+                getYamlHttpRequestFile("/api"),
             );
         });
     });
 
     it("offers no fixes for other diagnostic codes", () => {
-        expect(getActions(getRequestFile("/api?a=1", []), "bru14")).toEqual([]);
-    });
-
-    it("offers no fixes for diagnostics without a code", () => {
-        expect(getActions(getRequestFile("/api?a=1", []), undefined)).toEqual(
+        expect(getActions(getYamlHttpRequestFile("/api?a=1"), "bru14")).toEqual(
             [],
         );
     });
-});
 
-function getRequestFile(url: string, paramLines: string[]) {
-    return [
-        "info:",
-        "  name: request",
-        "  type: http",
-        "  seq: 1",
-        "",
-        "http:",
-        "  method: GET",
-        `  url: ${url}`,
-        ...(paramLines.length > 0
-            ? ["  params:", ...paramLines.map((line) => `    ${line}`)]
-            : []),
-        "",
-    ].join("\n");
-}
+    it("offers no fixes for diagnostics without a code", () => {
+        expect(
+            getActions(getYamlHttpRequestFile("/api?a=1"), undefined),
+        ).toEqual([]);
+    });
+});
 
 function getDiagnostic(code: Diagnostic["code"]): Diagnostic {
     return {

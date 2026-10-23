@@ -321,7 +321,7 @@ documents.onWillSaveWaitUntil(async ({ document }) => {
 
     // Only request files can have query params and path params.
     if (
-        (await getRequestFileTypeIfSupported(
+        (await getFileTypeForEditorContent(
             itemProvider,
             filePath,
             type,
@@ -360,7 +360,7 @@ connection.onCodeAction(async ({ textDocument: { uri }, context }) => {
 
     // Only request files can have query params and path params.
     if (
-        (await getRequestFileTypeIfSupported(
+        (await getFileTypeForEditorContent(
             itemProvider,
             filePath,
             type,
@@ -396,22 +396,22 @@ disposables.push(documents.listen(connection));
 // Listen on the connection
 connection.listen();
 
-async function getRequestFileTypeIfSupported(
-    itemProvider: NonNullable<
-        typeof helpersProvider
-    >["getItemProvider"] extends () => infer T
-        ? T
-        : never,
+async function getFileTypeForEditorContent(
+    itemProvider: TypedCollectionItemProvider,
     filePath: string,
     type: FileTypeByExtension.Bru | FileTypeByExtension.Yml,
     text: string,
 ) {
-    const cachedType = await getBrunoFileTypeIfExists(itemProvider, filePath);
+    if (type == FileTypeByExtension.Bru) {
+        return getBrunoFileTypeIfExists(itemProvider, filePath);
+    }
+
+    const cachedType = await getYamlFileTypeIfExists(itemProvider, filePath);
 
     // The cache can't tell app files and request files apart for Yaml files.
-    return type == FileTypeByExtension.Yml && cachedType
+    return cachedType
         ? getYamlFileTypeForEditorContent(cachedType, text)
-        : cachedType;
+        : undefined;
 }
 
 async function getWorkspaceFolders() {

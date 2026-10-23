@@ -46,21 +46,27 @@ export function runUpdatesOnWillSave(
         queryParamsAccessors,
     );
 
-    if (queryParamsSide == ModifiedSide.Params) {
-        return updateUrlToMatchQueryParams(docHelper, info);
-    }
+    const pathParamsSide = getModifiedSide(
+        lastSaved,
+        parsed,
+        pathParamsAccessors,
+    );
 
     // The values of path params only exist in `params`, so only `params` can be updated to match the URL.
-    // The changes for query and path params are applied together, because they can affect the same entries of `params`.
-    return applyParamChanges(docHelper, info, [
-        ...(queryParamsSide == ModifiedSide.Url
-            ? [getQueryParamChanges(info)]
+    // The changes to `params` for query and path params are applied together, because they can affect the same entries.
+    return [
+        ...(queryParamsSide == ModifiedSide.Params
+            ? updateUrlToMatchQueryParams(docHelper, info)
             : []),
-        ...(getModifiedSide(lastSaved, parsed, pathParamsAccessors) ==
-        ModifiedSide.Url
-            ? [getPathParamChanges(info)]
-            : []),
-    ]);
+        ...applyParamChanges(docHelper, info, [
+            ...(queryParamsSide == ModifiedSide.Url
+                ? [getQueryParamChanges(info)]
+                : []),
+            ...(pathParamsSide == ModifiedSide.Url
+                ? [getPathParamChanges(info)]
+                : []),
+        ]),
+    ];
 }
 
 function parse(docHelper: TextDocumentHelper) {

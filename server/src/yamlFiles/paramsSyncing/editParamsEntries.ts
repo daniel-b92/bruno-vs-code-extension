@@ -45,6 +45,11 @@ export function applyParamChanges(
         return [];
     }
 
+    // New entries can only be written in block style, so a `http` section in flow style (`{...}`) is not supported.
+    if (isFlowMap(docHelper, info.http.valueRange)) {
+        return [];
+    }
+
     const context = {
         docHelper,
         info,
@@ -105,6 +110,10 @@ interface EditContext {
     docHelper: TextDocumentHelper;
     info: YamlUrlParamsInfo;
     lineBreak: LineBreakType;
+}
+
+function isFlowMap(docHelper: TextDocumentHelper, { start }: Range) {
+    return docHelper.getLineByIndex(start.line)[start.character] == "{";
 }
 
 function insertNewParamsKey(context: EditContext, add: NewParam[]): TextEdit {
