@@ -1,4 +1,4 @@
-import { getExistingRequestFileTags, TextDocumentHelper } from "@global_shared";
+import { getExistingTags, TextDocumentHelper } from "@global_shared";
 import { Hover } from "vscode-languageserver";
 import { TypedCollection, TypedCollectionItemProvider } from ".";
 import { getHoverForTagOccurences } from "./getHoverForTagOccurences";
@@ -16,7 +16,7 @@ export function getHoverForExistingTag(
         collection: TypedCollection;
     },
 ): Hover | undefined {
-    const tagOccurences = getExistingRequestFileTags(itemProvider, {
+    const tagOccurences = getExistingTags(itemProvider, {
         collection,
         pathToIgnore: filePath,
     }).filter(({ tag: existingTag }) => existingTag == tag);

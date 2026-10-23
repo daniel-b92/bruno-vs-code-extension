@@ -3,6 +3,7 @@ import {
     getYamlKeyInfoAtPosition,
     isBrunoFileType,
     isCodeSection,
+    parseFolderSettingsFile,
     parseRequestFile,
     parseYamlDocument,
 } from "@global_shared";
@@ -42,13 +43,17 @@ export function handleHoverRequest({
         parsed.document,
     );
 
-    if (itemType == BrunoFileType.RequestFile) {
+    if (
+        itemType == BrunoFileType.RequestFile ||
+        itemType == BrunoFileType.FolderSettingsFile
+    ) {
         const tagHover = getHoverForTag(
             {
                 baseRequest,
                 itemProvider,
                 collection,
             },
+            itemType,
             parsed.document,
         );
         if (tagHover) {
@@ -107,13 +112,17 @@ function getHoverForTag(
         LanguageRequestWithTestEnvironmentInfo,
         "baseRequest" | "itemProvider" | "collection"
     >,
+    itemType: BrunoFileType.RequestFile | BrunoFileType.FolderSettingsFile,
     parsedDocument: Document,
 ) {
-    const tags =
-        parseRequestFile(documentHelper, {
-            continueOnSyntaxErrors: true,
-            parsedDocument,
-        }).result?.properties.info?.properties.tags?.value ?? [];
+    const parsingOptions = { continueOnSyntaxErrors: true, parsedDocument };
+    const info =
+        itemType == BrunoFileType.RequestFile
+            ? parseRequestFile(documentHelper, parsingOptions).result
+                  ?.properties.info
+            : parseFolderSettingsFile(documentHelper, parsingOptions).result
+                  ?.properties.info;
+    const tags = info?.properties.tags?.value ?? [];
     const tagAtPosition = tags.find(({ range }) => range.contains(position));
 
     if (!tagAtPosition) {

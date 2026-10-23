@@ -9,12 +9,9 @@ import {
     Block,
     TextOutsideOfBlocks,
     isBlockDictionaryBlock,
-    DictionaryBlock,
-    shouldBeDictionaryArrayField,
     getGraphQlSpecificBlocks,
     BrunoFileType,
     ItemType,
-    isDictionaryBlockField,
     DictionaryBlockSimpleField,
     getRequestTypeField,
     canBlockBeDefinedMultipleTimes,
@@ -48,6 +45,7 @@ import { getMetaBlockSpecificDiagnostics } from "./getMetaBlockSpecificDiagnosti
 import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDiagnosticsHelper";
 import { getSettingsBlockSpecificDiagnostics } from "./getSettingsBlockSpecificDiagnostics";
 import { checkCodeBlocksHaveClosingBracket } from "../shared/checks/multipleBlocks/checkCodeBlocksHaveClosingBracket";
+import { getDictionaryBlockFieldsThatShouldBeSimpleFields } from "../shared/checks/multipleBlocks/getDictionaryBlockFieldsThatShouldBeSimpleFields";
 import { checkDictionaryBlocksSimpleFieldsStructure } from "../shared/checks/multipleBlocks/checkDictionaryBlocksSimpleFieldsStructure";
 import { checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType } from "../shared/checks/multipleBlocks/checkOAuth2AdditionalParamsBlocksOnlyExistForMatchingAuthType";
 import { getAppBlockSpecificDiagnostics } from "./getAppBlockSpecificDiagnostics";
@@ -272,28 +270,6 @@ function collectCommonDiagnostics(
     );
 
     return results;
-}
-
-function getDictionaryBlockFieldsThatShouldBeSimpleFields(
-    dictionaryBlocks: DictionaryBlock[],
-) {
-    return dictionaryBlocks
-        .map((block) => {
-            const keysToCheck = block.content
-                .filter(isDictionaryBlockField)
-                .map(({ key }) => key)
-                .filter(
-                    (key) => !shouldBeDictionaryArrayField(block.name, key),
-                );
-
-            return keysToCheck.length > 0
-                ? {
-                      block,
-                      keys: keysToCheck,
-                  }
-                : undefined;
-        })
-        .filter((val) => val != undefined);
 }
 
 function collectBlockSpecificDiagnostics(

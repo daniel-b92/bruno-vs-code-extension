@@ -101,7 +101,8 @@ function createProvider(
     ParsedFileDataForComplexProvider["sections"] | undefined
 > {
     return {
-        paramType: AdditionalCollectionDataProviderType.WithAdditionalFullParsing,
+        paramType:
+            AdditionalCollectionDataProviderType.WithAdditionalFullParsing,
         itemTypesRequiringFullFileParsing: [
             NonBrunoSpecificItemType.Directory,
             BrunoFileType.RequestFile,

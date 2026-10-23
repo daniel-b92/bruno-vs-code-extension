@@ -9,7 +9,8 @@ export function getMetaBlockMandatoryKeys(fileType: BrunoFileType) {
 }
 
 export function getMetaBlockOptionalKeys(fileType: BrunoFileType) {
-    return fileType == BrunoFileType.RequestFile
+    return fileType == BrunoFileType.RequestFile ||
+        fileType == BrunoFileType.FolderSettingsFile
         ? [MetaBlockKey.Tags]
         : undefined;
 }

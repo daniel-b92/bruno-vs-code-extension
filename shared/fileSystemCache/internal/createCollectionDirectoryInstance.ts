@@ -8,7 +8,7 @@ import {
     RequestFileBlockName,
     TextDocumentHelper,
 } from "../..";
-import { getSequenceFromYamlFolderSettingsFile } from "./yamlFormat/createYamlCollectionItems";
+import { getSequenceAndTagsFromYamlFolderSettingsFile } from "./yamlFormat/createYamlCollectionItems";
 
 export async function createCollectionDirectoryInstance(
     folderPath: string,
@@ -20,25 +20,37 @@ export async function createCollectionDirectoryInstance(
     }
 
     if (format == CollectionFormat.Yaml) {
+        const { sequence, tags } =
+            await getSequenceAndTagsFromYamlFolderSettingsFile(
+                folderSettingsFilePath,
+            );
+
         return new CollectionDirectory(
             folderPath,
             folderSettingsFilePath,
-            await getSequenceFromYamlFolderSettingsFile(folderSettingsFilePath),
+            sequence,
+            tags,
         );
     }
+
+    const { sequence, tags } =
+        await getSequenceAndTagsFromBruFolderSettingsFile(
+            folderSettingsFilePath,
+        );
 
     return new CollectionDirectory(
         folderPath,
         folderSettingsFilePath,
-        await getSequenceFromBruFolderSettingsFile(folderSettingsFilePath),
+        sequence,
+        tags,
     );
 }
 
-async function getSequenceFromBruFolderSettingsFile(path: string) {
+async function getSequenceAndTagsFromBruFolderSettingsFile(path: string) {
     const settingsContent = await getFileContent(path);
 
     if (settingsContent === undefined) {
-        return undefined;
+        return { sequence: undefined, tags: undefined };
     }
 
     const metaBlockContent = parseBlockFromFile(
@@ -48,6 +60,6 @@ async function getSequenceFromBruFolderSettingsFile(path: string) {
 
     return Array.isArray(metaBlockContent) &&
         metaBlockContent.every((field) => isDictionaryBlockField(field))
-        ? getSequenceAndTagsFromMetaBlock(metaBlockContent).sequence
-        : undefined;
+        ? getSequenceAndTagsFromMetaBlock(metaBlockContent)
+        : { sequence: undefined, tags: undefined };
 }

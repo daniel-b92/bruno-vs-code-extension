@@ -1,9 +1,9 @@
 import {
     AdditionalCollectionDataProvider,
-    BrunoRequestFile,
+    CollectionItemWithTags,
     CollectionData,
     isCollectionItemWithSequence,
-    isRequestFile,
+    isCollectionItemWithTags,
 } from "../..";
 
 export interface OutdatedPropertyDetails {
@@ -26,8 +26,8 @@ export function isModifiedItemOutdated<T>(
         oldItem.getSequence() != newItem.getSequence();
 
     const areTagsOutdated =
-        isRequestFile(oldItem) &&
-        isRequestFile(newItem) &&
+        isCollectionItemWithTags(oldItem) &&
+        isCollectionItemWithTags(newItem) &&
         !areTagsUpToDate(oldItem, newItem);
 
     const isOutdatedDueToAdditionaData =
@@ -50,8 +50,8 @@ export function isModifiedItemOutdated<T>(
 }
 
 function areTagsUpToDate(
-    alreadyRegisteredItem: BrunoRequestFile,
-    newItem: BrunoRequestFile,
+    alreadyRegisteredItem: CollectionItemWithTags,
+    newItem: CollectionItemWithTags,
 ) {
     const newItemTags = newItem.getTags();
     const oldItemTags = alreadyRegisteredItem.getTags();

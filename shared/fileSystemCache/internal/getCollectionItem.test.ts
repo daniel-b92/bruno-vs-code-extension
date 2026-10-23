@@ -205,6 +205,25 @@ describe("getCollectionItemForFile", () => {
             );
         });
 
+        it("caches the tags of the folder settings file", async () => {
+            const root = await createTemporaryDirectory({
+                "Folder1/folder.yml":
+                    "info:\n  name: Folder1\n  type: folder\n  tags:\n    - a\n    - b\n",
+            });
+            const collection = createCollectionWithEnvironments(
+                [],
+                CollectionFormat.Yaml,
+                root,
+            );
+
+            const result = (await getCollectionItem(collection, {
+                path: join(root, "Folder1"),
+                itemType: NonBrunoSpecificItemType.Directory,
+            })) as CollectionDirectory;
+
+            expect(result.getTags()).toEqual(["a", "b"]);
+        });
+
         it("returns a directory without sequence when there is no folder settings file", async () => {
             const root = await createTemporaryDirectory({
                 "Folder1/request.yml": "info:\n  name: r\n  type: http\n",
@@ -222,6 +241,28 @@ describe("getCollectionItemForFile", () => {
 
             expect(result.getSequence()).toBeUndefined();
             expect(result.getSettingsFilePath()).toBeUndefined();
+        });
+    });
+
+    describe("for directories in a bru collection", () => {
+        it("caches the sequence and tags of the folder settings file", async () => {
+            const root = await createTemporaryDirectory({
+                "Folder1/folder.bru":
+                    "meta {\n  name: Folder1\n  seq: 4\n  tags: [\n    a\n    b\n  ]\n}\n",
+            });
+            const collection = createCollectionWithEnvironments(
+                [],
+                CollectionFormat.Bru,
+                root,
+            );
+
+            const result = (await getCollectionItem(collection, {
+                path: join(root, "Folder1"),
+                itemType: NonBrunoSpecificItemType.Directory,
+            })) as CollectionDirectory;
+
+            expect(result.getSequence()).toBe(4);
+            expect(result.getTags()).toEqual(["a", "b"]);
         });
     });
 

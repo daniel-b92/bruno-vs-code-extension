@@ -37,7 +37,7 @@ import { checkJsonBodySyntax } from "./diagnostics/checks/requestFiles/checkJson
 import { checkWebsocketMessages } from "./diagnostics/checks/requestFiles/checkWebsocketMessages";
 import { checkAuthHasRequiredFields } from "./diagnostics/checks/requestFiles/checkAuthHasRequiredFields";
 import { checkAuthHasValidValues } from "./diagnostics/shared/checkAuthHasValidValues";
-import { checkTagsAreUnique } from "./diagnostics/checks/requestFiles/checkTagsAreUnique";
+import { checkTagsAreUnique } from "./diagnostics/shared/checkTagsAreUnique";
 import { getDiagnosticsForDisabledItems } from "./diagnostics/shared/getDiagnosticsForDisabledItems";
 import { checkFileStartsWithExpectedSection } from "./diagnostics/shared/checkFileStartsWithExpectedSection";
 import { getDiagnosticsForUnrecognizedFile } from "./diagnostics/checks/unrecognizedFiles/getDiagnosticsForUnrecognizedFile";
@@ -301,6 +301,7 @@ export class YamlFormatDiagnosticsProvider {
             return parsingDiagnostics;
         }
         const otherDiagnostics = [
+            ...checkTagsAreUnique(parsingResult.properties.info, commonParams),
             checkFolderSequenceIsUnique(
                 parsingResult.properties.info?.properties.sequence,
                 commonParams.docHelper,

@@ -1,7 +1,7 @@
 import { YAMLMap } from "yaml";
 import {
     BrunoFileType,
-    ParsedInfoForRequestFile,
+    ParsedInfoWithTags,
     YamlParsingError,
     YamlParsingErrorCode,
 } from "../../../..";
@@ -22,7 +22,7 @@ import {
     FileInfoType,
 } from "../../../external/yamlFormat/constants/sharedConstants";
 
-export type ParsedInfoResult = MaybeResultWithErrors<ParsedInfoForRequestFile>;
+export type ParsedInfoResult = MaybeResultWithErrors<ParsedInfoWithTags>;
 
 export function parseFileInfoFromYamlMap(args: {
     commonArgs: CommonParsingArgs;
@@ -45,7 +45,10 @@ export function parseFileInfoFromYamlMap(args: {
         BrunoFileType.FolderSettingsFile,
         BrunoFileType.RequestFile,
     ].includes(fileType);
-    const checkForTagsProperty = fileType == BrunoFileType.RequestFile;
+    const checkForTagsProperty = [
+        BrunoFileType.FolderSettingsFile,
+        BrunoFileType.RequestFile,
+    ].includes(fileType);
     const expectedStringScalars = [FileInfoProperty.Name];
     const expectedNumericScalars = checkForSeqProperty
         ? [FileInfoProperty.Seq]

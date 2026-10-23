@@ -22,6 +22,7 @@ import {
     FileChangeType,
     CollectionDirectory,
     CollectionItemWithSequence,
+    isCollectionDirectory,
     isRequestFileOrCollectionDirectory,
 } from "@global_shared";
 import {
@@ -309,13 +310,28 @@ function handleTestTreeUpdates(
                 // ToDo: Fix handling of creation of Collection directories
             } else if (
                 updateType == FileChangeType.Modified &&
+                isCollectionDirectory(item) &&
+                (update.changedData?.sequenceChanged ||
+                    update.changedData?.tagsChanged)
+            ) {
+                /* Modifications of directories only arise from changes in their settings file. The directory then has a new (empty) test item,
+                so the directory needs to be re-added together with its descendants. */
+                removeTestItemFromTree(
+                    controller,
+                    collection,
+                    testItem.uri as Uri,
+                );
+                void testRunnerDataHelper.addTestTreeItemsForDirectoryAndDescendants(
+                    collection,
+                    item,
+                );
+            } else if (
+                updateType == FileChangeType.Modified &&
                 item.isFile() &&
                 (update.changedData?.sequenceChanged ||
                     update.changedData?.tagsChanged ||
                     update.changedData?.additionalDataChanged)
             ) {
-                /* For directories, no changes are ever registered because renaming a directory is seen as a creation of a new directory with the
-                new name and a deletion of the directory with the old name. */
                 if (item.getSequence() != undefined) {
                     removeTestItemFromTree(
                         controller,
@@ -389,7 +405,7 @@ function isRelevantForTestTree(
 ) {
     return (
         (item.isFile() && item.getSequence() != undefined) ||
-        (item instanceof CollectionDirectory &&
+        (isCollectionDirectory(item) &&
             testRunnerDataHelper.getTestFileDescendants(collection, item)
                 .length > 0)
     );

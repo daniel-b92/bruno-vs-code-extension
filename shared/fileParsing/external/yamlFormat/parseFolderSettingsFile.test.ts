@@ -11,6 +11,25 @@ import { TopLevelFolderSettingsProperty } from "./constants/folderSettingsFileCo
 import { SettingsFileRequestSectionProperty } from "./constants/sharedConstants";
 
 describe("parseFolderSettingsFile", () => {
+    it("parses the tags in the info section", () => {
+        const { errors, result } = parseFolderSettingsFile(
+            new TextDocumentHelper(`info:
+  name: test
+  type: folder
+  tags:
+    - a
+    - b
+`),
+        );
+
+        expect(errors).toEqual([]);
+        expect(
+            result?.properties.info?.properties.tags?.value.map(
+                ({ value }) => value,
+            ),
+        ).toEqual(["a", "b"]);
+    });
+
     it("parses valid file with all sections defined", () => {
         const documentText = `info:
   name: test 3
