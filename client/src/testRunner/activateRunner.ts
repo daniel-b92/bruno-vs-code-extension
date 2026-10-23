@@ -22,6 +22,7 @@ import {
     FileChangeType,
     CollectionDirectory,
     CollectionItemWithSequence,
+    isCollectionDirectory,
     isRequestFileOrCollectionDirectory,
 } from "@global_shared";
 import {
@@ -309,7 +310,7 @@ function handleTestTreeUpdates(
                 // ToDo: Fix handling of creation of Collection directories
             } else if (
                 updateType == FileChangeType.Modified &&
-                item instanceof CollectionDirectory &&
+                isCollectionDirectory(item) &&
                 (update.changedData?.sequenceChanged ||
                     update.changedData?.tagsChanged)
             ) {
@@ -404,7 +405,7 @@ function isRelevantForTestTree(
 ) {
     return (
         (item.isFile() && item.getSequence() != undefined) ||
-        (item instanceof CollectionDirectory &&
+        (isCollectionDirectory(item) &&
             testRunnerDataHelper.getTestFileDescendants(collection, item)
                 .length > 0)
     );

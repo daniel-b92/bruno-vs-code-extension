@@ -2,6 +2,7 @@ import { describe, it, expect } from "@jest/globals";
 import { CollectionFormat } from "@global_shared";
 import { createItemProviderStub } from "@global_shared/_testingUtils";
 import { TypedCollectionItemProvider } from "../../../shared";
+import { NonBlockSpecificDiagnosticCode } from "../shared/diagnosticCodes/nonBlockSpecificDiagnosticCodeEnum";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDiagnosticsHelper";
 import { determineDiagnosticsForFolderSettingsFile } from "./determineDiagnosticsForFolderSettingsFile";
@@ -31,9 +32,14 @@ describe("determineDiagnosticsForFolderSettingsFile", () => {
         it("reports tags that are not defined as an array", () => {
             const diagnostics = getDiagnostics(["tags: a"]);
 
-            expect(diagnostics.length).toBeGreaterThan(0);
+            expect(diagnostics).toHaveLength(1);
+            expect(diagnostics[0].code).toBe(
+                NonBlockSpecificDiagnosticCode.ArrayFieldsInDictionaryBlocksNotStructuredCorrectly,
+            );
         });
+    });
 
+    describe("keys in the meta block", () => {
         it("reports a missing sequence", () => {
             const diagnostics = getDiagnostics([], ["name: folder"]);
 
@@ -49,6 +55,15 @@ describe("determineDiagnosticsForFolderSettingsFile", () => {
             expect(diagnostics).toHaveLength(1);
             expect(diagnostics[0].code).toBe(
                 RelevantWithinMetaBlockDiagnosticCode.UnknownKeysDefinedInMetaBlock,
+            );
+        });
+
+        it("reports a missing name value", () => {
+            const diagnostics = getDiagnostics([], ["name:", "seq: 1"]);
+
+            expect(diagnostics).toHaveLength(1);
+            expect(diagnostics[0].code).toBe(
+                RelevantWithinMetaBlockDiagnosticCode.MandatoryValuesMissingInMetaBlock,
             );
         });
 

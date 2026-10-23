@@ -4,30 +4,17 @@ import {
     MetaBlockKey,
     RequestType,
     isDictionaryBlockSimpleField,
-    shouldBeDictionaryArrayField,
-    RequestFileBlockName,
     DictionaryBlock,
-    isDictionaryBlockArrayField,
-    getMetaBlockMandatoryKeys,
-    getMetaBlockOptionalKeys,
     BrunoFileType,
     getActiveFieldFromDictionaryBlock,
-    isDictionaryBlockField,
 } from "@global_shared";
-import { checkNoDuplicateKeysAreDefinedForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoDuplicateKeysAreDefinedForDictionaryBlock";
-import { checkNoKeysAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoKeysAreMissingForDictionaryBlock";
-import { checkNoMandatoryValuesAreMissingForDictionaryBlock } from "../shared/checks/singleBlocks/checkNoMandatoryValuesAreMissingForDictionaryBlock";
-import { checkNoUnknownKeysAreDefinedInDictionaryBlock } from "../shared/checks/singleBlocks/checkNoUnknownKeysAreDefinedInDictionaryBlock";
 import { checkValueForDictionaryBlockSimpleFieldIsValid } from "../shared/checks/singleBlocks/checkValueForDictionaryBlockSimpleFieldIsValid";
-import { checkMetaBlockStartsInFirstLine } from "../shared/checks/singleBlocks/checkMetaBlockStartsInFirstLine";
+import { getCommonMetaBlockDiagnostics } from "../shared/checks/singleBlocks/getCommonMetaBlockDiagnostics";
 import { DiagnosticWithCode } from "../interfaces";
 import { RelevantWithinMetaBlockDiagnosticCode } from "../shared/diagnosticCodes/relevantWithinMetaBlockDiagnosticCodeEnum";
 import { RelatedFilesDiagnosticsHelper } from "../shared/helpers/relatedFilesDiagnosticsHelper";
 import { checkSequenceDoesNotClashWithAppFiles } from "../shared/checks/singleBlocks/checkSequenceDoesNotClashWithAppFiles";
-import { checkSequenceInMetaBlockIsValid } from "../shared/checks/singleBlocks/checkSequenceInMetaBlockIsValid";
 import { checkSequenceInMetaBlockIsUniqueWithinFolder } from "./checks/relatedRequests/checkSequenceInMetaBlockIsUniqueWithinFolder";
-import { checkDictionaryBlockArrayFieldsStructure } from "../shared/checks/singleBlocks/checkDictionaryBlockArrayFieldsStructure";
-import { runChecksForTagsField } from "../shared/checks/singleBlocks/runChecksForTagsField";
 import { TypedCollectionItemProvider } from "../../../shared";
 
 export function getMetaBlockSpecificDiagnostics(data: {
@@ -44,63 +31,18 @@ export function getMetaBlockSpecificDiagnostics(data: {
         metaBlock,
         relatedFilesHelper,
     } = data;
-    const mandatoryBlockKeys = getMetaBlockMandatoryKeys(
-        BrunoFileType.RequestFile,
-    );
-    const optionalBlockKeys = getMetaBlockOptionalKeys(
-        BrunoFileType.RequestFile,
-    );
-
-    if (!mandatoryBlockKeys || !optionalBlockKeys) {
-        return [];
-    }
-
     const typeField = getActiveFieldFromDictionaryBlock(
         metaBlock,
         MetaBlockKey.Type,
     );
-    const tagsField = getActiveFieldFromDictionaryBlock(
-        metaBlock,
-        MetaBlockKey.Tags,
-    );
 
     const diagnostics = [
-        checkSequenceInMetaBlockIsValid(metaBlock),
-        checkNoKeysAreMissingForDictionaryBlock(
-            metaBlock,
-            mandatoryBlockKeys,
-            RelevantWithinMetaBlockDiagnosticCode.KeysMissingInMetaBlock,
-        ),
-        checkNoUnknownKeysAreDefinedInDictionaryBlock(
-            metaBlock,
-            mandatoryBlockKeys.concat(optionalBlockKeys),
-            RelevantWithinMetaBlockDiagnosticCode.UnknownKeysDefinedInMetaBlock,
-        ),
-        checkNoMandatoryValuesAreMissingForDictionaryBlock(
-            metaBlock,
-            [MetaBlockKey.Name],
-            RelevantWithinMetaBlockDiagnosticCode.MandatoryValuesMissingInMetaBlock,
-        ),
-        ...(checkNoDuplicateKeysAreDefinedForDictionaryBlock({
+        ...getCommonMetaBlockDiagnostics({
             filePath,
-            block: metaBlock,
-            diagnosticCode:
-                RelevantWithinMetaBlockDiagnosticCode.DuplicateKeysDefinedInMetaBlock,
-            expectedKeys: mandatoryBlockKeys.concat(optionalBlockKeys),
-        }) ?? []),
-        checkDictionaryBlockArrayFieldsStructure(
-            filePath,
+            fileType: BrunoFileType.RequestFile,
+            documentHelper,
             metaBlock,
-            metaBlock.content
-                .filter(isDictionaryBlockField)
-                .map(({ key }) => key)
-                .filter((existing) =>
-                    shouldBeDictionaryArrayField(
-                        RequestFileBlockName.Meta,
-                        existing,
-                    ),
-                ),
-        ),
+        }),
         typeField && isDictionaryBlockSimpleField(typeField)
             ? checkValueForDictionaryBlockSimpleFieldIsValid(
                   typeField,
@@ -108,12 +50,7 @@ export function getMetaBlockSpecificDiagnostics(data: {
                   RelevantWithinMetaBlockDiagnosticCode.RequestTypeNotValid,
               )
             : undefined,
-        checkMetaBlockStartsInFirstLine(documentHelper, metaBlock),
-    ].concat(
-        tagsField && isDictionaryBlockArrayField(tagsField)
-            ? runChecksForTagsField(filePath, tagsField)
-            : [],
-    );
+    ];
 
     diagnostics.push(
         checkSequenceDoesNotClashWithAppFiles({
