@@ -19,6 +19,11 @@ import { TextEdit } from "vscode-languageserver";
 import { updatePathParamsKeysToMatchUrl } from "../paramsBlocks/updatePathParamsKeysToMatchUrl";
 import { updateQueryParamsBlockToMatchUrl } from "../paramsBlocks/updateQueryParamsBlockToMatchUrl";
 import { updateUrlToMatchQueryParams } from "../paramsBlocks/updateUrlToMatchQueryParams";
+import {
+    getModifiedSide,
+    ModifiedSide,
+    ParamsAccessors,
+} from "../../shared/urlParamsSyncing/getModifiedSide";
 
 /**
  * Syncs the URL and the params blocks of a request file when saving.
@@ -48,7 +53,7 @@ export function runUpdatesOnWillSave(
         case ModifiedSide.Url:
             edits.push(...updateQueryParamsBlockToMatchUrl(docHelper, blocks));
             break;
-        case ModifiedSide.Block:
+        case ModifiedSide.Params:
             edits.push(...[updateUrlToMatchQueryParams(blocks)].flat());
             break;
     }
@@ -66,22 +71,10 @@ export function runUpdatesOnWillSave(
     return edits;
 }
 
-enum ModifiedSide {
-    Url,
-    Block,
-    BothOrNone,
-}
-
-interface ParamsAccessors {
-    /** Returns a string that is equal for URLs with equal params. */
-    fromUrl: (url: string) => string;
-    /** Returns a string that is equal for blocks with equal params, or `undefined` if the block(s) are invalid. */
-    fromBlocks: (blocks: Block[]) => string | undefined;
-}
-
-const queryParamsAccessors: ParamsAccessors = {
+const queryParamsAccessors: ParamsAccessors<Block[]> = {
+    getUrl,
     fromUrl: (url) => getQueryParamsFromUrl(url)?.toString() ?? "",
-    fromBlocks: (blocks) =>
+    fromParams: (blocks) =>
         getSingleBlockIfValid(
             blocks,
             RequestFileBlockName.QueryParams,
@@ -99,44 +92,16 @@ const queryParamsAccessors: ParamsAccessors = {
         ),
 };
 
-const pathParamsAccessors: ParamsAccessors = {
+const pathParamsAccessors: ParamsAccessors<Block[]> = {
+    getUrl,
     fromUrl: (url) => getPathParamsFromUrl(url).join("/"),
-    fromBlocks: (blocks) =>
+    fromParams: (blocks) =>
         getSingleBlockIfValid(
             blocks,
             RequestFileBlockName.PathParams,
             (block) => getPathParamsFromPathParamsBlock(block).join("/"),
         ),
 };
-
-function getModifiedSide(
-    lastSavedBlocks: Block[],
-    newBlocks: Block[],
-    { fromUrl, fromBlocks }: ParamsAccessors,
-) {
-    const lastSavedUrl = getUrl(lastSavedBlocks);
-    const newUrl = getUrl(newBlocks);
-    const lastSavedBlock = fromBlocks(lastSavedBlocks);
-    const newBlock = fromBlocks(newBlocks);
-
-    if (
-        lastSavedUrl === undefined ||
-        newUrl === undefined ||
-        lastSavedBlock === undefined ||
-        newBlock === undefined
-    ) {
-        return ModifiedSide.BothOrNone;
-    }
-
-    const urlModified = fromUrl(lastSavedUrl) != fromUrl(newUrl);
-    const blockModified = lastSavedBlock != newBlock;
-
-    return urlModified == blockModified
-        ? ModifiedSide.BothOrNone
-        : urlModified
-          ? ModifiedSide.Url
-          : ModifiedSide.Block;
-}
 
 function getUrl(blocks: Block[]) {
     const urlField = getUrlFieldFromMethodBlock(blocks);

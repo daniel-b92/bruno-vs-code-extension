@@ -1,3 +1,5 @@
+import { TextEdit } from "vscode-languageserver";
+import { TextDocument } from "vscode-languageserver-textdocument";
 import {
     BrunoFileType,
     getRequestTypeField,
@@ -20,4 +22,11 @@ export function parseBlocksFromRequestFileContent(content: string) {
 
 export function getRequestTypeFieldFromRequestFileContent(content: string) {
     return getRequestTypeField(parseBlocksFromRequestFileContent(content));
+}
+
+export function applyTextEdits(content: string, edits: TextEdit[]) {
+    return TextDocument.applyEdits(
+        TextDocument.create("file:///test", "plaintext", 1, content),
+        edits,
+    );
 }

@@ -9,6 +9,11 @@ import {
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 import { URI } from "vscode-uri";
 import { CommonDiagnosticParams } from "../../../interfaces";
+import {
+    getEnabledParamsOfType,
+    getExpectedUrlQueryParams,
+} from "../../../paramsSyncing/getYamlUrlParamsInfo";
+import { YamlDiagnosticCode } from "../../yamlDiagnosticCodeEnum";
 
 export function checkUrlMatchesParams(
     http: ParsedRequestFile["properties"]["http"],
@@ -20,20 +25,16 @@ export function checkUrlMatchesParams(
         return [];
     }
 
-    const enabledParams = http.properties.params?.enabled ?? [];
-    const getParamsWithType = (type: HttpParamType) =>
-        enabledParams.filter(
-            ({ properties: { type: paramType, name } }) =>
-                paramType?.value == type && name,
-        );
+    const enabledParams = http.properties.params?.value.enabled ?? [];
 
     return [checkPathParams(), checkQueryParams()];
 
     function checkPathParams() {
-        const pathParams = getParamsWithType(HttpParamType.Path);
-        const namesFromParams = pathParams.map(
-            ({ properties: { name } }) => name!.value,
+        const pathParams = getEnabledParamsOfType(
+            enabledParams,
+            HttpParamType.Path,
         );
+        const namesFromParams = pathParams.map(({ name }) => name);
         const namesFromUrl = getPathParamsFromUrl(url!.value);
 
         const missingInUrl = namesFromParams.filter(
@@ -55,21 +56,18 @@ export function checkUrlMatchesParams(
         return messages.length > 0
             ? getDiagnostic(
                   messages.join(". "),
-                  pathParams.map(({ valueRange }) => valueRange),
+                  YamlDiagnosticCode.UrlNotMatchingPathParams,
+                  pathParams.map(({ entry }) => entry.valueRange),
               )
             : undefined;
     }
 
     function checkQueryParams() {
-        const queryParams = getParamsWithType(HttpParamType.Query);
-        const queryParamsFromParams = new URLSearchParams(
-            queryParams
-                .map(
-                    ({ properties: { name, value } }) =>
-                        `${name!.value}=${value?.value ?? ""}`,
-                )
-                .join("&"),
+        const queryParams = getEnabledParamsOfType(
+            enabledParams,
+            HttpParamType.Query,
         );
+        const queryParamsFromParams = getExpectedUrlQueryParams(queryParams);
         const queryParamsFromUrl =
             getQueryParamsFromUrl(url!.value) ?? new URLSearchParams();
 
@@ -81,13 +79,19 @@ export function checkUrlMatchesParams(
                   )}' do not match query params from 'params' '${getUrlSubstringForQueryParams(
                       queryParamsFromParams,
                   )}'`,
-                  queryParams.map(({ valueRange }) => valueRange),
+                  YamlDiagnosticCode.UrlNotMatchingQueryParams,
+                  queryParams.map(({ entry }) => entry.valueRange),
               );
     }
 
-    function getDiagnostic(message: string, paramRanges: Range[]): Diagnostic {
+    function getDiagnostic(
+        message: string,
+        code: YamlDiagnosticCode,
+        paramRanges: Range[],
+    ): Diagnostic {
         return {
             message,
+            code,
             range: url!.valueRange,
             severity: DiagnosticSeverity.Warning,
             relatedInformation: paramRanges.map((range) => ({

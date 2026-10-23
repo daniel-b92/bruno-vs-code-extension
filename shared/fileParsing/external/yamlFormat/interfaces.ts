@@ -53,7 +53,12 @@ export type ParsedRequestFile = ParsedYamlMap<{
         method?: WithKeyAndValueRange<string>;
         url?: WithKeyAndValueRange<string>;
         headers?: EnabledAndDisabledItems<ParsedRequestHeader>;
-        params?: EnabledAndDisabledItems<ParsedHttpParam>;
+        params?: WithKeyAndValueRange<
+            EnabledAndDisabledItems<ParsedHttpParam>
+        > & {
+            /** Whether the sequence is written in flow style (`[...]`) instead of block style. */
+            isFlowSequence: boolean;
+        };
         body?: ParsedHttpBody;
         auth?: ParsedAuth;
     }>;
@@ -232,5 +237,6 @@ export interface YamlExpectedKeyInfo {
 export type {
     ParsedWebsocketMessageContent,
     EnabledAndDisabledItems,
+    ParsedHttpParam,
     ParsedRequestHeader,
 } from "../../internal/yamlFormat/interfaces";
