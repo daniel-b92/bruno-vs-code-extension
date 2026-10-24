@@ -1,10 +1,9 @@
 import * as ts from "typescript/lib/tsserverlibrary";
-import { getCodeBlockIndizesForBruFile } from "../codeBlocks/bruCodeBlocks";
+import { CodeRange, getCodeRangesGetter } from "../codeBlocks/getCodeRanges";
 import { isFileFromYamlCollection } from "../collection/collectionFormat";
 import { getOriginalFileContent } from "../fileContent";
-import { hasEmbeddedCodeBlocks, isBruFile } from "../fileTypes";
+import { hasEmbeddedCodeBlocks } from "../fileTypes";
 import { getIndentationOfScripts } from "../yamlFiles/getIndentationOfScripts";
-import { getScriptContentRanges } from "../yamlFiles/maskYamlFileContent";
 
 /**
  * The Typescript server indents the top-level statements of scripts in Yaml files relative to column 0,
@@ -40,11 +39,6 @@ export function getFormatOptionsForFile(
         // Tabs are not allowed for indenting Yaml content.
         convertTabsToSpaces: true,
     };
-}
-
-interface CodeRange {
-    start: number;
-    end: number;
 }
 
 interface OriginalFile {
@@ -114,12 +108,7 @@ function getOriginalFile(
         return undefined;
     }
 
-    const getCodeRanges = isBruFile(fileName)
-        ? getCodeRangesForBruFile
-        : isFileFromYamlCollection(info, fileName)
-          ? (fileContent: string) =>
-                getScriptContentRanges(fileName, fileContent)
-          : () => [];
+    const getCodeRanges = getCodeRangesGetter(info, fileName);
 
     return {
         content,
@@ -129,15 +118,6 @@ function getOriginalFile(
         ),
         getCodeRanges,
     };
-}
-
-function getCodeRangesForBruFile(fileContent: string): CodeRange[] {
-    return getCodeBlockIndizesForBruFile(fileContent)
-        .map(({ startIndex, endIndex }) => ({
-            start: startIndex,
-            end: endIndex - 1, // index of the closing bracket
-        }))
-        .sort(({ start: start1 }, { start: start2 }) => start1 - start2);
 }
 
 function getContentOutsideOfCodeRanges(

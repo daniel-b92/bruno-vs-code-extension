@@ -1,54 +1,175 @@
 import { extname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
-import { isInABrunoCollection } from "../collection/collectionFormat";
-import { getTempJsFileBaseNameWithoutExtension } from "../constants";
+import { isPositionWithinCode } from "../codeBlocks/getCodeRanges";
+import { isPositionWithinNameOfVariable } from "../codeBlocks/inbuiltFunctionParameters";
+import { getRelativeModulePathCompletions } from "../codeBlocks/relativeModulePathCompletions";
+import { canReferToRuntimeDefinitions } from "../collection/runtimeContext";
+import { isTempJsFileOrRuntimeDefinitionsFile } from "../constants";
 import { hasEmbeddedCodeBlocks } from "../fileTypes";
+import { PluginConfiguration } from "../pluginConfiguration";
+import { grpcBruTypeNames } from "../runtimeDefinitions/getRuntimeDefinitionsFileContent";
 
 export function overrideHoverAndCompletions(
     info: ts.server.PluginCreateInfo,
     proxy: ts.LanguageService,
+    configuration: PluginConfiguration,
 ) {
-    // All hovers are provided by the extension implementation for '.bru' and '.yml' files.
-    proxy.getQuickInfoAtPosition = (fileName, position) => {
-        if (hasEmbeddedCodeBlocks(fileName)) {
+    // The Typescript server only sees the masked content of '.bru' and '.yml' files, so there is nothing to provide outside of code blocks.
+    const shouldProvideNothing = (fileName: string, position: number) =>
+        hasEmbeddedCodeBlocks(fileName) &&
+        !isPositionWithinCode(info, configuration, fileName, position);
+
+    proxy.getQuickInfoAtPosition = (fileName, position, maximumLength) => {
+        // Hovers for the names of variables are provided by the extension.
+        if (
+            shouldProvideNothing(fileName, position) ||
+            (hasEmbeddedCodeBlocks(fileName) &&
+                isPositionWithinNameOfVariable(info, fileName, position))
+        ) {
             return undefined;
         }
 
-        return info.languageService.getQuickInfoAtPosition(fileName, position);
+        return info.languageService.getQuickInfoAtPosition(
+            fileName,
+            position,
+            maximumLength,
+        );
     };
 
-    proxy.getCompletionsAtPosition = (fileName, position, options) => {
-        // All completions are provided by the extension implementation for '.bru' and '.yml' files.
-        if (hasEmbeddedCodeBlocks(fileName)) {
+    proxy.getCompletionsAtPosition = (
+        fileName,
+        position,
+        options,
+        formattingSettings,
+    ) => {
+        const hasCodeBlocks = hasEmbeddedCodeBlocks(fileName);
+
+        // Completions for the names of variables are provided by the extension.
+        if (
+            shouldProvideNothing(fileName, position) ||
+            (hasCodeBlocks &&
+                isPositionWithinNameOfVariable(info, fileName, position))
+        ) {
             return undefined;
+        }
+
+        // Paths are relative to the collection root folder and not to the file (like they would be for the Typescript server).
+        const relativeModulePathCompletions = hasCodeBlocks
+            ? getRelativeModulePathCompletions(info, fileName, position)
+            : undefined;
+
+        if (relativeModulePathCompletions) {
+            return relativeModulePathCompletions;
         }
 
         const defaultCompletions =
             info.languageService.getCompletionsAtPosition(
                 fileName,
                 position,
-                options,
+                // Selecting an auto import would insert an import statement at the top of the file (outside of the code blocks).
+                hasCodeBlocks
+                    ? {
+                          ...options,
+                          includeCompletionsForModuleExports: false,
+                          includeCompletionsForImportStatements: false,
+                      }
+                    : options,
+                formattingSettings,
             );
 
-        return defaultCompletions && isInABrunoCollection(info, fileName)
-            ? {
-                  ...defaultCompletions,
-                  entries: defaultCompletions.entries.filter(
-                      ({ data }) =>
-                          !data ||
-                          !data.fileName ||
-                          !data.fileName.includes(
-                              getTempJsFileBaseNameWithoutExtension(),
-                          ),
-                  ),
-              }
-            : defaultCompletions;
+        if (!defaultCompletions) {
+            return defaultCompletions;
+        }
+
+        const isForRuntimeDefinitionsFile = ({ data }: ts.CompletionEntry) =>
+            data?.fileName != undefined &&
+            isTempJsFileOrRuntimeDefinitionsFile(data.fileName);
+
+        return {
+            ...defaultCompletions,
+            entries: defaultCompletions.entries.filter(
+                (entry) =>
+                    !(
+                        canReferToRuntimeDefinitions(
+                            info,
+                            configuration,
+                            fileName,
+                        ) && isForRuntimeDefinitionsFile(entry)
+                    ) &&
+                    !(
+                        hasCodeBlocks &&
+                        (entry.hasAction ||
+                            isTypeForGrpcScripts(entry) ||
+                            isShadowingParameterOfCodeBlock(
+                                info,
+                                configuration,
+                                fileName,
+                                position,
+                                entry,
+                            ))
+                    ),
+            ),
+        };
     };
+
+    proxy.getSignatureHelpItems = (fileName, position, options) =>
+        shouldProvideNothing(fileName, position)
+            ? undefined
+            : info.languageService.getSignatureHelpItems(
+                  fileName,
+                  position,
+                  options,
+              );
+}
+
+/**
+ * The types are only meant to be used for the parameters that shadow `bru` in code blocks (see `getBlockWrapperCandidates`).
+ */
+function isTypeForGrpcScripts({ name }: ts.CompletionEntry) {
+    return Object.values(grpcBruTypeNames).includes(name);
+}
+
+/**
+ * `req` and `res` are shadowed by parameters in code blocks, where they are not available (see `getBlockWrapperCandidates`).
+ * Parameters of the same name that are declared within the code are still suggested.
+ */
+function isShadowingParameterOfCodeBlock(
+    info: ts.server.PluginCreateInfo,
+    configuration: PluginConfiguration,
+    fileName: string,
+    position: number,
+    { name, kind, source }: ts.CompletionEntry,
+) {
+    if (
+        kind != ts.ScriptElementKind.parameterElement ||
+        !["req", "res"].includes(name)
+    ) {
+        return false;
+    }
+
+    const declaration = info.languageService.getCompletionEntrySymbol(
+        fileName,
+        position,
+        name,
+        source,
+    )?.declarations?.[0];
+
+    return (
+        declaration != undefined &&
+        declaration.getSourceFile().fileName == fileName &&
+        !isPositionWithinCode(
+            info,
+            configuration,
+            fileName,
+            declaration.getStart(),
+        )
+    );
 }
 
 export function overrideRename(
     info: ts.server.PluginCreateInfo,
     proxy: ts.LanguageService,
+    configuration: PluginConfiguration,
 ) {
     proxy.getRenameInfo = (fileName, position, preferences) => {
         const defaultRenameInfo = info.languageService.getRenameInfo(
@@ -59,7 +180,7 @@ export function overrideRename(
 
         if (
             extname(fileName) != ".js" ||
-            !isInABrunoCollection(info, fileName)
+            !canReferToRuntimeDefinitions(info, configuration, fileName)
         ) {
             return defaultRenameInfo;
         }
@@ -70,7 +191,7 @@ export function overrideRename(
         const isForInbuiltRuntimeFunction =
             definitionForPosition &&
             definitionForPosition.some(({ fileName }) =>
-                fileName.includes(getTempJsFileBaseNameWithoutExtension()),
+                isTempJsFileOrRuntimeDefinitionsFile(fileName),
             );
 
         return isForInbuiltRuntimeFunction
@@ -100,11 +221,12 @@ export function overrideRename(
                 : {},
         );
 
-        return defaultRenameLocations && isInABrunoCollection(info, fileName)
+        return defaultRenameLocations &&
+            canReferToRuntimeDefinitions(info, configuration, fileName)
             ? defaultRenameLocations.filter(
                   ({ fileName: fileForRenameLocation }) =>
-                      !fileForRenameLocation.includes(
-                          getTempJsFileBaseNameWithoutExtension(),
+                      !isTempJsFileOrRuntimeDefinitionsFile(
+                          fileForRenameLocation,
                       ),
               )
             : defaultRenameLocations;
@@ -114,6 +236,7 @@ export function overrideRename(
 export function overrideReferencesAndDefinitions(
     info: ts.server.PluginCreateInfo,
     proxy: ts.LanguageService,
+    configuration: PluginConfiguration,
 ) {
     proxy.findReferences = (fileName, position) => {
         const defaultReferences = info.languageService.findReferences(
@@ -121,12 +244,11 @@ export function overrideReferencesAndDefinitions(
             position,
         );
 
-        return defaultReferences && isInABrunoCollection(info, fileName)
+        return defaultReferences &&
+            canReferToRuntimeDefinitions(info, configuration, fileName)
             ? defaultReferences.filter(
                   ({ definition: { fileName: fileForDefinition } }) =>
-                      !fileForDefinition.includes(
-                          getTempJsFileBaseNameWithoutExtension(),
-                      ),
+                      !isTempJsFileOrRuntimeDefinitionsFile(fileForDefinition),
               )
             : defaultReferences;
     };
@@ -137,12 +259,11 @@ export function overrideReferencesAndDefinitions(
             position,
         );
 
-        return defaultDefinitions && isInABrunoCollection(info, fileName)
+        return defaultDefinitions &&
+            canReferToRuntimeDefinitions(info, configuration, fileName)
             ? defaultDefinitions.filter(
                   ({ fileName: fileForDefinition }) =>
-                      !fileForDefinition.includes(
-                          getTempJsFileBaseNameWithoutExtension(),
-                      ),
+                      !isTempJsFileOrRuntimeDefinitionsFile(fileForDefinition),
               )
             : defaultDefinitions;
     };
@@ -152,14 +273,14 @@ export function overrideReferencesAndDefinitions(
             info.languageService.getDefinitionAndBoundSpan(fileName, position);
 
         return defaultDefinition &&
-            isInABrunoCollection(info, fileName) &&
+            canReferToRuntimeDefinitions(info, configuration, fileName) &&
             defaultDefinition.definitions
             ? {
                   ...defaultDefinition,
                   definitions: defaultDefinition.definitions.filter(
                       ({ fileName: fileForDefinition }) =>
-                          !fileForDefinition.includes(
-                              getTempJsFileBaseNameWithoutExtension(),
+                          !isTempJsFileOrRuntimeDefinitionsFile(
+                              fileForDefinition,
                           ),
                   ),
               }
@@ -172,12 +293,11 @@ export function overrideReferencesAndDefinitions(
             position,
         );
 
-        return defaultDefinitions && isInABrunoCollection(info, fileName)
+        return defaultDefinitions &&
+            canReferToRuntimeDefinitions(info, configuration, fileName)
             ? defaultDefinitions.filter(
                   ({ fileName: fileForDefinition }) =>
-                      !fileForDefinition.includes(
-                          getTempJsFileBaseNameWithoutExtension(),
-                      ),
+                      !isTempJsFileOrRuntimeDefinitionsFile(fileForDefinition),
               )
             : defaultDefinitions;
     };
@@ -189,11 +309,12 @@ export function overrideReferencesAndDefinitions(
                 position,
             );
 
-        return defaultImplementations && isInABrunoCollection(info, fileName)
+        return defaultImplementations &&
+            canReferToRuntimeDefinitions(info, configuration, fileName)
             ? defaultImplementations.filter(
                   ({ fileName: fileForImplementation }) =>
-                      !fileForImplementation.includes(
-                          getTempJsFileBaseNameWithoutExtension(),
+                      !isTempJsFileOrRuntimeDefinitionsFile(
+                          fileForImplementation,
                       ),
               )
             : defaultImplementations;

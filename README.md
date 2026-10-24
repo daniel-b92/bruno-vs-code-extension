@@ -24,8 +24,7 @@ For getting the most out of the extension, please follow these steps when instal
 - If you already have an extension installed for working with `.bru` files (like e.g. the official [Bruno](https://marketplace.visualstudio.com/items?itemName=bruno-api-client.bruno) extension):
     - Please uninstall the other extension. Otherwise you may run into unexpected issues due to incompatibilities.
 - Install `node js` and `npm`, if you haven't already.
-- If your collection is in a git repository, add the entry `**/__temp_bru_reference.js` to your gitignore file.
-    - The extension will sometimes temporarily create a file with this name for providing the Javascript intellisense.
+- Older versions of the extension created files named `__temp_bru_reference.js` in your collections for providing the Javascript intellisense. They are no longer needed and can be deleted (including the corresponding entry in your gitignore file).
 - If you want to be able to trigger testruns via the extension, install the [Bruno CLI](https://www.npmjs.com/package/@usebruno/cli).
 
 ### Improving intellisense

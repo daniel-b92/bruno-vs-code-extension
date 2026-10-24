@@ -1,5 +1,7 @@
 import * as ts from "typescript/lib/tsserverlibrary";
-import { maskYamlFilesForTypescriptServer } from "./yamlFiles/maskYamlFilesForTypescriptServer";
+import { provideRuntimeDefinitions } from "./languageServiceHost/provideRuntimeDefinitions";
+import { treatCollectionFilesLikeJavascript } from "./languageServiceHost/treatCollectionFilesLikeJavascript";
+import { maskFilesWithCodeBlocksForTypescriptServer } from "./languageServiceHost/maskFilesWithCodeBlocks";
 import { overrideCodeChanges } from "./languageService/codeChangeOverrides";
 import { overrideDiagnostics } from "./languageService/diagnosticsOverrides";
 import { overrideFormatting } from "./languageService/formattingOverrides";
@@ -16,7 +18,15 @@ function init(_modules: {
     const configuration = new PluginConfiguration();
 
     function create(info: ts.server.PluginCreateInfo) {
-        maskYamlFilesForTypescriptServer(info, configuration);
+        // If the plugin was configured before the project was created, the Typescript server passes the configuration this way
+        // instead of calling `onConfigurationChanged`.
+        if (info.config && isPluginConfig(info.config)) {
+            configuration.update(info.config);
+        }
+
+        maskFilesWithCodeBlocksForTypescriptServer(info, configuration);
+        treatCollectionFilesLikeJavascript(info);
+        provideRuntimeDefinitions(info, configuration);
 
         // Set up decorator object
         const proxy: ts.LanguageService = Object.create(null);
@@ -31,10 +41,10 @@ function init(_modules: {
                 x.apply(info.languageService, args);
         }
 
-        overrideDiagnostics(info, proxy);
-        overrideHoverAndCompletions(info, proxy);
-        overrideRename(info, proxy);
-        overrideReferencesAndDefinitions(info, proxy);
+        overrideDiagnostics(info, proxy, configuration);
+        overrideHoverAndCompletions(info, proxy, configuration);
+        overrideRename(info, proxy, configuration);
+        overrideReferencesAndDefinitions(info, proxy, configuration);
         overrideCodeChanges(info, proxy);
         overrideFormatting(info, proxy);
 
@@ -49,6 +59,12 @@ function init(_modules: {
         create,
         onConfigurationChanged,
     };
+}
+
+function isPluginConfig(config: object): config is Partial<PluginConfig> {
+    return (
+        "yamlCollectionSupport" in config || "additionalContextRoots" in config
+    );
 }
 
 export = init;

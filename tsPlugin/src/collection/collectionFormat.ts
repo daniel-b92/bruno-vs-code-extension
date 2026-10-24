@@ -2,13 +2,6 @@ import { dirname, extname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
 import { CollectionFormat } from "../constants";
 
-export function isInABrunoCollection(
-    info: ts.server.PluginCreateInfo,
-    fileName: string,
-) {
-    return getFormatOfContainingCollection(info, fileName) != undefined;
-}
-
 /**
  * Collection files in the Yaml format always use the extension `.yml`.
  */
@@ -26,6 +19,20 @@ function getFormatOfContainingCollection(
     info: ts.server.PluginCreateInfo,
     fileName: string,
 ) {
+    return getContainingCollection(info, fileName)?.format;
+}
+
+export function getRootFolderOfContainingCollection(
+    info: ts.server.PluginCreateInfo,
+    fileName: string,
+) {
+    return getContainingCollection(info, fileName)?.rootFolder;
+}
+
+function getContainingCollection(
+    info: ts.server.PluginCreateInfo,
+    fileName: string,
+) {
     let currentDirectory = dirname(fileName);
     let format = getFormatIfCollectionRootFolder(info, currentDirectory);
 
@@ -38,7 +45,7 @@ function getFormatOfContainingCollection(
         format = getFormatIfCollectionRootFolder(info, currentDirectory);
     }
 
-    return format;
+    return format ? { format, rootFolder: currentDirectory } : undefined;
 }
 
 function getFormatIfCollectionRootFolder(

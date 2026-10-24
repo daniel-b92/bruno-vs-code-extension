@@ -1,14 +1,14 @@
 import * as ts from "typescript/lib/tsserverlibrary";
-import { isYamlFile } from "../fileTypes";
+import { hasEmbeddedCodeBlocks } from "../fileTypes";
 
-// The Typescript server only sees the masked content of Yaml files (see `maskYamlFilesForTypescriptServer`).
-// Formatting edits are computed for the masked content and would therefore remove the Yaml content outside of scripts.
+// The Typescript server only sees the masked content of `.bru` and Yaml files (see `maskFilesWithCodeBlocksForTypescriptServer`).
+// Formatting edits are computed for the masked content and would therefore remove the content outside of code blocks.
 export function overrideFormatting(
     info: ts.server.PluginCreateInfo,
     proxy: ts.LanguageService,
 ) {
     proxy.getFormattingEditsForDocument = (fileName, options) =>
-        isYamlFile(fileName)
+        hasEmbeddedCodeBlocks(fileName)
             ? []
             : info.languageService.getFormattingEditsForDocument(
                   fileName,
@@ -16,7 +16,7 @@ export function overrideFormatting(
               );
 
     proxy.getFormattingEditsForRange = (fileName, start, end, options) =>
-        isYamlFile(fileName)
+        hasEmbeddedCodeBlocks(fileName)
             ? []
             : info.languageService.getFormattingEditsForRange(
                   fileName,
@@ -31,7 +31,7 @@ export function overrideFormatting(
         key,
         options,
     ) =>
-        isYamlFile(fileName)
+        hasEmbeddedCodeBlocks(fileName)
             ? []
             : info.languageService.getFormattingEditsAfterKeystroke(
                   fileName,
