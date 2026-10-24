@@ -572,6 +572,50 @@ describe("CollectionItemProvider: deletion of a collection root file", () => {
     }
 });
 
+describe("CollectionItemProvider: additional context roots", () => {
+    const createTemporaryDirectory = useTemporaryDirectories();
+
+    it("finds all collections sharing a context root, but not collections with a root that only has a common name prefix", async () => {
+        const requestContent =
+            "meta {\n  name: request\n  type: http\n  seq: 1\n}\n";
+        const workspace = await createTemporaryDirectory({
+            "colA/bruno.json": JSON.stringify({
+                scripts: { additionalContextRoots: ["../shared"] },
+            }),
+            "colA/request.bru": requestContent,
+            "colB/bruno.json": JSON.stringify({
+                scripts: { additionalContextRoots: ["../shared"] },
+            }),
+            "colB/request.bru": requestContent,
+            "colC/bruno.json": JSON.stringify({
+                scripts: { additionalContextRoots: ["../shared-old"] },
+            }),
+            "colC/request.bru": requestContent,
+            "shared/script.js": "",
+            "shared-old/script.js": "",
+        });
+        const provider = createProvider(workspace, {
+            yamlCollectionSupport: false,
+        });
+        await provider.refreshCache();
+
+        const getRootNames = (path: string) =>
+            provider
+                .getCollectionsWithAdditionalContextRootContainingItem(path)
+                .map((collection) => basename(collection.getRootDirectory()))
+                .sort();
+
+        expect(getRootNames(join(workspace, "shared", "script.js"))).toEqual([
+            "colA",
+            "colB",
+        ]);
+        expect(
+            getRootNames(join(workspace, "shared-old", "script.js")),
+        ).toEqual(["colC"]);
+        expect(getRootNames(join(workspace, "other", "script.js"))).toEqual([]);
+    });
+});
+
 async function waitUntil(condition: () => boolean, timeoutInMs = 3000) {
     const start = Date.now();
 

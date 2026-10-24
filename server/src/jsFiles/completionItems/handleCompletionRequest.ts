@@ -1,20 +1,12 @@
+import { Logger } from "@global_shared";
 import {
-    VariableReferenceType,
-    getFirstParameterForInbuiltFunctionIfStringLiteral,
-    getInbuiltFunctionIdentifiers,
-    Position,
-    getInbuiltFunctionReferenceType,
-    getMatchingDefinitionsFromEnvFiles,
-    Logger,
-    BrunoVariableType,
-    LineBreakType,
-} from "@global_shared";
-import {
+    JsFileInContextRootRequest,
     LanguageFeatureBaseRequest,
     LanguageRequestWithTestEnvironmentInfo,
-    mapStaticEnvVariablesToCompletions,
-    TypedCollection,
+    mapStaticEnvVariablesFromMultipleCollectionsToCompletions,
 } from "../../shared";
+import { getEnvVariableRelatedFunctionForRequest } from "../shared/getEnvVariableRelatedFunctionForRequest";
+import { getMatchingEnvDefinitionsForCollections } from "../shared/getMatchingEnvDefinitionsForCollections";
 import { CompletionItem } from "vscode-languageserver";
 
 export async function handleCompletionRequest({
@@ -25,6 +17,35 @@ export async function handleCompletionRequest({
 }: LanguageRequestWithTestEnvironmentInfo): Promise<
     CompletionItem[] | undefined
 > {
+    return getCompletionsForCollections(
+        baseRequest,
+        [{ collection, configuredEnvironmentName }],
+        { showCollectionNames: false },
+        logger,
+    );
+}
+
+/** Handles JS files that are not part of a collection, but within `additionalContextRoots` of at least one collection. */
+export async function handleCompletionRequestForJsFileInContextRoot({
+    baseRequest,
+    collections,
+    logger,
+}: JsFileInContextRootRequest): Promise<CompletionItem[] | undefined> {
+    return getCompletionsForCollections(
+        baseRequest,
+        collections,
+        { showCollectionNames: true },
+        logger,
+    );
+}
+
+/** Creates exactly one completion item per variable name, regardless of how many environments or collections define it. */
+function getCompletionsForCollections(
+    baseRequest: LanguageFeatureBaseRequest,
+    collections: JsFileInContextRootRequest["collections"],
+    { showCollectionNames }: { showCollectionNames: boolean },
+    logger?: Logger,
+): CompletionItem[] | undefined {
     const { token } = baseRequest;
 
     if (token.isCancellationRequested) {
@@ -32,109 +53,27 @@ export async function handleCompletionRequest({
         return undefined;
     }
 
-    const envVariableRelatedFunction = getEnvVariableRelatedFunctionForRequest({
-        file: {
-            collection,
-        },
-        baseRequest,
-        logger,
-    });
+    const envVariableRelatedFunction =
+        getEnvVariableRelatedFunctionForRequest(baseRequest);
 
-    return envVariableRelatedFunction != undefined
-        ? getResultsForEnvironmentVariable(
-              envVariableRelatedFunction.variable,
-              {
-                  collection,
-                  functionType: envVariableRelatedFunction.type,
-              },
-              baseRequest,
-              configuredEnvironmentName,
-              logger,
-          )
-        : undefined;
-}
-
-function getEnvVariableRelatedFunctionForRequest(params: {
-    file: { collection: TypedCollection };
-    baseRequest: LanguageFeatureBaseRequest;
-    logger?: Logger;
-}) {
-    const {
-        baseRequest: { documentHelper, token, position },
-        logger,
-    } = params;
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
+    if (envVariableRelatedFunction == undefined) {
         return undefined;
     }
 
-    const found = getFirstParameterForInbuiltFunctionIfStringLiteral({
-        relevantContent: {
-            asString: documentHelper.getText(),
-            startPosition: new Position(0, 0),
-        },
-        functionsToSearchFor: getInbuiltFunctionIdentifiers(),
-        position,
-    });
-
-    return found
-        ? {
-              ...found,
-              type: getInbuiltFunctionReferenceType(found.inbuiltFunction),
-          }
-        : undefined;
-}
-
-function getResultsForEnvironmentVariable(
-    variable: { name: string; start: Position; end: Position },
-    additionalData: {
-        collection: TypedCollection;
-        functionType: VariableReferenceType;
-    },
-    baseRequest: LanguageFeatureBaseRequest,
-    configuredEnvironmentName?: string,
-    logger?: Logger,
-) {
-    const { collection, functionType } = additionalData;
-    const { token, documentHelper: docHelper } = baseRequest;
-
-    const matchingEnvVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
-        collection,
+    const matches = getMatchingEnvDefinitionsForCollections(
+        collections,
         undefined,
-        configuredEnvironmentName,
+        showCollectionNames,
     );
-
-    if (matchingEnvVariableDefinitions.length == 0) {
-        return [];
-    }
 
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return [];
     }
 
-    return mapStaticEnvVariablesToCompletions(
-        {
-            variable,
-            functionType,
-            variableType: BrunoVariableType.Environment,
-            documentLineBreak:
-                docHelper.getMostUsedLineBreak() ?? LineBreakType.Lf,
-        },
-        matchingEnvVariableDefinitions.map(
-            ({
-                file,
-                matchingVariables,
-                isConfiguredEnv,
-                inheritedByEnvironmentName,
-            }) => ({
-                environmentFile: file,
-                matchingVariableKeys: matchingVariables.map(({ key }) => key),
-                isConfiguredEnv,
-                inheritedByEnvironmentName,
-            }),
-        ),
+    return mapStaticEnvVariablesFromMultipleCollectionsToCompletions(
+        envVariableRelatedFunction.type,
+        matches,
     );
 }
 

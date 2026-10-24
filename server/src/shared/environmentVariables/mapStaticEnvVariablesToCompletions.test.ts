@@ -47,6 +47,69 @@ describe("mapStaticEnvVariablesToCompletions", () => {
 
         expect(result[0].labelDetails?.description).toBe("Env 'Other'");
     });
+
+    it("creates one completion per variable name if multiple environments define it", () => {
+        const result = mapStaticEnvVariablesToCompletions(getRequestData(), [
+            {
+                environmentFile: "/collection/environments/Dev.bru",
+                matchingVariableKeys: ["token", "url"],
+                isConfiguredEnv: true,
+            },
+            {
+                environmentFile: "/collection/environments/Prod.bru",
+                matchingVariableKeys: ["token"],
+                isConfiguredEnv: false,
+            },
+        ]);
+
+        expect(result.map(({ label }) => label)).toEqual(["token", "url"]);
+        expect(result[0].labelDetails?.description).toBe(
+            "Env (2 environments)",
+        );
+        expect(result[0].sortText).toBe("_a_token");
+        expect(result[1].labelDetails?.description).toBe("Env 'Dev'");
+    });
+
+    it("treats a key occurring multiple times in the same file as a single definition", () => {
+        const result = mapStaticEnvVariablesToCompletions(getRequestData(), [
+            {
+                environmentFile: "/collection/environments/Dev.bru",
+                matchingVariableKeys: ["token", "token"],
+                isConfiguredEnv: true,
+            },
+        ]);
+
+        expect(result).toHaveLength(1);
+        expect(result[0].labelDetails?.description).toBe("Env 'Dev'");
+    });
+
+    it("sorts a variable below others if it is not defined in the configured environment", () => {
+        const result = mapStaticEnvVariablesToCompletions(getRequestData(), [
+            {
+                environmentFile: "/collection/environments/Prod.bru",
+                matchingVariableKeys: ["token"],
+                isConfiguredEnv: false,
+            },
+        ]);
+
+        expect(result[0].sortText).toBe("_b_token");
+    });
+
+    it("warns about overwriting for write functions", () => {
+        const result = mapStaticEnvVariablesToCompletions(
+            { ...getRequestData(), functionType: VariableReferenceType.Write },
+            [
+                {
+                    environmentFile: "/collection/environments/Dev.bru",
+                    matchingVariableKeys: ["token"],
+                    isConfiguredEnv: true,
+                },
+            ],
+        );
+
+        expect(result[0].labelDetails?.description).toBe("!Env! 'Dev'");
+        expect(result[0].detail).toContain("'Dev'");
+    });
 });
 
 function getRequestData(): VariableSpecificRequestData {

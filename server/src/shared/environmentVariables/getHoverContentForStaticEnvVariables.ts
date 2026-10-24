@@ -13,13 +13,21 @@ export function getHoverContentForStaticEnvVariables(
         }[];
         isConfiguredEnv: boolean;
         inheritedByEnvironmentName?: string;
+        /** If set for any match, an additional column for the collection is shown. */
+        collectionName?: string;
     }[],
 ) {
     if (matches.length == 0) {
         return undefined;
     }
 
-    const tableHeader = `| value | environment | configured |
+    const showCollectionColumn = matches.some(
+        ({ collectionName }) => collectionName !== undefined,
+    );
+    const tableHeader = showCollectionColumn
+        ? `| value | collection | environment | configured |
+| :--------------- | :----------------: | :----------------: | :----------------: | ${getLineBreak()}`
+        : `| value | environment | configured |
 | :--------------- | :----------------: | :----------------: | ${getLineBreak()}`;
 
     return "**Persistent environment variable references:**".concat(
@@ -32,6 +40,7 @@ export function getHoverContentForStaticEnvVariables(
                     matchingVariables,
                     isConfiguredEnv,
                     inheritedByEnvironmentName,
+                    collectionName,
                 }) => {
                     const environmentName = parse(file).name;
                     const environmentColumnText = inheritedByEnvironmentName
@@ -41,7 +50,7 @@ export function getHoverContentForStaticEnvVariables(
                     return matchingVariables
                         .map(
                             ({ value }) =>
-                                `| ${wrapInCodeSpan(value)} | ${wrapInCodeSpan(environmentColumnText)} | ${isConfiguredEnv ? "&#x2611;" : "-"} |`,
+                                `| ${wrapInCodeSpan(value)} | ${showCollectionColumn ? `${wrapInCodeSpan(collectionName ?? "")} | ` : ""}${wrapInCodeSpan(environmentColumnText)} | ${isConfiguredEnv ? "&#x2611;" : "-"} |`,
                         )
                         .join(getLineBreak());
                 },

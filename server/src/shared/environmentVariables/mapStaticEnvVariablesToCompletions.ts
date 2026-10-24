@@ -1,7 +1,12 @@
-import { parse } from "path";
-import { VariableReferenceType, Range } from "@global_shared";
+import { Range } from "@global_shared";
 import { VariableSpecificRequestData } from "../interfaces";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
+import {
+    getOverwriteWarning,
+    getSingleEnvironmentLabel,
+    groupByVariableKey,
+    shouldShowWarning,
+} from "./staticEnvVariableCompletionUtils";
 import { GetTextEditForVariableCompletion } from "../variables/mapVariablesToCompletions";
 
 export function mapStaticEnvVariablesToCompletions(
@@ -21,41 +26,53 @@ export function mapStaticEnvVariablesToCompletions(
         getTextEditForCompletion?: GetTextEditForVariableCompletion;
     },
 ) {
-    return matchingStaticEnvVariables.flatMap(
-        ({
-            environmentFile,
-            matchingVariableKeys,
-            isConfiguredEnv,
-            inheritedByEnvironmentName,
-        }) =>
-            matchingVariableKeys.map((key) => {
-                const environmentName = parse(environmentFile).name;
-                const environmentLabel = inheritedByEnvironmentName
-                    ? `'${environmentName}' (inherited by '${inheritedByEnvironmentName}')`
-                    : `'${environmentName}'`;
-                const completionItem: CompletionItem = {
-                    label: key,
-                    labelDetails: {
-                        description: `${shouldShowWarning(functionType) ? "!Env!" : "Env"} ${environmentLabel}`,
-                    },
-                    detail: shouldShowWarning(functionType)
-                        ? `WARNING: Will overwrite static environment variable from env '${environmentName}'`
-                        : undefined,
-                    kind: CompletionItemKind.Constant,
-                    sortText: `${modifications?.prefixForSortText ?? ""}_${isConfiguredEnv ? "a" : "b"}_${environmentName}_${key}`,
-                    textEdit: modifications?.getTextEditForCompletion?.(
-                        key,
-                        new Range(start, end),
-                        documentLineBreak,
-                    ),
-                };
-                return completionItem;
-            }),
+    const definitionsByKey = groupByVariableKey(
+        matchingStaticEnvVariables,
+        ({ matchingVariableKeys }) => matchingVariableKeys,
     );
+
+    const showWarning = shouldShowWarning(functionType);
+
+    return [...definitionsByKey.entries()].map(([key, definitions]) => {
+        const isConfiguredEnv = definitions.some(
+            ({ isConfiguredEnv }) => isConfiguredEnv,
+        );
+        const completionItem: CompletionItem = {
+            label: key,
+            labelDetails: {
+                description: `${showWarning ? "!Env!" : "Env"} ${getEnvironmentLabel(definitions)}`,
+            },
+            detail: showWarning
+                ? getOverwriteWarning(
+                      definitions.map(({ environmentFile }) => environmentFile),
+                  )
+                : undefined,
+            kind: CompletionItemKind.Constant,
+            sortText: `${modifications?.prefixForSortText ?? ""}_${isConfiguredEnv ? "a" : "b"}_${key}`,
+            textEdit: modifications?.getTextEditForCompletion?.(
+                key,
+                new Range(start, end),
+                documentLineBreak,
+            ),
+        };
+        return completionItem;
+    });
 }
 
-function shouldShowWarning(referenceType: VariableReferenceType) {
-    return [VariableReferenceType.Write, VariableReferenceType.Delete].includes(
-        referenceType,
+function getEnvironmentLabel(
+    definitions: {
+        environmentFile: string;
+        inheritedByEnvironmentName?: string;
+    }[],
+) {
+    if (definitions.length > 1) {
+        return `(${definitions.length} environments)`;
+    }
+
+    const [{ environmentFile, inheritedByEnvironmentName }] = definitions;
+
+    return getSingleEnvironmentLabel(
+        environmentFile,
+        inheritedByEnvironmentName,
     );
 }
