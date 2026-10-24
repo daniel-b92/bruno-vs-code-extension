@@ -37,6 +37,12 @@ For getting the most out of the extension, please follow these steps when instal
 - If you have defined a `tsconfig.json` for your collection, you can e.g. activate type checking for your Javascript files or enable the `strict` type checking mode, see https://www.typescriptlang.org/tsconfig/ for more infos.
 - If you use SPARQL request bodies, syntax highlighting requires installing an extension that provides this for SPARQL, e.g. `stardog-union.stardog-rdf-grammars`.
 
+### Yaml collections (preview)
+
+Support for collections in the `yaml` format (`opencollection.yml`) is currently in preview and disabled by default.
+It can be enabled via the setting `bru-as-code.yamlCollectionSupport` (a window reload is required afterwards).
+If a `yaml` collection is found in the workspace, the extension suggests enabling the setting.
+
 ## Contributing
 
 ### Getting started

@@ -20,6 +20,7 @@ import {
 } from "@shared";
 import { getFeatureToggles } from "./getFeatureToggles";
 import {
+    createYamlCollectionSearch,
     suggestEnablingYamlSupport,
     suggestReloadOnYamlSupportChange,
 } from "./suggestEnablingYamlSupport";
@@ -50,9 +51,15 @@ let client: LanguageClient;
 
 export async function activate(context: ExtensionContext) {
     suggestReloadOnYamlSupportChange(context);
-    void suggestEnablingYamlSupport(context);
+    const doesWorkspaceContainYamlCollection = createYamlCollectionSearch();
+    void suggestEnablingYamlSupport(
+        context,
+        doesWorkspaceContainYamlCollection,
+    );
 
-    if (await shouldSkipActivation(context)) {
+    if (
+        await shouldSkipActivation(context, doesWorkspaceContainYamlCollection)
+    ) {
         return;
     }
 
@@ -130,7 +137,10 @@ function hasVisibleEditorForRelevantFile(
 // The activation event for `opencollection.yml` files is static, so it also triggers the activation when Yaml support is disabled.
 // In that case, the activation is skipped if it could only have been triggered by Yaml collections.
 // The extension can also be activated for single Bru files that are not part of the workspace (e.g. if no folder is opened).
-async function shouldSkipActivation(context: ExtensionContext) {
+async function shouldSkipActivation(
+    context: ExtensionContext,
+    doesWorkspaceContainYamlCollection: () => PromiseLike<boolean>,
+) {
     if (
         getFeatureToggles(context).yamlCollectionSupport ||
         workspace.textDocuments.some(({ languageId }) => languageId == "bru")
@@ -138,12 +148,11 @@ async function shouldSkipActivation(context: ExtensionContext) {
         return false;
     }
 
-    const [bruFiles, yamlCollectionRootFiles] = await Promise.all([
-        workspace.findFiles("**/*.bru", undefined, 1),
-        workspace.findFiles("**/opencollection.yml", undefined, 1),
-    ]);
-
-    return bruFiles.length == 0 && yamlCollectionRootFiles.length > 0;
+    // Bru files only need to be searched for if a Yaml collection exists, so that usually only one search is needed.
+    return (
+        (await doesWorkspaceContainYamlCollection()) &&
+        (await workspace.findFiles("**/*.bru", undefined, 1)).length == 0
+    );
 }
 
 export function deactivate() {

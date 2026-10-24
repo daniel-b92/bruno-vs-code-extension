@@ -37,8 +37,21 @@ export function suggestReloadOnYamlSupportChange(context: ExtensionContext) {
     );
 }
 
+/** Searches the workspace for a `yaml` collection. The search is only executed once, on the first call. */
+export function createYamlCollectionSearch() {
+    let search: PromiseLike<boolean> | undefined;
+
+    return () =>
+        (search ??= workspace
+            .findFiles("**/opencollection.yml", undefined, 1)
+            .then((files) => files.length > 0));
+}
+
 /** Suggests enabling the preview support for `yaml` collections, if the workspace contains such a collection. */
-export async function suggestEnablingYamlSupport(context: ExtensionContext) {
+export async function suggestEnablingYamlSupport(
+    context: ExtensionContext,
+    doesWorkspaceContainYamlCollection: () => PromiseLike<boolean>,
+) {
     if (
         getFeatureToggles(context).yamlCollectionSupport ||
         !workspace
@@ -48,13 +61,7 @@ export async function suggestEnablingYamlSupport(context: ExtensionContext) {
         return;
     }
 
-    const yamlCollectionRootFiles = await workspace.findFiles(
-        "**/opencollection.yml",
-        undefined,
-        1,
-    );
-
-    if (yamlCollectionRootFiles.length == 0) {
+    if (!(await doesWorkspaceContainYamlCollection())) {
         return;
     }
 
