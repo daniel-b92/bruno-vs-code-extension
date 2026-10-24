@@ -48,6 +48,32 @@ describe("getHoverContentForStaticEnvVariables", () => {
         expect(result).not.toContain("inherited");
     });
 
+    it("shows a collection column if the matches are assigned to collections", () => {
+        const result = getHoverContentForStaticEnvVariables([
+            {
+                file: "/colA/environments/Dev.bru",
+                matchingVariables: [getVariable("a-value")],
+                isConfiguredEnv: true,
+                collectionName: "colA",
+            },
+            {
+                file: "/colB/environments/Base.bru",
+                matchingVariables: [getVariable("b-value")],
+                isConfiguredEnv: false,
+                inheritedByEnvironmentName: "Dev",
+                collectionName: "colB",
+            },
+        ]);
+
+        expect(result).toContain(
+            "| value | collection | environment | configured |",
+        );
+        expect(result).toContain("| `a-value` | `colA` | `Dev` | &#x2611; |");
+        expect(result).toContain(
+            "| `b-value` | `colB` | `Base (inherited by 'Dev')` | - |",
+        );
+    });
+
     it("escapes a value containing a backtick so the code span isn't broken", () => {
         const result = getHoverContentForStaticEnvVariables([
             {

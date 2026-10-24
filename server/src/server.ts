@@ -15,6 +15,7 @@ import { FormattingRegistration } from "./shared/formattingRegistration";
 import {
     getDefaultLogger,
     HelpersProvider,
+    JsFileInContextRootRequest,
     LanguageFeatureBaseRequest,
     LanguageRequestWithTestEnvironmentInfo,
     TypedCollection,
@@ -48,7 +49,9 @@ import { handleHoverRequest as handleHoverRequestForBruFile } from "./bruFiles/h
 import { handleHoverRequest as handleHoverRequestForYamlFile } from "./yamlFiles/hover/handleHoverRequest";
 import { extname } from "path";
 import { readFile } from "fs/promises";
+import { handleCompletionRequestForJsFileInContextRoot } from "./jsFiles/completionItems/handleCompletionRequest";
 import { handleCompletionRequest as handleCompletionRequestForJsFile } from "./jsFiles/completionItems/handleCompletionRequest";
+import { handleHoverRequestForJsFileInContextRoot } from "./jsFiles/hover/handleHoverRequest";
 import { handleHoverRequest as handleHoverRequestForJsFile } from "./jsFiles/hover/handleHoverRequest";
 import { defaultFeatureToggles, FeatureToggles } from "@global_shared";
 import { setFeatureToggles } from "./shared/featureToggles";
@@ -232,8 +235,24 @@ disposables.push(
             const collection =
                 itemProvider?.getAncestorCollectionForPath(filePath);
 
-            if (!baseRequest || !itemProvider || !collection) {
+            if (!baseRequest || !itemProvider) {
                 return undefined;
+            }
+
+            if (!collection) {
+                const requestForContextRoot =
+                    await getRequestForJsFileInContextRoot(
+                        itemProvider,
+                        filePath,
+                        type,
+                        baseRequest,
+                    );
+
+                return requestForContextRoot
+                    ? handleCompletionRequestForJsFileInContextRoot(
+                          requestForContextRoot,
+                      )
+                    : undefined;
             }
 
             const params: LanguageRequestWithTestEnvironmentInfo = {
@@ -300,8 +319,21 @@ connection.onHover(async ({ textDocument: { uri }, position }, token) => {
     const itemProvider = helpersProvider?.getItemProvider();
     const collection = itemProvider?.getAncestorCollectionForPath(filePath);
 
-    if (!baseRequest || !itemProvider || !collection) {
+    if (!baseRequest || !itemProvider) {
         return undefined;
+    }
+
+    if (!collection) {
+        const requestForContextRoot = await getRequestForJsFileInContextRoot(
+            itemProvider,
+            filePath,
+            type,
+            baseRequest,
+        );
+
+        return requestForContextRoot
+            ? handleHoverRequestForJsFileInContextRoot(requestForContextRoot)
+            : undefined;
     }
 
     const params: LanguageRequestWithTestEnvironmentInfo = {
@@ -322,6 +354,36 @@ connection.onHover(async ({ textDocument: { uri }, position }, token) => {
             return handleHoverRequestForJsFile(params);
     }
 });
+
+async function getRequestForJsFileInContextRoot(
+    itemProvider: TypedCollectionItemProvider,
+    filePath: string,
+    type: FileTypeByExtension | undefined,
+    baseRequest: LanguageFeatureBaseRequest,
+): Promise<JsFileInContextRootRequest | undefined> {
+    if (type != FileTypeByExtension.Js) {
+        return undefined;
+    }
+
+    const collectionsForContextRoot =
+        itemProvider.getCollectionsWithAdditionalContextRootContainingItem(
+            filePath,
+        );
+
+    return collectionsForContextRoot.length > 0
+        ? {
+              baseRequest,
+              collections: await Promise.all(
+                  collectionsForContextRoot.map(async (collection) => ({
+                      collection,
+                      configuredEnvironmentName:
+                          await getConfiguredTestEnvironment(collection),
+                  })),
+              ),
+              logger: getDefaultLogger(),
+          }
+        : undefined;
+}
 
 documents.onWillSaveWaitUntil(async ({ document }) => {
     const { filePath, type } = getFilePathAndType(document.uri);

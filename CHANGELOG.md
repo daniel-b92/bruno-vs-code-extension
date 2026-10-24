@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Features
+
+- Provide completions and hovers for persistent environment variables also in JS scripts within `additionalContextRoots` folders. If such a folder is used by multiple collections, the completions are merged per variable name and the hover shows the variable's values for all of them.
+
 ### Fixes / Maintenance
 
 - Add support for tags in folder settings files (`folder.bru`), which was introduced in version 4.3.0 of Bruno.

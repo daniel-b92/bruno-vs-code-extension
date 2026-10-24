@@ -223,25 +223,29 @@ export class CollectionItemProvider<T> {
     }
 
     public getAdditionalContextRootContainingItem(itemPath: string) {
-        let matchingContextRoot: string | undefined = undefined;
+        for (const collection of this.getRegisteredCollections()) {
+            const matchingContextRoot = findContextRootContainingItem(
+                collection,
+                itemPath,
+            );
 
-        const collection = this.getRegisteredCollections().find(
-            (collection) => {
-                matchingContextRoot = collection
-                    .getAdditionalContextRoots()
-                    .find((root) =>
-                        normalizePath(itemPath).startsWith(normalizePath(root)),
-                    );
+            if (matchingContextRoot !== undefined) {
+                return { collection, matchingContextRoot };
+            }
+        }
 
-                if (matchingContextRoot !== undefined) {
-                    return true;
-                }
-            },
+        return undefined;
+    }
+
+    /** Unlike `getAdditionalContextRootContainingItem`, this returns all matching collections, as a context root can be shared by multiple collections. */
+    public getCollectionsWithAdditionalContextRootContainingItem(
+        itemPath: string,
+    ) {
+        return this.getRegisteredCollections().filter(
+            (collection) =>
+                findContextRootContainingItem(collection, itemPath) !==
+                undefined,
         );
-
-        return collection && matchingContextRoot
-            ? { collection, matchingContextRoot: matchingContextRoot as string }
-            : undefined;
     }
 
     public getUniqueAdditionalContextRoots() {
@@ -703,4 +707,15 @@ export class CollectionItemProvider<T> {
             )
         );
     }
+}
+
+function findContextRootContainingItem(
+    collection: ReadyOnlyCollection<unknown>,
+    itemPath: string,
+) {
+    return collection
+        .getAdditionalContextRoots()
+        .find((root) =>
+            normalizePath(itemPath).startsWith(normalizePath(root)),
+        );
 }

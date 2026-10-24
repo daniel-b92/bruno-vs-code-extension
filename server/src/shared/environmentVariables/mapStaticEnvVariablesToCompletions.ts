@@ -54,7 +54,7 @@ export function mapStaticEnvVariablesToCompletions(
     );
 }
 
-function shouldShowWarning(referenceType: VariableReferenceType) {
+export function shouldShowWarning(referenceType: VariableReferenceType) {
     return [VariableReferenceType.Write, VariableReferenceType.Delete].includes(
         referenceType,
     );

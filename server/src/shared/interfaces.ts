@@ -36,6 +36,15 @@ export interface LanguageRequestWithTestEnvironmentInfo {
     logger?: Logger;
 }
 
+export interface JsFileInContextRootRequest {
+    baseRequest: LanguageFeatureBaseRequest;
+    collections: {
+        collection: TypedCollection;
+        configuredEnvironmentName?: string;
+    }[];
+    logger?: Logger;
+}
+
 export interface VariableBaseRequest {
     collection: TypedCollection;
     baseRequest: LanguageFeatureBaseRequest;
