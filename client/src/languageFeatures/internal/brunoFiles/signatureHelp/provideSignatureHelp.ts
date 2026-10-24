@@ -13,10 +13,13 @@ export function provideSignatureHelp(
     documentSelector: DocumentSelector,
     queue: TempJsFileUpdateQueue,
     collectionItemProvider: TypedCollectionItemProvider,
+    ensureCacheIsReady: () => Promise<void>,
     logger?: OutputChannelLogger,
 ) {
     return languages.registerSignatureHelpProvider(documentSelector, {
         async provideSignatureHelp(document, position, token) {
+            await ensureCacheIsReady();
+
             const collection =
                 collectionItemProvider.getAncestorCollectionForPath(
                     document.fileName,

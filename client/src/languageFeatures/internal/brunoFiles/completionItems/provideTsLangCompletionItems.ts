@@ -42,12 +42,15 @@ export function provideTsLangCompletionItems(
     documentSelector: DocumentSelector,
     queue: TempJsFileUpdateQueue,
     collectionItemProvider: TypedCollectionItemProvider,
+    ensureCacheIsReady: () => Promise<void>,
     logger?: OutputChannelLogger,
 ) {
     return languages.registerCompletionItemProvider(
         documentSelector,
         {
             async provideCompletionItems(document, position, token) {
+                await ensureCacheIsReady();
+
                 const collection =
                     collectionItemProvider.getAncestorCollectionForPath(
                         document.fileName,

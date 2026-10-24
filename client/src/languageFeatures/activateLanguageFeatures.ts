@@ -17,6 +17,7 @@ import {
     TypedCollectionItemProvider,
     TypedCollection,
     FileSystemCacheSyncingHelper,
+    isFileRelevantForCollections,
 } from "@shared";
 import {
     checkIfPathExistsAsync,
@@ -70,9 +71,22 @@ export async function activateLanguageFeatures(
         logger,
     );
 
-    await tempJsFilesProvider.refreshCache(
-        getUniqueParentFoldersForTempJsFiles(collectionItemProvider),
-    );
+    // The collection cache is loaded lazily, so the temp JS files can only be searched for after it has been loaded.
+    let readiness: Promise<void> | undefined = undefined;
+    const ensureReady = () => {
+        readiness ??= (async () => {
+            await collectionItemProvider.ensureCacheIsLoaded();
+            await tempJsFilesProvider.refreshCache(
+                getUniqueParentFoldersForTempJsFiles(collectionItemProvider),
+            );
+        })();
+        return readiness;
+    };
+    const ensureReadyForFile = async (filePath: string) => {
+        if (isFileRelevantForCollections(filePath, featureToggles)) {
+            await ensureReady();
+        }
+    };
 
     context.subscriptions.push(
         tempJsFilesUpdateQueue,
@@ -81,28 +95,35 @@ export async function activateLanguageFeatures(
             documentSelector,
             tempJsFilesUpdateQueue,
             collectionItemProvider,
+            ensureReady,
             logger,
         ),
         provideInfosOnHoverForBruFiles(
             documentSelector,
             tempJsFilesUpdateQueue,
             collectionItemProvider,
+            ensureReady,
             logger,
         ),
         provideSignatureHelpForBruFiles(
             documentSelector,
             tempJsFilesUpdateQueue,
             collectionItemProvider,
+            ensureReady,
             logger,
         ),
         provideDefinitionsForBruFiles(
             documentSelector,
             tempJsFilesUpdateQueue,
             collectionItemProvider,
+            ensureReady,
             logger,
         ),
         tempJsFilesUpdateQueue,
         window.onDidChangeActiveTextEditor(async (editor) => {
+            if (editor) {
+                await ensureReadyForFile(editor.document.fileName);
+            }
             await onDidChangeActiveTextEditor(
                 tempJsFilesUpdateQueue,
                 collectionItemProvider,
@@ -112,6 +133,9 @@ export async function activateLanguageFeatures(
             );
         }),
         workspace.onDidChangeTextDocument(async (e) => {
+            if (e.contentChanges.length > 0) {
+                await ensureReadyForFile(e.document.fileName);
+            }
             await onDidChangeTextDocument(
                 collectionItemProvider,
                 cacheSyncingHelper,
@@ -119,6 +143,7 @@ export async function activateLanguageFeatures(
             );
         }),
         workspace.onWillSaveTextDocument(async (e) => {
+            await ensureReadyForFile(e.document.fileName);
             await onWillSaveTextDocument(
                 tempJsFilesUpdateQueue,
                 collectionItemProvider,

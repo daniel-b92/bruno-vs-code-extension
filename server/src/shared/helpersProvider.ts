@@ -29,6 +29,7 @@ export class HelpersProvider {
         this.itemProvider =
             new CollectionItemProvider<AdditionalCollectionData>(
                 this.collectionWatcher,
+                workspaceFolders,
                 getAdditionalCollectionDataProvider(),
                 getPathsToIgnoreForCollections(),
                 getFeatureToggles(),

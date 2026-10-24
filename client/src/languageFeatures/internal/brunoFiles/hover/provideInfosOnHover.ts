@@ -27,10 +27,13 @@ export function provideInfosOnHover(
     documentSelector: DocumentSelector,
     queue: TempJsFileUpdateQueue,
     itemProvider: TypedCollectionItemProvider,
+    ensureCacheIsReady: () => Promise<void>,
     logger?: OutputChannelLogger,
 ) {
     return languages.registerHoverProvider(documentSelector, {
         async provideHover(document, position, token) {
+            await ensureCacheIsReady();
+
             const collection = itemProvider.getAncestorCollectionForPath(
                 document.fileName,
             );

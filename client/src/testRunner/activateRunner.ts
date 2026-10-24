@@ -10,7 +10,6 @@ import {
     window,
     ProgressLocation,
     ExtensionContext,
-    workspace,
 } from "vscode";
 import { startTestRun } from "./internal/startTestRun";
 import { TestRunQueue } from "./internal/testRunQueue";
@@ -111,6 +110,16 @@ export async function activateRunner(
     ) {
         const { include, continuous } = request;
 
+        await collectionItemProvider.ensureCacheIsLoaded();
+        if (ctrl.items.size == 0) {
+            // The test tree might not have been resolved yet (e.g. if the test explorer was not opened before).
+            await addMissingTestCollectionsAndItemsToTestTree(
+                ctrl,
+                testRunnerDataHelper,
+                collectionItemProvider.getRegisteredCollections(),
+            );
+        }
+
         if (!continuous) {
             return await startTestRun(ctrl, request, {
                 collectionItemProvider,
@@ -142,31 +151,25 @@ export async function activateRunner(
                 return new Promise<void>((resolve) => {
                     ctrl.items.replace([]);
 
-                    collectionItemProvider
-                        .refreshCache(
-                            workspace.workspaceFolders?.map(
-                                (f) => f.uri.fsPath,
-                            ) ?? [],
-                        )
-                        .then(() => {
-                            const collections =
-                                collectionItemProvider.getRegisteredCollections();
+                    collectionItemProvider.refreshCache().then(() => {
+                        const collections =
+                            collectionItemProvider.getRegisteredCollections();
 
-                            addMissingTestCollectionsAndItemsToTestTree(
-                                ctrl,
-                                testRunnerDataHelper,
-                                collections,
-                            ).then(() => {
-                                // The displayed test tree view is only updated correctly, if you re-add the collection on top level again
-                                collections.forEach((collection) =>
-                                    addCollectionTestItemToTestTree(
-                                        ctrl,
-                                        collection,
-                                    ),
-                                );
-                                resolve();
-                            });
+                        addMissingTestCollectionsAndItemsToTestTree(
+                            ctrl,
+                            testRunnerDataHelper,
+                            collections,
+                        ).then(() => {
+                            // The displayed test tree view is only updated correctly, if you re-add the collection on top level again
+                            collections.forEach((collection) =>
+                                addCollectionTestItemToTestTree(
+                                    ctrl,
+                                    collection,
+                                ),
+                            );
+                            resolve();
                         });
+                    });
                 });
             },
         );
@@ -182,6 +185,8 @@ export async function activateRunner(
     );
 
     ctrl.resolveHandler = async (item) => {
+        await collectionItemProvider.ensureCacheIsLoaded();
+
         if (!item) {
             await addMissingTestCollectionsAndItemsToTestTree(
                 ctrl,
@@ -213,6 +218,8 @@ export async function activateRunner(
     };
 
     startTestRunEvent(async ({ uri, withDialog }) => {
+        await collectionItemProvider.ensureCacheIsLoaded();
+
         const showMessageForNonRunnableItem = () =>
             window.showInformationMessage(
                 "No bruno tests found for selected item.",
