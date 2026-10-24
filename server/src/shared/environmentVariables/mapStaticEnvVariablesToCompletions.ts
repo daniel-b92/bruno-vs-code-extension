@@ -1,7 +1,12 @@
-import { parse } from "path";
-import { VariableReferenceType, Range } from "@global_shared";
+import { Range } from "@global_shared";
 import { VariableSpecificRequestData } from "../interfaces";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
+import {
+    getOverwriteWarning,
+    getSingleEnvironmentLabel,
+    groupByVariableKey,
+    shouldShowWarning,
+} from "./staticEnvVariableCompletionUtils";
 import { GetTextEditForVariableCompletion } from "../variables/mapVariablesToCompletions";
 
 export function mapStaticEnvVariablesToCompletions(
@@ -21,26 +26,10 @@ export function mapStaticEnvVariablesToCompletions(
         getTextEditForCompletion?: GetTextEditForVariableCompletion;
     },
 ) {
-    const definitionsByKey = new Map<
-        string,
-        {
-            environmentFile: string;
-            isConfiguredEnv: boolean;
-            inheritedByEnvironmentName?: string;
-        }[]
-    >();
-
-    for (const {
-        matchingVariableKeys,
-        ...definition
-    } of matchingStaticEnvVariables) {
-        for (const key of matchingVariableKeys) {
-            definitionsByKey.set(key, [
-                ...(definitionsByKey.get(key) ?? []),
-                definition,
-            ]);
-        }
-    }
+    const definitionsByKey = groupByVariableKey(
+        matchingStaticEnvVariables,
+        ({ matchingVariableKeys }) => matchingVariableKeys,
+    );
 
     const showWarning = shouldShowWarning(functionType);
 
@@ -54,9 +43,9 @@ export function mapStaticEnvVariablesToCompletions(
                 description: `${showWarning ? "!Env!" : "Env"} ${getEnvironmentLabel(definitions)}`,
             },
             detail: showWarning
-                ? definitions.length == 1
-                    ? `WARNING: Will overwrite static environment variable from env '${parse(definitions[0].environmentFile).name}'`
-                    : `WARNING: Will overwrite static environment variable from ${definitions.length} environments`
+                ? getOverwriteWarning(
+                      definitions.map(({ environmentFile }) => environmentFile),
+                  )
                 : undefined,
             kind: CompletionItemKind.Constant,
             sortText: `${modifications?.prefixForSortText ?? ""}_${isConfiguredEnv ? "a" : "b"}_${key}`,
@@ -81,15 +70,9 @@ function getEnvironmentLabel(
     }
 
     const [{ environmentFile, inheritedByEnvironmentName }] = definitions;
-    const environmentName = parse(environmentFile).name;
 
-    return inheritedByEnvironmentName
-        ? `'${environmentName}' (inherited by '${inheritedByEnvironmentName}')`
-        : `'${environmentName}'`;
-}
-
-export function shouldShowWarning(referenceType: VariableReferenceType) {
-    return [VariableReferenceType.Write, VariableReferenceType.Delete].includes(
-        referenceType,
+    return getSingleEnvironmentLabel(
+        environmentFile,
+        inheritedByEnvironmentName,
     );
 }

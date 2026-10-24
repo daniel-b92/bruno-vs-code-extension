@@ -1,13 +1,12 @@
-import { Logger, getMatchingDefinitionsFromEnvFiles } from "@global_shared";
+import { Logger } from "@global_shared";
 import {
     getHoverContentForStaticEnvVariables,
     JsFileInContextRootRequest,
     LanguageFeatureBaseRequest,
     LanguageRequestWithTestEnvironmentInfo,
-    TypedCollection,
 } from "../../shared";
 import { getEnvVariableRelatedFunctionForRequest } from "../shared/getEnvVariableRelatedFunctionForRequest";
-import { basename } from "path";
+import { getMatchingEnvDefinitionsForCollections } from "../shared/getMatchingEnvDefinitionsForCollections";
 import { Hover } from "vscode-languageserver";
 
 export function handleHoverRequest({
@@ -16,12 +15,12 @@ export function handleHoverRequest({
     configuredEnvironmentName,
     logger,
 }: LanguageRequestWithTestEnvironmentInfo) {
-    return getHover({
-        file: { collection },
+    return getHover(
         baseRequest,
+        [{ collection, configuredEnvironmentName }],
+        { showCollectionNames: false },
         logger,
-        configuredEnvironmentName,
-    });
+    );
 }
 
 /** Handles JS files that are not part of a collection, but within `additionalContextRoots` of at least one collection. */
@@ -29,79 +28,38 @@ export async function handleHoverRequestForJsFileInContextRoot({
     baseRequest,
     collections,
     logger,
-}: JsFileInContextRootRequest): Promise<Hover | undefined> {
-    const { token } = baseRequest;
+}: JsFileInContextRootRequest) {
+    return getHover(
+        baseRequest,
+        collections,
+        { showCollectionNames: true },
+        logger,
+    );
+}
 
+function getHover(
+    baseRequest: LanguageFeatureBaseRequest,
+    collections: JsFileInContextRootRequest["collections"],
+    { showCollectionNames }: { showCollectionNames: boolean },
+    logger?: Logger,
+): Hover | undefined {
     const envVariableRelatedFunction =
         getEnvVariableRelatedFunctionForRequest(baseRequest);
 
     if (envVariableRelatedFunction == undefined) {
         return undefined;
     }
-    if (token.isCancellationRequested) {
+    if (baseRequest.token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return undefined;
     }
-
-    const matches = collections
-        .map(({ collection, configuredEnvironmentName }) => ({
-            collectionName: basename(collection.getRootDirectory()),
-            matches: getMatchingDefinitionsFromEnvFiles(
-                collection,
-                envVariableRelatedFunction.variable.name,
-                configuredEnvironmentName,
-            ),
-        }))
-        .sort((a, b) => a.collectionName.localeCompare(b.collectionName))
-        .flatMap(({ collectionName, matches }) =>
-            matches.map((match) => ({ ...match, collectionName })),
-        );
-
-    const content = getHoverContentForStaticEnvVariables(matches);
-
-    return content
-        ? { contents: { kind: "markdown", value: content } }
-        : undefined;
-}
-
-async function getHover(params: {
-    file: { collection: TypedCollection };
-    baseRequest: LanguageFeatureBaseRequest;
-    logger?: Logger;
-    configuredEnvironmentName?: string;
-}): Promise<Hover | undefined> {
-    const {
-        file: { collection },
-        baseRequest: { token },
-        logger,
-        configuredEnvironmentName,
-    } = params;
-
-    const envVariableRelatedFunction = getEnvVariableRelatedFunctionForRequest(
-        params.baseRequest,
-    );
-
-    if (envVariableRelatedFunction == undefined) {
-        return undefined;
-    }
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return undefined;
-    }
-
-    const {
-        variable: { name: variableName },
-    } = envVariableRelatedFunction;
-
-    const matchingStaticEnvVariableDefinitions =
-        getMatchingDefinitionsFromEnvFiles(
-            collection,
-            variableName,
-            configuredEnvironmentName,
-        );
 
     const content = getHoverContentForStaticEnvVariables(
-        matchingStaticEnvVariableDefinitions,
+        getMatchingEnvDefinitionsForCollections(
+            collections,
+            envVariableRelatedFunction.variable.name,
+            showCollectionNames,
+        ),
     );
 
     return content

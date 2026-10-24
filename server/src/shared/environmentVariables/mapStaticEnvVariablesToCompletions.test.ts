@@ -70,6 +70,19 @@ describe("mapStaticEnvVariablesToCompletions", () => {
         expect(result[1].labelDetails?.description).toBe("Env 'Dev'");
     });
 
+    it("treats a key occurring multiple times in the same file as a single definition", () => {
+        const result = mapStaticEnvVariablesToCompletions(getRequestData(), [
+            {
+                environmentFile: "/collection/environments/Dev.bru",
+                matchingVariableKeys: ["token", "token"],
+                isConfiguredEnv: true,
+            },
+        ]);
+
+        expect(result).toHaveLength(1);
+        expect(result[0].labelDetails?.description).toBe("Env 'Dev'");
+    });
+
     it("sorts a variable below others if it is not defined in the configured environment", () => {
         const result = mapStaticEnvVariablesToCompletions(getRequestData(), [
             {

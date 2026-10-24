@@ -72,7 +72,7 @@ describe("mapStaticEnvVariablesFromMultipleCollectionsToCompletions", () => {
             "!Env! (multiple collections)",
         );
         expect(multiple.detail).toBe(
-            "WARNING: Will overwrite persistent environment variable(s)",
+            "WARNING: Will overwrite persistent environment variable from 2 environments",
         );
     });
 
@@ -94,6 +94,31 @@ describe("mapStaticEnvVariablesFromMultipleCollectionsToCompletions", () => {
             "| `colB` | `local (inherited by 'dev')` | &#x2611; |",
         );
     });
+
+    it("counts environments instead of naming a collection if the matches have no collection assigned", () => {
+        const [item] = map(VariableReferenceType.Read, [
+            getMatch({ environment: "dev" }),
+            getMatch({ environment: "prod" }),
+        ]);
+
+        expect(item.labelDetails?.description).toBe("Env (2 environments)");
+        expect((item.documentation as { value: string }).value).not.toContain(
+            "collection",
+        );
+    });
+
+    it("treats a key occurring multiple times in the same file as a single definition", () => {
+        const result = map(VariableReferenceType.Read, [
+            getMatch({
+                collectionName: "colA",
+                environment: "dev",
+                duplicateKey: true,
+            }),
+        ]);
+
+        expect(result).toHaveLength(1);
+        expect(result[0].labelDetails?.description).toBe("Env 'dev'");
+    });
 });
 
 function map(
@@ -112,20 +137,25 @@ function getMatch({
     key = "token",
     isConfiguredEnv = false,
     inheritedByEnvironmentName,
+    duplicateKey = false,
 }: {
-    collectionName: string;
+    collectionName?: string;
     environment: string;
     key?: string;
+    duplicateKey?: boolean;
     isConfiguredEnv?: boolean;
     inheritedByEnvironmentName?: string;
 }) {
     const dummyRange = getDummyRange();
     return {
         collectionName,
-        file: `/${collectionName}/environments/${environment}.bru`,
-        matchingVariables: [
-            { key, value: "v", keyRange: dummyRange, valueRange: dummyRange },
-        ],
+        file: `/${collectionName ?? "collection"}/environments/${environment}.bru`,
+        matchingVariables: Array(duplicateKey ? 2 : 1).fill({
+            key,
+            value: "v",
+            keyRange: dummyRange,
+            valueRange: dummyRange,
+        }),
         isConfiguredEnv,
         inheritedByEnvironmentName,
     };

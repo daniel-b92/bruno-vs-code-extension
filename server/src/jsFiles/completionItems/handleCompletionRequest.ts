@@ -1,4 +1,4 @@
-import { getMatchingDefinitionsFromEnvFiles, Logger } from "@global_shared";
+import { Logger } from "@global_shared";
 import {
     JsFileInContextRootRequest,
     LanguageFeatureBaseRequest,
@@ -6,7 +6,7 @@ import {
     mapStaticEnvVariablesFromMultipleCollectionsToCompletions,
 } from "../../shared";
 import { getEnvVariableRelatedFunctionForRequest } from "../shared/getEnvVariableRelatedFunctionForRequest";
-import { basename } from "path";
+import { getMatchingEnvDefinitionsForCollections } from "../shared/getMatchingEnvDefinitionsForCollections";
 import { CompletionItem } from "vscode-languageserver";
 
 export async function handleCompletionRequest({
@@ -20,6 +20,7 @@ export async function handleCompletionRequest({
     return getCompletionsForCollections(
         baseRequest,
         [{ collection, configuredEnvironmentName }],
+        { showCollectionNames: false },
         logger,
     );
 }
@@ -30,13 +31,19 @@ export async function handleCompletionRequestForJsFileInContextRoot({
     collections,
     logger,
 }: JsFileInContextRootRequest): Promise<CompletionItem[] | undefined> {
-    return getCompletionsForCollections(baseRequest, collections, logger);
+    return getCompletionsForCollections(
+        baseRequest,
+        collections,
+        { showCollectionNames: true },
+        logger,
+    );
 }
 
 /** Creates exactly one completion item per variable name, regardless of how many environments or collections define it. */
 function getCompletionsForCollections(
     baseRequest: LanguageFeatureBaseRequest,
     collections: JsFileInContextRootRequest["collections"],
+    { showCollectionNames }: { showCollectionNames: boolean },
     logger?: Logger,
 ): CompletionItem[] | undefined {
     const { token } = baseRequest;
@@ -53,16 +60,10 @@ function getCompletionsForCollections(
         return undefined;
     }
 
-    const matches = collections.flatMap(
-        ({ collection, configuredEnvironmentName }) =>
-            getMatchingDefinitionsFromEnvFiles(
-                collection,
-                undefined,
-                configuredEnvironmentName,
-            ).map((match) => ({
-                ...match,
-                collectionName: basename(collection.getRootDirectory()),
-            })),
+    const matches = getMatchingEnvDefinitionsForCollections(
+        collections,
+        undefined,
+        showCollectionNames,
     );
 
     if (token.isCancellationRequested) {

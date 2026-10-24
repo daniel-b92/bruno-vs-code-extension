@@ -15,7 +15,6 @@ import { FormattingRegistration } from "./shared/formattingRegistration";
 import {
     getDefaultLogger,
     HelpersProvider,
-    JsFileInContextRootRequest,
     LanguageFeatureBaseRequest,
     LanguageRequestWithTestEnvironmentInfo,
     TypedCollection,
@@ -49,10 +48,15 @@ import { handleHoverRequest as handleHoverRequestForBruFile } from "./bruFiles/h
 import { handleHoverRequest as handleHoverRequestForYamlFile } from "./yamlFiles/hover/handleHoverRequest";
 import { extname } from "path";
 import { readFile } from "fs/promises";
-import { handleCompletionRequestForJsFileInContextRoot } from "./jsFiles/completionItems/handleCompletionRequest";
-import { handleCompletionRequest as handleCompletionRequestForJsFile } from "./jsFiles/completionItems/handleCompletionRequest";
-import { handleHoverRequestForJsFileInContextRoot } from "./jsFiles/hover/handleHoverRequest";
-import { handleHoverRequest as handleHoverRequestForJsFile } from "./jsFiles/hover/handleHoverRequest";
+import {
+    handleCompletionRequest as handleCompletionRequestForJsFile,
+    handleCompletionRequestForJsFileInContextRoot,
+} from "./jsFiles/completionItems/handleCompletionRequest";
+import {
+    handleHoverRequest as handleHoverRequestForJsFile,
+    handleHoverRequestForJsFileInContextRoot,
+} from "./jsFiles/hover/handleHoverRequest";
+import { getJsFileInContextRootRequest } from "./jsFiles/shared/getJsFileInContextRootRequest";
 import { defaultFeatureToggles, FeatureToggles } from "@global_shared";
 import { setFeatureToggles } from "./shared/featureToggles";
 import { getYamlFileTypeForEditorContent } from "./yamlFiles/getYamlFileTypeForEditorContent";
@@ -243,7 +247,6 @@ disposables.push(
                 const requestForContextRoot =
                     await getRequestForJsFileInContextRoot(
                         itemProvider,
-                        filePath,
                         type,
                         baseRequest,
                     );
@@ -326,7 +329,6 @@ connection.onHover(async ({ textDocument: { uri }, position }, token) => {
     if (!collection) {
         const requestForContextRoot = await getRequestForJsFileInContextRoot(
             itemProvider,
-            filePath,
             type,
             baseRequest,
         );
@@ -357,31 +359,15 @@ connection.onHover(async ({ textDocument: { uri }, position }, token) => {
 
 async function getRequestForJsFileInContextRoot(
     itemProvider: TypedCollectionItemProvider,
-    filePath: string,
     type: FileTypeByExtension | undefined,
     baseRequest: LanguageFeatureBaseRequest,
-): Promise<JsFileInContextRootRequest | undefined> {
-    if (type != FileTypeByExtension.Js) {
-        return undefined;
-    }
-
-    const collectionsForContextRoot =
-        itemProvider.getCollectionsWithAdditionalContextRootContainingItem(
-            filePath,
-        );
-
-    return collectionsForContextRoot.length > 0
-        ? {
+) {
+    return type == FileTypeByExtension.Js
+        ? getJsFileInContextRootRequest(
+              itemProvider,
               baseRequest,
-              collections: await Promise.all(
-                  collectionsForContextRoot.map(async (collection) => ({
-                      collection,
-                      configuredEnvironmentName:
-                          await getConfiguredTestEnvironment(collection),
-                  })),
-              ),
-              logger: getDefaultLogger(),
-          }
+              getConfiguredTestEnvironment,
+          )
         : undefined;
 }
 

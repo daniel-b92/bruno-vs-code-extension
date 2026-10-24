@@ -1,12 +1,16 @@
-import { parse } from "path";
 import { VariableReferenceType } from "@global_shared";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
-import { shouldShowWarning } from "./mapStaticEnvVariablesToCompletions";
+import {
+    getOverwriteWarning,
+    getSingleEnvironmentLabel,
+    groupByVariableKey,
+    shouldShowWarning,
+} from "./staticEnvVariableCompletionUtils";
 import { getHoverContentForStaticEnvVariables } from "./getHoverContentForStaticEnvVariables";
 
 type MatchFromCollection = Parameters<
     typeof getHoverContentForStaticEnvVariables
->[0][number] & { collectionName: string };
+>[0][number];
 
 /**
  * Creates exactly one completion item per variable name, even if the variable is defined in multiple environments or collections.
@@ -16,18 +20,16 @@ export function mapStaticEnvVariablesFromMultipleCollectionsToCompletions(
     functionType: VariableReferenceType,
     matches: MatchFromCollection[],
 ): CompletionItem[] {
-    const matchesByKey = new Map<string, MatchFromCollection[]>();
-
-    for (const match of matches) {
-        for (const { key } of match.matchingVariables) {
-            matchesByKey.set(key, [...(matchesByKey.get(key) ?? []), match]);
-        }
-    }
+    const matchesByKey = groupByVariableKey(matches, ({ matchingVariables }) =>
+        matchingVariables.map(({ key }) => key),
+    );
 
     return [...matchesByKey.entries()].map(([key, matchesForKey]) => {
         const collectionNames = [
             ...new Set(
-                matchesForKey.map(({ collectionName }) => collectionName),
+                matchesForKey.flatMap(({ collectionName }) =>
+                    collectionName !== undefined ? [collectionName] : [],
+                ),
             ),
         ];
         const isConfiguredInAnyCollection = matchesForKey.some(
@@ -41,9 +43,7 @@ export function mapStaticEnvVariablesFromMultipleCollectionsToCompletions(
                 description: `${showWarning ? "!Env!" : "Env"} ${getDescriptionSuffix(matchesForKey, collectionNames)}`,
             },
             detail: showWarning
-                ? matchesForKey.length == 1
-                    ? `WARNING: Will overwrite persistent environment variable from env '${parse(matchesForKey[0].file).name}'`
-                    : "WARNING: Will overwrite persistent environment variable(s)"
+                ? getOverwriteWarning(matchesForKey.map(({ file }) => file))
                 : undefined,
             documentation: {
                 kind: "markdown",
@@ -72,13 +72,12 @@ function getDescriptionSuffix(
     }
 
     if (matchesForKey.length > 1) {
-        return `collection '${collectionNames[0]}'`;
+        return collectionNames.length == 1
+            ? `collection '${collectionNames[0]}'`
+            : `(${matchesForKey.length} environments)`;
     }
 
     const { file, inheritedByEnvironmentName } = matchesForKey[0];
-    const environmentName = parse(file).name;
 
-    return inheritedByEnvironmentName
-        ? `'${environmentName}' (inherited by '${inheritedByEnvironmentName}')`
-        : `'${environmentName}'`;
+    return getSingleEnvironmentLabel(file, inheritedByEnvironmentName);
 }
