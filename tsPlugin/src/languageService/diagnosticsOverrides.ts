@@ -2,6 +2,7 @@ import * as ts from "typescript/lib/tsserverlibrary";
 import { isInABrunoCollection } from "../collection/collectionFormat";
 import { filterDefaultDiagnostics } from "../diagnostics/filterDefaultDiagnostics";
 import { hasEmbeddedCodeBlocks } from "../fileTypes";
+import { enableTypeCheckingForJsFile } from "../languageServiceHost/enableTypeCheckingForJsFile";
 
 export function overrideDiagnostics(
     info: ts.server.PluginCreateInfo,
@@ -17,6 +18,10 @@ export function overrideDiagnostics(
 
     proxy.getSemanticDiagnostics = (fileName) => {
         const hasCodeBlocks = hasEmbeddedCodeBlocks(fileName);
+
+        if (hasCodeBlocks) {
+            enableTypeCheckingForJsFile(info, fileName);
+        }
 
         const allDiagnostics = filterDefaultDiagnostics(
             info,

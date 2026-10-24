@@ -26,6 +26,20 @@ function getFormatOfContainingCollection(
     info: ts.server.PluginCreateInfo,
     fileName: string,
 ) {
+    return getContainingCollection(info, fileName)?.format;
+}
+
+export function getRootFolderOfContainingCollection(
+    info: ts.server.PluginCreateInfo,
+    fileName: string,
+) {
+    return getContainingCollection(info, fileName)?.rootFolder;
+}
+
+function getContainingCollection(
+    info: ts.server.PluginCreateInfo,
+    fileName: string,
+) {
     let currentDirectory = dirname(fileName);
     let format = getFormatIfCollectionRootFolder(info, currentDirectory);
 
@@ -38,7 +52,7 @@ function getFormatOfContainingCollection(
         format = getFormatIfCollectionRootFolder(info, currentDirectory);
     }
 
-    return format;
+    return format ? { format, rootFolder: currentDirectory } : undefined;
 }
 
 function getFormatIfCollectionRootFolder(

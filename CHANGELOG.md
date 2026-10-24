@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Maintenance
+
+- Handle code blocks in `.bru` files (and in `yaml` collection files, while the setting `bru-as-code.yamlCollectionSupport` is enabled) like Javascript in the diagnostics provided by the TS plugin: JSDoc types are now respected and `require` calls are treated as imports. Imported modules are resolved relative to the collection root folder, like Bruno does at runtime.
+
 ## [1.5.0] (2026-10-24)
 
 ### Features

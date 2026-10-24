@@ -1,4 +1,5 @@
 import * as ts from "typescript/lib/tsserverlibrary";
+import { treatCollectionFilesLikeJavascript } from "./languageServiceHost/treatCollectionFilesLikeJavascript";
 import { maskYamlFilesForTypescriptServer } from "./yamlFiles/maskYamlFilesForTypescriptServer";
 import { overrideCodeChanges } from "./languageService/codeChangeOverrides";
 import { overrideDiagnostics } from "./languageService/diagnosticsOverrides";
@@ -17,6 +18,7 @@ function init(_modules: {
 
     function create(info: ts.server.PluginCreateInfo) {
         maskYamlFilesForTypescriptServer(info, configuration);
+        treatCollectionFilesLikeJavascript(info);
 
         // Set up decorator object
         const proxy: ts.LanguageService = Object.create(null);

@@ -207,6 +207,64 @@ describe("Yaml collection support", () => {
     });
 });
 
+describe("handling of code blocks like Javascript", () => {
+    describe.each([
+        {
+            format: "bru",
+            collectionRootFile: {
+                name: "bruno.json",
+                content: '{ "type": "collection" }',
+            },
+            requestFile: "/collection/requests/request.bru",
+            createRequestFileContent: (codeLines: string[]) =>
+                `meta {\n  name: request\n}\n\nscript:pre-request {\n${codeLines.map((line) => `  ${line}\n`).join("")}}\n`,
+        },
+        {
+            format: "yaml",
+            collectionRootFile: {
+                name: "opencollection.yml",
+                content: "opencollection: 1.0.0\n",
+            },
+            requestFile: "/collection/requests/request.yml",
+            createRequestFileContent: (codeLines: string[]) =>
+                `info:\n  name: request\nruntime:\n  scripts:\n    - type: before-request\n      code: |-\n${codeLines.map((line) => `        ${line}\n`).join("")}`,
+        },
+    ])(
+        "for $format files",
+        ({ collectionRootFile, requestFile, createRequestFileContent }) => {
+            const getSemanticDiagnosticCodes = (codeLines: string[]) =>
+                createLanguageServiceWithPlugin({
+                    [`/collection/${collectionRootFile.name}`]:
+                        collectionRootFile.content,
+                    "/collection/lib/helper.js": helperModule,
+                    [requestFile]: createRequestFileContent(codeLines),
+                })
+                    .getSemanticDiagnostics(requestFile)
+                    .map(({ code }) => code);
+
+            it("respects JSDoc types", () => {
+                expect(
+                    getSemanticDiagnosticCodes([
+                        "/** @type {number} */",
+                        'const text = "text";',
+                    ]),
+                ).toEqual([2_322]); // Type 'string' is not assignable to type 'number'.
+            });
+
+            it("resolves modules relative to the collection root folder", () => {
+                // The request file is not located in the collection root folder.
+                expect(
+                    getSemanticDiagnosticCodes([
+                        'const lib = require("./lib/helper");',
+                        "lib.helper();",
+                        "lib.missing();",
+                    ]),
+                ).toEqual([2_339]); // Property 'missing' does not exist on type '{ helper: () => number; }'.
+            });
+        },
+    );
+});
+
 function createLanguageServiceWithPlugin(
     files: Record<string, string>,
     plugin = createPlugin({ yamlCollectionSupport: true }),

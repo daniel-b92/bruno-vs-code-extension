@@ -3,6 +3,7 @@ import {
     createCheckForChangesWithinCodeBlocks,
     getFormatOptionsForFile,
 } from "../codeChanges/codeChanges";
+import { hasEmbeddedCodeBlocks } from "../fileTypes";
 
 // Some code fixes and refactorings insert code outside of code blocks (e.g. an import at the top of the file),
 // which would corrupt the content of '.bru' and '.yml' files.
@@ -33,7 +34,14 @@ export function overrideCodeChanges(
                 }),
                 preferences,
             )
-            .filter(({ changes }) => areAllChangesWithinCodeBlocks(changes));
+            .filter(
+                ({ fixName, changes }) =>
+                    // Code blocks used to be handled as Typescript code, so there were no quick fixes for suppressing errors via comments.
+                    !(
+                        hasEmbeddedCodeBlocks(fileName) &&
+                        fixName == "disableJsDiagnostics"
+                    ) && areAllChangesWithinCodeBlocks(changes),
+            );
     };
 
     proxy.getCombinedCodeFix = (scope, fixId, formatOptions, preferences) => {
