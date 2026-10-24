@@ -1,4 +1,4 @@
-import { basename, dirname, extname, posix, relative, resolve } from "path";
+import { basename, dirname, extname, relative, resolve } from "path";
 import {
     workspace,
     window,
@@ -15,8 +15,6 @@ import {
 import {
     checkIfPathExistsAsync,
     filterAsync,
-    getTemporaryJsFileBasename,
-    getTemporaryJsFileNameInFolder,
     LineBreakType,
 } from "@global_shared";
 import { readdir } from "fs/promises";
@@ -107,12 +105,7 @@ async function determineMissingTsConfigs(
                 ) == undefined &&
                 collection.getAllStoredDataForCollection().some(
                     // Only if JS files exist in the collection, the tsconfig is needed. Otherwise an error will be shown in the tsconfig because no files are included.
-                    ({ item }) =>
-                        extname(item.getPath()) == ".js" &&
-                        item.getPath() !=
-                            getTemporaryJsFileNameInFolder(
-                                collection.getRootDirectory(),
-                            ),
+                    ({ item }) => extname(item.getPath()) == ".js",
                 ),
         );
 
@@ -129,10 +122,7 @@ async function determineMissingTsConfigs(
                 })
             ).some(
                 // Only if JS files exist in the collection, the tsconfig is needed. Otherwise an error will be shown in the tsconfig because no files are included.
-                (item) =>
-                    item.isFile() &&
-                    extname(item.name) == ".js" &&
-                    item.name != getTemporaryJsFileBasename(),
+                (item) => item.isFile() && extname(item.name) == ".js",
             ),
     );
 
@@ -218,13 +208,7 @@ function getDefaultTsConfigContent(
         '"noEmit": true',
         '"allowJs": true',
     ];
-    // Temporary JS files of the additional context roots declare globals (e.g. `req` & `res`)
-    // that must not leak into the collection, because they are not request type specific.
-    const excludedPaths = ["node_modules"].concat(
-        (pathsToInclude ?? [])
-            .filter((path) => path != "**/*")
-            .map((path) => posix.join(path, getTemporaryJsFileBasename())),
-    );
+    const excludedPaths = ["node_modules"];
     return "{".concat(
         lineBreak,
         '\t"compilerOptions": {',

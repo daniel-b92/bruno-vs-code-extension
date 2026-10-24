@@ -45,6 +45,7 @@ export class CollectionItemProvider<T> {
         this.collectionRegistry = new CollectionRegistry(collectionWatcher);
         this.itemUpdateEmitter = Evt.create<NotificationData<T>[]>();
         this.initialCacheLoadEmitter = Evt.create<void>();
+        this.additionalContextRootsEmitter = Evt.create<void>();
 
         collectionWatcher.subscribeToUpdates(
             async ({ path, changeType: fileChangeType }) => {
@@ -133,6 +134,7 @@ export class CollectionItemProvider<T> {
     private itemUpdateEmitter: Evt<NotificationData<T>[]>;
     private itemUpdateEmitterContext = Evt.newCtx();
     private initialCacheLoadEmitter: Evt<void>;
+    private additionalContextRootsEmitter: Evt<void>;
     private initialCacheLoad: Promise<void> | undefined = undefined;
     private hasInitialCacheLoadFinished = false;
     private notificationBatch: NotificationData<T>[] = [];
@@ -162,6 +164,17 @@ export class CollectionItemProvider<T> {
         }
 
         this.initialCacheLoadEmitter.attachOnce(
+            this.itemUpdateEmitterContext,
+            callback,
+        );
+    }
+
+    /**
+     * The callback is called whenever the additional context roots of an already registered collection change (e.g. due to an edit of the collection root file).
+     * Other changes of the registered collections (e.g. a new collection) are only reported via `subscribeToUpdates`.
+     */
+    public subscribeToAdditionalContextRootChanges(callback: () => void) {
+        this.additionalContextRootsEmitter.attach(
             this.itemUpdateEmitterContext,
             callback,
         );
@@ -468,13 +481,22 @@ export class CollectionItemProvider<T> {
             );
 
             if (collectionRootData) {
-                collectionForItem.setAdditionalContextRoots(
-                    collectionRootData.additionalContextRoots ?? [],
-                );
+                const oldRoots = collectionForItem.getAdditionalContextRoots();
+                const newRoots =
+                    collectionRootData.additionalContextRoots ?? [];
+
+                collectionForItem.setAdditionalContextRoots(newRoots);
+
+                if (
+                    oldRoots.length != newRoots.length ||
+                    oldRoots.some((root, index) => root != newRoots[index])
+                ) {
+                    this.additionalContextRootsEmitter.post();
+                }
             }
 
-            // Currently, changes to the additionalContextRoots is not relevant for any subscribers. Therefore, no notifications
-            // need to be sent.
+            // Changes to the additionalContextRoots are not relevant for the subscribers of the item updates. Therefore, no notifications
+            // need to be sent for them.
             // In the yaml format, the collection root file is also the collection settings file, so it still needs to be handled below.
             if (collectionForItem.getFormat() == CollectionFormat.Bru) {
                 return;

@@ -2,13 +2,6 @@ import { dirname, extname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
 import { CollectionFormat } from "../constants";
 
-export function isInABrunoCollection(
-    info: ts.server.PluginCreateInfo,
-    fileName: string,
-) {
-    return getFormatOfContainingCollection(info, fileName) != undefined;
-}
-
 /**
  * Collection files in the Yaml format always use the extension `.yml`.
  */

@@ -1,10 +1,11 @@
 import * as ts from "typescript/lib/tsserverlibrary";
-import { getRootFolderOfContainingCollection } from "../collection/collectionFormat";
+import { getRuntimeDefinitionsFolder } from "../collection/runtimeContext";
 import {
     getRuntimeDefinitionsFileName,
     isRuntimeDefinitionsFile,
+    isTempJsFile,
 } from "../constants";
-import { hasEmbeddedCodeBlocks, isJsFile } from "../fileTypes";
+import { PluginConfiguration } from "../pluginConfiguration";
 import { getRuntimeDefinitionsFileContent } from "../runtimeDefinitions/getRuntimeDefinitionsFileContent";
 
 /**
@@ -13,9 +14,13 @@ import { getRuntimeDefinitionsFileContent } from "../runtimeDefinitions/getRunti
  *
  * Therefore, a virtual file with the definitions is added to the project for every collection with such files.
  * It is located within the root folder of the collection, so that `chai` and `mocha` are resolved from the `node_modules` of the collection.
+ * The same applies to Javascript files within the additional context roots of a collection (see `PluginConfig`), which get the file within the context root folder.
  * The file does not exist on the disk, so results that point to it (e.g. definitions) have to be filtered out.
  */
-export function provideRuntimeDefinitions(info: ts.server.PluginCreateInfo) {
+export function provideRuntimeDefinitions(
+    info: ts.server.PluginCreateInfo,
+    configuration: PluginConfiguration,
+) {
     const host = info.languageServiceHost;
 
     const getOriginalScriptFileNames = host.getScriptFileNames.bind(host);
@@ -31,13 +36,18 @@ export function provideRuntimeDefinitions(info: ts.server.PluginCreateInfo) {
     let cachedFileNames: string[] = [];
     let cachedRootsForDirectories = new Map<string, string | undefined>();
 
-    const getCollectionRoot = (fileName: string) => {
+    // The additional context roots can change at any time.
+    configuration.onDidChange(() => {
+        cachedRootsForDirectories = new Map();
+    });
+
+    const getFolderForDefinitions = (fileName: string) => {
         const directory = fileName.substring(0, fileName.lastIndexOf("/"));
 
         if (!cachedRootsForDirectories.has(directory)) {
             cachedRootsForDirectories.set(
                 directory,
-                getRootFolderOfContainingCollection(info, fileName),
+                getRuntimeDefinitionsFolder(info, configuration, fileName),
             );
         }
 
@@ -45,7 +55,10 @@ export function provideRuntimeDefinitions(info: ts.server.PluginCreateInfo) {
     };
 
     host.getScriptFileNames = () => {
-        const originalFileNames = getOriginalScriptFileNames();
+        // Temporary files from older versions of the extension would declare the runtime objects a second time.
+        const originalFileNames = getOriginalScriptFileNames().filter(
+            (fileName) => !isTempJsFile(fileName),
+        );
 
         if (!haveSameElements(originalFileNames, cachedFileNames)) {
             cachedFileNames = originalFileNames.slice();
@@ -54,13 +67,10 @@ export function provideRuntimeDefinitions(info: ts.server.PluginCreateInfo) {
 
         const runtimeDefinitionsFiles = new Set(
             originalFileNames.flatMap((fileName) => {
-                const collectionRoot =
-                    hasEmbeddedCodeBlocks(fileName) || isJsFile(fileName)
-                        ? getCollectionRoot(fileName)
-                        : undefined;
+                const folder = getFolderForDefinitions(fileName);
 
-                return collectionRoot
-                    ? [`${collectionRoot}/${getRuntimeDefinitionsFileName()}`]
+                return folder
+                    ? [`${folder}/${getRuntimeDefinitionsFileName()}`]
                     : [];
             }),
         );

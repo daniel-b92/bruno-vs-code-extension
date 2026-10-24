@@ -1,18 +1,20 @@
 import { extname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
 import { getCodeBlockIndizesForBruFile } from "../codeBlocks/bruCodeBlocks";
-import { isInABrunoCollection } from "../collection/collectionFormat";
+import { canReferToRuntimeDefinitions } from "../collection/runtimeContext";
 import {
     getNamesForInbuiltRuntimeVarsAndFunctions,
     isTempJsFileOrRuntimeDefinitionsFile,
 } from "../constants";
 import { getFileContent, getOriginalFileContent } from "../fileContent";
 import { isBruFile, isYamlFile } from "../fileTypes";
+import { PluginConfiguration } from "../pluginConfiguration";
 
 type AnyDiagnostic = ts.Diagnostic | ts.DiagnosticWithLocation;
 
 export function filterDefaultDiagnostics(
     info: ts.server.PluginCreateInfo,
+    configuration: PluginConfiguration,
     fileName: string,
     defaultDiagnostics: AnyDiagnostic[],
 ) {
@@ -20,7 +22,12 @@ export function filterDefaultDiagnostics(
         return filterDiagnosticsForYamlFile(info, fileName, defaultDiagnostics);
     } else if (!isBruFile(fileName)) {
         return extname(fileName) == ".js"
-            ? filterDiagnosticsForJsFile(info, fileName, defaultDiagnostics)
+            ? filterDiagnosticsForJsFile(
+                  info,
+                  configuration,
+                  fileName,
+                  defaultDiagnostics,
+              )
             : defaultDiagnostics;
     }
 
@@ -71,13 +78,14 @@ function filterDiagnosticsForYamlFile(
 
 function filterDiagnosticsForJsFile(
     info: ts.server.PluginCreateInfo,
+    configuration: PluginConfiguration,
     fileName: string,
     defaultDiagnostics: AnyDiagnostic[],
 ) {
     if (isTempJsFileOrRuntimeDefinitionsFile(fileName)) {
         // Filter out all diagnostics for temp js files and the virtual file with the runtime definitions.
         return [];
-    } else if (!isInABrunoCollection(info, fileName)) {
+    } else if (!canReferToRuntimeDefinitions(info, configuration, fileName)) {
         return defaultDiagnostics;
     }
 

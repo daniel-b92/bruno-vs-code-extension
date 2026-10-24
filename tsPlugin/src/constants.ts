@@ -15,8 +15,18 @@ export enum CodeBlockName {
     GrpcAfterCallEndScript = "script:grpc:after-call-end",
 }
 
+/**
+ * Older versions of the VS Code extension created a temporary file with this name in the collections for providing the runtime definitions.
+ * They are ignored by the plugin, since the definitions are provided via a virtual file now.
+ */
 export function getTempJsFileBaseNameWithoutExtension() {
     return "__temp_bru_reference";
+}
+
+export function isTempJsFile(fileName: string) {
+    return basename(fileName).startsWith(
+        getTempJsFileBaseNameWithoutExtension(),
+    );
 }
 
 /**
@@ -52,4 +62,22 @@ export enum ScriptType {
     BeforeRequest = "before-request",
     AfterResponse = "after-response",
     Tests = "tests",
+}
+
+/**
+ * Same as `InbuiltFunctionName` in the shared folder of the extension.
+ * The first parameter of these functions is the name of a variable, for which the extension provides hovers and completions itself.
+ */
+export function getNamesForInbuiltFunctionsWithVariableName() {
+    return [
+        "getGlobalEnvVar",
+        "setGlobalEnvVar",
+        "getEnvVar",
+        "setEnvVar",
+        "deleteEnvVar",
+        "getVar",
+        "setVar",
+        "getRequestVar",
+        "getFolderVar",
+    ];
 }

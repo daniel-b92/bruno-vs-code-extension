@@ -194,6 +194,20 @@ describe("Yaml collection support", () => {
         ).toEqual([2_304]); // Cannot find name 'valeu'.
     });
 
+    it("uses the configuration that the Typescript server passes on creation of the plugin", () => {
+        const languageService = createLanguageServiceWithPlugin(
+            collectionFiles,
+            createPlugin({}),
+            { yamlCollectionSupport: true },
+        );
+
+        expect(
+            languageService
+                .getSemanticDiagnostics(requestFile)
+                .map(({ code }) => code),
+        ).toEqual([2_304]); // Cannot find name 'valeu'.
+    });
+
     it("does not provide formatting edits for Yaml files", () => {
         const languageService =
             createLanguageServiceWithPlugin(collectionFiles);
@@ -369,6 +383,19 @@ describe("inbuilt runtime definitions", () => {
         expect(
             getSemanticDiagnosticCodes(files, "/collection2/request.bru"),
         ).toEqual([2_345]);
+    });
+
+    it("ignores temporary files from older versions of the extension", () => {
+        const scriptFile = "/collection/scripts/script.js";
+        const files = {
+            "/collection/bruno.json": '{ "type": "collection" }',
+            // Same structure as the files that were created by older versions (the objects are assigned to the global object).
+            "/collection/__temp_bru_reference.js":
+                "const bru = { getEnvVar: (/** @type {number} */ name) => name };\nglobalThis.bru = bru;\n",
+            [scriptFile]: '// @ts-check\nbru.getEnvVar("a");\n',
+        };
+
+        expect(getSemanticDiagnosticCodes(files, scriptFile)).toEqual([]);
     });
 
     it("does not provide the types of the objects that are available at runtime for files outside of collections", () => {
@@ -657,6 +684,364 @@ const a   = 1;
     });
 });
 
+describe("hovers, completions and signature help", () => {
+    describe.each([
+        {
+            format: "bru",
+            collectionRootFile: {
+                name: "bruno.json",
+                content: '{ "type": "collection" }',
+            },
+            requestFile: "/collection/requests/request.bru",
+            // The comment is not a part of the code. The marker for the cursor is removed before the file is added to the project.
+            createRequestFileContent: (codeLines: string[]) =>
+                `meta {\n  name: request\n  type: http\n  seq: 1\n}\n\nget {\n  url: https://example.com/api/users/1\n  body: none\n  auth: none\n}\n\nheaders {\n  Content-Type: application/json\n}\n\nscript:pre-request {\n${codeLines.map((line) => `  ${line}\n`).join("")}}\n`,
+            textOutsideOfCode: "Content-Type",
+        },
+        {
+            format: "yaml",
+            collectionRootFile: {
+                name: "opencollection.yml",
+                content: "opencollection: 1.0.0\n",
+            },
+            requestFile: "/collection/requests/request.yml",
+            createRequestFileContent: (codeLines: string[]) =>
+                `info:\n  name: request\nruntime:\n  scripts:\n    - type: before-request\n      code: |-\n${codeLines.map((line) => `        ${line}\n`).join("")}`,
+            textOutsideOfCode: "name: request",
+        },
+    ])(
+        "for $format files",
+        ({
+            collectionRootFile,
+            requestFile,
+            createRequestFileContent,
+            textOutsideOfCode,
+        }) => {
+            const createLanguageService = (codeLines: string[]) => {
+                const { content, position } = removeCursor(
+                    createRequestFileContent(codeLines),
+                );
+
+                return {
+                    position,
+                    content,
+                    languageService: createLanguageServiceWithPlugin({
+                        [`/collection/${collectionRootFile.name}`]:
+                            collectionRootFile.content,
+                        "/collection/lib/helper.js": helperModule,
+                        [requestFile]: content,
+                    }),
+                };
+            };
+
+            it("provides hovers for the code", () => {
+                const { languageService, position } = createLanguageService([
+                    "bru.getEnv§Name();",
+                ]);
+
+                expect(
+                    languageService
+                        .getQuickInfoAtPosition(requestFile, position)
+                        ?.displayParts?.map(({ text }) => text)
+                        .join(""),
+                ).toContain("getEnvName: () => string");
+            });
+
+            it("provides completions for the code", () => {
+                const { languageService, position } = createLanguageService([
+                    "bru.getEnv§",
+                ]);
+
+                expect(
+                    getCompletionNames(languageService, requestFile, position),
+                ).toEqual(expect.arrayContaining(["getEnvName", "getEnvVar"]));
+            });
+
+            it("provides signature help for the code", () => {
+                const { languageService, position } = createLanguageService([
+                    "bru.getEnvVar(§",
+                ]);
+
+                expect(
+                    languageService
+                        .getSignatureHelpItems(requestFile, position, {})
+                        ?.items.map(({ parameters }) => parameters.length),
+                ).toEqual([1]);
+            });
+
+            it("provides nothing outside of the code", () => {
+                const { languageService, content } = createLanguageService([
+                    "bru.getEnvName();",
+                ]);
+                const position = content.indexOf(textOutsideOfCode) + 2;
+
+                expect(
+                    languageService.getQuickInfoAtPosition(
+                        requestFile,
+                        position,
+                    ),
+                ).toBeUndefined();
+                expect(
+                    languageService.getCompletionsAtPosition(
+                        requestFile,
+                        position,
+                        {},
+                    ),
+                ).toBeUndefined();
+                expect(
+                    languageService.getSignatureHelpItems(
+                        requestFile,
+                        position,
+                        {},
+                    ),
+                ).toBeUndefined();
+            });
+
+            it("provides no hovers and completions for the names of variables, since the extension provides them", () => {
+                const { languageService, position } = createLanguageService([
+                    'bru.getEnvVar("na§me");',
+                ]);
+
+                expect(
+                    languageService.getQuickInfoAtPosition(
+                        requestFile,
+                        position,
+                    ),
+                ).toBeUndefined();
+                expect(
+                    languageService.getCompletionsAtPosition(
+                        requestFile,
+                        position,
+                        {},
+                    ),
+                ).toBeUndefined();
+            });
+
+            it("provides no completions for the names of variables when the string is not closed yet", () => {
+                const { languageService, position } = createLanguageService([
+                    'bru.getVar("na§',
+                ]);
+
+                expect(
+                    languageService.getCompletionsAtPosition(
+                        requestFile,
+                        position,
+                        {},
+                    ),
+                ).toBeUndefined();
+            });
+
+            it("provides hovers for strings that are not names of variables", () => {
+                const { languageService, position } = createLanguageService([
+                    'const te§xt = "text";',
+                ]);
+
+                expect(
+                    languageService.getQuickInfoAtPosition(
+                        requestFile,
+                        position,
+                    ),
+                ).toBeDefined();
+            });
+
+            it("does not suggest auto imports, since they would be inserted outside of the code", () => {
+                const { languageService, position } = createLanguageService([
+                    "hel§",
+                ]);
+                const completions = languageService.getCompletionsAtPosition(
+                    requestFile,
+                    position,
+                    {
+                        includeCompletionsForModuleExports: true,
+                        includeCompletionsWithInsertText: true,
+                    },
+                );
+
+                expect(
+                    completions?.entries.filter(
+                        ({ hasAction, source }) => hasAction || source,
+                    ),
+                ).toEqual([]);
+            });
+
+            it("does not suggest the types for the gRPC scripts", () => {
+                const { languageService, position } = createLanguageService([
+                    "/** @type {§} */",
+                    "const value = 1;",
+                ]);
+                const names = getCompletionNames(
+                    languageService,
+                    requestFile,
+                    position,
+                );
+
+                expect(names).toContain("PropertyList");
+                expect(names.includes("BruForPreRequestGrpc")).toBe(false);
+                expect(names.includes("BruForPostResponseGrpc")).toBe(false);
+            });
+        },
+    );
+
+    describe("for bru files", () => {
+        const requestFile = "/collection/request.bru";
+        // Provides enough space in front of the code blocks for the wrappers with typed parameters.
+        const requestBlocks = `meta {
+  name: request
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://example.com/api/users/1
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+`;
+
+        it("only suggests the objects that are available in a code block", () => {
+            const { content, position } = removeCursor(
+                `${requestBlocks}
+script:pre-request {
+  const fn = (res) => {
+    §
+  };
+}
+
+headers {
+  Content-Type: application/json
+}
+
+script:post-response {
+  
+}
+`,
+            );
+            const languageService = createLanguageServiceWithPlugin({
+                "/collection/bruno.json": '{ "type": "collection" }',
+                [requestFile]: content,
+            });
+
+            const namesInPreRequestScript = getCompletionNames(
+                languageService,
+                requestFile,
+                position,
+            );
+            const namesInPostResponseScript = getCompletionNames(
+                languageService,
+                requestFile,
+                content.lastIndexOf("  \n}") + 2,
+            );
+
+            // The parameter of the function in the script is declared within the code.
+            expect(namesInPreRequestScript).toContain("res");
+            expect(namesInPreRequestScript).toContain("req");
+            expect(namesInPostResponseScript).toContain("res");
+            expect(namesInPostResponseScript.includes("req")).toBe(false);
+        });
+
+        it("does not suggest the objects that are not available in a code block", () => {
+            const { content, position } = removeCursor(
+                `${requestBlocks}
+script:pre-request {
+  §
+}
+`,
+            );
+            const names = getCompletionNames(
+                createLanguageServiceWithPlugin({
+                    "/collection/bruno.json": '{ "type": "collection" }',
+                    [requestFile]: content,
+                }),
+                requestFile,
+                position,
+            );
+
+            expect(names.includes("req")).toBe(true);
+            expect(names.includes("res")).toBe(false);
+        });
+    });
+
+    describe("for Javascript files within additional context roots", () => {
+        const scriptFile = "/shared/scripts/script.js";
+        const files = {
+            "/collection/bruno.json": '{ "type": "collection" }',
+            [scriptFile]: "// @ts-check\nbru.getEnvVar(1);\n",
+        };
+
+        it("provides the types of the objects that are available at runtime", () => {
+            const plugin = createPlugin({
+                additionalContextRoots: ["/shared"],
+            });
+
+            expect(
+                createLanguageServiceWithPlugin(files, plugin)
+                    .getSemanticDiagnostics(scriptFile)
+                    .map(({ code }) => code),
+            ).toEqual([2_345]); // Argument of type 'number' is not assignable to parameter of type 'string'.
+        });
+
+        it("does not provide the types for other folders", () => {
+            const plugin = createPlugin({
+                additionalContextRoots: ["/other"],
+            });
+
+            expect(
+                createLanguageServiceWithPlugin(files, plugin)
+                    .getSemanticDiagnostics(scriptFile)
+                    .map(({ code }) => code),
+            ).toEqual([2_304]); // Cannot find name 'bru'.
+        });
+
+        it("handles changes of the additional context roots", () => {
+            const plugin = createPlugin({});
+            const languageService = createLanguageServiceWithPlugin(
+                files,
+                plugin,
+            );
+
+            expect(
+                languageService
+                    .getSemanticDiagnostics(scriptFile)
+                    .map(({ code }) => code),
+            ).toEqual([2_304]);
+
+            plugin.onConfigurationChanged({
+                additionalContextRoots: ["\\shared\\", "/other"],
+            });
+
+            expect(
+                languageService
+                    .getSemanticDiagnostics(scriptFile)
+                    .map(({ code }) => code),
+            ).toEqual([2_345]);
+        });
+
+        it("does not include the virtual file with the definitions in the results for navigation", () => {
+            const plugin = createPlugin({
+                additionalContextRoots: ["/shared"],
+            });
+            const languageService = createLanguageServiceWithPlugin(
+                {
+                    ...files,
+                    [scriptFile]: "bru.getEnvVar('a');\n",
+                },
+                plugin,
+            );
+
+            expect(
+                languageService.getDefinitionAtPosition(
+                    scriptFile,
+                    "bru.".length,
+                ),
+            ).toEqual([]);
+        });
+    });
+});
+
 function getDiagnosticTexts(
     languageService: ts.LanguageService,
     fileName: string,
@@ -683,6 +1068,7 @@ function getSemanticDiagnosticCodes(
 function createLanguageServiceWithPlugin(
     files: Record<string, string>,
     plugin = createPlugin({ yamlCollectionSupport: true }),
+    pluginConfigFromServer?: Partial<PluginConfig>,
 ) {
     const languageServiceHost: ts.LanguageServiceHost = {
         getScriptFileNames: () =>
@@ -724,10 +1110,11 @@ function createLanguageServiceWithPlugin(
         languageService: ts.createLanguageService(languageServiceHost),
         languageServiceHost,
         serverHost,
+        config: pluginConfigFromServer,
     } as ts.server.PluginCreateInfo);
 }
 
-function createPlugin(config: PluginConfig) {
+function createPlugin(config: Partial<PluginConfig>) {
     const plugin = init({ typescript: ts });
     plugin.onConfigurationChanged(config);
 
@@ -798,5 +1185,27 @@ function getEditsForRefactor(
         applicableRefactor.refactorName,
         applicableRefactor.action.name,
         {},
+    );
+}
+
+/**
+ * The cursor is marked with `§`.
+ */
+function removeCursor(contentWithCursor: string) {
+    return {
+        content: contentWithCursor.replace("§", ""),
+        position: contentWithCursor.indexOf("§"),
+    };
+}
+
+function getCompletionNames(
+    languageService: ts.LanguageService,
+    fileName: string,
+    position: number,
+) {
+    return (
+        languageService
+            .getCompletionsAtPosition(fileName, position, {})
+            ?.entries.map(({ name }) => name) ?? []
     );
 }

@@ -84,16 +84,38 @@ Steps 1 to 3 are implemented in `tsPlugin`. Verified with the plugin's jest test
 
 ### Not covered yet
 
-- **`additionalContextRoots`.** JS files in these folders get no virtual runtime file, because the plugin doesn't read `bruno.json` / `opencollection.yml`. They keep relying on the client's temp files. Needs: read the setting in the plugin, map a JS file to the collection(s) that use its folder, and add a runtime file for it (it must be located where `chai` / `mocha` can be resolved, and a folder shared by several collections needs one choice). Blocks deletion of the temp-file machinery in step 4.
 - **Yaml scripts still use plain `{}` blocks.** No async function wrapper and no shadowed `req` / `res` / gRPC `bru`. Needs a wrapper placement for `maskYamlCollectionFileContent` (the opening bracket position is flexible there) and the request type from `info.type`.
 - **Typed shadowing only applies if there is room.** A block directly after another code block (e.g. `script:post-response` right after `script:pre-request`, or `tests` after a script) often only has its own header line free. It then falls back to an untyped wrapper or a plain block: `req` / `res` are not shadowed and (for `tests`) top-level `await` relies on the diagnostic filter. Possible improvements: none known without inserting text; could be accepted as a limitation.
 - **Indentation in plain-block fallbacks.** The `{` is not at column 0, so refactorings that insert lines (e.g. "Extract to constant") indent relative to the `{`.
 - **Stale collection detection.** Collection roots are cached per directory and only recomputed when the project's root file list changes. A `bruno.json` that is created while files are already open is picked up after the next change of the file list.
 - **Projects without `allowJs`.** The runtime file is JS. In a configured project that doesn't allow JS, the file is not part of the program, so the runtime objects stay untyped there.
 - **Several collections in one inferred project.** Works (tested), but the duplicate global declarations are only silently ignored: the first declaration wins. A collection with different `@types/chai` / `@types/mocha` versions gets the types of the first one.
-- **Completions of the runtime globals in plain `.js` files** may be provided by the plugin's TS server and the client's temp-file based provider at the same time until step 4.
-- **Not verified:** behaviour with a collection `tsconfig.json` / `jsconfig.json` (point 7 above), behaviour inside VS Code itself (only a standalone `tsserver` was driven), and Windows paths for the virtual file name.
-- **Step 4 is open:** hover, completions and signature help are still switched off for `.bru` / `.yml` in the plugin. When enabling them, check that the two gRPC typedefs (`BruForPreRequestGrpc`, `BruForPostResponseGrpc`) don't show up as unwanted completions.
+
+## Implementation status (step 4)
+
+Step 4 is implemented. Verified with the plugin's jest tests, the full jest run, `npm run check-types` and a smoke test against a real `tsserver` (inferred projects, `.bru` and `.js` files, configuration passed via `configurePlugin`).
+
+### What changed
+
+- **Plugin: hover, completions and signature help** are provided for `.bru` / `.yml` files (`navigationOverrides.ts`), but only for positions within code blocks (`isPositionWithinCode`). Definitions, references and rename already worked.
+- **Names of variables are left to the extension.** Within the first string argument of `bru.getEnvVar(...)` & co. (`inbuiltFunctionParameters.ts`), hovers and completions are not provided by the plugin, since the language server provides them (otherwise the content would be shown twice). The list of function names is copied into the plugin (`getNamesForInbuiltFunctionsWithVariableName`, kept in sync with `InbuiltFunctionName` by a test).
+- **Completion filtering for code blocks:** no auto imports (`hasAction`; the option `includeCompletionsForModuleExports` is switched off as well), since selecting them would insert an `import` outside of the code block. The gRPC typedefs (`BruForPreRequestGrpc`, `BruForPostResponseGrpc`) are hidden (they show up in type positions, e.g. `/** @type {…} */`). The wrapper parameters `req` / `res` that shadow the global objects are hidden, but parameters with the same name that are declared within the code are still suggested.
+- **`additionalContextRoots`** are passed by the client via the plugin configuration (`additionalContextRoots`, absolute paths), because a JS file outside of a collection cannot be mapped to its collections by the plugin. `CollectionItemProvider` got `subscribeToAdditionalContextRootChanges`; the client re-sends the configuration after the initial cache load, on item updates and when the roots of a collection change. The runtime definitions for such a file are located in the context root folder, like the temp file used to be.
+- **Plugin configuration is also read from `info.config`.** If `configurePlugin` is called before a project exists (which is the case when the VS Code extension configures the plugin on startup), tsserver passes the configuration via `info.config` of `create` and never calls `onConfigurationChanged`.
+- **Temp files of older versions are ignored by the plugin** (removed from the root files of the project), since they declare the runtime objects a second time. They are not deleted by the extension. `getPathsToIgnoreForCollections` still ignores them in the cache.
+- **Client:** the four providers (completion, hover, signature help, definitions), the update queue, the temp file creation / deletion, `TempJsFilesProvider`, `getTemporaryJsFileNameInFolder` and the client copy of the runtime definitions were deleted. `activateLanguageFeatures` only configures the plugin, loads the cache for relevant files, shows the warning for `.bru` files outside of collections and registers the line comment commands. Generated `tsconfig.json` files no longer exclude the temp file.
+
+### Differences in behavior to the temp-file based implementation
+
+- Hovers of the runtime objects show e.g. `(parameter) res: undefined` in pre-request blocks (the shadowing parameter) instead of nothing.
+- Auto imports are not suggested in `.bru` files anymore.
+- Completions and hovers for the code of Yaml files only work while Yaml collection support is enabled (as before for the extension's providers).
+
+### Still open
+
+- **Not verified:** behavior inside VS Code itself (only a standalone `tsserver` was driven), a collection `tsconfig.json` / `jsconfig.json` (point 7 above) and Windows paths (the configured roots are normalized to forward slashes, the comparison is case sensitive).
+- **Leftover temp files** are only ignored, not deleted.
+- **`additionalContextRoots` in the plugin** have no effect for projects that do not get the configuration (e.g. when the plugin is used standalone without the extension).
 
 ## Experiment notes
 

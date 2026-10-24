@@ -1,16 +1,19 @@
 import * as ts from "typescript/lib/tsserverlibrary";
-import { isInABrunoCollection } from "../collection/collectionFormat";
+import { canReferToRuntimeDefinitions } from "../collection/runtimeContext";
 import { filterDefaultDiagnostics } from "../diagnostics/filterDefaultDiagnostics";
 import { hasEmbeddedCodeBlocks } from "../fileTypes";
 import { enableTypeCheckingForJsFile } from "../languageServiceHost/enableTypeCheckingForJsFile";
+import { PluginConfiguration } from "../pluginConfiguration";
 
 export function overrideDiagnostics(
     info: ts.server.PluginCreateInfo,
     proxy: ts.LanguageService,
+    configuration: PluginConfiguration,
 ) {
     proxy.getSyntacticDiagnostics = (fileName) => {
         return filterDefaultDiagnostics(
             info,
+            configuration,
             fileName,
             info.languageService.getSyntacticDiagnostics(fileName),
         ) as ts.DiagnosticWithLocation[];
@@ -25,6 +28,7 @@ export function overrideDiagnostics(
 
         const allDiagnostics = filterDefaultDiagnostics(
             info,
+            configuration,
             fileName,
             info.languageService.getSemanticDiagnostics(fileName),
         );
@@ -55,6 +59,7 @@ export function overrideDiagnostics(
 
         const allDiagnostics = filterDefaultDiagnostics(
             info,
+            configuration,
             fileName,
             defaultDiagnostics,
         ) as ts.DiagnosticWithLocation[];
@@ -70,7 +75,7 @@ export function overrideDiagnostics(
                       code != 80_001 &&
                       code != 80_004,
               )
-            : isInABrunoCollection(info, fileName)
+            : canReferToRuntimeDefinitions(info, configuration, fileName)
               ? allDiagnostics.filter(({ code }) => code != 80_001)
               : allDiagnostics; // Bruno currently only supports CommonJS modules.)
     };
