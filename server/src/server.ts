@@ -56,7 +56,6 @@ import { getYamlFileTypeForEditorContent } from "./yamlFiles/getYamlFileTypeForE
 import { YamlFormatDiagnosticsProvider } from "./yamlFiles/yamlFormatDiagnosticsProvider";
 
 let helpersProvider: HelpersProvider | undefined = undefined;
-let initialCacheLoad: Promise<void> | undefined = undefined;
 let brunoLangDiagnosticsProvider: BrunoLangDiagnosticsProvider;
 let yamlDiagnosticsProvider: YamlFormatDiagnosticsProvider;
 let formattingRegistration: FormattingRegistration;
@@ -120,7 +119,10 @@ disposables.push(
         void formattingRegistration.registerForBruFiles();
 
         const workspaceFolders = await getWorkspaceFolders();
-        helpersProvider = new HelpersProvider(workspaceFolders);
+        helpersProvider = new HelpersProvider(
+            workspaceFolders,
+            loadCacheWithProgress,
+        );
         disposables.push(helpersProvider);
 
         const itemProvider = helpersProvider.getItemProvider();
@@ -166,18 +168,16 @@ disposables.push(
             }
         });
 
-        if (documents.all().some(({ uri }) => isCollectionFileType(uri))) {
-            void ensureCacheIsLoaded();
-        }
+        documents
+            .all()
+            .forEach(({ uri }) => void loadCacheInBackground(getFilePath(uri)));
     }),
 );
 
 disposables.push(
-    documents.onDidOpen(({ document: { uri } }) => {
-        if (isCollectionFileType(uri)) {
-            void ensureCacheIsLoaded();
-        }
-    }),
+    documents.onDidOpen(
+        ({ document: { uri } }) => void loadCacheInBackground(getFilePath(uri)),
+    ),
 );
 
 disposables.push(
@@ -190,7 +190,7 @@ disposables.push(
             return undefined;
         }
 
-        await ensureCacheIsLoaded();
+        await ensureCacheIsLoaded(filePath);
 
         const itemProvider = helpersProvider?.getItemProvider();
         const collection = itemProvider?.getAncestorCollectionForPath(filePath);
@@ -220,7 +220,7 @@ disposables.push(
     connection.onCompletion(
         async ({ textDocument: { uri }, position }, token) => {
             const { filePath, type } = getFilePathAndType(uri);
-            await ensureCacheIsLoaded();
+            await ensureCacheIsLoaded(filePath);
 
             const baseRequest = mapToBaseLanguageRequest(
                 uri,
@@ -272,7 +272,7 @@ disposables.push(
             return defaultResponse;
         }
 
-        await ensureCacheIsLoaded();
+        await ensureCacheIsLoaded(filePath);
 
         const content = document.getText();
 
@@ -290,7 +290,7 @@ disposables.push(
 
 connection.onHover(async ({ textDocument: { uri }, position }, token) => {
     const { filePath, type } = getFilePathAndType(uri);
-    await ensureCacheIsLoaded();
+    await ensureCacheIsLoaded(filePath);
 
     const baseRequest = mapToBaseLanguageRequest(
         uri,
@@ -330,7 +330,7 @@ documents.onWillSaveWaitUntil(async ({ document }) => {
         return [];
     }
 
-    await ensureCacheIsLoaded();
+    await ensureCacheIsLoaded(filePath);
     const itemProvider = helpersProvider?.getItemProvider();
 
     if (!itemProvider) {
@@ -374,7 +374,7 @@ connection.onCodeAction(async ({ textDocument: { uri }, context }) => {
         return [];
     }
 
-    await ensureCacheIsLoaded();
+    await ensureCacheIsLoaded(filePath);
     const itemProvider = helpersProvider?.getItemProvider();
 
     if (!itemProvider) {
@@ -441,33 +441,37 @@ async function getFileTypeForEditorContent(
  * The server-side cache is only loaded when it is first needed (e.g. when a relevant document gets opened).
  * Until the language server has been initialized, this resolves immediately without loading anything.
  */
-function ensureCacheIsLoaded() {
-    if (!helpersProvider) {
-        return Promise.resolve();
+async function ensureCacheIsLoaded(filePath: string) {
+    const itemProvider = helpersProvider?.getItemProvider();
+
+    if (itemProvider?.isFileRelevantForCollections(filePath)) {
+        await itemProvider.ensureCacheIsLoaded();
     }
-
-    initialCacheLoad ??= loadCacheWithProgress(
-        helpersProvider.getItemProvider(),
-    );
-
-    return initialCacheLoad;
 }
 
-async function loadCacheWithProgress(
-    itemProvider: TypedCollectionItemProvider,
-) {
+async function loadCacheInBackground(filePath: string) {
+    try {
+        await ensureCacheIsLoaded(filePath);
+    } catch (e) {
+        getDefaultLogger().error(
+            `Loading the server-side cache failed: ${e instanceof Error ? e.message : String(e)}`,
+        );
+    }
+}
+
+async function loadCacheWithProgress(load: () => Promise<void>) {
     const reporter = await connection.window.createWorkDoneProgress();
 
     reporter.begin("Refreshing bru-as-code server-side cache...");
     try {
-        await itemProvider.ensureCacheIsLoaded();
+        await load();
     } finally {
         reporter.done();
     }
 }
 
-function isCollectionFileType(uri: string) {
-    return getFilePathAndType(uri).type != FileTypeByExtension.Other;
+function getFilePath(uri: string) {
+    return URI.parse(uri).fsPath;
 }
 
 async function getWorkspaceFolders() {

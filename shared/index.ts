@@ -27,6 +27,7 @@ export * from "./fileSystem/util/getFileContent";
 export * from "./fileSystemCache/external/tempJsFilesProvider";
 export * from "./fileSystemCache/external/collectionItemProvider";
 export * from "./fileSystemCache/external/isBrunoFileType";
+export * from "./fileSystemCache/external/isFileRelevantForCollections";
 export * from "./fileSystemCache/external/getDistinctTagsForCollection";
 export * from "./fileSystemCache/external/getPathsToIgnoreForCollections";
 export * from "./fileSystemCache/external/getExistingTags";

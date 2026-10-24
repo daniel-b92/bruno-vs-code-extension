@@ -17,7 +17,6 @@ import {
     TypedCollectionItemProvider,
     TypedCollection,
     FileSystemCacheSyncingHelper,
-    isFileRelevantForCollections,
 } from "@shared";
 import {
     checkIfPathExistsAsync,
@@ -79,14 +78,28 @@ export async function activateLanguageFeatures(
             await tempJsFilesProvider.refreshCache(
                 getUniqueParentFoldersForTempJsFiles(collectionItemProvider),
             );
-        })();
+        })().catch((e) => {
+            // Allows retrying on the next call.
+            readiness = undefined;
+            throw e;
+        });
         return readiness;
     };
     const ensureReadyForFile = async (filePath: string) => {
-        if (isFileRelevantForCollections(filePath, featureToggles)) {
+        if (collectionItemProvider.isFileRelevantForCollections(filePath)) {
             await ensureReady();
         }
     };
+
+    // The cache can also be loaded by other features (e.g. the collection explorer), which would leave existing temp JS files unnoticed.
+    collectionItemProvider.subscribeToInitialCacheLoad(
+        () =>
+            void ensureReady().catch((e) =>
+                logger?.error(
+                    `Searching for temporary JS files failed: ${e instanceof Error ? e.message : String(e)}`,
+                ),
+            ),
+    );
 
     context.subscriptions.push(
         tempJsFilesUpdateQueue,

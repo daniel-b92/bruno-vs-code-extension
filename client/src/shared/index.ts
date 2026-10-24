@@ -21,7 +21,6 @@ export * from "./model/brunoTreeItem";
 // file system cache
 export * from "./fileSystemCache/external/interfaces";
 export * from "./fileSystemCache/external/fileSystemCacheSyncingHelper";
-export * from "./fileSystemCache/external/isFileRelevantForCollections";
 
 // vsCodeSettings
 export * from "./vsCodeSettings/getLinkToUserSetting";

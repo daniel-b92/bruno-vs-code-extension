@@ -20,6 +20,7 @@ import {
     NotificationData,
     ReadyOnlyCollection,
     ConflictingCollectionRootFiles,
+    isFileRelevantForCollections,
 } from "../..";
 import { basename, dirname } from "path";
 import { isModifiedItemOutdated } from "../internal/isModifiedItemOutdated";
@@ -163,6 +164,17 @@ export class CollectionItemProvider<T> {
         this.initialCacheLoadEmitter.attachOnce(
             this.itemUpdateEmitterContext,
             callback,
+        );
+    }
+
+    /**
+     * Whether opening or editing the given file requires the cache to be loaded.
+     */
+    public isFileRelevantForCollections(filePath: string) {
+        return isFileRelevantForCollections(
+            filePath,
+            this.workspaceFolders,
+            this.featureToggles,
         );
     }
 

@@ -16,7 +16,7 @@ import {
     AdditionalCollectionData,
     FileSystemCacheSyncingHelper,
     BrunoTreeItem,
-    isFileRelevantForCollections,
+    TypedCollectionItemProvider,
 } from "@shared";
 import { getFeatureToggles } from "./getFeatureToggles";
 import { activateLanguageFeatures } from "./languageFeatures";
@@ -40,7 +40,6 @@ import {
     getPathsToIgnoreForCollections,
     AdditionalCollectionSimpleDataProvider,
     AdditionalCollectionDataProviderType,
-    FeatureToggles,
 } from "@global_shared";
 
 let client: LanguageClient;
@@ -106,17 +105,18 @@ export async function activate(context: ExtensionContext) {
     await Promise.all(toAwait);
 
     // Nothing else reacts to editors that were restored on startup.
-    if (hasVisibleEditorForRelevantFile(getFeatureToggles(context))) {
+    if (hasVisibleEditorForRelevantFile(collectionItemProvider)) {
         void collectionItemProvider.ensureCacheIsLoaded();
     }
 }
 
-function hasVisibleEditorForRelevantFile(featureToggles: FeatureToggles) {
+function hasVisibleEditorForRelevantFile(
+    collectionItemProvider: TypedCollectionItemProvider,
+) {
     return window.visibleTextEditors.some(
         ({ document: { uri, fileName } }) =>
             uri.scheme == "file" &&
-            workspace.getWorkspaceFolder(uri) !== undefined &&
-            isFileRelevantForCollections(fileName, featureToggles),
+            collectionItemProvider.isFileRelevantForCollections(fileName),
     );
 }
 

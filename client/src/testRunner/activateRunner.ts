@@ -104,6 +104,16 @@ export async function activateRunner(
             }
         }
     });
+    let hasResolvedTestTree = false;
+    async function resolveTestTree() {
+        await addMissingTestCollectionsAndItemsToTestTree(
+            ctrl,
+            testRunnerDataHelper,
+            collectionItemProvider.getRegisteredCollections(),
+        );
+        hasResolvedTestTree = true;
+    }
+
     async function runHandler(
         request: TestRunRequest,
         cancellation: CancellationToken,
@@ -111,13 +121,9 @@ export async function activateRunner(
         const { include, continuous } = request;
 
         await collectionItemProvider.ensureCacheIsLoaded();
-        if (ctrl.items.size == 0) {
+        if (!hasResolvedTestTree) {
             // The test tree might not have been resolved yet (e.g. if the test explorer was not opened before).
-            await addMissingTestCollectionsAndItemsToTestTree(
-                ctrl,
-                testRunnerDataHelper,
-                collectionItemProvider.getRegisteredCollections(),
-            );
+            await resolveTestTree();
         }
 
         if (!continuous) {
@@ -160,6 +166,7 @@ export async function activateRunner(
                             testRunnerDataHelper,
                             collections,
                         ).then(() => {
+                            hasResolvedTestTree = true;
                             // The displayed test tree view is only updated correctly, if you re-add the collection on top level again
                             collections.forEach((collection) =>
                                 addCollectionTestItemToTestTree(
@@ -188,11 +195,7 @@ export async function activateRunner(
         await collectionItemProvider.ensureCacheIsLoaded();
 
         if (!item) {
-            await addMissingTestCollectionsAndItemsToTestTree(
-                ctrl,
-                testRunnerDataHelper,
-                collectionItemProvider.getRegisteredCollections(),
-            );
+            await resolveTestTree();
             return;
         }
         const path = (item.uri as Uri).fsPath;
