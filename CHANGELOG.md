@@ -2,6 +2,7 @@
 
 ### Features
 
+- Add preview support for collections in the `yaml` format (`opencollection.yml`), which is disabled by default. It can be enabled via the new setting `bru-as-code.yamlCollectionSupport` (a window reload is required). If a `yaml` collection is found in the workspace, a dialog suggesting to enable the setting is shown (can be disabled via `bru-as-code.suggestEnablingYamlCollectionSupport`).
 - Provide completions and hovers for persistent environment variables also in JS scripts within `additionalContextRoots` folders. If such a folder is used by multiple collections, the completions are merged per variable name and the hover shows the variable's values for all of them.
 
 ### Fixes / Maintenance

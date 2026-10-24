@@ -19,6 +19,10 @@ import {
     TypedCollectionItemProvider,
 } from "@shared";
 import { getFeatureToggles } from "./getFeatureToggles";
+import {
+    suggestEnablingYamlSupport,
+    suggestReloadOnYamlSupportChange,
+} from "./suggestEnablingYamlSupport";
 import { activateLanguageFeatures } from "./languageFeatures";
 import { suggestCreatingTsConfigsForCollections } from "./languageFeatures/suggestCreatingTsConfigsForCollections";
 import { join } from "path";
@@ -45,6 +49,9 @@ import {
 let client: LanguageClient;
 
 export async function activate(context: ExtensionContext) {
+    suggestReloadOnYamlSupportChange(context);
+    void suggestEnablingYamlSupport(context);
+
     if (await shouldSkipActivation(context)) {
         return;
     }
@@ -120,7 +127,7 @@ function hasVisibleEditorForRelevantFile(
     );
 }
 
-// The activation event for `opencollection.yml` files is static, so it also triggers the activation when the Yaml feature toggle is off.
+// The activation event for `opencollection.yml` files is static, so it also triggers the activation when Yaml support is disabled.
 // In that case, the activation is skipped if it could only have been triggered by Yaml collections.
 // The extension can also be activated for single Bru files that are not part of the workspace (e.g. if no folder is opened).
 async function shouldSkipActivation(context: ExtensionContext) {
