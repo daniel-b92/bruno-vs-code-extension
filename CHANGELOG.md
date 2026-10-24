@@ -5,6 +5,7 @@
 - Add support for tags in folder settings files (`folder.bru`), which was introduced in version 4.3.0 of Bruno.
 - Fix an issue that caused the `meta` block of `folder.bru` files not to be checked for missing, unknown, duplicate keys and missing `name` values.
 - Fix an issue that caused the test explorer not to be updated when the `seq` in a `folder.bru` file was changed.
+- Only load the Bruno collections when they are first needed (e.g. when opening a collection file, expanding the collection explorer or running tests) instead of on every start of the extension.
 
 ## [1.4.0] (2026-10-22)
 

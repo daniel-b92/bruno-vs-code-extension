@@ -20,6 +20,7 @@ import {
     NotificationData,
     ReadyOnlyCollection,
     ConflictingCollectionRootFiles,
+    isFileRelevantForCollections,
 } from "../..";
 import { basename, dirname } from "path";
 import { isModifiedItemOutdated } from "../internal/isModifiedItemOutdated";
@@ -28,6 +29,7 @@ import { Evt } from "evt";
 export class CollectionItemProvider<T> {
     constructor(
         collectionWatcher: CollectionWatcher,
+        private workspaceFolders: string[],
         private additionalDataProvider: AdditionalCollectionDataProvider<T>,
         private filePathsToIgnore: RegExp[],
         private featureToggles: FeatureToggles,
@@ -36,9 +38,13 @@ export class CollectionItemProvider<T> {
         private onConflictingCollectionRootFiles?: (
             conflicts: ConflictingCollectionRootFiles[],
         ) => void,
+        private runInitialCacheLoad?: (
+            load: () => Promise<void>,
+        ) => Promise<void>,
     ) {
         this.collectionRegistry = new CollectionRegistry(collectionWatcher);
         this.itemUpdateEmitter = Evt.create<NotificationData<T>[]>();
+        this.initialCacheLoadEmitter = Evt.create<void>();
 
         collectionWatcher.subscribeToUpdates(
             async ({ path, changeType: fileChangeType }) => {
@@ -126,6 +132,9 @@ export class CollectionItemProvider<T> {
     private collectionRegistry: CollectionRegistry<T>;
     private itemUpdateEmitter: Evt<NotificationData<T>[]>;
     private itemUpdateEmitterContext = Evt.newCtx();
+    private initialCacheLoadEmitter: Evt<void>;
+    private initialCacheLoad: Promise<void> | undefined = undefined;
+    private hasInitialCacheLoadFinished = false;
     private notificationBatch: NotificationData<T>[] = [];
     private notificationSendEventTimer: NodeJS.Timeout | undefined = undefined;
     private readonly commonPreMessageForLogging = "[CollectionItemProvider]";
@@ -140,6 +149,33 @@ export class CollectionItemProvider<T> {
         const context = Evt.newCtx();
         this.itemUpdateEmitter.attach(context, callback);
         return context;
+    }
+
+    /**
+     * The callback is called once, as soon as the initial cache load has finished (immediately, if that already happened).
+     * Subscribing does not trigger the initial cache load.
+     */
+    public subscribeToInitialCacheLoad(callback: () => void) {
+        if (this.hasInitialCacheLoadFinished) {
+            callback();
+            return;
+        }
+
+        this.initialCacheLoadEmitter.attachOnce(
+            this.itemUpdateEmitterContext,
+            callback,
+        );
+    }
+
+    /**
+     * Whether opening or editing the given file requires the cache to be loaded.
+     */
+    public isFileRelevantForCollections(filePath: string) {
+        return isFileRelevantForCollections(
+            filePath,
+            this.workspaceFolders,
+            this.featureToggles,
+        );
     }
 
     public getRegisteredCollections() {
@@ -214,36 +250,36 @@ export class CollectionItemProvider<T> {
             .filter((path, index, array) => array.indexOf(path) === index);
     }
 
-    public async refreshCache(workSpaceFolders: string[]) {
+    /**
+     * Starts the initial cache load, if that did not happen yet. The synchronous getters only return data after this has finished.
+     * Calling it again returns the same promise.
+     */
+    public ensureCacheIsLoaded() {
+        this.initialCacheLoad ??= this.loadInitially().catch((e) => {
+            // Allows retrying on the next call.
+            this.initialCacheLoad = undefined;
+            throw e;
+        });
+
+        return this.initialCacheLoad;
+    }
+
+    /**
+     * Reloads the whole cache. If the cache has not been loaded yet, this counts as the initial cache load.
+     */
+    public async refreshCache() {
+        if (!this.initialCacheLoad) {
+            return this.ensureCacheIsLoaded();
+        }
+
+        // Avoids two interleaving file system scans.
+        await this.initialCacheLoad;
+
         if (this.cacheRefreshNotifier) {
             this.cacheRefreshNotifier.post();
         }
-        const startTime = performance.now();
 
-        this.collectionRegistry
-            .getRegisteredCollections()
-            .forEach((collection) => {
-                this.collectionRegistry.unregisterCollection(
-                    collection.getRootDirectory(),
-                );
-            });
-
-        await registerMissingCollectionsAndTheirItems(
-            this.collectionRegistry,
-            workSpaceFolders,
-            this.filePathsToIgnore,
-            this.additionalDataProvider,
-            this.featureToggles,
-            this.logger,
-            this.onConflictingCollectionRootFiles,
-        );
-
-        const endTime = performance.now();
-        this.logger?.info(
-            `${this.commonPreMessageForLogging} Cache refresh duration: ${Math.round(
-                endTime - startTime,
-            )} ms`,
-        );
+        await this.loadCache();
     }
 
     public async reloadCollectionRootFolderItem(collectionRoot: string) {
@@ -299,6 +335,46 @@ export class CollectionItemProvider<T> {
         this.collectionRegistry.dispose();
         this.itemUpdateEmitterContext.done();
         this.notificationBatch.splice(0);
+    }
+
+    private async loadInitially() {
+        if (this.runInitialCacheLoad) {
+            await this.runInitialCacheLoad(() => this.loadCache());
+        } else {
+            await this.loadCache();
+        }
+
+        this.hasInitialCacheLoadFinished = true;
+        this.initialCacheLoadEmitter.post();
+    }
+
+    private async loadCache() {
+        const startTime = performance.now();
+
+        this.collectionRegistry
+            .getRegisteredCollections()
+            .forEach((collection) => {
+                this.collectionRegistry.unregisterCollection(
+                    collection.getRootDirectory(),
+                );
+            });
+
+        await registerMissingCollectionsAndTheirItems(
+            this.collectionRegistry,
+            this.workspaceFolders,
+            this.filePathsToIgnore,
+            this.additionalDataProvider,
+            this.featureToggles,
+            this.logger,
+            this.onConflictingCollectionRootFiles,
+        );
+
+        const endTime = performance.now();
+        this.logger?.info(
+            `${this.commonPreMessageForLogging} Cache refresh duration: ${Math.round(
+                endTime - startTime,
+            )} ms`,
+        );
     }
 
     private handleCollectionDeletion(collectionRootDir: string) {

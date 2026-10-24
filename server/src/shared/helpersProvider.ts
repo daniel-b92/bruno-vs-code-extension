@@ -19,7 +19,10 @@ import {
 } from ".";
 
 export class HelpersProvider {
-    constructor(workspaceFolders: string[]) {
+    constructor(
+        workspaceFolders: string[],
+        runInitialCacheLoad: (load: () => Promise<void>) => Promise<void>,
+    ) {
         this.fileChangedEmitter = Evt.create<FileChangedEvent>();
         this.collectionWatcher = new CollectionWatcher(
             this.fileChangedEmitter,
@@ -29,11 +32,14 @@ export class HelpersProvider {
         this.itemProvider =
             new CollectionItemProvider<AdditionalCollectionData>(
                 this.collectionWatcher,
+                workspaceFolders,
                 getAdditionalCollectionDataProvider(),
                 getPathsToIgnoreForCollections(),
                 getFeatureToggles(),
                 undefined,
                 getDefaultLogger(),
+                undefined,
+                runInitialCacheLoad,
             );
     }
 

@@ -122,16 +122,10 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
         );
 
         return new Promise<void>((resolve) => {
-            this.itemProvider
-                .refreshCache(
-                    vscode.workspace.workspaceFolders?.map(
-                        (f) => f.uri.fsPath,
-                    ) ?? [],
-                )
-                .then(() => {
-                    this._onDidChangeTreeData.fire(undefined);
-                    resolve();
-                });
+            this.itemProvider.refreshCache().then(() => {
+                this._onDidChangeTreeData.fire(undefined);
+                resolve();
+            });
         });
     }
 
@@ -142,6 +136,8 @@ export class BrunoTreeItemProvider implements vscode.TreeDataProvider<BrunoTreeI
             );
             return [];
         }
+
+        await this.itemProvider.ensureCacheIsLoaded();
 
         if (!element) {
             this.logger?.debug(

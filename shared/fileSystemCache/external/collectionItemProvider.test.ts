@@ -15,6 +15,7 @@ import {
     FeatureToggles,
     FileChangedEvent,
     FileChangeType,
+    Logger,
     NonBrunoSpecificItemType,
     normalizePath,
 } from "../..";
@@ -35,7 +36,7 @@ describe("CollectionItemProvider.refreshCache", () => {
             yamlCollectionSupport: false,
         });
 
-        await provider.refreshCache([workspace]);
+        await provider.refreshCache();
 
         expect(getRegisteredCollectionNames(provider)).toEqual([
             "bruCollection (Bru)",
@@ -48,7 +49,7 @@ describe("CollectionItemProvider.refreshCache", () => {
             yamlCollectionSupport: true,
         });
 
-        await provider.refreshCache([workspace]);
+        await provider.refreshCache();
 
         expect(getRegisteredCollectionNames(provider)).toEqual([
             "bruCollection (Bru)",
@@ -123,6 +124,170 @@ describe("CollectionItemProvider.refreshCache", () => {
     }
 });
 
+describe("CollectionItemProvider.ensureCacheIsLoaded", () => {
+    const createTemporaryDirectory = useTemporaryDirectories();
+
+    it("does not load anything before it is called", async () => {
+        const workspace = await createWorkspace();
+        const { provider, getNumberOfLoads } =
+            createProviderWithLoadCounter(workspace);
+
+        expect(provider.getRegisteredCollections()).toHaveLength(0);
+        expect(getNumberOfLoads()).toBe(0);
+    });
+
+    it("only loads the cache once for concurrent and later calls", async () => {
+        const workspace = await createWorkspace();
+        const { provider, getNumberOfLoads } =
+            createProviderWithLoadCounter(workspace);
+
+        const firstLoad = provider.ensureCacheIsLoaded();
+        const secondLoad = provider.ensureCacheIsLoaded();
+        expect(secondLoad).toBe(firstLoad);
+
+        await Promise.all([firstLoad, secondLoad]);
+        await provider.ensureCacheIsLoaded();
+
+        expect(getNumberOfLoads()).toBe(1);
+        expect(provider.getRegisteredCollections()).toHaveLength(1);
+    });
+
+    it("runs the initial load via the given wrapper", async () => {
+        const workspace = await createWorkspace();
+        let wrapperCalls = 0;
+        const { provider } = createProviderWithLoadCounter(workspace, {
+            runInitialCacheLoad: async (load) => {
+                wrapperCalls++;
+                await load();
+            },
+        });
+
+        await provider.ensureCacheIsLoaded();
+        await provider.refreshCache();
+
+        expect(wrapperCalls).toBe(1);
+    });
+
+    it("lets the initial load be retried after it failed", async () => {
+        const workspace = await createWorkspace();
+        let shouldFail = true;
+        const { provider } = createProviderWithLoadCounter(workspace, {
+            runInitialCacheLoad: async (load) => {
+                if (shouldFail) {
+                    throw new Error("Loading failed");
+                }
+                await load();
+            },
+        });
+
+        await expect(provider.ensureCacheIsLoaded()).rejects.toThrow(
+            "Loading failed",
+        );
+
+        shouldFail = false;
+        await provider.ensureCacheIsLoaded();
+
+        expect(provider.getRegisteredCollections()).toHaveLength(1);
+    });
+
+    it("treats a refresh before the first lazy load as initial load", async () => {
+        const workspace = await createWorkspace();
+        const notifier = Evt.create<void>();
+        let notifications = 0;
+        notifier.attach(() => notifications++);
+        const { provider, getNumberOfLoads } = createProviderWithLoadCounter(
+            workspace,
+            { cacheRefreshNotifier: notifier },
+        );
+
+        await Promise.all([
+            provider.refreshCache(),
+            provider.ensureCacheIsLoaded(),
+        ]);
+
+        expect(getNumberOfLoads()).toBe(1);
+        expect(notifications).toBe(0);
+    });
+
+    it("waits for a running initial load before an explicit refresh starts", async () => {
+        const workspace = await createWorkspace();
+        const notifier = Evt.create<void>();
+        let initialLoadFinished = false;
+        let wasInitialLoadFinishedOnRefresh: boolean | undefined = undefined;
+        notifier.attach(() => {
+            wasInitialLoadFinishedOnRefresh = initialLoadFinished;
+        });
+        const { provider, getNumberOfLoads } = createProviderWithLoadCounter(
+            workspace,
+            { cacheRefreshNotifier: notifier },
+        );
+
+        const initialLoad = provider.ensureCacheIsLoaded().then(() => {
+            initialLoadFinished = true;
+        });
+        await Promise.all([initialLoad, provider.refreshCache()]);
+
+        expect(wasInitialLoadFinishedOnRefresh).toBe(true);
+        expect(getNumberOfLoads()).toBe(2);
+    });
+
+    it("only notifies about cache refreshes that happen after the initial load", async () => {
+        const workspace = await createWorkspace();
+        const notifier = Evt.create<void>();
+        let notifications = 0;
+        notifier.attach(() => notifications++);
+        const { provider } = createProviderWithLoadCounter(workspace, {
+            cacheRefreshNotifier: notifier,
+        });
+
+        await provider.ensureCacheIsLoaded();
+        expect(notifications).toBe(0);
+
+        await provider.refreshCache();
+        expect(notifications).toBe(1);
+    });
+
+    it("calls subscribers of the initial load once, without triggering the load", async () => {
+        const workspace = await createWorkspace();
+        const { provider, getNumberOfLoads } =
+            createProviderWithLoadCounter(workspace);
+        let calls = 0;
+        let collectionsOnCall = 0;
+        provider.subscribeToInitialCacheLoad(() => {
+            calls++;
+            collectionsOnCall = provider.getRegisteredCollections().length;
+        });
+
+        expect(calls).toBe(0);
+        expect(getNumberOfLoads()).toBe(0);
+
+        await provider.ensureCacheIsLoaded();
+        await provider.refreshCache();
+
+        expect(calls).toBe(1);
+        expect(collectionsOnCall).toBe(1);
+    });
+
+    it("immediately calls subscribers of the initial load if it already finished", async () => {
+        const workspace = await createWorkspace();
+        const { provider } = createProviderWithLoadCounter(workspace);
+        await provider.ensureCacheIsLoaded();
+
+        let calls = 0;
+        provider.subscribeToInitialCacheLoad(() => calls++);
+
+        expect(calls).toBe(1);
+    });
+
+    async function createWorkspace() {
+        return await createTemporaryDirectory({
+            "bruCollection/bruno.json": "{}",
+            "bruCollection/request.bru":
+                "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
+        });
+    }
+});
+
 describe("CollectionItemProvider: modification of a collection root file", () => {
     const createTemporaryDirectory = useTemporaryDirectories();
     it("updates the additional context roots when 'bruno.json' of a bru collection is modified", async () => {
@@ -138,7 +303,7 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
             { yamlCollectionSupport: true },
             fileChangedEmitter,
         );
-        await provider.refreshCache([workspace]);
+        await provider.refreshCache();
         const collection = provider.getRegisteredCollections()[0];
 
         expect(collection.getAdditionalContextRoots()).toEqual([]);
@@ -177,7 +342,7 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
             { yamlCollectionSupport: true },
             fileChangedEmitter,
         );
-        await provider.refreshCache([workspace]);
+        await provider.refreshCache();
         const collection = provider.getRegisteredCollections()[0];
 
         expect(collection.getFormat()).toBe(CollectionFormat.Yaml);
@@ -238,7 +403,7 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
             { yamlCollectionSupport: true },
             fileChangedEmitter,
         );
-        await provider.refreshCache([workspace]);
+        await provider.refreshCache();
         const collection = provider.getRegisteredCollections()[0];
         const filePath = join(workspace, "collection/app.bru");
         const getSequence = () =>
@@ -299,7 +464,7 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
             { yamlCollectionSupport: true },
             fileChangedEmitter,
         );
-        await provider.refreshCache([workspace]);
+        await provider.refreshCache();
         const collection = provider.getRegisteredCollections()[0];
         const filePath = join(workspace, params.relativePath);
         const getRegisteredType = () =>
@@ -372,7 +537,7 @@ describe("CollectionItemProvider: deletion of a collection root file", () => {
             { yamlCollectionSupport: true },
             fileChangedEmitter,
         );
-        await provider.refreshCache([workspace]);
+        await provider.refreshCache();
 
         expect(provider.getRegisteredCollections()).toHaveLength(1);
 
@@ -419,12 +584,18 @@ function createProvider(
     workspace: string,
     featureToggles: FeatureToggles,
     fileChangedEmitter = Evt.create<FileChangedEvent>(),
+    options?: {
+        cacheRefreshNotifier?: Evt<void>;
+        logger?: Logger;
+        runInitialCacheLoad?: (load: () => Promise<void>) => Promise<void>;
+    },
 ) {
     const collectionWatcher = new CollectionWatcher(fileChangedEmitter, [
         workspace,
     ]);
     const provider = new CollectionItemProvider<undefined>(
         collectionWatcher,
+        [workspace],
         {
             paramType:
                 AdditionalCollectionDataProviderType.SimpleCollectionItem,
@@ -433,8 +604,45 @@ function createProvider(
         },
         [],
         featureToggles,
+        options?.cacheRefreshNotifier,
+        options?.logger,
+        undefined,
+        options?.runInitialCacheLoad,
     );
     disposables.push(provider, collectionWatcher);
 
     return provider;
+}
+
+/** A load is counted by the info log entry that the provider writes after finishing a scan of the file system. */
+function createProviderWithLoadCounter(
+    workspace: string,
+    options?: {
+        cacheRefreshNotifier?: Evt<void>;
+        runInitialCacheLoad?: (load: () => Promise<void>) => Promise<void>;
+    },
+) {
+    let numberOfLoads = 0;
+    const logger: Logger = {
+        trace: () => {},
+        debug: () => {},
+        info: (message) => {
+            if (message.includes("Cache refresh duration")) {
+                numberOfLoads++;
+            }
+        },
+        warn: () => {},
+        error: () => {},
+        dispose: () => {},
+    };
+
+    return {
+        provider: createProvider(
+            workspace,
+            { yamlCollectionSupport: false },
+            undefined,
+            { ...options, logger },
+        ),
+        getNumberOfLoads: () => numberOfLoads,
+    };
 }

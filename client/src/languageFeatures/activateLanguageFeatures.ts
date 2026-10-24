@@ -70,8 +70,35 @@ export async function activateLanguageFeatures(
         logger,
     );
 
-    await tempJsFilesProvider.refreshCache(
-        getUniqueParentFoldersForTempJsFiles(collectionItemProvider),
+    // The collection cache is loaded lazily, so the temp JS files can only be searched for after it has been loaded.
+    let readiness: Promise<void> | undefined = undefined;
+    const ensureReady = () => {
+        readiness ??= (async () => {
+            await collectionItemProvider.ensureCacheIsLoaded();
+            await tempJsFilesProvider.refreshCache(
+                getUniqueParentFoldersForTempJsFiles(collectionItemProvider),
+            );
+        })().catch((e) => {
+            // Allows retrying on the next call.
+            readiness = undefined;
+            throw e;
+        });
+        return readiness;
+    };
+    const ensureReadyForFile = async (filePath: string) => {
+        if (collectionItemProvider.isFileRelevantForCollections(filePath)) {
+            await ensureReady();
+        }
+    };
+
+    // The cache can also be loaded by other features (e.g. the collection explorer), which would leave existing temp JS files unnoticed.
+    collectionItemProvider.subscribeToInitialCacheLoad(
+        () =>
+            void ensureReady().catch((e) =>
+                logger?.error(
+                    `Searching for temporary JS files failed: ${e instanceof Error ? e.message : String(e)}`,
+                ),
+            ),
     );
 
     context.subscriptions.push(
@@ -81,28 +108,35 @@ export async function activateLanguageFeatures(
             documentSelector,
             tempJsFilesUpdateQueue,
             collectionItemProvider,
+            ensureReady,
             logger,
         ),
         provideInfosOnHoverForBruFiles(
             documentSelector,
             tempJsFilesUpdateQueue,
             collectionItemProvider,
+            ensureReady,
             logger,
         ),
         provideSignatureHelpForBruFiles(
             documentSelector,
             tempJsFilesUpdateQueue,
             collectionItemProvider,
+            ensureReady,
             logger,
         ),
         provideDefinitionsForBruFiles(
             documentSelector,
             tempJsFilesUpdateQueue,
             collectionItemProvider,
+            ensureReady,
             logger,
         ),
         tempJsFilesUpdateQueue,
         window.onDidChangeActiveTextEditor(async (editor) => {
+            if (editor) {
+                await ensureReadyForFile(editor.document.fileName);
+            }
             await onDidChangeActiveTextEditor(
                 tempJsFilesUpdateQueue,
                 collectionItemProvider,
@@ -112,6 +146,9 @@ export async function activateLanguageFeatures(
             );
         }),
         workspace.onDidChangeTextDocument(async (e) => {
+            if (e.contentChanges.length > 0) {
+                await ensureReadyForFile(e.document.fileName);
+            }
             await onDidChangeTextDocument(
                 collectionItemProvider,
                 cacheSyncingHelper,
@@ -119,6 +156,7 @@ export async function activateLanguageFeatures(
             );
         }),
         workspace.onWillSaveTextDocument(async (e) => {
+            await ensureReadyForFile(e.document.fileName);
             await onWillSaveTextDocument(
                 tempJsFilesUpdateQueue,
                 collectionItemProvider,

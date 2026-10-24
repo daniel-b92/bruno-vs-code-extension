@@ -16,6 +16,7 @@ import {
     AdditionalCollectionData,
     FileSystemCacheSyncingHelper,
     BrunoTreeItem,
+    TypedCollectionItemProvider,
 } from "@shared";
 import { getFeatureToggles } from "./getFeatureToggles";
 import { activateLanguageFeatures } from "./languageFeatures";
@@ -70,44 +71,53 @@ export async function activate(context: ExtensionContext) {
         ),
     );
 
-    toAwait.push(
-        window.withProgress(
-            {
-                location: ProgressLocation.Window,
-                title: "Starting bru-as-code extension...",
-            },
-            async () => {
-                await collectionItemProvider.refreshCache(
-                    workspace.workspaceFolders?.map((f) => f.uri.fsPath) ?? [],
-                );
-                await activateRunner(
-                    context,
-                    ctrl,
-                    collectionItemProvider,
-                    startTestRunEmitter.event,
-                );
-                activateTreeView(
-                    context,
-                    collectionItemProvider,
-                    cacheSyncingHelper,
-                    startTestRunEmitter,
-                    multiFileOperationNotifier,
-                );
+    // The collection cache is loaded lazily, as soon as something needs it.
+    collectionItemProvider.subscribeToInitialCacheLoad(
+        () =>
+            void suggestCreatingTsConfigsForCollections(collectionItemProvider),
+    );
 
-                await activateLanguageFeatures(
-                    context,
-                    collectionWatcher,
-                    collectionItemProvider,
-                    cacheSyncingHelper,
-                    startTestRunEmitter.event,
-                    getFeatureToggles(context),
-                );
-            },
+    await activateRunner(
+        context,
+        ctrl,
+        collectionItemProvider,
+        startTestRunEmitter.event,
+    );
+    activateTreeView(
+        context,
+        collectionItemProvider,
+        cacheSyncingHelper,
+        startTestRunEmitter,
+        multiFileOperationNotifier,
+    );
+
+    toAwait.push(
+        activateLanguageFeatures(
+            context,
+            collectionWatcher,
+            collectionItemProvider,
+            cacheSyncingHelper,
+            startTestRunEmitter.event,
+            getFeatureToggles(context),
         ),
     );
 
     await Promise.all(toAwait);
-    suggestCreatingTsConfigsForCollections(collectionItemProvider);
+
+    // Nothing else reacts to editors that were restored on startup.
+    if (hasVisibleEditorForRelevantFile(collectionItemProvider)) {
+        void collectionItemProvider.ensureCacheIsLoaded();
+    }
+}
+
+function hasVisibleEditorForRelevantFile(
+    collectionItemProvider: TypedCollectionItemProvider,
+) {
+    return window.visibleTextEditors.some(
+        ({ document: { uri, fileName } }) =>
+            uri.scheme == "file" &&
+            collectionItemProvider.isFileRelevantForCollections(fileName),
+    );
 }
 
 // The activation event for `opencollection.yml` files is static, so it also triggers the activation when the Yaml feature toggle is off.
@@ -212,6 +222,8 @@ function createNeededHandlers(context: ExtensionContext) {
     const collectionItemProvider =
         new CollectionItemProvider<AdditionalCollectionData>(
             collectionWatcher,
+            workspace.workspaceFolders?.map((folder) => folder.uri.fsPath) ??
+                [],
             getAdditionalCollectionDataProvider(testRunnerDataHelper),
             getPathsToIgnoreForCollections(),
             getFeatureToggles(context),
@@ -225,6 +237,14 @@ function createNeededHandlers(context: ExtensionContext) {
                                 `'${rootFilePath}' (conflicts with ${conflictingFilePaths.map((path) => `'${path}'`).join(", ")})`,
                         )
                         .join("; ")}`,
+                ),
+            async (load) =>
+                await window.withProgress(
+                    {
+                        location: ProgressLocation.Window,
+                        title: "Loading Bruno collections...",
+                    },
+                    load,
                 ),
         );
 

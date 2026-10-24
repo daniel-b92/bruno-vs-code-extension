@@ -917,6 +917,8 @@ export class CollectionExplorer implements vscode.TreeDragAndDropController<Brun
         treeView: vscode.TreeView<BrunoTreeItem>,
         logger?: OutputChannelLogger,
     ) {
+        await this.itemProvider.ensureCacheIsLoaded();
+
         const maybeCollection =
             this.itemProvider.getAncestorCollectionForPath(path);
 
