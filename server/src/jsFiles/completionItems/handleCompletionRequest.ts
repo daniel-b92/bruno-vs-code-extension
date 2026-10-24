@@ -1,18 +1,9 @@
-import {
-    VariableReferenceType,
-    Position,
-    getMatchingDefinitionsFromEnvFiles,
-    Logger,
-    BrunoVariableType,
-    LineBreakType,
-} from "@global_shared";
+import { getMatchingDefinitionsFromEnvFiles, Logger } from "@global_shared";
 import {
     JsFileInContextRootRequest,
     LanguageFeatureBaseRequest,
     LanguageRequestWithTestEnvironmentInfo,
     mapStaticEnvVariablesFromMultipleCollectionsToCompletions,
-    mapStaticEnvVariablesToCompletions,
-    TypedCollection,
 } from "../../shared";
 import { getEnvVariableRelatedFunctionForRequest } from "../shared/getEnvVariableRelatedFunctionForRequest";
 import { basename } from "path";
@@ -26,28 +17,11 @@ export async function handleCompletionRequest({
 }: LanguageRequestWithTestEnvironmentInfo): Promise<
     CompletionItem[] | undefined
 > {
-    const { token } = baseRequest;
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return undefined;
-    }
-
-    const envVariableRelatedFunction =
-        getEnvVariableRelatedFunctionForRequest(baseRequest);
-
-    return envVariableRelatedFunction != undefined
-        ? getResultsForEnvironmentVariable(
-              envVariableRelatedFunction.variable,
-              {
-                  collection,
-                  functionType: envVariableRelatedFunction.type,
-              },
-              baseRequest,
-              configuredEnvironmentName,
-              logger,
-          )
-        : undefined;
+    return getCompletionsForCollections(
+        baseRequest,
+        [{ collection, configuredEnvironmentName }],
+        logger,
+    );
 }
 
 /** Handles JS files that are not part of a collection, but within `additionalContextRoots` of at least one collection. */
@@ -56,6 +30,15 @@ export async function handleCompletionRequestForJsFileInContextRoot({
     collections,
     logger,
 }: JsFileInContextRootRequest): Promise<CompletionItem[] | undefined> {
+    return getCompletionsForCollections(baseRequest, collections, logger);
+}
+
+/** Creates exactly one completion item per variable name, regardless of how many environments or collections define it. */
+function getCompletionsForCollections(
+    baseRequest: LanguageFeatureBaseRequest,
+    collections: JsFileInContextRootRequest["collections"],
+    logger?: Logger,
+): CompletionItem[] | undefined {
     const { token } = baseRequest;
 
     if (token.isCancellationRequested) {
@@ -90,58 +73,6 @@ export async function handleCompletionRequestForJsFileInContextRoot({
     return mapStaticEnvVariablesFromMultipleCollectionsToCompletions(
         envVariableRelatedFunction.type,
         matches,
-    );
-}
-
-function getResultsForEnvironmentVariable(
-    variable: { name: string; start: Position; end: Position },
-    additionalData: {
-        collection: TypedCollection;
-        functionType: VariableReferenceType;
-    },
-    baseRequest: LanguageFeatureBaseRequest,
-    configuredEnvironmentName?: string,
-    logger?: Logger,
-) {
-    const { collection, functionType } = additionalData;
-    const { token, documentHelper: docHelper } = baseRequest;
-
-    const matchingEnvVariableDefinitions = getMatchingDefinitionsFromEnvFiles(
-        collection,
-        undefined,
-        configuredEnvironmentName,
-    );
-
-    if (matchingEnvVariableDefinitions.length == 0) {
-        return [];
-    }
-
-    if (token.isCancellationRequested) {
-        addLogEntryForCancellation(logger);
-        return [];
-    }
-
-    return mapStaticEnvVariablesToCompletions(
-        {
-            variable,
-            functionType,
-            variableType: BrunoVariableType.Environment,
-            documentLineBreak:
-                docHelper.getMostUsedLineBreak() ?? LineBreakType.Lf,
-        },
-        matchingEnvVariableDefinitions.map(
-            ({
-                file,
-                matchingVariables,
-                isConfiguredEnv,
-                inheritedByEnvironmentName,
-            }) => ({
-                environmentFile: file,
-                matchingVariableKeys: matchingVariables.map(({ key }) => key),
-                isConfiguredEnv,
-                inheritedByEnvironmentName,
-            }),
-        ),
     );
 }
 
