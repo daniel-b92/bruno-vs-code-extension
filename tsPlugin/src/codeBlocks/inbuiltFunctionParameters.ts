@@ -1,11 +1,10 @@
 import * as ts from "typescript/lib/tsserverlibrary";
 import { getNamesForInbuiltFunctionsWithVariableName } from "../constants";
+import { findStringLiteralAtPosition } from "./findStringLiteralAtPosition";
 
 /**
  * Whether the position is within the name of a variable, that is passed to an inbuilt function (e.g. `bru.getEnvVar("name")`).
  * The extension provides hovers and completions for these names itself, so they should not be provided by the Typescript server as well.
- *
- * Positions directly in front of the opening quote and behind the closing quote are not within the name.
  */
 export function isPositionWithinNameOfVariable(
     info: ts.server.PluginCreateInfo,
@@ -20,25 +19,9 @@ export function isPositionWithinNameOfVariable(
         return false;
     }
 
-    const node = findDeepestNodeContainingPosition(sourceFile, position);
+    const node = findStringLiteralAtPosition(sourceFile, position);
 
-    if (
-        !node ||
-        !(
-            ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)
-        ) ||
-        !isFirstParameterOfInbuiltFunction(node)
-    ) {
-        return false;
-    }
-
-    const start = node.getStart(sourceFile);
-    const end = node.getEnd();
-    const text = node.getText(sourceFile);
-    // While typing, the string may not be closed yet.
-    const isClosed = text.length > 1 && text.endsWith(text[0]);
-
-    return start < position && (isClosed ? position < end : position <= end);
+    return node != undefined && isFirstParameterOfInbuiltFunction(node);
 }
 
 function isFirstParameterOfInbuiltFunction(node: ts.Node) {
@@ -54,24 +37,4 @@ function isFirstParameterOfInbuiltFunction(node: ts.Node) {
             parent.expression.name.text,
         )
     );
-}
-
-function findDeepestNodeContainingPosition(
-    sourceFile: ts.SourceFile,
-    position: number,
-) {
-    let current: ts.Node = sourceFile;
-    let child: ts.Node | undefined;
-
-    do {
-        child = ts.forEachChild(current, (candidate) =>
-            candidate.getStart(sourceFile) <= position &&
-            position <= candidate.getEnd()
-                ? candidate
-                : undefined,
-        );
-        current = child ?? current;
-    } while (child);
-
-    return current === sourceFile ? undefined : current;
 }

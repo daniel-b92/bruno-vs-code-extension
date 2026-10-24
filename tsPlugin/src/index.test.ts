@@ -729,6 +729,7 @@ describe("hovers, completions and signature help", () => {
                         [`/collection/${collectionRootFile.name}`]:
                             collectionRootFile.content,
                         "/collection/lib/helper.js": helperModule,
+                        "/collection/requests/local.js": helperModule,
                         [requestFile]: content,
                     }),
                 };
@@ -755,6 +756,56 @@ describe("hovers, completions and signature help", () => {
                 expect(
                     getCompletionNames(languageService, requestFile, position),
                 ).toEqual(expect.arrayContaining(["getEnvName", "getEnvVar"]));
+            });
+
+            it("provides completions for relative module paths based on the collection root folder", () => {
+                // The request file is not located in the collection root folder.
+                const { languageService, position } = createLanguageService([
+                    'const lib = require("./§");',
+                ]);
+
+                const names = getCompletionNames(
+                    languageService,
+                    requestFile,
+                    position,
+                );
+
+                expect(names).toEqual(
+                    expect.arrayContaining(["lib", "requests"]),
+                );
+                expect(names).not.toContain("local");
+            });
+
+            it("provides completions for the files within a folder for relative module paths", () => {
+                const { languageService, position } = createLanguageService([
+                    'const lib = require("./lib/§");',
+                ]);
+
+                expect(
+                    getCompletionNames(languageService, requestFile, position),
+                ).toEqual(["helper"]);
+            });
+
+            it("only replaces the part of a relative module path behind the last slash", () => {
+                const { languageService, position } = createLanguageService([
+                    'const lib = require("./lib/he§");',
+                ]);
+
+                expect(
+                    languageService
+                        .getCompletionsAtPosition(requestFile, position, {})
+                        ?.entries.map(({ replacementSpan }) => replacementSpan),
+                ).toEqual([{ start: position - 2, length: 2 }]);
+            });
+
+            it("does not provide completions for relative module paths outside of calls to `require`", () => {
+                const { languageService, position } = createLanguageService([
+                    'const path = "./lib/§";',
+                ]);
+
+                expect(
+                    getCompletionNames(languageService, requestFile, position),
+                ).not.toContain("helper");
             });
 
             it("provides signature help for the code", () => {
@@ -1100,6 +1151,15 @@ function createLanguageServiceWithPlugin(
             Object.keys(files).some((fileName) =>
                 fileName.startsWith(`${directory}/`),
             ),
+        getDirectories: (directory: string) => [
+            ...new Set(
+                Object.keys(files)
+                    .filter((fileName) => fileName.startsWith(`${directory}/`))
+                    .map((fileName) => fileName.slice(directory.length + 1))
+                    .filter((path) => path.includes("/"))
+                    .map((path) => path.split("/")[0]),
+            ),
+        ],
         readDirectory: (directory: string) =>
             Object.keys(files).filter(
                 (fileName) => dirname(fileName) == directory,

@@ -2,6 +2,7 @@ import { extname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
 import { isPositionWithinCode } from "../codeBlocks/getCodeRanges";
 import { isPositionWithinNameOfVariable } from "../codeBlocks/inbuiltFunctionParameters";
+import { getRelativeModulePathCompletions } from "../codeBlocks/relativeModulePathCompletions";
 import { canReferToRuntimeDefinitions } from "../collection/runtimeContext";
 import { isTempJsFileOrRuntimeDefinitionsFile } from "../constants";
 import { hasEmbeddedCodeBlocks } from "../fileTypes";
@@ -50,6 +51,15 @@ export function overrideHoverAndCompletions(
                 isPositionWithinNameOfVariable(info, fileName, position))
         ) {
             return undefined;
+        }
+
+        // Paths are relative to the collection root folder and not to the file (like they would be for the Typescript server).
+        const relativeModulePathCompletions = hasCodeBlocks
+            ? getRelativeModulePathCompletions(info, fileName, position)
+            : undefined;
+
+        if (relativeModulePathCompletions) {
+            return relativeModulePathCompletions;
         }
 
         const defaultCompletions =

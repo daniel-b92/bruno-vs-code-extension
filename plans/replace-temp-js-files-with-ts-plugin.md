@@ -105,6 +105,8 @@ Step 4 is implemented. Verified with the plugin's jest tests, the full jest run,
 - **Temp files of older versions are ignored by the plugin** (removed from the root files of the project), since they declare the runtime objects a second time. They are not deleted by the extension. `getPathsToIgnoreForCollections` still ignores them in the cache.
 - **Client:** the four providers (completion, hover, signature help, definitions), the update queue, the temp file creation / deletion, `TempJsFilesProvider`, `getTemporaryJsFileNameInFolder` and the client copy of the runtime definitions were deleted. `activateLanguageFeatures` only configures the plugin, loads the cache for relevant files, shows the warning for `.bru` files outside of collections and registers the line comment commands. Generated `tsconfig.json` files no longer exclude the temp file.
 
+- **Completions for relative `require` paths are computed by the plugin** (`relativeModulePathCompletions.ts`). The Typescript server derives the directory for path completions from the path of the source file (`getDirectoryPath(sourceFile.path)`), not from the module resolution of the host, so `require("./` would list the folder of the `.bru` file. The plugin lists the files (`.js`, `.cjs`, `.json`, without the extension for `.js`) and folders (except `node_modules` and hidden ones) relative to the collection root instead. Paths to packages (`require("lodash")`) are still provided by the Typescript server. `additionalContextRoots` are not considered for these paths.
+
 ### Differences in behavior to the temp-file based implementation
 
 - Hovers of the runtime objects show e.g. `(parameter) res: undefined` in pre-request blocks (the shadowing parameter) instead of nothing.
