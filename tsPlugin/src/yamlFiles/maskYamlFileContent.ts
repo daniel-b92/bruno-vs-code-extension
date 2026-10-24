@@ -1,5 +1,6 @@
 import { basename } from "path";
 import { Document, isMap, isScalar, isSeq, parseDocument, Scalar } from "yaml";
+import { isLineBreak, maskContent } from "../codeBlocks/maskContent";
 import { ScriptType } from "../constants";
 
 /**
@@ -66,7 +67,7 @@ export function maskYamlCollectionFileContent(
  * Replaces all characters except for line breaks by spaces, so that the Typescript server does not provide any language features for the file.
  */
 export function maskYamlFileContent(fileContent: string) {
-    return fileContent.replace(/[^\r\n\u2028\u2029]/g, " ");
+    return maskContent(fileContent);
 }
 
 /**
@@ -172,8 +173,4 @@ function findFirstIndexWithoutLineBreak(
     }
 
     return undefined;
-}
-
-function isLineBreak(character: string) {
-    return ["\r", "\n", "\u2028", "\u2029"].includes(character);
 }

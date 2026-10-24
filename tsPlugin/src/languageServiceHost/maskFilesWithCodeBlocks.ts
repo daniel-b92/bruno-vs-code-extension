@@ -1,19 +1,21 @@
 import * as ts from "typescript/lib/tsserverlibrary";
+import { maskBruFileContent } from "../bruFiles/maskBruFileContent";
 import { isFileFromYamlCollection } from "../collection/collectionFormat";
 import { originalSnapshotGettersForHosts } from "../fileContent";
-import { isYamlFile } from "../fileTypes";
+import { hasEmbeddedCodeBlocks, isBruFile } from "../fileTypes";
 import { PluginConfiguration } from "../pluginConfiguration";
 import {
     maskYamlCollectionFileContent,
     maskYamlFileContent,
-} from "./maskYamlFileContent";
+} from "../yamlFiles/maskYamlFileContent";
 
 /**
- * The Typescript server parses Yaml files like Typescript files, so that the Yaml content would affect the meaning of the code within scripts.
- * Therefore, the Typescript server only gets to see the code of scripts within Yaml collection files (see `maskYamlCollectionFileContent`).
+ * The Typescript server parses `.bru` and Yaml files like code files, so that the content outside of the code blocks would affect the meaning of the code.
+ * Therefore, the Typescript server only gets to see the code of the code blocks within `.bru` files (see `maskBruFileContent`)
+ * and of the scripts within Yaml collection files (see `maskYamlCollectionFileContent`).
  * All other Yaml files are masked completely. The same applies to Yaml collection files, as long as Yaml collections are not supported.
  */
-export function maskYamlFilesForTypescriptServer(
+export function maskFilesWithCodeBlocksForTypescriptServer(
     info: ts.server.PluginCreateInfo,
     configuration: PluginConfiguration,
 ) {
@@ -48,14 +50,14 @@ export function maskYamlFilesForTypescriptServer(
     }
 
     host.getScriptVersion = (fileName) =>
-        isYamlFile(fileName)
+        hasEmbeddedCodeBlocks(fileName)
             ? `${getOriginalScriptVersion(fileName)}-${configurationVersion}`
             : getOriginalScriptVersion(fileName);
 
     host.getScriptSnapshot = (fileName) => {
         const originalSnapshot = getOriginalSnapshot(fileName);
 
-        if (!originalSnapshot || !isYamlFile(fileName)) {
+        if (!originalSnapshot || !hasEmbeddedCodeBlocks(fileName)) {
             return originalSnapshot;
         }
 
@@ -72,10 +74,12 @@ export function maskYamlFilesForTypescriptServer(
 
         // Snapshots created from a string do not support incremental parsing, so the file is always parsed completely.
         const maskedSnapshot = ts.ScriptSnapshot.fromString(
-            configuration.isYamlCollectionSupportEnabled() &&
-                isFileFromYamlCollection(info, fileName)
-                ? maskYamlCollectionFileContent(fileName, originalContent)
-                : maskYamlFileContent(originalContent),
+            isBruFile(fileName)
+                ? maskBruFileContent(originalContent)
+                : configuration.isYamlCollectionSupportEnabled() &&
+                    isFileFromYamlCollection(info, fileName)
+                  ? maskYamlCollectionFileContent(fileName, originalContent)
+                  : maskYamlFileContent(originalContent),
         );
 
         maskedSnapshots.set(originalSnapshot, maskedSnapshot);

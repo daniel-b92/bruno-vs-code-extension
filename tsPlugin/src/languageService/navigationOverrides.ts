@@ -1,7 +1,7 @@
 import { extname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
 import { isInABrunoCollection } from "../collection/collectionFormat";
-import { getTempJsFileBaseNameWithoutExtension } from "../constants";
+import { isTempJsFileOrRuntimeDefinitionsFile } from "../constants";
 import { hasEmbeddedCodeBlocks } from "../fileTypes";
 
 export function overrideHoverAndCompletions(
@@ -37,9 +37,7 @@ export function overrideHoverAndCompletions(
                       ({ data }) =>
                           !data ||
                           !data.fileName ||
-                          !data.fileName.includes(
-                              getTempJsFileBaseNameWithoutExtension(),
-                          ),
+                          !isTempJsFileOrRuntimeDefinitionsFile(data.fileName),
                   ),
               }
             : defaultCompletions;
@@ -70,7 +68,7 @@ export function overrideRename(
         const isForInbuiltRuntimeFunction =
             definitionForPosition &&
             definitionForPosition.some(({ fileName }) =>
-                fileName.includes(getTempJsFileBaseNameWithoutExtension()),
+                isTempJsFileOrRuntimeDefinitionsFile(fileName),
             );
 
         return isForInbuiltRuntimeFunction
@@ -103,8 +101,8 @@ export function overrideRename(
         return defaultRenameLocations && isInABrunoCollection(info, fileName)
             ? defaultRenameLocations.filter(
                   ({ fileName: fileForRenameLocation }) =>
-                      !fileForRenameLocation.includes(
-                          getTempJsFileBaseNameWithoutExtension(),
+                      !isTempJsFileOrRuntimeDefinitionsFile(
+                          fileForRenameLocation,
                       ),
               )
             : defaultRenameLocations;
@@ -124,9 +122,7 @@ export function overrideReferencesAndDefinitions(
         return defaultReferences && isInABrunoCollection(info, fileName)
             ? defaultReferences.filter(
                   ({ definition: { fileName: fileForDefinition } }) =>
-                      !fileForDefinition.includes(
-                          getTempJsFileBaseNameWithoutExtension(),
-                      ),
+                      !isTempJsFileOrRuntimeDefinitionsFile(fileForDefinition),
               )
             : defaultReferences;
     };
@@ -140,9 +136,7 @@ export function overrideReferencesAndDefinitions(
         return defaultDefinitions && isInABrunoCollection(info, fileName)
             ? defaultDefinitions.filter(
                   ({ fileName: fileForDefinition }) =>
-                      !fileForDefinition.includes(
-                          getTempJsFileBaseNameWithoutExtension(),
-                      ),
+                      !isTempJsFileOrRuntimeDefinitionsFile(fileForDefinition),
               )
             : defaultDefinitions;
     };
@@ -158,8 +152,8 @@ export function overrideReferencesAndDefinitions(
                   ...defaultDefinition,
                   definitions: defaultDefinition.definitions.filter(
                       ({ fileName: fileForDefinition }) =>
-                          !fileForDefinition.includes(
-                              getTempJsFileBaseNameWithoutExtension(),
+                          !isTempJsFileOrRuntimeDefinitionsFile(
+                              fileForDefinition,
                           ),
                   ),
               }
@@ -175,9 +169,7 @@ export function overrideReferencesAndDefinitions(
         return defaultDefinitions && isInABrunoCollection(info, fileName)
             ? defaultDefinitions.filter(
                   ({ fileName: fileForDefinition }) =>
-                      !fileForDefinition.includes(
-                          getTempJsFileBaseNameWithoutExtension(),
-                      ),
+                      !isTempJsFileOrRuntimeDefinitionsFile(fileForDefinition),
               )
             : defaultDefinitions;
     };
@@ -192,8 +184,8 @@ export function overrideReferencesAndDefinitions(
         return defaultImplementations && isInABrunoCollection(info, fileName)
             ? defaultImplementations.filter(
                   ({ fileName: fileForImplementation }) =>
-                      !fileForImplementation.includes(
-                          getTempJsFileBaseNameWithoutExtension(),
+                      !isTempJsFileOrRuntimeDefinitionsFile(
+                          fileForImplementation,
                       ),
               )
             : defaultImplementations;

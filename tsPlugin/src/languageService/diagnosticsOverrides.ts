@@ -35,7 +35,14 @@ export function overrideDiagnostics(
                   // Do not show diagnostics that only make sense for Typescript files.
                   // Code blocks should be treated like Javascript functions instead.
                   // A list of diagnostics can be found here: https://github.com/microsoft/TypeScript/blob/main/src/compiler/diagnosticMessages.json
-                  ({ code }) => ![7_006, 7_031, 18_046].includes(code),
+                  ({ code }) =>
+                      ![
+                          7_006, 7_031, 18_046,
+                          // Code blocks that could not be wrapped in a function (see `getBlockWrapperCandidates`) are handled as normal blocks.
+                          // For these, `return` and top-level `await` are reported as errors.
+                          1_108,
+                          1_375, 1_378,
+                      ].includes(code),
               )
             : allDiagnostics;
     };

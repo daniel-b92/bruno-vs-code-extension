@@ -2,7 +2,7 @@
 
 ### Fixes / Maintenance
 
-- Handle code blocks in `.bru` files (and in `yaml` collection files, while the setting `bru-as-code.yamlCollectionSupport` is enabled) like Javascript in the diagnostics provided by the TS plugin: JSDoc types are now respected and `require` calls are treated as imports. Imported modules are resolved relative to the collection root folder, like Bruno does at runtime.
+- Handle code blocks in `.bru` files (and in `yaml` collection files, while the setting `bru-as-code.yamlCollectionSupport` is enabled) like Javascript in the diagnostics provided by the TS plugin: JSDoc types are now respected and `require` calls are treated as imports. Imported modules are resolved relative to the collection root folder, like Bruno does at runtime. The objects that Bruno provides at runtime (`bru`, `req`, `res`, `test` and `expect`) are now typed in the diagnostics too, so e.g. unknown `bru` functions or arguments of the wrong type are reported. Each code block of a `.bru` file is analyzed like Bruno executes it, i.e. as its own `async` function: Declarations are scoped per block, `await` and `return` can be used at the top level, and (if there is enough space in front of the block) `res` is reported as `undefined` in pre-request blocks and `req` in post-response blocks (for gRPC requests, only the `bru.grpc` members that are available in the block are typed). The TS plugin no longer provides formatting edits for `.bru` files.
 
 ## [1.5.0] (2026-10-24)
 

@@ -8,6 +8,12 @@ This directory provides an `npm` package for a Typescript language service plugi
 
 Only some of the intellisense features for `Bruno` files are provided by this npm package. For a fuller set of intellisense features, you can use the VS Code extension, that is built from the root folder of this git repository.
 
+The code blocks are analyzed as follows:
+
+- Only the code blocks of `.bru` files (and the scripts of Yaml collection files) are seen by the Typescript server. All other content is replaced by spaces, so that positions in the file stay the same.
+- Each code block of a `.bru` file is wrapped in an `async` arrow function by overwriting the characters in front of the opening bracket. This makes `await` and `return` available at the top level and scopes declarations per block. If the block is preceded by too little content, a plain block is used instead.
+- The objects that `Bruno` provides at runtime (`bru`, `req`, `res`, `test`, `expect`) are declared in a virtual file in the root folder of each collection. `chai` and `mocha` are resolved from the `node_modules` of the collection.
+
 ## Debugging
 
 For using the local TS plugin within the VS Code extension, please follow these steps:

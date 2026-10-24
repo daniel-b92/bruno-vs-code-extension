@@ -4,9 +4,9 @@ import { getCodeBlockIndizesForBruFile } from "../codeBlocks/bruCodeBlocks";
 import { isInABrunoCollection } from "../collection/collectionFormat";
 import {
     getNamesForInbuiltRuntimeVarsAndFunctions,
-    getTempJsFileBaseNameWithoutExtension,
+    isTempJsFileOrRuntimeDefinitionsFile,
 } from "../constants";
-import { getFileContent } from "../fileContent";
+import { getFileContent, getOriginalFileContent } from "../fileContent";
 import { isBruFile, isYamlFile } from "../fileTypes";
 
 type AnyDiagnostic = ts.Diagnostic | ts.DiagnosticWithLocation;
@@ -24,7 +24,8 @@ export function filterDefaultDiagnostics(
             : defaultDiagnostics;
     }
 
-    const fileContent = getFileContent(info, fileName);
+    // The Typescript server only sees the code blocks of `.bru` files (see `maskBruFileContent`), but the blocks are identified in the original content.
+    const fileContent = getOriginalFileContent(info, fileName);
 
     if (!fileContent) {
         return [];
@@ -50,7 +51,7 @@ export function filterDefaultDiagnostics(
 }
 
 /**
- * The Typescript server only sees the code of scripts within Yaml files (see `maskYamlFilesForTypescriptServer`).
+ * The Typescript server only sees the code of scripts within Yaml files (see `maskFilesWithCodeBlocksForTypescriptServer`).
  * Therefore, all diagnostics are already located within code blocks.
  */
 function filterDiagnosticsForYamlFile(
@@ -73,8 +74,8 @@ function filterDiagnosticsForJsFile(
     fileName: string,
     defaultDiagnostics: AnyDiagnostic[],
 ) {
-    if (fileName.includes(getTempJsFileBaseNameWithoutExtension())) {
-        // Filter out all diagnostics for temp js files.
+    if (isTempJsFileOrRuntimeDefinitionsFile(fileName)) {
+        // Filter out all diagnostics for temp js files and the virtual file with the runtime definitions.
         return [];
     } else if (!isInABrunoCollection(info, fileName)) {
         return defaultDiagnostics;
@@ -98,10 +99,7 @@ function filterDiagnosticsForJsFile(
             relatedInformation &&
             relatedInformation.some(
                 ({ file }) =>
-                    file &&
-                    file.fileName.endsWith(
-                        `${getTempJsFileBaseNameWithoutExtension()}.js`,
-                    ),
+                    file && isTempJsFileOrRuntimeDefinitionsFile(file.fileName),
             );
 
         return referencesTempJsFile
@@ -117,17 +115,26 @@ function filterOutDiagnosticsForInbuiltRuntimeFunctions(
     return filterOutMisleadingDiagnosticsForOtherTestFrameworks(
         diagnosticsToFilter,
     ).filter(
-        ({ start, length }) =>
+        ({ start, length, code }) =>
             start != undefined &&
             length != undefined &&
-            // Do not show diagnostics for functions that are provided by Bruno at runtime
-            !getNamesForInbuiltRuntimeVarsAndFunctions().includes(
-                fileContent.substring(start, start + length),
+            // The types for the objects that are provided by Bruno at runtime are known (see `provideRuntimeDefinitions`).
+            // So the diagnostics are only filtered out as a safeguard, if they are reported as unknown anyway.
+            !(
+                isDiagnosticForUnknownName(code) &&
+                getNamesForInbuiltRuntimeVarsAndFunctions().includes(
+                    fileContent.substring(start, start + length),
+                )
             ) &&
             // Avoid showing incorrect error when using `require`
             // (the error seems to only occur for short periods of time when typescript type definitions have not been reloaded for a while)
             fileContent.substring(start, start + length) != "require",
     );
+}
+
+function isDiagnosticForUnknownName(code: number) {
+    // 2582: Cannot find name 'x'. Do you need to install type definitions for a test runner?
+    return [2_304, 2_582].includes(code);
 }
 
 function filterOutMisleadingDiagnosticsForOtherTestFrameworks(

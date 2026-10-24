@@ -265,6 +265,421 @@ describe("handling of code blocks like Javascript", () => {
     );
 });
 
+describe("inbuilt runtime definitions", () => {
+    describe.each([
+        {
+            format: "bru",
+            collectionRootFile: {
+                name: "bruno.json",
+                content: '{ "type": "collection" }',
+            },
+            requestFile: "/collection/requests/request.bru",
+            createRequestFileContent: (codeLines: string[]) =>
+                `meta {\n  name: request\n}\n\nscript:pre-request {\n${codeLines.map((line) => `  ${line}\n`).join("")}}\n`,
+        },
+        {
+            format: "yaml",
+            collectionRootFile: {
+                name: "opencollection.yml",
+                content: "opencollection: 1.0.0\n",
+            },
+            requestFile: "/collection/requests/request.yml",
+            createRequestFileContent: (codeLines: string[]) =>
+                `info:\n  name: request\nruntime:\n  scripts:\n    - type: before-request\n      code: |-\n${codeLines.map((line) => `        ${line}\n`).join("")}`,
+        },
+    ])(
+        "for $format files",
+        ({ collectionRootFile, requestFile, createRequestFileContent }) => {
+            it("provides the types of the objects that are available at runtime", () => {
+                const fileContent = createRequestFileContent([
+                    "/** @type {number} */",
+                    'const value = bru.getEnvVar("a");',
+                    "const name = bru.getEnvName();",
+                    "const status = res.status;",
+                    "const method = req.getMethod();",
+                    "bru.missing();",
+                ]);
+
+                const diagnostics = createLanguageServiceWithPlugin({
+                    [`/collection/${collectionRootFile.name}`]:
+                        collectionRootFile.content,
+                    [requestFile]: fileContent,
+                }).getSemanticDiagnostics(requestFile);
+
+                // `bru.getEnvVar` returns `any`.
+                expect(
+                    diagnostics.map(({ code, start, length }) => ({
+                        code,
+                        text: fileContent.substring(start!, start! + length!),
+                    })),
+                ).toEqual([
+                    // Property 'missing' does not exist on the type of 'bru'.
+                    { code: 2_339, text: "missing" },
+                ]);
+            });
+        },
+    );
+
+    it("provides the types of the objects that are available at runtime for Javascript files within a collection", () => {
+        const scriptFile = "/collection/scripts/script.js";
+
+        expect(
+            getSemanticDiagnosticCodes(
+                {
+                    "/collection/bruno.json": '{ "type": "collection" }',
+                    [scriptFile]: "// @ts-check\nbru.getEnvVar(1);\n",
+                },
+                scriptFile,
+            ),
+        ).toEqual([2_345]); // Argument of type 'number' is not assignable to parameter of type 'string'.
+    });
+
+    it("resolves `chai` and `mocha` from the `node_modules` of the collection", () => {
+        const scriptFile = "/collection/scripts/script.js";
+
+        expect(
+            getSemanticDiagnosticCodes(
+                {
+                    "/collection/bruno.json": '{ "type": "collection" }',
+                    "/collection/node_modules/@types/chai/index.d.ts":
+                        "export function expect(value: unknown): { isChai: true };",
+                    "/collection/node_modules/@types/mocha/index.d.ts":
+                        "export function test(name: string): void;",
+                    [scriptFile]:
+                        "// @ts-check\n/** @type {number} */\nconst a = expect(1);\ntest(1);\n",
+                },
+                scriptFile,
+            ),
+        ).toEqual([2_322, 2_345]);
+    });
+
+    it("supports multiple collections in the same project", () => {
+        const files = {
+            "/collection1/bruno.json": '{ "type": "collection" }',
+            "/collection1/request.bru":
+                "script:pre-request {\n  bru.getEnvVar(1);\n}\n",
+            "/collection2/bruno.json": '{ "type": "collection" }',
+            "/collection2/request.bru":
+                "script:pre-request {\n  bru.getEnvVar(2);\n}\n",
+        };
+
+        expect(
+            getSemanticDiagnosticCodes(files, "/collection1/request.bru"),
+        ).toEqual([2_345]);
+        expect(
+            getSemanticDiagnosticCodes(files, "/collection2/request.bru"),
+        ).toEqual([2_345]);
+    });
+
+    it("does not provide the types of the objects that are available at runtime for files outside of collections", () => {
+        const scriptFile = "/other/script.js";
+        const languageService = createLanguageServiceWithPlugin({
+            "/collection/bruno.json": '{ "type": "collection" }',
+            [scriptFile]: "// @ts-check\nbru.getEnvVar(1);\n",
+        });
+
+        expect(
+            languageService
+                .getSemanticDiagnostics(scriptFile)
+                .map(({ code }) => code),
+        ).toEqual([2_304]); // Cannot find name 'bru'.
+    });
+
+    it("does not include the virtual file with the definitions in the results for navigation", () => {
+        const requestFile = "/collection/request.bru";
+        const content = "script:pre-request {\n  bru.getEnvVar('a');\n}\n";
+        const languageService = createLanguageServiceWithPlugin({
+            "/collection/bruno.json": '{ "type": "collection" }',
+            [requestFile]: content,
+        });
+
+        expect(
+            languageService.getDefinitionAtPosition(
+                requestFile,
+                content.indexOf("getEnvVar"),
+            ),
+        ).toEqual([]);
+    });
+});
+
+describe("handling of code blocks in bru files", () => {
+    const collectionFiles = {
+        "/collection/bruno.json": '{ "type": "collection" }',
+    };
+    const requestFile = "/collection/request.bru";
+    // Provides enough space in front of the code blocks for the wrappers with typed parameters.
+    const requestBlocks = `meta {
+  name: request
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://example.com/api/users/1
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+`;
+
+    it("does not report syntax errors for the content outside of code blocks", () => {
+        const languageService = createLanguageServiceWithPlugin({
+            ...collectionFiles,
+            [requestFile]: `${requestBlocks}
+docs {
+  This is not code: {
+}
+`,
+        });
+
+        expect(languageService.getSyntacticDiagnostics(requestFile)).toEqual(
+            [],
+        );
+        expect(languageService.getSemanticDiagnostics(requestFile)).toEqual([]);
+    });
+
+    it("reports diagnostics at the positions within the original file", () => {
+        const content = `${requestBlocks}
+script:pre-request {
+  const a = 1;
+  valeu;
+}
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([{ code: 2_304, text: "valeu" }]);
+    });
+
+    it("allows top-level `await` and `return` in code blocks", () => {
+        const content = `${requestBlocks}
+script:pre-request {
+  await bru.sleep(1);
+  return;
+}
+
+tests {
+  await bru.sleep(1);
+  return;
+}
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([]);
+    });
+
+    it("still reports `await` within non-async functions", () => {
+        const content = `${requestBlocks}
+script:pre-request {
+  function sleep() {
+    await bru.sleep(1);
+  }
+}
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([{ code: 1_308, text: "await" }]);
+    });
+
+    it("scopes the declarations of each code block separately", () => {
+        const content = `${requestBlocks}
+script:pre-request {
+  const a = 1;
+  var b = 1;
+}
+
+script:post-response {
+  const a = 2;
+  var b = 2;
+}
+
+tests {
+  const a = 3;
+  var b = 3;
+}
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([]);
+    });
+
+    it("reports the usage of objects that are not available in a code block", () => {
+        const content = `${requestBlocks}
+script:pre-request {
+  res.status;
+  req.getUrl();
+}
+
+assert {
+  res.status: eq 200
+  res.body.message: isString
+}
+
+script:post-response {
+  req.getUrl();
+  res.status;
+}
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([
+            // 'res' is possibly 'undefined'.
+            { code: 18_048, text: "res" },
+            // 'req' is possibly 'undefined'.
+            { code: 18_048, text: "req" },
+        ]);
+    });
+
+    it("only provides the parts of `bru.grpc` that are available in a code block of a gRPC request", () => {
+        const content = `meta {
+  name: request
+  type: grpc
+  seq: 1
+}
+
+grpc {
+  url: localhost:50051
+  method: /example.Greeter/SayHello
+  methodType: unary
+}
+
+script:grpc:before-call-start {
+  bru.grpc.request.url;
+  bru.grpc.response.statusCode;
+}
+
+docs {
+  Documentation that provides space for the wrapper of the next code block
+}
+
+script:grpc:after-call-end {
+  bru.grpc.response.statusCode;
+  bru.grpc.request.url;
+}
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([
+            // Property 'response' does not exist on type '{ request: ... }'.
+            { code: 2_339, text: "response" },
+            { code: 2_339, text: "request" },
+        ]);
+    });
+
+    it("does not shadow the unavailable objects if there is not enough space in front of the code block", () => {
+        const content = `get {
+  url: https://example.com
+}
+script:pre-request {
+  res.status;
+}
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([]);
+    });
+
+    it("does not provide formatting edits", () => {
+        const requestFileContent = `${requestBlocks}
+script:pre-request {
+const a   = 1;
+}
+`;
+        const languageService = createLanguageServiceWithPlugin({
+            ...collectionFiles,
+            [requestFile]: requestFileContent,
+        });
+
+        expect(
+            languageService.getFormattingEditsForDocument(
+                requestFile,
+                ts.getDefaultFormatCodeSettings(),
+            ),
+        ).toEqual([]);
+    });
+});
+
+function getDiagnosticTexts(
+    languageService: ts.LanguageService,
+    fileName: string,
+    fileContent: string,
+) {
+    return [
+        ...languageService.getSyntacticDiagnostics(fileName),
+        ...languageService.getSemanticDiagnostics(fileName),
+    ].map(({ code, start, length }) => ({
+        code,
+        text: fileContent.substring(start!, start! + length!),
+    }));
+}
+
+function getSemanticDiagnosticCodes(
+    files: Record<string, string>,
+    fileName: string,
+) {
+    return createLanguageServiceWithPlugin(files)
+        .getSemanticDiagnostics(fileName)
+        .map(({ code }) => code);
+}
+
 function createLanguageServiceWithPlugin(
     files: Record<string, string>,
     plugin = createPlugin({ yamlCollectionSupport: true }),

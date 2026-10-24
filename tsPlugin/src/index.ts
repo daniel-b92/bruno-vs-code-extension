@@ -1,6 +1,7 @@
 import * as ts from "typescript/lib/tsserverlibrary";
+import { provideRuntimeDefinitions } from "./languageServiceHost/provideRuntimeDefinitions";
 import { treatCollectionFilesLikeJavascript } from "./languageServiceHost/treatCollectionFilesLikeJavascript";
-import { maskYamlFilesForTypescriptServer } from "./yamlFiles/maskYamlFilesForTypescriptServer";
+import { maskFilesWithCodeBlocksForTypescriptServer } from "./languageServiceHost/maskFilesWithCodeBlocks";
 import { overrideCodeChanges } from "./languageService/codeChangeOverrides";
 import { overrideDiagnostics } from "./languageService/diagnosticsOverrides";
 import { overrideFormatting } from "./languageService/formattingOverrides";
@@ -17,8 +18,9 @@ function init(_modules: {
     const configuration = new PluginConfiguration();
 
     function create(info: ts.server.PluginCreateInfo) {
-        maskYamlFilesForTypescriptServer(info, configuration);
+        maskFilesWithCodeBlocksForTypescriptServer(info, configuration);
         treatCollectionFilesLikeJavascript(info);
+        provideRuntimeDefinitions(info);
 
         // Set up decorator object
         const proxy: ts.LanguageService = Object.create(null);
