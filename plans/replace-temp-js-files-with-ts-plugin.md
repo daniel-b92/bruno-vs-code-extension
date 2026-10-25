@@ -85,11 +85,56 @@ Steps 1 to 3 are implemented in `tsPlugin`. Verified with the plugin's jest test
 ### Not covered yet
 
 - **Yaml scripts still use plain `{}` blocks.** No async function wrapper and no shadowed `req` / `res` / gRPC `bru`. Needs a wrapper placement for `maskYamlCollectionFileContent` (the opening bracket position is flexible there) and the request type from `info.type`.
+    - Implications (checked with the plugin's language service, Yaml support enabled). Both are regressions compared to the temp files, which wrapped Yaml scripts like `.bru` blocks:
+        - **No shadowing.** In a `before-request` script, `const status = res.status;` gets no warning, and `res` hovers and completes as the full response object, although `res` is `undefined` at runtime. The same applies to `req` in `after-response`. For gRPC requests (`info.type: grpc`), `bru.grpc.response` in a `before-request` script is not flagged; the `.bru` equivalent reports 2339.
+        - **`var` declarations leak into the global scope of the project.** The script is a top-level block of a script file, so `var` is not scoped to it. Example: `users/get-user.yml` has `var token = bru.getEnvVar("token");` and `users/other.yml` has `var token = 42;`. `other.yml` then reports 2403 "Subsequent variable declarations must have the same type". Find references and rename on `token` cover both files, and `token` is suggested in every other script. At runtime, each script has its own scope. `let`, `const` and function declarations are block-scoped and not affected.
+        - Top-level `await` and `return` show no difference, since 1108 / 1375 / 1378 are filtered.
 - **Typed shadowing only applies if there is room.** A block directly after another code block (e.g. `script:post-response` right after `script:pre-request`, or `tests` after a script) often only has its own header line free. It then falls back to an untyped wrapper or a plain block: `req` / `res` are not shadowed and (for `tests`) top-level `await` relies on the diagnostic filter. Possible improvements: none known without inserting text; could be accepted as a limitation.
-- **Indentation in plain-block fallbacks.** The `{` is not at column 0, so refactorings that insert lines (e.g. "Extract to constant") indent relative to the `{`.
+    - Implications (checked with `maskBruFileContent` and the plugin's language service). With Bruno's block order, this is the normal case rather than an edge case:
+
+        ```
+        script:pre-request {    ← typed wrapper (enough masked meta / get / … content in front)
+        }
+
+        script:post-response {  ← 21 free characters: untyped `;async( )=>{` (typed needs 40)
+        }
+
+        tests {                 ← 6 free characters: plain `;{` (untyped needs 12)
+        }
+        ```
+
+        So `script:post-response` is untyped whenever the request has a pre-request script. `tests` is a plain block whenever any script block precedes it. gRPC scripts directly after another script are untyped (the typed wrapper needs at least 53 characters).
+        - **Diagnostics depend on the other blocks in the file.** `const url = req.getUrl();` in `script:post-response` reports 18048 "'req' is possibly 'undefined'" if there is no pre-request script, and nothing if there is one (`req` then hovers as the global `var req: {…}`). Adding an unrelated pre-request script makes the warning disappear.
+        - **gRPC:** `bru.grpc.request` in `script:grpc:after-call-end` after another script reports no 2339, and `bru` hovers as `var bru` instead of `(parameter) bru: BruForPostResponseGrpc`.
+        - **`var` leaks out of plain `tests` blocks**, as for Yaml. Example: `a.bru` has `var count = res.body.length;` in `tests`, `b.bru` has `var count = "none";`. `b.bru` reports 2403, and references and rename on `count` span both files.
+        - **Refactorings:** "Extract to inner function in arrow function" is not offered in plain blocks, since there is no enclosing function. "Extract to function in global scope" is still listed but yields no edits, because it inserts outside the code block. This happens for wrapped blocks too. So in a plain `tests` block, no working "Extract to function" is left.
 - **Stale collection detection.** Collection roots are cached per directory and only recomputed when the project's root file list changes. A `bruno.json` that is created while files are already open is picked up after the next change of the file list.
+    - Implications (reproduced with a real `tsserver` with `--useInferredProjectPerProjectRoot`, as used by VS Code):
+        1. Open `users/get-user.bru` in a folder without `bruno.json`: `bru` hovers as `any`.
+        2. Create `bruno.json` and edit `get-user.bru`: still `any`.
+        3. Open `users/list-users.bru` (same inferred project): `var bru: {…}` in both files.
+    - While stale, there are no completions for `bru.` / `req.` / `res.` / `expect(…).`, and hovers show `any`. No errors are shown, since "cannot find name" is filtered for the runtime names. To the user, IntelliSense just silently stops working.
+    - Realistic triggers:
+        - `bruno.json` is created by hand in a folder whose `.bru` files are already open.
+        - A `git checkout` / `pull` adds the collection root file while files are open.
+        - `bruno.json` is invalid at the moment the cache is recomputed and fixed afterwards, e.g. merge conflict markers, or `"type"` not yet `"collection"`, while another file is opened or closed.
+        - The same applies to `opencollection.yml`.
+    - Recovery: open or close any file in the same project, or restart the TS server. In configured projects, the root file list also changes whenever a matching file is created or deleted. The reverse case (`bruno.json` deleted) keeps the runtime definitions until the next change, which is harmless.
 - **Projects without `allowJs`.** The runtime file is JS. In a configured project that doesn't allow JS, the file is not part of the program, so the runtime objects stay untyped there.
+    - Implications: **outdated since step 4.** I checked this with a real `tsserver`: a repo-root `tsconfig.json` with `strict` and without `allowJs`, and a collection in `bruno/`.
+        - Neither `bruno/users/get-user.bru` nor `bruno/lib/helper.js` is part of the configured project. The `.bru` extension is registered as a JS extension, which is only matched with `allowJs`.
+        - Both files land in an inferred project instead. The runtime file is added there and `bru` is typed. With `"allowJs": true`, both files are in the configured project, with the same hovers.
+    - What remains: the compiler options of that `tsconfig.json` (`lib`, `target`, `strict`, `types`, …) don't apply to collection files. The inferred project's defaults apply instead (in VS Code: `js/ts.implicitProjectConfig.*`); the effect of individual options was not checked.
+    - Typical case: a collection inside a TypeScript repo with a hand-written root `tsconfig.json`. The `tsconfig.json` suggested by the extension contains `"allowJs": true`.
+    - Side effect: these files share one inferred project per workspace folder, which makes the next point more likely.
 - **Several collections in one inferred project.** Works (tested), but the duplicate global declarations are only silently ignored: the first declaration wins. A collection with different `@types/chai` / `@types/mocha` versions gets the types of the first one.
+    - Implications (reproduced with a real `tsserver`): a workspace with `public-api/` (no `node_modules`) and `admin-api/` (`node_modules/@types/chai`) in one inferred project.
+        - `admin-api` opened first: `expect` is `Chai.ExpectStatic` in both collections.
+        - `public-api` opened first: `expect` is `any` in both. So `admin-api` loses all completions and type checks for chai assertions (`expect(res.status).to.…`).
+    - The result depends on the order of the project's root files: the order in which files were opened (inferred project) or matched by `include` (configured project). For the user, this looks nondeterministic, and it changes after a TS server restart.
+    - Not limited to inferred projects. VS Code uses one inferred project per workspace folder, so this affects any workspace folder with two or more collections outside a configured project (e.g. `collections/public-api` and `collections/admin-api`). Since step 4, it also affects a configured project with `allowJs` whose `include` spans several collections.
+    - The content of the runtime file is the same for all collections, so only the resolution of `chai` / `mocha` differs. That covers missing typings and different major versions.
+- **Side observation (not new with the plugin):** Bruno most likely also provides `req` in post-response scripts. If so, the typed shadowing of `req` as `undefined` in `script:post-response` (taken over from the temp files) causes the false 18048 above. This should be checked against Bruno's runtime.
 
 ## Implementation status (step 4)
 
