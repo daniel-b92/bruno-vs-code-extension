@@ -13,6 +13,7 @@ The code blocks are analyzed as follows:
 - Only the code blocks of `.bru` files (and the scripts of Yaml collection files) are seen by the Typescript server. All other content is replaced by spaces, so that positions in the file stay the same.
 - Each code block of a `.bru` file is wrapped in an `async` arrow function by overwriting the characters in front of the opening bracket. This makes `await` and `return` available at the top level and scopes declarations per block. If the block is preceded by too little content, a plain block is used instead.
 - Hovers, completions and signature help are only provided within code blocks. Completions that would insert an `import` or `require` statement are not offered in `.bru` files, since they would be inserted outside of the code blocks.
+- `.bru` and `.yml` files are added to configured projects like Javascript files, so the compiler options of a `tsconfig.json` / `jsconfig.json` in the collection apply to them (only if it allows Javascript files via `allowJs`).
 - The objects that `Bruno` provides at runtime (`bru`, `req`, `res`, `test`, `expect`) are declared in a virtual file in the root folder of each collection. `chai` and `mocha` are resolved from the `node_modules` of the collection.
 
 ## Debugging

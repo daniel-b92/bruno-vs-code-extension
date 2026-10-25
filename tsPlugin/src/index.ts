@@ -11,6 +11,7 @@ import {
     overrideRename,
 } from "./languageService/navigationOverrides";
 import { PluginConfig, PluginConfiguration } from "./pluginConfiguration";
+import { includeCollectionFilesInConfiguredProjects } from "./projectService/includeCollectionFilesInConfiguredProjects";
 
 function init(_modules: {
     typescript: typeof import("typescript/lib/tsserverlibrary");
@@ -24,6 +25,7 @@ function init(_modules: {
             configuration.update(info.config);
         }
 
+        includeCollectionFilesInConfiguredProjects(info);
         maskFilesWithCodeBlocksForTypescriptServer(info, configuration);
         treatCollectionFilesLikeJavascript(info);
         provideRuntimeDefinitions(info, configuration);

@@ -106,6 +106,7 @@ Step 4 is implemented. Verified with the plugin's jest tests, the full jest run,
 - **Client:** the four providers (completion, hover, signature help, definitions), the update queue, the temp file creation / deletion, `TempJsFilesProvider`, `getTemporaryJsFileNameInFolder` and the client copy of the runtime definitions were deleted. `activateLanguageFeatures` only configures the plugin, loads the cache for relevant files, shows the warning for `.bru` files outside of collections and registers the line comment commands. Generated `tsconfig.json` files no longer exclude the temp file.
 
 - **Completions for relative `require` paths are computed by the plugin** (`relativeModulePathCompletions.ts`). The Typescript server derives the directory for path completions from the path of the source file (`getDirectoryPath(sourceFile.path)`), not from the module resolution of the host, so `require("./` would list the folder of the `.bru` file. The plugin lists the files (`.js`, `.cjs`, `.json`, without the extension for `.js`) and folders (except `node_modules` and hidden ones) relative to the collection root instead. Paths to packages (`require("lodash")`) are still provided by the Typescript server. `additionalContextRoots` are not considered for these paths.
+- **Collection files are part of configured projects** (point 7 above, `includeCollectionFilesInConfiguredProjects.ts`). Confirmed with a real `tsserver`: without further changes, `.bru` / `.yml` files land in an inferred project, and a collection `tsconfig.json` without any `.js` files reports "No inputs were found in config file" (18003), since the temp file at the collection root is gone. The plugin registers `.bru` and `.yml` as `extraFileExtensions` (script kind JS) via `projectService.setHostConfiguration`, so they match the `include` paths of configured projects that allow JS (`allowJs`). Setting the extensions reloads all projects, so it is done once per project service and deferred with `serverHost.setTimeout` (a synchronous reload within `create` would interfere with the project that is still being loaded). The project is first loaded without the files (and the error is reported briefly), then reloaded with them. Extensions registered by other plugins are kept. Projects without `allowJs` keep the previous behavior.
 
 ### Differences in behavior to the temp-file based implementation
 
@@ -115,7 +116,7 @@ Step 4 is implemented. Verified with the plugin's jest tests, the full jest run,
 
 ### Still open
 
-- **Not verified:** behavior inside VS Code itself (only a standalone `tsserver` was driven), a collection `tsconfig.json` / `jsconfig.json` (point 7 above) and Windows paths (the configured roots are normalized to forward slashes, the comparison is case sensitive).
+- **Not verified:** behavior inside VS Code itself (only a standalone `tsserver` was driven; e.g. whether the diagnostics of an open file are refreshed after the deferred reload of the projects) and Windows paths (the configured roots are normalized to forward slashes, the comparison is case sensitive).
 - **Leftover temp files** are only ignored, not deleted.
 - **`additionalContextRoots` in the plugin** have no effect for projects that do not get the configuration (e.g. when the plugin is used standalone without the extension).
 
