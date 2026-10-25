@@ -5,5 +5,5 @@
         "outDir": "out",
         "types": ["node"]
     },
-    "exclude": ["node_modules", "out", "**/*.test.ts"]
+    "exclude": ["node_modules", "out", "**/*.test.ts", "src/_testingUtils"]
 }
