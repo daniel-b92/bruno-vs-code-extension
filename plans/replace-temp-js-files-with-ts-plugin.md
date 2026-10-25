@@ -84,7 +84,6 @@ Steps 1 to 3 are implemented in `tsPlugin`. Verified with the plugin's jest test
 
 ### Not covered yet
 
-- **Refactorings insert nothing outside of code blocks.** "Extract to function in global scope" is still listed for code blocks, but yields no edits, because it inserts outside the code block. "Extract to inner function" works, since every code block is wrapped in a function (down to the `;()=>{` wrapper, see the fallback ladder above). Only the `;{` / `{` fallbacks remain as plain blocks. They only occur if less than 6 characters are free in front of a code block, which does not happen for standard block headers.
 - **Projects without `allowJs`.** The runtime file is JS. In a configured project that doesn't allow JS, the file is not part of the program, so the runtime objects stay untyped there.
     - Implications: **outdated since step 4.** I checked this with a real `tsserver`: a repo-root `tsconfig.json` with `strict` and without `allowJs`, and a collection in `bruno/`.
         - Neither `bruno/users/get-user.bru` nor `bruno/lib/helper.js` is part of the configured project. The `.bru` extension is registered as a JS extension, which is only matched with `allowJs`.

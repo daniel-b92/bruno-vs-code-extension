@@ -115,19 +115,27 @@ runtime:
                 ).toBeDefined();
             });
 
-            it("does not provide edits for refactorings that insert code outside of code blocks", () => {
+            it("does not offer refactorings that insert code outside of code blocks", () => {
                 const languageService =
                     createLanguageServiceWithPlugin(collectionFiles);
 
                 // Without filtering, the function would be added at the end of the file.
-                expect(
-                    getEditsForRefactor(
-                        languageService,
+                const descriptions = languageService
+                    .getApplicableRefactors(
                         requestFile,
                         getSelection(requestFileContent, '"a" + value'),
-                        "Extract to function in global scope",
-                    ),
-                ).toBeUndefined();
+                        {},
+                    )
+                    .flatMap(({ actions }) =>
+                        actions.map(({ description }) => description),
+                    );
+
+                expect(descriptions).toContain(
+                    "Extract to inner function in arrow function",
+                );
+                expect(descriptions).not.toContain(
+                    "Extract to function in global scope",
+                );
             });
 
             it.each([

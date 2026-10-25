@@ -131,4 +131,46 @@ export function overrideCodeChanges(
             ? adjustedEdits
             : undefined;
     };
+
+    // Refactorings that cannot be applied within code blocks (e.g. 'Extract to function in global scope') would be listed, but yield no edits when selected.
+    proxy.getApplicableRefactors = (
+        fileName,
+        positionOrRange,
+        preferences,
+        triggerReason,
+        kind,
+        includeInteractiveActions,
+    ) => {
+        const refactors = info.languageService.getApplicableRefactors(
+            fileName,
+            positionOrRange,
+            preferences,
+            triggerReason,
+            kind,
+            includeInteractiveActions,
+        );
+
+        if (!hasEmbeddedCodeBlocks(fileName)) {
+            return refactors;
+        }
+
+        return refactors
+            .map((refactor) => ({
+                ...refactor,
+                actions: refactor.actions.filter(
+                    ({ name, isInteractive }) =>
+                        // Interactive actions need arguments that are only known once the user has chosen a target.
+                        !isInteractive &&
+                        proxy.getEditsForRefactor(
+                            fileName,
+                            ts.getDefaultFormatCodeSettings(),
+                            positionOrRange,
+                            refactor.name,
+                            name,
+                            preferences,
+                        ) != undefined,
+                ),
+            }))
+            .filter(({ actions }) => actions.length > 0);
+    };
 }
