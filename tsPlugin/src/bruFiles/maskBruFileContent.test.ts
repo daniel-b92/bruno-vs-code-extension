@@ -39,37 +39,54 @@ script:pre-request {
         // The Typescript server needs to see the wrapper function starting at the beginning of a line (see `placeTokens`).
         expect(maskBruFileContent(content).split("\n")).toEqual([
             blank("get {"),
-            ";async( /** @type{undefined}".padEnd(38),
+            blank("  url: https://example.com/api/users/1"),
             blank("}"),
             "",
-            "*/" + " ".repeat(10) + "res )=>{",
+            ";$bP=async(  res)=>{",
             "  const a = 1;",
             "}",
             "",
         ]);
     });
 
-    it("wraps a code block without typed parameters if there is not enough space for them", () => {
-        const content = `get {
+    it("also shadows the unavailable objects for a code block that directly follows another one", () => {
+        const content = `script:post-response {
+  const a = 1;
 }
 
 script:pre-request {
+  const b = 2;
+}
+`;
+
+        expect(maskBruFileContent(content).split("\n")[4]).toBe(
+            ";$bP=async(  res)=>{",
+        );
+    });
+
+    it("wraps a code block without typed parameters if there are none for the block", () => {
+        const content = `get {
+  url: https://example.com/api/users/1
+}
+
+tests {
   const a = 1;
 }
 `;
 
         expect(maskBruFileContent(content).split("\n")).toEqual([
             blank("get {"),
+            ";async(".padEnd("  url: https://example.com/api/users/1".length),
             blank("}"),
             "",
-            ";async(" + " ".repeat(9) + ")=>{",
+            ")=>{".padStart("tests {".length),
             "  const a = 1;",
             "}",
             "",
         ]);
     });
 
-    it("only opens a plain block if there is no space for a wrapper", () => {
+    it("wraps a code block in a function without the `async` keyword if there is not enough space for it", () => {
         const content = `script:pre-request {
   const a = 1;
 }
@@ -81,7 +98,7 @@ tests {
 
         const maskedLines = maskBruFileContent(content).split("\n");
 
-        expect(maskedLines[4]).toBe("     ;{");
+        expect(maskedLines[4]).toBe(" ;()=>{");
         expect(maskedLines.slice(5, 7)).toEqual(["  const b = 2;", "}"]);
     });
 
@@ -97,10 +114,11 @@ script:post-response {
 }
 `;
 
-        expect(maskBruFileContent(content)).toContain("@type{undefined}");
-        // `req` is not available after the response was received.
-        expect(maskBruFileContent(content)).toMatch(/\breq\b/);
-        expect(maskBruFileContent(content)).not.toMatch(/\bres\b/);
+        const maskedContent = maskBruFileContent(content);
+
+        // `res` is not available before the request is sent, but `req` is available in all blocks.
+        expect(maskedContent).not.toContain("$bP");
+        expect(maskedContent).not.toMatch(/\b(req|res)\b/);
     });
 
     it("types the `bru` object for gRPC requests", () => {
@@ -120,7 +138,7 @@ script:grpc:before-call-start {
 `;
 
         expect(maskBruFileContent(content)).toMatch(
-            /@type\{BruForPreRequestGrpc}[\s\S]*\bbru\b/,
+            /;\$gP=async\([\s\S]*\bbru\)=>\{/,
         );
     });
 
@@ -163,7 +181,7 @@ docs {
 
         // A line break is needed, since the closing bracket could otherwise be part of a line comment.
         expect(maskBruFileContent(content)).toBe(
-            ";async(" + " ".repeat(9) + ")=>{\n  const a = 1;\n\n}",
+            ";$bP=async(  res)=>{\n  const a = 1;\n\n}",
         );
     });
 

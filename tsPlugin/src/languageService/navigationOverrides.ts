@@ -7,7 +7,10 @@ import { canReferToRuntimeDefinitions } from "../collection/runtimeContext";
 import { isTempJsFileOrRuntimeDefinitionsFile } from "../constants";
 import { hasEmbeddedCodeBlocks } from "../fileTypes";
 import { PluginConfiguration } from "../pluginConfiguration";
-import { grpcBruTypeNames } from "../runtimeDefinitions/getRuntimeDefinitionsFileContent";
+import {
+    grpcBruTypeNames,
+    wrapperVariableNames,
+} from "../runtimeDefinitions/getRuntimeDefinitionsFileContent";
 
 export function overrideHoverAndCompletions(
     info: ts.server.PluginCreateInfo,
@@ -99,7 +102,7 @@ export function overrideHoverAndCompletions(
                     !(
                         hasCodeBlocks &&
                         (entry.hasAction ||
-                            isTypeForGrpcScripts(entry) ||
+                            isDeclarationForBlockWrappers(entry) ||
                             isShadowingParameterOfCodeBlock(
                                 info,
                                 configuration,
@@ -123,14 +126,17 @@ export function overrideHoverAndCompletions(
 }
 
 /**
- * The types are only meant to be used for the parameters that shadow `bru` in code blocks (see `getBlockWrapperCandidates`).
+ * The types and variables are only meant to be used for wrapping code blocks (see `getBlockWrapperCandidates`).
  */
-function isTypeForGrpcScripts({ name }: ts.CompletionEntry) {
-    return Object.values(grpcBruTypeNames).includes(name);
+function isDeclarationForBlockWrappers({ name }: ts.CompletionEntry) {
+    return [
+        ...Object.values(grpcBruTypeNames),
+        ...Object.values(wrapperVariableNames),
+    ].includes(name);
 }
 
 /**
- * `req` and `res` are shadowed by parameters in code blocks, where they are not available (see `getBlockWrapperCandidates`).
+ * `res` is shadowed by a parameter in pre-request code blocks, where it is not available (see `getBlockWrapperCandidates`).
  * Parameters of the same name that are declared within the code are still suggested.
  */
 function isShadowingParameterOfCodeBlock(
@@ -140,10 +146,7 @@ function isShadowingParameterOfCodeBlock(
     position: number,
     { name, kind, source }: ts.CompletionEntry,
 ) {
-    if (
-        kind != ts.ScriptElementKind.parameterElement ||
-        !["req", "res"].includes(name)
-    ) {
+    if (kind != ts.ScriptElementKind.parameterElement || name != "res") {
         return false;
     }
 

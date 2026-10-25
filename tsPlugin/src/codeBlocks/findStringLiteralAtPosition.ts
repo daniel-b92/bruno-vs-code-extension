@@ -1,4 +1,5 @@
 import * as ts from "typescript/lib/tsserverlibrary";
+import { findDeepestNodeContainingPosition } from "./findDeepestNodeContainingPosition";
 
 /**
  * Returns the string literal, if the position is within its content.
@@ -26,24 +27,4 @@ export function findStringLiteralAtPosition(
     return start < position && (isClosed ? position < end : position <= end)
         ? node
         : undefined;
-}
-
-function findDeepestNodeContainingPosition(
-    sourceFile: ts.SourceFile,
-    position: number,
-) {
-    let current: ts.Node = sourceFile;
-    let child: ts.Node | undefined;
-
-    do {
-        child = ts.forEachChild(current, (candidate) =>
-            candidate.getStart(sourceFile) <= position &&
-            position <= candidate.getEnd()
-                ? candidate
-                : undefined,
-        );
-        current = child ?? current;
-    } while (child);
-
-    return current === sourceFile ? undefined : current;
 }

@@ -1,5 +1,5 @@
 import { CodeBlockName } from "../constants";
-import { grpcBruTypeNames } from "../runtimeDefinitions/getRuntimeDefinitionsFileContent";
+import { wrapperVariableNames } from "../runtimeDefinitions/getRuntimeDefinitionsFileContent";
 
 /**
  * Returns the possible wrappers for a code block, ordered by preference. Each wrapper is a list of tokens,
@@ -10,10 +10,14 @@ import { grpcBruTypeNames } from "../runtimeDefinitions/getRuntimeDefinitionsFil
  * that is used as an expression statement (so that no closing bracket is needed, which could not be inserted after the code block):
  * - Declarations are scoped like at runtime.
  * - `await` and `return` can be used at the top level of the block.
- * - Parameters (with types in JSDoc) shadow the global objects that are not available for the block.
+ * - Parameters shadow the global objects that are not available for the block (`res` in pre-request blocks, `bru` in gRPC blocks).
+ *
+ * The types of the parameters are inferred from the variable that the function is assigned to (see `wrapperVariableNames`),
+ * since the types could not be written down in the limited space in front of the code block.
  *
  * Wrappers with less information are used as a fallback, if there is not enough space in front of the code block (because the code block
  * is already preceded by e.g. only a few characters). Content cannot be inserted, since that would shift the positions of the following code.
+ * The wrapper without the `async` keyword is the shortest one that still scopes the declarations of the block, but `await` is reported as an error for it.
  * In the worst case, the code block is just treated as a normal block, so top-level `await` and `return` are reported as errors by the Typescript server.
  *
  * A leading semicolon avoids that the wrapper is handled as a continuation of the previous statement.
@@ -22,41 +26,23 @@ export function getBlockWrapperCandidates(
     blockName: CodeBlockName,
     isGrpcRequest: boolean,
 ) {
-    const parameters = getShadowingParameters(blockName, isGrpcRequest);
+    const typedWrapper = getTypedWrapper(blockName, isGrpcRequest);
 
     return [
-        ...(parameters.length > 0
-            ? [
-                  [
-                      // There must not be a line break between `async` and the parameters.
-                      ";async(",
-                      ...parameters.flatMap(({ name, type }, index) => [
-                          // A JSDoc comment can be spread across multiple lines.
-                          `${index > 0 ? "," : ""}/**`,
-                          `@type{${type}}`,
-                          "*/",
-                          name,
-                      ]),
-                      // There must not be a line break between the parameters and the arrow.
-                      ")=>{",
-                  ],
-              ]
-            : []),
+        ...(typedWrapper ? [typedWrapper] : []),
         [";async(", ")=>{"],
+        [";()=>{"],
         [";{"],
         ["{"],
     ];
 }
 
 /**
- * `req` is only available before the request is sent, but additionally in `tests` blocks.
- * `res` is only available after the response was received.
+ * `res` is only available after the response was received. `req` is available in all blocks of HTTP requests.
  * For gRPC requests, `req` and `res` are not available at all. Only the parts of `bru.grpc` that are available at the time are typed.
+ * Blocks without objects to shadow (e.g. `tests`) have no typed wrapper.
  */
-function getShadowingParameters(
-    blockName: CodeBlockName,
-    isGrpcRequest: boolean,
-): { name: string; type: string }[] {
+function getTypedWrapper(blockName: CodeBlockName, isGrpcRequest: boolean) {
     const isPreRequest = [
         CodeBlockName.PreRequestScript,
         CodeBlockName.GrpcBeforeCallStartScript,
@@ -64,19 +50,21 @@ function getShadowingParameters(
     ].includes(blockName);
 
     if (isGrpcRequest) {
-        return [
-            {
-                name: "bru",
-                type: isPreRequest
-                    ? grpcBruTypeNames.preRequest
-                    : grpcBruTypeNames.postResponse,
-            },
-        ];
+        return createTypedWrapper(
+            isPreRequest
+                ? wrapperVariableNames.grpcPreRequest
+                : wrapperVariableNames.grpcPostResponse,
+            "bru",
+        );
     }
 
     return isPreRequest
-        ? [{ name: "res", type: "undefined" }]
-        : blockName == CodeBlockName.Tests
-          ? []
-          : [{ name: "req", type: "undefined" }];
+        ? createTypedWrapper(wrapperVariableNames.preRequest, "res")
+        : undefined;
+}
+
+function createTypedWrapper(variableName: string, parameterName: string) {
+    // There must not be a line break between `async` and the opening parenthesis or between the closing parenthesis and the arrow.
+    // The function starts within the first token, which is always placed at the start of a line (see `placeTokens`).
+    return [`;${variableName}=async(`, `${parameterName})=>{`];
 }

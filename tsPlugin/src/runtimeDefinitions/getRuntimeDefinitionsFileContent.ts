@@ -24,6 +24,7 @@ var expect;
 /** @type {typeof import("mocha").test} */
 var test;`,
         getTypeDefinitionsForGrpcScripts(),
+        getWrapperVariableDefinitions(),
     ].join("\n\n");
 
     return content;
@@ -38,6 +39,26 @@ function getTypeDefinitionsForGrpcScripts() {
     return `/** @typedef {Omit<typeof bru, "grpc"> & { grpc: Pick<typeof bru.grpc, "request"> }} ${grpcBruTypeNames.preRequest} */
 /** @typedef {Omit<typeof bru, "grpc"> & { grpc: Pick<typeof bru.grpc, "response"> }} ${grpcBruTypeNames.postResponse} */`;
 }
+
+/**
+ * The code blocks are wrapped in arrow functions that are assigned to these variables (see `getBlockWrapperCandidates`).
+ * That way, the types of the parameters that shadow the unavailable objects are inferred from the variable and do not need to be written in the (very limited) space in front of the code block.
+ * The names are kept short for the same reason.
+ */
+function getWrapperVariableDefinitions() {
+    return `/** @type {(res: undefined) => any} */
+var ${wrapperVariableNames.preRequest};
+/** @type {(bru: ${grpcBruTypeNames.preRequest}) => any} */
+var ${wrapperVariableNames.grpcPreRequest};
+/** @type {(bru: ${grpcBruTypeNames.postResponse}) => any} */
+var ${wrapperVariableNames.grpcPostResponse};`;
+}
+
+export const wrapperVariableNames = {
+    preRequest: "$bP",
+    grpcPreRequest: "$gP",
+    grpcPostResponse: "$gR",
+};
 
 export const grpcBruTypeNames = {
     preRequest: "BruForPreRequestGrpc",

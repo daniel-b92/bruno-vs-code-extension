@@ -434,7 +434,6 @@ describe("handling of code blocks in bru files", () => {
         "/collection/bruno.json": '{ "type": "collection" }',
     };
     const requestFile = "/collection/request.bru";
-    // Provides enough space in front of the code blocks for the wrappers with typed parameters.
     const requestBlocks = `meta {
   name: request
   type: http
@@ -564,7 +563,7 @@ tests {
         ).toEqual([]);
     });
 
-    it("reports the usage of objects that are not available in a code block", () => {
+    it("reports the usage of `res` in a pre-request block, but not the usage of `req` in any block", () => {
         const content = `${requestBlocks}
 script:pre-request {
   res.status;
@@ -594,8 +593,6 @@ script:post-response {
         ).toEqual([
             // 'res' is possibly 'undefined'.
             { code: 18_048, text: "res" },
-            // 'req' is possibly 'undefined'.
-            { code: 18_048, text: "req" },
         ]);
     });
 
@@ -615,10 +612,6 @@ grpc {
 script:grpc:before-call-start {
   bru.grpc.request.url;
   bru.grpc.response.statusCode;
-}
-
-docs {
-  Documentation that provides space for the wrapper of the next code block
 }
 
 script:grpc:after-call-end {
@@ -643,11 +636,13 @@ script:grpc:after-call-end {
         ]);
     });
 
-    it("does not shadow the unavailable objects if there is not enough space in front of the code block", () => {
-        const content = `get {
-  url: https://example.com
+    it("shadows the unavailable objects for a code block that directly follows another code block", () => {
+        const content = `script:post-response {
+  req.getUrl();
 }
+
 script:pre-request {
+  req.getUrl();
   res.status;
 }
 `;
@@ -661,7 +656,113 @@ script:pre-request {
                 requestFile,
                 content,
             ),
+        ).toEqual([{ code: 18_048, text: "res" }]);
+    });
+
+    it("allows top-level `await` in a `tests` block that only has little space in front of it", () => {
+        const content = `script:pre-request {
+  const a = 1;
+}
+
+tests {
+  const status = await Promise.resolve(res.status);
+  for await (const value of [status]) {
+    status + value;
+  }
+}
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
         ).toEqual([]);
+    });
+
+    it("still reports `await` within non-async functions of a `tests` block that only has little space in front of it", () => {
+        const content = `script:pre-request {
+  const a = 1;
+}
+
+tests {
+  function sleep() {
+    await Promise.resolve();
+  }
+  const values = [1].map((value) => {
+    for await (const other of [value]) {
+      other;
+    }
+  });
+}
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([
+            { code: 1_308, text: "await" },
+            { code: 1_103, text: "await" },
+        ]);
+    });
+
+    it("does not leak `var` declarations of a `tests` block into other files", () => {
+        const otherFile = "/collection/other.bru";
+        const content = `script:pre-request {
+  const a = 1;
+}
+
+tests {
+  var count = res.status;
+}
+`;
+        const otherContent = `script:pre-request {
+  const a = 1;
+}
+
+tests {
+  var count = "none";
+}
+`;
+        const languageService = createLanguageServiceWithPlugin({
+            ...collectionFiles,
+            [requestFile]: content,
+            [otherFile]: otherContent,
+        });
+
+        expect(
+            getDiagnosticTexts(languageService, requestFile, content),
+        ).toEqual([]);
+        expect(
+            getDiagnosticTexts(languageService, otherFile, otherContent),
+        ).toEqual([]);
+    });
+
+    it("does not suggest the variables that are used for wrapping code blocks", () => {
+        const content = "script:pre-request {\n  \n}\n";
+        const languageService = createLanguageServiceWithPlugin({
+            ...collectionFiles,
+            [requestFile]: content,
+        });
+
+        const names = getCompletionNames(
+            languageService,
+            requestFile,
+            content.indexOf("\n}") - 1,
+        );
+
+        expect(names).toContain("bru");
+        expect(names.filter((name) => name.startsWith("$"))).toEqual([]);
     });
 
     it("does not provide formatting edits", () => {
@@ -695,11 +796,6 @@ describe("handling of scripts in Yaml files", () => {
             scriptType: "before-request",
             usedObject: "res",
             code: "res.status;",
-        },
-        {
-            scriptType: "after-response",
-            usedObject: "req",
-            code: "req.getUrl();",
         },
     ])(
         "reports the usage of `$usedObject` in a script of type '$scriptType'",
@@ -1056,7 +1152,7 @@ headers {
 }
 `;
 
-        it("only suggests the objects that are available in a code block", () => {
+        it("suggests parameters that are declared within the code, even if they are named like the objects that are not available", () => {
             const { content, position } = removeCursor(
                 `${requestBlocks}
 script:pre-request {
@@ -1094,7 +1190,7 @@ script:post-response {
             expect(namesInPreRequestScript).toContain("res");
             expect(namesInPreRequestScript).toContain("req");
             expect(namesInPostResponseScript).toContain("res");
-            expect(namesInPostResponseScript.includes("req")).toBe(false);
+            expect(namesInPostResponseScript).toContain("req");
         });
 
         it("does not suggest the objects that are not available in a code block", () => {

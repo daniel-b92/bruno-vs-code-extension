@@ -1,5 +1,6 @@
 import * as ts from "typescript/lib/tsserverlibrary";
 import { canReferToRuntimeDefinitions } from "../collection/runtimeContext";
+import { filterAwaitInBlockWrappers } from "../diagnostics/filterAwaitInBlockWrappers";
 import { filterDefaultDiagnostics } from "../diagnostics/filterDefaultDiagnostics";
 import { hasEmbeddedCodeBlocks } from "../fileTypes";
 import { enableTypeCheckingForJsFile } from "../languageServiceHost/enableTypeCheckingForJsFile";
@@ -35,18 +36,22 @@ export function overrideDiagnostics(
 
         // The ts server always reports errors when importing a Javascript function in a .bru or .yml file.
         return hasCodeBlocks
-            ? allDiagnostics.filter(
-                  // Do not show diagnostics that only make sense for Typescript files.
-                  // Code blocks should be treated like Javascript functions instead.
-                  // A list of diagnostics can be found here: https://github.com/microsoft/TypeScript/blob/main/src/compiler/diagnosticMessages.json
-                  ({ code }) =>
-                      ![
-                          7_006, 7_031, 18_046,
-                          // Code blocks that could not be wrapped in a function (see `getBlockWrapperCandidates`) are handled as normal blocks.
-                          // For these, `return` and top-level `await` are reported as errors.
-                          1_108,
-                          1_375, 1_378,
-                      ].includes(code),
+            ? filterAwaitInBlockWrappers(
+                  info,
+                  fileName,
+                  allDiagnostics.filter(
+                      // Do not show diagnostics that only make sense for Typescript files.
+                      // Code blocks should be treated like Javascript functions instead.
+                      // A list of diagnostics can be found here: https://github.com/microsoft/TypeScript/blob/main/src/compiler/diagnosticMessages.json
+                      ({ code }) =>
+                          ![
+                              7_006, 7_031, 18_046,
+                              // Code blocks that could not be wrapped in a function (see `getBlockWrapperCandidates`) are handled as normal blocks.
+                              // For these, `return` and top-level `await` are reported as errors.
+                              1_108,
+                              1_375, 1_378,
+                          ].includes(code),
+                  ),
               )
             : allDiagnostics;
     };

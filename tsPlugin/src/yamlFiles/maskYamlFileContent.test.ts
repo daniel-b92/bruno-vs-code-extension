@@ -25,9 +25,9 @@ runtime:
             blank("info:"),
             blank("  name: test"),
             blank("runtime:"),
-            ";async(".padEnd("  scripts:".length),
-            "/** @type{undefined}".padEnd("    - type: before-request".length),
-            "*/    res )=>{",
+            blank("  scripts:"),
+            ";$bP=async(".padEnd("    - type: before-request".length),
+            "       res)=>{",
             "        const a = 1;",
             "}" + blank("   - type: tests"),
             ";async(  )=>{",
@@ -51,9 +51,9 @@ request:
             blank("meta:"),
             blank("  name: folder"),
             blank("request:"),
-            ";async(".padEnd("  scripts:".length),
-            "/** @type{undefined}".padEnd("    - type: after-response".length),
-            "*/    req )=>{",
+            blank("  scripts:"),
+            blank("    - type: after-response"),
+            ";async(   )=>{",
             '        bru.setVar("a", res.status);',
             "}",
         ]);
@@ -75,9 +75,9 @@ request:
         ).toEqual([
             blank("opencollection: 1.0.0"),
             blank("request:"),
-            ";async(".padEnd("  scripts:".length),
-            "/** @type{undefined}".padEnd("    - type: before-request".length),
-            "*/    res )=>{",
+            blank("  scripts:"),
+            ";$bP=async(".padEnd("    - type: before-request".length),
+            "       res)=>{",
             '        bru.setVar("a", 1);',
             "}",
         ]);
@@ -188,7 +188,11 @@ request:
         expect(
             sourceFile.statements
                 .filter(ts.isExpressionStatement)
-                .map(({ expression }) => expression.kind),
+                .map(({ expression }) =>
+                    ts.isBinaryExpression(expression)
+                        ? expression.right.kind
+                        : expression.kind,
+                ),
         ).toEqual([ts.SyntaxKind.ArrowFunction, ts.SyntaxKind.ArrowFunction]);
     });
 
@@ -207,7 +211,7 @@ runtime:
 `;
 
         expect(maskYamlCollectionFileContent("request.yml", content)).toMatch(
-            /@type\{BruForPreRequestGrpc}[\s\S]*\bbru\b/,
+            /;\$gP=async\([\s\S]*\bbru\)=>\{/,
         );
     });
 
@@ -225,10 +229,9 @@ runtime:
             content,
         );
 
-        // `req` is not available after the response was received.
-        expect(maskedContent).toContain("@type{undefined}");
-        expect(maskedContent).toMatch(/\breq\b/);
-        expect(maskedContent).not.toMatch(/\bres\b/);
+        // `res` is not available before the request is sent, but `req` is available in all scripts.
+        expect(maskedContent).not.toContain("$bP");
+        expect(maskedContent).not.toMatch(/\b(req|res)\b/);
     });
 });
 
