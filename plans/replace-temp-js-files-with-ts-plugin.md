@@ -84,11 +84,6 @@ Steps 1 to 3 are implemented in `tsPlugin`. Verified with the plugin's jest test
 
 ### Not covered yet
 
-- **Yaml scripts still use plain `{}` blocks.** No async function wrapper and no shadowed `req` / `res` / gRPC `bru`. Needs a wrapper placement for `maskYamlCollectionFileContent` (the opening bracket position is flexible there) and the request type from `info.type`.
-    - Implications (checked with the plugin's language service, Yaml support enabled). Both are regressions compared to the temp files, which wrapped Yaml scripts like `.bru` blocks:
-        - **No shadowing.** In a `before-request` script, `const status = res.status;` gets no warning, and `res` hovers and completes as the full response object, although `res` is `undefined` at runtime. The same applies to `req` in `after-response`. For gRPC requests (`info.type: grpc`), `bru.grpc.response` in a `before-request` script is not flagged; the `.bru` equivalent reports 2339.
-        - **`var` declarations leak into the global scope of the project.** The script is a top-level block of a script file, so `var` is not scoped to it. Example: `users/get-user.yml` has `var token = bru.getEnvVar("token");` and `users/other.yml` has `var token = 42;`. `other.yml` then reports 2403 "Subsequent variable declarations must have the same type". Find references and rename on `token` cover both files, and `token` is suggested in every other script. At runtime, each script has its own scope. `let`, `const` and function declarations are block-scoped and not affected.
-        - Top-level `await` and `return` show no difference, since 1108 / 1375 / 1378 are filtered.
 - **Typed shadowing only applies if there is room.** A block directly after another code block (e.g. `script:post-response` right after `script:pre-request`, or `tests` after a script) often only has its own header line free. It then falls back to an untyped wrapper or a plain block: `req` / `res` are not shadowed and (for `tests`) top-level `await` relies on the diagnostic filter. Possible improvements: none known without inserting text; could be accepted as a limitation.
     - Implications (checked with `maskBruFileContent` and the plugin's language service). With Bruno's block order, this is the normal case rather than an edge case:
 

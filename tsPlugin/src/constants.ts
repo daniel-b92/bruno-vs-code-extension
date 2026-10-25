@@ -65,6 +65,14 @@ export enum ScriptType {
 }
 
 /**
+ * Only the type that is relevant for the plugin.
+ * Same as `FileInfoType` for Yaml files in the shared folder of the extension.
+ */
+export enum FileInfoType {
+    Grpc = "grpc",
+}
+
+/**
  * Same as `InbuiltFunctionName` in the shared folder of the extension.
  * The first parameter of these functions is the name of a variable, for which the extension provides hovers and completions itself.
  */

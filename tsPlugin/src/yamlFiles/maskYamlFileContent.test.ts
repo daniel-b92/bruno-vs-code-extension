@@ -6,7 +6,7 @@ import {
 } from "./maskYamlFileContent";
 
 describe("maskYamlCollectionFileContent", () => {
-    it("keeps only the code of scripts in request files and wraps each script in a block", () => {
+    it("keeps only the code of scripts in request files and wraps each script in an arrow function", () => {
         const content = `info:
   name: test
 runtime:
@@ -25,12 +25,12 @@ runtime:
             blank("info:"),
             blank("  name: test"),
             blank("runtime:"),
-            blank("  scripts:"),
-            blank("    - type: before-request"),
-            blank("      code: |") + "{",
+            ";async(".padEnd("  scripts:".length),
+            "/** @type{undefined}".padEnd("    - type: before-request".length),
+            "*/    res )=>{",
             "        const a = 1;",
             "}" + blank("   - type: tests"),
-            blank("      code: ") + "{",
+            ";async(  )=>{",
             '        test("x", () => {});',
             "}",
         ]);
@@ -51,9 +51,9 @@ request:
             blank("meta:"),
             blank("  name: folder"),
             blank("request:"),
-            blank("  scripts:"),
-            blank("    - type: after-response"),
-            blank("      code: |") + "{",
+            ";async(".padEnd("  scripts:".length),
+            "/** @type{undefined}".padEnd("    - type: after-response".length),
+            "*/    req )=>{",
             '        bru.setVar("a", res.status);',
             "}",
         ]);
@@ -75,9 +75,9 @@ request:
         ).toEqual([
             blank("opencollection: 1.0.0"),
             blank("request:"),
-            blank("  scripts:"),
-            blank("    - type: before-request"),
-            blank("      code: |") + "{",
+            ";async(".padEnd("  scripts:".length),
+            "/** @type{undefined}".padEnd("    - type: before-request".length),
+            "*/    res )=>{",
             '        bru.setVar("a", 1);',
             "}",
         ]);
@@ -143,7 +143,7 @@ request:
             blank("runtime:"),
             blank("  scripts:"),
             blank("    - type: tests"),
-            blank("      code: |") + "{",
+            ";async(   )=>{",
             "        test();",
             "}",
         ]);
@@ -185,10 +185,50 @@ request:
             ts.ScriptTarget.Latest,
         );
 
-        expect(sourceFile.statements.map(({ kind }) => kind)).toEqual([
-            ts.SyntaxKind.Block,
-            ts.SyntaxKind.Block,
-        ]);
+        expect(
+            sourceFile.statements
+                .filter(ts.isExpressionStatement)
+                .map(({ expression }) => expression.kind),
+        ).toEqual([ts.SyntaxKind.ArrowFunction, ts.SyntaxKind.ArrowFunction]);
+    });
+
+    it("types the `bru` object for gRPC requests", () => {
+        const content = `info:
+  name: request
+  type: grpc
+grpc:
+  url: localhost:50051
+  method: /example.Greeter/SayHello
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const a = 1;
+`;
+
+        expect(maskYamlCollectionFileContent("request.yml", content)).toMatch(
+            /@type\{BruForPreRequestGrpc}[\s\S]*\bbru\b/,
+        );
+    });
+
+    it("types the parameters depending on the type of the script", () => {
+        const content = `info:
+  name: request
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const a = 1;
+`;
+        const maskedContent = maskYamlCollectionFileContent(
+            "request.yml",
+            content,
+        );
+
+        // `req` is not available after the response was received.
+        expect(maskedContent).toContain("@type{undefined}");
+        expect(maskedContent).toMatch(/\breq\b/);
+        expect(maskedContent).not.toMatch(/\bres\b/);
     });
 });
 

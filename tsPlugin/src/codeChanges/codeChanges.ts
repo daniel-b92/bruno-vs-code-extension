@@ -1,44 +1,104 @@
 import * as ts from "typescript/lib/tsserverlibrary";
 import { CodeRange, getCodeRangesGetter } from "../codeBlocks/getCodeRanges";
 import { isFileFromYamlCollection } from "../collection/collectionFormat";
+import { isLineBreak } from "../codeBlocks/maskContent";
 import { getOriginalFileContent } from "../fileContent";
 import { hasEmbeddedCodeBlocks } from "../fileTypes";
 import { getIndentationOfScripts } from "../yamlFiles/getIndentationOfScripts";
 
 /**
- * The Typescript server indents the top-level statements of scripts in Yaml files relative to column 0,
- * since each script is wrapped in a block that is not indented (see `maskYamlCollectionFileContent`).
- * Inserted lines (e.g. when extracting a constant) would therefore end the Yaml block scalar.
- * To avoid this, the base indentation is set to the indentation of the scripts minus one indentation level for the wrapping block.
+ * Tabs are not allowed for indenting Yaml content.
  */
 export function getFormatOptionsForFile(
     info: ts.server.PluginCreateInfo,
     fileName: string,
     formatOptions: ts.FormatCodeSettings,
-    range: { start: number; end: number },
 ): ts.FormatCodeSettings {
-    if (!isFileFromYamlCollection(info, fileName)) {
-        return formatOptions;
-    }
+    return isFileFromYamlCollection(info, fileName)
+        ? { ...formatOptions, convertTabsToSpaces: true }
+        : formatOptions;
+}
 
-    const originalContent = getOriginalFileContent(info, fileName);
-    const scriptIndentation = originalContent
-        ? getIndentationOfScripts(fileName, originalContent, range)
-        : undefined;
+/**
+ * The Typescript server indents the lines it inserts into scripts of Yaml files relative to the start of the wrapper function of the script,
+ * which is always at the start of a line (see `maskYamlCollectionFileContent`). Such lines would end the Yaml block scalar of the script
+ * (e.g. when extracting a constant), since they are indented less than the script.
+ * To avoid this, the indentation of the scripts minus one indentation level for the wrapper function is added to the inserted lines.
+ *
+ * The range is the range that was requested from the Typescript server for the given file.
+ */
+export function adjustIndentationOfChangesForYamlScripts(
+    info: ts.server.PluginCreateInfo,
+    fileName: string,
+    formatOptions: ts.FormatCodeSettings,
+    range: { start: number; end: number },
+    changes: readonly ts.FileTextChanges[],
+): ts.FileTextChanges[] {
     const indentSize =
         formatOptions.indentSize ??
         ts.getDefaultFormatCodeSettings().indentSize!;
 
-    if (scriptIndentation == undefined || scriptIndentation < indentSize) {
-        return formatOptions;
-    }
+    return changes.map((fileChanges) => {
+        const originalContent = isFileFromYamlCollection(
+            info,
+            fileChanges.fileName,
+        )
+            ? getOriginalFileContent(info, fileChanges.fileName)
+            : undefined;
+        const scriptIndentation = originalContent
+            ? getIndentationOfScripts(
+                  fileChanges.fileName,
+                  originalContent,
+                  fileChanges.fileName == fileName
+                      ? range
+                      : { start: 0, end: Number.MAX_SAFE_INTEGER },
+              )
+            : undefined;
 
-    return {
-        ...formatOptions,
-        baseIndentSize: scriptIndentation - indentSize,
-        // Tabs are not allowed for indenting Yaml content.
-        convertTabsToSpaces: true,
-    };
+        if (
+            originalContent == undefined ||
+            scriptIndentation == undefined ||
+            scriptIndentation <= indentSize
+        ) {
+            return fileChanges;
+        }
+
+        const additionalIndentation = " ".repeat(
+            scriptIndentation - indentSize,
+        );
+
+        return {
+            ...fileChanges,
+            textChanges: fileChanges.textChanges.map((textChange) => ({
+                ...textChange,
+                newText: indentInsertedLines(
+                    textChange.newText,
+                    additionalIndentation,
+                    isAtStartOfLine(originalContent, textChange.span.start),
+                ),
+            })),
+        };
+    });
+}
+
+/**
+ * Lines that are empty are not indented. The first line is only indented, if the text is inserted at the start of a line.
+ */
+function indentInsertedLines(
+    text: string,
+    indentation: string,
+    isInsertedAtStartOfLine: boolean,
+) {
+    const lineBreak = /(\r\n|\r|\n|\u2028|\u2029)(?=[^\r\n\u2028\u2029])/g;
+    const indentedText = text.replace(lineBreak, `$1${indentation}`);
+
+    return isInsertedAtStartOfLine && text.length > 0 && !isLineBreak(text[0])
+        ? indentation + indentedText
+        : indentedText;
+}
+
+function isAtStartOfLine(content: string, index: number) {
+    return index == 0 || isLineBreak(content[index - 1]);
 }
 
 interface OriginalFile {
