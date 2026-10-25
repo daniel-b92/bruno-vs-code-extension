@@ -2,6 +2,7 @@ import * as ts from "typescript/lib/tsserverlibrary";
 import { provideRuntimeDefinitions } from "./languageServiceHost/provideRuntimeDefinitions";
 import { treatCollectionFilesLikeJavascript } from "./languageServiceHost/treatCollectionFilesLikeJavascript";
 import { maskFilesWithCodeBlocksForTypescriptServer } from "./languageServiceHost/maskFilesWithCodeBlocks";
+import { disposeCollectionLookup } from "./collection/collectionLookup";
 import { overrideCodeChanges } from "./languageService/codeChangeOverrides";
 import { overrideDiagnostics } from "./languageService/diagnosticsOverrides";
 import { overrideFormatting } from "./languageService/formattingOverrides";
@@ -49,6 +50,13 @@ function init(_modules: {
         overrideReferencesAndDefinitions(info, proxy, configuration);
         overrideCodeChanges(info, proxy);
         overrideFormatting(info, proxy);
+
+        // The Typescript server disposes the language service when the project is closed.
+        const disposeOriginally = proxy.dispose.bind(proxy);
+        proxy.dispose = () => {
+            disposeCollectionLookup(info);
+            disposeOriginally();
+        };
 
         return proxy;
     }

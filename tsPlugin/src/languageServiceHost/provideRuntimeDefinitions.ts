@@ -1,4 +1,5 @@
 import * as ts from "typescript/lib/tsserverlibrary";
+import { getCollectionLookup } from "../collection/collectionLookup";
 import { getRuntimeDefinitionsFolder } from "../collection/runtimeContext";
 import {
     getRuntimeDefinitionsFileName,
@@ -32,27 +33,9 @@ export function provideRuntimeDefinitions(
     let snapshot: ts.IScriptSnapshot | undefined;
 
     // Determining the collection for a file requires reading from the file system, but the root file names are requested very often.
-    // So the collections are only determined again, when the root files change.
+    // So the collections are cached. They are determined again, when the root files change.
+    const collectionLookup = getCollectionLookup(info);
     let cachedFileNames: string[] = [];
-    let cachedRootsForDirectories = new Map<string, string | undefined>();
-
-    // The additional context roots can change at any time.
-    configuration.onDidChange(() => {
-        cachedRootsForDirectories = new Map();
-    });
-
-    const getFolderForDefinitions = (fileName: string) => {
-        const directory = fileName.substring(0, fileName.lastIndexOf("/"));
-
-        if (!cachedRootsForDirectories.has(directory)) {
-            cachedRootsForDirectories.set(
-                directory,
-                getRuntimeDefinitionsFolder(info, configuration, fileName),
-            );
-        }
-
-        return cachedRootsForDirectories.get(directory);
-    };
 
     host.getScriptFileNames = () => {
         // Temporary files from older versions of the extension would declare the runtime objects a second time.
@@ -62,12 +45,16 @@ export function provideRuntimeDefinitions(
 
         if (!haveSameElements(originalFileNames, cachedFileNames)) {
             cachedFileNames = originalFileNames.slice();
-            cachedRootsForDirectories = new Map();
+            collectionLookup.clear();
         }
 
         const runtimeDefinitionsFiles = new Set(
             originalFileNames.flatMap((fileName) => {
-                const folder = getFolderForDefinitions(fileName);
+                const folder = getRuntimeDefinitionsFolder(
+                    info,
+                    configuration,
+                    fileName,
+                );
 
                 return folder
                     ? [`${folder}/${getRuntimeDefinitionsFileName()}`]

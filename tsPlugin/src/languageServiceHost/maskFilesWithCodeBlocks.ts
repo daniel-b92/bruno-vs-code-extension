@@ -1,6 +1,7 @@
 import * as ts from "typescript/lib/tsserverlibrary";
 import { maskBruFileContent } from "../bruFiles/maskBruFileContent";
 import { isFileFromYamlCollection } from "../collection/collectionFormat";
+import { getCollectionLookup } from "../collection/collectionLookup";
 import { originalSnapshotGettersForHosts } from "../fileContent";
 import { hasEmbeddedCodeBlocks, isBruFile } from "../fileTypes";
 import { PluginConfiguration } from "../pluginConfiguration";
@@ -29,29 +30,37 @@ export function maskFilesWithCodeBlocksForTypescriptServer(
     const getOriginalSnapshot = host.getScriptSnapshot.bind(host);
     const getOriginalScriptVersion = host.getScriptVersion.bind(host);
     originalSnapshotGettersForHosts.set(host, getOriginalSnapshot);
-    // A new snapshot is only created, if the content of a file or the configuration changes.
+    // A new snapshot is only created, if the content of a file, the configuration or the collections change.
+    // The masked content of Yaml files depends on whether they belong to a collection.
     let maskedSnapshots = new WeakMap<ts.IScriptSnapshot, ts.IScriptSnapshot>();
-    let configurationVersion = 0;
+    let maskingVersion = 0;
 
-    configuration.onDidChange(() => {
+    const invalidateMaskedSnapshots = () => {
         maskedSnapshots = new WeakMap();
-        configurationVersion++;
+        maskingVersion++;
         // The project is not set when the plugin is used without a Typescript server (e.g. in tests).
         if (info.project) {
+            // The Typescript server only updates the program of a project, if the project is marked as dirty (which is internal to the Typescript server).
+            (
+                info.project as unknown as { markAsDirty?: () => void }
+            ).markAsDirty?.();
             info.project.refreshDiagnostics();
         }
-    });
+    };
+
+    configuration.onDidChange(invalidateMaskedSnapshots);
+    getCollectionLookup(info).onDidChange(invalidateMaskedSnapshots);
 
     // The Typescript server only requests a new snapshot for a file, if the project version and the version of the file change.
     if (host.getProjectVersion) {
         const getOriginalProjectVersion = host.getProjectVersion.bind(host);
         host.getProjectVersion = () =>
-            `${getOriginalProjectVersion()}-${configurationVersion}`;
+            `${getOriginalProjectVersion()}-${maskingVersion}`;
     }
 
     host.getScriptVersion = (fileName) =>
         hasEmbeddedCodeBlocks(fileName)
-            ? `${getOriginalScriptVersion(fileName)}-${configurationVersion}`
+            ? `${getOriginalScriptVersion(fileName)}-${maskingVersion}`
             : getOriginalScriptVersion(fileName);
 
     host.getScriptSnapshot = (fileName) => {

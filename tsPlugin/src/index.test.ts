@@ -1,8 +1,13 @@
-import { describe, it, expect } from "@jest/globals";
+import { describe, it, expect, beforeEach } from "@jest/globals";
 import { dirname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
 import init = require("./index");
 import { PluginConfig } from "./pluginConfiguration";
+
+beforeEach(() => {
+    directoryWatchers.length = 0;
+    fileWatchers.length = 0;
+});
 
 const helperModule = `function helper() {
     return 1;
@@ -426,6 +431,124 @@ describe("inbuilt runtime definitions", () => {
                 content.indexOf("getEnvVar"),
             ),
         ).toEqual([]);
+    });
+});
+
+describe("detection of collections", () => {
+    describe.each([
+        {
+            format: "bru",
+            collectionRootFile: "bruno.json",
+            collectionRootFileContent: '{ "type": "collection" }',
+            invalidRootFileContent: '{ "type": "other" }',
+            requestFile: "users/get-user.bru",
+            // Missing runtime objects are not reported, so the file just has no types.
+            diagnosticCodesWithoutCollection: [],
+            createRequestFileContent: (code: string) =>
+                `meta {\n  name: request\n}\n\nscript:pre-request {\n  ${code}\n}\n`,
+        },
+        {
+            format: "yaml",
+            collectionRootFile: "opencollection.yml",
+            collectionRootFileContent: "opencollection: 1.0.0\n",
+            invalidRootFileContent: "info:\n  name: other\n",
+            requestFile: "users/get-user.yml",
+            // Yaml files outside of collections are masked completely.
+            diagnosticCodesWithoutCollection: [],
+            createRequestFileContent: (code: string) =>
+                `info:\n  name: request\nruntime:\n  scripts:\n    - type: before-request\n      code: |-\n        ${code}\n`,
+        },
+    ])(
+        "for $format files",
+        ({
+            collectionRootFile,
+            collectionRootFileContent,
+            invalidRootFileContent,
+            requestFile,
+            diagnosticCodesWithoutCollection,
+            createRequestFileContent,
+        }) => {
+            const absoluteRequestFile = `/collection/${requestFile}`;
+            const absoluteRootFile = `/collection/${collectionRootFile}`;
+            const requestFileContent =
+                createRequestFileContent("bru.missing();");
+            // Property 'missing' does not exist on the type of 'bru'.
+            const diagnosticCodesWithinCollection = [2_339];
+
+            it("provides the runtime types after the root file of the collection has been created", () => {
+                const files = { [absoluteRequestFile]: requestFileContent };
+                const languageService = createLanguageServiceWithPlugin(files);
+
+                expect(
+                    getDiagnosticCodes(languageService, absoluteRequestFile),
+                ).toEqual(diagnosticCodesWithoutCollection);
+
+                writeFile(files, absoluteRootFile, collectionRootFileContent);
+
+                expect(
+                    getDiagnosticCodes(languageService, absoluteRequestFile),
+                ).toEqual(diagnosticCodesWithinCollection);
+            });
+
+            it("provides the runtime types after the root file of the collection has been fixed", () => {
+                const files = {
+                    [absoluteRootFile]: invalidRootFileContent,
+                    [absoluteRequestFile]: requestFileContent,
+                };
+                const languageService = createLanguageServiceWithPlugin(files);
+
+                expect(
+                    getDiagnosticCodes(languageService, absoluteRequestFile),
+                ).toEqual(diagnosticCodesWithoutCollection);
+
+                writeFile(files, absoluteRootFile, collectionRootFileContent);
+
+                expect(
+                    getDiagnosticCodes(languageService, absoluteRequestFile),
+                ).toEqual(diagnosticCodesWithinCollection);
+            });
+
+            it("also detects root files of collections outside of the project directory", () => {
+                const outsideRequestFile = `/other/${requestFile}`;
+                const files = { [outsideRequestFile]: requestFileContent };
+                const languageService = createLanguageServiceWithPlugin(files);
+
+                expect(
+                    getDiagnosticCodes(languageService, outsideRequestFile),
+                ).toEqual(diagnosticCodesWithoutCollection);
+
+                writeFile(
+                    files,
+                    `/other/${collectionRootFile}`,
+                    collectionRootFileContent,
+                );
+
+                expect(
+                    getDiagnosticCodes(languageService, outsideRequestFile),
+                ).toEqual(diagnosticCodesWithinCollection);
+            });
+        },
+    );
+
+    it("closes the watchers when the language service is disposed", () => {
+        const requestFile = "/collection/users/get-user.bru";
+        const languageService = createLanguageServiceWithPlugin({
+            "/collection/bruno.json": '{ "type": "collection" }',
+            [requestFile]: "script:pre-request {\n}\n",
+        });
+        // The collection is only determined when needed.
+        languageService.getSemanticDiagnostics(requestFile);
+
+        expect(directoryWatchers.length).toBeGreaterThan(0);
+        expect(fileWatchers.length).toBeGreaterThan(0);
+
+        languageService.dispose();
+
+        expect(
+            [...directoryWatchers, ...fileWatchers].every(
+                ({ closed }) => closed,
+            ),
+        ).toBe(true);
     });
 });
 
@@ -1363,6 +1486,26 @@ function createLanguageServiceWithPlugin(
             Object.keys(files).filter(
                 (fileName) => dirname(fileName) == directory,
             ),
+        watchDirectory: (
+            directory: string,
+            callback: ts.DirectoryWatcherCallback,
+            recursive?: boolean,
+        ): ts.FileWatcher =>
+            addWatcher(directoryWatchers, {
+                path: directory,
+                recursive: recursive == true,
+                callback,
+            }),
+        watchFile: (
+            fileName: string,
+            callback: ts.FileWatcherCallback,
+        ): ts.FileWatcher =>
+            addWatcher(fileWatchers, {
+                path: fileName,
+                recursive: false,
+                callback: (changedFile) =>
+                    callback(changedFile, ts.FileWatcherEventKind.Changed),
+            }),
     } as unknown as ts.server.ServerHost;
 
     return plugin.create({
@@ -1467,4 +1610,66 @@ function getCompletionNames(
             .getCompletionsAtPosition(fileName, position, {})
             ?.entries.map(({ name }) => name) ?? []
     );
+}
+
+interface Watcher {
+    path: string;
+    recursive: boolean;
+    callback: (changedFile: string) => void;
+    closed: boolean;
+}
+
+const directoryWatchers: Watcher[] = [];
+const fileWatchers: Watcher[] = [];
+
+function addWatcher(
+    watchers: Watcher[],
+    watcher: Omit<Watcher, "closed">,
+): ts.FileWatcher {
+    const addedWatcher = { ...watcher, closed: false };
+    watchers.push(addedWatcher);
+
+    return {
+        close: () => {
+            addedWatcher.closed = true;
+        },
+    };
+}
+
+/**
+ * Like for the Typescript server, directory watchers only get notified about files that are created (or deleted).
+ * Changes of the content of existing files are only reported to the watchers of the file itself.
+ */
+function writeFile(
+    files: Record<string, string>,
+    fileName: string,
+    content: string,
+) {
+    const isNewFile = !(fileName in files);
+    files[fileName] = content;
+
+    const notify = (watchers: Watcher[], isWatching: (w: Watcher) => boolean) =>
+        watchers
+            .filter((watcher) => !watcher.closed && isWatching(watcher))
+            .forEach(({ callback }) => callback(fileName));
+
+    if (isNewFile) {
+        notify(
+            directoryWatchers,
+            ({ path, recursive }) =>
+                dirname(fileName) == path ||
+                (recursive && fileName.startsWith(`${path}/`)),
+        );
+    }
+
+    notify(fileWatchers, ({ path }) => path == fileName);
+}
+
+function getDiagnosticCodes(
+    languageService: ts.LanguageService,
+    fileName: string,
+) {
+    return languageService
+        .getSemanticDiagnostics(fileName)
+        .map(({ code }) => code);
 }

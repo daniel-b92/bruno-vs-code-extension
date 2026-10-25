@@ -85,18 +85,6 @@ Steps 1 to 3 are implemented in `tsPlugin`. Verified with the plugin's jest test
 ### Not covered yet
 
 - **Refactorings insert nothing outside of code blocks.** "Extract to function in global scope" is still listed for code blocks, but yields no edits, because it inserts outside the code block. "Extract to inner function" works, since every code block is wrapped in a function (down to the `;()=>{` wrapper, see the fallback ladder above). Only the `;{` / `{` fallbacks remain as plain blocks. They only occur if less than 6 characters are free in front of a code block, which does not happen for standard block headers.
-- **Stale collection detection.** Collection roots are cached per directory and only recomputed when the project's root file list changes. A `bruno.json` that is created while files are already open is picked up after the next change of the file list.
-    - Implications (reproduced with a real `tsserver` with `--useInferredProjectPerProjectRoot`, as used by VS Code):
-        1. Open `users/get-user.bru` in a folder without `bruno.json`: `bru` hovers as `any`.
-        2. Create `bruno.json` and edit `get-user.bru`: still `any`.
-        3. Open `users/list-users.bru` (same inferred project): `var bru: {…}` in both files.
-    - While stale, there are no completions for `bru.` / `req.` / `res.` / `expect(…).`, and hovers show `any`. No errors are shown, since "cannot find name" is filtered for the runtime names. To the user, IntelliSense just silently stops working.
-    - Realistic triggers:
-        - `bruno.json` is created by hand in a folder whose `.bru` files are already open.
-        - A `git checkout` / `pull` adds the collection root file while files are open.
-        - `bruno.json` is invalid at the moment the cache is recomputed and fixed afterwards, e.g. merge conflict markers, or `"type"` not yet `"collection"`, while another file is opened or closed.
-        - The same applies to `opencollection.yml`.
-    - Recovery: open or close any file in the same project, or restart the TS server. In configured projects, the root file list also changes whenever a matching file is created or deleted. The reverse case (`bruno.json` deleted) keeps the runtime definitions until the next change, which is harmless.
 - **Projects without `allowJs`.** The runtime file is JS. In a configured project that doesn't allow JS, the file is not part of the program, so the runtime objects stay untyped there.
     - Implications: **outdated since step 4.** I checked this with a real `tsserver`: a repo-root `tsconfig.json` with `strict` and without `allowJs`, and a collection in `bruno/`.
         - Neither `bruno/users/get-user.bru` nor `bruno/lib/helper.js` is part of the configured project. The `.bru` extension is registered as a JS extension, which is only matched with `allowJs`.
@@ -129,6 +117,23 @@ Step 4 is implemented. Verified with the plugin's jest tests, the full jest run,
 
 - **Completions for relative `require` paths are computed by the plugin** (`relativeModulePathCompletions.ts`). The Typescript server derives the directory for path completions from the path of the source file (`getDirectoryPath(sourceFile.path)`), not from the module resolution of the host, so `require("./` would list the folder of the `.bru` file. The plugin lists the files (`.js`, `.cjs`, `.json`, without the extension for `.js`) and folders (except `node_modules` and hidden ones) relative to the collection root instead. Paths to packages (`require("lodash")`) are still provided by the Typescript server. `additionalContextRoots` are not considered for these paths.
 - **Collection files are part of configured projects** (point 7 above, `includeCollectionFilesInConfiguredProjects.ts`). Confirmed with a real `tsserver`: without further changes, `.bru` / `.yml` files land in an inferred project, and a collection `tsconfig.json` without any `.js` files reports "No inputs were found in config file" (18003), since the temp file at the collection root is gone. The plugin registers `.bru` and `.yml` as `extraFileExtensions` (script kind JS) via `projectService.setHostConfiguration`, so they match the `include` paths of configured projects that allow JS (`allowJs`). Setting the extensions reloads all projects, so it is done once per project service and deferred with `serverHost.setTimeout` (a synchronous reload within `create` would interfere with the project that is still being loaded). The project is first loaded without the files (and the error is reported briefly), then reloaded with them. Extensions registered by other plugins are kept. Projects without `allowJs` keep the previous behavior.
+
+### Detection of collection root files
+
+The collection of a file is looked up by walking up from its folder to the first folder with a valid `bruno.json` / `opencollection.yml`. The lookup (`collection/collectionLookup.ts`) is cached per folder and invalidated by watchers, so a root file that is created, changed or deleted while files are already open is picked up without any further edit. Before, the cache was only recomputed when the root file list of the project changed, so `bru` silently stayed `any` (no completions, no error) until another file was opened or closed.
+
+- **Watchers (`serverHost.watchDirectory` / `watchFile`):**
+    - one recursive watcher on the current directory of the project (cheaper than one watcher per folder),
+    - one non-recursive watcher for every other folder that was checked for a root file (e.g. folders above the project folder, or collections outside of it),
+    - one file watcher for every file that is named like a root file, valid or not.
+    - The file watchers are needed because directory watchers of the Typescript server only report created / deleted files, not changed content. A `bruno.json` that is fixed afterwards (merge conflict markers, `"type"` not yet `"collection"`) is such a content change. Verified with a real `tsserver`: the directory watcher fired once for the creation, but not for the two following writes.
+    - They are closed together with the language service (`dispose` of the proxy).
+- **Cache:** all folders on the way up share the result, since none of them contains a root file. The cache is also cleared when the root file list of the project changes (as before), as a fallback if a watcher does not fire.
+- **Invalidation:** the same mechanism as for configuration changes. The masked snapshots (the masked content of a `.yml` file depends on whether it belongs to a collection) are dropped, the versions of the files and the project are bumped, and the project is marked as dirty and its diagnostics refreshed.
+- **`markAsDirty` is required** (internal API of the Typescript server, called via a cast). `synchronizeHostData` of the language service delegates to `Project.updateFromProject`, which only rebuilds the program of a dirty project. Bumping `getProjectVersion` alone has no effect (observed with a real `tsserver`: the project had the new root file list, but its program did not). The configuration change path had the same gap.
+- **Verified** with the plugin's jest tests (a mock server host that notifies watchers like the Typescript server does) and with a real `tsserver` (`--useInferredProjectPerProjectRoot`): `bru` hovers as `any` without `bruno.json`, as `var bru: {…}` right after it is created (no edit, no second file opened), as `any` again while it is broken, and as `var bru: {…}` after it is fixed.
+- **Not verified:** the watchers inside VS Code (its Typescript extension implements the watchers itself) and on Windows.
+- **Still possible:** module resolutions of files whose imports did not change may be reused by the Typescript compiler, so a `require("./helper")` that was unresolved before may only be picked up after the next edit of the file (see the risk "Module resolution cache").
 
 ### Differences in behavior to the temp-file based implementation
 
