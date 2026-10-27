@@ -16,10 +16,15 @@ export function treatCollectionFilesLikeJavascript(
     const host = info.languageServiceHost;
 
     const getOriginalScriptKind = host.getScriptKind?.bind(host);
-    host.getScriptKind = (fileName) =>
-        hasEmbeddedCodeBlocks(fileName)
-            ? ts.ScriptKind.JS
-            : (getOriginalScriptKind?.(fileName) ?? ts.ScriptKind.Unknown);
+    host.getScriptKind = (fileName) => {
+        if (!hasEmbeddedCodeBlocks(fileName)) {
+            return getOriginalScriptKind?.(fileName) ?? ts.ScriptKind.Unknown;
+        }
+
+        markScriptInfoAsJavascript(info, fileName);
+
+        return ts.ScriptKind.JS;
+    };
 
     const resolveOriginally = getOriginalModuleResolver(host);
 
@@ -103,4 +108,25 @@ function getOriginalModuleResolver(
                     : undefined,
             ),
         );
+}
+
+/**
+ * The Typescript server determines the script kind of a file by its extension (or the language of the editor) when it first sees the file, so it is `Unknown` for `.bru` files.
+ * It does not consider the script kind of the host for that. In inferred projects that only contain Javascript files (which includes the virtual file with the runtime definitions),
+ * the server therefore handles `.bru` files like declaration files and never reports any semantic diagnostics for them.
+ *
+ * To avoid this, the script kind that the server stores for the file is set to Javascript as well.
+ */
+function markScriptInfoAsJavascript(
+    info: ts.server.PluginCreateInfo,
+    fileName: string,
+) {
+    // The project is not set when the plugin is used without a Typescript server (e.g. in tests).
+    const scriptInfo = info.project?.projectService.getScriptInfo(fileName);
+
+    if (scriptInfo && !scriptInfo.isJavaScript()) {
+        // The property is read-only for plugins, but needs to be changed here.
+        (scriptInfo as { scriptKind: ts.ScriptKind }).scriptKind =
+            ts.ScriptKind.JS;
+    }
 }

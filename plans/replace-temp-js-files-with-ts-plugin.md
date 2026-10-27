@@ -117,6 +117,14 @@ The collection of a file is looked up by walking up from its folder to the first
 - **Not verified:** the watchers inside VS Code (its Typescript extension implements the watchers itself) and on Windows.
 - **Still possible:** module resolutions of files whose imports did not change may be reused by the Typescript compiler, so a `require("./helper")` that was unresolved before may only be picked up after the next edit of the file (see the risk "Module resolution cache").
 
+### Semantic diagnostics in inferred projects
+
+Found with a test that drives a real `ts.server.Session` (`typescriptServer.test.ts`): in an inferred project, the Typescript server returned no semantic diagnostics (neither for `semanticDiagnosticsSync` nor for `geterr`) for `.bru` files, although the language service itself reported them.
+
+- **Cause:** The virtual runtime definitions file is a Javascript root file, which makes the inferred project a "JS only" project. For those, the server skips the semantic diagnostics of files that are not Javascript (`isDeclarationFileInJSOnlyNonConfiguredProject`). The `ScriptInfo` of a `.bru` file has the script kind `Unknown`, since the server derives it from the file extension (VS Code sends no script kind for `bru`) and ignores `getScriptKind` of the host.
+- **Fix:** `treatCollectionFilesLikeJavascript` also sets `scriptKind` of the `ScriptInfo` to Javascript (the property is read-only in the typings). Configured projects were not affected.
+- The test also covers the other points that were only verified by hand before (runtime types, `node_modules` types of the collection, root-relative imports, Yaml collections, configuration before / after project creation, root files created later, `allowJs` configured projects).
+
 ### Differences in behavior to the temp-file based implementation
 
 - Hovers of the runtime objects show e.g. `(parameter) res: undefined` in pre-request blocks (the shadowing parameter) instead of nothing.
