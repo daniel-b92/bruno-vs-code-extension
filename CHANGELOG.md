@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Fixes / Maintenance
+
+- Add an option "Do not ask again" to the warning that is shown when nested collections are found (collection root files that are ignored because of conflicts). The warning can also be disabled via the new setting `bru-as-code.warnAboutConflictingCollectionRoots`.
+
 ## [1.5.0] (2026-10-24)
 
 ### Features
