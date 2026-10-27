@@ -33,7 +33,9 @@ For getting the most out of the extension, please follow these steps when instal
     - Most importantly for [Mocha](https://www.npmjs.com/package/@types/mocha) (intellisense for `test('description', function() {...})`) and [Chai](https://www.npmjs.com/package/@types/chai) (intellisense for `expect` validations).
     - Further inbuilt libraries that you use (e.g. `axios` or `moment`).
 - Add typings via JSDoc in your code blocks and Javascript scripts, see https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html.
-- If you have defined a `tsconfig.json` for your collection, you can e.g. activate type checking for your Javascript files or enable the `strict` type checking mode, see https://www.typescriptlang.org/tsconfig/ for more infos.
+- Add a `tsconfig.json` (with `"allowJs": true`) to the root folder of every collection (and every `additionalContextRoots` folder with Javascript files). The extension offers to create a default one.
+    - Without it, the compiler options (e.g. `strict`, `checkJs`, `lib`) of your own configs do not apply to your scripts, and collections in the same folder may share type definitions (e.g. of `chai`), so the types of the first collection that was opened are used for all of them.
+    - In the `tsconfig.json` you can e.g. activate type checking for your Javascript files or enable the `strict` type checking mode, see https://www.typescriptlang.org/tsconfig/ for more infos.
 - If you use SPARQL request bodies, syntax highlighting requires installing an extension that provides this for SPARQL, e.g. `stardog-union.stardog-rdf-grammars`.
 
 ### Yaml collections (preview)

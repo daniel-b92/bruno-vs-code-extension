@@ -82,24 +82,6 @@ Steps 1 to 3 are implemented in `tsPlugin`. Verified with the plugin's jest test
 - **Runtime-name diagnostic filter narrowed instead of removed.** Names like `res` are only filtered for "cannot find name" (2304, 2582). A full name filter would hide the typed `'res' is possibly 'undefined'` (18048). 1108 / 1375 / 1378 are filtered for code-block files (fallback blocks without a function wrapper).
 - **Formatting of `.bru` files by the plugin is switched off** (like Yaml), because edits would be computed on the masked content.
 
-### Not covered yet
-
-- **Projects without `allowJs`.** The runtime file is JS. In a configured project that doesn't allow JS, the file is not part of the program, so the runtime objects stay untyped there.
-    - Implications: **outdated since step 4.** I checked this with a real `tsserver`: a repo-root `tsconfig.json` with `strict` and without `allowJs`, and a collection in `bruno/`.
-        - Neither `bruno/users/get-user.bru` nor `bruno/lib/helper.js` is part of the configured project. The `.bru` extension is registered as a JS extension, which is only matched with `allowJs`.
-        - Both files land in an inferred project instead. The runtime file is added there and `bru` is typed. With `"allowJs": true`, both files are in the configured project, with the same hovers.
-    - What remains: the compiler options of that `tsconfig.json` (`lib`, `target`, `strict`, `types`, …) don't apply to collection files. The inferred project's defaults apply instead (in VS Code: `js/ts.implicitProjectConfig.*`); the effect of individual options was not checked.
-    - Typical case: a collection inside a TypeScript repo with a hand-written root `tsconfig.json`. The `tsconfig.json` suggested by the extension contains `"allowJs": true`.
-    - Side effect: these files share one inferred project per workspace folder, which makes the next point more likely.
-- **Several collections in one inferred project.** Works (tested), but the duplicate global declarations are only silently ignored: the first declaration wins. A collection with different `@types/chai` / `@types/mocha` versions gets the types of the first one.
-    - Implications (reproduced with a real `tsserver`): a workspace with `public-api/` (no `node_modules`) and `admin-api/` (`node_modules/@types/chai`) in one inferred project.
-        - `admin-api` opened first: `expect` is `Chai.ExpectStatic` in both collections.
-        - `public-api` opened first: `expect` is `any` in both. So `admin-api` loses all completions and type checks for chai assertions (`expect(res.status).to.…`).
-    - The result depends on the order of the project's root files: the order in which files were opened (inferred project) or matched by `include` (configured project). For the user, this looks nondeterministic, and it changes after a TS server restart.
-    - Not limited to inferred projects. VS Code uses one inferred project per workspace folder, so this affects any workspace folder with two or more collections outside a configured project (e.g. `collections/public-api` and `collections/admin-api`). Since step 4, it also affects a configured project with `allowJs` whose `include` spans several collections.
-    - The content of the runtime file is the same for all collections, so only the resolution of `chai` / `mocha` differs. That covers missing typings and different major versions.
-- **Side observation (resolved):** Bruno provides `req` in post-response scripts (confirmed). The typed shadowing of `req` as `undefined` in `script:post-response`, taken over from the temp files, caused a false 18048. `req` is no longer shadowed in any block of HTTP requests; only `res` is, in pre-request blocks. The `$bR` wrapper variable was removed, so `script:post-response` and `tests` of HTTP requests use the untyped `;async(` wrapper.
-
 ## Implementation status (step 4)
 
 Step 4 is implemented. Verified with the plugin's jest tests, the full jest run, `npm run check-types` and a smoke test against a real `tsserver` (inferred projects, `.bru` and `.js` files, configuration passed via `configurePlugin`).

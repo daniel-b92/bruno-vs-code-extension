@@ -50,7 +50,7 @@ export async function suggestCreatingTsConfigsForCollections(
         collectionRoots.length > 0 && additionalContextRoots.length > 0;
 
     const pickedOption = await window.showInformationMessage<MessageItem>(
-        `It's recommended to add a 'tsconfig.json' in the root folder of every collection and every 'additionalContextRoot' that contains JS files, in order for the language features to work properly.
+        `Without a 'tsconfig.json' (with 'allowJs') in the root folder of a collection or an 'additionalContextRoot', settings like 'strict' or 'checkJs' do not apply to your scripts, and collections in the same folder may share type definitions (e.g. for 'chai').
 Add a default config for ${
             collectionRoots.length > 0
                 ? `collection root folder(s) ${formatPathsForDialog(collectionRoots.map(({ path }) => path))}`
@@ -94,34 +94,23 @@ Add a default config for ${
 async function determineMissingTsConfigs(
     itemProvider: TypedCollectionItemProvider,
 ): Promise<MissingTsConfigOccurences> {
-    const collectionsWithoutTsConfigInRootFolder = itemProvider
-        .getRegisteredCollections()
-        .filter(
-            (collection) =>
-                collection.getStoredDataForPath(
-                    getTsConfigPathForCollectionRoot(
-                        collection.getRootDirectory(),
-                    ),
-                ) == undefined &&
-                collection.getAllStoredDataForCollection().some(
-                    // Only if JS files exist in the collection, the tsconfig is needed. Otherwise an error will be shown in the tsconfig because no files are included.
-                    ({ item }) => extname(item.getPath()) == ".js",
-                ),
-        );
+    const collectionsWithoutTsConfigInRootFolder = await filterAsync(
+        itemProvider.getRegisteredCollections(),
+        async (collection) =>
+            !(await checkIfConfigExistsInFolder(collection.getRootDirectory())),
+    );
 
     const additionalContextRootsWithoutTsConfig = await filterAsync(
         itemProvider.getUniqueAdditionalContextRoots(),
         async (contextRoot) =>
-            !(await checkIfPathExistsAsync(
-                getTsConfigPathForAdditionalContextRoot(contextRoot),
-            )) &&
+            !(await checkIfConfigExistsInFolder(contextRoot)) &&
             (
                 await readdir(contextRoot, {
                     withFileTypes: true,
                     recursive: true,
                 })
             ).some(
-                // Only if JS files exist in the collection, the tsconfig is needed. Otherwise an error will be shown in the tsconfig because no files are included.
+                // Only if JS files exist in the folder, the tsconfig is needed. Otherwise an error will be shown in the tsconfig because no files are included.
                 (item) => item.isFile() && extname(item.name) == ".js",
             ),
     );
@@ -135,6 +124,14 @@ async function determineMissingTsConfigs(
         ),
         additionalContextRoots: additionalContextRootsWithoutTsConfig,
     };
+}
+
+async function checkIfConfigExistsInFolder(folder: string) {
+    return (
+        (await checkIfPathExistsAsync(
+            getTsConfigPathForCollectionRoot(folder),
+        )) || (await checkIfPathExistsAsync(resolve(folder, "jsconfig.json")))
+    );
 }
 
 async function createTsConfigs({
