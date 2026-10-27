@@ -5,3 +5,7 @@
 export function getTemporaryJsFileBasenameWithoutExtension() {
     return "__temp_bru_reference";
 }
+
+export function getTemporaryJsFileBasename() {
+    return `${getTemporaryJsFileBasenameWithoutExtension()}.js`;
+}

@@ -126,6 +126,11 @@
                     "type": "boolean",
                     "default": true,
                     "markdownDescription": "Show a dialog suggesting to create tsconfig files for collections (if not already existing) after every extension start."
+                },
+                "bru-as-code.warnAboutConflictingCollectionRoots": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Show a warning when collection root files are ignored, because other collection root files exist in the same directory or its subdirectories (nested collections)."
                 }
             }
         },

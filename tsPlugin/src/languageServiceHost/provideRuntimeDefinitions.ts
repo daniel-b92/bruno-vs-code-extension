@@ -39,6 +39,7 @@ export function provideRuntimeDefinitions(
 
     host.getScriptFileNames = () => {
         // Temporary files from older versions of the extension would declare the runtime objects a second time.
+        // TODO: Remove this special treatment of leftover temporary js files at some point in the future, once versions of the extension that created them are no longer in use.
         const originalFileNames = getOriginalScriptFileNames().filter(
             (fileName) => !isTempJsFile(fileName),
         );

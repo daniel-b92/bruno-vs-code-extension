@@ -43,6 +43,8 @@ export function isRuntimeDefinitionsFile(fileName: string) {
 
 /**
  * Files that are not meant to be seen by users, since they only exist to provide types for the inbuilt runtime functions.
+ *
+ * TODO: Remove this special treatment of leftover temporary js files at some point in the future, once versions of the extension that created them are no longer in use. (Only the part for the leftover temporary js files.)
  */
 export function isTempJsFileOrRuntimeDefinitionsFile(fileName: string) {
     return (

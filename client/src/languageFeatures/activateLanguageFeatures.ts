@@ -10,6 +10,7 @@ import {
 } from "@global_shared";
 import { extname } from "path";
 import { configureTsServerPlugin } from "./configureTsServerPlugin";
+import { deleteLegacyTempJsFiles } from "./deleteLegacyTempJsFiles";
 import { registerLineCommentCommands } from "./internal/brunoFiles/lineComments/registerLineCommentCommands";
 
 /**
@@ -27,6 +28,12 @@ export async function activateLanguageFeatures(
         featureToggles,
         collectionItemProvider,
         logger,
+    );
+
+    // TODO: Remove this special treatment of leftover temporary js files at some point in the future, once versions of the extension that created them are no longer in use.
+    // The collection cache is loaded lazily, so the folders to clean up are only known after it has been loaded.
+    collectionItemProvider.subscribeToInitialCacheLoad(() =>
+        deleteLegacyTempJsFiles(collectionItemProvider, logger),
     );
 
     context.subscriptions.push(

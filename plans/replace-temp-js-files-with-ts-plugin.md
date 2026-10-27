@@ -143,7 +143,7 @@ The collection of a file is looked up by walking up from its folder to the first
 ### Still open
 
 - **Not verified:** behavior inside VS Code itself (only a standalone `tsserver` was driven; e.g. whether the diagnostics of an open file are refreshed after the deferred reload of the projects) and Windows paths (the configured roots are normalized to forward slashes, the comparison is case sensitive).
-- **Leftover temp files** are only ignored, not deleted.
+- **Leftover temp files** are ignored by the plugin and the cache (kept for a few more releases, e.g. for files that cannot be deleted or that older versions recreate). Additionally, the client moves `__temp_bru_reference.js` to the trash on the initial cache load (`deleteLegacyTempJsFiles.ts`), but only directly in collection root folders and `additionalContextRoots`, where the old versions created them.
 - **`additionalContextRoots` in the plugin** have no effect for projects that do not get the configuration (e.g. when the plugin is used standalone without the extension).
 
 ## Experiment notes
