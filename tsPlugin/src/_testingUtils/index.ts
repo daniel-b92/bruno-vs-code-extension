@@ -37,6 +37,7 @@ export function createLanguageServiceWithPlugin(
     files: Record<string, string>,
     plugin = createPlugin({ yamlCollectionSupport: true }),
     pluginConfigFromServer?: Partial<PluginConfig>,
+    { currentDirectory = "/collection", useCaseSensitiveFileNames = true } = {},
 ) {
     const languageServiceHost: ts.LanguageServiceHost = {
         getScriptFileNames: () =>
@@ -51,7 +52,7 @@ export function createLanguageServiceWithPlugin(
                 ? ts.ScriptSnapshot.fromString(content)
                 : undefined;
         },
-        getCurrentDirectory: () => "/collection",
+        getCurrentDirectory: () => currentDirectory,
         // Like for inferred projects of the Typescript server, files with any extension are handled.
         getCompilationSettings: () => ({
             allowJs: true,
@@ -64,6 +65,7 @@ export function createLanguageServiceWithPlugin(
         readFile: (fileName) => files[fileName] ?? ts.sys.readFile(fileName),
     };
     const serverHost = {
+        useCaseSensitiveFileNames,
         directoryExists: (directory: string) =>
             Object.keys(files).some((fileName) =>
                 fileName.startsWith(`${directory}/`),

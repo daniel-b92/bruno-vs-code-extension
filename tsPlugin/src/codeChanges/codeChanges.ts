@@ -1,4 +1,5 @@
 import * as ts from "typescript/lib/tsserverlibrary";
+import { arePathsEqual, usesCaseSensitiveFileNames } from "../pathComparison";
 import { CodeRange, getCodeRangesGetter } from "../codeBlocks/getCodeRanges";
 import { isFileFromYamlCollection } from "../collection/collectionFormat";
 import { isLineBreak } from "../codeBlocks/maskContent";
@@ -49,7 +50,11 @@ export function adjustIndentationOfChangesForYamlScripts(
             ? getIndentationOfScripts(
                   fileChanges.fileName,
                   originalContent,
-                  fileChanges.fileName == fileName
+                  arePathsEqual(
+                      fileChanges.fileName,
+                      fileName,
+                      usesCaseSensitiveFileNames(info),
+                  )
                       ? range
                       : { start: 0, end: Number.MAX_SAFE_INTEGER },
               )

@@ -1,5 +1,6 @@
 import * as ts from "typescript/lib/tsserverlibrary";
 import { hasEmbeddedCodeBlocks, isJsFile } from "../fileTypes";
+import { usesCaseSensitiveFileNames } from "../pathComparison";
 import { PluginConfiguration } from "../pluginConfiguration";
 import { getRootFolderOfContainingCollection } from "./collectionFormat";
 
@@ -21,7 +22,10 @@ export function getRuntimeDefinitionsFolder(
     return (
         getRootFolderOfContainingCollection(info, fileName) ??
         (isJsFile(fileName)
-            ? configuration.getAdditionalContextRootContaining(fileName)
+            ? configuration.getAdditionalContextRootContaining(
+                  fileName,
+                  usesCaseSensitiveFileNames(info),
+              )
             : undefined)
     );
 }
@@ -38,7 +42,9 @@ export function canReferToRuntimeDefinitions(
     return (
         getRootFolderOfContainingCollection(info, fileName) != undefined ||
         (isJsFile(fileName) &&
-            configuration.getAdditionalContextRootContaining(fileName) !=
-                undefined)
+            configuration.getAdditionalContextRootContaining(
+                fileName,
+                usesCaseSensitiveFileNames(info),
+            ) != undefined)
     );
 }

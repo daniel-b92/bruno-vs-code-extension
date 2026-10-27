@@ -1,5 +1,9 @@
 import { dirname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
+import {
+    isPathWithinFolder,
+    usesCaseSensitiveFileNames,
+} from "../pathComparison";
 import { CollectionFormat } from "../constants";
 import {
     getCollectionRootFileCandidates,
@@ -142,8 +146,11 @@ export class CollectionLookup {
     private watchIfNotCovered(directory: string) {
         const isCoveredByProjectDirectoryWatcher =
             this.directoryWatchers.has(this.projectDirectory) &&
-            (directory == this.projectDirectory ||
-                directory.startsWith(`${this.projectDirectory}/`));
+            isPathWithinFolder(
+                directory,
+                this.projectDirectory,
+                usesCaseSensitiveFileNames(this.info),
+            );
 
         if (!isCoveredByProjectDirectoryWatcher) {
             this.watch(directory, false);

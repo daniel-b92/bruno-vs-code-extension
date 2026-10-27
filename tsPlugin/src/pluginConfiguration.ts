@@ -1,3 +1,5 @@
+import { isPathWithinFolder } from "./pathComparison";
+
 export interface PluginConfig {
     yamlCollectionSupport: boolean;
     /** Absolute paths of the folders that are available to the scripts of at least one collection, besides the collection folder itself. */
@@ -22,11 +24,16 @@ export class PluginConfiguration {
     /**
      * Javascript files within additional context roots are not part of a collection, but can use the objects that Bruno provides at runtime.
      */
-    getAdditionalContextRootContaining(fileName: string) {
+    getAdditionalContextRootContaining(
+        fileName: string,
+        caseSensitive: boolean,
+    ) {
         const normalizedFileName = normalizePath(fileName);
 
-        return this.config.additionalContextRoots.find((root) =>
-            normalizedFileName.startsWith(`${root}/`),
+        return this.config.additionalContextRoots.find(
+            (root) =>
+                normalizedFileName != root &&
+                isPathWithinFolder(normalizedFileName, root, caseSensitive),
         );
     }
 

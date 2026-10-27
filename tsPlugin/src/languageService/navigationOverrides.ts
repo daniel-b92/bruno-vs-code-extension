@@ -1,5 +1,6 @@
 import { extname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
+import { arePathsEqual, usesCaseSensitiveFileNames } from "../pathComparison";
 import { isPositionWithinCode } from "../codeBlocks/getCodeRanges";
 import { isPositionWithinNameOfVariable } from "../codeBlocks/inbuiltFunctionParameters";
 import { getRelativeModulePathCompletions } from "../codeBlocks/relativeModulePathCompletions";
@@ -159,7 +160,11 @@ function isShadowingParameterOfCodeBlock(
 
     return (
         declaration != undefined &&
-        declaration.getSourceFile().fileName == fileName &&
+        arePathsEqual(
+            declaration.getSourceFile().fileName,
+            fileName,
+            usesCaseSensitiveFileNames(info),
+        ) &&
         !isPositionWithinCode(
             info,
             configuration,
