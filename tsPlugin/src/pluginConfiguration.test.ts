@@ -1,6 +1,10 @@
 import { describe, it, expect } from "@jest/globals";
 import * as ts from "typescript/lib/tsserverlibrary";
-import { createLanguageServiceWithPlugin, createPlugin } from "./_testingUtils";
+import {
+    createLanguageServiceWithPlugin,
+    createPlugin,
+    createPluginAgainForSameProject,
+} from "./_testingUtils";
 
 describe("Yaml collection support", () => {
     const requestFile = "/collection/request.yml";
@@ -44,6 +48,44 @@ describe("Yaml collection support", () => {
                 .getSemanticDiagnostics(requestFile)
                 .map(({ code }) => code),
         ).toEqual([2_304]); // Cannot find name 'valeu'.
+    });
+
+    it("handles configuration changes after the plugin was created again for the same project", () => {
+        const languageService = createLanguageServiceWithPlugin(
+            collectionFiles,
+            createPlugin({ yamlCollectionSupport: false }),
+        );
+        // The Typescript server only passes configuration changes to the plugin module that was created last.
+        const pluginAfterReload = createPlugin({});
+        const languageServiceAfterReload = createPluginAgainForSameProject(
+            languageService,
+            pluginAfterReload,
+            { yamlCollectionSupport: false },
+        );
+
+        pluginAfterReload.onConfigurationChanged({
+            yamlCollectionSupport: true,
+        });
+
+        expect(
+            languageServiceAfterReload
+                .getSemanticDiagnostics(requestFile)
+                .map(({ code }) => code),
+        ).toEqual([2_304]); // Cannot find name 'valeu'.
+    });
+
+    it("does not set up the plugin again when it is created again for the same project", () => {
+        const languageService = createLanguageServiceWithPlugin(
+            collectionFiles,
+            createPlugin({ yamlCollectionSupport: true }),
+        );
+
+        expect(
+            createPluginAgainForSameProject(
+                languageService,
+                createPlugin({ yamlCollectionSupport: true }),
+            ),
+        ).toBe(languageService);
     });
 
     it("does not provide formatting edits for Yaml files", () => {
