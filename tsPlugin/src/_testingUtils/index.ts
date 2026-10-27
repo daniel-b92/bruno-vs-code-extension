@@ -103,13 +103,47 @@ export function createLanguageServiceWithPlugin(
             }),
     } as unknown as ts.server.ServerHost;
 
-    return plugin.create({
+    const info = {
         languageService: ts.createLanguageService(languageServiceHost),
         languageServiceHost,
         serverHost,
         config: pluginConfigFromServer,
-    } as ts.server.PluginCreateInfo);
+    } as ts.server.PluginCreateInfo;
+    const languageService = plugin.create(info);
+    createInfosForLanguageServices.set(languageService, info);
+
+    return languageService;
 }
+
+/**
+ * When reloading a project, the Typescript server creates a new plugin module and creates the plugin again
+ * with the same language service host and the language service that the plugin returned before.
+ */
+export function createPluginAgainForSameProject(
+    languageService: ts.LanguageService,
+    plugin: ReturnType<typeof createPlugin>,
+    pluginConfigFromServer?: Partial<PluginConfig>,
+) {
+    const info = createInfosForLanguageServices.get(languageService);
+
+    if (!info) {
+        throw new Error("The language service was not created with a plugin.");
+    }
+
+    const recreatedLanguageService = plugin.create({
+        ...info,
+        languageService,
+        config: pluginConfigFromServer,
+    } as ts.server.PluginCreateInfo);
+    createInfosForLanguageServices.set(recreatedLanguageService, info);
+
+    return recreatedLanguageService;
+}
+
+const createInfosForLanguageServices = new WeakMap<
+    ts.LanguageService,
+    ts.server.PluginCreateInfo
+>();
 
 export function createPlugin(config: Partial<PluginConfig>) {
     const plugin = init({ typescript: ts });
