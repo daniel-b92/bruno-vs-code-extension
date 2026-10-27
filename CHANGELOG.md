@@ -13,8 +13,6 @@
 
 ### Fixes / Maintenance
 
-- Add an option "Do not ask again" to the warning that is shown when nested collections are found (collection root files that are ignored because of conflicts). The warning can also be disabled via the new setting `bru-as-code.warnAboutConflictingCollectionRoots`.
-
 - Show only one completion per variable name for persistent environment variables (instead of one per environment), also if the variable is defined in multiple environments. For JS scripts, the details of all definitions are shown in the completion documentation.
 - Add support for tags in folder settings files (`folder.bru`), which was introduced in version 4.3.0 of Bruno.
 - Fix an issue that caused the `meta` block of `folder.bru` files not to be checked for missing, unknown, duplicate keys and missing `name` values.
