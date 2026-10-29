@@ -27,6 +27,7 @@ export async function runTestStructure(
     },
     {
         htmlReportPath,
+        isHtmlReportPathConfiguredByUser,
         logger,
         testEnvironment,
         userInput,
@@ -42,7 +43,7 @@ export async function runTestStructure(
     const lineBreak = getLineBreakForTestRunOutput();
     const isDirectory = item.canResolveChildren;
 
-    if (await checkIfPathExistsAsync(htmlReportPath)) {
+    if (htmlReportPath && (await checkIfPathExistsAsync(htmlReportPath))) {
         await promisify(unlink)(htmlReportPath);
     }
 
@@ -68,6 +69,7 @@ export async function runTestStructure(
             useDeveloperSandbox,
             reportingAndOptionalData: {
                 htmlReportPath,
+                isHtmlReportPathConfiguredByUser,
                 testEnvironment,
                 logger,
                 userInput,
@@ -85,7 +87,11 @@ export async function runTestStructure(
 
         childProcess.on("error", (err) => {
             logger?.error("Failed to start subprocess.", err);
-            if (existsSync(htmlReportPath)) {
+            if (
+                isHtmlReportPathConfiguredByUser &&
+                htmlReportPath &&
+                existsSync(htmlReportPath)
+            ) {
                 options.appendOutput(
                     `Results can be found here: ${htmlReportPath}${lineBreak}`,
                 );
@@ -120,7 +126,11 @@ export async function runTestStructure(
                 `Child process for test run exited with code ${exitCode}`,
             );
             duration = Date.now() - start;
-            if (existsSync(htmlReportPath)) {
+            if (
+                isHtmlReportPathConfiguredByUser &&
+                htmlReportPath &&
+                existsSync(htmlReportPath)
+            ) {
                 options.appendOutput(
                     `HTML report has been saved in file: '${htmlReportPath}'${lineBreak}`,
                 );

@@ -10,7 +10,9 @@ import {
     window,
     workspace,
 } from "vscode";
-import { dirname, extname, isAbsolute, resolve } from "path";
+import { createHash } from "crypto";
+import { mkdir } from "fs/promises";
+import { dirname, extname, isAbsolute, join, resolve } from "path";
 import { runTestStructure } from "./runTestStructure";
 import { QueuedTest, TestRunQueue } from "./testRunQueue";
 import {
@@ -31,11 +33,18 @@ export const startTestRun = async (
     additionalData: {
         collectionItemProvider: TypedCollectionItemProvider;
         queue: TestRunQueue;
+        htmlReportStorageDir: string;
         logger?: OutputChannelLogger;
         userInput?: TestRunUserInputData;
     },
 ) => {
-    const { collectionItemProvider, queue, logger, userInput } = additionalData;
+    const {
+        collectionItemProvider,
+        queue,
+        htmlReportStorageDir,
+        logger,
+        userInput,
+    } = additionalData;
 
     const discoverTests = (tests: Iterable<vscodeTestItem>) => {
         const result: QueuedTest[] = [];
@@ -91,7 +100,10 @@ export const startTestRun = async (
                 ) as TypedCollection
             ).getRootDirectory();
 
-            const htmlReportPath = await getHtmlReportPath(collectionRootDir);
+            const htmlReport = await getHtmlReportLocation(
+                collectionRootDir,
+                htmlReportStorageDir,
+            );
 
             run.token.onCancellationRequested(() => {
                 abortEmitter.fire();
@@ -106,7 +118,7 @@ export const startTestRun = async (
                 run,
                 {
                     collectionRootDirectory: collectionRootDir,
-                    htmlReportPath,
+                    htmlReport,
                     logger,
                     userInput,
                 },
@@ -121,10 +133,11 @@ export const startTestRun = async (
             if (
                 didRun &&
                 passed != undefined &&
+                htmlReport &&
                 shouldShowHtmlReport(passed) &&
-                (await checkIfPathExistsAsync(htmlReportPath))
+                (await checkIfPathExistsAsync(htmlReport.path))
             ) {
-                await showHtmlReport(htmlReportPath, path);
+                await showHtmlReport(htmlReport.path, path);
             }
 
             nextItemToRun = queue.getNextTestThatCanStartRunning(toRun);
@@ -153,12 +166,12 @@ const prepareAndRunTest = async (
     run: TestRun,
     additionalData: {
         collectionRootDirectory: string;
-        htmlReportPath: string;
+        htmlReport?: HtmlReportLocation;
         logger?: OutputChannelLogger;
         userInput?: TestRunUserInputData;
     },
 ): Promise<{ didRun: boolean; passed?: boolean }> => {
-    const { collectionRootDirectory, htmlReportPath, logger, userInput } =
+    const { collectionRootDirectory, htmlReport, logger, userInput } =
         additionalData;
 
     if (checkForRequestedCancellation(run)) {
@@ -175,7 +188,7 @@ const prepareAndRunTest = async (
         (sectionKey) => workspace.getConfiguration().get(sectionKey),
     );
 
-    printInfosOnTestRunStart(run, htmlReportPath, testEnvironment);
+    printInfosOnTestRunStart(run, htmlReport, testEnvironment);
 
     if (checkForRequestedCancellation(run)) {
         run.end();
@@ -191,7 +204,8 @@ const prepareAndRunTest = async (
             useDeveloperSandbox: canUseDeveloperSandbox(),
         },
         {
-            htmlReportPath,
+            htmlReportPath: htmlReport?.path,
+            isHtmlReportPathConfiguredByUser: htmlReport?.isConfiguredByUser,
             testEnvironment,
             logger,
             userInput,
@@ -209,7 +223,7 @@ const getIdForQueuedRun = (itemPath: string, creationTime: Date) =>
 
 const printInfosOnTestRunStart = (
     run: TestRun,
-    htmlReportPath: string,
+    htmlReport: HtmlReportLocation | undefined,
     testEnvironment?: string,
 ) => {
     const lineBreak = "\r\n";
@@ -226,9 +240,11 @@ const printInfosOnTestRunStart = (
         );
     }
 
-    run.appendOutput(
-        `Saving the HTML test report to file '${htmlReportPath}'.${lineBreak}`,
-    );
+    if (htmlReport?.isConfiguredByUser) {
+        run.appendOutput(
+            `Saving the HTML test report to file '${htmlReport.path}' due to user setting ${getLinkToUserSetting(htmlReportPathConfigKey)}${lineBreak}`,
+        );
+    }
     run.appendOutput(
         `${canUseDeveloperSandbox() ? "Using" : "Not using"} Javascript sandbox developer mode due to user setting ${getLinkToUserSetting(getConfigKeyForSandboxDeveloperMode())}${lineBreak}`,
     );
@@ -246,63 +262,87 @@ function gatherTestItems(collection: vscodeTestItemCollection) {
     return items;
 }
 
-const getHtmlReportPath = async (collectionRootDir: string) => {
-    const reportPathConfigKey = "bru-as-code.htmlReportPath";
-    const defaultFileName = "results.html";
-    const fallbackAbsolutePath = resolve(
-        collectionRootDir,
-        `../${defaultFileName}`,
-    );
+const htmlReportPathConfigKey = "bru-as-code.htmlReportPath";
 
-    const configValue = workspace
-        .getConfiguration()
-        .get<string>(reportPathConfigKey);
-
-    if (!configValue || extname(configValue) != ".html") {
-        showWarningForInvalidOrMissingHtmlReportPathConfig(
-            configValue,
-            fallbackAbsolutePath,
-        );
-        return fallbackAbsolutePath;
-    } else if (
-        isAbsolute(configValue) &&
-        (await checkIfPathExistsAsync(dirname(configValue)))
-    ) {
-        return configValue;
-    } else if (
-        !isAbsolute(configValue) &&
-        (await checkIfPathExistsAsync(
-            dirname(resolve(collectionRootDir, configValue)),
-        ))
-    ) {
-        return resolve(collectionRootDir, configValue);
-    } else {
-        showWarningForInvalidOrMissingHtmlReportPathConfig(
-            configValue,
-            fallbackAbsolutePath,
-        );
-        return fallbackAbsolutePath;
-    }
-};
-
-function showWarningForInvalidOrMissingHtmlReportPathConfig(
-    configValue: string | undefined,
-    fallbackPathThatWillBeUsed: string,
-) {
-    window.showWarningMessage(
-        `Configured HTML report path '${configValue}' is invalid or missing. Will use the fallback path '${fallbackPathThatWillBeUsed}' instead.`,
-    );
+interface HtmlReportLocation {
+    path: string;
+    /** If false, the report is only stored in the extension's own storage (e.g. to be shown in the report panel). */
+    isConfiguredByUser: boolean;
 }
 
-const shouldShowHtmlReport = (testsPassed: boolean) => {
-    const alwaysShowReportConfigKey = "bru-as-code.alwaysShowHtmlReport";
-    const fallbackValue = true;
-
+/**
+ * @returns `undefined`, if no HTML report is needed (i.e. the user did not configure a path and does not want to see reports)
+ */
+const getHtmlReportLocation = async (
+    collectionRootDir: string,
+    htmlReportStorageDir: string,
+): Promise<HtmlReportLocation | undefined> => {
     const configValue = workspace
         .getConfiguration()
-        .get<boolean>(alwaysShowReportConfigKey, fallbackValue);
+        .get<string>(htmlReportPathConfigKey)
+        ?.trim();
 
-    return configValue || !testsPassed;
+    if (configValue) {
+        const configuredPath = await resolveConfiguredHtmlReportPath(
+            configValue,
+            collectionRootDir,
+        );
+
+        if (configuredPath) {
+            return { path: configuredPath, isConfiguredByUser: true };
+        }
+
+        window.showWarningMessage(
+            `Configured HTML report path '${configValue}' is invalid or missing. The report will not be saved to that path.`,
+        );
+    }
+
+    if (getShowHtmlReportSetting() == "never") {
+        return undefined;
+    }
+
+    await mkdir(htmlReportStorageDir, { recursive: true });
+
+    // Keep only the last report per collection.
+    const collectionHash = createHash("sha1")
+        .update(collectionRootDir)
+        .digest("hex")
+        .slice(0, 12);
+
+    return {
+        path: join(htmlReportStorageDir, `report-${collectionHash}.html`),
+        isConfiguredByUser: false,
+    };
+};
+
+const resolveConfiguredHtmlReportPath = async (
+    configValue: string,
+    collectionRootDir: string,
+) => {
+    if (extname(configValue) != ".html") {
+        return undefined;
+    }
+
+    const absolutePath = isAbsolute(configValue)
+        ? configValue
+        : resolve(collectionRootDir, configValue);
+
+    return (await checkIfPathExistsAsync(dirname(absolutePath)))
+        ? absolutePath
+        : undefined;
+};
+
+type ShowHtmlReportSetting = "always" | "onFailure" | "never";
+
+const getShowHtmlReportSetting = () =>
+    workspace
+        .getConfiguration()
+        .get<ShowHtmlReportSetting>("bru-as-code.showHtmlReport", "onFailure");
+
+const shouldShowHtmlReport = (testsPassed: boolean) => {
+    const setting = getShowHtmlReportSetting();
+
+    return setting == "always" || (setting == "onFailure" && !testsPassed);
 };
 
 function canUseDeveloperSandbox() {

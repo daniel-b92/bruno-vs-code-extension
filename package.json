@@ -96,13 +96,23 @@
                 },
                 "bru-as-code.htmlReportPath": {
                     "type": "string",
-                    "default": "results.html",
-                    "description": "The path for saving HTML test reports. Can either be defined as an absolute path or relative to the collection root directory."
+                    "default": "",
+                    "description": "The path for saving HTML test reports permanently. Can either be defined as an absolute path or relative to the collection root directory. If empty, no report is saved to the workspace (the latest report is only kept in the extension's own storage, so that it can be shown)."
                 },
-                "bru-as-code.alwaysShowHtmlReport": {
-                    "type": "boolean",
-                    "default": true,
-                    "markdownDescription": "Whether to always show the HTML test report after running tests. If set to *false*, the HTML report will only be shown for failed runs."
+                "bru-as-code.showHtmlReport": {
+                    "type": "string",
+                    "enum": [
+                        "always",
+                        "onFailure",
+                        "never"
+                    ],
+                    "enumDescriptions": [
+                        "Show the HTML test report after every test run.",
+                        "Only show the HTML test report for failed test runs.",
+                        "Never show the HTML test report automatically."
+                    ],
+                    "default": "onFailure",
+                    "markdownDescription": "When to show the HTML test report after running tests. The latest report can also be opened via the command *Show last HTML test report* (not available if set to *never* and no `#bru-as-code.htmlReportPath#` is configured)."
                 },
                 "bru-as-code.sandboxDeveloperMode": {
                     "type": "boolean",
@@ -254,6 +264,11 @@
             }
         ],
         "commands": [
+            {
+                "command": "bruAsCode.showLastHtmlReport",
+                "title": "Show last HTML test report",
+                "category": "Bru-as-Code"
+            },
             {
                 "command": "brunoCollectionsView.refresh",
                 "title": "Refresh collection explorer",

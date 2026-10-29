@@ -39,8 +39,7 @@ function getCommandForCli({
     const commandArguments: string[] = [argForRunCommand].concat(
         ...mapUserInputDataToCommandArgs(userInput),
         useDeveloperSandbox ? "--sandbox=developer" : [], // The CLI uses the sandbox 'safe' per default.
-        "--reporter-html",
-        htmlReportPath,
+        htmlReportPath ? ["--reporter-html", htmlReportPath] : [],
         "--reporter-json",
         jsonReportPath,
     );

@@ -21,7 +21,10 @@ export interface TestRunChildProcessData {
 }
 
 export interface TestRunReportingAndOptionalData {
-    htmlReportPath: string;
+    /** If undefined, no HTML report is generated. */
+    htmlReportPath?: string;
+    /** Whether the HTML report is stored at a location the user configured (as opposed to the extension's own storage). */
+    isHtmlReportPathConfiguredByUser?: boolean;
     testEnvironment?: string;
     logger?: OutputChannelLogger;
     userInput?: TestRunUserInputData;

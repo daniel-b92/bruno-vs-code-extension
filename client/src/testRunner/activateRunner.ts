@@ -49,6 +49,9 @@ export async function activateRunner(
     const queue = new TestRunQueue(ctrl);
     const testRunnerDataHelper = new TestRunnerDataHelper(ctrl);
     const logger = getLoggerFromSubscriptions(context);
+    const htmlReportStorageDir = (
+        context.storageUri ?? context.globalStorageUri
+    ).fsPath;
 
     handleTestTreeUpdates(ctrl, collectionItemProvider, testRunnerDataHelper);
 
@@ -68,6 +71,7 @@ export async function activateRunner(
                     {
                         collectionItemProvider,
                         queue,
+                        htmlReportStorageDir,
                         logger,
                     },
                 );
@@ -98,6 +102,7 @@ export async function activateRunner(
                     {
                         collectionItemProvider,
                         queue,
+                        htmlReportStorageDir,
                         logger,
                     },
                 );
@@ -130,6 +135,7 @@ export async function activateRunner(
             return await startTestRun(ctrl, request, {
                 collectionItemProvider,
                 queue,
+                htmlReportStorageDir,
                 logger,
             });
         }
@@ -268,6 +274,7 @@ export async function activateRunner(
             {
                 collectionItemProvider,
                 queue,
+                htmlReportStorageDir,
                 logger,
                 userInput,
             },
