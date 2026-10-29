@@ -97,7 +97,7 @@
                 "bru-as-code.htmlReportPath": {
                     "type": "string",
                     "default": "",
-                    "description": "The path for saving HTML test reports permanently. Can either be defined as an absolute path or relative to the collection root directory. If empty, no report is saved to the workspace (the latest report is only kept in the extension's own storage, so that it can be shown)."
+                    "description": "The path for saving HTML test reports permanently. Can either be defined as an absolute path or relative to the collection root directory. If empty, no report is saved to the workspace (unless `bru-as-code.showHtmlReport` is set to `never`, the latest report is kept in the extension's own storage, so that it can be shown)."
                 },
                 "bru-as-code.showHtmlReport": {
                     "type": "string",
@@ -113,6 +113,12 @@
                     ],
                     "default": "onFailure",
                     "markdownDescription": "When to show the HTML test report after running tests. The latest report can also be opened via the command *Show last HTML test report* (not available if set to *never* and no `#bru-as-code.htmlReportPath#` is configured)."
+                },
+                "bru-as-code.alwaysShowHtmlReport": {
+                    "type": "boolean",
+                    "default": false,
+                    "markdownDeprecationMessage": "**Deprecated**: Use `#bru-as-code.showHtmlReport#` instead. `true` is treated as `always` as long as `showHtmlReport` is not set.",
+                    "deprecationMessage": "Deprecated: Use 'bru-as-code.showHtmlReport' instead."
                 },
                 "bru-as-code.sandboxDeveloperMode": {
                     "type": "boolean",

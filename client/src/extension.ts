@@ -28,7 +28,6 @@ import { activateLanguageFeatures } from "./languageFeatures";
 import { suggestCreatingTsConfigsForCollections } from "./languageFeatures/suggestCreatingTsConfigsForCollections";
 import { join } from "path";
 import { warnAboutConflictingCollectionRoots } from "./warnAboutConflictingCollectionRoots";
-import { showLastHtmlReport } from "./testRunner/internal/testExecutionUtils/showHtmlReport";
 import {
     LanguageClient,
     LanguageClientOptions,
@@ -84,9 +83,6 @@ export async function activate(context: ExtensionContext) {
         commands.registerCommand(
             "bruAsCode.restartLanguageServer",
             getCallbackForRestartingClient(),
-        ),
-        commands.registerCommand("bruAsCode.showLastHtmlReport", () =>
-            showLastHtmlReport(),
         ),
     );
 

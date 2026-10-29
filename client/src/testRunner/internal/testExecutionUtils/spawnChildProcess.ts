@@ -45,15 +45,15 @@ function getCommandForCli({
     );
 
     if (testEnvironment) {
-        commandArguments.push(...["--env", testEnvironment]);
+        commandArguments.push(...["--env", quote(testEnvironment)]);
     }
 
     return { command, commandArguments };
 }
 
-// The process is spawned with `shell: true`, so paths containing whitespace need to be quoted.
-function quote(path: string) {
-    return `"${path}"`;
+// The process is spawned with `shell: true`, so values containing whitespace (e.g. paths) need to be quoted.
+function quote(value: string) {
+    return `"${value}"`;
 }
 
 function mapUserInputDataToCommandArgs(userInput?: TestRunUserInputData) {
@@ -71,10 +71,10 @@ function mapUserInputDataToCommandArgs(userInput?: TestRunUserInputData) {
     } = userInput;
 
     const argsForTags = (
-        includedTags.length > 0 ? ["--tags"].concat(includedTags.join(",")) : []
+        includedTags.length > 0 ? ["--tags"].concat(quote(includedTags.join(","))) : []
     ).concat(
         excludedTags.length > 0
-            ? ["--exclude-tags"].concat(excludedTags.join(","))
+            ? ["--exclude-tags"].concat(quote(excludedTags.join(",")))
             : [],
     );
 

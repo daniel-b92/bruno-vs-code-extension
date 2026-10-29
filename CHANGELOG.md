@@ -2,7 +2,7 @@
 
 ### Breaking changes
 
-- Do not save HTML test reports to the workspace by default anymore: The default of `bru-as-code.htmlReportPath` is now empty (it was `results.html`). The latest report per collection is only kept in the extension's own storage. To keep saving reports, set `bru-as-code.htmlReportPath` explicitly. If the configured path is invalid, the report is no longer saved to a fallback location next to the collection, and a warning is shown instead.
+- Do not save HTML test reports to the workspace by default anymore: The default of `bru-as-code.htmlReportPath` is now empty (it was `results.html`). The latest report per collection is only kept in the extension's own storage. To keep saving reports, set `bru-as-code.htmlReportPath` explicitly. If the configured path is invalid, the report is no longer saved to a fallback location next to the collection (a warning is still shown).
 - Replace the setting `bru-as-code.alwaysShowHtmlReport` with `bru-as-code.showHtmlReport` (`always`, `onFailure` or `never`). The default is now `onFailure`, so the HTML report is no longer shown after successful test runs. A previously configured `alwaysShowHtmlReport: true` is still treated as `always` (as long as `showHtmlReport` is not set).
 
 ### Features
@@ -12,6 +12,7 @@
 ### Fixes / Maintenance
 
 - Add an option "Do not ask again" to the warning that is shown when nested collections are found (collection root files that are ignored because of conflicts). The warning can also be disabled via the new setting `bru-as-code.warnAboutConflictingCollectionRoots`.
+- Fix an issue that caused test runs to fail if the path of the tested file or folder contained whitespace.
 
 ## [1.5.0] (2026-10-24)
 

@@ -10,6 +10,7 @@ import {
     window,
     ProgressLocation,
     ExtensionContext,
+    commands,
 } from "vscode";
 import { startTestRun } from "./internal/startTestRun";
 import { TestRunQueue } from "./internal/testRunQueue";
@@ -29,6 +30,7 @@ import {
     getLoggerFromSubscriptions,
     TypedCollection,
 } from "@shared";
+import { showLastHtmlReport } from "./internal/testExecutionUtils/showHtmlReport";
 import { openRunConfigDialog } from "./internal/testExecutionUtils/openRunConfigDialog";
 import { TestRunUserInputData } from "./internal/interfaces";
 import { TestRunnerDataHelper } from ".";
@@ -52,6 +54,12 @@ export async function activateRunner(
     const htmlReportStorageDir = (
         context.storageUri ?? context.globalStorageUri
     ).fsPath;
+
+    context.subscriptions.push(
+        commands.registerCommand("bruAsCode.showLastHtmlReport", () =>
+            showLastHtmlReport(),
+        ),
+    );
 
     handleTestTreeUpdates(ctrl, collectionItemProvider, testRunnerDataHelper);
 
