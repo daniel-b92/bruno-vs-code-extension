@@ -26,8 +26,7 @@ export async function runTestStructure(
         useDeveloperSandbox: boolean;
     },
     {
-        htmlReportPath,
-        isHtmlReportPathConfiguredByUser,
+        htmlReport,
         logger,
         testEnvironment,
         userInput,
@@ -43,8 +42,8 @@ export async function runTestStructure(
     const lineBreak = getLineBreakForTestRunOutput();
     const isDirectory = item.canResolveChildren;
 
-    if (htmlReportPath && (await checkIfPathExistsAsync(htmlReportPath))) {
-        await promisify(unlink)(htmlReportPath);
+    if (htmlReport && (await checkIfPathExistsAsync(htmlReport.path))) {
+        await promisify(unlink)(htmlReport.path);
     }
 
     const jsonReportPath = getJsonReportPath(collectionRootDirectory);
@@ -68,8 +67,7 @@ export async function runTestStructure(
             jsonReportPath,
             useDeveloperSandbox,
             reportingAndOptionalData: {
-                htmlReportPath,
-                isHtmlReportPathConfiguredByUser,
+                htmlReport,
                 testEnvironment,
                 logger,
                 userInput,
@@ -87,13 +85,9 @@ export async function runTestStructure(
 
         childProcess.on("error", (err) => {
             logger?.error("Failed to start subprocess.", err);
-            if (
-                isHtmlReportPathConfiguredByUser &&
-                htmlReportPath &&
-                existsSync(htmlReportPath)
-            ) {
+            if (htmlReport?.isConfiguredByUser && existsSync(htmlReport.path)) {
                 options.appendOutput(
-                    `Results can be found here: ${htmlReportPath}${lineBreak}`,
+                    `Results can be found here: ${htmlReport.path}${lineBreak}`,
                 );
             }
 
@@ -126,13 +120,9 @@ export async function runTestStructure(
                 `Child process for test run exited with code ${exitCode}`,
             );
             duration = Date.now() - start;
-            if (
-                isHtmlReportPathConfiguredByUser &&
-                htmlReportPath &&
-                existsSync(htmlReportPath)
-            ) {
+            if (htmlReport?.isConfiguredByUser && existsSync(htmlReport.path)) {
                 options.appendOutput(
-                    `HTML report has been saved in file: '${htmlReportPath}'${lineBreak}`,
+                    `HTML report has been saved in file: '${htmlReport.path}'${lineBreak}`,
                 );
             }
             if (exitCode == 0) {

@@ -1,4 +1,7 @@
-import { showHtmlReport } from "./testExecutionUtils/showHtmlReport";
+import {
+    rememberLastHtmlReport,
+    showHtmlReport,
+} from "./testExecutionUtils/showHtmlReport";
 import {
     EventEmitter,
     TestController,
@@ -9,6 +12,7 @@ import {
     TestItemCollection as vscodeTestItemCollection,
     window,
     workspace,
+    WorkspaceConfiguration,
 } from "vscode";
 import { createHash } from "crypto";
 import { mkdir } from "fs/promises";
@@ -25,7 +29,7 @@ import {
     checkIfPathExistsAsync,
     getConfiguredEnvironmentName,
 } from "@global_shared";
-import { TestRunUserInputData } from "./interfaces";
+import { HtmlReportLocation, TestRunUserInputData } from "./interfaces";
 
 export const startTestRun = async (
     ctrl: TestController,
@@ -134,10 +138,13 @@ export const startTestRun = async (
                 didRun &&
                 passed != undefined &&
                 htmlReport &&
-                shouldShowHtmlReport(passed) &&
                 (await checkIfPathExistsAsync(htmlReport.path))
             ) {
-                await showHtmlReport(htmlReport.path, path);
+                rememberLastHtmlReport(htmlReport.path, path);
+
+                if (shouldShowHtmlReport(passed)) {
+                    await showHtmlReport(htmlReport.path, path);
+                }
             }
 
             nextItemToRun = queue.getNextTestThatCanStartRunning(toRun);
@@ -204,8 +211,7 @@ const prepareAndRunTest = async (
             useDeveloperSandbox: canUseDeveloperSandbox(),
         },
         {
-            htmlReportPath: htmlReport?.path,
-            isHtmlReportPathConfiguredByUser: htmlReport?.isConfiguredByUser,
+            htmlReport,
             testEnvironment,
             logger,
             userInput,
@@ -263,12 +269,6 @@ function gatherTestItems(collection: vscodeTestItemCollection) {
 }
 
 const htmlReportPathConfigKey = "bru-as-code.htmlReportPath";
-
-interface HtmlReportLocation {
-    path: string;
-    /** If false, the report is only stored in the extension's own storage (e.g. to be shown in the report panel). */
-    isConfiguredByUser: boolean;
-}
 
 /**
  * @returns `undefined`, if no HTML report is needed (i.e. the user did not configure a path and does not want to see reports)
@@ -334,10 +334,40 @@ const resolveConfiguredHtmlReportPath = async (
 
 type ShowHtmlReportSetting = "always" | "onFailure" | "never";
 
-const getShowHtmlReportSetting = () =>
-    workspace
-        .getConfiguration()
-        .get<ShowHtmlReportSetting>("bru-as-code.showHtmlReport", "onFailure");
+const showHtmlReportConfigKey = "bru-as-code.showHtmlReport";
+const removedAlwaysShowHtmlReportConfigKey = "bru-as-code.alwaysShowHtmlReport";
+
+const getShowHtmlReportSetting = (): ShowHtmlReportSetting => {
+    const config = workspace.getConfiguration();
+
+    if (hasExplicitValue(config.inspect(showHtmlReportConfigKey))) {
+        return config.get<ShowHtmlReportSetting>(
+            showHtmlReportConfigKey,
+            "onFailure",
+        );
+    }
+
+    // Migration: The removed setting is no longer registered, but configured values can still be read.
+    // Only an explicit `true` differs from the new default.
+    const removedSetting = config.inspect<boolean>(
+        removedAlwaysShowHtmlReportConfigKey,
+    );
+
+    return [
+        removedSetting?.workspaceFolderValue,
+        removedSetting?.workspaceValue,
+        removedSetting?.globalValue,
+    ].find((value) => value !== undefined) === true
+        ? "always"
+        : "onFailure";
+};
+
+const hasExplicitValue = (
+    inspected: ReturnType<WorkspaceConfiguration["inspect"]>,
+) =>
+    inspected?.workspaceFolderValue !== undefined ||
+    inspected?.workspaceValue !== undefined ||
+    inspected?.globalValue !== undefined;
 
 const shouldShowHtmlReport = (testsPassed: boolean) => {
     const setting = getShowHtmlReportSetting();

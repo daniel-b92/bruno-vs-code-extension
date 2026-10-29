@@ -7,12 +7,17 @@ import { checkIfPathExistsAsync } from "@global_shared";
 let currentPanel: WebviewPanel | undefined;
 let lastReport: { htmlReportPath: string; testItemPath: string } | undefined;
 
-export async function showHtmlReport(
+export function rememberLastHtmlReport(
     htmlReportPath: string,
     testItemPath: string,
 ) {
     lastReport = { htmlReportPath, testItemPath };
+}
 
+export async function showHtmlReport(
+    htmlReportPath: string,
+    testItemPath: string,
+) {
     const title = `bru HTML report - ${getTestLabel(Uri.file(testItemPath))}`;
     const html = await promisify(readFile)(htmlReportPath, "utf-8");
 
@@ -53,7 +58,7 @@ export async function showLastHtmlReport() {
         !(await checkIfPathExistsAsync(lastReport.htmlReportPath))
     ) {
         window.showInformationMessage(
-            "No HTML report available yet. Run a test first (the setting 'bru-as-code.showHtmlReport' must not be set to 'never').",
+            "No HTML report available yet. Run a test first (if the setting 'bru-as-code.showHtmlReport' is set to 'never', the setting 'bru-as-code.htmlReportPath' must be configured).",
         );
         return;
     }
