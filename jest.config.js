@@ -4,6 +4,9 @@ module.exports = {
     // Every worker loads its own TypeScript compiler via ts-jest (~1.5 GiB each).
     // With jest's default (one worker per CPU core - 1) this can exhaust the memory on machines with many cores.
     maxWorkers: 2,
+    // Workers are reused across test files and accumulate a TypeScript compiler per project, plus the language services
+    // created by the `tsPlugin` tests. Without recycling them, their heap can exceed the default limit of Node.
+    workerIdleMemoryLimit: "1GB",
     projects: [
         {
             displayName: "server",

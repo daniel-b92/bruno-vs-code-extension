@@ -1,0 +1,11 @@
+{
+    // Used for type-checking the tests (which are excluded from the regular build) together with the sources.
+    // The tests also import code from `shared`, so the root directory needs to contain it.
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "rootDir": "..",
+        "noEmit": true
+    },
+    "include": ["src"],
+    "exclude": ["node_modules", "out"]
+}
