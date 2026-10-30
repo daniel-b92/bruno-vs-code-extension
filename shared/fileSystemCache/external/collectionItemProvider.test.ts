@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "@jest/globals";
+import { describe, it, expect, afterEach, jest } from "@jest/globals";
 import { writeFile } from "fs/promises";
 import { Evt } from "evt";
 import { basename, join } from "path";
@@ -326,6 +326,47 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
         expect(collection.getAdditionalContextRoots()).toEqual([
             join(rootDir, "shared"),
         ]);
+    });
+
+    it("notifies subscribers only when the additional context roots of a collection actually change", async () => {
+        const workspace = await createTemporaryDirectory({
+            "collection/bruno.json": "{}",
+            "collection/request.bru":
+                "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
+        });
+        const rootFilePath = join(workspace, "collection", "bruno.json");
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(
+            workspace,
+            { yamlCollectionSupport: true },
+            fileChangedEmitter,
+        );
+        await provider.refreshCache();
+        const callback = jest.fn();
+        provider.subscribeToAdditionalContextRootChanges(callback);
+
+        // Modification without a change of the context roots.
+        await writeFile(rootFilePath, JSON.stringify({ name: "collection" }));
+        fileChangedEmitter.post({
+            path: rootFilePath,
+            changeType: FileChangeType.Modified,
+        });
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        expect(callback).not.toHaveBeenCalled();
+
+        await writeFile(
+            rootFilePath,
+            JSON.stringify({
+                scripts: { additionalContextRoots: ["./shared"] },
+            }),
+        );
+        fileChangedEmitter.post({
+            path: rootFilePath,
+            changeType: FileChangeType.Modified,
+        });
+
+        await waitUntil(() => callback.mock.calls.length > 0);
+        expect(callback).toHaveBeenCalledTimes(1);
     });
 
     it("updates the additional context roots when 'opencollection.yml' of a yaml collection is modified", async () => {

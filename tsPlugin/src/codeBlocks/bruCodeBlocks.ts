@@ -3,7 +3,7 @@ import { CodeBlockName } from "../constants";
 
 export function getCodeBlockIndizesForBruFile(fileContent: string) {
     const indizes: {
-        blockName: string;
+        blockName: CodeBlockName;
         startIndex: number;
         endIndex: number;
     }[] = [];
@@ -63,4 +63,16 @@ function getCodeBlockStartAndEndIndex(
             blockStartIndex + startMatches[0].indexOf(openingBracketChar) + 1,
         endIndex: blockStartIndex + blockNodeInSubDocument.end,
     };
+}
+
+/**
+ * Only gRPC requests can have gRPC-specific code blocks, but other code blocks (e.g. `tests`) are available for gRPC requests as well.
+ */
+export function isGrpcRequestFile(fileContent: string) {
+    const metaBlockContent = /^meta\s*\{([\s\S]*?)^\}/m.exec(fileContent)?.[1];
+
+    return (
+        /^\s*type\s*:\s*grpc\s*$/m.test(metaBlockContent ?? "") ||
+        /^\s*script:grpc:[a-z-]+\s*\{\s*$/m.test(fileContent)
+    );
 }

@@ -5,8 +5,9 @@
         "lib": ["ES2025"],
         "noEmit": true,
         "allowJs": true,
-        "types": ["node"]
+        "types": ["node"],
+        "checkJs": true
     },
-    "exclude": ["node_modules", "../sharedScripts/__temp_bru_reference.js"],
+    "exclude": ["node_modules"],
     "include": ["**/*", "../sharedScripts"]
 }

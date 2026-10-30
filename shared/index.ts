@@ -5,7 +5,7 @@ export * from "./arrayUtils/filterAsync";
 // file system
 export * from "./fileSystem/interfaces";
 export * from "./fileSystem/collectionWatcher";
-export * from "./fileSystem/getTemporaryJsFileName";
+export * from "./fileSystem/getTemporaryJsFileBasename";
 export * from "./fileSystem/textDocumentHelper";
 export * from "./fileSystem/range";
 export * from "./fileSystem/position";
@@ -24,7 +24,6 @@ export * from "./fileSystem/util/convertToGlobPattern";
 export * from "./fileSystem/util/getFileContent";
 
 // file system cache
-export * from "./fileSystemCache/external/tempJsFilesProvider";
 export * from "./fileSystemCache/external/collectionItemProvider";
 export * from "./fileSystemCache/external/isBrunoFileType";
 export * from "./fileSystemCache/external/isFileRelevantForCollections";

@@ -75,7 +75,6 @@ export async function activate(context: ExtensionContext) {
         testController: ctrl,
         startTestRunEmitter,
         multiFileOperationNotifier,
-        collectionWatcher,
         cacheSyncingHelper,
     } = createNeededHandlers(context);
 
@@ -109,10 +108,7 @@ export async function activate(context: ExtensionContext) {
     toAwait.push(
         activateLanguageFeatures(
             context,
-            collectionWatcher,
             collectionItemProvider,
-            cacheSyncingHelper,
-            startTestRunEmitter.event,
             getFeatureToggles(context),
         ),
     );
