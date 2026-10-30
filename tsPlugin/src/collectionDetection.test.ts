@@ -5,6 +5,7 @@ import {
     fileWatchers,
     getDiagnosticCodes,
     helperModule,
+    readDirectories,
     resetWatchers,
     writeFile,
 } from "./_testingUtils";
@@ -188,5 +189,20 @@ describe("detection of collections", () => {
                 ({ closed }) => closed,
             ),
         ).toBe(true);
+    });
+
+    it("reads each directory only once when determining the collections of files in sibling directories", () => {
+        const languageService = createLanguageServiceWithPlugin({
+            "/collection/bruno.json": '{ "type": "collection" }',
+            "/collection/a/b/one.bru": "script:pre-request {\n}\n",
+            "/collection/a/c/two.bru": "script:pre-request {\n}\n",
+            "/collection/a/d/three.bru": "script:pre-request {\n}\n",
+        });
+
+        languageService.getSemanticDiagnostics("/collection/a/b/one.bru");
+        languageService.getSemanticDiagnostics("/collection/a/c/two.bru");
+        languageService.getSemanticDiagnostics("/collection/a/d/three.bru");
+
+        expect(new Set(readDirectories).size).toBe(readDirectories.length);
     });
 });

@@ -79,10 +79,13 @@ export function createLanguageServiceWithPlugin(
                     .map((path) => path.split("/")[0]),
             ),
         ],
-        readDirectory: (directory: string) =>
-            Object.keys(files).filter(
+        readDirectory: (directory: string) => {
+            readDirectories.push(directory);
+
+            return Object.keys(files).filter(
                 (fileName) => dirname(fileName) == directory,
-            ),
+            );
+        },
         watchDirectory: (
             directory: string,
             callback: ts.DirectoryWatcherCallback,
@@ -271,6 +274,7 @@ interface Watcher {
 
 export const directoryWatchers: Watcher[] = [];
 export const fileWatchers: Watcher[] = [];
+export const readDirectories: string[] = [];
 
 export function addWatcher(
     watchers: Watcher[],
@@ -327,4 +331,5 @@ export function getDiagnosticCodes(
 export function resetWatchers() {
     directoryWatchers.length = 0;
     fileWatchers.length = 0;
+    readDirectories.length = 0;
 }

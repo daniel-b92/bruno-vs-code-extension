@@ -124,6 +124,13 @@ export class CollectionLookup {
         let collection: Collection | undefined;
 
         for (;;) {
+            // A directory without a root file belongs to the same collection as its parent, so the cached result of an ancestor can be reused.
+            if (this.collectionsForDirectories.has(currentDirectory)) {
+                collection =
+                    this.collectionsForDirectories.get(currentDirectory);
+                break;
+            }
+
             checkedDirectories.push(currentDirectory);
             this.watchIfNotCovered(currentDirectory);
 

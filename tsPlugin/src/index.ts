@@ -13,6 +13,7 @@ import {
     overrideRename,
 } from "./languageService/navigationOverrides";
 import { overridePasting } from "./languageService/pasteOverrides";
+import { overridePresentation } from "./languageService/presentationOverrides";
 import { PluginConfig, PluginConfiguration } from "./pluginConfiguration";
 import { includeCollectionFilesInConfiguredProjects } from "./projectService/includeCollectionFilesInConfiguredProjects";
 
@@ -126,6 +127,7 @@ function decorateLanguageService(
     overrideFormatting(info, decorated);
     overrideFileRenames(info, decorated);
     overridePasting(info, decorated);
+    overridePresentation(info, decorated, configuration);
 
     // The Typescript server disposes the language service when the project is closed.
     const disposeOriginally = decorated.dispose.bind(decorated);

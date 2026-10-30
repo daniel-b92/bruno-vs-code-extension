@@ -111,6 +111,48 @@ script:pre-request {
         ).toEqual([{ code: 1_308, text: "await" }]);
     });
 
+    it("still reports `await` within initializers of class fields", () => {
+        const content = `${requestBlocks}
+script:pre-request {
+  class A {
+    p = await bru.sleep(1);
+  }
+}
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([{ code: 1_308, text: "await" }]);
+    });
+
+    it("allows `await` within computed names of class members", () => {
+        const content = `${requestBlocks}
+script:pre-request {
+  class A {
+    [await Promise.resolve("p")]() {}
+  }
+}
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([]);
+    });
+
     it("scopes the declarations of each code block separately", () => {
         const content = `${requestBlocks}
 script:pre-request {

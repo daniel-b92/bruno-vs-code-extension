@@ -23,6 +23,7 @@ describe("language features", () => {
             ) =>
                 `meta {\n  name: request\n  type: ${requestType}\n  seq: 1\n}\n\nget {\n  url: https://example.com/api/users/1\n  body: none\n  auth: none\n}\n\nheaders {\n  Content-Type: application/json\n}\n\nscript:pre-request {\n${codeLines.map((line) => `  ${line}\n`).join("")}}\n`,
             textOutsideOfCode: "Content-Type",
+            codeBlockHeader: "script:pre-request {",
         },
         {
             format: "yaml",
@@ -37,6 +38,7 @@ describe("language features", () => {
             ) =>
                 `info:\n  name: request\n  type: ${requestType}\nruntime:\n  scripts:\n    - type: before-request\n      code: |-\n${codeLines.map((line) => `        ${line}\n`).join("")}`,
             textOutsideOfCode: "name: request",
+            codeBlockHeader: "code: |-",
         },
     ])(
         "for $format files",
@@ -45,6 +47,7 @@ describe("language features", () => {
             requestFile,
             createRequestFileContent,
             textOutsideOfCode,
+            codeBlockHeader,
         }) => {
             const createLanguageService = (
                 codeLines: string[],
@@ -354,6 +357,119 @@ describe("language features", () => {
                     ).toEqual([name, name]);
                 },
             );
+            describe("for the wrappers of code blocks", () => {
+                const codeLines = [
+                    "function add(a, b) {",
+                    "  return a + b;",
+                    "}",
+                    "const val§ue = add(1, 2);",
+                ];
+
+                it("does not provide inlay hints for the wrappers", () => {
+                    const { languageService, content } =
+                        createLanguageService(codeLines);
+
+                    expect(
+                        languageService
+                            .provideInlayHints(
+                                requestFile,
+                                { start: 0, length: content.length },
+                                {
+                                    includeInlayParameterNameHints: "all",
+                                    includeInlayFunctionLikeReturnTypeHints: true,
+                                    includeInlayVariableTypeHints: true,
+                                    includeInlayFunctionParameterTypeHints: true,
+                                },
+                            )
+                            .map(({ text }) => text),
+                    ).toEqual([": any", ": any", ": any", ": any", "a:", "b:"]);
+                });
+
+                it("does not provide semantic classifications for the wrappers", () => {
+                    const { languageService, content } =
+                        createLanguageService(codeLines);
+
+                    expect(
+                        getClassifiedTexts(
+                            content,
+                            languageService.getEncodedSemanticClassifications(
+                                requestFile,
+                                { start: 0, length: content.length },
+                                ts.SemanticClassificationFormat.TwentyTwenty,
+                            ),
+                        ),
+                    ).toEqual(["add", "a", "b", "a", "b", "value", "add"]);
+                });
+
+                it("shows the declarations of the code without the wrappers in the outline", () => {
+                    const { languageService } =
+                        createLanguageService(codeLines);
+
+                    expect(
+                        languageService
+                            .getNavigationTree(requestFile)
+                            .childItems?.map(({ text }) => text),
+                    ).toEqual(["add", "value"]);
+                    expect(
+                        languageService
+                            .getNavigationBarItems(requestFile)
+                            .map(({ text, childItems }) => ({
+                                text,
+                                childItems: childItems.map(
+                                    ({ text: childText }) => childText,
+                                ),
+                            })),
+                    ).toEqual([
+                        { text: "<global>", childItems: ["add", "value"] },
+                    ]);
+                });
+
+                it("does not provide outlining spans for the wrappers", () => {
+                    const { languageService, content } =
+                        createLanguageService(codeLines);
+
+                    expect(
+                        getTexts(
+                            content,
+                            languageService.getOutliningSpans(requestFile),
+                        )?.map((text) => text.trim()),
+                    ).toEqual([
+                        expect.stringMatching(/^\{\s*return a \+ b;\s*\}$/),
+                    ]);
+                });
+
+                it("does not extend the smart selection to the wrappers", () => {
+                    const { languageService, content, position } =
+                        createLanguageService(codeLines);
+                    const ranges: ts.TextSpan[] = [];
+
+                    for (
+                        let range: ts.SelectionRange | undefined =
+                            languageService.getSmartSelectionRange(
+                                requestFile,
+                                position,
+                            );
+                        range != undefined;
+                        range = range.parent
+                    ) {
+                        ranges.push(range.textSpan);
+                    }
+
+                    expect(
+                        ranges
+                            .slice(0, 2)
+                            .map(({ start, length }) =>
+                                content.substring(start, start + length),
+                            ),
+                    ).toEqual(["value", "const value = add(1, 2);"]);
+                    expect(
+                        Math.min(...ranges.map(({ start }) => start)),
+                    ).toBeGreaterThanOrEqual(
+                        content.indexOf(codeBlockHeader) +
+                            codeBlockHeader.length,
+                    );
+                });
+            });
         },
     );
 
@@ -474,4 +590,18 @@ function getTexts(
     return locations?.map(({ textSpan: { start, length } }) =>
         fileContent.substring(start, start + length),
     );
+}
+
+function getClassifiedTexts(
+    fileContent: string,
+    { spans }: ts.Classifications,
+) {
+    const texts: string[] = [];
+
+    // The spans are encoded as triples of start, length and classification.
+    for (let i = 0; i < spans.length; i += 3) {
+        texts.push(fileContent.substring(spans[i], spans[i] + spans[i + 1]));
+    }
+
+    return texts;
 }
