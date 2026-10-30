@@ -68,20 +68,32 @@ export class CollectionLookup {
     }
 
     getContainingCollection(fileName: string) {
-        const directory = dirname(fileName);
-
-        if (!this.collectionsForDirectories.has(directory)) {
-            this.determineCollection(directory);
-        }
-
-        return this.collectionsForDirectories.get(directory);
+        return this.getCollectionForDirectory(dirname(fileName));
     }
 
     /**
-     * Forgets all collections that have been determined so far, e.g. when a file was added to or removed from the project.
+     * Determines the collections again for all directories that were looked up so far
+     * (e.g. when a root file changed or when files were added to or removed from the project, in case a watcher missed a change).
+     * Listeners are only notified if a collection actually changed, since that causes all files with code blocks to be parsed again.
      */
-    clear() {
+    refresh() {
+        const previousCollections = this.collectionsForDirectories;
         this.collectionsForDirectories = new Map();
+
+        const hasChanged = [...previousCollections].some(
+            ([directory, previous]) => {
+                const current = this.getCollectionForDirectory(directory);
+
+                return (
+                    previous?.rootFolder != current?.rootFolder ||
+                    previous?.format != current?.format
+                );
+            },
+        );
+
+        if (hasChanged) {
+            this.changeListeners.forEach((listener) => listener());
+        }
     }
 
     onDidChange(listener: () => void) {
@@ -96,6 +108,14 @@ export class CollectionLookup {
         this.directoryWatchers.clear();
         this.rootFileWatchers.clear();
         this.changeListeners.length = 0;
+    }
+
+    private getCollectionForDirectory(directory: string) {
+        if (!this.collectionsForDirectories.has(directory)) {
+            this.determineCollection(directory);
+        }
+
+        return this.collectionsForDirectories.get(directory);
     }
 
     private determineCollection(startDirectory: string) {
@@ -197,10 +217,7 @@ export class CollectionLookup {
         try {
             watchers.set(
                 path,
-                createWatcher(() => {
-                    this.clear();
-                    this.changeListeners.forEach((listener) => listener());
-                }),
+                createWatcher(() => this.refresh()),
             );
         } catch {
             // Watching can fail, e.g. if the file is deleted in the meantime. The collection is then only recomputed when the files of the project change.

@@ -4,6 +4,7 @@ import {
     directoryWatchers,
     fileWatchers,
     getDiagnosticCodes,
+    helperModule,
     resetWatchers,
     writeFile,
 } from "./_testingUtils";
@@ -102,6 +103,68 @@ describe("detection of collections", () => {
                 expect(
                     getDiagnosticCodes(languageService, outsideRequestFile),
                 ).toEqual(diagnosticCodesWithinCollection);
+            });
+
+            it("provides the runtime types after a missed creation of the root file once the project files change", () => {
+                const files: Record<string, string> = {
+                    [absoluteRequestFile]: requestFileContent,
+                };
+                const languageService = createLanguageServiceWithPlugin(files);
+
+                expect(
+                    getDiagnosticCodes(languageService, absoluteRequestFile),
+                ).toEqual(diagnosticCodesWithoutCollection);
+
+                // The watchers are not notified about the new root file.
+                files[absoluteRootFile] = collectionRootFileContent;
+                files["/collection/lib/other.js"] = "";
+
+                expect(
+                    getDiagnosticCodes(languageService, absoluteRequestFile),
+                ).toEqual(diagnosticCodesWithinCollection);
+            });
+
+            it("resolves modules from the collection root after a missed creation of the root file once the project files change", () => {
+                const content = createRequestFileContent(
+                    'require("./lib/helper").missing();',
+                );
+                const files: Record<string, string> = {
+                    "/collection/lib/helper.js": helperModule,
+                    [absoluteRequestFile]: content,
+                };
+                const languageService = createLanguageServiceWithPlugin(files);
+
+                // Property 'missing' does not exist on the type of the module.
+                expect(
+                    getDiagnosticCodes(languageService, absoluteRequestFile),
+                ).not.toContain(2_339);
+
+                // The watchers are not notified about the new root file.
+                files[absoluteRootFile] = collectionRootFileContent;
+                files["/collection/lib/other.js"] = "";
+
+                expect(
+                    getDiagnosticCodes(languageService, absoluteRequestFile),
+                ).toEqual([2_339]);
+            });
+
+            it("does not parse the files again when the project files change without changing a collection", () => {
+                const files: Record<string, string> = {
+                    [absoluteRootFile]: collectionRootFileContent,
+                    [absoluteRequestFile]: requestFileContent,
+                };
+                const languageService = createLanguageServiceWithPlugin(files);
+                const sourceFile = languageService
+                    .getProgram()
+                    ?.getSourceFile(absoluteRequestFile);
+
+                files["/collection/lib/other.js"] = "";
+
+                expect(
+                    languageService
+                        .getProgram()
+                        ?.getSourceFile(absoluteRequestFile),
+                ).toBe(sourceFile);
             });
         },
     );

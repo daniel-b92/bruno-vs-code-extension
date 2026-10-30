@@ -46,7 +46,7 @@ export function provideRuntimeDefinitions(
 
         if (!haveSameElements(originalFileNames, cachedFileNames)) {
             cachedFileNames = originalFileNames.slice();
-            collectionLookup.clear();
+            collectionLookup.refresh();
         }
 
         const runtimeDefinitionsFiles = new Set(
