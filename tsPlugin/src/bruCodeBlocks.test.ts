@@ -5,6 +5,7 @@ import {
     getCompletionNames,
     getDiagnosticTexts,
 } from "./_testingUtils";
+import { redeclaredRuntimeObjectDiagnosticCode } from "./diagnostics/getDiagnosticsForRedeclaredRuntimeObjects";
 
 describe("handling of code blocks in bru files", () => {
     const collectionFiles = {
@@ -290,6 +291,137 @@ tests {
         ).toEqual([
             { code: 1_308, text: "await" },
             { code: 1_103, text: "await" },
+        ]);
+    });
+
+    it.each([
+        { declaration: "const res = 1;", usage: "res.toFixed();" },
+        { declaration: "let res = 1;", usage: "res.toFixed();" },
+        { declaration: "var res = 1;", usage: "res.toFixed();" },
+        { declaration: "function res() {}", usage: "res();" },
+        { declaration: "class res {}", usage: "new res();" },
+        { declaration: "const { res } = { res: 1 };", usage: "res.toFixed();" },
+        { declaration: "const [, res] = [0, 1];", usage: "res.toFixed();" },
+        {
+            declaration: "if (true) { var res = 1; }",
+            usage: "res.toFixed();",
+        },
+    ])(
+        "only shows a warning for redeclaring `res` in a pre-request block with '$declaration'",
+        ({ declaration, usage }) => {
+            const content = `${requestBlocks}
+script:pre-request {
+  ${declaration}
+  ${usage}
+}
+`;
+
+            expect(
+                getDiagnosticTexts(
+                    createLanguageServiceWithPlugin({
+                        ...collectionFiles,
+                        [requestFile]: content,
+                    }),
+                    requestFile,
+                    content,
+                ),
+            ).toEqual([
+                { code: redeclaredRuntimeObjectDiagnosticCode, text: "res" },
+            ]);
+        },
+    );
+
+    it("shows warnings for redeclaring `bru`, `req` and `res` in any code block", () => {
+        const content = `${requestBlocks}
+script:post-response {
+  const res = 1;
+  const { req } = { req: 1 };
+}
+
+tests {
+  var bru = 1;
+}
+`;
+        const languageService = createLanguageServiceWithPlugin({
+            ...collectionFiles,
+            [requestFile]: content,
+        });
+
+        expect(
+            getDiagnosticTexts(languageService, requestFile, content),
+        ).toEqual([
+            { code: redeclaredRuntimeObjectDiagnosticCode, text: "res" },
+            { code: redeclaredRuntimeObjectDiagnosticCode, text: "req" },
+            { code: redeclaredRuntimeObjectDiagnosticCode, text: "bru" },
+        ]);
+        expect(
+            languageService
+                .getSemanticDiagnostics(requestFile)
+                .map(({ category }) => category),
+        ).toEqual([
+            ts.DiagnosticCategory.Warning,
+            ts.DiagnosticCategory.Warning,
+            ts.DiagnosticCategory.Warning,
+        ]);
+    });
+
+    it("does not show a warning for declarations of `res` in nested functions or blocks of a pre-request block", () => {
+        const content = `${requestBlocks}
+script:pre-request {
+  function getStatus() {
+    var res = { status: 200 };
+    return res.status;
+  }
+  {
+    const res = 1;
+  }
+  res.status;
+}
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([
+            // 'res' is possibly 'undefined'.
+            { code: 18_048, text: "res" },
+        ]);
+    });
+
+    it("only shows a warning for redeclaring `bru` in a code block of a gRPC request", () => {
+        const content = `meta {
+  name: request
+  type: grpc
+  seq: 1
+}
+
+script:grpc:before-call-start {
+  const bru = { value: 1 };
+  bru.value;
+}
+
+script:grpc:after-call-end {
+  bru.grpc.response.statusCode;
+}
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([
+            { code: redeclaredRuntimeObjectDiagnosticCode, text: "bru" },
         ]);
     });
 

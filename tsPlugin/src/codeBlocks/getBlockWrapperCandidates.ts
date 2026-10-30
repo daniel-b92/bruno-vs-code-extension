@@ -1,5 +1,6 @@
 import { CodeBlockName } from "../constants";
 import { wrapperVariableNames } from "../runtimeDefinitions/getRuntimeDefinitionsFileContent";
+import { getTopLevelDeclarations } from "./getTopLevelDeclarations";
 
 /**
  * Returns the possible wrappers for a code block, ordered by preference. Each wrapper is a list of tokens,
@@ -11,6 +12,8 @@ import { wrapperVariableNames } from "../runtimeDefinitions/getRuntimeDefinition
  * - Declarations are scoped like at runtime.
  * - `await` and `return` can be used at the top level of the block.
  * - Parameters shadow the global objects that are not available for the block (`res` in pre-request blocks, `bru` in gRPC blocks).
+ *   If the block declares a variable with the name of the parameter itself, the typed wrapper is not used, since a parameter cannot be redeclared.
+ *   Otherwise, the variable would have the type of the parameter and its declaration would be reported as a duplicate.
  *
  * The types of the parameters are inferred from the variable that the function is assigned to (see `wrapperVariableNames`),
  * since the types could not be written down in the limited space in front of the code block.
@@ -25,8 +28,9 @@ import { wrapperVariableNames } from "../runtimeDefinitions/getRuntimeDefinition
 export function getBlockWrapperCandidates(
     blockName: CodeBlockName,
     isGrpcRequest: boolean,
+    code: string,
 ) {
-    const typedWrapper = getTypedWrapper(blockName, isGrpcRequest);
+    const typedWrapper = getTypedWrapper(blockName, isGrpcRequest, code);
 
     return [
         ...(typedWrapper ? [typedWrapper] : []),
@@ -42,24 +46,36 @@ export function getBlockWrapperCandidates(
  * For gRPC requests, `req` and `res` are not available at all. Only the parts of `bru.grpc` that are available at the time are typed.
  * Blocks without objects to shadow (e.g. `tests`) have no typed wrapper.
  */
-function getTypedWrapper(blockName: CodeBlockName, isGrpcRequest: boolean) {
+function getTypedWrapper(
+    blockName: CodeBlockName,
+    isGrpcRequest: boolean,
+    code: string,
+) {
     const isPreRequest = [
         CodeBlockName.PreRequestScript,
         CodeBlockName.GrpcBeforeCallStartScript,
         CodeBlockName.GrpcBeforeMessageSendScript,
     ].includes(blockName);
 
-    if (isGrpcRequest) {
-        return createTypedWrapper(
-            isPreRequest
-                ? wrapperVariableNames.grpcPreRequest
-                : wrapperVariableNames.grpcPostResponse,
-            "bru",
-        );
-    }
+    const wrapper = isGrpcRequest
+        ? {
+              variableName: isPreRequest
+                  ? wrapperVariableNames.grpcPreRequest
+                  : wrapperVariableNames.grpcPostResponse,
+              parameterName: "bru",
+          }
+        : isPreRequest
+          ? {
+                variableName: wrapperVariableNames.preRequest,
+                parameterName: "res",
+            }
+          : undefined;
 
-    return isPreRequest
-        ? createTypedWrapper(wrapperVariableNames.preRequest, "res")
+    return wrapper &&
+        !getTopLevelDeclarations(code).some(
+            ({ name }) => name == wrapper.parameterName,
+        )
+        ? createTypedWrapper(wrapper.variableName, wrapper.parameterName)
         : undefined;
 }
 

@@ -3,6 +3,7 @@ import {
     createLanguageServiceWithPlugin,
     getDiagnosticTexts,
 } from "./_testingUtils";
+import { redeclaredRuntimeObjectDiagnosticCode } from "./diagnostics/getDiagnosticsForRedeclaredRuntimeObjects";
 
 describe("handling of scripts in Yaml files", () => {
     const collectionFiles = {
@@ -69,6 +70,31 @@ runtime:
                 content,
             ),
         ).toEqual([]);
+    });
+
+    it("only shows a warning for redeclaring `res` in a script of type 'before-request'", () => {
+        const content = `info:
+  name: request
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const res = 1;
+        res.toFixed();
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([
+            { code: redeclaredRuntimeObjectDiagnosticCode, text: "res" },
+        ]);
     });
 
     it("only provides the parts of `bru.grpc` that are available in a script of a gRPC request", () => {

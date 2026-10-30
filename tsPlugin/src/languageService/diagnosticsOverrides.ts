@@ -2,6 +2,7 @@ import * as ts from "typescript/lib/tsserverlibrary";
 import { canReferToRuntimeDefinitions } from "../collection/runtimeContext";
 import { filterAwaitInBlockWrappers } from "../diagnostics/filterAwaitInBlockWrappers";
 import { filterDefaultDiagnostics } from "../diagnostics/filterDefaultDiagnostics";
+import { getDiagnosticsForRedeclaredRuntimeObjects } from "../diagnostics/getDiagnosticsForRedeclaredRuntimeObjects";
 import { hasEmbeddedCodeBlocks } from "../fileTypes";
 import { enableTypeCheckingForJsFile } from "../languageServiceHost/enableTypeCheckingForJsFile";
 import { PluginConfiguration } from "../pluginConfiguration";
@@ -51,6 +52,12 @@ export function overrideDiagnostics(
                               1_108,
                               1_375, 1_378,
                           ].includes(code),
+                  ),
+              ).concat(
+                  getDiagnosticsForRedeclaredRuntimeObjects(
+                      info,
+                      configuration,
+                      fileName,
                   ),
               )
             : allDiagnostics;

@@ -64,7 +64,7 @@ export function createCheckForPositionsWithinCode(
     };
 }
 
-function getCodeRanges(
+export function getCodeRanges(
     info: ts.server.PluginCreateInfo,
     configuration: PluginConfiguration,
     fileName: string,
