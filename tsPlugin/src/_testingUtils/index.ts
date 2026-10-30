@@ -35,7 +35,7 @@ export function getSemanticDiagnosticCodes(
 
 export function createLanguageServiceWithPlugin(
     files: Record<string, string>,
-    plugin = createPlugin({ yamlCollectionSupport: true }),
+    plugin: PluginModule = createPlugin({ yamlCollectionSupport: true }),
     pluginConfigFromServer?: Partial<PluginConfig>,
     { currentDirectory = "/collection", useCaseSensitiveFileNames = true } = {},
 ) {
@@ -79,10 +79,13 @@ export function createLanguageServiceWithPlugin(
                     .map((path) => path.split("/")[0]),
             ),
         ],
-        readDirectory: (directory: string) =>
-            Object.keys(files).filter(
+        readDirectory: (directory: string) => {
+            readDirectories.push(directory);
+
+            return Object.keys(files).filter(
                 (fileName) => dirname(fileName) == directory,
-            ),
+            );
+        },
         watchDirectory: (
             directory: string,
             callback: ts.DirectoryWatcherCallback,
@@ -118,12 +121,12 @@ export function createLanguageServiceWithPlugin(
 }
 
 /**
- * When reloading a project, the Typescript server creates a new plugin module and creates the plugin again
- * with the same language service host and the language service that the plugin returned before.
+ * Like the Typescript server, creates another plugin for the project of the given language service,
+ * passing the language service that the plugins created before returned (e.g. when reloading the project, the plugins are created again this way).
  */
-export function createPluginAgainForSameProject(
+export function createPluginForSameProject(
     languageService: ts.LanguageService,
-    plugin: ReturnType<typeof createPlugin>,
+    plugin: PluginModule,
     pluginConfigFromServer?: Partial<PluginConfig>,
 ) {
     const info = createInfosForLanguageServices.get(languageService);
@@ -147,11 +150,30 @@ const createInfosForLanguageServices = new WeakMap<
     ts.server.PluginCreateInfo
 >();
 
+type PluginModule = Pick<ReturnType<typeof init>, "create">;
+
 export function createPlugin(config: Partial<PluginConfig>) {
     const plugin = init({ typescript: ts });
     plugin.onConfigurationChanged(config);
 
     return plugin;
+}
+
+/**
+ * Creates a plugin module that is not related to this plugin.
+ * It records its name in `calls` whenever outlining spans are requested from the language service that it created.
+ */
+export function createOtherPlugin(name: string, calls: string[]) {
+    return {
+        create: (info: ts.server.PluginCreateInfo): ts.LanguageService => ({
+            ...info.languageService,
+            getOutliningSpans: (fileName) => {
+                calls.push(name);
+
+                return info.languageService.getOutliningSpans(fileName);
+            },
+        }),
+    };
 }
 
 export function getCodeFixNames(
@@ -252,6 +274,7 @@ interface Watcher {
 
 export const directoryWatchers: Watcher[] = [];
 export const fileWatchers: Watcher[] = [];
+export const readDirectories: string[] = [];
 
 export function addWatcher(
     watchers: Watcher[],
@@ -308,4 +331,5 @@ export function getDiagnosticCodes(
 export function resetWatchers() {
     directoryWatchers.length = 0;
     fileWatchers.length = 0;
+    readDirectories.length = 0;
 }

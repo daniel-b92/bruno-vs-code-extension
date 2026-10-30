@@ -15,6 +15,8 @@ The code blocks are analyzed as follows:
 - Hovers, completions and signature help are only provided within code blocks. Completions that would insert an `import` or `require` statement are not offered in `.bru` files, since they would be inserted outside of the code blocks.
 - `.bru` and `.yml` files are added to configured projects like Javascript files, so the compiler options of a `tsconfig.json` / `jsconfig.json` in the collection apply to them (only if it allows Javascript files via `allowJs`).
 - The objects that `Bruno` provides at runtime (`bru`, `req`, `res`, `test`, `expect`) are declared in a virtual file in the root folder of each collection. `chai` and `mocha` are resolved from the `node_modules` of the collection.
+    - The declarations are global for the whole project. So they are also visible to files outside of collections that are part of the same project (e.g. a `jsconfig.json` or `tsconfig.json` with `allowJs` in a parent folder of the collection). In particular, `expect` and `test` replace the globals of other test frameworks like `jest`. A separate `jsconfig.json` / `tsconfig.json` in the collection root folder avoids this. Results that point to the virtual file (e.g. definitions) and the declarations used for wrapping code blocks are hidden in all files.
+    - If a project contains several collections, the types of `chai` and `mocha` are taken from the collection that comes first.
 
 ## Debugging
 

@@ -1,13 +1,13 @@
 import { ExtensionContext, extensions } from "vscode";
 import { OutputChannelLogger, TypedCollectionItemProvider } from "@shared";
-import { FeatureToggles } from "@global_shared";
+import { CollectionFormat, FeatureToggles } from "@global_shared";
 
 interface TypescriptLanguageFeaturesApi {
     configurePlugin(pluginId: string, configuration: unknown): void;
 }
 
 /**
- * Passes the feature toggles and the additional context roots of the collections to the Typescript server plugin (see `PluginConfiguration` in the plugin).
+ * Passes the feature toggles, the additional context roots and the formats of the collections to the Typescript server plugin (see `PluginConfiguration` in the plugin).
  * The Typescript extension keeps the configuration, so that it is also passed to the plugin after a restart of the Typescript server.
  */
 export async function configureTsServerPlugin(
@@ -42,6 +42,17 @@ export async function configureTsServerPlugin(
                 yamlCollectionSupport,
                 additionalContextRoots:
                     collectionItemProvider.getUniqueAdditionalContextRoots(),
+                // The plugin only adds collection files to the projects of the Typescript server, if collections of the format exist.
+                collectionFormats: collectionItemProvider
+                    .getRegisteredCollections()
+                    .map(
+                        (collection) =>
+                            collectionFormatsForPlugin[collection.getFormat()],
+                    )
+                    .filter(
+                        (format, index, array) =>
+                            array.indexOf(format) === index,
+                    ),
             };
             const serializedConfiguration = JSON.stringify(configuration);
 
@@ -65,6 +76,12 @@ export async function configureTsServerPlugin(
         );
     }
 }
+
+// The plugin is a standalone package and uses its own values for the collection formats.
+const collectionFormatsForPlugin: Record<CollectionFormat, string> = {
+    [CollectionFormat.Bru]: "bru",
+    [CollectionFormat.Yaml]: "yaml",
+};
 
 // The name differs when using a local build of the plugin (see the README of the plugin).
 function getTsServerPluginName({

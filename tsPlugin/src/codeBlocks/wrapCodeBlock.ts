@@ -6,25 +6,28 @@ import { isLineBreak } from "./maskContent";
  * Wraps a code block by overwriting the characters in front of its opening bracket in the masked content (see `getBlockWrapperCandidates`).
  * The last wrapper token ends with the opening bracket, which is written at `openingBracketIndex`.
  * Only the characters between `firstFreeIndex` and the opening bracket are used, so that no other code block is affected.
+ * The code of the block is needed for choosing the wrapper.
  */
 export function wrapCodeBlock(
     maskedCharacters: string[],
     {
         blockName,
         isGrpcRequest,
+        code,
         fileContent,
         firstFreeIndex,
         openingBracketIndex,
     }: {
         blockName: CodeBlockName;
         isGrpcRequest: boolean;
+        code: string;
         fileContent: string;
         firstFreeIndex: number;
         openingBracketIndex: number;
     },
 ) {
     const wrapperPlacements = getPlacementsForFirstFittingWrapper(
-        getBlockWrapperCandidates(blockName, isGrpcRequest),
+        getBlockWrapperCandidates(blockName, isGrpcRequest, code),
         getSpacesBeforeIndex(fileContent, firstFreeIndex, openingBracketIndex),
     );
 

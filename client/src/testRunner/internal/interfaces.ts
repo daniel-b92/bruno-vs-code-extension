@@ -13,6 +13,8 @@ export interface OtherExecutionConfigData {
 }
 
 export interface TestRunChildProcessData {
+    /** Command (or path) of the Bruno CLI to use. */
+    cliCommand: string;
     testPath: string;
     collectionRootDirectory: string;
     jsonReportPath: string;
@@ -20,8 +22,15 @@ export interface TestRunChildProcessData {
     reportingAndOptionalData: TestRunReportingAndOptionalData;
 }
 
+export interface HtmlReportLocation {
+    path: string;
+    /** If false, the report is only stored in the extension's own storage (e.g. to be shown in the report panel). */
+    isConfiguredByUser: boolean;
+}
+
 export interface TestRunReportingAndOptionalData {
-    htmlReportPath: string;
+    /** If undefined, no HTML report is generated. */
+    htmlReport?: HtmlReportLocation;
     testEnvironment?: string;
     logger?: OutputChannelLogger;
     userInput?: TestRunUserInputData;

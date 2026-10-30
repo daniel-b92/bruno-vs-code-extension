@@ -1,19 +1,41 @@
 import { promisify } from "util";
 import { getTestLabel } from "../../testTreeUtils/testTreeHelper";
-import { Uri, ViewColumn, window } from "vscode";
+import { Uri, ViewColumn, WebviewPanel, window } from "vscode";
 import { readFile } from "fs";
+import { checkIfPathExistsAsync } from "@global_shared";
+
+let currentPanel: WebviewPanel | undefined;
+let lastReport: { htmlReportPath: string; testItemPath: string } | undefined;
+
+export function rememberLastHtmlReport(
+    htmlReportPath: string,
+    testItemPath: string,
+) {
+    lastReport = { htmlReportPath, testItemPath };
+}
 
 export async function showHtmlReport(
     htmlReportPath: string,
     testItemPath: string,
 ) {
+    const title = `bru HTML report - ${getTestLabel(Uri.file(testItemPath))}`;
+    const html = await promisify(readFile)(htmlReportPath, "utf-8");
+
+    if (currentPanel) {
+        // Reuse the existing panel to avoid piling up one panel per test run.
+        currentPanel.title = title;
+        currentPanel.webview.html = html;
+        currentPanel.reveal();
+        return;
+    }
+
     const column = window.activeTextEditor
         ? window.activeTextEditor.viewColumn
         : undefined;
 
     const panel = window.createWebviewPanel(
         "bru HTML report",
-        `bru HTML report - ${getTestLabel(Uri.file(testItemPath))}`,
+        title,
         column || ViewColumn.One,
         {
             enableCommandUris: true,
@@ -22,6 +44,24 @@ export async function showHtmlReport(
             retainContextWhenHidden: true,
         },
     );
+    panel.onDidDispose(() => {
+        currentPanel = undefined;
+    });
+    currentPanel = panel;
 
-    panel.webview.html = await promisify(readFile)(htmlReportPath, "utf-8");
+    panel.webview.html = html;
+}
+
+export async function showLastHtmlReport() {
+    if (
+        !lastReport ||
+        !(await checkIfPathExistsAsync(lastReport.htmlReportPath))
+    ) {
+        window.showInformationMessage(
+            "No HTML report available yet. Run a test first (if the setting 'bru-as-code.showHtmlReport' is set to 'never', the setting 'bru-as-code.htmlReportPath' must be configured).",
+        );
+        return;
+    }
+
+    await showHtmlReport(lastReport.htmlReportPath, lastReport.testItemPath);
 }

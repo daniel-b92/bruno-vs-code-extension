@@ -4,6 +4,8 @@ import {
     directoryWatchers,
     fileWatchers,
     getDiagnosticCodes,
+    helperModule,
+    readDirectories,
     resetWatchers,
     writeFile,
 } from "./_testingUtils";
@@ -103,6 +105,68 @@ describe("detection of collections", () => {
                     getDiagnosticCodes(languageService, outsideRequestFile),
                 ).toEqual(diagnosticCodesWithinCollection);
             });
+
+            it("provides the runtime types after a missed creation of the root file once the project files change", () => {
+                const files: Record<string, string> = {
+                    [absoluteRequestFile]: requestFileContent,
+                };
+                const languageService = createLanguageServiceWithPlugin(files);
+
+                expect(
+                    getDiagnosticCodes(languageService, absoluteRequestFile),
+                ).toEqual(diagnosticCodesWithoutCollection);
+
+                // The watchers are not notified about the new root file.
+                files[absoluteRootFile] = collectionRootFileContent;
+                files["/collection/lib/other.js"] = "";
+
+                expect(
+                    getDiagnosticCodes(languageService, absoluteRequestFile),
+                ).toEqual(diagnosticCodesWithinCollection);
+            });
+
+            it("resolves modules from the collection root after a missed creation of the root file once the project files change", () => {
+                const content = createRequestFileContent(
+                    'require("./lib/helper").missing();',
+                );
+                const files: Record<string, string> = {
+                    "/collection/lib/helper.js": helperModule,
+                    [absoluteRequestFile]: content,
+                };
+                const languageService = createLanguageServiceWithPlugin(files);
+
+                // Property 'missing' does not exist on the type of the module.
+                expect(
+                    getDiagnosticCodes(languageService, absoluteRequestFile),
+                ).not.toContain(2_339);
+
+                // The watchers are not notified about the new root file.
+                files[absoluteRootFile] = collectionRootFileContent;
+                files["/collection/lib/other.js"] = "";
+
+                expect(
+                    getDiagnosticCodes(languageService, absoluteRequestFile),
+                ).toEqual([2_339]);
+            });
+
+            it("does not parse the files again when the project files change without changing a collection", () => {
+                const files: Record<string, string> = {
+                    [absoluteRootFile]: collectionRootFileContent,
+                    [absoluteRequestFile]: requestFileContent,
+                };
+                const languageService = createLanguageServiceWithPlugin(files);
+                const sourceFile = languageService
+                    .getProgram()
+                    ?.getSourceFile(absoluteRequestFile);
+
+                files["/collection/lib/other.js"] = "";
+
+                expect(
+                    languageService
+                        .getProgram()
+                        ?.getSourceFile(absoluteRequestFile),
+                ).toBe(sourceFile);
+            });
         },
     );
 
@@ -125,5 +189,20 @@ describe("detection of collections", () => {
                 ({ closed }) => closed,
             ),
         ).toBe(true);
+    });
+
+    it("reads each directory only once when determining the collections of files in sibling directories", () => {
+        const languageService = createLanguageServiceWithPlugin({
+            "/collection/bruno.json": '{ "type": "collection" }',
+            "/collection/a/b/one.bru": "script:pre-request {\n}\n",
+            "/collection/a/c/two.bru": "script:pre-request {\n}\n",
+            "/collection/a/d/three.bru": "script:pre-request {\n}\n",
+        });
+
+        languageService.getSemanticDiagnostics("/collection/a/b/one.bru");
+        languageService.getSemanticDiagnostics("/collection/a/c/two.bru");
+        languageService.getSemanticDiagnostics("/collection/a/d/three.bru");
+
+        expect(new Set(readDirectories).size).toBe(readDirectories.length);
     });
 });

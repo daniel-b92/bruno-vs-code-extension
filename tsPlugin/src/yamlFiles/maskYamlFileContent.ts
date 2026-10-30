@@ -54,6 +54,7 @@ export function maskYamlCollectionFileContent(
         wrapCodeBlock(maskedCharacters, {
             blockName: mapScriptTypeToBlockName(scriptType),
             isGrpcRequest,
+            code: fileContent.substring(start, end),
             fileContent,
             firstFreeIndex,
             openingBracketIndex,

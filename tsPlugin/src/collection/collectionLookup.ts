@@ -16,25 +16,26 @@ interface Collection {
     rootFolder: string;
 }
 
+// The plugin can be created several times for the same project (see `index.ts`), each time with a different create info.
 const lookupsForProjects = new WeakMap<
-    ts.server.PluginCreateInfo,
+    ts.LanguageServiceHost,
     CollectionLookup
 >();
 
 export function getCollectionLookup(info: ts.server.PluginCreateInfo) {
-    let lookup = lookupsForProjects.get(info);
+    let lookup = lookupsForProjects.get(info.languageServiceHost);
 
     if (!lookup) {
         lookup = new CollectionLookup(info);
-        lookupsForProjects.set(info, lookup);
+        lookupsForProjects.set(info.languageServiceHost, lookup);
     }
 
     return lookup;
 }
 
 export function disposeCollectionLookup(info: ts.server.PluginCreateInfo) {
-    lookupsForProjects.get(info)?.dispose();
-    lookupsForProjects.delete(info);
+    lookupsForProjects.get(info.languageServiceHost)?.dispose();
+    lookupsForProjects.delete(info.languageServiceHost);
 }
 
 /**
@@ -67,20 +68,32 @@ export class CollectionLookup {
     }
 
     getContainingCollection(fileName: string) {
-        const directory = dirname(fileName);
-
-        if (!this.collectionsForDirectories.has(directory)) {
-            this.determineCollection(directory);
-        }
-
-        return this.collectionsForDirectories.get(directory);
+        return this.getCollectionForDirectory(dirname(fileName));
     }
 
     /**
-     * Forgets all collections that have been determined so far, e.g. when a file was added to or removed from the project.
+     * Determines the collections again for all directories that were looked up so far
+     * (e.g. when a root file changed or when files were added to or removed from the project, in case a watcher missed a change).
+     * Listeners are only notified if a collection actually changed, since that causes all files with code blocks to be parsed again.
      */
-    clear() {
+    refresh() {
+        const previousCollections = this.collectionsForDirectories;
         this.collectionsForDirectories = new Map();
+
+        const hasChanged = [...previousCollections].some(
+            ([directory, previous]) => {
+                const current = this.getCollectionForDirectory(directory);
+
+                return (
+                    previous?.rootFolder != current?.rootFolder ||
+                    previous?.format != current?.format
+                );
+            },
+        );
+
+        if (hasChanged) {
+            this.changeListeners.forEach((listener) => listener());
+        }
     }
 
     onDidChange(listener: () => void) {
@@ -97,12 +110,27 @@ export class CollectionLookup {
         this.changeListeners.length = 0;
     }
 
+    private getCollectionForDirectory(directory: string) {
+        if (!this.collectionsForDirectories.has(directory)) {
+            this.determineCollection(directory);
+        }
+
+        return this.collectionsForDirectories.get(directory);
+    }
+
     private determineCollection(startDirectory: string) {
         const checkedDirectories: string[] = [];
         let currentDirectory = startDirectory;
         let collection: Collection | undefined;
 
         for (;;) {
+            // A directory without a root file belongs to the same collection as its parent, so the cached result of an ancestor can be reused.
+            if (this.collectionsForDirectories.has(currentDirectory)) {
+                collection =
+                    this.collectionsForDirectories.get(currentDirectory);
+                break;
+            }
+
             checkedDirectories.push(currentDirectory);
             this.watchIfNotCovered(currentDirectory);
 
@@ -196,10 +224,7 @@ export class CollectionLookup {
         try {
             watchers.set(
                 path,
-                createWatcher(() => {
-                    this.clear();
-                    this.changeListeners.forEach((listener) => listener());
-                }),
+                createWatcher(() => this.refresh()),
             );
         } catch {
             // Watching can fail, e.g. if the file is deleted in the meantime. The collection is then only recomputed when the files of the project change.

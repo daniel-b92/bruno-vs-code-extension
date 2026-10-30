@@ -1,6 +1,7 @@
 import { extname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
 import { getCodeBlockIndizesForBruFile } from "../codeBlocks/bruCodeBlocks";
+import { getCodeRangesGetter } from "../codeBlocks/getCodeRanges";
 import { canReferToRuntimeDefinitions } from "../collection/runtimeContext";
 import {
     getNamesForInbuiltRuntimeVarsAndFunctions,
@@ -59,21 +60,32 @@ export function filterDefaultDiagnostics(
 
 /**
  * The Typescript server only sees the code of scripts within Yaml files (see `maskFilesWithCodeBlocksForTypescriptServer`).
- * Therefore, all diagnostics are already located within code blocks.
+ * Diagnostics can still be reported for the wrappers of the scripts, which are located outside of the scripts' code (see `wrapCodeBlock`).
  */
 function filterDiagnosticsForYamlFile(
     info: ts.server.PluginCreateInfo,
     fileName: string,
     defaultDiagnostics: AnyDiagnostic[],
 ) {
-    const fileContent = getFileContent(info, fileName);
+    const fileContent = getOriginalFileContent(info, fileName);
 
-    return fileContent
-        ? filterOutDiagnosticsForInbuiltRuntimeFunctions(
-              defaultDiagnostics,
-              fileContent,
-          )
-        : [];
+    if (!fileContent) {
+        return [];
+    }
+
+    const codeRanges = getCodeRangesGetter(info, fileName)(fileContent);
+
+    return filterOutDiagnosticsForInbuiltRuntimeFunctions(
+        defaultDiagnostics.filter(
+            ({ start }) =>
+                start != undefined &&
+                codeRanges.some(
+                    ({ start: rangeStart, end }) =>
+                        start >= rangeStart && start <= end,
+                ),
+        ),
+        fileContent,
+    );
 }
 
 function filterDiagnosticsForJsFile(

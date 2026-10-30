@@ -1,4 +1,7 @@
-import { showHtmlReport } from "./testExecutionUtils/showHtmlReport";
+import {
+    rememberLastHtmlReport,
+    showHtmlReport,
+} from "./testExecutionUtils/showHtmlReport";
 import {
     EventEmitter,
     TestController,
@@ -9,8 +12,15 @@ import {
     TestItemCollection as vscodeTestItemCollection,
     window,
     workspace,
+    WorkspaceConfiguration,
 } from "vscode";
-import { dirname, extname, isAbsolute, resolve } from "path";
+import { createHash } from "crypto";
+import { mkdir } from "fs/promises";
+import { dirname, extname, isAbsolute, join, resolve } from "path";
+import {
+    ResolvedBruCli,
+    resolveBruCliCommand,
+} from "./testExecutionUtils/resolveBruCliCommand";
 import { runTestStructure } from "./runTestStructure";
 import { QueuedTest, TestRunQueue } from "./testRunQueue";
 import {
@@ -23,7 +33,7 @@ import {
     checkIfPathExistsAsync,
     getConfiguredEnvironmentName,
 } from "@global_shared";
-import { TestRunUserInputData } from "./interfaces";
+import { HtmlReportLocation, TestRunUserInputData } from "./interfaces";
 
 export const startTestRun = async (
     ctrl: TestController,
@@ -31,11 +41,18 @@ export const startTestRun = async (
     additionalData: {
         collectionItemProvider: TypedCollectionItemProvider;
         queue: TestRunQueue;
+        htmlReportStorageDir: string;
         logger?: OutputChannelLogger;
         userInput?: TestRunUserInputData;
     },
 ) => {
-    const { collectionItemProvider, queue, logger, userInput } = additionalData;
+    const {
+        collectionItemProvider,
+        queue,
+        htmlReportStorageDir,
+        logger,
+        userInput,
+    } = additionalData;
 
     const discoverTests = (tests: Iterable<vscodeTestItem>) => {
         const result: QueuedTest[] = [];
@@ -91,7 +108,10 @@ export const startTestRun = async (
                 ) as TypedCollection
             ).getRootDirectory();
 
-            const htmlReportPath = await getHtmlReportPath(collectionRootDir);
+            const htmlReport = await getHtmlReportLocation(
+                collectionRootDir,
+                htmlReportStorageDir,
+            );
 
             run.token.onCancellationRequested(() => {
                 abortEmitter.fire();
@@ -106,13 +126,19 @@ export const startTestRun = async (
                 run,
                 {
                     collectionRootDirectory: collectionRootDir,
-                    htmlReportPath,
+                    htmlReport,
                     logger,
                     userInput,
                 },
             );
 
             if (!didRun) {
+                // Remaining tests would never start otherwise and would block subsequent test runs.
+                for (const { test: remaining } of toRun) {
+                    run.skipped(remaining);
+                }
+                queue.removeItemsFromQueue(toRun.splice(0));
+                run.end();
                 break;
             }
 
@@ -121,10 +147,14 @@ export const startTestRun = async (
             if (
                 didRun &&
                 passed != undefined &&
-                shouldShowHtmlReport(passed) &&
-                (await checkIfPathExistsAsync(htmlReportPath))
+                htmlReport &&
+                (await checkIfPathExistsAsync(htmlReport.path))
             ) {
-                await showHtmlReport(htmlReportPath, path);
+                rememberLastHtmlReport(htmlReport.path, path);
+
+                if (shouldShowHtmlReport(passed)) {
+                    await showHtmlReport(htmlReport.path, path);
+                }
             }
 
             nextItemToRun = queue.getNextTestThatCanStartRunning(toRun);
@@ -153,12 +183,12 @@ const prepareAndRunTest = async (
     run: TestRun,
     additionalData: {
         collectionRootDirectory: string;
-        htmlReportPath: string;
+        htmlReport?: HtmlReportLocation;
         logger?: OutputChannelLogger;
         userInput?: TestRunUserInputData;
     },
 ): Promise<{ didRun: boolean; passed?: boolean }> => {
-    const { collectionRootDirectory, htmlReportPath, logger, userInput } =
+    const { collectionRootDirectory, htmlReport, logger, userInput } =
         additionalData;
 
     if (checkForRequestedCancellation(run)) {
@@ -175,7 +205,17 @@ const prepareAndRunTest = async (
         (sectionKey) => workspace.getConfiguration().get(sectionKey),
     );
 
-    printInfosOnTestRunStart(run, htmlReportPath, testEnvironment);
+    const cli = resolveCli(collectionRootDirectory);
+
+    if (cli.source == "invalidSetting") {
+        const message = `The Bruno CLI configured via setting ${cliPathConfigKey} ('${cli.configuredPath}') does not exist.`;
+        window.showErrorMessage(message);
+        run.appendOutput(`${message}\r\n`);
+        run.skipped(test);
+        return { didRun: false };
+    }
+
+    printInfosOnTestRunStart(run, htmlReport, testEnvironment, cli);
 
     if (checkForRequestedCancellation(run)) {
         run.end();
@@ -188,10 +228,11 @@ const prepareAndRunTest = async (
             options: run,
             abortEmitter,
             collectionRootDirectory,
+            cliCommand: cli.command,
             useDeveloperSandbox: canUseDeveloperSandbox(),
         },
         {
-            htmlReportPath,
+            htmlReport,
             testEnvironment,
             logger,
             userInput,
@@ -209,10 +250,16 @@ const getIdForQueuedRun = (itemPath: string, creationTime: Date) =>
 
 const printInfosOnTestRunStart = (
     run: TestRun,
-    htmlReportPath: string,
-    testEnvironment?: string,
+    htmlReport: HtmlReportLocation | undefined,
+    testEnvironment: string | undefined,
+    cli: Exclude<ResolvedBruCli, { source: "invalidSetting" }>,
 ) => {
     const lineBreak = "\r\n";
+    run.appendOutput(
+        cli.source == "global"
+            ? `Using the Bruno CLI from the PATH.${lineBreak}`
+            : `Using the Bruno CLI '${cli.command}' (${cli.source == "setting" ? `due to user setting ${getLinkToUserSetting(cliPathConfigKey)}` : "local installation"}).${lineBreak}`,
+    );
     if (!testEnvironment) {
         run.appendOutput(
             `Not using any environment for the test run.${lineBreak}`,
@@ -226,9 +273,11 @@ const printInfosOnTestRunStart = (
         );
     }
 
-    run.appendOutput(
-        `Saving the HTML test report to file '${htmlReportPath}'.${lineBreak}`,
-    );
+    if (htmlReport?.isConfiguredByUser) {
+        run.appendOutput(
+            `Saving the HTML test report to file '${htmlReport.path}' due to user setting ${getLinkToUserSetting(htmlReportPathConfigKey)}${lineBreak}`,
+        );
+    }
     run.appendOutput(
         `${canUseDeveloperSandbox() ? "Using" : "Not using"} Javascript sandbox developer mode due to user setting ${getLinkToUserSetting(getConfigKeyForSandboxDeveloperMode())}${lineBreak}`,
     );
@@ -246,63 +295,127 @@ function gatherTestItems(collection: vscodeTestItemCollection) {
     return items;
 }
 
-const getHtmlReportPath = async (collectionRootDir: string) => {
-    const reportPathConfigKey = "bru-as-code.htmlReportPath";
-    const defaultFileName = "results.html";
-    const fallbackAbsolutePath = resolve(
-        collectionRootDir,
-        `../${defaultFileName}`,
-    );
+const cliPathConfigKey = "bru-as-code.cliPath";
 
-    const configValue = workspace
-        .getConfiguration()
-        .get<string>(reportPathConfigKey);
+const resolveCli = (collectionRootDirectory: string) => {
+    const uri = Uri.file(collectionRootDirectory);
 
-    if (!configValue || extname(configValue) != ".html") {
-        showWarningForInvalidOrMissingHtmlReportPathConfig(
-            configValue,
-            fallbackAbsolutePath,
-        );
-        return fallbackAbsolutePath;
-    } else if (
-        isAbsolute(configValue) &&
-        (await checkIfPathExistsAsync(dirname(configValue)))
-    ) {
-        return configValue;
-    } else if (
-        !isAbsolute(configValue) &&
-        (await checkIfPathExistsAsync(
-            dirname(resolve(collectionRootDir, configValue)),
-        ))
-    ) {
-        return resolve(collectionRootDir, configValue);
-    } else {
-        showWarningForInvalidOrMissingHtmlReportPathConfig(
-            configValue,
-            fallbackAbsolutePath,
-        );
-        return fallbackAbsolutePath;
-    }
+    return resolveBruCliCommand({
+        configuredPath: workspace
+            .getConfiguration(undefined, uri)
+            .get<string>(cliPathConfigKey),
+        collectionRootDirectory,
+        workspaceFolderPath:
+            workspace.getWorkspaceFolder(uri)?.uri.fsPath ??
+            collectionRootDirectory,
+    });
 };
 
-function showWarningForInvalidOrMissingHtmlReportPathConfig(
-    configValue: string | undefined,
-    fallbackPathThatWillBeUsed: string,
-) {
-    window.showWarningMessage(
-        `Configured HTML report path '${configValue}' is invalid or missing. Will use the fallback path '${fallbackPathThatWillBeUsed}' instead.`,
-    );
-}
+const htmlReportPathConfigKey = "bru-as-code.htmlReportPath";
 
-const shouldShowHtmlReport = (testsPassed: boolean) => {
-    const alwaysShowReportConfigKey = "bru-as-code.alwaysShowHtmlReport";
-    const fallbackValue = true;
-
+/**
+ * @returns `undefined`, if no HTML report is needed (i.e. the user did not configure a path and does not want to see reports)
+ */
+const getHtmlReportLocation = async (
+    collectionRootDir: string,
+    htmlReportStorageDir: string,
+): Promise<HtmlReportLocation | undefined> => {
     const configValue = workspace
         .getConfiguration()
-        .get<boolean>(alwaysShowReportConfigKey, fallbackValue);
+        .get<string>(htmlReportPathConfigKey)
+        ?.trim();
 
-    return configValue || !testsPassed;
+    if (configValue) {
+        const configuredPath = await resolveConfiguredHtmlReportPath(
+            configValue,
+            collectionRootDir,
+        );
+
+        if (configuredPath) {
+            return { path: configuredPath, isConfiguredByUser: true };
+        }
+
+        window.showWarningMessage(
+            `Configured HTML report path '${configValue}' is invalid or missing. The report will not be saved to that path.`,
+        );
+    }
+
+    if (getShowHtmlReportSetting() == "never") {
+        return undefined;
+    }
+
+    await mkdir(htmlReportStorageDir, { recursive: true });
+
+    // Keep only the last report per collection.
+    const collectionHash = createHash("sha1")
+        .update(collectionRootDir)
+        .digest("hex")
+        .slice(0, 12);
+
+    return {
+        path: join(htmlReportStorageDir, `report-${collectionHash}.html`),
+        isConfiguredByUser: false,
+    };
+};
+
+const resolveConfiguredHtmlReportPath = async (
+    configValue: string,
+    collectionRootDir: string,
+) => {
+    if (extname(configValue) != ".html") {
+        return undefined;
+    }
+
+    const absolutePath = isAbsolute(configValue)
+        ? configValue
+        : resolve(collectionRootDir, configValue);
+
+    return (await checkIfPathExistsAsync(dirname(absolutePath)))
+        ? absolutePath
+        : undefined;
+};
+
+type ShowHtmlReportSetting = "always" | "onFailure" | "never";
+
+const showHtmlReportConfigKey = "bru-as-code.showHtmlReport";
+const removedAlwaysShowHtmlReportConfigKey = "bru-as-code.alwaysShowHtmlReport";
+
+const getShowHtmlReportSetting = (): ShowHtmlReportSetting => {
+    const config = workspace.getConfiguration();
+
+    if (hasExplicitValue(config.inspect(showHtmlReportConfigKey))) {
+        return config.get<ShowHtmlReportSetting>(
+            showHtmlReportConfigKey,
+            "onFailure",
+        );
+    }
+
+    // Migration: The removed setting is no longer registered, but configured values can still be read.
+    // Only an explicit `true` differs from the new default.
+    const removedSetting = config.inspect<boolean>(
+        removedAlwaysShowHtmlReportConfigKey,
+    );
+
+    return [
+        removedSetting?.workspaceFolderValue,
+        removedSetting?.workspaceValue,
+        removedSetting?.globalValue,
+    ].find((value) => value !== undefined) === true
+        ? "always"
+        : "onFailure";
+};
+
+const hasExplicitValue = (
+    inspected: ReturnType<WorkspaceConfiguration["inspect"]>,
+) =>
+    inspected?.workspaceFolderValue !== undefined ||
+    inspected?.workspaceValue !== undefined ||
+    inspected?.globalValue !== undefined;
+
+const shouldShowHtmlReport = (testsPassed: boolean) => {
+    const setting = getShowHtmlReportSetting();
+
+    return setting == "always" || (setting == "onFailure" && !testsPassed);
 };
 
 function canUseDeveloperSandbox() {

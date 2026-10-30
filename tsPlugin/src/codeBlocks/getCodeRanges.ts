@@ -35,6 +35,40 @@ export function isPositionWithinCode(
     fileName: string,
     position: number,
 ) {
+    return createCheckForPositionsWithinCode(info, configuration)(
+        fileName,
+        position,
+    );
+}
+
+/**
+ * Same as `isPositionWithinCode`, but the code ranges are only determined once per file (for checking many positions at once).
+ */
+export function createCheckForPositionsWithinCode(
+    info: ts.server.PluginCreateInfo,
+    configuration: PluginConfiguration,
+) {
+    const codeRangesPerFile = new Map<string, CodeRange[]>();
+
+    return (fileName: string, position: number) => {
+        if (!codeRangesPerFile.has(fileName)) {
+            codeRangesPerFile.set(
+                fileName,
+                getCodeRanges(info, configuration, fileName),
+            );
+        }
+
+        return codeRangesPerFile
+            .get(fileName)!
+            .some(({ start, end }) => start <= position && position <= end);
+    };
+}
+
+export function getCodeRanges(
+    info: ts.server.PluginCreateInfo,
+    configuration: PluginConfiguration,
+    fileName: string,
+) {
     const content = getOriginalFileContent(info, fileName);
 
     // The Typescript server does not see any content of Yaml files as long as Yaml collections are not supported (see `maskFilesWithCodeBlocksForTypescriptServer`).
@@ -43,13 +77,10 @@ export function isPositionWithinCode(
         (!isBruFile(fileName) &&
             !configuration.isYamlCollectionSupportEnabled())
     ) {
-        return false;
+        return [];
     }
 
-    return getCodeRangesGetter(
-        info,
-        fileName,
-    )(content).some(({ start, end }) => start <= position && position <= end);
+    return getCodeRangesGetter(info, fileName)(content);
 }
 
 function getCodeRangesForBruFile(fileContent: string): CodeRange[] {

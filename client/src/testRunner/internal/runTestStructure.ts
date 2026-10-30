@@ -23,10 +23,11 @@ export async function runTestStructure(
         options: TestRun;
         abortEmitter: EventEmitter<void>;
         collectionRootDirectory: string;
+        cliCommand: string;
         useDeveloperSandbox: boolean;
     },
     {
-        htmlReportPath,
+        htmlReport,
         logger,
         testEnvironment,
         userInput,
@@ -34,6 +35,7 @@ export async function runTestStructure(
 ): Promise<boolean> {
     const {
         abortEmitter,
+        cliCommand,
         collectionRootDirectory,
         options,
         useDeveloperSandbox,
@@ -42,8 +44,8 @@ export async function runTestStructure(
     const lineBreak = getLineBreakForTestRunOutput();
     const isDirectory = item.canResolveChildren;
 
-    if (await checkIfPathExistsAsync(htmlReportPath)) {
-        await promisify(unlink)(htmlReportPath);
+    if (htmlReport && (await checkIfPathExistsAsync(htmlReport.path))) {
+        await promisify(unlink)(htmlReport.path);
     }
 
     const jsonReportPath = getJsonReportPath(collectionRootDirectory);
@@ -63,11 +65,12 @@ export async function runTestStructure(
         const start = Date.now();
         const { childProcess } = spawnChildProcess({
             testPath: path,
+            cliCommand,
             collectionRootDirectory,
             jsonReportPath,
             useDeveloperSandbox,
             reportingAndOptionalData: {
-                htmlReportPath,
+                htmlReport,
                 testEnvironment,
                 logger,
                 userInput,
@@ -85,9 +88,9 @@ export async function runTestStructure(
 
         childProcess.on("error", (err) => {
             logger?.error("Failed to start subprocess.", err);
-            if (existsSync(htmlReportPath)) {
+            if (htmlReport?.isConfiguredByUser && existsSync(htmlReport.path)) {
                 options.appendOutput(
-                    `Results can be found here: ${htmlReportPath}${lineBreak}`,
+                    `Results can be found here: ${htmlReport.path}${lineBreak}`,
                 );
             }
 
@@ -120,9 +123,9 @@ export async function runTestStructure(
                 `Child process for test run exited with code ${exitCode}`,
             );
             duration = Date.now() - start;
-            if (existsSync(htmlReportPath)) {
+            if (htmlReport?.isConfiguredByUser && existsSync(htmlReport.path)) {
                 options.appendOutput(
-                    `HTML report has been saved in file: '${htmlReportPath}'${lineBreak}`,
+                    `HTML report has been saved in file: '${htmlReport.path}'${lineBreak}`,
                 );
             }
             if (exitCode == 0) {

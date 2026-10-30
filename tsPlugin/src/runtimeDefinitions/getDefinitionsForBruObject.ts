@@ -8,7 +8,6 @@ export function getDefinitionsForBruObject() {
     const utilityDefinitions = getDefinitionsForUtilities();
     const runnerSubObjectDefinition = getDefinitionsForRunnerSubobject();
     const cookieSubobjectDefinition = getDefinitionsForCookiesSubobject();
-    const grpcSubobjectDefinition = getDefinitionsForGrpcSubobject();
 
     return `${getCommonTypeDefinitions()}
 /**
@@ -24,7 +23,6 @@ var bru = {
 	${insertDefinitions(utilityDefinitions)}
 	runner: ${insertDefinitions(runnerSubObjectDefinition)}
 	cookies: ${insertDefinitions(cookieSubobjectDefinition)}
-	grpc: ${insertDefinitions(grpcSubobjectDefinition)}
 };`;
 
     function insertDefinitions(definitions: string) {
@@ -506,7 +504,10 @@ function getDefinitionsForCookiesSubobject() {
 },`;
 }
 
-function getDefinitionsForGrpcSubobject() {
+/**
+ * `bru.grpc` is only available for gRPC requests, so it is not part of the global `bru` object (see `getTypeDefinitionsForGrpcScripts`).
+ */
+export function getDefinitionsForGrpcSubobject() {
     return `{
 	/**
 	 * Information about the outgoing gRPC request.

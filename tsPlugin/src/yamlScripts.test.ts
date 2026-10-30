@@ -3,6 +3,7 @@ import {
     createLanguageServiceWithPlugin,
     getDiagnosticTexts,
 } from "./_testingUtils";
+import { redeclaredRuntimeObjectDiagnosticCode } from "./diagnostics/getDiagnosticsForRedeclaredRuntimeObjects";
 
 describe("handling of scripts in Yaml files", () => {
     const collectionFiles = {
@@ -71,6 +72,49 @@ runtime:
         ).toEqual([]);
     });
 
+    it("does not report suggestion diagnostics for the wrapper of a script", () => {
+        const content = `info:
+  name: request
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        bru.getEnvVar("token");
+`;
+
+        expect(
+            createLanguageServiceWithPlugin({
+                ...collectionFiles,
+                [requestFile]: content,
+            }).getSuggestionDiagnostics(requestFile),
+        ).toEqual([]);
+    });
+
+    it("only shows a warning for redeclaring `res` in a script of type 'before-request'", () => {
+        const content = `info:
+  name: request
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const res = 1;
+        res.toFixed();
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([
+            { code: redeclaredRuntimeObjectDiagnosticCode, text: "res" },
+        ]);
+    });
+
     it("only provides the parts of `bru.grpc` that are available in a script of a gRPC request", () => {
         const content = `info:
   name: request
@@ -84,6 +128,7 @@ runtime:
       code: |-
         bru.grpc.request.url;
         bru.grpc.response.statusCode;
+        req.getUrl();
 `;
 
         expect(
@@ -98,6 +143,34 @@ runtime:
         ).toEqual([
             // Property 'response' does not exist on type '{ request: ... }'.
             { code: 2_339, text: "response" },
+            // 'req' is possibly 'undefined'.
+            { code: 18_048, text: "req" },
+        ]);
+    });
+
+    it("does not provide `bru.grpc` for requests that are not gRPC requests", () => {
+        const content = `info:
+  name: request
+  type: http
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        bru.grpc.request.url;
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([
+            // Property 'grpc' does not exist on type ...
+            { code: 2_339, text: "grpc" },
         ]);
     });
 });

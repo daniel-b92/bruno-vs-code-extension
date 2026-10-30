@@ -26,7 +26,7 @@ runtime:
             blank("  name: test"),
             blank("runtime:"),
             blank("  scripts:"),
-            ";$bP=async(".padEnd("    - type: before-request".length),
+            ";$bU=async(".padEnd("    - type: before-request".length),
             "       res)=>{",
             "        const a = 1;",
             "}" + blank("   - type: tests"),
@@ -76,7 +76,7 @@ request:
             blank("opencollection: 1.0.0"),
             blank("request:"),
             blank("  scripts:"),
-            ";$bP=async(".padEnd("    - type: before-request".length),
+            ";$bU=async(".padEnd("    - type: before-request".length),
             "       res)=>{",
             '        bru.setVar("a", 1);',
             "}",
@@ -196,7 +196,7 @@ request:
         ).toEqual([ts.SyntaxKind.ArrowFunction, ts.SyntaxKind.ArrowFunction]);
     });
 
-    it("types the `bru` object for gRPC requests", () => {
+    it("types the `bru` object and shadows `req` and `res` for gRPC requests", () => {
         const content = `info:
   name: request
   type: grpc
@@ -211,7 +211,7 @@ runtime:
 `;
 
         expect(maskYamlCollectionFileContent("request.yml", content)).toMatch(
-            /;\$gP=async\([\s\S]*\bbru\)=>\{/,
+            /;\$gP=async\([\s\S]*\bbru,req,res\)=>\{/,
         );
     });
 
@@ -230,7 +230,7 @@ runtime:
         );
 
         // `res` is not available before the request is sent, but `req` is available in all scripts.
-        expect(maskedContent).not.toContain("$bP");
+        expect(maskedContent).not.toContain("$bU");
         expect(maskedContent).not.toMatch(/\b(req|res)\b/);
     });
 });

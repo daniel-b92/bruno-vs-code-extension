@@ -115,6 +115,24 @@ runtime:
                 ).toBeDefined();
             });
 
+            it("offers refactorings when the reasons for actions not being applicable are requested (like VS Code does)", () => {
+                const languageService =
+                    createLanguageServiceWithPlugin(collectionFiles);
+
+                // Computing edits for actions that are not applicable fails within the Typescript server.
+                const descriptions = languageService
+                    .getApplicableRefactors(
+                        requestFile,
+                        getSelection(requestFileContent, '"a" + value'),
+                        { provideRefactorNotApplicableReason: true },
+                    )
+                    .flatMap(({ actions }) =>
+                        actions.map(({ description }) => description),
+                    );
+
+                expect(descriptions).toContain("Convert to template string");
+            });
+
             it("does not offer refactorings that insert code outside of code blocks", () => {
                 const languageService =
                     createLanguageServiceWithPlugin(collectionFiles);
@@ -166,4 +184,67 @@ runtime:
             );
         },
     );
+
+    describe("indentation of inserted code in Yaml files", () => {
+        const requestFile = "/collection/request.yml";
+        const requestFileContent = `info:
+  name: request
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const value = 1;
+        const text = \`line1
+          line2\`;
+        if (value) {
+          const other = "a" + value;
+        }
+        function f() {
+          if (value) {
+            return "b" + value;
+          }
+        }
+`;
+        const collectionFiles = {
+            "/collection/opencollection.yml": "opencollection: 1.0.0\n",
+            [requestFile]: requestFileContent,
+        };
+
+        it.each([
+            {
+                case: "does not change the content of template literals",
+                selectedText: "`line1\n          line2`",
+                actionDescription: "Extract to constant in enclosing scope",
+                expectedText:
+                    "        const newLocal = `line1\n          line2`;\n",
+            },
+            {
+                case: "keeps the indentation of code inserted within a nested block",
+                selectedText: '"a" + value',
+                actionDescription: "Extract to constant in enclosing scope",
+                expectedText: '            const newLocal = "a" + value;\n',
+            },
+            {
+                case: "keeps the indentation of code inserted within a nested function",
+                selectedText: '"b" + value',
+                actionDescription: "Extract to inner function in function 'f'",
+                expectedText:
+                    '\n            function newFunction() {\n                return "b" + value;\n            }\n',
+            },
+        ])("$case", ({ selectedText, actionDescription, expectedText }) => {
+            const edits = getEditsForRefactor(
+                createLanguageServiceWithPlugin(collectionFiles),
+                requestFile,
+                getSelection(requestFileContent, selectedText),
+                actionDescription,
+                { convertTabsToSpaces: true },
+            );
+
+            expect(
+                edits?.edits.flatMap(({ textChanges }) =>
+                    textChanges.map(({ newText }) => newText),
+                ),
+            ).toContain(expectedText);
+        });
+    });
 });

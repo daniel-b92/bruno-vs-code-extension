@@ -2,9 +2,11 @@ import { describe, it, expect } from "@jest/globals";
 import * as ts from "typescript/lib/tsserverlibrary";
 import {
     createLanguageServiceWithPlugin,
+    createOtherPlugin,
     createPlugin,
-    createPluginAgainForSameProject,
+    createPluginForSameProject,
 } from "./_testingUtils";
+import { redeclaredRuntimeObjectDiagnosticCode } from "./diagnostics/getDiagnosticsForRedeclaredRuntimeObjects";
 
 describe("Yaml collection support", () => {
     const requestFile = "/collection/request.yml";
@@ -57,7 +59,7 @@ describe("Yaml collection support", () => {
         );
         // The Typescript server only passes configuration changes to the plugin module that was created last.
         const pluginAfterReload = createPlugin({});
-        const languageServiceAfterReload = createPluginAgainForSameProject(
+        const languageServiceAfterReload = createPluginForSameProject(
             languageService,
             pluginAfterReload,
             { yamlCollectionSupport: false },
@@ -74,18 +76,52 @@ describe("Yaml collection support", () => {
         ).toEqual([2_304]); // Cannot find name 'valeu'.
     });
 
-    it("does not set up the plugin again when it is created again for the same project", () => {
+    it("keeps the plugins created before it when it is created again for the same project", () => {
+        const calls: string[] = [];
+        const languageService = createPluginForSameProject(
+            createLanguageServiceWithPlugin(
+                collectionFiles,
+                createOtherPlugin("before", calls),
+            ),
+            createPlugin({ yamlCollectionSupport: true }),
+        );
+        // When reloading a project, the Typescript server creates all plugins again, in the same order as before.
+        const languageServiceAfterReload = createPluginForSameProject(
+            createPluginForSameProject(
+                languageService,
+                createOtherPlugin("before after reload", calls),
+            ),
+            createPlugin({ yamlCollectionSupport: true }),
+        );
+
+        languageServiceAfterReload.getOutliningSpans(requestFile);
+
+        expect(calls).toEqual(["before after reload", "before"]);
+    });
+
+    it("applies its overrides only once when it is created again for the same project", () => {
+        const fileName = "/collection/redeclaration.yml";
         const languageService = createLanguageServiceWithPlugin(
-            collectionFiles,
+            {
+                ...collectionFiles,
+                [fileName]: `runtime:
+  scripts:
+    - type: tests
+      code: |-
+        const req = 1;
+`,
+            },
             createPlugin({ yamlCollectionSupport: true }),
         );
 
         expect(
-            createPluginAgainForSameProject(
+            createPluginForSameProject(
                 languageService,
                 createPlugin({ yamlCollectionSupport: true }),
-            ),
-        ).toBe(languageService);
+            )
+                .getSemanticDiagnostics(fileName)
+                .map(({ code }) => code),
+        ).toEqual([redeclaredRuntimeObjectDiagnosticCode]);
     });
 
     it("does not provide formatting edits for Yaml files", () => {

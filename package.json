@@ -39,7 +39,7 @@
         "compile": "cd client && webpack --mode development && cd ../server && webpack --mode development && cd ..",
         "compileWithLocalTsPlugin": "cd tsPlugin && tsc --project tsconfig.json && mkdir -p ../node_modules/typescript-for-bruno && cp -r ./out/. ../node_modules/typescript-for-bruno && cd ../client && webpack --mode development && cd ../server && webpack --mode development && cd ..",
         "lint": "eslint \"**/*.ts\"",
-        "check-types": "tsc -b client server",
+        "check-types": "tsc -b client server && tsc -p tsPlugin/tsconfig.test.json && tsc -p syntaxes/tsconfig.json",
         "watch": "cd client && webpack --mode development --watch",
         "package": "cd client && webpack --mode production --devtool hidden-source-map && cd ../server && webpack --mode production --devtool hidden-source-map && cd ..",
         "test-server": "jest --selectProjects server",
@@ -59,7 +59,7 @@
         "uuid": "^14.0.2",
         "vscode-languageclient": "^10.1.2",
         "vscode-languageserver": "^10.1.2",
-        "vscode-languageserver-textdocument": "^1.0.12",
+        "vscode-languageserver-textdocument": "^1.0.16",
         "vscode-uri": "^3.1.0",
         "watcher": "^2.3.1",
         "yaml": "^2.9.0"
@@ -70,7 +70,7 @@
         "@types/mocha": "^10.0.10",
         "@types/node": "^26.6.5",
         "@types/vscode": "^1.140.0",
-        "@typescript-eslint/eslint-plugin": "^8.71.0",
+        "@typescript-eslint/eslint-plugin": "^8.72.0",
         "@typescript-eslint/parser": "^8.70.1",
         "eslint": "^10.8.1",
         "eslint-import-resolver-typescript": "^4.3.0",
@@ -94,15 +94,37 @@
                     "type": "object",
                     "description": "The configured environment per collection to use when executing tests via Bruno CLI. Can be configured when selecting the root folder in the collection explorer."
                 },
+                "bru-as-code.cliPath": {
+                    "type": "string",
+                    "default": "",
+                    "scope": "resource",
+                    "markdownDescription": "Path to the Bruno CLI executable used for running tests (absolute or relative to the workspace folder). If empty, a locally installed CLI (`node_modules/.bin/bru`, searched from the collection root directory up to the workspace folder) is preferred, otherwise `bru` from the `PATH` is used. If set but the file does not exist, test runs fail."
+                },
                 "bru-as-code.htmlReportPath": {
                     "type": "string",
-                    "default": "results.html",
-                    "description": "The path for saving HTML test reports. Can either be defined as an absolute path or relative to the collection root directory."
+                    "default": "",
+                    "description": "The path for saving HTML test reports permanently. Can either be defined as an absolute path or relative to the collection root directory. If empty, no report is saved to the workspace (unless `bru-as-code.showHtmlReport` is set to `never`, the latest report is kept in the extension's own storage, so that it can be shown)."
+                },
+                "bru-as-code.showHtmlReport": {
+                    "type": "string",
+                    "enum": [
+                        "always",
+                        "onFailure",
+                        "never"
+                    ],
+                    "enumDescriptions": [
+                        "Show the HTML test report after every test run.",
+                        "Only show the HTML test report for failed test runs.",
+                        "Never show the HTML test report automatically."
+                    ],
+                    "default": "onFailure",
+                    "markdownDescription": "When to show the HTML test report after running tests. The latest report can also be opened via the command *Show last HTML test report* (not available if set to *never* and no `#bru-as-code.htmlReportPath#` is configured)."
                 },
                 "bru-as-code.alwaysShowHtmlReport": {
                     "type": "boolean",
-                    "default": true,
-                    "markdownDescription": "Whether to always show the HTML test report after running tests. If set to *false*, the HTML report will only be shown for failed runs."
+                    "default": false,
+                    "markdownDeprecationMessage": "**Deprecated**: Use `#bru-as-code.showHtmlReport#` instead. `true` is treated as `always` as long as `showHtmlReport` is not set.",
+                    "deprecationMessage": "Deprecated: Use 'bru-as-code.showHtmlReport' instead."
                 },
                 "bru-as-code.sandboxDeveloperMode": {
                     "type": "boolean",
@@ -259,6 +281,11 @@
             }
         ],
         "commands": [
+            {
+                "command": "bruAsCode.showLastHtmlReport",
+                "title": "Show last HTML test report",
+                "category": "Bru-as-Code"
+            },
             {
                 "command": "brunoCollectionsView.refresh",
                 "title": "Refresh collection explorer",

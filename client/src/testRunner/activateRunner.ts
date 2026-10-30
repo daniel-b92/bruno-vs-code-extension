@@ -10,6 +10,7 @@ import {
     window,
     ProgressLocation,
     ExtensionContext,
+    commands,
 } from "vscode";
 import { startTestRun } from "./internal/startTestRun";
 import { TestRunQueue } from "./internal/testRunQueue";
@@ -29,6 +30,7 @@ import {
     getLoggerFromSubscriptions,
     TypedCollection,
 } from "@shared";
+import { showLastHtmlReport } from "./internal/testExecutionUtils/showHtmlReport";
 import { openRunConfigDialog } from "./internal/testExecutionUtils/openRunConfigDialog";
 import { TestRunUserInputData } from "./internal/interfaces";
 import { TestRunnerDataHelper } from ".";
@@ -49,6 +51,15 @@ export async function activateRunner(
     const queue = new TestRunQueue(ctrl);
     const testRunnerDataHelper = new TestRunnerDataHelper(ctrl);
     const logger = getLoggerFromSubscriptions(context);
+    const htmlReportStorageDir = (
+        context.storageUri ?? context.globalStorageUri
+    ).fsPath;
+
+    context.subscriptions.push(
+        commands.registerCommand("bruAsCode.showLastHtmlReport", () =>
+            showLastHtmlReport(),
+        ),
+    );
 
     handleTestTreeUpdates(ctrl, collectionItemProvider, testRunnerDataHelper);
 
@@ -68,6 +79,7 @@ export async function activateRunner(
                     {
                         collectionItemProvider,
                         queue,
+                        htmlReportStorageDir,
                         logger,
                     },
                 );
@@ -98,6 +110,7 @@ export async function activateRunner(
                     {
                         collectionItemProvider,
                         queue,
+                        htmlReportStorageDir,
                         logger,
                     },
                 );
@@ -130,6 +143,7 @@ export async function activateRunner(
             return await startTestRun(ctrl, request, {
                 collectionItemProvider,
                 queue,
+                htmlReportStorageDir,
                 logger,
             });
         }
@@ -268,6 +282,7 @@ export async function activateRunner(
             {
                 collectionItemProvider,
                 queue,
+                htmlReportStorageDir,
                 logger,
                 userInput,
             },

@@ -1,5 +1,6 @@
 import { CodeBlockName } from "../constants";
 import { wrapperVariableNames } from "../runtimeDefinitions/getRuntimeDefinitionsFileContent";
+import { getTopLevelDeclarations } from "./getTopLevelDeclarations";
 
 /**
  * Returns the possible wrappers for a code block, ordered by preference. Each wrapper is a list of tokens,
@@ -10,7 +11,10 @@ import { wrapperVariableNames } from "../runtimeDefinitions/getRuntimeDefinition
  * that is used as an expression statement (so that no closing bracket is needed, which could not be inserted after the code block):
  * - Declarations are scoped like at runtime.
  * - `await` and `return` can be used at the top level of the block.
- * - Parameters shadow the global objects that are not available for the block (`res` in pre-request blocks, `bru` in gRPC blocks).
+ * - Parameters shadow the global objects that are not available for the block (see `getUnavailableObjects`)
+ *   and `bru` in gRPC script blocks (for typing `bru.grpc`, which the global `bru` object does not have).
+ *   If the block declares a variable with the name of a parameter itself, that parameter is left out, since a parameter cannot be redeclared.
+ *   Otherwise, the variable would have the type of the parameter and its declaration would be reported as a duplicate.
  *
  * The types of the parameters are inferred from the variable that the function is assigned to (see `wrapperVariableNames`),
  * since the types could not be written down in the limited space in front of the code block.
@@ -25,8 +29,9 @@ import { wrapperVariableNames } from "../runtimeDefinitions/getRuntimeDefinition
 export function getBlockWrapperCandidates(
     blockName: CodeBlockName,
     isGrpcRequest: boolean,
+    code: string,
 ) {
-    const typedWrapper = getTypedWrapper(blockName, isGrpcRequest);
+    const typedWrapper = getTypedWrapper(blockName, isGrpcRequest, code);
 
     return [
         ...(typedWrapper ? [typedWrapper] : []),
@@ -38,33 +43,62 @@ export function getBlockWrapperCandidates(
 }
 
 /**
- * `res` is only available after the response was received. `req` is available in all blocks of HTTP requests.
- * For gRPC requests, `req` and `res` are not available at all. Only the parts of `bru.grpc` that are available at the time are typed.
- * Blocks without objects to shadow (e.g. `tests`) have no typed wrapper.
+ * Returns the typed wrapper that shadows the objects that are not available for the block (see `getUnavailableObjects`).
+ * In gRPC script blocks, `bru` is shadowed as well, since only the parts of `bru.grpc` that are available at the time are typed.
+ * `bru` is not shadowed in `tests` blocks of gRPC requests, so the global `bru` object without the `grpc` property is used there.
+ * Blocks without objects to shadow (e.g. `tests` blocks of HTTP requests) have no typed wrapper.
+ *
+ * The typed wrapper needs more space than the untyped ones. A `tests` block of a gRPC request that directly follows another code block
+ * only has the space of its block header (`tests `), so `req` and `res` are not shadowed in that case.
  */
-function getTypedWrapper(blockName: CodeBlockName, isGrpcRequest: boolean) {
+function getTypedWrapper(
+    blockName: CodeBlockName,
+    isGrpcRequest: boolean,
+    code: string,
+) {
+    const declaredNames = getTopLevelDeclarations(code).map(({ name }) => name);
     const isPreRequest = [
         CodeBlockName.PreRequestScript,
         CodeBlockName.GrpcBeforeCallStartScript,
         CodeBlockName.GrpcBeforeMessageSendScript,
     ].includes(blockName);
 
-    if (isGrpcRequest) {
+    const unavailableObjects = getUnavailableObjects(
+        isPreRequest,
+        isGrpcRequest,
+    ).filter((name) => !declaredNames.includes(name));
+
+    if (
+        isGrpcRequest &&
+        blockName != CodeBlockName.Tests &&
+        !declaredNames.includes("bru")
+    ) {
         return createTypedWrapper(
             isPreRequest
                 ? wrapperVariableNames.grpcPreRequest
                 : wrapperVariableNames.grpcPostResponse,
-            "bru",
+            ["bru", ...unavailableObjects],
         );
     }
 
-    return isPreRequest
-        ? createTypedWrapper(wrapperVariableNames.preRequest, "res")
+    return unavailableObjects.length > 0
+        ? createTypedWrapper(
+              wrapperVariableNames.unavailableObjects,
+              unavailableObjects,
+          )
         : undefined;
 }
 
-function createTypedWrapper(variableName: string, parameterName: string) {
+/**
+ * `res` is only available after the response was received. `req` is available in all blocks of HTTP requests.
+ * For gRPC requests, `req` and `res` are not available at all.
+ */
+function getUnavailableObjects(isPreRequest: boolean, isGrpcRequest: boolean) {
+    return isGrpcRequest ? ["req", "res"] : isPreRequest ? ["res"] : [];
+}
+
+function createTypedWrapper(variableName: string, parameterNames: string[]) {
     // There must not be a line break between `async` and the opening parenthesis or between the closing parenthesis and the arrow.
     // The function starts within the first token, which is always placed at the start of a line (see `placeTokens`).
-    return [`;${variableName}=async(`, `${parameterName})=>{`];
+    return [`;${variableName}=async(`, `${parameterNames.join(",")})=>{`];
 }

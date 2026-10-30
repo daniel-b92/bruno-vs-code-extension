@@ -47,6 +47,7 @@ export function maskBruFileContent(fileContent: string) {
         wrapCodeBlock(maskedCharacters, {
             blockName,
             isGrpcRequest,
+            code: fileContent.substring(startIndex, endOfCodeIndex),
             fileContent,
             firstFreeIndex,
             openingBracketIndex,
