@@ -25,19 +25,30 @@ var expect;
 var test;`,
         getTypeDefinitionsForGrpcScripts(),
         getWrapperVariableDefinitions(),
+        getScriptPathDefinitions(),
     ].join("\n\n");
 
     return content;
 }
 
 /**
- * `bru.grpc.request` is only available before the request is sent.
- * `bru.grpc.response` is only available after the response was received.
+ * `bru.grpc.response` is only available after the response was received. `bru.grpc.request` is available in all hooks.
+ * `bru.cookies` and `bru.runner` are not available in gRPC scripts.
  * The types are used for the parameters that shadow `bru` within the code blocks of gRPC requests (see `getBlockWrapperCandidates`).
  */
 function getTypeDefinitionsForGrpcScripts() {
-    return `/** @typedef {Omit<typeof bru, "grpc"> & { grpc: Pick<typeof bru.grpc, "request"> }} ${grpcBruTypeNames.preRequest} */
-/** @typedef {Omit<typeof bru, "grpc"> & { grpc: Pick<typeof bru.grpc, "response"> }} ${grpcBruTypeNames.postResponse} */`;
+    return `/** @typedef {Omit<typeof bru, "grpc" | "cookies" | "runner"> & { grpc: Pick<typeof bru.grpc, "request"> }} ${grpcBruTypeNames.preRequest} */
+/** @typedef {Omit<typeof bru, "cookies" | "runner">} ${grpcBruTypeNames.postResponse} */`;
+}
+
+/**
+ * Only available in Developer Mode. Directory of the current script (collection, folder or request directory).
+ */
+function getScriptPathDefinitions() {
+    return `/** @type {string} */
+var __dirname;
+/** @type {string} */
+var __filename;`;
 }
 
 /**

@@ -95,12 +95,12 @@ var req = {
 	 */
 	getName: () => {},
 	/**
-	 * Returns the current request tags as an array of strings.
+	 * Returns the effective tags of the request as an array of strings (own tags plus tags inherited from parent folders).
 	 * @returns {string[]}
 	 */
 	getTags: () => {},
 	/**
-	 * Returns the value of a header. Returns undefined if the header does not exist.
+	 * Returns the value of a header. The header name is case insensitive. Returns undefined if the header does not exist.
 	 * @param {string} name
 	 * @returns {string | undefined}
 	 */
@@ -155,19 +155,22 @@ var req = {
 	 */
 	getBody: (options = undefined) => {},
 	/**
-	 * Updates the request body. The type of the body must not change, this could cause internal errors otherwise.
+	 * Updates the request body. Only available in pre-request scripts.
+		 * The type of the body must not change, this could cause internal errors otherwise.
 	 * @param {any} body
 	 * @returns {void}
 	 */
 	setBody: (body) => {},
 	/**
-	 * Current authentication mode. If request auth mode is set to inherit, this will be the mode from collection
+	 * Current authentication mode, e.g. "bearer", "basic", "oauth2", "oauth1", "awsv4", "digest", "wsse" or "none".
+		 * If request auth mode is set to inherit, this will be the mode from collection
 	 * @type {readonly string}
 	 * @throws If called after the request was sent
 	 */
 	authMode: {},
 	/**
-	 * Returns the current authentication mode. If request auth mode is set to inherit, this will be the mode from collection
+	 * Returns the current authentication mode, e.g. "bearer", "basic", "oauth2", "oauth1", "awsv4", "digest", "wsse" or "none".
+		 * If request auth mode is set to inherit, this will be the mode from collection
 	 * @returns {string}
 	 */
 	getAuthMode: () => {},
@@ -186,6 +189,7 @@ var req = {
 	getTimeout: () => {},
 	/**
 	 * Updates the request timeout. New timeout must be a number in milliseconds.
+		 * Overrides the collection-level timeout for this request.
 	 * @param {number} timeout
 	 * @returns {void}
 	 * @throws If called after the request was sent
@@ -193,6 +197,7 @@ var req = {
 	setTimeout: (timeout) => {},
 	/**
 	 * Disables parsing of the response, if its a JSON response. The \`res.body\` will then be a string.
+		 * Must be called in a pre-request script.
 	 *
 	 * This was implemented into Bruno to prevent issues with JSON parsing, e.g. with BigInts and other edge cases.
 	 * All of those problem are fixed within Bruno Lazer, so this function is not needed in lazer.
@@ -209,6 +214,7 @@ var req = {
 	getExecutionMode: () => {},
 	/**
  	 * Handle request errors with a custom callback function.
+	 	 * Only available in Developer mode (CLI: \`--sandbox=developer\`, v3.0.0+). Call it in a pre-request script.
  	 * @param {(err: ReqFailError) => void} callback
  	 * @returns {void}
  	 */
