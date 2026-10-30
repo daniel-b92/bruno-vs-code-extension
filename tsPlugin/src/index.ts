@@ -5,12 +5,14 @@ import { maskFilesWithCodeBlocksForTypescriptServer } from "./languageServiceHos
 import { disposeCollectionLookup } from "./collection/collectionLookup";
 import { overrideCodeChanges } from "./languageService/codeChangeOverrides";
 import { overrideDiagnostics } from "./languageService/diagnosticsOverrides";
+import { overrideFileRenames } from "./languageService/fileRenameOverrides";
 import { overrideFormatting } from "./languageService/formattingOverrides";
 import {
     overrideHoverAndCompletions,
     overrideReferencesAndDefinitions,
     overrideRename,
 } from "./languageService/navigationOverrides";
+import { overridePasting } from "./languageService/pasteOverrides";
 import { PluginConfig, PluginConfiguration } from "./pluginConfiguration";
 import { includeCollectionFilesInConfiguredProjects } from "./projectService/includeCollectionFilesInConfiguredProjects";
 
@@ -103,6 +105,8 @@ function setUpPlugin(
     overrideReferencesAndDefinitions(info, proxy, configuration);
     overrideCodeChanges(info, proxy);
     overrideFormatting(info, proxy);
+    overrideFileRenames(info, proxy);
+    overridePasting(info, proxy);
 
     // The Typescript server disposes the language service when the project is closed.
     const disposeOriginally = proxy.dispose.bind(proxy);
