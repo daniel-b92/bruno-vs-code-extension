@@ -6,7 +6,6 @@ import {
 } from "../codeBlocks/getCodeRanges";
 import { isPositionWithinNameOfVariable } from "../codeBlocks/inbuiltFunctionParameters";
 import { getRelativeModulePathCompletions } from "../codeBlocks/relativeModulePathCompletions";
-import { canReferToRuntimeDefinitions } from "../collection/runtimeContext";
 import { isTempJsFileOrRuntimeDefinitionsFile } from "../constants";
 import { hasEmbeddedCodeBlocks, isJsFile } from "../fileTypes";
 import { PluginConfiguration } from "../pluginConfiguration";
@@ -92,21 +91,16 @@ export function overrideHoverAndCompletions(
             data?.fileName != undefined &&
             isTempJsFileOrRuntimeDefinitionsFile(data.fileName);
 
+        // The virtual file with the runtime definitions is part of the whole project, so its declarations are also visible outside of collections.
         return {
             ...defaultCompletions,
             entries: defaultCompletions.entries.filter(
                 (entry) =>
-                    !(
-                        canReferToRuntimeDefinitions(
-                            info,
-                            configuration,
-                            fileName,
-                        ) && isForRuntimeDefinitionsFile(entry)
-                    ) &&
+                    !isForRuntimeDefinitionsFile(entry) &&
+                    !isDeclarationForBlockWrappers(entry) &&
                     !(
                         hasCodeBlocks &&
                         (entry.hasAction ||
-                            isDeclarationForBlockWrappers(entry) ||
                             isShadowingParameterOfCodeBlock(
                                 info,
                                 configuration,
@@ -203,7 +197,6 @@ export function overrideRename(
         const isLocationShown = createFilterForShownLocations(
             info,
             configuration,
-            fileName,
         );
 
         // Renaming them would change all usages in the project (or the wrappers of code blocks).
@@ -233,7 +226,6 @@ export function overrideRename(
         const isLocationShown = createFilterForShownLocations(
             info,
             configuration,
-            fileName,
         );
 
         return info.languageService
@@ -261,13 +253,11 @@ export function overrideReferencesAndDefinitions(
     const filterLocations = <
         T extends { fileName: string; textSpan: ts.TextSpan },
     >(
-        requestedFileName: string,
         locations: readonly T[] | undefined,
     ) => {
         const isLocationShown = createFilterForShownLocations(
             info,
             configuration,
-            requestedFileName,
         );
 
         return locations?.filter(({ fileName, textSpan }) =>
@@ -279,7 +269,6 @@ export function overrideReferencesAndDefinitions(
         const isLocationShown = createFilterForShownLocations(
             info,
             configuration,
-            fileName,
         );
 
         return info.languageService
@@ -298,7 +287,6 @@ export function overrideReferencesAndDefinitions(
 
     proxy.getDefinitionAtPosition = (fileName, position) =>
         filterLocations(
-            fileName,
             info.languageService.getDefinitionAtPosition(fileName, position),
         );
 
@@ -309,23 +297,18 @@ export function overrideReferencesAndDefinitions(
         return (
             defaultDefinition && {
                 ...defaultDefinition,
-                definitions: filterLocations(
-                    fileName,
-                    defaultDefinition.definitions,
-                ),
+                definitions: filterLocations(defaultDefinition.definitions),
             }
         );
     };
 
     proxy.getTypeDefinitionAtPosition = (fileName, position) =>
         filterLocations(
-            fileName,
             info.languageService.getDefinitionAtPosition(fileName, position),
         );
 
     proxy.getImplementationAtPosition = (fileName, position) =>
         filterLocations(
-            fileName,
             info.languageService.getImplementationAtPosition(
                 fileName,
                 position,
@@ -336,7 +319,6 @@ export function overrideReferencesAndDefinitions(
         const isLocationShown = createFilterForShownLocations(
             info,
             configuration,
-            fileName,
         );
 
         return info.languageService
@@ -353,26 +335,17 @@ export function overrideReferencesAndDefinitions(
 }
 
 /**
- * Returns a function that determines whether a location from the results of the Typescript server for the requested file can be shown to the user.
- * The virtual file with the runtime definitions does not exist on the disk. For `.bru` and Yaml files, only the code is visible to the user,
- * while the Typescript server also sees the wrappers of the code blocks (see `getBlockWrapperCandidates`).
+ * Returns a function that determines whether a location from the results of the Typescript server can be shown to the user.
+ * The virtual file with the runtime definitions does not exist on the disk. It is part of the whole project, so it can also appear in the results for files outside of collections.
+ * For `.bru` and Yaml files, only the code is visible to the user, while the Typescript server also sees the wrappers of the code blocks (see `getBlockWrapperCandidates`).
  */
 function createFilterForShownLocations(
     info: ts.server.PluginCreateInfo,
     configuration: PluginConfiguration,
-    requestedFileName: string,
 ) {
-    const shouldHideRuntimeDefinitions = canReferToRuntimeDefinitions(
-        info,
-        configuration,
-        requestedFileName,
-    );
     const isWithinCode = createCheckForPositionsWithinCode(info, configuration);
 
     return (fileName: string, { start }: ts.TextSpan) =>
-        !(
-            shouldHideRuntimeDefinitions &&
-            isTempJsFileOrRuntimeDefinitionsFile(fileName)
-        ) &&
+        !isTempJsFileOrRuntimeDefinitionsFile(fileName) &&
         (!hasEmbeddedCodeBlocks(fileName) || isWithinCode(fileName, start));
 }

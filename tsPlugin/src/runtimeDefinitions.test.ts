@@ -1,9 +1,16 @@
 import { describe, it, expect } from "@jest/globals";
 import {
     createLanguageServiceWithPlugin,
+    getCompletionNames,
     getSemanticDiagnosticCodes,
     helperModule,
+    removeCursor,
 } from "./_testingUtils";
+import {
+    grpcBruTypeNames,
+    grpcObjectVariableName,
+    wrapperVariableNames,
+} from "./runtimeDefinitions/getRuntimeDefinitionsFileContent";
 
 describe("handling of code blocks like Javascript", () => {
     describe.each([
@@ -194,6 +201,50 @@ describe("inbuilt runtime definitions", () => {
                 .getSemanticDiagnostics(scriptFile)
                 .map(({ code }) => code),
         ).toEqual([2_304]); // Cannot find name 'bru'.
+    });
+
+    it("does not include the virtual file with the definitions in the results for navigation for files outside of collections in the same project", () => {
+        const scriptFile = "/other/script.js";
+        const { content, position } = removeCursor("bru.getEnv§Var('a');\n");
+        const languageService = createLanguageServiceWithPlugin({
+            "/collection/bruno.json": '{ "type": "collection" }',
+            "/collection/request.bru": "script:pre-request {\n}\n",
+            [scriptFile]: content,
+        });
+
+        expect(
+            languageService.getDefinitionAtPosition(scriptFile, position),
+        ).toEqual([]);
+        expect(
+            languageService
+                .findReferences(scriptFile, position)
+                ?.flatMap(({ references }) => references)
+                .map(({ fileName }) => fileName),
+        ).toEqual([]);
+    });
+
+    it("does not suggest the declarations for wrapping code blocks in files outside of collections in the same project", () => {
+        const scriptFile = "/other/script.js";
+        const { content, position } = removeCursor(
+            "/** @type {§} */\nconst value = 1;\n",
+        );
+        const languageService = createLanguageServiceWithPlugin({
+            "/collection/bruno.json": '{ "type": "collection" }',
+            "/collection/request.bru": "script:pre-request {\n}\n",
+            [scriptFile]: content,
+        });
+        const names = getCompletionNames(languageService, scriptFile, position);
+
+        expect(names).toContain("PropertyKey");
+        expect(
+            names.filter((name) =>
+                [
+                    ...Object.values(grpcBruTypeNames),
+                    ...Object.values(wrapperVariableNames),
+                    grpcObjectVariableName,
+                ].includes(name),
+            ),
+        ).toEqual([]);
     });
 
     it("does not include the virtual file with the definitions in the results for navigation", () => {
