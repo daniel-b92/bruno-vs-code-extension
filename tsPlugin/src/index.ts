@@ -17,17 +17,19 @@ import { PluginConfig, PluginConfiguration } from "./pluginConfiguration";
 import { includeCollectionFilesInConfiguredProjects } from "./projectService/includeCollectionFilesInConfiguredProjects";
 
 interface PluginForProject {
-    languageService: ts.LanguageService;
     configuration: PluginConfiguration;
+    /** The language service that the plugin returned last for the project (see `decorateLanguageService`). */
+    currentLanguageService?: ts.LanguageService;
 }
 
 /**
  * When a project is reloaded (e.g. after setting the extra file extensions, see `includeCollectionFilesInConfiguredProjects`),
- * the Typescript server creates a new plugin module and creates the plugin again for the same language service host.
- * The language service passed to it is the one that the plugin returned before, and only the new plugin module gets notified about configuration changes.
- * Setting up the plugin again would stack the overrides, and the ones from the first setup would keep using the outdated configuration
- * (e.g. the virtual file with the runtime definitions would not be added after a configuration change).
- * So the plugin is only set up once per language service host. Creating it again only passes on the configuration.
+ * the Typescript server creates new plugin modules and creates the plugins again for the same language service host.
+ * The language service passed to each plugin is the one that the plugins created before returned in total (it is not reset to the original one),
+ * and only the new plugin modules get notified about configuration changes.
+ * Setting up the plugin again would modify the language service host a second time.
+ * So the changes to the host and the configuration are only set up once per language service host.
+ * The language service is decorated again each time, so that the plugins created before this one after the reload are not dropped.
  */
 const pluginsForHosts = new WeakMap<ts.LanguageServiceHost, PluginForProject>();
 
@@ -51,10 +53,11 @@ function init(_modules: {
             existingPlugin.configuration.update(config);
         }
 
-        const plugin = existingPlugin ?? setUpPlugin(info, config);
+        const plugin = existingPlugin ?? setUpHost(info, config);
         configurationsOfProjects.add(plugin.configuration);
+        plugin.currentLanguageService = decorateLanguageService(info, plugin);
 
-        return plugin.languageService;
+        return plugin.currentLanguageService;
     }
 
     function onConfigurationChanged(config: Partial<PluginConfig> | undefined) {
@@ -70,7 +73,7 @@ function init(_modules: {
     };
 }
 
-function setUpPlugin(
+function setUpHost(
     info: ts.server.PluginCreateInfo,
     config: Partial<PluginConfig> | undefined,
 ): PluginForProject {
@@ -86,40 +89,65 @@ function setUpPlugin(
     treatCollectionFilesLikeJavascript(info);
     provideRuntimeDefinitions(info, configuration);
 
-    // Set up decorator object
-    const proxy: ts.LanguageService = Object.create(null);
+    const plugin = { configuration };
+    pluginsForHosts.set(info.languageServiceHost, plugin);
 
-    for (const k of Object.keys(
+    return plugin;
+}
+
+/**
+ * After a reload, the language service that the plugin returned before is still part of the language service passed to it.
+ * So that the overrides are not applied twice, a language service returned before only passes on all calls once the plugin is created again.
+ */
+function decorateLanguageService(
+    info: ts.server.PluginCreateInfo,
+    plugin: PluginForProject,
+) {
+    const methodNames = Object.keys(
         info.languageService,
-    ) as (keyof ts.LanguageService)[]) {
+    ) as (keyof ts.LanguageService)[];
+    const decorated: ts.LanguageService = Object.create(null);
+
+    for (const k of methodNames) {
         const x = info.languageService[k]!;
         // @ts-expect-error - JS runtime trickery which is tricky to type tersely
-        proxy[k] = (...args: unknown[]) =>
+        decorated[k] = (...args: unknown[]) =>
             // @ts-expect-error - JS runtime trickery which is tricky to type tersely
             x.apply(info.languageService, args);
     }
 
-    overrideDiagnostics(info, proxy, configuration);
-    overrideHoverAndCompletions(info, proxy, configuration);
-    overrideRename(info, proxy, configuration);
-    overrideReferencesAndDefinitions(info, proxy, configuration);
-    overrideCodeChanges(info, proxy);
-    overrideFormatting(info, proxy);
-    overrideFileRenames(info, proxy);
-    overridePasting(info, proxy);
+    const { configuration } = plugin;
+
+    overrideDiagnostics(info, decorated, configuration);
+    overrideHoverAndCompletions(info, decorated, configuration);
+    overrideRename(info, decorated, configuration);
+    overrideReferencesAndDefinitions(info, decorated, configuration);
+    overrideCodeChanges(info, decorated);
+    overrideFormatting(info, decorated);
+    overrideFileRenames(info, decorated);
+    overridePasting(info, decorated);
 
     // The Typescript server disposes the language service when the project is closed.
-    const disposeOriginally = proxy.dispose.bind(proxy);
-    proxy.dispose = () => {
+    const disposeOriginally = decorated.dispose.bind(decorated);
+    decorated.dispose = () => {
         pluginsForHosts.delete(info.languageServiceHost);
         disposeCollectionLookup(info);
         disposeOriginally();
     };
 
-    const plugin = { languageService: proxy, configuration };
-    pluginsForHosts.set(info.languageServiceHost, plugin);
+    const proxy: ts.LanguageService = Object.create(null);
 
-    return plugin;
+    for (const k of methodNames) {
+        // @ts-expect-error - JS runtime trickery which is tricky to type tersely
+        proxy[k] = (...args: unknown[]) =>
+            plugin.currentLanguageService == proxy
+                ? // @ts-expect-error - JS runtime trickery which is tricky to type tersely
+                  decorated[k].apply(decorated, args)
+                : // @ts-expect-error - JS runtime trickery which is tricky to type tersely
+                  info.languageService[k]!.apply(info.languageService, args);
+    }
+
+    return proxy;
 }
 
 function isPluginConfig(config: object): config is Partial<PluginConfig> {

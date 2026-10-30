@@ -16,25 +16,26 @@ interface Collection {
     rootFolder: string;
 }
 
+// The plugin can be created several times for the same project (see `index.ts`), each time with a different create info.
 const lookupsForProjects = new WeakMap<
-    ts.server.PluginCreateInfo,
+    ts.LanguageServiceHost,
     CollectionLookup
 >();
 
 export function getCollectionLookup(info: ts.server.PluginCreateInfo) {
-    let lookup = lookupsForProjects.get(info);
+    let lookup = lookupsForProjects.get(info.languageServiceHost);
 
     if (!lookup) {
         lookup = new CollectionLookup(info);
-        lookupsForProjects.set(info, lookup);
+        lookupsForProjects.set(info.languageServiceHost, lookup);
     }
 
     return lookup;
 }
 
 export function disposeCollectionLookup(info: ts.server.PluginCreateInfo) {
-    lookupsForProjects.get(info)?.dispose();
-    lookupsForProjects.delete(info);
+    lookupsForProjects.get(info.languageServiceHost)?.dispose();
+    lookupsForProjects.delete(info.languageServiceHost);
 }
 
 /**
