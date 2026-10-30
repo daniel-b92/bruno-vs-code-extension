@@ -208,7 +208,8 @@ runtime:
 }
 `,
             });
-            server.configurePlugin({});
+            // The plugin only registers the file extension, if collections with the corresponding format exist.
+            server.configurePlugin({ collectionFormats: ["bru"] });
             server.open(requestFile);
 
             // The extensions for collection files are registered with a delay, which reloads the projects.
