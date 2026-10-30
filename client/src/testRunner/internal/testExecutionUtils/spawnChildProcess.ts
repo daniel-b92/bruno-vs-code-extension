@@ -24,14 +24,13 @@ export function spawnChildProcess(childProcessData: TestRunChildProcessData) {
 }
 
 function getCommandForCli({
+    cliCommand,
     collectionRootDirectory,
     jsonReportPath,
     testPath,
     useDeveloperSandbox,
     reportingAndOptionalData: { htmlReport, testEnvironment, userInput },
 }: TestRunChildProcessData) {
-    const command = "bru";
-
     const argForRunCommand = "run".concat(
         testPath == collectionRootDirectory ? "" : ` ${quote(testPath)}`,
     );
@@ -48,7 +47,7 @@ function getCommandForCli({
         commandArguments.push(...["--env", quote(testEnvironment)]);
     }
 
-    return { command, commandArguments };
+    return { command: quote(cliCommand), commandArguments };
 }
 
 // The process is spawned with `shell: true`, so values containing whitespace (e.g. paths) need to be quoted.
@@ -71,7 +70,9 @@ function mapUserInputDataToCommandArgs(userInput?: TestRunUserInputData) {
     } = userInput;
 
     const argsForTags = (
-        includedTags.length > 0 ? ["--tags"].concat(quote(includedTags.join(","))) : []
+        includedTags.length > 0
+            ? ["--tags"].concat(quote(includedTags.join(",")))
+            : []
     ).concat(
         excludedTags.length > 0
             ? ["--exclude-tags"].concat(quote(excludedTags.join(",")))

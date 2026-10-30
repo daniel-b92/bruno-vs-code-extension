@@ -17,6 +17,10 @@ import {
 import { createHash } from "crypto";
 import { mkdir } from "fs/promises";
 import { dirname, extname, isAbsolute, join, resolve } from "path";
+import {
+    ResolvedBruCli,
+    resolveBruCliCommand,
+} from "./testExecutionUtils/resolveBruCliCommand";
 import { runTestStructure } from "./runTestStructure";
 import { QueuedTest, TestRunQueue } from "./testRunQueue";
 import {
@@ -129,6 +133,12 @@ export const startTestRun = async (
             );
 
             if (!didRun) {
+                // Remaining tests would never start otherwise and would block subsequent test runs.
+                for (const { test: remaining } of toRun) {
+                    run.skipped(remaining);
+                }
+                queue.removeItemsFromQueue(toRun.splice(0));
+                run.end();
                 break;
             }
 
@@ -195,7 +205,17 @@ const prepareAndRunTest = async (
         (sectionKey) => workspace.getConfiguration().get(sectionKey),
     );
 
-    printInfosOnTestRunStart(run, htmlReport, testEnvironment);
+    const cli = resolveCli(collectionRootDirectory);
+
+    if (cli.source == "invalidSetting") {
+        const message = `The Bruno CLI configured via setting ${cliPathConfigKey} ('${cli.configuredPath}') does not exist.`;
+        window.showErrorMessage(message);
+        run.appendOutput(`${message}\r\n`);
+        run.skipped(test);
+        return { didRun: false };
+    }
+
+    printInfosOnTestRunStart(run, htmlReport, testEnvironment, cli);
 
     if (checkForRequestedCancellation(run)) {
         run.end();
@@ -208,6 +228,7 @@ const prepareAndRunTest = async (
             options: run,
             abortEmitter,
             collectionRootDirectory,
+            cliCommand: cli.command,
             useDeveloperSandbox: canUseDeveloperSandbox(),
         },
         {
@@ -230,9 +251,15 @@ const getIdForQueuedRun = (itemPath: string, creationTime: Date) =>
 const printInfosOnTestRunStart = (
     run: TestRun,
     htmlReport: HtmlReportLocation | undefined,
-    testEnvironment?: string,
+    testEnvironment: string | undefined,
+    cli: Exclude<ResolvedBruCli, { source: "invalidSetting" }>,
 ) => {
     const lineBreak = "\r\n";
+    run.appendOutput(
+        cli.source == "global"
+            ? `Using the Bruno CLI from the PATH.${lineBreak}`
+            : `Using the Bruno CLI '${cli.command}' (${cli.source == "setting" ? `due to user setting ${getLinkToUserSetting(cliPathConfigKey)}` : "local installation"}).${lineBreak}`,
+    );
     if (!testEnvironment) {
         run.appendOutput(
             `Not using any environment for the test run.${lineBreak}`,
@@ -267,6 +294,22 @@ function gatherTestItems(collection: vscodeTestItemCollection) {
     collection.forEach((item) => items.push(item));
     return items;
 }
+
+const cliPathConfigKey = "bru-as-code.cliPath";
+
+const resolveCli = (collectionRootDirectory: string) => {
+    const uri = Uri.file(collectionRootDirectory);
+
+    return resolveBruCliCommand({
+        configuredPath: workspace
+            .getConfiguration(undefined, uri)
+            .get<string>(cliPathConfigKey),
+        collectionRootDirectory,
+        workspaceFolderPath:
+            workspace.getWorkspaceFolder(uri)?.uri.fsPath ??
+            collectionRootDirectory,
+    });
+};
 
 const htmlReportPathConfigKey = "bru-as-code.htmlReportPath";
 

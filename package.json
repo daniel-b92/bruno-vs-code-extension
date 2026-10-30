@@ -94,6 +94,12 @@
                     "type": "object",
                     "description": "The configured environment per collection to use when executing tests via Bruno CLI. Can be configured when selecting the root folder in the collection explorer."
                 },
+                "bru-as-code.cliPath": {
+                    "type": "string",
+                    "default": "",
+                    "scope": "resource",
+                    "markdownDescription": "Path to the Bruno CLI executable used for running tests (absolute or relative to the workspace folder). If empty, a locally installed CLI (`node_modules/.bin/bru`, searched from the collection root directory up to the workspace folder) is preferred, otherwise `bru` from the `PATH` is used. If set but the file does not exist, test runs fail."
+                },
                 "bru-as-code.htmlReportPath": {
                     "type": "string",
                     "default": "",

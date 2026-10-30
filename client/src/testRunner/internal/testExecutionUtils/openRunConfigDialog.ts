@@ -84,8 +84,7 @@ async function handleBaseModalInteractions(
         },
         ...(
             Object.values(NonTagRelatedButtonLabel) as (
-                | NonTagRelatedButtonLabel
-                | TagRelatedButtonLabel
+                NonTagRelatedButtonLabel | TagRelatedButtonLabel
             )[]
         ).concat(
             tagsDialogNotifier ? Object.values(TagRelatedButtonLabel) : [],
@@ -118,8 +117,7 @@ async function handleBaseModalInteractions(
 
 async function handleDialogForTags(
     selectedButton:
-        | TagRelatedButtonLabel.IncludeTags
-        | TagRelatedButtonLabel.ExcludeTags,
+        TagRelatedButtonLabel.IncludeTags | TagRelatedButtonLabel.ExcludeTags,
     collection: TypedCollection,
     selectionHolder: SelectionHolder,
     baseModalNotifier: EventEmitter<void>,

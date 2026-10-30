@@ -23,6 +23,7 @@ export async function runTestStructure(
         options: TestRun;
         abortEmitter: EventEmitter<void>;
         collectionRootDirectory: string;
+        cliCommand: string;
         useDeveloperSandbox: boolean;
     },
     {
@@ -34,6 +35,7 @@ export async function runTestStructure(
 ): Promise<boolean> {
     const {
         abortEmitter,
+        cliCommand,
         collectionRootDirectory,
         options,
         useDeveloperSandbox,
@@ -63,6 +65,7 @@ export async function runTestStructure(
         const start = Date.now();
         const { childProcess } = spawnChildProcess({
             testPath: path,
+            cliCommand,
             collectionRootDirectory,
             jsonReportPath,
             useDeveloperSandbox,

@@ -13,6 +13,8 @@ export interface OtherExecutionConfigData {
 }
 
 export interface TestRunChildProcessData {
+    /** Command (or path) of the Bruno CLI to use. */
+    cliCommand: string;
     testPath: string;
     collectionRootDirectory: string;
     jsonReportPath: string;

@@ -7,6 +7,7 @@
 
 ### Features
 
+- Add the setting `bru-as-code.cliPath` and prefer a locally installed Bruno CLI (`node_modules/.bin/bru`, searched from the collection root directory up to the workspace folder) over the global one when running tests. The CLI that is used is printed at the start of the test run output.
 - Add the command `Bru-as-Code: Show last HTML test report`. The HTML report is now always shown in the same panel instead of opening a new panel for every test run.
 
 ### Fixes / Maintenance
