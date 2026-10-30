@@ -1,4 +1,5 @@
 import { afterEach } from "@jest/globals";
+import { mkdirSync, writeFileSync } from "fs";
 import { mkdir, mkdtemp, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { dirname, join } from "path";
@@ -35,4 +36,19 @@ export function useTemporaryDirectories() {
 
         return rootDirectory;
     };
+}
+
+/**
+ * Synchronous variant for writing files (keys are paths relative to the directory) into an existing directory.
+ * Missing parent directories are created and existing files are overwritten.
+ */
+export function writeFilesSync(
+    directory: string,
+    filesByRelativePath: Record<string, string>,
+) {
+    for (const [relativePath, content] of Object.entries(filesByRelativePath)) {
+        const absolutePath = join(directory, relativePath);
+        mkdirSync(dirname(absolutePath), { recursive: true });
+        writeFileSync(absolutePath, content, "utf-8");
+    }
 }

@@ -19,7 +19,7 @@ import {
     NonBrunoSpecificItemType,
     normalizePath,
 } from "../..";
-import { useTemporaryDirectories } from "../../_testingUtils";
+import { useTemporaryDirectories, waitUntil } from "../../_testingUtils";
 
 const disposables: { dispose: () => void }[] = [];
 
@@ -656,14 +656,6 @@ describe("CollectionItemProvider: additional context roots", () => {
         expect(getRootNames(join(workspace, "other", "script.js"))).toEqual([]);
     });
 });
-
-async function waitUntil(condition: () => boolean, timeoutInMs = 3000) {
-    const start = Date.now();
-
-    while (!condition() && Date.now() - start < timeoutInMs) {
-        await new Promise((resolve) => setTimeout(resolve, 20));
-    }
-}
 
 function createProvider(
     workspace: string,

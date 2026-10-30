@@ -1,16 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
-import {
-    mkdirSync,
-    mkdtempSync,
-    realpathSync,
-    rmSync,
-    symlinkSync,
-    writeFileSync,
-} from "fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync } from "fs";
 import { tmpdir } from "os";
 import { dirname, join, resolve } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
+// Imported from the files directly, since the index also exports utilities that need more transforms than configured for this project.
+import { waitUntil } from "../../shared/_testingUtils/waitUntil";
+import { writeFilesSync } from "../../shared/_testingUtils/temporaryDirectoryUtils";
 import init = require("./index");
+
+const waitTimeoutInMs = 10_000;
+// Must exceed the timeout for waiting, so that its error message is shown instead of the generic Jest timeout.
+const asyncTestTimeoutInMs = waitTimeoutInMs + 5_000;
 
 /**
  * Unlike the other tests (which use a language service with a mocked host), these tests use the project service of the Typescript server
@@ -159,54 +159,72 @@ runtime:
         });
     });
 
-    it("detects a collection whose root file is created after the request file has been opened", async () => {
-        const requestFile = "collection/request.bru";
-        server.writeFiles({
-            [requestFile]: "script:pre-request {\n  bru.missing();\n}\n",
-        });
-        server.configurePlugin({});
-        server.open(requestFile);
+    it(
+        "detects a collection whose root file is created after the request file has been opened",
+        async () => {
+            const requestFile = "collection/request.bru";
+            server.writeFiles({
+                [requestFile]: "script:pre-request {\n  bru.missing();\n}\n",
+            });
+            server.configurePlugin({});
+            server.open(requestFile);
 
-        expect(server.getDiagnostics(requestFile)).toEqual([]);
+            expect(server.getDiagnostics(requestFile)).toEqual([]);
 
-        server.writeFiles({ "collection/bruno.json": '{ "type": "other" }' });
-        server.writeFiles({
-            "collection/bruno.json": '{ "type": "collection" }',
-        });
+            server.writeFiles({
+                "collection/bruno.json": '{ "type": "other" }',
+            });
+            server.writeFiles({
+                "collection/bruno.json": '{ "type": "collection" }',
+            });
 
-        await waitUntil(() => server.getDiagnostics(requestFile).length > 0);
-        expect(server.getDiagnostics(requestFile)).toEqual([
-            { code: 2_339, text: "missing" },
-        ]);
-    });
+            await waitUntil(
+                () => server.getDiagnostics(requestFile).length > 0,
+                waitTimeoutInMs,
+            );
+            expect(server.getDiagnostics(requestFile)).toEqual([
+                { code: 2_339, text: "missing" },
+            ]);
+        },
+        asyncTestTimeoutInMs,
+    );
 
-    it("adds collection files to a configured project that allows Javascript", async () => {
-        const requestFile = "collection/request.bru";
-        server.writeFiles({
-            "collection/bruno.json": '{ "type": "collection" }',
-            "collection/tsconfig.json": JSON.stringify({
-                compilerOptions: { allowJs: true, checkJs: true, strict: true },
-            }),
-            [requestFile]: `script:pre-request {
+    it(
+        "adds collection files to a configured project that allows Javascript",
+        async () => {
+            const requestFile = "collection/request.bru";
+            server.writeFiles({
+                "collection/bruno.json": '{ "type": "collection" }',
+                "collection/tsconfig.json": JSON.stringify({
+                    compilerOptions: {
+                        allowJs: true,
+                        checkJs: true,
+                        strict: true,
+                    },
+                }),
+                [requestFile]: `script:pre-request {
   /** @type {string} */
   const name = null;
 }
 `,
-        });
-        server.configurePlugin({});
-        server.open(requestFile);
+            });
+            server.configurePlugin({});
+            server.open(requestFile);
 
-        // The extensions for collection files are registered with a delay, which reloads the projects.
-        await waitUntil(
-            () =>
-                server.getConfigFileOfProject(requestFile) ==
-                server.getPath("collection/tsconfig.json"),
-        );
-        expect(server.getDiagnostics(requestFile)).toEqual([
-            // Type 'null' is not assignable to type 'string' (only reported with `strict`).
-            { code: 2_322, text: "name" },
-        ]);
-    });
+            // The extensions for collection files are registered with a delay, which reloads the projects.
+            await waitUntil(
+                () =>
+                    server.getConfigFileOfProject(requestFile) ==
+                    server.getPath("collection/tsconfig.json"),
+                waitTimeoutInMs,
+            );
+            expect(server.getDiagnostics(requestFile)).toEqual([
+                // Type 'null' is not assignable to type 'string' (only reported with `strict`).
+                { code: 2_322, text: "name" },
+            ]);
+        },
+        asyncTestTimeoutInMs,
+    );
 });
 
 interface Diagnostic {
@@ -289,11 +307,7 @@ class TypescriptServer {
     }
 
     writeFiles(files: Record<string, string>) {
-        for (const [relativePath, content] of Object.entries(files)) {
-            const path = join(this.folder, relativePath);
-            mkdirSync(dirname(path), { recursive: true });
-            writeFileSync(path, content);
-        }
+        writeFilesSync(this.folder, files);
     }
 
     /**
@@ -409,16 +423,4 @@ function createLogger(): ts.server.Logger {
         msg: () => {},
         getLogFileName: () => undefined,
     };
-}
-
-async function waitUntil(condition: () => boolean, timeoutInMs = 10_000) {
-    const start = Date.now();
-
-    while (!condition()) {
-        if (Date.now() - start > timeoutInMs) {
-            throw new Error(`Condition not met within ${timeoutInMs} ms.`);
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, 50));
-    }
 }
