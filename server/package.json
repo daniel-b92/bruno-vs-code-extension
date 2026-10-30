@@ -9,7 +9,7 @@
     "dependencies": {
         "prettier": "^3.9.9",
         "vscode-languageserver": "^10.1.2",
-        "vscode-languageserver-textdocument": "^1.0.14",
+        "vscode-languageserver-textdocument": "^1.0.16",
         "vscode-uri": "^3.1.0"
     }
 }

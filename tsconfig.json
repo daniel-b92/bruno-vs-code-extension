@@ -5,6 +5,9 @@
         "lib": ["es2024"],
         "sourceMap": true,
         "strict": true,
+        // Makes ts-jest only transpile the files instead of type-checking them for every Jest worker (which uses a lot of memory).
+        // Types are checked via `npm run check-types` instead.
+        "isolatedModules": true,
         "types": ["node"],
 
         "allowUnreachableCode": false,

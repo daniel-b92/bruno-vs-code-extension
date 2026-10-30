@@ -24,8 +24,7 @@ For getting the most out of the extension, please follow these steps when instal
 - If you already have an extension installed for working with `.bru` files (like e.g. the official [Bruno](https://marketplace.visualstudio.com/items?itemName=bruno-api-client.bruno) extension):
     - Please uninstall the other extension. Otherwise you may run into unexpected issues due to incompatibilities.
 - Install `node js` and `npm`, if you haven't already.
-- If your collection is in a git repository, add the entry `**/__temp_bru_reference.js` to your gitignore file.
-    - The extension will sometimes temporarily create a file with this name for providing the Javascript intellisense.
+- Older versions of the extension created files named `__temp_bru_reference.js` in your collections for providing the Javascript intellisense. They are no longer needed and can be deleted (including the corresponding entry in your gitignore file).
 - If you want to be able to trigger testruns via the extension, install the [Bruno CLI](https://www.npmjs.com/package/@usebruno/cli).
 
 ### Improving intellisense
@@ -34,7 +33,9 @@ For getting the most out of the extension, please follow these steps when instal
     - Most importantly for [Mocha](https://www.npmjs.com/package/@types/mocha) (intellisense for `test('description', function() {...})`) and [Chai](https://www.npmjs.com/package/@types/chai) (intellisense for `expect` validations).
     - Further inbuilt libraries that you use (e.g. `axios` or `moment`).
 - Add typings via JSDoc in your code blocks and Javascript scripts, see https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html.
-- If you have defined a `tsconfig.json` for your collection, you can e.g. activate type checking for your Javascript files or enable the `strict` type checking mode, see https://www.typescriptlang.org/tsconfig/ for more infos.
+- Add a `tsconfig.json` (with `"allowJs": true`) to the root folder of every collection (and every `additionalContextRoots` folder with Javascript files). The extension offers to create a default one.
+    - Without it, the compiler options (e.g. `strict`, `checkJs`, `lib`) of your own configs do not apply to your scripts, and collections in the same folder may share type definitions (e.g. of `chai`), so the types of the first collection that was opened are used for all of them.
+    - In the `tsconfig.json` you can e.g. activate type checking for your Javascript files or enable the `strict` type checking mode, see https://www.typescriptlang.org/tsconfig/ for more infos.
 - If you use SPARQL request bodies, syntax highlighting requires installing an extension that provides this for SPARQL, e.g. `stardog-union.stardog-rdf-grammars`.
 
 ### Yaml collections (preview)

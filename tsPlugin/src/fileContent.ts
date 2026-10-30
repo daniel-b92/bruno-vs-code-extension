@@ -19,7 +19,7 @@ export function getFileContent(
 }
 
 /**
- * For Yaml files, the content returned by the language service host is masked (see `maskYamlFilesForTypescriptServer`).
+ * For `.bru` and Yaml files, the content returned by the language service host is masked (see `maskFilesWithCodeBlocksForTypescriptServer`).
  */
 export function getOriginalFileContent(
     info: ts.server.PluginCreateInfo,

@@ -1,9 +1,12 @@
 const path = require("path");
 
 module.exports = {
-    // Every worker loads its own TypeScript compiler via ts-jest (~1.5 GiB each).
+    // The language services created by the `tsPlugin` tests need up to ~1.7 GiB per worker.
     // With jest's default (one worker per CPU core - 1) this can exhaust the memory on machines with many cores.
-    maxWorkers: 2,
+    maxWorkers: 4,
+    // Workers are reused across test files and accumulate the language services created by the `tsPlugin` tests.
+    // Without recycling them, their heap can exceed the default limit of Node.
+    workerIdleMemoryLimit: "1GB",
     projects: [
         {
             displayName: "server",

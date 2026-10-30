@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "@jest/globals";
+import { describe, it, expect, afterEach, jest } from "@jest/globals";
 import { writeFile } from "fs/promises";
 import { Evt } from "evt";
 import { basename, join } from "path";
@@ -19,7 +19,7 @@ import {
     NonBrunoSpecificItemType,
     normalizePath,
 } from "../..";
-import { useTemporaryDirectories } from "../../_testingUtils";
+import { useTemporaryDirectories, waitUntil } from "../../_testingUtils";
 
 const disposables: { dispose: () => void }[] = [];
 
@@ -328,6 +328,47 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
         ]);
     });
 
+    it("notifies subscribers only when the additional context roots of a collection actually change", async () => {
+        const workspace = await createTemporaryDirectory({
+            "collection/bruno.json": "{}",
+            "collection/request.bru":
+                "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
+        });
+        const rootFilePath = join(workspace, "collection", "bruno.json");
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(
+            workspace,
+            { yamlCollectionSupport: true },
+            fileChangedEmitter,
+        );
+        await provider.refreshCache();
+        const callback = jest.fn();
+        provider.subscribeToAdditionalContextRootChanges(callback);
+
+        // Modification without a change of the context roots.
+        await writeFile(rootFilePath, JSON.stringify({ name: "collection" }));
+        fileChangedEmitter.post({
+            path: rootFilePath,
+            changeType: FileChangeType.Modified,
+        });
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        expect(callback).not.toHaveBeenCalled();
+
+        await writeFile(
+            rootFilePath,
+            JSON.stringify({
+                scripts: { additionalContextRoots: ["./shared"] },
+            }),
+        );
+        fileChangedEmitter.post({
+            path: rootFilePath,
+            changeType: FileChangeType.Modified,
+        });
+
+        await waitUntil(() => callback.mock.calls.length > 0);
+        expect(callback).toHaveBeenCalledTimes(1);
+    });
+
     it("updates the additional context roots when 'opencollection.yml' of a yaml collection is modified", async () => {
         const workspace = await createTemporaryDirectory({
             "collection/opencollection.yml":
@@ -615,14 +656,6 @@ describe("CollectionItemProvider: additional context roots", () => {
         expect(getRootNames(join(workspace, "other", "script.js"))).toEqual([]);
     });
 });
-
-async function waitUntil(condition: () => boolean, timeoutInMs = 3000) {
-    const start = Date.now();
-
-    while (!condition() && Date.now() - start < timeoutInMs) {
-        await new Promise((resolve) => setTimeout(resolve, 20));
-    }
-}
 
 function createProvider(
     workspace: string,

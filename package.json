@@ -39,7 +39,7 @@
         "compile": "cd client && webpack --mode development && cd ../server && webpack --mode development && cd ..",
         "compileWithLocalTsPlugin": "cd tsPlugin && tsc --project tsconfig.json && mkdir -p ../node_modules/typescript-for-bruno && cp -r ./out/. ../node_modules/typescript-for-bruno && cd ../client && webpack --mode development && cd ../server && webpack --mode development && cd ..",
         "lint": "eslint \"**/*.ts\"",
-        "check-types": "tsc -b client server",
+        "check-types": "tsc -b client server && tsc -p tsPlugin/tsconfig.test.json && tsc -p syntaxes/tsconfig.json",
         "watch": "cd client && webpack --mode development --watch",
         "package": "cd client && webpack --mode production --devtool hidden-source-map && cd ../server && webpack --mode production --devtool hidden-source-map && cd ..",
         "test-server": "jest --selectProjects server",
@@ -59,7 +59,7 @@
         "uuid": "^14.0.2",
         "vscode-languageclient": "^10.1.2",
         "vscode-languageserver": "^10.1.2",
-        "vscode-languageserver-textdocument": "^1.0.12",
+        "vscode-languageserver-textdocument": "^1.0.16",
         "vscode-uri": "^3.1.0",
         "watcher": "^2.3.1",
         "yaml": "^2.9.0"
@@ -70,7 +70,7 @@
         "@types/mocha": "^10.0.10",
         "@types/node": "^26.6.5",
         "@types/vscode": "^1.140.0",
-        "@typescript-eslint/eslint-plugin": "^8.71.0",
+        "@typescript-eslint/eslint-plugin": "^8.72.0",
         "@typescript-eslint/parser": "^8.70.1",
         "eslint": "^10.8.1",
         "eslint-import-resolver-typescript": "^4.3.0",
@@ -148,6 +148,11 @@
                     "type": "boolean",
                     "default": true,
                     "markdownDescription": "Show a dialog suggesting to create tsconfig files for collections (if not already existing) after every extension start."
+                },
+                "bru-as-code.warnAboutConflictingCollectionRoots": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Show a warning when collection root files are ignored, because other collection root files exist in the same directory or its subdirectories (nested collections)."
                 }
             }
         },

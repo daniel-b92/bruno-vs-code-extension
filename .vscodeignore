@@ -21,9 +21,11 @@ jest.config.js
 client/package-lock.json
 server/package-lock.json
 *.vsix
+coverage/
 
 CLAUDE.md
 yaml-support-open-issues-after-caching.md
+plans/
 
 .claude/
 .github/

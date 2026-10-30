@@ -28,3 +28,4 @@
 # Type checking
 
 - Type-check with `npm run check-types`. Don't use `tsc -p <project>` or `tsc --noEmit` for `client` or `server`: both reference `shared` as a TypeScript project and would read its possibly outdated build output from `shared/out` instead of its sources.
+- Jest (ts-jest) only transpiles the files (`isolatedModules` in the root `tsconfig.json`) and does not report type errors, so tests are only type-checked by `npm run check-types`. It also covers the `tsPlugin` tests (via `tsPlugin/tsconfig.test.json`, since `tsPlugin/tsconfig.json` excludes them) and `syntaxes`.

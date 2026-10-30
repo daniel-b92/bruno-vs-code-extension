@@ -11,3 +11,7 @@ export function isBruFile(fileName: string) {
 export function isYamlFile(fileName: string) {
     return [".yml", ".yaml"].includes(extname(fileName));
 }
+
+export function isJsFile(fileName: string) {
+    return extname(fileName) == ".js";
+}
