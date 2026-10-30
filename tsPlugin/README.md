@@ -6,8 +6,6 @@ This directory provides an `npm` package for a Typescript language service plugi
 
 ## Main Features
 
-Only some of the intellisense features for `Bruno` files are provided by this npm package. For a fuller set of intellisense features, you can use the VS Code extension, that is built from the root folder of this git repository.
-
 The code blocks are analyzed as follows:
 
 - Only the code blocks of `.bru` files (and the scripts of Yaml collection files) are seen by the Typescript server. All other content is replaced by spaces, so that positions in the file stay the same.
