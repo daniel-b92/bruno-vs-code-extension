@@ -1,12 +1,14 @@
-import { extname } from "path";
 import * as ts from "typescript/lib/tsserverlibrary";
 import { arePathsEqual, usesCaseSensitiveFileNames } from "../pathComparison";
-import { isPositionWithinCode } from "../codeBlocks/getCodeRanges";
+import {
+    createCheckForPositionsWithinCode,
+    isPositionWithinCode,
+} from "../codeBlocks/getCodeRanges";
 import { isPositionWithinNameOfVariable } from "../codeBlocks/inbuiltFunctionParameters";
 import { getRelativeModulePathCompletions } from "../codeBlocks/relativeModulePathCompletions";
 import { canReferToRuntimeDefinitions } from "../collection/runtimeContext";
 import { isTempJsFileOrRuntimeDefinitionsFile } from "../constants";
-import { hasEmbeddedCodeBlocks } from "../fileTypes";
+import { hasEmbeddedCodeBlocks, isJsFile } from "../fileTypes";
 import { PluginConfiguration } from "../pluginConfiguration";
 import {
     grpcBruTypeNames,
@@ -187,19 +189,24 @@ export function overrideRename(
         );
 
         if (
-            extname(fileName) != ".js" ||
-            !canReferToRuntimeDefinitions(info, configuration, fileName)
+            !defaultRenameInfo.canRename ||
+            !(isJsFile(fileName) || hasEmbeddedCodeBlocks(fileName))
         ) {
             return defaultRenameInfo;
         }
 
-        const definitionForPosition =
-            info.languageService.getDefinitionAtPosition(fileName, position);
+        const isLocationShown = createFilterForShownLocations(
+            info,
+            configuration,
+            fileName,
+        );
 
-        const isForInbuiltRuntimeFunction =
-            definitionForPosition &&
-            definitionForPosition.some(({ fileName }) =>
-                isTempJsFileOrRuntimeDefinitionsFile(fileName),
+        // Renaming them would change all usages in the project (or the wrappers of code blocks).
+        const isForInbuiltRuntimeFunction = info.languageService
+            .getDefinitionAtPosition(fileName, position)
+            ?.some(
+                ({ fileName: fileForDefinition, textSpan }) =>
+                    !isLocationShown(fileForDefinition, textSpan),
             );
 
         return isForInbuiltRuntimeFunction
@@ -218,26 +225,26 @@ export function overrideRename(
         findInComments,
         providePrefixAndSuffixTextForRename,
     ) => {
-        const defaultRenameLocations = info.languageService.findRenameLocations(
+        const isLocationShown = createFilterForShownLocations(
+            info,
+            configuration,
             fileName,
-            position,
-            findInStrings,
-            findInComments,
-            providePrefixAndSuffixTextForRename &&
-                typeof providePrefixAndSuffixTextForRename != "boolean"
-                ? providePrefixAndSuffixTextForRename
-                : {},
         );
 
-        return defaultRenameLocations &&
-            canReferToRuntimeDefinitions(info, configuration, fileName)
-            ? defaultRenameLocations.filter(
-                  ({ fileName: fileForRenameLocation }) =>
-                      !isTempJsFileOrRuntimeDefinitionsFile(
-                          fileForRenameLocation,
-                      ),
-              )
-            : defaultRenameLocations;
+        return info.languageService
+            .findRenameLocations(
+                fileName,
+                position,
+                findInStrings,
+                findInComments,
+                providePrefixAndSuffixTextForRename &&
+                    typeof providePrefixAndSuffixTextForRename != "boolean"
+                    ? providePrefixAndSuffixTextForRename
+                    : {},
+            )
+            ?.filter(({ fileName: fileForRenameLocation, textSpan }) =>
+                isLocationShown(fileForRenameLocation, textSpan),
+            );
     };
 }
 
@@ -246,85 +253,121 @@ export function overrideReferencesAndDefinitions(
     proxy: ts.LanguageService,
     configuration: PluginConfiguration,
 ) {
+    const filterLocations = <
+        T extends { fileName: string; textSpan: ts.TextSpan },
+    >(
+        requestedFileName: string,
+        locations: readonly T[] | undefined,
+    ) => {
+        const isLocationShown = createFilterForShownLocations(
+            info,
+            configuration,
+            requestedFileName,
+        );
+
+        return locations?.filter(({ fileName, textSpan }) =>
+            isLocationShown(fileName, textSpan),
+        );
+    };
+
     proxy.findReferences = (fileName, position) => {
-        const defaultReferences = info.languageService.findReferences(
+        const isLocationShown = createFilterForShownLocations(
+            info,
+            configuration,
             fileName,
-            position,
         );
 
-        return defaultReferences &&
-            canReferToRuntimeDefinitions(info, configuration, fileName)
-            ? defaultReferences.filter(
-                  ({ definition: { fileName: fileForDefinition } }) =>
-                      !isTempJsFileOrRuntimeDefinitionsFile(fileForDefinition),
-              )
-            : defaultReferences;
+        return info.languageService
+            .findReferences(fileName, position)
+            ?.filter(({ definition }) =>
+                isLocationShown(definition.fileName, definition.textSpan),
+            )
+            .map((referencedSymbol) => ({
+                ...referencedSymbol,
+                references: referencedSymbol.references.filter(
+                    ({ fileName: fileForReference, textSpan }) =>
+                        isLocationShown(fileForReference, textSpan),
+                ),
+            }));
     };
 
-    proxy.getDefinitionAtPosition = (fileName, position) => {
-        const defaultDefinitions = info.languageService.getDefinitionAtPosition(
+    proxy.getDefinitionAtPosition = (fileName, position) =>
+        filterLocations(
             fileName,
-            position,
+            info.languageService.getDefinitionAtPosition(fileName, position),
         );
-
-        return defaultDefinitions &&
-            canReferToRuntimeDefinitions(info, configuration, fileName)
-            ? defaultDefinitions.filter(
-                  ({ fileName: fileForDefinition }) =>
-                      !isTempJsFileOrRuntimeDefinitionsFile(fileForDefinition),
-              )
-            : defaultDefinitions;
-    };
 
     proxy.getDefinitionAndBoundSpan = (fileName, position) => {
         const defaultDefinition =
             info.languageService.getDefinitionAndBoundSpan(fileName, position);
 
-        return defaultDefinition &&
-            canReferToRuntimeDefinitions(info, configuration, fileName) &&
-            defaultDefinition.definitions
-            ? {
-                  ...defaultDefinition,
-                  definitions: defaultDefinition.definitions.filter(
-                      ({ fileName: fileForDefinition }) =>
-                          !isTempJsFileOrRuntimeDefinitionsFile(
-                              fileForDefinition,
-                          ),
-                  ),
-              }
-            : defaultDefinition;
+        return (
+            defaultDefinition && {
+                ...defaultDefinition,
+                definitions: filterLocations(
+                    fileName,
+                    defaultDefinition.definitions,
+                ),
+            }
+        );
     };
 
-    proxy.getTypeDefinitionAtPosition = (fileName, position) => {
-        const defaultDefinitions = info.languageService.getDefinitionAtPosition(
+    proxy.getTypeDefinitionAtPosition = (fileName, position) =>
+        filterLocations(
             fileName,
-            position,
+            info.languageService.getDefinitionAtPosition(fileName, position),
         );
 
-        return defaultDefinitions &&
-            canReferToRuntimeDefinitions(info, configuration, fileName)
-            ? defaultDefinitions.filter(
-                  ({ fileName: fileForDefinition }) =>
-                      !isTempJsFileOrRuntimeDefinitionsFile(fileForDefinition),
-              )
-            : defaultDefinitions;
-    };
-
-    proxy.getImplementationAtPosition = (fileName, position) => {
-        const defaultImplementations =
+    proxy.getImplementationAtPosition = (fileName, position) =>
+        filterLocations(
+            fileName,
             info.languageService.getImplementationAtPosition(
                 fileName,
                 position,
-            );
+            ),
+        );
 
-        return defaultImplementations &&
-            canReferToRuntimeDefinitions(info, configuration, fileName)
-            ? defaultImplementations.filter(
-                  ({ fileName: fileForImplementation }) =>
-                      !isTempJsFileOrRuntimeDefinitionsFile(
-                          fileForImplementation,
-                      ),
-              )
-            : defaultImplementations;
+    proxy.getDocumentHighlights = (fileName, position, filesToSearch) => {
+        const isLocationShown = createFilterForShownLocations(
+            info,
+            configuration,
+            fileName,
+        );
+
+        return info.languageService
+            .getDocumentHighlights(fileName, position, filesToSearch)
+            ?.map((highlights) => ({
+                ...highlights,
+                highlightSpans: highlights.highlightSpans.filter(
+                    ({ textSpan }) =>
+                        isLocationShown(highlights.fileName, textSpan),
+                ),
+            }))
+            .filter(({ highlightSpans }) => highlightSpans.length > 0);
     };
+}
+
+/**
+ * Returns a function that determines whether a location from the results of the Typescript server for the requested file can be shown to the user.
+ * The virtual file with the runtime definitions does not exist on the disk. For `.bru` and Yaml files, only the code is visible to the user,
+ * while the Typescript server also sees the wrappers of the code blocks (see `getBlockWrapperCandidates`).
+ */
+function createFilterForShownLocations(
+    info: ts.server.PluginCreateInfo,
+    configuration: PluginConfiguration,
+    requestedFileName: string,
+) {
+    const shouldHideRuntimeDefinitions = canReferToRuntimeDefinitions(
+        info,
+        configuration,
+        requestedFileName,
+    );
+    const isWithinCode = createCheckForPositionsWithinCode(info, configuration);
+
+    return (fileName: string, { start }: ts.TextSpan) =>
+        !(
+            shouldHideRuntimeDefinitions &&
+            isTempJsFileOrRuntimeDefinitionsFile(fileName)
+        ) &&
+        (!hasEmbeddedCodeBlocks(fileName) || isWithinCode(fileName, start));
 }

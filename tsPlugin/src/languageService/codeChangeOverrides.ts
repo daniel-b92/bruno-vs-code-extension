@@ -158,19 +158,54 @@ export function overrideCodeChanges(
             .map((refactor) => ({
                 ...refactor,
                 actions: refactor.actions.filter(
-                    ({ name, isInteractive }) =>
+                    ({ name, isInteractive, notApplicableReason }) =>
                         // Interactive actions need arguments that are only known once the user has chosen a target.
                         !isInteractive &&
-                        proxy.getEditsForRefactor(
-                            fileName,
-                            ts.getDefaultFormatCodeSettings(),
-                            positionOrRange,
-                            refactor.name,
-                            name,
-                            preferences,
-                        ) != undefined,
+                        // Actions that are not applicable are only shown as disabled (if requested via `provideRefactorNotApplicableReason`).
+                        // The Typescript server fails when computing edits for them.
+                        (notApplicableReason != undefined ||
+                            hasEditsWithinCodeBlocks(proxy, {
+                                fileName,
+                                positionOrRange,
+                                refactorName: refactor.name,
+                                actionName: name,
+                                preferences,
+                            })),
                 ),
             }))
             .filter(({ actions }) => actions.length > 0);
     };
+}
+
+function hasEditsWithinCodeBlocks(
+    proxy: ts.LanguageService,
+    {
+        fileName,
+        positionOrRange,
+        refactorName,
+        actionName,
+        preferences,
+    }: {
+        fileName: string;
+        positionOrRange: number | ts.TextRange;
+        refactorName: string;
+        actionName: string;
+        preferences: ts.UserPreferences | undefined;
+    },
+) {
+    // A failure for a single action should not fail the whole request, since then no refactorings would be offered at all.
+    try {
+        return (
+            proxy.getEditsForRefactor(
+                fileName,
+                ts.getDefaultFormatCodeSettings(),
+                positionOrRange,
+                refactorName,
+                actionName,
+                preferences,
+            ) != undefined
+        );
+    } catch {
+        return false;
+    }
 }

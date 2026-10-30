@@ -115,6 +115,24 @@ runtime:
                 ).toBeDefined();
             });
 
+            it("offers refactorings when the reasons for actions not being applicable are requested (like VS Code does)", () => {
+                const languageService =
+                    createLanguageServiceWithPlugin(collectionFiles);
+
+                // Computing edits for actions that are not applicable fails within the Typescript server.
+                const descriptions = languageService
+                    .getApplicableRefactors(
+                        requestFile,
+                        getSelection(requestFileContent, '"a" + value'),
+                        { provideRefactorNotApplicableReason: true },
+                    )
+                    .flatMap(({ actions }) =>
+                        actions.map(({ description }) => description),
+                    );
+
+                expect(descriptions).toContain("Convert to template string");
+            });
+
             it("does not offer refactorings that insert code outside of code blocks", () => {
                 const languageService =
                     createLanguageServiceWithPlugin(collectionFiles);

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "@jest/globals";
+import * as ts from "typescript/lib/tsserverlibrary";
 import {
     createLanguageServiceWithPlugin,
     getCompletionNames,
@@ -6,7 +7,7 @@ import {
     removeCursor,
 } from "./_testingUtils";
 
-describe("hovers, completions and signature help", () => {
+describe("language features", () => {
     describe.each([
         {
             format: "bru",
@@ -16,8 +17,11 @@ describe("hovers, completions and signature help", () => {
             },
             requestFile: "/collection/requests/request.bru",
             // The comment is not a part of the code. The marker for the cursor is removed before the file is added to the project.
-            createRequestFileContent: (codeLines: string[]) =>
-                `meta {\n  name: request\n  type: http\n  seq: 1\n}\n\nget {\n  url: https://example.com/api/users/1\n  body: none\n  auth: none\n}\n\nheaders {\n  Content-Type: application/json\n}\n\nscript:pre-request {\n${codeLines.map((line) => `  ${line}\n`).join("")}}\n`,
+            createRequestFileContent: (
+                codeLines: string[],
+                requestType = "http",
+            ) =>
+                `meta {\n  name: request\n  type: ${requestType}\n  seq: 1\n}\n\nget {\n  url: https://example.com/api/users/1\n  body: none\n  auth: none\n}\n\nheaders {\n  Content-Type: application/json\n}\n\nscript:pre-request {\n${codeLines.map((line) => `  ${line}\n`).join("")}}\n`,
             textOutsideOfCode: "Content-Type",
         },
         {
@@ -27,8 +31,11 @@ describe("hovers, completions and signature help", () => {
                 content: "opencollection: 1.0.0\n",
             },
             requestFile: "/collection/requests/request.yml",
-            createRequestFileContent: (codeLines: string[]) =>
-                `info:\n  name: request\nruntime:\n  scripts:\n    - type: before-request\n      code: |-\n${codeLines.map((line) => `        ${line}\n`).join("")}`,
+            createRequestFileContent: (
+                codeLines: string[],
+                requestType = "http",
+            ) =>
+                `info:\n  name: request\n  type: ${requestType}\nruntime:\n  scripts:\n    - type: before-request\n      code: |-\n${codeLines.map((line) => `        ${line}\n`).join("")}`,
             textOutsideOfCode: "name: request",
         },
     ])(
@@ -39,9 +46,12 @@ describe("hovers, completions and signature help", () => {
             createRequestFileContent,
             textOutsideOfCode,
         }) => {
-            const createLanguageService = (codeLines: string[]) => {
+            const createLanguageService = (
+                codeLines: string[],
+                requestType?: "http" | "grpc",
+            ) => {
                 const { content, position } = removeCursor(
-                    createRequestFileContent(codeLines),
+                    createRequestFileContent(codeLines, requestType),
                 );
 
                 return {
@@ -252,6 +262,98 @@ describe("hovers, completions and signature help", () => {
                 expect(names.includes("BruForPreRequestGrpc")).toBe(false);
                 expect(names.includes("BruForPostResponseGrpc")).toBe(false);
             });
+
+            it("allows renaming declarations within the code", () => {
+                const { languageService, position, content } =
+                    createLanguageService(["const val§ue = 1;", "value;"]);
+
+                expect(
+                    languageService.getRenameInfo(requestFile, position, {})
+                        .canRename,
+                ).toBe(true);
+                expect(
+                    getTexts(
+                        content,
+                        languageService.findRenameLocations(
+                            requestFile,
+                            position,
+                            false,
+                            false,
+                            {},
+                        ),
+                    ),
+                ).toEqual(["value", "value"]);
+            });
+
+            it.each([
+                { codeLine: "§bru.getEnvName();", requestType: "http" },
+                // Shadowed by a parameter of the wrapper of the code block, since it is not available in pre-request scripts.
+                { codeLine: "§res.getStatus();", requestType: "http" },
+                // Declared as a parameter of the wrapper of the code block.
+                { codeLine: "§bru.getEnvName();", requestType: "grpc" },
+            ] as const)(
+                "does not allow renaming objects provided by Bruno at runtime ('$codeLine' in $requestType request)",
+                ({ codeLine, requestType }) => {
+                    const { languageService, position } = createLanguageService(
+                        [codeLine],
+                        requestType,
+                    );
+
+                    expect(
+                        languageService.getRenameInfo(requestFile, position, {})
+                            .canRename,
+                    ).toBe(false);
+                },
+            );
+
+            it.each([
+                { codeLine: "§res.getStatus();", requestType: "http" },
+                { codeLine: "§bru.getEnvName();", requestType: "grpc" },
+            ] as const)(
+                "does not return locations within the wrappers of code blocks ('$codeLine' in $requestType request)",
+                ({ codeLine, requestType }) => {
+                    const { languageService, position, content } =
+                        createLanguageService(
+                            [codeLine, codeLine.replace("§", "")],
+                            requestType,
+                        );
+                    const name = codeLine.substring(1, 4);
+
+                    expect(
+                        getTexts(
+                            content,
+                            languageService.findRenameLocations(
+                                requestFile,
+                                position,
+                                false,
+                                false,
+                                {},
+                            ),
+                        ),
+                    ).toEqual([name, name]);
+                    expect(
+                        languageService.getDefinitionAtPosition(
+                            requestFile,
+                            position,
+                        ),
+                    ).toEqual([]);
+                    expect(
+                        languageService.findReferences(requestFile, position),
+                    ).toEqual([]);
+                    expect(
+                        getTexts(
+                            content,
+                            languageService
+                                .getDocumentHighlights(requestFile, position, [
+                                    requestFile,
+                                ])
+                                ?.flatMap(
+                                    ({ highlightSpans }) => highlightSpans,
+                                ),
+                        ),
+                    ).toEqual([name, name]);
+                },
+            );
         },
     );
 
@@ -338,3 +440,12 @@ script:pre-request {
         });
     });
 });
+
+function getTexts(
+    fileContent: string,
+    locations: readonly { textSpan: ts.TextSpan }[] | undefined,
+) {
+    return locations?.map(({ textSpan: { start, length } }) =>
+        fileContent.substring(start, start + length),
+    );
+}
