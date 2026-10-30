@@ -43,7 +43,7 @@ export class TestRunQueue {
                         }
                     }
                 });
-            }
+            },
         );
     }
 
@@ -63,7 +63,7 @@ export class TestRunQueue {
 
         for (const toBeRemoved of queuedTests) {
             const indexForRemoval = this.queue.findIndex(
-                (val) => val.id == toBeRemoved.id
+                (val) => val.id == toBeRemoved.id,
             );
 
             if (indexForRemoval >= 0) {
@@ -75,7 +75,7 @@ export class TestRunQueue {
                 }
             } else {
                 console.warn(
-                    `Item with ID '${toBeRemoved.id}' to be removed from TestRun queue not found in queue.`
+                    `Item with ID '${toBeRemoved.id}' to be removed from TestRun queue not found in queue.`,
                 );
             }
         }
@@ -84,7 +84,7 @@ export class TestRunQueue {
             this.queue.length > 0 &&
             oldestItemBeforeRemoval &&
             !this.queue.some(
-                (queued) => queued.id == oldestItemBeforeRemoval.id
+                (queued) => queued.id == oldestItemBeforeRemoval.id,
             )
         ) {
             // If the oldest item in the queue is a different item than before we can start running this test
@@ -95,14 +95,14 @@ export class TestRunQueue {
     private prepareTestRunForOldestItem() {
         if (this.queue.length == 0) {
             console.warn(
-                `Requested to prepare testrun for oldest queued item but no items were found in the queue.`
+                `Requested to prepare testrun for oldest queued item but no items were found in the queue.`,
             );
             return;
         }
         const testToRun = this.getOldestItemFromQueue() as QueuedTest;
         this.activeRun = this.controller.createTestRun(
             testToRun.request,
-            basename((testToRun.test.uri as Uri).fsPath)
+            basename((testToRun.test.uri as Uri).fsPath),
         );
 
         for (const enqueued of this.queue.slice(1)) {

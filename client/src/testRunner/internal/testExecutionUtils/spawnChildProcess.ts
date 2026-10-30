@@ -24,32 +24,35 @@ export function spawnChildProcess(childProcessData: TestRunChildProcessData) {
 }
 
 function getCommandForCli({
+    cliCommand,
     collectionRootDirectory,
     jsonReportPath,
     testPath,
     useDeveloperSandbox,
-    reportingAndOptionalData: { htmlReportPath, testEnvironment, userInput },
+    reportingAndOptionalData: { htmlReport, testEnvironment, userInput },
 }: TestRunChildProcessData) {
-    const command = "bru";
-
     const argForRunCommand = "run".concat(
-        testPath == collectionRootDirectory ? "" : ` ${testPath}`,
+        testPath == collectionRootDirectory ? "" : ` ${quote(testPath)}`,
     );
 
     const commandArguments: string[] = [argForRunCommand].concat(
         ...mapUserInputDataToCommandArgs(userInput),
         useDeveloperSandbox ? "--sandbox=developer" : [], // The CLI uses the sandbox 'safe' per default.
-        "--reporter-html",
-        htmlReportPath,
+        htmlReport ? ["--reporter-html", quote(htmlReport.path)] : [],
         "--reporter-json",
-        jsonReportPath,
+        quote(jsonReportPath),
     );
 
     if (testEnvironment) {
-        commandArguments.push(...["--env", testEnvironment]);
+        commandArguments.push(...["--env", quote(testEnvironment)]);
     }
 
-    return { command, commandArguments };
+    return { command: quote(cliCommand), commandArguments };
+}
+
+// The process is spawned with `shell: true`, so values containing whitespace (e.g. paths) need to be quoted.
+function quote(value: string) {
+    return `"${value}"`;
 }
 
 function mapUserInputDataToCommandArgs(userInput?: TestRunUserInputData) {
@@ -67,10 +70,12 @@ function mapUserInputDataToCommandArgs(userInput?: TestRunUserInputData) {
     } = userInput;
 
     const argsForTags = (
-        includedTags.length > 0 ? ["--tags"].concat(includedTags.join(",")) : []
+        includedTags.length > 0
+            ? ["--tags"].concat(quote(includedTags.join(",")))
+            : []
     ).concat(
         excludedTags.length > 0
-            ? ["--exclude-tags"].concat(excludedTags.join(","))
+            ? ["--exclude-tags"].concat(quote(excludedTags.join(",")))
             : [],
     );
 
