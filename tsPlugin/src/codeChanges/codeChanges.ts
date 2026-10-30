@@ -25,6 +25,10 @@ export function getFormatOptionsForFile(
  * which is always at the start of a line (see `maskYamlCollectionFileContent`). Such lines would end the Yaml block scalar of the script
  * (e.g. when extracting a constant), since they are indented less than the script.
  * To avoid this, the indentation of the scripts minus one indentation level for the wrapper function is added to the inserted lines.
+ * Lines inserted within nested code are indented relative to the actual indentation of the enclosing code, so they need no adjustment.
+ *
+ * Code that is inserted outside of the wrapper functions (e.g. a function in the global scope) is still indented less than the scripts afterwards,
+ * so that it is rejected by `createCheckForChangesWithinCodeBlocks`.
  *
  * The range is the range that was requested from the Typescript server for the given file.
  */
@@ -78,6 +82,7 @@ export function adjustIndentationOfChangesForYamlScripts(
                 ...textChange,
                 newText: indentInsertedLines(
                     textChange.newText,
+                    scriptIndentation,
                     additionalIndentation,
                     isAtStartOfLine(originalContent, textChange.span.start),
                 ),
@@ -87,19 +92,113 @@ export function adjustIndentationOfChangesForYamlScripts(
 }
 
 /**
- * Lines that are empty are not indented. The first line is only indented, if the text is inserted at the start of a line.
+ * The lines are only indented, if at least one of them is indented less than the scripts.
+ * Lines that are blank or start within a string or template literal are not indented, since the latter would change the value of the literal.
+ * The first line is only indented, if the text is inserted at the start of a line.
+ * Tabs are not considered, since they are not allowed for indenting Yaml content (see `getFormatOptionsForFile`).
  */
 function indentInsertedLines(
     text: string,
-    indentation: string,
+    scriptIndentation: number,
+    additionalIndentation: string,
     isInsertedAtStartOfLine: boolean,
 ) {
-    const lineBreak = /(\r\n|\r|\n|\u2028|\u2029)(?=[^\r\n\u2028\u2029])/g;
-    const indentedText = text.replace(lineBreak, `$1${indentation}`);
+    const lineStarts = getStartsOfIndentableLines(
+        text,
+        isInsertedAtStartOfLine,
+    );
 
-    return isInsertedAtStartOfLine && text.length > 0 && !isLineBreak(text[0])
-        ? indentation + indentedText
-        : indentedText;
+    if (lineStarts.length == 0) {
+        return text;
+    }
+
+    const isIndentedLessThanScripts = lineStarts.some(
+        (start) =>
+            /^ */.exec(text.substring(start))![0].length < scriptIndentation,
+    );
+
+    if (!isIndentedLessThanScripts) {
+        return text;
+    }
+
+    return lineStarts.reduceRight(
+        (indentedText, start) =>
+            indentedText.substring(0, start) +
+            additionalIndentation +
+            indentedText.substring(start),
+        text,
+    );
+}
+
+function getStartsOfIndentableLines(
+    text: string,
+    isInsertedAtStartOfLine: boolean,
+) {
+    const lineBreak = /\r\n|\r|\n|\u2028|\u2029/g;
+    const lineStarts = isInsertedAtStartOfLine ? [0] : [];
+    let match: RegExpExecArray | null;
+
+    while ((match = lineBreak.exec(text)) != null) {
+        lineStarts.push(match.index + match[0].length);
+    }
+
+    const nonBlankLineStarts = lineStarts.filter(
+        (start) => getLine(text, start).trim().length > 0,
+    );
+
+    if (nonBlankLineStarts.length == 0) {
+        return [];
+    }
+
+    const literalRanges = getRangesOfStringLiterals(text);
+
+    return nonBlankLineStarts.filter(
+        (start) =>
+            !literalRanges.some(
+                (range) => range.start < start && start < range.end,
+            ),
+    );
+}
+
+function getLine(text: string, lineStart: number) {
+    const lineBreak = /\r\n|\r|\n|\u2028|\u2029/g;
+    lineBreak.lastIndex = lineStart;
+    const match = lineBreak.exec(text);
+
+    return text.substring(lineStart, match ? match.index : text.length);
+}
+
+/**
+ * String literals can span multiple lines by escaping the line breaks.
+ * For template literals with substitutions, the code within the substitutions is not part of the returned ranges.
+ */
+function getRangesOfStringLiterals(text: string) {
+    const sourceFile = ts.createSourceFile(
+        "insertedText.js",
+        text,
+        ts.ScriptTarget.Latest,
+        false,
+        ts.ScriptKind.JS,
+    );
+    const ranges: { start: number; end: number }[] = [];
+
+    const visit = (node: ts.Node) => {
+        if (
+            ts.isStringLiteral(node) ||
+            ts.isNoSubstitutionTemplateLiteral(node) ||
+            ts.isTemplateHead(node) ||
+            ts.isTemplateMiddle(node) ||
+            ts.isTemplateTail(node)
+        ) {
+            ranges.push({ start: node.getStart(sourceFile), end: node.end });
+        }
+
+        ts.forEachChild(node, visit);
+    };
+
+    visit(sourceFile);
+
+    return ranges;
 }
 
 function isAtStartOfLine(content: string, index: number) {
