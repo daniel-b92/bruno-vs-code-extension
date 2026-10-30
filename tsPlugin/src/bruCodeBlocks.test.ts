@@ -216,7 +216,7 @@ script:post-response {
         ]);
     });
 
-    it("only provides the parts of `bru.grpc` that are available in a code block of a gRPC request", () => {
+    it("only provides the parts of `bru` that are available in a code block of a gRPC request", () => {
         const content = `meta {
   name: request
   type: grpc
@@ -237,6 +237,7 @@ script:grpc:before-call-start {
 script:grpc:after-call-end {
   bru.grpc.response.statusCode;
   bru.grpc.request.url;
+  bru.cookies.jar();
 }
 `;
 
@@ -252,7 +253,8 @@ script:grpc:after-call-end {
         ).toEqual([
             // Property 'response' does not exist on type '{ request: ... }'.
             { code: 2_339, text: "response" },
-            { code: 2_339, text: "request" },
+            // Property 'cookies' does not exist on type 'Omit<typeof bru, "cookies" | "runner"> & ...'.
+            { code: 2_339, text: "cookies" },
         ]);
     });
 

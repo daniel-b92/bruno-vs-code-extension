@@ -133,12 +133,12 @@ function getCommonTypeDefinitions() {
  */
 /**
  * @typedef {object} BrunoCookieJar
- * @property {((url: string, name: string, value: string) => void) | ((url: string, cookieObject: CookieObject) => void)} setCookie Set a single cookie with specified attributes.
+ * @property {((url: string, name: string, value: string) => void) | ((url: string, cookieObject: CookieObject) => void)} setCookie Set a single cookie with specified attributes. For \`__Host-\` prefixed cookies, Bruno omits \`domain\` automatically; setting a \`domain\` makes the cookie get rejected.
  * @property {(url: string, cookieObjects: CookieObject[]) => void} setCookies Set multiple cookies at once using an array of cookie objects.
  * @property {(url: string, name: string) => Promise<CookieObject | null>} getCookie Get a specific cookie by name.
  * @property {((url: string, name: string) => Promise<boolean>) | ((url: string, name: string, callback: (err: Error, exists: boolean) => void) => void)} hasCookie Check whether a cookie with the given name exists for a specific URL. Optionally accepts a callback as the third argument; if omitted, returns a Promise.
  * @property {(url: string) => Promise<CookieObject[]>} getCookies Get all cookies for a specific URL.
- * @property {(url: string, name: string) => void} deleteCookie Delete a specific cookie by name.
+ * @property {(url: string, name: string) => void} deleteCookie Delete a specific cookie by name. Only succeeds if domain and path match the stored cookie.
  * @property {(url: string) => void} deleteCookies Delete all cookies for a specific URL.
  * @property {() => void} clear Clear all cookies from the cookie jar.
  */`;
@@ -158,6 +158,7 @@ getEnvName: () => {},
 hasEnvVar: (key) => {},
 /**
  * Returns the value of a environment variable by name.
+ * Returns undefined if the variable does not exist or no environment is selected.
  * @param {string} key
  * @returns {any}
  */
@@ -175,14 +176,14 @@ getAllEnvVars:() => {},
  */
 setEnvVar: (key, value) => {},
 /**
- * Delete a specific environment variable.
+ * Delete a specific environment variable and persist the change to disk.
  *
  * @param {string} key
  * @returns {void}
  */
 deleteEnvVar: (key) => {},
 /**
- * Delete all environment variables in the current environment.
+ * Delete all environment variables in the current environment and persist the change to disk.
  *
  * @returns {void}
  */
@@ -197,7 +198,7 @@ function getDefinitionsForGlobalEnvironmentVariables() {
  */
 getGlobalEnvVar: (key) => {},
 /**
- * Set the Bruno global environment variable.
+ * Set the Bruno global environment variable and persist the change to disk.
  *
  * @param {string} key
  * @param {unknown} value
@@ -366,6 +367,7 @@ sleep: (ms) => {},
 interpolate: (input) => {},
 /**
  * Returns the absolute path of the collection's root directory on disk.
+ * Using \`fs\` with this path requires Developer Mode. For files next to the current script, use \`__dirname\`.
  * @returns {string}
  */
 cwd: () => {},
@@ -375,33 +377,38 @@ cwd: () => {},
  */
 isSafeMode: () => {},
 /**
- * Determines the next request to execute withing the request runner.
+ * Determines the next request to execute within the request runner. Use it in post-request or test scripts.
+ * The request must be given by its display name (not a folder path). Identical to \`bru.runner.setNextRequest\`.
  * @param {string | null} nextRequest
  * @returns {void}
  */
 setNextRequest: (nextRequest) => {},
 /**
- * Executes a request from the current collection. Path must be relative from to collection root.
- * Throws an error if the request does not exist.
+ * Executes a request from the current collection. Path must be relative to the collection root, without the file extension
+ * and with folders separated by \`/\` (e.g. \`Auth/Login\`).
+ * Rejects if the request does not exist. Only HTTP and GraphQL requests are run, WebSocket and gRPC requests resolve with \`{ status: "skipped" }\`.
+ * Must not be called from a collection-level pre-request script (infinite recursion).
  * @param {string} requestPath
- * @returns {Promise<{data: any, headers: Record<string, string>, duration: number, size: number, status: number, statusText: string}>}
+ * @returns {Promise<{data: any, headers: Record<string, string>, duration: number, size: number, status: number | "skipped", statusText: string}>}
  */
 runRequest: (requestPath) => {},
 /**
  * Send a programmatic HTTP request within your script.
+ * Bruno's TLS, proxy and client certificate settings apply unless \`httpsAgent\` is set.
+ * A custom \`httpsAgent\` and loading certificates from disk require Developer Mode.
  * @param {RequestOptions} options Object containing the request parameters.
- * @param {(err: Error, response: object) => void} [callback] Function to handle the response.
- * @returns {Promise<object>}
+ * @param {(err: Error, response: {data: any, [key: string]: any}) => void} [callback] Function to handle the response.
+ * @returns {Promise<{data: any, [key: string]: any}>}
  */
 sendRequest: (options, callback = undefined) => {},
 /**
  * Obtain the test results of a request. Use this within test scripts.
- * @returns {Promise<{name: string, status: string}[]>}
+ * @returns {Promise<{name: string, status: "pass" | "fail"}[]>}
  */
 getTestResults: () => {},
 /**
  * Obtain the assertion results of a request. Use this within test scripts.
- * @returns {Promise<{lhs: string, operator: string, rhs: string, status: string}[]>}
+ * @returns {Promise<{lhs: string, operator: string, rhs: string, status: "pass" | "fail"}[]>}
  */
 getAssertionResults: () => {},`;
 }
@@ -410,6 +417,7 @@ function getDefinitionsForRunnerSubobject() {
     return `{
 	/**
 	 * Alter the order of requests by specifying the next request to execute. Use the request's display name.
+		 * Use it in post-request or test scripts. Identical to \`bru.setNextRequest\`.
      * @param {string | null} nextRequestName Request name or null to stop the run.
      * @returns {void}
 	 */
@@ -421,6 +429,7 @@ function getDefinitionsForRunnerSubobject() {
 	skipRequest: () => {},
 	/**
 	 * Immediately stops the entire collection run. No further requests are executed after this call.
+		 * Can be used in pre-request, post-response and test scripts.
      * @returns {void}
 	 */
 	stopExecution: () => {},
@@ -436,6 +445,7 @@ function getDefinitionsForRunnerSubobject() {
 	totalIterations: 0,
 	/**
 	 * Object for accessing and manipulating the current row from an attached CSV or JSON data file.
+		 * Only populated while the runner iterates an attached file (UI runner or CLI \`--csv-file-path\` / \`--json-file-path\`).
 	 * @type {object}
 	 * @property {(key?: string) => any} get Get a field value or all fields for the current row.
 	 * @property {(key: string) => boolean} has Check if a field exists in the current iteration.
@@ -470,7 +480,7 @@ function getDefinitionsForCookiesSubobject() {
 	filter: (callback) => {},
 	/** Map cookies to another value. @param {(cookie: CookieObject) => any} callback @returns {any[]} */
 	map: (callback) => {},
-	/** Reduce cookies to a value. @param {Function} callback @param {any} initial @returns {any} */
+	/** Reduce cookies to a value. @param {<T>(acc: T, cookie: CookieObject) => T} callback @param {any} initial @returns {any} */
 	reduce: (callback, initial) => {},
 	/** Convert cookies to a name/value object. @returns {Record<string, string>} */
 	toObject: () => {},

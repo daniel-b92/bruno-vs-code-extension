@@ -28,22 +28,33 @@ var expect;
 var test;`,
         getTypeDefinitionsForGrpcScripts(),
         getWrapperVariableDefinitions(),
+        getScriptPathDefinitions(),
     ].join("\n\n");
 
     return content;
 }
 
 /**
- * `bru.grpc` is only available for gRPC requests. `bru.grpc.request` is only available before the request is sent
- * and `bru.grpc.response` only after the response was received.
+ * `bru.grpc` is only available for gRPC requests. `bru.grpc.response` is only available after the response was received.
+ * `bru.grpc.request` is available in all hooks. `bru.cookies` and `bru.runner` are not available in gRPC scripts.
  * The types are used for the parameters that shadow `bru` within the code blocks of gRPC requests (see `getBlockWrapperCandidates`).
  * The global `bru` object does not have the `grpc` property, so it is defined in a separate variable.
  */
 function getTypeDefinitionsForGrpcScripts() {
     return `var ${grpcObjectVariableName} = ${getDefinitionsForGrpcSubobject()};
 
-/** @typedef {typeof bru & { grpc: Pick<typeof ${grpcObjectVariableName}, "request"> }} ${grpcBruTypeNames.preRequest} */
-/** @typedef {typeof bru & { grpc: Pick<typeof ${grpcObjectVariableName}, "response"> }} ${grpcBruTypeNames.postResponse} */`;
+/** @typedef {Omit<typeof bru, "cookies" | "runner"> & { grpc: Pick<typeof ${grpcObjectVariableName}, "request"> }} ${grpcBruTypeNames.preRequest} */
+/** @typedef {Omit<typeof bru, "cookies" | "runner"> & { grpc: typeof ${grpcObjectVariableName} }} ${grpcBruTypeNames.postResponse} */`;
+}
+
+/**
+ * Only available in Developer Mode. Directory of the current script (collection, folder or request directory).
+ */
+function getScriptPathDefinitions() {
+    return `/** @type {string} */
+var __dirname;
+/** @type {string} */
+var __filename;`;
 }
 
 /**
