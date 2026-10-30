@@ -72,6 +72,24 @@ runtime:
         ).toEqual([]);
     });
 
+    it("does not report suggestion diagnostics for the wrapper of a script", () => {
+        const content = `info:
+  name: request
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        bru.getEnvVar("token");
+`;
+
+        expect(
+            createLanguageServiceWithPlugin({
+                ...collectionFiles,
+                [requestFile]: content,
+            }).getSuggestionDiagnostics(requestFile),
+        ).toEqual([]);
+    });
+
     it("only shows a warning for redeclaring `res` in a script of type 'before-request'", () => {
         const content = `info:
   name: request
