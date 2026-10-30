@@ -438,6 +438,32 @@ script:pre-request {
             expect(names.includes("req")).toBe(true);
             expect(names.includes("res")).toBe(false);
         });
+
+        it("does not suggest `req` and `res` in a code block of a gRPC request", () => {
+            const { content, position } = removeCursor(
+                `meta {
+  name: request
+  type: grpc
+}
+
+script:grpc:before-call-start {
+  §
+}
+`,
+            );
+            const names = getCompletionNames(
+                createLanguageServiceWithPlugin({
+                    "/collection/bruno.json": '{ "type": "collection" }',
+                    [requestFile]: content,
+                }),
+                requestFile,
+                position,
+            );
+
+            expect(names.includes("bru")).toBe(true);
+            expect(names.includes("req")).toBe(false);
+            expect(names.includes("res")).toBe(false);
+        });
     });
 });
 

@@ -128,6 +128,7 @@ runtime:
       code: |-
         bru.grpc.request.url;
         bru.grpc.response.statusCode;
+        req.getUrl();
 `;
 
         expect(
@@ -142,6 +143,34 @@ runtime:
         ).toEqual([
             // Property 'response' does not exist on type '{ request: ... }'.
             { code: 2_339, text: "response" },
+            // 'req' is possibly 'undefined'.
+            { code: 18_048, text: "req" },
+        ]);
+    });
+
+    it("does not provide `bru.grpc` for requests that are not gRPC requests", () => {
+        const content = `info:
+  name: request
+  type: http
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        bru.grpc.request.url;
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([
+            // Property 'grpc' does not exist on type ...
+            { code: 2_339, text: "grpc" },
         ]);
     });
 });

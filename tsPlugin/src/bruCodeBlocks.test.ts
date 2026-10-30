@@ -214,6 +214,130 @@ script:grpc:after-call-end {
         ]);
     });
 
+    it("reports the usage of `req` and `res` in code blocks of a gRPC request", () => {
+        const content = `meta {
+  name: request
+  type: grpc
+  seq: 1
+}
+
+tests {
+  req.getUrl();
+}
+
+script:grpc:before-call-start {
+  req.getUrl();
+}
+
+script:grpc:after-call-end {
+  res.status;
+}
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([
+            // 'req' / 'res' is possibly 'undefined'.
+            { code: 18_048, text: "req" },
+            { code: 18_048, text: "req" },
+            { code: 18_048, text: "res" },
+        ]);
+    });
+
+    it("does not provide `bru.grpc` for requests that are not gRPC requests", () => {
+        const content = `${requestBlocks}
+script:pre-request {
+  bru.grpc.request.url;
+}
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([
+            // Property 'grpc' does not exist on type ...
+            { code: 2_339, text: "grpc" },
+        ]);
+    });
+
+    it("does not provide `bru.grpc` in a `tests` block of a gRPC request that directly follows another code block", () => {
+        const content = `meta {
+  name: request
+  type: grpc
+  seq: 1
+}
+
+script:grpc:after-call-end {
+  bru.grpc.response.statusCode;
+}
+
+tests {
+  bru.grpc.response.statusCode;
+}
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([{ code: 2_339, text: "grpc" }]);
+    });
+
+    it("keeps shadowing the other objects in a code block of a gRPC request that redeclares one of them", () => {
+        const content = `meta {
+  name: request
+  type: grpc
+  seq: 1
+}
+
+script:grpc:before-call-start {
+  const res = 1;
+  bru.grpc.response;
+  req.getUrl();
+}
+
+script:grpc:after-call-end {
+  const bru = 1;
+  res.status;
+}
+`;
+
+        expect(
+            getDiagnosticTexts(
+                createLanguageServiceWithPlugin({
+                    ...collectionFiles,
+                    [requestFile]: content,
+                }),
+                requestFile,
+                content,
+            ),
+        ).toEqual([
+            { code: 2_339, text: "response" },
+            { code: 18_048, text: "req" },
+            { code: 18_048, text: "res" },
+            { code: redeclaredRuntimeObjectDiagnosticCode, text: "res" },
+            { code: redeclaredRuntimeObjectDiagnosticCode, text: "bru" },
+        ]);
+    });
+
     it("shadows the unavailable objects for a code block that directly follows another code block", () => {
         const content = `script:post-response {
   req.getUrl();

@@ -12,6 +12,7 @@ import { hasEmbeddedCodeBlocks, isJsFile } from "../fileTypes";
 import { PluginConfiguration } from "../pluginConfiguration";
 import {
     grpcBruTypeNames,
+    grpcObjectVariableName,
     wrapperVariableNames,
 } from "../runtimeDefinitions/getRuntimeDefinitionsFileContent";
 
@@ -135,11 +136,12 @@ function isDeclarationForBlockWrappers({ name }: ts.CompletionEntry) {
     return [
         ...Object.values(grpcBruTypeNames),
         ...Object.values(wrapperVariableNames),
+        grpcObjectVariableName,
     ].includes(name);
 }
 
 /**
- * `res` is shadowed by a parameter in pre-request code blocks, where it is not available (see `getBlockWrapperCandidates`).
+ * `req` and `res` are shadowed by parameters in code blocks where they are not available (see `getBlockWrapperCandidates`).
  * Parameters of the same name that are declared within the code are still suggested.
  */
 function isShadowingParameterOfCodeBlock(
@@ -149,7 +151,10 @@ function isShadowingParameterOfCodeBlock(
     position: number,
     { name, kind, source }: ts.CompletionEntry,
 ) {
-    if (kind != ts.ScriptElementKind.parameterElement || name != "res") {
+    if (
+        kind != ts.ScriptElementKind.parameterElement ||
+        !["req", "res"].includes(name)
+    ) {
         return false;
     }
 

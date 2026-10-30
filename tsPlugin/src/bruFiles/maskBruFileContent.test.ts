@@ -42,7 +42,7 @@ script:pre-request {
             blank("  url: https://example.com/api/users/1"),
             blank("}"),
             "",
-            ";$bP=async(  res)=>{",
+            ";$bU=async(  res)=>{",
             "  const a = 1;",
             "}",
             "",
@@ -60,7 +60,7 @@ script:pre-request {
 `;
 
         expect(maskBruFileContent(content).split("\n")[4]).toBe(
-            ";$bP=async(  res)=>{",
+            ";$bU=async(  res)=>{",
         );
     });
 
@@ -117,11 +117,11 @@ script:post-response {
         const maskedContent = maskBruFileContent(content);
 
         // `res` is not available before the request is sent, but `req` is available in all blocks.
-        expect(maskedContent).not.toContain("$bP");
+        expect(maskedContent).not.toContain("$bU");
         expect(maskedContent).not.toMatch(/\b(req|res)\b/);
     });
 
-    it("types the `bru` object for gRPC requests", () => {
+    it("types the `bru` object and shadows `req` and `res` for gRPC requests", () => {
         const content = `meta {
   name: request
   type: grpc
@@ -138,7 +138,7 @@ script:grpc:before-call-start {
 `;
 
         expect(maskBruFileContent(content)).toMatch(
-            /;\$gP=async\([\s\S]*\bbru\)=>\{/,
+            /;\$gP=async\([\s\S]*\bbru,req,res\)=>\{/,
         );
     });
 
@@ -181,7 +181,7 @@ docs {
 
         // A line break is needed, since the closing bracket could otherwise be part of a line comment.
         expect(maskBruFileContent(content)).toBe(
-            ";$bP=async(  res)=>{\n  const a = 1;\n\n}",
+            ";$bU=async(  res)=>{\n  const a = 1;\n\n}",
         );
     });
 
