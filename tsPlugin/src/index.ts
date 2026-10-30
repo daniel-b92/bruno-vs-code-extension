@@ -79,7 +79,7 @@ function setUpPlugin(
         configuration.update(config);
     }
 
-    includeCollectionFilesInConfiguredProjects(info);
+    includeCollectionFilesInConfiguredProjects(info, configuration);
     maskFilesWithCodeBlocksForTypescriptServer(info, configuration);
     treatCollectionFilesLikeJavascript(info);
     provideRuntimeDefinitions(info, configuration);
@@ -120,7 +120,9 @@ function setUpPlugin(
 
 function isPluginConfig(config: object): config is Partial<PluginConfig> {
     return (
-        "yamlCollectionSupport" in config || "additionalContextRoots" in config
+        "yamlCollectionSupport" in config ||
+        "additionalContextRoots" in config ||
+        "collectionFormats" in config
     );
 }
 
