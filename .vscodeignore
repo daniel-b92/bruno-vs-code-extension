@@ -22,6 +22,7 @@ client/package-lock.json
 server/package-lock.json
 *.vsix
 coverage/
+images/
 
 CLAUDE.md
 yaml-support-open-issues-after-caching.md
