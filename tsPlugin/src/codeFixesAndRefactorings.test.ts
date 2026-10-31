@@ -156,6 +156,27 @@ runtime:
                 );
             });
 
+            it("does not offer interactive refactorings (like VS Code requests them)", () => {
+                const languageService =
+                    createLanguageServiceWithPlugin(collectionFiles);
+
+                const descriptions = languageService
+                    .getApplicableRefactors(
+                        requestFile,
+                        getSelection(requestFileContent, "const value = 1;"),
+                        { allowTextChangesInNewFiles: true },
+                        undefined,
+                        undefined,
+                        true,
+                    )
+                    .flatMap(({ actions }) =>
+                        actions.map(({ description }) => description),
+                    );
+
+                expect(descriptions).not.toContain("Move to a new file");
+                expect(descriptions).not.toContain("Move to file");
+            });
+
             it.each([
                 { indentationStyle: "spaces", convertTabsToSpaces: true },
                 { indentationStyle: "tabs", convertTabsToSpaces: false },
