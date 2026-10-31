@@ -1,13 +1,9 @@
-import { commands, ExtensionContext, TabInputText, window } from "vscode";
+import { ExtensionContext, TabInputText, window } from "vscode";
 import {
     getLoggerFromSubscriptions,
     TypedCollectionItemProvider,
 } from "@shared";
-import {
-    getFileExtensionForFormat,
-    CollectionFormat,
-    FeatureToggles,
-} from "@global_shared";
+import { getFileExtensionForFormat, CollectionFormat } from "@global_shared";
 import { extname } from "path";
 import { configureTsServerPlugin } from "./configureTsServerPlugin";
 import { deleteLegacyTempJsFiles } from "./deleteLegacyTempJsFiles";
@@ -19,16 +15,10 @@ import { registerLineCommentCommands } from "./internal/brunoFiles/lineComments/
 export async function activateLanguageFeatures(
     context: ExtensionContext,
     collectionItemProvider: TypedCollectionItemProvider,
-    featureToggles: FeatureToggles,
 ) {
     const logger = getLoggerFromSubscriptions(context);
 
-    await configureTsServerPlugin(
-        context,
-        featureToggles,
-        collectionItemProvider,
-        logger,
-    );
+    await configureTsServerPlugin(context, collectionItemProvider, logger);
 
     // TODO: Remove this special treatment of leftover temporary js files at some point in the future, once versions of the extension that created them are no longer in use.
     // The collection cache is loaded lazily, so the folders to clean up are only known after it has been loaded.
@@ -55,19 +45,8 @@ export async function activateLanguageFeatures(
                 fileName,
             );
         }),
+        ...registerLineCommentCommands(collectionItemProvider),
     );
-
-    if (featureToggles.yamlCollectionSupport) {
-        context.subscriptions.push(
-            ...registerLineCommentCommands(collectionItemProvider),
-        );
-        // Used for enabling the keybindings of the line comment commands.
-        await commands.executeCommand(
-            "setContext",
-            "bruAsCode.yamlCollectionSupport",
-            true,
-        );
-    }
 }
 
 function warnIfBruFileIsNotPartOfCollection(

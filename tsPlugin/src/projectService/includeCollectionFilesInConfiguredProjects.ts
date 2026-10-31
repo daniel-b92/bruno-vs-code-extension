@@ -102,12 +102,7 @@ function getExtensionsForExistingCollections(
     configuration: PluginConfiguration,
 ) {
     return Object.values(CollectionFormat)
-        .filter(
-            (format) =>
-                configuration.hasCollectionsWithFormat(format) &&
-                (format != CollectionFormat.Yaml ||
-                    configuration.isYamlCollectionSupportEnabled()),
-        )
+        .filter((format) => configuration.hasCollectionsWithFormat(format))
         .map((format) => fileExtensionsForCollectionFormats[format]);
 }
 

@@ -1,12 +1,15 @@
 {
     "name": "bru-as-code",
     "displayName": "bru-as-code",
-    "description": "Enables working with '.bru' files in a manner like working with code",
-    "version": "1.5.0",
+    "description": "Work with Bruno collections (Bru and YAML formats) like code: language support, a collection explorer and test runs via the Bruno CLI.",
+    "version": "2.0.0",
     "publisher": "daniel-b92",
     "private": true,
     "license": "MIT",
-    "repository": "https://github.com/daniel-b92/bruno-vs-code-extension",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/daniel-b92/bruno-vs-code-extension"
+    },
     "bugs": {
         "url": "https://github.com/daniel-b92/bruno-vs-code-extension/issues"
     },
@@ -50,7 +53,7 @@
         "generate-syntaxes": "jiti syntaxes/generation/generateGrammars.ts"
     },
     "dependencies": {
-        "@zentryc5t/ts-plugin-for-bruno": "^4.0.0",
+        "@zentryc5t/ts-plugin-for-bruno": "^5.0.0",
         "evt": "^2.5.9",
         "glob": "^13.0.1",
         "jsonc-parser": "^3.3.1",
@@ -130,19 +133,6 @@
                     "type": "boolean",
                     "default": false,
                     "markdownDescription": "Use the 'developer' Javascript sandbox for running tests via Bruno CLI. See option `--sandbox` in the [Bruno_docs](https://docs.usebruno.com/bru-cli/commandOptions) for further infos."
-                },
-                "bru-as-code.yamlCollectionSupport": {
-                    "type": "boolean",
-                    "default": false,
-                    "tags": [
-                        "preview"
-                    ],
-                    "markdownDescription": "**Preview:** Enable support for collections in the `yaml` format (`opencollection.yml`), including the collection explorer, test explorer and language features for `.yml` files in these collections. A window reload is required for changes to take effect."
-                },
-                "bru-as-code.suggestEnablingYamlCollectionSupport": {
-                    "type": "boolean",
-                    "default": true,
-                    "markdownDescription": "Show a dialog suggesting to enable the setting `#bru-as-code.yamlCollectionSupport#` when a `yaml` collection is found in the workspace."
                 },
                 "bru-as-code.suggestCreatingTsConfigsForCollections": {
                     "type": "boolean",
@@ -489,19 +479,19 @@
                 "command": "bruAsCode.toggleLineComment",
                 "key": "ctrl+/",
                 "mac": "cmd+/",
-                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml && bruAsCode.yamlCollectionSupport"
+                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml"
             },
             {
                 "command": "bruAsCode.addLineComment",
                 "key": "ctrl+k ctrl+c",
                 "mac": "cmd+k cmd+c",
-                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml && bruAsCode.yamlCollectionSupport"
+                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml"
             },
             {
                 "command": "bruAsCode.removeLineComment",
                 "key": "ctrl+k ctrl+u",
                 "mac": "cmd+k cmd+u",
-                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml && bruAsCode.yamlCollectionSupport"
+                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml"
             }
         ]
     },

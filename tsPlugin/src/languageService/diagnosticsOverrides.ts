@@ -54,11 +54,7 @@ export function overrideDiagnostics(
                           ].includes(code),
                   ),
               ).concat(
-                  getDiagnosticsForRedeclaredRuntimeObjects(
-                      info,
-                      configuration,
-                      fileName,
-                  ),
+                  getDiagnosticsForRedeclaredRuntimeObjects(info, fileName),
               )
             : allDiagnostics;
     };

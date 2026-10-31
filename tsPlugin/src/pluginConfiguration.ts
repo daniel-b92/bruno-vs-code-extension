@@ -2,7 +2,6 @@ import { CollectionFormat } from "./constants";
 import { isPathWithinFolder } from "./pathComparison";
 
 export interface PluginConfig {
-    yamlCollectionSupport: boolean;
     /** Absolute paths of the folders that are available to the scripts of at least one collection, besides the collection folder itself. */
     additionalContextRoots: string[];
     /** The formats of the collections that exist in the workspace. */
@@ -11,19 +10,14 @@ export interface PluginConfig {
 
 /**
  * The configuration is passed to the plugin by the VS Code extension (see `configureTsServerPlugin` in the client).
- * As long as no configuration is passed, Yaml collections are not supported and there are no additional context roots and no collections.
+ * As long as no configuration is passed, there are no additional context roots and no collections.
  */
 export class PluginConfiguration {
     private config: PluginConfig = {
-        yamlCollectionSupport: false,
         additionalContextRoots: [],
         collectionFormats: [],
     };
     private readonly changeListeners: (() => void)[] = [];
-
-    isYamlCollectionSupportEnabled() {
-        return this.config.yamlCollectionSupport;
-    }
 
     hasCollectionsWithFormat(format: CollectionFormat) {
         return this.config.collectionFormats.includes(format);
@@ -50,7 +44,6 @@ export class PluginConfiguration {
     }
 
     update(config: Partial<PluginConfig> | undefined) {
-        const yamlCollectionSupport = config?.yamlCollectionSupport == true;
         const additionalContextRoots = Array.isArray(
             config?.additionalContextRoots,
         )
@@ -65,7 +58,6 @@ export class PluginConfiguration {
         );
 
         if (
-            yamlCollectionSupport == this.config.yamlCollectionSupport &&
             haveSameElements(
                 additionalContextRoots,
                 this.config.additionalContextRoots,
@@ -75,11 +67,7 @@ export class PluginConfiguration {
             return;
         }
 
-        this.config = {
-            yamlCollectionSupport,
-            additionalContextRoots,
-            collectionFormats,
-        };
+        this.config = { additionalContextRoots, collectionFormats };
 
         for (const listener of this.changeListeners) {
             listener();

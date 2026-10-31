@@ -1,7 +1,6 @@
 import { basename, dirname, isAbsolute, join, relative, resolve } from "path";
 import {
     CollectionFormat,
-    FeatureToggles,
     checkIfPathExistsAsync,
     convertToGlobPattern,
     getFileContent,
@@ -30,7 +29,6 @@ export type ConflictingCollectionRootFiles = {
 
 export async function getAllCollectionRootDirectories(
     workspaceFolders: string[],
-    featureToggles: FeatureToggles,
 ): Promise<{
     roots: CollectionRootDirectory[];
     conflicts: ConflictingCollectionRootFiles[];
@@ -39,12 +37,10 @@ export async function getAllCollectionRootDirectories(
         workspaceFolders,
         getCollectionRootFileName(CollectionFormat.Bru),
     );
-    const yamlRootFiles = featureToggles.yamlCollectionSupport
-        ? await globFilesInWorkspaces(
-              workspaceFolders,
-              getCollectionRootFileName(CollectionFormat.Yaml),
-          )
-        : [];
+    const yamlRootFiles = await globFilesInWorkspaces(
+        workspaceFolders,
+        getCollectionRootFileName(CollectionFormat.Yaml),
+    );
 
     // Only valid roots can conflict with each other (e.g. a stray `bruno.json` must not hide a Yaml collection).
     const candidates = (
@@ -272,8 +268,10 @@ function getAdditionalContextRootsFromBrunoJson(
         return undefined;
     }
 
-    const additionalContextRoots = getBrunoJsonSection(fileContent, "scripts")
-        ?.additionalContextRoots;
+    const additionalContextRoots = getBrunoJsonSection(
+        fileContent,
+        "scripts",
+    )?.additionalContextRoots;
 
     return Array.isArray(additionalContextRoots) &&
         additionalContextRoots.every((item) => typeof item == "string")

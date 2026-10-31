@@ -7,28 +7,12 @@ import { getAllCollectionRootDirectories } from "./collectionRootFolderHelper";
 describe("getAllCollectionRootDirectories", () => {
     const createTemporaryDirectory = useTemporaryDirectories();
 
-    it("ignores yaml collections when the yaml toggle is off", async () => {
+    it("finds bru and yaml collections", async () => {
         const workspace = await createWorkspace();
 
-        const { roots } = await getAllCollectionRootDirectories([workspace], {
-            yamlCollectionSupport: false,
-        });
-
-        expect(getRootNamesWithFormat(roots)).toEqual([
-            "bothFormats (Bru)",
-            "bruCollection (Bru)",
+        const { roots, conflicts } = await getAllCollectionRootDirectories([
+            workspace,
         ]);
-    });
-
-    it("also finds yaml collections when the yaml toggle is on", async () => {
-        const workspace = await createWorkspace();
-
-        const { roots, conflicts } = await getAllCollectionRootDirectories(
-            [workspace],
-            {
-                yamlCollectionSupport: true,
-            },
-        );
 
         expect(getRootNamesWithFormat(roots)).toEqual([
             "bruCollection (Bru)",
@@ -42,17 +26,16 @@ describe("getAllCollectionRootDirectories", () => {
         ]);
     });
 
-    it("ignores a root that contains another root in a subdirectory when the yaml toggle is on", async () => {
+    it("ignores a root that contains another root in a subdirectory", async () => {
         const workspace = await createTemporaryDirectory({
             "outer/bruno.json": "{}",
             "outer/req.bru": bruRequest,
             "outer/inner/opencollection.yml": "info:\n  name: yaml\n",
         });
 
-        const { roots, conflicts } = await getAllCollectionRootDirectories(
-            [workspace],
-            { yamlCollectionSupport: true },
-        );
+        const { roots, conflicts } = await getAllCollectionRootDirectories([
+            workspace,
+        ]);
 
         expect(getRootNamesWithFormat(roots)).toEqual(["inner (Yaml)"]);
         expect(conflicts).toEqual([
@@ -71,10 +54,9 @@ describe("getAllCollectionRootDirectories", () => {
             "yamlCollection/environments/opencollection.yml": "name: env\n",
         });
 
-        const { roots, conflicts } = await getAllCollectionRootDirectories(
-            [workspace],
-            { yamlCollectionSupport: true },
-        );
+        const { roots, conflicts } = await getAllCollectionRootDirectories([
+            workspace,
+        ]);
 
         expect(getRootNamesWithFormat(roots)).toEqual([
             "yamlCollection (Yaml)",
@@ -88,10 +70,9 @@ describe("getAllCollectionRootDirectories", () => {
             "col/opencollection.yml": "info:\n  name: yaml\n",
         });
 
-        const { roots, conflicts } = await getAllCollectionRootDirectories(
-            [workspace],
-            { yamlCollectionSupport: true },
-        );
+        const { roots, conflicts } = await getAllCollectionRootDirectories([
+            workspace,
+        ]);
 
         expect(getRootNamesWithFormat(roots)).toEqual(["col (Yaml)"]);
         expect(conflicts).toEqual([]);
@@ -102,14 +83,12 @@ describe("getAllCollectionRootDirectories", () => {
             "environments/opencollection.yml": "info:\n  name: yaml\n",
         });
 
-        const { roots } = await getAllCollectionRootDirectories([workspace], {
-            yamlCollectionSupport: true,
-        });
+        const { roots } = await getAllCollectionRootDirectories([workspace]);
 
         expect(getRootNamesWithFormat(roots)).toEqual(["environments (Yaml)"]);
     });
 
-    it("detects nested bru collections independent of the yaml toggle", async () => {
+    it("detects nested bru collections", async () => {
         const workspace = await createTemporaryDirectory({
             "outer/bruno.json": "{}",
             "outer/req.bru": bruRequest,
@@ -117,17 +96,14 @@ describe("getAllCollectionRootDirectories", () => {
             "outer/inner/req.bru": bruRequest,
         });
 
-        for (const yamlCollectionSupport of [false, true]) {
-            const { roots, conflicts } = await getAllCollectionRootDirectories(
-                [workspace],
-                { yamlCollectionSupport },
-            );
+        const { roots, conflicts } = await getAllCollectionRootDirectories([
+            workspace,
+        ]);
 
-            expect(getRootNamesWithFormat(roots)).toEqual(["inner (Bru)"]);
-            expect(conflicts.map(({ rootFilePath }) => rootFilePath)).toEqual([
-                join(workspace, "outer", "bruno.json"),
-            ]);
-        }
+        expect(getRootNamesWithFormat(roots)).toEqual(["inner (Bru)"]);
+        expect(conflicts.map(({ rootFilePath }) => rootFilePath)).toEqual([
+            join(workspace, "outer", "bruno.json"),
+        ]);
     });
 
     it("does not treat a request named 'opencollection' as a nested collection root", async () => {
@@ -137,10 +113,9 @@ describe("getAllCollectionRootDirectories", () => {
                 "info:\n  name: users\n  type: http\n  seq: 1\n",
         });
 
-        const { roots, conflicts } = await getAllCollectionRootDirectories(
-            [workspace],
-            { yamlCollectionSupport: true },
-        );
+        const { roots, conflicts } = await getAllCollectionRootDirectories([
+            workspace,
+        ]);
 
         expect(getRootNamesWithFormat(roots)).toEqual(["api (Yaml)"]);
         expect(conflicts).toEqual([]);
@@ -151,9 +126,7 @@ describe("getAllCollectionRootDirectories", () => {
             "notACollection/opencollection.yml/child.txt": "",
         });
 
-        const { roots } = await getAllCollectionRootDirectories([workspace], {
-            yamlCollectionSupport: true,
-        });
+        const { roots } = await getAllCollectionRootDirectories([workspace]);
 
         expect(roots).toEqual([]);
     });

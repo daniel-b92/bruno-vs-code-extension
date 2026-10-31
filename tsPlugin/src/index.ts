@@ -120,14 +120,14 @@ function decorateLanguageService(
     const { configuration } = plugin;
 
     overrideDiagnostics(info, decorated, configuration);
-    overrideHoverAndCompletions(info, decorated, configuration);
-    overrideRename(info, decorated, configuration);
-    overrideReferencesAndDefinitions(info, decorated, configuration);
+    overrideHoverAndCompletions(info, decorated);
+    overrideRename(info, decorated);
+    overrideReferencesAndDefinitions(info, decorated);
     overrideCodeChanges(info, decorated);
     overrideFormatting(info, decorated);
     overrideFileRenames(info, decorated);
     overridePasting(info, decorated);
-    overridePresentation(info, decorated, configuration);
+    overridePresentation(info, decorated);
 
     // The Typescript server disposes the language service when the project is closed.
     const disposeOriginally = decorated.dispose.bind(decorated);
@@ -153,11 +153,7 @@ function decorateLanguageService(
 }
 
 function isPluginConfig(config: object): config is Partial<PluginConfig> {
-    return (
-        "yamlCollectionSupport" in config ||
-        "additionalContextRoots" in config ||
-        "collectionFormats" in config
-    );
+    return "additionalContextRoots" in config || "collectionFormats" in config;
 }
 
 export = init;

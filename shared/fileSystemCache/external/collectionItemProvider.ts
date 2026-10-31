@@ -16,7 +16,6 @@ import {
     Logger,
     AdditionalCollectionDataProvider,
     getCollectionRootFilePath,
-    FeatureToggles,
     getCollectionRootData,
     getItemType,
     NonBrunoSpecificItemType,
@@ -35,7 +34,6 @@ export class CollectionItemProvider<T> {
         private workspaceFolders: string[],
         private additionalDataProvider: AdditionalCollectionDataProvider<T>,
         private filePathsToIgnore: RegExp[],
-        private featureToggles: FeatureToggles,
         private cacheRefreshNotifier?: Evt<void>,
         private logger?: Logger,
         private onConflictingCollectionRootFiles?: (
@@ -187,11 +185,7 @@ export class CollectionItemProvider<T> {
      * Whether opening or editing the given file requires the cache to be loaded.
      */
     public isFileRelevantForCollections(filePath: string) {
-        return isFileRelevantForCollections(
-            filePath,
-            this.workspaceFolders,
-            this.featureToggles,
-        );
+        return isFileRelevantForCollections(filePath, this.workspaceFolders);
     }
 
     public getRegisteredCollections() {
@@ -384,7 +378,6 @@ export class CollectionItemProvider<T> {
             this.workspaceFolders,
             this.filePathsToIgnore,
             this.additionalDataProvider,
-            this.featureToggles,
             this.logger,
             this.onConflictingCollectionRootFiles,
         );

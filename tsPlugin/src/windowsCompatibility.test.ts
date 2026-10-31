@@ -338,15 +338,10 @@ function createWindowsLanguageService(
     files: Record<string, string>,
     config: Parameters<typeof createLanguageServiceWithPlugin>[2] = {},
 ) {
-    return createLanguageServiceWithPlugin(
-        files,
-        createPlugin({ yamlCollectionSupport: true }),
-        config,
-        {
-            currentDirectory: "c:/collection",
-            useCaseSensitiveFileNames: false,
-        },
-    );
+    return createLanguageServiceWithPlugin(files, createPlugin({}), config, {
+        currentDirectory: "c:/collection",
+        useCaseSensitiveFileNames: false,
+    });
 }
 
 function expectRootToBeFound({

@@ -156,7 +156,7 @@ runtime:
                 );
             });
 
-            it("does not offer interactive refactorings (like VS Code requests them)", () => {
+            it("does not offer moving statements to other files (when requested like VS Code does)", () => {
                 const languageService =
                     createLanguageServiceWithPlugin(collectionFiles);
 

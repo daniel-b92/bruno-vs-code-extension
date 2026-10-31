@@ -1,18 +1,17 @@
 import { ExtensionContext, extensions } from "vscode";
 import { OutputChannelLogger, TypedCollectionItemProvider } from "@shared";
-import { CollectionFormat, FeatureToggles } from "@global_shared";
+import { CollectionFormat } from "@global_shared";
 
 interface TypescriptLanguageFeaturesApi {
     configurePlugin(pluginId: string, configuration: unknown): void;
 }
 
 /**
- * Passes the feature toggles, the additional context roots and the formats of the collections to the Typescript server plugin (see `PluginConfiguration` in the plugin).
+ * Passes the additional context roots and the formats of the collections to the Typescript server plugin (see `PluginConfiguration` in the plugin).
  * The Typescript extension keeps the configuration, so that it is also passed to the plugin after a restart of the Typescript server.
  */
 export async function configureTsServerPlugin(
     context: ExtensionContext,
-    { yamlCollectionSupport }: FeatureToggles,
     collectionItemProvider: TypedCollectionItemProvider,
     logger?: OutputChannelLogger,
 ) {
@@ -39,7 +38,6 @@ export async function configureTsServerPlugin(
 
         const updateConfiguration = () => {
             const configuration = {
-                yamlCollectionSupport,
                 additionalContextRoots:
                     collectionItemProvider.getUniqueAdditionalContextRoots(),
                 // The plugin only adds collection files to the projects of the Typescript server, if collections of the format exist.

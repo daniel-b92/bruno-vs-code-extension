@@ -8,8 +8,9 @@ import {
 } from "./_testingUtils";
 import { redeclaredRuntimeObjectDiagnosticCode } from "./diagnostics/getDiagnosticsForRedeclaredRuntimeObjects";
 
-describe("Yaml collection support", () => {
+describe("Plugin configuration", () => {
     const requestFile = "/collection/request.yml";
+    const scriptFile = "/shared/script.js";
     const collectionFiles = {
         "/collection/opencollection.yml": "opencollection: 1.0.0\n",
         [requestFile]: `runtime:
@@ -18,18 +19,14 @@ describe("Yaml collection support", () => {
       code: |-
         valeu;
 `,
+        [scriptFile]: "// @ts-check\nbru.getEnvVar(1);\n",
     };
 
-    it("only provides diagnostics for scripts in Yaml files once Yaml collections are supported", () => {
-        const plugin = createPlugin({ yamlCollectionSupport: false });
+    it("provides diagnostics for scripts in Yaml collection files without any configuration", () => {
         const languageService = createLanguageServiceWithPlugin(
             collectionFiles,
-            plugin,
+            createPlugin({}),
         );
-
-        expect(languageService.getSemanticDiagnostics(requestFile)).toEqual([]);
-
-        plugin.onConfigurationChanged({ yamlCollectionSupport: true });
 
         expect(
             languageService
@@ -42,38 +39,38 @@ describe("Yaml collection support", () => {
         const languageService = createLanguageServiceWithPlugin(
             collectionFiles,
             createPlugin({}),
-            { yamlCollectionSupport: true },
+            { additionalContextRoots: ["/shared"] },
         );
 
         expect(
             languageService
-                .getSemanticDiagnostics(requestFile)
+                .getSemanticDiagnostics(scriptFile)
                 .map(({ code }) => code),
-        ).toEqual([2_304]); // Cannot find name 'valeu'.
+        ).toEqual([2_345]); // Argument of type 'number' is not assignable to parameter of type 'string'.
     });
 
     it("handles configuration changes after the plugin was created again for the same project", () => {
         const languageService = createLanguageServiceWithPlugin(
             collectionFiles,
-            createPlugin({ yamlCollectionSupport: false }),
+            createPlugin({}),
         );
         // The Typescript server only passes configuration changes to the plugin module that was created last.
         const pluginAfterReload = createPlugin({});
         const languageServiceAfterReload = createPluginForSameProject(
             languageService,
             pluginAfterReload,
-            { yamlCollectionSupport: false },
+            { additionalContextRoots: [] },
         );
 
         pluginAfterReload.onConfigurationChanged({
-            yamlCollectionSupport: true,
+            additionalContextRoots: ["/shared"],
         });
 
         expect(
             languageServiceAfterReload
-                .getSemanticDiagnostics(requestFile)
+                .getSemanticDiagnostics(scriptFile)
                 .map(({ code }) => code),
-        ).toEqual([2_304]); // Cannot find name 'valeu'.
+        ).toEqual([2_345]); // Argument of type 'number' is not assignable to parameter of type 'string'.
     });
 
     it("keeps the plugins created before it when it is created again for the same project", () => {
@@ -83,7 +80,7 @@ describe("Yaml collection support", () => {
                 collectionFiles,
                 createOtherPlugin("before", calls),
             ),
-            createPlugin({ yamlCollectionSupport: true }),
+            createPlugin({}),
         );
         // When reloading a project, the Typescript server creates all plugins again, in the same order as before.
         const languageServiceAfterReload = createPluginForSameProject(
@@ -91,7 +88,7 @@ describe("Yaml collection support", () => {
                 languageService,
                 createOtherPlugin("before after reload", calls),
             ),
-            createPlugin({ yamlCollectionSupport: true }),
+            createPlugin({}),
         );
 
         languageServiceAfterReload.getOutliningSpans(requestFile);
@@ -111,14 +108,11 @@ describe("Yaml collection support", () => {
         const req = 1;
 `,
             },
-            createPlugin({ yamlCollectionSupport: true }),
+            createPlugin({}),
         );
 
         expect(
-            createPluginForSameProject(
-                languageService,
-                createPlugin({ yamlCollectionSupport: true }),
-            )
+            createPluginForSameProject(languageService, createPlugin({}))
                 .getSemanticDiagnostics(fileName)
                 .map(({ code }) => code),
         ).toEqual([redeclaredRuntimeObjectDiagnosticCode]);
