@@ -71,13 +71,8 @@ describe("with the path functions of Windows", () => {
 });
 
 function createWindowsLanguageService(files: Record<string, string>) {
-    return createLanguageServiceWithPlugin(
-        files,
-        createPlugin({ yamlCollectionSupport: true }),
-        undefined,
-        {
-            currentDirectory: "c:/collection",
-            useCaseSensitiveFileNames: false,
-        },
-    );
+    return createLanguageServiceWithPlugin(files, createPlugin({}), undefined, {
+        currentDirectory: "c:/collection",
+        useCaseSensitiveFileNames: false,
+    });
 }

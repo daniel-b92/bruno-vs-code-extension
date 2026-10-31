@@ -57,8 +57,6 @@ import {
     handleHoverRequestForJsFileInContextRoot,
 } from "./jsFiles/hover/handleHoverRequest";
 import { getJsFileInContextRootRequest } from "./jsFiles/shared/getJsFileInContextRootRequest";
-import { defaultFeatureToggles, FeatureToggles } from "@global_shared";
-import { setFeatureToggles } from "./shared/featureToggles";
 import { getYamlFileTypeForEditorContent } from "./yamlFiles/getYamlFileTypeForEditorContent";
 import { YamlFormatDiagnosticsProvider } from "./yamlFiles/yamlFormatDiagnosticsProvider";
 
@@ -82,14 +80,7 @@ const connection = createConnection(ProposedFeatures.all);
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 disposables.push(
-    connection.onInitialize(async (params) => {
-        setFeatureToggles(
-            (
-                params.initializationOptions as
-                    { featureToggles?: FeatureToggles } | undefined
-            )?.featureToggles ?? defaultFeatureToggles,
-        );
-
+    connection.onInitialize(async () => {
         const result: InitializeResult = {
             capabilities: {
                 workspace: { workspaceFolders: { supported: true } },

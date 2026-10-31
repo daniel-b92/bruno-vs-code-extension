@@ -18,12 +18,6 @@ import {
     BrunoTreeItem,
     TypedCollectionItemProvider,
 } from "@shared";
-import { getFeatureToggles } from "./getFeatureToggles";
-import {
-    createYamlCollectionSearch,
-    suggestEnablingYamlSupport,
-    suggestReloadOnYamlSupportChange,
-} from "./suggestEnablingYamlSupport";
 import { activateLanguageFeatures } from "./languageFeatures";
 import { suggestCreatingTsConfigsForCollections } from "./languageFeatures/suggestCreatingTsConfigsForCollections";
 import { join } from "path";
@@ -51,19 +45,6 @@ import {
 let client: LanguageClient;
 
 export async function activate(context: ExtensionContext) {
-    suggestReloadOnYamlSupportChange(context);
-    const doesWorkspaceContainYamlCollection = createYamlCollectionSearch();
-    void suggestEnablingYamlSupport(
-        context,
-        doesWorkspaceContainYamlCollection,
-    );
-
-    if (
-        await shouldSkipActivation(context, doesWorkspaceContainYamlCollection)
-    ) {
-        return;
-    }
-
     client = createLanguagClient(context);
 
     const toAwait: Thenable<void>[] = [];
@@ -105,13 +86,7 @@ export async function activate(context: ExtensionContext) {
         multiFileOperationNotifier,
     );
 
-    toAwait.push(
-        activateLanguageFeatures(
-            context,
-            collectionItemProvider,
-            getFeatureToggles(context),
-        ),
-    );
+    toAwait.push(activateLanguageFeatures(context, collectionItemProvider));
 
     await Promise.all(toAwait);
 
@@ -128,27 +103,6 @@ function hasVisibleEditorForRelevantFile(
         ({ document: { uri, fileName } }) =>
             uri.scheme == "file" &&
             collectionItemProvider.isFileRelevantForCollections(fileName),
-    );
-}
-
-// The activation event for `opencollection.yml` files is static, so it also triggers the activation when Yaml support is disabled.
-// In that case, the activation is skipped if it could only have been triggered by Yaml collections.
-// The extension can also be activated for single Bru files that are not part of the workspace (e.g. if no folder is opened).
-async function shouldSkipActivation(
-    context: ExtensionContext,
-    doesWorkspaceContainYamlCollection: () => PromiseLike<boolean>,
-) {
-    if (
-        getFeatureToggles(context).yamlCollectionSupport ||
-        workspace.textDocuments.some(({ languageId }) => languageId == "bru")
-    ) {
-        return false;
-    }
-
-    // Bru files only need to be searched for if a Yaml collection exists, so that usually only one search is needed.
-    return (
-        (await doesWorkspaceContainYamlCollection()) &&
-        (await workspace.findFiles("**/*.bru", undefined, 1)).length == 0
     );
 }
 
@@ -175,18 +129,13 @@ function createLanguagClient(context: ExtensionContext) {
         },
     };
 
-    const featureToggles = getFeatureToggles(context);
-
     // Options to control the language client
     const clientOptions: LanguageClientOptions = {
         documentSelector: [
             { scheme: "file", language: "bru" },
             { scheme: "file", language: "javascript" },
-            ...(featureToggles.yamlCollectionSupport
-                ? [{ scheme: "file", language: "yaml", pattern: "**/*.yml" }]
-                : []),
+            { scheme: "file", language: "yaml", pattern: "**/*.yml" },
         ],
-        initializationOptions: { featureToggles },
         synchronize: {
             // Notify the server about file changes to '.clientrc files contained in the workspace
             fileEvents: workspace.createFileSystemWatcher("**/.clientrc"),
@@ -239,7 +188,6 @@ function createNeededHandlers(context: ExtensionContext) {
                 [],
             getAdditionalCollectionDataProvider(testRunnerDataHelper),
             getPathsToIgnoreForCollections(),
-            getFeatureToggles(context),
             cacheRefreshNotifier,
             logger,
             (conflicts) => void warnAboutConflictingCollectionRoots(conflicts),

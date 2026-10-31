@@ -11,7 +11,6 @@ import {
     CollectionDirectory,
 } from "@global_shared";
 import { Evt } from "evt";
-import { getFeatureToggles } from "./featureToggles";
 import {
     AdditionalCollectionData,
     getDefaultLogger,
@@ -35,7 +34,6 @@ export class HelpersProvider {
                 workspaceFolders,
                 getAdditionalCollectionDataProvider(),
                 getPathsToIgnoreForCollections(),
-                getFeatureToggles(),
                 undefined,
                 getDefaultLogger(),
                 undefined,

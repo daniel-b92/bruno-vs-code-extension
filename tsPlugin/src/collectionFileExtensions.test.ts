@@ -8,10 +8,7 @@ describe("File extensions of collection files", () => {
     it("does not register any extensions while the workspace contains no collections", () => {
         const projectService = createProjectService();
 
-        setUpForProject(projectService, {
-            yamlCollectionSupport: true,
-            collectionFormats: [],
-        });
+        setUpForProject(projectService, { collectionFormats: [] });
 
         expect(projectService.setHostConfigurationCalls).toBe(0);
         expect(projectService.getExtraFileExtensions()).toEqual([]);
@@ -21,27 +18,18 @@ describe("File extensions of collection files", () => {
         const projectService = createProjectService();
 
         setUpForProject(projectService, {
-            yamlCollectionSupport: true,
             collectionFormats: [CollectionFormat.Bru],
         });
 
         expect(projectService.getExtraFileExtensions()).toEqual([".bru"]);
     });
 
-    it("only registers the extension of Yaml files for Yaml collections, once they are supported", () => {
+    it("only registers the extension of Yaml files for Yaml collections", () => {
         const projectService = createProjectService();
-        const configuration = setUpForProject(projectService, {
-            yamlCollectionSupport: false,
+
+        setUpForProject(projectService, {
             collectionFormats: [CollectionFormat.Yaml],
         });
-
-        expect(projectService.setHostConfigurationCalls).toBe(0);
-
-        configuration.update({
-            yamlCollectionSupport: true,
-            collectionFormats: [CollectionFormat.Yaml],
-        });
-        projectService.runPendingTimeouts();
 
         expect(projectService.getExtraFileExtensions()).toEqual([".yml"]);
     });

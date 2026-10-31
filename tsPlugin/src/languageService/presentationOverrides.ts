@@ -1,20 +1,15 @@
 import * as ts from "typescript/lib/tsserverlibrary";
 import { createCheckForPositionsWithinCode } from "../codeBlocks/getCodeRanges";
 import { hasEmbeddedCodeBlocks } from "../fileTypes";
-import { PluginConfiguration } from "../pluginConfiguration";
 
 // For `.bru` and Yaml files, the Typescript server also sees the wrappers of the code blocks (see `getBlockWrapperCandidates`).
 // The wrappers are written in front of the code, so everything that starts outside of the code belongs to them and is not shown.
 export function overridePresentation(
     info: ts.server.PluginCreateInfo,
     proxy: ts.LanguageService,
-    configuration: PluginConfiguration,
 ) {
     const createCheckForFile = (fileName: string) => {
-        const isWithinCode = createCheckForPositionsWithinCode(
-            info,
-            configuration,
-        );
+        const isWithinCode = createCheckForPositionsWithinCode(info);
 
         return (position: number) => isWithinCode(fileName, position);
     };

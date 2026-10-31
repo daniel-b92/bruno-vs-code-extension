@@ -1,7 +1,6 @@
 import { extname } from "path";
 import {
     CollectionFormat,
-    FeatureToggles,
     getFileExtensionForFormat,
     normalizePath,
 } from "../..";
@@ -15,7 +14,6 @@ import {
 export function isFileRelevantForCollections(
     filePath: string,
     workspaceFolders: string[],
-    featureToggles: FeatureToggles,
 ) {
     const extension = extname(filePath);
 
@@ -23,10 +21,9 @@ export function isFileRelevantForCollections(
         return !/(^|[\\/])node_modules[\\/]/.test(filePath);
     }
 
-    const isCollectionFileExtension =
-        extension == getFileExtensionForFormat(CollectionFormat.Bru) ||
-        (featureToggles.yamlCollectionSupport &&
-            extension == getFileExtensionForFormat(CollectionFormat.Yaml));
+    const isCollectionFileExtension = Object.values(CollectionFormat).some(
+        (format) => extension == getFileExtensionForFormat(format),
+    );
 
     return (
         isCollectionFileExtension &&

@@ -111,7 +111,7 @@ runtime:
         bru.missing();
 `,
         });
-        server.configurePlugin({ yamlCollectionSupport: true });
+        server.configurePlugin({});
         server.open("collection/request.yml");
 
         expect(server.getDiagnostics("collection/request.yml")).toEqual([

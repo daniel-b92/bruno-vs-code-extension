@@ -2,7 +2,6 @@ import * as ts from "typescript/lib/tsserverlibrary";
 import { getCodeRanges } from "../codeBlocks/getCodeRanges";
 import { getTopLevelDeclarations } from "../codeBlocks/getTopLevelDeclarations";
 import { getOriginalFileContent } from "../fileContent";
-import { PluginConfiguration } from "../pluginConfiguration";
 
 export const redeclaredRuntimeObjectDiagnosticCode = 100_001;
 
@@ -12,7 +11,6 @@ export const redeclaredRuntimeObjectDiagnosticCode = 100_001;
  */
 export function getDiagnosticsForRedeclaredRuntimeObjects(
     info: ts.server.PluginCreateInfo,
-    configuration: PluginConfiguration,
     fileName: string,
 ): ts.Diagnostic[] {
     const fileContent = getOriginalFileContent(info, fileName);
@@ -24,7 +22,7 @@ export function getDiagnosticsForRedeclaredRuntimeObjects(
         return [];
     }
 
-    return getCodeRanges(info, configuration, fileName).flatMap(
+    return getCodeRanges(info, fileName).flatMap(
         ({ start: codeStart, end: codeEnd }) =>
             getTopLevelDeclarations(fileContent.substring(codeStart, codeEnd))
                 .filter(({ name }) => ["bru", "req", "res"].includes(name))

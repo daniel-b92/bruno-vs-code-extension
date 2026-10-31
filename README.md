@@ -1,6 +1,6 @@
 ## About the project
 
-The VS Code extension allows working with `.bru` files like working with code, with a strong focus on intellisense. `Bruno` is an open source API client, see [online docs](https://docs.usebruno.com/) for more infos.
+The VS Code extension allows working with Bruno collections (in the `bru` format as well as in the `yaml` format, i.e. `opencollection.yml`) like working with code, with a strong focus on intellisense. `Bruno` is an open source API client, see [online docs](https://docs.usebruno.com/) for more infos.
 
 **Disclaimer: All Bruno names, brands, trademarks, service marks and logos are the property of Bruno. This extension is not the official VS Code extension but instead a non-official one. The official extension can be found [here](https://marketplace.visualstudio.com/items?itemName=bruno-api-client.bruno).**
 
@@ -10,7 +10,7 @@ The main features of the extension are
 
 - a collection explorer for creating/modifying/deleting request files and folders within collections
 - a test runner (for executing tests via the [Bruno CLI](https://www.npmjs.com/package/@usebruno/cli))
-- language features that provide some intellisense when editing `.bru` files, e.g. providing suggestions when typing in code blocks.
+- language features that provide some intellisense when editing `.bru` files and `yaml` collection files, e.g. providing suggestions when typing in code blocks.
     - There also is a formatter included (curently only for formatting code blocks).
 
 ![VsCodeExtensionLanguageFeatures](https://github.com/user-attachments/assets/c558b1bf-5a0a-45c0-bd03-eea25728edec)
@@ -37,12 +37,6 @@ For getting the most out of the extension, please follow these steps when instal
     - Without it, the compiler options (e.g. `strict`, `checkJs`, `lib`) of your own configs do not apply to your scripts, and collections in the same folder may share type definitions (e.g. of `chai`), so the types of the first collection that was opened are used for all of them.
     - In the `tsconfig.json` you can e.g. activate type checking for your Javascript files or enable the `strict` type checking mode, see https://www.typescriptlang.org/tsconfig/ for more infos.
 - If you use SPARQL request bodies, syntax highlighting requires installing an extension that provides this for SPARQL, e.g. `stardog-union.stardog-rdf-grammars`.
-
-### Yaml collections (preview)
-
-Support for collections in the `yaml` format (`opencollection.yml`) is currently in preview and disabled by default.
-It can be enabled via the setting `bru-as-code.yamlCollectionSupport` (a window reload is required afterwards).
-If a `yaml` collection is found in the workspace, the extension suggests enabling the setting.
 
 ## Contributing
 

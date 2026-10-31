@@ -8,7 +8,6 @@ import { isPositionWithinNameOfVariable } from "../codeBlocks/inbuiltFunctionPar
 import { getRelativeModulePathCompletions } from "../codeBlocks/relativeModulePathCompletions";
 import { isTempJsFileOrRuntimeDefinitionsFile } from "../constants";
 import { hasEmbeddedCodeBlocks, isJsFile } from "../fileTypes";
-import { PluginConfiguration } from "../pluginConfiguration";
 import {
     grpcBruTypeNames,
     grpcObjectVariableName,
@@ -18,12 +17,11 @@ import {
 export function overrideHoverAndCompletions(
     info: ts.server.PluginCreateInfo,
     proxy: ts.LanguageService,
-    configuration: PluginConfiguration,
 ) {
     // The Typescript server only sees the masked content of '.bru' and '.yml' files, so there is nothing to provide outside of code blocks.
     const shouldProvideNothing = (fileName: string, position: number) =>
         hasEmbeddedCodeBlocks(fileName) &&
-        !isPositionWithinCode(info, configuration, fileName, position);
+        !isPositionWithinCode(info, fileName, position);
 
     proxy.getQuickInfoAtPosition = (fileName, position, maximumLength) => {
         // Hovers for the names of variables are provided by the extension.
@@ -103,7 +101,6 @@ export function overrideHoverAndCompletions(
                         (entry.hasAction ||
                             isShadowingParameterOfCodeBlock(
                                 info,
-                                configuration,
                                 fileName,
                                 position,
                                 entry,
@@ -140,7 +137,6 @@ function isDeclarationForBlockWrappers({ name }: ts.CompletionEntry) {
  */
 function isShadowingParameterOfCodeBlock(
     info: ts.server.PluginCreateInfo,
-    configuration: PluginConfiguration,
     fileName: string,
     position: number,
     { name, kind, source }: ts.CompletionEntry,
@@ -166,19 +162,13 @@ function isShadowingParameterOfCodeBlock(
             fileName,
             usesCaseSensitiveFileNames(info),
         ) &&
-        !isPositionWithinCode(
-            info,
-            configuration,
-            fileName,
-            declaration.getStart(),
-        )
+        !isPositionWithinCode(info, fileName, declaration.getStart())
     );
 }
 
 export function overrideRename(
     info: ts.server.PluginCreateInfo,
     proxy: ts.LanguageService,
-    configuration: PluginConfiguration,
 ) {
     proxy.getRenameInfo = (fileName, position, preferences) => {
         const defaultRenameInfo = info.languageService.getRenameInfo(
@@ -194,10 +184,7 @@ export function overrideRename(
             return defaultRenameInfo;
         }
 
-        const isLocationShown = createFilterForShownLocations(
-            info,
-            configuration,
-        );
+        const isLocationShown = createFilterForShownLocations(info);
 
         // Renaming them would change all usages in the project (or the wrappers of code blocks).
         const isForInbuiltRuntimeFunction = info.languageService
@@ -223,10 +210,7 @@ export function overrideRename(
         findInComments,
         providePrefixAndSuffixTextForRename,
     ) => {
-        const isLocationShown = createFilterForShownLocations(
-            info,
-            configuration,
-        );
+        const isLocationShown = createFilterForShownLocations(info);
 
         return info.languageService
             .findRenameLocations(
@@ -248,17 +232,13 @@ export function overrideRename(
 export function overrideReferencesAndDefinitions(
     info: ts.server.PluginCreateInfo,
     proxy: ts.LanguageService,
-    configuration: PluginConfiguration,
 ) {
     const filterLocations = <
         T extends { fileName: string; textSpan: ts.TextSpan },
     >(
         locations: readonly T[] | undefined,
     ) => {
-        const isLocationShown = createFilterForShownLocations(
-            info,
-            configuration,
-        );
+        const isLocationShown = createFilterForShownLocations(info);
 
         return locations?.filter(({ fileName, textSpan }) =>
             isLocationShown(fileName, textSpan),
@@ -266,10 +246,7 @@ export function overrideReferencesAndDefinitions(
     };
 
     proxy.findReferences = (fileName, position) => {
-        const isLocationShown = createFilterForShownLocations(
-            info,
-            configuration,
-        );
+        const isLocationShown = createFilterForShownLocations(info);
 
         return info.languageService
             .findReferences(fileName, position)
@@ -316,10 +293,7 @@ export function overrideReferencesAndDefinitions(
         );
 
     proxy.getDocumentHighlights = (fileName, position, filesToSearch) => {
-        const isLocationShown = createFilterForShownLocations(
-            info,
-            configuration,
-        );
+        const isLocationShown = createFilterForShownLocations(info);
 
         return info.languageService
             .getDocumentHighlights(fileName, position, filesToSearch)
@@ -339,11 +313,8 @@ export function overrideReferencesAndDefinitions(
  * The virtual file with the runtime definitions does not exist on the disk. It is part of the whole project, so it can also appear in the results for files outside of collections.
  * For `.bru` and Yaml files, only the code is visible to the user, while the Typescript server also sees the wrappers of the code blocks (see `getBlockWrapperCandidates`).
  */
-function createFilterForShownLocations(
-    info: ts.server.PluginCreateInfo,
-    configuration: PluginConfiguration,
-) {
-    const isWithinCode = createCheckForPositionsWithinCode(info, configuration);
+function createFilterForShownLocations(info: ts.server.PluginCreateInfo) {
+    const isWithinCode = createCheckForPositionsWithinCode(info);
 
     return (fileName: string, { start }: ts.TextSpan) =>
         !isTempJsFileOrRuntimeDefinitionsFile(fileName) &&

@@ -2,7 +2,6 @@ import * as ts from "typescript/lib/tsserverlibrary";
 import { isFileFromYamlCollection } from "../collection/collectionFormat";
 import { getOriginalFileContent } from "../fileContent";
 import { isBruFile } from "../fileTypes";
-import { PluginConfiguration } from "../pluginConfiguration";
 import { getScriptContentRanges } from "../yamlFiles/maskYamlFileContent";
 import { getCodeBlockIndizesForBruFile } from "./bruCodeBlocks";
 
@@ -31,14 +30,10 @@ export function getCodeRangesGetter(
  */
 export function isPositionWithinCode(
     info: ts.server.PluginCreateInfo,
-    configuration: PluginConfiguration,
     fileName: string,
     position: number,
 ) {
-    return createCheckForPositionsWithinCode(info, configuration)(
-        fileName,
-        position,
-    );
+    return createCheckForPositionsWithinCode(info)(fileName, position);
 }
 
 /**
@@ -46,16 +41,12 @@ export function isPositionWithinCode(
  */
 export function createCheckForPositionsWithinCode(
     info: ts.server.PluginCreateInfo,
-    configuration: PluginConfiguration,
 ) {
     const codeRangesPerFile = new Map<string, CodeRange[]>();
 
     return (fileName: string, position: number) => {
         if (!codeRangesPerFile.has(fileName)) {
-            codeRangesPerFile.set(
-                fileName,
-                getCodeRanges(info, configuration, fileName),
-            );
+            codeRangesPerFile.set(fileName, getCodeRanges(info, fileName));
         }
 
         return codeRangesPerFile
@@ -66,17 +57,11 @@ export function createCheckForPositionsWithinCode(
 
 export function getCodeRanges(
     info: ts.server.PluginCreateInfo,
-    configuration: PluginConfiguration,
     fileName: string,
 ) {
     const content = getOriginalFileContent(info, fileName);
 
-    // The Typescript server does not see any content of Yaml files as long as Yaml collections are not supported (see `maskFilesWithCodeBlocksForTypescriptServer`).
-    if (
-        !content ||
-        (!isBruFile(fileName) &&
-            !configuration.isYamlCollectionSupportEnabled())
-    ) {
+    if (!content) {
         return [];
     }
 

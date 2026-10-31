@@ -85,8 +85,7 @@ export function maskFilesWithCodeBlocksForTypescriptServer(
         const maskedSnapshot = ts.ScriptSnapshot.fromString(
             isBruFile(fileName)
                 ? maskBruFileContent(originalContent)
-                : configuration.isYamlCollectionSupportEnabled() &&
-                    isFileFromYamlCollection(info, fileName)
+                : isFileFromYamlCollection(info, fileName)
                   ? maskYamlCollectionFileContent(fileName, originalContent)
                   : maskYamlFileContent(originalContent),
         );

@@ -9,7 +9,6 @@ import {
     Logger,
     getItemType,
     doesFileNameMatchFolderSettingsFileName,
-    FeatureToggles,
     CollectionFormat,
     ConflictingCollectionRootFiles,
 } from "../..";
@@ -27,7 +26,6 @@ export async function registerMissingCollectionsAndTheirItems<T>(
     workspaceFolders: string[],
     filePathsToIgnore: RegExp[],
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
-    featureToggles: FeatureToggles,
     logger?: Logger,
     onConflictingCollectionRootFiles?: (
         conflicts: ConflictingCollectionRootFiles[],
@@ -37,7 +35,6 @@ export async function registerMissingCollectionsAndTheirItems<T>(
         collectionRegistry,
         workspaceFolders,
         additionalDataProvider,
-        featureToggles,
         onConflictingCollectionRootFiles,
     );
 
@@ -143,13 +140,12 @@ async function registerAllExistingCollections<T>(
     registry: CollectionRegistry<T>,
     workspaceFolders: string[],
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
-    featureToggles: FeatureToggles,
     onConflictingCollectionRootFiles?: (
         conflicts: ConflictingCollectionRootFiles[],
     ) => void,
 ) {
     const { roots: rootFoldersWithData, conflicts } =
-        await getAllCollectionRootDirectories(workspaceFolders, featureToggles);
+        await getAllCollectionRootDirectories(workspaceFolders);
 
     if (conflicts.length > 0) {
         onConflictingCollectionRootFiles?.(conflicts);

@@ -35,7 +35,7 @@ export function getSemanticDiagnosticCodes(
 
 export function createLanguageServiceWithPlugin(
     files: Record<string, string>,
-    plugin: PluginModule = createPlugin({ yamlCollectionSupport: true }),
+    plugin: PluginModule = createPlugin({}),
     pluginConfigFromServer?: Partial<PluginConfig>,
     { currentDirectory = "/collection", useCaseSensitiveFileNames = true } = {},
 ) {

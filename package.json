@@ -131,19 +131,6 @@
                     "default": false,
                     "markdownDescription": "Use the 'developer' Javascript sandbox for running tests via Bruno CLI. See option `--sandbox` in the [Bruno_docs](https://docs.usebruno.com/bru-cli/commandOptions) for further infos."
                 },
-                "bru-as-code.yamlCollectionSupport": {
-                    "type": "boolean",
-                    "default": false,
-                    "tags": [
-                        "preview"
-                    ],
-                    "markdownDescription": "**Preview:** Enable support for collections in the `yaml` format (`opencollection.yml`), including the collection explorer, test explorer and language features for `.yml` files in these collections. A window reload is required for changes to take effect."
-                },
-                "bru-as-code.suggestEnablingYamlCollectionSupport": {
-                    "type": "boolean",
-                    "default": true,
-                    "markdownDescription": "Show a dialog suggesting to enable the setting `#bru-as-code.yamlCollectionSupport#` when a `yaml` collection is found in the workspace."
-                },
                 "bru-as-code.suggestCreatingTsConfigsForCollections": {
                     "type": "boolean",
                     "default": true,
@@ -489,19 +476,19 @@
                 "command": "bruAsCode.toggleLineComment",
                 "key": "ctrl+/",
                 "mac": "cmd+/",
-                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml && bruAsCode.yamlCollectionSupport"
+                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml"
             },
             {
                 "command": "bruAsCode.addLineComment",
                 "key": "ctrl+k ctrl+c",
                 "mac": "cmd+k cmd+c",
-                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml && bruAsCode.yamlCollectionSupport"
+                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml"
             },
             {
                 "command": "bruAsCode.removeLineComment",
                 "key": "ctrl+k ctrl+u",
                 "mac": "cmd+k cmd+u",
-                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml && bruAsCode.yamlCollectionSupport"
+                "when": "editorTextFocus && !editorReadonly && editorLangId == yaml"
             }
         ]
     },

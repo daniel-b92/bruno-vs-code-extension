@@ -25,6 +25,6 @@ For using the local TS plugin within the VS Code extension, please follow these 
 
 ## Configuration
 
-Scripts within Yaml collection files are only handled, if the plugin is configured with `{ "yamlCollectionSupport": true }` (e.g. via the `configurePlugin` function of the API of the VS Code Typescript extension). Otherwise, the Typescript server does not see any content of Yaml files.
+Collection files are only added to configured projects, if the plugin is configured with the formats of the collections in the workspace (e.g. `{ "collectionFormats": ["bru", "yaml"] }` via the `configurePlugin` function of the API of the VS Code Typescript extension).
 
 Javascript files within the additional context roots of a collection (`scripts.additionalContextRoots` in `bruno.json`) can also use the objects that `Bruno` provides at runtime. The plugin does not read the setting itself, so the absolute paths of these folders have to be passed with the configuration option `additionalContextRoots` (e.g. `{ "additionalContextRoots": ["/path/to/shared/scripts"] }`).

@@ -12,7 +12,6 @@ import {
     CollectionFormat,
     CollectionItemProvider,
     CollectionWatcher,
-    FeatureToggles,
     FileChangedEvent,
     FileChangeType,
     Logger,
@@ -30,24 +29,9 @@ afterEach(() => {
 describe("CollectionItemProvider.refreshCache", () => {
     const createTemporaryDirectory = useTemporaryDirectories();
 
-    it("only registers bru collections when the yaml toggle is off", async () => {
+    it("registers bru and yaml collections with their items", async () => {
         const workspace = await createWorkspace();
-        const provider = createProvider(workspace, {
-            yamlCollectionSupport: false,
-        });
-
-        await provider.refreshCache();
-
-        expect(getRegisteredCollectionNames(provider)).toEqual([
-            "bruCollection (Bru)",
-        ]);
-    });
-
-    it("also registers yaml collections with their items when the yaml toggle is on", async () => {
-        const workspace = await createWorkspace();
-        const provider = createProvider(workspace, {
-            yamlCollectionSupport: true,
-        });
+        const provider = createProvider(workspace);
 
         await provider.refreshCache();
 
@@ -298,11 +282,7 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
         });
         const rootDir = join(workspace, "collection");
         const fileChangedEmitter = Evt.create<FileChangedEvent>();
-        const provider = createProvider(
-            workspace,
-            { yamlCollectionSupport: true },
-            fileChangedEmitter,
-        );
+        const provider = createProvider(workspace, fileChangedEmitter);
         await provider.refreshCache();
         const collection = provider.getRegisteredCollections()[0];
 
@@ -336,11 +316,7 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
         });
         const rootFilePath = join(workspace, "collection", "bruno.json");
         const fileChangedEmitter = Evt.create<FileChangedEvent>();
-        const provider = createProvider(
-            workspace,
-            { yamlCollectionSupport: true },
-            fileChangedEmitter,
-        );
+        const provider = createProvider(workspace, fileChangedEmitter);
         await provider.refreshCache();
         const callback = jest.fn();
         provider.subscribeToAdditionalContextRootChanges(callback);
@@ -378,11 +354,7 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
         });
         const rootDir = join(workspace, "collection");
         const fileChangedEmitter = Evt.create<FileChangedEvent>();
-        const provider = createProvider(
-            workspace,
-            { yamlCollectionSupport: true },
-            fileChangedEmitter,
-        );
+        const provider = createProvider(workspace, fileChangedEmitter);
         await provider.refreshCache();
         const collection = provider.getRegisteredCollections()[0];
 
@@ -439,11 +411,7 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
                 "meta {\n  name: app\n  type: app\n  seq: 2\n}\n",
         });
         const fileChangedEmitter = Evt.create<FileChangedEvent>();
-        const provider = createProvider(
-            workspace,
-            { yamlCollectionSupport: true },
-            fileChangedEmitter,
-        );
+        const provider = createProvider(workspace, fileChangedEmitter);
         await provider.refreshCache();
         const collection = provider.getRegisteredCollections()[0];
         const filePath = join(workspace, "collection/app.bru");
@@ -500,11 +468,7 @@ describe("CollectionItemProvider: modification of a collection root file", () =>
     }) {
         const workspace = await createTemporaryDirectory(params.files);
         const fileChangedEmitter = Evt.create<FileChangedEvent>();
-        const provider = createProvider(
-            workspace,
-            { yamlCollectionSupport: true },
-            fileChangedEmitter,
-        );
+        const provider = createProvider(workspace, fileChangedEmitter);
         await provider.refreshCache();
         const collection = provider.getRegisteredCollections()[0];
         const filePath = join(workspace, params.relativePath);
@@ -573,11 +537,7 @@ describe("CollectionItemProvider: deletion of a collection root file", () => {
     }) {
         const workspace = await createTemporaryDirectory(params.files);
         const fileChangedEmitter = Evt.create<FileChangedEvent>();
-        const provider = createProvider(
-            workspace,
-            { yamlCollectionSupport: true },
-            fileChangedEmitter,
-        );
+        const provider = createProvider(workspace, fileChangedEmitter);
         await provider.refreshCache();
 
         expect(provider.getRegisteredCollections()).toHaveLength(1);
@@ -635,9 +595,7 @@ describe("CollectionItemProvider: additional context roots", () => {
             "shared/script.js": "",
             "shared-old/script.js": "",
         });
-        const provider = createProvider(workspace, {
-            yamlCollectionSupport: false,
-        });
+        const provider = createProvider(workspace);
         await provider.refreshCache();
 
         const getRootNames = (path: string) =>
@@ -659,7 +617,6 @@ describe("CollectionItemProvider: additional context roots", () => {
 
 function createProvider(
     workspace: string,
-    featureToggles: FeatureToggles,
     fileChangedEmitter = Evt.create<FileChangedEvent>(),
     options?: {
         cacheRefreshNotifier?: Evt<void>;
@@ -680,7 +637,6 @@ function createProvider(
             isAdditionalDataOutdated: () => false,
         },
         [],
-        featureToggles,
         options?.cacheRefreshNotifier,
         options?.logger,
         undefined,
@@ -714,12 +670,7 @@ function createProviderWithLoadCounter(
     };
 
     return {
-        provider: createProvider(
-            workspace,
-            { yamlCollectionSupport: false },
-            undefined,
-            { ...options, logger },
-        ),
+        provider: createProvider(workspace, undefined, { ...options, logger }),
         getNumberOfLoads: () => numberOfLoads,
     };
 }
