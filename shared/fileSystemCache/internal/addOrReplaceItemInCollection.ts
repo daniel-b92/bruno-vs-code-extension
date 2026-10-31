@@ -34,6 +34,30 @@ export async function addOrReplaceItemInCollection<T>(newItem: {
     });
 }
 
+/**
+ * Unlike `addOrReplaceItemInCollection`, this always replaces an already registered item with the same path, even if it is not outdated.
+ * The old item is only removed once the new data has been read, so that the item is never missing from the cache in between.
+ */
+export async function replaceItemInCollection<T>(newItem: {
+    fileSystemData: FileSystemData;
+    collection: Collection<T>;
+    additionalDataProvider: AdditionalCollectionDataProvider<T>;
+}) {
+    const { collection, fileSystemData } = newItem;
+
+    const data = await getCollectionData(newItem);
+
+    collection.removeTestItemIfRegistered(
+        getFileSystemDataPath(fileSystemData),
+    );
+
+    if (data) {
+        collection.addItem(data);
+    }
+
+    return data;
+}
+
 export function addOrReplaceCollectionData<T>(newItem: {
     data: CollectionData<T>;
     collection: Collection<T>;

@@ -1,5 +1,8 @@
 import { CollectionRegistry } from "../internal/collectionRegistry";
-import { addOrReplaceItemInCollection } from "../internal/addOrReplaceItemInCollection";
+import {
+    addOrReplaceItemInCollection,
+    replaceItemInCollection,
+} from "../internal/addOrReplaceItemInCollection";
 import { registerMissingCollectionsAndTheirItems } from "../internal/registerMissingCollectionsAndTheirItems";
 import {
     normalizePath,
@@ -532,9 +535,7 @@ export class CollectionItemProvider<T> {
             (isCollectionItemWithSequence(modifiedItem) &&
                 modifiedItem.getItemType() == BrunoFileType.RequestFile)
         ) {
-            collectionForItem.removeTestItemAndDescendants(modifiedItem);
-
-            const newData = await addOrReplaceItemInCollection({
+            const newData = await replaceItemInCollection({
                 collection: collectionForItem,
                 fileSystemData: itemPath,
                 additionalDataProvider: this.additionalDataProvider,
