@@ -38,8 +38,6 @@ export async function configureTsServerPlugin(
 
         const updateConfiguration = () => {
             const configuration = {
-                // TODO: Remove once the extension depends on a version of the plugin that always supports Yaml collections (versions up to 4.x only handle Yaml files with this option).
-                yamlCollectionSupport: true,
                 additionalContextRoots:
                     collectionItemProvider.getUniqueAdditionalContextRoots(),
                 // The plugin only adds collection files to the projects of the Typescript server, if collections of the format exist.
