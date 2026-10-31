@@ -50,7 +50,7 @@
         "generate-syntaxes": "jiti syntaxes/generation/generateGrammars.ts"
     },
     "dependencies": {
-        "@zentryc5t/ts-plugin-for-bruno": "^3.0.3",
+        "@zentryc5t/ts-plugin-for-bruno": "^4.0.0",
         "evt": "^2.5.9",
         "glob": "^13.0.1",
         "jsonc-parser": "^3.3.1",

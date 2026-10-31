@@ -147,7 +147,9 @@ export function overrideCodeChanges(
             preferences,
             triggerReason,
             kind,
-            includeInteractiveActions,
+            // Interactive actions (e.g. 'Move to file') need arguments that are only known once the user has chosen a target.
+            // Typescript does not mark them via `isInteractive` and computing their edits without these arguments fails (which also pauses attached debuggers).
+            includeInteractiveActions && !hasEmbeddedCodeBlocks(fileName),
         );
 
         if (!hasEmbeddedCodeBlocks(fileName)) {
@@ -158,19 +160,17 @@ export function overrideCodeChanges(
             .map((refactor) => ({
                 ...refactor,
                 actions: refactor.actions.filter(
-                    ({ name, isInteractive, notApplicableReason }) =>
-                        // Interactive actions need arguments that are only known once the user has chosen a target.
-                        !isInteractive &&
+                    ({ name, notApplicableReason }) =>
                         // Actions that are not applicable are only shown as disabled (if requested via `provideRefactorNotApplicableReason`).
                         // The Typescript server fails when computing edits for them.
-                        (notApplicableReason != undefined ||
-                            hasEditsWithinCodeBlocks(proxy, {
-                                fileName,
-                                positionOrRange,
-                                refactorName: refactor.name,
-                                actionName: name,
-                                preferences,
-                            })),
+                        notApplicableReason != undefined ||
+                        hasEditsWithinCodeBlocks(proxy, {
+                            fileName,
+                            positionOrRange,
+                            refactorName: refactor.name,
+                            actionName: name,
+                            preferences,
+                        }),
                 ),
             }))
             .filter(({ actions }) => actions.length > 0);
