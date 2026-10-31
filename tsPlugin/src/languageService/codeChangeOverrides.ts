@@ -6,6 +6,8 @@ import {
 } from "../codeChanges/codeChanges";
 import { hasEmbeddedCodeBlocks } from "../fileTypes";
 
+const moveRefactorKind = "refactor.move";
+
 // Some code fixes and refactorings insert code outside of code blocks (e.g. an import at the top of the file),
 // which would corrupt the content of '.bru' and '.yml' files.
 export function overrideCodeChanges(
@@ -147,9 +149,7 @@ export function overrideCodeChanges(
             preferences,
             triggerReason,
             kind,
-            // Interactive actions (e.g. 'Move to file') need arguments that are only known once the user has chosen a target.
-            // Typescript does not mark them via `isInteractive` and computing their edits without these arguments fails (which also pauses attached debuggers).
-            includeInteractiveActions && !hasEmbeddedCodeBlocks(fileName),
+            includeInteractiveActions,
         );
 
         if (!hasEmbeddedCodeBlocks(fileName)) {
@@ -160,17 +160,20 @@ export function overrideCodeChanges(
             .map((refactor) => ({
                 ...refactor,
                 actions: refactor.actions.filter(
-                    ({ name, notApplicableReason }) =>
+                    ({ name, kind: actionKind, notApplicableReason }) =>
+                        // Moving statements to another file ('Move to file', 'Move to a new file') is not possible for files with code blocks
+                        // and the Typescript server fails when computing edits for it (which also pauses attached debuggers), e.g. since it cannot derive a new file name from their extension.
+                        !actionKind?.startsWith(moveRefactorKind) &&
                         // Actions that are not applicable are only shown as disabled (if requested via `provideRefactorNotApplicableReason`).
                         // The Typescript server fails when computing edits for them.
-                        notApplicableReason != undefined ||
-                        hasEditsWithinCodeBlocks(proxy, {
-                            fileName,
-                            positionOrRange,
-                            refactorName: refactor.name,
-                            actionName: name,
-                            preferences,
-                        }),
+                        (notApplicableReason != undefined ||
+                            hasEditsWithinCodeBlocks(proxy, {
+                                fileName,
+                                positionOrRange,
+                                refactorName: refactor.name,
+                                actionName: name,
+                                preferences,
+                            })),
                 ),
             }))
             .filter(({ actions }) => actions.length > 0);
