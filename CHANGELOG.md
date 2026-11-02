@@ -4,6 +4,7 @@
 
 - Fix an uncaught `Channel has been closed` error in the extension host when refreshing the collection explorer (which restarts the language server). Also fix the language server not shutting down cleanly on a restart: it crashed or was killed after a timeout.
 - Replace the extension icon with a new square icon that stays recognizable at small sizes.
+- Fix an issue that prevented obsolete `__temp_bru_reference.js` files from being deleted in remote setups (e.g. WSL or SSH), and caused a warning for every collection there. If moving a file to the trash is not supported, it is now deleted permanently.
 
 ## [2.0.0] (2026-10-31)
 
