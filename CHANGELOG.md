@@ -1,4 +1,4 @@
-## [Unreleased]
+## [2.0.1] (2026-11-02)
 
 ### Fixes / Maintenance
 
