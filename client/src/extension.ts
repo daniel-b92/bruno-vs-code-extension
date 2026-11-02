@@ -129,6 +129,14 @@ function createLanguagClient(context: ExtensionContext) {
         },
     };
 
+    // The channel is created here (instead of by the client), so that it is not disposed when the client gets stopped.
+    // Otherwise, output of the old server process during a restart would be written to a closed channel.
+    const outputChannel = window.createOutputChannel(
+        `${getExtensionNameLabel()} Language Server`,
+        { log: true },
+    );
+    context.subscriptions.push(outputChannel);
+
     // Options to control the language client
     const clientOptions: LanguageClientOptions = {
         documentSelector: [
@@ -136,6 +144,7 @@ function createLanguagClient(context: ExtensionContext) {
             { scheme: "file", language: "javascript" },
             { scheme: "file", language: "yaml", pattern: "**/*.yml" },
         ],
+        outputChannel,
         synchronize: {
             // Notify the server about file changes to '.clientrc files contained in the workspace
             fileEvents: workspace.createFileSystemWatcher("**/.clientrc"),

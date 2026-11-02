@@ -444,11 +444,15 @@ connection.onCodeAction(async ({ textDocument: { uri }, context }) => {
 });
 
 connection.onExit(() => {
-    dispose();
+    // The library terminates the process right after this handler.
+    disposeResources();
+    connection.dispose();
 });
 
 connection.onShutdown(() => {
-    dispose();
+    // The connection must not be disposed here, since the client only sends the exit notification after receiving the
+    // response to the shutdown request. Otherwise, the server process is killed by the client after a timeout.
+    disposeResources();
 });
 
 // Make the text document manager listen on the connection
@@ -521,9 +525,9 @@ async function getWorkspaceFolders() {
     );
 }
 
-function dispose() {
-    disposables.forEach((d) => d.dispose());
-    connection.dispose();
+/** Can be called multiple times, since the exit notification usually follows the shutdown request. */
+function disposeResources() {
+    disposables.splice(0).forEach((d) => d.dispose());
 }
 
 function mapToBaseLanguageRequest(

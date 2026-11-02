@@ -22,13 +22,6 @@ export class FormattingRegistration implements Disposable {
             .register(DocumentFormattingRequest.type, {
                 documentSelector: [{ scheme: "file", language: "bru" }],
             })
-            .then((registration) => {
-                if (this.disposed) {
-                    registration.dispose();
-                } else {
-                    this.bruRegistration = registration;
-                }
-            })
             .catch((error) => {
                 this.connection.console.error(
                     `Failed to register the formatting provider for Bru files: ${error}`,
@@ -97,18 +90,18 @@ export class FormattingRegistration implements Disposable {
         return this.pendingUpdate;
     }
 
-    /** Unregisters synchronously, because the connection gets disposed right after this. */
+    /**
+     * Intentionally does not unregister the registrations: This is only called when the server shuts down and the client drops
+     * its registrations on its own when it stops. Unregistering would send requests that can still be pending when the connection
+     * gets disposed. They then fail with an unhandled rejection (inside the language server library) that crashes the server process.
+     */
     public dispose() {
         this.disposed = true;
-        this.registration?.dispose();
         this.registration = undefined;
-        this.bruRegistration?.dispose();
-        this.bruRegistration = undefined;
     }
 
     private disposed = false;
     private currentKey: string | undefined = undefined;
     private registration: Disposable | undefined = undefined;
-    private bruRegistration: Disposable | undefined = undefined;
     private pendingUpdate: Promise<void> = Promise.resolve();
 }
