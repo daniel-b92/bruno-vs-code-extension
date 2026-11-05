@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Features
+
+- Show dedicated icons in the collection explorer for request files, folder settings files (`folder.bru`/`folder.yml`), collection settings files (`collection.bru`/`opencollection.yml` and `bruno.json`), environment files and app files. All other files and folders keep the icons of the active file icon theme.
+
 ## [2.0.1] (2026-11-02)
 
 ### Fixes / Maintenance

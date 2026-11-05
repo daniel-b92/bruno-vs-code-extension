@@ -2,7 +2,12 @@ import { describe, it, expect } from "@jest/globals";
 import { basename, join } from "path";
 import { useTemporaryDirectories } from "../../_testingUtils";
 import { CollectionFormat } from "../../baseModel/interfaces";
-import { getAllCollectionRootDirectories } from "./collectionRootFolderHelper";
+import { CollectionDirectory } from "../../baseModel/collectionDirectory";
+import { NonBrunoFile } from "../../baseModel/files/nonBrunoFile";
+import {
+    getAllCollectionRootDirectories,
+    isCollectionRootFile,
+} from "./collectionRootFolderHelper";
 
 describe("getAllCollectionRootDirectories", () => {
     const createTemporaryDirectory = useTemporaryDirectories();
@@ -156,4 +161,57 @@ describe("getAllCollectionRootDirectories", () => {
             .sort((a, b) => a.name.localeCompare(b.name))
             .map(({ name, format }) => `${name} (${format})`);
     }
+});
+
+describe("isCollectionRootFile", () => {
+    const root = join("/workspace", "collection");
+
+    it.each([
+        [CollectionFormat.Bru, "bruno.json"],
+        [CollectionFormat.Yaml, "opencollection.yml"],
+    ])("detects the root file for the %s format", (format, rootFileName) => {
+        expect(
+            isCollectionRootFile(
+                new NonBrunoFile(join(root, rootFileName)),
+                root,
+                format,
+            ),
+        ).toBe(true);
+    });
+
+    it.each([
+        [CollectionFormat.Bru, "opencollection.yml"],
+        [CollectionFormat.Yaml, "bruno.json"],
+    ])(
+        "does not treat the root file of the other format as root file for the %s format",
+        (format, fileName) => {
+            expect(
+                isCollectionRootFile(
+                    new NonBrunoFile(join(root, fileName)),
+                    root,
+                    format,
+                ),
+            ).toBe(false);
+        },
+    );
+
+    it("does not treat a file with the same name in a subfolder as root file", () => {
+        expect(
+            isCollectionRootFile(
+                new NonBrunoFile(join(root, "subfolder", "bruno.json")),
+                root,
+                CollectionFormat.Bru,
+            ),
+        ).toBe(false);
+    });
+
+    it("does not treat a directory named like the root file as root file", () => {
+        expect(
+            isCollectionRootFile(
+                new CollectionDirectory(join(root, "bruno.json")),
+                root,
+                CollectionFormat.Bru,
+            ),
+        ).toBe(false);
+    });
 });

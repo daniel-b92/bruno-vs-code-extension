@@ -1,6 +1,7 @@
 import { basename, dirname, isAbsolute, join, relative, resolve } from "path";
 import {
     CollectionFormat,
+    CollectionItem,
     checkIfPathExistsAsync,
     convertToGlobPattern,
     getFileContent,
@@ -73,6 +74,25 @@ export function getCollectionRootFilePath(
     format: CollectionFormat,
 ) {
     return resolve(collectionRootFolder, getCollectionRootFileName(format));
+}
+
+/**
+ * Checks whether the item is the file that marks the root folder of a collection (`bruno.json` or `opencollection.yml`, depending on the format).
+ *
+ * A file with the same name in a subfolder is not a root file.
+ */
+export function isCollectionRootFile(
+    item: CollectionItem,
+    collectionRootFolder: string,
+    format: CollectionFormat,
+) {
+    return (
+        item.isFile() &&
+        isSamePath(
+            item.getPath(),
+            getCollectionRootFilePath(collectionRootFolder, format),
+        )
+    );
 }
 
 /**

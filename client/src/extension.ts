@@ -16,6 +16,7 @@ import {
     AdditionalCollectionData,
     FileSystemCacheSyncingHelper,
     BrunoTreeItem,
+    getIconForItem,
     TypedCollectionItemProvider,
 } from "@shared";
 import { activateLanguageFeatures } from "./languageFeatures";
@@ -253,7 +254,11 @@ function getAdditionalCollectionDataProvider(
 ): AdditionalCollectionSimpleDataProvider<AdditionalCollectionData> {
     return {
         paramType: AdditionalCollectionDataProviderType.SimpleCollectionItem,
-        callback: (item: CollectionItem, isCollectionRoot: boolean) => ({
+        callback: (
+            item: CollectionItem,
+            isCollectionRoot: boolean,
+            isCollectionRootFile: boolean,
+        ) => ({
             treeItem: new BrunoTreeItem(
                 item.getPath(),
                 item.isFile(),
@@ -262,6 +267,7 @@ function getAdditionalCollectionDataProvider(
                     ? item.getSequence()
                     : undefined,
                 isCollectionItemWithTags(item) ? item.getTags() : undefined,
+                getIconForItem(item, isCollectionRootFile),
             ),
             testItem: testRunnerDataHelper.createVsCodeTestItem(item),
         }),

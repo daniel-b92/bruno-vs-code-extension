@@ -9,6 +9,7 @@ export class BrunoTreeItem extends vscode.TreeItem {
         public readonly isCollectionRoot: boolean,
         private sequence?: number,
         private tags?: string[],
+        icon?: vscode.ThemeIcon,
     ) {
         super(
             basename(path),
@@ -16,6 +17,11 @@ export class BrunoTreeItem extends vscode.TreeItem {
                 ? vscode.TreeItemCollapsibleState.None
                 : vscode.TreeItemCollapsibleState.Collapsed,
         );
+
+        // Without a custom icon, the icon is derived from the active file icon theme (based on the resource URI).
+        this.resourceUri = vscode.Uri.file(path);
+        this.iconPath =
+            icon ?? (isFile ? vscode.ThemeIcon.File : vscode.ThemeIcon.Folder);
 
         this.tooltip = this.getTooltip();
         this.description = this.getDescription();

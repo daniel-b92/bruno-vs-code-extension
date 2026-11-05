@@ -17,6 +17,7 @@ export * from "./testFileWriting/interfaces";
 // model
 export * from "./model/interfaces";
 export * from "./model/brunoTreeItem";
+export * from "./model/getIconForItem";
 
 // file system cache
 export * from "./fileSystemCache/external/interfaces";

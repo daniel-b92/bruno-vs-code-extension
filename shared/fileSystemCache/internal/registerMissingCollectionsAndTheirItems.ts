@@ -11,6 +11,7 @@ import {
     doesFileNameMatchFolderSettingsFileName,
     CollectionFormat,
     ConflictingCollectionRootFiles,
+    isCollectionRootFile,
 } from "../..";
 import { CollectionRegistry } from "./collectionRegistry";
 import { addOrReplaceCollectionData } from "./addOrReplaceItemInCollection";
@@ -124,6 +125,11 @@ async function registerItems<T>(
                     item,
                     additionalDataProvider,
                     isCollectionRoot,
+                    isCollectionRootFile(
+                        item,
+                        collection.getRootDirectory(),
+                        format,
+                    ),
                     format,
                 );
 
@@ -216,6 +222,7 @@ async function createCollectionInstance<T>(
         rootFolderItem,
         additionalDataProvider,
         true,
+        false,
         format,
     );
 
