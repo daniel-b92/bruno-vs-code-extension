@@ -11,11 +11,27 @@ class TreeItem {
     description?: unknown;
     contextValue?: string;
     command?: unknown;
+    resourceUri?: unknown;
+    iconPath?: unknown;
 
     constructor(label: string | { label: string }, collapsibleState?: number) {
         this.label = label;
         this.collapsibleState = collapsibleState;
     }
+}
+
+class ThemeColor {
+    constructor(public readonly id: string) {}
+}
+
+class ThemeIcon {
+    static readonly File = new ThemeIcon("file");
+    static readonly Folder = new ThemeIcon("folder");
+
+    constructor(
+        public readonly id: string,
+        public readonly color?: ThemeColor,
+    ) {}
 }
 
 class EventEmitter<T> {
@@ -53,6 +69,7 @@ const EndOfLine = {
 const window = {
     showInformationMessage: () => Promise.resolve(undefined),
     showErrorMessage: () => Promise.resolve(undefined),
+    showWarningMessage: (..._args: unknown[]) => Promise.resolve(undefined),
     showInputBox: (_options?: unknown): Promise<string | undefined> =>
         Promise.resolve(undefined),
     createQuickPick: (): unknown => ({}),
@@ -66,6 +83,8 @@ const commands = {
 export {
     TreeItemCollapsibleState,
     TreeItem,
+    ThemeColor,
+    ThemeIcon,
     EventEmitter,
     MarkdownString,
     Uri,

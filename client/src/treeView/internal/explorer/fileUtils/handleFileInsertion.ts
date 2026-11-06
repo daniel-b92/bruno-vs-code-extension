@@ -1,6 +1,5 @@
 import {
     BrunoFileType,
-    CollectionFormat,
     CollectionItem,
     doesFileNameMatchCollectionSettingsFile,
     doesFileNameMatchFolderSettingsFileName,
@@ -8,9 +7,10 @@ import {
     getFolderSettingsFileName,
     getCollectionSettingsFileName,
     isCollectionItemWithSequence,
-    isInFolderForEnvironmentFiles,
+    isInEnvironmentsFolderOfCollection,
     ItemType,
     normalizePath,
+    ReadyOnlyCollection,
 } from "@global_shared";
 import { DialogOptionLabelEnum, TypedCollectionItemProvider } from "@shared";
 import { copyFile } from "fs";
@@ -67,7 +67,7 @@ export async function handleFileInsertion(
     const shouldContinue = await requestConfirmationIfNeeded(
         itemType,
         newPath,
-        format,
+        targetCollection,
     );
 
     if (!shouldContinue) {
@@ -96,11 +96,17 @@ export async function handleFileInsertion(
 async function requestConfirmationIfNeeded(
     itemType: ItemType,
     newPath: string,
-    format: CollectionFormat,
+    targetCollection: ReadyOnlyCollection<unknown>,
 ) {
+    const format = targetCollection.getFormat();
+    const isInEnvironmentsFolder = isInEnvironmentsFolderOfCollection(
+        targetCollection,
+        newPath,
+    );
+
     if (itemType == BrunoFileType.EnvironmentFile) {
         return (
-            isInFolderForEnvironmentFiles(newPath) ||
+            isInEnvironmentsFolder ||
             (await showWarningDialog(
                 "Insert environment file?",
                 `Environment files are only valid within the 'environments' folder.`,
@@ -108,7 +114,7 @@ async function requestConfirmationIfNeeded(
         );
     }
 
-    if (isInFolderForEnvironmentFiles(newPath)) {
+    if (isInEnvironmentsFolder) {
         return await showWarningDialog(
             `Insert file of type '${itemType}'?`,
             `In the 'environments' folder only environment files are valid.`,

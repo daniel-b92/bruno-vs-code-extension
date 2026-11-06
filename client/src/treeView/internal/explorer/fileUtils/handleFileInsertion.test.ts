@@ -53,4 +53,45 @@ describe("handleFileInsertion", () => {
         expect(await readFile(targetPath, "utf-8")).toBe(existingContent);
         expect(showErrorMessage).toHaveBeenCalledTimes(1);
     });
+
+    it.each([
+        [
+            "in the 'environments' folder of the collection",
+            "environments",
+            true,
+        ],
+        [
+            "in an 'environments' folder further down the tree",
+            "sub/environments",
+            false,
+        ],
+    ])(
+        "asks for confirmation when inserting a request file %s (%s)",
+        async (_, relativeFolder, expectConfirmation) => {
+            const directory = await createTemporaryDirectory({});
+            jest.spyOn(window, "showErrorMessage").mockResolvedValue(undefined);
+            const showWarningMessage = jest
+                .spyOn(window, "showWarningMessage")
+                .mockResolvedValue(undefined);
+
+            await handleFileInsertion(
+                {
+                    getItemType: () => BrunoFileType.RequestFile,
+                    getPath: () => join(directory, "missing.bru"),
+                } as unknown as CollectionItem,
+                {
+                    insertionPosition: RequestFileInsertionPositionType.Folder,
+                    newPath: join(directory, relativeFolder, "target.bru"),
+                },
+                createItemProviderStub<TypedCollectionItemProvider>(
+                    directory,
+                    CollectionFormat.Bru,
+                ),
+            );
+
+            expect(showWarningMessage).toHaveBeenCalledTimes(
+                expectConfirmation ? 1 : 0,
+            );
+        },
+    );
 });

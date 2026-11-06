@@ -66,6 +66,55 @@ describe("getItemType", () => {
             ).toBe(NonBrunoSpecificItemType.OtherFileType);
         });
 
+        describe("in folders named 'environments'", () => {
+            it.each([
+                [
+                    "the collection root file of a collection located in a folder named 'environments'",
+                    "opencollection.yml",
+                    BrunoFileType.CollectionSettingsFile,
+                ],
+                [
+                    "a request file directly in a collection root folder named 'environments'",
+                    "request.yml",
+                    BrunoFileType.RequestFile,
+                ],
+                [
+                    "an environment file in the 'environments' folder of such a collection",
+                    "environments/Dev.yml",
+                    BrunoFileType.EnvironmentFile,
+                ],
+                [
+                    "a request file in a nested folder named 'environments'",
+                    "Folder1/environments/request.yml",
+                    BrunoFileType.RequestFile,
+                ],
+            ])(
+                "determines the type of %s",
+                async (_, relativePath, expected) => {
+                    const workspace = await createTemporaryDirectory({
+                        "environments/opencollection.yml":
+                            "info:\n  name: collection\n",
+                        "environments/request.yml":
+                            "info:\n  name: request\n  type: http\n  seq: 1\n",
+                        "environments/environments/Dev.yml":
+                            "name: Dev\nvariables: []\n",
+                        "environments/Folder1/environments/request.yml":
+                            "info:\n  name: request\n  type: http\n  seq: 1\n",
+                    });
+                    const root = join(workspace, "environments");
+                    const collection = createCollectionWithEnvironments(
+                        [],
+                        CollectionFormat.Yaml,
+                        root,
+                    );
+
+                    expect(
+                        await getItemType(collection, join(root, relativePath)),
+                    ).toBe(expected);
+                },
+            );
+        });
+
         it("returns undefined for a path that does not exist", async () => {
             const root = await createYamlCollectionDirectory();
             const collection = createCollectionWithEnvironments(

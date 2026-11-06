@@ -30,7 +30,7 @@ import {
     getConfiguredEnvironmentNameAsync,
     getItemType,
     NonBrunoSpecificItemType,
-    isInFolderForEnvironmentFiles,
+    isInEnvironmentsFolderOfCollection,
     doesFileNameMatchFolderSettingsFileName,
     doesFileNameMatchCollectionSettingsFile,
     isBrunoFileType,
@@ -619,7 +619,7 @@ async function getYamlFileTypeIfExists(
 
     // Includes files that are still being written (e.g. with a missing or invalid `info.type`), so that the user is informed that they are not recognized.
     return itemType == NonBrunoSpecificItemType.OtherFileType &&
-        !isInFolderForEnvironmentFiles(filePath) &&
+        !isInEnvironmentsFolderOfCollection(collection, filePath) &&
         !doesFileNameMatchFolderSettingsFileName(
             filePath,
             CollectionFormat.Yaml,

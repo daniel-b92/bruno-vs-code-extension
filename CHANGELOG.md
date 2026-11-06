@@ -1,3 +1,13 @@
+## [Unreleased]
+
+### Features
+
+- Show dedicated icons in the collection explorer for request files, folder settings files (`folder.bru`/`folder.yml`), collection settings files (`collection.bru`/`opencollection.yml` and `bruno.json`), environment files and app files. All other files and folders keep the icons of the active file icon theme.
+
+### Fixes / Maintenance
+
+- Fix an issue that caused files in folders named `environments` outside of the collection root (and the root file of a collection located in a folder named `environments`) to be treated as environment files. This also affects the confirmation dialogs when inserting files into such folders and the diagnostics for unrecognized Yaml files in them.
+
 ## [2.0.1] (2026-11-02)
 
 ### Fixes / Maintenance

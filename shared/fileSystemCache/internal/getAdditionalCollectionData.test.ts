@@ -1,8 +1,9 @@
-import { describe, it, expect } from "@jest/globals";
+import { describe, it, expect, jest } from "@jest/globals";
 import { join } from "path";
 import {
     AdditionalCollectionComplexDataProvider,
     AdditionalCollectionDataProviderType,
+    AdditionalCollectionSimpleDataProvider,
     BrunoFileType,
     CollectionDirectory,
     CollectionFormat,
@@ -37,6 +38,7 @@ describe("getAdditionalCollectionData", () => {
                     new CollectionDirectory(directory),
                     createProvider(join(directory, "folder.yml")),
                     isCollectionRoot,
+                    false,
                     CollectionFormat.Yaml,
                 );
 
@@ -60,6 +62,7 @@ describe("getAdditionalCollectionData", () => {
                 new CollectionDirectory(directory),
                 createProvider(join(directory, "folder.yml")),
                 false,
+                false,
                 CollectionFormat.Yaml,
             );
 
@@ -77,6 +80,7 @@ describe("getAdditionalCollectionData", () => {
                 new CollectionDirectory(directory),
                 createProvider(join(directory, "folder.bru")),
                 false,
+                false,
                 CollectionFormat.Bru,
             );
 
@@ -91,6 +95,29 @@ describe("getAdditionalCollectionData", () => {
                 }),
             ]);
         });
+    });
+
+    it("passes the root information to the callback of a simple provider", async () => {
+        const item = new CollectionDirectory("/collection");
+        const callback =
+            jest.fn<
+                AdditionalCollectionSimpleDataProvider<undefined>["callback"]
+            >();
+
+        await getAdditionalCollectionData(
+            item,
+            {
+                paramType:
+                    AdditionalCollectionDataProviderType.SimpleCollectionItem,
+                callback,
+                isAdditionalDataOutdated: () => false,
+            },
+            false,
+            true,
+            CollectionFormat.Bru,
+        );
+
+        expect(callback).toHaveBeenCalledWith(item, false, true);
     });
 });
 

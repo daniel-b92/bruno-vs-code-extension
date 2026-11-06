@@ -4,6 +4,7 @@ import {
     CollectionData,
     getItemType,
     getAdditionalCollectionData,
+    isCollectionRootFile,
 } from "../..";
 import { getCollectionItem } from "./getCollectionItem";
 import { isModifiedItemOutdated } from "./isModifiedItemOutdated";
@@ -112,6 +113,11 @@ async function getCollectionData<T>(params: {
             item,
             additionalDataProvider,
             collection.isRootDirectory(item.getPath()),
+            isCollectionRootFile(
+                item,
+                collection.getRootDirectory(),
+                collection.getFormat(),
+            ),
             collection.getFormat(),
         ),
     };
