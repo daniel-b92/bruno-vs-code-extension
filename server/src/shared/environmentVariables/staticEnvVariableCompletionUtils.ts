@@ -51,9 +51,13 @@ export function getEnvironmentWarning(
         return undefined;
     }
 
-    return `WARNING: Will ${referenceType == VariableReferenceType.Delete ? "delete" : "overwrite"} persistent environment variable from ${
+    const environments =
         environmentFiles.length == 1
             ? `env '${parse(environmentFiles[0]).name}'`
-            : `${environmentFiles.length} environments`
-    }`;
+            : `${environmentFiles.length} environments`;
+
+    // Only the active environment is affected at runtime, so the environments are only named as the places where the variable is defined.
+    return referenceType == VariableReferenceType.Delete
+        ? `WARNING: Will delete the variable in the active environment (defined in ${environments})`
+        : `WARNING: Will overwrite persistent environment variable from ${environments}`;
 }

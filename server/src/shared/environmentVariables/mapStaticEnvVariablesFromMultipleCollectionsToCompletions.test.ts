@@ -73,7 +73,7 @@ describe("mapStaticEnvVariablesFromMultipleCollectionsToCompletions", () => {
             "⚠ Delete Env (multiple collections)",
         );
         expect(multiple.detail).toBe(
-            "WARNING: Will delete persistent environment variable from 2 environments",
+            "WARNING: Will delete the variable in the active environment (defined in 2 environments)",
         );
     });
 

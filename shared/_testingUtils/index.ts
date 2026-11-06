@@ -4,3 +4,4 @@ export * from "./documentTestUtils";
 export * from "./temporaryDirectoryUtils";
 export * from "./yamlRequestFileTestUtils";
 export * from "./waitUntil";
+export * from "./variableReferenceTestUtils";

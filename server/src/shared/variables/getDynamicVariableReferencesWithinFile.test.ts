@@ -1,14 +1,16 @@
 import { describe, expect, it } from "@jest/globals";
 import {
-    BrunoVariableReference,
     BrunoVariableType,
     Position,
-    Range,
     TextDocumentHelper,
     VariableReferenceType,
     VariableScopeSection,
     VariableScopeSectionKind,
 } from "@global_shared";
+import {
+    createVariableReference,
+    getDummyRange,
+} from "@global_shared/_testingUtils";
 import { CancellationToken } from "vscode-languageserver";
 import { getDynamicVariableReferencesWithinFile } from "./getDynamicVariableReferencesWithinFile";
 import { VariableSectionRequest } from "./interfaces";
@@ -83,19 +85,15 @@ function getSection(
     return {
         kind,
         name: String(kind),
-        range: new Range(new Position(0, 0), new Position(0, 0)),
-        variableReferences: [getReference(referenceType)],
-    };
-}
-
-function getReference(
-    referenceType: VariableReferenceType,
-): BrunoVariableReference {
-    return {
-        variableName: "token",
-        variableNameRange: new Range(new Position(0, 0), new Position(0, 5)),
-        variableType: BrunoVariableType.Runtime,
-        referenceType,
+        range: getDummyRange(),
+        variableReferences: [
+            createVariableReference({
+                variableName: "token",
+                variableType: BrunoVariableType.Runtime,
+                referenceType,
+                scope: undefined,
+            }),
+        ],
     };
 }
 

@@ -106,12 +106,10 @@ function mapStaticScriptVariables(
                             : relativePath,
                 },
                 kind: CompletionItemKind.Constant,
-                detail: [
-                    VariableReferenceType.Write,
-                    VariableReferenceType.Delete,
-                ].includes(sourceReferenceType)
-                    ? `WARNING: Will overwrite static script variable.`
-                    : undefined,
+                detail:
+                    sourceReferenceType == VariableReferenceType.Write
+                        ? `WARNING: Will overwrite static script variable.`
+                        : undefined,
                 sortText: getSortText(
                     prefixForSortText,
                     variableName,

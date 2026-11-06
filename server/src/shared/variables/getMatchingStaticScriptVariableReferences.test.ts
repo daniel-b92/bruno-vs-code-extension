@@ -1,6 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
 import {
-    BrunoVariableReference,
     BrunoVariableType,
     Collection,
     CollectionDirectory,
@@ -9,10 +8,10 @@ import {
     Range,
     RequestFileBlockName,
     VariableAvailabilityScopes,
-    VariableReferenceType,
     VariableScopeSection,
     VariableScopeSectionKind,
 } from "@global_shared";
+import { createVariableReference } from "@global_shared/_testingUtils";
 import { VariableSectionRequest } from "./interfaces";
 import { getMatchingStaticScriptVariableReferences } from "./getMatchingStaticScriptVariableReferences";
 
@@ -34,7 +33,7 @@ describe("getMatchingStaticScriptVariableReferences", () => {
             item: new CollectionDirectory(`${rootDirectory}/requests`),
             additionalData: [
                 {
-                    reference: createReference(),
+                    reference: createVariableReference(),
                     sectionKind: VariableScopeSectionKind.PreRequestScript,
                     sectionName: RequestFileBlockName.PreRequestVars,
                 },
@@ -53,8 +52,8 @@ describe("getMatchingStaticScriptVariableReferences", () => {
             name: RequestFileBlockName.PreRequestVars,
             range: defaultRange,
             variableReferences: [
-                createReference(),
-                createReference({
+                createVariableReference(),
+                createVariableReference({
                     variableName: "ignoredVar",
                     scope: VariableAvailabilityScopes.Global,
                 }),
@@ -107,16 +106,3 @@ describe("getMatchingStaticScriptVariableReferences", () => {
         );
     });
 });
-
-function createReference(
-    overrides: Partial<BrunoVariableReference> = {},
-): BrunoVariableReference {
-    return {
-        variableName: "folderVar",
-        variableNameRange: new Range(new Position(0, 0), new Position(0, 9)),
-        variableType: BrunoVariableType.Folder,
-        referenceType: VariableReferenceType.Write,
-        scope: VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants,
-        ...overrides,
-    };
-}
