@@ -52,7 +52,25 @@ runtime:
         );
     });
 
-    it("shows a warning and the later reads for a variable that is deleted in a script", () => {
+    it("shows earlier writes without a warning for a variable that is deleted in a script", () => {
+        const text = `runtime:
+  scripts:
+    - type: before-request
+      code: |
+        bru.setVar("token", 1);
+    - type: after-response
+      code: |
+        bru.deleteVar("token");
+`;
+
+        const result = getHoverText(hover(text, new Position(7, 25)));
+
+        expect(result).toContain("Dynamic references");
+        expect(result).toContain("scripts[0]:before-request");
+        expect(result).not.toContain("⚠");
+    });
+
+    it("does not show later reads for a variable that is deleted in a script", () => {
         const text = `runtime:
   scripts:
     - type: before-request
@@ -63,11 +81,7 @@ runtime:
         bru.getVar("token");
 `;
 
-        const result = getHoverText(hover(text, new Position(4, 25)));
-
-        expect(result).toContain("Deletes this runtime variable");
-        expect(result).toContain("Reads after the deletion");
-        expect(result).toContain("scripts[1]:after-response");
+        expect(hover(text, new Position(4, 25))).toBeUndefined();
     });
 
     it("returns no hover for a deleted variable without any other references", () => {

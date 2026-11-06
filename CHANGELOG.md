@@ -7,6 +7,7 @@
 
 ### Fixes / Maintenance
 
+- Mark completions for `bru.deleteVar` and `bru.deleteEnvVar` that are based on variables set in scripts with `⚠ Delete`.
 - Mark completions for `bru.setEnvVar` and `bru.deleteEnvVar` with `⚠ Env` / `⚠ Delete Env` and describe deletions correctly ("Will delete" instead of "Will overwrite") in the warning for persistent environment variables.
 - Fix an issue that caused completions for `bru.deleteEnvVar` to be searched in the wrong script sections (later instead of earlier ones). Standalone JS files no longer suggest environment variables for functions that do not use them (e.g. `bru.getVar` or `bru.setVar`).
 - Fix an issue that caused files in folders named `environments` outside of the collection root (and the root file of a collection located in a folder named `environments`) to be treated as environment files. This also affects the confirmation dialogs when inserting files into such folders and the diagnostics for unrecognized Yaml files in them.

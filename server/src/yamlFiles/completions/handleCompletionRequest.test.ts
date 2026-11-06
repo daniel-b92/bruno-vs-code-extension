@@ -678,7 +678,7 @@ http:
             });
         });
 
-        it("suggests runtime variables set in earlier scripts for 'bru.deleteVar' and warns about the deletion", async () => {
+        it("suggests runtime variables set in earlier scripts for 'bru.deleteVar' and marks them as deletion", async () => {
             const result = await complete(
                 requestPath,
                 `runtime:
@@ -695,12 +695,30 @@ http:
 
             const item = result?.find(({ label }) => label == "token");
 
-            // The label is inserted into the document, so the warning must not be part of it.
+            // The label is inserted into the document, so the marker must not be part of it.
             expect(item?.label).toBe("token");
             expect(item?.labelDetails?.description).toContain("⚠ Delete");
-            expect(item?.detail).toContain(
-                "WARNING: Deletes this runtime variable",
+        });
+
+        it("suggests environment variables set in earlier scripts for 'bru.deleteEnvVar' and marks them as deletion", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  scripts:
+    - type: before-request
+      code: |
+        bru.setEnvVar("token", 1);
+    - type: after-response
+      code: |
+        bru.deleteEnvVar("");
+`,
+                new Position(7, 26),
             );
+
+            const item = result?.find(({ label }) => label == "token");
+
+            expect(item?.label).toBe("token");
+            expect(item?.labelDetails?.description).toContain("⚠ Delete");
         });
 
         it("does not suggest runtime variables set in later scripts for 'bru.deleteVar'", async () => {

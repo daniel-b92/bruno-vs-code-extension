@@ -1,9 +1,4 @@
-import {
-    VariableReferenceType,
-    BrunoVariableType,
-    Range,
-    LineBreakType,
-} from "@global_shared";
+import { VariableReferenceType, Range, LineBreakType } from "@global_shared";
 import {
     VariableSpecificRequestData,
     groupReferencesByName,
@@ -15,7 +10,6 @@ import {
     CompletionItemKind,
     TextEdit,
 } from "vscode-languageserver";
-import { getDeleteWarning } from "./getDeleteWarning";
 import {
     EquivalentVariableReferencesFromOtherFiles,
     MatchingDynamicVariables,
@@ -181,7 +175,6 @@ function getCompletionForRefsWithinOwnFile(
     {
         variable: { start, end },
         functionType,
-        variableType: sourceVariableType,
         documentLineBreak,
     }: VariableSpecificRequestData,
     groupedReferences: {
@@ -224,9 +217,7 @@ function getCompletionForRefsWithinOwnFile(
             ),
         },
         kind: getKind(referenceType),
-        detail: withDeleteWarning(
-            functionType,
-            sourceVariableType,
+        detail:
             !hasDuplicateReferences && referencesFromOtherFiles == undefined
                 ? undefined
                 : `${totalNumberOfReferences} relevant references in ${allDistinctBlocks.length > 1 ? `sections ${JSON.stringify(allDistinctBlocks)}` : `section '${blockName}'`}.`.concat(
@@ -234,7 +225,6 @@ function getCompletionForRefsWithinOwnFile(
                           ? ""
                           : ` and in ${referencesFromOtherFiles.otherMatchingReferences.length + 1} other file(s)`,
                   ),
-        ),
         sortText: getSortText(prefixForSortText, variableName, 0, blockName),
         textEdit: getTextEditForCompletion
             ? getTextEditForCompletion(
@@ -250,7 +240,6 @@ function getCompletionForRefsFromOnlyOtherFiles(
     {
         variable: { start, end },
         functionType,
-        variableType: sourceVariableType,
         documentLineBreak,
     }: VariableSpecificRequestData,
     groupedReferences: {
@@ -282,13 +271,10 @@ function getCompletionForRefsFromOnlyOtherFiles(
             ),
         },
         kind: getKind(referenceType),
-        detail: withDeleteWarning(
-            functionType,
-            sourceVariableType,
+        detail:
             otherMatchingReferences.length == 0
                 ? undefined
                 : `Relevant reference(s) in ${otherMatchingReferences.length} other file(s).`,
-        ),
         sortText: getSortText(
             prefixForSortText,
             variableName,
@@ -349,8 +335,14 @@ function getAllVariableNamesFromDynamicReferences(
         );
 }
 
+function getKind(referenceType: VariableReferenceType) {
+    return referenceType == VariableReferenceType.Read
+        ? CompletionItemKind.Field
+        : CompletionItemKind.Function;
+}
+
 /**
- * Marks the description of items for destructive functions.
+ * Marks the description of items for delete functions.
  * The label itself must stay unchanged because it is inserted into the document.
  */
 function withDeleteMarker(
@@ -360,24 +352,6 @@ function withDeleteMarker(
     return sourceReferenceType == VariableReferenceType.Delete
         ? `⚠ Delete · ${description}`
         : description;
-}
-
-function withDeleteWarning(
-    sourceReferenceType: VariableReferenceType,
-    sourceVariableType: BrunoVariableType,
-    detail?: string,
-) {
-    return sourceReferenceType == VariableReferenceType.Delete
-        ? [`WARNING: ${getDeleteWarning(sourceVariableType)}`, detail]
-              .filter((part) => part != undefined)
-              .join(" ")
-        : detail;
-}
-
-function getKind(referenceType: VariableReferenceType) {
-    return referenceType == VariableReferenceType.Read
-        ? CompletionItemKind.Field
-        : CompletionItemKind.Function;
 }
 
 function getSortText(

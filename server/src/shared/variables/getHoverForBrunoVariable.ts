@@ -14,7 +14,6 @@ import {
 } from "./interfaces";
 import { includesMultipleDistinctVariableTypes } from "./includesMultipleDistinctVariableTypes";
 import { getAllVariableReferences } from "./getAllVariableReferences";
-import { getDeleteWarning } from "./getDeleteWarning";
 
 export function getHoverForBrunoVariable(
     fullRequest: VariableSectionRequest,
@@ -86,79 +85,28 @@ export function getHoverForBrunoVariable(
         ) ?? "",
     );
 
-    const isDelete = referenceType == VariableReferenceType.Delete;
-    // The reads that are executed after the deletion are the ones that can break.
-    const contentForReadsAfterDeletion = isDelete
-        ? getContentForReadsAfterDeletion(
-              fullRequest,
-              variableReference,
-              configuredEnvironmentName,
-          )
+    const resultingMarkdownString: MarkupContent | undefined =
+        contentForDynamicReferences && contentForStaticReferences
+            ? {
+                  kind: "markdown",
+                  value: contentForDynamicReferences.concat(
+                      "--------------------------",
+                      getLineBreak(),
+                      contentForStaticReferences,
+                  ),
+              }
+            : contentForDynamicReferences
+              ? {
+                    kind: "markdown",
+                    value: contentForDynamicReferences,
+                }
+              : contentForStaticReferences
+                ? { kind: "markdown", value: contentForStaticReferences }
+                : undefined;
+
+    return resultingMarkdownString
+        ? { contents: resultingMarkdownString }
         : undefined;
-
-    const contentParts = [
-        contentForDynamicReferences,
-        contentForReadsAfterDeletion,
-        contentForStaticReferences,
-    ].filter((content) => content != undefined && content != "");
-
-    if (contentParts.length == 0) {
-        return undefined;
-    }
-
-    const lineBreak = getLineBreak();
-    const warning = isDelete
-        ? `**⚠ ${getDeleteWarning(variableType)}**`.concat(lineBreak, lineBreak)
-        : "";
-    const resultingMarkdownString: MarkupContent = {
-        kind: "markdown",
-        value: warning.concat(
-            contentParts.join("--------------------------".concat(lineBreak)),
-        ),
-    };
-
-    return { contents: resultingMarkdownString };
-}
-
-function getContentForReadsAfterDeletion(
-    fullRequest: VariableSectionRequest,
-    variableReference: BrunoVariableReference,
-    configuredEnvironmentName?: string,
-) {
-    const { variableName, variableType } = variableReference;
-    // Searching for references of a write function finds the reads that are executed afterwards.
-    const allRefs = getAllVariableReferences(
-        fullRequest,
-        { referenceType: VariableReferenceType.Write, variableType },
-        {
-            configuredEnvironment: configuredEnvironmentName,
-            variableNameForFiltering: variableName,
-        },
-    );
-
-    if (!allRefs) {
-        return undefined;
-    }
-
-    const { withinSameFile, fromOtherFiles } = allRefs.dynamicReferences;
-
-    return getContentForDynamicReferences(
-        {
-            fromSameFile: withinSameFile.filter(
-                ({ variableReference: { variableName: n } }) =>
-                    n == variableName,
-            ),
-            fromOtherFiles: fromOtherFiles.filter(
-                ({
-                    mostRelevantReference: {
-                        reference: { variableName: n },
-                    },
-                }) => n == variableName,
-            ),
-        },
-        variableType,
-        "Reads after the deletion:",
-    );
 }
 
 function getContentForStaticScriptVarsReferences(
@@ -210,7 +158,6 @@ function getContentForStaticScriptVarsReferences(
 function getContentForDynamicReferences(
     { fromSameFile, fromOtherFiles }: MatchingDynamicVariables,
     sourceFileVariableType: BrunoVariableType,
-    heading = "Dynamic references:",
 ) {
     if (fromSameFile.length == 0 && fromOtherFiles.length == 0) {
         return undefined;
@@ -229,7 +176,7 @@ function getContentForDynamicReferences(
         lineBreak,
     );
 
-    return `**${heading}**`.concat(
+    return "**Dynamic references:**".concat(
         lineBreak,
         tableHeader,
         fromSameFile
