@@ -66,13 +66,14 @@ describe("mapStaticEnvVariablesFromMultipleCollectionsToCompletions", () => {
             getMatch({ collectionName: "colB", environment: "dev" }),
         ]);
 
-        expect(single.labelDetails?.description).toBe("!Env! 'dev'");
+        expect(single.labelDetails?.description).toBe("⚠ Env 'dev'");
+        expect(single.detail).toContain("Will overwrite");
         expect(single.detail).toContain("from env 'dev'");
         expect(multiple.labelDetails?.description).toBe(
-            "!Env! (multiple collections)",
+            "⚠ Delete Env (multiple collections)",
         );
         expect(multiple.detail).toBe(
-            "WARNING: Will overwrite persistent environment variable from 2 environments",
+            "WARNING: Will delete persistent environment variable from 2 environments",
         );
     });
 

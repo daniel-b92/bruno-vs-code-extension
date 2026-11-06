@@ -17,7 +17,7 @@ export function getDynamicVariableReferencesWithinFile(
     variableTypeInSourceFile: BrunoVariableType,
 ) {
     const otherRelevantSections =
-        referenceTypeInSourceFile == VariableReferenceType.Read
+        referenceTypeInSourceFile != VariableReferenceType.Write
             ? getSectionsWithEarlierExecutionGroups(
                   sectionContainingPosition.kind,
                   allSections,

@@ -107,7 +107,25 @@ describe("mapStaticEnvVariablesToCompletions", () => {
             ],
         );
 
-        expect(result[0].labelDetails?.description).toBe("!Env! 'Dev'");
+        expect(result[0].labelDetails?.description).toBe("⚠ Env 'Dev'");
+        expect(result[0].detail).toContain("Will overwrite");
+        expect(result[0].detail).toContain("'Dev'");
+    });
+
+    it("warns about deleting for delete functions", () => {
+        const result = mapStaticEnvVariablesToCompletions(
+            { ...getRequestData(), functionType: VariableReferenceType.Delete },
+            [
+                {
+                    environmentFile: "/collection/environments/Dev.bru",
+                    matchingVariableKeys: ["token"],
+                    isConfiguredEnv: true,
+                },
+            ],
+        );
+
+        expect(result[0].labelDetails?.description).toBe("⚠ Delete Env 'Dev'");
+        expect(result[0].detail).toContain("Will delete");
         expect(result[0].detail).toContain("'Dev'");
     });
 });

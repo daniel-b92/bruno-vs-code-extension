@@ -2,10 +2,13 @@
 
 ### Features
 
+- Add intellisense for runtime variables used in `bru.deleteVar` inbuilt functions (Hover and Completions), like for `bru.getVar`.
 - Show dedicated icons in the collection explorer for request files, folder settings files (`folder.bru`/`folder.yml`), collection settings files (`collection.bru`/`opencollection.yml` and `bruno.json`), environment files and app files. All other files and folders keep the icons of the active file icon theme.
 
 ### Fixes / Maintenance
 
+- Mark completions for `bru.setEnvVar` and `bru.deleteEnvVar` with `⚠ Env` / `⚠ Delete Env` and describe deletions correctly ("Will delete" instead of "Will overwrite") in the warning for persistent environment variables.
+- Fix an issue that caused completions for `bru.deleteEnvVar` to be searched in the wrong script sections (later instead of earlier ones). Standalone JS files no longer suggest environment variables for functions that do not use them (e.g. `bru.getVar` or `bru.setVar`).
 - Fix an issue that caused files in folders named `environments` outside of the collection root (and the root file of a collection located in a folder named `environments`) to be treated as environment files. This also affects the confirmation dialogs when inserting files into such folders and the diagnostics for unrecognized Yaml files in them.
 
 ## [2.0.1] (2026-11-02)

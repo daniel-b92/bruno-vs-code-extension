@@ -1,10 +1,10 @@
 import { VariableReferenceType } from "@global_shared";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 import {
-    getOverwriteWarning,
+    getEnvironmentDescriptionPrefix,
+    getEnvironmentWarning,
     getSingleEnvironmentLabel,
     groupByVariableKey,
-    shouldShowWarning,
 } from "./staticEnvVariableCompletionUtils";
 import { getHoverContentForStaticEnvVariables } from "./getHoverContentForStaticEnvVariables";
 
@@ -35,16 +35,16 @@ export function mapStaticEnvVariablesFromMultipleCollectionsToCompletions(
         const isConfiguredInAnyCollection = matchesForKey.some(
             ({ isConfiguredEnv }) => isConfiguredEnv,
         );
-        const showWarning = shouldShowWarning(functionType);
 
         return {
             label: key,
             labelDetails: {
-                description: `${showWarning ? "!Env!" : "Env"} ${getDescriptionSuffix(matchesForKey, collectionNames)}`,
+                description: `${getEnvironmentDescriptionPrefix(functionType)} ${getDescriptionSuffix(matchesForKey, collectionNames)}`,
             },
-            detail: showWarning
-                ? getOverwriteWarning(matchesForKey.map(({ file }) => file))
-                : undefined,
+            detail: getEnvironmentWarning(
+                functionType,
+                matchesForKey.map(({ file }) => file),
+            ),
             documentation: {
                 kind: "markdown",
                 value:

@@ -79,6 +79,15 @@ export function getInbuiltFunctions(): {
             variableType: BrunoVariableType.Runtime,
             scope: VariableAvailabilityScopes.Collection,
         },
+        [InbuiltFunctionName.DeleteVar]: {
+            identifier: {
+                baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,
+                functionName: InbuiltFunctionName.DeleteVar,
+            },
+            referenceType: VariableReferenceType.Delete,
+            variableType: BrunoVariableType.Runtime,
+            scope: VariableAvailabilityScopes.Collection,
+        },
         [InbuiltFunctionName.GetRequestVar]: {
             identifier: {
                 baseIdentifier: InbuiltFunctionBaseIdentifierEnum.Bru,

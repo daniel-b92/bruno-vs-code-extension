@@ -52,6 +52,35 @@ runtime:
         );
     });
 
+    it("shows a warning and the later reads for a variable that is deleted in a script", () => {
+        const text = `runtime:
+  scripts:
+    - type: before-request
+      code: |
+        bru.deleteVar("token");
+    - type: after-response
+      code: |
+        bru.getVar("token");
+`;
+
+        const result = getHoverText(hover(text, new Position(4, 25)));
+
+        expect(result).toContain("Deletes this runtime variable");
+        expect(result).toContain("Reads after the deletion");
+        expect(result).toContain("scripts[1]:after-response");
+    });
+
+    it("returns no hover for a deleted variable without any other references", () => {
+        const text = `runtime:
+  scripts:
+    - type: before-request
+      code: |
+        bru.deleteVar("token");
+`;
+
+        expect(hover(text, new Position(4, 25))).toBeUndefined();
+    });
+
     it("returns no hover for a position without variable", () => {
         const text = `http:
   method: GET

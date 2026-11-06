@@ -1,4 +1,9 @@
-import { VariableReferenceType, Range, LineBreakType } from "@global_shared";
+import {
+    VariableReferenceType,
+    BrunoVariableType,
+    Range,
+    LineBreakType,
+} from "@global_shared";
 import {
     VariableSpecificRequestData,
     groupReferencesByName,
@@ -10,6 +15,7 @@ import {
     CompletionItemKind,
     TextEdit,
 } from "vscode-languageserver";
+import { getDeleteWarning } from "./getDeleteWarning";
 import {
     EquivalentVariableReferencesFromOtherFiles,
     MatchingDynamicVariables,
@@ -174,6 +180,8 @@ function mapDynamicVariables(
 function getCompletionForRefsWithinOwnFile(
     {
         variable: { start, end },
+        functionType,
+        variableType: sourceVariableType,
         documentLineBreak,
     }: VariableSpecificRequestData,
     groupedReferences: {
@@ -208,13 +216,17 @@ function getCompletionForRefsWithinOwnFile(
     return {
         label: variableName,
         labelDetails: {
-            description:
+            description: withDeleteMarker(
+                functionType,
                 hasDuplicateReferences && allDistinctBlocks.length > 1
                     ? `Sections '${allDistinctBlocks.join("','")}'`
                     : `Section '${blockName}'`,
+            ),
         },
         kind: getKind(referenceType),
-        detail:
+        detail: withDeleteWarning(
+            functionType,
+            sourceVariableType,
             !hasDuplicateReferences && referencesFromOtherFiles == undefined
                 ? undefined
                 : `${totalNumberOfReferences} relevant references in ${allDistinctBlocks.length > 1 ? `sections ${JSON.stringify(allDistinctBlocks)}` : `section '${blockName}'`}.`.concat(
@@ -222,6 +234,7 @@ function getCompletionForRefsWithinOwnFile(
                           ? ""
                           : ` and in ${referencesFromOtherFiles.otherMatchingReferences.length + 1} other file(s)`,
                   ),
+        ),
         sortText: getSortText(prefixForSortText, variableName, 0, blockName),
         textEdit: getTextEditForCompletion
             ? getTextEditForCompletion(
@@ -236,6 +249,8 @@ function getCompletionForRefsWithinOwnFile(
 function getCompletionForRefsFromOnlyOtherFiles(
     {
         variable: { start, end },
+        functionType,
+        variableType: sourceVariableType,
         documentLineBreak,
     }: VariableSpecificRequestData,
     groupedReferences: {
@@ -261,13 +276,19 @@ function getCompletionForRefsFromOnlyOtherFiles(
     return {
         label: variableName,
         labelDetails: {
-            description: `${mostRelevantReference.path.relativeToSourceFile}`,
+            description: withDeleteMarker(
+                functionType,
+                `${mostRelevantReference.path.relativeToSourceFile}`,
+            ),
         },
         kind: getKind(referenceType),
-        detail:
+        detail: withDeleteWarning(
+            functionType,
+            sourceVariableType,
             otherMatchingReferences.length == 0
                 ? undefined
                 : `Relevant reference(s) in ${otherMatchingReferences.length} other file(s).`,
+        ),
         sortText: getSortText(
             prefixForSortText,
             variableName,
@@ -326,6 +347,31 @@ function getAllVariableNamesFromDynamicReferences(
                 }) => variableName,
             ),
         );
+}
+
+/**
+ * Marks the description of items for destructive functions.
+ * The label itself must stay unchanged because it is inserted into the document.
+ */
+function withDeleteMarker(
+    sourceReferenceType: VariableReferenceType,
+    description: string,
+) {
+    return sourceReferenceType == VariableReferenceType.Delete
+        ? `⚠ Delete · ${description}`
+        : description;
+}
+
+function withDeleteWarning(
+    sourceReferenceType: VariableReferenceType,
+    sourceVariableType: BrunoVariableType,
+    detail?: string,
+) {
+    return sourceReferenceType == VariableReferenceType.Delete
+        ? [`WARNING: ${getDeleteWarning(sourceVariableType)}`, detail]
+              .filter((part) => part != undefined)
+              .join(" ")
+        : detail;
 }
 
 function getKind(referenceType: VariableReferenceType) {
