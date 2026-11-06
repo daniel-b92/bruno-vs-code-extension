@@ -3,7 +3,7 @@ import {
     checkIfPathExistsAsync,
     normalizePath,
     doesFileNameMatchFolderSettingsFileName,
-    isInFolderForEnvironmentFiles,
+    isInEnvironmentsFolderOfCollection,
     BrunoFileType,
     ItemType,
     NonBrunoSpecificItemType,
@@ -57,7 +57,7 @@ export async function getItemType<T>(
                 : undefined;
     }
 
-    if (isInFolderForEnvironmentFiles(path)) {
+    if (isInEnvironmentsFolderOfCollection(collection, path)) {
         return BrunoFileType.EnvironmentFile;
     } else if (
         isChildElementOfCollectionRootDirectory(collection, path) &&

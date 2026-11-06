@@ -69,6 +69,7 @@ const EndOfLine = {
 const window = {
     showInformationMessage: () => Promise.resolve(undefined),
     showErrorMessage: () => Promise.resolve(undefined),
+    showWarningMessage: (..._args: unknown[]) => Promise.resolve(undefined),
     showInputBox: (_options?: unknown): Promise<string | undefined> =>
         Promise.resolve(undefined),
     createQuickPick: (): unknown => ({}),
