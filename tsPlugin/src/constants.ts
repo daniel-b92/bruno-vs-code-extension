@@ -87,6 +87,7 @@ export function getNamesForInbuiltFunctionsWithVariableName() {
         "deleteEnvVar",
         "getVar",
         "setVar",
+        "deleteVar",
         "getRequestVar",
         "getFolderVar",
     ];

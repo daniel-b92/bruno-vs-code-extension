@@ -203,6 +203,26 @@ describe("language features", () => {
                 ).toBeUndefined();
             });
 
+            it("provides no hovers and completions for the names of variables passed to 'bru.deleteVar'", () => {
+                const { languageService, position } = createLanguageService([
+                    'bru.deleteVar("na§me");',
+                ]);
+
+                expect(
+                    languageService.getQuickInfoAtPosition(
+                        requestFile,
+                        position,
+                    ),
+                ).toBeUndefined();
+                expect(
+                    languageService.getCompletionsAtPosition(
+                        requestFile,
+                        position,
+                        {},
+                    ),
+                ).toBeUndefined();
+            });
+
             it("provides no completions for the names of variables when the string is not closed yet", () => {
                 const { languageService, position } = createLanguageService([
                     'bru.getVar("na§',

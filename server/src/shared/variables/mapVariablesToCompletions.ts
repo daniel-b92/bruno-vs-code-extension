@@ -106,12 +106,10 @@ function mapStaticScriptVariables(
                             : relativePath,
                 },
                 kind: CompletionItemKind.Constant,
-                detail: [
-                    VariableReferenceType.Write,
-                    VariableReferenceType.Delete,
-                ].includes(sourceReferenceType)
-                    ? `WARNING: Will overwrite static script variable.`
-                    : undefined,
+                detail:
+                    sourceReferenceType == VariableReferenceType.Write
+                        ? `WARNING: Will overwrite static script variable.`
+                        : undefined,
                 sortText: getSortText(
                     prefixForSortText,
                     variableName,
@@ -174,6 +172,7 @@ function mapDynamicVariables(
 function getCompletionForRefsWithinOwnFile(
     {
         variable: { start, end },
+        functionType,
         documentLineBreak,
     }: VariableSpecificRequestData,
     groupedReferences: {
@@ -208,10 +207,12 @@ function getCompletionForRefsWithinOwnFile(
     return {
         label: variableName,
         labelDetails: {
-            description:
+            description: withDeleteMarker(
+                functionType,
                 hasDuplicateReferences && allDistinctBlocks.length > 1
                     ? `Sections '${allDistinctBlocks.join("','")}'`
                     : `Section '${blockName}'`,
+            ),
         },
         kind: getKind(referenceType),
         detail:
@@ -236,6 +237,7 @@ function getCompletionForRefsWithinOwnFile(
 function getCompletionForRefsFromOnlyOtherFiles(
     {
         variable: { start, end },
+        functionType,
         documentLineBreak,
     }: VariableSpecificRequestData,
     groupedReferences: {
@@ -261,7 +263,10 @@ function getCompletionForRefsFromOnlyOtherFiles(
     return {
         label: variableName,
         labelDetails: {
-            description: `${mostRelevantReference.path.relativeToSourceFile}`,
+            description: withDeleteMarker(
+                functionType,
+                `${mostRelevantReference.path.relativeToSourceFile}`,
+            ),
         },
         kind: getKind(referenceType),
         detail:
@@ -332,6 +337,19 @@ function getKind(referenceType: VariableReferenceType) {
     return referenceType == VariableReferenceType.Read
         ? CompletionItemKind.Field
         : CompletionItemKind.Function;
+}
+
+/**
+ * Marks the description of items for delete functions.
+ * The label itself must stay unchanged because it is inserted into the document.
+ */
+function withDeleteMarker(
+    sourceReferenceType: VariableReferenceType,
+    description: string,
+) {
+    return sourceReferenceType == VariableReferenceType.Delete
+        ? `⚠ Delete · ${description}`
+        : description;
 }
 
 function getSortText(

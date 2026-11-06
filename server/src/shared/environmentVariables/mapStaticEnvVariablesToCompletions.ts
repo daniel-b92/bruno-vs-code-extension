@@ -2,10 +2,10 @@ import { Range } from "@global_shared";
 import { VariableSpecificRequestData } from "../interfaces";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
 import {
-    getOverwriteWarning,
+    getEnvironmentDescriptionPrefix,
+    getEnvironmentWarning,
     getSingleEnvironmentLabel,
     groupByVariableKey,
-    shouldShowWarning,
 } from "./staticEnvVariableCompletionUtils";
 import { GetTextEditForVariableCompletion } from "../variables/mapVariablesToCompletions";
 
@@ -31,8 +31,6 @@ export function mapStaticEnvVariablesToCompletions(
         ({ matchingVariableKeys }) => matchingVariableKeys,
     );
 
-    const showWarning = shouldShowWarning(functionType);
-
     return [...definitionsByKey.entries()].map(([key, definitions]) => {
         const isConfiguredEnv = definitions.some(
             ({ isConfiguredEnv }) => isConfiguredEnv,
@@ -40,13 +38,12 @@ export function mapStaticEnvVariablesToCompletions(
         const completionItem: CompletionItem = {
             label: key,
             labelDetails: {
-                description: `${showWarning ? "!Env!" : "Env"} ${getEnvironmentLabel(definitions)}`,
+                description: `${getEnvironmentDescriptionPrefix(functionType)} ${getEnvironmentLabel(definitions)}`,
             },
-            detail: showWarning
-                ? getOverwriteWarning(
-                      definitions.map(({ environmentFile }) => environmentFile),
-                  )
-                : undefined,
+            detail: getEnvironmentWarning(
+                functionType,
+                definitions.map(({ environmentFile }) => environmentFile),
+            ),
             kind: CompletionItemKind.Constant,
             sortText: `${modifications?.prefixForSortText ?? ""}_${isConfiguredEnv ? "a" : "b"}_${key}`,
             textEdit: modifications?.getTextEditForCompletion?.(

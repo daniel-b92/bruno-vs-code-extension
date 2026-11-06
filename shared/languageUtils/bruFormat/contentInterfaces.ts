@@ -54,6 +54,7 @@ export enum InbuiltFunctionName {
     DeleteEnvVar = "deleteEnvVar",
     GetVar = "getVar",
     SetVar = "setVar",
+    DeleteVar = "deleteVar",
     GetRequestVar = "getRequestVar",
     GetFolderVar = "getFolderVar",
 }

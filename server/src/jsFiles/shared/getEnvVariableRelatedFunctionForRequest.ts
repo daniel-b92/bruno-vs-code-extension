@@ -1,4 +1,5 @@
 import {
+    BrunoVariableType,
     Position,
     getFirstParameterForInbuiltFunctionIfStringLiteral,
     getInbuiltFunctionIdentifiers,
@@ -15,7 +16,10 @@ export function getEnvVariableRelatedFunctionForRequest({
             asString: documentHelper.getText(),
             startPosition: new Position(0, 0),
         },
-        functionsToSearchFor: getInbuiltFunctionIdentifiers(),
+        // Only persistent environment variables are known outside of Bruno files (e.g. no runtime variables).
+        functionsToSearchFor: getInbuiltFunctionIdentifiers({
+            variableType: BrunoVariableType.Environment,
+        }),
         position,
     });
 

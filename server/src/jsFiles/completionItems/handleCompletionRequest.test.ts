@@ -41,6 +41,31 @@ describe("handleCompletionRequest for JS files", () => {
         expect(getDocumentation(result?.[0])).toMatch(/colA[\s\S]*colB/);
     });
 
+    it("returns undefined for functions with variables that are not defined in environment files", async () => {
+        const result = await handleCompletionRequestForJsFileInContextRoot({
+            baseRequest: getBaseRequest(
+                'bru.deleteVar("")',
+                new Position(0, 15),
+            ),
+            collections: [{ collection: getCollection("/ws/colA") }],
+        });
+
+        expect(result).toBeUndefined();
+    });
+
+    it("warns about the deletion for 'bru.deleteEnvVar'", async () => {
+        const result = await handleCompletionRequestForJsFileInContextRoot({
+            baseRequest: getBaseRequest(
+                'bru.deleteEnvVar("")',
+                new Position(0, 18),
+            ),
+            collections: [{ collection: getCollection("/ws/colA") }],
+        });
+
+        expect(result?.[0].labelDetails?.description).toContain("⚠ Delete Env");
+        expect(result?.[0].detail).toContain("Will delete");
+    });
+
     it("returns undefined if the cursor is not within an env variable function", async () => {
         const result = await handleCompletionRequestForJsFileInContextRoot({
             baseRequest: getBaseRequest("const a = 1;", new Position(0, 3)),
