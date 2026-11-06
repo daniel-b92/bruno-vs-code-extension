@@ -2,7 +2,7 @@
     "name": "bru-as-code",
     "displayName": "bru-as-code",
     "description": "Work with Bruno collections (Bru and YAML formats) like code: language support, a collection explorer and test runs via the Bruno CLI.",
-    "version": "2.0.1",
+    "version": "2.1.0",
     "publisher": "daniel-b92",
     "private": true,
     "license": "MIT",
