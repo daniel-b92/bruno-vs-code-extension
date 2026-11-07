@@ -45,6 +45,7 @@ Ask about:
     - the wording and severity of a diagnostic
     - when a completion is triggered
 - **Scope**: which parts of the request and which related features are included, and which are left for a separate issue. Propose candidates you found in step 1, such as existing actions or features the new behavior could also support, and let the user pick. Only put something under "Out of scope" when the user decided to exclude it.
+- **Splitting into several issues**, when the request consists of parts that could each be implemented and released on their own. In the explorer example, showing the folders, the new icons for root nodes and the file actions within the folders are such parts. Propose a split, with a title per issue, as one option and a single issue as another. If one part only makes sense after another, say so in the options.
 - **Edge cases where the answer is a matter of preference rather than correctness.** For example, is a missing folder hidden or shown with a warning? Is an item shared by several collections shown once or once per collection?
 
 Don't ask about:
@@ -100,6 +101,12 @@ After the code blocks, add one line saying which template to choose under "New i
 
 Writing an issue changes no code, so the `CHANGELOG.md` rule from `CLAUDE.md` doesn't apply to this reply.
 
+If the user chose to split the request into several issues:
+
+- Show the title and body of each issue as described above, one issue after the other, with a short heading per issue outside the code blocks. Put an issue that others depend on first.
+- The issue numbers aren't known yet. Where one issue depends on another, refer to the other by its title in the body, e.g. under "Out of scope" ("Covered by the issue '<title>'"). Tell the user they can replace the title with the issue number after creating the issues.
+- Each issue must be understandable on its own, without the others.
+
 When the user asks for changes to the draft:
 
 - Show the complete title and body again, not only the changed section, so they can still be copied with one click. Before the blocks, say in one line what changed.
@@ -109,7 +116,7 @@ When the user asks for changes to the draft:
 
 Unless the user already said whether they want one, ask once, right after presenting the first draft, whether you should also write an implementation-details file to attach to the issue. Use the AskUserQuestion tool if available. If the user moves on to revisions without answering, don't repeat the question after every revision. Offer it once more in a single line when the user says the draft is final. If they decline, you are done.
 
-If they accept, write it to `issue-drafts/<slug>-implementation.md` in the repository root, where `<slug>` is a short kebab-case version of the title. The folder is ignored by git (check that `.gitignore` still contains `issue-drafts/`, and add it if not). Then:
+If they accept, write it to `issue-drafts/<slug>-implementation.md` in the repository root, where `<slug>` is a short kebab-case version of the title. With several issues, write one file per issue. The folder is ignored by git (check that `.gitignore` still contains `issue-drafts/`, and add it if not). Then:
 
 - Give the user the file's path.
 - Give them a short snippet to append to the issue body, in its own code block:
