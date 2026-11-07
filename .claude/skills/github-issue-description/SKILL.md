@@ -30,7 +30,7 @@ Decide which kind of issue it is:
 - **Enhancement**: a change to existing user-visible behavior that works as designed today.
 - **Technical task**: no intended change in behavior, e.g. a refactoring, a cleanup, test infrastructure, build or tooling changes.
 
-If the request is already implemented, ask the user about the gaps instead of drafting an issue. Use the AskUserQuestion tool if available, and offer the gaps you found as options. Skip steps 2 to 5 until the user has answered.
+If the request is already implemented, or a reported bug turns out to be intended behavior, ask the user how to proceed instead of drafting an issue. Use the AskUserQuestion tool if available, and offer the gaps you found (or an enhancement issue) as options. Skip steps 2 to 5 until the user has answered.
 
 ### 2. Clarify decisions with the user
 
@@ -45,7 +45,7 @@ Ask about:
     - the wording and severity of a diagnostic
     - when a completion is triggered
 - **Scope**: which parts of the request and which related features are included, and which are left for a separate issue. Propose candidates you found in step 1, such as existing actions or features the new behavior could also support, and let the user pick. Only put something under "Out of scope" when the user decided to exclude it.
-- **Splitting into several issues**, when the request consists of parts that could each be implemented and released on their own. In the explorer example, showing the folders, the new icons for root nodes and the file actions within the folders are such parts. Propose a split, with a title per issue, as one option and a single issue as another. If one part only makes sense after another, say so in the options.
+- **Splitting into several issues**, when the request consists of parts that could each be implemented and released on their own. Propose a split, with a title per issue, as one option and a single issue as another. If one part only makes sense after another, say so in the options.
 - **Edge cases where the answer is a matter of preference rather than correctness.** For example, is a missing folder hidden or shown with a warning? Is an item shared by several collections shown once or once per collection?
 
 Don't ask about:
@@ -60,7 +60,7 @@ How to ask:
     - Offer 2 to 4 concrete options per question. Put the one you recommend first and mark it "(Recommended)". Describe the trade-off of each option in a short description.
     - For layout or design choices, use the `preview` field to show a small ASCII mockup, e.g. the explorer tree, or a snippet with the hover or the diagnostic, so the options can be compared side by side.
     - For scope questions where several items can be included independently, use `multiSelect`.
-- One call takes up to 4 questions. Ask the decisions that shape the issue most first. If more decisions that matter remain, ask a second round after the answers come in. Small points can go under "Open questions" with an assumption.
+- One call takes up to 4 questions. Ask the decisions that shape the issue most first. If more decisions that matter remain, ask a second round after the answers come in. Small points can go under "Open questions" (for a bug, under "Additional context") with an assumption.
 - Make each question understandable on its own, since the dialog may hide your earlier text. Name the feature and, if needed, what you found in the code.
 - If there is nothing to decide, skip this step and draft directly. Examples are a bug with clear expected behavior, or a request where the user already specified everything.
 
@@ -81,7 +81,7 @@ Guidelines:
 - **Code references**: use paths in backticks (`server/src/...`), not markdown links. Relative links don't resolve in a GitHub issue.
 - **Keep it short**: as short as it can be while staying understandable; a small enhancement may need only a few lines per section. Don't fill sections with "None".
 - **Decisions come from the user**: proposed behavior, acceptance criteria and "Out of scope" reflect the user's answers from step 2, not your own choices.
-- **Open questions**: only for points the user deliberately left open, or for small details that were not worth asking about. Give each one with the assumption you made. If the list gets long, step 2 asked too little: ask about the important points instead of listing them.
+- **Open questions** (for a bug, under "Additional context"): only for points the user deliberately left open, or for small details that were not worth asking about. Give each one with the assumption you made. If the list gets long, step 2 asked too little: ask about the important points instead of listing them.
 - **Don't repeat the details file**: if there will be one, keep risks and testing in the issue to a line each and leave the specifics to the file, so the two don't drift apart. For sweep-type tasks, list the affected files in the issue's scope (grouped if that helps), and leave the functions and what changes in each to the details file. Without a details file, name the functions in the issue.
 
 For a bug report, also:
@@ -97,14 +97,14 @@ Show the title and the body in two separate code blocks, so each can be copied w
 - The title in a plain code block (one line).
 - The body in a code block fenced with four backticks (` ````markdown `), because the body itself may contain code blocks with three backticks, which would otherwise end the outer block early. This is about your chat reply; don't save the issue body to a file (a formatter may rewrite the fences there).
 
-After the code blocks, add one line saying which template to choose under "New issue" on GitHub ("Bug report", "Feature or enhancement" or "Technical task"), since the template sets the labels, and that the prefilled body should be replaced with the copied one. Apart from that and a possible short note on a reframed premise before the blocks (see step 1), don't add commentary between or inside the blocks: anything inside them ends up in the issue.
+After the code blocks, add one line saying which template to choose under "New issue" on GitHub ("Bug report", "Feature or enhancement" or "Technical task"), since the template sets the labels, and that the prefilled body should be replaced with the copied one. Apart from that, a possible short note on a reframed premise before the blocks (see step 1) and the additions described below for split issues and revisions, don't add commentary between or inside the blocks: anything inside them ends up in the issue.
 
 Writing an issue changes no code, so the `CHANGELOG.md` rule from `CLAUDE.md` doesn't apply to this reply.
 
 If the user chose to split the request into several issues:
 
 - Show the title and body of each issue as described above, one issue after the other, with a short heading per issue outside the code blocks. Put an issue that others depend on first.
-- The issue numbers aren't known yet. Where one issue depends on another, refer to the other by its title in the body, e.g. under "Out of scope" ("Covered by the issue '<title>'"). Tell the user they can replace the title with the issue number after creating the issues.
+- The issue numbers aren't known yet. Where one issue depends on another, refer to the other by its title in the body. For a part that was split off, use the "Out of scope" section if the template has one ("Covered by the issue '<title>'"). For a prerequisite, say so in the "Motivation" section ("Depends on the issue '<title>'"), or under "Additional context" for a bug. Tell the user they can replace the title with the issue number after creating the issues.
 - Each issue must be understandable on its own, without the others.
 
 When the user asks for changes to the draft:
@@ -189,7 +189,7 @@ Show hovers for request paths in `bru.runRequest`
 ````markdown
 ## Summary
 
-Show a hover for the request path passed to `bru.runRequest` in scripts, with the name and method of the referenced request.
+Show a hover for the request path passed to `bru.runRequest` in scripts, with the name, method and URL of the referenced request.
 
 ## Motivation
 
