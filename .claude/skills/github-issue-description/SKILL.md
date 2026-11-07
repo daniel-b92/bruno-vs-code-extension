@@ -28,72 +28,20 @@ Ask the user only if the goal itself is unclear (you can't tell what should be d
 
 ### 2. Draft the issue
 
-Use the template for the kind of issue (see below). Guidelines:
+Read the repository's issue template for the kind of issue and use its structure:
+
+- Feature or enhancement: `.github/ISSUE_TEMPLATE/feature-or-enhancement.md`
+- Technical task: `.github/ISSUE_TEMPLATE/technical-task.md`
+
+The templates are the single source of truth for the sections, so the issues you draft look the same as ones written by hand from the template. Use the headings in their order. The frontmatter (`name`, `labels`, ...) is not part of the body. The HTML comments are hints for you: follow them, then remove them, together with optional sections that don't apply and empty placeholders like a bare `- [ ]`.
+
+Guidelines:
 
 - **Title**: short and specific, describing the outcome, e.g. "Add completions for request names in `bru.runRequest`" or "Move format-independent parsing utilities to `shared/fileParsing/external/shared/`". No prefixes like "Feature:" (labels do that job).
 - **What and why, not how**: the body describes the problem, the desired result and how to tell it's done. Implementation steps go into the details file. For a technical task, naming the modules or folders involved is fine, because they are the subject of the task.
-- **Concrete examples**: when it helps, show a small example, e.g. a `.bru` or `opencollection.yml` snippet with the place where a completion or diagnostic should appear. Mention whether both collection formats (Bru and Yaml) are affected.
-- **Acceptance criteria**: a checkbox list (`- [ ]`) of checks someone can verify, not restated goals.
 - **Code references**: use paths in backticks (`server/src/...`), not markdown links. Relative links don't resolve in a GitHub issue.
-- **Leave out empty sections** rather than filling them with "None". Keep the body as short as it can be while staying understandable; a small enhancement may need only a few lines per section.
+- **Keep it short**: as short as it can be while staying understandable; a small enhancement may need only a few lines per section. Don't fill sections with "None".
 - **Don't repeat the details file**: if there will be one, keep risks and testing in the issue to a line each and leave the specifics to the file, so the two don't drift apart.
-
-#### Template: feature or enhancement
-
-```markdown
-## Summary
-
-One to three sentences: what should be possible afterwards.
-
-## Motivation
-
-Why this is useful. For an enhancement, describe the current behavior and what is wrong or missing about it.
-
-## Proposed behavior
-
-What users will see or be able to do. Include examples where helpful.
-
-## Acceptance criteria
-
-- [ ] ...
-
-## Out of scope
-
-(optional) Related things this issue deliberately does not cover.
-
-## Open questions
-
-(optional) Decisions that are still open, and assumptions you made.
-```
-
-#### Template: technical task
-
-```markdown
-## Summary
-
-One to three sentences: what should change in the code.
-
-## Motivation
-
-Why it is worth doing (now): what is hard, duplicated, slow or error-prone today.
-
-## Scope
-
-Which areas, packages or modules are affected, and what the result should look like at a high level.
-
-## Acceptance criteria
-
-- [ ] No change in behavior for users of the extension (unless stated otherwise)
-- [ ] ...
-
-## Risks
-
-(optional) What could break, and how that would show.
-
-## Open questions
-
-(optional)
-```
 
 ### 3. Present the issue for copying
 
@@ -102,7 +50,7 @@ Show the title and the body in two separate code blocks, so each can be copied w
 - The title in a plain code block (one line).
 - The body in a code block fenced with four backticks (` ````markdown `), because the body itself may contain code blocks with three backticks, which would otherwise end the outer block early. This is about your chat reply; don't save the issue body to a file (a formatter may rewrite the fences there).
 
-After the code blocks, add one line suggesting a label: `enhancement` for features and enhancements. For technical tasks, run `gh label list` if `gh` is available and pick a fitting label; otherwise leave the label to the user. Apart from that and a possible one-line note on a reframed premise before the blocks (see step 1), don't add commentary between or inside the blocks: anything inside them ends up in the issue.
+After the code blocks, add one line saying which template to choose under "New issue" on GitHub ("Feature or enhancement" or "Technical task"), since the template sets the labels, and that the prefilled body should be replaced with the copied one. Apart from that and a possible one-line note on a reframed premise before the blocks (see step 1), don't add commentary between or inside the blocks: anything inside them ends up in the issue.
 
 Writing an issue changes no code, so the `CHANGELOG.md` rule from `CLAUDE.md` doesn't apply to this reply.
 
@@ -202,4 +150,4 @@ This works in `.bru` files and in `yaml` collections.
 - Should a missing request be reported as a diagnostic as well? (assumed: separate issue)
 ````
 
-Suggested label: `enhancement`
+Choose the "Feature or enhancement" template on GitHub and replace its prefilled body with the one above.
