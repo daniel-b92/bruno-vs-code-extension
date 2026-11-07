@@ -2,7 +2,7 @@
 name: Technical task
 about: Refactoring, cleanup, test infrastructure, build or tooling changes without an intended change in behavior
 title: ""
-labels: ""
+labels: "technical task"
 assignees: ""
 ---
 
