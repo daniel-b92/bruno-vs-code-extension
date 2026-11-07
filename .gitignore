@@ -11,3 +11,5 @@ samples/**/results.html
 samples/**/*results.json
 
 **/__temp_bru_reference.js
+# Drafts created by the github-issue-description skill
+issue-drafts/
