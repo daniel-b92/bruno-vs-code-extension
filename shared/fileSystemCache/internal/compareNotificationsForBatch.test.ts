@@ -1,12 +1,12 @@
 import { describe, it, expect } from "@jest/globals";
 import {
     BrunoRequestFile,
-    Collection,
     CollectionDirectory,
     CollectionFormat,
     FileChangeType,
     NotificationData,
 } from "../..";
+import { createCollectionWithEnvironments } from "../../_testingUtils";
 import { compareNotificationsForBatch } from "./compareNotificationsForBatch";
 
 describe("compareNotificationsForBatch", () => {
@@ -62,12 +62,7 @@ function createNotification(
     updateType: FileChangeType,
 ): NotificationData<undefined> {
     return {
-        collection: new Collection(
-            new CollectionDirectory("/collection"),
-            undefined,
-            [],
-            CollectionFormat.Bru,
-        ),
+        collection: createCollectionWithEnvironments([], CollectionFormat.Bru),
         data: {
             item: path.endsWith(".bru")
                 ? new BrunoRequestFile(path, 1)

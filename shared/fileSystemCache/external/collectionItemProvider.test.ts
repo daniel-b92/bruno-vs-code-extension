@@ -616,7 +616,7 @@ describe("CollectionItemProvider: folder settings files", () => {
         ).toEqual({
             sequenceChanged: true,
             tagsChanged: true,
-            additionalDataChanged: false,
+            additionalDataChanged: true,
         });
     });
 
@@ -642,7 +642,44 @@ describe("CollectionItemProvider: folder settings files", () => {
         );
 
         await waitUntil(() => getFolder().getSequence() == 3);
-        expect(getFolder().getSequence()).toBe(3);
+    });
+
+    it("updates the settings file path of a folder when its settings file is added without a sequence or tags", async () => {
+        const workspace = await createTemporaryDirectory(
+            getBruCollectionWithSubfolder(),
+        );
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter);
+        await provider.refreshCache();
+        const folderPath = join(workspace, "collection", "sub");
+        const settingsFilePath = join(folderPath, "folder.bru");
+        const notifications = recordNotifications(provider);
+
+        expect(
+            getRegisteredFolder(provider, folderPath).getSettingsFilePath(),
+        ).toBeUndefined();
+
+        await addFolderSettingsFile(
+            fileChangedEmitter,
+            settingsFilePath,
+            "meta {\n  name: sub\n}\n",
+        );
+
+        await waitUntil(() => notifications.length > 0);
+        expect(
+            getRegisteredFolder(provider, folderPath).getSettingsFilePath(),
+        ).toBe(settingsFilePath);
+        expect(
+            notifications.find(
+                ({ path, updateType }) =>
+                    normalizePath(path) == normalizePath(folderPath) &&
+                    updateType == FileChangeType.Modified,
+            )?.changedData,
+        ).toEqual({
+            sequenceChanged: false,
+            tagsChanged: false,
+            additionalDataChanged: true,
+        });
     });
 
     it("keeps the cached folder item if a modification of its folder settings file does not change anything relevant", async () => {

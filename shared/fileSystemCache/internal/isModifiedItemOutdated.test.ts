@@ -38,13 +38,44 @@ describe("isModifiedItemOutdated", () => {
             ).isOutdated,
         ).toBe(false);
     });
+
+    it.each([
+        ["added", undefined, "/collection/folder/folder.bru"],
+        ["deleted", "/collection/folder/folder.bru", undefined],
+        [
+            "changed",
+            "/collection/folder/folder.bru",
+            "/collection/folder/folder.yml",
+        ],
+    ])(
+        "reports outdated additional data of directories if the settings file was %s",
+        (_, oldSettingsFilePath, newSettingsFilePath) => {
+            const { isOutdated, details } = isModifiedItemOutdated(
+                createDataWithSettingsFile(undefined, oldSettingsFilePath),
+                createDataWithSettingsFile(undefined, newSettingsFilePath),
+                additionalDataProvider,
+            );
+
+            expect(isOutdated).toBe(true);
+            expect(details.additionalDataOutdated).toBe(true);
+            expect(details.sequenceOutdated).toBe(false);
+            expect(details.tagsOutdated).toBe(false);
+        },
+    );
 });
 
-function createData(tags: string[] | undefined): CollectionData<undefined> {
+function createData(tags: string[] | undefined) {
+    return createDataWithSettingsFile(tags, "/collection/folder/folder.bru");
+}
+
+function createDataWithSettingsFile(
+    tags: string[] | undefined,
+    settingsFilePath: string | undefined,
+): CollectionData<undefined> {
     return {
         item: new CollectionDirectory(
             "/collection/folder",
-            "/collection/folder/folder.bru",
+            settingsFilePath,
             1,
             tags,
         ),

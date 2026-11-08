@@ -1,5 +1,8 @@
 import { describe, it, expect } from "@jest/globals";
-import { createCollectionWithEnvironments } from "../_testingUtils";
+import {
+    createCollectionWithEnvironments,
+    createCollectionWithItems,
+} from "../_testingUtils";
 import { Collection } from "./collection";
 import { CollectionDirectory } from "./collectionDirectory";
 import { CollectionFormat } from "./interfaces";
@@ -137,17 +140,12 @@ function createCollectionWithDirectories(
     rootDirectory: string,
     directories: CollectionDirectory[],
 ) {
-    const collection = new Collection(
-        new CollectionDirectory(rootDirectory),
-        undefined,
-        [],
+    return createCollectionWithItems<undefined>(
+        directories,
         CollectionFormat.Bru,
-    );
-    directories.forEach((item) =>
-        collection.addItem({ item, additionalData: undefined }),
-    );
-
-    return collection;
+        [],
+        rootDirectory,
+    ).collection;
 }
 
 function getStoredPaths(collection: Collection<undefined>) {

@@ -27,6 +27,7 @@ import {
 import { basename, dirname } from "path";
 import { isModifiedItemOutdated } from "../internal/isModifiedItemOutdated";
 import { compareNotificationsForBatch } from "../internal/compareNotificationsForBatch";
+import { mergeNotificationsForSameItem } from "../internal/mergeNotificationsForSameItem";
 import { Evt } from "evt";
 
 export class CollectionItemProvider<T> {
@@ -675,13 +676,19 @@ export class CollectionItemProvider<T> {
         } = notificationData;
         const path = item.getPath();
 
-        if (
-            this.notificationBatch.some(
-                ({ data: { item: i }, updateType: type }) =>
-                    normalizePath(i.getPath()) == normalizePath(path) &&
-                    type == updateType,
-            )
-        ) {
+        const indexOfPendingNotification = this.notificationBatch.findIndex(
+            ({ data: { item: i }, updateType: type }) =>
+                normalizePath(i.getPath()) == normalizePath(path) &&
+                type == updateType,
+        );
+
+        if (indexOfPendingNotification >= 0) {
+            // Nothing is lost by merging: The newer notification refers to the item that is currently registered in the cache.
+            this.notificationBatch[indexOfPendingNotification] =
+                mergeNotificationsForSameItem(
+                    this.notificationBatch[indexOfPendingNotification],
+                    notificationData,
+                );
             return;
         }
 
