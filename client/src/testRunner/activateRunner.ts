@@ -64,26 +64,30 @@ export async function activateRunner(
     handleTestTreeUpdates(ctrl, collectionItemProvider, testRunnerDataHelper);
 
     collectionItemProvider.subscribeToUpdates(async (updates) => {
+        // Stop watching items that don't exist anymore (the deleted item itself and all of its descendants).
+        // This is done for the whole batch up front, because the loop below can return early.
         for (const {
-            data: { item: changedItem },
-            updateType,
-        } of updates) {
-            if (updateType == FileChangeType.Deleted) {
-                // Stop watching items that don't exist anymore (the deleted item itself and all of its descendants).
-                for (const watchedItem of Array.from(watchingTests.keys())) {
-                    if (
-                        watchedItem != "ALL" &&
-                        watchedItem.uri &&
-                        isPathEqualOrDescendant(
-                            watchedItem.uri.fsPath,
-                            changedItem.getPath(),
-                        )
-                    ) {
-                        watchingTests.delete(watchedItem);
-                    }
+            data: { item: deletedItem },
+        } of updates.filter(
+            ({ updateType }) => updateType == FileChangeType.Deleted,
+        )) {
+            for (const watchedItem of Array.from(watchingTests.keys())) {
+                if (
+                    watchedItem != "ALL" &&
+                    watchedItem.uri &&
+                    isPathEqualOrDescendant(
+                        watchedItem.uri.fsPath,
+                        deletedItem.getPath(),
+                    )
+                ) {
+                    watchingTests.delete(watchedItem);
                 }
             }
+        }
 
+        for (const {
+            data: { item: changedItem },
+        } of updates) {
             if (watchingTests.has("ALL")) {
                 await startTestRun(
                     ctrl,
