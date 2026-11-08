@@ -18,6 +18,7 @@ import { addTestItemAndAncestorsToTestTree } from "./testTreeUtils/addTestItemAn
 import { removeTestItemFromTree } from "./testTreeUtils/removeTestItemFromTree";
 import {
     normalizePath,
+    isPathEqualOrDescendant,
     FileChangeType,
     CollectionDirectory,
     CollectionItemWithSequence,
@@ -65,7 +66,24 @@ export async function activateRunner(
     collectionItemProvider.subscribeToUpdates(async (updates) => {
         for (const {
             data: { item: changedItem },
+            updateType,
         } of updates) {
+            if (updateType == FileChangeType.Deleted) {
+                // Stop watching items that don't exist anymore (the deleted item itself and all of its descendants).
+                for (const watchedItem of Array.from(watchingTests.keys())) {
+                    if (
+                        watchedItem != "ALL" &&
+                        watchedItem.uri &&
+                        isPathEqualOrDescendant(
+                            watchedItem.uri.fsPath,
+                            changedItem.getPath(),
+                        )
+                    ) {
+                        watchingTests.delete(watchedItem);
+                    }
+                }
+            }
+
             if (watchingTests.has("ALL")) {
                 await startTestRun(
                     ctrl,
@@ -94,7 +112,10 @@ export async function activateRunner(
                 // If the modified item is a descendant of a watched item, trigger a testrun for that watched item.
                 if (
                     cast.uri?.fsPath
-                        ? changedItem.getPath().includes(cast.uri.fsPath)
+                        ? isPathEqualOrDescendant(
+                              changedItem.getPath(),
+                              cast.uri.fsPath,
+                          )
                         : false
                 ) {
                     include.push(cast);
