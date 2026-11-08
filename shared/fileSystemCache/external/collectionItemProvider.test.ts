@@ -574,6 +574,202 @@ describe("CollectionItemProvider: deletion of a collection root file", () => {
     }
 });
 
+describe("CollectionItemProvider: folder settings files", () => {
+    const createTemporaryDirectory = useTemporaryDirectories();
+
+    it("updates the sequence and tags of a folder when its bru folder settings file is added later", async () => {
+        const workspace = await createTemporaryDirectory(
+            getBruCollectionWithSubfolder(),
+        );
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter);
+        await provider.refreshCache();
+        const folderPath = join(workspace, "collection", "sub");
+        const getFolder = () => getRegisteredFolder(provider, folderPath);
+
+        expect(getFolder().getSequence()).toBeUndefined();
+
+        const notifications = recordNotifications(provider);
+
+        await addFolderSettingsFile(
+            fileChangedEmitter,
+            join(folderPath, "folder.bru"),
+            "meta {\n  name: sub\n  seq: 4\n  tags: [\n    a\n  ]\n}\n",
+        );
+
+        await waitUntil(() => getFolder().getSequence() == 4);
+        expect(getFolder().getTags()).toEqual(["a"]);
+
+        await waitUntil(() =>
+            notifications.some(
+                ({ path, updateType }) =>
+                    normalizePath(path) == normalizePath(folderPath) &&
+                    updateType == FileChangeType.Modified,
+            ),
+        );
+        expect(
+            notifications.find(
+                ({ path, updateType }) =>
+                    normalizePath(path) == normalizePath(folderPath) &&
+                    updateType == FileChangeType.Modified,
+            )?.changedData,
+        ).toEqual({
+            sequenceChanged: true,
+            tagsChanged: true,
+            additionalDataChanged: false,
+        });
+    });
+
+    it("updates the sequence of a folder when its yaml folder settings file is added later", async () => {
+        const workspace = await createTemporaryDirectory({
+            "collection/opencollection.yml":
+                "opencollection: 1.0.0\ninfo:\n  name: yaml\n",
+            "collection/sub/request.yml":
+                "info:\n  name: request\n  type: http\n  seq: 1\n",
+        });
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter);
+        await provider.refreshCache();
+        const folderPath = join(workspace, "collection", "sub");
+        const getFolder = () => getRegisteredFolder(provider, folderPath);
+
+        expect(getFolder().getSequence()).toBeUndefined();
+
+        await addFolderSettingsFile(
+            fileChangedEmitter,
+            join(folderPath, "folder.yml"),
+            "info:\n  name: sub\n  type: folder\n  seq: 3\n",
+        );
+
+        await waitUntil(() => getFolder().getSequence() == 3);
+        expect(getFolder().getSequence()).toBe(3);
+    });
+
+    it("keeps the cached folder item if a modification of its folder settings file does not change anything relevant", async () => {
+        const workspace = await createTemporaryDirectory({
+            ...getBruCollectionWithSubfolder(),
+            "collection/sub/folder.bru": "meta {\n  name: sub\n  seq: 4\n}\n",
+        });
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter);
+        await provider.refreshCache();
+        const folderPath = join(workspace, "collection", "sub");
+        const folderBefore = getRegisteredFolder(provider, folderPath);
+        const notifications = recordNotifications(provider);
+
+        await modifyFolderSettingsFile(
+            fileChangedEmitter,
+            join(folderPath, "folder.bru"),
+            "meta {\n  name: renamed\n  seq: 4\n}\n",
+        );
+
+        await waitUntil(() => notifications.length > 0);
+        expect(notifications[0].changedData).toEqual({
+            sequenceChanged: false,
+            tagsChanged: false,
+            additionalDataChanged: false,
+        });
+        // The additional data of a directory (e.g. its test item) is replaced together with the item. Unnecessary replacements must be avoided,
+        // because subscribers only rebuild a directory if they are told that something changed.
+        expect(getRegisteredFolder(provider, folderPath)).toBe(folderBefore);
+    });
+
+    it("replaces the cached folder item and reports changed additional data if only the additional data is outdated", async () => {
+        const workspace = await createTemporaryDirectory({
+            ...getBruCollectionWithSubfolder(),
+            "collection/sub/folder.bru": "meta {\n  name: sub\n  seq: 4\n}\n",
+        });
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter, {
+            isAdditionalDataOutdated: () => true,
+        });
+        await provider.refreshCache();
+        const folderPath = join(workspace, "collection", "sub");
+        const folderBefore = getRegisteredFolder(provider, folderPath);
+        const notifications = recordNotifications(provider);
+
+        await modifyFolderSettingsFile(
+            fileChangedEmitter,
+            join(folderPath, "folder.bru"),
+            "meta {\n  name: renamed\n  seq: 4\n}\n",
+        );
+
+        await waitUntil(() => notifications.length > 0);
+        expect(notifications[0].changedData).toEqual({
+            sequenceChanged: false,
+            tagsChanged: false,
+            additionalDataChanged: true,
+        });
+        expect(getRegisteredFolder(provider, folderPath)).not.toBe(
+            folderBefore,
+        );
+    });
+
+    async function addFolderSettingsFile(
+        fileChangedEmitter: Evt<FileChangedEvent>,
+        path: string,
+        content: string,
+    ) {
+        await writeFile(path, content);
+        fileChangedEmitter.post({
+            path,
+            changeType: FileChangeType.Created,
+        });
+    }
+
+    async function modifyFolderSettingsFile(
+        fileChangedEmitter: Evt<FileChangedEvent>,
+        path: string,
+        content: string,
+    ) {
+        await writeFile(path, content);
+        fileChangedEmitter.post({
+            path,
+            changeType: FileChangeType.Modified,
+        });
+    }
+
+    function getBruCollectionWithSubfolder() {
+        return {
+            "collection/bruno.json": "{}",
+            "collection/sub/request.bru":
+                "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
+        };
+    }
+});
+
+describe("CollectionItemProvider: order of the batched notifications", () => {
+    const createTemporaryDirectory = useTemporaryDirectories();
+
+    it("notifies about the deletion of a path before its re-creation", async () => {
+        const workspace = await createTemporaryDirectory({
+            "collection/bruno.json": "{}",
+            "collection/request.bru":
+                "meta {\n  name: request\n  type: http\n  seq: 1\n}\n",
+        });
+        const fileChangedEmitter = Evt.create<FileChangedEvent>();
+        const provider = createProvider(workspace, fileChangedEmitter);
+        await provider.refreshCache();
+        const notifications = recordNotifications(provider);
+
+        const requestPath = join(workspace, "collection", "request.bru");
+        fileChangedEmitter.post({
+            path: requestPath,
+            changeType: FileChangeType.Deleted,
+        });
+        fileChangedEmitter.post({
+            path: requestPath,
+            changeType: FileChangeType.Created,
+        });
+
+        await waitUntil(() => notifications.length >= 2);
+        expect(notifications.map(({ updateType }) => updateType)).toEqual([
+            FileChangeType.Deleted,
+            FileChangeType.Created,
+        ]);
+    });
+});
+
 describe("CollectionItemProvider: root information passed to the data provider", () => {
     const createTemporaryDirectory = useTemporaryDirectories();
 
@@ -763,6 +959,7 @@ function createProvider(
         logger?: Logger;
         runInitialCacheLoad?: (load: () => Promise<void>) => Promise<void>;
         callback?: AdditionalDataCallback;
+        isAdditionalDataOutdated?: () => boolean;
     },
 ) {
     const collectionWatcher = new CollectionWatcher(fileChangedEmitter, [
@@ -775,7 +972,8 @@ function createProvider(
             paramType:
                 AdditionalCollectionDataProviderType.SimpleCollectionItem,
             callback: options?.callback ?? (() => undefined),
-            isAdditionalDataOutdated: () => false,
+            isAdditionalDataOutdated:
+                options?.isAdditionalDataOutdated ?? (() => false),
         },
         [],
         options?.cacheRefreshNotifier,
@@ -786,6 +984,42 @@ function createProvider(
     disposables.push(provider, collectionWatcher);
 
     return provider;
+}
+
+function recordNotifications(provider: CollectionItemProvider<undefined>) {
+    const notifications: {
+        path: string;
+        updateType: FileChangeType;
+        changedData?: {
+            sequenceChanged: boolean;
+            tagsChanged: boolean;
+            additionalDataChanged: boolean;
+        };
+    }[] = [];
+
+    provider.subscribeToUpdates((batch) =>
+        batch.forEach((notification) =>
+            notifications.push({
+                path: notification.data.item.getPath(),
+                updateType: notification.updateType,
+                changedData:
+                    notification.updateType == FileChangeType.Modified
+                        ? notification.changedData
+                        : undefined,
+            }),
+        ),
+    );
+
+    return notifications;
+}
+
+function getRegisteredFolder(
+    provider: CollectionItemProvider<undefined>,
+    folderPath: string,
+) {
+    return provider
+        .getRegisteredCollections()[0]
+        .getStoredDataForPath(folderPath)?.item as CollectionDirectory;
 }
 
 /** A load is counted by the info log entry that the provider writes after finishing a scan of the file system. */

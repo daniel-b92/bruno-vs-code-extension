@@ -1,5 +1,7 @@
 import { describe, it, expect } from "@jest/globals";
 import { createCollectionWithEnvironments } from "../_testingUtils";
+import { Collection } from "./collection";
+import { CollectionDirectory } from "./collectionDirectory";
 import { CollectionFormat } from "./interfaces";
 
 describe("Collection.getEnvironmentInheritanceChain", () => {
@@ -99,3 +101,57 @@ describe("Collection.getEnvironments", () => {
         ).toEqual(["Dev"]);
     });
 });
+
+describe("Collection.removeTestItemAndDescendants", () => {
+    it("removes the descendants of a directory when the drive letter in the stored paths is lower case (Windows)", () => {
+        const folder = new CollectionDirectory("c:\\coll\\folder");
+        const collection = createCollectionWithDirectories("c:\\coll", [
+            folder,
+            new CollectionDirectory("c:\\coll\\folder\\sub"),
+            new CollectionDirectory("c:\\coll\\other"),
+        ]);
+
+        collection.removeTestItemAndDescendants(folder);
+
+        expect(getStoredPaths(collection)).toEqual([
+            "c:\\coll",
+            "c:\\coll\\other",
+        ]);
+    });
+
+    it("does not remove sibling directories that share the name prefix of the removed one", () => {
+        const folder = new CollectionDirectory("/coll/foo");
+        const collection = createCollectionWithDirectories("/coll", [
+            folder,
+            new CollectionDirectory("/coll/foo/sub"),
+            new CollectionDirectory("/coll/foobar"),
+        ]);
+
+        collection.removeTestItemAndDescendants(folder);
+
+        expect(getStoredPaths(collection)).toEqual(["/coll", "/coll/foobar"]);
+    });
+});
+
+function createCollectionWithDirectories(
+    rootDirectory: string,
+    directories: CollectionDirectory[],
+) {
+    const collection = new Collection(
+        new CollectionDirectory(rootDirectory),
+        undefined,
+        [],
+        CollectionFormat.Bru,
+    );
+    directories.forEach((item) =>
+        collection.addItem({ item, additionalData: undefined }),
+    );
+
+    return collection;
+}
+
+function getStoredPaths(collection: Collection<undefined>) {
+    return collection
+        .getAllStoredDataForCollection()
+        .map(({ item }) => item.getPath());
+}

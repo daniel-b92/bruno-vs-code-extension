@@ -15,10 +15,10 @@ import {
 import { startTestRun } from "./internal/startTestRun";
 import { TestRunQueue } from "./internal/testRunQueue";
 import { addTestItemAndAncestorsToTestTree } from "./testTreeUtils/addTestItemAndAncestorsToTestTree";
-import { getTestId } from "./testTreeUtils/testTreeHelper";
-import { dirname } from "path";
+import { removeTestItemFromTree } from "./testTreeUtils/removeTestItemFromTree";
 import {
     normalizePath,
+    isPathEqualOrDescendant,
     FileChangeType,
     CollectionDirectory,
     CollectionItemWithSequence,
@@ -66,7 +66,24 @@ export async function activateRunner(
     collectionItemProvider.subscribeToUpdates(async (updates) => {
         for (const {
             data: { item: changedItem },
+            updateType,
         } of updates) {
+            if (updateType == FileChangeType.Deleted) {
+                // Stop watching items that don't exist anymore (the deleted item itself and all of its descendants).
+                for (const watchedItem of Array.from(watchingTests.keys())) {
+                    if (
+                        watchedItem != "ALL" &&
+                        watchedItem.uri &&
+                        isPathEqualOrDescendant(
+                            watchedItem.uri.fsPath,
+                            changedItem.getPath(),
+                        )
+                    ) {
+                        watchingTests.delete(watchedItem);
+                    }
+                }
+            }
+
             if (watchingTests.has("ALL")) {
                 await startTestRun(
                     ctrl,
@@ -95,7 +112,10 @@ export async function activateRunner(
                 // If the modified item is a descendant of a watched item, trigger a testrun for that watched item.
                 if (
                     cast.uri?.fsPath
-                        ? changedItem.getPath().includes(cast.uri.fsPath)
+                        ? isPathEqualOrDescendant(
+                              changedItem.getPath(),
+                              cast.uri.fsPath,
+                          )
                         : false
                 ) {
                     include.push(cast);
@@ -332,14 +352,14 @@ function handleTestTreeUpdates(
                 isRelevantForTestTree(testRunnerDataHelper, collection, item)
             ) {
                 addTestItemAndAncestorsToTestTree(controller, collection, item);
-                // ToDo: Fix handling of creation of Collection directories
             } else if (
                 updateType == FileChangeType.Modified &&
                 isCollectionDirectory(item) &&
                 (update.changedData?.sequenceChanged ||
-                    update.changedData?.tagsChanged)
+                    update.changedData?.tagsChanged ||
+                    update.changedData?.additionalDataChanged)
             ) {
-                /* Modifications of directories only arise from changes in their settings file. The directory then has a new (empty) test item,
+                /* The cache only replaces a directory if one of these properties has changed. The directory then has a new (empty) test item,
                 so the directory needs to be re-added together with its descendants. */
                 removeTestItemFromTree(
                     controller,
@@ -376,10 +396,9 @@ function handleTestTreeUpdates(
                         testItem.uri as Uri,
                     );
                 }
-            } else if (
-                updateType == FileChangeType.Deleted &&
-                isRelevantForTestTree(testRunnerDataHelper, collection, item)
-            ) {
+            } else if (updateType == FileChangeType.Deleted) {
+                /* The relevance for the test tree must not be checked here: The cache has already removed deleted items and their descendants,
+                so e.g. a deleted directory never has any test files left. Removing an item that is not in the tree does nothing. */
                 removeTestItemFromTree(
                     controller,
                     collection,
@@ -407,20 +426,6 @@ function addCollectionTestItemToTestTree(
         collection.getStoredDataForPath(collection.getRootDirectory())
             ?.additionalData.testItem as VscodeTestItem,
     );
-}
-
-function removeTestItemFromTree(
-    controller: TestController,
-    collection: TypedCollection,
-    itemUri: Uri,
-) {
-    const parentItem = collection.getStoredDataForPath(dirname(itemUri.fsPath));
-
-    if (parentItem) {
-        parentItem.additionalData.testItem.children.delete(getTestId(itemUri));
-    } else {
-        controller.items.delete(getTestId(itemUri));
-    }
 }
 
 function isRelevantForTestTree(
