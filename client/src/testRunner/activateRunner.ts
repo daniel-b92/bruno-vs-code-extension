@@ -352,7 +352,6 @@ function handleTestTreeUpdates(
                 isRelevantForTestTree(testRunnerDataHelper, collection, item)
             ) {
                 addTestItemAndAncestorsToTestTree(controller, collection, item);
-                // ToDo: Fix handling of creation of Collection directories
             } else if (
                 updateType == FileChangeType.Modified &&
                 isCollectionDirectory(item) &&
