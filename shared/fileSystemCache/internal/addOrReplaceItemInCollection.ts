@@ -129,7 +129,10 @@ function handleAlreadyRegisteredItemWithSamePath<T>(
     newData: CollectionData<T>,
     additionalDataProvider: AdditionalCollectionDataProvider<T>,
 ) {
-    if (isModifiedItemOutdated(oldData, newData, additionalDataProvider)) {
+    if (
+        isModifiedItemOutdated(oldData, newData, additionalDataProvider)
+            .isOutdated
+    ) {
         collection.removeTestItemIfRegistered(oldData.item.getPath());
         collection.addItem(newData);
     }

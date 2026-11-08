@@ -337,9 +337,10 @@ function handleTestTreeUpdates(
                 updateType == FileChangeType.Modified &&
                 isCollectionDirectory(item) &&
                 (update.changedData?.sequenceChanged ||
-                    update.changedData?.tagsChanged)
+                    update.changedData?.tagsChanged ||
+                    update.changedData?.additionalDataChanged)
             ) {
-                /* Modifications of directories only arise from changes in their settings file. The directory then has a new (empty) test item,
+                /* The cache only replaces a directory if one of these properties has changed. The directory then has a new (empty) test item,
                 so the directory needs to be re-added together with its descendants. */
                 removeTestItemFromTree(
                     controller,
