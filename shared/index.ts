@@ -13,6 +13,7 @@ export * from "./fileSystem/lineBreakTypeEnum";
 export * from "./fileSystem/util/checkIfPathExistsAsync";
 export * from "./fileSystem/util/collectionFormatFileNames";
 export * from "./fileSystem/util/normalizeDirectoryPath";
+export * from "./fileSystem/util/isPathEqualOrDescendant";
 export * from "./fileSystem/util/doesFileNameMatchFolderSettingsFileName";
 export * from "./fileSystem/util/isInFolderForEnvironmentFiles";
 export * from "./fileSystem/util/getTestFileDescendants";

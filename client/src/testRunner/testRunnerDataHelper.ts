@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { getTestId, getTestLabel, addTestItemAndAncestorsToTestTree } from ".";
 import {
-    normalizePath,
+    isPathEqualOrDescendant,
     CollectionDirectory,
     CollectionItemWithSequence,
     CollectionItem,
@@ -57,8 +57,6 @@ export class TestRunnerDataHelper {
         collectionForDirectory: TypedCollection,
         directory: CollectionDirectory,
     ) {
-        const normalizedDirectoryPath = normalizePath(directory.getPath());
-
         return collectionForDirectory
             .getAllStoredDataForCollection()
             .slice()
@@ -66,7 +64,10 @@ export class TestRunnerDataHelper {
             .filter(
                 (item) =>
                     item.isFile() &&
-                    item.getPath().startsWith(normalizedDirectoryPath) &&
+                    isPathEqualOrDescendant(
+                        item.getPath(),
+                        directory.getPath(),
+                    ) &&
                     isRequestFile(item) &&
                     item.getSequence() != undefined,
             ) as CollectionItemWithSequence[];
