@@ -15,8 +15,7 @@ import {
 import { startTestRun } from "./internal/startTestRun";
 import { TestRunQueue } from "./internal/testRunQueue";
 import { addTestItemAndAncestorsToTestTree } from "./testTreeUtils/addTestItemAndAncestorsToTestTree";
-import { getTestId } from "./testTreeUtils/testTreeHelper";
-import { dirname } from "path";
+import { removeTestItemFromTree } from "./testTreeUtils/removeTestItemFromTree";
 import {
     normalizePath,
     FileChangeType,
@@ -377,10 +376,9 @@ function handleTestTreeUpdates(
                         testItem.uri as Uri,
                     );
                 }
-            } else if (
-                updateType == FileChangeType.Deleted &&
-                isRelevantForTestTree(testRunnerDataHelper, collection, item)
-            ) {
+            } else if (updateType == FileChangeType.Deleted) {
+                /* The relevance for the test tree must not be checked here: The cache has already removed deleted items and their descendants,
+                so e.g. a deleted directory never has any test files left. Removing an item that is not in the tree does nothing. */
                 removeTestItemFromTree(
                     controller,
                     collection,
@@ -408,20 +406,6 @@ function addCollectionTestItemToTestTree(
         collection.getStoredDataForPath(collection.getRootDirectory())
             ?.additionalData.testItem as VscodeTestItem,
     );
-}
-
-function removeTestItemFromTree(
-    controller: TestController,
-    collection: TypedCollection,
-    itemUri: Uri,
-) {
-    const parentItem = collection.getStoredDataForPath(dirname(itemUri.fsPath));
-
-    if (parentItem) {
-        parentItem.additionalData.testItem.children.delete(getTestId(itemUri));
-    } else {
-        controller.items.delete(getTestId(itemUri));
-    }
 }
 
 function isRelevantForTestTree(
