@@ -7,6 +7,7 @@ import {
     CollectionItem,
     getFileExtensionForFormat,
     isEnvironmentFile,
+    isPathEqualOrDescendant,
     normalizePath,
 } from "..";
 
@@ -125,9 +126,10 @@ export class Collection<T> {
         if (item instanceof CollectionDirectory) {
             const descendantsToRemove = this.testData.filter(
                 ({ item: registered }) =>
-                    registered
-                        .getPath()
-                        .startsWith(normalizePath(item.getPath())),
+                    isPathEqualOrDescendant(
+                        registered.getPath(),
+                        item.getPath(),
+                    ),
             );
             for (const { item: toRemove } of descendantsToRemove) {
                 this.removeTestItemIfRegistered(toRemove.getPath());

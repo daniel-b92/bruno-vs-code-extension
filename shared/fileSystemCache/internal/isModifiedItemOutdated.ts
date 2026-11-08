@@ -1,5 +1,6 @@
 import {
     AdditionalCollectionDataProvider,
+    isCollectionDirectory,
     CollectionItemWithTags,
     CollectionData,
     isCollectionItemWithSequence,
@@ -30,11 +31,16 @@ export function isModifiedItemOutdated<T>(
         isCollectionItemWithTags(newItem) &&
         !areTagsUpToDate(oldItem, newItem);
 
+    // The settings file path is stored in the item itself, so the item needs to be replaced if it changes (e.g. if the settings file was added or deleted).
+    // The additional data of the item is replaced together with it, so this is reported as outdated additional data.
     const isOutdatedDueToAdditionaData =
         additionalDataProvider.isAdditionalDataOutdated(
             alreadyRegisteredData.additionalData,
             newData.additionalData,
-        );
+        ) ||
+        (isCollectionDirectory(oldItem) &&
+            isCollectionDirectory(newItem) &&
+            oldItem.getSettingsFilePath() != newItem.getSettingsFilePath());
 
     return {
         isOutdated:

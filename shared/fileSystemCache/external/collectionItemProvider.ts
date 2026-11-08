@@ -26,6 +26,8 @@ import {
 } from "../..";
 import { basename, dirname } from "path";
 import { isModifiedItemOutdated } from "../internal/isModifiedItemOutdated";
+import { compareNotificationsForBatch } from "../internal/compareNotificationsForBatch";
+import { mergeNotificationsForSameItem } from "../internal/mergeNotificationsForSameItem";
 import { Evt } from "evt";
 
 export class CollectionItemProvider<T> {
@@ -418,6 +420,26 @@ export class CollectionItemProvider<T> {
             return;
         }
 
+        if (
+            collectionData.item.getItemType() ==
+            BrunoFileType.FolderSettingsFile
+        ) {
+            // The folder settings file can be added to an already registered folder without a preceding event for the folder itself.
+            const parentFolderData = registeredCollection.getStoredDataForPath(
+                dirname(itemPath),
+            );
+
+            if (
+                parentFolderData &&
+                isCollectionItemWithSequence(parentFolderData.item)
+            ) {
+                await this.handleFolderSettingsUpdate(
+                    registeredCollection,
+                    parentFolderData,
+                );
+            }
+        }
+
         await this.handleOutboundNotification({
             collection: registeredCollection,
             data: collectionData,
@@ -654,13 +676,19 @@ export class CollectionItemProvider<T> {
         } = notificationData;
         const path = item.getPath();
 
-        if (
-            this.notificationBatch.some(
-                ({ data: { item: i }, updateType: type }) =>
-                    normalizePath(i.getPath()) == normalizePath(path) &&
-                    type == updateType,
-            )
-        ) {
+        const indexOfPendingNotification = this.notificationBatch.findIndex(
+            ({ data: { item: i }, updateType: type }) =>
+                normalizePath(i.getPath()) == normalizePath(path) &&
+                type == updateType,
+        );
+
+        if (indexOfPendingNotification >= 0) {
+            // Nothing is lost by merging: The newer notification refers to the item that is currently registered in the cache.
+            this.notificationBatch[indexOfPendingNotification] =
+                mergeNotificationsForSameItem(
+                    this.notificationBatch[indexOfPendingNotification],
+                    notificationData,
+                );
             return;
         }
 
@@ -677,12 +705,7 @@ export class CollectionItemProvider<T> {
             this.notificationSendEventTimer = setTimeout(() => {
                 const notificationData = this.notificationBatch
                     .splice(0)
-                    .sort(
-                        (
-                            { data: { item: item1 } },
-                            { data: { item: item2 } },
-                        ) => (item1.getPath() < item2.getPath() ? -1 : 1),
-                    );
+                    .sort(compareNotificationsForBatch);
 
                 this.logger?.debug(
                     `${this.commonPreMessageForLogging} Firing event for a batch of ${notificationData.length} updated items.`,

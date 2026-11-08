@@ -64,10 +64,12 @@ export function createCollectionWithItems<TProvider>(
     items: CollectionItem[],
     format: CollectionFormat,
     environmentNames: string[] = [],
+    rootDirectory?: string,
 ) {
     const collection = createCollectionWithEnvironments(
         environmentNames.map((name) => ({ name })),
         format,
+        rootDirectory,
     );
     items.forEach((item) =>
         collection.addItem({ item, additionalData: undefined }),
