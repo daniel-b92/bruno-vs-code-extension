@@ -285,7 +285,7 @@ function getContentForAuthModeBlock(
     );
 }
 
-function getContentForDictionaryBlock(
+export function getContentForDictionaryBlock(
     fields: { key: string; predefinedValues?: string | string[] }[],
     lineBreak: LineBreakType,
     lastSelectedKeyWithoutPredefinedValues?: string,

@@ -24,6 +24,7 @@ import { LanguageFeatureBaseRequest } from "../../../../shared";
 import { getFixedCompletionItems } from "../generic/getFixedCompletionItems";
 import { getLinePatternForDictionaryField } from "../generic/getLinePatternForDictionaryField";
 import { getCompletionsForKeys } from "../generic/getCompletionsForKeys";
+import { getOAuth2GrantTypeValueCompletions } from "./getOAuth2GrantTypeValueCompletions";
 
 export function getAuthBlockContentCompletions(
     request: LanguageFeatureBaseRequest,
@@ -41,6 +42,15 @@ export function getAuthBlockContentCompletions(
 
         if (completionsForKeys) {
             return completionsForKeys;
+        }
+
+        if (block.name == AuthBlockName.OAuth2Auth) {
+            const grantTypeValueCompletions =
+                getOAuth2GrantTypeValueCompletions(request, block);
+
+            if (grantTypeValueCompletions) {
+                return grantTypeValueCompletions;
+            }
         }
     }
 
