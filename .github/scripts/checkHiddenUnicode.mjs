@@ -71,7 +71,7 @@ for (const file of trackedFiles) {
 if (findings.length > 0) {
     console.error(findings.join("\n"));
     console.error(
-        "\nInvisible or direction-changing Unicode characters found. Remove them or check carefully why they are needed.",
+        "\nInvisible or direction-changing Unicode characters found. Remove them or check carefully why they are needed (see CONTRIBUTING.md).",
     );
     process.exit(1);
 }

@@ -65,7 +65,7 @@ jobs:
                   {
                       echo "### Sensitive files changed"
                       echo
-                      echo "Code from these files can run automatically on developer machines. Review them carefully before merging."
+                      echo "Code from these files can run automatically on developer machines. Review them carefully before merging. This check is expected to fail for such changes and does not block merging, see CONTRIBUTING.md."
                       echo
                       sed 's/^/- `/; s/$/`/' <<< "$sensitive_files"
                   } >> "$GITHUB_STEP_SUMMARY"

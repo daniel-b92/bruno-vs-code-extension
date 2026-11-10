@@ -42,7 +42,7 @@ const sensitiveModulesAndPackages = [
 ];
 const sensitiveModuleRegex = `/^(node:)?(${[...sensitiveModules, ...sensitivePackages].join("|")})$/`;
 const sensitiveModuleMessage =
-    "This module allows spawning processes, accessing the network or executing code. If it is really needed, allow it for the specific file in 'eslint.config.ts'.";
+    "This module allows spawning processes, accessing the network or executing code. If it is really needed, allow it for the specific file in 'eslint.config.ts' (see CONTRIBUTING.md).";
 
 const getRestrictedSensitiveImportsRule = (allowedModules: string[] = []) =>
     [

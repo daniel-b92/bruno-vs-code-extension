@@ -71,7 +71,7 @@ for (const packageJsonFile of packageJsonFiles) {
 if (errors.length > 0) {
     console.error(errors.join("\n"));
     console.error(
-        "\nReview the install scripts. If they are fine, add the packages to the allowlist in .github/scripts/checkInstallScripts.mjs.",
+        "\nReview the install scripts. If they are fine, add the packages to the allowlist in .github/scripts/checkInstallScripts.mjs (see CONTRIBUTING.md).",
     );
     process.exit(1);
 }
