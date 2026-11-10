@@ -15,10 +15,12 @@ jobs:
 
         steps:
             - name: Check out repository
-              uses: actions/checkout@v5
+              uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+              with:
+                  persist-credentials: false
 
             - name: Set up Node.js
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
               with:
                   node-version: 24
                   cache: npm
@@ -37,3 +39,62 @@ jobs:
 
             - name: Run tests
               run: npm run test
+
+    supply-chain-checks:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+              with:
+                  persist-credentials: false
+
+            - name: Set up Node.js
+              uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+              with:
+                  node-version: 24
+                  cache: npm
+
+            - name: Check for unexpected install scripts
+              run: node .github/scripts/checkInstallScripts.mjs
+
+            - name: Check for hidden Unicode characters
+              run: node .github/scripts/checkHiddenUnicode.mjs
+
+            - name: Install dependencies without running install scripts
+              run: npm ci --ignore-scripts
+
+            - name: Check lockfiles
+              run: npm run check-lockfiles
+
+            - name: Verify registry signatures of dependencies
+              run: |
+                  npm audit signatures
+                  for directory in client server tsPlugin; do
+                      echo "::group::$directory"
+                      (cd "$directory" && npm ci --ignore-scripts && npm audit signatures)
+                      echo "::endgroup::"
+                  done
+
+    dependency-review:
+        if: github.event_name == 'pull_request'
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Review added and changed dependencies
+              uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+
+    workflow-security-checks:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+              with:
+                  persist-credentials: false
+
+            - name: Check workflows with zizmor
+              uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
+              with:
+                  advanced-security: false
+                  annotations: true

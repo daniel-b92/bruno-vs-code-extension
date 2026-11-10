@@ -34,11 +34,4 @@ Other extensions that also handle Bruno collections (e.g. the official [Bruno](h
 ## Contributing
 
 For contributing, check out the GitHub repository https://github.com/daniel-b92/bruno-vs-code-extension.
-You need to have `Node.js` and `npm` installed.
-Run the following command to install the dependencies of all projects:
-
-```bash
-npm install && cd client && npm install && cd ../server && npm install && cd ..
-```
-
-If you want to make changes to the Typescript language service plugin used by the extension, see its [Readme](./tsPlugin/README.md) for more infos.
+See [CONTRIBUTING.md](https://github.com/daniel-b92/bruno-vs-code-extension/blob/main/CONTRIBUTING.md) for how to set up the project and which checks run for pull requests.
