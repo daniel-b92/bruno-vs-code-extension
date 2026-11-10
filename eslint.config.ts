@@ -1,5 +1,5 @@
 import boundaries, { Config, Settings, Rules } from "eslint-plugin-boundaries";
-import type { Linter } from "eslint";
+import type { ESLint, Linter } from "eslint";
 import * as parser from "@typescript-eslint/parser";
 import tsEslintPlugin from "@typescript-eslint/eslint-plugin";
 
@@ -35,24 +35,58 @@ const sensitivePackages = [
     "undici",
     "ws",
 ];
-const sensitiveModulesAndPackages = [
-    ...sensitiveModules,
-    ...sensitiveModules.map((module) => `node:${module}`),
-    ...sensitivePackages,
-];
-const sensitiveModuleRegex = `/^(node:)?(${[...sensitiveModules, ...sensitivePackages].join("|")})$/`;
 const sensitiveModuleMessage =
     "This module allows spawning processes, accessing the network or executing code. If it is really needed, allow it for the specific file in 'eslint.config.ts' (see CONTRIBUTING.md).";
+
+const withoutNodePrefix = (name: string) => name.replace(/^node:/, "");
+
+/**
+ * The modules are allowed with and without the `node:` prefix.
+ */
+const getRestrictedSensitiveModules = (allowedModules: string[]) =>
+    [...sensitiveModules, ...sensitivePackages].filter(
+        (name) => !allowedModules.map(withoutNodePrefix).includes(name),
+    );
 
 const getRestrictedSensitiveImportsRule = (allowedModules: string[] = []) =>
     [
         2,
         {
-            paths: sensitiveModulesAndPackages
-                .filter((name) => !allowedModules.includes(name))
+            paths: getRestrictedSensitiveModules(allowedModules)
+                .flatMap((name) =>
+                    sensitiveModules.includes(name)
+                        ? [name, `node:${name}`]
+                        : [name],
+                )
                 .map((name) => ({ name, message: sensitiveModuleMessage })),
         },
     ] satisfies Linter.RuleEntry;
+
+const getRestrictedSensitiveSyntaxRule = (allowedModules: string[] = []) => {
+    const moduleRegex = `/^(node:)?(${getRestrictedSensitiveModules(allowedModules).join("|")})$/`;
+
+    return [
+        2,
+        {
+            selector: `ImportExpression[source.value=${moduleRegex}]`,
+            message: sensitiveModuleMessage,
+        },
+        {
+            selector: `CallExpression[callee.name="require"][arguments.0.value=${moduleRegex}]`,
+            message: sensitiveModuleMessage,
+        },
+        {
+            selector: `ImportExpression[source.type!="Literal"]`,
+            message:
+                "Dynamic imports must use a string literal, so that the imported module can be checked.",
+        },
+        {
+            selector: `CallExpression[callee.name="require"][arguments.0.type!="Literal"]`,
+            message:
+                "'require' must be called with a string literal, so that the imported module can be checked.",
+        },
+    ] satisfies Linter.RuleEntry;
+};
 
 const getAllowedSensitiveImportsConfig = (
     file: string,
@@ -63,37 +97,30 @@ const getAllowedSensitiveImportsConfig = (
         rules: {
             "@typescript-eslint/no-restricted-imports":
                 getRestrictedSensitiveImportsRule(allowedModules),
+            "no-restricted-syntax":
+                getRestrictedSensitiveSyntaxRule(allowedModules),
         },
     }) satisfies Linter.Config;
 
 const restrictedSensitiveApisConfig = {
     files: ["**/*.ts"],
-    languageOptions: { parser },
-    plugins: { "@typescript-eslint": tsEslintPlugin },
+    languageOptions: {
+        parser,
+        // Needed for 'no-implied-eval' to detect the usage of these functions with strings.
+        globals: {
+            setTimeout: "readonly",
+            setInterval: "readonly",
+            setImmediate: "readonly",
+        },
+    },
+    plugins: {
+        // The types of the plugin's (legacy) configs and rules are not type-compatible with ESLint 10, but this has no effect at runtime.
+        "@typescript-eslint": tsEslintPlugin as unknown as ESLint.Plugin,
+    },
     rules: {
         "@typescript-eslint/no-restricted-imports":
             getRestrictedSensitiveImportsRule(),
-        "no-restricted-syntax": [
-            2,
-            {
-                selector: `ImportExpression[source.value=${sensitiveModuleRegex}]`,
-                message: sensitiveModuleMessage,
-            },
-            {
-                selector: `CallExpression[callee.name="require"][arguments.0.value=${sensitiveModuleRegex}]`,
-                message: sensitiveModuleMessage,
-            },
-            {
-                selector: `ImportExpression[source.type!="Literal"]`,
-                message:
-                    "Dynamic imports must use a string literal, so that the imported module can be checked.",
-            },
-            {
-                selector: `CallExpression[callee.name="require"][arguments.0.type!="Literal"]`,
-                message:
-                    "'require' must be called with a string literal, so that the imported module can be checked.",
-            },
-        ],
+        "no-restricted-syntax": getRestrictedSensitiveSyntaxRule(),
         "no-restricted-globals": [
             2,
             ...["fetch", "WebSocket", "XMLHttpRequest", "EventSource"].map(
@@ -153,7 +180,15 @@ const getForbiddenCrossFormatImportsConfig = (
     }) satisfies Linter.Config;
 
 export default [
-    { ignores: ["**/node_modules/**", "**/dist/**", "**/out/**", "**/*.d.ts"] },
+    {
+        ignores: [
+            "**/node_modules/**",
+            "**/dist/**",
+            "**/out/**",
+            "**/*.d.ts",
+            ".claude/**",
+        ],
+    },
     restrictedSensitiveApisConfig,
     getAllowedSensitiveImportsConfig(
         "client/src/testRunner/internal/testExecutionUtils/spawnChildProcess.ts",

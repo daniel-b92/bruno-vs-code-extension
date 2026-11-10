@@ -42,7 +42,7 @@
         "compile": "cd client && webpack --mode development && cd ../server && webpack --mode development && cd ..",
         "compileWithLocalTsPlugin": "cd tsPlugin && tsc --project tsconfig.json && mkdir -p ../node_modules/typescript-for-bruno && cp -r ./out/. ../node_modules/typescript-for-bruno && cd ../client && webpack --mode development && cd ../server && webpack --mode development && cd ..",
         "lint": "eslint \"**/*.ts\"",
-        "check-lockfiles": "lockfile-lint --path \"{package-lock.json,client/package-lock.json,server/package-lock.json}\" --type npm --allowed-hosts npm --validate-https --validate-integrity-strict --validate-package-names --empty-hostname false --allowed-package-name-aliases @jest/react-is-18:react-is @jest/react-is-19:react-is string-width-cjs:string-width strip-ansi-cjs:strip-ansi wrap-ansi-cjs:wrap-ansi --format plain",
+        "check-lockfiles": "node .github/scripts/checkLockfiles.mjs",
         "check-types": "tsc -b client server && tsc -p tsPlugin/tsconfig.test.json && tsc -p syntaxes/tsconfig.json",
         "watch": "cd client && webpack --mode development --watch",
         "package": "cd client && webpack --mode production --devtool hidden-source-map && cd ../server && webpack --mode production --devtool hidden-source-map && cd ..",

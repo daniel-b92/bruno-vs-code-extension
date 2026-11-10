@@ -4,18 +4,10 @@
 // allowed explicitly below after reviewing it.
 
 import { readFileSync } from "node:fs";
+import { getTrackedFilesWithName } from "./trackedFiles.mjs";
 
-const lockfiles = [
-    "package-lock.json",
-    "client/package-lock.json",
-    "server/package-lock.json",
-];
-const packageJsonFiles = [
-    "package.json",
-    "client/package.json",
-    "server/package.json",
-    "tsPlugin/package.json",
-];
+const lockfiles = getTrackedFilesWithName("package-lock.json");
+const packageJsonFiles = getTrackedFilesWithName("package.json");
 
 const allowedPackagesWithInstallScripts = new Set([
     "@parcel/watcher",
@@ -27,6 +19,7 @@ const lifecycleScriptsRunOnInstall = [
     "install",
     "postinstall",
     "prepublish",
+    "dependencies",
     "preprepare",
     "prepare",
     "postprepare",

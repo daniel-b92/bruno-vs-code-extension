@@ -26,7 +26,7 @@ This check fails if a pull request changes files that can execute code automatic
 
 - `package.json` and `package-lock.json` files, `.npmrc`
 - config files that are executed by tools (`*.config.js`, `*.config.ts`, `tsconfig*.json`, `.prettierrc*`)
-- editor and AI agent configuration (`.vscode/`, `.devcontainer/`, `.claude/`, `CLAUDE.md`, `AGENTS.md`, `.mcp.json`)
+- editor and AI agent configuration (`.vscode/`, `*.code-workspace`, `.devcontainer/`, `.claude/`, `CLAUDE.md`, `AGENTS.md`, `.mcp.json`; also within subfolders)
 - CI configuration and git settings (`.github/`, `.gitmodules`, `.husky/`)
 
 The complete list is in [sensitive-files.yml](.github/workflows/sensitive-files.yml).
@@ -41,12 +41,12 @@ If a new dependency really needs its install script, add the package name to `al
 
 ### Lockfiles (`supply-chain-checks` job)
 
-`npm run check-lockfiles` uses [lockfile-lint](https://www.npmjs.com/package/lockfile-lint) to make sure that all dependencies are downloaded via HTTPS from the npm registry, with a complete `sha512` integrity hash, and that the downloaded package matches the package name in the lockfile. You can run it locally as well.
+`npm run check-lockfiles` uses [lockfile-lint](https://www.npmjs.com/package/lockfile-lint) to check all tracked `package-lock.json` files and make sure that all dependencies are downloaded via HTTPS from the npm registry, with a complete `sha512` integrity hash, and that the downloaded package matches the package name in the lockfile. You can run it locally as well.
 
 - Dependencies from git repositories, other registries or URLs are not accepted.
-- If a dependency uses an npm alias (e.g. `"string-width-cjs": "npm:string-width@^4.2.0"`), add the alias to `--allowed-package-name-aliases` in the `check-lockfiles` script in [package.json](package.json), in the format `<alias>:<package name>`.
+- If a dependency uses an npm alias (e.g. `"string-width-cjs": "npm:string-width@^4.2.0"`), add the alias to `allowedPackageNameAliases` in [checkLockfiles.mjs](.github/scripts/checkLockfiles.mjs), in the format `<alias>:<package name>`.
 
-The job also runs `npm audit signatures`, which verifies the registry signatures of all installed packages.
+The job also installs the dependencies of the root project, `client`, `server` and `tsPlugin` (without running install scripts) and runs `npm audit signatures` for each of them, which verifies the registry signatures of all installed packages.
 
 ### Dependency review (`dependency-review` job)
 
@@ -54,13 +54,13 @@ Fails if a pull request adds dependencies with known vulnerabilities. Choose a v
 
 ### Hidden Unicode characters (`supply-chain-checks` job)
 
-Fails if a file contains invisible or direction-changing Unicode characters (e.g. zero-width spaces, bidirectional control characters, unusual variation selectors or characters from private use areas). These can make code look different from what it actually does. Single variation selectors directly after emojis (e.g. in `⚠️`) are fine.
+Fails if a file contains invisible or direction-changing Unicode characters (e.g. zero-width spaces, bidirectional control characters, unusual variation selectors or characters from private use areas). These can make code look different from what it actually does. Emojis are fine, including single variation selectors after emojis (e.g. in `⚠️`), keycap emojis and zero width joiners within emoji sequences.
 
 Usually, the characters were added by accident and can be removed. If a file really needs to contain one of them (e.g. as test data), use an escape sequence (e.g. `\uFEFF`) instead of the character itself if possible. Otherwise, add the file with the allowed code points to `allowedCharactersPerFile` in [checkHiddenUnicode.mjs](.github/scripts/checkHiddenUnicode.mjs).
 
 ### Restricted modules and APIs (`npm run lint`)
 
-ESLint does not allow modules and APIs that can spawn processes, access the network or execute code dynamically. This includes Node.js modules like `child_process`, `http`, `https`, `net` and `vm`, packages like `axios` or `execa`, the global `fetch`, `eval` and `new Function`, as well as `require()` or `import()` without a string literal.
+ESLint does not allow modules and APIs that can spawn processes, access the network or execute code dynamically in TypeScript files. (JavaScript files such as config files are not linted, but are covered by the sensitive files check above.) This includes Node.js modules like `child_process`, `http`, `https`, `net` and `vm`, packages like `axios` or `execa`, the global `fetch`, `eval` and `new Function`, as well as `require()` or `import()` without a string literal.
 
 If a file really needs one of the modules, allow it only for that file via `getAllowedSensitiveImportsConfig(...)` in [eslint.config.ts](eslint.config.ts), like it is done for spawning the Bruno CLI in `spawnChildProcess.ts`. Keep this kind of code in as few files as possible.
 

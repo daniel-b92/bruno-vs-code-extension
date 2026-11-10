@@ -36,8 +36,9 @@ jobs:
                       (^|/)tsconfig[^/]*\.json$
                       (^|/)(CLAUDE|AGENTS)\.md$
                       (^|/)\.mcp\.json$
-                      ^\.claude/
-                      ^\.vscode/
+                      (^|/)\.claude/
+                      (^|/)\.vscode/
+                      \.code-workspace$
                       ^\.devcontainer/
                       ^\.husky/
                       ^\.github/
