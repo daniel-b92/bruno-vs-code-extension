@@ -11,7 +11,11 @@ import {
     OAuth2GrantType,
     OAuth2ViaAuthorizationCodeBlockKeys,
 } from "@global_shared";
-import { CompletionItem, InsertTextFormat } from "vscode-languageserver";
+import {
+    CompletionItem,
+    InsertTextFormat,
+    InsertTextMode,
+} from "vscode-languageserver";
 import { LanguageFeatureBaseRequest } from "../../../../shared";
 import { getContentForDictionaryBlock } from "../generic/getDictionaryBlockSnippetInsertionContent";
 import { getLinePatternForDictionaryField } from "../generic/getLinePatternForDictionaryField";
@@ -87,6 +91,8 @@ export function getOAuth2GrantTypeValueCompletions(
                 newText: `${textEdit.newText}${lineBreak}${removeOneTrailingLineBreak(fieldsContent, lineBreak)}`,
             },
             insertTextFormat: InsertTextFormat.Snippet,
+            // Otherwise, VS Code would add the indentation of the current line to all subsequent lines of the snippet.
+            insertTextMode: InsertTextMode.asIs,
         };
     });
 }

@@ -103,12 +103,6 @@ function getCompletionsForValues(
         [
             {
                 linePattern: getLinePatternForDictionaryField(
-                    OAuth2ViaAuthorizationCodeBlockKeys.GrantType,
-                ),
-                choices: Object.values(OAuth2GrantType),
-            },
-            {
-                linePattern: getLinePatternForDictionaryField(
                     ApiKeyAuthBlockKeys.Placement,
                 ),
                 choices: valuesForPlacementKey,

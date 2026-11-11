@@ -79,6 +79,88 @@ describe("getAuthBlockContentCompletions", () => {
                 ),
             );
         });
+
+        it("inserts the mandatory fields with the exact expected text, order and formatting", () => {
+            const content = getOAuth2BlockContent("");
+
+            const updatedContent = getContentAfterSelectingGrantTypeCompletion(
+                content,
+                OAuth2GrantType.ClientCredentials,
+            );
+
+            expect(updatedContent).toBe(
+                "meta {\n  name: request\n  type: http\n  seq: 1\n}\n\nget {\n  url: https://example.com\n}\n\nauth:oauth2 {\n  grant_type: client_credentials\n  credentials_id:\n  token_placement: header\n  token_header_prefix:\n  auto_fetch_token: true\n  scope:\n  client_id:\n  token_source: access_token\n  access_token_url:\n  refresh_token_url:\n  client_secret:\n  auto_refresh_token: true\n  credentials_placement: body\n}\n",
+            );
+        });
+
+        it("inserts a mandatory field again if it is only defined as a disabled field", () => {
+            const content = getOAuth2BlockContent(
+                "\n  ~client_id: some-client-id",
+            );
+
+            const updatedContent = getContentAfterSelectingGrantTypeCompletion(
+                content,
+                OAuth2GrantType.ClientCredentials,
+            );
+
+            // A disabled field does not count as a definition of the key.
+            expect(updatedContent).toContain("\n  client_id:\n");
+            expect(updatedContent).toContain("\n  ~client_id: some-client-id");
+
+            const diagnostics =
+                getDiagnosticsAfterSelectingGrantTypeCompletion(
+                    content,
+                    OAuth2GrantType.ClientCredentials,
+                );
+
+            expect(diagnostics).toEqual([]);
+        });
+
+        it("inserts the mandatory fields if the 'grant_type' line is not the last line of the block", () => {
+            const content = getOAuth2BlockContent("\n  scope: read");
+
+            const updatedContent = getContentAfterSelectingGrantTypeCompletion(
+                content,
+                OAuth2GrantType.ClientCredentials,
+            );
+
+            // The fields are inserted directly after the 'grant_type' line and the already defined field is not inserted again.
+            expect(updatedContent).toContain(
+                "grant_type: client_credentials\n  credentials_id:",
+            );
+            expect(updatedContent.match(/\n  scope:/g)).toHaveLength(1);
+
+            const diagnostics =
+                getDiagnosticsAfterSelectingGrantTypeCompletion(
+                    content,
+                    OAuth2GrantType.ClientCredentials,
+                );
+
+            expect(diagnostics).toEqual([]);
+        });
+
+        it("uses CRLF line breaks for the inserted fields if the file uses CRLF line breaks", () => {
+            const content = getOAuth2BlockContent("").replace(/\n/g, "\r\n");
+
+            const updatedContent = getContentAfterSelectingGrantTypeCompletion(
+                content,
+                OAuth2GrantType.ClientCredentials,
+            );
+
+            expect(updatedContent).toContain(
+                "grant_type: client_credentials\r\n  credentials_id:",
+            );
+            // No bare LF line breaks should be introduced.
+            expect(updatedContent.replace(/\r\n/g, "")).not.toContain("\n");
+
+            const diagnostics =
+                getDiagnosticsAfterSelectingGrantTypeCompletion(
+                    content,
+                    OAuth2GrantType.ClientCredentials,
+                );
+
+            expect(diagnostics).toEqual([]);
+        });
     });
 });
 
