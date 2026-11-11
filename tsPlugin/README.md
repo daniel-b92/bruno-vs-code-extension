@@ -20,7 +20,7 @@ The code blocks are analyzed as follows:
 
 For using the local TS plugin within the VS Code extension, please follow these steps:
 
-- Replace the `name` in the base [package.json](../package.json) for the `typescriptServerPlugins` contibution field with the name `typescript-for-bruno`.
+- Replace the `name` in the base [package.json](../package.json) for the `typescriptServerPlugins` contribution field with the name `typescript-for-bruno`.
 - Use the launch configuration `Run Extension With local TS plugin` for launching the extension
 
 ## Configuration
