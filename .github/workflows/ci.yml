@@ -70,11 +70,9 @@ jobs:
             - name: Verify registry signatures of dependencies
               run: |
                   npm audit signatures
-                  for directory in client server tsPlugin; do
-                      echo "::group::$directory"
-                      (cd "$directory" && npm ci --ignore-scripts && npm audit signatures)
-                      echo "::endgroup::"
-                  done
+                  echo "::group::tsPlugin"
+                  (cd tsPlugin && npm ci --ignore-scripts && npm audit signatures)
+                  echo "::endgroup::"
 
     dependency-review:
         if: github.event_name == 'pull_request'

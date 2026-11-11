@@ -7,7 +7,7 @@ Thanks for your interest in contributing! This document explains how to set up t
 You need to have `Node.js` (the CI uses version 24) and `npm` installed. Run the following command to install the dependencies of all projects:
 
 ```bash
-npm install && cd client && npm install && cd ../server && npm install && cd ../tsPlugin && npm install && cd ..
+npm install && cd tsPlugin && npm install && cd ..
 ```
 
 Before opening a pull request, run `npm run lint`, `npm run check-types`, `npm run compile` and `npm run test`. These are the same steps as in the `build-and-test` job of the CI.
@@ -70,7 +70,7 @@ If a new dependency really needs its install script, add the package name to `al
 - Dependencies from git repositories, other registries or URLs are not accepted.
 - If a dependency uses an npm alias (e.g. `"string-width-cjs": "npm:string-width@^4.2.0"`), add the alias to `allowedPackageNameAliases` in [checkLockfiles.mjs](.github/scripts/checkLockfiles.mjs), in the format `<alias>:<package name>`.
 
-The job also installs the dependencies of the root project, `client`, `server` and `tsPlugin` (without running install scripts) and runs `npm audit signatures` for each of them, which verifies the registry signatures of all installed packages.
+The job also installs the dependencies of the root project and `tsPlugin` (without running install scripts) and runs `npm audit signatures` for each of them, which verifies the registry signatures of all installed packages.
 
 ### Dependency review (`dependency-review` job)
 

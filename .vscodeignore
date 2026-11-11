@@ -18,8 +18,6 @@ samples/
 **/webpack.config.js
 eslint.config.ts
 jest.config.js
-client/package-lock.json
-server/package-lock.json
 *.vsix
 coverage/
 images/
