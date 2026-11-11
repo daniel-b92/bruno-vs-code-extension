@@ -50,7 +50,7 @@ This check fails if a pull request changes files that can execute code automatic
 
 - `package.json` and `package-lock.json` files, `.npmrc`
 - config files that are executed by tools (`*.config.js`, `*.config.ts`, `tsconfig*.json`, `.prettierrc*`)
-- editor and AI agent configuration (`.vscode/`, `*.code-workspace`, `.devcontainer/`, `.claude/`, `CLAUDE.md`, `AGENTS.md`, `.mcp.json`; also within subfolders), as well as `CONVENTIONS.md`, which is imported into `CLAUDE.md`
+- editor and AI agent configuration (`.vscode/`, `*.code-workspace`, `.devcontainer/`, `.claude/`, `CLAUDE.md`, `AGENTS.md`, `.mcp.json`; also within subfolders), as well as `CONVENTIONS.md` (imported into `CLAUDE.md`) and `CONTRIBUTING.md` (which `CLAUDE.md` tells AI agents to read)
 - CI configuration and git settings (`.github/`, `.gitmodules`, `.husky/`)
 
 The complete list is in [sensitive-files.yml](.github/workflows/sensitive-files.yml).

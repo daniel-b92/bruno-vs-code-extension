@@ -13,7 +13,7 @@ If your change is noticeable for users of the published extension (e.g. new or c
 ## Tests
 
 - Keep test code as clean as production code. Before writing a helper (mock builder, fixture factory, ...), check whether one already exists that you can reuse or extend.
-- Shared test utilities live in `shared/_testingUtils/` (exported by its `index.ts`). If a helper would also be useful in another test, even in a different package, move it there instead of copying it. `shared` tests import it with a relative path (`../_testingUtils`), `server` tests via `@global_shared/_testingUtils`.
+- Shared test utilities live in `shared/_testingUtils/` (exported by its `index.ts`). If a helper would also be useful in another test, even in a different package, move it there instead of copying it. `shared` tests import it with a relative path (`../_testingUtils`), `server` tests via `@global_shared/_testingUtils` (the wildcard path mapping `@global_shared/*` → `shared/*`). Don't export test helpers from the main `shared/index.ts`, it is reserved for production code.
 - Within a test file, put file-local helpers at the bottom, after the tests.
 - Tests for parsing must define the parsed file content (e.g. Bru or Yaml documents) as a string inside the test. Don't read files from `samples/` or other fixture files on disk.
 - Jest only transpiles the code and does not report type errors in tests. They are only caught by `npm run check-types`.
@@ -29,7 +29,7 @@ Use `npm run check-types`, not `tsc -p <project>` or `tsc --noEmit` for `client`
 
 ## Syntax highlighting
 
-The grammar for `.bru` files ([bru.tmLanguage.json](./syntaxes/bru.tmLanguage.json)) is maintained by hand. The grammars that highlight embedded content in `yaml` collection files (the `syntaxes/yaml-*.injection.json` files) are **generated**, so don't edit them directly:
+The grammars in [syntaxes/](./syntaxes) are maintained by hand (e.g. [bru.tmLanguage.json](./syntaxes/bru.tmLanguage.json) for `.bru` files), except for the grammars that highlight embedded content in `yaml` collection files (the `syntaxes/yaml-*.injection.json` files). Those are **generated**, so don't edit them directly:
 
 1. Change the sources in [syntaxes/generation/](./syntaxes/generation).
 2. Run `npm run generate-syntaxes` to regenerate the JSON files, and commit them together with your changes.
