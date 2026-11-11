@@ -27,6 +27,7 @@ jobs:
                   PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
                   PULL_REQUEST_AUTHOR: ${{ github.event.pull_request.user.login }}
                   # Extended regular expressions for the paths of sensitive files.
+                  # `CONVENTIONS.md` is included since it is imported into `CLAUDE.md` and therefore loaded as instructions for AI agents.
                   SENSITIVE_FILE_PATTERNS: |
                       (^|/)package(-lock)?\.json$
                       (^|/)\.npmrc$
@@ -35,6 +36,7 @@ jobs:
                       (^|/)[^/]*\.config\.[cm]?[jt]s$
                       (^|/)tsconfig[^/]*\.json$
                       (^|/)(CLAUDE|AGENTS)\.md$
+                      ^CONVENTIONS\.md$
                       (^|/)\.mcp\.json$
                       (^|/)\.claude/
                       (^|/)\.vscode/
