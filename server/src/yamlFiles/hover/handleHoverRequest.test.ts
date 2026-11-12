@@ -126,6 +126,23 @@ runtime:
         expect(getHoverText(result)).toContain("`http`");
     });
 
+    it("shows the flow of an oauth2 auth as mandatory", () => {
+        const text = `http:
+  method: GET
+  auth:
+    type: oauth2
+    flow: authorization_code
+    scope: sc
+`;
+
+        expect(getHoverText(hover(text, new Position(4, 6)))).toContain(
+            "**flow** (mandatory)",
+        );
+        expect(getHoverText(hover(text, new Position(5, 6)))).toContain(
+            "**scope** (optional)",
+        );
+    });
+
     it("returns no key hover for an unknown key", () => {
         const text = `http:
   method: GET

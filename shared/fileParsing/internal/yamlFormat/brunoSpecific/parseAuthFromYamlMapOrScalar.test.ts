@@ -526,6 +526,27 @@ describe("parseAuthFromYamlMapOrScalar", () => {
                 .properties.value?.value,
         ).toBe("b");
     });
+
+    it("returns an error for auth of type 'oauth2' without a flow and marks the flow as mandatory", () => {
+        const { result, errors, mapDescriptors } = parseAuth(`auth:
+    type: oauth2
+    scope: sc`);
+
+        expect(errors.map(({ message }) => message)).toEqual([
+            "Mandatory key 'flow' missing in Yaml map.",
+        ]);
+        expect(
+            (result?.value as ParsedOAuth2Auth).properties.flow,
+        ).toBeUndefined();
+        const authDescriptor = mapDescriptors.find(({ expectedKeys }) =>
+            expectedKeys.some(({ key }) => key == "flow"),
+        )!;
+        expect(
+            authDescriptor.expectedKeys
+                .filter(({ isMandatory }) => isMandatory)
+                .map(({ key }) => key),
+        ).toEqual(["flow"]);
+    });
 });
 
 function parseAuth(documentText: string): {

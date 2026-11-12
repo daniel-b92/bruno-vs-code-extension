@@ -424,6 +424,8 @@ runtime:
         expect(diagnostics.map(({ message }) => message)).toEqual([
             "Mandatory key 'flow' missing in Yaml map.",
         ]);
+        // Parsing errors have no explicit severity, so clients show them as errors (unlike the previous warning).
+        expect(diagnostics[0].severity).toBeUndefined();
     });
 
     it("should not warn about missing keys other than the flow for auth types 'oauth1' and 'oauth2'", () => {
