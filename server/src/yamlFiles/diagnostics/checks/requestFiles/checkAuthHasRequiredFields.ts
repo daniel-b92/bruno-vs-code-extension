@@ -1,13 +1,12 @@
-import {
-    AuthType,
-    OAuth2AuthProperty,
-    ParsedAuth,
-    YamlMapDescriptor,
-} from "@global_shared";
+import { AuthType, ParsedAuth, YamlMapDescriptor } from "@global_shared";
 import { Diagnostic, DiagnosticSeverity } from "vscode-languageserver";
 
-// For these types, which keys are relevant depends on the used signature method.
-const authTypesWithAllKeysOptional: AuthType[] = [AuthType.Oauth1];
+// For these types, which keys are relevant depends on the used signature method (OAuth1) or flow (OAuth2).
+// For OAuth2, the flow is the only mandatory key, so a missing flow is already reported by the parser.
+const authTypesWithoutRequiredFieldsCheck: AuthType[] = [
+    AuthType.Oauth1,
+    AuthType.Oauth2,
+];
 
 export function checkAuthHasRequiredFields(
     auth: ParsedAuth | undefined,
@@ -18,7 +17,7 @@ export function checkAuthHasRequiredFields(
         return undefined;
     }
     const { properties } = auth.value;
-    if (authTypesWithAllKeysOptional.includes(properties.type.value)) {
+    if (authTypesWithoutRequiredFieldsCheck.includes(properties.type.value)) {
         return undefined;
     }
     // The auth map is the one that defines the `type` key at the position of the parsed type.
@@ -32,15 +31,9 @@ export function checkAuthHasRequiredFields(
         return undefined;
     }
     const definedKeys = authMapDescriptor.definedKeys.map(({ key }) => key);
-    // For OAuth2, which other keys are relevant depends on the selected flow, so only the flow itself is required.
     const missingKeys = authMapDescriptor.expectedKeys
         .map(({ key }) => key)
-        .filter((key) => !definedKeys.includes(key))
-        .filter(
-            (key) =>
-                properties.type.value != AuthType.Oauth2 ||
-                key == OAuth2AuthProperty.Flow,
-        );
+        .filter((key) => !definedKeys.includes(key));
 
     return missingKeys.length > 0
         ? {

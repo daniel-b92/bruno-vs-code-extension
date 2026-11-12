@@ -412,7 +412,7 @@ runtime:
         }
     });
 
-    it("should warn if the flow is missing for oauth2 auth", () => {
+    it("should report an error if the flow is missing for oauth2 auth", () => {
         const diagnostics = getDiagnostics(
             validRequest({
                 http: `  auth:
@@ -422,9 +422,10 @@ runtime:
         );
 
         expect(diagnostics.map(({ message }) => message)).toEqual([
-            "Missing keys for auth type 'oauth2': 'flow'.",
+            "Mandatory key 'flow' missing in Yaml map.",
         ]);
-        expect(diagnostics[0].severity).toBe(DiagnosticSeverity.Warning);
+        // Parsing errors have no explicit severity, so clients show them as errors (unlike the previous warning).
+        expect(diagnostics[0].severity).toBeUndefined();
     });
 
     it("should not warn about missing keys other than the flow for auth types 'oauth1' and 'oauth2'", () => {

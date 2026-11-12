@@ -69,6 +69,23 @@ describe("handleCompletionRequest for yaml files", () => {
         });
     });
 
+    describe("keys of an oauth2 auth", () => {
+        it("marks the flow as mandatory and sorts it before the optional keys", async () => {
+            const result = await complete(
+                requestPath,
+                "http:\n  method: GET\n  auth:\n    type: oauth2\n    \n",
+                new Position(4, 4),
+            );
+
+            const flowItem = result?.find(({ label }) => label == "flow");
+            expect(flowItem?.sortText).toBe("a_flow");
+            expect(flowItem?.labelDetails).toBeUndefined();
+            const scopeItem = result?.find(({ label }) => label == "scope");
+            expect(scopeItem?.sortText).toBe("b_scope");
+            expect(scopeItem?.labelDetails).toEqual({ detail: " optional" });
+        });
+    });
+
     describe("key insertion", () => {
         it("inserts a sequence snippet for sequence keys", async () => {
             const result = await complete(

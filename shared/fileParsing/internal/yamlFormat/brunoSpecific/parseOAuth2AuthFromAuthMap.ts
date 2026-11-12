@@ -76,6 +76,8 @@ export function parseOAuth2AuthFromAuthMap(
                 },
             },
             mapValues: mapKeys,
+            // The flow decides which other keys are relevant, so it is the only mandatory key.
+            mandatoryKeys: [OAuth2AuthProperty.Flow],
         },
         commonArgs,
         collectedErrors,

@@ -3,6 +3,7 @@
 ### Fixes / Maintenance
 
 - Insert the grant type-specific mandatory fields of an `auth:oauth2` block when selecting a completion for the `grant_type` field, so that no missing-keys error appears afterwards.
+- Mark the `flow` key of an `oauth2` auth in Yaml files as mandatory in the completions and hovers. A missing `flow` is now reported as an error instead of a warning.
 - Fix an issue that caused deleted, renamed or moved folders and deleted collections to stay in the test explorer, and that left empty parent folders in the test explorer after their last test was removed.
 - Fix an issue that caused a newly added `folder.bru` or `folder.yml` file to be ignored for the sequence and tags of its folder in the test explorer until the file was edited or refreshed.
 - Fix an issue that could cause a folder or collection to lose its children in the test explorer after changes that did not affect its sequence or tags (e.g. selecting an environment).
