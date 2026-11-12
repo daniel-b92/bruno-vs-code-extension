@@ -7,7 +7,7 @@
 - Fix an issue that could cause a folder or collection to lose its children in the test explorer after changes that did not affect its sequence or tags (e.g. selecting an environment).
 - Fix an issue that caused continuous test runs to also be triggered by changes in folders whose names start with the name of a watched folder, and stop watching tests whose folder was deleted.
 - Fix an issue on Windows that could leave items in the test explorer after deleting a folder when the drive letter in its path was lower case.
-- Reduce the size of the extension package by no longer bundling duplicated dependencies.
+- Reduce the size of the extension package by no longer bundling duplicated dependencies and source maps.
 
 ## [2.1.0] (2026-11-06)
 
