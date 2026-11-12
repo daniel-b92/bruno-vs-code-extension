@@ -18,9 +18,8 @@ samples/
 **/webpack.config.js
 eslint.config.ts
 jest.config.js
-client/package-lock.json
-server/package-lock.json
 *.vsix
+**/*.map
 coverage/
 images/
 
@@ -28,6 +27,7 @@ CLAUDE.md
 CONTRIBUTING.md
 yaml-support-open-issues-after-caching.md
 plans/
+issue-drafts/
 
 .claude/
 .github/
