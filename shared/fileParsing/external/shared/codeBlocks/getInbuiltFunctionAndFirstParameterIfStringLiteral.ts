@@ -15,7 +15,6 @@ export interface InbuiltFunctionParsingParams {
     relevantContent: {
         asString: string;
         startPosition: Position;
-        offsetInFullDocument?: number;
     };
     functionsToSearchFor: InbuiltFunctionIdentifier[];
     position: Position;
@@ -210,7 +209,7 @@ function findStringLiteralStartingAt(
         return undefined;
     }
 
-    // An empty template literal has no `template` token.
+    // The `template` token (the text between the backticks) can be missing, depending on the content.
     const closingQuote = second?.type == tokTypes.template ? third : second;
 
     return closingQuote?.type == tokTypes.backQuote

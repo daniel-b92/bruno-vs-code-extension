@@ -14,6 +14,9 @@ export interface JavascriptToken {
  * Only lexical errors (e.g. a string that is not closed within its line) make the tokenizer fail.
  * In that case, the rest of the line is skipped and tokenizing continues in the next line.
  * So an error only affects the code close to it.
+ *
+ * After an unclosed block comment or template literal, the following lines are still tokenized as code.
+ * That is intended, so that e.g. references to Bruno variables keep working while the user is typing the closing characters.
  */
 export function tokenizeJavascript(content: string): JavascriptToken[] {
     const tokens: JavascriptToken[] = [];
