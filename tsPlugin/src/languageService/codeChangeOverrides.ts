@@ -1,4 +1,5 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
+import { getTypescript } from "../typescriptModule";
 import {
     adjustIndentationOfChangesForYamlScripts,
     createCheckForChangesWithinCodeBlocks,
@@ -201,7 +202,7 @@ function hasEditsWithinCodeBlocks(
         return (
             proxy.getEditsForRefactor(
                 fileName,
-                ts.getDefaultFormatCodeSettings(),
+                getTypescript().getDefaultFormatCodeSettings(),
                 positionOrRange,
                 refactorName,
                 actionName,

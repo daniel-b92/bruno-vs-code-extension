@@ -1,5 +1,6 @@
 import { posix } from "path";
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
+import { getTypescript } from "../typescriptModule";
 import { getRootFolderOfContainingCollection } from "../collection/collectionFormat";
 import { findStringLiteralAtPosition } from "./findStringLiteralAtPosition";
 
@@ -86,7 +87,7 @@ function getEntriesInDirectory(
                 // Like for other Javascript modules, the extension is not needed for `.js` files.
                 name:
                     extension == ".js" ? posix.basename(name, extension) : name,
-                kind: ts.ScriptElementKind.scriptElement,
+                kind: getTypescript().ScriptElementKind.scriptElement,
                 kindModifiers: extension,
             };
         });
@@ -97,8 +98,8 @@ function getEntriesInDirectory(
         .filter((name) => name != "node_modules" && !name.startsWith("."))
         .map((name) => ({
             name,
-            kind: ts.ScriptElementKind.directory,
-            kindModifiers: ts.ScriptElementKindModifier.none,
+            kind: getTypescript().ScriptElementKind.directory,
+            kindModifiers: getTypescript().ScriptElementKindModifier.none,
         }));
 
     return [...files, ...directories];
@@ -108,9 +109,9 @@ function isPassedToRequire(literal: ts.Node) {
     const { parent } = literal;
 
     return (
-        ts.isCallExpression(parent) &&
+        getTypescript().isCallExpression(parent) &&
         parent.arguments[0] === literal &&
-        ts.isIdentifier(parent.expression) &&
+        getTypescript().isIdentifier(parent.expression) &&
         parent.expression.text == "require"
     );
 }

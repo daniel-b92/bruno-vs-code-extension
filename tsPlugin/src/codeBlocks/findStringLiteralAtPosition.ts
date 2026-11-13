@@ -1,4 +1,5 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
+import { getTypescript } from "../typescriptModule";
 import { findDeepestNodeContainingPosition } from "./findDeepestNodeContainingPosition";
 
 /**
@@ -13,7 +14,10 @@ export function findStringLiteralAtPosition(
 
     if (
         !node ||
-        !(ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node))
+        !(
+            getTypescript().isStringLiteral(node) ||
+            getTypescript().isNoSubstitutionTemplateLiteral(node)
+        )
     ) {
         return undefined;
     }

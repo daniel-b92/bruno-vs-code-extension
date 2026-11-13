@@ -119,6 +119,9 @@ module.exports = {
                     },
                 ],
             },
+            setupFiles: [
+                "<rootDir>/src/_testingUtils/setUpTypescriptModule.ts",
+            ],
             testMatch: ["<rootDir>/src/**/*.test.ts"],
             moduleFileExtensions: ["ts", "js", "json"],
             modulePathIgnorePatterns: ["<rootDir>/out/"],

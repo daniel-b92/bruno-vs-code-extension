@@ -1,5 +1,5 @@
 import { posix } from "path";
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
 import { createCheckForChangesWithinCodeBlocks } from "../codeChanges/codeChanges";
 import { getRootFolderOfContainingCollection } from "../collection/collectionFormat";
 import { hasEmbeddedCodeBlocks } from "../fileTypes";

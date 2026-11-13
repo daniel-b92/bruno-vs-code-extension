@@ -1,5 +1,6 @@
 import { basename } from "path";
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
+import { getTypescript } from "../typescriptModule";
 import { getRootFolderOfContainingCollection } from "../collection/collectionFormat";
 import { hasEmbeddedCodeBlocks } from "../fileTypes";
 
@@ -18,12 +19,15 @@ export function treatCollectionFilesLikeJavascript(
     const getOriginalScriptKind = host.getScriptKind?.bind(host);
     host.getScriptKind = (fileName) => {
         if (!hasEmbeddedCodeBlocks(fileName)) {
-            return getOriginalScriptKind?.(fileName) ?? ts.ScriptKind.Unknown;
+            return (
+                getOriginalScriptKind?.(fileName) ??
+                getTypescript().ScriptKind.Unknown
+            );
         }
 
         markScriptInfoAsJavascript(info, fileName);
 
-        return ts.ScriptKind.JS;
+        return getTypescript().ScriptKind.JS;
     };
 
     const resolveOriginally = getOriginalModuleResolver(host);
@@ -55,7 +59,7 @@ export function treatCollectionFilesLikeJavascript(
         const fileInCollectionRoot = `${collectionRoot}/${basename(containingFile)}`;
 
         return moduleLiterals.map((literal) =>
-            ts.resolveModuleName(
+            getTypescript().resolveModuleName(
                 literal.text,
                 fileInCollectionRoot,
                 options,
@@ -63,7 +67,7 @@ export function treatCollectionFilesLikeJavascript(
                 undefined,
                 redirectedReference,
                 containingSourceFile
-                    ? ts.getModeForUsageLocation(
+                    ? getTypescript().getModeForUsageLocation(
                           containingSourceFile,
                           literal,
                           options,
@@ -92,7 +96,7 @@ function getOriginalModuleResolver(
         containingSourceFile,
     ) =>
         moduleLiterals.map((literal) =>
-            ts.resolveModuleName(
+            getTypescript().resolveModuleName(
                 literal.text,
                 containingFile,
                 options,
@@ -100,7 +104,7 @@ function getOriginalModuleResolver(
                 undefined,
                 redirectedReference,
                 containingSourceFile
-                    ? ts.getModeForUsageLocation(
+                    ? getTypescript().getModeForUsageLocation(
                           containingSourceFile,
                           literal,
                           options,
@@ -127,6 +131,6 @@ function markScriptInfoAsJavascript(
     if (scriptInfo && !scriptInfo.isJavaScript()) {
         // The property is read-only for plugins, but needs to be changed here.
         (scriptInfo as { scriptKind: ts.ScriptKind }).scriptKind =
-            ts.ScriptKind.JS;
+            getTypescript().ScriptKind.JS;
     }
 }

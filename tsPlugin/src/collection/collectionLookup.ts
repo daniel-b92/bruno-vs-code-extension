@@ -1,5 +1,5 @@
 import { dirname } from "path";
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
 import {
     isPathWithinFolder,
     usesCaseSensitiveFileNames,

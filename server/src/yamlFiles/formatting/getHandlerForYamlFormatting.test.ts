@@ -2,12 +2,12 @@ import { BrunoFileType, ItemType } from "@global_shared";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { getHandlerForYamlFormatting } from "./getHandlerForYamlFormatting";
 
-// Prettier can't be loaded in jest (it needs dynamic imports of ES modules), so it's replaced by simple stand-ins.
+// Prettier is replaced by simple stand-ins, so that the tests don't depend on its exact formatting rules.
 // The stand-in for scripts appends a semicolon to every line (that doesn't end with one yet) and uses the configured line break.
 // The stand-in for Yaml collapses multiple spaces after a colon to one and fails for content containing `!invalid`.
 // The stand-in for scripts fails for content containing `!broken`.
-jest.mock("prettier", () => ({
-    format: async (
+jest.mock("../../shared/formatWithPrettier", () => ({
+    formatWithPrettier: async (
         code: string,
         { parser, endOfLine }: { parser: string; endOfLine: string },
     ) => {

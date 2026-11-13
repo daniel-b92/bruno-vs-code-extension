@@ -1,25 +1,38 @@
-import {
-    createSourceFile,
-    Node,
-    ScriptTarget,
-    SourceFile,
-    SyntaxKind,
-} from "typescript";
+import { tokTypes } from "acorn";
 import {
     InbuiltFunctionIdentifier,
     Position,
     Range,
     TextDocumentHelper,
 } from "../../../..";
+import {
+    isNameToken,
+    JavascriptToken,
+    tokenizeJavascript,
+} from "../../../internal/shared/tokenizeJavascript";
 
 export interface InbuiltFunctionParsingParams {
     relevantContent: {
         asString: string;
         startPosition: Position;
-        offsetInFullDocument?: number;
     };
     functionsToSearchFor: InbuiltFunctionIdentifier[];
     position: Position;
+}
+
+interface OffsetRange {
+    start: number;
+    end: number;
+}
+
+interface InbuiltFunctionCall {
+    identifier: InbuiltFunctionIdentifier;
+    /** The part of the call before the opening bracket (e.g. `bru.getVar`). */
+    callee: OffsetRange;
+    /** The call including the arguments. If the closing bracket is missing, only the first argument is included. */
+    call: OffsetRange;
+    /** Includes the quotes. Is `undefined` if the first argument is not a string literal without substitutions. */
+    firstParameter: OffsetRange | undefined;
 }
 
 export function getInbuiltFunctionAndFirstParameterIfStringLiteral(
@@ -42,20 +55,10 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(
         relevantContent: {
             asString: relevantContent,
             startPosition: contentStartPosition,
-            offsetInFullDocument: defaultOffsetWithinDocument,
         },
         functionsToSearchFor,
         position,
     } = params;
-    const subDocumentHelper = new TextDocumentHelper(relevantContent);
-    const { offsetWithinSubdocument } = getOffsetsToUse(
-        position,
-        subDocumentHelper,
-        contentStartPosition,
-        defaultOffsetWithinDocument,
-    );
-    const { asTsNode: contentAsTsNode, sourceFile } =
-        parseAsTsNode(relevantContent);
 
     if (
         functionsToSearchFor.every(
@@ -67,66 +70,51 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(
         return undefined;
     }
 
-    const descendantNodeWithFunctionIdentifier =
-        searchDescendantNodesForFunctionIdentifier(
-            sourceFile,
-            contentAsTsNode,
-            functionsToSearchFor,
-            offsetWithinSubdocument,
-        );
-
-    if (!descendantNodeWithFunctionIdentifier) {
-        return undefined;
-    }
-
-    const {
-        parent: lastReachedNode,
-        child: inbuiltFunctionNode,
-        functionIdentifier,
-    } = descendantNodeWithFunctionIdentifier;
-
-    const nodeForSyntaxList = lastReachedNode
-        .getChildren(sourceFile)
-        .find(({ kind }) => kind == SyntaxKind.SyntaxList);
-
-    if (
-        !nodeForSyntaxList ||
-        nodeForSyntaxList.getChildCount(sourceFile) == 0
-    ) {
-        return undefined;
-    }
-
-    const firstParameterNode = nodeForSyntaxList.getChildAt(0, sourceFile);
-
-    const canHandleNodeType = [
-        SyntaxKind.NoSubstitutionTemplateLiteral, // String quoted via '`'
-        SyntaxKind.StringLiteral, // String quoted via '"' or "'"
-    ].includes(firstParameterNode.kind);
-
-    const firstParameter = extractVariableFromResultNode(
-        {
-            startPosition: contentStartPosition,
-            subDocumentHelper,
-        },
-        firstParameterNode,
-        sourceFile,
+    const subDocumentHelper = new TextDocumentHelper(relevantContent);
+    const offsetWithinSubdocument = getOffsetWithinSubdocument(
+        position,
+        subDocumentHelper,
+        contentStartPosition,
     );
 
-    return canHandleNodeType && firstParameter != undefined
+    // If calls are nested (e.g. `bru.setVar("a", bru.getVar("b"))`), the innermost call that contains the position is relevant.
+    const innermostCall = findInbuiltFunctionCalls(
+        relevantContent,
+        functionsToSearchFor,
+    )
+        .filter(({ call }) =>
+            doesRangeContainOffset(call, offsetWithinSubdocument),
+        )
+        .sort((a, b) => b.call.start - a.call.start)[0];
+
+    if (!innermostCall?.firstParameter) {
+        return undefined;
+    }
+
+    const { identifier, callee, firstParameter } = innermostCall;
+    const parameterPositions = getParameterPositions(
+        firstParameter,
+        subDocumentHelper,
+        contentStartPosition,
+    );
+
+    return parameterPositions
         ? {
               inbuiltFunction: {
-                  identifier: functionIdentifier,
-                  nodeContainsPosition: doesNodeContainOffset(
-                      inbuiltFunctionNode,
-                      sourceFile,
+                  identifier,
+                  nodeContainsPosition: doesRangeContainOffset(
+                      callee,
                       offsetWithinSubdocument,
                   ),
               },
               firstParameter: {
-                  ...firstParameter,
-                  nodeContainsPosition: doesNodeContainOffset(
-                      firstParameterNode,
-                      sourceFile,
+                  name: relevantContent.substring(
+                      firstParameter.start + 1,
+                      firstParameter.end - 1,
+                  ),
+                  ...parameterPositions,
+                  nodeContainsPosition: doesRangeContainOffset(
+                      firstParameter,
                       offsetWithinSubdocument,
                   ),
               },
@@ -134,168 +122,130 @@ export function getInbuiltFunctionAndFirstParameterIfStringLiteral(
         : undefined;
 }
 
-function searchDescendantNodesForFunctionIdentifier(
-    sourceFile: SourceFile,
-    startNode: Node,
+/**
+ * Finds all calls like `bru.getVar(...)` (also with optional chaining) in the content.
+ */
+function findInbuiltFunctionCalls(
+    content: string,
     functionsToSearchFor: InbuiltFunctionIdentifier[],
-    offset: number,
-) {
-    let currentNode: Node | undefined = startNode;
-    let lastMatch:
-        | {
-              parent: Node;
-              child: Node;
-              childNodeIndex: number;
-              functionIdentifier: InbuiltFunctionIdentifier;
-          }
-        | undefined = undefined;
+): InbuiltFunctionCall[] {
+    const tokens = tokenizeJavascript(content);
+    const calls: InbuiltFunctionCall[] = [];
 
-    do {
-        const currentMatch = findChildNodeForFunctionIdentifier(
-            sourceFile,
-            currentNode,
-            functionsToSearchFor,
+    tokens.forEach((baseToken, index) => {
+        const [dotToken, functionNameToken, openingBracketToken] = tokens.slice(
+            index + 1,
+            index + 4,
         );
+        const previousToken = tokens[index - 1];
 
-        if (currentMatch) {
-            lastMatch = { ...currentMatch, parent: currentNode };
+        if (
+            !isNameToken(baseToken) ||
+            // Property of another object (e.g. `foo.bru.getVar()`)
+            (previousToken && isPropertyAccessToken(previousToken)) ||
+            !dotToken ||
+            !isPropertyAccessToken(dotToken) ||
+            !functionNameToken ||
+            !isNameToken(functionNameToken) ||
+            openingBracketToken?.type != tokTypes.parenL
+        ) {
+            return;
         }
 
-        const childContainingPosition = getChildNodeContainingOffset(
-            currentNode,
-            sourceFile,
-            offset,
+        const baseIdentifier = getText(content, baseToken);
+        const functionName = getText(content, functionNameToken);
+        const identifier = functionsToSearchFor.find(
+            (candidate) =>
+                candidate.baseIdentifier == baseIdentifier &&
+                candidate.functionName == functionName,
         );
 
-        if (!childContainingPosition) {
-            return lastMatch;
+        if (!identifier) {
+            return;
         }
 
-        const continueCheckingChild = functionsToSearchFor.some(
-            ({ baseIdentifier, functionName }) =>
-                [baseIdentifier, functionName].every((text) =>
-                    childContainingPosition.node
-                        .getText(sourceFile)
-                        .includes(text),
-                ),
-        );
-        currentNode = continueCheckingChild
-            ? childContainingPosition.node
-            : undefined;
-    } while (currentNode != undefined);
+        const firstParameter = findStringLiteralStartingAt(tokens, index + 4);
+        const closingBracketToken = findClosingBracket(tokens, index + 3);
 
-    return lastMatch;
-}
-
-function findChildNodeForFunctionIdentifier(
-    sourceFile: SourceFile,
-    currentNode: Node,
-    functionsToSearchFor: InbuiltFunctionIdentifier[],
-) {
-    return currentNode
-        .getChildren(sourceFile)
-        .flatMap((child, childNodeIndex) =>
-            functionsToSearchFor.map((functionIdentifier) => ({
-                child,
-                childNodeIndex,
-                functionIdentifier,
-            })),
-        )
-        .find(({ child, functionIdentifier }) => {
-            const { baseIdentifier, functionName } = functionIdentifier;
-            const childText = child.getText(sourceFile);
-
-            const matchesFunctionIdentifier =
-                childText.startsWith(baseIdentifier) &&
-                childText.includes(".") &&
-                childText.endsWith(functionName);
-
-            return (
-                matchesFunctionIdentifier &&
-                child.kind == SyntaxKind.PropertyAccessExpression
-            );
+        calls.push({
+            identifier,
+            callee: { start: baseToken.start, end: functionNameToken.end },
+            call: {
+                start: baseToken.start,
+                end:
+                    closingBracketToken?.end ??
+                    firstParameter?.end ??
+                    functionNameToken.end,
+            },
+            firstParameter,
         });
+    });
+
+    return calls;
 }
 
-function extractVariableFromResultNode(
-    relevantContent: {
-        subDocumentHelper: TextDocumentHelper;
-        startPosition: Position;
-    },
-    resultNode: Node,
-    sourceFile: SourceFile,
-) {
-    const { subDocumentHelper, startPosition: contentStartPosition } =
-        relevantContent;
+function isPropertyAccessToken({ type }: JavascriptToken) {
+    return type == tokTypes.dot || type == tokTypes.questionDot;
+}
 
-    const startInSubdocument = subDocumentHelper.getPositionForOffset(
-        new Position(0, 0),
-        resultNode.getStart(sourceFile, true) + 1,
-    );
-    const endInSubdocument = subDocumentHelper.getPositionForOffset(
-        new Position(0, 0),
-        resultNode.getEnd() - 1,
-    );
+function getText(content: string, { start, end }: OffsetRange) {
+    return content.substring(start, end);
+}
 
-    if (!startInSubdocument || !endInSubdocument) {
+/**
+ * Handles strings quoted via `"` or `'` as well as template literals without substitutions.
+ */
+function findStringLiteralStartingAt(
+    tokens: JavascriptToken[],
+    index: number,
+): OffsetRange | undefined {
+    const [first, second, third] = tokens.slice(index, index + 3);
+
+    if (first?.type == tokTypes.string) {
+        return { start: first.start, end: first.end };
+    }
+
+    if (first?.type != tokTypes.backQuote) {
         return undefined;
     }
 
-    const fullParameter = {
-        text: resultNode.getText(sourceFile),
-        start: new Position(
-            startInSubdocument.line + contentStartPosition.line,
-            startInSubdocument.character,
-        ),
-        end: new Position(
-            endInSubdocument.line + contentStartPosition.line,
-            endInSubdocument.character,
-        ),
-    };
+    // The `template` token (the text between the backticks) can be missing, depending on the content.
+    const closingQuote = second?.type == tokTypes.template ? third : second;
 
-    const { text, start, end } = fullParameter;
-    const startsWithQuotes = /^("|'|`)/.test(text);
-    const endsWithQuotes = /("|'|`)$/.test(text);
-
-    return startsWithQuotes && endsWithQuotes
-        ? { name: text.substring(1, text.length - 1), start, end }
+    return closingQuote?.type == tokTypes.backQuote
+        ? { start: first.start, end: closingQuote.end }
         : undefined;
 }
 
-function getChildNodeContainingOffset(
-    currentNode: Node,
-    sourceFile: SourceFile,
-    offset: number,
+function findClosingBracket(
+    tokens: JavascriptToken[],
+    openingBracketIndex: number,
 ) {
-    const index = currentNode
-        .getChildren(sourceFile)
-        .findIndex((child) => doesNodeContainOffset(child, sourceFile, offset));
+    let depth = 0;
 
-    return index >= 0
-        ? { childIndex: index, node: currentNode.getChildAt(index, sourceFile) }
-        : undefined;
+    for (let i = openingBracketIndex; i < tokens.length; i++) {
+        const token = tokens[i];
+
+        if (token.type == tokTypes.parenL) {
+            depth++;
+        } else if (token.type == tokTypes.parenR && --depth == 0) {
+            return token;
+        }
+    }
+
+    return undefined;
 }
 
-function doesNodeContainOffset(
-    node: Node,
-    sourceFile: SourceFile,
-    offset: number,
-) {
-    return node.getStart(sourceFile, true) < offset && node.getEnd() > offset;
+function doesRangeContainOffset({ start, end }: OffsetRange, offset: number) {
+    return start < offset && end > offset;
 }
 
-function getOffsetsToUse(
+function getOffsetWithinSubdocument(
     position: Position,
     subDocumentHelper: TextDocumentHelper,
     contentStartPosition: Position,
-    defaultOffsetWithinDocument?: number,
 ) {
-    const defaultOffsetToUse =
-        defaultOffsetWithinDocument != undefined
-            ? defaultOffsetWithinDocument
-            : 0;
-
-    const offsetWithinSubdocument = subDocumentHelper.getText(
+    return subDocumentHelper.getText(
         new Range(
             new Position(0, 0),
             new Position(
@@ -304,19 +254,37 @@ function getOffsetsToUse(
             ),
         ),
     ).length;
-
-    return { defaultOffsetToUse, offsetWithinSubdocument };
 }
 
-function parseAsTsNode(relevantContent: string) {
-    const sourceFile = createSourceFile(
-        "__temp.js",
-        relevantContent,
-        ScriptTarget.ES2020,
+/**
+ * The positions of the content within the quotes.
+ */
+function getParameterPositions(
+    { start, end }: OffsetRange,
+    subDocumentHelper: TextDocumentHelper,
+    contentStartPosition: Position,
+) {
+    const startInSubdocument = subDocumentHelper.getPositionForOffset(
+        new Position(0, 0),
+        start + 1,
+    );
+    const endInSubdocument = subDocumentHelper.getPositionForOffset(
+        new Position(0, 0),
+        end - 1,
     );
 
+    if (!startInSubdocument || !endInSubdocument) {
+        return undefined;
+    }
+
     return {
-        asTsNode: sourceFile as Node,
-        sourceFile,
+        start: new Position(
+            startInSubdocument.line + contentStartPosition.line,
+            startInSubdocument.character,
+        ),
+        end: new Position(
+            endInSubdocument.line + contentStartPosition.line,
+            endInSubdocument.character,
+        ),
     };
 }

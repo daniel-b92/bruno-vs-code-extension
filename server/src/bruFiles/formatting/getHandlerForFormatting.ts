@@ -9,7 +9,7 @@ import {
     LineBreakType,
     ItemType,
 } from "@global_shared";
-import { format } from "prettier";
+import { formatWithPrettier } from "../../shared/formatWithPrettier";
 import { TextEdit } from "vscode-languageserver/node";
 import { mapBlockNameToDummyFunctionStart } from "../shared/mapBlockNameToDummyFunctionStart";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -36,15 +36,18 @@ async function getTextEditForCodeBlock(
 ): Promise<TextEdit | undefined> {
     const toFormat = `${mapBlockNameToDummyFunctionStart(block.name)}${documentLineBreak}${block.content}}`;
 
-    const formattedWithDummyFunctionReplacement = await format(toFormat, {
-        parser: "typescript",
-        endOfLine:
-            documentLineBreak == LineBreakType.Lf
-                ? "lf"
-                : documentLineBreak == LineBreakType.Crlf
-                  ? "crlf"
-                  : undefined,
-    });
+    const formattedWithDummyFunctionReplacement = await formatWithPrettier(
+        toFormat,
+        {
+            parser: "typescript",
+            endOfLine:
+                documentLineBreak == LineBreakType.Lf
+                    ? "lf"
+                    : documentLineBreak == LineBreakType.Crlf
+                      ? "crlf"
+                      : undefined,
+        },
+    );
 
     if (
         !formattedWithDummyFunctionReplacement.includes(

@@ -1,4 +1,5 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
+import { getTypescript } from "../typescriptModule";
 import { getCodeRanges } from "../codeBlocks/getCodeRanges";
 import { getTopLevelDeclarations } from "../codeBlocks/getTopLevelDeclarations";
 import { getOriginalFileContent } from "../fileContent";
@@ -30,7 +31,7 @@ export function getDiagnosticsForRedeclaredRuntimeObjects(
                     file: sourceFile,
                     start: codeStart + start,
                     length,
-                    category: ts.DiagnosticCategory.Warning,
+                    category: getTypescript().DiagnosticCategory.Warning,
                     code: redeclaredRuntimeObjectDiagnosticCode,
                     source: "bru-as-code",
                     messageText: `'${name}' shadows the object of the same name that Bruno provides at runtime.`,

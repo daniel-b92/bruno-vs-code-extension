@@ -46,9 +46,6 @@ export function getBrunoVariableReferencesInCodeBlock(
                 relevantContent: {
                     asString: relevantContent,
                     startPosition: contentStartPosition,
-                    offsetInFullDocument: fullDocumentHelper.getText(
-                        new Range(new Position(0, 0), contentStartPosition),
-                    ).length,
                 },
             });
         },

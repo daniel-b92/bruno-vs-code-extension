@@ -1,5 +1,5 @@
 import { extname } from "path";
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
 import { getCodeBlockIndizesForBruFile } from "../codeBlocks/bruCodeBlocks";
 import { getCodeRangesGetter } from "../codeBlocks/getCodeRanges";
 import { canReferToRuntimeDefinitions } from "../collection/runtimeContext";

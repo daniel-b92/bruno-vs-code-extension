@@ -1,5 +1,5 @@
 import { extname } from "path";
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
 import { CollectionFormat } from "../constants";
 import { getCollectionLookup } from "./collectionLookup";
 

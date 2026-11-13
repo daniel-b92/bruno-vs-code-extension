@@ -35,7 +35,6 @@ export * from "./fileSystemCache/external/interfaces";
 
 // file parsing - bru format
 export * from "./fileParsing/external/bruFormat/parseBruFile";
-export * from "./fileParsing/external/bruFormat/parseCodeBlock";
 export * from "./fileParsing/external/shared/getSequenceForFile";
 export * from "./fileParsing/external/bruFormat/getSequenceFieldFromMetaBlock";
 export * from "./fileParsing/external/bruFormat/parseSequenceFromMetaBlock";

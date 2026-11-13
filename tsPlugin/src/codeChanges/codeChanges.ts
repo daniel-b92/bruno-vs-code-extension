@@ -1,4 +1,5 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
+import { getTypescript } from "../typescriptModule";
 import { arePathsEqual, usesCaseSensitiveFileNames } from "../pathComparison";
 import { CodeRange, getCodeRangesGetter } from "../codeBlocks/getCodeRanges";
 import { isFileFromYamlCollection } from "../collection/collectionFormat";
@@ -41,7 +42,7 @@ export function adjustIndentationOfChangesForYamlScripts(
 ): ts.FileTextChanges[] {
     const indentSize =
         formatOptions.indentSize ??
-        ts.getDefaultFormatCodeSettings().indentSize!;
+        getTypescript().getDefaultFormatCodeSettings().indentSize!;
 
     return changes.map((fileChanges) => {
         const originalContent = isFileFromYamlCollection(
@@ -173,27 +174,27 @@ function getLine(text: string, lineStart: number) {
  * For template literals with substitutions, the code within the substitutions is not part of the returned ranges.
  */
 function getRangesOfStringLiterals(text: string) {
-    const sourceFile = ts.createSourceFile(
+    const sourceFile = getTypescript().createSourceFile(
         "insertedText.js",
         text,
-        ts.ScriptTarget.Latest,
+        getTypescript().ScriptTarget.Latest,
         false,
-        ts.ScriptKind.JS,
+        getTypescript().ScriptKind.JS,
     );
     const ranges: { start: number; end: number }[] = [];
 
     const visit = (node: ts.Node) => {
         if (
-            ts.isStringLiteral(node) ||
-            ts.isNoSubstitutionTemplateLiteral(node) ||
-            ts.isTemplateHead(node) ||
-            ts.isTemplateMiddle(node) ||
-            ts.isTemplateTail(node)
+            getTypescript().isStringLiteral(node) ||
+            getTypescript().isNoSubstitutionTemplateLiteral(node) ||
+            getTypescript().isTemplateHead(node) ||
+            getTypescript().isTemplateMiddle(node) ||
+            getTypescript().isTemplateTail(node)
         ) {
             ranges.push({ start: node.getStart(sourceFile), end: node.end });
         }
 
-        ts.forEachChild(node, visit);
+        getTypescript().forEachChild(node, visit);
     };
 
     visit(sourceFile);

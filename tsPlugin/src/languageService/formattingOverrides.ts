@@ -1,4 +1,4 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
 import { hasEmbeddedCodeBlocks } from "../fileTypes";
 
 // The Typescript server only sees the masked content of `.bru` and Yaml files (see `maskFilesWithCodeBlocksForTypescriptServer`).

@@ -1,4 +1,4 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
 
 export const originalSnapshotGettersForHosts = new WeakMap<
     ts.LanguageServiceHost,

@@ -1,4 +1,4 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
 import { isFileFromYamlCollection } from "../collection/collectionFormat";
 import { getOriginalFileContent } from "../fileContent";
 import { isBruFile } from "../fileTypes";

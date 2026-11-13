@@ -1,4 +1,5 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
+import { getTypescript } from "../typescriptModule";
 import { CollectionFormat } from "../constants";
 import { PluginConfiguration } from "../pluginConfiguration";
 
@@ -134,7 +135,7 @@ function getExtraFileExtensions(
             .map((extension) => ({
                 extension,
                 isMixedContent: false,
-                scriptKind: ts.ScriptKind.JS,
+                scriptKind: getTypescript().ScriptKind.JS,
             })),
     );
 }

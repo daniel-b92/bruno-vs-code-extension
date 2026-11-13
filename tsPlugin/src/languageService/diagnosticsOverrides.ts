@@ -1,4 +1,4 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
 import { canReferToRuntimeDefinitions } from "../collection/runtimeContext";
 import { filterAwaitInBlockWrappers } from "../diagnostics/filterAwaitInBlockWrappers";
 import { filterDefaultDiagnostics } from "../diagnostics/filterDefaultDiagnostics";

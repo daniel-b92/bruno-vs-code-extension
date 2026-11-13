@@ -4,6 +4,8 @@ This directory provides an `npm` package for a Typescript language service plugi
 
 **Disclaimer: All Bruno names, brands, trademarks, service marks and logos are the property of Bruno.**
 
+The plugin does not ship its own copy of Typescript. It uses the module that the Typescript server passes when initializing it, so it always works with the same Typescript version as the server. `typescript` is only a dev dependency of this package (for the types and the tests).
+
 ## Main Features
 
 The code blocks are analyzed as follows:

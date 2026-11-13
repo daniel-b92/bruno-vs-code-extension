@@ -1,4 +1,5 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
+import { getTypescript } from "../typescriptModule";
 import { findDeepestNodeContainingPosition } from "../codeBlocks/findDeepestNodeContainingPosition";
 import { getCodeRangesGetter } from "../codeBlocks/getCodeRanges";
 import { getOriginalFileContent } from "../fileContent";
@@ -71,12 +72,12 @@ function findAwaitContext(node: ts.Node | undefined) {
         current != undefined;
         current = current.parent
     ) {
-        if (ts.isComputedPropertyName(current)) {
+        if (getTypescript().isComputedPropertyName(current)) {
             current = current.parent;
         } else if (
-            ts.isFunctionLike(current) ||
+            getTypescript().isFunctionLike(current) ||
             (current.parent != undefined &&
-                ts.isPropertyDeclaration(current.parent) &&
+                getTypescript().isPropertyDeclaration(current.parent) &&
                 current.parent.initializer == current)
         ) {
             return current;
