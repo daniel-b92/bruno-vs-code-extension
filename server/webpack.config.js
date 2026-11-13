@@ -22,7 +22,6 @@ const config = {
         fs: "commonjs fs",
         path: "commonjs path",
         util: "commonjs util",
-        prettier: "commonjs prettier",
         "timers/promises": "commonjs timers/promises",
     },
     resolve: {

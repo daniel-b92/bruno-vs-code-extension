@@ -7,7 +7,7 @@ import {
     TextDocumentHelper,
     YamlScriptBlock,
 } from "@global_shared";
-import { format } from "prettier";
+import { formatWithPrettier } from "../../shared/formatWithPrettier";
 import { TextEdit } from "vscode-languageserver/node";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
@@ -66,7 +66,7 @@ async function formatYamlStructure(text: string, lineBreak: LineBreakType) {
     }
 
     try {
-        return await format(text, {
+        return await formatWithPrettier(text, {
             parser: "yaml",
             endOfLine: lineBreak == LineBreakType.Crlf ? "crlf" : "lf",
         });
@@ -131,7 +131,7 @@ async function getTextEditForScript(
     let formatted: string;
     try {
         formatted = (
-            await format(code, {
+            await formatWithPrettier(code, {
                 parser: "babel",
                 endOfLine: lineBreak == LineBreakType.Crlf ? "crlf" : "lf",
             })
