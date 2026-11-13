@@ -1,4 +1,5 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
+import { getTypescript } from "../typescriptModule";
 
 export function findDeepestNodeContainingPosition(
     sourceFile: ts.SourceFile,
@@ -8,7 +9,7 @@ export function findDeepestNodeContainingPosition(
     let child: ts.Node | undefined;
 
     do {
-        child = ts.forEachChild(current, (candidate) =>
+        child = getTypescript().forEachChild(current, (candidate) =>
             candidate.getStart(sourceFile) <= position &&
             position <= candidate.getEnd()
                 ? candidate

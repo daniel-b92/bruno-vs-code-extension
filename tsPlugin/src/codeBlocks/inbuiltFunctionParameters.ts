@@ -1,4 +1,5 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
+import { getTypescript } from "../typescriptModule";
 import { getNamesForInbuiltFunctionsWithVariableName } from "../constants";
 import { findStringLiteralAtPosition } from "./findStringLiteralAtPosition";
 
@@ -28,10 +29,10 @@ function isFirstParameterOfInbuiltFunction(node: ts.Node) {
     const { parent } = node;
 
     return (
-        ts.isCallExpression(parent) &&
+        getTypescript().isCallExpression(parent) &&
         parent.arguments[0] === node &&
-        ts.isPropertyAccessExpression(parent.expression) &&
-        ts.isIdentifier(parent.expression.expression) &&
+        getTypescript().isPropertyAccessExpression(parent.expression) &&
+        getTypescript().isIdentifier(parent.expression.expression) &&
         parent.expression.expression.text == "bru" &&
         getNamesForInbuiltFunctionsWithVariableName().includes(
             parent.expression.name.text,

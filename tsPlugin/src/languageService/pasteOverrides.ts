@@ -1,4 +1,4 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
 import { hasEmbeddedCodeBlocks } from "../fileTypes";
 
 // For computing edits when pasting (e.g. imports for the pasted code), the Typescript server temporarily replaces the content of the target file

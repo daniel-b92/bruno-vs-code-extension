@@ -1,4 +1,4 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
 import { provideRuntimeDefinitions } from "./languageServiceHost/provideRuntimeDefinitions";
 import { treatCollectionFilesLikeJavascript } from "./languageServiceHost/treatCollectionFilesLikeJavascript";
 import { maskFilesWithCodeBlocksForTypescriptServer } from "./languageServiceHost/maskFilesWithCodeBlocks";
@@ -16,6 +16,7 @@ import { overridePasting } from "./languageService/pasteOverrides";
 import { overridePresentation } from "./languageService/presentationOverrides";
 import { PluginConfig, PluginConfiguration } from "./pluginConfiguration";
 import { includeCollectionFilesInConfiguredProjects } from "./projectService/includeCollectionFilesInConfiguredProjects";
+import { setTypescript } from "./typescriptModule";
 
 interface PluginForProject {
     configuration: PluginConfiguration;
@@ -34,9 +35,11 @@ interface PluginForProject {
  */
 const pluginsForHosts = new WeakMap<ts.LanguageServiceHost, PluginForProject>();
 
-function init(_modules: {
+function init(modules: {
     typescript: typeof import("typescript/lib/tsserverlibrary");
 }) {
+    setTypescript(modules.typescript);
+
     // The Typescript server creates the plugin module once per project, but without the server it can be used for several projects (e.g. in tests).
     const configurationsOfProjects = new Set<PluginConfiguration>();
     let latestConfig: Partial<PluginConfig> | undefined;

@@ -1,4 +1,5 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
+import { getTypescript } from "../typescriptModule";
 import { getCollectionLookup } from "../collection/collectionLookup";
 import { getRuntimeDefinitionsFolder } from "../collection/runtimeContext";
 import {
@@ -77,10 +78,10 @@ export function provideRuntimeDefinitions(
     const registerFile = (fileName: string) =>
         info.project?.projectService
             .getOrCreateScriptInfoForNormalizedPath(
-                ts.server.toNormalizedPath(fileName),
+                getTypescript().server.toNormalizedPath(fileName),
                 false,
                 undefined,
-                ts.ScriptKind.JS,
+                getTypescript().ScriptKind.JS,
                 false,
                 // The file would not be found on the disk.
                 { fileExists: () => true },
@@ -97,7 +98,7 @@ export function provideRuntimeDefinitions(
             return getOriginalSnapshot(fileName);
         }
 
-        snapshot ??= ts.ScriptSnapshot.fromString(
+        snapshot ??= getTypescript().ScriptSnapshot.fromString(
             getRuntimeDefinitionsFileContent(),
         );
 

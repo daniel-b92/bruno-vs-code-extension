@@ -1,4 +1,5 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
+import { getTypescript } from "../typescriptModule";
 import { maskBruFileContent } from "../bruFiles/maskBruFileContent";
 import { isFileFromYamlCollection } from "../collection/collectionFormat";
 import { getCollectionLookup } from "../collection/collectionLookup";
@@ -82,7 +83,7 @@ export function maskFilesWithCodeBlocksForTypescriptServer(
         );
 
         // Snapshots created from a string do not support incremental parsing, so the file is always parsed completely.
-        const maskedSnapshot = ts.ScriptSnapshot.fromString(
+        const maskedSnapshot = getTypescript().ScriptSnapshot.fromString(
             isBruFile(fileName)
                 ? maskBruFileContent(originalContent)
                 : isFileFromYamlCollection(info, fileName)

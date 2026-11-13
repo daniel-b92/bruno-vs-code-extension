@@ -1,4 +1,5 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
+import { getTypescript } from "../typescriptModule";
 import { CodeBlockName } from "../constants";
 
 export function getCodeBlockIndizesForBruFile(fileContent: string) {
@@ -41,16 +42,16 @@ function getCodeBlockStartAndEndIndex(
     const blockStartIndex = startMatches.index;
     const remainingDoc = fullTextContent.substring(blockStartIndex);
 
-    const sourceFile = ts.createSourceFile(
+    const sourceFile = getTypescript().createSourceFile(
         "test.js",
         remainingDoc,
-        ts.ScriptTarget.ES2020,
+        getTypescript().ScriptTarget.ES2020,
     );
 
     const blockNodeInSubDocument = (sourceFile as ts.Node)
         .getChildAt(0, sourceFile)
         .getChildren(sourceFile)
-        .find(({ kind }) => kind == ts.SyntaxKind.Block);
+        .find(({ kind }) => kind == getTypescript().SyntaxKind.Block);
 
     if (!blockNodeInSubDocument) {
         throw new Error(

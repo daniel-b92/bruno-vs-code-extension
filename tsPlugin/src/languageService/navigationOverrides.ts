@@ -1,4 +1,5 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
+import { getTypescript } from "../typescriptModule";
 import { arePathsEqual, usesCaseSensitiveFileNames } from "../pathComparison";
 import {
     createCheckForPositionsWithinCode,
@@ -142,7 +143,7 @@ function isShadowingParameterOfCodeBlock(
     { name, kind, source }: ts.CompletionEntry,
 ) {
     if (
-        kind != ts.ScriptElementKind.parameterElement ||
+        kind != getTypescript().ScriptElementKind.parameterElement ||
         !["req", "res"].includes(name)
     ) {
         return false;

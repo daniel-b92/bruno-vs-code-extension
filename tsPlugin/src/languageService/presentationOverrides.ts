@@ -1,4 +1,5 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
+import { getTypescript } from "../typescriptModule";
 import { createCheckForPositionsWithinCode } from "../codeBlocks/getCodeRanges";
 import { hasEmbeddedCodeBlocks } from "../fileTypes";
 
@@ -152,7 +153,7 @@ export function overridePresentation(
             let range: ts.SelectionRange | undefined = selectionRange;
             range != undefined &&
             isWithinCode(range.textSpan.start) &&
-            isWithinCode(ts.textSpanEnd(range.textSpan));
+            isWithinCode(getTypescript().textSpanEnd(range.textSpan));
             range = range.parent
         ) {
             rangesWithinCode.push(range.textSpan);

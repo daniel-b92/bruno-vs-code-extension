@@ -1,4 +1,4 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
 import { hasEmbeddedCodeBlocks, isJsFile } from "../fileTypes";
 import { usesCaseSensitiveFileNames } from "../pathComparison";
 import { PluginConfiguration } from "../pluginConfiguration";

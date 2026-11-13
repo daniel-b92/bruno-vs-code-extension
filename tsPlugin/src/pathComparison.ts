@@ -1,4 +1,4 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
 
 /**
  * File names are compared case insensitively on some platforms (e.g. Windows), so e.g. `C:/folder` and `c:/Folder` are the same folder for the Typescript server.

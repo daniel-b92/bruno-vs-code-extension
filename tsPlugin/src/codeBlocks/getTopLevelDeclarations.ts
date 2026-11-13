@@ -1,4 +1,5 @@
-import * as ts from "typescript/lib/tsserverlibrary";
+import type * as ts from "typescript/lib/tsserverlibrary";
+import { getTypescript } from "../typescriptModule";
 
 /**
  * Returns the names that are declared in the scope of the given code block (variables, functions and classes),
@@ -8,17 +9,17 @@ import * as ts from "typescript/lib/tsserverlibrary";
  * that Bruno executes the code block in. Declarations within nested functions are not included.
  */
 export function getTopLevelDeclarations(code: string) {
-    const sourceFile = ts.createSourceFile(
+    const sourceFile = getTypescript().createSourceFile(
         "codeBlock.js",
         code,
-        ts.ScriptTarget.ES2020,
+        getTypescript().ScriptTarget.ES2020,
         true,
-        ts.ScriptKind.JS,
+        getTypescript().ScriptKind.JS,
     );
     const declarations: { name: string; start: number; length: number }[] = [];
 
     const addBindingNames = (name: ts.BindingName) => {
-        if (ts.isIdentifier(name)) {
+        if (getTypescript().isIdentifier(name)) {
             declarations.push({
                 name: name.text,
                 start: name.getStart(sourceFile),
@@ -28,40 +29,43 @@ export function getTopLevelDeclarations(code: string) {
         }
 
         for (const element of name.elements) {
-            if (!ts.isOmittedExpression(element)) {
+            if (!getTypescript().isOmittedExpression(element)) {
                 addBindingNames(element.name);
             }
         }
     };
 
     const visitNestedNode = (node: ts.Node) => {
-        if (ts.isFunctionLike(node) || ts.isClassLike(node)) {
+        if (
+            getTypescript().isFunctionLike(node) ||
+            getTypescript().isClassLike(node)
+        ) {
             return;
         }
 
         if (
-            ts.isVariableDeclarationList(node) &&
-            !(node.flags & ts.NodeFlags.BlockScoped)
+            getTypescript().isVariableDeclarationList(node) &&
+            !(node.flags & getTypescript().NodeFlags.BlockScoped)
         ) {
             node.declarations.forEach(({ name }) => addBindingNames(name));
         }
 
-        ts.forEachChild(node, visitNestedNode);
+        getTypescript().forEachChild(node, visitNestedNode);
     };
 
     for (const statement of sourceFile.statements) {
-        if (ts.isVariableStatement(statement)) {
+        if (getTypescript().isVariableStatement(statement)) {
             statement.declarationList.declarations.forEach(({ name }) =>
                 addBindingNames(name),
             );
         } else if (
-            (ts.isFunctionDeclaration(statement) ||
-                ts.isClassDeclaration(statement)) &&
+            (getTypescript().isFunctionDeclaration(statement) ||
+                getTypescript().isClassDeclaration(statement)) &&
             statement.name
         ) {
             addBindingNames(statement.name);
         } else {
-            ts.forEachChild(statement, visitNestedNode);
+            getTypescript().forEachChild(statement, visitNestedNode);
         }
     }
 
