@@ -6,11 +6,7 @@ import {
 export function isDynamicVariableReference(scope?: VariableAvailabilityScope) {
     return (
         !scope ||
-        !(
-            [
-                VariableAvailabilityScopes.PostResponseScriptForOwnItemAndDescendants,
-                VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants,
-            ] as VariableAvailabilityScope[]
-        ).includes(scope)
+        scope !=
+            VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
     );
 }

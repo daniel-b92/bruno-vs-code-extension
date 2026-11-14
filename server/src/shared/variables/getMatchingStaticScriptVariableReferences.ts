@@ -2,7 +2,6 @@ import {
     BrunoVariableReference,
     BrunoVariableType,
     normalizePath,
-    VariableScopeSectionKind,
     VariableAvailabilityScope,
     VariableAvailabilityScopes,
     VariableReferenceType,
@@ -18,16 +17,14 @@ import { isDynamicVariableReference } from "./isDynamicVariableReference";
 
 export function getMatchingStaticScriptVariableReferences(
     {
-        file: { allSections, sectionContainingPosition, collection },
+        file: { allSections, collection },
         request: { filePath },
     }: VariableSectionRequest,
     variableType: BrunoVariableType.Folder | BrunoVariableType.Request,
 ): EquivalentVariableReferencesFromOtherFiles<StaticScriptVariableReference>[] {
+    // Bruno provides the request and folder variables (which can only be defined in pre-request vars) to all script runtimes, so the section kind does not matter.
     const relevantScope =
-        sectionContainingPosition.kind ==
-        VariableScopeSectionKind.PreRequestScript
-            ? VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
-            : VariableAvailabilityScopes.PostResponseScriptForOwnItemAndDescendants;
+        VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants;
     // Avoid using cached data for determining references within own file because unsaved changes would be ignored.
     const allReferencesFromSameFile = allSections.flatMap(
         ({ name: sectionName, variableReferences }) =>

@@ -1,3 +1,10 @@
+## [Unreleased]
+
+### Fixes / Maintenance
+
+- Fix an issue that caused completions and hovers to treat the variables of `vars:post-response` blocks (and `set-variable` actions in Yaml files) as request or folder variables. They are now treated as runtime variables, like variables set via `bru.setVar`: They are offered for `bru.getVar` and `{{...}}` (also in the post-response script of the same file), and the hover lists the places where they are read. This also applies to `vars:post-response` blocks in folder and collection settings files, where the hover now also lists the reads in the requests within the folder.
+- Fix an issue that caused the variables of `vars:pre-request` blocks (and `variables` in Yaml files) to not be offered for `bru.getRequestVar` / `bru.getFolderVar` in post-response scripts, and to not be listed in the hover for these variables (also for reads in tests and gRPC scripts).
+
 ## [2.1.1] (2026-11-13)
 
 ### Fixes / Maintenance

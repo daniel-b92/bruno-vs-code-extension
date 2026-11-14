@@ -1,5 +1,9 @@
 import {
     BlockRuntimeExecutionGroup,
+    BrunoFileType,
+    BrunoVariableType,
+    ItemType,
+    VariableAvailabilityScopes,
     VariableScopeSection,
     VariableScopeSectionKind,
 } from "../../..";
@@ -9,9 +13,11 @@ export function getSectionRuntimeExecutionGroup(
 ) {
     return preRequestKinds().includes(kind)
         ? BlockRuntimeExecutionGroup.PreRequest
-        : postResponseKinds().includes(kind)
-          ? BlockRuntimeExecutionGroup.PostResponse
-          : BlockRuntimeExecutionGroup.Request;
+        : kind == VariableScopeSectionKind.PostResponseVars
+          ? BlockRuntimeExecutionGroup.PostResponseVars
+          : postResponseKinds().includes(kind)
+            ? BlockRuntimeExecutionGroup.PostResponse
+            : BlockRuntimeExecutionGroup.Request;
 }
 
 export function getSectionsWithEarlierExecutionGroups<
@@ -54,15 +60,41 @@ export function isScriptVarsSection(
     );
 }
 
-/** The script, in which the variables that are set in the given section can be read. */
-export function getScriptSectionForScriptVarsSection(
+/**
+ * The scripts, in which the variables that are set in a `PreRequestVars` section can be read (via `bru.getRequestVar` / `bru.getFolderVar`).
+ * Bruno passes the request and folder variables to all script runtimes (pre-request scripts, post-response scripts, tests and the gRPC scripts).
+ */
+export function getScriptSectionsForPreRequestVars() {
+    return codeKinds();
+}
+
+/**
+ * Pre-request variables are only available as request or folder variables (depending on the item type).
+ * Post-response variables (and `set-variable` actions) are runtime variables, like variables set via `bru.setVar`.
+ */
+export function getVariableTypeAndScopeForScriptVars(
     kind:
         | VariableScopeSectionKind.PreRequestVars
         | VariableScopeSectionKind.PostResponseVars,
-) {
-    return kind == VariableScopeSectionKind.PreRequestVars
-        ? VariableScopeSectionKind.PreRequestScript
-        : VariableScopeSectionKind.PostResponseScript;
+    itemType: ItemType,
+):
+    | {
+          variableType: BrunoVariableType.Runtime;
+          scope?: undefined;
+      }
+    | {
+          variableType: BrunoVariableType.Request | BrunoVariableType.Folder;
+          scope: typeof VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants;
+      } {
+    return kind == VariableScopeSectionKind.PostResponseVars
+        ? { variableType: BrunoVariableType.Runtime }
+        : {
+              variableType:
+                  itemType == BrunoFileType.RequestFile
+                      ? BrunoVariableType.Request
+                      : BrunoVariableType.Folder,
+              scope: VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants,
+          };
 }
 
 function preRequestKinds() {
@@ -77,7 +109,6 @@ function preRequestKinds() {
 function postResponseKinds() {
     return [
         VariableScopeSectionKind.PostResponseScript,
-        VariableScopeSectionKind.PostResponseVars,
         VariableScopeSectionKind.GrpcAfterMessageReceiveScript,
         VariableScopeSectionKind.GrpcAfterCallEndScript,
         VariableScopeSectionKind.Tests,
