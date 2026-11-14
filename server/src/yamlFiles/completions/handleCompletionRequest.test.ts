@@ -834,7 +834,26 @@ http:
             ).toEqual([" token"]);
         });
 
-        it("suggests variables that are read in an after-response script for the name of 'set-variable' actions", async () => {
+        it("suggests runtime variables that are read in an after-response script for the name of 'set-variable' actions", async () => {
+            const result = await complete(
+                requestPath,
+                `runtime:
+  actions:
+    - type: set-variable
+      variable:
+        name: 
+  scripts:
+    - type: after-response
+      code: |
+        bru.getVar("token");
+`,
+                new Position(4, 14),
+            );
+
+            expect(result?.map(({ label }) => label)).toEqual(["token"]);
+        });
+
+        it("does not suggest request variables that are read in an after-response script for the name of 'set-variable' actions", async () => {
             const result = await complete(
                 requestPath,
                 `runtime:
@@ -850,7 +869,7 @@ http:
                 new Position(4, 14),
             );
 
-            expect(result?.map(({ label }) => label)).toEqual(["token"]);
+            expect(result?.map(({ label }) => label) ?? []).toEqual([]);
         });
 
         it("does not suggest names that are already defined in other items", async () => {

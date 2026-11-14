@@ -76,6 +76,33 @@ describe("getDynamicVariableReferencesWithinFile", () => {
             postResponse.name,
         ]);
     });
+
+    it("treats post-response vars as writes that are read by the post-response script of the same file", () => {
+        const postResponseVars = getSection(
+            VariableScopeSectionKind.PostResponseVars,
+            VariableReferenceType.Write,
+        );
+        const postResponseScript = getSection(
+            VariableScopeSectionKind.PostResponseScript,
+            VariableReferenceType.Read,
+        );
+        const sections = [postResponseVars, postResponseScript];
+
+        expect(
+            getDynamicVariableReferencesWithinFile(
+                getRequest(sections, postResponseScript),
+                VariableReferenceType.Read,
+                BrunoVariableType.Runtime,
+            ).map(({ blockName }) => blockName),
+        ).toEqual([postResponseVars.name]);
+        expect(
+            getDynamicVariableReferencesWithinFile(
+                getRequest(sections, postResponseVars),
+                VariableReferenceType.Write,
+                BrunoVariableType.Runtime,
+            ).map(({ blockName }) => blockName),
+        ).toEqual([postResponseScript.name]);
+    });
 });
 
 function getSection(

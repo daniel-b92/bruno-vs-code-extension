@@ -1,12 +1,19 @@
 import { describe, expect, it } from "@jest/globals";
-import { BlockRuntimeExecutionGroup, VariableScopeSectionKind } from "../../..";
 import {
-    getScriptSectionForScriptVarsSection,
+    BlockRuntimeExecutionGroup,
+    BrunoFileType,
+    BrunoVariableType,
+    VariableAvailabilityScopes,
+    VariableScopeSectionKind,
+} from "../../..";
+import {
+    getScriptSectionsForPreRequestVars,
     getSectionRuntimeExecutionGroup,
     getSectionsWithEarlierExecutionGroups,
     getSectionsWithLaterExecutionGroups,
     hasVariableSupport,
     isCodeSection,
+    getVariableTypeAndScopeForScriptVars,
     isScriptVarsSection,
 } from "./variableScopeSectionHelpers";
 
@@ -21,6 +28,10 @@ describe("variableScopeSectionHelpers", () => {
             BlockRuntimeExecutionGroup.PreRequest,
         ],
         [VariableScopeSectionKind.Request, BlockRuntimeExecutionGroup.Request],
+        [
+            VariableScopeSectionKind.PostResponseVars,
+            BlockRuntimeExecutionGroup.PostResponseVars,
+        ],
         [
             VariableScopeSectionKind.PostResponseScript,
             BlockRuntimeExecutionGroup.PostResponse,
@@ -58,23 +69,56 @@ describe("variableScopeSectionHelpers", () => {
         ).toEqual([sections[2]]);
     });
 
-    it("maps script vars sections to the scripts that read them", () => {
+    it("identifies script vars sections", () => {
         expect(
             isScriptVarsSection(VariableScopeSectionKind.PreRequestVars),
+        ).toBe(true);
+        expect(
+            isScriptVarsSection(VariableScopeSectionKind.PostResponseVars),
         ).toBe(true);
         expect(isScriptVarsSection(VariableScopeSectionKind.Request)).toBe(
             false,
         );
+    });
+
+    it("provides the pre-request vars to pre-request and post-response scripts", () => {
+        expect(getScriptSectionsForPreRequestVars()).toEqual([
+            VariableScopeSectionKind.PreRequestScript,
+            VariableScopeSectionKind.PostResponseScript,
+        ]);
+    });
+
+    it("treats post-response vars as runtime variables and pre-request vars as request or folder variables", () => {
         expect(
-            getScriptSectionForScriptVarsSection(
-                VariableScopeSectionKind.PreRequestVars,
-            ),
-        ).toBe(VariableScopeSectionKind.PreRequestScript);
-        expect(
-            getScriptSectionForScriptVarsSection(
+            getVariableTypeAndScopeForScriptVars(
                 VariableScopeSectionKind.PostResponseVars,
+                BrunoFileType.RequestFile,
             ),
-        ).toBe(VariableScopeSectionKind.PostResponseScript);
+        ).toEqual({ variableType: BrunoVariableType.Runtime });
+        expect(
+            getVariableTypeAndScopeForScriptVars(
+                VariableScopeSectionKind.PostResponseVars,
+                BrunoFileType.FolderSettingsFile,
+            ),
+        ).toEqual({ variableType: BrunoVariableType.Runtime });
+        expect(
+            getVariableTypeAndScopeForScriptVars(
+                VariableScopeSectionKind.PreRequestVars,
+                BrunoFileType.RequestFile,
+            ),
+        ).toEqual({
+            variableType: BrunoVariableType.Request,
+            scope: VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants,
+        });
+        expect(
+            getVariableTypeAndScopeForScriptVars(
+                VariableScopeSectionKind.PreRequestVars,
+                BrunoFileType.CollectionSettingsFile,
+            ),
+        ).toEqual({
+            variableType: BrunoVariableType.Folder,
+            scope: VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants,
+        });
     });
 
     it("identifies code sections and sections without variable support", () => {

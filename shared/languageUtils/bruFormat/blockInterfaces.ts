@@ -105,5 +105,7 @@ export interface TextOutsideOfBlocks {
 export enum BlockRuntimeExecutionGroup {
     PreRequest = 1,
     Request = 2,
-    PostResponse = 3,
+    /** Bruno evaluates the post-response variables (and `set-variable` actions) before running the post-response script. */
+    PostResponseVars = 3,
+    PostResponse = 4,
 }
