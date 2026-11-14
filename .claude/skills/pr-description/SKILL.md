@@ -46,7 +46,7 @@ Read the patterns in `SENSITIVE_FILE_PATTERNS` in `.github/workflows/sensitive-f
 
 Also check whether the diff extends one of the allowlists described in the "Security checks" section of `CONTRIBUTING.md`: install scripts (`.github/scripts/checkInstallScripts.mjs`), package aliases (`.github/scripts/checkLockfiles.mjs`), hidden Unicode characters (`.github/scripts/checkHiddenUnicode.mjs`) or restricted modules (`getAllowedSensitiveImportsConfig(...)` in `eslint.config.ts`).
 
-If neither applies, the "Sensitive files" section is removed. Otherwise, explain for each file or group of files why the change is needed, e.g. "`package.json`, `package-lock.json`: removes `foo` from `client/package.json`, since it is already a dependency of the root project". The reason has to come from the diff, the commits or the conversation. If you can't tell why a sensitive file was changed, ask the user instead of making something up, using the AskUserQuestion tool if available.
+If neither applies, the "Sensitive files" section is removed. Otherwise, explain for each file or group of files why the change is needed, e.g. "`package.json`, `package-lock.json`: removes the unused dependency `foo` from `tsPlugin/package.json`". The reason has to come from the diff, the commits or the conversation. If you can't tell why a sensitive file was changed, ask the user instead of making something up, using the AskUserQuestion tool if available.
 
 ### 5. Draft the description
 
@@ -82,21 +82,21 @@ When the user asks for changes, show the complete description again, not only th
 
 ## Example
 
-For a branch that removes dependencies from `client/package.json` and `server/package.json` that are also declared in the root `package.json`, with all checks passing, the reply contains:
+For a branch that removes the unused dependency `foo` (which has an install script) from `tsPlugin/package.json`, with all checks passing, the reply contains:
 
 <!-- prettier-ignore -->
 ````markdown
 ## Description
 
-Remove dependencies from `client/package.json` and `server/package.json` that are already declared in the root `package.json`. They were installed twice, and their versions could drift apart between the folders.
+Remove the unused dependency `foo` from `tsPlugin/package.json`. It was not imported anywhere, but was still installed and listed as a dependency of the published npm package of the plugin.
 
-- Remove the duplicated packages from `client/package.json` and `server/package.json`, and update the lockfiles.
-- Adjust `client/webpack.config.js` and `server/webpack.config.js` so that the packages are resolved from the root `node_modules`.
+- Remove `foo` from `tsPlugin/package.json` and update `tsPlugin/package-lock.json`.
+- Remove `foo` from `allowedPackagesWithInstallScripts` in `.github/scripts/checkInstallScripts.mjs`, since it is not installed anymore.
 
 ## Sensitive files
 
-- `package.json`, `package-lock.json` (root, `client/`, `server/`): removes the duplicated dependencies. No dependency was added, and no versions changed.
-- `client/webpack.config.js`, `server/webpack.config.js`: resolve modules from the root `node_modules` instead of the package folder.
+- `tsPlugin/package.json`, `tsPlugin/package-lock.json`: remove the unused dependency `foo`. No dependency was added, and no versions changed.
+- `.github/scripts/checkInstallScripts.mjs`: removes the allowlist entry for `foo`, which is no longer needed. The allowlist only gets smaller.
 
 ## Checklist
 
