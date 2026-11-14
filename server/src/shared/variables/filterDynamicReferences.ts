@@ -10,7 +10,7 @@ export function filterDynamicReferences(
     referenceTypeInSourceFile: VariableReferenceType,
     variableTypeInSourceFile: BrunoVariableType,
 ) {
-    const relevantReferenceType = getRelevantReferenceType(
+    const relevantReferenceTypes = getRelevantReferenceTypes(
         referenceTypeInSourceFile,
     );
     const relevantVariableTypes = getRelevantVariableTypes(
@@ -20,17 +20,17 @@ export function filterDynamicReferences(
     return allDynamicReferences.filter(
         ({ referenceType, variableType, scope }) =>
             isDynamicVariableReference(scope) &&
-            referenceType == relevantReferenceType &&
+            relevantReferenceTypes.includes(referenceType) &&
             relevantVariableTypes.includes(variableType),
     );
 }
 
-function getRelevantReferenceType(
+function getRelevantReferenceTypes(
     referenceTypeInSourceFile: VariableReferenceType,
 ) {
     return referenceTypeInSourceFile == VariableReferenceType.Write
-        ? VariableReferenceType.Read
-        : VariableReferenceType.Write;
+        ? [VariableReferenceType.Read, VariableReferenceType.Delete]
+        : [VariableReferenceType.Write];
 }
 
 function getRelevantVariableTypes(variableTypeInSourceFile: BrunoVariableType) {
