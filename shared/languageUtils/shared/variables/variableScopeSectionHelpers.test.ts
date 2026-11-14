@@ -81,11 +81,18 @@ describe("variableScopeSectionHelpers", () => {
         );
     });
 
-    it("provides the pre-request vars to pre-request and post-response scripts", () => {
-        expect(getScriptSectionsForPreRequestVars()).toEqual([
-            VariableScopeSectionKind.PreRequestScript,
-            VariableScopeSectionKind.PostResponseScript,
-        ]);
+    it("provides the pre-request vars to all kinds of scripts", () => {
+        expect(getScriptSectionsForPreRequestVars().sort()).toEqual(
+            [
+                VariableScopeSectionKind.PreRequestScript,
+                VariableScopeSectionKind.PostResponseScript,
+                VariableScopeSectionKind.Tests,
+                VariableScopeSectionKind.GrpcBeforeCallStartScript,
+                VariableScopeSectionKind.GrpcBeforeMessageSendScript,
+                VariableScopeSectionKind.GrpcAfterMessageReceiveScript,
+                VariableScopeSectionKind.GrpcAfterCallEndScript,
+            ].sort(),
+        );
     });
 
     it("treats post-response vars as runtime variables and pre-request vars as request or folder variables", () => {

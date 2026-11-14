@@ -22,7 +22,7 @@ export function getMatchingStaticScriptVariableReferences(
     }: VariableSectionRequest,
     variableType: BrunoVariableType.Folder | BrunoVariableType.Request,
 ): EquivalentVariableReferencesFromOtherFiles<StaticScriptVariableReference>[] {
-    // Bruno provides the request and folder variables (which can only be defined in pre-request vars) to pre-request scripts as well as to post-response scripts.
+    // Bruno provides the request and folder variables (which can only be defined in pre-request vars) to all script runtimes, so the section kind does not matter.
     const relevantScope =
         VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants;
     // Avoid using cached data for determining references within own file because unsaved changes would be ignored.

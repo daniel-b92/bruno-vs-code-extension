@@ -7,7 +7,9 @@ import {
     CollectionItemWithSequence,
     normalizePath,
     isRequestFileOrCollectionDirectory,
+    ItemType,
     BrunoVariableType,
+    BrunoFileType,
 } from "@global_shared";
 import { TypedCollection, TypedCollectionData } from "..";
 import { dirname, relative } from "path";
@@ -121,12 +123,77 @@ function getReferencesFromAncestorFoldersAndTheirDescendants(
         }
     } while (!collection.isRootDirectory(currentItem.getPath()));
 
+    if (searchDirection == SearchDirection.Forwards) {
+        referencesFromDescendantsOfAncestors.push(
+            ...getReferencesFromDescendantsOfOwnFolder(
+                sourceItem,
+                collection,
+                referenceTypeInSourceFile,
+                variableTypeInSourceFile,
+            ),
+        );
+    }
+
     return groupReferences(
         referencesFromAncestors,
         referencesFromDescendantsOfAncestors,
         collection,
         searchDirection,
     );
+}
+
+/**
+ * Folder and collection settings files are executed for each item within the folder.
+ * So all items within the folder of a settings file are executed after the steps of that file.
+ */
+function getReferencesFromDescendantsOfOwnFolder(
+    sourceItem: CollectionItem,
+    collection: TypedCollection,
+    referenceTypeInSourceFile: VariableReferenceType,
+    variableTypeInSourceFile: BrunoVariableType,
+): VariableReferenceFromOtherFile[] {
+    if (
+        !(
+            [
+                BrunoFileType.FolderSettingsFile,
+                BrunoFileType.CollectionSettingsFile,
+            ] as ItemType[]
+        ).includes(sourceItem.getItemType())
+    ) {
+        return [];
+    }
+
+    const sourcePath = sourceItem.getPath();
+    // Includes a trailing separator, so that folders with the same name prefix are not matched.
+    const folderPath = normalizePath(dirname(sourcePath));
+
+    return collection
+        .getAllStoredDataForCollection()
+        .filter(({ item }) => {
+            const itemPath = normalizePath(item.getPath());
+            return (
+                itemPath.startsWith(folderPath) &&
+                itemPath.length > folderPath.length &&
+                itemPath != normalizePath(sourcePath)
+            );
+        })
+        .flatMap(({ item, additionalData }) =>
+            filterDynamicReferences(
+                filterOutDuplicateReferences(
+                    (additionalData ?? []).map(({ reference }) => reference),
+                ),
+                referenceTypeInSourceFile,
+                variableTypeInSourceFile,
+            ).map((reference) => ({
+                path: {
+                    absolute: item.getPath(),
+                    relativeToSourceFile: relative(sourcePath, item.getPath()),
+                },
+                // The steps within the folder of a settings file are always executed directly after the steps in the file itself.
+                indirectionLevel: 0,
+                reference,
+            })),
+        );
 }
 
 function getReferencesFromAncestorFolder(

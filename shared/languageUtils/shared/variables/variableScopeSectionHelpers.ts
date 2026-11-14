@@ -62,13 +62,10 @@ export function isScriptVarsSection(
 
 /**
  * The scripts, in which the variables that are set in a `PreRequestVars` section can be read (via `bru.getRequestVar` / `bru.getFolderVar`).
- * Bruno provides the request and folder variables to pre-request scripts as well as to post-response scripts.
+ * Bruno passes the request and folder variables to all script runtimes (pre-request scripts, post-response scripts, tests and the gRPC scripts).
  */
 export function getScriptSectionsForPreRequestVars() {
-    return [
-        VariableScopeSectionKind.PreRequestScript,
-        VariableScopeSectionKind.PostResponseScript,
-    ];
+    return codeKinds();
 }
 
 /**

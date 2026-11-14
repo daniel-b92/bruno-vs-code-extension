@@ -1,5 +1,10 @@
 import { Collection } from "../baseModel/collection";
-import { CollectionFormat, CollectionItem } from "../baseModel/interfaces";
+import {
+    CollectionFormat,
+    CollectionItem,
+    ItemType,
+} from "../baseModel/interfaces";
+import { getVariableScopeSectionsFromFile } from "../fileParsing/external/shared/getVariableScopeSectionsFromFile";
 import { getFileExtensionForFormat } from "../fileSystem/util/collectionFormatFileNames";
 import { CollectionDirectory } from "../baseModel/collectionDirectory";
 import { BrunoEnvironmentFile } from "../baseModel/files/brunoEnvironmentFile";
@@ -14,7 +19,8 @@ export function createCollectionWithEnvironments(
     format: CollectionFormat,
     rootDirectory = "/collection",
 ) {
-    const collection = new Collection(
+    // Tests can store arbitrary additional data in the items.
+    const collection = new Collection<any>(
         new CollectionDirectory(rootDirectory),
         undefined,
         [],
@@ -83,4 +89,59 @@ export function createCollectionWithItems<TProvider>(
             collection,
         ),
     };
+}
+
+export interface ParsedCollectionFile {
+    item: CollectionItem;
+    /** If defined, the variable references of the content are stored as additional data of the item (like it is done for collections that are loaded from disk). */
+    content?: string;
+    /**
+     * The file type, in which the content is parsed.
+     * Needs to be set for directories, since their additional data is read from their settings file (`FolderSettingsFile` or `CollectionSettingsFile` for the root directory).
+     * Defaults to the item type.
+     */
+    parsedAs?: ItemType;
+}
+
+/**
+ * Like `createCollectionWithItems`, but stores the variable references of the file contents as additional data of the items.
+ *  * The root directory is always registered by the collection itself, so an entry for it only sets its additional data.
+ */
+export function createCollectionWithParsedFiles<TProvider>(
+    files: ParsedCollectionFile[],
+    format: CollectionFormat,
+    rootDirectory = "/collection",
+) {
+    const { collection, itemProvider } = createCollectionWithItems<TProvider>(
+        [],
+        format,
+        [],
+        rootDirectory,
+    );
+
+    for (const { item, content, parsedAs } of files) {
+        const additionalData =
+            content == undefined
+                ? undefined
+                : getVariableScopeSectionsFromFile(
+                      content,
+                      parsedAs ?? item.getItemType(),
+                      format,
+                  ).flatMap(({ kind, name, variableReferences }) =>
+                      variableReferences.map((reference) => ({
+                          reference,
+                          sectionKind: kind,
+                          sectionName: name,
+                      })),
+                  );
+        const existingData = collection.getStoredDataForPath(item.getPath());
+
+        if (existingData) {
+            existingData.additionalData = additionalData;
+        } else {
+            collection.addItem({ item, additionalData });
+        }
+    }
+
+    return { collection, itemProvider };
 }
