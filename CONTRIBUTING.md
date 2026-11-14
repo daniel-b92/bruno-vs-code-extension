@@ -14,7 +14,7 @@ Before opening a pull request, run `npm run lint`, `npm run check-types`, `npm r
 
 ## Project structure
 
-The repository consists of several projects, each with its own `package.json`:
+The repository consists of several projects. Only the repository root (which is also the manifest of the published extension) and `tsPlugin` have their own `package.json` and lockfile. The dependencies of all other projects are declared in the root `package.json`. The projects are built via TypeScript project references and webpack, and tested via the Jest projects in the root `jest.config.js`.
 
 - [client/](./client): the extension itself, which runs in the VS Code extension host (e.g. collection explorer, test explorer, running tests via the Bruno CLI).
 - [server/](./server): the language server (e.g. diagnostics, completions, hovers, formatting).
@@ -91,3 +91,7 @@ If a file really needs one of the modules, allow it only for that file via `getA
 ### Workflows (`workflow-security-checks` job)
 
 [zizmor](https://docs.zizmor.sh/) checks the GitHub Actions workflows for security issues. When adding or updating an action, reference it by its full commit SHA with the version as a comment (e.g. `uses: actions/checkout@<sha> # v5.1.0`). Dependabot keeps these references up to date.
+
+### Code scanning (`CodeQL` workflow)
+
+[CodeQL](https://codeql.github.com/) analyzes the TypeScript code and the GitHub Actions workflows with the `security-extended` queries (e.g. command injection, path traversal, regular expressions prone to ReDoS). It runs on every pull request, on pushes to `main` and once a week. Findings are shown in the "Security" tab of the repository and as annotations on the pull request. If a finding is a false positive, dismiss it in the "Security" tab with a reason instead of changing the workflow.
