@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Features
+
+- Add completions and hovers for Bruno's built-in dynamic variables (e.g. `{{$guid}}`, `{{$timestamp}}`, `{{$randomEmail}}`) in all sections with variable support, in `.bru` and `yaml` collection files. The completions are offered once `{{$` is typed, the hover shows the description and an example value.
+
 ### Fixes / Maintenance
 
 - Fix an issue that caused completions and hovers to treat the variables of `vars:post-response` blocks (and `set-variable` actions in Yaml files) as request or folder variables. They are now treated as runtime variables, like variables set via `bru.setVar`: They are offered for `bru.getVar` and `{{...}}` (also in the post-response script of the same file), and the hover lists the places where they are read. This also applies to `vars:post-response` blocks in folder and collection settings files, where the hover now also lists the reads in the requests within the folder.

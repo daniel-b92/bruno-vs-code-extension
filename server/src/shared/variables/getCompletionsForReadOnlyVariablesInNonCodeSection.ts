@@ -7,10 +7,15 @@ import {
     Range,
     VariableReferenceType,
 } from "@global_shared";
+import { CompletionItem } from "vscode-languageserver";
 import { LanguageFeatureBaseRequest } from "..";
 import { getAllVariableReferences } from "./getAllVariableReferences";
 import { VariableSectionRequest } from "./interfaces";
-import { mapVariablesToCompletions } from "./mapVariablesToCompletions";
+import {
+    GetTextEditForVariableCompletion,
+    mapVariablesToCompletions,
+} from "./mapVariablesToCompletions";
+import { mapDynamicBrunoVariablesToCompletions } from "./dynamicBrunoVariables/mapDynamicBrunoVariablesToCompletions";
 
 export function getCompletionsForReadOnlyVariablesInNonCodeSection(
     fullRequest: VariableSectionRequest,
@@ -42,6 +47,44 @@ export function getCompletionsForReadOnlyVariablesInNonCodeSection(
     const { variable, toAppendOnInsertion, quotedValueRange } =
         variableParsingResult;
 
+    const getTextEditForCompletion: GetTextEditForVariableCompletion = (
+        variableName: string,
+        rangeToReplace: Range,
+    ) =>
+        quotedValueRange
+            ? {
+                  newText: `"{{${variableName}}}"`,
+                  range: quotedValueRange,
+              }
+            : {
+                  newText: `${variableName}${toAppendOnInsertion}`,
+                  range: rangeToReplace,
+              };
+
+    const requestData = {
+        variable,
+        functionType,
+        variableType,
+        documentLineBreak:
+            documentHelper.getMostUsedLineBreak() ?? LineBreakType.Lf,
+    };
+
+    // The text edit starts at the opening braces, so the filtering has to take them into account.
+    const withFilterTextForQuotedValue = (items: CompletionItem[]) =>
+        quotedValueRange
+            ? items.map((item) => ({
+                  ...item,
+                  filterText: `{{${item.label}`,
+              }))
+            : items;
+
+    const dynamicBrunoVariableCompletions = withFilterTextForQuotedValue(
+        mapDynamicBrunoVariablesToCompletions(
+            requestData,
+            getTextEditForCompletion,
+        ),
+    );
+
     const allRefs = getAllVariableReferences(
         fullRequest,
         {
@@ -54,7 +97,7 @@ export function getCompletionsForReadOnlyVariablesInNonCodeSection(
     );
 
     if (!allRefs) {
-        return [];
+        return dynamicBrunoVariableCompletions;
     }
 
     const {
@@ -84,32 +127,13 @@ export function getCompletionsForReadOnlyVariablesInNonCodeSection(
                 fromOtherFiles,
             },
         },
-        {
-            variable,
-            functionType,
-            variableType,
-            documentLineBreak:
-                documentHelper.getMostUsedLineBreak() ?? LineBreakType.Lf,
-        },
-        (variableName: string, rangeToReplace: Range) =>
-            quotedValueRange
-                ? {
-                      newText: `"{{${variableName}}}"`,
-                      range: quotedValueRange,
-                  }
-                : {
-                      newText: `${variableName}${toAppendOnInsertion}`,
-                      range: rangeToReplace,
-                  },
+        requestData,
+        getTextEditForCompletion,
     );
 
-    // The text edit starts at the opening braces, so the filtering has to take them into account.
-    return quotedValueRange
-        ? completions.map((item) => ({
-              ...item,
-              filterText: `{{${item.label}`,
-          }))
-        : completions;
+    return withFilterTextForQuotedValue(completions).concat(
+        dynamicBrunoVariableCompletions,
+    );
 }
 
 function getVariable(
@@ -166,8 +190,7 @@ function getVariable(
 
     return {
         quotedValueRange:
-            isOnlyContentOfValue &&
-            isQuotingRequired(rangeOfVariable)
+            isOnlyContentOfValue && isQuotingRequired(rangeOfVariable)
                 ? rangeOfVariable
                 : undefined,
         variable: {

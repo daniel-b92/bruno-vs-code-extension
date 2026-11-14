@@ -8,8 +8,11 @@ import {
     Position,
     TextDocumentHelper,
 } from "@global_shared";
-import { createCollectionWithItems } from "@global_shared/_testingUtils";
-import { CancellationToken, Hover } from "vscode-languageserver";
+import {
+    createCollectionWithItems,
+    getHoverText,
+} from "@global_shared/_testingUtils";
+import { CancellationToken } from "vscode-languageserver";
 import { TypedCollectionItemProvider } from "../../shared";
 import { handleHoverRequest } from "./handleHoverRequest";
 
@@ -236,13 +239,4 @@ function hover(
         collection,
         itemProvider,
     });
-}
-
-function getHoverText(hover: Hover | undefined) {
-    const { contents } = hover ?? {};
-    return typeof contents == "string"
-        ? contents
-        : contents && "value" in contents
-          ? contents.value
-          : "";
 }

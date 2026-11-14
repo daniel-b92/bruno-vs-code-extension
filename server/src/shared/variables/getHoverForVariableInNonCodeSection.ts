@@ -1,5 +1,10 @@
-import { hasVariableSupport, Logger } from "@global_shared";
+import {
+    hasVariableSupport,
+    Logger,
+    VariableReferenceType,
+} from "@global_shared";
 import { Hover } from "vscode-languageserver";
+import { getHoverForDynamicBrunoVariable } from "./dynamicBrunoVariables/getHoverForDynamicBrunoVariable";
 import { getHoverForBrunoVariable } from "./getHoverForBrunoVariable";
 import { VariableSectionRequest } from "./interfaces";
 
@@ -28,6 +33,15 @@ export function getHoverForVariableInNonCodeSection(
     if (token.isCancellationRequested) {
         addLogEntryForCancellation(logger);
         return undefined;
+    }
+
+    // Unknown names (e.g. typos) fall through to the regular variable hover.
+    const dynamicBrunoVariableHover =
+        variableReference.referenceType == VariableReferenceType.Read
+            ? getHoverForDynamicBrunoVariable(variableReference.variableName)
+            : undefined;
+    if (dynamicBrunoVariableHover) {
+        return dynamicBrunoVariableHover;
     }
 
     return getHoverForBrunoVariable(
