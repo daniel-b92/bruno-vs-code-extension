@@ -34,6 +34,28 @@ runtime:
         expect(getHoverText(result)).toContain("scripts[0]:before-request");
     });
 
+    it("shows the description and an example for a dynamic Bruno variable", () => {
+        const text = `http:
+  method: GET
+  url: "https://api.example.com/{{$timestamp}}"
+`;
+
+        const result = hover(text, new Position(2, 35));
+
+        expect(getHoverText(result)).toBe(
+            "Current timestamp in seconds. Example: `1562757107`",
+        );
+    });
+
+    it("shows no hover for an unknown name starting with `$`", () => {
+        const text = `http:
+  method: GET
+  url: "https://api.example.com/{{$timestamps}}"
+`;
+
+        expect(hover(text, new Position(2, 35))).toBeUndefined();
+    });
+
     it("shows the static script variable references for a variable that is read in a script", () => {
         const text = `runtime:
   variables:

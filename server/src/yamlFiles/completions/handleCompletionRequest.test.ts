@@ -6,6 +6,7 @@ import {
     CollectionFormat,
     CollectionItem,
     Position,
+    Range,
     TextDocumentHelper,
 } from "@global_shared";
 import { createCollectionWithItems } from "@global_shared/_testingUtils";
@@ -526,6 +527,59 @@ describe("handleCompletionRequest for yaml files", () => {
     });
 
     describe("variable completions", () => {
+        it("suggests the dynamic Bruno variables when `{{$` is typed", async () => {
+            const result = await complete(
+                requestPath,
+                `http:
+  method: GET
+  url: "{{$ra"
+`,
+                new Position(2, 13),
+            );
+
+            const item = result?.find(({ label }) => label == "$randomEmail");
+            expect(item?.labelDetails?.description).toBe(
+                "A random email address",
+            );
+            expect(item?.textEdit).toEqual({
+                newText: "$randomEmail}}",
+                range: new Range(new Position(2, 10), new Position(2, 13)),
+            });
+        });
+
+        it("does not suggest the dynamic Bruno variables when only `{{` is typed", async () => {
+            const result = await complete(
+                requestPath,
+                `http:
+  method: GET
+  url: "{{"
+`,
+                new Position(2, 12),
+            );
+
+            expect(
+                (result ?? []).filter(({ label }) => label.startsWith("$")),
+            ).toEqual([]);
+        });
+
+        it("wraps the value in quotes when `{{$` starts an unquoted value", async () => {
+            const result = await complete(
+                requestPath,
+                `http:
+  method: GET
+  url: {{$gu
+`,
+                new Position(2, 12),
+            );
+
+            const item = result?.find(({ label }) => label == "$guid");
+            expect(item?.filterText).toBe("{{$guid");
+            expect(item?.textEdit).toEqual({
+                newText: `"{{$guid}}"`,
+                range: new Range(new Position(2, 7), new Position(2, 12)),
+            });
+        });
+
         it("suggests variables within `{{` in non-code sections", async () => {
             const result = await complete(
                 requestPath,
