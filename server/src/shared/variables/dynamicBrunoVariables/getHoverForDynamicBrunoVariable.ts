@@ -1,6 +1,6 @@
 import { Hover } from "vscode-languageserver";
-import { wrapInCodeSpan } from "../../markdown/wrapInCodeSpan";
 import { getDynamicBrunoVariableByName } from "./dynamicBrunoVariables";
+import { getMarkdownForDynamicBrunoVariable } from "./getMarkdownForDynamicBrunoVariable";
 
 /** Returns `undefined` if the name is not one of Bruno's built-in dynamic variables. */
 export function getHoverForDynamicBrunoVariable(
@@ -12,7 +12,7 @@ export function getHoverForDynamicBrunoVariable(
         ? {
               contents: {
                   kind: "markdown",
-                  value: `${variable.description}. Example: ${wrapInCodeSpan(variable.example)}`,
+                  value: getMarkdownForDynamicBrunoVariable(variable),
               },
           }
         : undefined;

@@ -8,8 +8,11 @@ import {
     Position,
     TextDocumentHelper,
 } from "@global_shared";
-import { createCollectionWithItems } from "@global_shared/_testingUtils";
-import { CancellationToken, Hover } from "vscode-languageserver";
+import {
+    createCollectionWithItems,
+    getHoverText,
+} from "@global_shared/_testingUtils";
+import { CancellationToken } from "vscode-languageserver";
 import { TypedCollectionItemProvider } from "../../shared";
 import { handleHoverRequest } from "./handleHoverRequest";
 
@@ -32,28 +35,6 @@ runtime:
 
         expect(getHoverText(result)).toContain("Dynamic references");
         expect(getHoverText(result)).toContain("scripts[0]:before-request");
-    });
-
-    it("shows the description and an example for a dynamic Bruno variable", () => {
-        const text = `http:
-  method: GET
-  url: "https://api.example.com/{{$timestamp}}"
-`;
-
-        const result = hover(text, new Position(2, 35));
-
-        expect(getHoverText(result)).toBe(
-            "Current timestamp in seconds. Example: `1562757107`",
-        );
-    });
-
-    it("shows no hover for an unknown name starting with `$`", () => {
-        const text = `http:
-  method: GET
-  url: "https://api.example.com/{{$timestamps}}"
-`;
-
-        expect(hover(text, new Position(2, 35))).toBeUndefined();
     });
 
     it("shows the static script variable references for a variable that is read in a script", () => {
@@ -258,13 +239,4 @@ function hover(
         collection,
         itemProvider,
     });
-}
-
-function getHoverText(hover: Hover | undefined) {
-    const { contents } = hover ?? {};
-    return typeof contents == "string"
-        ? contents
-        : contents && "value" in contents
-          ? contents.value
-          : "";
 }

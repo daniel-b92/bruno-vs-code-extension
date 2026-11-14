@@ -24,7 +24,7 @@ describe("mapDynamicBrunoVariablesToCompletions", () => {
         );
         expect(randomInt?.documentation).toEqual({
             kind: "markdown",
-            value: "A random integer between 0 and 1000. Example: `802, 494, 200`",
+            value: "A random integer between 0 and 1000. Examples: `802`, `494`, `200`",
         });
     });
 

@@ -6,21 +6,15 @@ import {
     BrunoRequestFile,
     CollectionDirectory,
     CollectionFormat,
-    Position,
-    TextDocumentHelper,
 } from "@global_shared";
+import { getHoverText } from "@global_shared/_testingUtils";
 import {
-    createCollectionWithParsedFiles,
-    ParsedCollectionFile,
-} from "@global_shared/_testingUtils";
-import { CancellationToken, Hover } from "vscode-languageserver";
-import { TypedCollectionItemProvider } from "..";
-import { handleCompletionRequest as handleBruCompletionRequest } from "../../bruFiles/completions/handleCompletionRequest";
-import { handleHoverRequest as handleBruHoverRequest } from "../../bruFiles/hover/handleHoverRequest";
-import { handleCompletionRequest as handleYamlCompletionRequest } from "../../yamlFiles/completions/handleCompletionRequest";
-import { handleHoverRequest as handleYamlHoverRequest } from "../../yamlFiles/hover/handleHoverRequest";
-
-const CURSOR = "§";
+    CURSOR,
+    requestCompletions,
+    requestHover,
+    TestFile,
+    toTestFile,
+} from "../_testingUtils/languageRequestTestUtils";
 
 /**
  * Variables that are set in post-response vars (`vars:post-response` in Bru, `set-variable` actions in Yaml) are runtime variables.
@@ -77,9 +71,11 @@ describe("variables that are set in post-response vars", () => {
 
             it("shows the reads of the runtime variable in the hover for a post-response var", () => {
                 const hoverText = getHoverText(
-                    hover(format, login({ tokenName: `to${CURSOR}ken` }), [
-                        getUser({ preRequestScript: 'bru.getVar("token")' }),
-                    ]),
+                    requestHover(
+                        format,
+                        login({ tokenName: `to${CURSOR}ken` }),
+                        [getUser({ preRequestScript: 'bru.getVar("token")' })],
+                    ),
                 );
 
                 expect(hoverText).toContain("Dynamic references");
@@ -97,7 +93,7 @@ describe("variables that are set in post-response vars", () => {
                 "shows the reads in %s in the hover for a pre-request var",
                 (_description, toParts, sectionName) => {
                     const hoverText = getHoverText(
-                        hover(
+                        requestHover(
                             format,
                             login({
                                 userIdName: `user${CURSOR}Id`,
@@ -139,7 +135,7 @@ describe("variables that are set in post-response vars", () => {
 
             it("shows the reads in requests within the folder in the hover for a post-response var", () => {
                 const hoverText = getHoverText(
-                    hover(format, settingsFile(`to${CURSOR}ken`), [
+                    requestHover(format, settingsFile(`to${CURSOR}ken`), [
                         settingsDirectory(),
                         child({ preRequestScript: 'bru.getVar("token")' }),
                     ]),
@@ -159,7 +155,7 @@ describe("variables that are set in post-response vars", () => {
 
             it("does not show reads in requests that are executed before the folder in the hover for a post-response var", () => {
                 const hoverText = getHoverText(
-                    hover(format, settingsFile(`to${CURSOR}ken`), [
+                    requestHover(format, settingsFile(`to${CURSOR}ken`), [
                         settingsDirectory(),
                         child({ preRequestScript: 'bru.getVar("token")' }),
                         beforeFolder({
@@ -174,12 +170,6 @@ describe("variables that are set in post-response vars", () => {
         },
     );
 });
-
-interface TestFile extends ParsedCollectionFile {
-    content: string;
-    /** Is only set for the file at which the language feature is requested. */
-    position?: Position;
-}
 
 interface RequestParts {
     url?: string;
@@ -197,79 +187,9 @@ async function complete(
     source: TestFile,
     otherFiles: TestFile[],
 ) {
-    const params = getLanguageRequest(format, source, otherFiles);
-    const result =
-        format == CollectionFormat.Bru
-            ? await handleBruCompletionRequest(params)
-            : await handleYamlCompletionRequest(params);
+    const result = await requestCompletions(format, source, otherFiles);
 
     return result?.map(({ label }) => label.trim()) ?? [];
-}
-
-function hover(
-    format: CollectionFormat,
-    source: TestFile,
-    otherFiles: TestFile[],
-) {
-    const params = getLanguageRequest(format, source, otherFiles);
-
-    return format == CollectionFormat.Bru
-        ? handleBruHoverRequest(params)
-        : handleYamlHoverRequest(params);
-}
-
-function getLanguageRequest(
-    format: CollectionFormat,
-    source: TestFile,
-    otherFiles: TestFile[],
-) {
-    const { collection, itemProvider } =
-        createCollectionWithParsedFiles<TypedCollectionItemProvider>(
-            [source, ...otherFiles],
-            format,
-        );
-
-    return {
-        baseRequest: {
-            filePath: source.item.getPath(),
-            documentHelper: new TextDocumentHelper(source.content),
-            position: source.position ?? new Position(0, 0),
-            token: CancellationToken.None,
-        },
-        collection,
-        itemProvider,
-    };
-}
-
-function getHoverText(hover: Hover | undefined) {
-    const { contents } = hover ?? {};
-    return typeof contents == "string"
-        ? contents
-        : contents && "value" in contents
-          ? contents.value
-          : "";
-}
-
-/** Removes the cursor marker from the content (if there is one) and determines its position. */
-function toTestFile(
-    file: ParsedCollectionFile & { content: string },
-): TestFile {
-    const index = file.content.indexOf(CURSOR);
-
-    if (index < 0) {
-        return file;
-    }
-
-    const linesBeforeCursor = file.content.slice(0, index).split("\n");
-
-    return {
-        ...file,
-        content: file.content.replace(CURSOR, ""),
-        position: new Position(
-            linesBeforeCursor.length - 1,
-            linesBeforeCursor[linesBeforeCursor.length - 1].length,
-        ),
-    };
 }
 
 function bruRequest(

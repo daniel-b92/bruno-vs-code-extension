@@ -1,7 +1,10 @@
 import { describe, it, expect } from "@jest/globals";
 import { CollectionFormat, Position, TextDocumentHelper } from "@global_shared";
-import { createCollectionWithEnvironments } from "@global_shared/_testingUtils";
-import { CancellationToken, Hover } from "vscode-languageserver";
+import {
+    createCollectionWithEnvironments,
+    getHoverText,
+} from "@global_shared/_testingUtils";
+import { CancellationToken } from "vscode-languageserver";
 import {
     handleHoverRequest,
     handleHoverRequestForJsFileInContextRoot,
@@ -59,11 +62,4 @@ function getBaseRequest(text = 'bru.getEnvVar("token")') {
         position: new Position(0, 15),
         token: CancellationToken.None,
     };
-}
-
-function getHoverText(hover: Hover | undefined) {
-    const { contents } = hover ?? {};
-    return typeof contents == "object" && contents && "value" in contents
-        ? contents.value
-        : "";
 }

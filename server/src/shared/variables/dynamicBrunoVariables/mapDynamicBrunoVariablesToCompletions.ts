@@ -1,9 +1,9 @@
 import { Range } from "@global_shared";
 import { CompletionItem, CompletionItemKind } from "vscode-languageserver";
-import { wrapInCodeSpan } from "../../markdown/wrapInCodeSpan";
 import { VariableSpecificRequestData } from "../../interfaces";
 import { GetTextEditForVariableCompletion } from "../mapVariablesToCompletions";
 import { getDynamicBrunoVariables } from "./dynamicBrunoVariables";
+import { getMarkdownForDynamicBrunoVariable } from "./getMarkdownForDynamicBrunoVariable";
 
 /**
  * Maps Bruno's built-in dynamic variables to completion items.
@@ -20,21 +20,19 @@ export function mapDynamicBrunoVariablesToCompletions(
         return [];
     }
 
-    return getDynamicBrunoVariables().map(
-        ({ name: variableName, description, example }) => ({
-            label: variableName,
-            labelDetails: { description },
-            kind: CompletionItemKind.Constant,
-            documentation: {
-                kind: "markdown",
-                value: `${description}. Example: ${wrapInCodeSpan(example)}`,
-            },
-            sortText: `d_${variableName}`,
-            textEdit: getTextEditForCompletion(
-                variableName,
-                new Range(start, end),
-                documentLineBreak,
-            ),
-        }),
-    );
+    return getDynamicBrunoVariables().map((dynamicVariable) => ({
+        label: dynamicVariable.name,
+        labelDetails: { description: dynamicVariable.description },
+        kind: CompletionItemKind.Constant,
+        documentation: {
+            kind: "markdown",
+            value: getMarkdownForDynamicBrunoVariable(dynamicVariable),
+        },
+        sortText: `d_${dynamicVariable.name}`,
+        textEdit: getTextEditForCompletion(
+            dynamicVariable.name,
+            new Range(start, end),
+            documentLineBreak,
+        ),
+    }));
 }
