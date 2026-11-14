@@ -93,7 +93,18 @@ disposables.push(
                 },
                 // Formatting is registered dynamically (see `FormattingRegistration`).
                 completionProvider: {
-                    triggerCharacters: [":", " ", "{", ".", "/", '"', "'", "`"],
+                    // `$` triggers the completions for Bruno's dynamic variables (`{{$...`).
+                    triggerCharacters: [
+                        ":",
+                        " ",
+                        "{",
+                        ".",
+                        "/",
+                        '"',
+                        "'",
+                        "`",
+                        "$",
+                    ],
                     completionItem: { labelDetailsSupport: true },
                 },
                 diagnosticProvider: {
