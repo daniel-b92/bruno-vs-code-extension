@@ -146,6 +146,17 @@
                     "type": "boolean",
                     "default": true,
                     "markdownDescription": "Show a warning when collection root files are ignored, because other collection root files exist in the same directory or its subdirectories (nested collections)."
+                },
+                "bru-as-code.sequenceStep": {
+                    "type": "number",
+                    "enum": [
+                        1,
+                        5,
+                        10,
+                        100
+                    ],
+                    "default": 1,
+                    "markdownDescription": "Default sequence increment used by the collection explorer's Normalize sequences action."
                 }
             }
         },
@@ -363,6 +374,12 @@
                 "category": "Bru-as-Code"
             },
             {
+                "command": "brunoCollectionsView.normalizeSequences",
+                "title": "Normalize sequences",
+                "category": "Bru-as-Code",
+                "enablement": "view == brunoCollectionsView"
+            },
+            {
                 "command": "bruAsCode.restartLanguageServer",
                 "title": "Restart language server",
                 "category": "Bru-as-Code"
@@ -450,6 +467,11 @@
                     "command": "brunoCollectionsView.deleteItem",
                     "when": "view == brunoCollectionsView",
                     "group": "crud@40"
+                },
+                {
+                    "command": "brunoCollectionsView.normalizeSequences",
+                    "when": "view == brunoCollectionsView && (viewItem == folder || viewItem == collectionRoot)",
+                    "group": "crud@45"
                 },
                 {
                     "command": "brunoCollectionsView.startTestRun",

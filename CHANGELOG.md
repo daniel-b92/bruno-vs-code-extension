@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Features
+
+- Add a configurable, recursive sequence normalization action to the collection explorer.
+
 ## [2.1.1] (2026-11-13)
 
 ### Fixes / Maintenance
