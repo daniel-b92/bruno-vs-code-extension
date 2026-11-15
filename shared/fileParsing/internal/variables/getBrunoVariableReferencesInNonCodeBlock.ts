@@ -1,5 +1,4 @@
 import {
-    BrunoFileType,
     BrunoVariableReference,
     BrunoVariableType,
     getPatternForVarsReadReferenceInNonCodeBlock,
@@ -9,8 +8,9 @@ import {
     Range,
     RequestFileBlockName,
     TextDocumentHelper,
-    VariableAvailabilityScopes,
+    getVariableTypeAndScopeForScriptVars,
     VariableReferenceType,
+    VariableScopeSectionKind,
 } from "../../..";
 import { ParsedBlockContent } from "../bruFormat/getBlockContent";
 
@@ -113,17 +113,15 @@ function getWriteReferences(
         .filter((field) => isDictionaryBlockSimpleField(field))
         .filter(({ disabled }) => !disabled);
 
+    const kind =
+        blockName == RequestFileBlockName.PreRequestVars
+            ? VariableScopeSectionKind.PreRequestVars
+            : VariableScopeSectionKind.PostResponseVars;
+
     return activeFields.map(({ key, keyRange }) => ({
         referenceType: VariableReferenceType.Write,
         variableName: key,
         variableNameRange: keyRange,
-        variableType:
-            itemType == BrunoFileType.RequestFile
-                ? BrunoVariableType.Request
-                : BrunoVariableType.Folder,
-        scope:
-            blockName == RequestFileBlockName.PreRequestVars
-                ? VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
-                : VariableAvailabilityScopes.PostResponseScriptForOwnItemAndDescendants,
+        ...getVariableTypeAndScopeForScriptVars(kind, itemType),
     }));
 }

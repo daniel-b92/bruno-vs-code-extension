@@ -12,14 +12,13 @@ import {
 import {
     BrunoFileType,
     BrunoVariableReference,
-    BrunoVariableType,
     getPatternForVarsReadReferenceInNonCodeBlock,
+    getVariableTypeAndScopeForScriptVars,
     isScriptVarsSection,
     ItemType,
     Position,
     Range,
     TextDocumentHelper,
-    VariableAvailabilityScopes,
     VariableReferenceType,
     VariableScopeSection,
     VariableScopeSectionKind,
@@ -323,14 +322,7 @@ function getWriteReferences(
                 referenceType: VariableReferenceType.Write,
                 variableName: nameNode.value,
                 variableNameRange,
-                variableType:
-                    itemType == BrunoFileType.RequestFile
-                        ? BrunoVariableType.Request
-                        : BrunoVariableType.Folder,
-                scope:
-                    kind == VariableScopeSectionKind.PreRequestVars
-                        ? VariableAvailabilityScopes.PreRequestScriptForOwnItemAndDescendants
-                        : VariableAvailabilityScopes.PostResponseScriptForOwnItemAndDescendants,
+                ...getVariableTypeAndScopeForScriptVars(kind, itemType),
             },
         ];
     });

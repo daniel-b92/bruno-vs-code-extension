@@ -3,8 +3,7 @@ import {
     BrunoVariableReference,
     BrunoVariableType,
     getMatchingDefinitionsFromEnvFiles,
-    getScriptSectionForScriptVarsSection,
-    isScriptVarsSection,
+    getScriptSectionsForPreRequestVars,
     ItemType,
     Logger,
     normalizePath,
@@ -44,14 +43,12 @@ export function getAllVariableReferences(
     const { referenceType, variableType } = sourceReference;
     const { kind: sourceSectionKind } = sectionContainingPosition;
 
-    if (isScriptVarsSection(sourceSectionKind)) {
-        // In script vars sections, variables can only be set, not read.
+    if (sourceSectionKind == VariableScopeSectionKind.PreRequestVars) {
+        // In pre-request vars sections, variables can only be set, not read.
         // So the only relevant variable references are in the sections that can read the variables that are set within the source section.
-        const scriptSectionToCheck =
-            getScriptSectionForScriptVarsSection(sourceSectionKind);
-
-        const refs = getVariableRefsForScriptVarsSection(
-            scriptSectionToCheck,
+        // (Post-response vars are runtime variables, so they are handled like any other dynamic variable.)
+        const refs = getVariableRefsForPreRequestVarsSection(
+            getScriptSectionsForPreRequestVars(),
             fullRequest,
             sourceReference,
         );
@@ -139,10 +136,8 @@ export function getAllVariableReferences(
     };
 }
 
-function getVariableRefsForScriptVarsSection(
-    sectionToCheck:
-        | VariableScopeSectionKind.PreRequestScript
-        | VariableScopeSectionKind.PostResponseScript,
+function getVariableRefsForPreRequestVarsSection(
+    sectionsToCheck: VariableScopeSectionKind[],
     {
         file: { allSections, collection },
         request: { filePath },
@@ -182,24 +177,22 @@ function getVariableRefsForScriptVarsSection(
             ? BrunoVariableType.Request
             : BrunoVariableType.Folder;
 
-    const sectionNameToDisplay =
-        allSections.find(({ kind }) => kind == sectionToCheck)?.name ??
-        String(sectionToCheck);
-    const refsWithinSameFile =
-        allSections.find(({ kind }) => kind == sectionToCheck)
-            ?.variableReferences ?? [];
+    const relevantSectionsWithinSameFile = allSections.filter(({ kind }) =>
+        sectionsToCheck.includes(kind),
+    );
+    const refsWithinSameFile = relevantSectionsWithinSameFile.flatMap(
+        ({ name, variableReferences }) =>
+            filterDynamicReferences(
+                variableReferences,
+                referenceType,
+                variableType,
+            ).map((ref) => ({ blockName: name, variableReference: ref })),
+    );
 
     if (itemType == BrunoFileType.RequestFile) {
         // Request files cannot have any descendant collection items.
         return {
-            withinSameFile: filterDynamicReferences(
-                refsWithinSameFile,
-                referenceType,
-                variableType,
-            ).map((ref) => ({
-                blockName: sectionNameToDisplay,
-                variableReference: ref,
-            })),
+            withinSameFile: refsWithinSameFile,
             fromOtherFiles: [],
         };
     }
@@ -218,7 +211,7 @@ function getVariableRefsForScriptVarsSection(
     const relevantRefsForDescendants = descendantItems.flatMap(
         ({ item, additionalData }) => {
             const refsInRelevantSection = additionalData?.filter(
-                ({ sectionKind }) => sectionKind == sectionToCheck,
+                ({ sectionKind }) => sectionsToCheck.includes(sectionKind),
             );
             return !refsInRelevantSection || refsInRelevantSection.length == 0
                 ? []
@@ -230,14 +223,7 @@ function getVariableRefsForScriptVarsSection(
     );
 
     return {
-        withinSameFile: filterDynamicReferences(
-            refsWithinSameFile,
-            referenceType,
-            variableType,
-        ).map((ref) => ({
-            blockName: sectionNameToDisplay,
-            variableReference: ref,
-        })),
+        withinSameFile: refsWithinSameFile,
         fromOtherFiles: relevantRefsForDescendants.flatMap(
             ({ path, reference }) => {
                 const relevantRefs = filterDynamicReferences(

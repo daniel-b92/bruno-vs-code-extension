@@ -229,10 +229,13 @@ docs: |
             expect.objectContaining({
                 variableName: "second",
                 referenceType: VariableReferenceType.Write,
-                variableType: BrunoVariableType.Request,
-                scope: VariableAvailabilityScopes.PostResponseScriptForOwnItemAndDescendants,
+                variableType: BrunoVariableType.Runtime,
             }),
         ]);
+        expect(
+            findSection(sections, "runtime.actions").variableReferences[0]
+                .scope,
+        ).toBeUndefined();
     });
 
     it("creates sections for scripts defined as literal block scalars", () => {

@@ -12,6 +12,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { getHandlerForFormatting } from "./bruFiles/formatting/getHandlerForFormatting";
 import { getHandlerForYamlFormatting } from "./yamlFiles/formatting/getHandlerForYamlFormatting";
 import { FormattingRegistration } from "./shared/formattingRegistration";
+import { registerCompletionProviders } from "./shared/completionRegistration";
 import {
     getDefaultLogger,
     HelpersProvider,
@@ -91,11 +92,7 @@ disposables.push(
                     openClose: true,
                     save: true,
                 },
-                // Formatting is registered dynamically (see `FormattingRegistration`).
-                completionProvider: {
-                    triggerCharacters: [":", " ", "{", ".", "/", '"', "'", "`"],
-                    completionItem: { labelDetailsSupport: true },
-                },
+                // Formatting and completions are registered dynamically (see `FormattingRegistration` and `registerCompletionProviders`).
                 diagnosticProvider: {
                     interFileDependencies: true,
                     workspaceDiagnostics: false,
@@ -115,6 +112,7 @@ disposables.push(
         formattingRegistration = new FormattingRegistration(connection);
         disposables.push(formattingRegistration);
         void formattingRegistration.registerForBruFiles();
+        void registerCompletionProviders(connection);
 
         const workspaceFolders = await getWorkspaceFolders();
         helpersProvider = new HelpersProvider(

@@ -31,8 +31,6 @@ export const VariableAvailabilityScopes = {
     Collection: "Collection",
     PreRequestScriptForOwnItemAndDescendants:
         "PreRequestScriptForOwnItemAndDescendants",
-    PostResponseScriptForOwnItemAndDescendants:
-        "PostResponseScriptForOwnItemAndDescendants",
 } as const;
 
 export interface InbuiltFunctionIdentifier {
